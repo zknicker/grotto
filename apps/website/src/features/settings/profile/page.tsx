@@ -1,15 +1,12 @@
-import { Input, TextField } from '@heroui/react';
+import { Input, Separator, TextField } from '@heroui/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import { useUserProfilePreference } from '../../../hooks/shell/use-user-profile-preference.ts';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
 import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
-import {
-    SettingsGroup,
-    SettingsPage,
-    SettingsPageHeader,
-    SettingsRow,
-    SettingsSection,
-} from '../layout/settings-page.tsx';
+import { PageColumn } from '../../shell/page-column.tsx';
+import { SettingsPageHeader } from '../layout/settings-page.tsx';
+import { SettingsRowError } from '../layout/settings-text.tsx';
 
 export function ProfileSettings({ serverId }: { serverId: string }) {
     const profile = useUserProfilePreference();
@@ -18,17 +15,23 @@ export function ProfileSettings({ serverId }: { serverId: string }) {
     const displayName = profile.displayName ?? '';
 
     return (
-        <SettingsPage>
+        <PageColumn>
             <SettingsPageHeader title="Profile" />
-            <SettingsSection title="Identity">
-                <SettingsGroup>
-                    <SettingsRow
-                        description="Shown beside your messages."
-                        error={error ?? setAvatar.error?.message ?? null}
-                        title="Photo"
-                        trailingWidth="intrinsic"
-                    >
-                        <div className="flex items-center md:justify-end">
+            <ItemCardGroup variant="transparent">
+                <ItemCardGroup.Header>
+                    <ItemCardGroup.Title>Identity</ItemCardGroup.Title>
+                </ItemCardGroup.Header>
+                <ItemCardGroup className="overflow-hidden">
+                    <ItemCard>
+                        <ItemCard.Content>
+                            <ItemCard.Title>Photo</ItemCard.Title>
+                            <ItemCard.Description>Shown beside your messages.</ItemCard.Description>
+                            <SettingsRowError>{error ?? setAvatar.error?.message}</SettingsRowError>
+                        </ItemCard.Content>
+                        {/* The picker's edit badge overhangs its own box by 8px,
+                            so the slot buys that back to keep the row's trailing
+                            padding even with every other row. */}
+                        <ItemCard.Action className="pe-2">
                             <AvatarPicker
                                 isDisabled={setAvatar.isPending}
                                 label="profile photo"
@@ -45,21 +48,31 @@ export function ProfileSettings({ serverId }: { serverId: string }) {
                                 }}
                                 src={profile.avatarUrl}
                             />
-                        </div>
-                    </SettingsRow>
-                    <SettingsRow description="Leave blank to show “You”." title="Display Name">
-                        <TextField
-                            aria-label="Display name"
-                            fullWidth
-                            onChange={profile.setDisplayName}
-                            value={displayName}
-                            variant="secondary"
-                        >
-                            <Input fullWidth placeholder="You" />
-                        </TextField>
-                    </SettingsRow>
-                </SettingsGroup>
-            </SettingsSection>
-        </SettingsPage>
+                        </ItemCard.Action>
+                    </ItemCard>
+                    <Separator />
+                    <ItemCard>
+                        <ItemCard.Content>
+                            <ItemCard.Title>Display Name</ItemCard.Title>
+                            <ItemCard.Description>Leave blank to show “You”.</ItemCard.Description>
+                        </ItemCard.Content>
+                        <ItemCard.Action>
+                            {/* The field is the row's control, so it carries a
+                                readable measure of its own rather than stretching
+                                to whatever the trailing slot allows. */}
+                            <TextField
+                                aria-label="Display name"
+                                className="w-56 max-w-full"
+                                onChange={profile.setDisplayName}
+                                value={displayName}
+                                variant="secondary"
+                            >
+                                <Input placeholder="You" />
+                            </TextField>
+                        </ItemCard.Action>
+                    </ItemCard>
+                </ItemCardGroup>
+            </ItemCardGroup>
+        </PageColumn>
     );
 }

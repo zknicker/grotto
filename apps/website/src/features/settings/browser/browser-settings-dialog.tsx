@@ -56,17 +56,6 @@ export function BrowserSettingsDialog({
                     Save
                 </Button>
             }
-            headerAction={
-                <BrowserLockSwitch
-                    aria-label={`${draft.enabled ? 'Disable' : 'Enable'} Browser`}
-                    checked={draft.enabled}
-                    disabled={isSaving}
-                    locked={false}
-                    onCheckedChange={(enabled) =>
-                        onDraftChange((current) => ({ ...current, enabled }))
-                    }
-                />
-            }
             icon={BrowserIcon}
             onOpenChange={onOpenChange}
             onSubmit={() => {
@@ -79,6 +68,20 @@ export function BrowserSettingsDialog({
             titleSuffix="Tool"
         >
             <BrowserSectionStack>
+                <BrowserSection
+                    action={
+                        <BrowserLockSwitch
+                            aria-label={`${draft.enabled ? 'Disable' : 'Enable'} Browser`}
+                            checked={draft.enabled}
+                            disabled={isSaving}
+                            locked={false}
+                            onCheckedChange={(enabled) =>
+                                onDraftChange((current) => ({ ...current, enabled }))
+                            }
+                        />
+                    }
+                    title="Enable Browser"
+                />
                 <BrowserSection
                     description="Choose a durable, signed-in browser identity for this tool."
                     title="Profile"

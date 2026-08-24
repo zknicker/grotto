@@ -1,128 +1,94 @@
-import type { IconSvgElement } from '@hugeicons/react';
-import { ComputerIcon, Moon02Icon, Sun01Icon } from '@hugeicons-pro/core-duotone-rounded';
-import { Tick02Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Description, Label } from '@heroui/react';
+import { RadioButtonGroup } from '@heroui-pro/react';
 import { type ThemePreference, useTheme } from '../../../components/theme-provider.tsx';
-import { Icon } from '../../../components/ui/icon.tsx';
 import { cn } from '../../../lib/utils.ts';
-import { SettingsPage, SettingsPageHeader, SettingsSection } from '../layout/settings-page.tsx';
+import { PageColumn } from '../../shell/page-column.tsx';
+import { SettingsPageHeader } from '../layout/settings-page.tsx';
 
 const themeOptions: Array<{
     description: string;
-    icon: IconSvgElement;
     id: ThemePreference;
     label: string;
 }> = [
-    { id: 'light', label: 'Light', description: 'Always use light mode', icon: Sun01Icon },
-    { id: 'dark', label: 'Dark', description: 'Always use dark mode', icon: Moon02Icon },
-    { id: 'system', label: 'System', description: 'Match your OS preference', icon: ComputerIcon },
+    { id: 'light', label: 'Light', description: 'Always use light mode' },
+    { id: 'dark', label: 'Dark', description: 'Always use dark mode' },
+    { id: 'system', label: 'System', description: 'Match your OS preference' },
 ];
 
 export function AppearanceSettings() {
     const { setTheme, theme } = useTheme();
 
     return (
-        <SettingsPage>
+        <PageColumn>
             <SettingsPageHeader title="Appearance" />
-            <SettingsSection title="Theme Mode">
-                <div className="grid gap-4 sm:grid-cols-3">
-                    {themeOptions.map((option) => {
-                        const isActive = option.id === theme;
-
-                        return (
-                            <button
-                                aria-pressed={isActive}
-                                className={cn(
-                                    'no-drag group relative flex cursor-[var(--cursor-interactive)] flex-col overflow-hidden rounded-2xl border bg-surface text-left outline-none',
-                                    'focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-background',
-                                    isActive
-                                        ? 'border-accent'
-                                        : 'border-border hover:bg-surface-hover'
-                                )}
-                                key={option.id}
-                                onClick={() => setTheme(option.id)}
-                                type="button"
-                            >
-                                <ThemePreview isActive={isActive} variant={option.id} />
-                                <div className="flex items-center justify-between gap-2 px-4 py-3">
-                                    <div className="flex min-w-0 items-center gap-3">
-                                        <Icon
-                                            aria-hidden="true"
-                                            className={cn(
-                                                'shrink-0',
-                                                isActive
-                                                    ? 'text-accent'
-                                                    : 'text-muted group-hover:text-foreground'
-                                            )}
-                                            icon={option.icon}
-                                            size={20}
-                                        />
-                                        <div className="min-w-0">
-                                            <div className="truncate font-semibold text-foreground text-sm leading-none">
-                                                {option.label}
-                                            </div>
-                                            <div className="mt-1 truncate text-muted text-sm leading-none">
-                                                {option.description}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <span
-                                        aria-hidden="true"
-                                        className={cn(
-                                            'inline-flex size-5 shrink-0 items-center justify-center rounded-full',
-                                            isActive
-                                                ? 'bg-accent text-accent-foreground'
-                                                : 'border border-border bg-transparent'
-                                        )}
-                                    >
-                                        {isActive ? (
-                                            <Icon
-                                                className="size-3"
-                                                icon={Tick02Icon}
-                                                strokeWidth={3}
-                                            />
-                                        ) : null}
-                                    </span>
-                                </div>
-                            </button>
-                        );
-                    })}
-                </div>
-            </SettingsSection>
-        </SettingsPage>
+            {/* Selection, keyboard navigation, focus, and the selected ring are
+                the group's; the window previews below are ours. They depict a
+                light and a dark window, so they stay literally light and dark in
+                either theme rather than following the tokens. */}
+            <RadioButtonGroup
+                className="grid-cols-1 sm:grid-cols-3"
+                layout="grid"
+                name="theme"
+                onChange={(value) => setTheme(value as ThemePreference)}
+                value={theme}
+            >
+                <Label className="col-span-full font-medium text-foreground text-sm">
+                    Theme Mode
+                </Label>
+                {themeOptions.map((option) => (
+                    <RadioButtonGroup.Item
+                        className="overflow-hidden p-0"
+                        key={option.id}
+                        value={option.id}
+                    >
+                        {/* The group parks its indicator over the artwork,
+                            where a 15px dot is unreadable on a window mock;
+                            it belongs on the label strip beside the name. */}
+                        <RadioButtonGroup.Indicator className="top-auto right-4 bottom-4" />
+                        <RadioButtonGroup.ItemContent className="gap-0">
+                            <ThemePreview variant={option.id} />
+                            <span className="flex flex-col gap-0.5 px-4 py-3">
+                                <Label className="font-semibold text-foreground text-sm">
+                                    {option.label}
+                                </Label>
+                                <Description className="text-muted text-sm">
+                                    {option.description}
+                                </Description>
+                            </span>
+                        </RadioButtonGroup.ItemContent>
+                    </RadioButtonGroup.Item>
+                ))}
+            </RadioButtonGroup>
+        </PageColumn>
     );
 }
 
-function ThemePreview({ isActive, variant }: { isActive: boolean; variant: ThemePreference }) {
+function ThemePreview({ variant }: { variant: ThemePreference }) {
     return (
-        <div
-            className={cn(
-                'relative aspect-[16/7] w-full overflow-hidden border-b',
-                isActive ? 'border-accent' : 'border-border'
-            )}
-        >
+        <span className="relative block aspect-[16/7] w-full overflow-hidden border-border border-b">
             {variant === 'system' ? <SystemSurface /> : <ToneSurface tone={variant} />}
-        </div>
+        </span>
     );
 }
 
 function ToneSurface({ tone }: { tone: 'dark' | 'light' }) {
     return (
-        <div className={cn('relative h-full w-full', frameClass(tone))}>
+        <span className={cn('relative block h-full w-full', frameClass(tone))}>
             <ToneWindow tone={tone} />
-        </div>
+        </span>
     );
 }
 
 function SystemSurface() {
     return (
-        <div className="relative flex h-full w-full">
-            <div className={cn('relative flex-1', frameClass('dark'))}>
+        <span className="relative flex h-full w-full">
+            <span className={cn('relative flex-1', frameClass('dark'))}>
                 <ToneWindow insetLeft="30%" tone="dark" />
-            </div>
-            <div className={cn('relative flex-1', frameClass('light'))}>
+            </span>
+            <span className={cn('relative flex-1', frameClass('light'))}>
                 <ToneWindow insetLeft="30%" tone="light" />
-            </div>
-        </div>
+            </span>
+        </span>
     );
 }
 
@@ -136,22 +102,22 @@ function ToneWindow({ insetLeft = '22%', tone }: { insetLeft?: string; tone: 'da
         : 'bg-zinc-100 border-b border-zinc-200';
 
     return (
-        <div
+        <span
             className={cn(
                 'absolute top-[18%] right-0 bottom-0 flex flex-col overflow-hidden rounded-tl-2xl',
                 windowSurface
             )}
             style={{ left: insetLeft }}
         >
-            <div className={cn('flex h-10 shrink-0 items-center gap-1.5 pr-3 pl-4', titlebar)}>
+            <span className={cn('flex h-10 shrink-0 items-center gap-1.5 pr-3 pl-4', titlebar)}>
                 <span className="size-3 rounded-full bg-[#ff5f57]" />
                 <span className="size-3 rounded-full bg-[#febc2e]" />
                 <span className="size-3 rounded-full bg-[#28c840]" />
-            </div>
-            <div className="flex flex-1 items-center justify-end pr-5">
+            </span>
+            <span className="flex flex-1 items-center justify-end pr-5">
                 <span className="font-bold text-3xl tracking-tight">Aa</span>
-            </div>
-        </div>
+            </span>
+        </span>
     );
 }
 

@@ -1,17 +1,13 @@
-import { Button } from '@heroui/react';
+import { Button, Separator } from '@heroui/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ServerSummary } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
-import {
-    SettingsGroup,
-    SettingsPage,
-    SettingsPageHeader,
-    SettingsRow,
-    SettingsSection,
-    SettingsValue,
-} from '../layout/settings-page.tsx';
+import { PageColumn } from '../../shell/page-column.tsx';
+import { SettingsPageHeader } from '../layout/settings-page.tsx';
+import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
 
 export function ServerSettings({ server }: { server: ServerSummary }) {
     const navigate = useNavigate();
@@ -26,40 +22,64 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
     });
 
     return (
-        <SettingsPage>
+        <PageColumn>
             <SettingsPageHeader
                 description="Identity and permanent actions for this Server."
                 title="Server"
             />
-            <SettingsSection title="Identity">
-                <SettingsGroup>
-                    <SettingsRow title="Name">
-                        <SettingsValue>{server.displayName}</SettingsValue>
-                    </SettingsRow>
-                    <SettingsRow description="The permanent Server address." title="Address">
-                        <SettingsValue>/{server.slug}</SettingsValue>
-                    </SettingsRow>
-                </SettingsGroup>
-            </SettingsSection>
+            <ItemCardGroup variant="transparent">
+                <ItemCardGroup.Header>
+                    <ItemCardGroup.Title>Identity</ItemCardGroup.Title>
+                </ItemCardGroup.Header>
+                <ItemCardGroup className="overflow-hidden">
+                    <ItemCard>
+                        <ItemCard.Content>
+                            <ItemCard.Title>Name</ItemCard.Title>
+                        </ItemCard.Content>
+                        <ItemCard.Action>
+                            <SettingsFact>{server.displayName}</SettingsFact>
+                        </ItemCard.Action>
+                    </ItemCard>
+                    <Separator />
+                    <ItemCard>
+                        <ItemCard.Content>
+                            <ItemCard.Title>Address</ItemCard.Title>
+                            <ItemCard.Description>
+                                The permanent Server address.
+                            </ItemCard.Description>
+                        </ItemCard.Content>
+                        <ItemCard.Action>
+                            <SettingsFact>/{server.slug}</SettingsFact>
+                        </ItemCard.Action>
+                    </ItemCard>
+                </ItemCardGroup>
+            </ItemCardGroup>
             {server.role === 'owner' ? (
-                <SettingsSection title="Danger">
-                    <SettingsGroup>
-                        <SettingsRow
-                            description="Permanently delete this Server and its Server data."
-                            error={remove.error?.message}
-                            title="Delete Server"
-                            trailingWidth="intrinsic"
-                        >
-                            <Button
-                                onPress={() => setDeleting(true)}
-                                size="sm"
-                                type="button"
-                                variant="danger-soft"
-                            >
-                                Delete Server
-                            </Button>
-                        </SettingsRow>
-                    </SettingsGroup>
+                <ItemCardGroup variant="transparent">
+                    <ItemCardGroup.Header>
+                        <ItemCardGroup.Title>Danger</ItemCardGroup.Title>
+                    </ItemCardGroup.Header>
+                    <ItemCardGroup className="overflow-hidden">
+                        <ItemCard>
+                            <ItemCard.Content>
+                                <ItemCard.Title>Delete Server</ItemCard.Title>
+                                <ItemCard.Description>
+                                    Permanently delete this Server and its Server data.
+                                </ItemCard.Description>
+                                <SettingsRowError>{remove.error?.message}</SettingsRowError>
+                            </ItemCard.Content>
+                            <ItemCard.Action>
+                                <Button
+                                    onPress={() => setDeleting(true)}
+                                    size="sm"
+                                    type="button"
+                                    variant="danger-soft"
+                                >
+                                    Delete Server
+                                </Button>
+                            </ItemCard.Action>
+                        </ItemCard>
+                    </ItemCardGroup>
                     {deleting ? (
                         <DeleteDialog
                             confirmation={server.slug}
@@ -75,8 +95,8 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                             title="Delete Server"
                         />
                     ) : null}
-                </SettingsSection>
+                </ItemCardGroup>
             ) : null}
-        </SettingsPage>
+        </PageColumn>
     );
 }

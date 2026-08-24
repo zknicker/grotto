@@ -1,4 +1,5 @@
-import { Button, ProgressBar } from '@heroui/react';
+import { Button, Label, ProgressBar, Separator } from '@heroui/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -6,14 +7,9 @@ import {
     useDesktopUpdate,
 } from '../../../hooks/desktop/use-desktop-update.ts';
 import { cn } from '../../../lib/utils.ts';
-import {
-    SettingsGroup,
-    SettingsPage,
-    SettingsPageHeader,
-    SettingsRow,
-    SettingsSection,
-    SettingsValue,
-} from '../layout/settings-page.tsx';
+import { PageColumn } from '../../shell/page-column.tsx';
+import { SettingsPageHeader } from '../layout/settings-page.tsx';
+import { SettingsFact } from '../layout/settings-text.tsx';
 
 export function UpdatesSettings({ computerSettingsHref }: { computerSettingsHref?: string }) {
     const navigate = useNavigate();
@@ -29,77 +25,105 @@ export function UpdatesSettings({ computerSettingsHref }: { computerSettingsHref
     }, [checkForUpdate]);
 
     return (
-        <SettingsPage>
+        <PageColumn>
             <SettingsPageHeader title="Updates" />
-            <SettingsSection title="Grotto Updates">
-                <SettingsGroup>
-                    <SettingsRow
-                        className="md:items-start"
-                        description="Check for and install updates to the packaged Grotto app."
-                        title="Update"
-                        trailingWidth="intrinsic"
-                    >
-                        <div className="flex min-w-0 flex-col gap-2">
-                            <div className="flex shrink-0 items-center gap-2 md:justify-end">
-                                <Button
-                                    isDisabled={!canCheck}
-                                    isPending={status.phase === 'checking'}
-                                    onPress={handleCheckForUpdate}
-                                    variant="secondary"
-                                >
-                                    Check
-                                </Button>
-                                <Button
-                                    isDisabled={!canInstall}
-                                    isPending={
-                                        status.phase === 'downloading' ||
-                                        status.phase === 'restarting'
-                                    }
-                                    onPress={updateAndRestart}
-                                >
-                                    {status.phase === 'ready' ? 'Restart' : 'Update'}
-                                </Button>
-                            </div>
+            <ItemCardGroup variant="transparent">
+                <ItemCardGroup.Header>
+                    <ItemCardGroup.Title>Grotto Updates</ItemCardGroup.Title>
+                </ItemCardGroup.Header>
+                <ItemCardGroup className="overflow-hidden">
+                    <ItemCard>
+                        <ItemCard.Content>
+                            <ItemCard.Title>Update</ItemCard.Title>
+                            <ItemCard.Description>
+                                Check for and install updates to the packaged Grotto app.
+                            </ItemCard.Description>
+                            {updateStatusMessage ? (
+                                <UpdateStatusMessage {...updateStatusMessage} />
+                            ) : null}
+                        </ItemCard.Content>
+                        <ItemCard.Action>
+                            {/* Downloading replaces the controls with their own
+                                progress, the way ComputerUpdateCard does; the
+                                buttons have nothing to offer mid-download. */}
                             {status.phase === 'downloading' ? (
                                 <ProgressBar
                                     aria-label="Download progress"
+                                    className="w-56 max-w-full"
+                                    size="sm"
                                     value={status.progress * 100}
                                 >
+                                    <Label>Downloading</Label>
+                                    <ProgressBar.Output />
                                     <ProgressBar.Track>
                                         <ProgressBar.Fill />
                                     </ProgressBar.Track>
                                 </ProgressBar>
-                            ) : null}
-                            {updateStatusMessage ? (
-                                <UpdateStatusMessage {...updateStatusMessage} />
-                            ) : null}
-                        </div>
-                    </SettingsRow>
-                    <SettingsRow title="App Version">
-                        <VersionValue>
-                            {import.meta.env.VITE_GROTTO_PRODUCT_VERSION ?? 'Development'}
-                        </VersionValue>
-                    </SettingsRow>
-                </SettingsGroup>
-            </SettingsSection>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        isDisabled={!canCheck}
+                                        isPending={status.phase === 'checking'}
+                                        onPress={handleCheckForUpdate}
+                                        size="sm"
+                                        variant="secondary"
+                                    >
+                                        Check
+                                    </Button>
+                                    <Button
+                                        isDisabled={!canInstall}
+                                        isPending={status.phase === 'restarting'}
+                                        onPress={updateAndRestart}
+                                        size="sm"
+                                    >
+                                        {status.phase === 'ready' ? 'Restart' : 'Update'}
+                                    </Button>
+                                </div>
+                            )}
+                        </ItemCard.Action>
+                    </ItemCard>
+                    <Separator />
+                    <ItemCard>
+                        <ItemCard.Content>
+                            <ItemCard.Title>App Version</ItemCard.Title>
+                        </ItemCard.Content>
+                        <ItemCard.Action>
+                            <SettingsFact>
+                                <span className="font-mono text-foreground tabular-nums">
+                                    {import.meta.env.VITE_GROTTO_PRODUCT_VERSION ?? 'Development'}
+                                </span>
+                            </SettingsFact>
+                        </ItemCard.Action>
+                    </ItemCard>
+                </ItemCardGroup>
+            </ItemCardGroup>
             {computerSettingsHref ? (
-                <SettingsSection title="Computer Updates">
-                    <SettingsGroup>
-                        <SettingsRow
-                            description="Each attached Computer reports its own version and update state."
-                            title="Grotto Computers"
-                        >
-                            <Button
-                                onPress={() => navigate(computerSettingsHref)}
-                                variant="secondary"
-                            >
-                                Manage Computers
-                            </Button>
-                        </SettingsRow>
-                    </SettingsGroup>
-                </SettingsSection>
+                <ItemCardGroup variant="transparent">
+                    <ItemCardGroup.Header>
+                        <ItemCardGroup.Title>Computer Updates</ItemCardGroup.Title>
+                    </ItemCardGroup.Header>
+                    <ItemCardGroup className="overflow-hidden">
+                        <ItemCard>
+                            <ItemCard.Content>
+                                <ItemCard.Title>Grotto Computers</ItemCard.Title>
+                                <ItemCard.Description>
+                                    Each attached Computer reports its own version and update state.
+                                </ItemCard.Description>
+                            </ItemCard.Content>
+                            <ItemCard.Action>
+                                <Button
+                                    onPress={() => navigate(computerSettingsHref)}
+                                    size="sm"
+                                    variant="secondary"
+                                >
+                                    Manage Computers
+                                </Button>
+                            </ItemCard.Action>
+                        </ItemCard>
+                    </ItemCardGroup>
+                </ItemCardGroup>
             ) : null}
-        </SettingsPage>
+        </PageColumn>
     );
 }
 
@@ -111,22 +135,17 @@ function UpdateStatusMessage({
     tone: 'error' | 'neutral' | 'success';
 }) {
     return (
-        <SettingsValue
+        <p
             className={cn(
-                'min-h-0 justify-start text-left font-medium md:justify-start md:text-left',
+                'mt-1 font-medium text-xs',
                 tone === 'success' && 'text-success',
                 tone === 'error' && 'text-danger',
                 tone === 'neutral' && 'text-muted'
             )}
+            role={tone === 'error' ? 'alert' : undefined}
         >
             {detail}
-        </SettingsValue>
-    );
-}
-
-function VersionValue({ children }: { children: React.ReactNode }) {
-    return (
-        <SettingsValue className="font-mono text-foreground tabular-nums">{children}</SettingsValue>
+        </p>
     );
 }
 

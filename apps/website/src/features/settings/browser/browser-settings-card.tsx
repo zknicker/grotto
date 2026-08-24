@@ -1,10 +1,9 @@
-import { Button, Chip, Skeleton } from '@heroui/react';
+import { Button, Chip } from '@heroui/react';
+import { ItemCard } from '@heroui-pro/react';
 import { BrowserIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { AgentRuntimeBrowserSettings, AgentRuntimeSaveBrowserSettings } from '@tavern/api';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { cn } from '../../../lib/utils.ts';
-import { SettingsRow } from '../layout/settings-page.tsx';
 import { BrowserEnablementSwitch } from './browser-enablement-switch.tsx';
 import {
     BrowserDisableConfirmationDialog,
@@ -48,15 +47,19 @@ export function BrowserSettingsCard({
 
     if (!settings) {
         return (
-            <SettingsRow
-                description={error ?? 'Grotto Computer unavailable.'}
-                title="Browser"
-                trailingWidth="intrinsic"
-            >
-                <Button isDisabled variant="secondary">
-                    Configure
-                </Button>
-            </SettingsRow>
+            <ItemCard>
+                <ItemCard.Content>
+                    <ItemCard.Title>Browser</ItemCard.Title>
+                    <ItemCard.Description>
+                        {error ?? 'Grotto Computer unavailable.'}
+                    </ItemCard.Description>
+                </ItemCard.Content>
+                <ItemCard.Action>
+                    <Button isDisabled size="sm" variant="secondary">
+                        Configure
+                    </Button>
+                </ItemCard.Action>
+            </ItemCard>
         );
     }
 
@@ -209,50 +212,48 @@ function BrowserRow({
     settings: BrowserSettings;
 }) {
     return (
-        <SettingsRow
-            description="Let agents use a managed Chrome profile for browser automation."
-            title={
-                <span
-                    className={cn(
-                        'flex min-w-0 items-center gap-2',
-                        !settings.enabled && 'opacity-45'
-                    )}
-                >
-                    <Icon className="size-5" icon={BrowserIcon} />
-                    <span className="truncate">Browser</span>
-                    {settings.skillConflict ? (
-                        <Chip color="warning" size="sm" variant="soft">
-                            Skill Conflict
-                        </Chip>
-                    ) : null}
-                </span>
-            }
-            trailingWidth="intrinsic"
-        >
-            <div className="flex items-center gap-2">
-                <Button isDisabled={isSaving} onPress={onSelect} variant="secondary">
-                    Configure
-                </Button>
-                <BrowserEnablementSwitch
-                    aria-label={`${settings.enabled ? 'Disable' : 'Enable'} Browser`}
-                    checked={settings.enabled}
-                    disabled={isSaving}
-                    lockReason={null}
-                    onCheckedChange={onEnabledChange}
-                />
-            </div>
-        </SettingsRow>
+        <ItemCard>
+            <ItemCard.Icon>
+                <Icon icon={BrowserIcon} />
+            </ItemCard.Icon>
+            <ItemCard.Content>
+                <ItemCard.Title>
+                    <span className="flex min-w-0 items-center gap-2">
+                        <span className="truncate">Browser</span>
+                        {settings.skillConflict ? (
+                            <Chip color="warning" size="sm" variant="soft">
+                                Skill Conflict
+                            </Chip>
+                        ) : null}
+                    </span>
+                </ItemCard.Title>
+                <ItemCard.Description>
+                    Let agents use a managed Chrome profile for browser automation.
+                </ItemCard.Description>
+            </ItemCard.Content>
+            <ItemCard.Action>
+                <div className="flex items-center gap-2">
+                    <Button isDisabled={isSaving} onPress={onSelect} size="sm" variant="secondary">
+                        Configure
+                    </Button>
+                    <BrowserEnablementSwitch
+                        aria-label={`${settings.enabled ? 'Disable' : 'Enable'} Browser`}
+                        checked={settings.enabled}
+                        disabled={isSaving}
+                        lockReason={null}
+                        onCheckedChange={onEnabledChange}
+                    />
+                </div>
+            </ItemCard.Action>
+        </ItemCard>
     );
 }
 
+/** Blank while loading — the app shows no skeletons on synced surfaces. */
 function BrowserSkeleton() {
     return (
-        <SettingsRow
-            description={<Skeleton className="h-3 w-72 max-w-full" />}
-            title={<Skeleton className="h-4 w-32" />}
-            trailingWidth="intrinsic"
-        >
-            <Skeleton className="h-8 w-28" />
-        </SettingsRow>
+        <div aria-busy="true" className="min-h-14">
+            <span className="sr-only">Loading Browser settings</span>
+        </div>
     );
 }

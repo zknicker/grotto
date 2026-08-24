@@ -23,7 +23,6 @@ export function BrowserDialog({
     children,
     description,
     footer,
-    headerAction,
     icon,
     onOpenChange,
     onSubmit,
@@ -34,7 +33,6 @@ export function BrowserDialog({
     children: ReactNode;
     description?: ReactNode;
     footer?: ReactNode;
-    headerAction?: ReactNode;
     icon: HugeiconsIconProps['icon'];
     onOpenChange: (open: boolean) => void;
     onSubmit: () => void;
@@ -45,21 +43,19 @@ export function BrowserDialog({
     return (
         <Modal isOpen={open} onOpenChange={onOpenChange}>
             <Modal.Backdrop isDismissable>
-                <Modal.Container scroll="outside" size="lg">
+                <Modal.Container scroll="inside" size="lg">
                     <Modal.Dialog>
+                        {/* Modal.Header stacks Icon over Heading over one muted
+                            line. A control laid out beside the heading replaces
+                            that layout; controls belong in the body. */}
                         <Modal.Header>
                             <Modal.Icon>
                                 <Icon icon={icon} />
                             </Modal.Icon>
-                            <div className="flex items-center gap-3">
-                                <Modal.Heading>
-                                    {title}
-                                    {titleSuffix ? ` ${titleSuffix}` : null}
-                                </Modal.Heading>
-                                {headerAction ? (
-                                    <span className="ms-auto shrink-0">{headerAction}</span>
-                                ) : null}
-                            </div>
+                            <Modal.Heading>
+                                {title}
+                                {titleSuffix ? ` ${titleSuffix}` : null}
+                            </Modal.Heading>
                             {description ? (
                                 <p className="mt-1.5 text-muted text-sm leading-5">{description}</p>
                             ) : null}

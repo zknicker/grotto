@@ -1,46 +1,36 @@
-import { Button, Card, Chip } from '@heroui/react';
+import { Card, Chip } from '@heroui/react';
 import type React from 'react';
 import { cn } from '../../../lib/utils.ts';
-import { PageColumn, type PageColumnWidth } from '../../shell/page-column.tsx';
 
 /**
- * Settings composition layer on stock HeroUI: page column, header, Title Case
- * section labels, Card-backed groups, and the shared two-column row grid.
- * Composition and layout only — visual identity stays in the generated design
- * system.
+ * What is left of the settings composition layer after settings pages moved to
+ * stock `ItemCardGroup`/`ItemCard`/`DataGrid`.
+ *
+ * Nothing here is used by `features/settings` any more except
+ * `SettingsPageHeader`. The rest survives only for the member-profile, human
+ * directory, and usage surfaces, whose hand-rolled children are still built
+ * against `SettingsGroup`'s zero-padding geometry. Delete this file when those
+ * move to `ItemCardGroup` — do not add to it, and do not reach for it from a
+ * new surface.
  */
-
-/** Settings' name for the shared page column; the rhythm lives in PageColumn. */
-export function SettingsPage({
-    width = 'default',
-    ...props
-}: React.ComponentProps<'div'> & { width?: PageColumnWidth }) {
-    return <PageColumn width={width} {...props} />;
-}
-
+/**
+ * A settings page's identity: title and optional description. Page-level
+ * actions do not belong here — they go in the shell band through `PageTopbar`,
+ * which is otherwise empty on settings routes.
+ */
 export function SettingsPageHeader({
-    action,
     className,
     description,
     title,
     ...props
 }: Omit<React.ComponentProps<'header'>, 'title'> & {
-    action?: React.ReactNode;
     description?: React.ReactNode;
     title: React.ReactNode;
 }) {
     return (
-        <header
-            className={cn('flex min-w-0 items-start justify-between gap-4 px-1', className)}
-            {...props}
-        >
-            <div className="min-w-0 space-y-1">
-                <h1 className="font-bold text-2xl text-foreground">{title}</h1>
-                {description ? (
-                    <p className="text-muted text-sm leading-tight">{description}</p>
-                ) : null}
-            </div>
-            {action ? <div className="shrink-0">{action}</div> : null}
+        <header className={cn('min-w-0 space-y-1 px-1', className)} {...props}>
+            <h1 className="font-bold text-2xl text-foreground">{title}</h1>
+            {description ? <p className="text-muted text-sm leading-tight">{description}</p> : null}
         </header>
     );
 }
@@ -71,61 +61,6 @@ export function SettingsGroup({ children, className, ...props }: React.Component
         <Card className={cn('gap-0 overflow-hidden p-0', className)} {...props}>
             {children}
         </Card>
-    );
-}
-
-export function SettingsRow({
-    align = 'center',
-    children,
-    className,
-    density = 'default',
-    description,
-    error = null,
-    title,
-    trailingWidth = 'control',
-}: {
-    align?: 'center' | 'start';
-    children: React.ReactNode;
-    className?: string;
-    density?: 'default' | 'compact';
-    description?: React.ReactNode;
-    error?: string | null;
-    title: React.ReactNode;
-    trailingWidth?: 'control' | 'intrinsic' | 'wide';
-}) {
-    return (
-        <div
-            className={cn(
-                'grid gap-3 py-3.5 md:gap-6',
-                align === 'center' ? 'md:items-center' : 'md:items-start',
-                rowTrailingWidthClass[trailingWidth],
-                density === 'default' ? 'ps-5 pe-4' : 'px-4',
-                className
-            )}
-        >
-            <div className="space-y-0.5">
-                <h3 className="font-medium text-foreground text-sm leading-tight">{title}</h3>
-                {description ? (
-                    <div className="text-muted text-sm leading-tight">{description}</div>
-                ) : null}
-            </div>
-            <div className="flex min-w-0 flex-col gap-2 md:w-full md:justify-self-end">
-                {children}
-                {error ? <div className="text-danger text-sm">{error}</div> : null}
-            </div>
-        </div>
-    );
-}
-
-export function SettingsValue({ className, ...props }: React.ComponentProps<'div'>) {
-    return (
-        <div
-            className={cn(
-                'flex min-h-8 items-center text-muted text-sm md:justify-end md:text-right',
-                className
-            )}
-            {...props}
-        />
     );
 }
 
@@ -167,20 +102,3 @@ export function SettingsChipField({
         </div>
     );
 }
-
-export function SettingsActionRow({
-    children,
-    ...props
-}: Omit<React.ComponentProps<typeof Button>, 'fullWidth' | 'variant'>) {
-    return (
-        <Button fullWidth size="sm" variant="ghost" {...props}>
-            {children}
-        </Button>
-    );
-}
-
-const rowTrailingWidthClass = {
-    control: 'md:grid-cols-[minmax(10rem,1fr)_minmax(16rem,17rem)]',
-    intrinsic: 'md:grid-cols-[minmax(0,1fr)_auto]',
-    wide: 'md:grid-cols-[minmax(10rem,1fr)_minmax(20rem,42rem)]',
-} satisfies Record<'control' | 'intrinsic' | 'wide', string>;

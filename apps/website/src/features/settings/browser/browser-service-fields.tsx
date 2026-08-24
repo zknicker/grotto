@@ -21,7 +21,7 @@ export function BrowserSection({
     title,
 }: {
     action?: ReactNode;
-    children: ReactNode;
+    children?: ReactNode;
     description?: ReactNode;
     title?: ReactNode;
 }) {

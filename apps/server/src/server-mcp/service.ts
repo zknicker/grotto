@@ -16,6 +16,7 @@ import {
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { McpDeniedError } from './errors.ts';
+import { resolveMcpIcon, summarizeInstructions } from './icons.ts';
 import type { McpOAuthRelay } from './oauth-relay.ts';
 import { emptySecret, type McpRuntime } from './runtime.ts';
 import { shapeMcpConnection } from './state.ts';
@@ -132,7 +133,7 @@ export async function disconnectMcpConnection(
             .where(eq(mcpSecretsTable.connectionId, input.connectionId));
         await tx
             .update(mcpConnectionsTable)
-            .set({ accountLabel: null, connected: false, tools: [] })
+            .set({ accountLabel: null, connected: false, icon: null, summary: null, tools: [] })
             .where(eq(mcpConnectionsTable.id, input.connectionId));
     });
     return shapeMcpConnection({
@@ -216,7 +217,7 @@ export async function clearMcpIdentity(
             .where(eq(agentMcpConnectionGrantsTable.connectionId, connectionId));
         await tx
             .update(mcpConnectionsTable)
-            .set({ accountLabel: null, connected: false, tools: [] })
+            .set({ accountLabel: null, connected: false, icon: null, summary: null, tools: [] })
             .where(
                 and(
                     eq(mcpConnectionsTable.serverId, serverId),
@@ -226,6 +227,9 @@ export async function clearMcpIdentity(
     });
 }
 
+/** Bounded so an unresponsive icon host cannot stretch a refresh. */
+const iconTimeoutMs = 4000;
+
 async function refreshInventory(
     db: GrottoDatabase,
     runtime: McpRuntime,
@@ -233,11 +237,19 @@ async function refreshInventory(
 ) {
     await runtime.closeConnection(connection.id);
     const discovery = await runtime.discover(connection.id);
+    // Decoration, so a missing or hostile icon host never fails discovery.
+    const icon = await resolveMcpIcon({
+        connectionUrl: connection.url,
+        serverInfoIcons: discovery.serverInfoIcons,
+        timeoutMs: iconTimeoutMs,
+    }).catch(() => null);
     const [updated] = await db
         .update(mcpConnectionsTable)
         .set({
             accountLabel: discovery.accountLabel,
             connected: true,
+            icon,
+            summary: summarizeInstructions(discovery.instructions),
             tools: [...new Set(discovery.tools)].sort(),
         })
         .where(eq(mcpConnectionsTable.id, connection.id))

@@ -1,3 +1,4 @@
+import type { McpIcon } from '@tavern/api';
 import { sql } from 'drizzle-orm';
 import {
     boolean,
@@ -21,9 +22,11 @@ export const mcpConnectionsTable = pgTable(
         connected: boolean('connected').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         headerNames: text('header_names').array().notNull(),
+        icon: bunJsonb('icon').$type<McpIcon | null>(),
         id: text('id').primaryKey(),
         name: text('name').notNull(),
         preset: text('preset').$type<'google-calendar' | 'merchbase' | null>(),
+        summary: text('summary'),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),

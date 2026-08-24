@@ -1,4 +1,10 @@
-import type { McpConnection, McpGrant } from '@tavern/api';
+import {
+    type McpConnection,
+    type McpGrant,
+    type McpIcon,
+    mcpIconSchema,
+    mcpSummarySchema,
+} from '@tavern/api';
 import { and, asc, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -94,12 +100,35 @@ export function shapeMcpConnection(
         connected: row.connected,
         grants,
         headerNames: row.headerNames,
+        icon: storedIcon(row.icon),
         id: row.id,
         name: row.name,
         preset: row.preset,
         serverId: row.serverId,
         status: row.connected ? 'online' : 'pending',
+        summary: storedSummary(row.summary),
         tools: row.tools,
         url: row.url,
     };
+}
+
+/**
+ * `mcp.list` validates its whole output, so one malformed stored icon would
+ * blank every connection rather than one row. Degrade the row instead.
+ */
+function storedIcon(value: unknown): McpIcon | null {
+    if (value === null || value === undefined) {
+        return null;
+    }
+    const parsed = mcpIconSchema.safeParse(value);
+    return parsed.success ? parsed.data : null;
+}
+
+/** Same degrade-the-row rule as the icon: never fail the whole list. */
+function storedSummary(value: null | string): null | string {
+    if (value === null) {
+        return null;
+    }
+    const parsed = mcpSummarySchema.safeParse(value);
+    return parsed.success ? parsed.data : null;
 }

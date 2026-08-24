@@ -59,6 +59,11 @@ export class McpRuntime {
             const definitions = await listAllTools(client);
             return {
                 accountLabel: client.serverInfo.name,
+                // SEP-973 icons ride in serverInfo. The SDK parses that object
+                // with a passthrough schema, so the field survives even though
+                // its declared type stops at name/version/title.
+                instructions: client.instructions,
+                serverInfoIcons: (client.serverInfo as { icons?: unknown }).icons,
                 tools: definitions.map((tool) => tool.name),
             };
         });

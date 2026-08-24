@@ -21,6 +21,7 @@ export const chatsTable = pgTable(
     {
         archivedAt: timestamp('archived_at', { withTimezone: true }),
         archivedByUserId: text('archived_by_user_id'),
+        color: text('color'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         deletedAt: timestamp('deleted_at', { withTimezone: true }),
         deletedByUserId: text('deleted_by_user_id'),
@@ -29,6 +30,7 @@ export const chatsTable = pgTable(
         dmMemberOneUserId: text('dm_member_one_user_id'),
         dmMemberTwoStint: integer('dm_member_two_stint'),
         dmMemberTwoUserId: text('dm_member_two_user_id'),
+        icon: text('icon'),
         id: text('id').primaryKey(),
         isAll: boolean('is_all').notNull().default(false),
         kind: text('kind').notNull().$type<'channel' | 'dm' | 'thread'>(),
@@ -115,6 +117,8 @@ export const chatsTable = pgTable(
                 or (
                     ${table.kind} = 'dm'
                     and ${table.name} is null
+                    and ${table.color} is null
+                    and ${table.icon} is null
                     and ${table.isAll} = false
                     and ${table.dmMemberOneStint} is not null
                     and ${table.dmMemberOneUserId} is not null
@@ -138,6 +142,8 @@ export const chatsTable = pgTable(
                 or (
                     ${table.kind} = 'thread'
                     and ${table.name} is null
+                    and ${table.color} is null
+                    and ${table.icon} is null
                     and ${table.isAll} = false
                     and ${table.dmAgentId} is null
                     and ${table.dmMemberOneStint} is null

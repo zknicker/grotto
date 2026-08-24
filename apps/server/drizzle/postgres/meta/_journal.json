@@ -99,6 +99,13 @@
       "when": 1787064154000,
       "tag": "0013_thread_follow_reactivation",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1787424223038,
+      "tag": "0014_channel_appearance",
+      "breakpoints": true
     }
   ]
 }

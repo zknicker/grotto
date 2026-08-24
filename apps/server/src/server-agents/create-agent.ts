@@ -121,7 +121,9 @@ export async function createAgent(
             chat: {
                 archivedAt: null,
                 archivedByUserId: null,
+                color: null,
                 createdAt: (chatRow?.createdAt ?? new Date()).toISOString(),
+                icon: null,
                 id: chatId,
                 isAll: false,
                 kind: 'dm' as const,

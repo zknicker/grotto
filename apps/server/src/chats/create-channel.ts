@@ -62,6 +62,8 @@ export async function createChannel(
         const id = createOpaqueId('cht');
         try {
             await tx.insert(chatsTable).values({
+                color: input.color ?? null,
+                icon: input.icon ?? null,
                 id,
                 kind: 'channel',
                 name: input.name,

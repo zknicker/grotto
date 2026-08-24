@@ -19,11 +19,11 @@ export class ChannelNotFoundError extends Error {
 
 export interface UpdatedChannel {
     chat: Chat;
-    /** Null when the save changed neither the name nor the Agent participant set. */
+    /** Null when the save changed no name, appearance, or Agent participant. */
     event: ServerDurableEvent | null;
 }
 
-/** Renames a channel and replaces its Agent participant set. */
+/** Renames a channel, updates its appearance, and replaces its Agent participant set. */
 export async function updateChannel(
     db: GrottoDatabase,
     member: GrottoUser | null,
@@ -38,7 +38,13 @@ export async function updateChannel(
         await requireChatWritable(tx, input);
 
         const [chat] = await tx
-            .select({ id: chatsTable.id, kind: chatsTable.kind, name: chatsTable.name })
+            .select({
+                color: chatsTable.color,
+                icon: chatsTable.icon,
+                id: chatsTable.id,
+                kind: chatsTable.kind,
+                name: chatsTable.name,
+            })
             .from(chatsTable)
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
         if (!chat || chat.kind !== 'channel') {
@@ -73,12 +79,22 @@ export async function updateChannel(
         )
             .map((row) => row.agentId)
             .sort();
-        const changed = chat.name !== input.name || previousAgentIds.join() !== agentIds.join();
+        // `undefined` means the caller left that appearance field alone; `null`
+        // clears it.
+        const appearance = {
+            ...(input.color === undefined ? {} : { color: input.color }),
+            ...(input.icon === undefined ? {} : { icon: input.icon }),
+        };
+        const changed =
+            chat.name !== input.name ||
+            previousAgentIds.join() !== agentIds.join() ||
+            (appearance.color !== undefined && appearance.color !== chat.color) ||
+            (appearance.icon !== undefined && appearance.icon !== chat.icon);
 
         try {
             await tx
                 .update(chatsTable)
-                .set({ name: input.name })
+                .set({ ...appearance, name: input.name })
                 .where(
                     and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId))
                 );

@@ -23,7 +23,10 @@ export async function listChats(
         .select({
             archivedAt: chatsTable.archivedAt,
             archivedByUserId: chatsTable.archivedByUserId,
+            // `chats_shape` keeps appearance channel-only, so DM rows read null.
+            color: chatsTable.color,
             createdAt: chatsTable.createdAt,
+            icon: chatsTable.icon,
             id: chatsTable.id,
             isAll: chatsTable.isAll,
             kind: sql<'channel' | 'dm'>`${chatsTable.kind}`,

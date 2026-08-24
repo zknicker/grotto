@@ -1,9 +1,17 @@
-import { expect, test } from 'bun:test';
+import { expect, mock, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
 import type { ServerContextValue } from '../../features/servers/server-context.ts';
 import { useServerContext } from '../../features/servers/server-context.ts';
-import { MembersPage } from './members-page.tsx';
+
+// The page owns its roster, which reads the Agent and Human queries. This test
+// is about route context reaching the detail column, so the roster is stubbed
+// rather than dragged through a Server provider.
+mock.module('../../features/members/member-roster.tsx', () => ({
+    MemberRoster: () => null,
+}));
+
+const { MembersPage } = await import('./members-page.tsx');
 
 test('Members forwards the Server route context to profile routes', () => {
     const context = {

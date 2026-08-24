@@ -7,6 +7,7 @@ import { AgentLoading } from '../../features/members/agent-profile/agent-loading
 import { AgentProfilePage } from '../../features/members/agent-profile/agent-profile.tsx';
 import { isAgentTab } from '../../features/members/agent-profile/agent-tabs.ts';
 import { HumanProfile } from '../../features/members/human-profile/human-profile.tsx';
+import { MemberRoster } from '../../features/members/member-roster.tsx';
 import { HumanDirectory } from '../../features/servers/human-directory.tsx';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import { agentRoute, membersRoute } from '../../features/servers/server-routes.ts';
@@ -16,15 +17,22 @@ import { useMember } from '../../hooks/members/use-member.ts';
 import { useMembers } from '../../hooks/servers/use-members.ts';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 
-/** Members owns the stable detail column; child routes choose its content. */
+/**
+ * Members owns its own roster column plus the stable detail column; child
+ * routes choose the detail content. The roster is on the page rather than in
+ * the shell sidebar, because only Settings replaces the chat navigation.
+ */
 export function MembersPage() {
     const context = useServerContext();
     useWindowTitle('Members');
 
     return (
-        <main className="flex min-h-0 min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
-            <Outlet context={context} />
-        </main>
+        <div className="flex min-h-0 min-w-0 flex-1">
+            <MemberRoster server={context.server} />
+            <main className="flex min-h-0 min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+                <Outlet context={context} />
+            </main>
+        </div>
     );
 }
 

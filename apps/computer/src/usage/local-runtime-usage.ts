@@ -1,7 +1,7 @@
 import type { Dirent } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { RuntimeTokenUsageSnapshot } from '@tavern/api';
+import type { RuntimeTokenUsageSnapshot } from '@grotto/api';
 
 export interface RuntimeTokenEntry {
     cacheReadTokens: number;

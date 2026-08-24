@@ -1,11 +1,11 @@
-import { parseAgentReferenceTarget, parseTavernRichReferences } from '@tavern/api/rich-references';
+import { parseAgentReferenceTarget, parseGrottoRichReferences } from '@grotto/api/rich-references';
 import { normalizeMentions } from './mention-text.ts';
 import type { Mention } from './mention-types.ts';
 
 export function readMentionsFromMarkdown(content: string) {
     return normalizeMentions(
         content,
-        parseTavernRichReferences(content).map((reference) => ({ ...reference }))
+        parseGrottoRichReferences(content).map((reference) => ({ ...reference }))
     );
 }
 

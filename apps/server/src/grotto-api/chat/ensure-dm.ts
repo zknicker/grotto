@@ -1,4 +1,4 @@
-import { chatSchema, ensureDmInputSchema } from '@tavern/api';
+import { chatSchema, ensureDmInputSchema } from '@grotto/api';
 import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { ensureDm } from '../../chats/ensure-dm.ts';
 import { chatProcedure } from './procedure.ts';

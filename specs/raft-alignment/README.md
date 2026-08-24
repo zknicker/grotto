@@ -48,7 +48,7 @@ restore procedure. A future move off the Mac mini moves the entire Server bundle
 and region rather than splitting application compute from its hot data path.
 
 The CLI's wire contract is designed as the grotto.sh server API from day one: WS1 serves it from
-the chat surface of `@tavern/api` co-hosted in the local process, and WS6 moves the process, not
+the chat surface of `@grotto/api` co-hosted in the local process, and WS6 moves the process, not
 the plumbing.
 
 **Transport topology (decided).** The hosted Server is the durable hub; the Computer is an
@@ -654,7 +654,7 @@ deployment, so intermediate brokenness is not a constraint.
   Agents/Computers intact, and never restores prior roles/private memberships on re-invite; action
   cards and third-party events remain later work. External Agents, direct Agent login, hosted
   Agent credential profiles, and an external wake bridge are explicit non-goals. Existing seams:
-  `@tavern/api` chat/admin split,
+  `@grotto/api` chat/admin split,
   `grotto claim`, Clerk member forwarding, `docs/api/auth.md` member model. **Data cutover:
   grotto.sh starts completely fresh — existing local chat history and Agent workspaces are
   discarded, not migrated or adopted (decided).**

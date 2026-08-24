@@ -1,4 +1,4 @@
-import { agentListInputSchema, agentListSchema } from '@tavern/api';
+import { agentListInputSchema, agentListSchema } from '@grotto/api';
 import { TRPCError } from '@trpc/server';
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
 import { listAgents } from '../../server-agents/list-agents.ts';

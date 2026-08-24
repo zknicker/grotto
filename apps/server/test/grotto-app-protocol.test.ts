@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { appProtocolHeaders, appProtocolVersion } from '@tavern/api';
+import { appProtocolHeaders, appProtocolVersion } from '@grotto/api';
 import { createGrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
@@ -36,16 +36,16 @@ test('missing App protocol fails closed', async () => {
 });
 
 test('development mode still requires a Clerk session', async () => {
-    const previous = process.env.TAVERN_DEV_STACK;
-    process.env.TAVERN_DEV_STACK = '1';
+    const previous = process.env.GROTTO_DEV_STACK;
+    process.env.GROTTO_DEV_STACK = '1';
 
     try {
         expect((await request(appProtocolVersion)).status).toBe(401);
     } finally {
         if (previous === undefined) {
-            process.env.TAVERN_DEV_STACK = undefined;
+            process.env.GROTTO_DEV_STACK = undefined;
         } else {
-            process.env.TAVERN_DEV_STACK = previous;
+            process.env.GROTTO_DEV_STACK = previous;
         }
     }
 });

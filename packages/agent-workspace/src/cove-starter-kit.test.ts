@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { getManualTopic } from '@tavern/agent-manual';
+import { getManualTopic } from '@grotto/agent-manual';
 import {
     coveSeededSummaries,
     coveWorkspaceFiles,
@@ -49,7 +49,7 @@ test('seeds Cove exact inventory and 12 valid separately authored Manual summari
         coveWorkspaceFiles.map((name) => fs.readFile(path.join(workspaceDir, name), 'utf8'))
     );
     expect(corpus.join('\n')).not.toMatch(
-        /action card|integration login|local chat history|save-as-a-skill|tavern-agent/iu
+        /action card|integration login|local chat history|save-as-a-skill|grotto-agent/iu
     );
     expect(corpus.join('\n')).toMatch(
         /real-work[\s\S]*starter-team[\s\S]*workstream-chats[\s\S]*effective-collaboration/u

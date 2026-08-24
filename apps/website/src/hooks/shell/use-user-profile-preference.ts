@@ -5,7 +5,7 @@ export interface UserProfile {
     displayName: string | null;
 }
 
-const storageKey = 'tavern.user.profile.v1';
+const storageKey = 'grotto.user.profile.v1';
 const emptyProfile: UserProfile = { avatarUrl: null, displayName: null };
 const listeners = new Set<() => void>();
 

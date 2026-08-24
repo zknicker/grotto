@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-import type { AgentActivityFrame, AgentCommand, AgentTurnSummary } from '@tavern/api';
+import type { AgentActivityFrame, AgentCommand, AgentTurnSummary } from '@grotto/api';
 import { and, asc, eq } from 'drizzle-orm';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';

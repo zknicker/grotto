@@ -1,4 +1,4 @@
-import { chatEventSubscriptionInputSchema, serverdurableeventSchema } from '@tavern/api';
+import { chatEventSubscriptionInputSchema, serverdurableeventSchema } from '@grotto/api';
 import { findChatAccess } from '../../chats/chat-access.ts';
 import { subscribeToDurableChatEvents } from '../../chats/durable-events.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';

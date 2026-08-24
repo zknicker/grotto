@@ -153,16 +153,16 @@ function syncTreeSelection(
 
 const treeUnsafeCss = `
 button[data-type='item'] {
-  --tavern-tree-row-bg: var(--trees-bg);
+  --grotto-tree-row-bg: var(--trees-bg);
   border-radius: 8px;
 }
 
 button[data-type='item']:hover {
-  --tavern-tree-row-bg: var(--trees-bg-muted);
+  --grotto-tree-row-bg: var(--trees-bg-muted);
 }
 
 button[data-type='item'][aria-selected='true'] {
-  --tavern-tree-row-bg: var(--trees-selected-bg);
+  --grotto-tree-row-bg: var(--trees-selected-bg);
   /* Hairline outline, matching the nav rows' selected treatment. */
   box-shadow: inset 0 0 0 1px var(--border);
 }

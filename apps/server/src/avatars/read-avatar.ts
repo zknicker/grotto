@@ -1,4 +1,4 @@
-import { type AvatarMediaType, isAvatarId } from '@tavern/api/avatar';
+import { type AvatarMediaType, isAvatarId } from '@grotto/api/avatar';
 import { eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { avatarsTable } from '../postgres/schema.ts';

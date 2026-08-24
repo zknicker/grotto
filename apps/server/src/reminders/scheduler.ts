@@ -1,4 +1,4 @@
-import type { ServerDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@grotto/api';
 import { and, asc, eq, lte, notInArray, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';

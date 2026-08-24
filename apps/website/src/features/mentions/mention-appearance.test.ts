@@ -130,7 +130,7 @@ describe('mention appearance', () => {
     it('keeps path mentions consistent', () => {
         expect(
             getMentionAppearance({
-                id: '/Users/zknicker/.codex/worktrees/1b41/tavern/specs/mentions.md',
+                id: '/Users/zknicker/.codex/worktrees/1b41/grotto/specs/mentions.md',
                 kind: 'file',
                 label: 'mentions.md',
             })

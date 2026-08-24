@@ -1,4 +1,4 @@
-# @tavern/codex-usage
+# @grotto/codex-usage
 
 Small Node-first adapter for Codex plan usage.
 
@@ -19,7 +19,7 @@ Small Node-first adapter for Codex plan usage.
 ## Example
 
 ```ts
-import { getCodexUsage } from '@tavern/codex-usage';
+import { getCodexUsage } from '@grotto/codex-usage';
 
 const usage = await getCodexUsage();
 
@@ -29,5 +29,5 @@ console.log(usage.windows);
 ## Live smoke test
 
 ```bash
-bun run --filter @tavern/codex-usage test:live
+bun run --filter @grotto/codex-usage test:live
 ```

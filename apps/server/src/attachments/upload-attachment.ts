@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { AttachmentUploadResult } from '@tavern/api';
+import type { AttachmentUploadResult } from '@grotto/api';
 import { and, eq, inArray } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';

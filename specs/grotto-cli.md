@@ -5,7 +5,7 @@ it. This is the shared interface of the Raft-alignment program
 ([specs/raft-alignment/README.md](raft-alignment/README.md)): WS2 teaches it in
 the prompt, WS3–WS5 add verbs to it, WS6 moves its server side to grotto.sh
 without changing it. The wire contract IS the future grotto.sh server API —
-served today from the chat surface of `@tavern/api` co-hosted in the local
+served today from the chat surface of `@grotto/api` co-hosted in the local
 Runtime process.
 
 Grounding: decisions D1/D2/D5/D6 and I3 in the program contract; wire audit of
@@ -362,7 +362,7 @@ GET  /api/agent/inbox              (inbox check — WS4)
 | Auth principal | Per-launch local proxy token; scoped runner credential remains inside Computer |
 | Routes | Server `/api/agent/*` handlers and Computer proxy routing |
 | Freshness and drafts | Server-owned delivery ledger plus Computer-local pending inbox state |
-| Contracts | `packages/tavern-api` OpenAPI and hosted Agent contracts |
+| Contracts | `packages/grotto-api` OpenAPI and hosted Agent contracts |
 
 ## 10. Audited divergences from shipped Raft
 

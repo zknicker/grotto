@@ -440,7 +440,7 @@ disabled copy.
 _Avoid_: Import-source deletion, unassignment, global skill disablement
 
 **Widget activity envelope**:
-The durable `tavern.widget.<name>` render envelope that stores a Visual or Artifact fence in chat
+The durable `grotto.widget.<name>` render envelope that stores a Visual or Artifact fence in chat
 history (ADR 0010). The retired closed widget catalog (tables, charts, calendars, html-preview)
 replays as fallback-text cards.
 _Avoid_: Rich Response, UI block, AG-UI component, ChatKit widget

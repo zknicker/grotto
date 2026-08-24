@@ -1,4 +1,4 @@
-import { appProtocolVersion } from '@tavern/api';
+import { appProtocolVersion } from '@grotto/api';
 import { initTRPC, TRPCError } from '@trpc/server';
 import type { GrottoContext } from './context.ts';
 

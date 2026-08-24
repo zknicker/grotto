@@ -1,4 +1,4 @@
-import type { McpConnection, McpPresetAccountCreate } from '@tavern/api';
+import type { McpConnection, McpPresetAccountCreate } from '@grotto/api';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import type { McpRuntime } from './runtime.ts';

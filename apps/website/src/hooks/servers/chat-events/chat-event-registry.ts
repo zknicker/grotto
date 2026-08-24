@@ -1,4 +1,4 @@
-import type { ServerDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@grotto/api';
 
 export type ChatEventType = ServerDurableEvent['type'];
 

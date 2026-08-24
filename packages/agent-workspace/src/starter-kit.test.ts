@@ -8,7 +8,7 @@ describe('ordinary Agent workspace seed', () => {
     let workspaceDir = '';
 
     beforeEach(async () => {
-        workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), 'tavern-starter-kit-'));
+        workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), 'grotto-starter-kit-'));
     });
 
     afterEach(async () => {

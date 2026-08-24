@@ -57,7 +57,7 @@ bun test src/agent-cli/commands/agent-reminder.test.ts \
   src/reminder-script.test.ts
 6 passed
 
-TAVERN_DEV_STACK_ID=agent-e2e bun run eval:agents -- \
+GROTTO_DEV_STACK_ID=agent-e2e bun run eval:agents -- \
   reminder-followup.spec.ts
 1 expected failure (Thread realtime invalidation)
 ```

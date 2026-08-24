@@ -40,13 +40,13 @@ const port = await getFreePort();
 const viteUrl = `http://localhost:${port}`;
 const vite = spawn('bun', ['run', 'dev'], {
     cwd: websiteRoot,
-    env: { ...process.env, TAVERN_WEBSITE_PORT: String(port) },
+    env: { ...process.env, GROTTO_WEBSITE_PORT: String(port) },
     stdio: 'ignore',
 });
 
 // Electron must not inherit the dev-port vars or its quit-cleanup would kill our Vite.
-const electronEnv = { ...process.env, TAVERN_ELECTRON_DEV_URL: viteUrl };
-for (const key of ['TAVERN_WEBSITE_PORT']) {
+const electronEnv = { ...process.env, GROTTO_ELECTRON_DEV_URL: viteUrl };
+for (const key of ['GROTTO_WEBSITE_PORT']) {
     delete electronEnv[key];
 }
 
@@ -63,9 +63,9 @@ try {
     });
 
     const first = await app.firstWindow();
-    await first.waitForFunction(() => Boolean(window.tavernDesktop), null, { timeout: 20_000 });
+    await first.waitForFunction(() => Boolean(window.grottoDesktop), null, { timeout: 20_000 });
 
-    await first.evaluate((route) => window.tavernDesktop.openWindow(route), seededRoute);
+    await first.evaluate((route) => window.grottoDesktop.openWindow(route), seededRoute);
 
     const deadline = Date.now() + 15_000;
     while (app.windows().length < 2 && Date.now() < deadline) {
@@ -85,8 +85,8 @@ try {
     console.log('PASS: openWindow spawned a second window seeded at', seededRoute);
 
     // closeWindow drops the calling window (the last-tab-close path on desktop).
-    await second.waitForFunction(() => Boolean(window.tavernDesktop), null, { timeout: 20_000 });
-    await second.evaluate(() => window.tavernDesktop.closeWindow());
+    await second.waitForFunction(() => Boolean(window.grottoDesktop), null, { timeout: 20_000 });
+    await second.evaluate(() => window.grottoDesktop.closeWindow());
     await waitForWindowCount(app, 1);
     assert(
         app.windows().length === 1,
@@ -97,18 +97,18 @@ try {
     // Tear-off: start spawns a cursor-following window; cancel closes it. (finish is
     // cursor-position-dependent — it re-attaches over a strip — so it's exercised by
     // manual testing rather than asserted here.)
-    await first.evaluate((route) => window.tavernDesktop.tearOffStart(route), seededRoute);
+    await first.evaluate((route) => window.grottoDesktop.tearOffStart(route), seededRoute);
     await waitForWindowCount(app, 2);
-    await first.evaluate(() => window.tavernDesktop.tearOffCancel());
+    await first.evaluate(() => window.grottoDesktop.tearOffCancel());
     await waitForWindowCount(app, 1);
     assert(app.windows().length === 1, 'tear-off cancel should leave 1 window');
     console.log('PASS: tearOffStart + tearOffCancel spawned then closed the window');
 
     // Self-move: moving a lone-tab window follows the cursor; with no other window under
     // it, releasing just leaves the window in place (no spawn, no merge, no close).
-    await first.evaluate((route) => window.tavernDesktop.selfMoveStart(route), seededRoute);
+    await first.evaluate((route) => window.grottoDesktop.selfMoveStart(route), seededRoute);
     await new Promise((resolve) => setTimeout(resolve, 300));
-    await first.evaluate(() => window.tavernDesktop.selfMoveFinish());
+    await first.evaluate(() => window.grottoDesktop.selfMoveFinish());
     await new Promise((resolve) => setTimeout(resolve, 200));
     assert(app.windows().length === 1, 'self-move with no target should keep the single window');
     console.log('PASS: selfMoveStart + selfMoveFinish kept the lone window');

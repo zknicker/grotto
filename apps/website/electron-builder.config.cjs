@@ -2,7 +2,7 @@
 
 const { desktopRuntimeDependencies } = require('./electron/runtime-dependencies.cjs');
 
-const releaseBaseUrl = process.env.TAVERN_RELEASE_BASE_URL?.replace(/\/+$/u, '');
+const releaseBaseUrl = process.env.GROTTO_RELEASE_BASE_URL?.replace(/\/+$/u, '');
 
 module.exports = {
     appId: 'build.grotto.desktop',
@@ -52,7 +52,7 @@ module.exports = {
         gatekeeperAssess: false,
         hardenedRuntime: true,
         icon: 'electron/icons/AppIcon.icns',
-        notarize: process.env.TAVERN_ELECTRON_NOTARIZE !== '0',
+        notarize: process.env.GROTTO_ELECTRON_NOTARIZE !== '0',
         target: ['dmg', 'zip'],
     },
     publish: releaseBaseUrl

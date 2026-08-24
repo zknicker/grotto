@@ -1,4 +1,4 @@
-import type { ServerDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@grotto/api';
 import * as React from 'react';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
 import {

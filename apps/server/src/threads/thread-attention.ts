@@ -1,4 +1,4 @@
-import { parseTavernRichReferences, parseUserReferenceTarget } from '@tavern/api';
+import { parseGrottoRichReferences, parseUserReferenceTarget } from '@grotto/api';
 import { and, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { visibleChats } from '../chats/chat-visibility.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -142,7 +142,7 @@ export async function readThreadAttentionCounts(
 function directMentionedUserIds(content: string) {
     return [
         ...new Set(
-            parseTavernRichReferences(content).flatMap((reference) => {
+            parseGrottoRichReferences(content).flatMap((reference) => {
                 if (reference.kind !== 'user') {
                     return [];
                 }

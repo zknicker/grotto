@@ -1,6 +1,6 @@
+import type { AgentRuntimeBrowserSettings, AgentRuntimeBrowserState } from '@grotto/api';
 import { Alert, Button } from '@heroui/react';
 import { BrowserIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { AgentRuntimeBrowserSettings, AgentRuntimeBrowserState } from '@tavern/api';
 import type { Dispatch, SetStateAction } from 'react';
 import { type BrowserConfigField, BrowserConfigFields } from './browser-config-fields.tsx';
 import {

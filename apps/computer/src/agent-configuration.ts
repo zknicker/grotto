@@ -5,7 +5,7 @@ import {
     seedCoveWorkspace,
     seedFactoryManagedSkills,
     validateCoveWorkspace,
-} from '@tavern/agent-workspace';
+} from '@grotto/agent-workspace';
 import {
     type AgentConfigureCommand,
     agentConfigureCommandSchema,
@@ -13,7 +13,7 @@ import {
     type CoveApplyCommand,
     type CoveApplyResult,
     coveApplyCommandSchema,
-} from '@tavern/api';
+} from '@grotto/api';
 
 export interface AppliedAgentConfiguration {
     missingResources: string[];

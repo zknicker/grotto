@@ -10,7 +10,7 @@ import type {
     BrowserResult,
     ComputerUpdatePhase,
     SignedComputerRelease,
-} from '@tavern/api';
+} from '@grotto/api';
 import type { DeliveryTransport } from '../agent-delivery/delivery.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { SkillFileRelay } from './skill-file-relay.ts';

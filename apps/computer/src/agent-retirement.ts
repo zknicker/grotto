@@ -1,6 +1,6 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { AgentRetireCommand } from '@tavern/api';
+import type { AgentRetireCommand } from '@grotto/api';
 
 export function parseAgentRetireCommand(frame: unknown): AgentRetireCommand | null {
     if (

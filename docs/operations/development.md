@@ -52,7 +52,7 @@ worktree's data across runs. On later boots it applies any new checked-in
 PostgreSQL migrations before starting Grotto Server, so an existing worktree
 database stays current with main. If that migration step fails, the database
 predates the checked-in migration baseline: move
-`~/.tavern/dev/<worktree-id>/postgres` aside and rerun to bootstrap fresh. On first use, Server creates one demo Server with
+`~/.grotto/dev/<worktree-id>/postgres` aside and rerun to bootstrap fresh. On first use, Server creates one demo Server with
 the Agents Blippy and Tiny, avatars for them and for you, the `#all` and
 `#product` Channels, starter messages, a Thread, two tasks, and one MCP
 connection — enough to open any surface without hand-building data. Computer
@@ -66,9 +66,9 @@ Seeding runs once per Server. To pick up changes to
 The dev stack uses worktree-isolated development state by default:
 
 ```txt
-~/.tavern/dev/<worktree-id>/computer
-~/.tavern/dev/<worktree-id>/postgres
-~/.tavern/dev/<worktree-id>/server/attachments
+~/.grotto/dev/<worktree-id>/computer
+~/.grotto/dev/<worktree-id>/postgres
+~/.grotto/dev/<worktree-id>/server/attachments
 ```
 
 The stack reserves a stable four-port group from the worktree path. Grotto App uses the first port
@@ -81,18 +81,18 @@ To intentionally share one dev workspace across worktrees, run:
 bun run dev:shared
 ```
 
-That target defaults `TAVERN_DEV_STACK_ID` to `tavern-shared`, so every checkout
-using it reads and writes `~/.tavern/dev/tavern-shared/`. When a stack id is set,
+That target defaults `GROTTO_DEV_STACK_ID` to `grotto-shared`, so every checkout
+using it reads and writes `~/.grotto/dev/grotto-shared/`. When a stack id is set,
 the default port group is derived from that stack id instead of the checkout
 path, so the shared workspace also has one stable set of local URLs. You can set
-`TAVERN_DEV_STACK_ID` before `bun run dev:shared` to choose a different shared
+`GROTTO_DEV_STACK_ID` before `bun run dev:shared` to choose a different shared
 workspace name. Run one shared stack per shared workspace at a time.
 
-Set `TAVERN_DEV_STACK_ID` to choose the state directory name, or
-`TAVERN_DEV_PORT_BASE` to choose the first port in the four-port group:
+Set `GROTTO_DEV_STACK_ID` to choose the state directory name, or
+`GROTTO_DEV_PORT_BASE` to choose the first port in the four-port group:
 
 ```bash
-TAVERN_DEV_STACK_ID=agent-a TAVERN_DEV_PORT_BASE=43000 bun run dev
+GROTTO_DEV_STACK_ID=agent-a GROTTO_DEV_PORT_BASE=43000 bun run dev
 ```
 
 That example uses ports `43000` through `43003`. Set `GROTTO_COMPUTER_DATA_ROOT`
@@ -103,7 +103,7 @@ should use specific state.
 `SessionStart` hook (`dev-port --claude-launch`), so Claude Code previews use
 this checkout's real website port. The `dev-port` helper and the dev stack
 derive the same four-port group from the checkout path, or from
-`TAVERN_DEV_STACK_ID` when it is set.
+`GROTTO_DEV_STACK_ID` when it is set.
 
 `bun run dev` and `bun run dev-app` share the same Server, Computer,
 PostgreSQL, and web app, so Agent behavior matches across both.

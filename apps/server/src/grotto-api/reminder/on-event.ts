@@ -1,4 +1,4 @@
-import { reminderChangedEventSchema, reminderEventSubscriptionInputSchema } from '@tavern/api';
+import { reminderChangedEventSchema, reminderEventSubscriptionInputSchema } from '@grotto/api';
 import { TRPCError } from '@trpc/server';
 import { subscribeToDurableChatEvents } from '../../chats/durable-events.ts';
 import {

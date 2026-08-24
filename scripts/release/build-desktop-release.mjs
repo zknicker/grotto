@@ -11,12 +11,12 @@ const repoRoot = path.resolve(__dirname, '..', '..');
 
 loadEnvFile();
 
-const releaseBaseUrl = trimTrailingSlash(requireEnv('TAVERN_RELEASE_BASE_URL'));
+const releaseBaseUrl = trimTrailingSlash(requireEnv('GROTTO_RELEASE_BASE_URL'));
 
 requireSigningEnvironment();
 requireNotarizationEnvironment();
 
-process.env.TAVERN_RELEASE_BASE_URL = releaseBaseUrl;
+process.env.GROTTO_RELEASE_BASE_URL = releaseBaseUrl;
 process.env.APPLE_APP_SPECIFIC_PASSWORD ??= process.env.APPLE_PASSWORD;
 process.env.CSC_NAME ??= normalizeSigningIdentity(process.env.APPLE_SIGNING_IDENTITY);
 

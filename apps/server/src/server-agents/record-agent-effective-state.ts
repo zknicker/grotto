@@ -1,4 +1,4 @@
-import type { AgentEffectiveState } from '@tavern/api';
+import type { AgentEffectiveState } from '@grotto/api';
 import { and, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';

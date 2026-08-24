@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { CompositionEvent } from '@tavern/api';
+import type { CompositionEvent } from '@grotto/api';
 import { visibleCompositions } from './visible-compositions.ts';
 
 function composition(actorUserId: string): CompositionEvent {

@@ -1,4 +1,4 @@
-import type { AgentRuntimeBrowserState, AgentRuntimeBrowserStatus } from '@tavern/api';
+import type { AgentRuntimeBrowserState, AgentRuntimeBrowserStatus } from '@grotto/api';
 
 import type { BrowserCommandQueue } from './command-queue.ts';
 import {

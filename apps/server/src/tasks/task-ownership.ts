@@ -1,4 +1,4 @@
-import type { MessageTask } from '@tavern/api';
+import type { MessageTask } from '@grotto/api';
 
 type TaskOwnership = Pick<MessageTask, 'assigneeAgentId' | 'assigneeUserId'>;
 

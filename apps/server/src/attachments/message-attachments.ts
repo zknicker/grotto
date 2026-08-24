@@ -1,4 +1,4 @@
-import type { AttachmentMetadata } from '@tavern/api';
+import type { AttachmentMetadata } from '@grotto/api';
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { attachmentsTable } from '../postgres/schema.ts';

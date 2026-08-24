@@ -1,4 +1,4 @@
-export type TavernRichReferenceKind =
+export type GrottoRichReferenceKind =
     | 'agent'
     | 'app'
     | 'directory'
@@ -7,18 +7,18 @@ export type TavernRichReferenceKind =
     | 'skill'
     | 'user';
 
-export type TavernRichReferenceProjection =
+export type GrottoRichReferenceProjection =
     | 'agent-reference'
     | 'capability-reference'
     | 'path-reference'
     | 'skill-activation';
 
-export interface TavernRichReference {
+export interface GrottoRichReference {
     end: number;
     id: string;
-    kind: TavernRichReferenceKind;
+    kind: GrottoRichReferenceKind;
     label: string;
-    projection: TavernRichReferenceProjection;
+    projection: GrottoRichReferenceProjection;
     start: number;
     text: string;
 }
@@ -55,8 +55,8 @@ export function parseUserReferenceTarget(target: string) {
     return parseSchemeReferenceTarget(target, 'user');
 }
 
-export function parseTavernRichReferences(content: string) {
-    const references: TavernRichReference[] = [];
+export function parseGrottoRichReferences(content: string) {
+    const references: GrottoRichReference[] = [];
     const linkPattern = /\[([^\]\n]+)\]\(([^)\n]+)\)/gu;
 
     for (const match of content.matchAll(linkPattern)) {
@@ -98,7 +98,7 @@ function parseRichReferenceLink({
 }: {
     rawLabel: string;
     target: string;
-}): Omit<TavernRichReference, 'end' | 'id' | 'start' | 'text'> | null {
+}): Omit<GrottoRichReference, 'end' | 'id' | 'start' | 'text'> | null {
     if (parseAgentReferenceTarget(target)) {
         return {
             kind: 'agent',
@@ -180,7 +180,7 @@ function stripReferenceLabelSigil(label: string) {
     return label.replace(/^[@$]/u, '');
 }
 
-function inferPathKind(target: string): Extract<TavernRichReferenceKind, 'directory' | 'file'> {
+function inferPathKind(target: string): Extract<GrottoRichReferenceKind, 'directory' | 'file'> {
     const finalSegment = target.split('/').filter(Boolean).at(-1) ?? '';
 
     if (/\.[A-Za-z0-9]+$/u.test(finalSegment)) {

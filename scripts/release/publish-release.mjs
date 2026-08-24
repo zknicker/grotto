@@ -67,7 +67,7 @@ const main = async () => {
         run('bun', ['run', 'publish:desktop'], {
             env: {
                 ...process.env,
-                TAVERN_RELEASE_INCLUDE_DESKTOP: '1',
+                GROTTO_RELEASE_INCLUDE_DESKTOP: '1',
             },
         });
     }
@@ -209,7 +209,7 @@ function pushReleaseTag({ pushBranch, tagName }) {
 
 async function writeReleaseNotes(version) {
     const notes = extractReleaseNotes(await readText('CHANGELOG.md'), version);
-    const notesDirectory = mkdtempSync(path.join(tmpdir(), 'tavern-release-'));
+    const notesDirectory = mkdtempSync(path.join(tmpdir(), 'grotto-release-'));
     const notesPath = path.join(notesDirectory, `${version}-notes.md`);
     writeFileSync(notesPath, `${notes}\n`, 'utf8');
     return notesPath;

@@ -1,11 +1,11 @@
-import { getManualTopic, searchManualTopics } from '@tavern/agent-manual';
+import { getManualTopic, searchManualTopics } from '@grotto/agent-manual';
 import {
     agentManualGetQuerySchema,
     agentManualGetResponseSchema,
     agentManualSearchQuerySchema,
     agentManualSearchResponseSchema,
     manualRunnerCapability,
-} from '@tavern/api';
+} from '@grotto/api';
 import type { FastifyInstance } from 'fastify';
 import type * as z from 'zod';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';

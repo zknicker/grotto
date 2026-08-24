@@ -24,8 +24,8 @@ export const widgetPropsSchemasByName = {
     visual: widgetVisualPropsSchema,
 } satisfies Record<WidgetName, z.ZodType>;
 
-export function widgetComponentId<Name extends WidgetName>(name: Name): `tavern.widget.${Name}` {
-    return `tavern.widget.${name}`;
+export function widgetComponentId<Name extends WidgetName>(name: Name): `grotto.widget.${Name}` {
+    return `grotto.widget.${name}`;
 }
 
 const widgetRenderInputEntry = <Name extends WidgetName>(name: Name) =>

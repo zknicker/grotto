@@ -59,7 +59,7 @@ run(
     ['x', 'vite', 'build', '--outDir', path.join(stageRoot, 'share', 'grotto-server', 'app')],
     {
         cwd: path.join(repoRoot, 'apps', 'website'),
-        env: { ...process.env, TAVERN_HOSTED_APP: '1' },
+        env: { ...process.env, GROTTO_HOSTED_APP: '1' },
     }
 );
 

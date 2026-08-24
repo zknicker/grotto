@@ -371,8 +371,8 @@ function assistantMessage(content: string): TranscriptMessage {
         sender: 'Agent',
         senderType: 'agent',
         sourceSessionId: null,
-        sourceSessionKey: 'agent:main:tavern:channel:geometry',
-        tavernAgentId: 'agt_main',
+        sourceSessionKey: 'agent:main:grotto:channel:geometry',
+        grottoAgentId: 'agt_main',
         timestamp: '2026-06-18T20:35:17.000Z',
     };
 }

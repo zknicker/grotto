@@ -1,4 +1,4 @@
-import type { Agent, ComputerInventory } from '@tavern/api';
+import type { Agent, ComputerInventory } from '@grotto/api';
 
 type Runtime = ComputerInventory['runtimes'][number];
 

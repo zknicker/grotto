@@ -1,4 +1,4 @@
-import type { Agent, ChatMessage, ThreadSummary } from '@tavern/api';
+import type { Agent, ChatMessage, ThreadSummary } from '@grotto/api';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
 import type { TranscriptMessageRow } from '../../chats/transcript-contract.ts';
@@ -91,7 +91,7 @@ export function projectChatMessage(
             senderType,
             sourceSessionId: null,
             sourceSessionKey: `hosted:${agentId ?? message.author.kind}`,
-            tavernAgentId: agentId,
+            grottoAgentId: agentId,
             task: messageTask(message.task, directories.handleByAgentId, directories.humans),
             timestamp: message.createdAt,
         },

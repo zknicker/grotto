@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computerProtocolVersion } from '@tavern/api';
+import { computerProtocolVersion } from '@grotto/api';
 import type { ServerWebSocket } from 'bun';
 import { computerVersion } from './build-identity.ts';
 import { launchdPlist, recoverInterruptedUpdate } from './index.ts';

@@ -1,8 +1,8 @@
-import { type WidgetArtifactProps, widgetArtifactPropsSchema } from '@tavern/api/widgets/artifact';
+import { type WidgetArtifactProps, widgetArtifactPropsSchema } from '@grotto/api/widgets/artifact';
 import { WidgetArtifactCard } from '../../chats/artifact-card.tsx';
 import { ArtifactPanelOpenProvider } from '../../chats/artifact-panel-context.tsx';
 import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
-import type { TavernResourceTarget } from '../../chats/tavern-resource-link.ts';
+import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
 import type { Mention } from '../../mentions/mention-types.ts';
 
 type ArtifactMessageSegment =
@@ -18,7 +18,7 @@ export function ArtifactMessage({
     agentId: string;
     content: string;
     mentions?: readonly Mention[];
-    onOpenArtifact: (target: TavernResourceTarget) => void;
+    onOpenArtifact: (target: GrottoResourceTarget) => void;
 }) {
     const segments = splitArtifactFences(content);
 

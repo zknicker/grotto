@@ -1,6 +1,6 @@
+import type { Agent } from '@grotto/api';
 import { Button } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { useAgentDelete } from '../../../hooks/members/use-agent-delete.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';

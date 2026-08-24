@@ -6,7 +6,7 @@ import test from 'node:test';
 import { getDevEnvironmentOverrides } from './run-dev-stack.mjs';
 
 test('loads private Clerk dev sign-in config from the copied root env', () => {
-    const repositoryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'tavern-dev-env-'));
+    const repositoryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'grotto-dev-env-'));
 
     try {
         fs.mkdirSync(path.join(repositoryRoot, 'apps', 'website'), { recursive: true });
@@ -23,7 +23,7 @@ test('loads private Clerk dev sign-in config from the copied root env', () => {
             CLERK_ISSUER_URL: 'https://example.com',
             CLERK_SECRET_KEY: 'sk_test_root',
             DEV_CLERK_SIGN_IN_USER_ID: 'user_root',
-            TAVERN_CLERK_PUBLISHABLE_KEY: 'pk_test_ZXhhbXBsZS5jb20k',
+            GROTTO_CLERK_PUBLISHABLE_KEY: 'pk_test_ZXhhbXBsZS5jb20k',
         });
     } finally {
         fs.rmSync(repositoryRoot, { force: true, recursive: true });
@@ -31,7 +31,7 @@ test('loads private Clerk dev sign-in config from the copied root env', () => {
 });
 
 test('does not override Clerk configuration already present in the process environment', () => {
-    const repositoryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'tavern-dev-env-'));
+    const repositoryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'grotto-dev-env-'));
 
     try {
         fs.writeFileSync(

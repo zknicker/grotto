@@ -28,7 +28,7 @@ plain text unless the user selects or types explicit link syntax.
 - Agent references bind to immutable Agent ids, not reusable handles. A reference
   to a deleted Agent stays attached to that historical identity even if a new
   Agent later reuses the same visible handle.
-- Saved messages do not need `metadata.tavern.mentions` to render, route, or
+- Saved messages do not need `metadata.grotto.mentions` to render, route, or
   project references.
 - The composer may keep local metadata for live chip appearance while the user
   edits a draft.

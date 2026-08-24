@@ -8,7 +8,7 @@ function isTestEnvironment() {
 }
 
 function getDefaultTestDatabasePath() {
-    return join(os.tmpdir(), 'tavern-tests', `tavern-${process.pid}.sqlite`);
+    return join(os.tmpdir(), 'grotto-tests', `grotto-${process.pid}.sqlite`);
 }
 
 export function getDefaultDatabasePath() {
@@ -50,15 +50,9 @@ function resolveHomePath(value: string) {
 }
 
 export function getDefaultAppOrigin() {
-    const websitePort = process.env.TAVERN_WEBSITE_PORT;
+    const websitePort = process.env.GROTTO_WEBSITE_PORT;
 
     return `http://localhost:${isValidPort(websitePort) ? websitePort : '3100'}`;
-}
-
-export function getDefaultServerPort() {
-    const serverPort = process.env.TAVERN_SERVER_PORT;
-
-    return serverPort && isValidPort(serverPort) ? Number(serverPort) : 8080;
 }
 
 function findUpwards(filename: string, startDirectory: string) {
@@ -155,8 +149,6 @@ const envSchema = z
             .default(getDefaultGrottoServerPort()),
         GROTTO_STATIC_APP_ROOT: z.string().min(1).transform(resolveHomePath).optional(),
         DEV_CLERK_SIGN_IN_USER_ID: z.string().min(1).optional(),
-        TAVERN_RUNTIME_URL: z.string().url().optional(),
-        SERVER_PORT: z.coerce.number().int().positive().default(getDefaultServerPort()),
     })
     .superRefine((value, context) => {
         if (
@@ -191,16 +183,8 @@ function applyCliOverrides(args: string[]) {
                 process.env.APP_ORIGIN = nextValue;
                 index += 1;
                 break;
-            case '--tavern-runtime-url':
-                process.env.TAVERN_RUNTIME_URL = nextValue;
-                index += 1;
-                break;
             case '--database-path':
                 process.env.DATABASE_PATH = nextValue;
-                index += 1;
-                break;
-            case '--server-port':
-                process.env.SERVER_PORT = nextValue;
                 index += 1;
                 break;
             default:

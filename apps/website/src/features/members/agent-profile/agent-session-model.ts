@@ -1,4 +1,4 @@
-import type { Agent } from '@tavern/api';
+import type { Agent } from '@grotto/api';
 
 export function fullResetCopy(factoryKind: Agent['factoryKind']) {
     if (factoryKind === 'cove') {

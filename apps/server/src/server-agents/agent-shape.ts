@@ -1,4 +1,4 @@
-import type { Agent, AgentAvailability, AgentStatus } from '@tavern/api';
+import type { Agent, AgentAvailability, AgentStatus } from '@grotto/api';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
 export interface ConfiguredAgentRow {

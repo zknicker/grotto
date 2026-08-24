@@ -1,4 +1,4 @@
-import type { ServerDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@grotto/api';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable } from '../postgres/schema.ts';

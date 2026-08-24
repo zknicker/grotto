@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { AgentCommand } from '@tavern/api';
+import type { AgentCommand } from '@grotto/api';
 import { eq, sql } from 'drizzle-orm';
 import { pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';

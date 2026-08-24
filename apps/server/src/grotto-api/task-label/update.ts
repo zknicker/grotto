@@ -1,4 +1,4 @@
-import { taskLabelMutationSchema, taskLabelUpdateInputSchema } from '@tavern/api';
+import { taskLabelMutationSchema, taskLabelUpdateInputSchema } from '@grotto/api';
 import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { updateTaskLabel } from '../../tasks/task-labels.ts';
 import { taskProcedure } from '../task/procedure.ts';

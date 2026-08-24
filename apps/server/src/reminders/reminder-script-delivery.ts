@@ -1,4 +1,4 @@
-import type { ReminderScriptCommand, ReminderScriptResult, ServerDurableEvent } from '@tavern/api';
+import type { ReminderScriptCommand, ReminderScriptResult, ServerDurableEvent } from '@grotto/api';
 import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';

@@ -1,9 +1,9 @@
 export const agentRuntimeMutationHeaders = {
-    origin: 'x-tavern-origin',
+    origin: 'x-grotto-origin',
 } as const;
 
 export const agentRuntimeMutationOrigins = {
-    tavern: 'tavern',
+    grotto: 'grotto',
     agentRuntime: 'agent-runtime',
 } as const;
 

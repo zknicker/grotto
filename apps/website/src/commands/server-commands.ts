@@ -1,3 +1,4 @@
+import type { Agent, Chat } from '@grotto/api';
 import { toast } from '@heroui/react';
 import {
     ArchiveIcon,
@@ -7,7 +8,6 @@ import {
     CursorTextIcon,
     UserCircleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
-import type { Agent, Chat } from '@tavern/api';
 import {
     agentRoute,
     membersRoute,

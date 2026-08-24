@@ -1,4 +1,4 @@
-import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@tavern/api';
+import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@grotto/api';
 import { WebSocket } from 'ws';
 import { attachComputer, createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';

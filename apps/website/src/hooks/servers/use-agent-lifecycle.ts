@@ -1,4 +1,4 @@
-import type { Agent, AgentLifecycleEvent } from '@tavern/api';
+import type { Agent, AgentLifecycleEvent } from '@grotto/api';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 

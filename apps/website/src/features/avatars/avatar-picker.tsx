@@ -1,6 +1,6 @@
+import { avatarMediaTypes } from '@grotto/api/avatar';
 import { Button, Tooltip } from '@heroui/react';
 import { Camera01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import { avatarMediaTypes } from '@tavern/api/avatar';
 import * as React from 'react';
 import type { EntityAvatarProps } from '../../components/ui/entity-avatar.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';

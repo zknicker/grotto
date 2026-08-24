@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-const chatComposerFocusEventName = 'tavern:chat-composer-focus-request';
+const chatComposerFocusEventName = 'grotto:chat-composer-focus-request';
 
 export function requestChatComposerFocus() {
     window.dispatchEvent(new Event(chatComposerFocusEventName));

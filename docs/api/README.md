@@ -7,7 +7,7 @@ read_when:
 
 # Grotto API
 
-`packages/tavern-api` defines the first-party contracts used by Grotto Server, App, Computer, and
+`packages/grotto-api` defines the first-party contracts used by Grotto Server, App, Computer, and
 the managed Agent CLI. The App uses Server tRPC routers. Computer uses the authenticated attachment
 protocol plus scoped runner routes. Managed Agents call `/api/agent/*` through Computer's loopback
 proxy.

@@ -1,5 +1,5 @@
+import type { Chat } from '@grotto/api';
 import { Button, Form, Modal, toast } from '@heroui/react';
-import type { Chat } from '@tavern/api';
 import * as React from 'react';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChannelUpdate } from '../../hooks/servers/use-channel-update.ts';

@@ -40,5 +40,5 @@ All three matched scenarios passed:
   the first Agent summarized that answer.
 
 Verification:
-`TAVERN_DEV_STACK_ID=agent-e2e bun run eval:agents -- attention-routing.spec.ts`
+`GROTTO_DEV_STACK_ID=agent-e2e bun run eval:agents -- attention-routing.spec.ts`
 (`3 passed`, about three minutes).

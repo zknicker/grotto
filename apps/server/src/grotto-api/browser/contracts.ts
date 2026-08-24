@@ -2,7 +2,7 @@ import {
     agentRuntimeBrowserActionResultSchema,
     agentRuntimeBrowserSettingsSchema,
     agentRuntimeSaveBrowserSettingsSchema,
-} from '@tavern/api';
+} from '@grotto/api';
 import { z } from 'zod';
 import { computerIdSchema } from '../../computers/contracts.ts';
 import { serverIdSchema } from '../../servers/contracts.ts';

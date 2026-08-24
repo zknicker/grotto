@@ -1,4 +1,4 @@
-import type { ServerDurableEvent } from '@tavern/api';
+import type { ServerDurableEvent } from '@grotto/api';
 import { and, eq, gt, or, type SQL, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatEventsTable, chatsTable } from '../postgres/schema.ts';

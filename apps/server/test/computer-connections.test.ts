@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AgentCommand, AgentExecutionJournalResult, SignedComputerRelease } from '@tavern/api';
+import type { AgentCommand, AgentExecutionJournalResult, SignedComputerRelease } from '@grotto/api';
 import { ComputerConnections } from '../src/computers/connections.ts';
 
 const computerId = 'cmp_1234567890123456';

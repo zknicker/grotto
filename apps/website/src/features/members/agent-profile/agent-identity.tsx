@@ -1,4 +1,4 @@
-import type { Agent } from '@tavern/api';
+import type { Agent } from '@grotto/api';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgentAvatar } from '../../../hooks/members/use-agent-avatar.ts';

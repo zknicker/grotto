@@ -51,7 +51,7 @@ M3 becomes a release-critical content assertion.
 Verification:
 
 ```text
-TAVERN_DEV_STACK_ID=agent-e2e bun run eval:agents -- mcp-access.spec.ts
+GROTTO_DEV_STACK_ID=agent-e2e bun run eval:agents -- mcp-access.spec.ts
 2 passed (52.0s)
 ```
 

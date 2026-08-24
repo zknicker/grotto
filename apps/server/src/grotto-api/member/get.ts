@@ -1,4 +1,4 @@
-import { getServerMemberInputSchema, serverMemberSchema } from '@tavern/api';
+import { getServerMemberInputSchema, serverMemberSchema } from '@grotto/api';
 import { getServerMember } from '../../servers/get-member.ts';
 import { serverMemberProcedure } from './procedure.ts';
 

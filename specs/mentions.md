@@ -15,12 +15,12 @@ the durable source of truth:
 [$ui](skill://ui)
 [@Computer Use](plugin://computer-use@openai-bundled)
 [@Chrome](app://computer-use/com.google.Chrome)
-[mentions.md](/Users/zknicker/.codex/worktrees/1b41/tavern/specs/mentions.md)
+[mentions.md](/Users/zknicker/.codex/worktrees/1b41/grotto/specs/mentions.md)
 ```
 
 Autocomplete inserts friendly text while editing, then the composer serializes
 the selected reference into markdown. Grotto does not persist a parallel
-`metadata.tavern.mentions` index for user-authored messages. Metadata may carry
+`metadata.grotto.mentions` index for user-authored messages. Metadata may carry
 local picker or chip appearance while editing, but saved messages must render
 and route from content alone.
 

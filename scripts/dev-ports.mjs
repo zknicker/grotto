@@ -13,15 +13,15 @@ export function resolveDevPorts({
 } = {}) {
     const useIsolatedGroup = Boolean(
         repositoryRoot ??
-            baseEnvironment.TAVERN_DEV_PORT_BASE ??
-            baseEnvironment.TAVERN_DEV_STACK_ID
+            baseEnvironment.GROTTO_DEV_PORT_BASE ??
+            baseEnvironment.GROTTO_DEV_STACK_ID
     );
     const portBase = useIsolatedGroup
         ? resolveDevPortBase({ baseEnvironment, repositoryRoot: repositoryRoot ?? process.cwd() })
         : null;
     const resolvedWebsitePort =
         websitePort ??
-        baseEnvironment.TAVERN_WEBSITE_PORT ??
+        baseEnvironment.GROTTO_WEBSITE_PORT ??
         port ??
         (hasExplicitDevPortInput({ baseEnvironment, port, websitePort })
             ? defaultWebsitePort
@@ -51,22 +51,22 @@ export function getDevEnvironment({ baseEnvironment = process.env, port, website
     return {
         ...baseEnvironment,
         GROTTO_SERVER_PORT: resolvedPorts.grottoPort,
-        TAVERN_WEBSITE_PORT: resolvedPorts.websitePort,
+        GROTTO_WEBSITE_PORT: resolvedPorts.websitePort,
     };
 }
 
 function resolveDevPortBase({ baseEnvironment, repositoryRoot }) {
-    const explicitBase = baseEnvironment.TAVERN_DEV_PORT_BASE;
+    const explicitBase = baseEnvironment.GROTTO_DEV_PORT_BASE;
     if (explicitBase) {
         const parsed = Number(parsePort(explicitBase, 'dev port base'));
         if (parsed > 65_532) {
-            throw new Error('Expected TAVERN_DEV_PORT_BASE to leave room for four dev ports.');
+            throw new Error('Expected GROTTO_DEV_PORT_BASE to leave room for four dev ports.');
         }
         return parsed;
     }
 
-    const portIdentity = baseEnvironment.TAVERN_DEV_STACK_ID
-        ? `stack:${baseEnvironment.TAVERN_DEV_STACK_ID}`
+    const portIdentity = baseEnvironment.GROTTO_DEV_STACK_ID
+        ? `stack:${baseEnvironment.GROTTO_DEV_STACK_ID}`
         : repositoryRoot;
     const digest = createHash('sha256').update(portIdentity).digest();
     const bucket = digest.readUInt32BE(0) % devPortGroupCount;
@@ -74,7 +74,7 @@ function resolveDevPortBase({ baseEnvironment, repositoryRoot }) {
 }
 
 function hasExplicitDevPortInput({ baseEnvironment, port, websitePort }) {
-    return Boolean(port ?? websitePort ?? baseEnvironment.TAVERN_WEBSITE_PORT);
+    return Boolean(port ?? websitePort ?? baseEnvironment.GROTTO_WEBSITE_PORT);
 }
 
 function incrementPortBy(value, offset) {

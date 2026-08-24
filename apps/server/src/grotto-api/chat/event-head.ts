@@ -1,4 +1,4 @@
-import { chatEventHeadSchema, chatListInputSchema } from '@tavern/api';
+import { chatEventHeadSchema, chatListInputSchema } from '@grotto/api';
 import { readChatEventHead } from '../../chats/read-event-head.ts';
 import { chatProcedure } from './procedure.ts';
 

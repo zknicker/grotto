@@ -1,7 +1,7 @@
+import type { AgentRuntimeBrowserSettings, AgentRuntimeSaveBrowserSettings } from '@grotto/api';
 import { Button, Chip } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
 import { BrowserIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { AgentRuntimeBrowserSettings, AgentRuntimeSaveBrowserSettings } from '@tavern/api';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { BrowserEnablementSwitch } from './browser-enablement-switch.tsx';

@@ -36,21 +36,21 @@ package gates:
 
 ```sh
 bun run lint
-bun run --filter @tavern/<touched-package> typecheck
-bun run --filter @tavern/<touched-package> test
+bun run --filter @grotto/<touched-package> typecheck
+bun run --filter @grotto/<touched-package> test
 ```
 
 Each package gate includes its tests and typecheck:
 
 | Touched path | Gate |
 | --- | --- |
-| `apps/server` | `@tavern/server test` + `typecheck`. Hosted Server tests provision a throwaway cluster from locally installed PostgreSQL binaries; install PostgreSQL 16 or point `GROTTO_POSTGRES_BIN` at its bin directory. |
-| `apps/computer` | `@tavern/computer test` + `typecheck` |
-| `apps/website` | `@tavern/website test` + `typecheck` |
-| `packages/tavern-api` | `@tavern/api check`, plus typecheck of the consuming apps you touched |
-| `packages/tavern-sdk` | `@tavern/sdk test` + `typecheck` |
+| `apps/server` | `@grotto/server test` + `typecheck`. Hosted Server tests provision a throwaway cluster from locally installed PostgreSQL binaries; install PostgreSQL 16 or point `GROTTO_POSTGRES_BIN` at its bin directory. |
+| `apps/computer` | `@grotto/computer test` + `typecheck` |
+| `apps/website` | `@grotto/website test` + `typecheck` |
+| `packages/grotto-api` | `@grotto/api check`, plus typecheck of the consuming apps you touched |
+| `packages/grotto-sdk` | `@grotto/sdk test` + `typecheck` |
 | Browser-level contracts (navigation, reload, websocket, chat flows, layout) | `bun run test:app`, scoped to the affected spec file when possible |
-| Execution runtimes, harness adapters, provider auth wiring, or `@ai-sdk/harness-*` bumps | `@tavern/computer test` + `typecheck`; add a scoped `bun run test:agents` scenario when deterministic proof is insufficient |
+| Execution runtimes, harness adapters, provider auth wiring, or `@ai-sdk/harness-*` bumps | `@grotto/computer test` + `typecheck`; add a scoped `bun run test:agents` scenario when deterministic proof is insufficient |
 
 Rules that keep runs cheap and honest:
 
@@ -95,7 +95,7 @@ that matches multiple rows, run the union of their required proof.
 | Focused unit/domain tests | Pure logic, view models, hooks, mappers, scheduling rules, validation, or regressions. | Add one targeted regression for behavior changes. Avoid asserting implementation calls. |
 | Computer service tests | Workspaces, queues, execution state, recovery, or execution evidence. | Use real temp directories and the real service boundary. |
 | Hosted Server tests | Grotto Server identity, Chats, messages, reads, search, ordering, authorization, or realtime. | Drive the public tRPC surface through `test/grotto-server-harness.ts`: a throwaway PostgreSQL cluster plus a local Clerk issuer. Never mock PostgreSQL or the transaction. |
-| Contract/API/SDK gates | `packages/tavern-api`, OpenAPI, SDK client shape, generated types, or cross-boundary request/response contracts. | Run `@tavern/api check`, SDK tests/typecheck, and update docs with the product contract. |
+| Contract/API/SDK gates | `packages/grotto-api`, OpenAPI, SDK client shape, generated types, or cross-boundary request/response contracts. | Run `@grotto/api check`, SDK tests/typecheck, and update docs with the product contract. |
 | App component/hook tests | React state rules, cache invalidation, optimistic UI, row models, filters, keyboard behavior, or rendering transforms. | Prefer hook/model/component tests before e2e. Use the `architect-react-features` skill for nontrivial React architecture. |
 | App e2e | Browser-level app contracts: navigation, reload recovery, websocket reconnect, full chat identity, user flows, or layout-critical behavior. | Use deterministic Playwright against isolated ports and a throwaway PostgreSQL cluster. |
 | Computer executor tests | Execution-runtime mapping, event projection, delivery semantics, local sandbox behavior, or capability degradation. | Verify with Computer fixtures, deterministic fake executors, or an opt-in `test:agents` scenario. |

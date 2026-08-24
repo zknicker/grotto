@@ -2,7 +2,7 @@ import type {
     ChannelDeleteReceipt,
     ChannelLifecycleReceipt,
     ServerDurableEvent,
-} from '@tavern/api';
+} from '@grotto/api';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';

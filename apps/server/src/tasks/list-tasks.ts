@@ -1,4 +1,4 @@
-import type { TaskListItem } from '@tavern/api';
+import type { TaskListItem } from '@grotto/api';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { visibleChats } from '../chats/chat-visibility.ts';
 import { toChatMessage } from '../chats/message-shape.ts';

@@ -6,7 +6,7 @@ Server contracts and does not connect directly to Computer.
 
 Write specs in present tense, use the nouns in `CONTEXT.md`, and remove superseded designs instead
 of preserving them as live alternatives. Cross-boundary first-party types belong in
-`packages/tavern-api`.
+`packages/grotto-api`.
 
 Core contracts cover agents, chats, messages, threads, tasks, reminders, identity, permissions,
 skills, tools, MCP connections, execution configuration, and Computer release/update behavior.

@@ -13,7 +13,7 @@ function snapshot(overrides = {}) {
         config: {
             desktopEnabled: true,
             grottoServerUrl: 'http://localhost:8090',
-            postgresDataPath: '~/.tavern/dev/test/postgres',
+            postgresDataPath: '~/.grotto/dev/test/postgres',
             websiteUrl: 'http://localhost:3100',
         },
         phase: 'starting',

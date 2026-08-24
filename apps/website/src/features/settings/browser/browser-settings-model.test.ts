@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { AgentRuntimeBrowserSettings } from '@tavern/api';
+import type { AgentRuntimeBrowserSettings } from '@grotto/api';
 import {
     createDraft,
     hasDraftChanges,

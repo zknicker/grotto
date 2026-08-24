@@ -88,7 +88,7 @@ describe('visual widget contracts', () => {
             html: '<h1>Q3 revenue</h1><p>bars</p>',
         });
 
-        expect(parsed.render.component).toBe('tavern.widget.visual');
+        expect(parsed.render.component).toBe('grotto.widget.visual');
         expect(parsed.fallbackText).toBe('Q3 revenue');
         expect(widgetFallbackText('visual', { html: '<h1>Q3 revenue</h1>' })).toBe('Q3 revenue');
     });

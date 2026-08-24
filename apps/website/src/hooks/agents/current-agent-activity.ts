@@ -1,9 +1,9 @@
-import type { Agent, AgentActivityEvent, AgentLifecycleEvent } from '@tavern/api';
+import type { Agent, AgentActivityEvent, AgentLifecycleEvent } from '@grotto/api';
 import {
     isAgentCurrentActivityTerminalEvent,
     isAgentFinishingActivityEvent,
     projectAgentCurrentActivity,
-} from '@tavern/api/agent-activity';
+} from '@grotto/api/agent-activity';
 
 export type CurrentAgentActivity = AgentActivityEvent;
 

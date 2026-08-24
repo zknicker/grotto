@@ -1,4 +1,4 @@
-import type { Agent } from '@tavern/api';
+import type { Agent } from '@grotto/api';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
 import { cleanupEvalChats } from './cleanup-eval-chats.ts';
 

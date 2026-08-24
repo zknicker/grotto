@@ -1,6 +1,6 @@
-import type { Chat, ChatMessage, ThreadSummary } from '@tavern/api';
+import type { Chat, ChatMessage, ThreadSummary } from '@grotto/api';
 import { ChatSidePaneShell } from '../../chats/chat-side-pane-shell.tsx';
-import type { TavernResourceTarget } from '../../chats/tavern-resource-link.ts';
+import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
 import { ThreadContent } from './thread-content.tsx';
 
 export function ThreadPanel({
@@ -23,7 +23,7 @@ export function ThreadPanel({
     initialThreadChatId?: string;
     onClose: () => void;
     onExitComplete: () => void;
-    onOpenArtifact: (target: TavernResourceTarget) => void;
+    onOpenArtifact: (target: GrottoResourceTarget) => void;
     onViewInChannel: () => void;
     readOnly: boolean;
     summary: ThreadSummary | null;

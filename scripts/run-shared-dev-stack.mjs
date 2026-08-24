@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const defaultSharedStackId = 'tavern-shared';
+const defaultSharedStackId = 'grotto-shared';
 
 function main() {
     const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -13,7 +13,7 @@ function main() {
         cwd: path.resolve(scriptDirectory, '..'),
         env: {
             ...process.env,
-            TAVERN_DEV_STACK_ID: process.env.TAVERN_DEV_STACK_ID ?? defaultSharedStackId,
+            GROTTO_DEV_STACK_ID: process.env.GROTTO_DEV_STACK_ID ?? defaultSharedStackId,
         },
         stdio: 'inherit',
     });

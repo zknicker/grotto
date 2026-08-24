@@ -13,7 +13,7 @@ Computer -- attachment protocol --> Server
 Agent CLI -- localhost proxy --> Computer -- scoped HTTP --> Server
 ```
 
-`packages/tavern-api/src/` owns shared Zod and TypeScript contracts. Server routers live under
+`packages/grotto-api/src/` owns shared Zod and TypeScript contracts. Server routers live under
 `apps/server/src/grotto-api/`. Computer protocol handling lives in `apps/computer/src/`. The
 OpenAPI document describes only the managed Agent HTTP surface and generates
 `src/generated/openapi.d.ts`.

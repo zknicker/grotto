@@ -1,5 +1,5 @@
+import { appProtocolHeaders, appProtocolVersion } from '@grotto/api/app-protocol';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { appProtocolHeaders, appProtocolVersion } from '@tavern/api/app-protocol';
 import {
     createWSClient,
     httpBatchLink,

@@ -1,4 +1,4 @@
-import { taskAssigneesInputSchema, taskAssigneesSchema } from '@tavern/api';
+import { taskAssigneesInputSchema, taskAssigneesSchema } from '@grotto/api';
 import { listTaskAssignees } from '../../tasks/list-task-assignees.ts';
 import { taskProcedure } from './procedure.ts';
 

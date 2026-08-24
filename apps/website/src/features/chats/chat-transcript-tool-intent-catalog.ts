@@ -3,7 +3,7 @@ import type { ToolIntentKind } from './chat-transcript-tool-intent-types.ts';
 export const commandToolNames = ['bash', 'command', 'exec', 'process', 'shell', 'terminal', 'zsh'];
 export const longHeaderSubjectLimit = 72;
 
-// Current agent runtime built-ins, Tavern first-party tools, and Tavern-owned
+// Current agent runtime built-ins, Grotto first-party tools, and Grotto-owned
 // session/tool rows. Unknown plugin or MCP tools still fall through to shape
 // inference and then a generic tool summary.
 export const mappedToolIntentNames = [

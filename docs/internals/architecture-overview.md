@@ -21,7 +21,7 @@ flowchart LR
 | Grotto Server | Identity, authorization, Servers, members, Chats, Messages, Tasks, Reminders, attachments, connections, desired Agent configuration, and reported execution summaries. |
 | Grotto App | React presentation in browsers and Electron, local settings, cache, optimistic UI, and direct Server interaction. |
 | Grotto Computer | Server attachments on a physical machine, Agent workspaces, queues, runtime/model discovery, effective execution state, and Agent turns. |
-| `@tavern/api` | Typed contracts shared across those boundaries and the Agent CLI. |
+| `@grotto/api` | Typed contracts shared across those boundaries and the Agent CLI. |
 
 The App never connects directly to Computer. Server sends typed delivery and control messages to
 the Agent's assigned Computer. Computer reports availability, state, progress, and bounded turn

@@ -6,7 +6,7 @@ import type { ManagedChromeMatch, ProcessListReader, ProcessRecord } from './typ
 
 const execFileAsync = promisify(execFile);
 
-// Root discovery matches only Tavern's exact executable and user-data
+// Root discovery matches only Grotto's exact executable and user-data
 // directory. Personal Chrome processes are never candidates.
 export function locateManagedChrome(
     processes: ProcessRecord[],

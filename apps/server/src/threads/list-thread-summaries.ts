@@ -1,4 +1,4 @@
-import type { ThreadSummary } from '@tavern/api';
+import type { ThreadSummary } from '@grotto/api';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {

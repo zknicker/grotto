@@ -48,7 +48,7 @@ function main() {
     });
 
     void controller.start().catch((error) => {
-        controller.addLog('tavern', error instanceof Error ? error.message : String(error));
+        controller.addLog('grotto', error instanceof Error ? error.message : String(error));
         void controller.stop(1);
     });
 }
@@ -57,12 +57,12 @@ export function getDevEnvironmentOverrides(repositoryRoot, environment = process
     const rootEnvPath = path.join(repositoryRoot, '.env');
     const websiteEnvPath = path.join(repositoryRoot, 'apps', 'website', '.env.development');
     const publishableKey =
-        environment.TAVERN_CLERK_PUBLISHABLE_KEY ??
+        environment.GROTTO_CLERK_PUBLISHABLE_KEY ??
         readEnvValue(websiteEnvPath, 'VITE_CLERK_PUBLISHABLE_KEY');
     const overrides = {};
 
-    if (publishableKey && environment.TAVERN_CLERK_PUBLISHABLE_KEY === undefined) {
-        overrides.TAVERN_CLERK_PUBLISHABLE_KEY = publishableKey;
+    if (publishableKey && environment.GROTTO_CLERK_PUBLISHABLE_KEY === undefined) {
+        overrides.GROTTO_CLERK_PUBLISHABLE_KEY = publishableKey;
     }
     if (publishableKey && environment.CLERK_ISSUER_URL === undefined) {
         overrides.CLERK_ISSUER_URL = clerkIssuerFromPublishableKey(publishableKey);

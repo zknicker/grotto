@@ -1,15 +1,15 @@
-.tavern-simple-code-editor {
+.grotto-simple-code-editor {
     background-color: var(--surface);
     color: var(--foreground);
     font-family: var(--font-mono);
 }
 
-.tavern-simple-code-editor.tavern-simple-code-editor--plain {
+.grotto-simple-code-editor.grotto-simple-code-editor--plain {
     background-color: var(--overlay);
 }
 
-.tavern-simple-code-editor textarea,
-.tavern-simple-code-editor pre {
+.grotto-simple-code-editor textarea,
+.grotto-simple-code-editor pre {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     line-height: 1.65;
@@ -18,116 +18,116 @@
     word-break: normal !important;
 }
 
-.tavern-simple-code-editor textarea {
+.grotto-simple-code-editor textarea {
     outline: none;
 }
 
-.tavern-simple-code-editor pre {
+.grotto-simple-code-editor pre {
     margin: 0;
 }
 
-.tavern-simple-code-editor .token.comment,
-.tavern-simple-code-editor .token.prolog,
-.tavern-simple-code-editor .token.doctype,
-.tavern-simple-code-editor .token.cdata {
+.grotto-simple-code-editor .token.comment,
+.grotto-simple-code-editor .token.prolog,
+.grotto-simple-code-editor .token.doctype,
+.grotto-simple-code-editor .token.cdata {
     color: #64748b;
 }
 
-.tavern-simple-code-editor .token.punctuation {
+.grotto-simple-code-editor .token.punctuation {
     color: #475569;
 }
 
-.tavern-simple-code-editor .token.property,
-.tavern-simple-code-editor .token.tag,
-.tavern-simple-code-editor .token.boolean,
-.tavern-simple-code-editor .token.number,
-.tavern-simple-code-editor .token.constant,
-.tavern-simple-code-editor .token.symbol,
-.tavern-simple-code-editor .token.deleted {
+.grotto-simple-code-editor .token.property,
+.grotto-simple-code-editor .token.tag,
+.grotto-simple-code-editor .token.boolean,
+.grotto-simple-code-editor .token.number,
+.grotto-simple-code-editor .token.constant,
+.grotto-simple-code-editor .token.symbol,
+.grotto-simple-code-editor .token.deleted {
     color: #c2410c;
 }
 
-.tavern-simple-code-editor .token.selector,
-.tavern-simple-code-editor .token.attr-name,
-.tavern-simple-code-editor .token.string,
-.tavern-simple-code-editor .token.char,
-.tavern-simple-code-editor .token.builtin,
-.tavern-simple-code-editor .token.inserted {
+.grotto-simple-code-editor .token.selector,
+.grotto-simple-code-editor .token.attr-name,
+.grotto-simple-code-editor .token.string,
+.grotto-simple-code-editor .token.char,
+.grotto-simple-code-editor .token.builtin,
+.grotto-simple-code-editor .token.inserted {
     color: #047857;
 }
 
-.tavern-simple-code-editor .token.operator,
-.tavern-simple-code-editor .token.entity,
-.tavern-simple-code-editor .token.url,
-.tavern-simple-code-editor .token.variable {
+.grotto-simple-code-editor .token.operator,
+.grotto-simple-code-editor .token.entity,
+.grotto-simple-code-editor .token.url,
+.grotto-simple-code-editor .token.variable {
     color: #7c3aed;
 }
 
-.tavern-simple-code-editor .token.atrule,
-.tavern-simple-code-editor .token.attr-value,
-.tavern-simple-code-editor .token.function,
-.tavern-simple-code-editor .token.class-name {
+.grotto-simple-code-editor .token.atrule,
+.grotto-simple-code-editor .token.attr-value,
+.grotto-simple-code-editor .token.function,
+.grotto-simple-code-editor .token.class-name {
     color: #1d4ed8;
 }
 
-.tavern-simple-code-editor .token.keyword {
+.grotto-simple-code-editor .token.keyword {
     color: #be123c;
 }
 
-.tavern-simple-code-editor .token.regex,
-.tavern-simple-code-editor .token.important {
+.grotto-simple-code-editor .token.regex,
+.grotto-simple-code-editor .token.important {
     color: #b45309;
 }
 
-.dark .tavern-simple-code-editor .token.comment,
-.dark .tavern-simple-code-editor .token.prolog,
-.dark .tavern-simple-code-editor .token.doctype,
-.dark .tavern-simple-code-editor .token.cdata {
+.dark .grotto-simple-code-editor .token.comment,
+.dark .grotto-simple-code-editor .token.prolog,
+.dark .grotto-simple-code-editor .token.doctype,
+.dark .grotto-simple-code-editor .token.cdata {
     color: #64748b;
 }
 
-.dark .tavern-simple-code-editor .token.punctuation {
+.dark .grotto-simple-code-editor .token.punctuation {
     color: #cbd5e1;
 }
 
-.dark .tavern-simple-code-editor .token.property,
-.dark .tavern-simple-code-editor .token.tag,
-.dark .tavern-simple-code-editor .token.boolean,
-.dark .tavern-simple-code-editor .token.number,
-.dark .tavern-simple-code-editor .token.constant,
-.dark .tavern-simple-code-editor .token.symbol,
-.dark .tavern-simple-code-editor .token.deleted {
+.dark .grotto-simple-code-editor .token.property,
+.dark .grotto-simple-code-editor .token.tag,
+.dark .grotto-simple-code-editor .token.boolean,
+.dark .grotto-simple-code-editor .token.number,
+.dark .grotto-simple-code-editor .token.constant,
+.dark .grotto-simple-code-editor .token.symbol,
+.dark .grotto-simple-code-editor .token.deleted {
     color: #fb923c;
 }
 
-.dark .tavern-simple-code-editor .token.selector,
-.dark .tavern-simple-code-editor .token.attr-name,
-.dark .tavern-simple-code-editor .token.string,
-.dark .tavern-simple-code-editor .token.char,
-.dark .tavern-simple-code-editor .token.builtin,
-.dark .tavern-simple-code-editor .token.inserted {
+.dark .grotto-simple-code-editor .token.selector,
+.dark .grotto-simple-code-editor .token.attr-name,
+.dark .grotto-simple-code-editor .token.string,
+.dark .grotto-simple-code-editor .token.char,
+.dark .grotto-simple-code-editor .token.builtin,
+.dark .grotto-simple-code-editor .token.inserted {
     color: #34d399;
 }
 
-.dark .tavern-simple-code-editor .token.operator,
-.dark .tavern-simple-code-editor .token.entity,
-.dark .tavern-simple-code-editor .token.url,
-.dark .tavern-simple-code-editor .token.variable {
+.dark .grotto-simple-code-editor .token.operator,
+.dark .grotto-simple-code-editor .token.entity,
+.dark .grotto-simple-code-editor .token.url,
+.dark .grotto-simple-code-editor .token.variable {
     color: #c084fc;
 }
 
-.dark .tavern-simple-code-editor .token.atrule,
-.dark .tavern-simple-code-editor .token.attr-value,
-.dark .tavern-simple-code-editor .token.function,
-.dark .tavern-simple-code-editor .token.class-name {
+.dark .grotto-simple-code-editor .token.atrule,
+.dark .grotto-simple-code-editor .token.attr-value,
+.dark .grotto-simple-code-editor .token.function,
+.dark .grotto-simple-code-editor .token.class-name {
     color: #60a5fa;
 }
 
-.dark .tavern-simple-code-editor .token.keyword {
+.dark .grotto-simple-code-editor .token.keyword {
     color: #fb7185;
 }
 
-.dark .tavern-simple-code-editor .token.regex,
-.dark .tavern-simple-code-editor .token.important {
+.dark .grotto-simple-code-editor .token.regex,
+.dark .grotto-simple-code-editor .token.important {
     color: #fbbf24;
 }

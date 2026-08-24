@@ -1,4 +1,4 @@
-import type { Chat } from '@tavern/api';
+import type { Chat } from '@grotto/api';
 
 export function resolveChatPageChat(input: {
     detail: Chat | undefined;

@@ -1,4 +1,4 @@
-import type { AgentDeliveryControlInput, AgentDeliveryState } from '@tavern/api';
+import type { AgentDeliveryControlInput, AgentDeliveryState } from '@grotto/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import { countQueuedPending, readDeliveryState } from '../agent-delivery/store.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';

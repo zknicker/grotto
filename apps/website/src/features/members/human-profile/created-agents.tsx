@@ -1,5 +1,5 @@
+import type { Agent } from '@grotto/api';
 import { Chip, Separator } from '@heroui/react';
-import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';

@@ -1,4 +1,4 @@
-import { computerProtocolVersion } from '@tavern/api';
+import { computerProtocolVersion } from '@grotto/api';
 import { attachComputer, createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 

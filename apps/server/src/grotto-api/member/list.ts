@@ -1,4 +1,4 @@
-import { listServerMembersInputSchema, serverMemberDirectorySchema } from '@tavern/api';
+import { listServerMembersInputSchema, serverMemberDirectorySchema } from '@grotto/api';
 import { listServerMembers } from '../../servers/list-members.ts';
 import { serverMemberProcedure } from './procedure.ts';
 

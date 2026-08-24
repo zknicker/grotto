@@ -1,8 +1,8 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { lstat, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { AgentSkillFile, AgentSkillFileRequest, AgentSkillFileResult } from '@tavern/api';
-import { agentSkillFileRequestSchema } from '@tavern/api';
+import type { AgentSkillFile, AgentSkillFileRequest, AgentSkillFileResult } from '@grotto/api';
+import { agentSkillFileRequestSchema } from '@grotto/api';
 import { readSkillBundle, skillNamePattern } from './host-skill-bundle.ts';
 
 export function parseAgentSkillFileRequest(frame: unknown): AgentSkillFileRequest | null {

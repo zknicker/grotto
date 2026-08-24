@@ -1,5 +1,5 @@
+import type { Agent, AgentSkillMetadata } from '@grotto/api';
 import { Alert, AlertDialog, Button, Modal, TextArea } from '@heroui/react';
-import type { Agent, AgentSkillMetadata } from '@tavern/api';
 import * as React from 'react';
 import { useSkillDelete } from '../../../hooks/members/use-skill-delete.ts';
 import { useSkillFile } from '../../../hooks/members/use-skill-file.ts';

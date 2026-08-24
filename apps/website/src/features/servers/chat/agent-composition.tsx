@@ -1,5 +1,5 @@
+import type { Agent, AgentLifecycleEvent } from '@grotto/api';
 import { ChatMessage } from '@heroui-pro/react';
-import type { Agent, AgentLifecycleEvent } from '@tavern/api';
 import { getEntityInitials } from '../../../components/ui/entity-avatar.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useAgentLifecycle } from '../agent-lifecycle.tsx';

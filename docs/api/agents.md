@@ -50,7 +50,7 @@ output, cache-read, and cache-write counts when the runtime reports them. Server
 persists those bounded counters for usage aggregation; raw usage payloads and
 execution traces remain Computer-local.
 
-Wire schemas live in `packages/tavern-api`; Server handlers live in `apps/server/src/agent-api/`
+Wire schemas live in `packages/grotto-api`; Server handlers live in `apps/server/src/agent-api/`
 and `apps/server/src/grotto-api/agent/`; Computer proxy and launch behavior live in
 `apps/computer/src/`.
 

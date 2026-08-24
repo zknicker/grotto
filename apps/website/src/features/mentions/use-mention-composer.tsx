@@ -1,5 +1,5 @@
-import type { Agent } from '@tavern/api';
-import { parseAgentReferenceTarget } from '@tavern/api/rich-references';
+import type { Agent } from '@grotto/api';
+import { parseAgentReferenceTarget } from '@grotto/api/rich-references';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';

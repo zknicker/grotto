@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
+import type { Agent, Chat } from '@grotto/api';
 import { Sidebar } from '@heroui-pro/react';
-import type { Agent, Chat } from '@tavern/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { ChatNavigation } from './chat-navigation.tsx';
@@ -20,7 +20,7 @@ test('hides a retired Agent DM from active navigation', () => {
                                 onCreateChannel={() => undefined}
                                 onPreloadSection={() => undefined}
                                 selectedChatId={undefined}
-                                slug="tavern"
+                                slug="grotto"
                             />
                         </ShellSidebarPage>
                     </ShellSidebar>
@@ -56,7 +56,7 @@ test('renders each DM from its own Agent availability', () => {
                                 onCreateChannel={() => undefined}
                                 onPreloadSection={() => undefined}
                                 selectedChatId="chat_blippy"
-                                slug="tavern"
+                                slug="grotto"
                             />
                         </ShellSidebarPage>
                     </ShellSidebar>
@@ -84,7 +84,7 @@ test('paints a channel row with its chosen color', () => {
                                 onCreateChannel={() => undefined}
                                 onPreloadSection={() => undefined}
                                 selectedChatId={undefined}
-                                slug="tavern"
+                                slug="grotto"
                             />
                         </ShellSidebarPage>
                     </ShellSidebar>

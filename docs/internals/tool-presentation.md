@@ -34,7 +34,7 @@ cache entry.
 - The App sends Server, Agent, and run identity. It never chooses a runtime
   base URL, auth token, runtime session, or runtime-specific chat id.
 - Reusable row, actor, composer, and drawer types belong to the App feature.
-  Boundary adapters may consume `@tavern/api`; presentation components must not
+  Boundary adapters may consume `@grotto/api`; presentation components must not
   import a Server router merely to inherit its output types.
 - Semantic activity is the default human-readable evidence. Raw execution
   journal data is restricted to the access policy enforced by Server.

@@ -1,5 +1,5 @@
+import type { WidgetArtifactProps } from '@grotto/api/widgets/artifact';
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { WidgetArtifactProps } from '@tavern/api/widgets/artifact';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import { useArtifactPanelOpen } from './artifact-panel-context.tsx';

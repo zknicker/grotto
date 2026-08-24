@@ -235,9 +235,9 @@ public struct SettingsPersistence: Sendable {
 
 public enum SettingsFixtures {
     public static let server = SettingsServer(
-        id: "server-tavern",
-        name: "Tavern",
-        slug: "tavern",
+        id: "server-grotto",
+        name: "Grotto",
+        slug: "grotto",
         role: "Owner",
         memberCount: 1,
         agentCount: 1

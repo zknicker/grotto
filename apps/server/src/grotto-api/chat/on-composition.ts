@@ -1,4 +1,4 @@
-import { compositionEventSchema, compositionSubscriptionInputSchema } from '@tavern/api';
+import { compositionEventSchema, compositionSubscriptionInputSchema } from '@grotto/api';
 import { requireChatAccess } from '../../chats/chat-access.ts';
 import { subscribeToChatCompositions } from '../../chats/composition-hub.ts';
 import { chatProcedure } from './procedure.ts';

@@ -7,14 +7,14 @@ describe('host token injection', () => {
         const out = injectHostTokenStyle(html, ':root{--background:#111;}');
 
         expect(out).toContain(
-            '<head><style data-tavern-tokens>:root{--background:#111;}</style><title>'
+            '<head><style data-grotto-tokens>:root{--background:#111;}</style><title>'
         );
     });
 
     test('prepends when the document has no head', () => {
         const out = injectHostTokenStyle('<p>hi</p>', ':root{--x:1;}');
 
-        expect(out.startsWith('<style data-tavern-tokens>:root{--x:1;}</style><p>hi</p>')).toBe(
+        expect(out.startsWith('<style data-grotto-tokens>:root{--x:1;}</style><p>hi</p>')).toBe(
             true
         );
     });

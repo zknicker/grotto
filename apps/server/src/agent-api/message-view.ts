@@ -1,4 +1,4 @@
-import type { TavernAgentMessage } from '@tavern/api';
+import type { GrottoAgentMessage } from '@grotto/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
@@ -39,7 +39,7 @@ export async function toAgentMessages(
     db: GrottoDatabase,
     serverId: string,
     rows: MessageRow[]
-): Promise<TavernAgentMessage[]> {
+): Promise<GrottoAgentMessage[]> {
     const tasksByMessage = await listMessageTaskMap(
         db,
         serverId,

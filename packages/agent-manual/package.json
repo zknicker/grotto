@@ -1,5 +1,5 @@
 {
-  "name": "@tavern/agent-manual",
+  "name": "@grotto/agent-manual",
   "private": true,
   "type": "module",
   "exports": {

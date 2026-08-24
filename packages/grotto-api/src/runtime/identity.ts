@@ -1,6 +1,6 @@
 import * as z from 'zod';
 
-// Authenticated humans on a runtime. Tavern user ids are the only identity
+// Authenticated humans on a runtime. Grotto user ids are the only identity
 // key; Clerk ids are an external reference on the user record. See
 // specs/identity.md.
 

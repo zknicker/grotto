@@ -8,7 +8,7 @@ test('redirects Computer releases directly to the public S3 prefix', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-        'https://punchpress-electron-app-209596837609-us-east-1-an.s3.us-east-1.amazonaws.com/tavern/mac/computer/1.1.0/release.json?proof=1'
+        'https://punchpress-electron-app-209596837609-us-east-1-an.s3.us-east-1.amazonaws.com/grotto/mac/computer/1.1.0/release.json?proof=1'
     );
     expect(response.headers.get('cache-control')).toBe('no-store');
 });

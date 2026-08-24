@@ -386,7 +386,7 @@ test('full reset independently clears harness context and restores the ordinary 
     );
     await expect(stat(join(agentRoot, 'workspace', 'notes'))).rejects.toThrow();
     await expect(
-        readFile(join(agentRoot, 'skills', 'tavern-agent', 'SKILL.md'), 'utf8')
+        readFile(join(agentRoot, 'skills', 'grotto-agent', 'SKILL.md'), 'utf8')
     ).rejects.toThrow();
     await expect(
         readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')
@@ -443,7 +443,7 @@ test('Cove full reset restores its exact factory workspace and only visuals', as
         'utf8'
     );
     expect(objectives.match(/^### recipes\//gmu)).toHaveLength(12);
-    expect(objectives).not.toMatch(/save-as-a-skill|tavern-agent|recipes\/archetype\//u);
+    expect(objectives).not.toMatch(/save-as-a-skill|grotto-agent|recipes\/archetype\//u);
     expect(await readdir(join(agentRoot, 'skills'))).toEqual(['visuals']);
     await expect(
         readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')

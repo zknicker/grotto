@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { type AvatarMediaType, avatarMaxBytes } from '@tavern/api/avatar';
+import { type AvatarMediaType, avatarMaxBytes } from '@grotto/api/avatar';
 import { AvatarRejectedError } from './avatar-errors.ts';
 
 export interface AvatarBytes {

@@ -17,15 +17,15 @@ afterEach(async () => {
 test('restores visuals without removing authored or stale factory skills', async () => {
     await mkdir(join(skillsDir, 'authored'), { recursive: true });
     await writeFile(join(skillsDir, 'authored', 'SKILL.md'), '# Authored\n');
-    await mkdir(join(skillsDir, 'tavern-agent'), { recursive: true });
-    await writeFile(join(skillsDir, 'tavern-agent', 'SKILL.md'), '# stale\n');
+    await mkdir(join(skillsDir, 'grotto-agent'), { recursive: true });
+    await writeFile(join(skillsDir, 'grotto-agent', 'SKILL.md'), '# stale\n');
 
     await seedFactoryManagedSkills(skillsDir);
 
     await expect(readFile(join(skillsDir, 'authored', 'SKILL.md'), 'utf8')).resolves.toBe(
         '# Authored\n'
     );
-    await expect(readFile(join(skillsDir, 'tavern-agent', 'SKILL.md'), 'utf8')).resolves.toBe(
+    await expect(readFile(join(skillsDir, 'grotto-agent', 'SKILL.md'), 'utf8')).resolves.toBe(
         '# stale\n'
     );
     await expect(readFile(join(skillsDir, 'visuals', 'SKILL.md'), 'utf8')).resolves.toBe(

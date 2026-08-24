@@ -3,7 +3,7 @@ import {
     agentSkillFileReadInputSchema,
     agentSkillFileSchema,
     agentSkillFileUpdateInputSchema,
-} from '@tavern/api';
+} from '@grotto/api';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import {

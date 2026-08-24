@@ -1,6 +1,6 @@
 ---
 name: grotto-widgets
-description: Use when changing Grotto visual or artifact fences, their render contracts, Agent authoring guidance, sandboxing, or legacy Widget replay. Covers the current seams across @tavern/api, Computer, Server, App, docs, and tests.
+description: Use when changing Grotto visual or artifact fences, their render contracts, Agent authoring guidance, sandboxing, or legacy Widget replay. Covers the current seams across @grotto/api, Computer, Server, App, docs, and tests.
 ---
 
 # Grotto Widgets
@@ -18,9 +18,9 @@ as replay compatibility, not an extension point.
 
 ## Current ownership
 
-- `packages/tavern-api/src/widgets/visual/`: visual-fence splitting and validation.
-- `packages/tavern-api/src/widgets/artifact/`: artifact-card payload validation.
-- `packages/tavern-api/src/widgets/workspace-path.ts`: confined workspace paths.
+- `packages/grotto-api/src/widgets/visual/`: visual-fence splitting and validation.
+- `packages/grotto-api/src/widgets/artifact/`: artifact-card payload validation.
+- `packages/grotto-api/src/widgets/workspace-path.ts`: confined workspace paths.
 - `packages/agent-workspace/src/visuals-skill/`: Agent authoring guidance and design references.
 - `apps/website/src/features/chats/`: transcript splitting, visual cards, artifact cards, and pane
   rendering.
@@ -50,10 +50,10 @@ as replay compatibility, not an extension point.
 Run the smallest lanes covering the changed seams, then repository lint:
 
 ```bash
-bun test packages/tavern-api/src/widgets
-bun run --filter @tavern/api typecheck
-bun run --filter @tavern/website typecheck
-bun run --filter @tavern/computer typecheck
+bun test packages/grotto-api/src/widgets
+bun run --filter @grotto/api typecheck
+bun run --filter @grotto/website typecheck
+bun run --filter @grotto/computer typecheck
 bun run lint
 git diff --check
 ```

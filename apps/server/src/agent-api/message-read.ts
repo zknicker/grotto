@@ -1,4 +1,4 @@
-import type { TavernAgentMessage } from '@tavern/api';
+import type { GrottoAgentMessage } from '@grotto/api';
 import { and, asc, desc, eq, gt, ilike, lt, sql } from 'drizzle-orm';
 import { listUnservedThreadFollowReactivationIds } from '../agent-delivery/store.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
@@ -91,7 +91,7 @@ export async function resolveAgentMessage(
     db: GrottoDatabase,
     runner: ResolvedRunner,
     id: string
-): Promise<TavernAgentMessage> {
+): Promise<GrottoAgentMessage> {
     const rows = await db
         .select(messageSelection)
         .from(chatMessagesTable)
@@ -126,7 +126,7 @@ export async function searchAgentMessages(
         sort: 'recent' | 'relevance';
         target?: string;
     }
-): Promise<(TavernAgentMessage & { target: string })[]> {
+): Promise<(GrottoAgentMessage & { target: string })[]> {
     const targetChatId = input.target
         ? await resolveAgentTarget(db, runner, input.target)
         : undefined;

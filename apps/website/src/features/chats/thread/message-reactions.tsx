@@ -29,7 +29,7 @@ export function MessageReactionPills({ row }: { row: TranscriptMessageRow }) {
             {reactions.map((reaction) => {
                 const own = hasOwnReaction(row, reaction.emoji);
                 const handles = reaction.actors
-                    .map(({ handle, id }) => handle ?? (id === 'usr_tavern' ? 'you' : id))
+                    .map(({ handle, id }) => handle ?? (id === 'usr_grotto' ? 'you' : id))
                     .join(', ');
 
                 return (
@@ -201,7 +201,7 @@ export function hasOwnReaction(row: TranscriptMessageRow, emoji: string) {
     return (
         row.message.reactions
             ?.find((reaction) => reaction.emoji === emoji)
-            ?.actors.some(({ id }) => id === 'usr_tavern') ?? false
+            ?.actors.some(({ id }) => id === 'usr_grotto') ?? false
     );
 }
 

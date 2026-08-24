@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import type { McpOAuthStartResult } from '@tavern/api';
+import type { McpOAuthStartResult } from '@grotto/api';
 import { eq } from 'drizzle-orm';
 import { emitServerUpdated } from '../grotto-api/server-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';

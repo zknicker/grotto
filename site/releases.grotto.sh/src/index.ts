@@ -1,5 +1,5 @@
 const releaseOrigin = new URL(
-    'https://punchpress-electron-app-209596837609-us-east-1-an.s3.us-east-1.amazonaws.com/tavern/mac/'
+    'https://punchpress-electron-app-209596837609-us-east-1-an.s3.us-east-1.amazonaws.com/grotto/mac/'
 );
 
 export function handleReleaseRequest(request: Request): Response {

@@ -25,7 +25,7 @@ test('App development receives the Clerk issuer used by Grotto Server', () => {
         {
             CLERK_ISSUER_URL: 'https://clerk.shared.lcl.dev',
             PATH: '/usr/bin',
-            TAVERN_WEBSITE_PORT: '25248',
+            GROTTO_WEBSITE_PORT: '25248',
         }
     );
 });

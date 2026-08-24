@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Chat } from '@tavern/api';
+import type { Chat } from '@grotto/api';
 import { resolveChatPageChat } from './chat-page-state.ts';
 
 test('uses the selected list snapshot while its detail query loads', () => {

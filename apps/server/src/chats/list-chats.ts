@@ -1,4 +1,4 @@
-import type { Chat } from '@tavern/api';
+import type { Chat } from '@grotto/api';
 import { and, eq, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable, serverOnboardingTable } from '../postgres/schema.ts';

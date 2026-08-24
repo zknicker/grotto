@@ -112,7 +112,7 @@ them.
 commit has a stable full SHA. It builds the Server artifact, including Grotto App,
 once with that SHA, verifies its archive and sidecar, then builds and
 notarizes the signed App when required. It uploads the App updater files to
-`TAVERN_RELEASE_S3_URI`, verifies that remote `main` still contains the release
+`GROTTO_RELEASE_S3_URI`, verifies that remote `main` still contains the release
 commit, pushes the version tag, and creates the GitHub Release with the App
 files plus the Server archive and sidecar. New commits may land on `main` during
 the build without invalidating the immutable release commit.
@@ -293,8 +293,8 @@ collect changes for the next release.
 
 Required release environment:
 
-* `TAVERN_RELEASE_BASE_URL`
-* `TAVERN_RELEASE_S3_URI`
+* `GROTTO_RELEASE_BASE_URL`
+* `GROTTO_RELEASE_S3_URI`
 * `VITE_CLERK_PUBLISHABLE_KEY` for Grotto App inside the Server artifact
 * `CSC_NAME` or `CSC_LINK` + `CSC_KEY_PASSWORD`
 * `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`
@@ -324,7 +324,7 @@ representation in memory. Operators do not need to copy these keys into each
 checkout's `.env`.
 `GROTTO_COMPUTER_RELEASE_BASE_URL` defaults to
 `https://releases.grotto.sh/computer`; Computer objects publish below the
-`computer/` prefix of `TAVERN_RELEASE_S3_URI`. Standalone Computer codesigning
+`computer/` prefix of `GROTTO_RELEASE_S3_URI`. Standalone Computer codesigning
 also requires the Developer ID certificate in the macOS keychain, selected by
 `CSC_NAME` or `APPLE_SIGNING_IDENTITY`; a `CSC_LINK` file alone is not a
 codesign identity.

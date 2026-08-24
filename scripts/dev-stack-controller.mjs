@@ -24,7 +24,7 @@ import {
 
 const shutdownProcessOrder = ['desktop', 'website', 'computer', 'grotto', 'postgres'];
 const shutdownTimeoutMs = Number.parseInt(
-    process.env.TAVERN_DEV_SHUTDOWN_TIMEOUT_MS ?? '30000',
+    process.env.GROTTO_DEV_SHUTDOWN_TIMEOUT_MS ?? '30000',
     10
 );
 const processGroupShutdownPollMs = 50;
@@ -99,7 +99,7 @@ export class DevStackController extends EventEmitter {
     parseOutputLine(source, line) {
         const normalizedLine = stripAnsi(line);
 
-        if (source === 'desktop' && /Running `.*tavern-desktop`/u.test(normalizedLine)) {
+        if (source === 'desktop' && /Running `.*grotto-desktop`/u.test(normalizedLine)) {
             this.addLog(source, normalizedLine);
             this.update((snapshot) => {
                 snapshot.processes.desktop.status = 'running';
@@ -239,7 +239,7 @@ export class DevStackController extends EventEmitter {
         const websiteDirectory = path.join(this.repositoryRoot, 'apps', 'website');
         const startupUiEnv = {
             ...devStackEnvironment,
-            TAVERN_STARTUP_UI: '1',
+            GROTTO_STARTUP_UI: '1',
         };
         const serverUrl = `http://localhost:${this.ports.grottoPort}`;
         const websiteEnv = {
@@ -393,7 +393,7 @@ export class DevStackController extends EventEmitter {
         this.stopPromise = (async () => {
             const shutdownSignal = options.signal ?? 'SIGTERM';
             this.addLog(
-                'tavern',
+                'grotto',
                 options.signal ? `shutdown requested (${options.signal})` : 'shutdown requested'
             );
             this.update((snapshot) => {
@@ -487,7 +487,7 @@ export function createDesktopDevEnvironment({
     return {
         ...devStackEnvironment,
         ...clerkEnvironmentOverrides,
-        TAVERN_WEBSITE_PORT: String(ports.websitePort),
+        GROTTO_WEBSITE_PORT: String(ports.websitePort),
     };
 }
 

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computerProtocolVersion } from '@tavern/api';
+import { computerProtocolVersion } from '@grotto/api';
 import { bootstrapGrottoDatabase } from '../../server/src/postgres/bootstrap.ts';
 import { startClerkTestIssuer } from '../../server/test/clerk-test-issuer.ts';
 import { startPostgresCluster } from '../../server/test/postgres-cluster.ts';

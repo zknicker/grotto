@@ -12,7 +12,7 @@ import { createCodex } from '@ai-sdk/harness-codex';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
 import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
-import { type ClaudeUsageSnapshot, normalizeClaudeUsageResponse } from '@tavern/claude-usage';
+import { type ClaudeUsageSnapshot, normalizeClaudeUsageResponse } from '@grotto/claude-usage';
 import type { ComputerAgentActivityUpdate } from '../agent-activity.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';

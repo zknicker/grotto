@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mcpIconMaxBytes } from '@tavern/api';
+import { mcpIconMaxBytes } from '@grotto/api';
 import {
     iconRequestInit,
     type McpIconFetch,

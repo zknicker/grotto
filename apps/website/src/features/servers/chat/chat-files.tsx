@@ -1,6 +1,6 @@
+import type { ChatMessage } from '@grotto/api';
 import { Button, Tooltip } from '@heroui/react';
 import { Attachment01Icon, Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { ChatMessage } from '@tavern/api';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ChatSidePaneShell } from '../../chats/chat-side-pane-shell.tsx';
 import { bandHeightClassName } from '../../shell/section-header.tsx';

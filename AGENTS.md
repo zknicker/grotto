@@ -57,7 +57,7 @@ so `docs:list` routes future agents correctly.
 8. Avoid unnecessary barrel files. Use them only for clear package or domain entrypoints.
 9. Prefer immutable patterns and explicit validation at boundaries.
 10. Handle edge cases and external failures explicitly; do not swallow errors.
-11. Use Grotto in product prose. Preserve literal internal `tavern` identifiers such as package
+11. Use Grotto in product prose. Preserve literal internal `grotto` identifiers such as package
     names, env vars, API fields, paths, and wire names until an explicit contract migration renames
     them. Frame internal engine abilities as the agent's or assistant's abilities; use
     "agent engine" only on technical surfaces.
@@ -178,7 +178,7 @@ so `docs:list` routes future agents correctly.
   do not wait for a second call site when ownership is clear.
 - Do not add extension points, abstractions, compatibility branches, or schema-normalization paths
   unless they are needed now.
-- For cross-boundary Server, Computer, App, or Agent API changes, update `packages/tavern-api`
+- For cross-boundary Server, Computer, App, or Agent API changes, update `packages/grotto-api`
   directly for the current first-party contract.
 - Keep docs current when API shape, storage models, frontend structure, or runtime assumptions
   change.
@@ -212,7 +212,7 @@ When changing prompt text or that contract test:
 
 ### Issue tracker
 
-Issues live in the Linear `PRD` team with the `Tavern` label. See `docs/agents/issue-tracker.md`.
+Issues live in the Linear `PRD` team with the `Grotto` label. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

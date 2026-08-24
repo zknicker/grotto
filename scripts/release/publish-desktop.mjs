@@ -7,8 +7,8 @@ import { loadEnvFile, readJson, repoRoot } from './release-utils.mjs';
 
 loadEnvFile();
 
-const s3Uri = trimTrailingSlash(requireEnv('TAVERN_RELEASE_S3_URI'));
-const includeDesktop = process.env.TAVERN_RELEASE_INCLUDE_DESKTOP !== '0';
+const s3Uri = trimTrailingSlash(requireEnv('GROTTO_RELEASE_S3_URI'));
+const includeDesktop = process.env.GROTTO_RELEASE_INCLUDE_DESKTOP !== '0';
 const bundleRoot = path.join(repoRoot, 'apps', 'website', 'electron-dist');
 
 const main = async () => {

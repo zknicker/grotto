@@ -33,7 +33,7 @@ interface ChatTimingStore {
 
 declare global {
     interface Window {
-        __TAVERN_CHAT_TIMING__?: ChatTimingStore;
+        __GROTTO_CHAT_TIMING__?: ChatTimingStore;
     }
 }
 
@@ -45,7 +45,7 @@ export function markChatTiming(
         return;
     }
 
-    const timing = window.__TAVERN_CHAT_TIMING__;
+    const timing = window.__GROTTO_CHAT_TIMING__;
 
     if (!timing?.enabled) {
         return;
@@ -64,7 +64,7 @@ export function markChatTiming(
     timing.marks[name] ??= event;
 
     try {
-        performance.mark(`tavern.chat.${name}`);
+        performance.mark(`grotto.chat.${name}`);
     } catch {
         // Test timing should never affect product behavior.
     }
@@ -79,14 +79,14 @@ export function debugChatEvent(
     }
 
     const enabled =
-        window.__TAVERN_CHAT_TIMING__?.enabled ||
-        window.localStorage.getItem('tavern.chat.debug') === '1';
+        window.__GROTTO_CHAT_TIMING__?.enabled ||
+        window.localStorage.getItem('grotto.chat.debug') === '1';
 
     if (!enabled) {
         return;
     }
 
-    console.debug('[tavern:chat]', label, {
+    console.debug('[grotto:chat]', label, {
         ...fields,
         elapsedMs: Math.round(performance.now()),
         wallClockMs: Date.now(),

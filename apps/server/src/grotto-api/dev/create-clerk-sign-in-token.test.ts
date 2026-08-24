@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from 'bun:test';
-import { appProtocolVersion } from '@tavern/api';
+import { appProtocolVersion } from '@grotto/api';
 import type { GrottoContext } from '../context.ts';
 import { createRouter } from '../trpc.ts';
 import { createClerkSignInTokenProcedure } from './create-clerk-sign-in-token.ts';
@@ -64,7 +64,7 @@ describe('dev.createClerkSignInToken', () => {
         });
         const caller = router.createCaller({
             ...localContext,
-            requestHost: 'tavern.example.com',
+            requestHost: 'grotto.example.com',
         });
 
         await expect(caller.createClerkSignInToken()).rejects.toMatchObject({

@@ -9,7 +9,7 @@ export type DesktopUpdateBridgeStatus =
 
 export type DesktopEditCommand = 'copy' | 'cut' | 'paste' | 'redo' | 'selectAll' | 'undo';
 
-export interface TavernDesktopBridge {
+export interface GrottoDesktopBridge {
     /** Read Clerk's native client JWT from main-process storage. */
     authTokenGet: () => Promise<string | null>;
     /** Persist or clear Clerk's native client JWT in main-process storage. */
@@ -57,7 +57,7 @@ export function getDesktopBridge() {
         return null;
     }
 
-    return window.tavernDesktop ?? null;
+    return window.grottoDesktop ?? null;
 }
 
 export function isElectronDesktopApp() {

@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { resolveDevPorts } from './dev-ports.mjs';
 
-export const startupEventPrefix = 'TAVERN_STARTUP_EVENT ';
+export const startupEventPrefix = 'GROTTO_STARTUP_EVENT ';
 const ansiPattern = /\u001B\[[0-9;?]*[ -/]*[@-~]/gu;
 
 export function isDesktopMode(mode) {
@@ -34,8 +34,8 @@ export function createDevStackEnvironment({
         GROTTO_SERVER_PORT: baseEnvironment.GROTTO_SERVER_PORT ?? resolvedPorts.grottoPort,
         GROTTO_SERVER_ORIGIN:
             baseEnvironment.GROTTO_SERVER_ORIGIN ?? `http://127.0.0.1:${resolvedPorts.grottoPort}`,
-        TAVERN_DEV_STACK: baseEnvironment.TAVERN_DEV_STACK ?? '1',
-        TAVERN_WEBSITE_PORT: baseEnvironment.TAVERN_WEBSITE_PORT ?? resolvedPorts.websitePort,
+        GROTTO_DEV_STACK: baseEnvironment.GROTTO_DEV_STACK ?? '1',
+        GROTTO_WEBSITE_PORT: baseEnvironment.GROTTO_WEBSITE_PORT ?? resolvedPorts.websitePort,
     };
 }
 
@@ -226,7 +226,7 @@ export function stripAnsi(value) {
 
 export function createDevStackStatePaths({ baseEnvironment, repositoryRoot }) {
     const stackId =
-        baseEnvironment.TAVERN_DEV_STACK_ID ??
+        baseEnvironment.GROTTO_DEV_STACK_ID ??
         `${path.basename(repositoryRoot)}-${hashString(repositoryRoot).slice(0, 8)}`;
     const appStateRoot = resolveDevStackStateRoot(stackId);
 
@@ -240,7 +240,7 @@ export function createDevStackStatePaths({ baseEnvironment, repositoryRoot }) {
 }
 
 function resolveDevStackStateRoot(stackId) {
-    return path.join(os.homedir(), '.tavern', 'dev', stackId);
+    return path.join(os.homedir(), '.grotto', 'dev', stackId);
 }
 
 function shortenRepositoryPath(value, repositoryRoot) {

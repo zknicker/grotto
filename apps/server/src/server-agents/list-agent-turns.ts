@@ -1,4 +1,4 @@
-import type { AgentTurn, AgentTurnsInput } from '@tavern/api';
+import type { AgentTurn, AgentTurnsInput } from '@grotto/api';
 import { and, desc, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentTurnsTable } from '../postgres/schema.ts';

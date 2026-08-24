@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@tavern/api';
+import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@grotto/api';
 import { WebSocket } from 'ws';
 import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
 import { createClient } from '../support/server.ts';

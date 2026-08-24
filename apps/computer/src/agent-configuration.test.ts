@@ -95,7 +95,7 @@ test('applies desired runtime and model without waiting for the first turn', asy
         command.agentId,
         'skills'
     );
-    await expect(readFile(join(skills, 'tavern-agent', 'SKILL.md'), 'utf8')).rejects.toThrow();
+    await expect(readFile(join(skills, 'grotto-agent', 'SKILL.md'), 'utf8')).rejects.toThrow();
     await expect(readFile(join(skills, 'visuals', 'SKILL.md'), 'utf8')).resolves.toContain(
         'name: visuals'
     );
@@ -187,7 +187,7 @@ test('durably applies and replays the exact Cove factory workspace', async () =>
     const objectives = await readFile(join(workspace, 'onboarding_objectives.md'), 'utf8');
     expect(objectives.match(/^### recipes\//gmu)).toHaveLength(12);
     expect(objectives).not.toMatch(/recipes\/archetype\//u);
-    expect(objectives).not.toMatch(/save-as-a-skill|tavern-agent/u);
+    expect(objectives).not.toMatch(/save-as-a-skill|grotto-agent/u);
     await expect(
         readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')
     ).resolves.toContain('name: visuals');

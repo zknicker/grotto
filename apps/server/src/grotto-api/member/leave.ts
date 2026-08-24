@@ -1,4 +1,4 @@
-import { leaveServerInputSchema, removedServerMemberSchema } from '@tavern/api';
+import { leaveServerInputSchema, removedServerMemberSchema } from '@grotto/api';
 import { removeServerMember } from '../../servers/remove-member.ts';
 import { announceDeparture } from './departure-signals.ts';
 import { serverMemberProcedure } from './procedure.ts';

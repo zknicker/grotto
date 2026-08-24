@@ -1,4 +1,4 @@
-import { acceptedServerInvitationSchema, serverInvitationTokenInputSchema } from '@tavern/api';
+import { acceptedServerInvitationSchema, serverInvitationTokenInputSchema } from '@grotto/api';
 import { acceptServerInvitation } from '../../servers/accept-invitation.ts';
 import { emitServerUpdated } from '../server-events.ts';
 import { invitationProcedure } from './procedure.ts';

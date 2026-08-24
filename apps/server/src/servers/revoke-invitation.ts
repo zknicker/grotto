@@ -1,4 +1,4 @@
-import type { ServerInvitation } from '@tavern/api';
+import type { ServerInvitation } from '@grotto/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { serverInvitationsTable } from '../postgres/schema.ts';

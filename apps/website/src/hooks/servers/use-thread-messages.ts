@@ -1,5 +1,5 @@
+import type { ChatMessage } from '@grotto/api';
 import { type InfiniteData, useInfiniteQuery } from '@tanstack/react-query';
-import type { ChatMessage } from '@tavern/api';
 import { getQueryKey } from '@trpc/react-query';
 import * as React from 'react';
 import { type GrottoOutputs, grottoTrpc } from '../../lib/grotto-server.tsx';

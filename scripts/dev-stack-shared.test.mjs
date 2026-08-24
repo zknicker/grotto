@@ -30,45 +30,43 @@ test('formatPortBlockers includes current Server process details', () => {
 
 test('createDevStackEnvironment uses isolated current-product state', () => {
     const ports = resolveDevPorts({
-        baseEnvironment: { TAVERN_DEV_PORT_BASE: '42000', TAVERN_DEV_STACK_ID: 'alpha' },
-        repositoryRoot: '/repo/tavern',
+        baseEnvironment: { GROTTO_DEV_PORT_BASE: '42000', GROTTO_DEV_STACK_ID: 'alpha' },
+        repositoryRoot: '/repo/grotto',
     });
     const environment = createDevStackEnvironment({
         baseEnvironment: {
             PATH: '/usr/bin',
-            TAVERN_DEV_PORT_BASE: '42000',
-            TAVERN_DEV_STACK_ID: 'alpha',
+            GROTTO_DEV_PORT_BASE: '42000',
+            GROTTO_DEV_STACK_ID: 'alpha',
         },
         ports,
-        repositoryRoot: '/repo/tavern',
+        repositoryRoot: '/repo/grotto',
     });
 
     assert.equal(environment.PATH, '/usr/bin');
     assert.equal(
         environment.GROTTO_COMPUTER_DATA_ROOT,
-        path.join(os.homedir(), '.tavern', 'dev', 'alpha', 'computer')
+        path.join(os.homedir(), '.grotto', 'dev', 'alpha', 'computer')
     );
     assert.equal(
         environment.GROTTO_POSTGRES_DATA_ROOT,
-        path.join(os.homedir(), '.tavern', 'dev', 'alpha', 'postgres')
+        path.join(os.homedir(), '.grotto', 'dev', 'alpha', 'postgres')
     );
     assert.equal(environment.GROTTO_SERVER_PORT, '42003');
-    assert.equal(environment.TAVERN_WEBSITE_PORT, '42000');
-    assert.equal(environment.TAVERN_DEV_STACK, '1');
-    assert.equal(environment.TAVERN_RUNTIME_PORT, undefined);
-    assert.equal(environment.TAVERN_SERVER_PORT, undefined);
+    assert.equal(environment.GROTTO_WEBSITE_PORT, '42000');
+    assert.equal(environment.GROTTO_DEV_STACK, '1');
 });
 
 test('resolveDevPorts derives different groups for different worktrees', () => {
-    const left = resolveDevPorts({ repositoryRoot: '/repo/worktree-left/tavern' });
-    const right = resolveDevPorts({ repositoryRoot: '/repo/worktree-right/tavern' });
+    const left = resolveDevPorts({ repositoryRoot: '/repo/worktree-left/grotto' });
+    const right = resolveDevPorts({ repositoryRoot: '/repo/worktree-right/grotto' });
 
     assert.notDeepEqual(left, right);
     assert.equal(Number(left.grottoPort), Number(left.websitePort) + 3);
 });
 
 test('resolveDevPorts shares ports for an explicit stack id', () => {
-    const baseEnvironment = { TAVERN_DEV_STACK_ID: 'tavern-shared' };
+    const baseEnvironment = { GROTTO_DEV_STACK_ID: 'grotto-shared' };
     const left = resolveDevPorts({ baseEnvironment, repositoryRoot: '/repo/left' });
     const right = resolveDevPorts({ baseEnvironment, repositoryRoot: '/repo/right' });
 

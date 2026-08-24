@@ -39,7 +39,7 @@ Give it the raw symptom and ask it to:
 4. Return a source-backed behavioral model, parity and deliberate divergences, three to five
    falsifiable questions, and a challenge to the leading hypothesis.
 
-Do not give the partner a suspected answer as fact. Do not let it edit Tavern or Raft repositories
+Do not give the partner a suspected answer as fact. Do not let it edit Grotto or Raft repositories
 or inspect credentials. If local Raft code or the public network is unavailable, record that
 evidence gap and continue with repository sources.
 

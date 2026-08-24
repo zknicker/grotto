@@ -129,8 +129,8 @@ async function startCaptureVite() {
             env: {
                 ...process.env,
                 NODE_ENV: 'development',
-                TAVERN_SERVER_PORT: String(ports.serverPort),
-                TAVERN_WEBSITE_PORT: String(capturePort),
+                GROTTO_SERVER_PORT: String(ports.serverPort),
+                GROTTO_WEBSITE_PORT: String(capturePort),
                 VITE_CLERK_PUBLISHABLE_KEY: '',
                 VITE_SERVER_ORIGIN: `http://127.0.0.1:${ports.serverPort}`,
             },

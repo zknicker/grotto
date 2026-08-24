@@ -2,7 +2,7 @@ import {
     requiresSlugConfirmation,
     resolveServerMemberAuthority,
     type ServerMemberAction,
-} from '@tavern/api';
+} from '@grotto/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable } from '../postgres/schema.ts';

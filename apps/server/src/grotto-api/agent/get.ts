@@ -1,4 +1,4 @@
-import { agentDetailInputSchema, agentSchema } from '@tavern/api';
+import { agentDetailInputSchema, agentSchema } from '@grotto/api';
 import { TRPCError } from '@trpc/server';
 import { getAgent } from '../../server-agents/get-agent.ts';
 import { memberProcedure } from '../server/procedure.ts';

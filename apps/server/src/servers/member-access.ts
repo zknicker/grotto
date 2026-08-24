@@ -1,4 +1,4 @@
-import type { ServerMember, ServerMemberAuthorityRefusal, ServerRole } from '@tavern/api';
+import type { ServerMember, ServerMemberAuthorityRefusal, ServerRole } from '@grotto/api';
 import { and, eq, isNull, ne, sql } from 'drizzle-orm';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';

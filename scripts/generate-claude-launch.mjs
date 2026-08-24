@@ -7,7 +7,7 @@
 // Ports come from resolveDevPorts (scripts/dev-ports.mjs), the same source the
 // dev stack uses, so the preview always attaches to the port vite actually binds.
 // resolveDevPorts hashes the repo root into a four-port group, matching the
-// `dev-port` helper for the same path; TAVERN_DEV_PORT_BASE / TAVERN_WEBSITE_PORT
+// `dev-port` helper for the same path; GROTTO_DEV_PORT_BASE / GROTTO_WEBSITE_PORT
 // overrides flow through process.env exactly as they do for the dev stack.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';

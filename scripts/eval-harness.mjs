@@ -2,7 +2,7 @@
 // development Clerk user, then drives real Server -> Computer -> model turns
 // through the public Server tRPC contract.
 import { createRequire } from 'node:module';
-import { appProtocolHeaders, appProtocolVersion } from '../packages/tavern-api/src/app-protocol.ts';
+import { appProtocolHeaders, appProtocolVersion } from '../packages/grotto-api/src/app-protocol.ts';
 import { resolveDevPorts } from './dev-ports.mjs';
 import { getDevEnvironmentOverrides } from './run-dev-stack.mjs';
 
@@ -303,7 +303,7 @@ export async function createEvalHarness({ evalName, repositoryRoot = process.cwd
 async function createDevClerkAuth(serverUrl, repositoryRoot) {
     const environment = getDevEnvironmentOverrides(repositoryRoot);
     const publishableKey =
-        process.env.TAVERN_CLERK_PUBLISHABLE_KEY ?? environment.TAVERN_CLERK_PUBLISHABLE_KEY;
+        process.env.GROTTO_CLERK_PUBLISHABLE_KEY ?? environment.GROTTO_CLERK_PUBLISHABLE_KEY;
     assert(
         publishableKey,
         'Hosted eval auth needs the dev Clerk publishable key used by bun run dev'

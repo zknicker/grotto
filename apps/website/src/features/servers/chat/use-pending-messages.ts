@@ -1,4 +1,4 @@
-import type { AttachmentMetadata } from '@tavern/api';
+import type { AttachmentMetadata } from '@grotto/api';
 import * as React from 'react';
 
 /**

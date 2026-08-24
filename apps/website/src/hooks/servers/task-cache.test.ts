@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { MessageTask, TaskListItem } from '@tavern/api';
+import type { MessageTask, TaskListItem } from '@grotto/api';
 import { replaceTask } from './task-cache.ts';
 
 test('replaces both task projections with the authoritative mutation result', () => {

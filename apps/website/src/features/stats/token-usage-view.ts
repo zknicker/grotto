@@ -1,4 +1,4 @@
-import type { TokenUsageOverview } from '@tavern/api';
+import type { TokenUsageOverview } from '@grotto/api';
 import { runtimeUsageLabel, tokenConfigurationColor } from './token-usage-colors.ts';
 
 export type TokenUsageRange = 7 | 30 | 90;

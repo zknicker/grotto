@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-import type { AgentCommand, AgentTurnSummary } from '@tavern/api';
+import type { AgentCommand, AgentTurnSummary } from '@grotto/api';
 import { and, eq, ne } from 'drizzle-orm';
 import { attestAgentEvents, pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { markCursorSubsumedSeen } from '../src/agent-delivery/cursors.ts';

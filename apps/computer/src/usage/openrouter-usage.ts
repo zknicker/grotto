@@ -1,4 +1,4 @@
-import type { UsageOverview } from '@tavern/api';
+import type { UsageOverview } from '@grotto/api';
 import { z } from 'zod';
 
 type OpenRouterOverview = UsageOverview['openRouter']['overview'];

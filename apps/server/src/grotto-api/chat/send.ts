@@ -1,4 +1,4 @@
-import { chatMessageReceiptSchema, chatSendInputSchema } from '@tavern/api';
+import { chatMessageReceiptSchema, chatSendInputSchema } from '@grotto/api';
 import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { sendChatMessage } from '../../chats/send-message.ts';
 import { chatProcedure } from './procedure.ts';

@@ -1,4 +1,4 @@
-import type { TaskAssignee } from '@tavern/api';
+import type { TaskAssignee } from '@grotto/api';
 import { and, asc, eq, isNull, or } from 'drizzle-orm';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 import { requireChatAccess } from '../chats/chat-access.ts';

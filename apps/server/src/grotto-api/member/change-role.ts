@@ -1,4 +1,4 @@
-import { changeServerMemberRoleInputSchema, serverMemberSchema } from '@tavern/api';
+import { changeServerMemberRoleInputSchema, serverMemberSchema } from '@grotto/api';
 import { changeServerMemberRole } from '../../servers/change-member-role.ts';
 import { emitServerUpdated } from '../server-events.ts';
 import { serverMemberProcedure } from './procedure.ts';

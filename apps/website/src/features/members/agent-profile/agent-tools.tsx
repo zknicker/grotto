@@ -1,4 +1,4 @@
-import type { Agent } from '@tavern/api';
+import type { Agent } from '@grotto/api';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';

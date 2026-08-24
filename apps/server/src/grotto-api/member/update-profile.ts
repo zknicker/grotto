@@ -1,4 +1,4 @@
-import { updateHumanProfileInputSchema } from '@tavern/api';
+import { updateHumanProfileInputSchema } from '@grotto/api';
 import { updateHumanProfile } from '../../servers/human-profile.ts';
 import { serverMemberProcedure } from './procedure.ts';
 import { announceHumanProfileChange } from './profile-signals.ts';

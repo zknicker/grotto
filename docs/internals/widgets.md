@@ -50,7 +50,7 @@ registration), with optional info-string text as the title:
 
 - **Fence contract.** Fences parse client-side from the message content in
   document order via `splitVisualFences` (shared grammar in
-  `packages/tavern-api/src/widgets/visual/contracts.ts`). Body limit 60k
+  `packages/grotto-api/src/widgets/visual/contracts.ts`). Body limit 60k
   chars; an empty body strips as invalid. Fallback text is the info-string
   title, else the document `<title>`, else the first h1-h3.
 - **Persistence.** The durable message content IS the visual: the fence stays
@@ -113,7 +113,7 @@ fence containing exactly one JSON object:
 
 Props are `{ path, title? }`; the path must be workspace-relative with
 confined segments and an `.html`/`.htm` extension
-(`packages/tavern-api/src/widgets/workspace-path.ts`). The transcript
+(`packages/grotto-api/src/widgets/workspace-path.ts`). The transcript
 renders a compact card (title, kind, open affordance) and never the page
 itself; opening the card focuses the pane's workspace tab, where the pane's
 sandboxed HTML preview renders the file with the app's theme tokens injected
@@ -124,12 +124,12 @@ the authoring contract.
 ## Contract
 
 Both fences funnel into the widget render envelope. Names map one-to-one to
-durable component ids `tavern.widget.<name>` where `name` is `visual` or
+durable component ids `grotto.widget.<name>` where `name` is `visual` or
 `artifact`. The stored envelope is:
 
 ```ts
 {
-  component: `tavern.widget.${name}`,
+  component: `grotto.widget.${name}`,
   fallback: { text: string },
   props: <validated per name>,
   target: "chat.inline"
@@ -169,7 +169,7 @@ The Website transcript renders that row inline inside the assistant turn.
 ## Legacy catalog replay
 
 Historical chats contain stored activity for retired catalog widgets
-(`tavern.widget.table`, `bar-chart`, `line-chart`, `composed-chart`,
+(`grotto.widget.table`, `bar-chart`, `line-chart`, `composed-chart`,
 `calendar-event`, `calendar-day`, `html-preview`,
 `merchbase-sales-chart`). Their props schemas are gone, so both projection
 paths degrade them identically: the stored envelope no longer validates, and
@@ -179,8 +179,8 @@ visible "Widget unavailable" state. No legacy renderers are kept.
 ## Ownership
 
 Canonical names, props schemas, and the render envelope live in
-`packages/tavern-api/src/widgets`. Visuals parse and render on the Website:
-`splitVisualFences` (`packages/tavern-api/src/widgets/visual`) splits fences
+`packages/grotto-api/src/widgets`. Visuals parse and render on the Website:
+`splitVisualFences` (`packages/grotto-api/src/widgets/visual`) splits fences
 from message content and `chat-transcript-turn.tsx` renders the iframe card —
 Computer does not parse fences or write `widget` activity. Server still
 holds the dormant row projection (`apps/server/src/widgets/widgets.ts`) and

@@ -1,5 +1,5 @@
 import EventEmitter, { on } from 'node:events';
-import type { CompositionEvent } from '@tavern/api';
+import type { CompositionEvent } from '@grotto/api';
 
 const eventName = 'chat.composition';
 const emitter = new EventEmitter();

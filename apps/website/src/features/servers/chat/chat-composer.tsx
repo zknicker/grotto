@@ -1,6 +1,6 @@
+import type { Agent } from '@grotto/api';
 import { PromptInput } from '@heroui-pro/react';
 import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { useChatComposerFocusRequest } from '../../../commands/chat-composer-focus.ts';
 import {

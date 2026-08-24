@@ -1,4 +1,4 @@
-import { agentWorkspaceListInputSchema, workspaceFileListSchema } from '@tavern/api';
+import { agentWorkspaceListInputSchema, workspaceFileListSchema } from '@grotto/api';
 import { TRPCError } from '@trpc/server';
 import {
     AgentWorkspaceAccessError,

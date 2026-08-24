@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { Agent, CoveApplyCommand, CoveApplyResult } from '@tavern/api';
+import type { Agent, CoveApplyCommand, CoveApplyResult } from '@grotto/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import coveAvatarPath from '../../../website/public/prototypes/cove-avatar.png' with {
     type: 'file',

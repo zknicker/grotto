@@ -3,7 +3,7 @@ import type {
     AgentActivityEvent,
     ConfigureAgentInput,
     ServerDurableEvent,
-} from '@tavern/api';
+} from '@grotto/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { recordSessionRotationReceipts } from '../agent-delivery/session-rotation.ts';

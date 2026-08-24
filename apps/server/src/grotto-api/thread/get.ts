@@ -1,4 +1,4 @@
-import { threadContextInputSchema, threadContextSchema } from '@tavern/api';
+import { threadContextInputSchema, threadContextSchema } from '@grotto/api';
 import { getThreadContext } from '../../threads/get-thread-context.ts';
 import { chatProcedure } from '../chat/procedure.ts';
 

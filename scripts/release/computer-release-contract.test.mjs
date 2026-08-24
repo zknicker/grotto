@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { generateKeyPairSync } from 'node:crypto';
-import computerProtocol from '../../packages/tavern-api/computer-protocol.json' with {
+import computerProtocol from '../../packages/grotto-api/computer-protocol.json' with {
     type: 'json',
 };
 import {

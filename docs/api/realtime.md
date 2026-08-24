@@ -28,7 +28,7 @@ clients recover through durable reads.
 membership before the subscription starts, and delivers only that Server's
 events. See [Grotto Server](../internals/grotto-server.md).
 
-Its wire shape is `serverUpdatedEventSchema` in `@tavern/api`. `scope`
+Its wire shape is `serverUpdatedEventSchema` in `@grotto/api`. `scope`
 (`agent`, `computer`, `mcp`, or `server`) selects the family of reads a listener
 refreshes. `agentId` and `memberId` are optional precision: a mutation that
 changes exactly one Agent or one human names it, and the App invalidates that

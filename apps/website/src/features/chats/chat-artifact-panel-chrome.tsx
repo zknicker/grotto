@@ -9,7 +9,7 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import { ArtifactPanelSourceMenu } from './chat-artifact-panel-source-menu.tsx';
 import { ArtifactTabStrip } from './chat-artifact-tab-strip.tsx';
-import { formatTavernResourceLink, type TavernResourceTarget } from './tavern-resource-link.ts';
+import { formatGrottoResourceLink, type GrottoResourceTarget } from './grotto-resource-link.ts';
 
 // One chrome row: tabs, the active target's options, add, hide. The pane
 // intentionally has no second path/toolbar row — target navigation lives in
@@ -30,15 +30,15 @@ export function ArtifactPanelChrome({
     targets,
 }: {
     activeKey: string | null;
-    activeTarget?: TavernResourceTarget;
+    activeTarget?: GrottoResourceTarget;
     agentId: string;
     className?: string;
     closeButtonHidden?: boolean;
     onClose: () => void;
     onCloseTarget: (key: string) => void;
-    onOpenTarget: (target: TavernResourceTarget) => void;
+    onOpenTarget: (target: GrottoResourceTarget) => void;
     onSelectTarget: (key: string) => void;
-    targets: TavernResourceTarget[];
+    targets: GrottoResourceTarget[];
 }) {
     return (
         <div className={cn('flex h-full min-w-0 flex-1 items-center gap-2 px-3', className)}>
@@ -74,7 +74,7 @@ export function ArtifactPanelChrome({
     );
 }
 
-function ArtifactOptionsMenu({ target }: { target: TavernResourceTarget }) {
+function ArtifactOptionsMenu({ target }: { target: GrottoResourceTarget }) {
     return (
         <Dropdown>
             <Button aria-label="Artifact options" isIconOnly size="sm" variant="ghost">
@@ -84,7 +84,7 @@ function ArtifactOptionsMenu({ target }: { target: TavernResourceTarget }) {
                 <Dropdown.Menu
                     onAction={(key) => {
                         if (key === 'copy-link') {
-                            void copyArtifactText(formatTavernResourceLink(target));
+                            void copyArtifactText(formatGrottoResourceLink(target));
                         } else if (key === 'copy-path') {
                             void copyArtifactText(target.path);
                         }

@@ -1,4 +1,4 @@
-import { parseAgentReferenceTarget, parseTavernRichReferences } from '@tavern/api';
+import { parseAgentReferenceTarget, parseGrottoRichReferences } from '@grotto/api';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -256,7 +256,7 @@ function mentionedAgentIds(
     agents: Array<{ handle: string; id: string }>
 ): Set<string> {
     const ids = new Set(
-        parseTavernRichReferences(content).flatMap((reference) => {
+        parseGrottoRichReferences(content).flatMap((reference) => {
             if (reference.kind !== 'agent') {
                 return [];
             }

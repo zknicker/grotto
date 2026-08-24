@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-// Ported from Tavern Runtime's workspace visibility boundary. Computer now
+// Ported from the retired standalone Runtime's workspace visibility boundary. Computer now
 // owns these reads, so the same exclusions travel with the files.
 const skippedDirectoryNames = new Set([
     '.git',

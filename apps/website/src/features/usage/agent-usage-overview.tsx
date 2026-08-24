@@ -1,5 +1,5 @@
+import type { Agent } from '@grotto/api';
 import { Card, Skeleton } from '@heroui/react';
-import type { Agent } from '@tavern/api';
 import { useUsage } from '../../hooks/servers/use-usage.ts';
 import { AgentTokenUsage } from '../stats/token-usage-module.tsx';
 

@@ -1,6 +1,6 @@
+import type { Agent } from '@grotto/api';
 import { Button, Chip, Separator } from '@heroui/react';
 import { Copy01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentActivityHistory } from '../../../hooks/members/use-agent-activity-history.ts';

@@ -155,7 +155,7 @@ function buildTreeUnsafeCss(skillFolderPaths: string[]) {
 
     return `${treeUnsafeCss}
 
-${skillIconSelectors ? `${skillIconSelectors} {\n  --tavern-skill-tree-folder-icon: var(--tavern-skill-tree-cube-icon);\n}\n` : ''}`;
+${skillIconSelectors ? `${skillIconSelectors} {\n  --grotto-skill-tree-folder-icon: var(--grotto-skill-tree-cube-icon);\n}\n` : ''}`;
 }
 
 function cssAttributeValue(value: string) {
@@ -168,20 +168,20 @@ const cubeIconMask = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/20
 
 const treeUnsafeCss = `
 button[data-type='item'][data-item-type='folder'] {
-  --tavern-skill-tree-folder-icon: var(--tavern-skill-tree-folder-icon-default);
+  --grotto-skill-tree-folder-icon: var(--grotto-skill-tree-folder-icon-default);
 }
 
 button[data-type='item'] {
-  --tavern-tree-row-bg: var(--trees-bg);
+  --grotto-tree-row-bg: var(--trees-bg);
   border-radius: 8px;
 }
 
 button[data-type='item']:hover {
-  --tavern-tree-row-bg: var(--trees-bg-muted);
+  --grotto-tree-row-bg: var(--trees-bg-muted);
 }
 
 button[data-type='item'][aria-selected='true'] {
-  --tavern-tree-row-bg: var(--trees-selected-bg);
+  --grotto-tree-row-bg: var(--trees-selected-bg);
   /* Hairline outline, matching the nav rows' selected treatment. */
   box-shadow: inset 0 0 0 1px var(--border);
 }
@@ -222,8 +222,8 @@ button[data-type='item'][data-item-type='folder'] > [data-item-section='content'
   width: 14px;
   height: 14px;
   background-color: var(--trees-fg-muted);
-  mask: var(--tavern-skill-tree-folder-icon) center / contain no-repeat;
-  -webkit-mask: var(--tavern-skill-tree-folder-icon) center / contain no-repeat;
+  mask: var(--grotto-skill-tree-folder-icon) center / contain no-repeat;
+  -webkit-mask: var(--grotto-skill-tree-folder-icon) center / contain no-repeat;
 }
 
 button[data-type='item'][data-item-type='folder'] > [data-item-section='content'] > * {
@@ -232,8 +232,8 @@ button[data-type='item'][data-item-type='folder'] > [data-item-section='content'
 `;
 
 const treeHostStyle: TreeHostStyle = {
-    '--tavern-skill-tree-cube-icon': cubeIconMask,
-    '--tavern-skill-tree-folder-icon-default': folderIconMask,
+    '--grotto-skill-tree-cube-icon': cubeIconMask,
+    '--grotto-skill-tree-folder-icon-default': folderIconMask,
     '--trees-bg-override': 'var(--surface)',
     '--trees-bg-muted-override': 'var(--surface-secondary)',
     '--trees-border-color-override': 'var(--separator)',

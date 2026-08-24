@@ -1,4 +1,4 @@
-import type { Chat } from '@tavern/api';
+import type { Chat } from '@grotto/api';
 import { threadAnchorShortId } from '../../chats/thread/thread-target.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 

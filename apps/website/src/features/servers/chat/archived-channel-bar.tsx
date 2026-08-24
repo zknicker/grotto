@@ -1,5 +1,5 @@
+import type { Chat } from '@grotto/api';
 import { Button, toast } from '@heroui/react';
-import type { Chat } from '@tavern/api';
 import { useChannelUnarchive } from '../../../hooks/servers/use-channel-lifecycle.ts';
 
 export function ArchivedChannelBar({ canManage, chat }: { canManage: boolean; chat: Chat }) {

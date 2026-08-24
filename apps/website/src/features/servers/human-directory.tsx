@@ -1,6 +1,6 @@
+import type { ServerMember, ServerMemberDirectory } from '@grotto/api/membership';
+import { canManageServerInvitations } from '@grotto/api/membership';
 import { Separator } from '@heroui/react';
-import type { ServerMember, ServerMemberDirectory } from '@tavern/api/membership';
-import { canManageServerInvitations } from '@tavern/api/membership';
 import * as React from 'react';
 import { useMembershipActions } from '../../hooks/servers/use-membership-actions.ts';
 import { useServerInvitations } from '../../hooks/servers/use-server-invitations.ts';

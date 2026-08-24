@@ -1,6 +1,6 @@
+import type { Agent, McpConnection } from '@grotto/api';
 import { Chip, Separator, Switch } from '@heroui/react';
 import { EmptyState, ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import type { Agent, McpConnection } from '@tavern/api';
 import * as React from 'react';
 import { SettingsSection } from '../../features/settings/layout/settings-page.tsx';
 import { useAgentGrant } from '../../hooks/members/use-agent-grant.ts';

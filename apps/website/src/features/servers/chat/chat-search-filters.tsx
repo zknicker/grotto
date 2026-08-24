@@ -1,5 +1,5 @@
+import type { Agent, Chat, ServerMember } from '@grotto/api';
 import { Label, ListBox, Select } from '@heroui/react';
-import type { Agent, Chat, ServerMember } from '@tavern/api';
 import * as React from 'react';
 import type { ChatSearchFilters } from '../../../hooks/servers/use-chat-search.ts';
 import { AgentOptionLabel } from '../../agents/agent-option-label.tsx';

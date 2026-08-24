@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { getArtifactPanelTargetKey } from '../../chats/tavern-resource-link.ts';
+import { getArtifactPanelTargetKey } from '../../chats/grotto-resource-link.ts';
 import { mergeArtifactTarget } from './use-artifact-panel.ts';
 
 test('keeps same-path workspace artifacts separate for different authors', () => {

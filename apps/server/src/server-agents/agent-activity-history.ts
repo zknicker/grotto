@@ -3,8 +3,8 @@ import type {
     AgentActivityEvent,
     AgentActivityHistoryInput,
     AgentActivityHistoryPage,
-} from '@tavern/api';
-import { projectAgentCurrentActivity } from '@tavern/api/agent-activity';
+} from '@grotto/api';
+import { projectAgentCurrentActivity } from '@grotto/api/agent-activity';
 import { and, asc, desc, eq, isNotNull, lt, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {

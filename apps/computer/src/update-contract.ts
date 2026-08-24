@@ -1,7 +1,7 @@
 export {
     computerBootstrapProtocolVersion,
     computerProtocolVersion,
-} from '@tavern/api';
+} from '@grotto/api';
 
 export type ComputerUpdatePhase =
     | 'available'

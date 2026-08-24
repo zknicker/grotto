@@ -1,5 +1,5 @@
+import type { AttachmentMetadata } from '@grotto/api';
 import { Attachment01Icon, Download04Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { AttachmentMetadata } from '@tavern/api';
 import {
     Attachment,
     AttachmentAction,

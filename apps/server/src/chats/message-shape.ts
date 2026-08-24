@@ -1,4 +1,4 @@
-import type { AttachmentMetadata, ChatMessage } from '@tavern/api';
+import type { AttachmentMetadata, ChatMessage } from '@grotto/api';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
 interface StoredChatMessage {

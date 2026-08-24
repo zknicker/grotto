@@ -1,9 +1,9 @@
-import { useQueries } from '@tanstack/react-query';
 import type {
     AgentActivityCursor,
     AgentActivityEvent,
     AgentActivityHistoryPage,
-} from '@tavern/api';
+} from '@grotto/api';
+import { useQueries } from '@tanstack/react-query';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';

@@ -1,4 +1,4 @@
-import { reminderCancelInputSchema, reminderMutationResultSchema } from '@tavern/api';
+import { reminderCancelInputSchema, reminderMutationResultSchema } from '@grotto/api';
 import { cancelOperatorReminder } from '../../reminders/operator-reminders.ts';
 import { reminderProcedure } from './procedure.ts';
 

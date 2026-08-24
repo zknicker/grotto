@@ -1,4 +1,4 @@
-import type { DeleteAgentInput, ServerDurableEvent } from '@tavern/api';
+import type { DeleteAgentInput, ServerDurableEvent } from '@grotto/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {

@@ -36,7 +36,7 @@ Grotto matched the live behavior:
 
 - the Owner created Juniper through the Members UI;
 - its profile became `Current` with Codex and GPT-5.6 Terra;
-- the profile exposed the managed `tavern-agent` and `visuals` skills;
+- the profile exposed the managed `grotto-agent` and `visuals` skills;
 - an ordinary DM became Agent-owned work in its task Thread;
 - Juniper acknowledged, created `bluebird-brief.md`, and reported completion;
 - Workspace exposed `MEMORY.md`, seeded notes, and the requested file.
@@ -55,7 +55,7 @@ collaboration records remain durable Server history, but the executable scenario
 does not treat a retired Agent's DM as an App destination.
 
 Verification:
-`TAVERN_DEV_STACK_ID=agent-e2e bun run eval:agents -- agent-provisioning.spec.ts`
+`GROTTO_DEV_STACK_ID=agent-e2e bun run eval:agents -- agent-provisioning.spec.ts`
 (`1 passing flow`).
 
 Matched screenshots:

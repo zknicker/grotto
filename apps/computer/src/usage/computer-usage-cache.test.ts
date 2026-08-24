@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { UsageOverview } from '@tavern/api';
+import type { UsageOverview } from '@grotto/api';
 import { createComputerUsageCache } from './computer-usage-cache.ts';
 
 test('a fresh Computer usage cache avoids provider reads across restarts', async () => {

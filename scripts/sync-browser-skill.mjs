@@ -2,9 +2,9 @@
 // Regenerates the managed Browser skill from the installed agent-browser
 // package. The sync is mechanical: it keeps upstream snapshot, reference,
 // navigation, interaction, screenshot, and troubleshooting guidance verbatim,
-// and changes only the Tavern invocation surface (one `browser` tool) while
+// and changes only the Grotto invocation surface (one `browser` tool) while
 // removing install, MCP, session-management, and shell-only guidance that the
-// Tavern Runtime owns. Any upstream drift in the touched anchors fails the
+// Grotto Computer owns. Any upstream drift in the touched anchors fails the
 // sync so skill updates stay deliberate.
 //
 // Usage: node scripts/sync-browser-skill.mjs
@@ -25,7 +25,7 @@ const outputPath = path.join(
     'browser-skill.generated.ts'
 );
 
-// Sections that do not apply inside Tavern: Runtime owns install, sessions,
+// Sections that do not apply inside Grotto: Computer owns install, sessions,
 // the CDP connection, and skill distribution.
 const removedSections = [
     '## Quickstart',
@@ -53,7 +53,7 @@ const sentenceScrubs = [
     [/\s*\(see \[references\/[^)]+\)\)/g, ''],
 ];
 
-// Upstream heredoc examples teach shell chaining the Tavern tool does not
+// Upstream heredoc examples teach shell chaining the Grotto tool does not
 // have; the same commands work by passing the script as one argument.
 const exactReplacements = [
     [
@@ -104,7 +104,7 @@ const forbiddenTokens = [
     "cat <<'EOF'",
 ];
 
-const tavernPreamble = `# Browser
+const grottoPreamble = `# Browser
 
 Control the managed Chrome browser. Grotto owns the browser process, its
 durable profile, the session, and the CDP connection; you drive it with one
@@ -189,7 +189,7 @@ function removeSpan(lines, span) {
 const packageJson = JSON.parse(fs.readFileSync(path.join(packageDir, 'package.json'), 'utf8'));
 const upstream = fs.readFileSync(path.join(packageDir, 'skill-data', 'core', 'SKILL.md'), 'utf8');
 
-// Drop upstream frontmatter and its H1; Tavern supplies both.
+// Drop upstream frontmatter and its H1; Grotto supplies both.
 const frontmatterMatch = upstream.match(/^---\n[\s\S]*?\n---\n/);
 if (!frontmatterMatch) {
     fail('upstream SKILL.md frontmatter was not found.');
@@ -221,7 +221,7 @@ for (const [needle, replacement] of exactReplacements) {
     }
     content = content.replace(needle, replacement);
 }
-content = `${tavernPreamble}\n${content.replace(/\n{3,}/g, '\n\n').trim()}\n`;
+content = `${grottoPreamble}\n${content.replace(/\n{3,}/g, '\n\n').trim()}\n`;
 
 for (const token of forbiddenTokens) {
     if (content.includes(token)) {

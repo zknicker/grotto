@@ -5,7 +5,7 @@ import type { Page } from '@playwright/test';
 export const e2eClerkUserId = 'user_e2e_human';
 export const e2ePeerClerkUserId = 'user_e2e_peer';
 
-export function clerkSessionFile(runId = process.env.TAVERN_E2E_RUN_ID ?? 'default') {
+export function clerkSessionFile(runId = process.env.GROTTO_E2E_RUN_ID ?? 'default') {
     return fileURLToPath(
         new URL(`../../../../.context/e2e/clerk-session-${runId}.json`, import.meta.url)
     );

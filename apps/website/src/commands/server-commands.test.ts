@@ -46,7 +46,7 @@ describe('Server command groups', () => {
         expect(groups.map((group) => group.title)).toEqual([
             'Navigation',
             'Channels',
-            'Direct Messages',
+            'DMs',
             'Current Chat',
             'Settings',
             'Developer',
@@ -106,6 +106,26 @@ describe('Server command groups', () => {
             ?.commands.find((command) => command.title === 'Chat')
             ?.run();
         expect(navigated).toEqual(['/s/dev']);
+    });
+
+    test('offers archived Chats, which no longer have a sidebar row', () => {
+        const navigated: string[] = [];
+        const groups = buildCommandGroups({
+            agents: [agent],
+            chats,
+            devMode: false,
+            navigate: (path) => navigated.push(path),
+            pathname: '/s/dev/tasks',
+            role: 'member',
+            serverSlug: 'dev',
+            setDevMode: () => undefined,
+        });
+
+        groups
+            .find((group) => group.id === 'navigation')
+            ?.commands.find((command) => command.title === 'Archived chats')
+            ?.run();
+        expect(navigated).toEqual(['/s/dev/archived']);
     });
 
     test('omits a retired Agent DM from chat commands', () => {

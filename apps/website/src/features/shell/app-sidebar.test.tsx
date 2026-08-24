@@ -4,24 +4,28 @@ import type { Agent, Chat } from '@tavern/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { ChatNavigation } from './chat-navigation.tsx';
+import { CommandMenuProvider } from './command-menu-provider.tsx';
 import { ShellSidebar, ShellSidebarPage } from './shell-sidebar.tsx';
 
 test('hides a retired Agent DM from active navigation', () => {
     const markup = renderToStaticMarkup(
         <MemoryRouter>
-            <Sidebar.Provider>
-                <ShellSidebar activePage="server">
-                    <ShellSidebarPage ariaLabel="Server" value="server">
-                        <ChatNavigation
-                            agents={[]}
-                            chats={[retiredDm()]}
-                            onCreateChannel={() => undefined}
-                            selectedChatId={undefined}
-                            slug="tavern"
-                        />
-                    </ShellSidebarPage>
-                </ShellSidebar>
-            </Sidebar.Provider>
+            <CommandMenuProvider>
+                <Sidebar.Provider>
+                    <ShellSidebar activePage="server">
+                        <ShellSidebarPage ariaLabel="Server" value="server">
+                            <ChatNavigation
+                                agents={[]}
+                                chats={[retiredDm()]}
+                                onCreateChannel={() => undefined}
+                                onPreloadSection={() => undefined}
+                                selectedChatId={undefined}
+                                slug="tavern"
+                            />
+                        </ShellSidebarPage>
+                    </ShellSidebar>
+                </Sidebar.Provider>
+            </CommandMenuProvider>
         </MemoryRouter>
     );
 
@@ -42,19 +46,22 @@ test('renders each DM from its own Agent availability', () => {
     });
     const markup = renderToStaticMarkup(
         <MemoryRouter>
-            <Sidebar.Provider>
-                <ShellSidebar activePage="server">
-                    <ShellSidebarPage ariaLabel="Server" value="server">
-                        <ChatNavigation
-                            agents={[blippy, tiny]}
-                            chats={[dm('chat_blippy', blippy), dm('chat_tiny', tiny)]}
-                            onCreateChannel={() => undefined}
-                            selectedChatId="chat_blippy"
-                            slug="tavern"
-                        />
-                    </ShellSidebarPage>
-                </ShellSidebar>
-            </Sidebar.Provider>
+            <CommandMenuProvider>
+                <Sidebar.Provider>
+                    <ShellSidebar activePage="server">
+                        <ShellSidebarPage ariaLabel="Server" value="server">
+                            <ChatNavigation
+                                agents={[blippy, tiny]}
+                                chats={[dm('chat_blippy', blippy), dm('chat_tiny', tiny)]}
+                                onCreateChannel={() => undefined}
+                                onPreloadSection={() => undefined}
+                                selectedChatId="chat_blippy"
+                                slug="tavern"
+                            />
+                        </ShellSidebarPage>
+                    </ShellSidebar>
+                </Sidebar.Provider>
+            </CommandMenuProvider>
         </MemoryRouter>
     );
 

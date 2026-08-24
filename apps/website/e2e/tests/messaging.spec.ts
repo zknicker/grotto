@@ -252,9 +252,14 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
     await panel.getByRole('textbox', { name: /Message Thread/u }).fill('First hosted Thread reply');
     await panel.getByRole('button', { name: 'Send' }).click();
     await expect(panel.getByText('First hosted Thread reply', { exact: true })).toBeVisible();
-    await expect(panel.getByRole('button', { name: 'Following' })).toBeVisible();
-    await panel.getByRole('button', { name: 'Following' }).click();
-    await expect(panel.getByRole('button', { name: 'Follow', exact: true })).toBeVisible();
+    // Following lives in the thread's name menu; posting a reply auto-follows,
+    // so the menu offers the unfollow escape hatch until it is used.
+    const threadMenu = panel.getByRole('button', { name: /thread actions$/u });
+    await threadMenu.click();
+    await page.getByRole('menuitem', { name: 'Stop following thread' }).click();
+    await threadMenu.click();
+    await expect(page.getByRole('menuitem', { name: 'Follow thread' })).toBeVisible();
+    await page.keyboard.press('Escape');
 
     const { peerToken, token } = JSON.parse(readFileSync(clerkSessionFile(), 'utf8')) as {
         peerToken: string;
@@ -349,7 +354,8 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
     await page.setViewportSize({ height: 720, width: 800 });
     await page.getByRole('button', { name: /4 replies/u }).click();
     await expect(page.getByRole('button', { name: 'Back to chat' })).toBeVisible();
-    await page.getByRole('button', { name: 'View in channel' }).click();
+    await page.getByRole('button', { name: /thread actions$/u }).click();
+    await page.getByRole('menuitem', { name: 'View in chat' }).click();
     await expect(panel).toHaveCount(0);
     await expect(
         page.getByLabel('Messages', { exact: true }).getByText(anchorText, { exact: true })

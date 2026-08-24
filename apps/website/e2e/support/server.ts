@@ -34,6 +34,15 @@ export async function openChannel(page: Page, name: string) {
 }
 
 export async function openSection(page: Page, name: string) {
+    // Chat has no dedicated row: non-chat sidebar pages expose a back link,
+    // and everywhere else the chat navigation is already the visible sidebar.
+    if (name === 'Chat') {
+        const back = page.getByRole('link', { name: 'Back to chat' });
+        if (await back.isVisible().catch(() => false)) {
+            await back.click();
+        }
+        return;
+    }
     await page.getByRole('row', { exact: true, name }).click();
 }
 

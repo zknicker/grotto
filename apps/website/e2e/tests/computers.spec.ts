@@ -23,9 +23,12 @@ test('a populated Computer page never presents its attach flow while inventory l
 
     await page.goto('/s/loading-computer-hq/computers');
 
-    await expect(page.getByText('Loading Computers')).toHaveCount(2);
+    // The settings sidebar and the lazily-chunked section mount at different
+    // moments, so their two skeletons no longer overlap reliably — what
+    // matters is that a skeleton shows and the attach flow never flashes.
+    await expect(page.getByText('Loading Computers').first()).toBeVisible();
     await expect(page.getByText('Attach a Computer')).toHaveCount(0);
-    await expect(page.getByText('Attached · 1', { exact: true })).toBeVisible();
+    await expect(page.getByText('Computers · 1', { exact: true })).toBeVisible();
     await expect(page.getByText('Attach a Computer')).toHaveCount(0);
 });
 
@@ -42,7 +45,7 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     });
 
     await page.goto('/s/computer-hq/computers');
-    await expect(page.getByText('Attached · 1', { exact: true })).toBeVisible();
+    await expect(page.getByText('Computers · 1', { exact: true })).toBeVisible();
     await expect(page.getByText('Awaiting first report')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Recovery Commands' })).toBeVisible();
 

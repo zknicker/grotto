@@ -5,7 +5,6 @@ import {
     resolveChatSectionRoute,
     resolveSelectedChatId,
     resolveSettingsSection,
-    shouldShowSidebar,
 } from './server-route-state.ts';
 
 describe('Server route state', () => {
@@ -32,10 +31,8 @@ describe('Server route state', () => {
         expect(resolveSettingsSection('/s/dev/settings/appearance', 'dev')).toBe('appearance');
     });
 
-    test('hides contextual navigation on full-width destinations', () => {
-        expect(shouldShowSidebar('search', true)).toBe(false);
-        expect(shouldShowSidebar('computers', false)).toBe(false);
-        expect(shouldShowSidebar('computers', true)).toBe(true);
-        expect(shouldShowSidebar('members', true)).toBe(true);
+    test('routes legacy computers paths to the settings section', () => {
+        expect(resolveActiveSection('/s/dev/computers', 'dev')).toBe('settings');
+        expect(resolveActiveSection('/s/dev/settings/computers', 'dev')).toBe('settings');
     });
 });

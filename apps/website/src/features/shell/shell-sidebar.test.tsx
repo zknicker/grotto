@@ -26,7 +26,7 @@ test('renders only the active sidebar page so route changes are instant', () => 
 test('keeps shared header and footer presentation outside the active sidebar page', () => {
     const markup = renderToStaticMarkup(
         <Sidebar.Provider>
-            <ShellSidebar activePage="tasks" footer="Working" header="Search">
+            <ShellSidebar activePage="tasks" footer="Working" identity="Search">
                 <ShellSidebarPage ariaLabel="Server" value="server">
                     Server
                 </ShellSidebarPage>

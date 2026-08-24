@@ -24,7 +24,7 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({ page }) =>
     });
 
     await page.goto('/s/reminders/members');
-    await page.getByRole('row', { name: 'Cove' }).click();
+    await page.getByRole('link', { name: 'Cove' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Cove' })).toBeVisible();
     await page.getByRole('radio', { name: 'Reminders' }).click();
     await expect(page.getByText('Local watchdog', { exact: true })).toBeVisible();

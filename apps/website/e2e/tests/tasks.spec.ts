@@ -31,8 +31,8 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
     await expect(dialog).toHaveCount(0);
 
     // Inline metadata controls live on the board cards, so switch lenses for
-    // the control flow below.
-    await page.getByLabel('Task layout').getByText('Board').click();
+    // the control flow below. The lens lives in the topbar's display menu.
+    await selectTaskLens(page, 'Board');
 
     let card = taskCard(page);
     await expect(card).toBeVisible();
@@ -93,7 +93,9 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
     const assignee = taskControl(card, 'Assignee');
     await assignee.click();
     await page
-        .getByRole('option', { name: new RegExp(`${peerUserId.slice(-6)} · member$`, 'u') })
+        // Name and role stack in the option now, so they are separate text
+        // nodes rather than the old `name · role` single line.
+        .getByRole('option', { name: new RegExp(`${peerUserId.slice(-6)}\\s*member$`, 'u') })
         .click();
     await expect(taskControl(taskCard(page), 'Assignee')).toContainText(peerUserId.slice(-6));
 
@@ -105,7 +107,7 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
 
     await page.context().setOffline(true);
     await client.task.assign.mutate({
-        assigneeUserId: null,
+        assignee: null,
         expectedVersion: task.version,
         messageId: task.messageId,
         serverId: server.id,
@@ -144,6 +146,19 @@ test('a hosted task message projects its status in the Chat and opens its Thread
     if (!allChatId) {
         throw new Error('The task projection flow did not resolve #all.');
     }
+    // The visible row above may still be the optimistic one, so wait for the
+    // Server to own the message before promoting it.
+    await expect
+        .poll(async () => {
+            const snapshot = await client.chat.messages.query({
+                chatId: allChatId,
+                serverId: server.id,
+            });
+            return snapshot.messages.some(
+                (message) => message.content === 'Projected task message'
+            );
+        })
+        .toBe(true);
     const snapshot = await client.chat.messages.query({ chatId: allChatId, serverId: server.id });
     const anchor = snapshot.messages.find(
         (message) => message.content === 'Projected task message'
@@ -190,4 +205,11 @@ function taskCard(page: Page) {
 
 function taskControl(card: ReturnType<typeof taskCard>, name: 'Assignee' | 'Priority' | 'Status') {
     return card.getByRole('button', { name: new RegExp(`${name} for task #1$`, 'u') });
+}
+
+/** The list/board lens lives behind the topbar's display-options menu. */
+async function selectTaskLens(page: Page, lens: 'Board' | 'List') {
+    await page.getByRole('button', { name: 'Display options' }).click();
+    await page.getByLabel('Task layout').getByText(lens).click();
+    await page.keyboard.press('Escape');
 }

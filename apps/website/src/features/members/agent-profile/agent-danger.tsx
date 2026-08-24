@@ -1,14 +1,11 @@
 import { Button } from '@heroui/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { useAgentDelete } from '../../../hooks/members/use-agent-delete.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
-import {
-    SettingsGroup,
-    SettingsRow,
-    SettingsSection,
-} from '../../settings/layout/settings-page.tsx';
+import { SettingsSection } from '../../settings/layout/settings-page.tsx';
 
 export function AgentDanger({
     agent,
@@ -31,22 +28,26 @@ export function AgentDanger({
 
     return (
         <SettingsSection title="Danger">
-            <SettingsGroup>
-                <SettingsRow
-                    description="Remove this Agent. Its collaboration history remains."
-                    title="Delete Agent"
-                    trailingWidth="intrinsic"
-                >
-                    <Button
-                        onPress={() => setDeleting(true)}
-                        size="sm"
-                        type="button"
-                        variant="danger-soft"
-                    >
-                        Delete Agent
-                    </Button>
-                </SettingsRow>
-            </SettingsGroup>
+            <ItemCardGroup className="overflow-hidden">
+                <ItemCard>
+                    <ItemCard.Content>
+                        <ItemCard.Title>Delete Agent</ItemCard.Title>
+                        <ItemCard.Description>
+                            Remove this Agent. Its collaboration history remains.
+                        </ItemCard.Description>
+                    </ItemCard.Content>
+                    <ItemCard.Action>
+                        <Button
+                            onPress={() => setDeleting(true)}
+                            size="sm"
+                            type="button"
+                            variant="danger-soft"
+                        >
+                            Delete Agent
+                        </Button>
+                    </ItemCard.Action>
+                </ItemCard>
+            </ItemCardGroup>
             {deleting ? (
                 <DeleteDialog
                     confirmation={agent.displayName}

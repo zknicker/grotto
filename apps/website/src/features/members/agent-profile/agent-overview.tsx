@@ -11,7 +11,7 @@ import {
     computerLabel,
 } from '../../computers/presentation.ts';
 import { serverComputersRoute } from '../../servers/server-routes.ts';
-import { SettingsPage } from '../../settings/layout/settings-page.tsx';
+import { PageColumn } from '../../shell/page-column.tsx';
 import { AgentUsageOverview } from '../../usage/agent-usage-overview.tsx';
 import { availabilityBadgeColor } from '../agent-avatar.tsx';
 import { MemberProfileFact, MemberProfileFacts } from '../member-profile-header.tsx';
@@ -36,7 +36,7 @@ export function AgentOverview({
 
     return (
         <div className="px-4 py-6">
-            <SettingsPage>
+            <PageColumn>
                 <AgentIdentity
                     agent={agent}
                     canEdit={canEdit}
@@ -112,7 +112,7 @@ export function AgentOverview({
                 />
                 {canEdit ? <AgentSession agent={agent} server={server} /> : null}
                 <AgentDanger agent={agent} onDeleted={onDeleted} server={server} />
-            </SettingsPage>
+            </PageColumn>
         </div>
     );
 }

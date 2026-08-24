@@ -1,12 +1,8 @@
 import { Chip, Separator, Switch } from '@heroui/react';
-import { EmptyState } from '@heroui-pro/react';
+import { EmptyState, ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import type { Agent, McpConnection } from '@tavern/api';
 import * as React from 'react';
-import {
-    SettingsGroup,
-    SettingsRow,
-    SettingsSection,
-} from '../../features/settings/layout/settings-page.tsx';
+import { SettingsSection } from '../../features/settings/layout/settings-page.tsx';
 import { useAgentGrant } from '../../hooks/members/use-agent-grant.ts';
 
 export function AgentTools({
@@ -35,7 +31,7 @@ export function AgentTools({
             <p className="px-1 text-muted text-sm">
                 Choose which Server-managed MCP connections this Agent can use.
             </p>
-            <SettingsGroup>
+            <ItemCardGroup className="overflow-hidden">
                 {available.length === 0 ? (
                     <EmptyState size="sm">
                         <EmptyState.Header>
@@ -53,38 +49,42 @@ export function AgentTools({
                         return (
                             <React.Fragment key={connection.id}>
                                 {index > 0 ? <Separator /> : null}
-                                <SettingsRow
-                                    description={`${connection.tools.length} tools · ${connection.url}`}
-                                    title={
-                                        <span className="flex min-w-0 items-center gap-2">
-                                            <span className="truncate">{connection.name}</span>
-                                            <Chip size="sm" variant="soft">
-                                                MCP
-                                            </Chip>
-                                        </span>
-                                    }
-                                    trailingWidth="intrinsic"
-                                >
-                                    <Switch
-                                        aria-label={`Enable ${connection.name} for ${agent.displayName}`}
-                                        isDisabled={grant.isPending}
-                                        isSelected={checked}
-                                        onChange={(enabled) =>
-                                            grant.setGrant(connection.id, enabled)
-                                        }
-                                    >
-                                        <Switch.Content>
-                                            <Switch.Control>
-                                                <Switch.Thumb />
-                                            </Switch.Control>
-                                        </Switch.Content>
-                                    </Switch>
-                                </SettingsRow>
+                                <ItemCard>
+                                    <ItemCard.Content>
+                                        <ItemCard.Title>
+                                            <span className="flex min-w-0 items-center gap-2">
+                                                <span className="truncate">{connection.name}</span>
+                                                <Chip size="sm" variant="soft">
+                                                    MCP
+                                                </Chip>
+                                            </span>
+                                        </ItemCard.Title>
+                                        <ItemCard.Description>
+                                            {`${connection.tools.length} tools · ${connection.url}`}
+                                        </ItemCard.Description>
+                                    </ItemCard.Content>
+                                    <ItemCard.Action>
+                                        <Switch
+                                            aria-label={`Enable ${connection.name} for ${agent.displayName}`}
+                                            isDisabled={grant.isPending}
+                                            isSelected={checked}
+                                            onChange={(enabled) =>
+                                                grant.setGrant(connection.id, enabled)
+                                            }
+                                        >
+                                            <Switch.Content>
+                                                <Switch.Control>
+                                                    <Switch.Thumb />
+                                                </Switch.Control>
+                                            </Switch.Content>
+                                        </Switch>
+                                    </ItemCard.Action>
+                                </ItemCard>
                             </React.Fragment>
                         );
                     })
                 )}
-            </SettingsGroup>
+            </ItemCardGroup>
         </SettingsSection>
     );
 }

@@ -7,7 +7,7 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useUsage } from '../../hooks/servers/use-usage.ts';
 import { computerLabel } from '../computers/presentation.ts';
-import { SettingsPage } from '../settings/layout/settings-page.tsx';
+import { PageColumn } from '../shell/page-column.tsx';
 import { SectionHeader } from '../shell/section-header.tsx';
 import { PageTopbar } from '../shell/shell-topbar.tsx';
 import { AgentsTokenUsage, TokenUsageRangePicker } from '../stats/token-usage-module.tsx';
@@ -62,7 +62,7 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
                     <TokenUsageRangePicker days={days} onChange={setDays} />
                 </SectionHeader>
             </PageTopbar>
-            <SettingsPage width="wide">
+            <PageColumn width="wide">
                 {computerFilterLabel || runtimeId ? (
                     <ActiveUsageFilters
                         computerLabel={computerFilterLabel}
@@ -102,7 +102,7 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
                 ) : (
                     <TokenUsageSkeleton />
                 )}
-            </SettingsPage>
+            </PageColumn>
         </>
     );
 }

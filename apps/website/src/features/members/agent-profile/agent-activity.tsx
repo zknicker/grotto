@@ -10,9 +10,9 @@ import { useGrottoServerConnectionState } from '../../../lib/grotto-server.tsx';
 import {
     SettingsGroup,
     SettingsItem,
-    SettingsPage,
     SettingsSection,
 } from '../../settings/layout/settings-page.tsx';
+import { PageColumn } from '../../shell/page-column.tsx';
 import {
     formatAgentActivityDiagnosticInfo,
     formatAgentActivityEvent,
@@ -31,7 +31,7 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
 
     return (
         <div className="px-4 py-6">
-            <SettingsPage>
+            <PageColumn>
                 <SettingsSection
                     action={
                         <Button
@@ -77,7 +77,7 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
                     ) : null}
                 </SettingsSection>
                 <AgentChats agent={agent} server={server} />
-            </SettingsPage>
+            </PageColumn>
         </div>
     );
 }

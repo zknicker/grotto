@@ -3,7 +3,8 @@ import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { AgentTools as ServerAgentTools } from '../../../routes/app/agent-tools.tsx';
-import { SettingsPage, SettingsSection } from '../../settings/layout/settings-page.tsx';
+import { SettingsSection } from '../../settings/layout/settings-page.tsx';
+import { PageColumn } from '../../shell/page-column.tsx';
 import { AgentSkills } from './agent-skills.tsx';
 
 export function AgentTools({ agent, server }: { agent: Agent; server: ServerDetail }) {
@@ -17,7 +18,7 @@ export function AgentTools({ agent, server }: { agent: Agent; server: ServerDeta
 
     return (
         <div className="px-4 py-6">
-            <SettingsPage>
+            <PageColumn>
                 {connections.error && !connections.data ? (
                     <SettingsSection title="Agent MCP Access">
                         <p className="px-1 text-danger text-sm" role="alert">
@@ -59,7 +60,7 @@ export function AgentTools({ agent, server }: { agent: Agent; server: ServerDeta
                         </div>
                     </SettingsSection>
                 )}
-            </SettingsPage>
+            </PageColumn>
         </div>
     );
 }

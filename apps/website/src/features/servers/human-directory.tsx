@@ -4,12 +4,8 @@ import { canManageServerInvitations } from '@tavern/api/membership';
 import * as React from 'react';
 import { useMembershipActions } from '../../hooks/servers/use-membership-actions.ts';
 import { useServerInvitations } from '../../hooks/servers/use-server-invitations.ts';
-import {
-    SettingsGroup,
-    SettingsItem,
-    SettingsPage,
-    SettingsSection,
-} from '../settings/layout/settings-page.tsx';
+import { SettingsGroup, SettingsItem, SettingsSection } from '../settings/layout/settings-page.tsx';
+import { PageColumn } from '../shell/page-column.tsx';
 import { InviteMemberForm, ServerInvitationList } from './server-invitations.tsx';
 import { memberChangeDescription, type ServerMemberRowAction } from './server-member-actions.ts';
 import {
@@ -54,7 +50,7 @@ export function HumanDirectory({
     return (
         <div className="min-w-0 flex-1 overflow-y-auto">
             <div className="px-5 py-6 sm:px-7">
-                <SettingsPage>
+                <PageColumn>
                     <SettingsSection title={`Humans · ${directory.members.length}`}>
                         <SettingsGroup>
                             <ServerMemberList directory={directory} onChoose={openChange} />
@@ -87,7 +83,7 @@ export function HumanDirectory({
                             </SettingsGroup>
                         </SettingsSection>
                     ) : null}
-                </SettingsPage>
+                </PageColumn>
             </div>
             <ServerMemberConfirmDialog
                 onOpenChange={(open) => {

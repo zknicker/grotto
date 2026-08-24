@@ -1,6 +1,6 @@
 import type { ServerMember } from '@tavern/api/membership';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
-import { SettingsPage } from '../../settings/layout/settings-page.tsx';
+import { PageColumn } from '../../shell/page-column.tsx';
 import { CreatedAgents } from './created-agents.tsx';
 import { HumanIdentity } from './human-identity.tsx';
 
@@ -17,7 +17,7 @@ export function HumanProfile({
     return (
         <div className="min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
             <div className="px-4 py-6">
-                <SettingsPage>
+                <PageColumn>
                     <HumanIdentity
                         isSelf={member.userId === viewerUserId}
                         member={member}
@@ -28,7 +28,7 @@ export function HumanProfile({
                         serverSlug={server.slug}
                         userId={member.userId}
                     />
-                </SettingsPage>
+                </PageColumn>
             </div>
         </div>
     );

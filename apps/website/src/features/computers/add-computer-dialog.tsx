@@ -15,7 +15,7 @@ export function AddComputerDialog({
     return (
         <Modal isOpen={open} onOpenChange={onOpenChange}>
             <Modal.Backdrop isDismissable>
-                <Modal.Container scroll="outside" size="lg">
+                <Modal.Container scroll="inside" size="lg">
                     <Modal.Dialog>
                         <Modal.CloseTrigger />
                         <Modal.Header>

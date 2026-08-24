@@ -1,4 +1,5 @@
 import { AlertDialog, Button, Separator } from '@heroui/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { useAgentReset } from '../../../hooks/members/use-agent-reset.ts';
@@ -6,11 +7,7 @@ import { useAgentRestart } from '../../../hooks/members/use-agent-restart.ts';
 import { useAgentState } from '../../../hooks/members/use-agent-state.ts';
 import { useAgentStop } from '../../../hooks/members/use-agent-stop.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
-import {
-    SettingsGroup,
-    SettingsRow,
-    SettingsSection,
-} from '../../settings/layout/settings-page.tsx';
+import { SettingsSection } from '../../settings/layout/settings-page.tsx';
 import { fullResetCopy } from './agent-session-model.ts';
 
 export function AgentSession({ agent, server }: { agent: Agent; server: ServerDetail }) {
@@ -25,70 +22,85 @@ export function AgentSession({ agent, server }: { agent: Agent; server: ServerDe
     // the process, drop its context, then rebuild it from the ordinary factory state.
     return (
         <SettingsSection title="Session">
-            <SettingsGroup>
-                <SettingsRow
-                    description="Halt whatever the Agent is doing right now."
-                    title="Stop"
-                    trailingWidth="intrinsic"
-                >
-                    <Button
-                        isDisabled={!state.data?.running || stop.isPending}
-                        isPending={stop.isPending}
-                        onPress={stop.stop}
-                        size="sm"
-                        variant="secondary"
-                    >
-                        Stop
-                    </Button>
-                </SettingsRow>
+            <ItemCardGroup className="overflow-hidden">
+                <ItemCard>
+                    <ItemCard.Content>
+                        <ItemCard.Title>Stop</ItemCard.Title>
+                        <ItemCard.Description>
+                            Halt whatever the Agent is doing right now.
+                        </ItemCard.Description>
+                    </ItemCard.Content>
+                    <ItemCard.Action>
+                        <Button
+                            isDisabled={!state.data?.running || stop.isPending}
+                            isPending={stop.isPending}
+                            onPress={stop.stop}
+                            size="sm"
+                            variant="secondary"
+                        >
+                            Stop
+                        </Button>
+                    </ItemCard.Action>
+                </ItemCard>
                 <Separator />
-                <SettingsRow
-                    description="Restart the Agent's runtime. Context, workspace, and skills persist."
-                    title="Restart"
-                    trailingWidth="intrinsic"
-                >
-                    <Button
-                        isDisabled={restart.isPending}
-                        isPending={restart.isPending}
-                        onPress={restart.restart}
-                        size="sm"
-                        variant="secondary"
-                    >
-                        Restart
-                    </Button>
-                </SettingsRow>
+                <ItemCard>
+                    <ItemCard.Content>
+                        <ItemCard.Title>Restart</ItemCard.Title>
+                        <ItemCard.Description>
+                            Restart the Agent's runtime. Context, workspace, and skills persist.
+                        </ItemCard.Description>
+                    </ItemCard.Content>
+                    <ItemCard.Action>
+                        <Button
+                            isDisabled={restart.isPending}
+                            isPending={restart.isPending}
+                            onPress={restart.restart}
+                            size="sm"
+                            variant="secondary"
+                        >
+                            Restart
+                        </Button>
+                    </ItemCard.Action>
+                </ItemCard>
                 <Separator />
-                <SettingsRow
-                    description="Start the Agent's next turn with fresh context. Workspace, MEMORY.md, and skills persist."
-                    title="Start Fresh Session"
-                    trailingWidth="intrinsic"
-                >
-                    <Button
-                        isDisabled={reset.isPending}
-                        isPending={reset.isPending && !fullResetOpen}
-                        onPress={() => reset.reset('session').catch(() => undefined)}
-                        size="sm"
-                        variant="secondary"
-                    >
-                        Start Fresh Session
-                    </Button>
-                </SettingsRow>
+                <ItemCard>
+                    <ItemCard.Content>
+                        <ItemCard.Title>Start Fresh Session</ItemCard.Title>
+                        <ItemCard.Description>
+                            Start the Agent's next turn with fresh context. Workspace, MEMORY.md,
+                            and skills persist.
+                        </ItemCard.Description>
+                    </ItemCard.Content>
+                    <ItemCard.Action>
+                        <Button
+                            isDisabled={reset.isPending}
+                            isPending={reset.isPending && !fullResetOpen}
+                            onPress={() => reset.reset('session').catch(() => undefined)}
+                            size="sm"
+                            variant="secondary"
+                        >
+                            Start Fresh Session
+                        </Button>
+                    </ItemCard.Action>
+                </ItemCard>
                 <Separator />
-                <SettingsRow
-                    description={resetCopy.description}
-                    title="Full Reset"
-                    trailingWidth="intrinsic"
-                >
-                    <Button
-                        isDisabled={reset.isPending}
-                        onPress={() => setFullResetOpen(true)}
-                        size="sm"
-                        variant="danger-soft"
-                    >
-                        Full Reset
-                    </Button>
-                </SettingsRow>
-            </SettingsGroup>
+                <ItemCard>
+                    <ItemCard.Content>
+                        <ItemCard.Title>Full Reset</ItemCard.Title>
+                        <ItemCard.Description>{resetCopy.description}</ItemCard.Description>
+                    </ItemCard.Content>
+                    <ItemCard.Action>
+                        <Button
+                            isDisabled={reset.isPending}
+                            onPress={() => setFullResetOpen(true)}
+                            size="sm"
+                            variant="danger-soft"
+                        >
+                            Full Reset
+                        </Button>
+                    </ItemCard.Action>
+                </ItemCard>
+            </ItemCardGroup>
             <AlertDialog isOpen={fullResetOpen} onOpenChange={setFullResetOpen}>
                 <AlertDialog.Backdrop isDismissable>
                     <AlertDialog.Container size="sm">

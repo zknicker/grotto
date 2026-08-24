@@ -12,9 +12,9 @@ import { WorkspaceBrowserContent } from '../../chats/chat-artifact-workspace-con
 import {
     SettingsGroup,
     SettingsItem,
-    SettingsPage,
     SettingsSection,
 } from '../../settings/layout/settings-page.tsx';
+import { PageColumn } from '../../shell/page-column.tsx';
 import { AgentLoading } from './agent-loading.tsx';
 import { AgentOverview } from './agent-overview.tsx';
 
@@ -44,7 +44,7 @@ export function AgentReminders({ agent, server }: { agent: Agent; server: Server
 
     return (
         <div className="px-5 py-6 sm:px-7">
-            <SettingsPage>
+            <PageColumn>
                 <SettingsSection title="Reminders">
                     <SettingsGroup>
                         {rows.map((reminder, index) => (
@@ -65,7 +65,7 @@ export function AgentReminders({ agent, server }: { agent: Agent; server: Server
                         ))}
                     </SettingsGroup>
                 </SettingsSection>
-            </SettingsPage>
+            </PageColumn>
         </div>
     );
 }

@@ -1,31 +1,6 @@
 import { AlertDialog, Button } from '@heroui/react';
-import type { Agent, McpPreset, McpConnection as ServerMcpConnection } from '@tavern/api';
+import type { Agent, McpConnection as ServerMcpConnection } from '@tavern/api';
 import type { McpConnection } from './mcp-server-shared.ts';
-
-export function ConnectionPresetButtons({
-    onAdd,
-}: {
-    onAdd(preset: McpPreset, name: string): void;
-}) {
-    return (
-        <div className="flex gap-2">
-            <Button
-                onPress={() => onAdd('google-calendar', 'Google Calendar')}
-                type="button"
-                variant="secondary"
-            >
-                Google Calendar
-            </Button>
-            <Button
-                onPress={() => onAdd('merchbase', 'MerchBase')}
-                type="button"
-                variant="secondary"
-            >
-                MerchBase
-            </Button>
-        </div>
-    );
-}
 
 export function ConnectionTrustDialog({
     onClose,
@@ -79,9 +54,11 @@ export function toConnectionView(
         builtIn: connection.preset !== null,
         connected: connection.connected,
         headerNames: connection.headerNames,
+        icon: connection.icon,
         id: connection.id,
         name: connection.name,
         preset: connection.preset,
+        summary: connection.summary,
         url: connection.url,
     };
 }

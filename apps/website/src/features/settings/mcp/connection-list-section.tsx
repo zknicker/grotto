@@ -1,20 +1,21 @@
-import * as React from 'react';
+import { Button, Tooltip } from '@heroui/react';
+import { ItemCardGroup } from '@heroui-pro/react';
+import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
-import { SettingsGroup, SettingsSection } from '../layout/settings-page.tsx';
 import { toConnectionView } from './connection-view.tsx';
-import { ConnectionFilters, ConnectionRow } from './mcp-connection-list.tsx';
-import type { McpConnectionFilter } from './mcp-server-shared.ts';
-import { visibleConnections } from './mcp-server-shared.ts';
+import { ConnectionGrid } from './mcp-connection-list.tsx';
 
 export function ConnectionListSection({
+    onAdd,
     onSelect,
     serverId,
 }: {
+    onAdd: () => void;
     onSelect: (connectionId: string) => void;
     serverId: string;
 }) {
-    const [filter, setFilter] = React.useState<McpConnectionFilter>('all');
     const connections = useConnections(serverId);
     const agents = useAgents(serverId);
     const items = (connections.data ?? []).map((connection) =>
@@ -22,39 +23,42 @@ export function ConnectionListSection({
     );
 
     return (
-        <SettingsSection title="MCP Connections">
-            <div className="px-1">
-                <ConnectionFilters filter={filter} onChange={setFilter} />
-            </div>
-            {connections.isPending && !connections.data ? (
-                <SettingsGroup aria-busy="true">
-                    <div className="min-h-32">
-                        <span className="sr-only">Loading MCP connections</span>
-                    </div>
-                </SettingsGroup>
-            ) : (
-                <SettingsGroup>
-                    <div className="grid grid-cols-[minmax(0,1fr)_7rem_8rem] border-separator border-b bg-surface-secondary px-5 py-2 text-muted text-xs">
-                        <span>Connection</span>
-                        <span>Type</span>
-                        <span>Status</span>
-                    </div>
-                    {visibleConnections(items, filter).map((connection) => (
-                        <ConnectionRow
-                            connection={connection}
-                            key={connection.id}
-                            onSelect={() => onSelect(connection.id)}
-                        />
-                    ))}
-                    {connections.error && !connections.data ? (
-                        <p className="px-5 py-8 text-center text-danger text-sm" role="alert">
-                            {connections.error.message}
-                        </p>
-                    ) : !connections.isPending && items.length === 0 ? (
-                        <p className="px-5 py-8 text-center text-muted text-sm">No connections.</p>
+        <ItemCardGroup variant="transparent">
+            {/* Adding a connection adds a row to this table, so the control
+                belongs to the section rather than the page. */}
+            <ItemCardGroup.Header className="flex items-center justify-between gap-3">
+                <ItemCardGroup.Title>
+                    Added
+                    {connections.data ? (
+                        <span className="ms-2 text-muted tabular-nums">{items.length}</span>
                     ) : null}
-                </SettingsGroup>
+                </ItemCardGroup.Title>
+                <Tooltip delay={0}>
+                    <Button
+                        aria-label="Add MCP Server"
+                        isIconOnly
+                        onPress={onAdd}
+                        size="sm"
+                        variant="secondary"
+                    >
+                        <Icon aria-hidden="true" icon={PlusSignIcon} size={16} />
+                    </Button>
+                    <Tooltip.Content>Add MCP Server</Tooltip.Content>
+                </Tooltip>
+            </ItemCardGroup.Header>
+            {connections.isPending && !connections.data ? (
+                <div aria-busy="true" className="min-h-32">
+                    <span className="sr-only">Loading MCP connections</span>
+                </div>
+            ) : connections.error && !connections.data ? (
+                <p className="py-8 text-center text-danger text-sm" role="alert">
+                    {connections.error.message}
+                </p>
+            ) : items.length > 0 ? (
+                <ConnectionGrid connections={items} onSelect={onSelect} />
+            ) : (
+                <p className="py-8 text-center text-muted text-sm">No connections.</p>
             )}
-        </SettingsSection>
+        </ItemCardGroup>
     );
 }

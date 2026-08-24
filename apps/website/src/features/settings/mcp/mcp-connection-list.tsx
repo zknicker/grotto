@@ -1,69 +1,81 @@
-import { Chip, Tabs } from '@heroui/react';
-import type { McpConnection, McpConnectionFilter } from './mcp-server-shared.ts';
+import { Avatar, Chip } from '@heroui/react';
+import { DataGrid, type DataGridColumn } from '@heroui-pro/react';
+import { useResolvedThemeOptional } from '../../../components/theme-provider.tsx';
+import { type ConnectionIcon, connectionIcon } from './connection-icon.ts';
+import type { McpConnection } from './mcp-server-shared.ts';
 
-export function ConnectionFilters({
-    filter,
-    onChange,
-}: {
-    filter: McpConnectionFilter;
-    onChange: (filter: McpConnectionFilter) => void;
-}) {
-    return (
-        <Tabs
-            onSelectionChange={(value) => onChange(String(value) as McpConnectionFilter)}
-            selectedKey={filter}
-            variant="secondary"
-        >
-            <Tabs.ListContainer>
-                <Tabs.List aria-label="Filter connections by status">
-                    <Tabs.Tab id="all">
-                        All
-                        <Tabs.Indicator />
-                    </Tabs.Tab>
-                    <Tabs.Tab id="connected">
-                        Connected
-                        <Tabs.Indicator />
-                    </Tabs.Tab>
-                    <Tabs.Tab id="not-connected">
-                        Not Connected
-                        <Tabs.Indicator />
-                    </Tabs.Tab>
-                </Tabs.List>
-            </Tabs.ListContainer>
-        </Tabs>
-    );
-}
-
-export function ConnectionRow({
-    connection,
+export function ConnectionGrid({
+    connections,
     onSelect,
 }: {
-    connection: McpConnection;
-    onSelect: () => void;
+    connections: McpConnection[];
+    onSelect: (connectionId: string) => void;
 }) {
+    const theme = useResolvedThemeOptional();
+
     return (
-        <button
-            className="grid min-h-14 w-full grid-cols-[minmax(0,1fr)_7rem_8rem] items-center border-separator border-b px-5 text-left outline-none last:border-b-0 hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
-            onClick={onSelect}
-            type="button"
-        >
-            <span className="flex min-w-0 items-center gap-3">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-secondary font-semibold text-foreground text-sm">
-                    {connection.name.slice(0, 1).toUpperCase()}
-                </span>
-                <span className="min-w-0">
-                    <span className="block truncate font-medium text-foreground text-sm">
-                        {connection.name}
-                    </span>
-                    <span className="block truncate text-muted text-sm">
-                        {connection.accountLabel ?? (connection.builtIn ? 'Built in' : 'Custom')}
-                    </span>
-                </span>
-            </span>
-            <span className="text-muted text-sm">Remote</span>
-            <Chip color={connection.connected ? 'success' : 'default'} size="sm" variant="soft">
-                {connection.connected ? 'Connected' : 'Not connected'}
-            </Chip>
-        </button>
+        <DataGrid
+            aria-label="MCP connections"
+            columns={connectionColumns(theme)}
+            data={connections}
+            getRowId={(item) => item.id}
+            onRowAction={(key) => onSelect(String(key))}
+        />
     );
 }
+
+function ConnectionAvatar({ icon }: { icon: ConnectionIcon }) {
+    return (
+        <Avatar className="shrink-0" size="sm">
+            {icon.kind === 'image' ? <Avatar.Image alt="" src={icon.src} /> : null}
+            <Avatar.Fallback
+                style={icon.kind === 'monogram' ? { color: `var(${icon.colorVar})` } : undefined}
+            >
+                {icon.kind === 'monogram' ? icon.letter : ''}
+            </Avatar.Fallback>
+        </Avatar>
+    );
+}
+
+const connectionColumns = (theme: 'dark' | 'light'): DataGridColumn<McpConnection>[] => [
+    {
+        allowsSorting: true,
+        cell: (item) => (
+            <div className="flex min-w-0 items-center gap-3">
+                <ConnectionAvatar icon={connectionIcon(item, theme)} />
+                <div className="min-w-0">
+                    <p className="truncate font-medium text-sm">{item.name}</p>
+                    <p className="truncate text-muted text-sm">
+                        {item.accountLabel ?? (item.builtIn ? 'Built in' : 'Custom')}
+                    </p>
+                </div>
+            </div>
+        ),
+        header: 'Connection',
+        headerClassName: 'text-sm',
+        id: 'name',
+        isRowHeader: true,
+        minWidth: 200,
+        sortFn: (a, b) => a.name.localeCompare(b.name),
+    },
+    {
+        cellClassName: 'text-sm text-muted',
+        cell: () => 'Remote',
+        header: 'Type',
+        headerClassName: 'text-sm',
+        id: 'type',
+        minWidth: 90,
+    },
+    {
+        align: 'end',
+        cell: (item) => (
+            <Chip color={item.connected ? 'success' : 'default'} size="sm" variant="soft">
+                {item.connected ? 'Connected' : 'Not connected'}
+            </Chip>
+        ),
+        header: 'Status',
+        headerClassName: 'text-sm',
+        id: 'status',
+        minWidth: 120,
+    },
+];

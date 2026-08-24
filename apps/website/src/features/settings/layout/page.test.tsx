@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
+import { PageColumn } from '../../shell/page-column.tsx';
 import { useLayoutContext } from '../../shell/use-layout-context.ts';
 import { SettingsLayout } from './page.tsx';
-import { SettingsPage } from './settings-page.tsx';
 
 describe('SettingsLayout', () => {
     test('forwards the app layout context to settings child routes', () => {
@@ -46,8 +46,8 @@ function SettingsChildProbe() {
     const context = useLayoutContext();
 
     return (
-        <SettingsPage>
+        <PageColumn>
             <span>{context ? 'settings context available' : 'missing context'}</span>
-        </SettingsPage>
+        </PageColumn>
     );
 }

@@ -1,8 +1,12 @@
-import { Alert, Button, Chip, Modal, Separator, Spinner, Surface } from '@heroui/react';
-import { Fragment, useState } from 'react';
+import { Alert, Button, Chip, Modal, Separator, Spinner, Tooltip } from '@heroui/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { ArrowReloadHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { Fragment, type ReactNode, useState } from 'react';
+import { useResolvedThemeOptional } from '../../../components/theme-provider.tsx';
+import { Icon } from '../../../components/ui/icon.tsx';
+import { connectionIcon } from './connection-icon.ts';
 import {
     ConnectionDestructiveDialog,
-    ConnectionMenu,
     type McpDestructiveAction,
 } from './mcp-connection-actions.tsx';
 import { McpHeaderCredentialsDialog } from './mcp-header-credentials-dialog.tsx';
@@ -54,97 +58,88 @@ export function McpConnectionDetailDialog({
         <>
             <Modal isOpen={open} onOpenChange={onOpenChange}>
                 <Modal.Backdrop isDismissable>
-                    <Modal.Container scroll="outside" size="lg">
+                    {/* A server can expose dozens of tools. `outside` — the
+                        house default for bounded dialogs — would grow this one
+                        without limit; `inside` caps the dialog and scrolls the
+                        body, keeping the identity header and the actions
+                        reachable at any tool count. */}
+                    <Modal.Container scroll="inside" size="lg">
                         <Modal.Dialog>
                             <Modal.CloseTrigger />
+                            {/* Modal.Header stacks: icon, heading, then one
+                                muted line. Anything laid out across it fights
+                                the component, which is what left the mark
+                                stranded on its own row. */}
                             <Modal.Header>
-                                <Modal.Icon className="bg-default text-foreground">
-                                    {connection.name.slice(0, 1).toUpperCase()}
+                                <Modal.Icon className="overflow-hidden bg-default text-foreground">
+                                    <ConnectionMark connection={connection} />
                                 </Modal.Icon>
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                        <Modal.Heading>{connection.name}</Modal.Heading>
-                                        <p className="mt-1.5 text-muted text-sm leading-5">
-                                            {connection.accountLabel ??
-                                                (connection.builtIn
-                                                    ? 'Built-in MCP connection'
-                                                    : 'Custom MCP connection')}
-                                        </p>
-                                    </div>
-                                    <ConnectionMenu
-                                        connection={connection}
-                                        disabled={saving}
-                                        onAddAccount={() => onAddAccount(connection)}
-                                        onDelete={() => setDestructiveAction('delete')}
-                                        onDisconnect={() => setDestructiveAction('disconnect')}
-                                        onRefresh={() => {
-                                            void onRefresh(connection).catch(() => undefined);
-                                        }}
-                                    />
-                                </div>
+                                <Modal.Heading>
+                                    {connection.name}
+                                    <Chip
+                                        className="ms-2 align-middle"
+                                        color={connection.connected ? 'success' : 'default'}
+                                        size="sm"
+                                        variant="soft"
+                                    >
+                                        {connection.connected ? 'Connected' : 'Not connected'}
+                                    </Chip>
+                                </Modal.Heading>
+                                {/* What the server is, when it says so. Its
+                                    address is diagnostic, so it only stands in
+                                    when there is nothing better. */}
+                                {connection.summary ? (
+                                    <p className="mt-1.5 text-muted text-sm leading-5">
+                                        {connection.summary}
+                                    </p>
+                                ) : (
+                                    <p className="mt-1.5 truncate font-mono text-muted text-sm">
+                                        {connectionSummary(connection)}
+                                    </p>
+                                )}
                             </Modal.Header>
                             <Modal.Body>
                                 <div className="grid gap-6">
-                                    <Surface
-                                        className="flex items-center justify-between gap-4 rounded-2xl p-4"
-                                        variant="secondary"
-                                    >
-                                        <div className="min-w-0">
-                                            <p className="truncate font-mono text-muted text-xs">
-                                                {connectionSummary(connection)}
-                                            </p>
-                                            <Chip
-                                                className="mt-1"
-                                                color={connection.connected ? 'success' : 'default'}
-                                                size="sm"
-                                                variant="soft"
-                                            >
-                                                {connection.connected
-                                                    ? 'Connected'
-                                                    : 'Not connected'}
-                                            </Chip>
-                                        </div>
-                                        {connection.auth === 'oauth' ? (
-                                            <Button
-                                                isDisabled={saving}
-                                                isPending={startingOAuthId === connection.id}
-                                                onPress={() => onStartOAuth(connection)}
-                                                variant={
-                                                    connection.connected ? 'secondary' : 'primary'
-                                                }
-                                            >
-                                                {connection.connected ? 'Reconnect' : 'Connect'}
-                                            </Button>
-                                        ) : null}
-                                        {connection.auth === 'headers' ? (
-                                            <Button
-                                                isDisabled={saving}
-                                                onPress={() => setEditingHeaders(true)}
-                                                variant={
-                                                    connection.connected ? 'secondary' : 'primary'
-                                                }
-                                            >
-                                                {connection.connected
-                                                    ? 'Replace Credentials'
-                                                    : 'Connect'}
-                                            </Button>
-                                        ) : null}
-                                    </Surface>
-
-                                    <section className="grid gap-2">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h3 className="font-medium text-sm">
-                                                    Available Tools
-                                                </h3>
-                                                <p className="text-muted text-sm">
-                                                    Enabled Agents receive every tool listed here.
-                                                </p>
-                                            </div>
-                                            {toolsPending ? <Spinner size="sm" /> : null}
-                                        </div>
-                                        <Surface
-                                            className="overflow-hidden rounded-2xl"
+                                    <ItemCardGroup variant="transparent">
+                                        <ItemCardGroup.Header className="flex items-center justify-between gap-3">
+                                            <ItemCardGroup.Title>
+                                                Tools
+                                                {tools && tools.length > 0 ? (
+                                                    <span className="ms-2 text-muted tabular-nums">
+                                                        {tools.length}
+                                                    </span>
+                                                ) : null}
+                                            </ItemCardGroup.Title>
+                                            {toolsPending ? (
+                                                <Spinner size="sm" />
+                                            ) : (
+                                                <Tooltip delay={0}>
+                                                    <Button
+                                                        aria-label="Refresh tools"
+                                                        isDisabled={!connection.connected}
+                                                        isIconOnly
+                                                        onPress={() => {
+                                                            void onRefresh(connection).catch(
+                                                                () => undefined
+                                                            );
+                                                        }}
+                                                        size="sm"
+                                                        variant="ghost"
+                                                    >
+                                                        <Icon
+                                                            icon={ArrowReloadHorizontalIcon}
+                                                            size={16}
+                                                        />
+                                                    </Button>
+                                                    <Tooltip.Content>Refresh tools</Tooltip.Content>
+                                                </Tooltip>
+                                            )}
+                                        </ItemCardGroup.Header>
+                                        {/* Bounded: a server with thirty tools
+                                            would otherwise bury Agent Access and
+                                            Manage under a wall of rows. */}
+                                        <ItemCardGroup
+                                            className="max-h-72 overflow-y-auto"
                                             variant="secondary"
                                         >
                                             <ToolList
@@ -153,19 +148,15 @@ export function McpConnectionDetailDialog({
                                                 pending={toolsPending}
                                                 tools={tools}
                                             />
-                                        </Surface>
-                                    </section>
+                                        </ItemCardGroup>
+                                    </ItemCardGroup>
 
-                                    <section className="grid gap-2">
-                                        <div>
-                                            <h3 className="font-medium text-sm">Agent Access</h3>
-                                            <p className="text-muted text-sm">
-                                                Access is enabled per MCP server from each Agent
-                                                profile.
-                                            </p>
-                                        </div>
-                                        <Surface
-                                            className="overflow-hidden rounded-2xl"
+                                    <ItemCardGroup variant="transparent">
+                                        <ItemCardGroup.Header>
+                                            <ItemCardGroup.Title>Agent Access</ItemCardGroup.Title>
+                                        </ItemCardGroup.Header>
+                                        <ItemCardGroup
+                                            className="max-h-72 overflow-y-auto"
                                             variant="secondary"
                                         >
                                             {connection.affectedAgents.length > 0 ? (
@@ -174,9 +165,13 @@ export function McpConnectionDetailDialog({
                                                         {index > 0 ? (
                                                             <Separator variant="secondary" />
                                                         ) : null}
-                                                        <div className="px-4 py-3 text-sm">
-                                                            {agent.name}
-                                                        </div>
+                                                        <ItemCard>
+                                                            <ItemCard.Content>
+                                                                <ItemCard.Title>
+                                                                    {agent.name}
+                                                                </ItemCard.Title>
+                                                            </ItemCard.Content>
+                                                        </ItemCard>
                                                     </Fragment>
                                                 ))
                                             ) : (
@@ -184,14 +179,91 @@ export function McpConnectionDetailDialog({
                                                     No agents have access yet.
                                                 </p>
                                             )}
-                                        </Surface>
-                                    </section>
+                                        </ItemCardGroup>
+                                    </ItemCardGroup>
+
+                                    {/* Named rows, the way Computer Management
+                                        does it. An overflow menu in a dialog
+                                        corner hides these behind a guess. */}
+                                    <ItemCardGroup variant="transparent">
+                                        <ItemCardGroup.Header>
+                                            <ItemCardGroup.Title>Manage</ItemCardGroup.Title>
+                                        </ItemCardGroup.Header>
+                                        <ItemCardGroup
+                                            className="overflow-hidden"
+                                            variant="secondary"
+                                        >
+                                            {connection.preset ? (
+                                                <ManageRow title="Add another account">
+                                                    <Button
+                                                        isDisabled={saving}
+                                                        onPress={() => onAddAccount(connection)}
+                                                        size="sm"
+                                                        variant="outline"
+                                                    >
+                                                        Add
+                                                    </Button>
+                                                </ManageRow>
+                                            ) : null}
+                                            {/* Nothing to sign out of when the
+                                                server takes no credentials. */}
+                                            {connection.connected && connection.auth !== 'none' ? (
+                                                <ManageRow
+                                                    description="Signs out and revokes every Agent's access. The connection stays, so you can reconnect."
+                                                    title="Disconnect account"
+                                                >
+                                                    <Button
+                                                        onPress={() =>
+                                                            setDestructiveAction('disconnect')
+                                                        }
+                                                        size="sm"
+                                                        variant="danger-soft"
+                                                    >
+                                                        Disconnect
+                                                    </Button>
+                                                </ManageRow>
+                                            ) : null}
+                                            {connection.builtIn ? null : (
+                                                <ManageRow
+                                                    description="Removes this connection and every Agent's access to it."
+                                                    title="Delete connection"
+                                                >
+                                                    <Button
+                                                        onPress={() =>
+                                                            setDestructiveAction('delete')
+                                                        }
+                                                        size="sm"
+                                                        variant="danger-soft"
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                </ManageRow>
+                                            )}
+                                        </ItemCardGroup>
+                                    </ItemCardGroup>
                                 </div>
                             </Modal.Body>
                             <Modal.Footer>
                                 <Button slot="close" variant="secondary">
                                     Done
                                 </Button>
+                                {connection.auth === 'oauth' ? (
+                                    <Button
+                                        isDisabled={saving}
+                                        isPending={startingOAuthId === connection.id}
+                                        onPress={() => onStartOAuth(connection)}
+                                    >
+                                        {connection.connected ? 'Reconnect' : 'Connect'}
+                                    </Button>
+                                ) : null}
+                                {connection.auth === 'headers' ? (
+                                    <Button
+                                        isDisabled={saving}
+                                        onPress={() => setEditingHeaders(true)}
+                                    >
+                                        {connection.connected ? 'Replace credentials' : 'Connect'}
+                                    </Button>
+                                ) : null}
                             </Modal.Footer>
                         </Modal.Dialog>
                     </Modal.Container>
@@ -272,10 +344,56 @@ function ToolList({
     return tools.map((tool, index) => (
         <Fragment key={tool.name}>
             {index > 0 ? <Separator variant="secondary" /> : null}
-            <div className="px-4 py-3">
-                <p className="font-medium text-sm">{tool.title ?? tool.name}</p>
-                <p className="truncate text-muted text-sm">{tool.description}</p>
-            </div>
+            <ItemCard>
+                <ItemCard.Content>
+                    <ItemCard.Title>{tool.title ?? tool.name}</ItemCard.Title>
+                    {tool.description ? (
+                        <ItemCard.Description>{tool.description}</ItemCard.Description>
+                    ) : null}
+                </ItemCard.Content>
+            </ItemCard>
         </Fragment>
     ));
+}
+
+function ConnectionMark({ connection }: { connection: McpConnection }) {
+    const icon = connectionIcon(connection, useResolvedThemeOptional());
+
+    if (icon.kind === 'image') {
+        return (
+            <img
+                alt=""
+                className="size-full rounded-[inherit] object-cover"
+                height={32}
+                src={icon.src}
+                width={32}
+            />
+        );
+    }
+    return <span style={{ color: `var(${icon.colorVar})` }}>{icon.letter}</span>;
+}
+
+function ManageRow({
+    children,
+    description,
+    title,
+}: {
+    children: ReactNode;
+    description?: string;
+    title: string;
+}) {
+    return (
+        <ItemCard>
+            <ItemCard.Content>
+                <ItemCard.Title>{title}</ItemCard.Title>
+                {/* Only where the title alone leaves the outcome ambiguous. */}
+                {description ? (
+                    <ItemCard.Description className="whitespace-normal">
+                        {description}
+                    </ItemCard.Description>
+                ) : null}
+            </ItemCard.Content>
+            <ItemCard.Action>{children}</ItemCard.Action>
+        </ItemCard>
+    );
 }

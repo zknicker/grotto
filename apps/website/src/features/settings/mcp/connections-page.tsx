@@ -1,10 +1,10 @@
-import { Button } from '@heroui/react';
 import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { RequireOperator } from '../../servers/require-operator.tsx';
 import { useServerContext } from '../../servers/server-context.ts';
 import { serverRoute } from '../../servers/server-routes.ts';
-import { SettingsPage, SettingsPageHeader } from '../layout/settings-page.tsx';
+import { PageColumn } from '../../shell/page-column.tsx';
+import { SettingsPageHeader } from '../layout/settings-page.tsx';
 import { ConnectionAddDrawer } from './connection-add-drawer.tsx';
 import { ConnectionDetail } from './connection-detail.tsx';
 import { ConnectionListSection } from './connection-list-section.tsx';
@@ -21,7 +21,7 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
             description="MCP connections are managed by Server operators."
             role={server.role}
         >
-            <SettingsPage>
+            <PageColumn>
                 {embedded ? null : (
                     <Link
                         className="text-muted text-sm hover:text-foreground"
@@ -31,12 +31,15 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
                     </Link>
                 )}
                 <SettingsPageHeader
-                    action={<Button onPress={() => setIsAddOpen(true)}>Add MCP Server</Button>}
                     description="Connect remote tools to this Server, then enable each connection for the Agents that need it."
                     title="Connections"
                 />
                 <ConnectionPresetSection serverId={server.id} />
-                <ConnectionListSection onSelect={setSelectedId} serverId={server.id} />
+                <ConnectionListSection
+                    onAdd={() => setIsAddOpen(true)}
+                    onSelect={setSelectedId}
+                    serverId={server.id}
+                />
                 {selectedId ? (
                     <ConnectionDetail
                         connectionId={selectedId}
@@ -49,7 +52,7 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
                     open={isAddOpen}
                     serverId={server.id}
                 />
-            </SettingsPage>
+            </PageColumn>
         </RequireOperator>
     );
 }

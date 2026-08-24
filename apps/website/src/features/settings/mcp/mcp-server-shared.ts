@@ -1,3 +1,4 @@
+import type { McpIcon } from '@tavern/api';
 export interface McpConnection {
     accountLabel: string | null;
     affectedAgents: Array<{ id: string; name: string }>;
@@ -5,9 +6,11 @@ export interface McpConnection {
     builtIn: boolean;
     connected: boolean;
     headerNames: string[];
+    icon: McpIcon | null;
     id: string;
     name: string;
     preset: 'google-calendar' | 'merchbase' | null;
+    summary: string | null;
     url: string;
 }
 export interface McpConnectionTool {
@@ -24,7 +27,6 @@ export interface McpConnectionSaveInput {
     oauthScopes?: string[];
     url: string;
 }
-export type McpConnectionFilter = 'all' | 'connected' | 'not-connected';
 
 export interface SecretDraftEntry {
     key: string;
@@ -44,18 +46,6 @@ export interface McpConnectionDraft {
 
 export function connectionSummary(connection: McpConnection): string {
     return connection.url;
-}
-
-export function visibleConnections(
-    connections: McpConnection[],
-    filter: McpConnectionFilter
-): McpConnection[] {
-    if (filter === 'all') {
-        return connections;
-    }
-    return connections.filter((connection) =>
-        filter === 'connected' ? connection.connected : !connection.connected
-    );
 }
 
 export function createConnectionDraft(): McpConnectionDraft {

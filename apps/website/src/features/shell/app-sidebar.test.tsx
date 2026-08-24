@@ -74,19 +74,22 @@ test('renders each DM from its own Agent availability', () => {
 test('paints a channel row with its chosen color', () => {
     const markup = renderToStaticMarkup(
         <MemoryRouter>
-            <Sidebar.Provider>
-                <ShellSidebar activePage="server">
-                    <ShellSidebarPage ariaLabel="Server" value="server">
-                        <ChatNavigation
-                            agents={[]}
-                            chats={[channel()]}
-                            onCreateChannel={() => undefined}
-                            selectedChatId={undefined}
-                            slug="tavern"
-                        />
-                    </ShellSidebarPage>
-                </ShellSidebar>
-            </Sidebar.Provider>
+            <CommandMenuProvider>
+                <Sidebar.Provider>
+                    <ShellSidebar activePage="server">
+                        <ShellSidebarPage ariaLabel="Server" value="server">
+                            <ChatNavigation
+                                agents={[]}
+                                chats={[channel()]}
+                                onCreateChannel={() => undefined}
+                                onPreloadSection={() => undefined}
+                                selectedChatId={undefined}
+                                slug="tavern"
+                            />
+                        </ShellSidebarPage>
+                    </ShellSidebar>
+                </Sidebar.Provider>
+            </CommandMenuProvider>
         </MemoryRouter>
     );
 

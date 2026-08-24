@@ -7,10 +7,14 @@ export function ServerSettingsPage() {
     const context = useOutletContext<ServerContextValue>();
     useWindowTitle('Settings');
     const location = useLocation();
-    const isSkillsRoute = location.pathname.endsWith('/settings/skills');
+    // Skills is the full-bleed library browser; Computers manages its own
+    // split layout and scrolling.
+    const isFullContentRoute =
+        location.pathname.endsWith('/settings/skills') ||
+        location.pathname.endsWith('/settings/computers');
 
     return (
-        <SettingsContentFrame isFullContentRoute={isSkillsRoute}>
+        <SettingsContentFrame isFullContentRoute={isFullContentRoute}>
             <Outlet context={context} />
         </SettingsContentFrame>
     );

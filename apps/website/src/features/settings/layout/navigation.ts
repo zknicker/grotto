@@ -87,4 +87,5 @@ export const settingsNavSections = [
 ] as const;
 
 export type SettingsNavItem = (typeof settingsNavItems)[number];
-export type SettingsRouteTab = SettingsNavItem['id'];
+/** Static section ids plus the dynamic Computers section (rows come from the roster). */
+export type SettingsRouteTab = SettingsNavItem['id'] | 'computers';

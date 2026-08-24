@@ -23,8 +23,9 @@ export function PageColumn({
     return (
         <div
             className={cn(
-                // px-6 matches the shell band's gutter so titles and content share
-                // one left edge; pt-8 gives the page header room to breathe.
+                // px-6 is the content reading gutter — deeper than the shell
+                // band's px-3 chrome gutter; pt-8 gives the page header room
+                // to breathe.
                 'mx-auto flex w-full flex-col gap-8 px-6 pt-8 pb-16',
                 pageColumnWidthClassName[width],
                 className

@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
+import { ComputerPage } from '../../features/computers/computer-page.tsx';
+import { RequireOperator } from '../../features/servers/require-operator.tsx';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import { serverComputersRoute } from '../../features/servers/server-routes.ts';
 import { AppearanceSettings } from '../../features/settings/appearance/page.tsx';
@@ -20,6 +22,14 @@ interface SectionContext {
 const sections: Record<string, (context: SectionContext) => ReactNode> = {
     appearance: () => <AppearanceSettings />,
     browser: ({ server }) => <BrowserSettingsPage serverId={server.id} />,
+    computers: ({ server }) => (
+        <RequireOperator
+            description="Computers are attached and removed by Server operators."
+            role={server.role}
+        >
+            <ComputerPage serverId={server.id} serverSlug={server.slug} />
+        </RequireOperator>
+    ),
     connections: () => <ConnectionsPage embedded />,
     models: ({ server }) => <ModelsSettings serverId={server.id} />,
     profile: ({ server }) => <ProfileSettings serverId={server.id} />,

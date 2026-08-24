@@ -122,11 +122,33 @@ export const chatSendInputSchema = z
 
 export type ChatSendInput = z.infer<typeof chatSendInputSchema>;
 
+/**
+ * Channel appearance. `icon` names a curated hugeicons export (for example
+ * `RocketIcon`); `color` is a preset id (for example `violet`). Both are
+ * channel-only and null means the default hash glyph / muted box.
+ */
+export const channelIconSchema = z
+    .string()
+    .trim()
+    .regex(/^[A-Z][A-Za-z0-9]{0,63}Icon$/u);
+
+export const channelColorSchema = z
+    .string()
+    .trim()
+    .regex(/^[a-z][a-z0-9-]{0,31}$/u);
+
+const channelAppearanceInputSchema = {
+    color: channelColorSchema.nullable().optional(),
+    icon: channelIconSchema.nullable().optional(),
+};
+
 export const chatSchema = z
     .object({
         archivedAt: timestampSchema.nullable(),
         archivedByUserId: idSchema.nullable(),
+        color: channelColorSchema.nullable(),
         createdAt: timestampSchema,
+        icon: channelIconSchema.nullable(),
         id: idSchema,
         isAll: z.boolean(),
         kind: z.enum(['channel', 'dm']),
@@ -150,6 +172,7 @@ export const chatGetInputSchema = z.object({ chatId: idSchema, serverId: idSchem
 
 export const channelCreateInputSchema = z
     .object({
+        ...channelAppearanceInputSchema,
         agentIds: z.array(idSchema).min(1),
         name: z
             .string()
@@ -174,6 +197,7 @@ export type ChannelCreateInput = z.infer<typeof channelCreateInputSchema>;
 
 export const channelUpdateInputSchema = z
     .object({
+        ...channelAppearanceInputSchema,
         agentIds: z.array(idSchema).min(1),
         chatId: idSchema,
         name: z

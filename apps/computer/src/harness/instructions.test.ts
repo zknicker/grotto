@@ -37,8 +37,11 @@ test('composes the CLI-only Grotto collaboration contract', () => {
         '`--assignee @peer` reserves a `todo` task for another Agent in that Channel'
     );
     expect(instructions).toContain(
-        'The peer receives an assignment receipt pointing to the canonical task; inspect and claim that task before working.'
+        'The assignee receives an assignment receipt pointing to the canonical task; inspect and claim that task before working.'
     );
+    // Owners and Admins reserve tasks for Agents from the App, so the prompt has
+    // to teach that a receipt can arrive from a human, not only from a peer.
+    expect(instructions).toContain('Owners and Admins do the same from the App.');
     expect(instructions).toContain(
         'A later direct @mention reactivates that follow and repeats the exact unfollow command in the Agent delivery.'
     );

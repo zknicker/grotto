@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { randomBytes } from 'node:crypto';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
@@ -372,7 +373,7 @@ test('restricts reservations to admins and preserves status when an owner unassi
 
     await expect(
         peer.client.trpc.task.assign.mutate({
-            assigneeUserId: peer.userId,
+            assignee: { kind: 'human', userId: peer.userId },
             expectedVersion: created.task.version,
             messageId: created.task.messageId,
             serverId: server.id,
@@ -380,12 +381,13 @@ test('restricts reservations to admins and preserves status when an owner unassi
     ).rejects.toThrow(/admin|owner/i);
 
     const assigned = await owner.trpc.task.assign.mutate({
-        assigneeUserId: peer.userId,
+        assignee: { kind: 'human', userId: peer.userId },
         expectedVersion: created.task.version,
         messageId: created.task.messageId,
         serverId: server.id,
     });
     expect(assigned.task).toMatchObject({
+        assigneeAgentId: null,
         assigneeUserId: peer.userId,
         claimedAt: null,
         status: 'todo',
@@ -405,12 +407,13 @@ test('restricts reservations to admins and preserves status when an owner unassi
     });
 
     const unassigned = await owner.trpc.task.assign.mutate({
-        assigneeUserId: null,
+        assignee: null,
         expectedVersion: claimed.task.version,
         messageId: assigned.task.messageId,
         serverId: server.id,
     });
     expect(unassigned.task).toMatchObject({
+        assigneeAgentId: null,
         assigneeUserId: null,
         claimedAt: null,
         status: 'in_progress',
@@ -436,13 +439,13 @@ test('serializes competing reservations at one expected task version', async () 
 
     const reservations = await Promise.allSettled([
         owner.trpc.task.assign.mutate({
-            assigneeUserId: firstPeer.userId,
+            assignee: { kind: 'human', userId: firstPeer.userId },
             expectedVersion: created.task.version,
             messageId: created.task.messageId,
             serverId: server.id,
         }),
         owner.trpc.task.assign.mutate({
-            assigneeUserId: secondPeer.userId,
+            assignee: { kind: 'human', userId: secondPeer.userId },
             expectedVersion: created.task.version,
             messageId: created.task.messageId,
             serverId: server.id,
@@ -478,7 +481,7 @@ test('rejects reservations for revoked members or members without parent Chat ac
     `;
     await expect(
         owner.trpc.task.assign.mutate({
-            assigneeUserId: peer.userId,
+            assignee: { kind: 'human', userId: peer.userId },
             expectedVersion: created.task.version,
             messageId: created.task.messageId,
             serverId: server.id,
@@ -496,7 +499,7 @@ test('rejects reservations for revoked members or members without parent Chat ac
     `;
     await expect(
         owner.trpc.task.assign.mutate({
-            assigneeUserId: peer.userId,
+            assignee: { kind: 'human', userId: peer.userId },
             expectedVersion: created.task.version,
             messageId: created.task.messageId,
             serverId: server.id,
@@ -526,8 +529,8 @@ test('lists only admin-visible human assignees with parent Chat access', async (
         })
     ).resolves.toEqual(
         expect.arrayContaining([
-            expect.objectContaining({ role: 'owner' }),
-            { role: 'member', userId: peer.userId },
+            expect.objectContaining({ kind: 'human', role: 'owner' }),
+            { kind: 'human', role: 'member', userId: peer.userId },
         ])
     );
     await expect(
@@ -619,6 +622,7 @@ test('lets the current owner unclaim without changing task status', async () => 
     });
 
     expect(released.task).toMatchObject({
+        assigneeAgentId: null,
         assigneeUserId: null,
         claimedAt: null,
         status: 'in_progress',
@@ -866,4 +870,138 @@ async function addTaskPeer(serverId: string, chatId: string) {
     `;
 
     return { client, userId };
+}
+
+test('assigns a task to an Agent, wakes it, and keeps the receipt out of the App', async () => {
+    const server = await owner.trpc.server.create.mutate({
+        displayName: 'Task Agent Assignment',
+        slug: 'task-agent-assignment',
+    });
+    const chatId = server.channels[0].id;
+    const agent = await addTaskAgent(server.id, chatId);
+    const created = await owner.trpc.task.create.mutate({
+        chatId,
+        content: 'Hand this to an Agent',
+        nonce: 'task-agent-assignment-message',
+        serverId: server.id,
+    });
+
+    const assigned = await owner.trpc.task.assign.mutate({
+        assignee: { agentId: agent.agentId, kind: 'agent' },
+        expectedVersion: created.task.version,
+        messageId: created.task.messageId,
+        serverId: server.id,
+    });
+    // Assignment reserves: it never carries a claim and never moves status.
+    expect(assigned.task).toMatchObject({
+        assigneeAgentId: agent.agentId,
+        assigneeUserId: null,
+        claimedAt: null,
+        status: 'todo',
+    });
+
+    // The Agent is subscribed to the task thread, or it would wake, claim, and
+    // then silently miss every reply.
+    const follows = (await harness.sql`
+        select followed from agent_thread_follows
+        where server_id = ${server.id} and agent_id = ${agent.agentId}
+    `) as { followed: boolean }[];
+    expect([...follows].map((row) => row.followed)).toEqual([true]);
+
+    // A private receipt wakes the assignee. It sits alongside the canonical task
+    // message the Agent already received as a Channel participant.
+    const deliveries = (await harness.sql`
+        select mentioned, source from agent_pending_work
+        where server_id = ${server.id} and agent_id = ${agent.agentId}
+    `) as { mentioned: boolean; source: string }[];
+    expect([...deliveries].filter((row) => row.source === 'system' && row.mentioned)).toHaveLength(
+        1
+    );
+
+    // ...and never appears in the human transcript.
+    const history = await owner.trpc.chat.messages.query({ chatId, serverId: server.id });
+    expect(history.messages.some((message) => message.content.includes('📌 Assigned'))).toBe(false);
+});
+
+test('rejects assigning an Agent that does not belong to the parent Chat', async () => {
+    const server = await owner.trpc.server.create.mutate({
+        displayName: 'Task Agent Outsider',
+        slug: 'task-agent-outsider',
+    });
+    const chatId = server.channels[0].id;
+    const outsider = await addTaskAgent(server.id, null);
+    const created = await owner.trpc.task.create.mutate({
+        chatId,
+        content: 'Outsiders cannot own this',
+        nonce: 'task-agent-outsider-message',
+        serverId: server.id,
+    });
+
+    await expect(
+        owner.trpc.task.assign.mutate({
+            assignee: { agentId: outsider.agentId, kind: 'agent' },
+            expectedVersion: created.task.version,
+            messageId: created.task.messageId,
+            serverId: server.id,
+        })
+    ).rejects.toThrow(/parent Chat/iu);
+});
+
+test('rejects assigning a retired Agent', async () => {
+    const server = await owner.trpc.server.create.mutate({
+        displayName: 'Task Agent Retired',
+        slug: 'task-agent-retired',
+    });
+    const chatId = server.channels[0].id;
+    const agent = await addTaskAgent(server.id, chatId);
+    await harness.sql`
+        update agents set retired_at = now()
+        where server_id = ${server.id} and id = ${agent.agentId}
+    `;
+    const created = await owner.trpc.task.create.mutate({
+        chatId,
+        content: 'A retired Agent will never wake',
+        nonce: 'task-agent-retired-message',
+        serverId: server.id,
+    });
+
+    await expect(
+        owner.trpc.task.assign.mutate({
+            assignee: { agentId: agent.agentId, kind: 'agent' },
+            expectedVersion: created.task.version,
+            messageId: created.task.messageId,
+            serverId: server.id,
+        })
+    ).rejects.toThrow(/active Agent/iu);
+});
+
+async function addTaskAgent(serverId: string, chatId: null | string) {
+    const computerId = `cmp_${randomBytes(12).toString('base64url')}`;
+    const agentId = `agt_${randomBytes(12).toString('base64url')}`;
+    const handle = `ada-${crypto.randomUUID().slice(0, 8)}`;
+    const [{ id: attachedByUserId }] = (await harness.sql`
+        select user_id as id from server_memberships
+        where server_id = ${serverId} and role = 'owner' limit 1
+    `) as { id: string }[];
+    await harness.sql`
+        insert into computers (id, server_id, attached_by_user_id, credential_hash)
+        values (${computerId}, ${serverId}, ${attachedByUserId}, ${randomBytes(32).toString('hex')})
+    `;
+    await harness.sql`
+        insert into agents (
+            id, server_id, computer_id, handle, display_name, role,
+            desired_model_id, desired_runtime_id, home_timezone
+        )
+        values (
+            ${agentId}, ${serverId}, ${computerId}, ${handle}, 'Ada', 'member',
+            'fake-model', 'fake', 'UTC'
+        )
+    `;
+    if (chatId) {
+        await harness.sql`
+            insert into channel_agent_participants (server_id, chat_id, agent_id)
+            values (${serverId}, ${chatId}, ${agentId})
+        `;
+    }
+    return { agentId, handle };
 }

@@ -1,8 +1,14 @@
 import type { TaskAssignee } from '@tavern/api';
 import { and, asc, eq, isNull, or } from 'drizzle-orm';
+import { avatarUrlFor } from '../avatars/avatar-url.ts';
 import { requireChatAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { channelParticipantsTable, serverMembershipsTable } from '../postgres/schema.ts';
+import {
+    agentsTable,
+    channelAgentParticipantsTable,
+    channelParticipantsTable,
+    serverMembershipsTable,
+} from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { TaskAdminRequiredError } from './assign-task.ts';
@@ -77,8 +83,67 @@ export async function listTaskAssignees(
                   )
                   .orderBy(asc(serverMembershipsTable.userId));
 
-    return memberships.map((candidate) => ({
-        role: candidate.role as TaskAssignee['role'],
-        userId: candidate.userId,
-    }));
+    // Agents are first-class assignees: a task is normally handed to one and
+    // completed by one, so the picker lists people and Agents together.
+    const agents = await listAssignableAgents(db, {
+        chatId: task.chatId,
+        dmAgentId: chat.dmAgentId,
+        kind: chat.kind,
+        serverId: input.serverId,
+    });
+
+    return [
+        ...memberships.map(
+            (candidate): TaskAssignee => ({
+                kind: 'human',
+                role: candidate.role as Extract<TaskAssignee, { kind: 'human' }>['role'],
+                userId: candidate.userId,
+            })
+        ),
+        ...agents,
+    ];
+}
+
+async function listAssignableAgents(
+    db: GrottoDatabase,
+    input: { chatId: string; dmAgentId: null | string; kind: string; serverId: string }
+): Promise<TaskAssignee[]> {
+    const selection = {
+        agentId: agentsTable.id,
+        avatarId: agentsTable.avatarId,
+        displayName: agentsTable.displayName,
+        handle: agentsTable.handle,
+    };
+    // A retired Agent will never wake, so it must never be offered.
+    const active = and(eq(agentsTable.serverId, input.serverId), isNull(agentsTable.retiredAt));
+    const rows =
+        input.kind === 'dm'
+            ? input.dmAgentId
+                ? await db
+                      .select(selection)
+                      .from(agentsTable)
+                      .where(and(active, eq(agentsTable.id, input.dmAgentId)))
+                : []
+            : await db
+                  .select(selection)
+                  .from(agentsTable)
+                  .innerJoin(
+                      channelAgentParticipantsTable,
+                      and(
+                          eq(channelAgentParticipantsTable.serverId, agentsTable.serverId),
+                          eq(channelAgentParticipantsTable.agentId, agentsTable.id)
+                      )
+                  )
+                  .where(and(active, eq(channelAgentParticipantsTable.chatId, input.chatId)))
+                  .orderBy(asc(agentsTable.displayName));
+
+    return rows.map(
+        (row): TaskAssignee => ({
+            agentId: row.agentId,
+            avatarUrl: avatarUrlFor(row.avatarId),
+            displayName: row.displayName,
+            handle: row.handle,
+            kind: 'agent',
+        })
+    );
 }

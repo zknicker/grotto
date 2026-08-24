@@ -35,12 +35,35 @@ export const taskAssigneesInputSchema = z
     })
     .strict();
 
-export const taskAssigneeSchema = z
-    .object({
-        role: z.enum(['admin', 'member', 'owner']),
-        userId: idSchema,
-    })
-    .strict();
+/**
+ * Who a task may be handed to. Agents and humans are both first-class
+ * assignees; the tagged shape keeps "both set" unrepresentable rather than
+ * validated after the fact.
+ */
+export const taskAssigneeSchema = z.discriminatedUnion('kind', [
+    z
+        .object({
+            agentId: idSchema,
+            avatarUrl: z.string().nullable(),
+            displayName: z.string(),
+            handle: z.string(),
+            kind: z.literal('agent'),
+        })
+        .strict(),
+    z
+        .object({
+            kind: z.literal('human'),
+            role: z.enum(['admin', 'member', 'owner']),
+            userId: idSchema,
+        })
+        .strict(),
+]);
+
+/** The assignee a mutation names, without the presentation fields. */
+export const taskAssigneeRefSchema = z.discriminatedUnion('kind', [
+    z.object({ agentId: idSchema, kind: z.literal('agent') }).strict(),
+    z.object({ kind: z.literal('human'), userId: idSchema }).strict(),
+]);
 
 export const taskAssigneesSchema = z.array(taskAssigneeSchema);
 
@@ -77,7 +100,7 @@ export const taskMutationInputSchema = z
     .strict();
 
 export const taskAssignInputSchema = taskMutationInputSchema.extend({
-    assigneeUserId: idSchema.nullable(),
+    assignee: taskAssigneeRefSchema.nullable(),
 });
 
 export const taskUpdateInputSchema = taskMutationInputSchema.extend({

@@ -1,11 +1,20 @@
-import { and, eq, isNull, sql } from 'drizzle-orm';
-import { findChatAccess, requireChatWriteAccess } from '../chats/chat-access.ts';
+import type { MessageTask, ServerDurableEvent } from '@tavern/api';
+import { and, eq, sql } from 'drizzle-orm';
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { requireChatWriteAccess } from '../chats/chat-access.ts';
+import { insertSystemMessage } from '../chats/insert-system-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { messageTasksTable, serverMembershipsTable } from '../postgres/schema.ts';
+import {
+    agentThreadFollowsTable,
+    chatMessagesTable,
+    messageTasksTable,
+} from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { TaskConflictError, type TaskMutationResult, TaskNotFoundError } from './claim-task.ts';
+import { TaskConflictError, TaskNotFoundError } from './claim-task.ts';
+import { resolveTaskAssignee } from './resolve-task-assignee.ts';
+import { taskAssignmentReceiptContent } from './task-assignment-receipt.ts';
 import { insertTaskEvent } from './task-events.ts';
 import { findMessageTask } from './task-shape.ts';
 
@@ -16,23 +25,35 @@ export class TaskAdminRequiredError extends Error {
     }
 }
 
-export class InvalidTaskAssigneeError extends Error {
+export class TaskClosedAssignError extends Error {
     constructor() {
-        super('The assignee must be an active Server member with access to the parent Chat.');
-        this.name = 'InvalidTaskAssigneeError';
+        super('A finished task cannot be assigned. Reopen it first.');
+        this.name = 'TaskClosedAssignError';
     }
+}
+
+/**
+ * Assignment emits its own receipt message alongside the task update, so it
+ * carries a list of events rather than the single event the other task
+ * mutations return, plus the Agents to wake.
+ */
+export interface TaskAssignResult {
+    events: ServerDurableEvent[];
+    task: MessageTask;
+    wakes: string[];
 }
 
 export async function assignTask(
     db: GrottoDatabase,
     member: GrottoUser | null,
+    agentDelivery: AgentDelivery,
     input: {
-        assigneeUserId: string | null;
+        assignee: { agentId: string; kind: 'agent' } | { kind: 'human'; userId: string } | null;
         expectedVersion: number;
         messageId: string;
         serverId: string;
     }
-): Promise<TaskMutationResult> {
+): Promise<TaskAssignResult> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         if (!member) {
@@ -43,9 +64,8 @@ export async function assignTask(
             throw new TaskNotFoundError();
         }
 
-        const membershipIds = [
-            ...new Set([member.id, input.assigneeUserId].filter(Boolean)),
-        ].sort();
+        const assigneeUserIdInput = input.assignee?.kind === 'human' ? input.assignee.userId : null;
+        const membershipIds = [...new Set([member.id, assigneeUserIdInput].filter(Boolean))].sort();
         for (const userId of membershipIds) {
             await tx.execute(sql`
                 select user_id from server_memberships
@@ -82,34 +102,22 @@ export async function assignTask(
         if (current.version !== input.expectedVersion) {
             throw new TaskConflictError('That task changed; refresh it before assigning.');
         }
-        if (input.assigneeUserId) {
-            const [active] = await tx
-                .select({ userId: serverMembershipsTable.userId })
-                .from(serverMembershipsTable)
-                .where(
-                    and(
-                        eq(serverMembershipsTable.serverId, input.serverId),
-                        eq(serverMembershipsTable.userId, input.assigneeUserId),
-                        isNull(serverMembershipsTable.revokedAt)
-                    )
-                )
-                .limit(1);
-            const access = active
-                ? await findChatAccess(tx, active.userId, {
-                      chatId: current.chatId,
-                      serverId: input.serverId,
-                  })
-                : null;
-            if (!(active && access)) {
-                throw new InvalidTaskAssigneeError();
-            }
+        if (current.status === 'done' || current.status === 'closed') {
+            throw new TaskClosedAssignError();
         }
+        const assignee = await resolveTaskAssignee(tx, {
+            assignee: input.assignee,
+            chatId: current.chatId,
+            serverId: input.serverId,
+        });
 
         await tx
             .update(messageTasksTable)
             .set({
-                assigneeAgentId: null,
-                assigneeUserId: input.assigneeUserId,
+                assigneeAgentId: assignee.agentId,
+                assigneeUserId: assignee.userId,
+                // Assignment reserves; it never carries a claim. The new owner
+                // takes the lock themselves before starting work.
                 claimedAt: null,
                 updatedAt: sql`now()`,
                 version: sql`${messageTasksTable.version} + 1`,
@@ -120,17 +128,82 @@ export async function assignTask(
                     eq(messageTasksTable.messageId, input.messageId)
                 )
             );
-        const event = await insertTaskEvent(tx, {
+        const events: ServerDurableEvent[] = [];
+        const taskEvent = await insertTaskEvent(tx, {
             chatId: current.chatId,
             messageId: current.messageId,
             serverId: input.serverId,
             type: 'task.updated',
         });
+        if (taskEvent) {
+            events.push(taskEvent);
+        }
         const task = await findMessageTask(tx, input.serverId, input.messageId);
         if (!task) {
             throw new TaskNotFoundError();
         }
 
-        return { event, task };
+        const wakes: string[] = [];
+        if (assignee.agentId) {
+            // Follow first: thread delivery is gated on this row, so without it
+            // the Agent would wake, claim, and then never see a single reply.
+            await tx
+                .insert(agentThreadFollowsTable)
+                .values({
+                    agentId: assignee.agentId,
+                    followed: true,
+                    serverId: input.serverId,
+                    threadChatId: task.threadChatId,
+                    updatedAt: new Date(),
+                })
+                .onConflictDoUpdate({
+                    set: { followed: true, updatedAt: new Date() },
+                    target: [
+                        agentThreadFollowsTable.serverId,
+                        agentThreadFollowsTable.agentId,
+                        agentThreadFollowsTable.threadChatId,
+                    ],
+                });
+
+            // The task's title is its canonical message's content.
+            const [anchor] = await tx
+                .select({ content: chatMessagesTable.content })
+                .from(chatMessagesTable)
+                .where(
+                    and(
+                        eq(chatMessagesTable.serverId, input.serverId),
+                        eq(chatMessagesTable.id, current.messageId)
+                    )
+                )
+                .limit(1);
+            const content = taskAssignmentReceiptContent({
+                assigneeHandle: assignee.handle ?? '',
+                number: task.number,
+                title: anchor?.content ?? '',
+            });
+            // The nonce carries the new version: a task can be reassigned many
+            // times, and a per-message nonce would collide on the second one.
+            const receiptEvent = await insertSystemMessage(tx, {
+                chatId: current.chatId,
+                content,
+                nonce: `task-assignment:${current.messageId}:${task.version}`,
+                serverId: input.serverId,
+                systemAuthor: 'task',
+            });
+            events.push(receiptEvent);
+            await agentDelivery.enqueue(tx, {
+                agentId: assignee.agentId,
+                chatId: current.chatId,
+                content,
+                dedupeKey: receiptEvent.messageId,
+                mentioned: true,
+                sequence: receiptEvent.sequence,
+                serverId: input.serverId,
+                source: 'system',
+            });
+            wakes.push(assignee.agentId);
+        }
+
+        return { events, task, wakes };
     });
 }

@@ -18,9 +18,10 @@ import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { ensureThread } from '../threads/ensure-thread.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { InvalidTaskAssigneeError, TaskAdminRequiredError } from './assign-task.ts';
+import { TaskAdminRequiredError } from './assign-task.ts';
 import { TaskNotFoundError } from './claim-task.ts';
 import { UntaskableMessageError } from './promote-task.ts';
+import { InvalidTaskAssigneeError } from './resolve-task-assignee.ts';
 import { insertTaskEvent } from './task-events.ts';
 import { findMessageTask } from './task-shape.ts';
 
@@ -118,7 +119,9 @@ export async function createTask(
                 )
                 .limit(1);
             if (!(active && (await findChatAccess(tx, input.assigneeUserId, input)))) {
-                throw new InvalidTaskAssigneeError();
+                throw new InvalidTaskAssigneeError(
+                    'The assignee must be an active Server member with access to the parent Chat.'
+                );
             }
         }
 

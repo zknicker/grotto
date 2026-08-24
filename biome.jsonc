@@ -1,5 +1,12 @@
 {
   "extends": ["ultracite/core", "ultracite/react"],
+  // HeroUI compound-composition rules. Structural only — a className that
+  // cancels a component's own spacing is not expressible in GritQL, so that
+  // half lives in apps/website/src/lib/heroui-composition-contract.test.ts.
+  "plugins": [
+    "./apps/website/lint/heroui-compound-children.grit",
+    "./apps/website/lint/heroui-dialog-form.grit"
+  ],
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "files": {
     "ignoreUnknown": true,
@@ -13,7 +20,8 @@
       "!apps/website/src-tauri/gen/schemas",
       "!apps/website/src/components/charts",
       "!assets/mac-icon.icon",
-      "!**/*.css"
+      "!**/*.css",
+      "!**/*.grit"
     ]
   },
   "formatter": {

@@ -49,7 +49,8 @@ extension GrottoStore {
                     id: chat.id,
                     title: chat.name ?? (chat.isAll ? "all" : "Channel"),
                     kind: .channel,
-                    unreadCount: chat.unreadCount
+                    unreadCount: chat.unreadCount,
+                    appearance: ChannelAppearance(icon: chat.icon, color: chat.color)
                 )
             case .dm:
                 guard let agentID = chat.peerAgentID,

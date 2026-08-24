@@ -120,7 +120,7 @@ public struct ChatScreenView: View {
     private var chatIdentity: some View {
         switch chat.kind {
         case .channel:
-            Image(systemName: "number").font(.title3)
+            ChannelIconBox(appearance: chat.appearance, size: 26)
         case .directMessage(let agent):
             AvatarView(name: agent.name, url: agent.avatarURL, presence: agent.presence, size: 30)
         }

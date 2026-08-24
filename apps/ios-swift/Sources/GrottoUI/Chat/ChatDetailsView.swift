@@ -178,12 +178,9 @@ public struct ChatDetailsView: View {
     private var chatIdentity: some View {
         switch chat.kind {
         case .channel:
-            Image(systemName: "number")
-                .font(.system(size: 30, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 72, height: 72)
-                .background(.quaternary, in: .circle)
-                .accessibilityHidden(true)
+            // The hero sits where a DM's circular Agent avatar sits, so it keeps
+            // the circle and only takes the channel's glyph and tint.
+            ChannelIconBox(appearance: chat.appearance, size: 72, glyphSize: 32, shape: .circle)
         case .directMessage(let agent):
             AvatarView(
                 name: agent.name,

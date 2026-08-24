@@ -52,12 +52,21 @@ public struct ChatPresentation: Identifiable, Hashable, Sendable {
     public let title: String
     public let kind: ChatKind
     public let unreadCount: Int
+    /// Channel-only. DMs keep their Agent avatar and ignore this.
+    public let appearance: ChannelAppearance
 
-    public init(id: String, title: String, kind: ChatKind, unreadCount: Int = 0) {
+    public init(
+        id: String,
+        title: String,
+        kind: ChatKind,
+        unreadCount: Int = 0,
+        appearance: ChannelAppearance = .default
+    ) {
         self.id = id
         self.title = title
         self.kind = kind
         self.unreadCount = unreadCount
+        self.appearance = appearance
     }
 }
 
@@ -253,8 +262,19 @@ public enum ChatFixtures {
 
     public static let chats = [
         ChatPresentation(id: "all", title: "all", kind: .channel),
-        ChatPresentation(id: "product", title: "product", kind: .channel, unreadCount: 3),
-        ChatPresentation(id: "onboarding", title: "onboarding-owner", kind: .channel),
+        ChatPresentation(
+            id: "product",
+            title: "product",
+            kind: .channel,
+            unreadCount: 3,
+            appearance: ChannelAppearance(icon: "RocketIcon", color: "violet")
+        ),
+        ChatPresentation(
+            id: "onboarding",
+            title: "onboarding-owner",
+            kind: .channel,
+            appearance: ChannelAppearance(icon: "CompassIcon", color: "amber")
+        ),
         ChatPresentation(id: "cove", title: "Cove", kind: .directMessage(agent: cove)),
     ]
 

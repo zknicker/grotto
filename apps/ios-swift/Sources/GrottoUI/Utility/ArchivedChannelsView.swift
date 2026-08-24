@@ -5,11 +5,18 @@ public struct ArchivedChannelPresentation: Identifiable, Hashable, Sendable {
     public let id: String
     public let name: String
     public let archivedAt: Date
+    public let appearance: ChannelAppearance
 
-    public init(id: String, name: String, archivedAt: Date) {
+    public init(
+        id: String,
+        name: String,
+        archivedAt: Date,
+        appearance: ChannelAppearance = .default
+    ) {
         self.id = id
         self.name = name
         self.archivedAt = archivedAt
+        self.appearance = appearance
     }
 }
 
@@ -162,10 +169,7 @@ private struct ArchivedChannelRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "number")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-                .frame(width: 28)
+            ChannelIconBox(appearance: channel.appearance, size: 28)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(channel.name)
@@ -204,7 +208,8 @@ private enum ArchivedChannelPreviewFixtures {
         ArchivedChannelPresentation(
             id: "archived-product",
             name: "product",
-            archivedAt: .now.addingTimeInterval(-86_400)
+            archivedAt: .now.addingTimeInterval(-86_400),
+            appearance: ChannelAppearance(icon: "RocketIcon", color: "violet")
         ),
         ArchivedChannelPresentation(
             id: "archived-release",

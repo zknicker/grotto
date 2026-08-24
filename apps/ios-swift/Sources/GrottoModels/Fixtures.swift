@@ -23,7 +23,9 @@ public enum GrottoPreviewFixtures {
 
     public static let chats: [ChatSummary] = decode(
         """
-        [{"archivedAt":null,"archivedByUserId":null,"createdAt":"2026-01-01T00:00:00Z","id":"chat_cove","isAll":false,"kind":"dm","lastActivityAt":"2026-01-01T00:01:00Z","lastMessageSequence":1,"name":null,"participantAgentIds":["agent_cove"],"participantUserIds":["user_preview"],"peerAgentDisplayName":"Cove","peerAgentId":"agent_cove","peerAgentRetired":false,"peerUserId":null,"serverId":"srv_preview","unreadCount":0}]
+        [{"archivedAt":null,"archivedByUserId":null,"color":null,"createdAt":"2026-01-01T00:00:00Z","icon":null,"id":"chat_all","isAll":true,"kind":"channel","lastActivityAt":"2026-01-01T00:01:00Z","lastMessageSequence":1,"name":"all","participantAgentIds":["agent_cove"],"participantUserIds":["user_preview"],"peerAgentDisplayName":null,"peerAgentId":null,"peerAgentRetired":false,"peerUserId":null,"serverId":"srv_preview","unreadCount":0},
+         {"archivedAt":null,"archivedByUserId":null,"color":"amber","createdAt":"2026-01-01T00:00:00Z","icon":"RocketIcon","id":"chat_launches","isAll":false,"kind":"channel","lastActivityAt":"2026-01-01T00:01:00Z","lastMessageSequence":1,"name":"launches","participantAgentIds":["agent_cove"],"participantUserIds":["user_preview"],"peerAgentDisplayName":null,"peerAgentId":null,"peerAgentRetired":false,"peerUserId":null,"serverId":"srv_preview","unreadCount":0},
+         {"archivedAt":null,"archivedByUserId":null,"color":null,"createdAt":"2026-01-01T00:00:00Z","icon":null,"id":"chat_cove","isAll":false,"kind":"dm","lastActivityAt":"2026-01-01T00:01:00Z","lastMessageSequence":1,"name":null,"participantAgentIds":["agent_cove"],"participantUserIds":["user_preview"],"peerAgentDisplayName":"Cove","peerAgentId":"agent_cove","peerAgentRetired":false,"peerUserId":null,"serverId":"srv_preview","unreadCount":0}]
         """
     )
 

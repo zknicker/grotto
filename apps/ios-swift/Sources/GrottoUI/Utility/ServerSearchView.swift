@@ -297,9 +297,7 @@ private struct ChatSearchResultRow: View {
         HStack(spacing: 12) {
             switch chat.kind {
             case .channel:
-                Image(systemName: "number")
-                    .font(.title3)
-                    .frame(width: 36, height: 36)
+                ChannelIconBox(appearance: chat.appearance, size: 36, glyphSize: 22)
             case .directMessage(let agent):
                 AvatarView(name: agent.name, url: agent.avatarURL, presence: agent.presence, size: 36)
             }

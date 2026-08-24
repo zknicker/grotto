@@ -201,8 +201,7 @@ public struct ChatSidebarView: View {
     private func chatIcon(_ chat: ChatPresentation) -> some View {
         switch chat.kind {
         case .channel:
-            Image(systemName: "number").font(.title3)
-                .frame(width: 26, height: 26)
+            ChannelIconBox(appearance: chat.appearance, size: 26)
         case .directMessage(let agent):
             AvatarView(name: agent.name, url: agent.avatarURL, presence: agent.presence, size: 28)
         }

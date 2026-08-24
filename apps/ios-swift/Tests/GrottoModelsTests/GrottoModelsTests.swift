@@ -247,8 +247,51 @@ final class GrottoModelsTests: XCTestCase {
         XCTAssertEqual(GrottoPreviewFixtures.server.slug, "grotto")
         XCTAssertEqual(GrottoPreviewFixtures.agents.first?.displayName, "Cove")
         XCTAssertEqual(GrottoPreviewFixtures.memberDirectory.viewerUserID, "user_preview")
-        XCTAssertEqual(GrottoPreviewFixtures.chats.first?.kind, .dm)
+        XCTAssertEqual(GrottoPreviewFixtures.chats.last?.kind, .dm)
+        XCTAssertEqual(GrottoPreviewFixtures.chats.first?.name, "all")
         XCTAssertEqual(GrottoPreviewFixtures.messages.first?.content, "Welcome to Grotto.")
+    }
+
+    func testDecodesChannelAppearance() throws {
+        let json = """
+        {
+          "archivedAt": null,
+          "archivedByUserId": null,
+          "color": "amber",
+          "createdAt": "2026-01-01T00:00:00Z",
+          "icon": "CompassIcon",
+          "id": "chat_launches",
+          "isAll": false,
+          "kind": "channel",
+          "lastActivityAt": null,
+          "lastMessageSequence": 4,
+          "name": "launches",
+          "participantAgentIds": [],
+          "participantUserIds": ["user_1"],
+          "peerAgentDisplayName": null,
+          "peerAgentId": null,
+          "peerAgentRetired": false,
+          "peerUserId": null,
+          "serverId": "server_1",
+          "unreadCount": 0
+        }
+        """
+
+        let channel = try GrottoJSON.decoder().decode(ChatSummary.self, from: Data(json.utf8))
+
+        XCTAssertEqual(channel.color, "amber")
+        XCTAssertEqual(channel.icon, "CompassIcon")
+
+        // A DM row, and any Server that predates the appearance columns, sends
+        // nulls. Decoding must keep the chat usable rather than fail the page.
+        let plain = try GrottoJSON.decoder().decode(
+            ChatSummary.self,
+            from: Data(json.replacingOccurrences(of: "\"amber\"", with: "null")
+                .replacingOccurrences(of: "\"CompassIcon\"", with: "null").utf8)
+        )
+
+        XCTAssertNil(plain.color)
+        XCTAssertNil(plain.icon)
     }
 
     private func message(id: String, sequence: Int, content: String) throws -> ChatMessage {

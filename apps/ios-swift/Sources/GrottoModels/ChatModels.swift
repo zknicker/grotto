@@ -8,7 +8,13 @@ public enum ChatKind: String, Codable, Sendable {
 public struct ChatSummary: Codable, Identifiable, Sendable, Equatable {
     public let archivedAt: Date?
     public let archivedByUserID: String?
+    /// Channel appearance preset id, for example `violet`. Null on DMs and on
+    /// channels that never picked one.
+    public let color: String?
     public let createdAt: Date
+    /// Channel appearance glyph, a curated hugeicons export name such as
+    /// `RocketIcon`. Null on DMs and on channels that never picked one.
+    public let icon: String?
     public let id: String
     public let isAll: Bool
     public let kind: ChatKind
@@ -27,7 +33,9 @@ public struct ChatSummary: Codable, Identifiable, Sendable, Equatable {
     enum CodingKeys: String, CodingKey {
         case archivedAt
         case archivedByUserID = "archivedByUserId"
+        case color
         case createdAt
+        case icon
         case id
         case isAll
         case kind

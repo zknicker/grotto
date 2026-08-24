@@ -54,7 +54,8 @@ extension GrottoStore {
                 return ArchivedChannelPresentation(
                     id: chat.id,
                     name: chat.name ?? (chat.isAll ? "all" : "Channel"),
-                    archivedAt: archivedAt
+                    archivedAt: archivedAt,
+                    appearance: ChannelAppearance(icon: chat.icon, color: chat.color)
                 )
             }
     }

@@ -45,6 +45,19 @@ Generate the app project with:
 xcodegen generate --spec project.yml
 ```
 
+## Generated resources
+
+`Sources/GrottoUI/Resources/channel-icons.json` carries the channel icon
+geometry. Regenerate it after the App's icon catalog changes:
+
+```bash
+bun apps/ios-swift/scripts/generate-channel-icon-paths.ts
+```
+
+The script reads the icon names from
+`apps/website/src/components/chats/channel-icon-catalog.generated.ts`, so the
+curation lives in one place and the two clients cannot offer different icons.
+
 The application target under `Sources/GrottoApp` consumes the local
 `GrottoModels`, `GrottoTransport`, and `GrottoUI` products. SwiftUI previews can
 use `GrottoPreviewFixtures` and `SettingsFixtures` without a Server or Clerk

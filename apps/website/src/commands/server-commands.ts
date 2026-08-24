@@ -1,5 +1,6 @@
 import { toast } from '@heroui/react';
 import {
+    ArchiveIcon,
     CommandIcon,
     ComputerIcon,
     CopyLinkIcon,
@@ -10,6 +11,7 @@ import type { Agent, Chat } from '@tavern/api';
 import {
     agentRoute,
     membersRoute,
+    serverArchivedChatsRoute,
     serverChatRoute,
     serverComputersRoute,
     serverRoute,
@@ -85,6 +87,12 @@ function buildNavigationGroup(context: CommandContext, currentChat: Chat | null)
             route: membersRoute(context.serverSlug),
             title: 'Members',
         },
+        {
+            icon: ArchiveIcon,
+            id: 'archived',
+            route: serverArchivedChatsRoute(context.serverSlug),
+            title: 'Archived chats',
+        },
     ];
 
     return {
@@ -149,7 +157,7 @@ function buildChatGroups(context: CommandContext): AppCommandGroup[] {
                 .filter((chat) => chat.kind === 'dm' && !chat.peerAgentRetired)
                 .map(toCommand),
             id: 'direct-messages',
-            title: 'Direct Messages',
+            title: 'DMs',
         },
     ];
 }
@@ -241,6 +249,6 @@ function buildDeveloperGroup(context: CommandContext): AppCommandGroup {
 }
 
 function shortPeerLabel(chat: Chat) {
-    const id = chat.peerAgentDisplayName ?? chat.peerUserId ?? 'Direct message';
+    const id = chat.peerAgentDisplayName ?? chat.peerUserId ?? 'DM';
     return id.length > 24 ? `${id.slice(0, 21)}…` : id;
 }

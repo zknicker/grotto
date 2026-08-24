@@ -1,5 +1,6 @@
 import { Sidebar } from '@heroui-pro/react';
 import { Icon } from '../../components/ui/icon.tsx';
+import { SettingsComputersGroup } from '../computers/settings-computers-group.tsx';
 import { serverSettingsSectionRoute } from '../servers/server-routes.ts';
 import {
     type SettingsRouteTab,
@@ -10,10 +11,14 @@ import { ShellSidebarPageContent } from './shell-sidebar.tsx';
 
 /** Settings navigation sidebar for the Server settings routes. */
 export function SettingsSidebar({
+    canOperate,
     currentSection,
+    serverId,
     slug,
 }: {
+    canOperate: boolean;
     currentSection: SettingsRouteTab | undefined;
+    serverId: string;
     slug: string;
 }) {
     const itemById = new Map(settingsNavItems.map((item) => [item.id, item]));
@@ -56,6 +61,13 @@ export function SettingsSidebar({
                     </Sidebar.Group>
                 );
             })}
+            {canOperate ? (
+                <SettingsComputersGroup
+                    currentSection={currentSection}
+                    serverId={serverId}
+                    slug={slug}
+                />
+            ) : null}
         </ShellSidebarPageContent>
     );
 }

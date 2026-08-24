@@ -12,9 +12,11 @@ import { ChatNavigation } from './chat-navigation.tsx';
 /** Contextual sidebar for the server: channels and DMs. */
 export function AppSidebar({
     currentServer,
+    onPreloadSection,
     selectedChatId,
 }: {
     currentServer: ServerSummary;
+    onPreloadSection: (section: 'search' | 'tasks') => void;
     selectedChatId: string | undefined;
 }) {
     const navigate = useNavigate();
@@ -41,6 +43,7 @@ export function AppSidebar({
                 agents={agentItems}
                 chats={chatItems}
                 onCreateChannel={openCreateChannel}
+                onPreloadSection={onPreloadSection}
                 selectedChatId={selectedChatId}
                 slug={slug}
             />

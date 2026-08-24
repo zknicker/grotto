@@ -1,4 +1,4 @@
-import type { AppRailSection } from '../../features/shell/app-rail.tsx';
+import type { AppSection } from './server-route-state.ts';
 
 export function cachedRouteModule<TModule>(load: () => Promise<TModule>) {
     let pending: Promise<TModule> | undefined;
@@ -15,7 +15,6 @@ export function cachedRouteModule<TModule>(load: () => Promise<TModule>) {
 export const serverRouteModules = {
     archivedChats: cachedRouteModule(() => import('./archived-chats-route.tsx')),
     chat: cachedRouteModule(() => import('./chat-route.tsx')),
-    computers: cachedRouteModule(() => import('./server-computers-page.tsx')),
     default: cachedRouteModule(() => import('./server-default-page.tsx')),
     members: cachedRouteModule(() => import('./members-page.tsx')),
     search: cachedRouteModule(() => import('./search-route.tsx')),
@@ -25,11 +24,10 @@ export const serverRouteModules = {
 };
 
 const routeModulesBySection: Record<
-    AppRailSection,
+    AppSection,
     ReadonlyArray<() => Promise<Record<string, unknown>>>
 > = {
     chat: [serverRouteModules.chat, serverRouteModules.archivedChats],
-    computers: [serverRouteModules.computers],
     members: [serverRouteModules.members],
     search: [serverRouteModules.search],
     settings: [serverRouteModules.settings, serverRouteModules.settingsSection],
@@ -37,7 +35,7 @@ const routeModulesBySection: Record<
 };
 
 /** Best-effort route warming. A failed preload is retried by the real navigation. */
-export function preloadServerSection(section: AppRailSection) {
+export function preloadServerSection(section: AppSection) {
     for (const load of routeModulesBySection[section]) {
         load().catch(() => undefined);
     }
@@ -45,7 +43,7 @@ export function preloadServerSection(section: AppRailSection) {
 
 /** Warm the persistent shell's primary destinations once the browser is idle. */
 export function preloadServerRoutes() {
-    for (const section of Object.keys(routeModulesBySection) as AppRailSection[]) {
+    for (const section of Object.keys(routeModulesBySection) as AppSection[]) {
         preloadServerSection(section);
     }
 }

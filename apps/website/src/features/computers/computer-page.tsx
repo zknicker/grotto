@@ -25,7 +25,7 @@ export function ComputerPage({ serverId, serverSlug }: { serverId: string; serve
     });
 
     // Which Computer you are reading is content identity, so it belongs in the
-    // shell band the way a chat's name does; the rail only says "Computers".
+    // shell band the way a chat's name does; the sidebar rows only name them.
     const selected =
         state.status === 'ready'
             ? computers.data?.find((item) => item.id === state.computerId)

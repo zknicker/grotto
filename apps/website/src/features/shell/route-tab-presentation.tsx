@@ -10,13 +10,25 @@ import { Icon } from '../../components/ui/icon.tsx';
 import type { RouteTab } from '../../hooks/shell/use-route-tab.ts';
 import { cn } from '../../lib/utils.ts';
 
-export function RouteTabIcon({ className, tab }: { className?: string; tab: RouteTab }) {
+export function RouteTabIcon({
+    className,
+    size = 18,
+    tab,
+}: {
+    className?: string;
+    size?: number;
+    tab: RouteTab;
+}) {
     return (
         <Icon
             aria-hidden="true"
             className={cn('shrink-0', className)}
             icon={getRouteTabIcon(tab)}
-            size={18}
+            size={size}
+            // Inline, so the sidebar's `size-4` rule — which scales with the
+            // panel's spacing token — cannot shrink the glyph along with the
+            // whitespace. Density should move padding, not iconography.
+            style={{ height: size, width: size }}
         />
     );
 }

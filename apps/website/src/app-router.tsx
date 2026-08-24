@@ -1,5 +1,11 @@
 import * as React from 'react';
-import { createBrowserRouter, createHashRouter, Navigate, useParams } from 'react-router-dom';
+import {
+    createBrowserRouter,
+    createHashRouter,
+    Navigate,
+    useLocation,
+    useParams,
+} from 'react-router-dom';
 import { AppFrame } from './components/app-frame.tsx';
 import { ComputerLoginRoutes } from './features/computers/computer-login-routes.tsx';
 import { GrottoServerRoutes } from './features/servers/grotto-server-routes.tsx';
@@ -160,10 +166,7 @@ export function createAppRouter() {
                                                 },
                                                 {
                                                     path: 'computers',
-                                                    lazy: lazyRoute(
-                                                        serverRouteModules.computers,
-                                                        'ServerComputersPage'
-                                                    ),
+                                                    element: <LegacyComputersRedirect />,
                                                 },
                                                 {
                                                     path: 'connections',
@@ -230,6 +233,12 @@ export function createAppRouter() {
             ],
         },
     ]);
+}
+
+/** Computers moved into Settings; keep old deep links (and their ?computer=…) working. */
+function LegacyComputersRedirect() {
+    const location = useLocation();
+    return <Navigate replace to={`../settings/computers${location.search}`} />;
 }
 
 function ServerUnknownPage() {

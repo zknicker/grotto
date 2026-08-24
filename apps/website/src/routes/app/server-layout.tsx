@@ -2,8 +2,6 @@ import { AppLayout } from '@heroui-pro/react';
 import * as React from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppShell, AppShellDragRegion } from '../../components/ui/app-shell.tsx';
-import { ComputersSidebar } from '../../features/computers/computers-sidebar.tsx';
-import { MembersSidebar } from '../../features/members/members-sidebar.tsx';
 import { AgentLifecycleProvider } from '../../features/servers/agent-lifecycle.tsx';
 import { ConnectionNotice } from '../../features/servers/connection-notice.tsx';
 import { CreateServerDialog } from '../../features/servers/create-server-dialog.tsx';
@@ -15,14 +13,11 @@ import {
 } from '../../features/servers/server-choice.ts';
 import {
     membersRoute,
-    serverComputersRoute,
+    serverArchivedChatsRoute,
     serverRoute,
     serverSearchRoute,
     serverSettingsRoute,
-    tasksRoute,
 } from '../../features/servers/server-routes.ts';
-import { TaskSidebar } from '../../features/servers/tasks/task-sidebar.tsx';
-import { AppRail, type AppRailSection } from '../../features/shell/app-rail.tsx';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { CommandMenuProvider } from '../../features/shell/command-menu-provider.tsx';
 import { CommandMenu } from '../../features/shell/server-command-menu.tsx';
@@ -31,7 +26,10 @@ import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pa
 import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sidebar.tsx';
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
 import { SidebarAgentActivityStrip } from '../../features/shell/sidebar-agent-activity-strip.tsx';
-import { SidebarSearchTrigger } from '../../features/shell/sidebar-search-trigger.tsx';
+import {
+    SidebarBackToChatRow,
+    SidebarServerBand,
+} from '../../features/shell/sidebar-server-band.tsx';
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { useDesktopDockBadge } from '../../hooks/desktop/use-desktop-dock-badge.ts';
 import { useDesktopMenuNavigation } from '../../hooks/desktop/use-desktop-menu-navigation.ts';
@@ -47,7 +45,6 @@ import {
     resolveSelectedChatId,
     resolveSettingsSection,
     resolveSidebarPage,
-    shouldShowSidebar,
 } from './server-route-state.ts';
 
 export function ServerLayout() {
@@ -111,25 +108,12 @@ export function ServerLayout() {
     const settingsSection = resolveSettingsSection(location.pathname, slug);
     const serverChoices = servers.data ?? [server.data];
     const canOperate = server.data.role === 'owner' || server.data.role === 'admin';
-    const showSidebar = shouldShowSidebar(active, canOperate);
-    const activeSidebarPage = resolveSidebarPage(active, canOperate);
+    const activeSidebarPage = resolveSidebarPage(active);
     const chatSectionRoute = resolveChatSectionRoute(
         chats.data ?? [],
         selectedChatId ?? readLastChatId(slug),
         slug
     );
-    const selectSection = (section: AppRailSection) => {
-        const route = {
-            chat: chatSectionRoute,
-            computers: serverComputersRoute(slug),
-            members: membersRoute(slug),
-            search: serverSearchRoute(slug),
-            settings: serverSettingsRoute(slug),
-            tasks: tasksRoute(slug),
-        }[section];
-        navigate(route);
-    };
-
     return (
         <SidePaneProvider>
             <TopbarProvider>
@@ -140,18 +124,6 @@ export function ServerLayout() {
                         <AppShellDragRegion />
                         <CommandMenu server={server.data} />
                         <div className="flex min-h-0 flex-1">
-                            <AppRail
-                                active={active}
-                                canOperate={canOperate}
-                                currentServer={server.data}
-                                hasContextualSidebar={showSidebar}
-                                onCreateServer={() => setServerDialog('create')}
-                                onJoinServer={() => setServerDialog('join')}
-                                onPreload={preloadServerSection}
-                                onSelect={selectSection}
-                                onSwitchServer={(serverSlug) => navigate(serverRoute(serverSlug))}
-                                servers={serverChoices}
-                            />
                             <AgentLifecycleProvider serverId={server.data.id}>
                                 <AgentActivityProvider serverId={server.data.id}>
                                     <AppLayout
@@ -161,72 +133,67 @@ export function ServerLayout() {
                                         sidebar={
                                             <ShellSidebar
                                                 activePage={activeSidebarPage}
-                                                footer={
-                                                    showSidebar ? (
-                                                        <SidebarAgentActivityStrip
-                                                            serverId={server.data.id}
-                                                            slug={slug}
+                                                back={
+                                                    activeSidebarPage === 'server' ? null : (
+                                                        <SidebarBackToChatRow
+                                                            route={chatSectionRoute}
                                                         />
-                                                    ) : null
+                                                    )
                                                 }
-                                                header={
-                                                    <SidebarSearchTrigger
-                                                        onPreload={() =>
-                                                            preloadServerSection('search')
+                                                footer={
+                                                    <SidebarAgentActivityStrip
+                                                        serverId={server.data.id}
+                                                        slug={slug}
+                                                    />
+                                                }
+                                                identity={
+                                                    <SidebarServerBand
+                                                        currentServer={server.data}
+                                                        onCreateServer={() =>
+                                                            setServerDialog('create')
                                                         }
+                                                        onJoinServer={() => setServerDialog('join')}
+                                                        onOpenArchived={() =>
+                                                            navigate(serverArchivedChatsRoute(slug))
+                                                        }
+                                                        onOpenMembers={() =>
+                                                            navigate(membersRoute(slug))
+                                                        }
+                                                        onOpenSettings={() =>
+                                                            navigate(serverSettingsRoute(slug))
+                                                        }
+                                                        onPreloadSettings={() =>
+                                                            preloadServerSection('settings')
+                                                        }
+                                                        onSwitchServer={(serverSlug) =>
+                                                            navigate(serverRoute(serverSlug))
+                                                        }
+                                                        servers={serverChoices}
                                                     />
                                                 }
                                             >
                                                 <ShellSidebarPage ariaLabel="Server" value="server">
                                                     <AppSidebar
                                                         currentServer={server.data}
+                                                        onPreloadSection={preloadServerSection}
                                                         selectedChatId={selectedChatId}
                                                     />
                                                 </ShellSidebarPage>
-                                                <ShellSidebarPage ariaLabel="Tasks" value="tasks">
-                                                    <TaskSidebar
-                                                        canManage={canOperate}
-                                                        isActive={activeSidebarPage === 'tasks'}
-                                                        serverId={server.data.id}
-                                                        slug={slug}
-                                                    />
-                                                </ShellSidebarPage>
-                                                <ShellSidebarPage
-                                                    ariaLabel="Members"
-                                                    value="members"
-                                                >
-                                                    <MembersSidebar
-                                                        isActive={activeSidebarPage === 'members'}
-                                                        server={server.data}
-                                                    />
-                                                </ShellSidebarPage>
-                                                {canOperate ? (
-                                                    <ShellSidebarPage
-                                                        ariaLabel="Computers"
-                                                        value="computers"
-                                                    >
-                                                        <ComputersSidebar
-                                                            isActive={
-                                                                activeSidebarPage === 'computers'
-                                                            }
-                                                            serverId={server.data.id}
-                                                            slug={slug}
-                                                        />
-                                                    </ShellSidebarPage>
-                                                ) : null}
                                                 <ShellSidebarPage
                                                     ariaLabel="Settings"
                                                     value="settings"
                                                 >
                                                     <SettingsSidebar
+                                                        canOperate={canOperate}
                                                         currentSection={settingsSection}
+                                                        serverId={server.data.id}
                                                         slug={slug}
                                                     />
                                                 </ShellSidebarPage>
                                             </ShellSidebar>
                                         }
                                         sidebarCollapsible="offcanvas"
-                                        sidebarOpen={showSidebar}
+                                        sidebarOpen
                                         toggleShortcut={false}
                                     >
                                         <ShellFrame>

@@ -6,23 +6,17 @@ import {
     serverSettingsRoute,
 } from '../../features/servers/server-routes.ts';
 import type { SettingsRouteTab } from '../../features/settings/layout/navigation.ts';
-import type { AppRailSection } from '../../features/shell/app-rail.tsx';
 
-export function resolveSidebarPage(active: AppRailSection, canOperate: boolean) {
-    if (active === 'settings' || active === 'tasks' || active === 'members') {
-        return active;
-    }
-    if (active === 'computers' && canOperate) {
-        return active;
-    }
-    return 'server';
-}
+/** Top-level routed destinations within one server. */
+export type AppSection = 'chat' | 'members' | 'search' | 'settings' | 'tasks';
 
-export function shouldShowSidebar(active: AppRailSection, canOperate: boolean) {
-    if (active === 'search') {
-        return false;
-    }
-    return active !== 'computers' || canOperate;
+/**
+ * Only Settings replaces the sidebar. Everywhere else the chat navigation
+ * stays put, so moving between destinations never costs you your place — a
+ * page's own filters belong on the page, not in swapped-out navigation.
+ */
+export function resolveSidebarPage(active: AppSection) {
+    return active === 'settings' ? 'settings' : 'server';
 }
 
 export function resolveChatSectionRoute(chats: Chat[], lastChatId: string | null, slug: string) {
@@ -30,13 +24,13 @@ export function resolveChatSectionRoute(chats: Chat[], lastChatId: string | null
     return chat ? serverChatRoute(slug, chat.id) : serverRoute(slug);
 }
 
-export function resolveActiveSection(pathname: string, slug: string): AppRailSection {
+export function resolveActiveSection(pathname: string, slug: string): AppSection {
     const suffix = pathname.slice(serverRoute(slug).length);
     if (suffix.startsWith('/members')) {
         return 'members';
     }
     if (suffix.startsWith('/computers')) {
-        return 'computers';
+        return 'settings';
     }
     if (suffix.startsWith('/settings')) {
         return 'settings';

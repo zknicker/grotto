@@ -132,6 +132,14 @@ so `docs:list` routes future agents correctly.
   shape drifts. This has been the root cause of every radius bug in this codebase so far.
   `DESIGN.md` carries the tier table; match a component's tier rather than eyeballing a step
   that looks right at today's `--radius`.
+- Focus: a tab stop is earned by interaction, never by structure. Only native interactive
+  elements, ARIA widget roles, and React Aria's composite roots carry `tabIndex >= 0`; scroll
+  regions, landmarks and layout wrappers carry none. When a dependency puts a `tabIndex` on
+  structural chrome, strip it at our adapter boundary (`components/chats/message-scroller.tsx`,
+  `hooks/shell/use-unfocusable-app-main.ts`), never at call sites. Style focus, never suppress it
+  — an invisible tab stop is worse than a mismatched ring, and the `:focus-visible` fallback in
+  `styles/global.css` already paints anything unstyled with `--focus`. Rings are keyboard-only:
+  use `:focus-visible`, never bare `:focus`.
 - Use the HeroUI design tokens (`bg-surface`, `text-muted`, `text-accent`, etc.) for UI colors. Do
   not hand-roll component-local color mixes or arbitrary color values unless a new reusable token
   is first added to the theme layer.

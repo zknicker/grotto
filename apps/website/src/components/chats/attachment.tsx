@@ -16,7 +16,7 @@ function Attachment({
     return (
         <div
             className={cn(
-                'group/attachment relative flex w-fit min-w-40 max-w-full shrink-0 flex-wrap items-center rounded-xl border border-separator bg-surface text-surface-foreground transition-colors focus-within:ring-1 focus-within:ring-focus has-[>a,>button]:hover:bg-surface-hover',
+                'group/attachment relative flex w-fit min-w-40 max-w-full shrink-0 flex-wrap items-center rounded-xl border border-separator bg-surface text-surface-foreground transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-focus has-[>a,>button]:hover:bg-surface-hover',
                 size === 'sm'
                     ? 'gap-2.5 text-xs has-data-[slot=attachment-media]:p-1.5 has-data-[slot=attachment-content]:px-2 has-data-[slot=attachment-content]:py-1.5'
                     : 'gap-2 text-sm has-data-[slot=attachment-media]:p-2 has-data-[slot=attachment-content]:px-2.5 has-data-[slot=attachment-content]:py-2',

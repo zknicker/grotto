@@ -13,6 +13,25 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
+    /*
+     * The focus fallback.
+     *
+     * Anything reachable that nobody styled otherwise falls to the browser's
+     * `outline: auto`, whose color comes from the OS accent — so an unstyled
+     * control rings in whatever hue the user picked in System Settings, which
+     * matches nothing in the product. This retargets that fallback to the
+     * design system's focus token.
+     *
+     * It cannot fight HeroUI: their rings live in the components and utilities
+     * layers and already declare `outline-none`, so they win on layer order.
+     * This only catches what they never claimed. Never suppress focus here —
+     * an invisible tab stop is worse than a mismatched one.
+     */
+    :focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+    }
+
     html,
     body,
     #root {

@@ -38,6 +38,7 @@ import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
+import { useUnfocusableAppMain } from '../../hooks/shell/use-unfocusable-app-main.ts';
 import { preloadServerRoutes, preloadServerSection } from './server-route-modules.ts';
 import {
     resolveActiveSection,
@@ -63,6 +64,7 @@ export function ServerLayout() {
         settingsRoute: serverSettingsRoute(slug),
     });
     useDesktopDockBadge((chats.data ?? []).reduce((total, chat) => total + chat.unreadCount, 0));
+    useUnfocusableAppMain();
 
     React.useEffect(() => {
         if (currentServerSlug) {

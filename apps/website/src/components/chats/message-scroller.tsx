@@ -33,6 +33,12 @@ function MessageScroller({
 
 function MessageScrollerViewport({
     className,
+    // The primitive defaults this to 0, which puts the whole transcript in the
+    // tab order — structural chrome, not a control. Its scroll keys bubble, so
+    // keyboard scrolling still works from anything focused inside, and the
+    // browser makes a genuinely child-free scroller focusable on its own. The
+    // `role` and `aria-label` stay: this removes a tab stop, not semantics.
+    tabIndex = -1,
     ...props
 }: React.ComponentProps<typeof MessageScrollerPrimitive.Viewport>) {
     return (
@@ -46,6 +52,7 @@ function MessageScrollerViewport({
                 className
             )}
             data-slot="message-scroller-viewport"
+            tabIndex={tabIndex}
             {...props}
         />
     );

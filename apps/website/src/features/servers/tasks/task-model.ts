@@ -59,7 +59,7 @@ export function taskChatOptions(chats: Chat[], humans: HumanDirectory) {
             label:
                 chat.kind === 'channel'
                     ? `#${chat.name}`
-                    : `Direct · ${chat.peerAgentDisplayName ?? humans.name(chat.peerUserId)}`,
+                    : `DM · ${chat.peerAgentDisplayName ?? humans.name(chat.peerUserId)}`,
         }));
 }
 
@@ -103,7 +103,7 @@ export function toTaskItem(
         chatLabel:
             item.chatKind === 'channel'
                 ? `#${item.chatName ?? 'channel'}`
-                : `Direct · ${humans.name(item.chatPeerUserId)}`,
+                : `DM · ${humans.name(item.chatPeerUserId)}`,
         claimedAt: item.task.claimedAt,
         createdAt: item.task.createdAt,
         id: item.message.id,
@@ -120,7 +120,16 @@ export function toTaskItem(
     };
 }
 
-export function filterTasks(tasks: TaskItem[], input: { labelId?: string | null; view: TaskView }) {
+export interface TaskFilterInput {
+    /** An agent id, a user id, or the literal `unassigned`. */
+    assignee?: null | string;
+    labelId?: null | string;
+    priority?: null | string;
+    status?: null | string;
+    view: TaskView;
+}
+
+export function filterTasks(tasks: TaskItem[], input: TaskFilterInput) {
     return tasks.filter((task) => {
         if (input.view === 'active' && (task.status === 'done' || task.status === 'closed')) {
             return false;
@@ -134,9 +143,28 @@ export function filterTasks(tasks: TaskItem[], input: { labelId?: string | null;
         if (input.labelId && !task.labels.some((label) => label.id === input.labelId)) {
             return false;
         }
+        if (input.status && task.status !== input.status) {
+            return false;
+        }
+        if (input.priority && task.priority !== input.priority) {
+            return false;
+        }
+        if (input.assignee && !matchesAssignee(task, input.assignee)) {
+            return false;
+        }
         return true;
     });
 }
+
+/** `unassigned` is its own bucket; anything else is an agent or user id. */
+function matchesAssignee(task: TaskItem, assignee: string) {
+    if (assignee === unassignedAssignee) {
+        return task.assigneeAgentId === null && task.assigneeUserId === null;
+    }
+    return task.assigneeAgentId === assignee || task.assigneeUserId === assignee;
+}
+
+export const unassignedAssignee = 'unassigned';
 
 // Linear-style ordering inside a status group: most urgent first, unset last.
 // Board columns and list groups both ride this so the lenses agree.

@@ -8,27 +8,31 @@ import { TaskState } from './task-state.tsx';
 import { useTaskView } from './task-view.ts';
 import { TaskBoard, TaskList } from './task-views.tsx';
 
-export function TaskContent({
-    chatId,
-    onOpenTask,
-}: {
-    chatId?: string;
-    onOpenTask: (task: TaskItem) => void;
-}) {
+export function TaskContent({ onOpenTask }: { onOpenTask: (task: TaskItem) => void }) {
     const { server } = useServerContext();
     const agents = useAgents(server.id);
-    const tasksQuery = useTasks(server.id, chatId);
     const humans = useHumanDirectory(server.id);
     const { filters, layout } = useTaskView();
-    const { labelId, view } = filters;
+    const { assignee, chatId, labelId, priority, status, view } = filters;
+    const tasksQuery = useTasks(server.id, chatId ?? undefined);
     const tasks = React.useMemo(
         () => tasksQuery.data?.map((item) => toTaskItem(item, humans, agents.data ?? [])) ?? [],
         [agents.data, humans, tasksQuery.data]
     );
     const filtered = React.useMemo(
-        () => filterTasks(tasks, { labelId, view }),
-        [labelId, tasks, view]
+        () => filterTasks(tasks, { assignee, labelId, priority, status, view }),
+        [assignee, labelId, priority, status, tasks, view]
     );
+    // The chat filter narrows the query itself, so a filtered-out chat comes
+    // back with no tasks at all. Without this the page would claim the Server
+    // has no tasks when it only has none matching.
+    const isFiltered =
+        assignee !== null ||
+        chatId !== null ||
+        labelId !== null ||
+        priority !== null ||
+        status !== null ||
+        view !== 'all';
 
     if (tasksQuery.error) {
         return (
@@ -46,7 +50,7 @@ export function TaskContent({
             </div>
         );
     }
-    if (tasks.length === 0) {
+    if (tasks.length === 0 && !isFiltered) {
         return (
             <TaskState
                 description="Create a task from a new message. Its Thread becomes the work surface."
@@ -56,10 +60,7 @@ export function TaskContent({
     }
     if (filtered.length === 0) {
         return (
-            <TaskState
-                description="Change the view or label filter to see more tasks."
-                title="No matching tasks"
-            />
+            <TaskState description="Drop a filter to see more tasks." title="No matching tasks" />
         );
     }
     if (layout === 'board') {

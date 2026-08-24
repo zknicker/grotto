@@ -14,6 +14,62 @@ export const mcpGrantSchema = z
     })
     .strict();
 
+/**
+ * A connection's icon, already resolved and inlined by Grotto Server.
+ *
+ * The contract stores bytes, never a remote URL: the App renders this straight
+ * into an `img` tag, and a third-party URL there would beacon the viewer's IP
+ * to the connection's operator on every page view. Server fetches once at
+ * discovery and inlines the result, so the shape itself is what makes the
+ * render safe — if it parsed, it is inline data.
+ *
+ * Raster only, deliberately. SVG is the one image format that can carry script
+ * and fetch subresources, and screening it properly needs a real parser rather
+ * than a token blocklist. At icon scale it buys nothing, so it is not accepted.
+ */
+export const mcpIconMediaTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/x-icon'] as const;
+
+export type McpIconMediaType = (typeof mcpIconMediaTypes)[number];
+
+/** Per-variant ceiling. Icons render at ~32px; this is generous for that. */
+export const mcpIconMaxBytes = 64 * 1024;
+
+/** Base64 inflates the byte ceiling by 4/3; the slack covers padding. */
+const iconBase64MaxLength = Math.ceil((mcpIconMaxBytes * 4) / 3) + 64;
+
+/** Built from the media types above so the two cannot drift apart. */
+const iconDataUrlPattern = new RegExp(
+    `^data:(${mcpIconMediaTypes.map((type) => type.replaceAll(/[+/]/gu, String.raw`\$&`)).join('|')});base64,[A-Za-z0-9+/]+={0,2}$`,
+    'u'
+);
+
+export const mcpIconDataUrlSchema = z.string().max(iconBase64MaxLength).regex(iconDataUrlPattern);
+
+/**
+ * A `dark` variant only when it genuinely differs; one icon serving both themes
+ * is stored in `light` alone, and the App falls back to it. Storing it twice
+ * would double this payload on a query that returns every connection inline.
+ */
+export const mcpIconSchema = z
+    .object({
+        dark: mcpIconDataUrlSchema.nullable(),
+        light: mcpIconDataUrlSchema.nullable(),
+    })
+    .strict()
+    .refine((icon) => icon.dark !== null || icon.light !== null, {
+        message: 'An icon must carry at least one variant.',
+    });
+
+export type McpIcon = z.infer<typeof mcpIconSchema>;
+
+/**
+ * The server's own one-line description of itself, taken from the `instructions`
+ * it returns at initialize. Those instructions are written for a model and run
+ * to thousands of characters, so Server keeps only the opening line — the part
+ * that reads as a description to a person.
+ */
+export const mcpSummarySchema = z.string().trim().min(1).max(200);
+
 export const mcpConnectionSchema = z
     .object({
         accountLabel: z.string().trim().min(1).max(200).nullable(),
@@ -21,11 +77,13 @@ export const mcpConnectionSchema = z
         connected: z.boolean(),
         grants: z.array(mcpGrantSchema),
         headerNames: z.array(z.string()).max(50),
+        icon: mcpIconSchema.nullable(),
         id: mcpConnectionIdSchema,
         name: z.string().trim().min(1).max(100),
         preset: mcpPresetSchema.nullable(),
         serverId: idSchema,
         status: z.enum(['online', 'pending']),
+        summary: mcpSummarySchema.nullable(),
         tools: z.array(toolNameSchema),
         url: z.string().url(),
     })

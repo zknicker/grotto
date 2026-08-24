@@ -13,7 +13,7 @@ export function DeliveryCard({
 
     return (
         <div
-            className={`flex w-full flex-col gap-1 rounded-lg border px-3 py-2 text-left ${
+            className={`card-shell flex w-full flex-col gap-1 border px-3 py-2 text-left ${
                 outgoing
                     ? 'border-accent-soft bg-accent-soft'
                     : 'border-warning-soft bg-warning-soft'

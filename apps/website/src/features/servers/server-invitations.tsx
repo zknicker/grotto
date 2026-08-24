@@ -52,7 +52,7 @@ export function InviteMemberForm({ serverId }: { serverId: string }) {
             </div>
             {create.error ? <p className="text-danger text-sm">{create.error.message}</p> : null}
             {issued ? (
-                <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
+                <div className="card-shell flex flex-col gap-2 border border-border p-3">
                     <p className="text-foreground text-sm">
                         Send this link to {issued.invitation.email}. It is shown once.
                     </p>

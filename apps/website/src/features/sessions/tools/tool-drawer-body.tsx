@@ -27,7 +27,7 @@ export function ToolDrawerBody({ details, isPending, queryError }: ToolDrawerBod
                 />
             ))}
             {isPending ? (
-                <div className="flex items-center gap-2.5 rounded-lg border border-separator bg-surface-secondary px-3.5 py-3">
+                <div className="card-shell flex items-center gap-2.5 border border-separator bg-surface-secondary px-3.5 py-3">
                     <Spinner size="sm" />
                     <p className="text-muted text-sm">Loading tool details...</p>
                 </div>

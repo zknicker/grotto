@@ -18,7 +18,7 @@ export function WidgetArtifactCard({ props }: { props: WidgetArtifactProps }) {
     return (
         <button
             className={cn(
-                'group flex w-full max-w-[28rem] items-center gap-3 rounded-lg border border-border bg-surface-secondary/65 px-3.5 py-3 text-left',
+                'group card-shell flex w-full max-w-[28rem] items-center gap-3 border border-border bg-surface-secondary/65 px-3.5 py-3 text-left',
                 'transition-colors',
                 openArtifactPanel
                     ? 'cursor-(--cursor-interactive) hover:border-border-secondary hover:bg-surface-tertiary/70'
@@ -27,7 +27,7 @@ export function WidgetArtifactCard({ props }: { props: WidgetArtifactProps }) {
             onClick={() => openArtifactPanel?.({ kind: 'workspaceFile', path: props.path })}
             type="button"
         >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border/70 bg-default/35">
+            <span className="card-shell flex size-9 shrink-0 items-center justify-center border border-border/70 bg-default/35">
                 <Icon className="size-4 text-muted" icon={File01Icon} />
             </span>
             <span className="min-w-0 flex-1">

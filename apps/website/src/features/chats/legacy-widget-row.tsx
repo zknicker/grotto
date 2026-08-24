@@ -57,7 +57,7 @@ function WidgetFallback({ error, text }: { error: string | null; text: string })
     return (
         <div
             className={cn(
-                'max-w-[42rem] rounded-md border border-border bg-surface-secondary/70 px-3 py-2.5',
+                'card-shell max-w-[42rem] border border-border bg-surface-secondary/70 px-3 py-2.5',
                 'text-sm leading-5'
             )}
             role="note"

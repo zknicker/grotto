@@ -5,7 +5,7 @@ type AccessEventRow = Extract<TranscriptSystemRow, { systemKind: 'accessEvent' }
 
 export function AccessEventLogEntry({ entry }: { entry: AccessEventRow }) {
     return (
-        <div className="rounded-md border border-warning-soft bg-warning-soft px-3 py-1.5">
+        <div className="card-shell border border-warning-soft bg-warning-soft px-3 py-1.5">
             <div className="flex items-center gap-2">
                 <span className="font-medium text-warning text-xs uppercase tracking-[0.16em]">
                     Access {entry.accessEvent.status}

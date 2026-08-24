@@ -18,7 +18,7 @@ export function SessionLinkButton({
     return (
         <div
             className={cn(
-                'flex min-w-0 flex-col rounded-lg border px-3 py-2 text-left',
+                'card-shell flex min-w-0 flex-col border px-3 py-2 text-left',
                 tone === 'amber'
                     ? 'border-warning-soft bg-warning-soft'
                     : tone === 'sky'

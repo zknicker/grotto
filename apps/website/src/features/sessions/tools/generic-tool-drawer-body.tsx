@@ -10,7 +10,7 @@ export function GenericToolDrawerBody({ call }: { call: ToolDrawerCall }) {
             {argumentEntries.length > 0 ? (
                 <div>
                     <ToolDrawerSectionLabel>Arguments</ToolDrawerSectionLabel>
-                    <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 rounded-lg border border-separator bg-surface-secondary px-3.5 py-3">
+                    <div className="card-shell grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 border border-separator bg-surface-secondary px-3.5 py-3">
                         {argumentEntries.map(([key, value]) => (
                             <ArgumentRow key={key} name={key} value={value} />
                         ))}

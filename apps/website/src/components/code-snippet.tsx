@@ -16,7 +16,7 @@ export function CodeSnippet({ className, copyValue, lines, ...props }: CodeSnipp
     return (
         <div
             className={cn(
-                'flex min-w-0 gap-2 rounded-lg bg-surface-secondary ps-3 pe-1 font-mono text-foreground text-sm',
+                'card-shell flex min-w-0 gap-2 bg-surface-secondary ps-3 pe-1 font-mono text-foreground text-sm',
                 isMultiLine ? 'items-start py-1.5' : 'h-8 items-center',
                 className
             )}

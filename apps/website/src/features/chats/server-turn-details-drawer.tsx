@@ -199,7 +199,7 @@ function JournalContents({ journal }: { journal: AgentExecutionJournal }) {
             ) : null}
             {journal.tools.map((tool) => (
                 <article
-                    className="grid gap-1.5 rounded-lg bg-surface-secondary px-3 py-2"
+                    className="card-shell grid gap-1.5 bg-surface-secondary px-3 py-2"
                     key={tool.toolCallId}
                 >
                     <div className="flex items-baseline justify-between gap-3">

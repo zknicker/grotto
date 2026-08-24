@@ -55,7 +55,7 @@ export function MentionPicker({
     return (
         <div
             className={cn(
-                'absolute right-0 bottom-[calc(100%+0.4rem)] left-0 z-20 flex max-h-64 w-full flex-col overflow-hidden rounded-lg border border-separator bg-overlay p-1 text-sm shadow-overlay',
+                'card-shell absolute right-0 bottom-[calc(100%+0.4rem)] left-0 z-20 flex max-h-64 w-full flex-col overflow-hidden border border-separator bg-overlay p-1 text-sm shadow-overlay',
                 className
             )}
             role="listbox"
@@ -92,7 +92,7 @@ export function MentionPicker({
                                     <button
                                         aria-selected={index === activeIndex}
                                         className={cn(
-                                            'h-8 w-full shrink-0 cursor-(--cursor-interactive) overflow-hidden rounded-lg px-2.5 text-left text-foreground outline-hidden focus:bg-default',
+                                            'card-shell h-8 w-full shrink-0 cursor-(--cursor-interactive) overflow-hidden px-2.5 text-left text-foreground outline-hidden focus:bg-default',
                                             index === activeIndex
                                                 ? 'bg-default'
                                                 : 'hover:bg-default'

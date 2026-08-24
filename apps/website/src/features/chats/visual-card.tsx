@@ -60,7 +60,7 @@ export function VisualCard({
     const height = clampHeight(collapsible && !expanded ? visualHeights.collapsed : measured);
 
     return (
-        <div className="overflow-hidden rounded-xl border border-border bg-surface">
+        <div className="card-shell overflow-hidden border border-border bg-surface">
             <div className="relative">
                 <iframe
                     className="block w-full border-0 bg-transparent"

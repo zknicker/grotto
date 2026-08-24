@@ -15,7 +15,25 @@
 [data-theme="light"],
 [data-theme="default"] {
   /* Spacing */
-  --spacing: 0.234375rem;
+  /*
+   * `--spacing` cannot reference itself, so the base is named separately and
+   * every denser region derives from it. Retuning density is then a single
+   * edit here rather than a hunt for frozen literals scoped across the app.
+   */
+  --spacing-base: 0.234375rem;
+  --spacing: var(--spacing-base);
+  /* Sidebar navigation rows. */
+  --spacing-compact: calc(var(--spacing-base) * 0.85);
+  /* Menu, listbox and popover surfaces — lists to scan, so the tightest step. */
+  --spacing-dense: calc(var(--spacing-base) * 0.8);
+
+  /* Radius */
+  /*
+   * Every radius in the product derives from this: HeroUI's utilities compile
+   * to `calc(var(--radius) * n)` and its shells to `min(32px, --radius-3xl)`.
+   * See the radius tier table in DESIGN.md before picking a step.
+   */
+  --radius: 0.25rem;
 
   /* Font Sizes */
   --text-xs: 0.6875rem;
@@ -39,4 +57,69 @@
   --text-7xl: 4rem;
   --text-8xl: 5.25rem;
   --text-9xl: 7rem;
+}
+
+/*
+ * Component overrides.
+ *
+ * HeroUI names every component part with a BEM class expressly so a theme can
+ * restyle it globally; their styling guide's "Customizing components globally"
+ * section prescribes exactly this `@layer components` block. Same layer as
+ * HeroUI's own component rules and imported after them, so equal-specificity
+ * rules win on source order.
+ *
+ * The bar for adding here: a token could not express it. Anything that can be
+ * a token belongs in `:root` above, where it propagates on its own.
+ */
+@layer components {
+    /*
+     * Menu surfaces are lists to scan, so they take the tightest step of the
+     * spacing scale. HeroUI sizes `.menu-item` and `.list-box-item` purely from
+     * spacing multiples (`min-h-9 gap-3 px-2 py-1.5`), so rescaling the token
+     * here tightens every dropdown, select and combobox at once.
+     *
+     * Radius deliberately stays global: menu radii and the popover shell have
+     * to remain concentric or the shell's `overflow-y: auto` clips the first
+     * and last item's hover background.
+     */
+    .autocomplete__popover,
+    .combo-box__popover,
+    .dropdown__popover,
+    .select__popover,
+    .list-box,
+    .menu {
+        --spacing: var(--spacing-dense);
+    }
+
+    /*
+     * Status dots are circles, everywhere, at every radius.
+     *
+     * HeroUI has no dot shape — "when no children are provided, it renders as
+     * a dot" — so a dot inherits its size step's radius, which is non-monotonic
+     * across sizes (sm x1.5, lg x2, md x3) and paired against a box built from
+     * `--spacing`. Any surface that rescales spacing moves the dot's box while
+     * its radius stays pinned: the same dot read 47% round in the sidebar and
+     * 40% in the transcript.
+     *
+     * `:empty` is the exact CSS mirror of that API contract, and only that
+     * case: a Badge carrying a count or label keeps the theme's scale, because
+     * a counter is a themed surface and a presence indicator is not.
+     */
+    .badge:empty {
+        border-radius: var(--radius-full, 9999px);
+    }
+
+    /*
+     * Nested product surfaces — the cards inside a transcript turn, a drawer, a
+     * settings pane, where stock `Card`'s padding and shadow fight the layout.
+     *
+     * Named once so the shell step lives in one place instead of being copied
+     * across every card. It references the same `--radius-3xl` that HeroUI's
+     * own shells use (card, popover, modal, dropdown, toast, accordion all read
+     * `min(32px, var(--radius-3xl))`), so it tracks them if that step is ever
+     * redefined, cap included.
+     */
+    .card-shell {
+        border-radius: min(32px, var(--radius-3xl));
+    }
 }

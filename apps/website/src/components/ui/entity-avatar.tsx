@@ -37,7 +37,12 @@ export function EntityAvatar({
             size={preset}
             style={
                 exact
-                    ? { fontSize: Math.max(8, Math.round(size * 0.42)), height: size, width: size }
+                    ? {
+                          borderRadius: identityMarkRadius(size),
+                          fontSize: Math.max(8, Math.round(size * 0.42)),
+                          height: size,
+                          width: size,
+                      }
                     : undefined
             }
         >
@@ -45,6 +50,24 @@ export function EntityAvatar({
             <Avatar.Fallback>{getEntityInitials(name)}</Avatar.Fallback>
         </Avatar>
     );
+}
+
+/**
+ * HeroUI pairs each preset's box with its own radius step — `sm` is 32px at
+ * `--radius * 2`, `lg` is 48px at `* 3` — which is the same proportion, so the
+ * presets stay equally round at any radius. Forcing a box without re-pairing
+ * the radius leaves half that rule dangling: the preset's fixed radius against
+ * a smaller box reads rounder (a 20px rail avatar at `sm` was 40% round beside
+ * a 32px one at 25%), and against a larger box reads squarer (a 64px profile
+ * avatar was a squircle while everything around it was a circle).
+ *
+ * So derive the radius from the same token, normalized to the `sm` pairing.
+ * Exported because every fixed-box identity mark — the Server mark, the channel
+ * icon box — has to sit on this same curve or it drifts out of step with the
+ * avatars beside it.
+ */
+export function identityMarkRadius(size: number): string {
+    return `calc(var(--radius) * ${size / 16})`;
 }
 
 function exactSizePreset(size: number): EntityAvatarSize {

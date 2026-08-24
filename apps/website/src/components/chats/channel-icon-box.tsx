@@ -1,15 +1,19 @@
 import { cn } from '../../lib/utils.ts';
+import { identityMarkRadius } from '../ui/entity-avatar.tsx';
 import { Icon } from '../ui/icon.tsx';
 import { getChannelColorStyle } from './channel-color-options.ts';
 import { useChannelIconGlyph } from './channel-icon-catalog.ts';
 
-// Sidebar and topbar boxes match the 24px agent avatars beside them;
-// `inline` keeps the smaller chip for text rows, and `modal` fills a
-// Modal.Icon slot so a dialog header can preview the channel itself.
+// Sidebar and topbar boxes match the 24px agent avatars beside them, right
+// down to the shape: an exact box pairs its own radius, so a channel stays as
+// round as the Agents beside it at every scale step. `inline` keeps the
+// smaller chip for text rows, and `modal` fills a Modal.Icon slot so a dialog
+// header can preview the channel itself.
 const channelIconBoxVariants = {
     inline: {
+        boxSize: 20,
         boxClassName:
-            'size-5 rounded-lg bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
+            'bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
         iconSize: 14,
     },
     modal: {
@@ -18,13 +22,17 @@ const channelIconBoxVariants = {
         iconSize: 20,
     },
     sidebar: {
+        // Fixed, not size-6: the box must hold the 24px Agent avatars' scale
+        // rather than shrinking with the sidebar's spacing token.
+        boxSize: 24,
         boxClassName:
-            'size-6 rounded-lg bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
+            'bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
         iconSize: 16,
     },
     topbar: {
+        boxSize: 24,
         boxClassName:
-            'size-6 rounded-lg bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
+            'bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
         iconSize: 16,
     },
 } as const;
@@ -49,6 +57,17 @@ export function ChannelIconBox({
 }) {
     const variant = channelIconBoxVariants[size];
     const glyph = useChannelIconGlyph(icon);
+    // `modal` sizes itself from classes; every other variant carries an exact
+    // box, and an exact box has to derive its radius or the corner stays put
+    // while the box moves.
+    const boxStyle =
+        'boxSize' in variant
+            ? {
+                  borderRadius: identityMarkRadius(variant.boxSize),
+                  height: variant.boxSize,
+                  width: variant.boxSize,
+              }
+            : undefined;
 
     return (
         <span
@@ -58,7 +77,7 @@ export function ChannelIconBox({
                 variant.boxClassName,
                 className
             )}
-            style={getChannelColorStyle(color)}
+            style={{ ...boxStyle, ...getChannelColorStyle(color) }}
         >
             <Icon
                 className={cn('shrink-0', iconClassName)}

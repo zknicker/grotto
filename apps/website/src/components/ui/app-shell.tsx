@@ -67,7 +67,7 @@ export function AppShellDragRegion({
         <div
             aria-hidden="true"
             className={cn(
-                'app-shell-drag-region pointer-events-none absolute top-0 left-0 z-30 h-[50px] w-full cursor-default select-none',
+                'app-shell-drag-region pointer-events-none absolute top-0 left-0 z-30 h-[calc(var(--app-shell-band-height)+2px)] w-full cursor-default select-none',
                 className
             )}
             data-slot="app-shell-drag-region"

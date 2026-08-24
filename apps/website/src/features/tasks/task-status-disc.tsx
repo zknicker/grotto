@@ -1,4 +1,9 @@
 import { cn } from '../../lib/utils.ts';
+
+// A literal size, not a spacing step: menus tighten their spacing scale, and
+// a status glyph should not shrink just because the row around it did.
+const glyphSize = 'size-[15px]';
+
 import { type TaskStatus, taskStatusDiscClasses } from './task-presentation.ts';
 
 // How much of the disc's inner pie is filled while a task is live. Terminal
@@ -27,7 +32,7 @@ export function TaskStatusDisc({ className, status }: { className?: string; stat
         return (
             <svg
                 aria-hidden="true"
-                className={cn('shrink-0', taskStatusDiscClasses[status], className)}
+                className={cn(glyphSize, 'shrink-0', taskStatusDiscClasses[status], className)}
                 viewBox="0 0 16 16"
             >
                 <circle cx="8" cy="8" fill="currentColor" r="6.75" />
@@ -60,7 +65,7 @@ export function TaskStatusDisc({ className, status }: { className?: string; stat
     return (
         <svg
             aria-hidden="true"
-            className={cn('shrink-0', taskStatusDiscClasses[status], className)}
+            className={cn(glyphSize, 'shrink-0', taskStatusDiscClasses[status], className)}
             viewBox="0 0 16 16"
         >
             <circle cx="8" cy="8" fill="none" r="6" stroke="currentColor" strokeWidth="1.5" />

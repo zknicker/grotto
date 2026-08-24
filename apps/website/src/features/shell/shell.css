@@ -57,13 +57,11 @@
 
     /*
      * Native windows mute their chrome while unfocused; the renderer toggles
-     * window-blurred from main-process focus events. Dim the rail and sidebar
+     * window-blurred from main-process focus events. Dim the sidebar
      * contents only — content panes keep full contrast like native document
      * areas, and the sidebar's ::before titlebar band stays solid.
      */
-    html.macos-electron.window-blurred
-        :is(.app-rail, .app-shell [data-slot='sidebar'])
-        > * {
+    html.macos-electron.window-blurred .app-shell [data-slot='sidebar'] > * {
         opacity: 0.55;
     }
 
@@ -135,22 +133,6 @@
     }
 
     /*
-     * Desktop hoists the sidebar's header band into the titlebar so it sits
-     * beside the traffic lights instead of below them. It rides above the
-     * ::before band, which keeps painting the background and hairline.
-     */
-    html.macos-electron .app-shell-titlebar-slot {
-        position: absolute;
-        z-index: 2;
-        inset-block-start: 0;
-        inset-inline-start: var(--app-shell-traffic-light-gutter);
-        inset-inline-end: calc(var(--spacing) * 3);
-        display: flex;
-        height: var(--app-shell-titlebar-inset);
-        align-items: center;
-    }
-
-    /*
      * Keep HeroUI's sidebar panels full-height, then reserve a native titlebar
      * band inside them. Its hairline aligns with the shell topbar while its
      * background masks any panel edge behind the macOS traffic lights.
@@ -176,19 +158,6 @@
         [data-slot='sidebar'].sidebar--default::before {
         inset-inline-end: 1px;
     }
-
-    html.macos-electron .app-shell .app-rail::after {
-        position: absolute;
-        z-index: 2;
-        inset-block-start: 0;
-        inset-inline-end: -1px;
-        width: 2px;
-        height: var(--app-shell-titlebar-inset);
-        border-block-end: 1px solid var(--separator);
-        background: var(--background);
-        content: '';
-        pointer-events: none;
-    }
 }
 
 @layer components {
@@ -201,14 +170,4 @@
         transition: none;
     }
 
-    /*
-     * HeroUI fixes the collapsed sidebar width at 48px (declared on the aside
-     * itself) while pill height and rail padding scale with --spacing, so at
-     * non-default theme density the icon pills go non-square. Derive the width
-     * from the same spacing unit: 12 units - 2 * 1.5-unit rail padding =
-     * 9 units, matching the pill height.
-     */
-    .app-rail [data-slot='sidebar'] {
-        --sidebar-width-collapsed: calc(var(--spacing) * 12);
-    }
 }

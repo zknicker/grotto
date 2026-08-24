@@ -1,4 +1,9 @@
 import { cn } from '../../lib/utils.ts';
+
+// A literal size, not a spacing step: menus tighten their spacing scale, and
+// a status glyph should not shrink just because the row around it did.
+const glyphSize = 'size-[15px]';
+
 import type { TaskPriority } from './task-presentation.ts';
 
 // Bar heights for the Linear-style signal-strength glyph, tallest last.
@@ -31,7 +36,7 @@ export function TaskPriorityIcon({
         return (
             <svg
                 aria-hidden="true"
-                className={cn('shrink-0 text-[var(--label-orange-fg)]', className)}
+                className={cn(glyphSize, 'shrink-0 text-[var(--label-orange-fg)]', className)}
                 viewBox="0 0 16 16"
             >
                 <rect fill="currentColor" height="13" rx="3.5" width="13" x="1.5" y="1.5" />
@@ -51,7 +56,11 @@ export function TaskPriorityIcon({
 
     if (priority === 'none') {
         return (
-            <svg aria-hidden="true" className={cn('shrink-0', className)} viewBox="0 0 16 16">
+            <svg
+                aria-hidden="true"
+                className={cn(glyphSize, 'shrink-0', className)}
+                viewBox="0 0 16 16"
+            >
                 {[3.5, 8, 12.5].map((cx) => (
                     <circle cx={cx} cy="8" fill="currentColor" key={cx} opacity="0.45" r="1" />
                 ))}
@@ -62,7 +71,11 @@ export function TaskPriorityIcon({
     const filled = filledBars[priority];
 
     return (
-        <svg aria-hidden="true" className={cn('shrink-0', className)} viewBox="0 0 16 16">
+        <svg
+            aria-hidden="true"
+            className={cn(glyphSize, 'shrink-0', className)}
+            viewBox="0 0 16 16"
+        >
             {bars.map((bar, index) => (
                 <rect
                     fill="currentColor"

@@ -1,8 +1,9 @@
 name: Deploy Grotto Server
 
+# Manual only. Publishing a GitHub Release no longer deploys: a deploy is an
+# explicit act now that it resolves production credentials from 1Password and
+# renders the Server's delivered environment from the committed .env.schema.
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       version:
@@ -24,19 +25,20 @@ concurrency:
 jobs:
   deploy:
     name: Deploy published Grotto version
-    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')
     runs-on: [self-hosted, grotto]
+    timeout-minutes: 30
     permissions:
       contents: read
     env:
       GH_TOKEN: ${{ github.token }}
       GROTTO_DEPLOY_ROOT: /Users/zknicker/srv/grotto
+      PATH: /opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin
     steps:
       - name: Resolve published version
         working-directory: /Users/zknicker/srv/grotto
         env:
-          REQUESTED_MODE: ${{ github.event_name == 'release' && 'deploy' || inputs.mode }}
-          REQUESTED_VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.version }}
+          REQUESTED_MODE: ${{ inputs.mode }}
+          REQUESTED_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
 
@@ -85,11 +87,45 @@ jobs:
             echo "GROTTO_SOURCE_REVISION=${revision}"
           } >>"${GITHUB_ENV}"
 
-      - name: Verify private PostgreSQL
+      # The environment contract travels with the release, not with `main`: the
+      # workspace is checked out at the exact revision the published artifact
+      # was built from, so `.env.schema` and the render script always match the
+      # Server about to run.
+      - name: Check out the released revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.GROTTO_SOURCE_REVISION }}
+          persist-credentials: false
+
+      - name: Refuse a stray environment file
+        run: |
+          set -euo pipefail
+          # Varlock loads a checkout .env above .env.schema, and a `$` in any of
+          # its values is parsed as an expression — that combination took a
+          # sibling service down. Neither the workspace nor the deploy root may
+          # hold one.
+          for candidate in "${GITHUB_WORKSPACE}/.env" "${GROTTO_DEPLOY_ROOT}/.env"; do
+            if [[ -e "${candidate}" ]]; then
+              echo "${candidate} exists; the schema is the only source of production values." >&2
+              exit 1
+            fi
+          done
+
+      - name: Ensure private PostgreSQL
         run: |
           set -euo pipefail
           docker volume inspect grotto_postgres_data >/dev/null
-          test "$(docker inspect --format '{{.State.Health.Status}}' grotto-postgres)" = "healthy"
+          if [[ "$(docker inspect --format '{{.State.Health.Status}}' grotto-postgres 2>/dev/null || true)" == "healthy" ]]; then
+            echo "grotto-postgres is healthy; leaving the running container untouched."
+          else
+            # The admin password is interpolated by Compose from the value
+            # varlock resolved. No environment file is read or written.
+            bunx varlock@1.16.1 run -- \
+              docker compose -f apps/server/compose.yml -p grotto up -d --wait
+          fi
+        env:
+          VARLOCK_ENV: production
+          DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
 
       - name: Deploy downloaded release
         if: env.GROTTO_RELEASE_MODE == 'deploy'
@@ -146,16 +182,27 @@ jobs:
         run: |
           test -d "${GROTTO_DEPLOY_ROOT}/releases/${GROTTO_SOURCE_REVISION}"
 
+      # The delivered runtime copy. Rendered from .env.schema every deploy, so
+      # a renamed or removed value can never survive in production, and mode
+      # 0600 plus one ACL entry gives _grotto_server exactly the read it needs
+      # without any privileged helper.
+      - name: Render the Server environment
+        env:
+          VARLOCK_ENV: production
+          DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
+        run: |
+          set -euo pipefail
+          bunx varlock@1.16.1 run -- bun scripts/render-server-env.ts
+
       - name: Apply database migrations
         env:
-          GROTTO_DATABASE_BACKUP_ROLE: grotto_backup
-          GROTTO_DATABASE_MIGRATION_URL: ${{ secrets.GROTTO_DATABASE_MIGRATION_URL }}
-          GROTTO_DATABASE_RUNTIME_ROLE: grotto_runtime
+          VARLOCK_ENV: production
+          DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
         run: |
           set -euo pipefail
           migration_binary="${GROTTO_DEPLOY_ROOT}/releases/${GROTTO_SOURCE_REVISION}/bin/grotto-server-migrate"
           migration_result=""
-          if [[ -n "${GROTTO_DATABASE_MIGRATION_URL}" ]] && migration_result="$("${migration_binary}")"; then
+          if migration_result="$(bunx varlock@1.16.1 run -- "${migration_binary}")"; then
             echo "Database: ✅ ${migration_result}"
             {
               echo "### Database"
@@ -189,11 +236,7 @@ jobs:
           )"
           test "${health_status}" = "ok"
 
-      - name: Notify Discord
-        if: always()
-        continue-on-error: true
-        uses: merchbaseco/captainhook/.github/actions/deploy-notify@v1
-        with:
-          discord-webhook-url: ${{ secrets.DISCORD_DEPLOY_WEBHOOK_URL }}
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          job-status: ${{ job.status }}
+      # Names only: a delivered name the schema no longer declares is stale, and
+      # a production-required secret missing from delivery is a failure.
+      - name: Verify the delivered environment
+        run: bun scripts/verify-deployed-secrets.ts

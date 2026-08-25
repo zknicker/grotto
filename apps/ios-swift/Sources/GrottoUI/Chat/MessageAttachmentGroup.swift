@@ -138,8 +138,7 @@ public struct MessageAttachmentGroup: View {
         if attachment.isImage, let localURL = attachment.localURL {
             LocalAttachmentImage(url: localURL)
         } else {
-            Image(systemName: attachmentSymbol(attachment))
-                .font(.body)
+            GrottoIcon(attachmentIcon(attachment), size: 19, weight: 1.6)
                 .foregroundStyle(.secondary)
         }
     }
@@ -169,12 +168,12 @@ public struct MessageAttachmentGroup: View {
         return "\(kind.uppercased()) · \(size)"
     }
 
-    private func attachmentSymbol(_ attachment: MessageAttachmentPresentation) -> String {
-        if attachment.mediaType == "application/pdf" { return "doc.richtext" }
-        if attachment.mediaType.hasPrefix("video/") { return "video" }
-        if attachment.mediaType.hasPrefix("audio/") { return "waveform" }
-        if attachment.isImage { return "photo" }
-        return "doc"
+    private func attachmentIcon(_ attachment: MessageAttachmentPresentation) -> GrottoIconName {
+        if attachment.mediaType == "application/pdf" { return .pdf }
+        if attachment.mediaType.hasPrefix("video/") { return .video }
+        if attachment.mediaType.hasPrefix("audio/") { return .voice }
+        if attachment.isImage { return .image }
+        return .document
     }
 
     private var errorPresented: Binding<Bool> {

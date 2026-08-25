@@ -8,16 +8,16 @@ struct ServerDetailsView: View {
             VStack(alignment: .leading, spacing: 24) {
                 SettingsSection("Identity") {
                     SettingsListGroup {
-                        ValueRow("Name", value: server.name, systemImage: "server.rack")
-                        ValueRow("Address", value: "/\(server.slug)", systemImage: "globe")
-                        ValueRow("Your role", value: server.role, systemImage: "person.badge.key", showsDivider: false)
+                        ValueRow("Name", value: server.name, icon: .server)
+                        ValueRow("Address", value: "/\(server.slug)", icon: .website)
+                        ValueRow("Your role", value: server.role, icon: .permissions, showsDivider: false)
                     }
                 }
 
                 SettingsSection("People") {
                     SettingsListGroup {
-                        ValueRow("Agents", value: String(server.agentCount), systemImage: "cpu")
-                        ValueRow("Members", value: String(server.memberCount), systemImage: "person.2", showsDivider: false)
+                        ValueRow("Agents", value: String(server.agentCount), icon: .agents)
+                        ValueRow("Members", value: String(server.memberCount), icon: .members, showsDivider: false)
                     }
                 }
 
@@ -43,7 +43,7 @@ struct AppInfoView: View {
             VStack(alignment: .leading, spacing: 24) {
                 SettingsSection("About") {
                     SettingsListGroup {
-                        ValueRow("Version", value: AppVersionInfo.current, systemImage: "info.circle", showsDivider: false)
+                        ValueRow("Version", value: AppVersionInfo.current, icon: .info, showsDivider: false)
                     }
                 }
 
@@ -74,7 +74,7 @@ struct ServerPeopleView: View {
                         if members.isEmpty {
                             SettingsRow(
                                 title: "No members",
-                                systemImage: "person.2",
+                                icon: .members,
                                 showsDivider: false
                             ) {
                                 EmptyView()
@@ -177,7 +177,7 @@ struct ServerComputersView: View {
                                 subtitle: computers == nil
                                     ? "Grotto couldn’t load this Server’s Computers."
                                     : "No Computer has connected to this Server yet.",
-                                systemImage: "desktopcomputer",
+                                icon: .computer,
                                 showsDivider: false
                             ) {
                                 EmptyView()
@@ -216,11 +216,9 @@ private struct SettingsComputerRow: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 14) {
-                Image(systemName: "desktopcomputer")
-                    .font(.system(size: 19, weight: .medium))
+                GrottoIcon(.computer, size: 21, weight: 1.8)
                     .frame(width: 24)
                     .foregroundStyle(.primary)
-                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(computer.name)
@@ -262,6 +260,7 @@ struct SettingsUnavailableView: View {
     let title: String
 
     var body: some View {
+        // `ContentUnavailableView` is a system surface and takes an SF Symbol.
         ContentUnavailableView(
             title,
             systemImage: "questionmark.circle",

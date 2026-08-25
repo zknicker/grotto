@@ -43,17 +43,17 @@ struct SettingsHubView: View {
                         DisclosureRow(
                             "Server",
                             subtitle: data.server.name,
-                            systemImage: "server.rack",
+                            icon: .server,
                             action: { onNavigate(.server) }
                         )
                         DisclosureRow(
                             "People",
-                            systemImage: "person.2",
+                            icon: .members,
                             action: { onNavigate(.people) }
                         )
                         DisclosureRow(
                             "Computers",
-                            systemImage: "desktopcomputer",
+                            icon: .computer,
                             showsDivider: false,
                             action: { onNavigate(.computers) }
                         )
@@ -65,7 +65,7 @@ struct SettingsHubView: View {
                         PickerRow(
                             "Appearance",
                             value: appearance,
-                            systemImage: "sun.max",
+                            icon: .appearance,
                             options: AppearancePreference.allCases.map { ($0, $0.title) },
                             showsDivider: false,
                             onChange: { appearance = $0 }
@@ -78,7 +78,7 @@ struct SettingsHubView: View {
                         DisclosureRow(
                             "Grotto for iPhone",
                             subtitle: AppVersionInfo.current,
-                            systemImage: "info.circle",
+                            icon: .info,
                             showsDivider: false,
                             action: { onNavigate(.appInfo) }
                         )

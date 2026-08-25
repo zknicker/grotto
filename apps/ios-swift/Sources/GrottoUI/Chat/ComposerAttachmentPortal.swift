@@ -348,3 +348,4 @@ private struct PortalContentTransitionModifier: ViewModifier {
         content.opacity(opacity).blur(radius: blur)
     }
 }
+

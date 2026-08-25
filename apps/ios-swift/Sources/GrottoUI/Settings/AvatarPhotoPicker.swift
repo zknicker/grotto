@@ -167,8 +167,7 @@ public struct AvatarPhotoPicker: View {
                     ProgressView()
                         .controlSize(.small)
                 } else {
-                    Image(systemName: "camera")
-                        .font(.subheadline.weight(.semibold))
+                    GrottoIcon(.camera, size: 17, weight: 2)
                 }
             }
             .frame(width: 32, height: 32)
@@ -236,7 +235,10 @@ public struct AvatarPhotoPicker: View {
     }
 
     public var body: some View {
-        Label(label, systemImage: "camera")
+        HStack(spacing: 8) {
+            GrottoIcon(.camera, size: 17, weight: 1.8)
+            Text(label)
+        }
             .foregroundStyle(.secondary)
             .accessibilityHint("Photo selection is available on iPhone")
     }

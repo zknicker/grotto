@@ -41,7 +41,7 @@ struct HumanProfileView: View {
 
                 SettingsSection("Identity") {
                     SettingsListGroup {
-                        SettingsRow(title: "Name", systemImage: "person", showsDivider: true) {
+                        SettingsRow(title: "Name", icon: .account, showsDivider: true) {
                             TextField("Name", text: $name)
                                 .font(.body)
                                 .multilineTextAlignment(.trailing)
@@ -50,7 +50,7 @@ struct HumanProfileView: View {
                                 .onSubmit { Task { await saveIdentity() } }
                                 .accessibilityLabel("Name")
                         }
-                        SettingsRow(title: "Handle", systemImage: "at", showsDivider: true) {
+                        SettingsRow(title: "Handle", icon: .handle, showsDivider: true) {
                             TextField("handle", text: $handle)
                                 .font(.body)
                                 .multilineTextAlignment(.trailing)
@@ -62,7 +62,7 @@ struct HumanProfileView: View {
                         DisclosureRow(
                             "Description",
                             subtitle: person.description.isEmpty ? "No description yet." : person.description,
-                            systemImage: "text.alignleft",
+                            icon: .description,
                             showsDivider: false,
                             action: {
                                 onEditDescription(person.id, "Description")
@@ -73,9 +73,9 @@ struct HumanProfileView: View {
 
                 SettingsSection("Account") {
                     SettingsListGroup {
-                        ValueRow("Email", value: person.email ?? "Unavailable", systemImage: "envelope")
-                        ValueRow("Role", value: person.role, systemImage: "person.badge.key")
-                        ValueRow("Joined", value: person.joined.isEmpty ? "Unavailable" : person.joined, systemImage: "calendar", showsDivider: false)
+                        ValueRow("Email", value: person.email ?? "Unavailable", icon: .email)
+                        ValueRow("Role", value: person.role, icon: .permissions)
+                        ValueRow("Joined", value: person.joined.isEmpty ? "Unavailable" : person.joined, icon: .calendar, showsDivider: false)
                     }
                 }
 
@@ -192,7 +192,7 @@ struct AgentProfileView: View {
 
                 SettingsSection("Identity") {
                     SettingsListGroup {
-                        SettingsRow(title: "Name", systemImage: "person", showsDivider: true) {
+                        SettingsRow(title: "Name", icon: .account, showsDivider: true) {
                             TextField("Name", text: $name)
                                 .font(.body)
                                 .multilineTextAlignment(.trailing)
@@ -204,7 +204,7 @@ struct AgentProfileView: View {
                         DisclosureRow(
                             "Description",
                             subtitle: agent.description.isEmpty ? "No description yet." : agent.description,
-                            systemImage: "text.alignleft",
+                            icon: .description,
                             showsDivider: false,
                             action: {
                                 onEditDescription(agent.id, "Description")
@@ -215,16 +215,16 @@ struct AgentProfileView: View {
 
                 SettingsSection("Details") {
                     SettingsListGroup {
-                        ValueRow("Handle", value: "@\(agent.handle)", systemImage: "at")
-                        ValueRow("Role", value: agent.role, systemImage: "person.badge.key", showsDivider: false)
+                        ValueRow("Handle", value: "@\(agent.handle)", icon: .handle)
+                        ValueRow("Role", value: agent.role, icon: .permissions, showsDivider: false)
                     }
                 }
 
                 SettingsSection("Execution") {
                     SettingsListGroup {
-                        ValueRow("Runtime", value: agent.runtime, systemImage: "terminal")
-                        ValueRow("Model", value: agent.model, systemImage: "cpu")
-                        ValueRow("Status", value: agent.status, systemImage: "gearshape", showsDivider: false)
+                        ValueRow("Runtime", value: agent.runtime, icon: .terminal)
+                        ValueRow("Model", value: agent.model, icon: .agents)
+                        ValueRow("Status", value: agent.status, icon: .settings, showsDivider: false)
                     }
                 }
 

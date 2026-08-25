@@ -178,8 +178,7 @@ public struct MessageComposerView: View {
                 .fill(canSend ? GrottoPlatformColor.label : GrottoPlatformColor.disabledControlFill)
                 .frame(width: 34, height: 34)
                 .overlay {
-                    Image(systemName: "arrow.up")
-                        .font(.body.weight(.bold))
+                    GrottoIcon(.send, size: 19, weight: 2.4)
                         .foregroundStyle(GrottoPlatformColor.background)
                 }
                 .compositingGroup()
@@ -196,8 +195,7 @@ public struct MessageComposerView: View {
                 interaction.overlay = interaction.overlay == nil ? .sources : nil
             }
         } label: {
-            Image(systemName: "plus")
-                .font(.title3.weight(.regular))
+            GrottoIcon(.plus, size: 21, weight: 1.8)
                 .frame(width: 32, height: 32)
                 .contentShape(.circle)
         }

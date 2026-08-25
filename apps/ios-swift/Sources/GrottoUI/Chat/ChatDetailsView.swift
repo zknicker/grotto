@@ -84,7 +84,7 @@ public struct ChatDetailsView: View {
             case .loaded(let events):
                 ForEach(events) { event in
                     HStack(spacing: 12) {
-                        Image(systemName: event.state.systemImage)
+                        activityMark(event.state)
                             .foregroundStyle(event.state.color)
                             .frame(width: 22)
                         Text(event.title)
@@ -205,12 +205,22 @@ private enum ActivityHistoryState {
     case failed
 }
 
+/// Work still running reads as a live dot; a settled state names itself.
+@ViewBuilder
+private func activityMark(_ state: AgentActivityState) -> some View {
+    if let icon = state.icon {
+        GrottoIcon(icon, size: 18, weight: 1.8)
+    } else {
+        Circle().frame(width: 9, height: 9)
+    }
+}
+
 private extension AgentActivityState {
-    var systemImage: String {
+    var icon: GrottoIconName? {
         switch self {
-        case .active: "circle.fill"
-        case .completed: "checkmark.circle"
-        case .failed: "exclamationmark.circle"
+        case .active: nil
+        case .completed: .complete
+        case .failed: .alert
         }
     }
 

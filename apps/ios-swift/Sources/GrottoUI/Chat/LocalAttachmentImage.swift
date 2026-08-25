@@ -15,7 +15,7 @@ struct LocalAttachmentImage: View {
                 .resizable()
                 .scaledToFill()
         } else {
-            Image(systemName: "photo")
+            GrottoIcon(.image, size: 19, weight: 1.6)
                 .foregroundStyle(.secondary)
         }
     }

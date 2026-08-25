@@ -82,8 +82,7 @@ struct CameraCaptureView: View {
                     Label("Switch camera", systemImage: "arrow.triangle.2.circlepath.camera")
                 }
             } label: {
-                Image(systemName: "ellipsis")
-                    .font(.title3.weight(.medium))
+                GrottoIcon(.more, size: 22, weight: 2)
                     .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
                     .background(.ultraThinMaterial, in: .circle)

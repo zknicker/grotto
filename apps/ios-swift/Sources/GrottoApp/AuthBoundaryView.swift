@@ -136,7 +136,7 @@ private struct SignInView: View {
             Button(action: signIn) {
                 HStack(spacing: 10) {
                     if isSigningIn { ProgressView().controlSize(.small) }
-                    Image(systemName: "person.crop.circle.badge.checkmark")
+                    GrottoIcon(.identity, size: 20, weight: 1.8)
                     Text("Continue with Google")
                 }
                 .frame(maxWidth: .infinity)

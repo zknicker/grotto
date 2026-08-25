@@ -14,9 +14,9 @@ struct ComposerSourceMenu: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            sourceRow(.camera, title: "Camera", systemImage: "camera", action: onCamera)
-            sourceRow(.photos, title: "Photos", systemImage: "photo.on.rectangle", action: onPhotos)
-            sourceRow(.files, title: "Files", systemImage: "paperclip", action: onFiles)
+            sourceRow(.camera, title: "Camera", icon: .camera, action: onCamera)
+            sourceRow(.photos, title: "Photos", icon: .media, action: onPhotos)
+            sourceRow(.files, title: "Files", icon: .attachment, action: onFiles)
         }
         .padding(.vertical, 6)
         .foregroundStyle(.primary)
@@ -25,12 +25,12 @@ struct ComposerSourceMenu: View {
     private func sourceRow(
         _ source: ComposerSource,
         title: String,
-        systemImage: String,
+        icon: GrottoIconName,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             HStack(spacing: 16) {
-                sourceIcon(systemImage)
+                sourceIcon(icon)
                 Text(title).font(.title3)
                 Spacer()
             }
@@ -43,15 +43,13 @@ struct ComposerSourceMenu: View {
     }
 
     @ViewBuilder
-    private func sourceIcon(_ systemImage: String) -> some View {
+    private func sourceIcon(_ icon: GrottoIconName) -> some View {
         if #available(iOS 26, macOS 26, *) {
-            Image(systemName: systemImage)
-                .font(.title3.weight(.medium))
+            GrottoIcon(icon, size: 22, weight: 1.8)
                 .frame(width: 44, height: 44)
                 .glassEffect(.regular.interactive(), in: .circle)
         } else {
-            Image(systemName: systemImage)
-                .font(.title3.weight(.medium))
+            GrottoIcon(icon, size: 22, weight: 1.8)
                 .frame(width: 44, height: 44)
                 .background(.primary.opacity(0.055), in: .circle)
         }

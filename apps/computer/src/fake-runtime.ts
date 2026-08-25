@@ -26,13 +26,9 @@ async function main(): Promise<number> {
 }
 
 function readLatestHumanMessage(prompt: string): { content: string; target: string } | null {
-    const matches = [
-        ...prompt.matchAll(/\[target=(\S+)[^\]]*type=human\]\s*@[^:]+:\s*(.*)/gu),
-    ];
+    const matches = [...prompt.matchAll(/\[target=(\S+)[^\]]*type=human\]\s*@[^:]+:\s*(.*)/gu)];
     const latest = matches.at(-1);
-    return latest?.[1] && latest[2]
-        ? { content: latest[2].trim(), target: latest[1] }
-        : null;
+    return latest?.[1] && latest[2] ? { content: latest[2].trim(), target: latest[1] } : null;
 }
 
 if (import.meta.main) {

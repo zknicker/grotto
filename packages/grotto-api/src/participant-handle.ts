@@ -32,7 +32,11 @@ export type ParticipantHandle = z.infer<typeof participantHandleSchema>;
 
 /** Best-effort profile-derived seed; authoritative claims still happen in PostgreSQL. */
 export function suggestParticipantHandle(...sources: Array<null | string | undefined>): string {
-    const source = sources.find((candidate) => candidate?.trim())?.trim().toLowerCase() ?? '';
+    const source =
+        sources
+            .find((candidate) => candidate?.trim())
+            ?.trim()
+            .toLowerCase() ?? '';
     const base = source
         .replace(/[^a-z0-9]+/gu, '-')
         .replace(/^-+|-+$/gu, '')

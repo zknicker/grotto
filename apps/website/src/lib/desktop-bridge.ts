@@ -52,12 +52,27 @@ export interface GrottoDesktopBridge {
     startWindowDrag: () => Promise<void>;
 }
 
+/**
+ * The desktop shell and this App ship on two independent channels — the shell
+ * through the S3 release feed, the App through the hosted Server — so a running
+ * shell is routinely a different version from the App it loads. The global the
+ * preload injects is therefore a production compatibility contract, and reading
+ * it has to stay tolerant in both directions: accept the pre-Grotto
+ * `tavernDesktop` so an older installed shell is still recognised. Without that,
+ * every shell predating the Grotto rename looks like an ordinary browser tab and
+ * silently falls back to a sign-in flow that cannot complete inside Electron.
+ * Retire the fallback only once no supported shell exposes the old name.
+ */
+export function resolveDesktopBridge(host: Partial<Window> | undefined | null) {
+    return host?.grottoDesktop ?? host?.tavernDesktop ?? null;
+}
+
 export function getDesktopBridge() {
     if (typeof window === 'undefined') {
         return null;
     }
 
-    return window.grottoDesktop ?? null;
+    return resolveDesktopBridge(window);
 }
 
 export function isElectronDesktopApp() {

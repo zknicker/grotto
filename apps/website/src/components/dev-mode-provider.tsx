@@ -1,4 +1,5 @@
 import { createContext, type PropsWithChildren, useContext, useEffect, useState } from 'react';
+import { getDesktopBridge } from '../lib/desktop-bridge.ts';
 
 /**
  * Dev mode reveals runtime internals in the UI — currently the raw prompt an
@@ -30,7 +31,9 @@ export function DevModeProvider({ children }: PropsWithChildren) {
     };
 
     useEffect(() => {
-        const unsubscribe = window.grottoDesktop?.onDevModeToggle?.(() => {
+        // Through the bridge accessor, never `window` directly: the injected
+        // global's name is a cross-version contract with the desktop shell.
+        const unsubscribe = getDesktopBridge()?.onDevModeToggle?.(() => {
             setDevModeState((current) => {
                 const next = !current;
                 window.localStorage.setItem(storageKey, next ? 'on' : 'off');

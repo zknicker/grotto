@@ -72,7 +72,9 @@ test('promotes a published Grotto version only on an explicit dispatch', () => {
         job.steps.find((step) => step.name === 'Verify installed release')?.run ?? '';
     const migrationStep = job.steps.find((step) => step.name === 'Apply database migrations');
     const renderStep = job.steps.find((step) => step.name === 'Render the Server environment');
-    const checkoutStep = job.steps.find((step) => step.name === 'Check out the released revision');
+    const checkoutStep = job.steps.find(
+        (step) => step.name === 'Check out the environment contract'
+    );
     expect(job['runs-on']).toEqual(['self-hosted', 'grotto']);
     expect(job.permissions).toEqual({ contents: 'read' });
     expect(source).toContain('/Users/zknicker/srv/grotto');
@@ -96,11 +98,16 @@ test('promotes a published Grotto version only on an explicit dispatch', () => {
     ].join('');
     expect(verifyCommands).toContain(installedReleasePath);
 
-    // The environment contract travels with the release: the workspace is
-    // checked out at the exact revision the artifact was built from, so
-    // .env.schema always matches the Server about to run.
+    // The environment contract travels with the repository, not the artifact.
+    // Checking out the released revision instead would make the first varlock
+    // deploy impossible — that release predates the schema — and would break
+    // every rollback to one. The checkout takes the workflow's own revision,
+    // with full history so the render step can read the released revision's
+    // Server environment module and prove the two contracts agree.
     expect(checkoutStep?.uses).toBe('actions/checkout@v4');
-    expect(checkoutStep?.with?.ref).toBe(['$', '{{ env.GROTTO_SOURCE_REVISION }}'].join(''));
+    expect(checkoutStep?.with?.ref).toBeUndefined();
+    expect(checkoutStep?.with?.['fetch-depth']).toBe(0);
+    expect(renderStep?.run).toContain('--source-revision');
 
     // Every production value resolves from the schema. The only platform-held
     // secret is the deploy agent's bootstrap token, and it fills the schema's

@@ -40,8 +40,10 @@ The self-hosted `Deploy Grotto Server` workflow:
    only the compiled deploy operation, and uses it to verify and install the
    immutable full-SHA release; `activate` verifies the installed release and
    skips asset download and installation
-7. renders `config/server.env` from the released revision's `.env.schema` under
-   `varlock run`, mode `0600` plus one ACL entry granting `_grotto_server` read
+7. renders `config/server.env` from the workflow revision's `.env.schema` under
+   `varlock run`, mode `0600` plus one ACL entry granting `_grotto_server` read,
+   after proving the released Server reads exactly the names that contract
+   delivers
 8. runs the candidate's migration program under `varlock run`, with the
    migration credential resolved from 1Password, and records the exact
    successful migrations in the job summary
@@ -79,6 +81,31 @@ outer checksum before extracting or executing the deploy operation, which then
 verifies the internal manifest and release identity before atomic installation.
 A manual `activate` never downloads, rebuilds, or reinterprets an artifact.
 Urgent production changes require a patch release.
+
+## Where the contract comes from
+
+The environment contract travels with the repository, not with the artifact.
+The deploy job checks out its **own** revision — not the released one — with
+full history, and renders `config/server.env` from that `.env.schema`.
+
+That is not a convenience. The release being deployed may predate the contract
+entirely: the first varlock deploy necessarily promotes a version built before
+`.env.schema` existed, and so does every rollback to one. A job that took its
+contract from the artifact could never run the first time.
+
+The cost is that the two revisions can disagree, and a silent disagreement is
+worse than a failed deploy: a Server that cannot find `GROTTO_CLERK_SECRET_KEY`
+because it was built when the name was `CLERK_SECRET_KEY` does not crash — it
+falls back to its own defaults and serves production without a Clerk secret and
+against the wrong database. So the render step reads the released revision's own
+`apps/server/src/config/env.ts` out of git history and refuses to render unless
+the name sets match exactly, naming both sides of the drift when they do not.
+Post-bootstrap the two revisions normally agree and the check is a no-op.
+
+A release whose Server reads a different name set than the current contract
+delivers cannot be deployed through this path. Cut a release from a revision
+whose contract matches, or place `config/server.env` by hand before activating
+that release.
 
 ## Host and container ownership
 

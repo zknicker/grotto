@@ -11,6 +11,11 @@
  *
  * It writes exactly the names the Server's typed env module validates, and
  * nothing else. It never prints a value.
+ *
+ * The contract travels with the repository, not with the artifact: this runs
+ * from a checkout of the workflow's own revision, because the release being
+ * deployed may predate the contract entirely. `--source-revision` names the
+ * released commit so the two can be compared — see `assertContractsAgree`.
  */
 import { execFileSync } from 'node:child_process';
 import { chmodSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
@@ -21,15 +26,84 @@ import { deliverableNames, readSchemaItems } from './lib/env-schema.ts';
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
 const defaultTarget = '/Users/zknicker/srv/grotto/config/server.env';
 const serviceUser = '_grotto_server';
+const serverEnvModulePath = 'apps/server/src/config/env.ts';
 
-function serverEnvironmentNames(): string[] {
-    const module = readFileSync(join(repositoryRoot, 'apps/server/src/config/env.ts'), 'utf8');
-    const body = module.slice(module.indexOf('const envSchema'));
+/** The names a Server built from this module source validates at startup. */
+export function serverEnvironmentNames(moduleSource: string): string[] {
+    const body = moduleSource.slice(moduleSource.indexOf('const envSchema'));
     return [...body.matchAll(/^ {8}([A-Z][A-Z0-9_]*):/gmu)].map((match) => match[1]);
 }
 
-function shellQuote(value: string) {
+export function shellQuote(value: string) {
     return `'${value.replaceAll("'", `'\\''`)}'`;
+}
+
+function readWorkingTreeEnvModule() {
+    return readFileSync(join(repositoryRoot, serverEnvModulePath), 'utf8');
+}
+
+function readReleasedEnvModule(revision: string) {
+    try {
+        return execFileSync('git', ['show', `${revision}:${serverEnvModulePath}`], {
+            cwd: repositoryRoot,
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'pipe'],
+        });
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * The delivered file is read by the Server from the *released* artifact, while
+ * the values come from the contract in *this* checkout. Normally those two
+ * revisions agree and this is a no-op. When they do not — a release cut before
+ * a rename, or before the contract existed at all — delivering this checkout's
+ * names would leave the running Server falling back to its own defaults for
+ * every value it cannot find, silently and in production. Fail before
+ * activation instead.
+ */
+export function assertContractsAgree(released: string[], current: string[], revision: string) {
+    const releasedSet = new Set(released);
+    const currentSet = new Set(current);
+    const missing = current.filter((name) => !releasedSet.has(name));
+    const extra = released.filter((name) => !currentSet.has(name));
+
+    if (missing.length === 0 && extra.length === 0) {
+        return;
+    }
+
+    const detail = [
+        missing.length > 0 &&
+            `this checkout delivers ${missing.join(', ')}, which it does not read`,
+        extra.length > 0 && `it reads ${extra.join(', ')}, which this checkout does not deliver`,
+    ]
+        .filter(Boolean)
+        .join('; ');
+
+    throw new Error(
+        `The Server released at ${revision.slice(0, 12)} does not share this revision's environment contract: ${detail}. ` +
+            'Deploy a release built from a revision whose Server environment matches the contract, ' +
+            'or restore config/server.env by hand before activating that release.'
+    );
+}
+
+function parseArguments(args: string[]) {
+    let target = defaultTarget;
+    let sourceRevision: string | null = null;
+
+    for (let index = 0; index < args.length; index += 1) {
+        const value = args[index + 1];
+        if (args[index] === '--target' && value) {
+            target = value;
+            index += 1;
+        } else if (args[index] === '--source-revision' && value) {
+            sourceRevision = value;
+            index += 1;
+        }
+    }
+
+    return { sourceRevision, target };
 }
 
 function main() {
@@ -37,14 +111,25 @@ function main() {
         throw new Error('render-server-env must run under VARLOCK_ENV=production.');
     }
 
-    const target = process.argv[2] ?? defaultTarget;
+    const { sourceRevision, target } = parseArguments(process.argv.slice(2));
     const deliverable = deliverableNames(readSchemaItems(join(repositoryRoot, '.env.schema')));
-    const names = serverEnvironmentNames();
+    const names = serverEnvironmentNames(readWorkingTreeEnvModule());
 
     if (names.length === 0) {
         throw new Error(
             'No names were extracted from the Server typed env module; refusing to render an empty environment.'
         );
+    }
+
+    if (sourceRevision) {
+        const releasedModule = readReleasedEnvModule(sourceRevision);
+        if (releasedModule === null) {
+            throw new Error(
+                `Could not read ${serverEnvModulePath} at ${sourceRevision.slice(0, 12)}. ` +
+                    'The deploy checkout needs full history (fetch-depth: 0) to compare the released contract.'
+            );
+        }
+        assertContractsAgree(serverEnvironmentNames(releasedModule), names, sourceRevision);
     }
 
     const unknown = names.filter((name) => !deliverable.has(name));
@@ -92,4 +177,4 @@ if (import.meta.main) {
     main();
 }
 
-export { serverEnvironmentNames, shellQuote };
+export { readWorkingTreeEnvModule };

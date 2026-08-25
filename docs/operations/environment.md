@@ -105,7 +105,10 @@ The hosted Server never invokes Varlock. `config/server.env` is the delivered
 runtime copy, rendered fresh on every deploy by
 `scripts/render-server-env.ts` from exactly the names the Server's typed env
 module validates, then read back names-only by
-`scripts/verify-deployed-secrets.ts`. A launchd job stores a command line, so
+`scripts/verify-deployed-secrets.ts`. The contract comes from the deploy
+workflow's own revision rather than the released artifact — see
+[the deployment doc](grotto-server-deploy.md#where-the-contract-comes-from) for
+why, and for the guard that keeps the two from drifting apart silently. A launchd job stores a command line, so
 `run-server` invokes the Server binary directly — a job that re-entered Varlock
 would resolve the schema again at boot, under the development lifecycle.
 

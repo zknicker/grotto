@@ -87,14 +87,21 @@ jobs:
             echo "GROTTO_SOURCE_REVISION=${revision}"
           } >>"${GITHUB_ENV}"
 
-      # The environment contract travels with the release, not with `main`: the
-      # workspace is checked out at the exact revision the published artifact
-      # was built from, so `.env.schema` and the render script always match the
-      # Server about to run.
-      - name: Check out the released revision
+      # The environment contract travels with the repository, not with the
+      # artifact. This checks out the workflow's own revision, because the
+      # release being deployed may predate the contract entirely — that is
+      # exactly the bootstrap case, and it is what makes deploying (or rolling
+      # back to) a pre-migration release possible at all. Post-bootstrap the two
+      # revisions normally agree, and the render step proves it rather than
+      # assuming it. Full history so it can read the released revision's own
+      # Server environment module for that comparison.
+      #
+      # The artifact itself needs no checkout: it is downloaded by tag, verified
+      # against its published checksum, and carries its own deploy operation.
+      - name: Check out the environment contract
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.GROTTO_SOURCE_REVISION }}
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Refuse a stray environment file
@@ -192,7 +199,8 @@ jobs:
           DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
         run: |
           set -euo pipefail
-          bunx varlock@1.16.1 run -- bun scripts/render-server-env.ts
+          bunx varlock@1.16.1 run -- bun scripts/render-server-env.ts \
+            --source-revision "${GROTTO_SOURCE_REVISION}"
 
       - name: Apply database migrations
         env:

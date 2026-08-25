@@ -2,28 +2,29 @@ import type { IconSvgElement } from '@hugeicons/react';
 import {
     AiBrain01Icon,
     BrowserIcon,
-    PaintBrush03Icon,
     Plug01Icon,
+    PreferenceHorizontalIcon,
     ServerStack01Icon,
-    SystemUpdate01Icon,
     UserCircleIcon,
+    UserMultipleIcon,
     ZapIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import { appRoutes } from '../../../lib/app-routes.ts';
 
+/**
+ * Settings splits on who a setting belongs to, not on what feature it came
+ * from. Three groups, in order of how close the subject is to the reader:
+ *
+ *   Account — you, and this device.
+ *   Server  — this Server and who is in it.
+ *   Agents  — what the Agents on it can reach.
+ *
+ * One flat "General" list mixed all three: Appearance (a device preference)
+ * sat between Server (administration) and Profile (identity), and the four
+ * pages that are really one subject — what an Agent can do — were scattered
+ * through it.
+ */
 export const staticSettingsNavItems = [
-    {
-        icon: ServerStack01Icon,
-        id: 'server',
-        label: 'Server',
-        to: appRoutes.settings,
-    },
-    {
-        icon: PaintBrush03Icon,
-        id: 'appearance',
-        label: 'Appearance',
-        to: appRoutes.settingsAppearance,
-    },
     {
         icon: UserCircleIcon,
         id: 'profile',
@@ -31,10 +32,28 @@ export const staticSettingsNavItems = [
         to: appRoutes.settingsProfile,
     },
     {
-        icon: SystemUpdate01Icon,
-        id: 'updates',
-        label: 'Updates',
-        to: appRoutes.settingsUpdates,
+        icon: PreferenceHorizontalIcon,
+        id: 'preferences',
+        label: 'Preferences',
+        to: appRoutes.settingsPreferences,
+    },
+    {
+        icon: ServerStack01Icon,
+        id: 'server',
+        label: 'General',
+        to: appRoutes.settings,
+    },
+    {
+        icon: UserMultipleIcon,
+        id: 'members',
+        label: 'Members',
+        to: appRoutes.settingsMembers,
+    },
+    {
+        icon: Plug01Icon,
+        id: 'connections',
+        label: 'Connections',
+        to: appRoutes.settingsConnections,
     },
     {
         icon: AiBrain01Icon,
@@ -47,12 +66,6 @@ export const staticSettingsNavItems = [
         id: 'skills',
         label: 'Skills',
         to: appRoutes.settingsSkills,
-    },
-    {
-        icon: Plug01Icon,
-        id: 'connections',
-        label: 'Connections',
-        to: appRoutes.settingsConnections,
     },
     {
         icon: BrowserIcon,
@@ -69,20 +82,25 @@ export const staticSettingsNavItems = [
 
 export const settingsNavItems = staticSettingsNavItems;
 
+/**
+ * Computers is its own section because its rows come from the roster rather
+ * than from this list; the sidebar renders it after these.
+ */
 export const settingsNavSections = [
     {
-        id: 'general',
-        itemIds: [
-            'server',
-            'appearance',
-            'profile',
-            'updates',
-            'models',
-            'skills',
-            'connections',
-            'browser',
-        ],
-        label: 'General',
+        id: 'account',
+        itemIds: ['profile', 'preferences'],
+        label: 'Account',
+    },
+    {
+        id: 'server',
+        itemIds: ['server', 'members'],
+        label: 'Server',
+    },
+    {
+        id: 'agents',
+        itemIds: ['connections', 'models', 'skills', 'browser'],
+        label: 'Agents',
     },
 ] as const;
 

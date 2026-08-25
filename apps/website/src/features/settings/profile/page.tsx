@@ -1,6 +1,6 @@
 import type { ServerMember } from '@grotto/api/membership';
 import { participantHandleSchema, suggestParticipantHandle } from '@grotto/api/participant-handle';
-import { Input, Separator, TextField } from '@heroui/react';
+import { Button, Input, Separator, TextField } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import { useHumanAvatar } from '../../../hooks/members/use-human-avatar.ts';
@@ -8,6 +8,8 @@ import { useHumanIdentity } from '../../../hooks/members/use-human-identity.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';
 import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
 import { humanDisplayName } from '../../servers/human-identity.ts';
+import { isClerkEnabled } from '../../../lib/clerk.tsx';
+import { useSignOut } from '../../auth/use-sign-out.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page.tsx';
 import { SettingsRowError } from '../layout/settings-text.tsx';
@@ -21,7 +23,10 @@ export function ProfileSettings({ serverId }: { serverId: string }) {
     if (!viewer) {
         return (
             <PageColumn>
-                <SettingsPageHeader title="Profile" />
+                <SettingsPageHeader
+                    description="How you appear to the people and Agents you work with."
+                    title="Profile"
+                />
             </PageColumn>
         );
     }
@@ -76,7 +81,10 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
 
     return (
         <PageColumn>
-            <SettingsPageHeader title="Profile" />
+            <SettingsPageHeader
+                description="How you appear to the people and Agents you work with."
+                title="Profile"
+            />
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Identity</ItemCardGroup.Title>
@@ -172,6 +180,44 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
                     </ItemCard>
                 </ItemCardGroup>
             </ItemCardGroup>
+            <AccountSection />
         </PageColumn>
+    );
+}
+
+/**
+ * Ending the session, which the product previously offered nowhere: the only
+ * two sign-out calls were a broken-session recovery gate and the Computer
+ * pairing screen, neither of which a signed-in reader can reach on purpose.
+ */
+function AccountSection() {
+    const signOut = useSignOut();
+
+    if (!isClerkEnabled) {
+        return null;
+    }
+
+    return (
+        <ItemCardGroup variant="transparent">
+            <ItemCardGroup.Header>
+                <ItemCardGroup.Title>Account</ItemCardGroup.Title>
+            </ItemCardGroup.Header>
+            <ItemCardGroup className="overflow-hidden">
+                <ItemCard>
+                    <ItemCard.Content>
+                        <ItemCard.Title>Sign Out</ItemCard.Title>
+                        <ItemCard.Description>
+                            Ends this session on this device. Your Servers and Agents are
+                            unaffected.
+                        </ItemCard.Description>
+                    </ItemCard.Content>
+                    <ItemCard.Action>
+                        <Button onPress={signOut} size="sm" variant="secondary">
+                            Sign Out
+                        </Button>
+                    </ItemCard.Action>
+                </ItemCard>
+            </ItemCardGroup>
+        </ItemCardGroup>
     );
 }

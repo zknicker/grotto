@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { getUpdateStatusMessage } from './page.tsx';
+import { getUpdateStatusMessage } from './update-status.tsx';
 
 describe('update settings status message', () => {
     test('hides idle status before the user checks for updates', () => {

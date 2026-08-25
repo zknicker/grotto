@@ -14,9 +14,9 @@ export const appRoutes = {
     },
 
     settings: '/settings',
-    settingsAppearance: '/settings/appearance',
+    settingsPreferences: '/settings/preferences',
     settingsProfile: '/settings/profile',
-    settingsUpdates: '/settings/updates',
+    settingsMembers: '/settings/members',
     settingsSkills: '/settings/skills',
     settingsBrowser: '/settings/browser',
     settingsConnections: '/settings/connections',

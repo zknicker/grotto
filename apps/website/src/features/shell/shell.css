@@ -9,6 +9,7 @@
          * that side cannot read the theme's density.
          */
         --app-shell-band-height: 3rem;
+        --cursor-interactive: default;
     }
 
     html.macos-electron,
@@ -41,17 +42,13 @@
     }
 
     /*
-     * Native macOS cursor convention: controls keep the arrow cursor and only
+     * Desktop cursor convention: controls keep the arrow cursor and only
      * hyperlinks get the pointer. HeroUI routes every interactive cursor
-     * through this token (defined in its theme layer, so this later-layer
-     * override wins); product code should use cursor-(--cursor-interactive)
-     * instead of cursor-pointer so it follows the platform too.
+     * through this token; product code should use
+     * cursor-(--cursor-interactive) instead of cursor-pointer so the browser
+     * and Electron surfaces stay consistent.
      */
-    html.macos-electron {
-        --cursor-interactive: default;
-    }
-
-    html.macos-electron a[href] {
+    a[href] {
         --cursor-interactive: pointer;
     }
 

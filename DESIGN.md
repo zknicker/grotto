@@ -419,6 +419,9 @@ Two rules that are easy to get wrong:
 
 ## Components
 - **Buttons:** Use HeroUI Button semantic variants. Primary actions use `variant="primary"`; alternatives use `secondary`, `tertiary`, `outline`, or `ghost`; destructive actions use `danger` or `danger-soft`.
+- **Cursors:** Keep the desktop arrow on buttons and other app controls. Reserve the pointer for
+  true hyperlinks and specialized cursors for an active manipulation such as dragging or resizing;
+  use `--cursor-interactive` instead of a call-site `cursor-pointer` utility.
 - **Cards and surfaces:** Use HeroUI Card, Surface, overlays, and `bg-surface` tokens. Do not add extra custom shadows to components that already include surface elevation. For surfaces nested inside a turn, drawer, or pane — where Card's padding and shadow fight the layout — use `InlineCard` or the `.card-shell` class so the shell step stays in one place. Component
   overrides like these live in the `@layer components` block of `default-theme.css`, which is
   the shape HeroUI's own theme exports take — variables and BEM overrides in one file.

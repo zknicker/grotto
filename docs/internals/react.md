@@ -124,7 +124,27 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   second by `lib/heroui-composition-contract.test.ts`. Neither sees a `className`
   built through `cn()` or a variable, so read the component's anatomy before
   reaching for a wrapper.
-* Settings-style surfaces compose stock Pro parts, not a local row kit. A
+* Settings groups by *who a setting belongs to*, not by which feature shipped
+  it: **Account** (you and this device), **Server** (this Server and who is in
+  it), **Agents** (what Agents can reach), then the roster-driven **Computers**.
+  `features/settings/layout/navigation.ts` is the source of that grouping and
+  `navigation.test.ts` guards it. A new section joins one of those three or
+  argues for a fourth — it does not go in a flat list. A setting whose subject
+  is you belongs in Account even when it is reached through a Server-scoped URL
+  (Settings is mounted under `/s/:slug`, so device and user settings repeat per
+  Server; that is a known wart, not a licence to file them under Server).
+* A preference is a row with a control, not a page. Theme is a `Select` in
+  Preferences, not three window mockups on a route of its own — a value with
+  three options does not earn a destination, and it has to survive that list
+  growing. Give a preference its own page only when it has state to show beyond
+  its own value.
+* Settings-style surfaces compose stock Pro parts, not a local row kit — the
+  `SettingsSection`/`SettingsGroup`/`SettingsItem` kit that used to sit in
+  `features/settings/layout/` is gone, and `settings-page-header.tsx` now holds
+  only `SettingsPageHeader`. That kit was a parallel implementation of
+  `ItemCardGroup`/`ItemCard` and drifted from them on heading size, row padding,
+  and left edge; every surface it served (agent profile, human directory,
+  created agents) is stock now. Do not reintroduce one. A
   section is `ItemCardGroup variant="transparent"` with `Header`/`Title`; a row
   is `ItemCard` with `Content`/`Title`/`Description`/`Action`, separated by
   `Separator`; tabular data is `DataGrid` with a typed column array. The
@@ -276,9 +296,16 @@ identity is the change signal** — hosted chat messages carry no version or
 ## Styling
 
 * `styles/global.css` owns import order and document defaults only.
-* `styles/default-theme.css` and root `DESIGN.md` are the generated exports
-  from the saved HeroUI Pro design system. Replace them together; never
-  hand-edit either file.
+* `styles/default-theme.css` and root `DESIGN.md` started as exports from the
+  saved HeroUI Pro design system and are now owned in code — the saved system is
+  stale. Edit both directly and keep them consistent. `default-theme.css` holds
+  the tokens in `:root` and one `@layer components` block of BEM overrides;
+  reach for a token first, a BEM override when no token can express it, and a
+  call-site class only for a genuine one-off.
+* Page, dialog, section, and body text use the four type roles in `DESIGN.md`
+  ("Document type roles"). Every step is carried by a stock component or by
+  `SettingsPageHeader`; a call site setting its own `text-*` size on a
+  HeroUI part is the bug that role table exists to prevent.
 * `styles/product-tokens.css` owns only cross-feature product concepts HeroUI
   cannot provide, currently sender differentiation and task-label colors.
 * `styles/artifact-tokens.css` is the stable compatibility boundary for

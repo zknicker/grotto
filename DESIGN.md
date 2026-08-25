@@ -252,10 +252,42 @@ components:
 ## Colors
 Use semantic HeroUI tokens and Tailwind utilities in product code. The raw values below are resolved color values for each mode; component code should still use the same token name and let CSS resolve light or dark mode.
 
+### The light gray ramp
+
+Light mode's neutrals follow two rules, and every gray in the theme obeys them:
+
+- **Fills carry a trace of cool** — chroma `0.0013` at hue `286.4`.
+- **Lines carry none** — chroma `0`.
+
+Before this, `--background` was dead neutral while the surfaces above it were
+tinted, and the lines were tinted three times harder than any fill. Five
+different chroma values across one gray family is what made them read slightly
+off; a blue-cast line against a neutral ground is the part the eye catches.
+
+Lightness is a three-step ladder, so depth comes from position rather than from
+decoration:
+
+| Plane | Token | Light |
+| --- | --- | --- |
+| Chrome — sidebar, app frame | `--sidebar-surface` | `oklch(95.24% 0.0013 286.4)` |
+| Content — the page under the column | `--background` | `oklch(98.24% 0.0013 286.4)` |
+| Surface — cards, row groups, composer | `--surface` | `#FFFFFF` |
+
+Chrome sits a step back and content comes forward. Do not paint chrome and
+content the same value: that flattens them into one plane and leaves every card
+leaning entirely on its shadow.
+
+**Dark mode does none of this.** It keeps HeroUI's neutrals and a single ground
+plane, because dark already separates chrome from content through the surfaces
+sitting on it rather than by tinting the ground. `--sidebar-surface` and
+`--hairline` are deliberately unset there, and the rules that read them carry
+`var(…, fallback)` so dark resolves to HeroUI's own values.
+
 | Token | Light | Dark | Formula / source | HeroUI variable | Tailwind / component equivalent | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
 | `backdrop` | `rgba(0, 0, 0, 0.5)` | `rgba(0, 0, 0, 0.6)` | `Light: oklch(0% 0 0 / 0.5); Dark: oklch(0% 0 0 / 0.6)` | `--backdrop` | Modal, drawer, and overlay backdrops | Semi-transparent overlay rendered behind modals, drawers, and alert dialogs. |
-| `background` | `#F5F5F5` | `#060606` | `Light: oklch(97.02% 0.0000 253.83); Dark: oklch(12.00% 0.0000 253.83)` | `--background` | `bg-background` | Page-level base canvas. The foundational background of the interface. |
+| `background` | `#F9F9FA` | `#060606` | `Light: oklch(98.24% 0.0013 286.4); Dark: oklch(12.00% 0.0000 253.83)` | `--background` | `bg-background` | The content plane. See "The light gray ramp" above. |
+| `sidebar surface` | `#EFEFF0` | not set | `Light: oklch(95.24% 0.0013 286.4)` | `--sidebar-surface` | Read by the `.sidebar` rule in `default-theme.css`; not a call-site utility. | The chrome plane, one step back from content. Unset in dark, which uses one ground. |
 | `foreground` | `#18181B` | `#FCFCFC` | `Light: = eclipse; Dark: = snow` | `--foreground` | `text-foreground` | Primary text and icon color. Optimized for readability on backgrounds and surfaces. |
 | `muted` | `#727272` | `#A0A0A0` | `Light: oklch(55.17% 0.0000 253.83); Dark: oklch(70.50% 0.0000 253.83)` | `--muted` | `text-muted` | Secondary text color for less prominent content like placeholders and captions. |
 | `overlay` | `#FFFFFF` | `#181818` | `Light: = white; Dark: oklch(21.03% 0.0000 253.83)` | `--overlay` | `bg-overlay text-overlay-foreground` for floating panels | Background for modals, popovers, and floating panels. |
@@ -270,13 +302,13 @@ Use semantic HeroUI tokens and Tailwind utilities in product code. The raw value
 | `danger` | `#FF383C` | `#DB3B3E` | `Light: oklch(65.32% 0.2328 25.74); Dark: oklch(59.40% 0.1967 24.63)` | `--danger` | `Button variant="danger"` or `text-danger` for destructive states | Represents destructive, irreversible, or critical actions and states. |
 | `success` | `#17C964` | `#17C964` | `oklch(73.29% 0.1935 150.81)` | `--success` | `text-success` or HeroUI success status components | Communicates positive outcomes, confirmations, and completion states. |
 | `warning` | `#F5A524` | `#F7B750` | `Light: oklch(78.19% 0.1585 72.33); Dark: oklch(82.03% 0.1388 76.34)` | `--warning` | `text-warning` for caution states | Indicates caution or actions that require attention but are not destructive. |
-| `border` | `#DEDEDE` | `#292929` | `Light: oklch(90.00% 0.0000 253.83); Dark: oklch(28.00% 0.0000 253.83)` | `--border` | `border-border` | Default border color for containers and interactive elements. |
-| `default` | `#EBEBEB` | `#272727` | `Light: oklch(94.00% 0.0000 253.83); Dark: oklch(27.40% 0.0000 253.83)` | `--default` | `bg-default text-default-foreground` for neutral controls | Neutral interactive background. Used for chips, tags, and secondary controls. |
+| `border` | `#DEDEDE` | `#292929` | `Light: oklch(90.06% 0.0000 286.4); Dark: oklch(28.00% 0.0000 253.83)` | `--border` | `border-border` | Default border color for containers and interactive elements. A line, so chroma 0. |
+| `default` | `#EBEBEC` | `#272727` | `Light: oklch(94.00% 0.0013 286.4); Dark: oklch(27.40% 0.0000 253.83)` | `--default` | `bg-default text-default-foreground` for neutral controls | Neutral interactive background. Used for chips, tags, and secondary controls. A fill, so it carries the cool trace. |
 | `focus` | `#0485F7` | `#0485F7` | `= accent` | `--focus` | Keyboard focus rings | Focus ring color for keyboard navigation indicators. |
 | `link` | `#18181B` | `#FCFCFC` | `= foreground` | `--link` | Link text color | Text color for interactive links. |
 | `scrollbar` | `#D4D4D4` | `#A0A0A0` | `Light: oklch(87.10% 0.0000 253.83); Dark: oklch(70.50% 0.0000 253.83)` | `--scrollbar` | Scrollbar thumb color | Scrollbar thumb color. |
 | `segment` | `#FFFFFF` | `#474747` | `Light: = white; Dark: oklch(39.64% 0.0000 253.83)` | `--segment` | Segmented controls | Background for segmented controls. |
-| `separator` | `#E4E4E4` | `#222222` | `Light: oklch(92.00% 0.0000 253.83); Dark: oklch(25.00% 0.0000 253.83)` | `--separator` | `border-separator` or HeroUI `Separator` | Divider color for structuring content with subtle boundaries. |
+| `separator` | `#DEDEDE` | `#222222` | `Light: oklch(90.06% 0.0000 286.4); Dark: oklch(25.00% 0.0000 253.83)` | `--separator` | `border-separator` for structural chrome lines | Chrome dividers — the band and sidebar edge. Dividers *inside* a surface use `--hairline` instead. |
 | `field-background` | `#FFFFFF` | `#181818` | `Light: = white; Dark: oklch(21.03% 0.0000 253.83)` | `--field-background` | Use HeroUI field components rather than custom backgrounds | Background for text inputs, selects, and interactive fields. |
 | `field-background-hover` | `#F9F9F9` | `#1C1C1C` | `field-background / 90% + field-foreground / 2%` | `--field-background-hover` | Prefer the HeroUI token for field-background-hover. | Hover state for form field backgrounds. |
 | `field-border` | `#DEDEDE` | `#292929` | `Light: oklch(90.00% 0.0000 253.83); Dark: oklch(28.00% 0.0000 253.83)` | `--field-border` | Use HeroUI field components or `border-field-border` for custom fields | Border color for form fields. Transparent by default. |
@@ -346,6 +378,33 @@ Use the generated font and text scale through HeroUI components and Tailwind tex
 | `7xl` | Inter | `64px` | `64px` | `--text-7xl` | `text-7xl` |
 | `8xl` | Inter | `84px` | `84px` | `--text-8xl` | `text-8xl` |
 | `9xl` | Inter | `112px` | `112px` | `--text-9xl` | `text-9xl` |
+### Document type roles
+
+Settings, member profiles, and every other page built from `PageColumn` use four
+roles and nothing else. Two are call-site classes on `SettingsPageHeader`; the
+rest are BEM overrides in `default-theme.css`, so a stock component already
+carries the right step and a call site never sets its own size.
+
+| Role | Step | Weight | Carried by |
+| --- | --- | --- | --- |
+| Page title | `2xl` (22px), `tracking-tight` | 600 | `SettingsPageHeader`, `MemberProfileHeader` |
+| Page description | `sm` (13px) | 400, muted | `SettingsPageHeader` |
+| Dialog title | `lg` (17px) | 600 | `.modal__heading`, `.drawer__heading`, `.alert-dialog__heading` |
+| Section heading | `base` (15px) | 600 | `ItemCardGroup.Title`, `SettingsSection` |
+| Sub-section inside one | `sm` (13px) | 600 | `Widget.Title` |
+| Body: row titles, descriptions, table headers and cells, facts, errors | `sm` (13px) | 500 title / 400 rest | `ItemCard`, `DataGrid`, `SettingsFact` |
+
+A page description is body copy, not a third heading: what separates it from
+the title is the space around it, not a larger step. Stepping it up made it the
+biggest thing on the page after the title.
+
+`xs` (11px) is not a body size. It belongs to Chip, Badge, and the other
+component-owned labels that set it themselves — not to prose, a table, or
+anything a reader has to read. HeroUI ships several parts at `xs` that are
+plainly body copy in our layouts (`.item-card__description`,
+`.item-card-group__description`, `.table__column`); the theme layer moves them
+to `sm` once, globally, rather than each call site patching its own.
+
 ### Font and Letter Spacing
 
 | Token | Raw value | Formula / source | HeroUI variable | Tailwind / component equivalent | Purpose |
@@ -367,18 +426,71 @@ Layout should use Tailwind v4 spacing utilities and HeroUI component structure. 
 | `spacing` | `3.75px` |  | `--spacing` | Prefer Tailwind spacing utilities like `gap-4`, `p-6`, `px-8`, and `space-y-4`. | Base spacing unit used by the generated Tailwind spacing scale. |
 | `spacing compact` | `3.1875px` | `spacing × 0.85` | `--spacing-compact` | Applied at the sidebar boundary. | Compact navigation rhythm for persistent sidebar rows. |
 | `spacing dense` | `3px` | `spacing × 0.8` | `--spacing-dense` | Applied at menu, listbox, dropdown, select, combobox, and context-menu popover boundaries. | Tightest spacing step for transient lists that users scan. |
-| `field border width` | `0px` |  | `--border-width-field` | Prefer HeroUI field components; use this only for custom field implementations. | Border width used by form fields and field-like cells. |
+| `field border width` | `Light: 0.5px; Dark: 0px` |  | `--border-width-field` | Prefer HeroUI field components; use this only for custom field implementations. | Border width used by form fields and field-like cells. Light draws the hairline; dark keeps HeroUI's borderless field. |
 | `field border width alias` | `0px` |  | `--field-border-width` | Prefer `--border-width-field` for new CSS. | Compatibility alias for field border width. |
 
 ## Elevation & Depth
 Depth comes from HeroUI surface and overlay tokens. Prefer built-in component shadows such as `shadow-surface` and `shadow-overlay`; avoid stacking custom shadows on top of Card or overlay components.
+
+### The surface edge
+
+A resting surface — a card, a row group, the composer — is separated from the
+page by a **definite edge**, not by a blur. The two themes reach that
+differently, and both are correct:
+
+- **Dark** draws no shadow at all. `--surface` is lighter than `--background`,
+  so the value step is the edge and it lands crisp on its own.
+- **Light** draws a hairline, because white on a background 3% darker has
+  almost no value step to work with.
+
+Light composes three parts, each doing one job:
+
+| Part | Value | Job |
+| --- | --- | --- |
+| Hairline ring | `0 0 0 var(--hairline-width) var(--hairline)` | Defines the shape |
+| Contact | `0 1px 1px 0 rgba(0, 0, 0, 0.04)` | Sits tight under the bottom edge |
+| Ambient | `0 3px 6px -2px rgba(0, 0, 0, 0.02)` | Carries the lift |
+
+Four rules make that read as drawn rather than smudged:
+
+1. **Hairlines are `0.5px`, not `1px`.** On a 2x display a half pixel is one
+   device pixel — the finest line that can exist. A 1px line is twice the
+   weight it should be, and that difference is most of what separates a
+   refined edge from a heavy one.
+2. **The hairline is black at low alpha, not a solid gray.** An alpha edge
+   darkens whatever is behind it, so it stays correct on any surface instead of
+   assuming one background.
+3. **One hairline value, everywhere.** `--hairline` draws both a surface's
+   outer ring and the dividers inside it. A divider heavier than the edge it
+   sits within reads backwards.
+4. **The ambient layer carries a negative spread.** It falls downward instead
+   of bleeding sideways. An unspread blur at these alphas is exactly what makes
+   a smudge.
+
+Contact and ambient are named together as `--elevation-resting` so surfaces and
+fields cannot drift apart on how far off the page they sit.
+
+This is the one place we override a HeroUI shadow token. HeroUI's light default
+was three blurred layers at 4–6% opacity with no line at all, which over that
+little contrast reads as a smudge rather than an edge. Do not reintroduce large
+blur radii on resting surfaces to create separation — raise contrast or draw a
+line. Floating layers are the opposite case: `--overlay-shadow` keeps its real,
+larger shadow, because a popover genuinely is above the page.
+
+The light tokens are scoped by `[data-theme="light"]`, and the components-layer
+divider rule reads them through `var(--hairline, …)` fallbacks, so dark keeps
+HeroUI's values untouched. Never put a themed value in the bare `:root` block —
+`:root` matches `<html data-theme="dark">` too.
+
 ### Shadows
 
 | Token | Raw value | Formula / source | HeroUI variable | Tailwind / component equivalent | Purpose |
 | --- | --- | --- | --- | --- | --- |
-| `surface shadow` | `Light: 0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06), 0 0 1px 0 rgba(0, 0, 0, 0.06); Dark: 0 0 0 0 transparent inset` |  | `--surface-shadow` | Prefer HeroUI surfaces and `shadow-surface`; avoid stacking extra custom shadows. | Elevation shadow for cards and resting surfaces. |
+| `hairline` | `Light: rgba(0, 0, 0, 0.09) at 0.5px; Dark: not set` | Owned in `default-theme.css` | `--hairline`, `--hairline-width` | Surface rings and `Separator`. | The finest line the system draws. |
+| `elevation resting` | `0 1px 1px 0 rgba(0, 0, 0, 0.04), 0 3px 6px -2px rgba(0, 0, 0, 0.02)` | Owned in `default-theme.css` | `--elevation-resting` | Composed into `--surface-shadow`. | Contact plus ambient lift for a resting surface. |
+| `surface shadow` | `Light: hairline ring + elevation resting; Dark: 0 0 0 0 transparent inset` | Owned in `default-theme.css`, not HeroUI's default | `--surface-shadow` | Prefer HeroUI surfaces and `shadow-surface`; avoid stacking extra custom shadows. | The resting surface edge — see "The surface edge" above. |
 | `overlay shadow` | `Light: 0 2px 8px 0 rgba(0, 0, 0, 0.06), 0 -6px 12px 0 rgba(0, 0, 0, 0.03), 0 14px 28px 0 rgba(0, 0, 0, 0.08); Dark: 0 0 1px 0 rgba(255, 255, 255, 0.3) inset` |  | `--overlay-shadow` | Prefer HeroUI overlay components and `shadow-overlay`. | Elevation shadow for floating layers such as popovers, menus, modals, and sheets. |
-| `field shadow` | `Light: 0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06), 0 0 1px 0 rgba(0, 0, 0, 0.06); Dark: 0 0 0 0 transparent inset` |  | `--field-shadow` | Prefer HeroUI field components. | Subtle elevation treatment for inputs and field-like controls. |
+| `field shadow` | `Light: var(--elevation-resting); Dark: 0 0 0 0 transparent inset` | Owned in `default-theme.css` | `--field-shadow` | Prefer HeroUI field components. | A field is a surface: same resting lift, and `--field-border` draws the same hairline. |
 
 ## Shapes
 Use HeroUI's default rounded shape language and Tailwind radius utilities. Custom components should match the same radius scale rather than introducing unrelated corner values.
@@ -424,6 +536,26 @@ Two rules that are easy to get wrong:
   the component-overrides block of `styles/default-theme.css`. A Badge carrying a count or a
   label keeps the scale. HeroUI has no dot shape, and its badge sizes carry non-monotonic
   steps against a `--spacing`-derived box, so the dot drifted between regions.
+
+### Shapes that are not the theme's to choose
+
+Most radii track `--radius`. A few do not, because the shape carries the
+meaning and must survive a retune of the scale:
+
+| Part | Pinned to | Why |
+| --- | --- | --- |
+| `.badge:empty` | `--radius-full` | A status dot is a circle at every size. |
+| `.radio__control` | `--radius-full` | Round says pick one; a rounded square says pick any. |
+
+Both are pinned in the `@layer components` block of `default-theme.css`.
+HeroUI derives each from the scale — `.radio__control` is
+`calc(var(--radius) * 1)`, a circle only at their default `0.5rem`. We run
+`0.25rem`, which drew 4px on a 15px box. `.checkbox__control` is deliberately
+*not* pinned: a rounded square is the right shape for a checkbox, so it may
+track the scale.
+
+Before adding a radius rule here, check that the shape is genuinely semantic.
+A card, a button, or a field is not — those follow the tier table above.
 
 ## Components
 - **Buttons:** Use HeroUI Button semantic variants. Primary actions use `variant="primary"`; alternatives use `secondary`, `tertiary`, `outline`, or `ghost`; destructive actions use `danger` or `danger-soft`.

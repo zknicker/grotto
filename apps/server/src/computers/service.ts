@@ -3,7 +3,7 @@ import {
     type ComputerInventory,
     type ComputerUpdateProgress,
     computerProtocolVersion,
-} from '@tavern/api';
+} from '@grotto/api';
 import { and, desc, eq, isNotNull, isNull, ne, or } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentsTable, computersTable, serverOnboardingTable } from '../postgres/schema.ts';

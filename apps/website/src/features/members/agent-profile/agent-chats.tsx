@@ -1,6 +1,6 @@
+import type { Agent } from '@grotto/api';
 import { Chip, Separator } from '@heroui/react';
 import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';

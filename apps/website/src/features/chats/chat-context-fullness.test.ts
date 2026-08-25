@@ -37,7 +37,7 @@ test('getChatContextFullness reads latest agent usage against model context wind
             availability: 'configured',
             capability: 'agent',
             contextWindow: 200_000,
-            framework: 'tavern',
+            framework: 'grotto',
             id: 'openrouter/gpt-5.5',
             modelId: 'gpt-5.5',
             name: 'GPT-5.5',

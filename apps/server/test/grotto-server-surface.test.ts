@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { request as sendHttpRequest } from 'node:http';
-import { appProtocolHeaders, appProtocolVersion } from '@tavern/api';
+import { appProtocolHeaders, appProtocolVersion } from '@grotto/api';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
 /**

@@ -1,5 +1,5 @@
+import type { ComputerRuntimeId } from '@grotto/api';
 import { ItemCardGroup } from '@heroui-pro/react';
-import type { ComputerRuntimeId } from '@tavern/api';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { PageColumn } from '../shell/page-column.tsx';
 import { ComputerUsageCapacity } from '../usage/computer-usage-capacity.tsx';

@@ -1,4 +1,4 @@
-import { channelLifecycleInputSchema, channelLifecycleReceiptSchema } from '@tavern/api';
+import { channelLifecycleInputSchema, channelLifecycleReceiptSchema } from '@grotto/api';
 import { unarchiveChannel } from '../../chats/channel-lifecycle.ts';
 import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { chatProcedure } from './procedure.ts';

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Agent, TaskListItem } from '@tavern/api';
+import type { Agent, TaskListItem } from '@grotto/api';
 import { humanDirectory } from '../human-identity.ts';
 import {
     filterTasks,

@@ -1,5 +1,5 @@
+import type { AgentSkillImportRecord, AgentSkillMetadata, ImportableSkill } from '@grotto/api';
 import { Separator } from '@heroui/react';
-import type { AgentSkillImportRecord, AgentSkillMetadata, ImportableSkill } from '@tavern/api';
 import * as React from 'react';
 import { PickerPopover } from '../../agents/picker-popover.tsx';
 import {

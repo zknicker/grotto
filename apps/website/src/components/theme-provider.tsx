@@ -18,7 +18,7 @@ interface ThemeContextValue {
     theme: ThemePreference;
 }
 
-const storageKey = 'the-tavern-theme';
+const storageKey = 'the-grotto-theme';
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function getSystemTheme(): ResolvedTheme {

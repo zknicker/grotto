@@ -3,7 +3,7 @@ import * as React from 'react';
 // Shared width for the artifact pane. The toolbar tab segment and the pane
 // body must track the same width live during a drag, so this is an external
 // store rather than per-component state; commits persist to localStorage.
-const storageKey = 'tavern.artifactPane.width';
+const storageKey = 'grotto.artifactPane.width';
 
 export const artifactPaneWidthLimits = { default: 560, max: 880, min: 420 } as const;
 

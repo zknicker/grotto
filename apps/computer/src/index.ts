@@ -3,7 +3,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
-import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@tavern/api';
+import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@grotto/api';
 import { runAgentCli } from './agent-cli.ts';
 import {
     applyAgentConfiguration,

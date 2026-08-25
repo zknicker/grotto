@@ -1,7 +1,7 @@
+import type { UsageOverview } from '@grotto/api';
 import { Card } from '@heroui/react';
 import { BarChart } from '@heroui-pro/react/bar-chart';
 import { AiAudioIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { UsageOverview } from '@tavern/api';
 import { Icon } from '../../components/ui/icon.tsx';
 import { UsageSpendSummary } from './usage-spend-summary.tsx';
 import { openRouterKeyColors, useUsageSpend } from './use-usage-spend.ts';

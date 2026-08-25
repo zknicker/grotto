@@ -1,4 +1,4 @@
-import type { ServerUsageOverview, TokenUsageOverview, UsageOverview } from '@tavern/api';
+import type { ServerUsageOverview, TokenUsageOverview, UsageOverview } from '@grotto/api';
 import { and, desc, eq, gte, lt } from 'drizzle-orm';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';

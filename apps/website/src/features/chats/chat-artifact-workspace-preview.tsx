@@ -10,7 +10,7 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
-import { formatTavernResourceLink, type TavernResourceTarget } from './tavern-resource-link.ts';
+import { formatGrottoResourceLink, type GrottoResourceTarget } from './grotto-resource-link.ts';
 
 export function WorkspaceArtifactContent({
     agentId,
@@ -21,7 +21,7 @@ export function WorkspaceArtifactContent({
     agentId: string;
     includeHidden?: boolean;
     serverId: string;
-    target: Extract<TavernResourceTarget, { kind: 'workspaceFile' }>;
+    target: Extract<GrottoResourceTarget, { kind: 'workspaceFile' }>;
 }) {
     const serverFileQuery = grottoTrpc.agent.workspaceFile.useQuery(
         { agentId, includeHidden, path: target.path, serverId },
@@ -119,7 +119,7 @@ function WorkspaceFilePreview({
     mediaType: string;
     path: string;
     raw: boolean;
-    target: Extract<TavernResourceTarget, { kind: 'workspaceFile' }>;
+    target: Extract<GrottoResourceTarget, { kind: 'workspaceFile' }>;
 }) {
     if (mediaType.startsWith('image/')) {
         return (
@@ -147,7 +147,7 @@ function WorkspaceFilePreview({
     return (
         <SelectionQuoteContainer
             className="h-full min-h-0"
-            source={{ href: formatTavernResourceLink(target), label: path }}
+            source={{ href: formatGrottoResourceLink(target), label: path }}
         >
             <SimpleCodeEditor className="h-full" filePath={path} readOnly value={content} />
         </SelectionQuoteContainer>
@@ -175,7 +175,7 @@ export function formatWorkspaceFileBytes(sizeBytes: number) {
 /**
  * Sandboxed HTML preview with host tokens riding in: artifacts (and any
  * workspace HTML file) get the app's resolved theme variables injected, so a
- * page styled with tokens wears the Tavern look and follows the app scheme.
+ * page styled with tokens wears the Grotto look and follows the app scheme.
  * Opaque origin, never allow-same-origin.
  */
 function WorkspaceHtmlPreview({ content, path }: { content: string; path: string }) {

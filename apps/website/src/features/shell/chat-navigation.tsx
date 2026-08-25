@@ -1,8 +1,8 @@
+import type { Agent, Chat } from '@grotto/api';
 import { Button, Chip } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import { Plus } from '@hugeicons/core-free-icons';
 import { ArrowDown01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { Agent, Chat } from '@tavern/api';
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';

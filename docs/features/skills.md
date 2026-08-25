@@ -71,6 +71,6 @@ it automatically.
 - Automatic skill sync or a compatibility layer between libraries.
 - A persistent Server-side skill-content store.
 - A generic toolset or skill marketplace.
-- The retired factory `tavern-agent` skill. Mandatory product rules live in
+- The retired factory `grotto-agent` skill. Mandatory product rules live in
   managed instructions and expandable operating guidance lives in the shared
   Grotto Manual; Agent-authored and imported skills remain fully supported.

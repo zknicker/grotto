@@ -1,19 +1,19 @@
 import type * as React from 'react';
 import { useArtifactPanelOpen } from './artifact-panel-context.tsx';
-import { parseTavernResourceLink } from './tavern-resource-link.ts';
+import { parseGrottoResourceLink } from './grotto-resource-link.ts';
 
 export function MarkdownLink({ children, href }: { children: React.ReactNode; href: string }) {
     const openArtifactPanel = useArtifactPanelOpen();
-    const tavernTarget = parseTavernResourceLink(href);
+    const grottoTarget = parseGrottoResourceLink(href);
 
-    if (tavernTarget && openArtifactPanel) {
+    if (grottoTarget && openArtifactPanel) {
         return (
             <a
                 className="cursor-pointer text-accent underline underline-offset-2 hover:text-accent-hover"
                 href={href}
                 onClick={(event) => {
                     event.preventDefault();
-                    openArtifactPanel(tavernTarget);
+                    openArtifactPanel(grottoTarget);
                 }}
             >
                 {children}
@@ -88,7 +88,7 @@ export function matchBareUrl(text: string) {
 function sanitizeUrl(value: string) {
     const href = value.startsWith('www.') ? `https://${value}` : value;
 
-    if (parseTavernResourceLink(href)) {
+    if (parseGrottoResourceLink(href)) {
         return href;
     }
 

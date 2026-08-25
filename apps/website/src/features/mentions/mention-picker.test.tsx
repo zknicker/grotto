@@ -33,17 +33,17 @@ test('MentionPicker groups agent mentions separately from skills', () => {
     const agentOption: MentionOption = {
         description: 'Agent in this chat',
         id: 'agt_primary',
-        insertText: '@Tavern',
+        insertText: '@Grotto',
         kind: 'agent',
-        label: 'Tavern',
+        label: 'Grotto',
         projection: 'agent-reference',
     };
     const skillOption: MentionOption = {
-        description: 'Use Tavern chat context, memory, files, and local tools.',
-        id: 'skill://tavern',
-        insertText: 'tavern',
+        description: 'Use Grotto chat context, memory, files, and local tools.',
+        id: 'skill://grotto',
+        insertText: 'grotto',
         kind: 'skill',
-        label: 'Tavern Agent',
+        label: 'Grotto Agent',
         projection: 'skill-activation',
     };
     const markup = renderToStaticMarkup(
@@ -59,6 +59,6 @@ test('MentionPicker groups agent mentions separately from skills', () => {
 
     assert.match(markup, /Agents/);
     assert.match(markup, /Skills/);
-    assert.ok(markup.indexOf('Agents') < markup.indexOf('Tavern'));
-    assert.ok(markup.indexOf('Skills') < markup.indexOf('Tavern Agent'));
+    assert.ok(markup.indexOf('Agents') < markup.indexOf('Grotto'));
+    assert.ok(markup.indexOf('Skills') < markup.indexOf('Grotto Agent'));
 });

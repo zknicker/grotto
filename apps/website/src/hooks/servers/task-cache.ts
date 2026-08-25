@@ -1,4 +1,4 @@
-import type { MessageTask, TaskListItem } from '@tavern/api';
+import type { MessageTask, TaskListItem } from '@grotto/api';
 
 export function replaceTask(
     items: TaskListItem[] | undefined,

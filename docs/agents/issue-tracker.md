@@ -8,13 +8,13 @@ read_when:
 # Issue tracker: Linear
 
 Issues and PRDs for this repo live in Linear under the `PRD` team with the
-legacy `Tavern` product label.
+`Grotto` product label.
 
 ## Conventions
 
 - Use Linear tooling for issue operations, not GitHub Issues or local markdown.
 - Create Grotto repo work in the Linear `PRD` team unless the user names another team.
-- Apply the legacy `Tavern` label to Grotto repo issues.
+- Apply the `Grotto` label to Grotto repo issues.
 - If a skill needs to create an issue and the Linear project is ambiguous, ask for the target
   project before creating it.
 - If a skill needs to fetch a ticket, use the Linear issue key or URL the user provides.
@@ -23,7 +23,7 @@ legacy `Tavern` product label.
 ## Publishing work
 
 When a skill says "publish to the issue tracker," create a Linear issue in the `PRD` team with
-the legacy `Tavern` label.
+the `Grotto` label.
 
 ## Fetching work
 

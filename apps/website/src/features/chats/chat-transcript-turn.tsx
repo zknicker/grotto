@@ -1,7 +1,7 @@
+import { splitVisualFences } from '@grotto/api/widgets/visual';
 import { Chip, Separator } from '@heroui/react';
 import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
 import { Activity01Icon, AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { splitVisualFences } from '@tavern/api/widgets/visual';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { requestChatComposerMention } from '../../commands/chat-composer-mention.ts';

@@ -1,4 +1,4 @@
-import type { ServerMember } from '@tavern/api/membership';
+import type { ServerMember } from '@grotto/api/membership';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { CreatedAgents } from './created-agents.tsx';

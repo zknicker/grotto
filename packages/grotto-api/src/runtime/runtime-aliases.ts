@@ -1,4 +1,4 @@
-// Runtime aliases keep the Tavern Runtime implementation readable while the shared package names the external bridge as agent-runtime.
+// Runtime aliases keep execution-runtime contracts readable while the shared package names the external bridge as agent-runtime.
 // They are first-party aliases, not compatibility for an older public API.
 
 import * as config from './config.js';

@@ -1,4 +1,4 @@
-import type { Agent, Chat, ChatMessage, TaskLabel, TaskListItem } from '@tavern/api';
+import type { Agent, Chat, ChatMessage, TaskLabel, TaskListItem } from '@grotto/api';
 import type { TaskPriority, TaskStatus } from '../../tasks/task-presentation.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 

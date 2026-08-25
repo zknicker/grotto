@@ -1,6 +1,6 @@
+import type { Agent } from '@grotto/api';
 import { AlertDialog, Button, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { useAgentReset } from '../../../hooks/members/use-agent-reset.ts';
 import { useAgentRestart } from '../../../hooks/members/use-agent-restart.ts';

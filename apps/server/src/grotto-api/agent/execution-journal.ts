@@ -1,4 +1,4 @@
-import { agentExecutionJournalInputSchema, agentExecutionJournalResultSchema } from '@tavern/api';
+import { agentExecutionJournalInputSchema, agentExecutionJournalResultSchema } from '@grotto/api';
 import { TRPCError } from '@trpc/server';
 import {
     AgentExecutionJournalAccessError,

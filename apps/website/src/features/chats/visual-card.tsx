@@ -131,7 +131,7 @@ const sizeReporterScript = `(function () {
         // shrinks below the frame's own height, so it cannot shrink-to-fit.
         var body = document.body;
         var height = body ? body.offsetHeight : document.documentElement.scrollHeight;
-        parent.postMessage({ height: Math.ceil(height), type: 'tavern-visual-size' }, '*');
+        parent.postMessage({ height: Math.ceil(height), type: 'grotto-visual-size' }, '*');
     };
     addEventListener('DOMContentLoaded', function () {
         report();
@@ -157,7 +157,7 @@ function useReportedContentHeight(frameRef: React.RefObject<HTMLIFrameElement | 
                 return;
             }
             const data = event.data as { height?: unknown; type?: unknown } | null;
-            if (data?.type !== 'tavern-visual-size' || typeof data.height !== 'number') {
+            if (data?.type !== 'grotto-visual-size' || typeof data.height !== 'number') {
                 return;
             }
             if (Number.isFinite(data.height) && data.height > 0) {

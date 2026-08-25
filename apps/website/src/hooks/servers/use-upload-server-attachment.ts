@@ -1,5 +1,5 @@
+import type { AttachmentUploadResult } from '@grotto/api';
 import { useMutation } from '@tanstack/react-query';
-import type { AttachmentUploadResult } from '@tavern/api';
 import { getClerkSessionToken } from '../../lib/clerk.tsx';
 import { getGrottoServerOrigin, grottoTrpc } from '../../lib/grotto-server.tsx';
 

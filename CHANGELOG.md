@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.20 - 2026-08-24
+
+- Grotto App navigation now uses one calmer sidebar and shell rhythm, with Chat tools moved into the
+  Chat menu, dedicated Members and Tasks destinations, clearer dialogs, and stock HeroUI behavior
+  throughout Settings and Connections.
+- Tasks gain Linear-style filtering and richer Thread details, while Owners and Admins can assign
+  work directly to Agents with durable receipts and follow behavior.
+- Channels support curated icons and colors across the Server, App, and iPhone app; MCP connections
+  also surface discovered icons and summaries.
+- Grotto for iPhone adds inline image attachments, improved search-result navigation, redesigned
+  Tasks and settings surfaces, and native channel appearance.
+- First-party packages, SDK symbols, environment variables, wire identifiers, local storage, and
+  internal tooling complete the breaking Tavern-to-Grotto contract rename. Server, App, iOS, and
+  Computer artifacts move together so no deployed surface retains the retired identifiers.
+
+### Release surfaces
+
+- Server: Publish v1.8.20
+- App: Publish v1.8.20
+- iOS: Publish v1.0.2 (build 3)
+- Computer: Publish v1.4.6
+
 ## v1.8.19 - 2026-08-19
 
 - Grotto for iPhone gains unified chrome, finger-tracking sidebar gestures, and Server-wide search
@@ -610,7 +632,7 @@ All notable changes to this project will be documented in this file.
   bundle is `build.grotto.desktop`, links use only `grotto://`, production state
   lives under `~/.grotto`, and the Runtime ships only the `grotto` and
   `grotto-runtime` commands through `zknicker/grotto/grotto-runtime`. Requires
-  this Runtime. **Breaking:** Tavern app data, protocol links, CLI aliases,
+  this Runtime. **Breaking:** Grotto app data, protocol links, CLI aliases,
   Homebrew formula, and production state paths are not migrated automatically.
 - Runtime/API/App: Clerk-backed identity now covers sign-in, Runtime ownership,
   invite redemption, members, reader-scoped unread state, and authenticated
@@ -740,12 +762,12 @@ All notable changes to this project will be documented in this file.
 - App: reconciles Runtime event catch-up after reconnect without replaying stale
   live turn progress, while still clearing terminal turn state and invalidating
   chat, session, and worker views.
-- Runtime release: preserves the packaged `@tavern/sdk` after staging qmd so
+- Runtime release: preserves the packaged `@grotto/sdk` after staging qmd so
   Homebrew can install the Runtime artifact successfully.
 
 ## v1.4.43 - 2026-07-07
 
-- Runtime/API/App: adds Tavern Tasks with Runtime-owned task storage, agent
+- Runtime/API/App: adds Grotto Tasks with Runtime-owned task storage, agent
   task tools, server sync, realtime invalidation, dispatch, and full app list,
   detail, and editor surfaces.
 - Runtime/API/App: replaces composer command proxies with agent session routes
@@ -765,7 +787,7 @@ All notable changes to this project will be documented in this file.
 
 ## v1.4.42 - 2026-07-06
 
-- Runtime/API/App: routes Google OAuth callbacks through the Tavern app server
+- Runtime/API/App: routes Google OAuth callbacks through the Grotto app server
   so desktop Plugin setup completes reliably against Runtime-owned Google
   settings.
 - Runtime/App: returns saved Plugin secret presence to settings forms so stored
@@ -783,7 +805,7 @@ All notable changes to this project will be documented in this file.
 
 ## v1.4.40 - 2026-07-06
 
-- Runtime/API/App: replaces rich responses with grant-scoped Tavern Widget
+- Runtime/API/App: replaces rich responses with grant-scoped Grotto Widget
   fences, Widget contracts, durable Widget activity, and app renderers for
   charts, calendars, tables, and MerchBase displays.
 - Runtime/API/App: adds the runtime-native automation scheduler with cron job
@@ -799,9 +821,9 @@ All notable changes to this project will be documented in this file.
 
 ## v1.4.39 - 2026-07-06
 
-- Runtime/App: adds the Google Plugin with Tavern-managed OAuth and Google
+- Runtime/App: adds the Google Plugin with Grotto-managed OAuth and Google
   Calendar event list, search, and create tools.
-- Runtime: packages the Tavern-owned Google OAuth desktop client into Runtime
+- Runtime: packages the Grotto-owned Google OAuth desktop client into Runtime
   release artifacts so Homebrew-installed Runtime builds can connect Google.
 - Runtime/App: streams live harness turn activity and simplifies live turn
   narration with calmer replace-in-place updates.
@@ -818,7 +840,7 @@ All notable changes to this project will be documented in this file.
 - Runtime/App: adds rich references for agents, skills, apps, plugins, and
   workspace paths, including skill activation hints and agent-scoped skill
   autocomplete.
-- Runtime/App: adds Runtime-backed Tavern channel creation and participant
+- Runtime/App: adds Runtime-backed Grotto channel creation and participant
   editing, including multi-agent channels and explicit agent addressing.
 - Runtime/App: reworks streaming turn rendering, tolerates delivered messages
   missing turn metadata, and keeps channel messages human-only until an agent is
@@ -869,7 +891,7 @@ All notable changes to this project will be documented in this file.
 
 ## v1.4.32 - 2026-07-01
 
-- Rebuilt Tavern around chat-native Agent seats, Agent sessions, and Agent
+- Rebuilt Grotto around chat-native Agent seats, Agent sessions, and Agent
   turns.
 - Moved Claude Code and Codex execution to AI SDK HarnessAgent.
 - Kept OpenAI/API-key and deterministic e2e execution on AI SDK LanguageModel

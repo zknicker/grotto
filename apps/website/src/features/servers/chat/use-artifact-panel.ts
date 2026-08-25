@@ -2,10 +2,10 @@ import * as React from 'react';
 import { setChatSidePane, useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
 import type { ChatArtifactPanelState } from '../../chats/chat-artifact-panel-state.ts';
 import {
+    type GrottoResourceTarget,
     getArtifactPanelTargetKey,
     isWorkspaceChatPaneTarget,
-    type TavernResourceTarget,
-} from '../../chats/tavern-resource-link.ts';
+} from '../../chats/grotto-resource-link.ts';
 
 export function useChatArtifactPanel(chatId: string): ChatArtifactPanelState {
     const activeSidePane = useChatSidePane(chatId);
@@ -16,7 +16,7 @@ export function useChatArtifactPanel(chatId: string): ChatArtifactPanelState {
     });
 
     const open = React.useCallback(
-        (target: TavernResourceTarget) => {
+        (target: GrottoResourceTarget) => {
             if (!(isWorkspaceChatPaneTarget(target) && target.agentId)) {
                 return;
             }
@@ -64,12 +64,12 @@ export function useChatArtifactPanel(chatId: string): ChatArtifactPanelState {
 
 interface ArtifactPaneState {
     activeKey: string | null;
-    targets: TavernResourceTarget[];
+    targets: GrottoResourceTarget[];
 }
 
 export function mergeArtifactTarget(
     current: ArtifactPaneState,
-    target: TavernResourceTarget
+    target: GrottoResourceTarget
 ): ArtifactPaneState {
     const key = getArtifactPanelTargetKey(target);
     if (current.targets.some((candidate) => getArtifactPanelTargetKey(candidate) === key)) {

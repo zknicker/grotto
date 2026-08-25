@@ -1,6 +1,6 @@
 import { createHash, createPublicKey, sign, timingSafeEqual, verify } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import computerProtocol from '../../packages/tavern-api/computer-protocol.json' with {
+import computerProtocol from '../../packages/grotto-api/computer-protocol.json' with {
     type: 'json',
 };
 

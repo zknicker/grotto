@@ -40,7 +40,7 @@ archetype notes come from neither creation nor reset. Shared guidance belongs
 in the Grotto Manual, while the Agent's own work may add files later.
 
 The skill system remains Agent-owned and writable, but there is no factory
-`tavern-agent` skill. Mandatory operating rules live in managed instructions,
+`grotto-agent` skill. Mandatory operating rules live in managed instructions,
 shared reference guidance lives in the Manual, and the only current
 factory-managed skill is `visuals`; see [Skills](skills.md).
 

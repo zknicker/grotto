@@ -1,4 +1,4 @@
-import type { ServerDurableEvent, TaskLabel } from '@tavern/api';
+import type { ServerDurableEvent, TaskLabel } from '@grotto/api';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';

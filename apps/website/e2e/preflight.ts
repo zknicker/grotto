@@ -9,7 +9,7 @@ const websiteRoot = fileURLToPath(new URL('../', import.meta.url));
 process.chdir(workspaceRoot);
 
 if (existsSync(chromium.executablePath())) {
-    console.log('[tavern-e2e] Playwright Chromium already installed.');
+    console.log('[grotto-e2e] Playwright Chromium already installed.');
 } else {
     await runStep(
         'Install Playwright Chromium',
@@ -19,12 +19,12 @@ if (existsSync(chromium.executablePath())) {
     );
 }
 
-await runStep('Build Tavern SDK', process.execPath, ['run', '--filter', '@tavern/sdk', 'build'], {
+await runStep('Build Grotto SDK', process.execPath, ['run', '--filter', '@grotto/sdk', 'build'], {
     cwd: workspaceRoot,
 });
 
 function runStep(label: string, command: string, args: string[], options: { cwd?: string } = {}) {
-    console.log(`[tavern-e2e] ${label}...`);
+    console.log(`[grotto-e2e] ${label}...`);
 
     return new Promise<void>((resolve, reject) => {
         const child = spawn(command, args, {
@@ -36,7 +36,7 @@ function runStep(label: string, command: string, args: string[], options: { cwd?
         child.on('error', reject);
         child.on('exit', (code, signal) => {
             if (code === 0) {
-                console.log(`[tavern-e2e] ${label} complete.`);
+                console.log(`[grotto-e2e] ${label} complete.`);
                 resolve();
                 return;
             }

@@ -1,4 +1,4 @@
-import type { AgentImportSkillInput, ComputerInventory } from '@tavern/api';
+import type { AgentImportSkillInput, ComputerInventory } from '@grotto/api';
 import { and, eq } from 'drizzle-orm';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';

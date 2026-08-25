@@ -1,4 +1,4 @@
-import type { UsageOverview } from '@tavern/api';
+import type { UsageOverview } from '@grotto/api';
 import { useMemo } from 'react';
 
 export const openRouterKeyColors = [

@@ -1,4 +1,4 @@
-import type { CompositionEvent } from '@tavern/api';
+import type { CompositionEvent } from '@grotto/api';
 
 /**
  * Composition is a live-only signal, so a human removed mid-draft can leave one

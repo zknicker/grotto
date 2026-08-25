@@ -31,7 +31,7 @@ Cove is the one distinct factory kind. Its fresh workspace inventory is exactly
 `MEMORY.md`, `onboarding_playbook.md`, `onboarding_knowledge_faq.md`, and
 `onboarding_objectives.md`. Objectives contain 12 separately authored short
 summaries linked to the 12 seeded-tier Manual topics; no full Manual card,
-query-tier summary, archetype note, `save-as-a-skill`, or `tavern-agent` skill
+query-tier summary, archetype note, `save-as-a-skill`, or `grotto-agent` skill
 is copied. Computer records the four-file manifest in the durable Cove
 application receipt and validates it before replaying success. Cove still gets
 the normal isolated skill library and release-owned `visuals` skill.

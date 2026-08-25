@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { bindWorkspaceTargetToAgent, type TavernResourceTarget } from './tavern-resource-link.ts';
+import { bindWorkspaceTargetToAgent, type GrottoResourceTarget } from './grotto-resource-link.ts';
 
-const ArtifactPanelContext = React.createContext<((target: TavernResourceTarget) => void) | null>(
+const ArtifactPanelContext = React.createContext<((target: GrottoResourceTarget) => void) | null>(
     null
 );
 
@@ -12,10 +12,10 @@ export function ArtifactPanelOpenProvider({
 }: {
     agentId?: string;
     children: React.ReactNode;
-    onOpen: (target: TavernResourceTarget) => void;
+    onOpen: (target: GrottoResourceTarget) => void;
 }) {
     const open = React.useCallback(
-        (target: TavernResourceTarget) => onOpen(bindWorkspaceTargetToAgent(target, agentId)),
+        (target: GrottoResourceTarget) => onOpen(bindWorkspaceTargetToAgent(target, agentId)),
         [agentId, onOpen]
     );
     return <ArtifactPanelContext.Provider value={open}>{children}</ArtifactPanelContext.Provider>;

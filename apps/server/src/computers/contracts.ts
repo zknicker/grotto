@@ -1,4 +1,4 @@
-import { computerBootstrapHelloSchema, computerUpdateProgressSchema } from '@tavern/api';
+import { computerBootstrapHelloSchema, computerUpdateProgressSchema } from '@grotto/api';
 import { z } from 'zod';
 import { serverIdSchema, serverSlugSchema } from '../servers/contracts.ts';
 

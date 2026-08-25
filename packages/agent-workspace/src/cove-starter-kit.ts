@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { getManualTopic } from '@tavern/agent-manual';
+import { getManualTopic } from '@grotto/agent-manual';
 
 export const coveSeededSummaries = [
     [

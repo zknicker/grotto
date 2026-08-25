@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AgentActivityEvent } from '@tavern/api';
+import type { AgentActivityEvent } from '@grotto/api';
 import {
     applyCurrentAgentActivityEvent,
     filterCurrentAgentActivityByAvailability,

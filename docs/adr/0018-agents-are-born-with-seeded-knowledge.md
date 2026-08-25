@@ -58,7 +58,7 @@ private `#onboarding-owner` Channel.
 **No Agent is bootstrapped outside the create path.** The lazy `agt_primary`
 bootstrap is retired. Every agent — app-created, Cove, dev demo agents
 (Otto/Wren), and the e2e fixture — is created through the one runtime create
-path (`tavern/agent-create.ts`) with generated prod-shape ids and the seeded
+path (`grotto/agent-create.ts`) with generated prod-shape ids and the seeded
 starter kit. Demo seeding resolves Otto/Wren by name on reseed; the blob
 avatar is reserved for Cove, and dev demo agents get pinned non-blob
 characters (Otto → robot, Wren → bird).

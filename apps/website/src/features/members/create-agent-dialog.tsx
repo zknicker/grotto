@@ -1,3 +1,4 @@
+import type { Agent, ComputerInventory } from '@grotto/api';
 import {
     Alert,
     Button,
@@ -12,7 +13,6 @@ import {
     TextArea,
     TextField,
 } from '@heroui/react';
-import type { Agent, ComputerInventory } from '@tavern/api';
 import * as React from 'react';
 import { useAgentCreate } from '../../hooks/members/use-agent-create.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';

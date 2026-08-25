@@ -1,4 +1,4 @@
-import type { AgentTurnSummary } from '@tavern/api';
+import type { AgentTurnSummary } from '@grotto/api';
 
 type FailureKind = NonNullable<AgentTurnSummary['failureKind']>;
 

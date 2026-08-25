@@ -1,6 +1,6 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import type { RuntimeTokenUsageSnapshot } from '@tavern/api';
+import type { RuntimeTokenUsageSnapshot } from '@grotto/api';
 import {
     buildRuntimeTokenSnapshot,
     collectRecentJsonlFiles,

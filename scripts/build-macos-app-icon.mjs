@@ -17,10 +17,10 @@ const generatedIconsDirectory = path.join(
 );
 
 const stagedIconPath = path.join(
-    mkdtempSync(path.join(tmpdir(), 'tavern-app-icon-')),
+    mkdtempSync(path.join(tmpdir(), 'grotto-app-icon-')),
     'AppIcon.icon'
 );
-const outputDirectory = mkdtempSync(path.join(tmpdir(), 'tavern-app-icon-out-'));
+const outputDirectory = mkdtempSync(path.join(tmpdir(), 'grotto-app-icon-out-'));
 const compiledIconPath = path.join(outputDirectory, 'AppIcon.icns');
 
 if (!existsSync(sourceIconPath)) {

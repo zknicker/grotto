@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
-import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@tavern/api';
+import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@grotto/api';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 

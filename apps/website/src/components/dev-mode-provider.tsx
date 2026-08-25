@@ -11,7 +11,7 @@ interface DevModeContextValue {
     setDevMode: (enabled: boolean) => void;
 }
 
-const storageKey = 'the-tavern-dev-mode';
+const storageKey = 'the-grotto-dev-mode';
 const DevModeContext = createContext<DevModeContextValue | null>(null);
 
 function getStoredDevMode(): boolean {
@@ -30,7 +30,7 @@ export function DevModeProvider({ children }: PropsWithChildren) {
     };
 
     useEffect(() => {
-        const unsubscribe = window.tavernDesktop?.onDevModeToggle?.(() => {
+        const unsubscribe = window.grottoDesktop?.onDevModeToggle?.(() => {
             setDevModeState((current) => {
                 const next = !current;
                 window.localStorage.setItem(storageKey, next ? 'on' : 'off');

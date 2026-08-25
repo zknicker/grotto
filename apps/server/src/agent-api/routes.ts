@@ -1,4 +1,4 @@
-import { agentSendInputSchema } from '@tavern/api';
+import { agentSendInputSchema } from '@grotto/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';

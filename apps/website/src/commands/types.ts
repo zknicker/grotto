@@ -2,7 +2,7 @@ import type { IconSvgElement } from '@hugeicons/react';
 
 export type AppCommandIcon =
     | IconSvgElement
-    | 'tavern'
+    | 'grotto'
     | {
           color: string | null;
           icon: string | null;

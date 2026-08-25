@@ -2,7 +2,7 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('tavernDesktop', {
+contextBridge.exposeInMainWorld('grottoDesktop', {
     loadsApp: true,
     authTokenGet: () => ipcRenderer.invoke('desktop:auth:token-get'),
     authTokenSet: (token) => ipcRenderer.invoke('desktop:auth:token-set', token),

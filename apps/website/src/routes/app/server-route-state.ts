@@ -1,4 +1,4 @@
-import type { Chat } from '@tavern/api';
+import type { Chat } from '@grotto/api';
 import { resolveEntryChat } from '../../features/servers/server-choice.ts';
 import {
     serverChatRoute,

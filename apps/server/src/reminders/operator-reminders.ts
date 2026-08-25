@@ -1,4 +1,4 @@
-import type { ReminderChangedEvent } from '@tavern/api';
+import type { ReminderChangedEvent } from '@grotto/api';
 import { and, asc, eq, gt } from 'drizzle-orm';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';

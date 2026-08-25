@@ -1,4 +1,4 @@
-import type { Agent, ChatMessage, ThreadSummary } from '@tavern/api';
+import type { Agent, ChatMessage, ThreadSummary } from '@grotto/api';
 import * as React from 'react';
 import type { HumanDirectory } from '../human-identity.ts';
 import {

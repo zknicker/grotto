@@ -45,7 +45,7 @@ function main() {
     });
 
     void controller.start().catch((error) => {
-        controller.addLog('tavern', error instanceof Error ? error.message : String(error));
+        controller.addLog('grotto', error instanceof Error ? error.message : String(error));
         void controller.stop(1);
     });
 }

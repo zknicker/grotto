@@ -1,4 +1,4 @@
-import { threadFollowInputSchema, threadFollowReceiptSchema } from '@tavern/api';
+import { threadFollowInputSchema, threadFollowReceiptSchema } from '@grotto/api';
 import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { setThreadFollow } from '../../threads/set-thread-follow.ts';
 import { chatProcedure } from '../chat/procedure.ts';

@@ -1,6 +1,6 @@
+import type { McpPreset } from '@grotto/api';
 import { Button, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import type { McpPreset } from '@tavern/api';
 import { Fragment } from 'react';
 import { useConnectionPresetAdd } from '../../../hooks/servers/use-connection-preset-add.ts';
 

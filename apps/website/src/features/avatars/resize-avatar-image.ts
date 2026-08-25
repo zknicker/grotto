@@ -1,5 +1,5 @@
-import type { AvatarMediaType } from '@tavern/api/avatar';
-import { avatarMaxBytes, avatarMediaTypes, avatarPixelSize } from '@tavern/api/avatar';
+import type { AvatarMediaType } from '@grotto/api/avatar';
+import { avatarMaxBytes, avatarMediaTypes, avatarPixelSize } from '@grotto/api/avatar';
 
 /**
  * One chosen file, center-cropped to a square and re-encoded at the avatar

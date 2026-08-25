@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'bun:test';
-import type { TavernCreateMessageRequest } from '@tavern/api';
-import { createTavernClient } from './client';
+import type { GrottoCreateMessageRequest } from '@grotto/api';
+import { createGrottoClient } from './client';
 
-describe('Tavern SDK client', () => {
+describe('Grotto SDK client', () => {
     it('posts chat messages through the OpenAPI path', async () => {
         const requests: Request[] = [];
-        const client = createTavernClient({
+        const client = createGrottoClient({
             baseUrl: 'http://runtime.test/',
             fetch: (async (input, init) => {
                 const request = new Request(input, init);
@@ -36,7 +36,7 @@ describe('Tavern SDK client', () => {
                 });
             }) as typeof fetch,
         });
-        const body: TavernCreateMessageRequest = {
+        const body: GrottoCreateMessageRequest = {
             author_id: 'usr_1',
             content: 'hello',
             id: 'msg_1',
@@ -56,7 +56,7 @@ describe('Tavern SDK client', () => {
 
     it('ensures threads and updates follow state through chat paths', async () => {
         const requests: Request[] = [];
-        const client = createTavernClient({
+        const client = createGrottoClient({
             baseUrl: 'http://runtime.test/',
             fetch: (async (input, init) => {
                 requests.push(new Request(input, init));
@@ -67,7 +67,7 @@ describe('Tavern SDK client', () => {
         await client.chat.ensureThread('cht_parent', { anchor_message_id: 'msg_anchor' });
         await client.chat.setThreadFollow('cht_thr_anchor', {
             follow: true,
-            participant_id: 'usr_tavern',
+            participant_id: 'usr_grotto',
         });
 
         expect(requests.map((request) => [request.method, request.url])).toEqual([
@@ -84,7 +84,7 @@ describe('Tavern SDK client', () => {
                 urls.push(String(url));
             }
         }
-        const client = createTavernClient({
+        const client = createGrottoClient({
             baseUrl: 'https://runtime.test',
             WebSocket: FakeWebSocket as typeof WebSocket,
         });
@@ -104,7 +104,7 @@ describe('Tavern SDK client', () => {
                 urls.push(String(url));
             }
         }
-        const client = createTavernClient({
+        const client = createGrottoClient({
             baseUrl: 'https://runtime.test',
             fetch: (async (input, init) => {
                 const request = new Request(input, init);
@@ -131,7 +131,7 @@ describe('Tavern SDK client', () => {
 
     it('lists chat activity through the OpenAPI path', async () => {
         const requests: Request[] = [];
-        const client = createTavernClient({
+        const client = createGrottoClient({
             baseUrl: 'http://runtime.test/',
             fetch: (async (input, init) => {
                 const request = new Request(input, init);
@@ -154,7 +154,7 @@ describe('Tavern SDK client', () => {
 
     it('reads a turn-aligned timeline page through the OpenAPI path', async () => {
         const requests: Request[] = [];
-        const client = createTavernClient({
+        const client = createGrottoClient({
             baseUrl: 'http://runtime.test/',
             fetch: (async (input, init) => {
                 const request = new Request(input, init);
@@ -183,7 +183,7 @@ describe('Tavern SDK client', () => {
 
     it('gets turn prompt evidence through the OpenAPI path', async () => {
         const requests: Request[] = [];
-        const client = createTavernClient({
+        const client = createGrottoClient({
             baseUrl: 'http://runtime.test/',
             fetch: (async (input, init) => {
                 const request = new Request(input, init);
@@ -191,8 +191,8 @@ describe('Tavern SDK client', () => {
 
                 return Response.json({
                     captured_at: '2026-07-07T12:00:00.000Z',
-                    instructions: 'You are Tavern.',
-                    prompt: 'Current Tavern turn: ...',
+                    instructions: 'You are Grotto.',
+                    prompt: 'Current Grotto turn: ...',
                     run_id: 'run_1_primary',
                 });
             }) as typeof fetch,
@@ -208,7 +208,7 @@ describe('Tavern SDK client', () => {
 
     it('gets one response activity through the OpenAPI path', async () => {
         const requests: Request[] = [];
-        const client = createTavernClient({
+        const client = createGrottoClient({
             baseUrl: 'http://runtime.test/',
             fetch: (async (input, init) => {
                 const request = new Request(input, init);

@@ -1,4 +1,4 @@
-import { attachmentInventoryInputSchema, attachmentInventorySchema } from '@tavern/api';
+import { attachmentInventoryInputSchema, attachmentInventorySchema } from '@grotto/api';
 import { inventoryServerAttachments } from '../../attachments/inventory-attachments.ts';
 import { attachmentProcedure } from './procedure.ts';
 

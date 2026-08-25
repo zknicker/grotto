@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { AvatarMediaType } from '@tavern/api/avatar';
+import type { AvatarMediaType } from '@grotto/api/avatar';
 import { createAvatarId } from '../avatars/avatar-bytes.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { avatarsTable } from '../postgres/schema.ts';

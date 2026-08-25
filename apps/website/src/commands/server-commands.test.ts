@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { Agent, Chat } from '@tavern/api';
+import type { Agent, Chat } from '@grotto/api';
 import { buildCommandGroups, getCurrentChatId } from './server-commands.ts';
 
 const agent = {

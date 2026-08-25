@@ -1,4 +1,4 @@
-import type { ServerUpdatedEvent } from '@tavern/api';
+import type { ServerUpdatedEvent } from '@grotto/api';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { cachesClearedOnMembershipLoss } from './membership-caches.ts';
 import { isMembershipLoss } from './membership-loss.ts';

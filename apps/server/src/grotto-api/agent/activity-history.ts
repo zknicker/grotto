@@ -1,4 +1,4 @@
-import { agentActivityHistoryInputSchema, agentActivityHistoryPageSchema } from '@tavern/api';
+import { agentActivityHistoryInputSchema, agentActivityHistoryPageSchema } from '@grotto/api';
 import { listAgentActivityHistory } from '../../server-agents/agent-activity-history.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';

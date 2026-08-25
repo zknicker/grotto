@@ -1,4 +1,4 @@
-import { deleteAgentInputSchema } from '@tavern/api';
+import { deleteAgentInputSchema } from '@grotto/api';
 import { TRPCError } from '@trpc/server';
 import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { AgentDeleteDeniedError } from '../../server-agents/agent-config-errors.ts';

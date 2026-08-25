@@ -1,4 +1,4 @@
-import { chatMarkReadInputSchema, chatReadReceiptSchema } from '@tavern/api';
+import { chatMarkReadInputSchema, chatReadReceiptSchema } from '@grotto/api';
 import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { markChatRead } from '../../chats/mark-read.ts';
 import { chatProcedure } from './procedure.ts';

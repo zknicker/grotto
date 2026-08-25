@@ -1,4 +1,4 @@
-import type { ChatMessage, ThreadSummary } from '@tavern/api';
+import type { ChatMessage, ThreadSummary } from '@grotto/api';
 import * as React from 'react';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';
@@ -10,7 +10,7 @@ import type {
     TranscriptMessageRow,
     TranscriptRenderContextValue,
 } from '../../chats/chat-transcript-render-context.tsx';
-import type { TavernResourceTarget } from '../../chats/tavern-resource-link.ts';
+import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
 import {
     applyAgentMentionAppearance,
     readMentionsFromMarkdown,
@@ -37,7 +37,7 @@ const emptyPendingMessages: readonly PendingChatMessage[] = [];
 interface ChatTranscriptInput {
     chatId: string;
     messages: readonly ChatMessage[] | undefined;
-    onOpenArtifact: (target: TavernResourceTarget) => void;
+    onOpenArtifact: (target: GrottoResourceTarget) => void;
     onOpenThread?: (message: ChatMessage, summary: ThreadSummary | null) => void;
     onStartDm?: (userId: string) => void;
     pendingMessages?: readonly PendingChatMessage[];
@@ -232,9 +232,9 @@ export function useChatTranscript({
                         }
                     );
 
-                    return message.tavernAgentId ? (
+                    return message.grottoAgentId ? (
                         <ArtifactMessage
-                            agentId={message.tavernAgentId}
+                            agentId={message.grottoAgentId}
                             content={message.content}
                             mentions={mentions}
                             onOpenArtifact={onOpenArtifact}

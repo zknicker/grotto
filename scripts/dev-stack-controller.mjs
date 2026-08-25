@@ -92,7 +92,7 @@ export class DevStackController extends EventEmitter {
     parseOutputLine(source, line) {
         const normalizedLine = stripAnsi(line);
 
-        if (source === 'desktop' && /Running `.*tavern-desktop`/u.test(normalizedLine)) {
+        if (source === 'desktop' && /Running `.*grotto-desktop`/u.test(normalizedLine)) {
             this.addLog(source, normalizedLine);
             this.update((snapshot) => {
                 snapshot.processes.desktop.status = 'running';
@@ -385,7 +385,7 @@ export class DevStackController extends EventEmitter {
         this.stopPromise = (async () => {
             const shutdownSignal = options.signal ?? 'SIGTERM';
             this.addLog(
-                'tavern',
+                'grotto',
                 options.signal ? `shutdown requested (${options.signal})` : 'shutdown requested'
             );
             this.update((snapshot) => {

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { avatarMaxBytes } from '@tavern/api/avatar';
+import { avatarMaxBytes } from '@grotto/api/avatar';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 

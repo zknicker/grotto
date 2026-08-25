@@ -39,14 +39,14 @@ Identical to `html-preview`: the confined Runtime workspace read (realpath
 confinement to the sending agent's workspace, secret-file blocks, complete
 reads only within the 5 MiB HTML window) fetches the file, and the document
 renders via `srcDoc` in a sandboxed iframe with scripts allowed and never
-`allow-same-origin`. Token injection inserts one `<style data-tavern-tokens>`
+`allow-same-origin`. Token injection inserts one `<style data-grotto-tokens>`
 block of resolved variable values; no app data, bridge, or postMessage API
 crosses the boundary.
 
 ## Card and pane flow
 
 The `artifact` fence funnels into the widget machinery (component id
-`tavern.widget.artifact`; see [widgets.md](widgets.md)). The transcript
+`grotto.widget.artifact`; see [widgets.md](widgets.md)). The transcript
 renderer (`apps/website/src/features/chats/artifact-card.tsx`) draws the compact
 card — title, kind line, open affordance — and performs no workspace read.
 Clicking calls the artifact-panel open path with a `workspaceFile` target,

@@ -1,4 +1,4 @@
-import { agentDeliveryControlInputSchema, agentDeliveryStateSchema } from '@tavern/api';
+import { agentDeliveryControlInputSchema, agentDeliveryStateSchema } from '@grotto/api';
 import { TRPCError } from '@trpc/server';
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
 import {

@@ -1,4 +1,4 @@
-import type { AttachmentReservation, AttachmentReserveInput } from '@tavern/api';
+import type { AttachmentReservation, AttachmentReserveInput } from '@grotto/api';
 import { and, eq } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';

@@ -4,7 +4,7 @@ import {
     type ServerMember,
     type ServerMemberAction,
     type ServerRole,
-} from '@tavern/api';
+} from '@grotto/api';
 import { and, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable } from '../postgres/schema.ts';

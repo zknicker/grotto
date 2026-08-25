@@ -76,9 +76,9 @@ async function main() {
         requirePublishingEnvironment();
         run('bun', ['run', 'release:check']);
     }
-    run('bun', ['run', '--filter', '@tavern/api', 'typecheck']);
-    run('bun', ['run', '--filter', '@tavern/computer', 'test']);
-    run('bun', ['run', '--filter', '@tavern/computer', 'typecheck']);
+    run('bun', ['run', '--filter', '@grotto/api', 'typecheck']);
+    run('bun', ['run', '--filter', '@grotto/computer', 'test']);
+    run('bun', ['run', '--filter', '@grotto/computer', 'typecheck']);
     const s3Root = dryRun ? null : requiredEnv('GROTTO_RELEASE_S3_URI').replace(/\/+$/u, '');
     const recoveredArtifactPath = dryRun
         ? null

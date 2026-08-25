@@ -6,7 +6,7 @@ export type LocalReactionsByMessage = Record<
     { actors: { handle: null | string; id: string }[]; emoji: string }[]
 >;
 
-const localReactionViewer = { handle: 'you', id: 'usr_tavern' } as const;
+const localReactionViewer = { handle: 'you', id: 'usr_grotto' } as const;
 
 /**
  * App-local reactions until the Server reaction API lands: toggling only

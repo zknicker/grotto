@@ -3,7 +3,7 @@ import {
     computerProtocolVersion,
     type SignedComputerRelease,
     signedComputerReleaseSchema,
-} from '@tavern/api';
+} from '@grotto/api';
 import { and, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { computersTable } from '../postgres/schema.ts';

@@ -8,14 +8,14 @@ is simply unclaimed.
 
 ## Product boundary
 
-- A `user` is one authenticated human with a stable `tavern user id`.
+- A `user` is one authenticated human with a stable `grotto user id`.
   Clerk's user id is a unique external reference on the user record, never a
   key anywhere else. Profile fields (name, avatar, email) are refreshable
   snapshots from Clerk, never identity.
 - The Runtime is the tenant. There is no separate workspace/tenant record in
   v1: membership, chats, agents, and settings all belong to the runtime.
 - A `member` is one user's standing on a runtime: role `owner` or `member`.
-  Exactly one owner exists. The explicit bind is `tavern claim --clerk-key
+  Exactly one owner exists. The explicit bind is `grotto claim --clerk-key
   <key> --user <clerk-user-id>` run on the runtime host — it configures
   Clerk verification and records the owner in one step; the app's
   connect-runtime page generates this command for the signed-in user. As a
@@ -64,10 +64,10 @@ never under a member's credentials.
 ## Data keying
 
 - Human authorship: messages, reads, receipts, reactions, and app
-  preferences key on `tavern user id`. A user's tavern id is their chat
+  preferences key on `grotto user id`. A user's grotto id is their chat
   participant id (`usr_…`). The server stamps the acting user resolved from
   the request's Clerk session token.
-- Keyless dev/e2e builds act as the synthetic local operator `usr_tavern`;
+- Keyless dev/e2e builds act as the synthetic local operator `usr_grotto`;
   that id is the fallback only when sign-in is disabled, never a real user.
 - Owner-scoped surfaces keep single-operator actors for now: session
   evidence views (`profile:self`), task work-order seeding, and

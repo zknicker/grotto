@@ -1,4 +1,4 @@
-import type { AgentAvailability, TaskLabel } from '@tavern/api';
+import type { AgentAvailability, TaskLabel } from '@grotto/api';
 import type { MessageTask } from '../tasks/message-task-chip.tsx';
 
 export type TranscriptActor =
@@ -84,6 +84,7 @@ export interface TranscriptMessage {
     actor?: TranscriptActor | null;
     attachments?: TranscriptAttachment[];
     content: string;
+    grottoAgentId?: string | null;
     id: string;
     metadata?: TranscriptMessageMetadata;
     reactions?: TranscriptMessageReaction[];
@@ -101,7 +102,6 @@ export interface TranscriptMessage {
               updated_at: string;
           })
         | null;
-    tavernAgentId?: string | null;
     timestamp: string;
 }
 

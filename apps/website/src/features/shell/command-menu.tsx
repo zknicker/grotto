@@ -128,7 +128,7 @@ function CommandMenuIcon({
     command: AppCommand;
     lookupAgentAvatarUrl: AgentAvatarLookup;
 }) {
-    if (command.icon === 'tavern') {
+    if (command.icon === 'grotto') {
         return <GrottoGlyph aria-hidden="true" />;
     }
 

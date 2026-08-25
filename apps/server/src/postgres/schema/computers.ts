@@ -1,4 +1,4 @@
-import type { ComputerInventory, ComputerUpdatePhase, UsageOverview } from '@tavern/api';
+import type { ComputerInventory, ComputerUpdatePhase, UsageOverview } from '@grotto/api';
 import { sql } from 'drizzle-orm';
 import {
     check,

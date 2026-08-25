@@ -1,6 +1,6 @@
 import {
     getChatDisplayTitle,
-    resolveTavernChatName,
+    resolveGrottoChatName,
 } from '../../../components/chats/chat-display.ts';
 
 export interface ThreadTargetChat {
@@ -17,7 +17,7 @@ export interface ThreadTargetChat {
     type: string;
 }
 
-const operatorActorIds = new Set(['usr_tavern', 'profile:self']);
+const operatorActorIds = new Set(['usr_grotto', 'profile:self']);
 
 export function threadPaneTitles(
     chat: ThreadTargetChat,
@@ -37,7 +37,7 @@ export function threadPaneTitles(
     // threads get no copyable target.
     if (chat.conversationKind === 'task' || chat.scope === 'task') {
         return {
-            header: `Thread — ${resolveTavernChatName(chat) || chat.title}`,
+            header: `Thread — ${resolveGrottoChatName(chat) || chat.title}`,
             target: null,
         };
     }
@@ -58,7 +58,7 @@ export function threadAnchorShortId(anchorMessageId: string) {
 }
 
 export function getChannelName(chat: ThreadTargetChat) {
-    const title = chat.type === 'tavern' ? resolveTavernChatName(chat) : getChatDisplayTitle(chat);
+    const title = chat.type === 'grotto' ? resolveGrottoChatName(chat) : getChatDisplayTitle(chat);
     return title.replace(/^#/u, '');
 }
 

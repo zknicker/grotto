@@ -1,4 +1,4 @@
-import { agentCreatedSchema, createAgentInputSchema } from '@tavern/api';
+import { agentCreatedSchema, createAgentInputSchema } from '@grotto/api';
 import { TRPCError } from '@trpc/server';
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
 import { createAgent } from '../../server-agents/create-agent.ts';

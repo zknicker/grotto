@@ -8,7 +8,7 @@ const baseChat = {
     scope: 'channel' as const,
     targetParticipant: null,
     title: '#general',
-    type: 'tavern',
+    type: 'grotto',
 };
 
 test('threadPaneTitles names a channel and shortens canonical anchor ids', () => {
@@ -48,7 +48,7 @@ test('threadPaneTitles names a DM for its non-operator peer', () => {
                 ...baseChat,
                 conversationKind: 'direct',
                 participants: [
-                    { actorId: 'usr_tavern', actorType: 'participant', name: 'You' },
+                    { actorId: 'usr_grotto', actorType: 'participant', name: 'You' },
                     { actorId: 'agent-tiny', actorType: 'agent', name: 'Tiny' },
                 ],
                 scope: 'dm',

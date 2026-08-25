@@ -1,4 +1,4 @@
-import type { Avatar, AvatarTarget, ClearAvatarInput, SetAvatarInput } from '@tavern/api';
+import type { Avatar, AvatarTarget, ClearAvatarInput, SetAvatarInput } from '@grotto/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentsTable, avatarsTable, usersTable } from '../postgres/schema.ts';

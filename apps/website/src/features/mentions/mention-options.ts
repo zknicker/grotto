@@ -1,4 +1,4 @@
-import { formatAgentReferenceTarget } from '@tavern/api/rich-references';
+import { formatAgentReferenceTarget } from '@grotto/api/rich-references';
 import type { MentionOption } from './mention-types.ts';
 
 export function buildAgentMentionOption({

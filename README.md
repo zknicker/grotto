@@ -5,7 +5,7 @@ state, Grotto App is the React product surface in browsers and Electron, and
 Grotto Computer runs agents on an attached machine.
 
 The repository, package namespace, API types, environment variables, and dev
-state retain the internal `tavern` name.
+state retain the internal `grotto` name.
 
 ## Architecture
 
@@ -13,17 +13,17 @@ state retain the internal `tavern` name.
 Grotto App -> Grotto Server -> Grotto Computer -> Codex / Claude Code / Pi
 ```
 
-`packages/tavern-api` is the cross-boundary contract package. OpenAPI is the
+`packages/grotto-api` is the cross-boundary contract package. OpenAPI is the
 wire source of truth, and the package also owns shared first-party contracts.
 
-`packages/tavern-sdk` is the TypeScript client over that API. Bots, webhooks,
+`packages/grotto-sdk` is the TypeScript client over that API. Bots, webhooks,
 automations, local tools, tests, and the app use the SDK/API
 shape instead of a second protocol package.
 
 ## Repo Layout
 
-* `packages/tavern-api`: OpenAPI and shared Grotto API contracts.
-* `packages/tavern-sdk`: TypeScript client wrapper for Grotto API.
+* `packages/grotto-api`: OpenAPI and shared Grotto API contracts.
+* `packages/grotto-sdk`: TypeScript client wrapper for Grotto API.
 * `apps/server`: Grotto Server and canonical collaboration state.
 * `apps/website`: Grotto App, including the React UI and Electron shell.
 * `apps/computer`: Grotto Computer and machine-local Agent execution.

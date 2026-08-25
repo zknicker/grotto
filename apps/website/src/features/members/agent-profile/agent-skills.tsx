@@ -3,7 +3,7 @@ import type {
     AgentSkillImportRecord,
     AgentSkillMetadata,
     ImportableSkill,
-} from '@tavern/api';
+} from '@grotto/api';
 import * as React from 'react';
 import { useSkillImport } from '../../../hooks/members/use-skill-import.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';

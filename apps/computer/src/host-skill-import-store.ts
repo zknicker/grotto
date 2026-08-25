@@ -5,7 +5,7 @@ import {
     type AgentSkillImportCommand,
     type AgentSkillImportRecord,
     agentSkillImportRecordSchema,
-} from '@tavern/api';
+} from '@grotto/api';
 
 export async function acceptHostSkillImport(input: {
     command: AgentSkillImportCommand;

@@ -111,8 +111,8 @@ export function SimpleCodeEditor({
                 </pre>
                 <Editor
                     className={cn(
-                        'tavern-simple-code-editor min-h-full font-mono text-sm leading-[1.65]',
-                        readOnly && 'tavern-simple-code-editor--plain'
+                        'grotto-simple-code-editor min-h-full font-mono text-sm leading-[1.65]',
+                        readOnly && 'grotto-simple-code-editor--plain'
                     )}
                     disabled={disabled}
                     highlight={(code) => highlightCode(code, language.prism)}

@@ -1,4 +1,4 @@
-import type { MessageTask, TaskLabel } from '@tavern/api';
+import type { MessageTask, TaskLabel } from '@grotto/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { messageTaskLabelsTable, messageTasksTable, taskLabelsTable } from '../postgres/schema.ts';

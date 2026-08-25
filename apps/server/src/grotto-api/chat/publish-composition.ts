@@ -1,4 +1,4 @@
-import { compositionPublishedSchema, compositionPublishInputSchema } from '@tavern/api';
+import { compositionPublishedSchema, compositionPublishInputSchema } from '@grotto/api';
 import { requireChatWriteAccess } from '../../chats/chat-access.ts';
 import { publishChatComposition } from '../../chats/composition-hub.ts';
 import { chatProcedure } from './procedure.ts';

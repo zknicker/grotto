@@ -1,6 +1,6 @@
+import type { Agent } from '@grotto/api';
 import { Chip } from '@heroui/react';
 import { ComputerIcon, ShieldUserIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type { Agent } from '@tavern/api';
 import { Link } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';

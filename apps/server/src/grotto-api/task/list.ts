@@ -1,4 +1,4 @@
-import { taskListInputSchema, taskListSchema } from '@tavern/api';
+import { taskListInputSchema, taskListSchema } from '@grotto/api';
 import { listTasks } from '../../tasks/list-tasks.ts';
 import { taskProcedure } from './procedure.ts';
 

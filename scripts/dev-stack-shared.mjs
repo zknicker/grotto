@@ -240,7 +240,7 @@ export function createDevStackStatePaths({ baseEnvironment, repositoryRoot }) {
 }
 
 function resolveDevStackStateRoot(stackId) {
-    return path.join(os.homedir(), '.tavern', 'dev', stackId);
+    return path.join(os.homedir(), '.grotto', 'dev', stackId);
 }
 
 function shortenRepositoryPath(value, repositoryRoot) {

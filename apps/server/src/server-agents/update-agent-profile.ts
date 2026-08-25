@@ -1,4 +1,4 @@
-import type { Agent, UpdateAgentProfileInput } from '@tavern/api';
+import type { Agent, UpdateAgentProfileInput } from '@grotto/api';
 import { and, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';

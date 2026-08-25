@@ -1,4 +1,4 @@
-import { reminderSchema } from '@tavern/api';
+import { reminderSchema } from '@grotto/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';

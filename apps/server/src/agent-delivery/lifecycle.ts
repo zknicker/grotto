@@ -1,5 +1,5 @@
 import EventEmitter, { on } from 'node:events';
-import { type AgentLifecycleEvent, agentLifecycleEventSchema } from '@tavern/api';
+import { type AgentLifecycleEvent, agentLifecycleEventSchema } from '@grotto/api';
 
 const eventName = 'agent.lifecycle';
 const emitter = new EventEmitter();

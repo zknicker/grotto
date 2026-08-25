@@ -1,4 +1,4 @@
-import type { CompositionEvent } from '@tavern/api';
+import type { CompositionEvent } from '@grotto/api';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { useMembers } from './use-members.ts';

@@ -5,17 +5,17 @@ import { applyAgentMentionAppearance, readMentionsFromMarkdown } from './mention
 describe('readMentionsFromMarkdown', () => {
     it('reads explicit rich reference links from message content', () => {
         const content =
-            'Ask [@Tavern](agent://agt_primary), open [@Computer Use](plugin://computer-use@openai-bundled), [@Chrome](app://computer-use/google-chrome), read [$ui](skill://ui), [mentions.md](/Users/zknicker/.codex/worktrees/1b41/tavern/specs/mentions.md), and [components/ui](/Users/zknicker/.codex/worktrees/1b41/tavern/apps/website/src/components/ui)';
+            'Ask [@Grotto](agent://agt_primary), open [@Computer Use](plugin://computer-use@openai-bundled), [@Chrome](app://computer-use/google-chrome), read [$ui](skill://ui), [mentions.md](/Users/zknicker/.codex/worktrees/1b41/grotto/specs/mentions.md), and [components/ui](/Users/zknicker/.codex/worktrees/1b41/grotto/apps/website/src/components/ui)';
 
         expect(readMentionsFromMarkdown(content)).toEqual([
             {
                 end: 34,
                 id: 'agent://agt_primary',
                 kind: 'agent',
-                label: 'Tavern',
+                label: 'Grotto',
                 projection: 'agent-reference',
                 start: 4,
-                text: '[@Tavern](agent://agt_primary)',
+                text: '[@Grotto](agent://agt_primary)',
             },
             {
                 end: 94,
@@ -46,27 +46,27 @@ describe('readMentionsFromMarkdown', () => {
             },
             {
                 end: 242,
-                id: '/Users/zknicker/.codex/worktrees/1b41/tavern/specs/mentions.md',
+                id: '/Users/zknicker/.codex/worktrees/1b41/grotto/specs/mentions.md',
                 kind: 'file',
                 label: 'mentions.md',
                 projection: 'path-reference',
                 start: 165,
-                text: '[mentions.md](/Users/zknicker/.codex/worktrees/1b41/tavern/specs/mentions.md)',
+                text: '[mentions.md](/Users/zknicker/.codex/worktrees/1b41/grotto/specs/mentions.md)',
             },
             {
                 end: content.length,
-                id: '/Users/zknicker/.codex/worktrees/1b41/tavern/apps/website/src/components/ui',
+                id: '/Users/zknicker/.codex/worktrees/1b41/grotto/apps/website/src/components/ui',
                 kind: 'directory',
                 label: 'components/ui',
                 projection: 'path-reference',
                 start: 248,
-                text: '[components/ui](/Users/zknicker/.codex/worktrees/1b41/tavern/apps/website/src/components/ui)',
+                text: '[components/ui](/Users/zknicker/.codex/worktrees/1b41/grotto/apps/website/src/components/ui)',
             },
         ]);
     });
 
     it('ignores bare mention-looking text', () => {
-        expect(readMentionsFromMarkdown('@Tavern and $ui are plain text')).toEqual([]);
+        expect(readMentionsFromMarkdown('@Grotto and $ui are plain text')).toEqual([]);
     });
 });
 

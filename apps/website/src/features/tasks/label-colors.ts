@@ -1,4 +1,4 @@
-import type { TaskLabel } from '@tavern/api';
+import type { TaskLabel } from '@grotto/api';
 
 export type TaskLabelColor = TaskLabel['color'];
 

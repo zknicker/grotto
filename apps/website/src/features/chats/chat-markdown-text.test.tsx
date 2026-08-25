@@ -75,7 +75,7 @@ test('ChatMarkdownText renders rich references as shared chips', () => {
     expect(markup).toContain('example.com/favicon.ico');
 });
 
-test('ChatMarkdownText renders Tavern resource links', () => {
+test('ChatMarkdownText renders Grotto resource links', () => {
     const markup = renderToStaticMarkup(
         <ArtifactPanelOpenProvider onOpen={() => undefined}>
             <ChatMarkdownText content="[preview.html](grotto://workspace/out/preview.html)" />

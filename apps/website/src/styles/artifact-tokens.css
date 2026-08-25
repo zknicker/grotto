@@ -1,5 +1,5 @@
 /*
- * Artifact tokens — the vocabulary Tavern publishes to agent-authored pages.
+ * Artifact tokens — the vocabulary Grotto publishes to agent-authored pages.
  *
  * This is a deliberately small, stable public API, not a compatibility shim.
  * Agents write self-contained HTML that renders in a sandboxed iframe; the

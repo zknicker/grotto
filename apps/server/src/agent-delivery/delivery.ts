@@ -6,7 +6,7 @@ import type {
     AgentTurnSummary,
     ReminderScriptCommand,
     ReminderScriptResult,
-} from '@tavern/api';
+} from '@grotto/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { messageSelection, toAgentMessages } from '../agent-api/message-view.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';

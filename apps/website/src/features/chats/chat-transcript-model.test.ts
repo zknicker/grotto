@@ -50,7 +50,7 @@ test('buildTranscriptEntries keeps a new run out of the previous run turn entry'
             senderType: 'agent',
             sourceSessionId: null,
             sourceSessionKey: handoffSession,
-            tavernAgentId: 'agent-1',
+            grottoAgentId: 'agent-1',
             timestamp: '2026-05-11T16:00:12.000Z',
         },
     };
@@ -379,7 +379,7 @@ function agentMessage(
         isFirstInGroup: !connectsToPrevious,
         kind: 'message',
         message: {
-            tavernAgentId: 'agent-1',
+            grottoAgentId: 'agent-1',
             content,
             id,
             sender: 'Agent',
@@ -429,7 +429,7 @@ function widgetRow(id: string): ChatRow {
         isFirstInGroup: true,
         kind: 'widget',
         widget: {
-            component: 'tavern.widget.bar-chart',
+            component: 'grotto.widget.bar-chart',
             fallbackText: 'Quarterly Revenue',
             id,
             props: {
@@ -511,7 +511,7 @@ function runNarrationMessage(id: string, timestamp: string): ChatRow {
             senderType: 'agent',
             sourceSessionId: null,
             sourceSessionKey: handoffSession,
-            tavernAgentId: 'agent-1',
+            grottoAgentId: 'agent-1',
             timestamp,
         },
     };
@@ -534,7 +534,7 @@ function durableReplyRow(): ChatRow {
             senderType: 'agent',
             sourceSessionId: null,
             sourceSessionKey: handoffSession,
-            tavernAgentId: 'agent-1',
+            grottoAgentId: 'agent-1',
             timestamp: '2026-05-11T16:00:11.000Z',
         },
     };
@@ -686,7 +686,7 @@ test('a crossing completion never inserts above an earlier live contribution', (
             senderType: 'agent',
             sourceSessionId: null,
             sourceSessionKey: 'ses_wren',
-            tavernAgentId: 'agt_wren',
+            grottoAgentId: 'agt_wren',
             // Completed while Otto is still streaming.
             timestamp: '2026-05-11T16:00:12.000Z',
         },
@@ -788,7 +788,7 @@ test('suffixed per-agent run ids keep one turn identity across live and durable 
                 senderType: 'agent',
                 sourceSessionId: null,
                 sourceSessionKey: 'ses_1',
-                tavernAgentId: 'agt_blippy',
+                grottoAgentId: 'agt_blippy',
                 timestamp: '2026-07-07T12:00:05.000Z',
             },
         },

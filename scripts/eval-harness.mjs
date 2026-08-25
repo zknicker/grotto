@@ -2,7 +2,7 @@
 // development Clerk user, then drives real Server -> Computer -> model turns
 // through the public Server tRPC contract.
 import { createRequire } from 'node:module';
-import { appProtocolHeaders, appProtocolVersion } from '../packages/tavern-api/src/app-protocol.ts';
+import { appProtocolHeaders, appProtocolVersion } from '../packages/grotto-api/src/app-protocol.ts';
 import { resolveDevPorts } from './dev-ports.mjs';
 
 export class InfraError extends Error {}

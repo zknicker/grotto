@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import type { UsageOverview } from '@tavern/api';
+import type { UsageOverview } from '@grotto/api';
 import * as z from 'zod';
 
 const DEFAULT_PROXY_URL = 'https://cli-chat-proxy.grok.com/v1';

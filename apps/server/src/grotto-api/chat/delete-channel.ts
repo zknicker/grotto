@@ -1,4 +1,4 @@
-import { channelDeleteInputSchema, channelDeleteReceiptSchema } from '@tavern/api';
+import { channelDeleteInputSchema, channelDeleteReceiptSchema } from '@grotto/api';
 import { deleteChannel } from '../../chats/channel-lifecycle.ts';
 import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { chatProcedure } from './procedure.ts';

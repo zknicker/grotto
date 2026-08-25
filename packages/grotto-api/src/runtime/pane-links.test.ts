@@ -80,7 +80,3 @@ test('formatChatPaneTargetLink formats clickable artifact links', () => {
         path: 'Demos/Artifact Panel Brief.md',
     });
 });
-
-test('parseChatPaneTargetLink rejects Tavern links', () => {
-    expect(parseChatPaneTargetLink('tavern://workspace/INDEX.md')).toBeNull();
-});

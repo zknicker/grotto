@@ -1,5 +1,5 @@
 {
-  "name": "@tavern/agent-workspace",
+  "name": "@grotto/agent-workspace",
   "private": true,
   "type": "module",
   "exports": {
@@ -10,8 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@tavern/agent-manual": "workspace:*",
-    "@tavern/api": "workspace:*"
+    "@grotto/agent-manual": "workspace:*",
+    "@grotto/api": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "1.3.13",

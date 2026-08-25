@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { ComputerUpdatePhase } from '@tavern/api';
+import type { ComputerUpdatePhase } from '@grotto/api';
 import { computerUpdateView } from './computer-update-model.ts';
 
 test('presents every Computer update phase', () => {

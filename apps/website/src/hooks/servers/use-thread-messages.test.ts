@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { ChatMessage } from '@tavern/api';
+import type { ChatMessage } from '@grotto/api';
 import { mergeThreadMessagePages } from './use-thread-messages.ts';
 
 test('Thread pages merge oldest-first without duplicate messages', () => {

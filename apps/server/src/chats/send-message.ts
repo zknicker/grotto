@@ -1,4 +1,4 @@
-import type { ChatMessageReceipt, ChatSendInput, ServerDurableEvent } from '@tavern/api';
+import type { ChatMessageReceipt, ChatSendInput, ServerDurableEvent } from '@grotto/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';

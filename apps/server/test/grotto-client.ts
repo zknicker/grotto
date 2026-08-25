@@ -1,4 +1,4 @@
-import { appProtocolHeaders, appProtocolVersion } from '@tavern/api';
+import { appProtocolHeaders, appProtocolVersion } from '@grotto/api';
 import {
     createTRPCClient,
     createWSClient,

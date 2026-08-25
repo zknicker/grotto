@@ -6,7 +6,7 @@ import { parse } from 'yaml';
 
 const openApiPath = fileURLToPath(new URL('../openapi.yaml', import.meta.url));
 
-describe('Tavern OpenAPI contract', () => {
+describe('Grotto OpenAPI contract', () => {
     const document = parse(readFileSync(openApiPath, 'utf8')) as {
         components?: { schemas?: Record<string, unknown> };
         info?: { title?: string };
@@ -14,9 +14,9 @@ describe('Tavern OpenAPI contract', () => {
         paths?: Record<string, unknown>;
     };
 
-    it('declares the Tavern API document', () => {
+    it('declares the Grotto API document', () => {
         expect(document.openapi).toBe('3.1.0');
-        expect(document.info?.title).toBe('Tavern API');
+        expect(document.info?.title).toBe('Grotto API');
     });
 
     it('contains the first chat and realtime API slice', () => {

@@ -3,7 +3,7 @@ import type {
     AgentActivityEvent,
     AgentActivityPhase,
     AgentExecutionJournalResult,
-} from '@tavern/api';
+} from '@grotto/api';
 
 type ActivityCopy = Record<AgentActivityPhase, string>;
 

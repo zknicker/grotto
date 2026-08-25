@@ -1,4 +1,4 @@
-import type { AttachmentInventory } from '@tavern/api';
+import type { AttachmentInventory } from '@grotto/api';
 import { asc, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { attachmentsTable } from '../postgres/schema.ts';

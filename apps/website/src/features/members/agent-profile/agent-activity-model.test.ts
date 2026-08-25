@@ -3,7 +3,7 @@ import type {
     AgentActivityEvent,
     AgentExecutionJournal,
     AgentExecutionJournalResult,
-} from '@tavern/api';
+} from '@grotto/api';
 import {
     formatAgentActivityDiagnosticInfo,
     formatAgentActivityEvent,

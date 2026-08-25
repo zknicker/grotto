@@ -26,15 +26,15 @@ export function getChatDisplayTitle(chat: ChatDisplayInput) {
         return agentLabel ? `${agentLabel} <-> ${targetLabel}` : targetLabel;
     }
 
-    if (chat.type === 'tavern') {
-        return resolveTavernChatName(chat);
+    if (chat.type === 'grotto') {
+        return resolveGrottoChatName(chat);
     }
 
     return chat.title;
 }
 
 export function isRuntimeDm(chat: ChatDisplayInput) {
-    return chat.type !== 'tavern' && chat.scope === 'dm';
+    return chat.type !== 'grotto' && chat.scope === 'dm';
 }
 
 function formatParticipantNames(names: string[]) {
@@ -65,6 +65,6 @@ export function formatChatPlatformLabel(type: string) {
         .join(' ');
 }
 
-export function resolveTavernChatName(chat: ChatDisplayInput) {
+export function resolveGrottoChatName(chat: ChatDisplayInput) {
     return chat.displayName.trim() || chat.title;
 }

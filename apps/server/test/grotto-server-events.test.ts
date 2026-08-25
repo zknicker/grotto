@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import type { ServerUpdatedEvent } from '@tavern/api';
+import type { ServerUpdatedEvent } from '@grotto/api';
 import { emitServerUpdated, subscribeToServerUpdates } from '../src/grotto-api/server-events.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';

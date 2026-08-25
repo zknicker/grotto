@@ -1,5 +1,5 @@
+import type { WorkspaceFileEntry as ServerWorkspaceFileEntry } from '@grotto/api';
 import type { FileTreeSortEntry } from '@pierre/trees';
-import type { WorkspaceFileEntry as ServerWorkspaceFileEntry } from '@tavern/api';
 
 export type WorkspaceFileEntry = ServerWorkspaceFileEntry;
 export type WorkspaceDirectoryEntries = Record<string, WorkspaceFileEntry[]>;

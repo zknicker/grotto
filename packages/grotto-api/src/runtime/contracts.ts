@@ -761,13 +761,13 @@ export const agentRuntimeSkillSummarySchema = z.object({
     configChecks: z.array(agentRuntimeSkillConfigCheckSchema).default([]),
     description: z.string().nullable(),
     disabled: z.boolean().optional(),
-    // Local content differs from the last Tavern-written version.
+    // Local content differs from the last Grotto-written version.
     edited: z.boolean().optional(),
     eligible: z.boolean().optional(),
     filePath: z.string().trim().min(1).nullable().optional(),
     id: z.string().trim().min(1),
     install: z.array(agentRuntimeSkillInstallOptionSchema).default([]),
-    // Managed source with a Tavern default that can be restored.
+    // Managed source with a Grotto default that can be restored.
     managedSource: z.enum(['seeded', 'hub']).nullable().optional(),
     missing: agentRuntimeSkillRequirementsSchema,
     modelVisible: z.boolean().optional(),
@@ -777,7 +777,7 @@ export const agentRuntimeSkillSummarySchema = z.object({
     runtimeSource: z.string().trim().min(1).nullable().optional(),
     skillKey: z.string().trim().min(1).nullable().optional(),
     source: agentRuntimeSkillSourceSchema,
-    // The current Tavern version differs from the last written version.
+    // The current Grotto version differs from the last written version.
     updateAvailable: z.boolean().optional(),
     updatedAt: z.string().datetime().nullable(),
     userInvocable: z.boolean().optional(),
@@ -878,7 +878,7 @@ export const agentRuntimeDiscordChatMetadataSchema = z.object({
         .nullable(),
 });
 
-export const agentRuntimeTavernChatSourceRecordSchema = z.object({
+export const agentRuntimeGrottoChatSourceRecordSchema = z.object({
     chatId: z.string().trim().min(1),
     clientMessageId: z.string().trim().min(1).nullable(),
     conversationId: z.string().trim().min(1).nullable(),
@@ -888,17 +888,17 @@ export const agentRuntimeTavernChatSourceRecordSchema = z.object({
     source: agentRuntimeJsonRecordSchema.nullable(),
 });
 
-export const agentRuntimeTavernChatMetadataSchema = z.object({
+export const agentRuntimeGrottoChatMetadataSchema = z.object({
     chatId: z.string().trim().min(1),
     conversationId: z.string().trim().min(1).nullable(),
     observedLabels: z.array(z.string().trim().min(1)),
-    provider: z.literal('tavern'),
-    sourceRecords: z.array(agentRuntimeTavernChatSourceRecordSchema),
+    provider: z.literal('grotto'),
+    sourceRecords: z.array(agentRuntimeGrottoChatSourceRecordSchema),
 });
 
 export const agentRuntimeChatPlatformMetadataSchema = z
     .discriminatedUnion('provider', [
-        agentRuntimeTavernChatMetadataSchema,
+        agentRuntimeGrottoChatMetadataSchema,
         agentRuntimeDiscordChatMetadataSchema,
     ])
     .nullable();
@@ -1107,7 +1107,7 @@ export const agentRuntimeUpdateAgentWebSettingsSchema = z.object({
     webAccessEnabled: z.boolean(),
 });
 
-export const agentRuntimeFrontendSchema = z.enum(['cli', 'discord', 'sdk', 'tavern', 'telegram']);
+export const agentRuntimeFrontendSchema = z.enum(['cli', 'discord', 'sdk', 'grotto', 'telegram']);
 
 export const agentRuntimeAgentSessionStatusSchema = z.enum(['active', 'archived', 'stopped']);
 
@@ -1395,12 +1395,12 @@ export const agentRuntimeSessionArtifactSchema = z.object({
     toolCallId: z.string().trim().min(1).nullable(),
 });
 
-export const agentRuntimeTavernMessageMetadataSchema = z.object({}).passthrough();
+export const agentRuntimeGrottoMessageMetadataSchema = z.object({}).passthrough();
 
 export const agentRuntimeMessageMetadataSchema = z
     .object({
         api: z.string().trim().min(1).nullable().optional(),
-        tavern: agentRuntimeTavernMessageMetadataSchema.optional(),
+        grotto: agentRuntimeGrottoMessageMetadataSchema.optional(),
         cacheReadTokens: z.number().int().nonnegative().nullable().optional(),
         cacheWriteTokens: z.number().int().nonnegative().nullable().optional(),
         inputTokens: z.number().int().nonnegative().nullable().optional(),
@@ -1569,13 +1569,13 @@ export const agentRuntimeStopTurnResultSchema = z.object({
     stopped: z.boolean(),
 });
 
-export const tavernChannelMessageAcceptedFrameSchema = z.object({
+export const grottoChannelMessageAcceptedFrameSchema = z.object({
     accepted: agentRuntimeMessageAcceptedSchema,
     kind: z.literal('message-accepted'),
     requestId: z.string().trim().min(1),
 });
 
-export const tavernChannelRuntimeLogFrameSchema = z.object({
+export const grottoChannelRuntimeLogFrameSchema = z.object({
     event: z.string().trim().min(1),
     kind: z.literal('runtime-log'),
     payload: z.record(z.string(), z.unknown()).default({}),
@@ -1840,9 +1840,9 @@ export type AgentRuntimeChatParticipant = z.infer<typeof agentRuntimeChatPartici
 export type AgentRuntimeChatPlatformMetadata = z.infer<
     typeof agentRuntimeChatPlatformMetadataSchema
 >;
-export type AgentRuntimeTavernChatMetadata = z.infer<typeof agentRuntimeTavernChatMetadataSchema>;
-export type AgentRuntimeTavernChatSourceRecord = z.infer<
-    typeof agentRuntimeTavernChatSourceRecordSchema
+export type AgentRuntimeGrottoChatMetadata = z.infer<typeof agentRuntimeGrottoChatMetadataSchema>;
+export type AgentRuntimeGrottoChatSourceRecord = z.infer<
+    typeof agentRuntimeGrottoChatSourceRecordSchema
 >;
 export type AgentRuntimeDiscordChatMetadata = z.infer<typeof agentRuntimeDiscordChatMetadataSchema>;
 export type AgentRuntimeDiscordChatSourceRecord = z.infer<
@@ -2061,8 +2061,8 @@ export type AgentRuntimeCreateMessage = z.infer<typeof agentRuntimeCreateMessage
 export type AgentRuntimeMessageAccepted = z.infer<typeof agentRuntimeMessageAcceptedSchema>;
 export type AgentRuntimeStopTurn = z.infer<typeof agentRuntimeStopTurnSchema>;
 export type AgentRuntimeStopTurnResult = z.infer<typeof agentRuntimeStopTurnResultSchema>;
-export type TavernChannelMessageAcceptedFrame = z.infer<
-    typeof tavernChannelMessageAcceptedFrameSchema
+export type GrottoChannelMessageAcceptedFrame = z.infer<
+    typeof grottoChannelMessageAcceptedFrameSchema
 >;
 export type AgentRuntimeJobDetail = z.infer<typeof agentRuntimeJobDetailSchema>;
 export type AgentRuntimeJobList = z.infer<typeof agentRuntimeJobListSchema>;

@@ -1,12 +1,12 @@
 import { Markdown } from '@heroui-pro/react/markdown';
 import * as React from 'react';
 import { MarkdownLink } from '../chats/chat-inline-markdown-link.tsx';
-import { parseTavernResourceLink } from '../chats/tavern-resource-link.ts';
+import { parseGrottoResourceLink } from '../chats/grotto-resource-link.ts';
 import { areMentionsEqual, readMentionsFromMarkdown } from './mention-metadata.ts';
 import type { Mention } from './mention-types.ts';
 import { ReferenceChip } from './reference-chip.tsx';
 
-const referenceOrigin = 'https://references.tavern.invalid';
+const referenceOrigin = 'https://references.grotto.invalid';
 const markdownLinkPattern = /\[([^\]\n]+)\]\(([^)\n]+)\)/gu;
 
 type PreparedLink = { href: string; kind: 'resource' } | { kind: 'reference'; reference: Mention };
@@ -70,7 +70,7 @@ export function prepareMarkdownReferences(content: string, suppliedMentions?: re
         }
 
         const reference = mentionsByStart.get(start);
-        const resource = parseTavernResourceLink(target);
+        const resource = parseGrottoResourceLink(target);
 
         if (!(reference || resource)) {
             continue;

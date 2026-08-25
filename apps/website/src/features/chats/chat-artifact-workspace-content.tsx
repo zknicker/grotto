@@ -22,7 +22,7 @@ import { WorkspaceFileTree } from './chat-artifact-workspace-tree.tsx';
 export function WorkspaceBrowserContent({
     agentId,
     initialDirectoryPath = '',
-    sidebarStorageKey = 'tavern.artifactPane.workspaceSidebar.width',
+    sidebarStorageKey = 'grotto.artifactPane.workspaceSidebar.width',
     selectedPath: controlledSelectedPath,
     onSelectPath,
     serverId,

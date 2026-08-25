@@ -44,7 +44,7 @@ describe('artifact widget contracts', () => {
         const parsed = parseWidgetPayload('artifact', { path: 'workbench/pages/report.html' });
 
         expect(parsed.name).toBe('artifact');
-        expect(parsed.render.component).toBe('tavern.widget.artifact');
+        expect(parsed.render.component).toBe('grotto.widget.artifact');
         expect(parsed.render.target).toBe('chat.inline');
         expect(parsed.fallbackText).toBe('Artifact: workbench/pages/report.html');
     });

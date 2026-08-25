@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdir, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { computerProtocolVersion } from '@tavern/api';
+import { computerProtocolVersion } from '@grotto/api';
 import { eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

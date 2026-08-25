@@ -3,10 +3,10 @@ import { Cancel01Icon, File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import {
+    type GrottoResourceTarget,
     getArtifactPanelTargetKey,
     getArtifactPanelTargetLabel,
-    type TavernResourceTarget,
-} from './tavern-resource-link.ts';
+} from './grotto-resource-link.ts';
 
 /*
  * Editor-style artifact tabs, owned by chat.
@@ -27,7 +27,7 @@ export function ArtifactTabStrip({
     activeKey: string | null;
     onCloseTarget: (key: string) => void;
     onSelectTarget: (key: string) => void;
-    targets: TavernResourceTarget[];
+    targets: GrottoResourceTarget[];
 }) {
     return (
         <div

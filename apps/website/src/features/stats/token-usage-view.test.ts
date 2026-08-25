@@ -1,4 +1,4 @@
-import type { TokenUsageOverview } from '@tavern/api';
+import type { TokenUsageOverview } from '@grotto/api';
 import { expect, test } from 'vitest';
 import { buildAgentTokenUsageView, buildTokenUsageView } from './token-usage-view.ts';
 

@@ -1,12 +1,12 @@
-import type { ChatPaneTarget } from '@tavern/api';
-// Value imports must use the pane-links subpath: the @tavern/api root index
+import type { ChatPaneTarget } from '@grotto/api';
+// Value imports must use the pane-links subpath: the @grotto/api root index
 // reaches node:crypto via runtime config helpers and cannot evaluate in the
 // browser.
 import {
     formatChatPaneTargetLink,
     isWorkspaceChatPaneTarget,
     parseChatPaneTargetLink,
-} from '@tavern/api/pane-links';
+} from '@grotto/api/pane-links';
 
 // Pane targets and the grotto:// link scheme are the Runtime contract's; the
 // app-local alias adds the authoring Agent for Server workspace targets. The
@@ -15,30 +15,30 @@ import {
 type WorkspaceResourceTarget = Extract<ChatPaneTarget, { kind: `workspace${string}` }> & {
     agentId?: string;
 };
-export type TavernResourceTarget =
+export type GrottoResourceTarget =
     | Exclude<ChatPaneTarget, { kind: `workspace${string}` }>
     | WorkspaceResourceTarget;
 
-export const parseTavernResourceLink = parseChatPaneTargetLink;
-export const formatTavernResourceLink = formatChatPaneTargetLink;
+export const parseGrottoResourceLink = parseChatPaneTargetLink;
+export const formatGrottoResourceLink = formatChatPaneTargetLink;
 export { isWorkspaceChatPaneTarget };
 
-export function getArtifactPanelTargetKey(target: TavernResourceTarget) {
+export function getArtifactPanelTargetKey(target: GrottoResourceTarget) {
     const agentKey = 'agentId' in target && target.agentId ? `${target.agentId}:` : '';
     return `${target.kind}:${agentKey}${target.path}`;
 }
 
 export function bindWorkspaceTargetToAgent(
-    target: TavernResourceTarget,
+    target: GrottoResourceTarget,
     agentId: string | undefined
-): TavernResourceTarget {
+): GrottoResourceTarget {
     if (!(agentId && isWorkspaceChatPaneTarget(target))) {
         return target;
     }
     return { ...target, agentId };
 }
 
-export function getArtifactPanelTargetLabel(target: TavernResourceTarget) {
+export function getArtifactPanelTargetLabel(target: GrottoResourceTarget) {
     // The workspace is one tab; it reads "Workspace" whenever no file is open.
     if (target.kind === 'workspaceDirectory' || target.kind === 'workspaceRoot') {
         return 'Workspace';

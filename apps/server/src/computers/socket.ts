@@ -18,7 +18,7 @@ import {
     coveApplyResultSchema,
     reminderScriptResultSchema,
     usageReportSchema,
-} from '@tavern/api';
+} from '@grotto/api';
 import { WebSocketServer } from 'ws';
 import { z } from 'zod';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';

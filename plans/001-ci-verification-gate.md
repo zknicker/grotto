@@ -36,7 +36,7 @@ verification gate, so this one lands first.
 
 - `.github/workflows/deploy.yml` — single `deploy` job on a **self-hosted
   runner** (a Mac mini). It does NOT build from the checkout; it `git pull`s a
-  separate deployed checkout at `/Users/zknicker/srv/tavern` and runs
+  separate deployed checkout at `/Users/zknicker/srv/grotto` and runs
   `./scripts/deploy-local.sh` there:
 
   ```yaml
@@ -48,7 +48,7 @@ verification gate, so this one lands first.
         - name: Checkout
           uses: actions/checkout@v4
         - name: Build and deploy
-          working-directory: /Users/zknicker/srv/tavern
+          working-directory: /Users/zknicker/srv/grotto
           run: |
             git pull --ff-only
             ./scripts/deploy-local.sh
@@ -62,7 +62,7 @@ verification gate, so this one lands first.
   - `apps/website`: **no `test` script** — but `src/**/*.test.ts(x)` files
     exist using `bun:test` (e.g. `apps/website/src/features/shell/sidebar-agent-list.test.ts`
     imports from `bun:test`).
-  - `packages/tavern-api`, `packages/tavern-sdk`: `"test": "bun test"`.
+  - `packages/grotto-api`, `packages/grotto-sdk`: `"test": "bun test"`.
   - `packages/claude-usage`, `packages/codex-usage`: `"test": "vitest run"`.
 - `docs/operations/testing.md` — describes the verification lanes. Read it
   before step 2 and keep its lane descriptions accurate if you change anything.
@@ -74,7 +74,7 @@ verification gate, so this one lands first.
 | Install   | `bun install --frozen-lockfile`          | exit 0              |
 | Typecheck | `bun run typecheck`                      | exit 0              |
 | Lint      | `bun run lint`                           | exit 0              |
-| Server tests  | `bun run --filter @tavern/server test`  | all pass        |
+| Server tests  | `bun run --filter @grotto/server test`  | all pass        |
 
 ## Scope
 
@@ -86,7 +86,7 @@ verification gate, so this one lands first.
 - `plans/README.md` (status row)
 
 **Out of scope** (do NOT touch):
-- `scripts/deploy-local.sh` and anything under `/Users/zknicker/srv/tavern` —
+- `scripts/deploy-local.sh` and anything under `/Users/zknicker/srv/grotto` —
   the deploy mechanics are not this plan's business.
 - Any test file content. If a test fails at baseline, that is a STOP
   condition, not something to fix here.
@@ -118,7 +118,7 @@ transform), do not chase them — remove the script again and record in
 `plans/README.md` that the website unit lane needs its own setup, then
 continue with step 3 **without** the website lane.
 
-**Verify**: `bun run --filter @tavern/website test` → all pass (or lane
+**Verify**: `bun run --filter @grotto/website test` → all pass (or lane
 documented as deferred).
 
 ### Step 3: Add the root test script
@@ -128,7 +128,7 @@ style (explicit filters, not `--filter '*'`, so ordering and inclusion are
 deliberate):
 
 ```json
-"test": "bun run --filter @tavern/api test && bun run --filter @tavern/sdk test && bun run --filter @tavern/claude-usage test && bun run --filter @tavern/codex-usage test && bun run --filter @tavern/server test && bun run --filter @tavern/website test"
+"test": "bun run --filter @grotto/api test && bun run --filter @grotto/sdk test && bun run --filter @grotto/claude-usage test && bun run --filter @grotto/codex-usage test && bun run --filter @grotto/server test && bun run --filter @grotto/website test"
 ```
 
 (Drop the website entry if step 2 deferred it.)
@@ -163,7 +163,7 @@ jobs:
 ```
 
 The verify job runs in the runner's default workspace checkout — do NOT give
-it `working-directory: /Users/zknicker/srv/tavern`. The runner is the same
+it `working-directory: /Users/zknicker/srv/grotto`. The runner is the same
 Mac mini that deploys, so `bun` is available on it; you cannot execute the
 workflow locally — validate the YAML instead.
 

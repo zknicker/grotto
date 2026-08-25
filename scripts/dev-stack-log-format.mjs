@@ -18,7 +18,6 @@ export const theme = {
 const processOrder = ['postgres', 'grotto', 'computer', 'website', 'desktop'];
 
 const sourceMeta = {
-    tavern: { color: theme.accent, icon: '🎰', label: 'grotto' },
     desktop: { color: theme.accent, icon: '🪟', label: 'desktop' },
     computer: { color: theme.warning, icon: '🖥️', label: 'computer' },
     grotto: { color: theme.warning, icon: '🏠', label: 'server' },
@@ -38,7 +37,7 @@ const statusMeta = {
 
 export function formatHeader(snapshot, { colorize = false } = {}) {
     const lines = [
-        formatTavernLine('booting local stack', {
+        formatGrottoLine('booting local stack', {
             color: theme.accent,
             colorize,
             icon: '🎰',
@@ -47,7 +46,7 @@ export function formatHeader(snapshot, { colorize = false } = {}) {
 
     if (snapshot.staleCleanupCount > 0) {
         lines.push(
-            formatTavernLine(`cleaned ${snapshot.staleCleanupCount} stale dev processes`, {
+            formatGrottoLine(`cleaned ${snapshot.staleCleanupCount} stale dev processes`, {
                 color: theme.warning,
                 colorize,
                 icon: '◐',
@@ -96,7 +95,7 @@ export function getSnapshotChangeLines(previous, next, snapshot, { colorize = fa
 
     if (previous.staleCleanupCount !== next.staleCleanupCount && next.staleCleanupCount > 0) {
         lines.push(
-            formatTavernLine(`cleaned ${next.staleCleanupCount} stale dev processes`, {
+            formatGrottoLine(`cleaned ${next.staleCleanupCount} stale dev processes`, {
                 color: theme.warning,
                 colorize,
                 icon: '◐',
@@ -141,7 +140,7 @@ export function snapshotDigest(snapshot) {
     };
 }
 
-export function formatTavernLine(message, { color, colorize, icon }) {
+export function formatGrottoLine(message, { color, colorize, icon }) {
     return `${colorizeText(`${icon} grotto`, color, colorize)} ${message}`;
 }
 

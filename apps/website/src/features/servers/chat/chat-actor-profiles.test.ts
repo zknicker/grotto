@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Agent } from '@tavern/api';
+import type { Agent } from '@grotto/api';
 import { liveAgentActorProfile } from './chat-actor-profiles.ts';
 
 test('live Agent profiles preserve canonical availability for transcript avatars', () => {

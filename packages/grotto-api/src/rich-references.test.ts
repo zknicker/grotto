@@ -5,12 +5,12 @@ import {
     formatSkillReferenceTarget,
     parseAgentReferenceTarget,
     parseAppReferenceTarget,
+    parseGrottoRichReferences,
     parseSkillReferenceTarget,
-    parseTavernRichReferences,
     parseUserReferenceTarget,
 } from './rich-references.ts';
 
-describe('Tavern rich references', () => {
+describe('Grotto rich references', () => {
     it('formats and parses stable agent, app, and skill targets', () => {
         expect(formatAgentReferenceTarget('agent:planner')).toBe('agent://agent%3Aplanner');
         expect(parseAgentReferenceTarget('agent://agent%3Aplanner')).toBe('agent:planner');
@@ -30,7 +30,7 @@ describe('Tavern rich references', () => {
         const content =
             'Ask [@Planner](agent://agent%3Aplanner), use [$ui](skill://ui), open [@Chrome](app://computer-use/com.google.Chrome), and inspect [specs/mentions.md](/repo/specs/mentions.md).';
 
-        expect(parseTavernRichReferences(content)).toEqual([
+        expect(parseGrottoRichReferences(content)).toEqual([
             {
                 end: 39,
                 id: 'agent://agent%3Aplanner',
@@ -71,14 +71,14 @@ describe('Tavern rich references', () => {
     });
 
     it('leaves bare mention-looking text unparsed', () => {
-        expect(parseTavernRichReferences('@Planner $ui B0TESTASIN')).toEqual([]);
+        expect(parseGrottoRichReferences('@Planner $ui B0TESTASIN')).toEqual([]);
     });
 
     it('parses explicit user references', () => {
-        expect(parseUserReferenceTarget('user://usr_tavern')).toBe('usr_tavern');
-        expect(parseTavernRichReferences('Ask [@You](user://usr_tavern).')).toEqual([
+        expect(parseUserReferenceTarget('user://usr_grotto')).toBe('usr_grotto');
+        expect(parseGrottoRichReferences('Ask [@You](user://usr_grotto).')).toEqual([
             expect.objectContaining({
-                id: 'user://usr_tavern',
+                id: 'user://usr_grotto',
                 kind: 'user',
                 label: 'You',
             }),
@@ -88,7 +88,7 @@ describe('Tavern rich references', () => {
     it('parses skill targets independently from filesystem paths', () => {
         const content = 'Use [$space-skill](skill://space-skill) now.';
 
-        expect(parseTavernRichReferences(content)).toEqual([
+        expect(parseGrottoRichReferences(content)).toEqual([
             {
                 end: 39,
                 id: 'skill://space-skill',
@@ -104,7 +104,7 @@ describe('Tavern rich references', () => {
     it('treats explicit SKILL.md paths as file references, not skill activations', () => {
         const content = 'Read [$ui](/Users/zknicker/.agents/skills/ui/SKILL.md).';
 
-        expect(parseTavernRichReferences(content)).toEqual([
+        expect(parseGrottoRichReferences(content)).toEqual([
             {
                 end: 54,
                 id: '/Users/zknicker/.agents/skills/ui/SKILL.md',

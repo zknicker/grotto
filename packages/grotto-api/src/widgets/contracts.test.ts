@@ -10,7 +10,7 @@ describe('Widget contracts', () => {
 
         expect(parsed.name).toBe('visual');
         expect(parsed.fallbackText).toBe('Weekly sales');
-        expect(parsed.render.component).toBe('tavern.widget.visual');
+        expect(parsed.render.component).toBe('grotto.widget.visual');
         expect(parsed.render.target).toBe('chat.inline');
     });
 
@@ -21,7 +21,7 @@ describe('Widget contracts', () => {
 
         expect(parsed.name).toBe('artifact');
         expect(parsed.fallbackText).toBe('Artifact: workbench/report.html');
-        expect(parsed.render.component).toBe('tavern.widget.artifact');
+        expect(parsed.render.component).toBe('grotto.widget.artifact');
     });
 
     test('parseWidgetPayload rejects retired catalog widgets', () => {
@@ -43,7 +43,7 @@ describe('Widget contracts', () => {
 
     test('render input rejects retired stored components', () => {
         const result = widgetRenderInputSchema.safeParse({
-            component: 'tavern.widget.calendar-event',
+            component: 'grotto.widget.calendar-event',
             fallback: { text: 'Hamilton' },
             props: { date: '2026-10-04', title: 'Hamilton' },
             target: 'chat.inline',

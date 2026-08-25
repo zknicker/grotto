@@ -16,7 +16,7 @@ Prefer:
    symbols;
 2. current public Raft documentation;
 3. current Raft blog posts describing product intent;
-4. Tavern's checked-in Raft-alignment notes and captured recipes;
+4. Grotto's checked-in Raft-alignment notes and captured recipes;
 5. inference, labeled explicitly.
 
 Public starting points:
@@ -65,8 +65,8 @@ only the smallest relevant implementation fragment.
 Adapt this without inserting a favored diagnosis:
 
 > Act as the Raft research partner for a Grotto Agent bug investigation. Work read-only and do not
-> edit the Tavern repository. Here is the raw symptom and topology: [SYMPTOM]. Research current
-> primary sources on raft.build, docs.raft.build, and the Raft blog; read Tavern's
+> edit the Grotto repository. Here is the raw symptom and topology: [SYMPTOM]. Research current
+> primary sources on raft.build, docs.raft.build, and the Raft blog; read Grotto's
 > specs/raft-alignment material; and inspect the local Raft Computer/daemon source and installed
 > implementation read-only. Do not expose credentials or unrelated message contents. Return:
 > (1) a source-backed behavioral model, (2) exact local symbols or paths supporting it,
@@ -106,7 +106,7 @@ name the owning product contract and update it rather than disguising the differ
 
 - One-shot summaries that never see the actual hypotheses or fix.
 - Blog interpretation overriding local executable evidence.
-- Searching only Tavern's captured notes while claiming current public parity.
+- Searching only Grotto's captured notes while claiming current public parity.
 - Dumping broad binary strings or configs instead of targeted symbols.
 - Letting the research partner implement the fix and thereby lose independence.
 - Substituting architectural confidence for a deterministic local regression.

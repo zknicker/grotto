@@ -1,4 +1,4 @@
-import type { CreateAgentInput } from '@tavern/api';
+import type { CreateAgentInput } from '@grotto/api';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 
 export function useAgentCreate(serverId: string) {

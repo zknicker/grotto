@@ -1,4 +1,4 @@
-import type { ServerMember, SyncHumanIdentityInput, UpdateHumanProfileInput } from '@tavern/api';
+import type { ServerMember, SyncHumanIdentityInput, UpdateHumanProfileInput } from '@grotto/api';
 import { eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { usersTable } from '../postgres/schema.ts';

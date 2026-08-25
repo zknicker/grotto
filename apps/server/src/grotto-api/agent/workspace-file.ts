@@ -1,4 +1,4 @@
-import { agentWorkspaceReadInputSchema, workspaceFileContentSchema } from '@tavern/api';
+import { agentWorkspaceReadInputSchema, workspaceFileContentSchema } from '@grotto/api';
 import { TRPCError } from '@trpc/server';
 import {
     AgentWorkspaceAccessError,

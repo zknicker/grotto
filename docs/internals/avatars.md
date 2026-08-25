@@ -14,7 +14,7 @@ agent-vs-human branch at any call site.
 
 ## Contract
 
-`packages/tavern-api/src/avatar.ts` (`@tavern/api/avatar`) owns the rules:
+`packages/grotto-api/src/avatar.ts` (`@grotto/api/avatar`) owns the rules:
 
 - `avatarMediaTypes` — `image/jpeg`, `image/png`, `image/webp`. Nothing else is
   accepted, and the server re-checks the magic signature against the declared

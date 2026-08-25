@@ -1,4 +1,4 @@
-import type { ServerMember } from '@tavern/api';
+import type { ServerMember } from '@grotto/api';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import {

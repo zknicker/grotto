@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import type { ClaudeUsageSnapshot } from '@tavern/claude-usage';
+import type { ClaudeUsageSnapshot } from '@grotto/claude-usage';
 import { z } from 'zod';
 
 const DEFAULT_SDK_REFRESH_INTERVAL_MS = 15 * 60_000;

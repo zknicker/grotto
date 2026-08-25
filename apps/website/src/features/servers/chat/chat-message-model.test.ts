@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { ChatMessage } from '@tavern/api';
+import type { ChatMessage } from '@grotto/api';
 import { buildTranscriptEntries, getItemRunId } from '../../chats/chat-transcript-model.ts';
 import { mergeTaskAnchor, projectChatMessages } from './chat-message-model.ts';
 

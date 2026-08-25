@@ -1,4 +1,4 @@
-import type { ChatSearchResult } from '@tavern/api';
+import type { ChatSearchResult } from '@grotto/api';
 import { and, eq, gte, isNull, ne, or, sql } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';

@@ -7,7 +7,7 @@ dist
 .env.local
 .env.development.local
 !.env.schema
-.tavern
+.grotto
 apps/server/data
 .DS_Store
 .*.bun-build

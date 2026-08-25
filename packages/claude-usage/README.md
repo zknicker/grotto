@@ -1,4 +1,4 @@
-# @tavern/claude-usage
+# @grotto/claude-usage
 
 Small Node-first adapter for Claude Code plan usage.
 
@@ -21,7 +21,7 @@ Small Node-first adapter for Claude Code plan usage.
 ## Example
 
 ```ts
-import { getClaudeUsage } from '@tavern/claude-usage';
+import { getClaudeUsage } from '@grotto/claude-usage';
 
 const usage = await getClaudeUsage();
 
@@ -31,5 +31,5 @@ console.log(usage.windows);
 ## Live smoke test
 
 ```bash
-bun run --filter @tavern/claude-usage test:live
+bun run --filter @grotto/claude-usage test:live
 ```

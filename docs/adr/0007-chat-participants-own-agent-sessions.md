@@ -102,7 +102,7 @@ tool grants. Safety is expressed through Sandbox mode. Under Sandbox mode
 `none`, enabled local tools imply full host trust.
 
 The first Sandbox mode is `none`: a trusted local workspace under the Runtime
-data root, such as `.tavern/agents/<agent-id>/workspace`. This is organization
+data root, such as `.grotto/agents/<agent-id>/workspace`. This is organization
 and working-directory scoping only; it is not a security sandbox. Future
 Sandbox modes can include Docker and Podman.
 

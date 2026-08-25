@@ -1,4 +1,4 @@
-import type { AgentRuntimeSaveBrowserSettings } from '@tavern/api';
+import type { AgentRuntimeSaveBrowserSettings } from '@grotto/api';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import type { BrowserTarget } from './use-browser-settings.ts';
 

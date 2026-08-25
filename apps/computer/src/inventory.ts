@@ -1,5 +1,5 @@
-import type { ComputerInventory } from '@tavern/api';
-import { type ComputerRuntimeId, computerRuntimeCatalog } from '@tavern/api/computer-runtime';
+import type { ComputerInventory } from '@grotto/api';
+import { type ComputerRuntimeId, computerRuntimeCatalog } from '@grotto/api/computer-runtime';
 import { resolveRuntimeExecutable } from './runtime-discovery.ts';
 
 type ComputerRuntime = ComputerInventory['runtimes'][number];

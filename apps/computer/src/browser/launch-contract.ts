@@ -54,7 +54,7 @@ export function isProfileCompatible(command: string, contract: BrowserLaunchCont
 }
 
 // Full managed launch contract: only a process matching every pinned flag is
-// re-adopted as Tavern's managed Chrome.
+// re-adopted as Grotto's managed Chrome.
 export function hasManagedLaunchContract(
     command: string,
     contract: BrowserLaunchContract

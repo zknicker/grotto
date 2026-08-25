@@ -1,4 +1,4 @@
-import { appProtocolHeaders } from '@tavern/api';
+import { appProtocolHeaders } from '@grotto/api';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { ComputerConnections } from '../computers/connections.ts';

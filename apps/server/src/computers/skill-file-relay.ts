@@ -1,4 +1,4 @@
-import type { AgentSkillFileRequest, AgentSkillFileResult } from '@tavern/api';
+import type { AgentSkillFileRequest, AgentSkillFileResult } from '@grotto/api';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 
 interface PendingSkillFileRequest {

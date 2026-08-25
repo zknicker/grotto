@@ -9,7 +9,7 @@ read_when:
 # Widgets use tagged fences
 
 > Amended 2026-07-20: the closed widget catalog this ADR introduced is
-> retired. The tagged-fence mechanism and the `tavern.widget.<name>` activity
+> retired. The tagged-fence mechanism and the `grotto.widget.<name>` activity
 > envelope survive, but the only fences agents author are `visual` and
 > `artifact`; stored catalog widgets replay as fallback cards. See
 > [widgets.md](../internals/widgets.md) and ADR 0012.
@@ -45,7 +45,7 @@ Model-authored HTML, JSX, CSS, class names, state, repeat, event handlers, and
 dynamic prop expressions are not accepted.
 
 The Widgets prompt is hand-written but assembled per agent from per-widget
-entries (`packages/tavern-api/src/widgets/prompt.ts`, ~800 tokens for all
+entries (`packages/grotto-api/src/widgets/prompt.ts`, ~800 tokens for all
 widgets, a ~79% cut). A `satisfies Record<WidgetName, WidgetPromptEntry>` guard
 makes an unregistered widget a compile error. Plugin manifests declare their
 Widgets under `widgets` by name, and Runtime scopes the prompt to each agent's

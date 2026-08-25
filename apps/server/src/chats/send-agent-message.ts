@@ -2,9 +2,9 @@ import type {
     AgentActivityEvent,
     AgentSendReceipt,
     AttachmentMetadata,
+    GrottoAgentMessage,
     ServerDurableEvent,
-    TavernAgentMessage,
-} from '@tavern/api';
+} from '@grotto/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { followAgentThread } from '../agent-api/attention.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
@@ -39,7 +39,7 @@ export interface SendAgentMessageInput {
 export interface SendAgentMessageResult {
     activities: AgentActivityEvent[];
     event: ServerDurableEvent | null;
-    message: TavernAgentMessage;
+    message: GrottoAgentMessage;
     receipt: AgentSendReceipt;
     wakes: Array<{ agentId: string; serverId: string }>;
 }
@@ -296,7 +296,7 @@ function toAgentCliMessage(
         displayName: string;
         handle: string;
     }
-): TavernAgentMessage {
+): GrottoAgentMessage {
     return {
         attachments: agent.attachments,
         author: {

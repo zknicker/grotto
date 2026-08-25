@@ -1,3 +1,4 @@
+import type { Agent } from '@grotto/api';
 import { Button, Tooltip } from '@heroui/react';
 import { Segment } from '@heroui-pro/react';
 import {
@@ -8,7 +9,6 @@ import {
     ToolsIcon,
     UserCircleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
-import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';

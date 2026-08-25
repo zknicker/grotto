@@ -4,7 +4,7 @@ import type {
     McpOAuthStart,
     McpOAuthStartResult,
     McpPreset,
-} from '@tavern/api';
+} from '@grotto/api';
 import { and, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

@@ -1,4 +1,4 @@
-import type { TavernAgentMessage, TavernAgentSendResponse } from '@tavern/api';
+import type { GrottoAgentMessage, GrottoAgentSendResponse } from '@grotto/api';
 import * as z from 'zod';
 
 const jsonObjectSchema = z.record(z.string(), z.unknown());
@@ -66,11 +66,11 @@ export const agentMessageSchema = z.object({
     sequence: z.number().int().positive(),
     task: messageTaskSchema.nullable().optional(),
     threadId: z.string().min(1).optional(),
-}) satisfies z.ZodType<TavernAgentMessage>;
+}) satisfies z.ZodType<GrottoAgentMessage>;
 
-export type AgentCliMessage = TavernAgentMessage;
+export type AgentCliMessage = GrottoAgentMessage;
 
-export const agentSendResponseSchema: z.ZodType<TavernAgentSendResponse> = z.discriminatedUnion(
+export const agentSendResponseSchema: z.ZodType<GrottoAgentSendResponse> = z.discriminatedUnion(
     'state',
     [
         z.object({

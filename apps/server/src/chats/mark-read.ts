@@ -1,4 +1,4 @@
-import type { ChatReadReceipt, ServerDurableEvent } from '@tavern/api';
+import type { ChatReadReceipt, ServerDurableEvent } from '@grotto/api';
 import { and, eq, lt, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

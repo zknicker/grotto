@@ -1,4 +1,4 @@
-import { channelCreateInputSchema, chatSchema } from '@tavern/api';
+import { channelCreateInputSchema, chatSchema } from '@grotto/api';
 import { createChannel } from '../../chats/create-channel.ts';
 import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { chatProcedure } from './procedure.ts';

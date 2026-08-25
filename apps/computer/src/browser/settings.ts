@@ -11,7 +11,7 @@ import {
     agentRuntimeBrowserProfileNameSchema,
     agentRuntimeBrowserSettingsSchema,
     agentRuntimeSaveBrowserSettingsSchema,
-} from '@tavern/api';
+} from '@grotto/api';
 import * as z from 'zod';
 import { detectChromeApplications } from './chrome-detection.ts';
 import { getBrowserService, startBrowserService, stopBrowserService } from './service.ts';

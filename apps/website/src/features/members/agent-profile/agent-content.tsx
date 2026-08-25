@@ -1,7 +1,7 @@
+import type { Agent } from '@grotto/api';
 import { Separator } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
 import { Folder01Icon, Notification03Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { Agent } from '@tavern/api';
 import * as React from 'react';
 import { CopyButton } from '../../../components/copy-button.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';

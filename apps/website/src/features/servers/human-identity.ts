@@ -1,4 +1,4 @@
-import type { ServerMember } from '@tavern/api/membership';
+import type { ServerMember } from '@grotto/api/membership';
 
 /**
  * The one way a human is named. A member who has never opened the App has no

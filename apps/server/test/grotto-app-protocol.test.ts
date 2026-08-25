@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { appProtocolHeaders, appProtocolVersion } from '@tavern/api';
+import { appProtocolHeaders, appProtocolVersion } from '@grotto/api';
 import { createGrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 

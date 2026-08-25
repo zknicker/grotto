@@ -1,4 +1,4 @@
-import type { Agent } from '@tavern/api';
+import type { Agent } from '@grotto/api';
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import type { Ref } from 'react';
 import { Link } from 'react-router-dom';

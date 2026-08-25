@@ -3,7 +3,7 @@ import {
     type BrowserResult,
     browserRequestSchema,
     browserResultSchema,
-} from '@tavern/api';
+} from '@grotto/api';
 import {
     getComputerBrowserSettings,
     openComputerBrowser,

@@ -8,10 +8,10 @@ import type { ChatArtifactPanelState } from './chat-artifact-panel-state.ts';
 import { WorkspaceBrowserContent } from './chat-artifact-workspace-content.tsx';
 import { ChatSidePaneShell } from './chat-side-pane-shell.tsx';
 import {
+    type GrottoResourceTarget,
     getArtifactPanelTargetKey,
     isWorkspaceChatPaneTarget,
-    type TavernResourceTarget,
-} from './tavern-resource-link.ts';
+} from './grotto-resource-link.ts';
 
 export function ChatArtifactPanel({
     agentId,
@@ -135,9 +135,9 @@ function ArtifactPanelContent({
     target,
 }: {
     agentId: string;
-    onOpenTarget: (target: TavernResourceTarget) => void;
+    onOpenTarget: (target: GrottoResourceTarget) => void;
     serverId: string;
-    target: TavernResourceTarget;
+    target: GrottoResourceTarget;
 }) {
     // Stable identity: browser effects key on this callback.
     const openWorkspaceFile = React.useCallback(
@@ -167,7 +167,7 @@ function ArtifactPanelContent({
     );
 }
 
-function workspaceInitialDirectory(target: TavernResourceTarget) {
+function workspaceInitialDirectory(target: GrottoResourceTarget) {
     if (target.kind === 'workspaceFile') {
         return target.path.split('/').slice(0, -1).join('/');
     }

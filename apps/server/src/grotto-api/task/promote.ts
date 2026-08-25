@@ -1,4 +1,4 @@
-import { taskPromoteInputSchema, taskPromotionSchema } from '@tavern/api';
+import { taskPromoteInputSchema, taskPromotionSchema } from '@grotto/api';
 import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { promoteMessageTask } from '../../tasks/promote-task.ts';
 import { taskProcedure } from './procedure.ts';

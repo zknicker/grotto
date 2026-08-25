@@ -1,4 +1,4 @@
-import { taskAssignInputSchema, taskMutationSchema } from '@tavern/api';
+import { taskAssignInputSchema, taskMutationSchema } from '@grotto/api';
 import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { assignTask } from '../../tasks/assign-task.ts';
 import { taskProcedure } from './procedure.ts';

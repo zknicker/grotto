@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Agent, AgentLifecycleEvent } from '@tavern/api';
+import type { Agent, AgentLifecycleEvent } from '@grotto/api';
 import { compositionExpiryDelay, projectAgentAvailability } from './use-agent-lifecycle.ts';
 
 const agent = {

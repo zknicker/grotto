@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { ChatMessage, ThreadSummary } from '@tavern/api';
+import type { ChatMessage, ThreadSummary } from '@grotto/api';
 import {
     type ChatMessageProjectionInput,
     emptyChatAgents,

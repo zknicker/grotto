@@ -1,5 +1,5 @@
+import type { Agent, McpConnection as ServerMcpConnection } from '@grotto/api';
 import { AlertDialog, Button } from '@heroui/react';
-import type { Agent, McpConnection as ServerMcpConnection } from '@tavern/api';
 import type { McpConnection } from './mcp-server-shared.ts';
 
 export function ConnectionTrustDialog({

@@ -1,4 +1,4 @@
-import type { ServerMemberDirectory } from '@tavern/api';
+import type { ServerMemberDirectory } from '@grotto/api';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable, usersTable } from '../postgres/schema.ts';

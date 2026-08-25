@@ -1,4 +1,4 @@
-import { chatSearchInputSchema, chatSearchResultsSchema } from '@tavern/api';
+import { chatSearchInputSchema, chatSearchResultsSchema } from '@grotto/api';
 import { searchChatMessages } from '../../chats/search-messages.ts';
 import { chatProcedure } from './procedure.ts';
 

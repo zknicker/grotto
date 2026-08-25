@@ -3,7 +3,7 @@ import {
     manualRunnerCapability,
     type RunnerMintRequest,
     type RunnerRevokeRequest,
-} from '@tavern/api';
+} from '@grotto/api';
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

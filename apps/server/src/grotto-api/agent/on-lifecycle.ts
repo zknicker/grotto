@@ -1,4 +1,4 @@
-import { agentLifecycleEventSchema, agentLifecycleSubscriptionInputSchema } from '@tavern/api';
+import { agentLifecycleEventSchema, agentLifecycleSubscriptionInputSchema } from '@grotto/api';
 import { subscribeToAgentLifecycle } from '../../agent-delivery/lifecycle.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';

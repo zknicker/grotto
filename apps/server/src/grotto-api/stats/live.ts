@@ -1,4 +1,4 @@
-import { serverStatsInputSchema, serverUsageOverviewSchema } from '@tavern/api';
+import { serverStatsInputSchema, serverUsageOverviewSchema } from '@grotto/api';
 import { readServerUsage } from '../../server-operations/computer-usage.ts';
 import { memberProcedure } from '../server/procedure.ts';
 

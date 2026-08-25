@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-const chatComposerMentionEventName = 'tavern:chat-composer-mention-request';
+const chatComposerMentionEventName = 'grotto:chat-composer-mention-request';
 
 export interface ChatComposerMentionRequest {
     agentId: string;

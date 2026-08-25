@@ -1,6 +1,6 @@
 import { join } from 'node:path';
-import type { AgentExecutionJournalRequest, AgentExecutionJournalResult } from '@tavern/api';
-import { agentExecutionJournalRequestSchema } from '@tavern/api';
+import type { AgentExecutionJournalRequest, AgentExecutionJournalResult } from '@grotto/api';
+import { agentExecutionJournalRequestSchema } from '@grotto/api';
 import {
     type ComputerExecutionJournalDocument,
     isExecutionJournalRunId,

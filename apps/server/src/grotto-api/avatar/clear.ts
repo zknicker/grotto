@@ -1,4 +1,4 @@
-import { avatarSchema, clearAvatarInputSchema } from '@tavern/api';
+import { avatarSchema, clearAvatarInputSchema } from '@grotto/api';
 import { clearAvatar } from '../../avatars/set-avatar.ts';
 import { avatarProcedure } from './procedure.ts';
 

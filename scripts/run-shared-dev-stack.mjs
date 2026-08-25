@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const defaultSharedStackId = 'tavern-shared';
+const defaultSharedStackId = 'grotto-shared';
 
 function main() {
     const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));

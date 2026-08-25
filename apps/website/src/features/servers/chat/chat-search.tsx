@@ -1,7 +1,7 @@
+import type { Chat, ChatSearchResult } from '@grotto/api';
 import { Button, Chip, SearchField } from '@heroui/react';
 import { EmptyState, ItemCard, PressableFeedback } from '@heroui-pro/react';
 import { Search01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type { Chat, ChatSearchResult } from '@tavern/api';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';

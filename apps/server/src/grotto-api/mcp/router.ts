@@ -10,7 +10,7 @@ import {
     mcpOAuthStartResultSchema,
     mcpOAuthStartSchema,
     mcpPresetAccountCreateSchema,
-} from '@tavern/api';
+} from '@grotto/api';
 import { TRPCError } from '@trpc/server';
 import { McpDeniedError } from '../../server-mcp/errors.ts';
 import { createMcpPresetAccount } from '../../server-mcp/presets.ts';

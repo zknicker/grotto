@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ClaudeUsageRequestError, type ClaudeUsageSnapshot } from '@tavern/claude-usage';
+import { ClaudeUsageRequestError, type ClaudeUsageSnapshot } from '@grotto/claude-usage';
 import { createClaudePlanUsageReader } from './claude-plan-usage.ts';
 import {
     claimClaudeSdkUsageRefresh,

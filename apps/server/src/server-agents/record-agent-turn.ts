@@ -1,4 +1,4 @@
-import type { AgentTurnSummary } from '@tavern/api';
+import type { AgentTurnSummary } from '@grotto/api';
 import { and, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

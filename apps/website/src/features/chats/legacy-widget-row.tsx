@@ -1,4 +1,4 @@
-import { type WidgetRenderInput, widgetRenderInputSchema } from '@tavern/api/widgets';
+import { type WidgetRenderInput, widgetRenderInputSchema } from '@grotto/api/widgets';
 import { cn } from '../../lib/utils.ts';
 import { WidgetArtifactCard } from './artifact-card.tsx';
 import type { TranscriptWidgetRow } from './transcript-contract.ts';
@@ -44,9 +44,9 @@ function renderWidget(row: TranscriptWidgetRow) {
 
 function widgetElement(input: WidgetRenderInput) {
     switch (input.component) {
-        case 'tavern.widget.artifact':
+        case 'grotto.widget.artifact':
             return <WidgetArtifactCard props={input.props} />;
-        case 'tavern.widget.visual':
+        case 'grotto.widget.visual':
             return <VisualCard html={input.props.html} title={input.props.title} />;
         default:
             return null;

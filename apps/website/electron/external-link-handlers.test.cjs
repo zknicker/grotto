@@ -16,7 +16,7 @@ describe('external browser URLs', () => {
 
     test('rejects unsafe or app-local protocols', () => {
         expect(isExternalBrowserUrl('javascript:alert(1)')).toBe(false);
-        expect(isExternalBrowserUrl('file:///tmp/tavern.html')).toBe(false);
+        expect(isExternalBrowserUrl('file:///tmp/grotto.html')).toBe(false);
         expect(isExternalBrowserUrl('/settings')).toBe(false);
     });
 });
@@ -39,7 +39,7 @@ describe('app navigation URLs', () => {
 });
 
 describe('external link handlers', () => {
-    test('opens new-window links in the desktop browser and denies Tavern windows', () => {
+    test('opens new-window links in the desktop browser and denies Grotto windows', () => {
         const opened = [];
         const webContents = createWebContents();
 
@@ -65,7 +65,7 @@ describe('external link handlers', () => {
         expect(opened).toEqual(['https://console.cloud.google.com/apis']);
     });
 
-    test('keeps app navigation in Tavern', () => {
+    test('keeps app navigation in Grotto', () => {
         const opened = [];
         const webContents = createWebContents();
         const event = createNavigationEvent();

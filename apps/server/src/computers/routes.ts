@@ -1,4 +1,4 @@
-import { runnerMintRequestSchema, runnerRevokeRequestSchema } from '@tavern/api';
+import { runnerMintRequestSchema, runnerRevokeRequestSchema } from '@grotto/api';
 import type { FastifyInstance } from 'fastify';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { attachComputer, ComputerAttachmentError } from './attachment-service.ts';

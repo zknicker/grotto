@@ -6,7 +6,7 @@ import {
     seedAgentWorkspace,
     seedCoveWorkspace,
     seedFactoryManagedSkills,
-} from '@tavern/agent-workspace';
+} from '@grotto/agent-workspace';
 import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 import { readAgentSeedConfiguration } from './agent-configuration.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';

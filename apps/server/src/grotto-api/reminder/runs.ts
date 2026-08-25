@@ -1,4 +1,4 @@
-import { reminderRunsInputSchema, reminderRunsSchema } from '@tavern/api';
+import { reminderRunsInputSchema, reminderRunsSchema } from '@grotto/api';
 import { listOperatorReminderRuns } from '../../reminders/operator-reminders.ts';
 import { reminderProcedure } from './procedure.ts';
 

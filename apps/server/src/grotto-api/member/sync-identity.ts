@@ -1,4 +1,4 @@
-import { syncHumanIdentityInputSchema } from '@tavern/api';
+import { syncHumanIdentityInputSchema } from '@grotto/api';
 import { syncHumanIdentity } from '../../servers/human-profile.ts';
 import { serverMemberProcedure } from './procedure.ts';
 import { announceHumanProfileChange } from './profile-signals.ts';

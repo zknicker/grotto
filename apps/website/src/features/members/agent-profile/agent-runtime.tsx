@@ -1,5 +1,5 @@
+import type { Agent, ComputerInventory } from '@grotto/api';
 import { Button } from '@heroui/react';
-import type { Agent, ComputerInventory } from '@tavern/api';
 import * as React from 'react';
 import { useAgentRuntime } from '../../../hooks/members/use-agent-runtime.ts';
 import {

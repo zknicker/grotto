@@ -350,7 +350,7 @@ while every membership gate fails closed.
 
 Humans hold Member, Admin, or Owner. A Server may have several Owners and must
 always keep one. One rule decides every change and is shared by the Server and
-Grotto App as `resolveServerMemberAuthority` in `@tavern/api`:
+Grotto App as `resolveServerMemberAuthority` in `@grotto/api`:
 
 - Owners and Admins issue and revoke invitations.
 - An Admin manages Members, including promoting one to Admin. An Admin never

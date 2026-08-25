@@ -1,4 +1,4 @@
-import { chatListInputSchema, chatListSchema } from '@tavern/api';
+import { chatListInputSchema, chatListSchema } from '@grotto/api';
 import { listChats } from '../../chats/list-chats.ts';
 import { chatProcedure } from './procedure.ts';
 

@@ -1,5 +1,5 @@
+import type { Chat, ChatMessage, ThreadSummary } from '@grotto/api';
 import { Button } from '@heroui/react';
-import type { Chat, ChatMessage, ThreadSummary } from '@tavern/api';
 import * as React from 'react';
 import { useChatRead } from '../../../hooks/servers/use-chat-read.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
@@ -9,7 +9,7 @@ import { useThreadMessages } from '../../../hooks/servers/use-thread-messages.ts
 import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
 import { TranscriptRenderProvider } from '../../chats/chat-transcript-render-context.tsx';
 import { TranscriptEntryView } from '../../chats/chat-transcript-turn.tsx';
-import type { TavernResourceTarget } from '../../chats/tavern-resource-link.ts';
+import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
 import { ThreadPanelHeader } from '../../chats/thread/thread-panel-header.tsx';
 import { ChatAgentComposition } from '../chat/agent-composition.tsx';
 import { ChatComposer } from '../chat/chat-composer.tsx';
@@ -51,7 +51,7 @@ export function ThreadContent({
     headerTitle?: string;
     initialThreadChatId?: string;
     onClose: () => void;
-    onOpenArtifact: (target: TavernResourceTarget) => void;
+    onOpenArtifact: (target: GrottoResourceTarget) => void;
     onViewInChannel: () => void;
     readOnly: boolean;
     summary: ThreadSummary | null;

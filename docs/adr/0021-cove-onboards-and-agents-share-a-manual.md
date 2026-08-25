@@ -133,7 +133,7 @@ other real execution settings. Team lanes emerge through work and guidance;
 the Manual's archetype recipes may inform that conversation without becoming
 stored Agent types.
 
-The release-owned `tavern-agent` skill is removed. Raft has no equivalent
+The release-owned `grotto-agent` skill is removed. Raft has no equivalent
 skill: mandatory behavior belongs in the prompt, expandable product guidance
 belongs in the Manual, and situational judgment belongs in recipe cards. The
 Grotto-only `save-as-a-skill` recipe is also removed; its proactive capture

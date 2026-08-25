@@ -1,6 +1,6 @@
+import type { TaskAssignee as TaskAssigneeOption } from '@grotto/api';
 import { Description, Label, ListBox, Select } from '@heroui/react';
 import { InlineSelect } from '@heroui-pro/react/inline-select';
-import type { TaskAssignee as TaskAssigneeOption } from '@tavern/api';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { EntityName } from '../../../components/ui/entity-name.tsx';

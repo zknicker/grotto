@@ -1,7 +1,7 @@
 import {
+    formatGrottoLine,
     formatHeader,
     formatLogLine,
-    formatTavernLine,
     getSnapshotChangeLines,
     snapshotDigest,
     theme,
@@ -62,7 +62,7 @@ export class DevStackScreen {
 
         if (failedProcesses.length > 0) {
             this.write(
-                formatTavernLine(`startup failed: ${failedProcesses.join(', ')}`, {
+                formatGrottoLine(`startup failed: ${failedProcesses.join(', ')}`, {
                     color: theme.danger,
                     colorize: this.colorize,
                     icon: '✕',
@@ -72,7 +72,7 @@ export class DevStackScreen {
         }
 
         this.write(
-            formatTavernLine('stack stopped', {
+            formatGrottoLine('stack stopped', {
                 color: theme.muted,
                 colorize: this.colorize,
                 icon: '·',

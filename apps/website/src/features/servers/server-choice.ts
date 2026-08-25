@@ -1,4 +1,4 @@
-import type { Chat } from '@tavern/api';
+import type { Chat } from '@grotto/api';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 
 export const lastServerSlugStorageKey = 'grotto.last-server-slug';

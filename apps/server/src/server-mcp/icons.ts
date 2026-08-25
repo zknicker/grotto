@@ -1,4 +1,4 @@
-import { type McpIcon, mcpIconMaxBytes, mcpIconSchema, mcpSummarySchema } from '@tavern/api';
+import { type McpIcon, mcpIconMaxBytes, mcpIconSchema, mcpSummarySchema } from '@grotto/api';
 import * as z from 'zod';
 
 /**
@@ -12,7 +12,7 @@ import * as z from 'zod';
  * module exists to close.
  *
  * The upstream `Icon` shape stays local to this file: it is a third-party
- * protocol shape, not a Grotto contract. What crosses `@tavern/api` is the
+ * protocol shape, not a Grotto contract. What crosses `@grotto/api` is the
  * validated, inlined result.
  */
 

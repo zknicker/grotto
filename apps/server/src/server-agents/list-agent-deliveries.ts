@@ -1,4 +1,4 @@
-import type { AgentDeliveriesInput, AgentDeliveryRecord } from '@tavern/api';
+import type { AgentDeliveriesInput, AgentDeliveryRecord } from '@grotto/api';
 import { and, desc, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentPendingWorkTable } from '../postgres/schema.ts';

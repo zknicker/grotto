@@ -1,4 +1,4 @@
-import { listServerInvitationsInputSchema, serverInvitationListSchema } from '@tavern/api';
+import { listServerInvitationsInputSchema, serverInvitationListSchema } from '@grotto/api';
 import { listServerInvitations } from '../../servers/list-invitations.ts';
 import { invitationProcedure } from './procedure.ts';
 

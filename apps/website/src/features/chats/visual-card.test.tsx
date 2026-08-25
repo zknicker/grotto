@@ -37,7 +37,7 @@ test('the sandbox fallback uses HeroUI body typography', () => {
 test('the model body streams last so partial documents still parse', () => {
     const doc = buildVisualSrcDoc('<div><h2>Par', '--foreground: #fff;');
 
-    expect(doc.indexOf('tavern-visual-size')).toBeLessThan(doc.indexOf('<div><h2>Par'));
+    expect(doc.indexOf('grotto-visual-size')).toBeLessThan(doc.indexOf('<div><h2>Par'));
     expect(doc.indexOf('--foreground: #fff;')).toBeLessThan(doc.indexOf('<div><h2>Par'));
     expect(doc.trimEnd().endsWith('</body></html>')).toBe(true);
 });

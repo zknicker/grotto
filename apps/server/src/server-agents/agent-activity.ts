@@ -1,4 +1,4 @@
-import type { AgentActivityEvent, AgentActivityFrame } from '@tavern/api';
+import type { AgentActivityEvent, AgentActivityFrame } from '@grotto/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

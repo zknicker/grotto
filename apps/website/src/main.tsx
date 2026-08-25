@@ -5,7 +5,7 @@ import App from './app.tsx';
 import { DevModeProvider } from './components/dev-mode-provider.tsx';
 import { ThemeProvider } from './components/theme-provider.tsx';
 import { DesktopEditContextMenuProvider } from './features/shell/desktop-edit-context-menu.tsx';
-import { TavernClerkProvider } from './lib/clerk.tsx';
+import { GrottoClerkProvider } from './lib/clerk.tsx';
 import { getDesktopBridge, isElectronDesktopApp } from './lib/desktop-bridge.ts';
 import './styles/global.css';
 
@@ -28,7 +28,7 @@ if (isElectronDesktopApp() && navigator.userAgent.includes('Mac')) {
 
 createRoot(rootElement).render(
     <StrictMode>
-        <TavernClerkProvider>
+        <GrottoClerkProvider>
             <ThemeProvider>
                 <DevModeProvider>
                     <DesktopEditContextMenuProvider>
@@ -37,6 +37,6 @@ createRoot(rootElement).render(
                     <Toast.Provider placement="bottom end" />
                 </DevModeProvider>
             </ThemeProvider>
-        </TavernClerkProvider>
+        </GrottoClerkProvider>
     </StrictMode>
 );

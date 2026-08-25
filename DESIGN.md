@@ -365,6 +365,8 @@ Layout should use Tailwind v4 spacing utilities and HeroUI component structure. 
 | Token | Raw value | Formula / source | HeroUI variable | Tailwind / component equivalent | Purpose |
 | --- | --- | --- | --- | --- | --- |
 | `spacing` | `3.75px` |  | `--spacing` | Prefer Tailwind spacing utilities like `gap-4`, `p-6`, `px-8`, and `space-y-4`. | Base spacing unit used by the generated Tailwind spacing scale. |
+| `spacing compact` | `3.1875px` | `spacing × 0.85` | `--spacing-compact` | Applied at the sidebar boundary. | Compact navigation rhythm for persistent sidebar rows. |
+| `spacing dense` | `3px` | `spacing × 0.8` | `--spacing-dense` | Applied at menu, listbox, dropdown, select, combobox, and context-menu popover boundaries. | Tightest spacing step for transient lists that users scan. |
 | `field border width` | `0px` |  | `--border-width-field` | Prefer HeroUI field components; use this only for custom field implementations. | Border width used by form fields and field-like cells. |
 | `field border width alias` | `0px` |  | `--field-border-width` | Prefer `--border-width-field` for new CSS. | Compatibility alias for field border width. |
 

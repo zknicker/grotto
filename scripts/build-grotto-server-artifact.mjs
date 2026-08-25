@@ -6,6 +6,7 @@ import { createReadStream } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertReleasePublishableKey } from './release/app-release-environment.mjs';
 
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));
 const releaseRoot = path.join(repoRoot, 'apps', 'server', 'release');
@@ -13,6 +14,9 @@ const stageRoot = path.join(releaseRoot, 'stage');
 if (!process.env.VITE_CLERK_PUBLISHABLE_KEY?.trim()) {
     throw new Error('VITE_CLERK_PUBLISHABLE_KEY is required for the Grotto App artifact.');
 }
+// The vite build below inlines the key into the App every visitor loads, so this
+// is the last point at which a non-production Clerk instance can still be caught.
+assertReleasePublishableKey();
 const sourceRevision = process.env.GROTTO_SOURCE_REVISION?.trim() ?? '';
 if (!/^[0-9a-f]{40}$/.test(sourceRevision)) {
     throw new Error('GROTTO_SOURCE_REVISION must be a full lowercase Git commit SHA.');

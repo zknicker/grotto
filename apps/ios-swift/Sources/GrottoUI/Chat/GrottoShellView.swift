@@ -106,19 +106,22 @@ public struct GrottoShellView<SettingsContent: View>: View {
                 )
                 // `.mask()` below rasterizes this view into an offscreen buffer
                 // sized to its own resolved height, which `.ignoresSafeArea()`
-                // bleed cannot expand — so the extra room for the gear button's
-                // shadow has to come from a genuinely taller proposed frame.
-                // `ChatSidebarView` reserves that same extra height as inert
-                // space at its own bottom, so nothing else shifts.
+                // bleed cannot expand — so the room the search and gear button
+                // shadows spill into has to come from a genuinely taller
+                // proposed frame. `ChatSidebarView` reserves that height as
+                // inert space at both of its own ends; lifting the masked
+                // result by one of them puts its content back where it was.
                 .frame(
                     width: drawerWidth,
-                    height: proxy.size.height + ChatSidebarView.shadowBleedHeight,
+                    height: proxy.size.height + ChatSidebarView.shadowBleedHeight * 2,
                     alignment: .top
                 )
                 .offset(x: -(1 - drawerProgress(drawerWidth: drawerWidth)) * drawerWidth * 0.22)
                 .mask(alignment: .leading) {
                     Rectangle().frame(width: canvasOffset(drawerWidth: drawerWidth))
                 }
+                .offset(y: -ChatSidebarView.shadowBleedHeight)
+                .frame(height: proxy.size.height, alignment: .top)
                 .allowsHitTesting(drawerPresented)
                 .zIndex(1)
 

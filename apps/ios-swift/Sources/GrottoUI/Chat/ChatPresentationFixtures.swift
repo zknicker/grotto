@@ -8,7 +8,7 @@ public enum ChatFixtures {
         presence: .idle
     )
 
-    public static let server = ServerPresentation(name: "Grotto", agentCount: 2, memberCount: 1)
+    public static let server = ServerPresentation(name: "Grotto")
 
     public static let chats = [
         ChatPresentation(id: "all", title: "all", kind: .channel),

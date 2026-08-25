@@ -130,7 +130,7 @@ public struct MessageTimelineView: View {
             // area, so the button rides above the glass instead of under it.
             .overlay(alignment: .bottom) {
                 if !isNearBottom {
-                    GlassChromeButton(.symbol("arrow.down"), label: "Scroll to latest message") {
+                    GlassChromeButton(.icon(.arrowDown), label: "Scroll to latest message") {
                         guard let latestMessageID = messages.last?.id else { return }
                         withAnimation(.easeOut(duration: 0.2)) {
                             proxy.scrollTo(latestMessageID, anchor: .bottom)

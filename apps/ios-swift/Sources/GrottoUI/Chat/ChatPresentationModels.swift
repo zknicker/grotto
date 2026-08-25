@@ -245,12 +245,9 @@ public struct TaskPresentation: Hashable, Sendable {
 
 public struct ServerPresentation: Hashable, Sendable {
     public let name: String
-    public let agentCount: Int
-    public let memberCount: Int
 
-    public init(name: String, agentCount: Int, memberCount: Int) {
+    public init(name: String) {
         self.name = name
-        self.agentCount = agentCount
-        self.memberCount = memberCount
     }
 }
+

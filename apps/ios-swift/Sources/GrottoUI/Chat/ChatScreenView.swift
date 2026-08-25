@@ -143,7 +143,7 @@ public struct ChatScreenView: View {
             }
             .buttonStyle(.plain)
         } trailing: {
-            GlassChromeButton(.symbol("magnifyingglass"), label: "Search messages", action: onOpenSearch)
+            GlassChromeButton(.icon(.search), label: "Search messages", action: onOpenSearch)
         }
     }
 

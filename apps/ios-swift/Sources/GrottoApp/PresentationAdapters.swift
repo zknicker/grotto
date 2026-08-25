@@ -35,11 +35,7 @@ extension GrottoStore {
 
     var serverPresentation: ServerPresentation? {
         guard let server = activeServer else { return nil }
-        return ServerPresentation(
-            name: server.displayName,
-            agentCount: agents.count,
-            memberCount: members?.members.count ?? 0
-        )
+        return ServerPresentation(name: server.displayName)
     }
 
     func messagePresentations(chatID: String) -> [MessagePresentation] {

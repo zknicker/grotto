@@ -108,11 +108,17 @@ not a list of exclusions:
 
 * Everything in `check:heavy` needs something Quality must not do. The App
   typecheck and its unit tests both resolve `@heroui-pro/react`, whose dist is
-  a licensed download. The Server suites each provision a real PostgreSQL
-  cluster. The Computer suites spawn execution runtimes. The build is the
-  deploy path's proof, not CI's.
+  a licensed download, and so does the desktop packaging check — which is why
+  that one file is named `*.licensed-check.mjs`, out of `bun test`
+  auto-discovery, and run by `test:licensed`. The Server suites each provision
+  a real PostgreSQL cluster. The Computer suites spawn execution runtimes. The
+  build is the deploy path's proof, not CI's.
 * `check:fast` is fully offline: it pins the schema's `test` lifecycle, so no
   gate in it reaches 1Password. It runs in about ten seconds.
+* A lane that cannot run everywhere is a bug, not a lane. Quality runs on
+  Linux, so anything in `check:fast` has to pass there: a macOS-only code path
+  answers "nothing here" off darwin rather than shelling out to a binary that
+  does not exist.
 * Keep the Quality job free of licensed downloads, databases, browsers, and
   builds. Adding one there is how a polite CI stops being polite.
 

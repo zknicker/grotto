@@ -147,6 +147,13 @@ function credentialsExpired(credentials: ClaudeCredentials, now = new Date()): b
 }
 
 async function readClaudeKeychain(service: string): Promise<string | null> {
+    // The Keychain is a macOS store. Everywhere else the honest answer is "no
+    // credential here" — spawning /usr/bin/security would just fail with
+    // ENOENT and take the file-credential fallback down with it.
+    if (process.platform !== 'darwin') {
+        return null;
+    }
+
     try {
         const { stdout } = await execFileAsync('/usr/bin/security', [
             'find-generic-password',
@@ -159,7 +166,8 @@ async function readClaudeKeychain(service: string): Promise<string | null> {
         return value.length > 0 ? value : null;
     } catch (error) {
         const exitCode = (error as { code?: number | string }).code;
-        if (exitCode === 44 || exitCode === '44') {
+        // 44 is "item not found"; ENOENT is a machine without the binary.
+        if (exitCode === 44 || exitCode === '44' || exitCode === 'ENOENT') {
             return null;
         }
 

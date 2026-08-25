@@ -50,7 +50,7 @@
     "test:app:screenshot-failures": "bun run --filter @grotto/website test:app:screenshot-failures",
     "test:app:ui": "bun run --filter @grotto/website test:app:ui",
     "test:computer": "VARLOCK_ENV=test varlock run -- bun run --filter @grotto/computer test",
-    "test:fast": "VARLOCK_ENV=test varlock run -- bun test packages scripts",
+    "test:fast": "VARLOCK_ENV=test varlock run -- bun test packages scripts apps/website/electron",
     "test:licensed": "VARLOCK_ENV=test varlock run -- node --test scripts/release/desktop-release-dependencies.licensed-check.mjs",
     "test:server": "VARLOCK_ENV=test varlock run -- bun run --filter @grotto/server test",
     "test:tracer": "cd apps/website && bun x playwright test --config agent-e2e/playwright.config.ts",

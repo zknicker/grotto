@@ -19,7 +19,7 @@
     "desktop:dev": "node ../../scripts/run-dev-stack.mjs desktop",
     "desktop:dev:launch": "node ../../scripts/run-desktop-dev.mjs",
     "start": "vite preview --strictPort --port 3100",
-    "test": "bun test src",
+    "test": "bun test src electron",
     "lint": "ultracite check src e2e",
     "lint:fix": "ultracite fix src e2e",
     "test:app": "bun e2e/run-playwright.ts",

@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { AttachmentAssociationError } from '../../attachments/message-attachments.ts';
+import { RetiredAgentDmSendError } from '../../chats/active-dm-peer.ts';
 import {
     ChannelLifecycleConflictError,
     ChannelLifecycleDeniedError,
@@ -11,11 +12,7 @@ import {
 } from '../../chats/chat-access.ts';
 import { ChannelAgentNotFoundError, ChannelNameTakenError } from '../../chats/create-channel.ts';
 import { DmPeerNotFoundError, InvalidDmPeerError } from '../../chats/ensure-dm.ts';
-import {
-    ChatNonceConflictError,
-    DirectThreadSendError,
-    RetiredAgentDmSendError,
-} from '../../chats/send-message.ts';
+import { ChatNonceConflictError, DirectThreadSendError } from '../../chats/send-message.ts';
 import { InvalidThreadAnchorError, NestedThreadError } from '../../threads/ensure-thread.ts';
 import { memberProcedure } from '../server/procedure.ts';
 

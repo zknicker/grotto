@@ -115,6 +115,13 @@ export function createAppRouter() {
                                                     ),
                                                 },
                                                 {
+                                                    path: 'dm/:agentId',
+                                                    lazy: lazyRoute(
+                                                        serverRouteModules.chat,
+                                                        'ImplicitAgentDmRoute'
+                                                    ),
+                                                },
+                                                {
                                                     path: 'tasks',
                                                     lazy: lazyRoute(
                                                         serverRouteModules.tasks,

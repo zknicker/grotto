@@ -31,7 +31,7 @@ export interface MentionComposerState {
 
 export function useServerMentionComposer({
     agents,
-    chatId,
+    chatTarget,
     content,
     mentionableAgentIds,
     onMentionsChange,
@@ -40,7 +40,7 @@ export function useServerMentionComposer({
     serverId,
 }: {
     agents: Agent[];
-    chatId: string;
+    chatTarget: { agentId: string; kind: 'agent-dm' } | { chatId: string; kind: 'chat' };
     content: string;
     mentionableAgentIds: readonly string[];
     onMentionsChange?: (mentions: Mention[]) => void;
@@ -61,13 +61,23 @@ export function useServerMentionComposer({
         agentId: mentionableAgentIds[0] ?? '',
         mentionableAgentIds,
     });
+    const targetAgentId = chatTarget.kind === 'agent-dm' ? chatTarget.agentId : null;
+    const targetChatId = chatTarget.kind === 'chat' ? chatTarget.chatId : null;
     const input = React.useMemo(
-        () => ({
-            agentIds: [...scaffold.skillScopeAgentIds],
-            chatId,
-            serverId,
-        }),
-        [chatId, scaffold.skillScopeAgentIds, serverId]
+        () =>
+            targetAgentId
+                ? {
+                      agentId: targetAgentId,
+                      agentIds: [...scaffold.skillScopeAgentIds],
+                      serverId,
+                      targetKind: 'agent-dm' as const,
+                  }
+                : {
+                      agentIds: [...scaffold.skillScopeAgentIds],
+                      chatId: targetChatId ?? '',
+                      serverId,
+                  },
+        [scaffold.skillScopeAgentIds, serverId, targetAgentId, targetChatId]
     );
     const optionsQuery = grottoTrpc.chat.mentionOptions.useQuery(input, {
         enabled: scaffold.activeQuery !== null,

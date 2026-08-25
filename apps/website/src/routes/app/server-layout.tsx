@@ -43,6 +43,7 @@ import { preloadServerRoutes, preloadServerSection } from './server-route-module
 import {
     resolveActiveSection,
     resolveChatSectionRoute,
+    resolveSelectedAgentDmId,
     resolveSelectedChatId,
     resolveSettingsSection,
     resolveSidebarPage,
@@ -57,6 +58,7 @@ export function ServerLayout() {
     const chats = useChats(server.data?.id);
     const currentServerSlug = server.data?.slug;
     const selectedChatId = resolveSelectedChatId(location.pathname, slug);
+    const selectedAgentDmId = resolveSelectedAgentDmId(location.pathname, slug);
     const [serverDialog, setServerDialog] = React.useState<'create' | 'join' | null>(null);
 
     useDesktopMenuNavigation({
@@ -178,6 +180,7 @@ export function ServerLayout() {
                                                     <AppSidebar
                                                         currentServer={server.data}
                                                         onPreloadSection={preloadServerSection}
+                                                        selectedAgentDmId={selectedAgentDmId}
                                                         selectedChatId={selectedChatId}
                                                     />
                                                 </ShellSidebarPage>

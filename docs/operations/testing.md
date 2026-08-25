@@ -264,7 +264,8 @@ longer story belongs in several scenarios or in a deterministic lane.
 A scenario declares the Agents it needs by kind (`worker`, `coordinator`), and
 the lane creates them for that scenario and retires them after the verdict.
 Isolation is by construction: a fresh Agent has a fresh session, a fresh
-workspace, and a fresh Owner DM, so nothing carries over between scenarios.
+workspace, and a fresh implicit Agent-DM selection, so nothing carries over between scenarios. No
+Chat exists until the scenario performs its first durable send.
 Creation is bounded to two concurrent Agent applies process-wide — more races
 the Computer into an Agent missing its session. Lanes default to three, capped
 by scenario count; `--lanes` overrides it without a clamp.

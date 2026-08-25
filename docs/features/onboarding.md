@@ -42,8 +42,9 @@ stores the release-owned avatar through the normal avatar contract, binds Cove
 immutably to the Computer, joins Cove to `#onboarding-owner`, reserves one
 application id, and advances to `applying`. An identical retry returns that
 reservation. A different Computer/runtime/model conflicts and cannot rebind it.
-Cove receives the same built-in Owner DM as every Agent, visible in the Chat
-sidebar after setup, while the first greeting remains in `#onboarding-owner`.
+Cove appears in every human member's implicit DM roster like every Agent, but
+onboarding creates no Cove DM Chat. The first greeting remains in
+`#onboarding-owner`.
 
 While applying, reconnect sends only the explicit `cove-apply` factory command,
 never ordinary Agent configuration or a model turn. Computer validates its

@@ -204,7 +204,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
             computerId: setup.computerId,
             description: 'Onboarding Assistant',
             displayName: 'Cove',
-            dmChatId: expect.stringMatching(/^cht_/u),
+            dmChatId: null,
             factoryKind: 'cove',
             handle: 'cove',
             role: 'admin',
@@ -231,27 +231,12 @@ test('creates and applies one immutable Cove through a replayable Computer opera
         from chats c
         where c.server_id = ${created.id} and c.dm_agent_id = ${first.agent.id}
     `;
-    expect(coveDmRows).toEqual([
-        {
-            dm_agent_id: first.agent.id,
-            dm_member_one_stint: ownerStint,
-            dm_member_one_user_id: ownerUserId,
-            dm_member_two_stint: null,
-            dm_member_two_user_id: null,
-            id: first.agent.dmChatId,
-            kind: 'dm',
-        },
-    ]);
-    expect(await owner.trpc.chat.list.query({ serverId: created.id })).toContainEqual(
-        expect.objectContaining({
-            id: first.agent.dmChatId,
-            kind: 'dm',
-            participantAgentIds: [first.agent.id],
-            participantUserIds: [ownerUserId],
-            peerAgentDisplayName: 'Cove',
-            peerAgentId: first.agent.id,
-        })
-    );
+    expect(coveDmRows).toEqual([]);
+    expect(
+        (await owner.trpc.chat.list.query({ serverId: created.id })).some(
+            (chat) => chat.peerAgentId === first.agent.id
+        )
+    ).toBe(false);
 
     const command = await firstApplication;
     expect(command).toMatchObject({
@@ -338,7 +323,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
         select count(*)::int as count from chats
         where server_id = ${created.id} and kind = 'dm' and dm_agent_id = ${first.agent.id}
     `;
-    expect(coveDmCountAfterRetries?.count).toBe(1);
+    expect(coveDmCountAfterRetries?.count).toBe(0);
     await expect(
         owner.trpc.server.createCove.mutate({
             computerId: setup.computerId,
@@ -478,7 +463,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
         select count(*)::int as count from chats
         where server_id = ${created.id} and kind = 'dm' and dm_agent_id = ${first.agent.id}
     `;
-    expect(coveDmCountAfterApplyReplay?.count).toBe(1);
+    expect(coveDmCountAfterApplyReplay?.count).toBe(0);
     socket.close();
     await Bun.sleep(50);
     const settledReplayFrames: Record<string, unknown>[] = [];

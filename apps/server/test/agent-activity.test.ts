@@ -80,6 +80,7 @@ async function seedActivity(): Promise<Seed> {
         slug: `activity-${randomBytes(4).toString('hex')}`,
     });
     await connection.db.insert(serverMembershipsTable).values({
+        handle: `human-${randomBytes(4).toString('hex')}`,
         id: createOpaqueId('mem'),
         role: 'owner',
         serverId,

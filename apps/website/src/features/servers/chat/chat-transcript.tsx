@@ -13,6 +13,7 @@ import type {
 import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
 import {
     applyAgentMentionAppearance,
+    applyHumanMentionAppearance,
     readMentionsFromMarkdown,
 } from '../../mentions/mention-metadata.ts';
 import { ArtifactMessage } from './artifact-message.tsx';
@@ -221,15 +222,23 @@ export function useChatTranscript({
                 profilePaneChatId: chatId,
                 renderMessageAttachments,
                 renderMessageContent: (message) => {
-                    const mentions = applyAgentMentionAppearance(
-                        readMentionsFromMarkdown(message.content),
-                        (agentId) => {
-                            const agent = agentId ? agentsById.get(agentId) : undefined;
-                            return {
-                                avatarUrl: agent?.avatarUrl ?? null,
-                                primaryColor: null,
-                            };
-                        }
+                    const mentions = applyHumanMentionAppearance(
+                        applyAgentMentionAppearance(
+                            readMentionsFromMarkdown(message.content),
+                            (agentId) => {
+                                const agent = agentId ? agentsById.get(agentId) : undefined;
+                                return {
+                                    avatarUrl: agent?.avatarUrl ?? null,
+                                    primaryColor: null,
+                                };
+                            }
+                        ),
+                        (userId) => ({
+                            avatarUrl: humans.avatarUrl(userId ?? null),
+                            displayName: humans.member(userId ?? null)
+                                ? humans.name(userId ?? null)
+                                : null,
+                        })
                     );
 
                     return message.grottoAgentId ? (
@@ -253,6 +262,7 @@ export function useChatTranscript({
             agentsById,
             chatId,
             handleOpenThread,
+            humans,
             onOpenThread,
             onOpenArtifact,
             onStartDm,

@@ -2,6 +2,7 @@ import { createRouter } from '../trpc.ts';
 import { archiveChannelProcedure } from './archive-channel.ts';
 import { createChannelProcedure } from './create-channel.ts';
 import { deleteChannelProcedure } from './delete-channel.ts';
+import { ensureAgentDmProcedure } from './ensure-agent-dm.ts';
 import { ensureDmProcedure } from './ensure-dm.ts';
 import { readChatEventHeadProcedure } from './event-head.ts';
 import { listChatEventsProcedure } from './events.ts';
@@ -24,6 +25,7 @@ export const chatRouter = createRouter({
     createChannel: createChannelProcedure,
     deleteChannel: deleteChannelProcedure,
     ensureDm: ensureDmProcedure,
+    ensureAgentDm: ensureAgentDmProcedure,
     get: getChatProcedure,
     eventHead: readChatEventHeadProcedure,
     events: listChatEventsProcedure,

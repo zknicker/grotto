@@ -58,7 +58,7 @@ beforeAll(async () => {
         serverId,
     });
     agentId = created.agent.id;
-    dmChatId = created.chat.id;
+    dmChatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
     await harness.sql`
         update computers
         set reported_inventory = ${{
@@ -87,7 +87,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('chat mention options expose only the DM Agent and its reported skills', async () => {
+test('chat mention options expose the DM Agent, active humans, and reported skills', async () => {
     const result = await owner.trpc.chat.mentionOptions.query({
         agentIds: [agentId],
         chatId: dmChatId,
@@ -99,6 +99,11 @@ test('chat mention options expose only the DM Agent and its reported skills', as
             id: `agent://${agentId}`,
             kind: 'agent',
             label: 'Sage',
+        }),
+        expect.objectContaining({
+            id: expect.stringMatching(/^user:\/\/usr_/u),
+            kind: 'user',
+            label: 'Ada',
         }),
         expect.objectContaining({
             id: 'skill://agent-browser',

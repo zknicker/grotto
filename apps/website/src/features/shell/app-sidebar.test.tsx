@@ -73,6 +73,40 @@ test('renders each DM from its own Agent availability', () => {
     expect(markup).toContain('title="Online"');
 });
 
+test('renders an active Agent as an implicit DM without a Chat row', () => {
+    const blippy = agent({
+        availability: 'idle',
+        displayName: 'Blippy',
+        id: 'agt_blippy000000000',
+    });
+    const markup = renderToStaticMarkup(
+        <MemoryRouter>
+            <CommandMenuProvider>
+                <Sidebar.Provider>
+                    <ShellSidebar activePage="server">
+                        <ShellSidebarPage ariaLabel="Server" value="server">
+                            <ChatNavigation
+                                agents={[blippy]}
+                                chats={[]}
+                                onCreateChannel={() => undefined}
+                                onPreloadSection={() => undefined}
+                                selectedAgentDmId={blippy.id}
+                                selectedChatId={undefined}
+                                serverId="server_one"
+                                slug="grotto"
+                            />
+                        </ShellSidebarPage>
+                    </ShellSidebar>
+                </Sidebar.Provider>
+            </CommandMenuProvider>
+        </MemoryRouter>
+    );
+
+    expect(markup).toContain('Blippy');
+    expect(markup).toContain(`/s/grotto/dm/${blippy.id}`);
+    expect(markup.match(/Blippy/g)?.length).toBeGreaterThan(0);
+});
+
 test('renders a draggable channel row with its chosen color and no handle', () => {
     const markup = renderToStaticMarkup(
         <MemoryRouter>

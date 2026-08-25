@@ -45,8 +45,13 @@ and [Agent Inbox](../../specs/inbox.md).
 * **Receipts.** Message creation is acknowledged by id. Sends return no
   turns — delivery to agents is planner-owned (see
   [Agent Inbox](../../specs/inbox.md)).
-* **Channels and DMs.** Channels and direct messages are durable chat rooms in
-  the sidebar. Every chat's name is a dropdown menu offering its chat-scoped
+* **Channels and DMs.** Channels and materialized direct messages are durable
+  Chat rooms. The sidebar also projects every active Agent as an implicit
+  pairwise DM for the signed-in human, even before a Chat row exists. Opening
+  that row is App-local and shows an empty DM without persisting anything. The
+  first human send, Agent `dm:@handle` send, or Server activity that needs a
+  durable message atomically materializes the canonical human-stint↔Agent Chat
+  and message. Every materialized chat's name is a dropdown menu offering its chat-scoped
   surfaces: View tasks opens the Tasks page filtered to the chat, and Files
   opens a side pane listing attachments from its messages. Channels render with
   a hash or chosen catalog icon and optional channel color. Opening a Server
@@ -78,10 +83,10 @@ and [Agent Inbox](../../specs/inbox.md).
   tasks, reads, reactions, reminders, delivery rows, search state, attachment
   metadata, and attachment bytes. `#all`, DMs, and Threads have no independent
   archive/delete action. New workspaces
-  start with no user channels. Each agent has one
-  built-in DM with its human participant, addressed by that person's Server
-  handle. Agent DMs are not user-deleteable;
-  retiring the Agent removes its built-in DM from active navigation. The durable
+  start with no user channels. Each active Agent has one implicit sidebar DM
+  per human Server member and Agents address those pairs by the human's Server
+  handle. Pair DMs are not user-deleteable. Retiring the Agent removes its
+  implicit row from active navigation. Any materialized durable
   Chat remains canonical history. Deleted Agents and departed humans stay visible
   on authored transcript messages with muted identity and a `DELETED` badge.
   There is no separate pinned-chat state.
@@ -144,7 +149,7 @@ The app reads chat list and detail data separately. `chat.list` is the
 lightweight ordered list contract for Grotto sidebars, overviews, and chat
 pickers. Agent pages use `agent.chats.list` when they need the combined Grotto
 and external runtime chat inventory.
-`chat.get` is the focused detail read for a single chat. Timeline rows come
+`chat.get` is the focused detail read for a materialized chat. Timeline rows come
 from `chat.log.list` — durable messages and artifacts, paged by message
 sequence. When a user opens a Chat from the sidebar, the route renders that
 selected `chat.list` record immediately while `chat.get` loads, so the Chat

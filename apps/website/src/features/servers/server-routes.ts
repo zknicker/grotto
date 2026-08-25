@@ -14,6 +14,10 @@ export function serverChatRoute(slug: string, chatId: string) {
     return `${serverRoute(slug)}/chats/${encodeURIComponent(chatId)}`;
 }
 
+export function serverAgentDmRoute(slug: string, agentId: string) {
+    return `${serverRoute(slug)}/dm/${encodeURIComponent(agentId)}`;
+}
+
 export function serverArchivedChatsRoute(slug: string) {
     return `${serverRoute(slug)}/archived`;
 }

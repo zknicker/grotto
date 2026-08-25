@@ -179,7 +179,12 @@ function formatMentionLabel(mention: Mention) {
         return `$${mention.text}`;
     }
 
-    if (mention.kind === 'agent' || mention.kind === 'app' || mention.kind === 'plugin') {
+    if (
+        mention.kind === 'agent' ||
+        mention.kind === 'app' ||
+        mention.kind === 'plugin' ||
+        mention.kind === 'user'
+    ) {
         return mention.label.startsWith('@') ? mention.label : `@${mention.label}`;
     }
 

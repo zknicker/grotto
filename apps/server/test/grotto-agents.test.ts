@@ -83,7 +83,7 @@ test('reserves the Cove identity from ordinary Agent creation', async () => {
     ).rejects.toThrow(/reserved by Grotto/i);
 });
 
-test('provisions an ordinary Agent with its real execution settings and Owner DM', async () => {
+test('provisions an ordinary Agent without pre-creating an Owner DM', async () => {
     const created = await owner.trpc.agent.create.mutate({
         computerId: computerA,
         description: 'Reviews launch copy and records concrete risks.',
@@ -107,23 +107,90 @@ test('provisions an ordinary Agent with its real execution settings and Owner DM
         status: 'pending',
     });
     expect(created.agent).not.toHaveProperty('archetype');
-    expect(created.chat).toMatchObject({
-        kind: 'dm',
-        peerAgentId: created.agent.id,
-        peerUserId: null,
-    });
-
     const chats = await owner.trpc.chat.list.query({ serverId });
-    expect(chats.find((chat) => chat.id === created.chat.id)?.peerAgentId).toBe(created.agent.id);
+    expect(chats.some((chat) => chat.peerAgentId === created.agent.id)).toBe(false);
 
     const agents = await owner.trpc.agent.list.query({ serverId });
     expect(agents.map((agent) => agent.handle)).toEqual(['scout']);
     expect(agents[0]).toMatchObject({ avatarUrl: null, handle: 'scout' });
     expect(agents[0]).not.toHaveProperty('archetype');
-    expect(agents[0]?.dmChatId).toBe(created.chat.id);
+    expect(agents[0]?.dmChatId).toBeNull();
     expect(await owner.trpc.agent.get.query({ agentId: created.agent.id, serverId })).toEqual(
         agents[0]
     );
+});
+
+test('materializes one canonical Agent DM only when requested', async () => {
+    const [agent] = await owner.trpc.agent.list.query({ serverId });
+    if (!agent) {
+        throw new Error('Expected the provisioned Agent.');
+    }
+
+    const [first, retry] = await Promise.all([
+        owner.trpc.chat.ensureAgentDm.mutate({ agentId: agent.id, serverId }),
+        owner.trpc.chat.ensureAgentDm.mutate({ agentId: agent.id, serverId }),
+    ]);
+
+    expect(retry.id).toBe(first.id);
+    expect(
+        (await owner.trpc.chat.list.query({ serverId })).filter(
+            (chat) => chat.peerAgentId === agent.id
+        )
+    ).toHaveLength(1);
+});
+
+test('first human sends materialize exactly one pair DM under retries and per-human isolation', async () => {
+    const created = await owner.trpc.agent.create.mutate({
+        computerId: computerB,
+        displayName: 'Relay',
+        handle: 'relay',
+        modelId: 'pi',
+        role: 'member',
+        runtimeId: 'pi',
+        serverId,
+    });
+    const input = {
+        agentId: created.agent.id,
+        content: 'Materialize once.',
+        nonce: 'implicit-agent-dm-retry',
+        serverId,
+        targetKind: 'agent-dm' as const,
+    };
+    const [first, retry] = await Promise.all([
+        owner.trpc.chat.send.mutate(input),
+        owner.trpc.chat.send.mutate(input),
+    ]);
+
+    expect(retry.message.id).toBe(first.message.id);
+    expect([first.idempotent, retry.idempotent].sort()).toEqual([false, true]);
+    const ownerDmId = first.message.chatId;
+    expect(
+        (await owner.trpc.chat.list.query({ serverId })).filter(
+            (chat) => chat.peerAgentId === created.agent.id
+        )
+    ).toHaveLength(1);
+
+    const memberSend = await member.trpc.chat.send.mutate({
+        agentId: created.agent.id,
+        content: 'A separate private pair.',
+        nonce: 'implicit-agent-dm-member',
+        serverId,
+        targetKind: 'agent-dm',
+    });
+    expect(memberSend.message.chatId).not.toBe(ownerDmId);
+    expect(
+        (
+            await harness.sql`
+            select count(*)::int as count from chats
+            where server_id = ${serverId} and dm_agent_id = ${created.agent.id}
+        `
+        )[0]?.count
+    ).toBe(2);
+    await owner.trpc.agent.delete.mutate({
+        agentId: created.agent.id,
+        confirmation: created.agent.displayName,
+        serverId,
+    });
 });
 
 test('restricts one-run execution detail to Server Owners and Admins', async () => {
@@ -421,7 +488,9 @@ test('hides a retired Agent DM, preserves its transcript, and rejects new sends'
         runtimeId: 'pi',
         serverId,
     });
-    const dmChatId = created.chat.id;
+    const dmChatId = (
+        await owner.trpc.chat.ensureAgentDm.mutate({ agentId: created.agent.id, serverId })
+    ).id;
 
     // A normal DM send arms durable delivery for an active Agent.
     await owner.trpc.chat.send.mutate({
@@ -515,6 +584,10 @@ test('releases a retired Agent handle without conflating the replacement identit
         runtimeId: 'pi',
         serverId,
     });
+    const originalChat = await owner.trpc.chat.ensureAgentDm.mutate({
+        agentId: original.agent.id,
+        serverId,
+    });
 
     await expect(
         owner.trpc.agent.create.mutate({
@@ -543,16 +616,20 @@ test('releases a retired Agent handle without conflating the replacement identit
         runtimeId: 'pi',
         serverId,
     });
+    const replacementChat = await owner.trpc.chat.ensureAgentDm.mutate({
+        agentId: replacement.agent.id,
+        serverId,
+    });
 
     expect(replacement.agent.id).not.toBe(original.agent.id);
-    expect(replacement.chat.id).not.toBe(original.chat.id);
+    expect(replacementChat.id).not.toBe(originalChat.id);
     expect(await owner.trpc.agent.list.query({ serverId })).toEqual([
         expect.objectContaining({ handle: 'echo', id: replacement.agent.id }),
     ]);
 
     const visibleChatIds = (await owner.trpc.chat.list.query({ serverId })).map((chat) => chat.id);
-    expect(visibleChatIds).toContain(replacement.chat.id);
-    expect(visibleChatIds).not.toContain(original.chat.id);
+    expect(visibleChatIds).toContain(replacementChat.id);
+    expect(visibleChatIds).not.toContain(originalChat.id);
 
     const identities = (await harness.sql`
         select id, handle, retired_at

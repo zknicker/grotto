@@ -481,7 +481,7 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
   files to the hosted Server, renders only attachment metadata in messages,
   and performs authenticated downloads.
   An author already visible in the transcript is the entry point for their DM.
-  A retired Agent's Owner DM leaves active navigation and is not an App destination.
+  A retired Agent's implicit DM row leaves active navigation and is not an App destination.
   Canonical collaboration records remain durable Server history; the retired Agent is absent from
   every member control and receives no new sends or task messages.
   Message replies open hidden child Threads in the resizable side pane; Threads

@@ -1,4 +1,8 @@
-import { parseAgentReferenceTarget, parseGrottoRichReferences } from '@grotto/api/rich-references';
+import {
+    parseAgentReferenceTarget,
+    parseGrottoRichReferences,
+    parseUserReferenceTarget,
+} from '@grotto/api/rich-references';
 import { normalizeMentions } from './mention-text.ts';
 import type { Mention } from './mention-types.ts';
 
@@ -96,6 +100,34 @@ export function applyAgentMentionAppearance(
                 ...mention.metadata,
                 agentAvatarUrl: appearance.avatarUrl,
                 agentColor: appearance.primaryColor,
+            },
+        };
+    });
+}
+
+export function applyHumanMentionAppearance(
+    mentions: readonly Mention[],
+    lookupHuman: (userId: string | null | undefined) => {
+        avatarUrl: string | null;
+        displayName: string | null;
+    }
+): Mention[] {
+    return mentions.map((mention) => {
+        if (mention.kind !== 'user') {
+            return mention;
+        }
+
+        const human = lookupHuman(parseUserReferenceTarget(mention.id));
+        if (!human.displayName) {
+            return mention;
+        }
+
+        return {
+            ...mention,
+            metadata: {
+                ...mention.metadata,
+                userAvatarUrl: human.avatarUrl,
+                userDisplayName: human.displayName,
             },
         };
     });

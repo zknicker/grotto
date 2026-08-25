@@ -2,9 +2,10 @@ import type { MessageTask, ServerDurableEvent } from '@grotto/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
+import { requireActiveDmPeer } from '../chats/active-dm-peer.ts';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { findChatAccess, requireChatWriteAccess } from '../chats/chat-access.ts';
-import { ChatNonceConflictError, requireActiveDmPeer } from '../chats/send-message.ts';
+import { ChatNonceConflictError } from '../chats/send-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {

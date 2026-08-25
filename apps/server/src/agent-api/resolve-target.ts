@@ -1,4 +1,5 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
+import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -102,6 +103,30 @@ export async function resolveAgentSendTarget(
         }
     }
 
+    const directHumanHandle = parseDirectHumanHandle(target);
+    if (directHumanHandle) {
+        const [human] = await db
+            .select({ userId: serverMembershipsTable.userId })
+            .from(serverMembershipsTable)
+            .where(
+                and(
+                    eq(serverMembershipsTable.serverId, runner.serverId),
+                    sql`lower(${serverMembershipsTable.handle}) = lower(${directHumanHandle})`,
+                    isNull(serverMembershipsTable.revokedAt)
+                )
+            )
+            .limit(2);
+        if (human) {
+            return (
+                await ensureAgentDmRecord(db, {
+                    agentId: runner.agentId,
+                    serverId: runner.serverId,
+                    userId: human.userId,
+                })
+            ).id;
+        }
+    }
+
     const parsed = await resolveAgentParentTarget(db, runner, target);
     if (!parsed) {
         throw new AgentTargetError();
@@ -130,6 +155,14 @@ export async function resolveAgentSendTarget(
             serverId: runner.serverId,
         })
     ).id;
+}
+
+function parseDirectHumanHandle(target: string) {
+    if (!target.startsWith('dm:@')) {
+        return null;
+    }
+    const value = target.slice('dm:@'.length);
+    return value && !value.includes(':') ? value : null;
 }
 
 async function resolveAgentParentTarget(

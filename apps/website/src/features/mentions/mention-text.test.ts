@@ -8,6 +8,22 @@ import {
 } from './mention-text.ts';
 
 describe('mention text helpers', () => {
+    it('serializes a selected human with a display label and immutable user target', () => {
+        expect(
+            compileMentionSubmission('@Ada Lovelace', [
+                {
+                    end: 13,
+                    id: 'user://usr_ada',
+                    kind: 'user',
+                    label: 'Ada Lovelace',
+                    projection: 'user-reference',
+                    start: 0,
+                    text: '@Ada Lovelace',
+                },
+            ]).content
+        ).toBe('[@Ada Lovelace](user://usr_ada)');
+    });
+
     it('finds the active @ query before the caret', () => {
         expect(getActiveMentionQuery('use @Hat', 8)).toEqual({
             end: 8,

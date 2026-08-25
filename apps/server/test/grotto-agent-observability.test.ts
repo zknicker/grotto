@@ -46,7 +46,7 @@ beforeAll(async () => {
         serverId,
     });
     agentId = created.agent.id;
-    chatId = created.chat.id;
+    chatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
 
     await insertTurn(1, { outputProduced: true, status: 'completed' });
     await insertTurn(2, { outputProduced: false, status: 'completed' });

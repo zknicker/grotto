@@ -12,6 +12,7 @@ the durable source of truth:
 
 ```md
 [@Grotto](agent://agt_primary)
+[@Ada Lovelace](user://usr_ada)
 [$ui](skill://ui)
 [@Computer Use](plugin://computer-use@openai-bundled)
 [@Chrome](app://computer-use/com.google.Chrome)
@@ -30,7 +31,8 @@ token do nothing unless the user selected or typed explicit link syntax.
 ## Triggers
 
 - `@` after start-of-input or whitespace opens Agent references for agents in
-  the current chat.
+  the current chat and active human Server members. Human handle text helps
+  search; selection serializes the current display name.
 - `$` after start-of-input or whitespace opens skill references. Skill options
   use stable `skill://<skill-id>` targets and are scoped to the Agents addressed
   by linked Agent mentions in the current draft. If the draft has no linked
@@ -44,6 +46,7 @@ token do nothing unless the user selected or typed explicit link syntax.
 | Kind | Target | Projection | Behavior |
 | --- | --- | --- | --- |
 | `agent` | `agent://<encoded-agent-id>` | `agent-reference` | Channel messages retain ordinary delivery to eligible joined Agents while the linked participant receives durable direct-attention metadata; a mention bypasses that Agent's Channel mute, while a direct Thread mention restores an explicit unfollow and resumes ordinary Thread delivery. Agent DMs address their one Agent participant without a link. |
+| `user` | `user://<encoded-user-id>` | `user-reference` | Visual human reference only. Resolve the current display name/avatar by immutable user id; unknown or departed humans keep the persisted label. No notification or wake behavior. |
 | `skill` | `skill://<encoded-skill-id>` | `skill-activation` | Runtime adds a compact turn hint only if the addressed Agent already has that skill enabled. |
 | `plugin` | `plugin://<name>@<marketplace>` | `capability-reference` | Preserve the link. Do not enable, install, connect, or authorize the plugin from the reference alone. |
 | `app` | `app://computer-use/<encoded-app-id>` | `capability-reference` | Preserve the link with the selected app label. Computer Use resolves the app when tools are invoked. |
@@ -98,6 +101,7 @@ Examples:
 | Source | Option identity | Serialized markdown |
 | --- | --- | --- |
 | Agent | `kind: "agent"`, `id: "agent://agt_primary"`, `insertText: "@Grotto"` | `[@Grotto](agent://agt_primary)` |
+| Human | `kind: "user"`, `id: "user://usr_ada"`, `insertText: "@Ada Lovelace"` | `[@Ada Lovelace](user://usr_ada)` |
 | Skill | `kind: "skill"`, `id: "skill://ui"`, `insertText: "ui"` | `[$ui](skill://ui)` |
 | Plugin | `kind: "plugin"`, `id: "plugin://computer-use@openai-bundled"`, `insertText: "Computer Use"` | `[@Computer Use](plugin://computer-use@openai-bundled)` |
 | App | `kind: "app"`, `id: "app://computer-use/net.imput.helium"`, `insertText: "Helium"` | `[@Helium](app://computer-use/net.imput.helium)` |

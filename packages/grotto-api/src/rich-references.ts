@@ -11,7 +11,8 @@ export type GrottoRichReferenceProjection =
     | 'agent-reference'
     | 'capability-reference'
     | 'path-reference'
-    | 'skill-activation';
+    | 'skill-activation'
+    | 'user-reference';
 
 export interface GrottoRichReference {
     end: number;
@@ -33,6 +34,10 @@ export function formatAppReferenceTarget(appId: string) {
 
 export function formatSkillReferenceTarget(skillId: string) {
     return `skill://${encodeReferenceId(skillId)}`;
+}
+
+export function formatUserReferenceTarget(userId: string) {
+    return `user://${encodeReferenceId(userId)}`;
 }
 
 export function parseAgentReferenceTarget(target: string) {
@@ -111,7 +116,7 @@ function parseRichReferenceLink({
         return {
             kind: 'user',
             label: stripReferenceLabelSigil(rawLabel),
-            projection: 'agent-reference',
+            projection: 'user-reference',
         };
     }
 

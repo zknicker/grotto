@@ -11,7 +11,6 @@ import {
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
-    agentsTable,
     chatEventsTable,
     chatMessagesTable,
     chatsTable,
@@ -21,8 +20,10 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { ensureThread } from '../threads/ensure-thread.ts';
 import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
+import { requireActiveDmPeer } from './active-dm-peer.ts';
 import { allocateEventCursor } from './allocate-event-cursor.ts';
 import { requireChatWriteAccess } from './chat-access.ts';
+import { ensureAgentDmRecord } from './ensure-agent-dm.ts';
 import { toChatMessage } from './message-shape.ts';
 
 export class ChatNonceConflictError extends Error {
@@ -36,15 +37,6 @@ export class DirectThreadSendError extends Error {
     constructor() {
         super('Thread replies require their parent Chat and anchor message.');
         this.name = 'DirectThreadSendError';
-    }
-}
-
-export class RetiredAgentDmSendError extends Error {
-    constructor() {
-        super(
-            'This Agent is retired. You can read this conversation, but you can’t send new messages.'
-        );
-        this.name = 'RetiredAgentDmSendError';
     }
 }
 
@@ -66,24 +58,35 @@ export async function sendChatMessage(
         // must re-read membership behind it rather than commit past it.
         await lockServerRow(tx, input.serverId);
 
-        const thread = input.thread
-            ? await ensureThread(tx, member, {
-                  anchorMessageId: input.thread.anchorMessageId,
-                  parentChatId: input.chatId,
-                  serverId: input.serverId,
-              })
-            : null;
-        const writeChatId = thread?.id ?? input.chatId;
+        if (!member) {
+            throw new Error('A message author is required.');
+        }
+
+        const targetChatId =
+            'agentId' in input
+                ? (
+                      await ensureAgentDmRecord(tx, {
+                          agentId: input.agentId,
+                          serverId: input.serverId,
+                          userId: member.id,
+                      })
+                  ).id
+                : input.chatId;
+        const thread =
+            'chatId' in input && input.thread
+                ? await ensureThread(tx, member, {
+                      anchorMessageId: input.thread.anchorMessageId,
+                      parentChatId: targetChatId,
+                      serverId: input.serverId,
+                  })
+                : null;
+        const writeChatId = thread?.id ?? targetChatId;
 
         const writeChat = await requireChatWriteAccess(tx, member, {
             chatId: writeChatId,
             serverId: input.serverId,
         });
-        if (!member) {
-            throw new Error('A message author is required.');
-        }
-
-        if (!input.thread && writeChat.kind === 'thread') {
+        if ('chatId' in input && !input.thread && writeChat.kind === 'thread') {
             throw new DirectThreadSendError();
         }
 
@@ -273,40 +276,6 @@ export async function sendChatMessage(
             wakes: recipients.map(({ agentId }) => ({ agentId, serverId: input.serverId })),
         };
     });
-}
-
-export async function requireActiveDmPeer(
-    db: GrottoDatabase,
-    chat: {
-        dmAgentId: string | null;
-        kind: 'channel' | 'dm' | 'thread';
-        parentChatId: string | null;
-        serverId: string;
-    }
-) {
-    let agentId = chat.kind === 'dm' ? chat.dmAgentId : null;
-    if (chat.kind === 'thread' && chat.parentChatId) {
-        const [parent] = await db
-            .select({ dmAgentId: chatsTable.dmAgentId })
-            .from(chatsTable)
-            .where(
-                and(eq(chatsTable.serverId, chat.serverId), eq(chatsTable.id, chat.parentChatId))
-            )
-            .limit(1);
-        agentId = parent?.dmAgentId ?? null;
-    }
-    if (!agentId) {
-        return;
-    }
-
-    const [agent] = await db
-        .select({ retiredAt: agentsTable.retiredAt })
-        .from(agentsTable)
-        .where(and(eq(agentsTable.serverId, chat.serverId), eq(agentsTable.id, agentId)))
-        .limit(1);
-    if (!agent || agent.retiredAt) {
-        throw new RetiredAgentDmSendError();
-    }
 }
 
 function sameIds(left: string[], right: string[]) {

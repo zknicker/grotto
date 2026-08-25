@@ -30,18 +30,21 @@ import {
 
 const emptyAgents: Agent[] = [];
 
-export function ChatComposer({
+export function ServerChatComposer({
     chatId,
     chatName,
+    onMaterialized,
     onThreadCreated,
     pendingChatId,
     placeholder,
     serverId,
     thread,
+    target,
     variant = 'primary',
 }: {
-    chatId: string;
+    chatId?: string;
     chatName: string;
+    onMaterialized?: (chatId: string) => void;
     onThreadCreated?: (threadChatId: string) => void;
     /**
      * The transcript that shows this composer's sends while they are in flight.
@@ -52,6 +55,7 @@ export function ChatComposer({
     placeholder?: string;
     serverId: string;
     thread?: { anchorMessageId: string };
+    target: { agentId: string; kind: 'agent-dm' } | { chatId: string; kind: 'chat' };
     /**
      * The shell's surface styling. The primary shell is tinted for the page
      * background; on a surface (a modal dialog) it would match its host
@@ -71,9 +75,7 @@ export function ChatComposer({
         inputRef: attachmentInput,
         remove: removeAttachment,
     } = useComposerAttachments();
-    // Submitting is synchronous now, so the guard against a second handler
-    // firing for the same keystroke has to be too: React has not re-rendered
-    // yet, and both would otherwise read the same uncleared draft.
+    // Guard two handlers firing before React re-renders the cleared draft.
     const submissionRef = React.useRef({ attachments, draft, mentions });
     submissionRef.current = { attachments, draft, mentions };
     const send = useChatMessageSend();
@@ -84,7 +86,7 @@ export function ChatComposer({
     );
     const mentionComposer = useServerMentionComposer({
         agents: agentList,
-        chatId,
+        chatTarget: target,
         content: draft,
         mentionableAgentIds,
         onMentionsChange: setMentions,
@@ -100,7 +102,7 @@ export function ChatComposer({
         setDraft((current) => appendComposerInsert(current, text));
         requestAnimationFrame(mentionComposer.focusTextEditor);
     });
-    useChatComposerMentionRequest(thread ? null : chatId, ({ agentId }) => {
+    useChatComposerMentionRequest(thread ? null : (chatId ?? null), ({ agentId }) => {
         const agent = agentList.find((candidate) => candidate.id === agentId);
         if (!agent) {
             return;
@@ -144,21 +146,33 @@ export function ChatComposer({
             const uploaded = await Promise.all(
                 submitted.attachments.map((attachment) =>
                     upload.mutateAsync({
-                        chatId,
+                        chatId: chatId ?? '',
                         file: attachment.file,
                         nonce: attachment.nonce,
                         serverId,
                     })
                 )
             );
-            const receipt = await send.mutateAsync({
-                attachmentIds: uploaded.map((attachment) => attachment.id),
-                chatId,
-                content,
-                nonce,
-                serverId,
-                thread,
-            });
+            const receipt = await send.mutateAsync(
+                target.kind === 'agent-dm'
+                    ? {
+                          agentId: target.agentId,
+                          attachmentIds: [],
+                          content,
+                          nonce,
+                          serverId,
+                          targetKind: 'agent-dm',
+                      }
+                    : {
+                          attachmentIds: uploaded.map((attachment) => attachment.id),
+                          chatId: target.chatId,
+                          content,
+                          nonce,
+                          serverId,
+                          thread,
+                      }
+            );
+            onMaterialized?.(receipt.message.chatId);
             if (pendingChatId) {
                 settlePendingChatMessage({
                     chatId: pendingChatId,
@@ -220,23 +234,27 @@ export function ChatComposer({
                     </PromptInput.Content>
                     <PromptInput.Toolbar>
                         <PromptInput.ToolbarStart>
-                            <input
-                                className="sr-only"
-                                multiple
-                                onChange={(event) => {
-                                    const files = Array.from(event.target.files ?? []);
-                                    addAttachments(files);
-                                }}
-                                ref={attachmentInput}
-                                type="file"
-                            />
-                            <PromptInput.Action
-                                aria-label="Add attachments"
-                                onPress={() => attachmentInput.current?.click()}
-                                tooltip="Add attachments"
-                            >
-                                <Icon className="size-4" icon={Attachment01Icon} />
-                            </PromptInput.Action>
+                            {target.kind === 'chat' ? (
+                                <input
+                                    className="sr-only"
+                                    multiple
+                                    onChange={(event) => {
+                                        const files = Array.from(event.target.files ?? []);
+                                        addAttachments(files);
+                                    }}
+                                    ref={attachmentInput}
+                                    type="file"
+                                />
+                            ) : null}
+                            {target.kind === 'chat' ? (
+                                <PromptInput.Action
+                                    aria-label="Add attachments"
+                                    onPress={() => attachmentInput.current?.click()}
+                                    tooltip="Add attachments"
+                                >
+                                    <Icon className="size-4" icon={Attachment01Icon} />
+                                </PromptInput.Action>
+                            ) : null}
                         </PromptInput.ToolbarStart>
                         <PromptInput.ToolbarEnd>
                             <PromptInput.Send aria-label="Send" isDisabled={!canSubmit} />

@@ -182,6 +182,10 @@ function getMentionAppearanceOverride(input: MentionAppearanceInput) {
         return getAgentAvatarOverride(input);
     }
 
+    if (input.kind === 'user') {
+        return getUserAvatarOverride(input);
+    }
+
     if ((input.kind === 'app' || input.kind === 'website') && metadataIconDataUrl) {
         return {
             iconDataUrl: metadataIconDataUrl,
@@ -197,6 +201,16 @@ function getMentionAppearanceOverride(input: MentionAppearanceInput) {
     }
 
     return undefined;
+}
+
+function getUserAvatarOverride(input: MentionAppearanceInput) {
+    const displayName = readString(input.metadata?.userDisplayName) ?? input.label;
+    const avatarUrl = readString(input.metadata?.userAvatarUrl);
+
+    return {
+        agentAvatar: { name: displayName, src: avatarUrl },
+        label: displayName,
+    } satisfies MentionAppearanceOverride;
 }
 
 // Agent chips carry the agent's avatar (initials when it has no image) tinted

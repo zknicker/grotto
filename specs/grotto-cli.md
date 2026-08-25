@@ -121,7 +121,7 @@ Copied byte-for-byte from shipped Raft formatting (audited), renamed:
 **Delivery envelope** (push into a turn, and `message check` output):
 
 ```
-[target=#general msg=1a2b3c4d time=2026-07-21 14:02:11 type=human] @zach — Grotto operator: hello
+[target=#general msg=1a2b3c4d time=2026-07-21 14:02:11 type=human] @zach — Zach: hello
 ```
 
 **History line** (`message read`):
@@ -386,7 +386,7 @@ All approved by operator ruling W1 (program contract, 2026-07-21).
 
 Additive workstream — no data destruction. With the operator, live:
 
-1. Assign handles: rename existing agents/channels/operator to valid unique
+1. Assign handles: rename existing agents/channels/humans to valid unique
    handles (collisions resolved by hand; renames are permanent).
 2. Mint agent tokens for existing agents on the dev runtime, then the mini.
 3. Verify wrapper injection: in an agent turn shell, `grotto` resolves to the

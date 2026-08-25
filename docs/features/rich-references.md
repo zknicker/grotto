@@ -15,6 +15,7 @@ portable fallback.
 Examples:
 
 - `[@Grotto](agent://agt_primary)` addresses an Agent in a channel.
+- `[@Ada Lovelace](user://usr_ada)` references a human by immutable user id.
 - `[$ui](skill://ui)` references a skill for the turn.
 - `[@Chrome](app://computer-use/com.google.Chrome)` references a Mac app.
 - `[README.md](/repo/README.md)` references a file.
@@ -28,6 +29,9 @@ plain text unless the user selects or types explicit link syntax.
 - Agent references bind to immutable Agent ids, not reusable handles. A reference
   to a deleted Agent stays attached to that historical identity even if a new
   Agent later reuses the same visible handle.
+- Human references bind to immutable user ids. Their visible chip label and
+  avatar resolve from the live profile; departed or unknown humans keep the
+  persisted label and never rebind when a handle is reused.
 - Saved messages do not need `metadata.grotto.mentions` to render, route, or
   project references.
 - The composer may keep local metadata for live chip appearance while the user
@@ -39,6 +43,7 @@ plain text unless the user selects or types explicit link syntax.
   message. Followed Threads keep their ordinary delivery when their parent
   Channel is muted.
 - DMs still address their single Agent participant implicitly.
+- Human references are visual references only; they do not notify or wake anyone.
 - Skill references use stable `skill://<skill-id>` targets. They nudge the
   addressed Agent to use that skill only when the skill is already assigned to
   that Agent.

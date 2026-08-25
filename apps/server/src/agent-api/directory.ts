@@ -1,4 +1,4 @@
-import { and, asc, count, eq, ilike, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, ilike, isNull, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -9,7 +9,7 @@ import {
     serverMembershipsTable,
     usersTable,
 } from '../postgres/schema.ts';
-import { countAgentDirectory } from './directory-counts.ts';
+import { countAgentDirectory, countChannelMembers } from './directory-counts.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
 export interface AgentDirectoryQuery {
@@ -55,33 +55,15 @@ export async function readAgentChannelInfo(
     target: string
 ) {
     const channel = await findChannel(db, runner.serverId, target);
-    const [joined, members] = await Promise.all([
+    const [joined, memberCount] = await Promise.all([
         isAgentJoined(db, runner, channel.id),
-        db
-            .select({ total: count() })
-            .from(channelParticipantsTable)
-            .where(
-                and(
-                    eq(channelParticipantsTable.serverId, runner.serverId),
-                    eq(channelParticipantsTable.chatId, channel.id),
-                    isNull(serverMembershipsTable.revokedAt)
-                )
-            ),
+        countChannelMembers(db, runner, channel.id),
     ]);
-    const [agentMembers] = await db
-        .select({ total: count() })
-        .from(channelAgentParticipantsTable)
-        .where(
-            and(
-                eq(channelAgentParticipantsTable.serverId, runner.serverId),
-                eq(channelAgentParticipantsTable.chatId, channel.id)
-            )
-        );
     return {
         description: null,
         handle: `#${channel.name}`,
         joined,
-        memberCount: Number(members[0]?.total ?? 0) + Number(agentMembers?.total ?? 0),
+        memberCount,
     };
 }
 

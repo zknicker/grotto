@@ -50,6 +50,10 @@ Chats are Grotto's shared conversation surfaces.
 ## Identity And Labels
 
 - A chat has a stable identity in Grotto.
+- An implicit human↔Agent sidebar selection is not a chat and has no Chat id.
+  Listing or opening it never persists state. The first durable send resolves
+  the human membership stint and Agent id, creates their canonical pair Chat
+  under the database uniqueness constraint, and writes the message atomically.
 - For Grotto-owned chats, the stable identity is the Grotto chat id and the label is Grotto-owned
   presentation metadata.
 - For external runtime-observed chats, labels are Grotto presentation derived from synced primitive

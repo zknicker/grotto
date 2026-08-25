@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 import type { AgentMentionAppearance } from './mention-metadata.ts';
-import { applyAgentMentionAppearance, readMentionsFromMarkdown } from './mention-metadata.ts';
+import {
+    applyAgentMentionAppearance,
+    applyHumanMentionAppearance,
+    readMentionsFromMarkdown,
+} from './mention-metadata.ts';
 
 describe('readMentionsFromMarkdown', () => {
     it('reads explicit rich reference links from message content', () => {
@@ -67,6 +71,38 @@ describe('readMentionsFromMarkdown', () => {
 
     it('ignores bare mention-looking text', () => {
         expect(readMentionsFromMarkdown('@Grotto and $ui are plain text')).toEqual([]);
+    });
+});
+
+describe('human rich references', () => {
+    it('parses immutable user targets and applies the live profile', () => {
+        const mentions = readMentionsFromMarkdown('Ask [@Ada](user://usr_ada)');
+        const resolved = applyHumanMentionAppearance(mentions, (userId) =>
+            userId === 'usr_ada'
+                ? { avatarUrl: '/api/avatars/ada', displayName: 'Ada Byron' }
+                : { avatarUrl: null, displayName: null }
+        );
+
+        expect(resolved[0]).toMatchObject({
+            id: 'user://usr_ada',
+            kind: 'user',
+            label: 'Ada',
+            metadata: {
+                userAvatarUrl: '/api/avatars/ada',
+                userDisplayName: 'Ada Byron',
+            },
+            projection: 'user-reference',
+        });
+    });
+
+    it('keeps the persisted label as a stable fallback for an unknown human', () => {
+        const mentions = readMentionsFromMarkdown('Ask [@Former Ada](user://usr_departed)');
+        expect(
+            applyHumanMentionAppearance(mentions, () => ({
+                avatarUrl: null,
+                displayName: null,
+            }))
+        ).toEqual(mentions);
     });
 });
 

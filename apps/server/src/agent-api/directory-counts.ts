@@ -4,6 +4,7 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
     channelAgentParticipantsTable,
+    channelParticipantsTable,
     chatsTable,
     serverMembershipsTable,
 } from '../postgres/schema.ts';
@@ -20,6 +21,42 @@ export async function countAgentDirectory(
         countHumans(db, runner, input),
     ]);
     return { agents, channels, humans };
+}
+
+export async function countChannelMembers(
+    db: GrottoDatabase,
+    runner: ResolvedRunner,
+    chatId: string
+) {
+    const [[humans], [agents]] = await Promise.all([
+        db
+            .select({ total: count() })
+            .from(channelParticipantsTable)
+            .innerJoin(
+                serverMembershipsTable,
+                and(
+                    eq(serverMembershipsTable.serverId, channelParticipantsTable.serverId),
+                    eq(serverMembershipsTable.userId, channelParticipantsTable.userId)
+                )
+            )
+            .where(
+                and(
+                    eq(channelParticipantsTable.serverId, runner.serverId),
+                    eq(channelParticipantsTable.chatId, chatId),
+                    isNull(serverMembershipsTable.revokedAt)
+                )
+            ),
+        db
+            .select({ total: count() })
+            .from(channelAgentParticipantsTable)
+            .where(
+                and(
+                    eq(channelAgentParticipantsTable.serverId, runner.serverId),
+                    eq(channelAgentParticipantsTable.chatId, chatId)
+                )
+            ),
+    ]);
+    return Number(humans?.total ?? 0) + Number(agents?.total ?? 0);
 }
 
 async function countChannels(

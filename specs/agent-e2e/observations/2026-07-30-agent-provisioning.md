@@ -50,7 +50,7 @@ Agent messages correctly lived in the source message's child Thread. The test
 now resolves that Thread from the canonical message receipt, opens it through
 the visible reply affordance, and verifies the shared file link there.
 
-Retiring the Agent removes its Owner DM from active App navigation. Canonical
+Retiring the Agent removes its implicit DM peer from active App navigation. Canonical
 collaboration records remain durable Server history, but the executable scenario
 does not treat a retired Agent's DM as an App destination.
 

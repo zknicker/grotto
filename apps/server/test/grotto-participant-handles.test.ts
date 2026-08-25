@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { readAgentServerDirectory } from '../src/agent-api/directory.ts';
 import { messageSelection, targetForChat, toAgentMessages } from '../src/agent-api/message-view.ts';
-import { resolveAgentTarget } from '../src/agent-api/resolve-target.ts';
+import { resolveAgentSendTarget, resolveAgentTarget } from '../src/agent-api/resolve-target.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import { chatMessagesTable } from '../src/postgres/schema.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
@@ -71,7 +71,7 @@ beforeAll(async () => {
         serverId,
     });
     agentId = created.agent.id;
-    dmChatId = created.chat.id;
+    dmChatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
 });
 
 afterAll(async () => {
@@ -163,6 +163,55 @@ test('projects the real human handle into Agent-facing messages and DM targets',
     ).toMatchObject({
         humans: [{ description: 'Builds precise machines.', handle: 'ada-lovelace' }],
     });
+});
+
+test('an Agent send target materializes the addressed human pair by handle', async () => {
+    const targetUserId = 'usr_handle_target';
+    await harness.sql`
+        insert into users (id, clerk_user_id, display_name)
+        values (${targetUserId}, 'user_handle_target', 'Grace Hopper')
+    `;
+    await harness.sql`
+        insert into server_memberships (id, server_id, user_id, role, handle)
+        values ('mem_handle_target', ${serverId}, ${targetUserId}, 'member', 'grace-hopper')
+    `;
+    const runner = {
+        agentId,
+        capabilities: [],
+        chatId: dmChatId,
+        computerId,
+        runId: 'run_handle_materialize',
+        runnerId: 'arc_handle_materialize',
+        serverId,
+    };
+
+    const chatId = await connection.db.transaction((tx) =>
+        resolveAgentSendTarget(tx, runner, 'dm:@GRACE-HOPPER')
+    );
+    const rows = await harness.sql`
+        select dm_agent_id, dm_member_one_user_id from chats
+        where server_id = ${serverId} and id = ${chatId}
+    `;
+    expect(rows).toEqual([{ dm_agent_id: agentId, dm_member_one_user_id: targetUserId }]);
+});
+
+test('human autocomplete addresses the immutable user id while exposing handle search metadata', async () => {
+    const options = await owner.trpc.chat.mentionOptions.query({
+        chatId: dmChatId,
+        serverId,
+    });
+
+    expect(options.options).toContainEqual(
+        expect.objectContaining({
+            id: `user://${ownerUserId}`,
+            insertText: '@Ada Byron',
+            kind: 'user',
+            label: 'Ada Byron',
+            metadata: expect.objectContaining({ userHandle: 'ada-lovelace' }),
+            projection: 'user-reference',
+            sourceLabel: 'Humans',
+        })
+    );
 });
 
 test('releases a human handle on departure while historical authorship stays id-bound', async () => {

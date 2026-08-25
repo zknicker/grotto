@@ -16,10 +16,12 @@ export function AppSidebar({
     currentServer,
     onPreloadSection,
     selectedChatId,
+    selectedAgentDmId,
 }: {
     currentServer: ServerSummary;
     onPreloadSection: (section: 'search' | 'tasks') => void;
     selectedChatId: string | undefined;
+    selectedAgentDmId?: string;
 }) {
     const navigate = useNavigate();
     const agents = useAgents(currentServer.id);
@@ -62,6 +64,7 @@ export function AppSidebar({
                 }}
                 onCreateChannel={openCreateChannel}
                 onPreloadSection={onPreloadSection}
+                selectedAgentDmId={selectedAgentDmId}
                 selectedChatId={selectedChatId}
                 serverId={currentServer.id}
                 slug={slug}

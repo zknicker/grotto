@@ -8,7 +8,8 @@ import { useLocation } from 'react-router-dom';
 import { loadChannelIconCatalog } from '../../components/chats/channel-icon-catalog.ts';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
-import { tasksRoute } from '../servers/server-routes.ts';
+import { AgentAvatar } from '../members/agent-avatar.tsx';
+import { serverAgentDmRoute, tasksRoute } from '../servers/server-routes.ts';
 import { ChatNavigationRow, chatNavigationName } from './chat-navigation-row.tsx';
 import { useCommandMenu } from './command-menu-provider.tsx';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
@@ -22,6 +23,7 @@ export function ChatNavigation({
     onChangeChannelColor,
     onCreateChannel,
     onPreloadSection,
+    selectedAgentDmId,
     selectedChatId,
     serverId,
     slug,
@@ -31,6 +33,7 @@ export function ChatNavigation({
     onChangeChannelColor?: (chat: Chat, color: string) => void;
     onCreateChannel: () => void;
     onPreloadSection: (section: 'search' | 'tasks') => void;
+    selectedAgentDmId?: string;
     selectedChatId: string | undefined;
     serverId: string;
     slug: string;
@@ -46,7 +49,11 @@ export function ChatNavigation({
     }, []);
     const agentById = new Map(agents.map((agent) => [agent.id, agent]));
     const channels = chats.filter((chat) => chat.kind === 'channel');
-    const directMessages = chats.filter((chat) => chat.kind === 'dm' && !chat.peerAgentRetired);
+    const humanDirectMessages = chats.filter((chat) => chat.kind === 'dm' && !chat.peerAgentId);
+    const agentDirectMessages = agents.map((agent) => ({
+        agent,
+        chat: chats.find((chat) => chat.kind === 'dm' && chat.peerAgentId === agent.id) ?? null,
+    }));
 
     return (
         <ShellSidebarPageContent>
@@ -116,22 +123,45 @@ export function ChatNavigation({
             </ChatGroup>
             <ChatGroup label="Direct messages">
                 <Sidebar.Menu aria-label="Direct messages">
-                    {directMessages.map((chat) => {
-                        const agent = chat.peerAgentId
-                            ? (agentById.get(chat.peerAgentId) ?? null)
-                            : null;
-                        return (
+                    {agentDirectMessages.map(({ agent, chat }) =>
+                        chat ? (
                             <ChatNavigationRow
                                 agent={agent}
                                 chat={chat}
-                                key={chat.id}
-                                name={chatNavigationName(chat, agent)}
+                                key={agent.id}
+                                name={agent.displayName}
                                 onChangeChannelColor={onChangeChannelColor}
                                 selectedChatId={selectedChatId}
                                 slug={slug}
                             />
-                        );
-                    })}
+                        ) : (
+                            <Sidebar.MenuItem
+                                href={serverAgentDmRoute(slug, agent.id)}
+                                id={`agent-dm:${agent.id}`}
+                                isCurrent={agent.id === selectedAgentDmId}
+                                key={agent.id}
+                                textValue={agent.displayName}
+                            >
+                                <Sidebar.MenuIcon>
+                                    <AgentAvatar agent={agent} size={24} />
+                                </Sidebar.MenuIcon>
+                                <Sidebar.MenuItemContent>
+                                    <Sidebar.MenuLabel>{agent.displayName}</Sidebar.MenuLabel>
+                                </Sidebar.MenuItemContent>
+                            </Sidebar.MenuItem>
+                        )
+                    )}
+                    {humanDirectMessages.map((chat) => (
+                        <ChatNavigationRow
+                            agent={null}
+                            chat={chat}
+                            key={chat.id}
+                            name={chatNavigationName(chat, null)}
+                            onChangeChannelColor={onChangeChannelColor}
+                            selectedChatId={selectedChatId}
+                            slug={slug}
+                        />
+                    ))}
                 </Sidebar.Menu>
             </ChatGroup>
         </ShellSidebarPageContent>

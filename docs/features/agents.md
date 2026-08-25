@@ -28,8 +28,9 @@ its runtime and model inventory, the Members Agents page lets an Owner or Admin
 choose the Computer, runtime, and model, then create an Agent with a name and
 optional description.
 
-Creation opens the same ordinary Owner-to-Agent DM used by every Agent. There
-is no archetype field, picker, automatic lane-note seed, or special creation
+Creation adds the Agent to every current human member's implicit DM roster. It
+does not create an Owner DM or any other Chat row. There is no archetype field,
+picker, automatic lane-note seed, or special creation
 path in this contract. Fresh-Server Cove onboarding is a separate setup flow;
 see [ADR 0021](../adr/0021-cove-onboards-and-agents-share-a-manual.md).
 
@@ -57,11 +58,12 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   bundle into one Agent library from the Agent profile.
 - MCP connections are Server-owned; Agent-level grants choose which
   connections the Agent may use.
-- Starting a DM remains part of the normal New Chat flow.
+- Every active Agent is already present in the Direct messages sidebar; there
+  is no Create DM action or Agent picker.
 
-Agent DMs are ordinary pairwise Chats. Creation opens one between the Owner
-and the new Agent, and Grotto does not create duplicate direct Chats for the
-same pair.
+Agent DMs become ordinary pairwise Chats on their first durable message. Each
+human membership stint and Agent id has one canonical Chat, so different humans
+receive different private DMs and retries cannot create duplicates.
 
 ## Identity and instructions
 
@@ -102,14 +104,14 @@ it no longer appears in the Agent list, mention pickers, or Channel-creation
 controls, and it can neither execute a turn nor receive a new send. A send to its
 DM, a reply in one of that DM's Threads, or a new task message is rejected.
 
-Its Owner DM leaves active navigation and is not an App destination after retirement. Canonical
+Its implicit roster row leaves active navigation and is not an App destination after retirement. Canonical
 collaboration records remain durable Server history. Historical messages visible in other Chats
 keep the retired Agent's profile under a **Deleted** treatment, and the Agent is excluded from task
 creation targets.
 
 The Agent id is permanent identity; its handle is an active Server-scoped alias.
 Retirement releases that alias for a newly created Agent while preserving it on
-the tombstone. The replacement receives a new id, DM, workspace, and execution
+the tombstone. The replacement receives a new id, implicit DM identity, workspace, and execution
 history. Existing rich references and authored messages remain attached to the
 retired Agent id.
 

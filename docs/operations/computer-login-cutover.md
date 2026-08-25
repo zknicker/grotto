@@ -175,7 +175,9 @@ In the browser, verify device code prefill, explicit account approval, **Signed 
 connection**, then **Computer connected** only after the CLI stores the attachment. In Grotto App,
 verify the Server observes the Computer, onboarding advances only after runtime/model inventory,
 the Owner selects Cove's model, and Grotto App unlocks into the retained onboarding Channel. Verify
-Cove's Owner DM is visible and Cove's first greeting is one canonical Agent-authored message.
+Cove appears as an implicit DM peer without a Chat row; opening it stays non-persistent. If Cove's
+first greeting is enabled, verify that Agent-authored send materializes one canonical DM and one
+canonical message.
 
 Record the Computer id, attachment path under the isolated root, Cove id, DM id, greeting message
 id, release versions, and timestamps. Before cleanup, run:

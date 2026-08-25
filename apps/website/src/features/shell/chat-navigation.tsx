@@ -13,6 +13,7 @@ import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { serverChatRoute, tasksRoute } from '../servers/server-routes.ts';
 import { useCommandMenu } from './command-menu-provider.tsx';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
+import { shellNavigationIconSize } from './section-header.tsx';
 import { ShellSidebarPageContent } from './shell-sidebar.tsx';
 
 export function ChatNavigation({
@@ -94,7 +95,7 @@ export function ChatNavigation({
                         size="sm"
                         variant="ghost"
                     >
-                        <Icon aria-hidden="true" icon={Plus} size={16} />
+                        <Icon aria-hidden="true" icon={Plus} size={shellNavigationIconSize} />
                     </Button>
                 }
                 agents={agentById}

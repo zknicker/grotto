@@ -2,6 +2,7 @@ import { Button } from '@heroui/react';
 import { Cancel01Icon, File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
+import { shellNavigationIconSize } from '../shell/section-header.tsx';
 import {
     type GrottoResourceTarget,
     getArtifactPanelTargetKey,
@@ -91,7 +92,7 @@ function ArtifactTab({
                     size="sm"
                     variant="ghost"
                 >
-                    <Icon className="size-3.5" icon={Cancel01Icon} />
+                    <Icon icon={Cancel01Icon} size={shellNavigationIconSize} />
                 </Button>
             </span>
         </div>

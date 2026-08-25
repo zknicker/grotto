@@ -28,8 +28,7 @@ import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { ChannelAgentsDialog } from '../../chats/channel-agents-dialog.tsx';
 import { ChannelAppearanceDialog } from '../../chats/channel-appearance-dialog.tsx';
 import { ChannelRenameDialog } from '../../chats/channel-rename-dialog.tsx';
-import { availabilityLabel } from '../../members/agent-avatar.tsx';
-import { SectionHeader } from '../../shell/section-header.tsx';
+import { SectionHeader, shellNavigationIconSize } from '../../shell/section-header.tsx';
 import { serverRoute, tasksRoute } from '../server-routes.ts';
 
 export function ChatTopbar({
@@ -73,20 +72,7 @@ export function ChatTopbar({
                     />
                 )
             }
-            meta={
-                <>
-                    {peerAgent ? (
-                        <span className="shrink-0 text-muted text-xs">
-                            <DmAgentStatus agent={peerAgent} />
-                        </span>
-                    ) : null}
-                    {chat.kind === 'dm' && chat.peerAgentRetired ? (
-                        <Chip size="sm">Retired</Chip>
-                    ) : chat.archivedAt ? (
-                        <Chip size="sm">Archived</Chip>
-                    ) : null}
-                </>
-            }
+            meta={<ChatTopbarMeta chat={chat} />}
         >
             {/* Both chat kinds carry their name inside the actions trigger, so
                 the page needs an explicit heading for assistive tech. */}
@@ -99,7 +85,11 @@ export function ChatTopbar({
                     size="sm"
                     variant={artifactVisible ? 'secondary' : 'ghost'}
                 >
-                    <Icon aria-hidden="true" icon={SidebarRightIcon} size={18} />
+                    <Icon
+                        aria-hidden="true"
+                        icon={SidebarRightIcon}
+                        size={shellNavigationIconSize}
+                    />
                 </Button>
                 <Tooltip.Content>
                     {artifactVisible ? 'Hide artifacts' : 'Show artifacts'}
@@ -109,8 +99,18 @@ export function ChatTopbar({
     );
 }
 
-function DmAgentStatus({ agent }: { agent: Agent }) {
-    return availabilityLabel(agent.availability);
+export function ChatTopbarMeta({
+    chat,
+}: {
+    chat: Pick<Chat, 'archivedAt' | 'kind' | 'peerAgentRetired'>;
+}) {
+    if (chat.kind === 'dm' && chat.peerAgentRetired) {
+        return <Chip size="sm">Retired</Chip>;
+    }
+    if (chat.archivedAt) {
+        return <Chip size="sm">Archived</Chip>;
+    }
+    return null;
 }
 
 // Editing a channel is three separate decisions, so each one gets its own

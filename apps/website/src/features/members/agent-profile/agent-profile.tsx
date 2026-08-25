@@ -13,7 +13,7 @@ import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { cn } from '../../../lib/utils.ts';
-import { SectionBar } from '../../shell/section-header.tsx';
+import { SectionBar, shellNavigationIconSize } from '../../shell/section-header.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import {
     AgentActivity,
@@ -155,7 +155,11 @@ function AgentProfileTabs({
                             size="sm"
                             variant="ghost"
                         >
-                            <Icon aria-hidden="true" icon={Cancel01Icon} size={16} />
+                            <Icon
+                                aria-hidden="true"
+                                icon={Cancel01Icon}
+                                size={shellNavigationIconSize}
+                            />
                         </Button>
                         <Tooltip.Content>Close</Tooltip.Content>
                     </Tooltip>

@@ -7,6 +7,7 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
+import { shellNavigationIconSize } from '../shell/section-header.tsx';
 import { ArtifactPanelSourceMenu } from './chat-artifact-panel-source-menu.tsx';
 import { ArtifactTabStrip } from './chat-artifact-tab-strip.tsx';
 import { formatGrottoResourceLink, type GrottoResourceTarget } from './grotto-resource-link.ts';
@@ -67,7 +68,7 @@ export function ArtifactPanelChrome({
                     size="sm"
                     variant="ghost"
                 >
-                    <Icon className="size-3.5" icon={Cancel01Icon} />
+                    <Icon icon={Cancel01Icon} size={shellNavigationIconSize} />
                 </Button>
             )}
         </div>

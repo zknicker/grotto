@@ -8,6 +8,9 @@ import type { ReactNode } from 'react';
  */
 export const bandHeightClassName = 'h-[var(--app-shell-band-height)]';
 
+/** Glyph size for icon-only navigation controls in shell chrome. */
+export const shellNavigationIconSize = 20;
+
 /**
  * The one topbar band chrome: fixed height, bottom hairline, gutter. The
  * shell renders exactly one of these above the routed content

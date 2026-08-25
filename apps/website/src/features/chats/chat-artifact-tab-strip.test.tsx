@@ -29,6 +29,7 @@ test('artifact tabs expose selection state and a labelled close control per tab'
     expect(markup).toContain('aria-selected="true"');
     expect(markup).toContain('aria-label="Close Workspace"');
     expect(markup).toContain('aria-label="Close NOTES.md"');
+    expect(markup.match(/width="20" height="20"/gu)).toHaveLength(2);
     // Full path stays available on hover for disambiguating same-named files.
     expect(markup).toContain('title="notes/NOTES.md"');
 });

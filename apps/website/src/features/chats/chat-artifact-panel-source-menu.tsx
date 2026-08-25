@@ -2,6 +2,7 @@ import { Button, Description, Dropdown, Header, Label } from '@heroui/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-solid-rounded';
 import { FileSearchIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
+import { shellNavigationIconSize } from '../shell/section-header.tsx';
 import type { GrottoResourceTarget } from './grotto-resource-link.ts';
 
 export function ArtifactPanelSourceMenu({
@@ -14,7 +15,7 @@ export function ArtifactPanelSourceMenu({
     return (
         <Dropdown>
             <Button aria-label="Open from source" isIconOnly size="sm" variant="ghost">
-                <Icon aria-hidden="true" className="size-3.5" icon={PlusSignIcon} />
+                <Icon aria-hidden="true" icon={PlusSignIcon} size={shellNavigationIconSize} />
             </Button>
             <Dropdown.Popover placement="bottom end">
                 <Dropdown.Menu

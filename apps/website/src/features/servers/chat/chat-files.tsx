@@ -3,7 +3,7 @@ import { Button, Tooltip } from '@heroui/react';
 import { Attachment01Icon, Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ChatSidePaneShell } from '../../chats/chat-side-pane-shell.tsx';
-import { bandHeightClassName } from '../../shell/section-header.tsx';
+import { bandHeightClassName, shellNavigationIconSize } from '../../shell/section-header.tsx';
 
 /**
  * Chat-scoped Files pane: the attachments carried by this chat's loaded
@@ -40,7 +40,7 @@ export function ChatFilesPanel({
                                 size="sm"
                                 variant="ghost"
                             >
-                                <Icon className="size-3.5" icon={Cancel01Icon} />
+                                <Icon icon={Cancel01Icon} size={shellNavigationIconSize} />
                             </Button>
                             <Tooltip.Content>Close files</Tooltip.Content>
                         </Tooltip>

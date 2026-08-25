@@ -97,6 +97,36 @@ test('paints a channel row with its chosen color', () => {
     expect(markup).toContain('--channel-color-dark:#a78bfa');
 });
 
+test('keeps unread count chips circular until the number needs a pill', () => {
+    const markup = renderToStaticMarkup(
+        <MemoryRouter>
+            <CommandMenuProvider>
+                <Sidebar.Provider>
+                    <ShellSidebar activePage="server">
+                        <ShellSidebarPage ariaLabel="Server" value="server">
+                            <ChatNavigation
+                                agents={[]}
+                                chats={[
+                                    channel({ id: 'chat_one', unreadCount: 1 }),
+                                    channel({ id: 'chat_ten', unreadCount: 10 }),
+                                ]}
+                                onCreateChannel={() => undefined}
+                                onPreloadSection={() => undefined}
+                                selectedChatId={undefined}
+                                slug="grotto"
+                            />
+                        </ShellSidebarPage>
+                    </ShellSidebar>
+                </Sidebar.Provider>
+            </CommandMenuProvider>
+        </MemoryRouter>
+    );
+
+    expect(markup).toContain('aria-label="1 unread"');
+    expect(markup).toContain('aria-label="10 unread"');
+    expect(markup).toContain('min-w-5 justify-center tabular-nums');
+});
+
 function agent(overrides: Pick<Agent, 'availability' | 'displayName' | 'id'>): Agent {
     return {
         availability: overrides.availability,
@@ -170,14 +200,14 @@ function retiredDm(): Chat {
     };
 }
 
-function channel(): Chat {
+function channel(overrides: Partial<Pick<Chat, 'id' | 'unreadCount'>> = {}): Chat {
     return {
         archivedAt: null,
         archivedByUserId: null,
         color: 'violet',
         createdAt: '2026-07-29T12:00:00.000Z',
         icon: 'RocketIcon',
-        id: 'chat_planning',
+        id: overrides.id ?? 'chat_planning',
         isAll: false,
         kind: 'channel',
         lastActivityAt: null,
@@ -190,6 +220,6 @@ function channel(): Chat {
         peerAgentRetired: false,
         peerUserId: null,
         serverId: 'server_one',
-        unreadCount: 0,
+        unreadCount: overrides.unreadCount ?? 0,
     };
 }

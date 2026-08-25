@@ -218,7 +218,13 @@ function ChatRowChip({ chat }: { chat: Chat }) {
         return null;
     }
     return (
-        <Chip aria-label={`${chat.unreadCount} unread`} color="accent" size="sm" variant="primary">
+        <Chip
+            aria-label={`${chat.unreadCount} unread`}
+            className="min-w-5 justify-center tabular-nums"
+            color="accent"
+            size="sm"
+            variant="primary"
+        >
             {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
         </Chip>
     );

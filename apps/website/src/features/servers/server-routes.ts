@@ -62,6 +62,19 @@ export function serverSettingsRoute(slug: string) {
     return `${serverRoute(slug)}/settings`;
 }
 
+/**
+ * A Member's detail inside Settings. The Members directory is a settings
+ * section, so opening one of its rows stays in Settings rather than handing the
+ * reader to the members browser and replacing the whole navigation rail.
+ */
+export function settingsAgentRoute(slug: string, agentId: string, tab = 'overview') {
+    return `${serverSettingsSectionRoute(slug, 'members')}/agents/${encodeURIComponent(agentId)}/${tab}`;
+}
+
+export function settingsHumanRoute(slug: string, userId: string) {
+    return `${serverSettingsSectionRoute(slug, 'members')}/humans/${encodeURIComponent(userId)}`;
+}
+
 export function serverSettingsSectionRoute(slug: string, section: string) {
     return `${serverSettingsRoute(slug)}/${section}`;
 }

@@ -157,9 +157,11 @@ export function createAppRouter() {
                                                         },
                                                         {
                                                             path: 'humans',
-                                                            lazy: lazyRoute(
-                                                                serverRouteModules.members,
-                                                                'HumanDirectoryPage'
+                                                            element: (
+                                                                <Navigate
+                                                                    replace
+                                                                    to="../../settings/members"
+                                                                />
                                                             ),
                                                         },
                                                         {
@@ -194,7 +196,27 @@ export function createAppRouter() {
                                                         {
                                                             index: true,
                                                             element: (
-                                                                <Navigate replace to="appearance" />
+                                                                <Navigate replace to="profile" />
+                                                            ),
+                                                        },
+                                                        {
+                                                            path: 'members/agents/:agentId',
+                                                            element: (
+                                                                <Navigate replace to="overview" />
+                                                            ),
+                                                        },
+                                                        {
+                                                            path: 'members/agents/:agentId/:tab',
+                                                            lazy: lazyRoute(
+                                                                serverRouteModules.settingsSection,
+                                                                'SettingsAgentRoute'
+                                                            ),
+                                                        },
+                                                        {
+                                                            path: 'members/humans/:userId',
+                                                            lazy: lazyRoute(
+                                                                serverRouteModules.settingsSection,
+                                                                'SettingsHumanRoute'
                                                             ),
                                                         },
                                                         {

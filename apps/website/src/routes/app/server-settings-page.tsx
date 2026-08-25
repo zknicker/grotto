@@ -1,7 +1,10 @@
 import { Outlet, useLocation, useOutletContext } from 'react-router-dom';
 import type { ServerContextValue } from '../../features/servers/server-context.ts';
 import { SettingsContentFrame } from '../../features/settings/layout/page.tsx';
+import { SettingsBreadcrumb } from '../../features/settings/layout/settings-breadcrumb.tsx';
+import { PageTopbar } from '../../features/shell/shell-topbar.tsx';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
+import { resolveSettingsSection } from './server-route-state.ts';
 
 export function ServerSettingsPage() {
     const context = useOutletContext<ServerContextValue>();
@@ -14,8 +17,21 @@ export function ServerSettingsPage() {
         location.pathname.endsWith('/settings/computers');
 
     return (
-        <SettingsContentFrame isFullContentRoute={isFullContentRoute}>
-            <Outlet context={context} />
-        </SettingsContentFrame>
+        <>
+            {/* The frame owns the band for every settings route, so a section
+                never has to remember to say where it is. Sections may still
+                portal their own actions in beside it. */}
+            <PageTopbar>
+                <SettingsBreadcrumb
+                    pathname={location.pathname}
+                    section={resolveSettingsSection(location.pathname, context.server.slug)}
+                    serverId={context.server.id}
+                    slug={context.server.slug}
+                />
+            </PageTopbar>
+            <SettingsContentFrame isFullContentRoute={isFullContentRoute}>
+                <Outlet context={context} />
+            </SettingsContentFrame>
+        </>
     );
 }

@@ -4,32 +4,35 @@ import { PageColumn } from '../../shell/page-column.tsx';
 import { CreatedAgents } from './created-agents.tsx';
 import { HumanIdentity } from './human-identity.tsx';
 
-/** One human's profile, assembled from independently owned identity and Agent sections. */
+/**
+ * One human's profile, assembled from independently owned identity and Agent
+ * sections. The host owns scrolling and the gutter — both hosts already carry
+ * their own — so this composes straight into a `PageColumn`.
+ */
 export function HumanProfile({
+    agentHref,
     member,
     server,
     viewerUserId,
 }: {
+    /**
+     * Where an Agent row goes. This profile has two hosts — the members browser
+     * and Settings — and a row must stay inside the one the reader is in, so the
+     * destination belongs to the host rather than to the list.
+     */
+    agentHref: (agentId: string) => string;
     member: ServerMember;
     server: ServerDetail;
     viewerUserId: string;
 }) {
     return (
-        <div className="min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
-            <div className="px-4 py-6">
-                <PageColumn>
-                    <HumanIdentity
-                        isSelf={member.userId === viewerUserId}
-                        member={member}
-                        serverId={server.id}
-                    />
-                    <CreatedAgents
-                        serverId={server.id}
-                        serverSlug={server.slug}
-                        userId={member.userId}
-                    />
-                </PageColumn>
-            </div>
-        </div>
+        <PageColumn>
+            <HumanIdentity
+                isSelf={member.userId === viewerUserId}
+                member={member}
+                serverId={server.id}
+            />
+            <CreatedAgents agentHref={agentHref} serverId={server.id} userId={member.userId} />
+        </PageColumn>
     );
 }

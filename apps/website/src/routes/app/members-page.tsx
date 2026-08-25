@@ -8,13 +8,11 @@ import { AgentProfilePage } from '../../features/members/agent-profile/agent-pro
 import { isAgentTab } from '../../features/members/agent-profile/agent-tabs.ts';
 import { HumanProfile } from '../../features/members/human-profile/human-profile.tsx';
 import { MemberRoster } from '../../features/members/member-roster.tsx';
-import { HumanDirectory } from '../../features/servers/human-directory.tsx';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import { agentRoute, membersRoute } from '../../features/servers/server-routes.ts';
 import { AgentsUsageOverview } from '../../features/usage/agents-usage-overview.tsx';
 import { useAgent } from '../../hooks/members/use-agent.ts';
 import { useMember } from '../../hooks/members/use-member.ts';
-import { useMembers } from '../../hooks/servers/use-members.ts';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 
 /**
@@ -97,17 +95,6 @@ export function AgentPage() {
     );
 }
 
-export function HumanDirectoryPage() {
-    const { server } = useServerContext();
-    const directory = useMembers(server.id);
-    if (directory.error && !directory.data) {
-        return <p className="m-auto text-danger text-sm">Couldn’t load humans.</p>;
-    }
-    return (
-        <HumanDirectory directory={directory.data} serverId={server.id} serverSlug={server.slug} />
-    );
-}
-
 export function HumanPage() {
     const { userId = '' } = useParams();
     const { server } = useServerContext();
@@ -126,6 +113,7 @@ export function HumanPage() {
 
     return (
         <HumanProfile
+            agentHref={(agentId) => agentRoute(server.slug, agentId)}
             key={member.data.userId}
             member={member.data}
             server={server}

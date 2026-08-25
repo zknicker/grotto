@@ -84,6 +84,14 @@ and [Agent Inbox](../../specs/inbox.md).
   Chat remains canonical history. Deleted Agents and departed humans stay visible
   on authored transcript messages with muted identity and a `DELETED` badge.
   There is no separate pinned-chat state.
+  Right-clicking a sidebar chat or its topbar name exposes the same contextual
+  actions without replacing the ordinary click target. Channel menus also offer
+  direct color presets and the existing rename, appearance, and participant
+  dialogs; DM menus link to their scoped tasks and Agent profile.
+* **Message and Thread context.** Right-clicking a durable message offers copy,
+  reply-in-Thread, and quick reactions. Agent messages additionally open Turn
+  Details. A Thread header offers View in chat, Copy reference, and Follow/Stop
+  following through both its name dropdown and its context menu.
 * **Chat appearance and instructions.** Grotto chats can carry durable channel
   color and trusted chat-specific agent instructions.
 * **Offline catch-up.** Grotto Server keeps chat history while the App is

@@ -66,7 +66,9 @@ stint.
 The hosted `/s/<slug>` Server UI provides List and Board lenses; the Linear-style List is the
 default. List rows are dense and display-only — priority glyph, task number, status disc, title,
 labels, origin Chat, updated time, and assignee avatar — while create, claim, unclaim, assignment,
-status, priority, and task-label controls live on the Board cards and the Task Thread. Both lenses
+status, priority, and task-label controls live on the Board cards and the Task Thread. Right-clicking
+either a List row or Board card opens the same task actions: open, status, priority, assignment,
+labels, claim/unclaim when eligible, parent-Chat navigation, and a copyable task link. Both lenses
 order each status group by priority, urgent first. Loading, empty, filtered-empty, and
 authorization failures are explicit. The Tasks topbar owns the chat-scope filter, layout, and creation controls —
 `?chat=<chatId>` carries the scope, and each chat's name menu deep-links here

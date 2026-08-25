@@ -18,6 +18,11 @@ rows, routing, and transient UI. Server owns durable Chats, Messages, Tasks, mem
 attachments, and Computer reports. Optimistic rows remain App-local until Server acknowledges the
 mutation.
 
+The App shell suppresses the browser or WebView's native context menu on non-actionable product
+surfaces so browser commands such as Reload and Inspect do not leak into Grotto. Product context
+menus take precedence. Editable controls and selected text retain native browser edit commands;
+the Electron shell replaces those commands with Grotto's desktop edit menu.
+
 Computer availability is displayed from Server-reported state. The App does not probe local
 processes, construct execution routing ids, connect to Computer, or keep a second canonical
 timeline. A Computer being offline degrades execution controls without hiding already-synced Server

@@ -98,7 +98,7 @@ lost.
 
 | Lane | Contents | Runs in |
 | --- | --- | --- |
-| `check:fast` | `env:check`, `env:contract`, `lint`, `typecheck:fast` (api, sdk, usage packages, Server), `test:fast` (`packages` + `scripts`) | Quality, and inside `check` |
+| `check:fast` | `env:check`, `env:contract`, `lint`, `typecheck:fast` (api, sdk, usage packages, Server), `test:fast` (`packages` + `scripts` + `apps/website/electron`) | Quality, and inside `check` |
 | `check:heavy` | `typecheck:licensed` (App, Computer), `test:app-unit`, `test:server`, `test:computer`, `build` | `bun run check` only |
 | Neither | `test:app` (Playwright), `test:agents`, `eval:*`, release builds | opt-in, by hand |
 
@@ -115,6 +115,13 @@ not a list of exclusions:
   build is the deploy path's proof, not CI's.
 * `check:fast` is fully offline: it pins the schema's `test` lifecycle, so no
   gate in it reaches 1Password. It runs in about ten seconds.
+* The Electron main-process suites under `apps/website/electron` are in the
+  fast lane even though the rest of the App is not. They are plain Bun tests
+  over extracted `.cjs` modules — no HeroUI dist, no Electron runtime, no
+  browser — so the shell's production contracts (the preload bridge globals,
+  trusted-renderer origins, Clerk SSO callback handling, external-link routing)
+  are gated per commit. `test:app-unit` stays heavy because `apps/website/src`
+  resolves `@heroui-pro/react`.
 * A lane that cannot run everywhere is a bug, not a lane. Quality runs on
   Linux, so anything in `check:fast` has to pass there: a macOS-only code path
   answers "nothing here" off darwin rather than shelling out to a binary that
@@ -131,6 +138,7 @@ not a list of exclusions:
 | Hosted Server tests | Grotto Server identity, Chats, messages, reads, search, ordering, authorization, or realtime. | Drive the public tRPC surface through `test/grotto-server-harness.ts`: a throwaway PostgreSQL cluster plus a local Clerk issuer. Never mock PostgreSQL or the transaction. |
 | Contract/API/SDK gates | `packages/grotto-api`, OpenAPI, SDK client shape, generated types, or cross-boundary request/response contracts. | Run `@grotto/api check`, SDK tests/typecheck, and update docs with the product contract. |
 | App component/hook tests | React state rules, cache invalidation, optimistic UI, row models, filters, keyboard behavior, or rendering transforms. | Prefer hook/model/component tests before e2e. Use the `architect-react-features` skill for nontrivial React architecture. |
+| Desktop shell tests | Electron main-process and preload behavior: the injected bridge globals, trusted-renderer origins, Clerk SSO callback and native requests, external-link routing, window state. | Extract the rule into a `.cjs` module beside its caller and cover it with a `*.test.cjs` in `apps/website/electron`; the fast lane runs them. Keep them free of the `electron` runtime. |
 | App e2e | Browser-level app contracts: navigation, reload recovery, websocket reconnect, full chat identity, user flows, or layout-critical behavior. | Use deterministic Playwright against isolated ports and a throwaway PostgreSQL cluster. |
 | Computer executor tests | Execution-runtime mapping, event projection, delivery semantics, local sandbox behavior, or capability degradation. | Verify with Computer fixtures, deterministic fake executors, or an opt-in `test:agents` scenario. |
 | Agent tests | Observable Agent behavior across real Server, Computer, and model: attention, routing, tasks, coordination, skills, workspace, reminders, and proven silence. | Headless scenarios under `scripts/agent-tests/scenarios/`. Assert structural Server state plus literal markers; never prose shape. |

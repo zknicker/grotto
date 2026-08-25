@@ -34,6 +34,9 @@ production wire contract between them, not an internal name.
 Rename it only additively. The preload injects both the current `grottoDesktop`
 and the legacy `tavernDesktop`, and `getDesktopBridge()` reads either, so neither
 channel has to ship first. Drop a name only once no supported build reads it.
+Both ends of the contract are pinned per commit:
+`apps/website/electron/preload.test.cjs` asserts what the shell injects, and
+`apps/website/src/lib/desktop-bridge.test.ts` asserts what the App accepts.
 
 The failure mode is silent rather than loud: an unrecognised bridge makes the App
 believe it is an ordinary browser tab, so sign-in takes the redirect flow. Electron

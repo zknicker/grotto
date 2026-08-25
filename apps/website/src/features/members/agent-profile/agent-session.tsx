@@ -7,7 +7,6 @@ import { useAgentRestart } from '../../../hooks/members/use-agent-restart.ts';
 import { useAgentState } from '../../../hooks/members/use-agent-state.ts';
 import { useAgentStop } from '../../../hooks/members/use-agent-stop.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
-import { SettingsSection } from '../../settings/layout/settings-page.tsx';
 import { fullResetCopy } from './agent-session-model.ts';
 
 export function AgentSession({ agent, server }: { agent: Agent; server: ServerDetail }) {
@@ -21,7 +20,10 @@ export function AgentSession({ agent, server }: { agent: Agent; server: ServerDe
     // Ordered by how much they disturb the Agent: halt the current run, restart
     // the process, drop its context, then rebuild it from the ordinary factory state.
     return (
-        <SettingsSection title="Session">
+        <ItemCardGroup variant="transparent">
+            <ItemCardGroup.Header>
+                <ItemCardGroup.Title>Session</ItemCardGroup.Title>
+            </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
                 <ItemCard>
                     <ItemCard.Content>
@@ -137,6 +139,6 @@ export function AgentSession({ agent, server }: { agent: Agent; server: ServerDe
                     </AlertDialog.Container>
                 </AlertDialog.Backdrop>
             </AlertDialog>
-        </SettingsSection>
+        </ItemCardGroup>
     );
 }

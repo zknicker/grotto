@@ -1,5 +1,6 @@
 import type { Agent } from '@grotto/api';
-import { Chip, Separator } from '@heroui/react';
+import { Separator } from '@heroui/react';
+import { ItemCard, ItemCardGroup, PressableFeedback } from '@heroui-pro/react';
 import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -8,7 +9,6 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentChats } from '../../../hooks/members/use-agent-chats.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { serverChatRoute } from '../../servers/server-routes.ts';
-import { SettingsGroup, SettingsSection } from '../../settings/layout/settings-page.tsx';
 import { AgentLoading } from './agent-loading.tsx';
 
 /** The chats this Agent belongs to — membership, not a chat surface. */
@@ -21,47 +21,54 @@ export function AgentChats({ agent, server }: { agent: Agent; server: ServerDeta
     const rows = chats.data ?? [];
 
     return (
-        <SettingsSection
-            action={
-                <Chip size="sm" variant="soft">
-                    {rows.length}
-                </Chip>
-            }
-            title="Chats"
-        >
-            {rows.length === 0 ? (
-                <p className="text-muted text-sm">No chats yet.</p>
-            ) : (
-                <SettingsGroup>
-                    {rows.map((chat, index) => (
+        <ItemCardGroup variant="transparent">
+            <ItemCardGroup.Header>
+                <ItemCardGroup.Title>
+                    Chats
+                    <span className="ms-2 text-muted tabular-nums">{rows.length}</span>
+                </ItemCardGroup.Title>
+            </ItemCardGroup.Header>
+            <ItemCardGroup className="overflow-hidden">
+                {rows.length === 0 ? (
+                    <ItemCard>
+                        <ItemCard.Content>
+                            <ItemCard.Description>No chats yet.</ItemCard.Description>
+                        </ItemCard.Content>
+                    </ItemCard>
+                ) : (
+                    rows.map((chat, index) => (
                         <React.Fragment key={chat.id}>
                             {index > 0 ? <Separator /> : null}
-                            <button
-                                className="flex w-full cursor-[var(--cursor-interactive)] items-center gap-3 px-4 py-3.5 text-left outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus"
+                            {/* Stock ItemCard rendered as a button, per its
+                                Pressable pattern. The handler rides on ItemCard:
+                                `render` spreads the component's own props last. */}
+                            <ItemCard<'button'>
+                                className="relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
                                 onClick={() => navigate(serverChatRoute(server.slug, chat.id))}
-                                type="button"
+                                render={(props) => <button type="button" {...props} />}
                             >
-                                {chat.kind === 'channel' ? (
-                                    <ChannelIconBox
-                                        color={chat.color}
-                                        icon={chat.icon}
-                                        size="inline"
-                                    />
-                                ) : (
-                                    <Icon
-                                        aria-hidden="true"
-                                        className="size-4 shrink-0 text-muted"
-                                        icon={BubbleChatIcon}
-                                    />
-                                )}
-                                <span className="truncate font-medium text-foreground text-sm">
-                                    {chat.name ?? `DM · @${agent.handle}`}
-                                </span>
-                            </button>
+                                <PressableFeedback.Highlight />
+                                <ItemCard.Icon>
+                                    {chat.kind === 'channel' ? (
+                                        <ChannelIconBox
+                                            color={chat.color}
+                                            icon={chat.icon}
+                                            size="inline"
+                                        />
+                                    ) : (
+                                        <Icon aria-hidden="true" icon={BubbleChatIcon} />
+                                    )}
+                                </ItemCard.Icon>
+                                <ItemCard.Content>
+                                    <ItemCard.Title>
+                                        {chat.name ?? `DM · @${agent.handle}`}
+                                    </ItemCard.Title>
+                                </ItemCard.Content>
+                            </ItemCard>
                         </React.Fragment>
-                    ))}
-                </SettingsGroup>
-            )}
-        </SettingsSection>
+                    ))
+                )}
+            </ItemCardGroup>
+        </ItemCardGroup>
     );
 }

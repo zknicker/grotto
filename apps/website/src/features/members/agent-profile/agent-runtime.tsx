@@ -1,13 +1,8 @@
 import type { Agent, ComputerInventory } from '@grotto/api';
-import { Button } from '@heroui/react';
+import { Button, Chip, Separator } from '@heroui/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import { useAgentRuntime } from '../../../hooks/members/use-agent-runtime.ts';
-import {
-    SettingsChipField,
-    SettingsChipRow,
-    SettingsGroup,
-    SettingsSection,
-} from '../../settings/layout/settings-page.tsx';
 import { RuntimeDialog } from './runtime-dialog.tsx';
 import { resolveRuntimeConfig, runtimeConfigStatusLabel } from './runtime-model.ts';
 
@@ -33,46 +28,47 @@ export function AgentRuntime({
 
     return (
         <>
-            <SettingsSection
-                action={
-                    canEdit ? (
+            <ItemCardGroup variant="transparent">
+                <ItemCardGroup.Header className="flex items-center justify-between gap-3">
+                    <ItemCardGroup.Title>Model</ItemCardGroup.Title>
+                    {canEdit ? (
                         <Button onPress={() => setOpen(true)} size="sm" variant="secondary">
                             Edit
                         </Button>
-                    ) : null
-                }
-                title="Model"
-            >
-                <SettingsGroup>
-                    <SettingsChipRow>
-                        <SettingsChipField
-                            color={execution.model ? 'accent' : 'warning'}
-                            label="Model"
-                            value={
-                                execution.model
-                                    ? execution.modelLabel
-                                    : `${execution.modelLabel} · not installed`
-                            }
-                        />
-                        <SettingsChipField
-                            color={execution.runtime ? 'default' : 'warning'}
-                            label="Runtime"
-                            value={
-                                execution.runtime
-                                    ? execution.runtimeLabel
-                                    : `${execution.runtimeLabel} · not installed`
-                            }
-                        />
-                        {agent.status === 'applied' ? null : (
-                            <SettingsChipField
+                    ) : null}
+                </ItemCardGroup.Header>
+                <ItemCardGroup className="overflow-hidden">
+                    <ExecutionRow
+                        color={execution.model ? 'accent' : 'warning'}
+                        label="Model"
+                        value={
+                            execution.model
+                                ? execution.modelLabel
+                                : `${execution.modelLabel} · not installed`
+                        }
+                    />
+                    <Separator />
+                    <ExecutionRow
+                        color={execution.runtime ? 'default' : 'warning'}
+                        label="Runtime"
+                        value={
+                            execution.runtime
+                                ? execution.runtimeLabel
+                                : `${execution.runtimeLabel} · not installed`
+                        }
+                    />
+                    {agent.status === 'applied' ? null : (
+                        <>
+                            <Separator />
+                            <ExecutionRow
                                 color={agent.status === 'degraded' ? 'danger' : 'warning'}
                                 label="Status"
                                 value={runtimeConfigStatusLabel(agent, computerHealth)}
                             />
-                        )}
-                    </SettingsChipRow>
-                </SettingsGroup>
-            </SettingsSection>
+                        </>
+                    )}
+                </ItemCardGroup>
+            </ItemCardGroup>
             <RuntimeDialog
                 agent={agent}
                 error={configure.error?.message ?? null}
@@ -86,5 +82,33 @@ export function AgentRuntime({
                 runtimes={runtimes}
             />
         </>
+    );
+}
+
+/**
+ * One resolved execution fact. These were a wrapping row of labelled chips,
+ * which read as a summary strip rather than as the settings rows they are —
+ * a named thing on the left, its current value on the right.
+ */
+function ExecutionRow({
+    color,
+    label,
+    value,
+}: {
+    color: React.ComponentProps<typeof Chip>['color'];
+    label: string;
+    value: string;
+}) {
+    return (
+        <ItemCard>
+            <ItemCard.Content>
+                <ItemCard.Title>{label}</ItemCard.Title>
+            </ItemCard.Content>
+            <ItemCard.Action>
+                <Chip color={color} size="sm" variant="soft">
+                    <Chip.Label>{value}</Chip.Label>
+                </Chip>
+            </ItemCard.Action>
+        </ItemCard>
     );
 }

@@ -2,7 +2,6 @@ import type { Agent, McpConnection } from '@grotto/api';
 import { Chip, Separator, Switch } from '@heroui/react';
 import { EmptyState, ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
-import { SettingsSection } from '../../features/settings/layout/settings-page.tsx';
 import { useAgentGrant } from '../../hooks/members/use-agent-grant.ts';
 
 export function AgentTools({
@@ -20,17 +19,16 @@ export function AgentTools({
     );
 
     return (
-        <SettingsSection
-            action={
-                <Chip size="sm" variant="soft">
-                    {available.length}
-                </Chip>
-            }
-            title="Agent MCP Access"
-        >
-            <p className="px-1 text-muted text-sm">
-                Choose which Server-managed MCP connections this Agent can use.
-            </p>
+        <ItemCardGroup variant="transparent">
+            <ItemCardGroup.Header>
+                <ItemCardGroup.Title>
+                    Agent MCP Access
+                    <span className="ms-2 text-muted tabular-nums">{available.length}</span>
+                </ItemCardGroup.Title>
+                <ItemCardGroup.Description>
+                    Choose which Server-managed MCP connections this Agent can use.
+                </ItemCardGroup.Description>
+            </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
                 {available.length === 0 ? (
                     <EmptyState size="sm">
@@ -85,6 +83,6 @@ export function AgentTools({
                     })
                 )}
             </ItemCardGroup>
-        </SettingsSection>
+        </ItemCardGroup>
     );
 }

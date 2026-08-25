@@ -1,5 +1,6 @@
 import type { Agent } from '@grotto/api';
 import { Button, Chip, Separator } from '@heroui/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Copy01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -7,11 +8,6 @@ import { useAgentActivityHistory } from '../../../hooks/members/use-agent-activi
 import { writeClipboardText } from '../../../lib/clipboard.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { useGrottoServerConnectionState } from '../../../lib/grotto-server.tsx';
-import {
-    SettingsGroup,
-    SettingsItem,
-    SettingsSection,
-} from '../../settings/layout/settings-page.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
 import {
     formatAgentActivityDiagnosticInfo,
@@ -30,55 +26,68 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
     const diagnosticInfo = formatAgentActivityDiagnosticInfo(events);
 
     return (
-        <div className="px-4 py-6">
-            <PageColumn>
-                <SettingsSection
-                    action={
+        <PageColumn>
+            <ItemCardGroup variant="transparent">
+                <ItemCardGroup.Header className="flex items-center justify-between gap-3">
+                    <ItemCardGroup.Title>Activity History</ItemCardGroup.Title>
+                    <Button
+                        isDisabled={events.length === 0}
+                        onPress={() => {
+                            void writeClipboardText(diagnosticInfo);
+                        }}
+                        size="sm"
+                        variant="secondary"
+                    >
+                        <Icon aria-hidden="true" icon={Copy01Icon} />
+                        Copy Diagnostic Info
+                    </Button>
+                </ItemCardGroup.Header>
+                {activity.isPending ? (
+                    <AgentLoading label="Loading activity history..." />
+                ) : unavailable ? (
+                    // Empty and error states sit in the group they replace, so
+                    // the section keeps its shape instead of collapsing to a
+                    // loose line of grey text.
+                    <ItemCardGroup className="overflow-hidden">
+                        <ItemCard>
+                            <ItemCard.Content>
+                                <ItemCard.Description>
+                                    {connectionState === 'connecting' ||
+                                    connectionState === 'reconnecting'
+                                        ? 'Activity history is unavailable while offline. Reconnect to try again.'
+                                        : 'Activity history is unavailable right now.'}
+                                </ItemCard.Description>
+                            </ItemCard.Content>
+                        </ItemCard>
+                    </ItemCardGroup>
+                ) : events.length === 0 ? (
+                    <ItemCardGroup className="overflow-hidden">
+                        <ItemCard>
+                            <ItemCard.Content>
+                                <ItemCard.Description>No activity yet.</ItemCard.Description>
+                            </ItemCard.Content>
+                        </ItemCard>
+                    </ItemCardGroup>
+                ) : (
+                    <ActivityHistoryRows events={events} />
+                )}
+                {events.length > 0 && activity.hasMore ? (
+                    <div className="flex justify-center border-separator border-t px-4 py-3">
                         <Button
-                            isDisabled={events.length === 0}
-                            onPress={() => {
-                                void writeClipboardText(diagnosticInfo);
-                            }}
+                            isDisabled={activity.isFetching}
+                            onPress={activity.loadMore}
                             size="sm"
-                            variant="secondary"
+                            variant="ghost"
                         >
-                            <Icon aria-hidden="true" icon={Copy01Icon} />
-                            Copy Diagnostic Info
+                            {activity.isFetching
+                                ? 'Loading older activity...'
+                                : 'Load older activity'}
                         </Button>
-                    }
-                    title="Activity History"
-                >
-                    {activity.isPending ? (
-                        <AgentLoading label="Loading activity history..." />
-                    ) : unavailable ? (
-                        <p className="py-6 text-muted text-sm">
-                            {connectionState === 'connecting' || connectionState === 'reconnecting'
-                                ? 'Activity history is unavailable while offline. Reconnect to try again.'
-                                : 'Activity history is unavailable right now.'}
-                        </p>
-                    ) : events.length === 0 ? (
-                        <p className="py-6 text-muted text-sm">No activity yet.</p>
-                    ) : (
-                        <ActivityHistoryRows events={events} />
-                    )}
-                    {events.length > 0 && activity.hasMore ? (
-                        <div className="flex justify-center border-separator border-t px-4 py-3">
-                            <Button
-                                isDisabled={activity.isFetching}
-                                onPress={activity.loadMore}
-                                size="sm"
-                                variant="ghost"
-                            >
-                                {activity.isFetching
-                                    ? 'Loading older activity...'
-                                    : 'Load older activity'}
-                            </Button>
-                        </div>
-                    ) : null}
-                </SettingsSection>
-                <AgentChats agent={agent} server={server} />
-            </PageColumn>
-        </div>
+                    </div>
+                ) : null}
+            </ItemCardGroup>
+            <AgentChats agent={agent} server={server} />
+        </PageColumn>
     );
 }
 
@@ -88,33 +97,37 @@ function ActivityHistoryRows({
     events: ReturnType<typeof useAgentActivityHistory>['events'];
 }) {
     return (
-        <SettingsGroup>
+        <ItemCardGroup className="overflow-hidden">
             {events.map((event, index) => (
                 <React.Fragment key={event.id}>
                     {index > 0 ? <Separator /> : null}
-                    <SettingsItem>
-                        <div className="grid grid-cols-[7.5rem_auto_minmax(0,1fr)] items-baseline gap-3">
-                            <time
-                                className="text-muted text-xs tabular-nums"
-                                dateTime={event.occurredAt}
-                            >
-                                {formatActivityTime(event.occurredAt)}
-                            </time>
-                            <Chip
-                                color={getAgentActivityColor(event.phase)}
-                                size="sm"
-                                variant="soft"
-                            >
-                                {getAgentActivityPhaseLabel(event.phase)}
-                            </Chip>
-                            <span className="min-w-0 text-foreground text-sm">
-                                {formatAgentActivityEvent(event)}
+                    <ItemCard>
+                        <ItemCard.Content>
+                            {/* Time, phase, then what happened — one line, so
+                                the column of timestamps stays scannable. */}
+                            <span className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+                                <time
+                                    className="shrink-0 text-muted text-sm tabular-nums"
+                                    dateTime={event.occurredAt}
+                                >
+                                    {formatActivityTime(event.occurredAt)}
+                                </time>
+                                <Chip
+                                    color={getAgentActivityColor(event.phase)}
+                                    size="sm"
+                                    variant="soft"
+                                >
+                                    {getAgentActivityPhaseLabel(event.phase)}
+                                </Chip>
+                                <span className="min-w-0 text-foreground text-sm">
+                                    {formatAgentActivityEvent(event)}
+                                </span>
                             </span>
-                        </div>
-                    </SettingsItem>
+                        </ItemCard.Content>
+                    </ItemCard>
                 </React.Fragment>
             ))}
-        </SettingsGroup>
+        </ItemCardGroup>
     );
 }
 

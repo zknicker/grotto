@@ -35,85 +35,83 @@ export function AgentOverview({
     const canEdit = server.role === 'owner' || server.role === 'admin';
 
     return (
-        <div className="px-4 py-6">
-            <PageColumn>
-                <AgentIdentity
-                    agent={agent}
-                    canEdit={canEdit}
-                    serverId={server.id}
-                    status={
-                        <Chip
-                            className="capitalize"
-                            color={availabilityBadgeColor(agent.availability)}
-                            size="sm"
-                            variant="soft"
-                        >
-                            {agent.availability}
-                        </Chip>
-                    }
-                >
-                    <MemberProfileFacts>
-                        <MemberProfileFact
-                            label="Role"
-                            value={
-                                <Chip
-                                    color={agent.role === 'member' ? 'default' : 'accent'}
-                                    variant="primary"
+        <PageColumn>
+            <AgentIdentity
+                agent={agent}
+                canEdit={canEdit}
+                serverId={server.id}
+                status={
+                    <Chip
+                        className="capitalize"
+                        color={availabilityBadgeColor(agent.availability)}
+                        size="sm"
+                        variant="soft"
+                    >
+                        {agent.availability}
+                    </Chip>
+                }
+            >
+                <MemberProfileFacts>
+                    <MemberProfileFact
+                        label="Role"
+                        value={
+                            <Chip
+                                color={agent.role === 'member' ? 'default' : 'accent'}
+                                variant="primary"
+                            >
+                                <Icon className="size-4 shrink-0" icon={ShieldUserIcon} />
+                                <Chip.Label className="capitalize">{agent.role}</Chip.Label>
+                            </Chip>
+                        }
+                    />
+                    <MemberProfileFact
+                        label="Computer"
+                        value={
+                            computer ? (
+                                <Link
+                                    className="block min-w-0"
+                                    to={`${serverComputersRoute(server.slug)}?computer=${encodeURIComponent(computer.id)}`}
                                 >
-                                    <Icon className="size-4 shrink-0" icon={ShieldUserIcon} />
-                                    <Chip.Label className="capitalize">{agent.role}</Chip.Label>
-                                </Chip>
-                            }
-                        />
-                        <MemberProfileFact
-                            label="Computer"
-                            value={
-                                computer ? (
-                                    <Link
-                                        className="block min-w-0"
-                                        to={`${serverComputersRoute(server.slug)}?computer=${encodeURIComponent(computer.id)}`}
+                                    <Chip
+                                        className="max-w-full"
+                                        color={computerHealthColor(computer.health)}
+                                        variant="soft"
                                     >
-                                        <Chip
-                                            className="max-w-full"
-                                            color={computerHealthColor(computer.health)}
-                                            variant="soft"
-                                        >
-                                            <Icon
-                                                className="size-4 shrink-0 text-muted"
-                                                icon={ComputerIcon}
-                                            />
-                                            <Chip.Label className="min-w-0 truncate">
-                                                {computerLabel(computer)}
-                                                <span className="ms-2 font-normal text-muted">
-                                                    {computerHealthLabel(computer.health)}
-                                                </span>
-                                            </Chip.Label>
-                                        </Chip>
-                                    </Link>
-                                ) : (
-                                    'Unavailable'
-                                )
-                            }
-                        />
-                        <MemberProfileFact
-                            className="tabular-nums"
-                            label="Created"
-                            value={formatDate(agent.createdAt)}
-                        />
-                    </MemberProfileFacts>
-                </AgentIdentity>
-                <AgentUsageOverview agent={agent} serverId={server.id} />
-                <AgentRuntime
-                    agent={agent}
-                    canEdit={canEdit}
-                    computerHealth={computer?.health}
-                    runtimes={inventory?.runtimes ?? []}
-                    serverId={server.id}
-                />
-                {canEdit ? <AgentSession agent={agent} server={server} /> : null}
-                <AgentDanger agent={agent} onDeleted={onDeleted} server={server} />
-            </PageColumn>
-        </div>
+                                        <Icon
+                                            className="size-4 shrink-0 text-muted"
+                                            icon={ComputerIcon}
+                                        />
+                                        <Chip.Label className="min-w-0 truncate">
+                                            {computerLabel(computer)}
+                                            <span className="ms-2 font-normal text-muted">
+                                                {computerHealthLabel(computer.health)}
+                                            </span>
+                                        </Chip.Label>
+                                    </Chip>
+                                </Link>
+                            ) : (
+                                'Unavailable'
+                            )
+                        }
+                    />
+                    <MemberProfileFact
+                        className="tabular-nums"
+                        label="Created"
+                        value={formatDate(agent.createdAt)}
+                    />
+                </MemberProfileFacts>
+            </AgentIdentity>
+            <AgentUsageOverview agent={agent} serverId={server.id} />
+            <AgentRuntime
+                agent={agent}
+                canEdit={canEdit}
+                computerHealth={computer?.health}
+                runtimes={inventory?.runtimes ?? []}
+                serverId={server.id}
+            />
+            {canEdit ? <AgentSession agent={agent} server={server} /> : null}
+            <AgentDanger agent={agent} onDeleted={onDeleted} server={server} />
+        </PageColumn>
     );
 }
 

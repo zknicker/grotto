@@ -6,12 +6,12 @@ import * as React from 'react';
 import { useHumanAvatar } from '../../../hooks/members/use-human-avatar.ts';
 import { useHumanIdentity } from '../../../hooks/members/use-human-identity.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';
-import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
-import { humanDisplayName } from '../../servers/human-identity.ts';
 import { isClerkEnabled } from '../../../lib/clerk.tsx';
 import { useSignOut } from '../../auth/use-sign-out.ts';
+import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
+import { humanDisplayName } from '../../servers/human-identity.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
-import { SettingsPageHeader } from '../layout/settings-page.tsx';
+import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { SettingsRowError } from '../layout/settings-text.tsx';
 
 export function ProfileSettings({ serverId }: { serverId: string }) {

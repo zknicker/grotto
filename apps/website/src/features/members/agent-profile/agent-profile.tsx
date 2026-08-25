@@ -1,14 +1,7 @@
 import type { Agent } from '@grotto/api';
 import { Button, Tooltip } from '@heroui/react';
 import { Segment } from '@heroui-pro/react';
-import {
-    Activity01Icon,
-    Cancel01Icon,
-    Folder01Icon,
-    Notification03Icon,
-    ToolsIcon,
-    UserCircleIcon,
-} from '@hugeicons-pro/core-stroke-rounded';
+import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
@@ -25,12 +18,17 @@ import {
 import type { AgentTab } from './agent-tabs.ts';
 import { isAgentTab } from './agent-tabs.ts';
 
+/**
+ * Text only. The icons were sized from `--spacing` by Segment's own CSS, so
+ * they tracked whatever density the strip ran at rather than the label beside
+ * them — and five words need no glyphs to tell them apart.
+ */
 const tabOptions = [
-    { icon: UserCircleIcon, label: 'Overview', value: 'overview' },
-    { icon: Activity01Icon, label: 'Activity', value: 'activity' },
-    { icon: Notification03Icon, label: 'Reminders', value: 'reminders' },
-    { icon: ToolsIcon, label: 'Tools', value: 'tools' },
-    { icon: Folder01Icon, label: 'Workspace', value: 'workspace' },
+    { label: 'Overview', value: 'overview' },
+    { label: 'Activity', value: 'activity' },
+    { label: 'Reminders', value: 'reminders' },
+    { label: 'Tools', value: 'tools' },
+    { label: 'Workspace', value: 'workspace' },
 ] as const;
 
 export function AgentProfilePage({
@@ -53,8 +51,14 @@ export function AgentProfilePage({
             }
             navigation={
                 <PageTopbar>
-                    <div className="mx-auto flex w-full min-w-0 max-w-3xl justify-center">
-                        <AgentProfileTabs centered onTabChange={onTabChange} tab={tab} />
+                    {/* `flex-1`, not `w-full`: this band is shared. Inside
+                        Settings the breadcrumb sits beside these tabs, and a
+                        100% basis collapsed it to zero width. Trailing rather
+                        than centred for the same reason — centring measures
+                        the space left over after the breadcrumb, so the tabs
+                        read as off-centre against the band itself. */}
+                    <div className="ms-auto flex min-w-0 justify-end">
+                        <AgentProfileTabs onTabChange={onTabChange} tab={tab} />
                     </div>
                 </PageTopbar>
             }
@@ -114,18 +118,16 @@ function AgentProfileFrame({
 }
 
 function AgentProfileTabs({
-    centered = false,
     onClose,
     onTabChange,
     tab,
 }: {
-    centered?: boolean;
     onClose?: () => void;
     onTabChange: (tab: AgentTab) => void;
     tab: AgentTab;
 }) {
     return (
-        <div className={cn('flex min-w-0 flex-1 items-center gap-3', centered && 'justify-center')}>
+        <div className="flex min-w-0 flex-1 items-center gap-3">
             <Segment
                 aria-label="Agent sections"
                 onSelectionChange={(key) => {
@@ -135,12 +137,13 @@ function AgentProfileTabs({
                     }
                 }}
                 selectedKey={tab}
-                size="sm"
+                // `sm` is an 11px segment — badge size, sitting next to a 13px
+                // breadcrumb in the same band. `md` is the body step.
+                size="md"
                 variant="ghost"
             >
                 {tabOptions.map((option) => (
                     <Segment.Item id={option.value} key={option.value}>
-                        <Icon aria-hidden="true" icon={option.icon} size={15} />
                         {option.label}
                     </Segment.Item>
                 ))}

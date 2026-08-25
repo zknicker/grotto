@@ -3,6 +3,7 @@ import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+    canCheckForDesktopUpdate,
     type DesktopUpdateStatus,
     useDesktopUpdate,
 } from '../../../hooks/desktop/use-desktop-update.ts';
@@ -15,7 +16,7 @@ export function UpdatesSettings({ computerSettingsHref }: { computerSettingsHref
     const navigate = useNavigate();
     const { checkForUpdate, status, updateAndRestart } = useDesktopUpdate();
     const [hasCheckedForUpdate, setHasCheckedForUpdate] = React.useState(false);
-    const canCheck = status.phase !== 'checking' && status.phase !== 'downloading';
+    const canCheck = canCheckForDesktopUpdate(status);
     const canInstall = status.phase === 'available' || status.phase === 'ready';
     const updateStatusMessage = getUpdateStatusMessage(status, hasCheckedForUpdate);
 

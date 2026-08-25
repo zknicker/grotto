@@ -187,10 +187,17 @@ async function installCurrentDesktopUpdate(options?: { unavailableMessage?: stri
     }
 }
 
-function isPersistentUpdateStatus(status: DesktopUpdateStatus) {
+export function isPersistentUpdateStatus(status: DesktopUpdateStatus) {
     return (
-        status.phase === 'downloading' || status.phase === 'ready' || status.phase === 'restarting'
+        status.phase === 'available' ||
+        status.phase === 'downloading' ||
+        status.phase === 'ready' ||
+        status.phase === 'restarting'
     );
+}
+
+export function canCheckForDesktopUpdate(status: DesktopUpdateStatus) {
+    return status.phase === 'idle' || status.phase === 'current' || status.phase === 'error';
 }
 
 function getErrorMessage(error: unknown, fallback: string) {

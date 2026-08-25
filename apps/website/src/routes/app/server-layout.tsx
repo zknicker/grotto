@@ -20,6 +20,7 @@ import {
 } from '../../features/servers/server-routes.ts';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { CommandMenuProvider } from '../../features/shell/command-menu-provider.tsx';
+import { DesktopUpdateFooter } from '../../features/shell/desktop-update-footer.tsx';
 import { CommandMenu } from '../../features/shell/server-command-menu.tsx';
 import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
 import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pane.tsx';
@@ -145,10 +146,13 @@ export function ServerLayout() {
                                                     )
                                                 }
                                                 footer={
-                                                    <SidebarAgentActivityStrip
-                                                        serverId={server.data.id}
-                                                        slug={slug}
-                                                    />
+                                                    <div className="flex w-full flex-col gap-2">
+                                                        <SidebarAgentActivityStrip
+                                                            serverId={server.data.id}
+                                                            slug={slug}
+                                                        />
+                                                        <DesktopUpdateFooter />
+                                                    </div>
                                                 }
                                                 identity={
                                                     <SidebarServerBand

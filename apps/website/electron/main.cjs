@@ -63,6 +63,7 @@ const windows = new Set();
 let mainWindow = null;
 let updateCheckInterval = null;
 let availableDesktopUpdateVersion = null;
+let currentDesktopUpdateStatus = null;
 const newWindowOffsetPx = 36;
 const minWindowWidth = 1100;
 const minWindowHeight = 760;
@@ -135,6 +136,12 @@ function createWindow({ route, openerBounds } = {}) {
 
     window.on('blur', () => {
         window.webContents.send('desktop:window:focus-state', false);
+    });
+
+    window.webContents.on('did-finish-load', () => {
+        if (currentDesktopUpdateStatus) {
+            window.webContents.send('desktop:update:status', currentDesktopUpdateStatus);
+        }
     });
 
     if (process.platform === 'darwin') {
@@ -467,6 +474,14 @@ function startUpdateMonitor() {
 }
 
 async function checkForUpdates() {
+    // An active download or restart is canonical in the main process. Checks
+    // must never regress it, while an available release remains re-checkable so
+    // the interval can discover a superseding release.
+    if (isDesktopUpdateInFlight(currentDesktopUpdateStatus)) {
+        sendUpdateStatus(currentDesktopUpdateStatus);
+        return;
+    }
+
     if (useMockUpdater) {
         sendUpdateStatus({ phase: 'available', version: '999.0.0' });
         return;
@@ -521,9 +536,18 @@ autoUpdater.on('error', (error) => {
 });
 
 function sendUpdateStatus(status) {
+    currentDesktopUpdateStatus = status;
     for (const window of windows) {
         window.webContents.send('desktop:update:status', status);
     }
+}
+
+function isDesktopUpdateInFlight(status) {
+    return (
+        status?.phase === 'downloading' ||
+        status?.phase === 'ready' ||
+        status?.phase === 'restarting'
+    );
 }
 
 function cleanupDevPortsOnce() {

@@ -8,13 +8,11 @@ import {
     waitForChildShutdown,
 } from './dev-stack-controller.mjs';
 
-test('App development receives the Clerk issuer used by Grotto Server', () => {
+test('App development inherits the schema-resolved Clerk issuer from the dev stack', () => {
     assert.deepEqual(
         createDesktopDevEnvironment({
-            clerkEnvironmentOverrides: {
-                CLERK_ISSUER_URL: 'https://clerk.shared.lcl.dev',
-            },
             devStackEnvironment: {
+                GROTTO_CLERK_ISSUER_URL: 'https://worthy-peacock-11.clerk.accounts.dev',
                 PATH: '/usr/bin',
             },
             ports: {
@@ -23,9 +21,9 @@ test('App development receives the Clerk issuer used by Grotto Server', () => {
             },
         }),
         {
-            CLERK_ISSUER_URL: 'https://clerk.shared.lcl.dev',
+            GROTTO_CLERK_ISSUER_URL: 'https://worthy-peacock-11.clerk.accounts.dev',
             PATH: '/usr/bin',
-            TAVERN_WEBSITE_PORT: '25248',
+            GROTTO_WEBSITE_PORT: '25248',
         }
     );
 });

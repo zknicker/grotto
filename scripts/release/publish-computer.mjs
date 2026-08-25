@@ -35,9 +35,7 @@ import {
     verifyPublicObjects,
 } from './computer-release-publication.mjs';
 import { assertReleaseSurfaceDecision } from './release-surfaces.mjs';
-import { fail, isSemver, loadEnvFile, readJson, repoRoot } from './release-utils.mjs';
-
-loadEnvFile();
+import { fail, isSemver, readJson, repoRoot } from './release-utils.mjs';
 
 const args = process.argv.slice(2).filter((arg) => arg !== '--');
 const dryRun = args.includes('--dry-run');
@@ -81,7 +79,7 @@ async function main() {
     run('bun', ['run', '--filter', '@tavern/api', 'typecheck']);
     run('bun', ['run', '--filter', '@tavern/computer', 'test']);
     run('bun', ['run', '--filter', '@tavern/computer', 'typecheck']);
-    const s3Root = dryRun ? null : requiredEnv('TAVERN_RELEASE_S3_URI').replace(/\/+$/u, '');
+    const s3Root = dryRun ? null : requiredEnv('GROTTO_RELEASE_S3_URI').replace(/\/+$/u, '');
     const recoveredArtifactPath = dryRun
         ? null
         : await recoverImmutableComputerArtifact({
@@ -239,18 +237,9 @@ function assertSource(sourceRevision) {
 }
 
 function requirePublishingEnvironment() {
-    requiredEnv('TAVERN_RELEASE_S3_URI');
-    const hasAppleId =
-        process.env.APPLE_ID?.trim() &&
-        (process.env.APPLE_APP_SPECIFIC_PASSWORD?.trim() || process.env.APPLE_PASSWORD?.trim());
-    const hasApiKey =
-        process.env.APPLE_API_KEY?.trim() &&
-        process.env.APPLE_API_KEY_ID?.trim() &&
-        process.env.APPLE_API_ISSUER?.trim() &&
-        process.env.APPLE_API_KEY_PATH?.trim();
-    if (!(hasAppleId || hasApiKey)) {
-        fail('complete Apple ID or App Store Connect API notarization credentials are required');
-    }
+    requiredEnv('GROTTO_RELEASE_S3_URI');
+    requiredEnv('APPLE_ID');
+    requiredEnv('APPLE_APP_SPECIFIC_PASSWORD');
     run('gh', ['auth', 'status']);
 }
 

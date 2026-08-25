@@ -86,26 +86,20 @@ export function signAndNotarizeComputer(artifactPath, input) {
     ]);
     verifyAppleSignature(artifactPath, input);
     const archivePath = archiveComputerArtifact(artifactPath);
-    const notaryArgs = ['notarytool', 'submit', archivePath, '--wait', '--output-format', 'json'];
-    if (process.env.APPLE_API_KEY?.trim()) {
-        notaryArgs.push(
-            '--key',
-            process.env.APPLE_API_KEY_PATH,
-            '--key-id',
-            process.env.APPLE_API_KEY_ID,
-            '--issuer',
-            process.env.APPLE_API_ISSUER
-        );
-    } else {
-        notaryArgs.push(
-            '--apple-id',
-            process.env.APPLE_ID,
-            '--password',
-            process.env.APPLE_APP_SPECIFIC_PASSWORD ?? process.env.APPLE_PASSWORD,
-            '--team-id',
-            input.appleTeamId
-        );
-    }
+    const notaryArgs = [
+        'notarytool',
+        'submit',
+        archivePath,
+        '--wait',
+        '--output-format',
+        'json',
+        '--apple-id',
+        process.env.APPLE_ID,
+        '--password',
+        process.env.APPLE_APP_SPECIFIC_PASSWORD,
+        '--team-id',
+        input.appleTeamId,
+    ];
     const notarization = runJson('/usr/bin/xcrun', notaryArgs);
     if (!isAcceptedComputerNotarization(notarization)) {
         fail('Apple rejected the Computer notarization submission', notarization);

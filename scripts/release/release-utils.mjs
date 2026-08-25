@@ -1,5 +1,4 @@
 import { execFile } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -114,26 +113,6 @@ export const findSingleGitLine = async (args) => {
     }
 };
 
-export const loadEnvFile = (relativePath = '.env') => {
-    const absolutePath = path.join(repoRoot, relativePath);
-    if (!existsSync(absolutePath)) {
-        return;
-    }
-
-    for (const line of readFileSync(absolutePath, 'utf8').split(/\n/)) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('#') || !trimmed.includes('=')) {
-            continue;
-        }
-
-        const separatorIndex = trimmed.indexOf('=');
-        const key = trimmed.slice(0, separatorIndex);
-        const value = unquoteEnvValue(trimmed.slice(separatorIndex + 1));
-
-        process.env[key] ??= value;
-    }
-};
-
 export const fail = (message, details) => {
     console.error(`release error: ${message}`);
     if (details) {
@@ -146,15 +125,4 @@ export const fail = (message, details) => {
 const detectIndent = (raw) => {
     const match = raw.match(/\n( +)"[^"\n]+":/);
     return match ? match[1].length : 2;
-};
-
-const unquoteEnvValue = (value) => {
-    if (
-        (value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))
-    ) {
-        return value.slice(1, -1);
-    }
-
-    return value;
 };

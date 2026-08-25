@@ -67,7 +67,7 @@ const main = async () => {
         run('bun', ['run', 'publish:desktop'], {
             env: {
                 ...process.env,
-                TAVERN_RELEASE_INCLUDE_DESKTOP: '1',
+                GROTTO_RELEASE_INCLUDE_DESKTOP: '1',
             },
         });
     }

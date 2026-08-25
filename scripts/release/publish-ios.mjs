@@ -11,7 +11,7 @@ import {
     assertIOSReleaseDecision,
     parseIOSReleaseArgs,
 } from './ios-release-contract.mjs';
-import { fail, loadEnvFile, readJson, repoRoot } from './release-utils.mjs';
+import { fail, readJson, repoRoot } from './release-utils.mjs';
 
 const iosRoot = path.join(repoRoot, 'apps', 'ios-swift');
 const projectPath = path.join(iosRoot, 'Grotto.xcodeproj');
@@ -25,7 +25,6 @@ if (args.help) {
 await main(args);
 
 async function main(input) {
-    loadEnvFile();
     const decision = await readJson('release-surfaces.json');
     assertIOSReleaseDecision(decision, input.version, input.buildNumber);
     assertCommand('xcodebuild');

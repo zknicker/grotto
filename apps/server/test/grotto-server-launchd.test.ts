@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
@@ -7,7 +7,7 @@ import { parse } from 'yaml';
 const serverRoot = fileURLToPath(new URL('../', import.meta.url));
 const hostServicesRoot = join(serverRoot, 'host-services');
 const launchdRoot = join(serverRoot, 'launchd');
-const services = ['server', 'tunnel', 'backup'] as const;
+const services = ['server', 'tunnel'] as const;
 
 test('ships valid supervised services without checked-in secret values', () => {
     const plists = services.map((service) => {
@@ -23,35 +23,27 @@ test('ships valid supervised services without checked-in secret values', () => {
         });
         expect(converted.exitCode).toBe(0);
         return JSON.parse(converted.stdout.toString()) as {
+            EnvironmentVariables?: Record<string, string>;
             KeepAlive?: boolean;
             ProgramArguments: string[];
             RunAtLoad?: boolean;
             StandardErrorPath: string;
             StandardOutPath: string;
-            StartCalendarInterval?: { Hour: number; Minute: number }[];
-            StartInterval?: number;
             UserName: string;
         };
     });
 
-    expect(plists.map((plist) => plist.UserName)).toEqual([
-        '_grotto_server',
-        '_grotto_tunnel',
-        '_grotto_backup',
-    ]);
+    expect(plists.map((plist) => plist.UserName)).toEqual(['_grotto_server', '_grotto_tunnel']);
     expect(plists[1]?.ProgramArguments).toContain('grotto-production');
     expect(plists[1]?.ProgramArguments).toContain('127.0.0.1:20242');
-    expect(plists[2]?.StartCalendarInterval).toEqual([
-        { Hour: 0, Minute: 15 },
-        { Hour: 6, Minute: 15 },
-        { Hour: 12, Minute: 15 },
-        { Hour: 18, Minute: 15 },
-    ]);
     expect(plists.filter((plist) => plist.RunAtLoad)).toHaveLength(2);
     expect(plists.filter((plist) => plist.KeepAlive)).toHaveLength(2);
     for (const plist of plists) {
         expect(plist.StandardOutPath).toStartWith('/Users/zknicker/srv/grotto/logs/');
         expect(plist.StandardErrorPath).toStartWith('/Users/zknicker/srv/grotto/logs/');
+        // The rendered config/server.env is the one delivery surface. A value
+        // set here would silently outrank the committed contract.
+        expect(plist.EnvironmentVariables).toBeUndefined();
     }
     expect(plists[0]?.ProgramArguments).toContain(
         '/Users/zknicker/srv/grotto/current/operations/run-server'
@@ -59,13 +51,19 @@ test('ships valid supervised services without checked-in secret values', () => {
     expect(plists[1]?.ProgramArguments).toContain(
         '/Users/zknicker/srv/grotto/config/cloudflared.yml'
     );
-    expect(plists[2]?.ProgramArguments).toContain(
-        '/Users/zknicker/srv/grotto/current/operations/run-backup'
-    );
     expect(JSON.stringify(plists)).not.toContain('postgres://');
     expect(JSON.stringify(plists)).not.toContain('hc-ping.com');
     expect(JSON.stringify(plists)).not.toContain('/opt/grotto-server');
     expect(JSON.stringify(plists)).not.toContain('/Library/Application Support/Grotto');
+});
+
+test('retires the backup and monitor services entirely', () => {
+    for (const label of ['backup', 'monitor']) {
+        expect(existsSync(join(launchdRoot, `com.grotto.${label}.plist`))).toBe(false);
+    }
+    for (const operation of ['run-backup', 'run-restore']) {
+        expect(existsSync(join(serverRoot, 'operations', operation))).toBe(false);
+    }
 });
 
 test('ships one private PostgreSQL Compose service with durable state', () => {
@@ -97,33 +95,16 @@ test('ships one private PostgreSQL Compose service with durable state', () => {
     expect(composeText).not.toContain('GENERATE_ON_HOST');
 });
 
-test('ships collision-free production PostgreSQL endpoints', () => {
-    const productionExamples = ['server.env.example', 'backup.env.example', 'restore.env.example'];
-    for (const example of productionExamples) {
-        const text = readFileSync(join(serverRoot, 'config', example), 'utf8');
-        expect(text).toContain('127.0.0.1:5438');
-        expect(text).not.toContain('127.0.0.1:5432');
-    }
-});
-
 test('keeps production state and credentials inside the canonical srv root', () => {
     const files = [
         ...services.map((service) => join(launchdRoot, `com.grotto.${service}.plist`)),
-        ...[
-            'backup.env.example',
-            'cloudflared.yml.example',
-            'restore.env.example',
-            'server.env.example',
-        ].map((name) => join(serverRoot, 'config', name)),
-        ...['run-backup', 'run-restore', 'run-server'].map((name) =>
-            join(serverRoot, 'operations', name)
-        ),
+        join(serverRoot, 'config', 'cloudflared.yml.example'),
+        join(serverRoot, 'operations', 'run-server'),
     ];
     const source = files.map((path) => readFileSync(path, 'utf8')).join('\n');
 
     expect(source).toContain('/Users/zknicker/srv/grotto/current');
     expect(source).toContain('/Users/zknicker/srv/grotto/config');
-    expect(source).toContain('/Users/zknicker/srv/grotto/data');
     expect(source).toContain('/Users/zknicker/srv/grotto/logs');
     expect(source).not.toContain('/opt/grotto-server');
     expect(source).not.toContain('/Library/Application Support/Grotto');
@@ -131,12 +112,23 @@ test('keeps production state and credentials inside the canonical srv root', () 
     expect(source).not.toContain('/var/log/grotto-server');
 });
 
-test('starts the Server with its provisioned attachment root', () => {
+test('starts the Server from its rendered environment without re-entering varlock', () => {
     const runServer = readFileSync(join(serverRoot, 'operations', 'run-server'), 'utf8');
+    const commands = runServer
+        .split('\n')
+        .filter((line) => !line.trimStart().startsWith('#'))
+        .join('\n');
 
-    expect(runServer).toContain(
-        'export GROTTO_ATTACHMENT_ROOT=/Users/zknicker/srv/grotto/data/attachments'
-    );
+    expect(runServer).toContain('. "/Users/zknicker/srv/grotto/config/server.env"');
+    expect(runServer).toContain('exec /Users/zknicker/srv/grotto/current/bin/grotto-server');
+    // launchd stores a command line, and the package scripts wrap themselves in
+    // `varlock run`. A production service that re-entered varlock would resolve
+    // the schema again at boot, under the development lifecycle.
+    expect(commands).not.toContain('varlock');
+    expect(commands).not.toContain('bun run');
+    // Every value below comes from the rendered file now; a stray export here
+    // would be a second owner.
+    expect(commands).not.toContain('export GROTTO_');
 });
 
 test('ships one narrow activation privilege rule without automatic installation', () => {

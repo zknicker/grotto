@@ -3,21 +3,18 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadEnvFile } from './release-utils.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..');
 
-loadEnvFile();
-
-const releaseBaseUrl = trimTrailingSlash(requireEnv('TAVERN_RELEASE_BASE_URL'));
+const releaseBaseUrl = trimTrailingSlash(requireEnv('GROTTO_RELEASE_BASE_URL'));
 
 requireSigningEnvironment();
 requireNotarizationEnvironment();
 
-process.env.TAVERN_RELEASE_BASE_URL = releaseBaseUrl;
-process.env.APPLE_APP_SPECIFIC_PASSWORD ??= process.env.APPLE_PASSWORD;
+process.env.GROTTO_RELEASE_BASE_URL = releaseBaseUrl;
+// electron-builder reads the signing identity under its own literal name.
 process.env.CSC_NAME ??= normalizeSigningIdentity(process.env.APPLE_SIGNING_IDENTITY);
 
 runElectronBuilder(['--config', 'electron-builder.config.cjs', '--mac', '--publish', 'never']);
@@ -32,39 +29,30 @@ function requireEnv(name) {
     return value;
 }
 
+// The Developer ID certificate and its private key stay in the operator's
+// login Keychain; only the identity's name travels, and it is public.
 function requireSigningEnvironment() {
     if (process.env.CSC_NAME?.trim() || process.env.APPLE_SIGNING_IDENTITY?.trim()) {
         return;
     }
 
+    console.error('release error: missing APPLE_SIGNING_IDENTITY (or CSC_NAME)');
+    process.exit(1);
+}
+
+// One notarization path: the Apple ID and app-specific password resolve from
+// 1Password through the release switch in .env.schema.
+function requireNotarizationEnvironment() {
     if (
-        (process.env.CSC_LINK?.trim() || process.env.APPLE_CERTIFICATE?.trim()) &&
-        (process.env.CSC_KEY_PASSWORD?.trim() || process.env.APPLE_CERTIFICATE_PASSWORD?.trim())
+        process.env.APPLE_ID?.trim() &&
+        process.env.APPLE_APP_SPECIFIC_PASSWORD?.trim() &&
+        process.env.APPLE_TEAM_ID?.trim()
     ) {
         return;
     }
 
-    console.error('release error: missing CSC_NAME or CSC_LINK + CSC_KEY_PASSWORD');
-    process.exit(1);
-}
-
-function requireNotarizationEnvironment() {
-    const hasAppleIdCredentials =
-        process.env.APPLE_ID?.trim() &&
-        (process.env.APPLE_APP_SPECIFIC_PASSWORD?.trim() || process.env.APPLE_PASSWORD?.trim()) &&
-        process.env.APPLE_TEAM_ID?.trim();
-    const hasApiCredentials =
-        process.env.APPLE_API_KEY?.trim() &&
-        process.env.APPLE_API_KEY_ID?.trim() &&
-        process.env.APPLE_API_ISSUER?.trim() &&
-        process.env.APPLE_API_KEY_PATH?.trim();
-
-    if (hasAppleIdCredentials || hasApiCredentials) {
-        return;
-    }
-
     console.error(
-        'release error: missing Apple notarization credentials. Set APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD + APPLE_TEAM_ID or APPLE_API_KEY + APPLE_API_KEY_ID + APPLE_API_ISSUER + APPLE_API_KEY_PATH'
+        'release error: missing Apple notarization credentials. Run the release under `varlock run` with GROTTO_RESOLVE_RELEASE_TOKENS=true so APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, and APPLE_TEAM_ID resolve.'
     );
     process.exit(1);
 }

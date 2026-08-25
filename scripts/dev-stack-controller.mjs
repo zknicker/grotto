@@ -24,24 +24,17 @@ import {
 
 const shutdownProcessOrder = ['desktop', 'website', 'computer', 'grotto', 'postgres'];
 const shutdownTimeoutMs = Number.parseInt(
-    process.env.TAVERN_DEV_SHUTDOWN_TIMEOUT_MS ?? '30000',
+    process.env.GROTTO_DEV_SHUTDOWN_TIMEOUT_MS ?? '30000',
     10
 );
 const processGroupShutdownPollMs = 50;
 
 export class DevStackController extends EventEmitter {
-    constructor({
-        mode,
-        ports,
-        repositoryRoot,
-        clerkEnvironmentOverrides = {},
-        spawnImpl = spawn,
-    }) {
+    constructor({ mode, ports, repositoryRoot, spawnImpl = spawn }) {
         super();
         this.mode = mode;
         this.ports = ports;
         this.repositoryRoot = repositoryRoot;
-        this.clerkEnvironmentOverrides = clerkEnvironmentOverrides;
         this.spawnImpl = spawnImpl;
         this.processes = new Map();
         this.backgroundProcesses = new Set();
@@ -239,12 +232,12 @@ export class DevStackController extends EventEmitter {
         const websiteDirectory = path.join(this.repositoryRoot, 'apps', 'website');
         const startupUiEnv = {
             ...devStackEnvironment,
-            TAVERN_STARTUP_UI: '1',
+            GROTTO_STARTUP_UI: '1',
         };
         const serverUrl = `http://localhost:${this.ports.grottoPort}`;
         const websiteEnv = {
             ...startupUiEnv,
-            VITE_GROTTO_APP_ORIGIN: startupUiEnv.APP_ORIGIN,
+            VITE_GROTTO_APP_ORIGIN: startupUiEnv.GROTTO_APP_ORIGIN,
             VITE_GROTTO_SERVER_ORIGIN: serverUrl,
         };
         let websiteReadyPromise = null;
@@ -271,7 +264,6 @@ export class DevStackController extends EventEmitter {
 
         const getDesktopEnv = () =>
             createDesktopDevEnvironment({
-                clerkEnvironmentOverrides: this.clerkEnvironmentOverrides,
                 devStackEnvironment,
                 ports: this.ports,
             });
@@ -302,8 +294,8 @@ export class DevStackController extends EventEmitter {
 
         const serverEnv = {
             ...startupUiEnv,
-            ...this.clerkEnvironmentOverrides,
-            APP_ORIGIN: startupUiEnv.APP_ORIGIN ?? `http://localhost:${this.ports.websitePort}`,
+            GROTTO_APP_ORIGIN:
+                startupUiEnv.GROTTO_APP_ORIGIN ?? `http://localhost:${this.ports.websitePort}`,
             GROTTO_DATABASE_URL: postgres.databaseUrl,
             GROTTO_SERVER_PORT: String(this.ports.grottoPort),
         };
@@ -479,15 +471,10 @@ export class DevStackController extends EventEmitter {
     }
 }
 
-export function createDesktopDevEnvironment({
-    clerkEnvironmentOverrides,
-    devStackEnvironment,
-    ports,
-}) {
+export function createDesktopDevEnvironment({ devStackEnvironment, ports }) {
     return {
         ...devStackEnvironment,
-        ...clerkEnvironmentOverrides,
-        TAVERN_WEBSITE_PORT: String(ports.websitePort),
+        GROTTO_WEBSITE_PORT: String(ports.websitePort),
     };
 }
 

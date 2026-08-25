@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..');
 
 process.env.CSC_IDENTITY_AUTO_DISCOVERY = 'false';
-process.env.TAVERN_ELECTRON_NOTARIZE = '0';
+process.env.GROTTO_ELECTRON_NOTARIZE = '0';
 
 runElectronBuilder([
     '--config',

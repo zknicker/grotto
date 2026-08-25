@@ -1,52 +1,21 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { getDevEnvironmentOverrides } from './run-dev-stack.mjs';
+import { fileURLToPath } from 'node:url';
 
-test('loads private Clerk dev sign-in config from the copied root env', () => {
-    const repositoryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'tavern-dev-env-'));
+const source = fs.readFileSync(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), 'run-dev-stack.mjs'),
+    'utf8'
+);
 
-    try {
-        fs.mkdirSync(path.join(repositoryRoot, 'apps', 'website'), { recursive: true });
-        fs.writeFileSync(
-            path.join(repositoryRoot, '.env'),
-            'CLERK_SECRET_KEY=sk_test_root\nDEV_CLERK_SIGN_IN_USER_ID=user_root\n'
-        );
-        fs.writeFileSync(
-            path.join(repositoryRoot, 'apps', 'website', '.env.development'),
-            'VITE_CLERK_PUBLISHABLE_KEY=pk_test_ZXhhbXBsZS5jb20k\n'
-        );
-
-        assert.deepEqual(getDevEnvironmentOverrides(repositoryRoot, {}), {
-            CLERK_ISSUER_URL: 'https://example.com',
-            CLERK_SECRET_KEY: 'sk_test_root',
-            DEV_CLERK_SIGN_IN_USER_ID: 'user_root',
-            TAVERN_CLERK_PUBLISHABLE_KEY: 'pk_test_ZXhhbXBsZS5jb20k',
-        });
-    } finally {
-        fs.rmSync(repositoryRoot, { force: true, recursive: true });
-    }
-});
-
-test('does not override Clerk configuration already present in the process environment', () => {
-    const repositoryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'tavern-dev-env-'));
-
-    try {
-        fs.writeFileSync(
-            path.join(repositoryRoot, '.env'),
-            'CLERK_SECRET_KEY=sk_test_root\nDEV_CLERK_SIGN_IN_USER_ID=user_root\n'
-        );
-
-        assert.deepEqual(
-            getDevEnvironmentOverrides(repositoryRoot, {
-                CLERK_SECRET_KEY: 'sk_test_shell',
-                DEV_CLERK_SIGN_IN_USER_ID: 'user_shell',
-            }),
-            {}
-        );
-    } finally {
-        fs.rmSync(repositoryRoot, { force: true, recursive: true });
-    }
+// The dev stack used to read `.env` and `apps/website/.env.development` itself
+// to find the Clerk development credentials. Varlock is now the only loader:
+// `bun run dev` runs under `varlock run`, so the stack inherits CLERK_*,
+// GROTTO_DEV_CLERK_SIGN_IN_USER_ID, and VITE_CLERK_PUBLISHABLE_KEY from the schema and
+// passes its own process environment straight to every child.
+test('reads no environment file of its own', () => {
+    assert.doesNotMatch(source, /from 'node:fs'/u);
+    assert.doesNotMatch(source, /\.env\.development/u);
+    assert.doesNotMatch(source, /getDevEnvironmentOverrides/u);
 });

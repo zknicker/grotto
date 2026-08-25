@@ -1,8 +1,12 @@
 node_modules
 dist
+
+# 1Password is the only secret store and the committed .env.schema is the
+# contract. No environment file is ever committed; the schema always is.
 .env
 .env.local
 .env.development.local
+!.env.schema
 .tavern
 apps/server/data
 .DS_Store
@@ -24,3 +28,7 @@ scripts/design-battery/output
 
 # Xcode derived data written by the documented iOS Simulator build recipe
 /build/
+
+# Fleet agent skills seeded into the Cursor cloud environment at install time.
+# Grotto's own product skills live in the committed .agents/skills.
+.cursor/skills

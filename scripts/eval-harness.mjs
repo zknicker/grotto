@@ -4,7 +4,6 @@
 import { createRequire } from 'node:module';
 import { appProtocolHeaders, appProtocolVersion } from '../packages/tavern-api/src/app-protocol.ts';
 import { resolveDevPorts } from './dev-ports.mjs';
-import { getDevEnvironmentOverrides } from './run-dev-stack.mjs';
 
 export class InfraError extends Error {}
 
@@ -21,7 +20,7 @@ export async function createEvalHarness({ evalName, repositoryRoot = process.cwd
     const trackedAgentIds = new Set();
     const profileRestores = new Map();
     const configRestores = new Map();
-    const auth = await createDevClerkAuth(serverUrl, repositoryRoot);
+    const auth = await createDevClerkAuth(serverUrl);
 
     async function trpc(path, input = {}) {
         const token = await auth.getToken();
@@ -300,10 +299,8 @@ export async function createEvalHarness({ evalName, repositoryRoot = process.cwd
     };
 }
 
-async function createDevClerkAuth(serverUrl, repositoryRoot) {
-    const environment = getDevEnvironmentOverrides(repositoryRoot);
-    const publishableKey =
-        process.env.TAVERN_CLERK_PUBLISHABLE_KEY ?? environment.TAVERN_CLERK_PUBLISHABLE_KEY;
+async function createDevClerkAuth(serverUrl) {
+    const publishableKey = process.env.VITE_CLERK_PUBLISHABLE_KEY;
     assert(
         publishableKey,
         'Hosted eval auth needs the dev Clerk publishable key used by bun run dev'

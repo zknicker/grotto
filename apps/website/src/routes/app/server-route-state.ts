@@ -8,7 +8,7 @@ import {
 import type { SettingsRouteTab } from '../../features/settings/layout/navigation.ts';
 
 /** Top-level routed destinations within one server. */
-export type AppSection = 'chat' | 'members' | 'search' | 'settings' | 'tasks';
+export type AppSection = 'chat' | 'search' | 'settings' | 'tasks' | 'usage';
 
 /**
  * Only Settings replaces the sidebar. Everywhere else the chat navigation
@@ -26,8 +26,12 @@ export function resolveChatSectionRoute(chats: Chat[], lastChatId: string | null
 
 export function resolveActiveSection(pathname: string, slug: string): AppSection {
     const suffix = pathname.slice(serverRoute(slug).length);
+    if (suffix.startsWith('/usage')) {
+        return 'usage';
+    }
+    // The members browser is gone: a member is a record in Settings.
     if (suffix.startsWith('/members')) {
-        return 'members';
+        return 'settings';
     }
     if (suffix.startsWith('/computers')) {
         return 'settings';

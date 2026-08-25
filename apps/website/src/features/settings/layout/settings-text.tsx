@@ -26,7 +26,7 @@ export function SettingsRowError({ children }: { children?: React.ReactNode }) {
     }
 
     return (
-        <p className="mt-1 text-danger text-xs" role="alert">
+        <p className="mt-1 text-danger text-sm" role="alert">
             {children}
         </p>
     );

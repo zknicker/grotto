@@ -73,7 +73,7 @@ export function SettingsComputersGroup({
                                 <Badge.Anchor className="size-5 items-center justify-center">
                                     <Icon
                                         aria-hidden="true"
-                                        className="size-4 text-muted"
+                                        className="text-muted"
                                         icon={ComputerIcon}
                                     />
                                     <Badge

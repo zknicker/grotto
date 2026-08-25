@@ -23,7 +23,7 @@ export function SettingsSidebar({
 }) {
     const itemById = new Map(settingsNavItems.map((item) => [item.id, item]));
     return (
-        <ShellSidebarPageContent band={<Sidebar.GroupLabel>General</Sidebar.GroupLabel>}>
+        <ShellSidebarPageContent>
             {settingsNavSections.map((section) => {
                 const items = section.itemIds
                     .map((id) => itemById.get(id))
@@ -33,9 +33,7 @@ export function SettingsSidebar({
                 }
                 return (
                     <Sidebar.Group key={section.id}>
-                        {section.id === 'general' ? null : (
-                            <Sidebar.GroupLabel>{section.label}</Sidebar.GroupLabel>
-                        )}
+                        <Sidebar.GroupLabel>{section.label}</Sidebar.GroupLabel>
                         <Sidebar.Menu aria-label={section.label}>
                             {items.map((item) => (
                                 <Sidebar.MenuItem
@@ -46,11 +44,7 @@ export function SettingsSidebar({
                                     textValue={item.label}
                                 >
                                     <Sidebar.MenuIcon>
-                                        <Icon
-                                            aria-hidden="true"
-                                            className="size-4.5"
-                                            icon={item.icon}
-                                        />
+                                        <Icon aria-hidden="true" icon={item.icon} />
                                     </Sidebar.MenuIcon>
                                     <Sidebar.MenuItemContent>
                                         <Sidebar.MenuLabel>{item.label}</Sidebar.MenuLabel>

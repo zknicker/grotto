@@ -62,7 +62,7 @@ export function AgentTokenUsage({
             controls={<TokenUsageRangePicker days={days} onChange={setDays} />}
             heading={
                 <div>
-                    <h2 className="font-semibold text-lg">Usage</h2>
+                    <h2 className="font-semibold text-base">Usage</h2>
                     <p className="text-muted text-sm">
                         Token volume across this Agent's runtime and model configurations.
                     </p>

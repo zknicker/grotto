@@ -27,7 +27,12 @@ export function MemberProfileHeader({
                 <div className="flex min-w-0 flex-col items-center">
                     <div className="relative min-w-0">
                         <div className="flex min-w-0 items-center justify-center gap-2.5">
-                            <h1 className="min-w-0 truncate font-semibold text-foreground text-xl">
+                            {/* A profile is a page, so its name takes the page
+                                title step — `text-2xl` with tight tracking, the
+                                same as `SettingsPageHeader`. At `text-xl` it
+                                sat between the section headings below it and
+                                the title every sibling settings page uses. */}
+                            <h1 className="min-w-0 truncate font-semibold text-2xl text-foreground tracking-tight">
                                 {name}
                             </h1>
                             {status}

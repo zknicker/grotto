@@ -31,7 +31,7 @@ export function SkillsTabBar({
                             <span className="flex items-center gap-2">
                                 {tab.label}
                                 {counts[tab.id] === undefined ? null : (
-                                    <span className="text-muted text-xs tabular-nums">
+                                    <span className="text-muted text-sm tabular-nums">
                                         {counts[tab.id]}
                                     </span>
                                 )}

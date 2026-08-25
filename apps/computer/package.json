@@ -1,7 +1,7 @@
 {
   "name": "@grotto/computer",
   "private": true,
-  "version": "1.4.5",
+  "version": "1.4.6",
   "type": "module",
   "bin": {
     "grotto-computer": "src/index.ts"

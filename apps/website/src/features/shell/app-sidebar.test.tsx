@@ -136,6 +136,41 @@ test('renders a draggable channel row with its chosen color and no handle', () =
     expect(markup).toContain('--channel-color-dark:#a78bfa');
 });
 
+test('keeps context-menu chat rows on the stock Sidebar icon gap', () => {
+    const blippy = agent({
+        availability: 'idle',
+        displayName: 'Blippy',
+        id: 'agt_blippy000000000',
+    });
+    const markup = renderToStaticMarkup(
+        <MemoryRouter>
+            <CommandMenuProvider>
+                <Sidebar.Provider>
+                    <ShellSidebar activePage="server">
+                        <ShellSidebarPage ariaLabel="Server" value="server">
+                            <ChatNavigation
+                                agents={[blippy]}
+                                chats={[channel(), dm('chat_blippy', blippy)]}
+                                onCreateChannel={() => undefined}
+                                onPreloadSection={() => undefined}
+                                selectedChatId={undefined}
+                                serverId="server_one"
+                                slug="grotto"
+                            />
+                        </ShellSidebarPage>
+                    </ShellSidebar>
+                </Sidebar.Provider>
+            </CommandMenuProvider>
+        </MemoryRouter>
+    );
+    const rowTriggers = markup.match(
+        /context-menu__trigger flex min-w-0 flex-1 items-center gap-3/g
+    );
+
+    expect(rowTriggers).toHaveLength(2);
+    expect(markup).not.toContain('context-menu__trigger flex min-w-0 flex-1 items-center gap-2');
+});
+
 test('keeps unread count chips circular until the number needs a pill', () => {
     const markup = renderToStaticMarkup(
         <MemoryRouter>

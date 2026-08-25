@@ -69,7 +69,8 @@ export function ChatNavigationContextMenu({
     return (
         <>
             <ContextMenu>
-                <ContextMenu.Trigger className="flex min-w-0 flex-1 items-center gap-2">
+                {/* The trigger wraps Sidebar's icon and content slots, so it owns their stock gap. */}
+                <ContextMenu.Trigger className="flex min-w-0 flex-1 items-center gap-3">
                     {children}
                 </ContextMenu.Trigger>
                 <ContextMenu.Popover>

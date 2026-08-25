@@ -4,6 +4,7 @@
 import { createRequire } from 'node:module';
 import { appProtocolHeaders, appProtocolVersion } from '../packages/grotto-api/src/app-protocol.ts';
 import { resolveDevPorts } from './dev-ports.mjs';
+import { loadHeadlessClerk } from './headless-clerk.mjs';
 
 export class InfraError extends Error {}
 
@@ -412,25 +413,6 @@ async function createDevClerkAuthSession(serverUrl, publishableKey) {
             return token;
         },
     };
-}
-
-export function loadHeadlessClerk(websiteRequire) {
-    const NativeBroadcastChannel = globalThis.BroadcastChannel;
-    if (!NativeBroadcastChannel?.prototype?.unref) {
-        return websiteRequire('@clerk/clerk-js/headless');
-    }
-
-    globalThis.BroadcastChannel = class extends NativeBroadcastChannel {
-        constructor(name) {
-            super(name);
-            this.unref();
-        }
-    };
-    try {
-        return websiteRequire('@clerk/clerk-js/headless');
-    } finally {
-        globalThis.BroadcastChannel = NativeBroadcastChannel;
-    }
 }
 
 function protocolHeaders() {

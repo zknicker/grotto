@@ -93,8 +93,8 @@ reuses the latest local snapshot while realtime invalidations refresh it.
 * `ServerLayout` owns the stable `AppLayout` scaffold and one persistent
   `ShellSidebar` — there is no icon rail. The sidebar leads with the server
   identity row (server switcher plus the settings entry), then Search and
-  Tasks rows, then chat navigation; the footer stays reserved for the live
-  agent activity strip. Sections compose `ShellSidebarPage` slots; route state
+  Tasks rows, then chat navigation; the footer holds live Agent activity above
+  the bottom-pinned desktop update status. Sections compose `ShellSidebarPage` slots; route state
   selects one slot without replacing the sidebar root, and non-chat pages
   render a shared back-to-chat row. The sidebar is persistent — every routed
   destination, search included, keeps it mounted.

@@ -13,6 +13,11 @@ Electron owns desktop installation, window behavior (the menu bar and its shortc
 persistence, focus dimming, history swipes, and the Dock unread badge), and desktop updates, not a
 local backend.
 
+The persistent sidebar footer projects Electron's update state into the App: an available release
+is clickable to begin its download, active downloads show determinate progress, and a downloaded
+release becomes a restart action. Electron remains the state owner and replays its latest actionable
+or in-flight status to every window; the App subscribes through the desktop bridge.
+
 The App owns presentation state, local preferences, React Query cache state, optimistic compose
 rows, routing, and transient UI. Server owns durable Chats, Messages, Tasks, members, Agents,
 attachments, and Computer reports. Optimistic rows remain App-local until Server acknowledges the

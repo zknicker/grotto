@@ -61,6 +61,100 @@
 }
 
 /*
+ * The light-mode surface edge.
+ *
+ * HeroUI defines a card's edge once per theme, and the two themes solve it
+ * differently. Dark is `0 0 0 0 transparent inset` — no shadow at all: the
+ * surface is lighter than the background, so the value step *is* the edge, and
+ * it lands crisp. Light ships three blurred layers at 4–6% and no line, and
+ * asks them to separate white from a background only 3% darker. Blur that
+ * faint over contrast that faint is not an edge, it is a smudge — which is
+ * exactly why the app reads clean in dark and soft in light.
+ *
+ * So light gets what dark already has: a definite edge, built from three parts
+ * that each do one job.
+ *
+ * 1. A hairline ring defines the shape. At `0.5px` it is one device pixel on
+ *    a 2x display, which is the whole difference between a drawn edge and a
+ *    heavy one; 1px reads as twice the line it should be. Black at low alpha
+ *    rather than a solid gray, so the edge darkens whatever is behind it
+ *    instead of assuming one background. Drawn as a spread ring rather than a
+ *    real `border` so adding it reflows nothing.
+ * 2. A contact shadow sits tight under the bottom edge.
+ * 3. An ambient shadow carries the lift, with a negative spread so it falls
+ *    downward instead of bleeding out sideways — an unspread blur at these
+ *    alphas is what produced the smudge in the first place.
+ *
+ * Parts 2 and 3 are named once and shared, so a surface and a field cannot
+ * drift apart on how far off the page they sit.
+ *
+ * Scoped to the light theme by attribute. The block above is deliberately
+ * theme-agnostic — bare `:root` matches `<html data-theme="dark">` too, so a
+ * color put there would leak straight into dark mode.
+ */
+[data-theme="light"],
+[data-theme="default"],
+.light,
+.default {
+    /*
+     * The finest line the system draws, and the only one light mode needs.
+     * One value for a surface's own outline, the dividers inside it, and a
+     * field's border — a divider heavier than the edge it sits within reads
+     * backwards, which is what a 1px `--separator` did against a half-pixel
+     * ring.
+     */
+    --hairline: rgba(0, 0, 0, 0.09);
+    --hairline-width: 0.5px;
+
+    --elevation-resting:
+        0 1px 1px 0 rgba(0, 0, 0, 0.04),
+        0 3px 6px -2px rgba(0, 0, 0, 0.02);
+
+    --surface-shadow:
+        0 0 0 var(--hairline-width) var(--hairline),
+        var(--elevation-resting);
+
+    /*
+     * The light gray ramp, under two rules that the previous set broke in both
+     * directions:
+     *
+     *   Fills carry a trace of cool — chroma 0.0013 at hue 286.4.
+     *   Lines carry none — chroma 0.
+     *
+     * Before this, `--background` was dead neutral while the surfaces above it
+     * were tinted, and the lines were tinted three times harder than any fill.
+     * Five different chroma values across one gray family is what made them
+     * read slightly off: a blue-cast line against a neutral ground is the part
+     * the eye catches.
+     *
+     * Lightness is a three-step ladder, chrome to content to surface, so depth
+     * comes from position rather than from decoration:
+     *
+     *   sidebar 95.24%  →  page 98.24%  →  card 100%
+     *
+     * Chrome sits a step back and content comes forward. The page was 97.02%
+     * with the sidebar painted the same value, which flattened those two into
+     * one plane and left the card leaning entirely on its shadow.
+     */
+    --background: oklch(98.24% 0.0013 286.4);
+    --sidebar-surface: oklch(95.24% 0.0013 286.4);
+    --surface-secondary: oklch(93.43% 0.0013 286.4);
+    --surface-tertiary: oklch(92.22% 0.0013 286.4);
+    --default: oklch(94% 0.0013 286.4);
+    --border: oklch(90.06% 0 286.4);
+    --separator: oklch(90.06% 0 286.4);
+
+    /*
+     * A field is a surface: same hairline, same resting lift. HeroUI ships
+     * `--field-border: transparent` with the old blurred shadow standing in for
+     * an edge, which is the smudge problem again in a smaller box.
+     */
+    --border-width-field: var(--hairline-width);
+    --field-border: var(--hairline);
+    --field-shadow: var(--elevation-resting);
+}
+
+/*
  * Chromium's squircle support is progressive enhancement: unsupported
  * browsers keep ordinary rounded corners. Apply the curve at the base layer
  * so it reaches HeroUI's BEM components as well as Tailwind radius utilities;
@@ -136,6 +230,54 @@
     }
 
     /*
+     * Nav icons are 16px, paired with the 13px row label, in every sidebar.
+     *
+     * HeroUI sizes them `calc(var(--spacing) * 4)`, and sidebar rows run on
+     * `--spacing-compact`, so the app's whole navigation drew at 12.75px. That
+     * is a density token driving an optical one: row height should tighten
+     * with density, but the glyph beside a label that never changed size
+     * should not. Call sites had started guessing around it — a `size-4.5`
+     * here, a `size={16}` there, and the second does not even apply, since a
+     * CSS rule beats an SVG's width attribute.
+     *
+     * A fixed `1rem` rather than a spacing multiple, for the same reason a
+     * radio is a circle: this pairs with text, not with density.
+     */
+    .sidebar__menu-icon svg {
+        width: 1rem;
+        height: 1rem;
+    }
+
+    /*
+     * A radio is a circle. Not "round at today's radius" — a circle, because
+     * the shape is the meaning: round says pick one, a rounded square says
+     * pick any. That is not a value the theme gets a vote on.
+     *
+     * HeroUI derives it from the scale — `.radio__control` is a `--spacing`-
+     * derived box with `border-radius: calc(var(--radius) * 1)`, which lands on
+     * a circle only where that product happens to reach half the box. At our
+     * `--radius-base` it draws about 6px on a 15px box, so the control came out
+     * a rounded square. Same failure as `.badge:empty` above: a shape whose
+     * meaning is fixed, pinned to a token that moves.
+     *
+     * This is the radius half of the fix. The `corner-shape: round` entry in
+     * the squircle block above is the arc half — that one keeps the corner from
+     * being superelliptical, but a superellipse and an arc are equally not a
+     * circle at 6px. Both are needed.
+     *
+     * Both halves of the control need it too: the ring and the dot inside it
+     * are separate rules reading the same `calc(var(--radius) * 1)`, so pinning
+     * only the ring leaves a rounded square sitting inside a circle.
+     *
+     * Its sibling `.checkbox__control` is deliberately left alone — a rounded
+     * square is the correct shape for a checkbox, so it may track the scale.
+     */
+    .radio__control,
+    .radio__indicator:empty::before {
+        border-radius: var(--radius-full, 9999px);
+    }
+
+    /*
      * Menu surfaces are lists to scan, so they take the tightest step of the
      * spacing scale. HeroUI sizes `.menu-item` and `.list-box-item` purely from
      * spacing multiples (`min-h-9 gap-3 px-2 py-1.5`), so rescaling the token
@@ -185,5 +327,79 @@
      */
     .card-shell {
         border-radius: min(32px, var(--radius-3xl));
+    }
+
+    /*
+     * Settings type scale: page title, section heading, body. Three sizes, no
+     * fourth.
+     *
+     * HeroUI sizes the secondary text of a row, a group and a table header at
+     * `text-xs` — 11px against our 13px `--text-sm`. That reads as fine print
+     * next to its own title, and it is most of the prose on a settings page, so
+     * every settings surface ended up with a 22/13/11 ladder whose bottom rung
+     * was the one carrying the explanation. These are body copy at the same
+     * step as the titles they sit under.
+     *
+     * `.table__column` is the same call in the grid: 24 DataGrid columns each
+     * carried `headerClassName: 'text-sm'` to undo it. One rule replaces them.
+     */
+    /*
+     * App chrome sits one step back from content. HeroUI paints `.sidebar` with
+     * `--background`, which is the content plane — the two then read as one
+     * flat field. The fallback keeps dark mode on `--background`, where a
+     * single plane is correct: dark already separates chrome from content by
+     * the surfaces sitting on it, not by tinting the ground.
+     */
+    .sidebar {
+        background-color: var(--sidebar-surface, var(--background));
+    }
+
+    /*
+     * Dividers inside a surface are the same hairline as that surface's own
+     * outline — see `--hairline`. HeroUI hardcodes `height: 1px`, so thickness
+     * cannot come from a token; the fallbacks leave dark mode exactly as it
+     * was, because dark draws no ring and its dividers are already the only
+     * line in play.
+     */
+    .separator,
+    .separator--horizontal {
+        height: var(--hairline-width, 1px);
+        background-color: var(--hairline, var(--separator));
+    }
+
+    .item-card__description,
+    .item-card-group__description,
+    .table__column {
+        font-size: var(--text-sm);
+        line-height: var(--text-sm--line-height);
+    }
+
+    /*
+     * A section heading outranks the rows beneath it. Stock puts
+     * `.item-card-group__title` at `text-sm`/600 directly above
+     * `.item-card__title` at `text-sm`/500 — a weight apart and nothing else,
+     * which on a page of eight rows reads as one flat list. One step up is the
+     * whole difference.
+     */
+    .item-card-group__title {
+        font-size: var(--text-base);
+        line-height: var(--text-base--line-height);
+    }
+
+    /*
+     * And a dialog outranks the sections inside it. HeroUI gives modals,
+     * drawers, and alert dialogs one shared heading rule at `text-base`/medium
+     * — under the rule above that would tie their own section headings on size
+     * and lose to them on weight, which is the ladder upside down. One step up
+     * from a section, one below a page title. All three move together because
+     * HeroUI styles them as one decision, and Connections pairs a drawer and a
+     * modal on the same page.
+     */
+    .alert-dialog__heading,
+    .drawer__heading,
+    .modal__heading {
+        font-size: var(--text-lg);
+        line-height: var(--text-lg--line-height);
+        font-weight: 600;
     }
 }

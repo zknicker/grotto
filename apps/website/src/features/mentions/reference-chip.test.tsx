@@ -17,7 +17,7 @@ test('renders rich references with the shared HeroUI Chip shell', () => {
 
     expect(markup).toContain('data-slot="chip"');
     expect(markup).toContain('data-slot="chip-label"');
-    expect(markup).toContain('chip--sm');
+    expect(markup).toContain('chip--md');
     expect(markup).toContain('align-middle');
     expect(markup).toContain('-translate-y-px');
     expect(markup).toContain('text-sm');

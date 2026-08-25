@@ -32,7 +32,7 @@ export function ReferenceChip({
                 className
             )}
             contentEditable={false}
-            size="sm"
+            size="md"
             style={
                 {
                     '--chip-bg': 'color-mix(in srgb, var(--reference-chip-color) 16%, transparent)',

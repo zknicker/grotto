@@ -17,7 +17,7 @@ export async function countAgentDirectory(
     const [channels, agents, humans] = await Promise.all([
         countChannels(db, runner, input),
         countAgents(db, runner, input),
-        countHumans(db, runner),
+        countHumans(db, runner, input),
     ]);
     return { agents, channels, humans };
 }
@@ -62,14 +62,17 @@ async function countAgents(db: GrottoDatabase, runner: ResolvedRunner, input: Ag
     return Number(row?.total ?? 0);
 }
 
-async function countHumans(db: GrottoDatabase, runner: ResolvedRunner) {
+async function countHumans(db: GrottoDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
     const [row] = await db
         .select({ total: count() })
         .from(serverMembershipsTable)
         .where(
             and(
                 eq(serverMembershipsTable.serverId, runner.serverId),
-                isNull(serverMembershipsTable.revokedAt)
+                isNull(serverMembershipsTable.revokedAt),
+                input.query
+                    ? ilike(serverMembershipsTable.handle, `%${escapeLike(input.query)}%`)
+                    : undefined
             )
         );
     return Number(row?.total ?? 0);

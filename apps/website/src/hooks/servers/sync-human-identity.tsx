@@ -31,6 +31,7 @@ function ClerkHumanIdentitySync({ serverId }: { serverId: string | undefined }) 
         syncMutate({
             email: user.primaryEmailAddress?.emailAddress ?? null,
             name: user.fullName ?? null,
+            serverId,
         });
     }, [isSignedIn, serverId, syncMutate, user]);
 

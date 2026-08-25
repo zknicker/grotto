@@ -246,12 +246,12 @@ inbox. Human **Start** resumes the current session and drains that work.
   (cursor-advancing pulls → read receipts), sends are discrete events; since we own the harness,
   an in-flight `message send` streams its stdin body into a provisional bubble (typing with
   content; visibly retracted on a freshness hold). Widget/visual fences ride send bodies.
-- **D2 — Raft envelope + target grammar; names ARE the handles** (amended after code audit).
+- **D2 — Raft envelope + target grammar; ids, display names, and handles are distinct.**
   `[target=… msg=… time=… type=human|agent|system] @sender — <description>: …`; targets
   `#channel`, `dm:@name`, `#channel:shortid`, `dm:@name:shortid`. No title/slug split — the
-  channel name is the single unique handle and rename changes it (Raft parity); participant
-  handles are unique single tokens (1–32 chars, reserved-name list per the `agent:create`
-  schema). Server resolves handles at action time, fails closed on miss. Delivery envelopes use
+  channel name is the single unique handle and rename changes it (Raft parity); human and Agent
+  participant handles share one case-insensitive Server namespace while display names remain
+  presentation. Server resolves handles at action time, fails closed on miss. Delivery envelopes use
   `msg=` 8-char short ids; `message read` history additionally exposes `seq=`, `threadId=`,
   `replyCount=`, and a computed `replyTarget=` (point-of-use teaching, copied exactly).
 - **D3 — Raft memory model wholesale.** Retired: `USER.md`/`MEMORY.md` core-memory injection,

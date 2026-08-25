@@ -1,8 +1,16 @@
 import type { ServerMember, SyncHumanIdentityInput, UpdateHumanProfileInput } from '@grotto/api';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { usersTable } from '../postgres/schema.ts';
+import { violatesConstraint } from '../postgres/constraint-violation.ts';
+import { serverMembershipsTable, usersTable } from '../postgres/schema.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
+import {
+    ParticipantHandleTakenError,
+    participantHandleConstraint,
+    suggestAvailableParticipantHandle,
+} from './participant-handles.ts';
+import { requireServerMembership } from './server-access.ts';
+import { lockServerRow } from './server-lock.ts';
 
 /**
  * Seeds a human's profile from the Clerk identity the App reports. It only
@@ -18,25 +26,57 @@ export async function syncHumanIdentity(
         throw new Error('Signing in is required to sync a human profile.');
     }
 
-    const [existing] = await db
-        .select({ displayName: usersTable.displayName, handle: usersTable.handle })
-        .from(usersTable)
-        .where(eq(usersTable.id, member.id));
+    await db.transaction(async (tx) => {
+        await lockServerRow(tx, input.serverId);
+        await requireServerMembership(tx, member, input.serverId);
+        const [existing] = await tx
+            .select({
+                displayName: usersTable.displayName,
+                handle: serverMembershipsTable.handle,
+            })
+            .from(serverMembershipsTable)
+            .innerJoin(usersTable, eq(usersTable.id, serverMembershipsTable.userId))
+            .where(
+                and(
+                    eq(serverMembershipsTable.serverId, input.serverId),
+                    eq(serverMembershipsTable.userId, member.id),
+                    isNull(serverMembershipsTable.revokedAt)
+                )
+            )
+            .limit(1);
 
-    if (!existing) {
-        return;
-    }
+        if (!existing) {
+            return;
+        }
 
-    const displayName = existing.displayName ?? input.name?.trim() ?? null;
+        const displayName = existing.displayName ?? input.name?.trim() ?? null;
+        const handle =
+            existing.handle ??
+            (await suggestAvailableParticipantHandle(
+                tx,
+                input.serverId,
+                displayName,
+                input.email?.split('@')[0]
+            ));
 
-    await db
-        .update(usersTable)
-        .set({
-            displayName: displayName && displayName.length > 0 ? displayName : null,
-            email: input.email?.trim() || null,
-            handle: existing.handle ?? deriveHandle(displayName, input.email),
-        })
-        .where(eq(usersTable.id, member.id));
+        await tx
+            .update(usersTable)
+            .set({
+                displayName: displayName && displayName.length > 0 ? displayName : null,
+                email: input.email?.trim() || null,
+            })
+            .where(eq(usersTable.id, member.id));
+        await tx
+            .update(serverMembershipsTable)
+            .set({ handle })
+            .where(
+                and(
+                    eq(serverMembershipsTable.serverId, input.serverId),
+                    eq(serverMembershipsTable.userId, member.id),
+                    isNull(serverMembershipsTable.revokedAt)
+                )
+            );
+    });
 }
 
 /** A human edits only their own profile. */
@@ -49,32 +89,38 @@ export async function updateHumanProfile(
         throw new Error('Signing in is required to edit a human profile.');
     }
 
-    await db
-        .update(usersTable)
-        .set({ description: input.description, displayName: input.displayName })
-        .where(eq(usersTable.id, member.id));
+    try {
+        await db.transaction(async (tx) => {
+            await lockServerRow(tx, input.serverId);
+            await requireServerMembership(tx, member, input.serverId);
+            await tx
+                .update(usersTable)
+                .set({ description: input.description, displayName: input.displayName })
+                .where(eq(usersTable.id, member.id));
+            if (input.handle) {
+                await tx
+                    .update(serverMembershipsTable)
+                    .set({ handle: input.handle })
+                    .where(
+                        and(
+                            eq(serverMembershipsTable.serverId, input.serverId),
+                            eq(serverMembershipsTable.userId, member.id),
+                            isNull(serverMembershipsTable.revokedAt)
+                        )
+                    );
+            }
+        });
+    } catch (cause) {
+        if (
+            violatesConstraint(cause, participantHandleConstraint) ||
+            violatesConstraint(cause, 'server_memberships_server_handle_key')
+        ) {
+            throw new ParticipantHandleTakenError(input.handle ?? '');
+        }
+        throw cause;
+    }
 }
 
 export function humanMemberLabel(member: Pick<ServerMember, 'displayName' | 'userId'>): string {
     return member.displayName ?? `Human ${member.userId.slice(-6)}`;
-}
-
-/**
- * A first handle guess from the name or email local-part. Humans keep whatever
- * they are first given; collisions are left to a later rename flow rather than
- * silently numbering people.
- */
-function deriveHandle(displayName: null | string, email: null | string): null | string {
-    const source = displayName ?? email?.split('@')[0] ?? null;
-
-    if (!source) {
-        return null;
-    }
-
-    const handle = source
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/gu, '')
-        .slice(0, 32);
-
-    return handle.length > 0 ? handle : null;
 }

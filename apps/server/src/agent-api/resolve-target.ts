@@ -1,10 +1,11 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     channelAgentParticipantsTable,
     chatMessagesTable,
     chatsTable,
+    serverMembershipsTable,
 } from '../postgres/schema.ts';
 import { ensureThreadRecord } from '../threads/ensure-thread.ts';
 
@@ -52,17 +53,26 @@ export async function resolveAgentTarget(
 
     if (target.startsWith('dm:@')) {
         const [peer, threadAnchor, ...extra] = target.slice('dm:@'.length).split(':');
-        if (peer !== 'operator' || extra.length > 0) {
+        if (!peer || extra.length > 0) {
             throw new AgentTargetError();
         }
         const chats = await db
             .select({ id: chatsTable.id })
             .from(chatsTable)
+            .innerJoin(
+                serverMembershipsTable,
+                and(
+                    eq(serverMembershipsTable.serverId, chatsTable.serverId),
+                    eq(serverMembershipsTable.userId, chatsTable.dmMemberOneUserId)
+                )
+            )
             .where(
                 and(
                     eq(chatsTable.serverId, runner.serverId),
                     eq(chatsTable.kind, 'dm'),
-                    eq(chatsTable.dmAgentId, runner.agentId)
+                    eq(chatsTable.dmAgentId, runner.agentId),
+                    sql`lower(${serverMembershipsTable.handle}) = lower(${peer})`,
+                    isNull(serverMembershipsTable.revokedAt)
                 )
             )
             .limit(2);
@@ -135,12 +145,12 @@ async function resolveAgentParentTarget(
         const parentChatId = await resolveAgentTarget(db, runner, `#${channelName}`);
         return { anchor, parentChatId };
     }
-    if (target.startsWith('dm:@operator:')) {
-        const anchor = target.slice('dm:@operator:'.length);
-        if (!anchor || anchor.includes(':')) {
+    if (target.startsWith('dm:@')) {
+        const [peer, anchor, ...extra] = target.slice('dm:@'.length).split(':');
+        if (!(peer && anchor) || extra.length > 0) {
             return null;
         }
-        const parentChatId = await resolveAgentTarget(db, runner, 'dm:@operator');
+        const parentChatId = await resolveAgentTarget(db, runner, `dm:@${peer}`);
         return { anchor, parentChatId };
     }
     return null;

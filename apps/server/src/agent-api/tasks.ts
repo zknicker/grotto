@@ -16,6 +16,7 @@ import {
     chatMessagesTable,
     chatsTable,
     messageTasksTable,
+    serverMembershipsTable,
 } from '../postgres/schema.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -561,7 +562,10 @@ async function taskRow(
               id: task.assigneeAgentId,
           }
         : task.assigneeUserId
-          ? { handle: null, id: task.assigneeUserId }
+          ? {
+                handle: await humanHandle(db, runner.serverId, task.assigneeUserId),
+                id: task.assigneeUserId,
+            }
           : null;
     return {
         assignee,
@@ -784,6 +788,19 @@ async function agentHandle(
         throw new AgentTargetError('This Agent no longer exists.');
     }
     return agent.handle;
+}
+
+async function humanHandle(db: GrottoDatabase, serverId: string, userId: string) {
+    const [human] = await db
+        .select({ handle: serverMembershipsTable.handle })
+        .from(serverMembershipsTable)
+        .where(
+            and(
+                eq(serverMembershipsTable.serverId, serverId),
+                eq(serverMembershipsTable.userId, userId)
+            )
+        );
+    return human?.handle ?? null;
 }
 
 function stripAt(value: string) {

@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { participantHandleSchema } from './participant-handle.ts';
 import { workspacePathSchema } from './agent-runner.ts';
 import { chatSchema, idSchema } from './chat.ts';
 
@@ -145,12 +146,7 @@ export const agentSchema = z
 
 export type Agent = z.infer<typeof agentSchema>;
 
-export const agentHandleSchema = z
-    .string()
-    .trim()
-    .toLowerCase()
-    .regex(/^[a-z0-9][a-z0-9-]{1,30}$/u, 'A handle is 2-31 lowercase letters, numbers, or hyphens.')
-    .refine((handle) => handle !== 'cove', 'The cove handle is reserved for onboarding.');
+export const agentHandleSchema = participantHandleSchema;
 
 /** Creating an Agent binds it to exactly one reported Computer, runtime, and model. */
 export const createAgentInputSchema = z

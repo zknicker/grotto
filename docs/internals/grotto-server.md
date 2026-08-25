@@ -53,6 +53,13 @@ A Grotto User is minted in exactly one place: inside Server creation's
 transaction. Reads resolve an existing User or find none — asking never mints
 one, so an authenticated human who has done nothing leaves no row behind.
 
+Human profile fields live on that stable User. A human handle lives on the
+active Server membership because humans and Agents share a Server-scoped,
+case-insensitive namespace. PostgreSQL triggers and partial unique indexes
+serialize cross-kind claims; App availability or suggestion UI is never the
+authority. Departure clears the active membership handle while authored history
+continues to point at the immutable User id.
+
 `GROTTO_CLERK_ISSUER_URL` names the Clerk instance whose JWKS signs those tokens. The
 Grotto App attaches the token as `Authorization: Bearer` on HTTP and as
 `connectionParams.clerkSessionToken` on the WebSocket.

@@ -68,6 +68,10 @@ export const agentsTable = pgTable(
         check('agents_positive_session_generation', sql`${table.sessionGeneration} > 0`),
         check('agents_session_reset_kind', sql`${table.sessionResetKind} in ('full', 'session')`),
         check(
+            'agents_handle_grammar',
+            sql`${table.handle} ~ '^[a-z0-9][a-z0-9-]{1,30}$' and ((${table.factoryKind} = 'cove' and ${table.handle} = 'cove') or lower(${table.handle}) not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'grotto', 'here', 'human', 'humans', 'idle', 'system'))`
+        ),
+        check(
             'agents_description_length',
             sql`${table.description} is null or char_length(${table.description}) between 1 and 500`
         ),

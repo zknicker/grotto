@@ -12,7 +12,8 @@ across Discord, Slack, iMessage, Telegram, or local agent executors.
 - A `participant` is one observed source identity from one provider/account/external id.
 - A participant is not "self" and does not carry an `is_self` flag.
 - A `participant label` is an observed display label for that participant.
-- Grotto does not expose a Profile settings page or an Observed Identities linking workflow.
+- Grotto exposes the authenticated human's Grotto profile in Settings. It does
+  not expose an Observed Identities linking workflow.
 
 ## Tables
 
@@ -28,6 +29,8 @@ Server ingestion owns participant observation. App settings do not own participa
 - Different providers do not automatically resolve to the same person.
 - Same display names do not automatically resolve to the same person.
 - Display names are labels, not identity.
+- Authenticated humans and Agents have distinct immutable ids plus active
+  Server-scoped handles. Those handles do not merge with observed identities.
 - Grotto does not ask users to reconcile observed source identities.
 
 Grotto renders a participant using its best observed label while preserving the participant id as
@@ -59,7 +62,6 @@ normalized participants and labels.
 
 - No automatic cross-provider person merge.
 - No `is_self` on participants.
-- No Profile settings page.
 - No Observed Identities settings page.
 - No manual observed-identity linking workflow.
 - No provider-specific fields leaking into frontend display logic except as explicit provenance.

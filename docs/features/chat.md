@@ -79,7 +79,8 @@ and [Agent Inbox](../../specs/inbox.md).
   metadata, and attachment bytes. `#all`, DMs, and Threads have no independent
   archive/delete action. New workspaces
   start with no user channels. Each agent has one
-  built-in DM with the local human operator. Agent DMs are not user-deleteable;
+  built-in DM with its human participant, addressed by that person's Server
+  handle. Agent DMs are not user-deleteable;
   retiring the Agent removes its built-in DM from active navigation. The durable
   Chat remains canonical history. Deleted Agents and departed humans stay visible
   on authored transcript messages with muted identity and a `DELETED` badge.

@@ -69,6 +69,7 @@ export * from './manual.ts';
 export * from './mcp.ts';
 export * from './membership.ts';
 export * from './mentions.ts';
+export * from './participant-handle.ts';
 export * from './reminders.ts';
 export * from './rich-references.ts';
 export * from './runtime/contracts.ts';

@@ -4,6 +4,7 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
+import { participantHandleConstraint } from '../servers/participant-handles.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
@@ -72,7 +73,10 @@ export async function createAgent(
                 serverId: input.serverId,
             });
         } catch (cause) {
-            if (violatesConstraint(cause, 'agents_server_handle_key')) {
+            if (
+                violatesConstraint(cause, 'agents_server_handle_key') ||
+                violatesConstraint(cause, participantHandleConstraint)
+            ) {
                 throw new AgentConfigDeniedError(`The handle "${input.handle}" is already taken.`);
             }
             throw cause;

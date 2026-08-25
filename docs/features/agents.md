@@ -69,6 +69,11 @@ An Agent has a display name, handle, description, and avatar. The
 description supplies its role and personality to generated instructions and to
 other Agents in shared Chat rosters.
 
+Humans and Agents share one case-insensitive handle namespace on each Server.
+Their immutable ids remain identity and their display names remain presentation;
+changing a display name does not rename a handle. PostgreSQL arbitrates claims
+atomically, and retirement or human departure releases the active alias.
+
 Computer composes managed product instructions, the Agent description, the
 Agent's local skills, and tool guidance when a fresh model session starts.
 Durable learned knowledge lives in the Agent's own `MEMORY.md` and any files it

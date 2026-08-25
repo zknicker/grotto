@@ -87,9 +87,13 @@ async function seedAgent(): Promise<Seed> {
     await db
         .insert(serversTable)
         .values({ displayName: 'Delivery', id: serverId, slug: createOpaqueId('slug') });
-    await db
-        .insert(serverMembershipsTable)
-        .values({ id: createOpaqueId('mem'), role: 'owner', serverId, userId });
+    await db.insert(serverMembershipsTable).values({
+        handle: `human-${randomBytes(4).toString('hex')}`,
+        id: createOpaqueId('mem'),
+        role: 'owner',
+        serverId,
+        userId,
+    });
     await db.insert(computersTable).values({
         attachedByUserId: userId,
         credentialHash: randomBytes(32).toString('hex'),
@@ -209,9 +213,13 @@ async function addDmChat(seed: Seed): Promise<string> {
     const userId = createOpaqueId('usr');
     const chatId = createOpaqueId('cht');
     await db.insert(usersTable).values({ clerkUserId: createOpaqueId('clk'), id: userId });
-    await db
-        .insert(serverMembershipsTable)
-        .values({ id: createOpaqueId('mem'), role: 'member', serverId: seed.serverId, userId });
+    await db.insert(serverMembershipsTable).values({
+        handle: `human-${randomBytes(4).toString('hex')}`,
+        id: createOpaqueId('mem'),
+        role: 'member',
+        serverId: seed.serverId,
+        userId,
+    });
     await db.insert(chatsTable).values({
         dmAgentId: seed.agentId,
         dmMemberOneStint: 1,

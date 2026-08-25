@@ -120,6 +120,13 @@
       "when": 1787597023038,
       "tag": "0016_mcp_connection_summary",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1787678696837,
+      "tag": "0017_melted_black_cat",
+      "breakpoints": true
     }
   ]
 }

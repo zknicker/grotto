@@ -1,3 +1,4 @@
+import { participantHandleSchema, suggestParticipantHandle } from '@grotto/api';
 import type { ServerMember } from '@grotto/api/membership';
 import { Input, Separator, TextField } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
@@ -27,7 +28,7 @@ export function ProfileSettings({ serverId }: { serverId: string }) {
 
     return (
         <ProfileIdentity
-            key={`${viewer.userId}:${viewer.displayName ?? ''}`}
+            key={`${viewer.userId}:${viewer.displayName ?? ''}:${viewer.handle ?? ''}`}
             serverId={serverId}
             viewer={viewer}
         />
@@ -37,6 +38,9 @@ export function ProfileSettings({ serverId }: { serverId: string }) {
 function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: ServerMember }) {
     const [avatarError, setAvatarError] = React.useState<string | null>(null);
     const [displayName, setDisplayName] = React.useState(viewer.displayName ?? '');
+    const [handle, setHandle] = React.useState(
+        viewer.handle ?? suggestParticipantHandle(viewer.displayName, viewer.email?.split('@')[0])
+    );
     const setAvatar = useHumanAvatar(serverId, viewer.userId);
     const updateProfile = useHumanIdentity(serverId, viewer.userId);
 
@@ -51,6 +55,21 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
         await updateProfile.save({
             description: viewer.description ?? '',
             displayName: nextName,
+        });
+    };
+
+    const saveHandle = async () => {
+        const parsed = participantHandleSchema.safeParse(handle);
+
+        if (!parsed.success || parsed.data === viewer.handle) {
+            setHandle(viewer.handle ?? '');
+            return;
+        }
+
+        await updateProfile.save({
+            description: viewer.description ?? '',
+            displayName: viewer.displayName ?? displayName,
+            handle: parsed.data,
         });
     };
 
@@ -116,6 +135,37 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
                                 variant="secondary"
                             >
                                 <Input placeholder="Your name" />
+                            </TextField>
+                        </ItemCard.Action>
+                    </ItemCard>
+                    <Separator />
+                    <ItemCard>
+                        <ItemCard.Content>
+                            <ItemCard.Title>Handle</ItemCard.Title>
+                            <ItemCard.Description>
+                                Your unique @name on this Server.
+                            </ItemCard.Description>
+                            <SettingsRowError>{updateProfile.error?.message}</SettingsRowError>
+                        </ItemCard.Content>
+                        <ItemCard.Action>
+                            <TextField
+                                aria-label="Handle"
+                                className="w-56 max-w-full"
+                                isDisabled={updateProfile.isPending}
+                                isInvalid={
+                                    handle.length > 0 &&
+                                    !participantHandleSchema.safeParse(handle).success
+                                }
+                                isRequired
+                                maxLength={31}
+                                onBlur={() => {
+                                    void saveHandle().catch(() => undefined);
+                                }}
+                                onChange={setHandle}
+                                value={handle}
+                                variant="secondary"
+                            >
+                                <Input placeholder="your-handle" />
                             </TextField>
                         </ItemCard.Action>
                     </ItemCard>

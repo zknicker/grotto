@@ -65,7 +65,7 @@ export async function findCurrentMembership(
             description: usersTable.description,
             displayName: usersTable.displayName,
             email: usersTable.email,
-            handle: usersTable.handle,
+            handle: serverMembershipsTable.handle,
             joinedAt: serverMembershipsTable.joinedAt,
             role: serverMembershipsTable.role,
             userId: serverMembershipsTable.userId,

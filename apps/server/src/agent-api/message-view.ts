@@ -8,6 +8,8 @@ import {
     chatMessagesTable,
     chatsTable,
     messageReactionsTable,
+    serverMembershipsTable,
+    usersTable,
 } from '../postgres/schema.ts';
 import { listMessageTaskMap } from '../tasks/task-shape.ts';
 
@@ -67,6 +69,32 @@ export async function toAgentMessages(
                       and(eq(agentsTable.serverId, serverId), inArray(agentsTable.id, agentIds))
                   );
     const agentById = new Map(agents.map((agent) => [agent.id, agent]));
+    const humanIds = [
+        ...new Set(
+            rows
+                .flatMap((row) => row.authorUserId ?? [])
+                .concat([...tasksByMessage.values()].flatMap((task) => task.assigneeUserId ?? []))
+        ),
+    ];
+    const humans =
+        humanIds.length === 0
+            ? []
+            : await db
+                  .select({
+                      description: usersTable.description,
+                      displayName: usersTable.displayName,
+                      handle: serverMembershipsTable.handle,
+                      id: usersTable.id,
+                  })
+                  .from(serverMembershipsTable)
+                  .innerJoin(usersTable, eq(usersTable.id, serverMembershipsTable.userId))
+                  .where(
+                      and(
+                          eq(serverMembershipsTable.serverId, serverId),
+                          inArray(serverMembershipsTable.userId, humanIds)
+                      )
+                  );
+    const humanById = new Map(humans.map((human) => [human.id, human]));
     const attachmentsByMessage = await readMessageAttachments(
         db,
         serverId,
@@ -79,13 +107,18 @@ export async function toAgentMessages(
     );
     return rows.map((row) => {
         const agent = row.authorAgentId ? agentById.get(row.authorAgentId) : undefined;
+        const human = row.authorUserId ? humanById.get(row.authorUserId) : undefined;
         const system = row.systemAuthor !== null;
         const handle =
-            agent?.handle ?? (row.systemAuthor === 'task' ? 'system' : system ? null : 'operator');
-        const label = agent?.displayName ?? (system ? 'Grotto' : 'Operator');
+            agent?.handle ??
+            (row.systemAuthor === 'task' ? 'system' : system ? null : (human?.handle ?? null));
+        const label = agent?.displayName ?? (system ? 'Grotto' : (human?.displayName ?? 'Human'));
         const task = tasksByMessage.get(row.id);
         const taskAssigneeAgent = task?.assigneeAgentId
             ? agentById.get(task.assigneeAgentId)
+            : undefined;
+        const taskAssigneeHuman = task?.assigneeUserId
+            ? humanById.get(task.assigneeUserId)
             : undefined;
         return {
             attachments: attachmentsByMessage.get(row.id) ?? [],
@@ -106,7 +139,7 @@ export async function toAgentMessages(
             role: system ? 'system' : agent ? 'assistant' : 'user',
             reactions: reactionsByMessage.get(row.id) ?? [],
             sender: {
-                description: agent?.description ?? null,
+                description: agent?.description ?? human?.description ?? null,
                 handle,
                 type: system ? 'system' : agent ? 'agent' : 'human',
             },
@@ -120,7 +153,10 @@ export async function toAgentMessages(
                                     id: task.assigneeAgentId,
                                 }
                               : task.assigneeUserId
-                                ? { handle: null, id: task.assigneeUserId }
+                                ? {
+                                      handle: taskAssigneeHuman?.handle ?? null,
+                                      id: task.assigneeUserId,
+                                  }
                                 : null,
                           claimed_at: task.claimedAt,
                           created_at: task.createdAt,
@@ -191,14 +227,33 @@ export async function targetForChat(
         .select({
             anchorMessageId: chatsTable.anchorMessageId,
             kind: chatsTable.kind,
+            dmMemberOneUserId: chatsTable.dmMemberOneUserId,
             name: chatsTable.name,
             parentChatId: chatsTable.parentChatId,
         })
         .from(chatsTable)
         .where(and(eq(chatsTable.serverId, serverId), eq(chatsTable.id, chatId)))
         .limit(1);
-    if (!chat || chat.kind === 'dm') {
-        return 'dm:@operator';
+    if (!chat) {
+        return '#unknown';
+    }
+    if (chat.kind === 'dm') {
+        const [human] = chat.dmMemberOneUserId
+            ? await db
+                  .select({ handle: serverMembershipsTable.handle })
+                  .from(serverMembershipsTable)
+                  .where(
+                      and(
+                          eq(serverMembershipsTable.serverId, serverId),
+                          eq(serverMembershipsTable.userId, chat.dmMemberOneUserId)
+                      )
+                  )
+                  .limit(1)
+            : [];
+        if (!human?.handle) {
+            throw new Error('This DM human does not have an active Server handle.');
+        }
+        return `dm:@${human.handle}`;
     }
     if (chat.kind === 'channel') {
         return `#${chat.name}`;

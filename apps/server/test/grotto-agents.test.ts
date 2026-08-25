@@ -80,7 +80,7 @@ test('reserves the Cove identity from ordinary Agent creation', async () => {
             runtimeId: 'codex',
             serverId,
         })
-    ).rejects.toThrow(/reserved for onboarding/i);
+    ).rejects.toThrow(/reserved by Grotto/i);
 });
 
 test('provisions an ordinary Agent with its real execution settings and Owner DM', async () => {

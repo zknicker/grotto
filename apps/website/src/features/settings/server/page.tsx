@@ -1,4 +1,4 @@
-import { Button, Separator } from '@heroui/react';
+import { Button } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -6,7 +6,7 @@ import type { ServerSummary } from '../../../lib/grotto-server.tsx';
 import { grottoTrpc } from '../../../lib/grotto-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
-import { SettingsPageHeader } from '../layout/settings-page.tsx';
+import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
 
 export function ServerSettings({ server }: { server: ServerSummary }) {
@@ -25,7 +25,7 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
         <PageColumn>
             <SettingsPageHeader
                 description="Identity and permanent actions for this Server."
-                title="Server"
+                title="General"
             />
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
@@ -38,18 +38,6 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                         </ItemCard.Content>
                         <ItemCard.Action>
                             <SettingsFact>{server.displayName}</SettingsFact>
-                        </ItemCard.Action>
-                    </ItemCard>
-                    <Separator />
-                    <ItemCard>
-                        <ItemCard.Content>
-                            <ItemCard.Title>Address</ItemCard.Title>
-                            <ItemCard.Description>
-                                The permanent Server address.
-                            </ItemCard.Description>
-                        </ItemCard.Content>
-                        <ItemCard.Action>
-                            <SettingsFact>/{server.slug}</SettingsFact>
                         </ItemCard.Action>
                     </ItemCard>
                 </ItemCardGroup>

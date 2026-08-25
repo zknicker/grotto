@@ -1,18 +1,16 @@
-import { Button, Chip, Description, Dropdown, Label } from '@heroui/react';
+import { Button, Description, Dropdown, Label } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
 import { ComputerIcon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
-import { SectionHeader } from '../shell/section-header.tsx';
 import { PageTopbar } from '../shell/shell-topbar.tsx';
 import { AddComputerDialog } from './add-computer-dialog.tsx';
 import { ComputerDetail } from './computer-detail.tsx';
 import { resolveComputerPageState } from './computer-page-state.ts';
 import { computerRemovalDescription, useComputerRemovalAvailability } from './computer-removal.ts';
 import { ComputerRemoveDialog } from './computer-remove-dialog.tsx';
-import { computerHealthColor, computerHealthLabel, computerLabel } from './presentation.ts';
 
 export function ComputerPage({ serverId, serverSlug }: { serverId: string; serverSlug: string }) {
     const computers = useComputers(serverId);
@@ -24,8 +22,9 @@ export function ComputerPage({ serverId, serverSlug }: { serverId: string; serve
         requestedId: searchParams.get('computer'),
     });
 
-    // Which Computer you are reading is content identity, so it belongs in the
-    // shell band the way a chat's name does; the sidebar rows only name them.
+    // The Computer in view names itself in the content column through
+    // SettingsPageHeader, the way every settings destination does; the band is
+    // left to this page's actions.
     const selected =
         state.status === 'ready'
             ? computers.data?.find((item) => item.id === state.computerId)
@@ -35,31 +34,11 @@ export function ComputerPage({ serverId, serverSlug }: { serverId: string; serve
         <div className="flex h-full min-h-0 w-full">
             {selected ? (
                 <PageTopbar>
-                    <SectionHeader
-                        meta={
-                            <span className="flex shrink-0 items-center gap-2">
-                                <Chip
-                                    color={computerHealthColor(selected.health)}
-                                    size="sm"
-                                    variant="soft"
-                                >
-                                    {computerHealthLabel(selected.health)}
-                                </Chip>
-                                {selected.productVersion ? (
-                                    <span className="font-mono text-muted text-xs tabular-nums">
-                                        v{selected.productVersion}
-                                    </span>
-                                ) : null}
-                            </span>
-                        }
-                        title={computerLabel(selected)}
-                    >
-                        <ComputerBandMenu
-                            computerId={selected.id}
-                            onRemove={() => setRemovingId(selected.id)}
-                            serverId={serverId}
-                        />
-                    </SectionHeader>
+                    <ComputerBandMenu
+                        computerId={selected.id}
+                        onRemove={() => setRemovingId(selected.id)}
+                        serverId={serverId}
+                    />
                 </PageTopbar>
             ) : null}
             <main className="min-w-0 flex-1 overflow-y-auto">

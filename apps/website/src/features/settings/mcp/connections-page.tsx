@@ -4,7 +4,7 @@ import { RequireOperator } from '../../servers/require-operator.tsx';
 import { useServerContext } from '../../servers/server-context.ts';
 import { serverRoute } from '../../servers/server-routes.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
-import { SettingsPageHeader } from '../layout/settings-page.tsx';
+import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { ConnectionAddDrawer } from './connection-add-drawer.tsx';
 import { ConnectionDetail } from './connection-detail.tsx';
 import { ConnectionListSection } from './connection-list-section.tsx';

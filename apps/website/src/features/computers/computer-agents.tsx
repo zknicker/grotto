@@ -117,11 +117,10 @@ const agentColumns: DataGridColumn<ComputerAgentRow>[] = [
                     size="sm"
                     src={item.avatarUrl}
                 />
-                <p className="truncate font-medium text-base">{item.displayName}</p>
+                <p className="truncate font-medium">{item.displayName}</p>
             </div>
         ),
         header: 'Agent',
-        headerClassName: 'text-sm',
         id: 'displayName',
         isRowHeader: true,
         minWidth: 180,
@@ -130,18 +129,16 @@ const agentColumns: DataGridColumn<ComputerAgentRow>[] = [
     {
         accessorKey: 'runtime',
         allowsSorting: true,
-        cellClassName: 'text-sm text-muted',
+        cellClassName: 'text-muted',
         header: 'Runtime',
-        headerClassName: 'text-sm',
         id: 'runtime',
         minWidth: 120,
     },
     {
         accessorKey: 'model',
         allowsSorting: true,
-        cellClassName: 'text-sm text-muted',
+        cellClassName: 'text-muted',
         header: 'Model',
-        headerClassName: 'text-sm',
         id: 'model',
         minWidth: 160,
     },
@@ -153,7 +150,6 @@ const agentColumns: DataGridColumn<ComputerAgentRow>[] = [
             </Chip>
         ),
         header: 'Status',
-        headerClassName: 'text-sm',
         id: 'availability',
         minWidth: 100,
     },

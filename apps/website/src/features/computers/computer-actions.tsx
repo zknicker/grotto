@@ -84,7 +84,7 @@ export function RecoveryCommands({ serverSlug }: { serverSlug: string }) {
             </ItemCardGroup.Header>
             <CodeBlock>
                 <CodeBlock.Header>
-                    <span className="text-muted text-xs">Shell</span>
+                    <span className="text-muted text-sm">Shell</span>
                     <CodeBlock.CopyButton aria-label="Copy recovery commands" code={commands} />
                 </CodeBlock.Header>
                 <CodeBlock.Code code={commands} language="shellscript" />

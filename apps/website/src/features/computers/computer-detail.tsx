@@ -1,11 +1,19 @@
 import type { ComputerRuntimeId } from '@grotto/api';
+import { Chip } from '@heroui/react';
 import { ItemCardGroup } from '@heroui-pro/react';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx';
 import { PageColumn } from '../shell/page-column.tsx';
 import { ComputerUsageCapacity } from '../usage/computer-usage-capacity.tsx';
 import { ComputerActions } from './computer-actions.tsx';
 import { ComputerAgents } from './computer-agents.tsx';
-import { computerRuntimePresentations, computerSystemLabel } from './presentation.ts';
+import {
+    computerHealthColor,
+    computerHealthLabel,
+    computerLabel,
+    computerRuntimePresentations,
+    computerSystemLabel,
+} from './presentation.ts';
 
 export function ComputerDetail({
     computerId,
@@ -40,22 +48,51 @@ export function ComputerDetail({
         .map((runtime) => runtime.label);
 
     return (
-        <PageColumn width="wide">
-            {/* Version and connection state live in the shell band; what is
-                    left is stable background detail, which reads better as one
-                    line than as four icon rows. */}
-            <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                <ComputerFact srLabel="System" value={computerSystemLabel(computer)} />
-                <ComputerFact
-                    label="Last connected"
-                    value={
-                        computer.lastConnectedAt
-                            ? formatTimestamp(computer.lastConnectedAt)
-                            : 'Never'
-                    }
-                />
-                <ComputerFact label="Added" value={formatDate(computer.createdAt)} />
-            </dl>
+        // The settings nav is one reading column; a Computer is a settings
+        // destination inside it, not a dashboard. At `wide` this page alone
+        // jumped from 768px to 1280px mid-nav, and its four-column tables spent
+        // the extra 512px on gutters.
+        <PageColumn>
+            {/* A Computer is a settings destination, so it names itself in the
+                column like every other one, and the shell band is left to the
+                page's actions — which is where SectionHeader already says a
+                section page's band belongs. "Computer:" carries the noun,
+                because a machine name on its own does not say what it is.
+                This page is about one machine, so the header carries that
+                machine's facts instead of a sentence about Computers in
+                general — they say more, and unlike a static line they change. */}
+            <SettingsPageHeader
+                meta={
+                    <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-sm">
+                        <ComputerFact srLabel="System" value={computerSystemLabel(computer)} />
+                        {computer.productVersion ? (
+                            <ComputerFact label="Version" value={`v${computer.productVersion}`} />
+                        ) : null}
+                        <ComputerFact
+                            label="Last connected"
+                            value={
+                                computer.lastConnectedAt
+                                    ? formatTimestamp(computer.lastConnectedAt)
+                                    : 'Never'
+                            }
+                        />
+                        <ComputerFact label="Added" value={formatDate(computer.createdAt)} />
+                    </dl>
+                }
+                title={
+                    <>
+                        Computer: {computerLabel(computer)}
+                        <Chip
+                            className="ms-2 align-middle"
+                            color={computerHealthColor(computer.health)}
+                            size="sm"
+                            variant="soft"
+                        >
+                            {computerHealthLabel(computer.health)}
+                        </Chip>
+                    </>
+                }
+            />
 
             <section>
                 <ItemCardGroup variant="transparent">

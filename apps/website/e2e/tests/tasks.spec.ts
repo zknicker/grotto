@@ -184,11 +184,17 @@ test('a hosted task message projects its status in the Chat and opens its Thread
         messageId: anchor.id,
         serverId: server.id,
     });
-    const ownerSuffix = claim.task.assigneeUserId?.slice(-6);
-    if (!ownerSuffix) {
+    if (!claim.task.assigneeUserId) {
         throw new Error('The task projection flow did not resolve the claiming human.');
     }
-    await expect(row.getByTestId('message-task-badge')).toContainText(`Human ${ownerSuffix}`);
+    const directory = await client.member.list.query({ serverId: server.id });
+    const assignee = directory.members.find(
+        (member) => member.userId === claim.task.assigneeUserId
+    );
+    if (!assignee?.displayName) {
+        throw new Error('The claiming human did not carry a canonical display name.');
+    }
+    await expect(row.getByTestId('message-task-badge')).toContainText(assignee.displayName);
 
     await row.getByRole('button', { name: 'Open task thread' }).click();
     const thread = page.getByRole('complementary', { name: 'Thread' });

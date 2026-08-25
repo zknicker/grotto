@@ -28,7 +28,7 @@ export function ProfileSettings({ serverId }: { serverId: string }) {
 
     return (
         <ProfileIdentity
-            key={`${viewer.userId}:${viewer.displayName ?? ''}:${viewer.handle ?? ''}`}
+            key={`${viewer.userId}:${viewer.displayName ?? ''}`}
             serverId={serverId}
             viewer={viewer}
         />
@@ -60,15 +60,16 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
 
     const saveHandle = async () => {
         const parsed = participantHandleSchema.safeParse(handle);
+        const nextDisplayName = displayName.trim() || viewer.displayName;
 
-        if (!parsed.success || parsed.data === viewer.handle) {
+        if (!(parsed.success && nextDisplayName) || parsed.data === viewer.handle) {
             setHandle(viewer.handle ?? '');
             return;
         }
 
         await updateProfile.save({
             description: viewer.description ?? '',
-            displayName: viewer.displayName ?? displayName,
+            displayName: nextDisplayName,
             handle: parsed.data,
         });
     };

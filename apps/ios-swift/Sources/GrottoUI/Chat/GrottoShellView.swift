@@ -3,13 +3,13 @@ import Foundation
 
 public struct GrottoShellView<SettingsContent: View>: View {
     private let server: ServerPresentation
-    let chats: [ChatPresentation]
-    private let messagesForChat: (ChatPresentation) -> [MessagePresentation]
+    let destinations: [ChatDestination]
+    private let messagesForDestination: (ChatDestination) -> [MessagePresentation]
     private let isConnected: Bool
     private let settingsContent: ([SettingsRoute]) -> SettingsContent
     let onOpenTasks: () -> Void
     private let onOpenThread: (ChatPresentation, MessagePresentation) -> Void
-    private let onSend: (ChatPresentation, String, [ComposerAttachment]) async -> Bool
+    private let onSend: (ChatDestination, String, [ComposerAttachment]) async -> Bool
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     private let hasOlderMessages: (ChatPresentation) -> Bool
     private let isLoadingOlderMessages: (ChatPresentation) -> Bool
@@ -21,8 +21,10 @@ public struct GrottoShellView<SettingsContent: View>: View {
     private let createChannel: @Sendable (NewChannelDraft) async throws -> CreatedChannelPresentation
     private let agentActivities: [String: AgentActivityPresentation]
     private let loadAgentActivity: @Sendable (String) async throws -> [AgentActivityPresentation]
+    private let mentionOptions: (ChatDestination) -> [MentionOptionPresentation]
+    private let loadMentionOptions: (ChatDestination) async -> Void
 
-    @Binding private var selectedChatID: String?
+    @Binding private var selectedDestinationID: ChatDestination.ID?
     @State var drawerPresented = false
     @State var settingsRequest: SettingsPresentationRequest?
     /// Settings queued behind a Chat sheet that has to dismiss first; the two
@@ -36,14 +38,14 @@ public struct GrottoShellView<SettingsContent: View>: View {
 
     public init(
         server: ServerPresentation,
-        chats: [ChatPresentation],
-        selectedChatID: Binding<String?> = .constant(nil),
-        messagesForChat: @escaping (ChatPresentation) -> [MessagePresentation],
+        destinations: [ChatDestination],
+        selectedDestinationID: Binding<ChatDestination.ID?> = .constant(nil),
+        messagesForDestination: @escaping (ChatDestination) -> [MessagePresentation],
         isConnected: Bool,
         @ViewBuilder settingsContent: @escaping ([SettingsRoute]) -> SettingsContent,
         onOpenTasks: @escaping () -> Void = {},
         onOpenThread: @escaping (ChatPresentation, MessagePresentation) -> Void = { _, _ in },
-        onSend: @escaping (ChatPresentation, String, [ComposerAttachment]) async -> Bool,
+        onSend: @escaping (ChatDestination, String, [ComposerAttachment]) async -> Bool,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
             return localURL
@@ -57,14 +59,16 @@ public struct GrottoShellView<SettingsContent: View>: View {
         newChannelAgents: [NewChannelAgentPresentation] = [],
         agentActivities: [String: AgentActivityPresentation] = [:],
         loadAgentActivity: @escaping @Sendable (String) async throws -> [AgentActivityPresentation] = { _ in [] },
+        mentionOptions: @escaping (ChatDestination) -> [MentionOptionPresentation] = { _ in [] },
+        loadMentionOptions: @escaping (ChatDestination) async -> Void = { _ in },
         createChannel: @escaping @Sendable (NewChannelDraft) async throws -> CreatedChannelPresentation = { _ in
             throw CancellationError()
         }
     ) {
-        _selectedChatID = selectedChatID
+        _selectedDestinationID = selectedDestinationID
         self.server = server
-        self.chats = chats
-        self.messagesForChat = messagesForChat
+        self.destinations = destinations
+        self.messagesForDestination = messagesForDestination
         self.isConnected = isConnected
         self.settingsContent = settingsContent
         self.onOpenTasks = onOpenTasks
@@ -80,6 +84,8 @@ public struct GrottoShellView<SettingsContent: View>: View {
         self.newChannelAgents = newChannelAgents
         self.agentActivities = agentActivities
         self.loadAgentActivity = loadAgentActivity
+        self.mentionOptions = mentionOptions
+        self.loadMentionOptions = loadMentionOptions
         self.createChannel = createChannel
     }
 
@@ -89,9 +95,9 @@ public struct GrottoShellView<SettingsContent: View>: View {
             ZStack(alignment: .leading) {
                 ChatSidebarView(
                     server: server,
-                    chats: chats,
-                    selectedChatID: selectedChat?.id,
-                    onSelectChat: selectChat,
+                    destinations: destinations,
+                    selectedDestinationID: selectedDestination?.id,
+                    onSelectDestination: selectDestination,
                     onOpenSettings: { openSettings() },
                     onOpenSearch: { activeChatSheet = .search },
                     onOpenTasks: openTasks,
@@ -116,22 +122,30 @@ public struct GrottoShellView<SettingsContent: View>: View {
                 .allowsHitTesting(drawerPresented)
                 .zIndex(1)
 
-                if let selectedChat {
+                if let selectedDestination {
                     ChatScreenView(
-                        chat: selectedChat,
-                        messages: messagesForChat(selectedChat),
+                        chat: selectedDestination,
+                        messages: messagesForDestination(selectedDestination),
                         isConnected: isConnected,
                         onOpenSidebar: { setDrawer(open: !drawerPresented) },
-                        onOpenChatDetails: { activeChatSheet = .details(selectedChat) },
+                        onOpenChatDetails: { activeChatSheet = .details(selectedDestination) },
                         onOpenSearch: { activeChatSheet = .search },
-                        onOpenThread: { onOpenThread(selectedChat, $0) },
-                        onSend: { await onSend(selectedChat, $0, $1) },
+                        onOpenThread: { message in
+                            guard let chat = selectedDestination.durableChat else { return }
+                            onOpenThread(chat, message)
+                        },
+                        onSend: { await onSend(selectedDestination, $0, $1) },
                         onOpenAttachment: onOpenAttachment,
-                        hasOlderMessages: hasOlderMessages(selectedChat),
-                        isLoadingOlderMessages: isLoadingOlderMessages(selectedChat),
-                        onLoadOlderMessages: { await onLoadOlderMessages(selectedChat) },
+                        hasOlderMessages: selectedDestination.durableChat.map(hasOlderMessages) ?? false,
+                        isLoadingOlderMessages: selectedDestination.durableChat.map(isLoadingOlderMessages) ?? false,
+                        onLoadOlderMessages: {
+                            guard let chat = selectedDestination.durableChat else { return false }
+                            return await onLoadOlderMessages(chat)
+                        },
+                        mentionOptions: mentionOptions(selectedDestination),
+                        onLoadMentionOptions: { await loadMentionOptions(selectedDestination) },
                         contentInsets: proxy.safeAreaInsets,
-                        scrollTargetMessageID: scrollTargetBinding(for: selectedChat)
+                        scrollTargetMessageID: scrollTargetBinding(for: selectedDestination)
                     )
                     .overlay {
                         let progress = drawerProgress(drawerWidth: drawerWidth)
@@ -166,7 +180,7 @@ public struct GrottoShellView<SettingsContent: View>: View {
             switch sheet {
             case .search:
                 ServerSearchView(
-                    chats: chats,
+                    chats: durableChats,
                     searchMessages: searchMessages,
                     onSelectChat: { open($0) },
                     onSelectMessage: openSearchResult
@@ -193,47 +207,55 @@ public struct GrottoShellView<SettingsContent: View>: View {
                 )
             }
         }
-        .onChange(of: chats.map(\.id), initial: true) { _, chatIDs in
-            syncSelection(chatIDs: chatIDs)
+        .onChange(of: destinations.map(\.id), initial: true) { _, destinationIDs in
+            syncSelection(destinationIDs: destinationIDs)
         }
     }
 
-    private var selectedChat: ChatPresentation? {
-        chats.first { $0.id == selectedChatID } ?? chats.first
+    private var durableChats: [ChatPresentation] {
+        destinations.compactMap(\.durableChat)
     }
 
-    /// Adopts a requested Chat once the Server list carries it, and keeps a
-    /// removed selection from lingering as a stale id behind the rendered Chat.
-    private func syncSelection(chatIDs: [String]) {
-        if let arrivedID = ChatSelection.resolvePending(pendingID: pendingChatSelectionID, chatIDs: chatIDs),
-           let arrivedChat = chats.first(where: { $0.id == arrivedID }) {
+    private var selectedDestination: ChatDestination? {
+        destinations.first { $0.id == selectedDestinationID } ?? destinations.first
+    }
+
+    /// Adopts a requested durable Chat once the Server list carries it, while
+    /// implicit Agent destinations remain selectable without a Chat id.
+    private func syncSelection(destinationIDs: [ChatDestination.ID]) {
+        if let pendingID = pendingChatSelectionID,
+           let arrived = destinations.first(where: { $0.id == .chat(pendingID) }) {
             pendingChatSelectionID = nil
-            selectChat(arrivedChat)
+            selectDestination(arrived)
             return
         }
 
-        let resolved = ChatSelection.resolve(selectedID: selectedChatID, chatIDs: chatIDs)
-        guard resolved != selectedChatID else { return }
-        selectedChatID = resolved
+        guard let selectedDestinationID, destinationIDs.contains(selectedDestinationID) else {
+            self.selectedDestinationID = destinationIDs.first
+            return
+        }
     }
 
-    private func scrollTargetBinding(for chat: ChatPresentation) -> Binding<String?> {
+    private func scrollTargetBinding(for destination: ChatDestination) -> Binding<String?> {
         Binding(
-            get: { scrollTarget?.chatID == chat.id ? scrollTarget?.messageID : nil },
+            get: {
+                guard case .chat(let chatID) = destination.id else { return nil }
+                return scrollTarget?.chatID == chatID ? scrollTarget?.messageID : nil
+            },
             set: { if $0 == nil { scrollTarget = nil } }
         )
     }
 
-    private func agentActivity(for chat: ChatPresentation) -> AgentActivityPresentation? {
-        guard case .directMessage(let agent) = chat.kind else { return nil }
+    private func agentActivity(for chat: ChatDestination) -> AgentActivityPresentation? {
+        guard case .agentDirectMessage(let agent) = chat.kind else { return nil }
         return agentActivities[agent.id]
     }
 
-    private func selectChat(_ chat: ChatPresentation) {
-        if pendingChatSelectionID != chat.id {
+    private func selectDestination(_ destination: ChatDestination) {
+        if case .chat(let chatID) = destination.id, pendingChatSelectionID != chatID {
             pendingChatSelectionID = nil
         }
-        selectedChatID = chat.id
+        selectedDestinationID = destination.id
         setDrawer(open: false)
     }
 
@@ -242,11 +264,11 @@ public struct GrottoShellView<SettingsContent: View>: View {
     func open(_ chat: ChatPresentation, revealing messageID: String? = nil) {
         activeChatSheet = nil
         scrollTarget = messageID.map { MessageScrollTarget(chatID: chat.id, messageID: $0) }
-        selectChat(chat)
+        selectDestination(.durableChat(chat))
     }
 
     private func openSearchResult(_ result: MessageSearchResultPresentation) -> Bool {
-        guard let chat = chats.first(where: { $0.id == result.chatID }) else { return false }
+        guard let chat = durableChats.first(where: { $0.id == result.chatID }) else { return false }
         open(chat, revealing: result.id)
         return true
     }
@@ -254,13 +276,13 @@ public struct GrottoShellView<SettingsContent: View>: View {
 }
 
 #Preview {
-    @Previewable @State var selectedChatID: String? = ChatFixtures.chats.first?.id
+    @Previewable @State var selectedDestinationID: ChatDestination.ID? = ChatFixtures.chats.first.map { .chat($0.id) }
 
     GrottoShellView(
         server: ChatFixtures.server,
-        chats: ChatFixtures.chats,
-        selectedChatID: $selectedChatID,
-        messagesForChat: { _ in ChatFixtures.messages },
+        destinations: ChatFixtures.chats.map(ChatDestination.durableChat),
+        selectedDestinationID: $selectedDestinationID,
+        messagesForDestination: { _ in ChatFixtures.messages },
         isConnected: true,
         settingsContent: { path in
             SettingsSheet(initialPath: path)

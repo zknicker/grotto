@@ -7,6 +7,8 @@ struct HumanProfileView: View {
     let onSaveAvatar: @Sendable (AvatarImagePayload) async throws -> Void
     @State private var name: String
     @State private var savedName: String
+    @State private var handle: String
+    @State private var savedHandle: String
     @State private var isSaving = false
     @State private var errorMessage: String?
 
@@ -22,6 +24,8 @@ struct HumanProfileView: View {
         self.onSaveAvatar = onSaveAvatar
         _name = State(initialValue: person.displayName)
         _savedName = State(initialValue: person.displayName)
+        _handle = State(initialValue: person.handle ?? "")
+        _savedHandle = State(initialValue: person.handle ?? "")
     }
 
     var body: some View {
@@ -31,7 +35,7 @@ struct HumanProfileView: View {
                     initials: person.initials,
                     avatarURL: person.avatarURL,
                     displayName: name,
-                    handle: person.handle.map { "@\($0)" },
+                    handle: handle.isEmpty ? nil : "@\(handle)",
                     onSaveAvatar: onSaveAvatar
                 )
 
@@ -43,8 +47,17 @@ struct HumanProfileView: View {
                                 .multilineTextAlignment(.trailing)
                                 .grottoWordsAutocapitalization()
                                 .submitLabel(.done)
-                                .onSubmit { Task { await saveName() } }
+                                .onSubmit { Task { await saveIdentity() } }
                                 .accessibilityLabel("Name")
+                        }
+                        SettingsRow(title: "Handle", systemImage: "at", showsDivider: true) {
+                            TextField("handle", text: $handle)
+                                .font(.body)
+                                .multilineTextAlignment(.trailing)
+                                .grottoHandleInput()
+                                .submitLabel(.done)
+                                .onSubmit { Task { await saveIdentity() } }
+                                .accessibilityLabel("Handle")
                         }
                         DisclosureRow(
                             "Description",
@@ -60,7 +73,6 @@ struct HumanProfileView: View {
 
                 SettingsSection("Account") {
                     SettingsListGroup {
-                        ValueRow("Handle", value: person.handle.map { "@\($0)" } ?? "—", systemImage: "at")
                         ValueRow("Email", value: person.email ?? "Unavailable", systemImage: "envelope")
                         ValueRow("Role", value: person.role, systemImage: "person.badge.key")
                         ValueRow("Joined", value: person.joined.isEmpty ? "Unavailable" : person.joined, systemImage: "calendar", showsDivider: false)
@@ -88,7 +100,7 @@ struct HumanProfileView: View {
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 Button {
-                    Task { await saveName() }
+                    Task { await saveIdentity() }
                 } label: {
                     if isSaving {
                         ProgressView()
@@ -96,19 +108,25 @@ struct HumanProfileView: View {
                         Text("Save")
                     }
                 }
-                .disabled(!hasNameChanges || isSaving)
-                .accessibilityLabel("Save name")
+                .disabled(!hasIdentityChanges || isSaving)
+                .accessibilityLabel("Save profile")
             }
         }
     }
 
-    private var hasNameChanges: Bool {
+    private var hasIdentityChanges: Bool {
         name.trimmingCharacters(in: .whitespacesAndNewlines) != savedName
+            || ParticipantHandleValidation.normalized(handle) != savedHandle
     }
 
-    private func saveName() async {
+    private func saveIdentity() async {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty, trimmedName != savedName, !isSaving else { return }
+        let normalizedHandle = ParticipantHandleValidation.normalized(handle)
+        guard !trimmedName.isEmpty, hasIdentityChanges, !isSaving else { return }
+        if let validationError = ParticipantHandleValidation.error(for: normalizedHandle) {
+            errorMessage = validationError
+            return
+        }
 
         isSaving = true
         errorMessage = nil
@@ -116,7 +134,7 @@ struct HumanProfileView: View {
             let draft = SettingsPerson(
                 id: person.id,
                 displayName: trimmedName,
-                handle: person.handle,
+                handle: normalizedHandle,
                 email: person.email,
                 role: person.role,
                 joined: person.joined,
@@ -127,6 +145,8 @@ struct HumanProfileView: View {
             let saved = try await onSave(draft)
             name = saved.displayName
             savedName = saved.displayName
+            handle = saved.handle ?? normalizedHandle
+            savedHandle = saved.handle ?? normalizedHandle
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -274,17 +294,5 @@ struct AgentProfileView: View {
             errorMessage = error.localizedDescription
         }
         isSaving = false
-    }
-}
-
-#Preview("Human profile") {
-    NavigationStack {
-        HumanProfileView(person: SettingsFixtures.viewer) { _, _ in }
-    }
-}
-
-#Preview("Agent profile") {
-    NavigationStack {
-        AgentProfileView(agent: SettingsFixtures.cove) { _, _ in }
     }
 }

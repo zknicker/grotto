@@ -5,11 +5,12 @@ import GrottoUI
 extension GrottoStore {
     var settingsPersistence: SettingsPersistence {
         SettingsPersistence(
-            saveHumanProfile: { [weak self] userID, displayName, description in
+            saveHumanProfile: { [weak self] userID, displayName, handle, description in
                 guard let self else { throw CancellationError() }
                 return try await self.saveHumanProfile(
                     userID: userID,
                     displayName: displayName,
+                    handle: handle,
                     description: description
                 )
             },
@@ -41,36 +42,6 @@ extension GrottoStore {
         )
     }
 
-    var chatPresentations: [ChatPresentation] {
-        chats.compactMap { chat in
-            switch chat.kind {
-            case .channel:
-                return ChatPresentation(
-                    id: chat.id,
-                    title: chat.name ?? (chat.isAll ? "all" : "Channel"),
-                    kind: .channel,
-                    unreadCount: chat.unreadCount,
-                    appearance: ChannelAppearance(icon: chat.icon, color: chat.color)
-                )
-            case .dm:
-                guard let agentID = chat.peerAgentID,
-                      let agent = agents.first(where: { $0.id == agentID }) else { return nil }
-                let presentation = AgentPresentation(
-                    id: agent.id,
-                    name: agent.displayName,
-                    avatarURL: resolvedAvatarURL(agent.avatarURL),
-                    presence: presence(availability(for: agent))
-                )
-                return ChatPresentation(
-                    id: chat.id,
-                    title: agent.displayName,
-                    kind: .directMessage(agent: presentation),
-                    unreadCount: chat.unreadCount
-                )
-            }
-        }
-    }
-
     func messagePresentations(chatID: String) -> [MessagePresentation] {
         let page = messagesByChatID[chatID]
         let threadByAnchor = Dictionary(uniqueKeysWithValues: (page?.threads ?? []).map { ($0.anchorMessageID, $0) })
@@ -94,7 +65,8 @@ extension GrottoStore {
                 createdAt: message.createdAt,
                 attachments: message.attachments.map(attachmentPresentation),
                 thread: thread,
-                task: message.task.map(taskPresentation)
+                task: message.task.map(taskPresentation),
+                richSegments: richMessageSegments(message.content)
             )
         }
         let pending = (pendingMessagesByChatID[chatID] ?? []).map { message in
@@ -104,7 +76,8 @@ extension GrottoStore {
                 content: message.content,
                 createdAt: message.createdAt,
                 attachments: message.attachments.map(\.presentation),
-                isPending: true
+                isPending: true,
+                richSegments: richMessageSegments(message.content)
             )
         }
         return durable + pending
@@ -117,6 +90,30 @@ extension GrottoStore {
             mediaType: attachment.mediaType,
             sizeBytes: attachment.sizeBytes
         )
+    }
+
+    private func richMessageSegments(_ content: String) -> [RichMessageSegment] {
+        RichMessageParser.parse(content) { kind, id, fallback in
+            switch kind {
+            case .agent:
+                guard let agent = agents.first(where: { $0.id == id }) else { return nil }
+                return RichReferencePresentation(
+                    id: id,
+                    kind: .agent,
+                    label: "@\(agent.displayName)",
+                    avatarURL: resolvedAvatarURL(agent.avatarURL)
+                )
+            case .human:
+                guard let member = members?.members.first(where: { $0.userID == id }) else { return nil }
+                let name = member.displayName ?? member.handle ?? fallback.trimmingCharacters(in: CharacterSet(charactersIn: "@"))
+                return RichReferencePresentation(
+                    id: id,
+                    kind: .human,
+                    label: "@\(name)",
+                    avatarURL: resolvedAvatarURL(member.avatarURL)
+                )
+            }
+        }
     }
 
     /// Projects a task-list row back into the shared message presentation used
@@ -236,7 +233,7 @@ extension GrottoStore {
         )
     }
 
-    private func presence(_ availability: AgentAvailability) -> AgentPresence {
+    func presence(_ availability: AgentAvailability) -> AgentPresence {
         switch availability {
         case .error: .error
         case .idle: .idle

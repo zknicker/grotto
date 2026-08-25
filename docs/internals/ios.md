@@ -47,7 +47,10 @@ ticket procedure. A configured local build never falls back to browser OAuth.
 Swift settings use one native sheet with one `NavigationStack`. Focused screens push within that
 sheet, single-line identity values edit inline, and long-form values use a dedicated editor. All
 profile values and avatars originate from Server records; the app must not create mobile-only identity
-state. The app also reads Computers through the existing `computer.list`
+state. A human edits their Server-scoped handle alongside their display name. Native validation mirrors
+the shared handle grammar for immediate feedback, while `member.updateProfile` carries the active
+`serverId` and Server remains authoritative for cross-human/Agent uniqueness. The app also reads
+Computers through the existing `computer.list`
 contract; an unavailable or role-denied Computer snapshot does not block the rest of Settings.
 Server-provided relative avatar URLs resolve against the configured Server origin, including local
 development; no Swift surface hardcodes the production host or substitutes local seeded artwork.
@@ -180,6 +183,19 @@ delivery continues, and loaded affected Chat pages are refetched in sequence ord
 remain app-local and are keyed by the client nonce. A pending row retires only after the canonical
 Server message arrives; a failed send restores its content to the composer for an explicit retry.
 Optimistic rows never patch durable history.
+
+The native Chat shell navigates over a typed destination rather than assuming every sidebar row is a
+persisted Chat. A durable destination carries a Server Chat id; an implicit Agent-DM destination carries
+only the Agent id. Every active Agent therefore appears in the sidebar before a DM exists. Its first
+text send uses `chat.send` with `targetKind: agent-dm`, then adopts the Chat id from the receipt and never
+creates a placeholder record. Materialized Agent and human DMs remain durable destinations; human peers
+resolve their current name, handle, and avatar from the member directory, with a former-member fallback
+when the directory no longer carries them.
+
+Native composers query `chat.mentionOptions` against either that durable Chat or the implicit Agent-DM
+target. Selecting an Agent or human writes the shared `agent://` or `user://` markdown reference into the
+draft. Transcript chips parse that markdown and resolve live Agent/member identity by immutable id;
+human references remain visual and do not create attention or notification behavior.
 
 The open native Chat and Thread surfaces acknowledge the latest loaded message sequence through
 `chat.markRead`. Identical Server/Chat/sequence acknowledgements are deduplicated in memory, and a

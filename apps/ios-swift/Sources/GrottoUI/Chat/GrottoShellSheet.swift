@@ -8,7 +8,7 @@ struct SettingsPresentationRequest: Identifiable, Hashable {
 /// The sheets the Chat shell can present over its canvas.
 enum GrottoShellSheet: Identifiable {
     case search
-    case details(ChatPresentation)
+    case details(ChatDestination)
     case archived
     case newChannel
 

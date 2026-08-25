@@ -11,7 +11,7 @@ struct AuthenticatedGrottoView: View {
     @State private var selectedThread: ThreadSelection?
     /// The App owns the open Chat so the shell canvas, the pushed Thread, and
     /// the Store's read acknowledgements always name the same Chat.
-    @State private var selectedChatID: String?
+    @State private var selectedDestinationID: ChatDestination.ID?
     @State private var path: [GrottoRootRoute] = []
     @AppStorage("appearancePreference") private var appearanceRawValue = AppearancePreference.system.rawValue
     @Environment(\.scenePhase) private var scenePhase
@@ -53,13 +53,13 @@ struct AuthenticatedGrottoView: View {
 
     @ViewBuilder
     private var loadedContent: some View {
-        if let server = store.serverPresentation, !store.chatPresentations.isEmpty {
+        if let server = store.serverPresentation, !store.chatDestinations.isEmpty {
             NavigationStack(path: $path) {
                 GrottoShellView(
                     server: server,
-                    chats: store.chatPresentations,
-                    selectedChatID: $selectedChatID,
-                    messagesForChat: { store.messagePresentations(chatID: $0.id) },
+                    destinations: store.chatDestinations,
+                    selectedDestinationID: $selectedDestinationID,
+                    messagesForDestination: { store.messagePresentations(chatID: $0.pendingKey) },
                     isConnected: store.isConnected,
                     settingsContent: { initialPath in
                         if let settingsData = store.settingsData {
@@ -75,8 +75,18 @@ struct AuthenticatedGrottoView: View {
                     },
                     onOpenTasks: { path.append(.tasks) },
                     onOpenThread: openThread,
-                    onSend: { chat, content, attachments in
-                        await store.send(content, to: chat.id, attachments: attachments)
+                    onSend: { destination, content, attachments in
+                        switch destination {
+                        case .durableChat(let chat):
+                            return await store.send(content, to: chat.id, attachments: attachments)
+                        case .implicitAgentDM(let agent):
+                            guard attachments.isEmpty,
+                                  let chatID = await store.sendAgentDM(content, to: agent.id) else {
+                                return false
+                            }
+                            selectedDestinationID = .chat(chatID)
+                            return true
+                        }
                     },
                     onOpenAttachment: { attachment in
                         try await store.downloadAttachment(attachment)
@@ -113,6 +123,8 @@ struct AuthenticatedGrottoView: View {
                     loadAgentActivity: { agentID in
                         try await store.agentActivityPresentations(agentID: agentID)
                     },
+                    mentionOptions: { store.mentionOptions(for: $0) },
+                    loadMentionOptions: { await store.loadMentionOptions(for: $0) },
                     createChannel: { draft in
                         try await store.createNativeChannel(draft)
                     }
@@ -134,12 +146,14 @@ struct AuthenticatedGrottoView: View {
                     selectedThread = nil
                     // The shell selection is the source of truth for what the
                     // canvas shows once a Thread pops.
-                    guard previous.carriesThread, let selectedChatID else { return }
-                    Task { await store.openChat(chatID: selectedChatID) }
+                    guard previous.carriesThread,
+                          case .chat(let chatID) = selectedDestinationID else { return }
+                    Task { await store.openChat(chatID: chatID) }
                 }
-                .onChange(of: selectedChatID) { _, chatID in
+                .onChange(of: selectedDestinationID) { _, destinationID in
                     // A pushed Thread owns the open Chat while it is on screen.
-                    guard selectedThread == nil, let chatID else { return }
+                    guard selectedThread == nil,
+                          case .chat(let chatID) = destinationID else { return }
                     Task { await store.openChat(chatID: chatID) }
                 }
                 .preferredColorScheme(preferredColorScheme)
@@ -191,7 +205,7 @@ struct AuthenticatedGrottoView: View {
     }
 
     private func pushThread(_ thread: ThreadSelection, parentChatID: String) {
-        selectedChatID = parentChatID
+        selectedDestinationID = .chat(parentChatID)
         selectedThread = thread
         path.append(.thread(thread))
     }
@@ -265,50 +279,4 @@ struct AuthenticatedGrottoView: View {
             )
     }
 
-}
-
-/// The settings sheet's fallback when Server settings data has not loaded yet.
-/// It owns its own `NavigationStack` and Done control so it dismisses like any
-/// other informational sheet in the app, rather than presenting bare.
-private struct SettingsUnavailableSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView {
-                Label("Settings unavailable", systemImage: "gearshape")
-            } description: {
-                Text("Settings are still loading. Try again in a moment.")
-            }
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
-    }
-}
-
-/// The screens the App pushes on the root navigation stack. Tasks and Threads
-/// share one stack, so a Thread opened from a Task pops back to the Task list
-/// rather than to the Chat canvas.
-private enum GrottoRootRoute: Hashable {
-    case tasks
-    case thread(ThreadSelection)
-}
-
-/// A Thread route anchored by the parent message, which exists before the child
-/// Chat does.
-private struct ThreadSelection: Hashable, Identifiable {
-    let parentChatID: String
-    var threadChatID: String?
-    let anchor: MessagePresentation
-
-    var id: String { anchor.id }
-}
-
-private extension Array where Element == GrottoRootRoute {
-    var carriesThread: Bool {
-        contains { if case .thread = $0 { true } else { false } }
-    }
 }

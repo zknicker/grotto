@@ -8,7 +8,7 @@ import SwiftUI
 public struct ChatDetailsView: View {
     @Environment(\.dismiss) private var dismiss
 
-    private let chat: ChatPresentation
+    private let chat: ChatDestination
     private let server: ServerPresentation
     private let currentActivity: AgentActivityPresentation?
     private let loadAgentActivity: @Sendable (String) async throws -> [AgentActivityPresentation]
@@ -18,7 +18,7 @@ public struct ChatDetailsView: View {
     /// - Parameter onOpenAgentProfile: hands the Agent id to the shell, which
     ///   dismisses this sheet and opens Settings on that Agent's profile.
     public init(
-        chat: ChatPresentation,
+        chat: ChatDestination,
         server: ServerPresentation,
         currentActivity: AgentActivityPresentation? = nil,
         loadAgentActivity: @escaping @Sendable (String) async throws -> [AgentActivityPresentation] = { _ in [] },
@@ -40,7 +40,7 @@ public struct ChatDetailsView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
 
-                if case .directMessage(let agent) = chat.kind {
+                if case .agentDirectMessage(let agent) = chat.kind {
                     activitySections(agent: agent)
                 }
             }
@@ -120,7 +120,7 @@ public struct ChatDetailsView: View {
     }
 
     private var agentID: String? {
-        guard case .directMessage(let agent) = chat.kind else { return nil }
+        guard case .agentDirectMessage(let agent) = chat.kind else { return nil }
         return agent.id
     }
 
@@ -159,7 +159,7 @@ public struct ChatDetailsView: View {
             Text("Channel · \(server.name)")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-        case .directMessage(let agent):
+        case .agentDirectMessage(let agent):
             HStack(spacing: 6) {
                 Circle()
                     .fill(agent.presence.activityColor)
@@ -171,6 +171,10 @@ public struct ChatDetailsView: View {
                     ProgressView().controlSize(.mini)
                 }
             }
+        case .humanDirectMessage(let human):
+            Text(human.handle.map { "Human · @\($0)" } ?? "Human")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -181,13 +185,15 @@ public struct ChatDetailsView: View {
             // The hero sits where a DM's circular Agent avatar sits, so it keeps
             // the circle and only takes the channel's glyph and tint.
             ChannelIconBox(appearance: chat.appearance, size: 72, glyphSize: 32, shape: .circle)
-        case .directMessage(let agent):
+        case .agentDirectMessage(let agent):
             AvatarView(
                 name: agent.name,
                 url: agent.avatarURL,
                 presence: agent.presence,
                 size: 72
             )
+        case .humanDirectMessage(let human):
+            AvatarView(name: human.name, url: human.avatarURL, presence: nil, size: 72)
         }
     }
 }
@@ -239,14 +245,14 @@ private extension AgentPresence {
 
 #Preview("Channel details") {
     ChatDetailsView(
-        chat: ChatFixtures.chats[1],
+        chat: .durableChat(ChatFixtures.chats[1]),
         server: ChatFixtures.server
     )
 }
 
 #Preview("Agent details") {
     ChatDetailsView(
-        chat: ChatFixtures.chats[3],
+        chat: .durableChat(ChatFixtures.chats[3]),
         server: ChatFixtures.server
     )
 }

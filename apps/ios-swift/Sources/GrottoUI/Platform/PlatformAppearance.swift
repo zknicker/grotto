@@ -87,6 +87,16 @@ extension View {
         self
         #endif
     }
+
+    @ViewBuilder
+    func grottoHandleInput() -> some View {
+        #if os(iOS)
+        textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+        #else
+        self
+        #endif
+    }
 }
 
 public extension View {

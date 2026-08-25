@@ -14,7 +14,7 @@ extension GrottoShellView {
     }
 
     private func selectChannel(id: String) {
-        if let chat = chats.first(where: { $0.id == id }) {
+        if let chat = destinations.compactMap(\.durableChat).first(where: { $0.id == id }) {
             open(chat)
             return
         }

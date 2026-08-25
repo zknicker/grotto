@@ -80,7 +80,12 @@ final class TRPCClientTests: XCTestCase {
 
         let _: TRPCNoContent = try await client.mutation(
             "member.updateProfile",
-            input: UpdateHumanProfileInput(description: nil, displayName: "Zach")
+            input: UpdateHumanProfileInput(
+                description: nil,
+                displayName: "Zach",
+                handle: "zach",
+                serverID: "srv_123"
+            )
         )
     }
 

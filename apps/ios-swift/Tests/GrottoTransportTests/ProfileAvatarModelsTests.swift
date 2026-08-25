@@ -4,12 +4,19 @@ import XCTest
 
 final class ProfileAvatarModelsTests: XCTestCase {
     func testHumanProfileInputEncodesNullableDescriptionAndExactWireNames() throws {
-        let input = UpdateHumanProfileInput(description: nil, displayName: "Zach Knickerbocker")
+        let input = UpdateHumanProfileInput(
+            description: nil,
+            displayName: "Zach Knickerbocker",
+            handle: "zach",
+            serverID: "srv_123"
+        )
         let object = try jsonObject(input)
 
-        XCTAssertEqual(Set(object.keys), ["description", "displayName"])
+        XCTAssertEqual(Set(object.keys), ["description", "displayName", "handle", "serverId"])
         XCTAssertTrue(object["description"] is NSNull)
         XCTAssertEqual(object["displayName"] as? String, "Zach Knickerbocker")
+        XCTAssertEqual(object["handle"] as? String, "zach")
+        XCTAssertEqual(object["serverId"] as? String, "srv_123")
     }
 
     func testAgentProfileInputEncodesNullableDescriptionAndIDs() throws {

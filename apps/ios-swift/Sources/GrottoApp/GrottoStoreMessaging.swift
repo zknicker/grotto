@@ -267,13 +267,13 @@ extension GrottoStore {
         }
     }
 
-    private func removePendingMessage(nonce: String) {
+    func removePendingMessage(nonce: String) {
         for chatID in Array(pendingMessagesByChatID.keys) {
             removePendingMessage(chatID: chatID, nonce: nonce)
         }
     }
 
-    private func adoptPendingMessages(from sourceChatID: String, to canonicalChatID: String) {
+    func adoptPendingMessages(from sourceChatID: String, to canonicalChatID: String) {
         guard sourceChatID != canonicalChatID,
               let pending = pendingMessagesByChatID.removeValue(forKey: sourceChatID),
               !pending.isEmpty

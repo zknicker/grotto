@@ -9,7 +9,7 @@ import OSLog
 @MainActor
 @Observable
 final class GrottoStore {
-    private static let logger = Logger(subsystem: "build.grotto.ios", category: "server")
+    static let logger = Logger(subsystem: "build.grotto.ios", category: "server")
     enum State {
         case idle
         case loading
@@ -25,8 +25,10 @@ final class GrottoStore {
     // Internal so the app-only computer loader can live in its own file.
     var computers: [ComputerSummary]?
     var chats: [ChatSummary] = []
-    private(set) var messagesByChatID: [String: ChatMessagePage] = [:]
+    var receiptBackedAgentDMsByChatID: [String: String] = [:]
+    var messagesByChatID: [String: ChatMessagePage] = [:]
     var pendingMessagesByChatID: [String: [PendingChatMessage]] = [:]
+    var mentionOptionsByDestinationID: [ChatDestination.ID: [MentionOptionPresentation]] = [:]
     private(set) var lifecycleAvailability: [String: AgentAvailability] = [:]
     var currentActivityByAgentID: [String: AgentActivityEvent] = [:]
     var currentActivityPositionByRunID: [String: Int] = [:]
@@ -39,7 +41,7 @@ final class GrottoStore {
     var openChatID: String?
     var acknowledgedReadSequences: [ChatReadScope: Int] = [:]
     var readAcknowledgementsInFlight: Set<ChatReadAcknowledgement> = []
-    private var olderMessageLoadsInFlight: Set<String> = []
+    var olderMessageLoadsInFlight: Set<String> = []
     private var foregroundRefreshInFlight = false
     let client: TRPCClient
     private nonisolated let eventTasks = EventTaskBag()
@@ -116,72 +118,6 @@ final class GrottoStore {
             Self.logger.error("Foreground refresh failed: \(error.localizedDescription, privacy: .public)")
             startEventStreams(serverID: serverID)
         }
-    }
-
-    func loadMessages(chatID: String) async {
-        guard let serverID = activeServer?.id else { return }
-        do {
-            let page: ChatMessagePage = try await client.query(
-                "chat.messages",
-                input: ChatMessagesInput(serverId: serverID, chatId: chatID, limit: 50)
-            )
-            let storedPage: ChatMessagePage
-            if let existing = messagesByChatID[chatID],
-               let existingFirstSequence = existing.messages.first?.sequence,
-               let pageFirstSequence = page.messages.first?.sequence,
-               existingFirstSequence < pageFirstSequence {
-                storedPage = page.merging(older: existing)
-            } else {
-                storedPage = page
-            }
-            messagesByChatID[chatID] = storedPage
-            reconcilePendingMessages(chatID: chatID, page: storedPage)
-        } catch {
-            sendError = error.localizedDescription
-            Self.logger.error("Loading messages failed: \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
-    func hasOlderMessages(chatID: String) -> Bool {
-        messagesByChatID[chatID]?.nextBeforeSequence != nil
-    }
-
-    func isLoadingOlderMessages(chatID: String) -> Bool {
-        olderMessageLoadsInFlight.contains(chatID)
-    }
-
-    @discardableResult
-    func loadOlderMessages(chatID: String) async -> Bool {
-        guard let serverID = activeServer?.id,
-              let current = messagesByChatID[chatID],
-              let beforeSequence = current.nextBeforeSequence,
-              olderMessageLoadsInFlight.insert(chatID).inserted
-        else { return false }
-        defer { olderMessageLoadsInFlight.remove(chatID) }
-
-        do {
-            let older: ChatMessagePage = try await client.query(
-                "chat.messages",
-                input: ChatMessagesInput(
-                    serverId: serverID,
-                    chatId: chatID,
-                    limit: 50,
-                    beforeSequence: beforeSequence
-                )
-            )
-            let merged = messagesByChatID[chatID, default: current].merging(older: older)
-            messagesByChatID[chatID] = merged
-            reconcilePendingMessages(chatID: chatID, page: merged)
-            return true
-        } catch {
-            sendError = error.localizedDescription
-            Self.logger.error("Loading older messages failed: \(error.localizedDescription, privacy: .public)")
-            return false
-        }
-    }
-
-    func availability(for agent: AgentSummary) -> AgentAvailability {
-        lifecycleAvailability[agent.id] ?? agent.availability
     }
 
     private func reloadServer(_ serverID: String) async throws {

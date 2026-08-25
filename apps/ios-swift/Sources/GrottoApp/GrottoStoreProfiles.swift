@@ -7,6 +7,7 @@ extension GrottoStore {
     func saveHumanProfile(
         userID: String,
         displayName: String,
+        handle: String?,
         description: String
     ) async throws -> SettingsPerson {
         guard let serverID = activeServer?.id,
@@ -18,7 +19,9 @@ extension GrottoStore {
             "member.updateProfile",
             input: UpdateHumanProfileInput(
                 description: description.nilIfBlank,
-                displayName: displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+                displayName: displayName.trimmingCharacters(in: .whitespacesAndNewlines),
+                handle: handle?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+                serverID: serverID
             )
         )
         let refreshed: MemberList = try await client.query(

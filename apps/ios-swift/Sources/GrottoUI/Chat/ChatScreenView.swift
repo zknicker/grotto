@@ -1,7 +1,7 @@
 import SwiftUI
 
 public struct ChatScreenView: View {
-    private let chat: ChatPresentation
+    private let chat: ChatDestination
     private let messages: [MessagePresentation]
     private let isConnected: Bool
     private let onOpenSidebar: () -> Void
@@ -13,6 +13,8 @@ public struct ChatScreenView: View {
     private let hasOlderMessages: Bool
     private let isLoadingOlderMessages: Bool
     private let onLoadOlderMessages: () async -> Bool
+    private let mentionOptions: [MentionOptionPresentation]
+    private let onLoadMentionOptions: () async -> Void
     private let contentInsets: EdgeInsets
 
     @Binding private var scrollTargetMessageID: String?
@@ -22,7 +24,7 @@ public struct ChatScreenView: View {
     @Namespace private var composerTransitionNamespace
 
     public init(
-        chat: ChatPresentation,
+        chat: ChatDestination,
         messages: [MessagePresentation],
         isConnected: Bool,
         onOpenSidebar: @escaping () -> Void,
@@ -37,6 +39,8 @@ public struct ChatScreenView: View {
         hasOlderMessages: Bool = false,
         isLoadingOlderMessages: Bool = false,
         onLoadOlderMessages: @escaping () async -> Bool = { false },
+        mentionOptions: [MentionOptionPresentation] = [],
+        onLoadMentionOptions: @escaping () async -> Void = {},
         contentInsets: EdgeInsets = EdgeInsets(),
         scrollTargetMessageID: Binding<String?> = .constant(nil)
     ) {
@@ -53,6 +57,8 @@ public struct ChatScreenView: View {
         self.hasOlderMessages = hasOlderMessages
         self.isLoadingOlderMessages = isLoadingOlderMessages
         self.onLoadOlderMessages = onLoadOlderMessages
+        self.mentionOptions = mentionOptions
+        self.onLoadMentionOptions = onLoadMentionOptions
         self.contentInsets = contentInsets
     }
 
@@ -77,6 +83,8 @@ public struct ChatScreenView: View {
                         placeholder: "Message \(chat.kind.isChannel ? "#" : "")\(chat.title)",
                         isConnected: isConnected,
                         isTextFocused: $isComposerFocused,
+                        allowsAttachments: chat.durableChat != nil,
+                        mentionOptions: mentionOptions,
                         transitionNamespace: composerTransitionNamespace,
                         onSend: onSend
                     )
@@ -94,6 +102,7 @@ public struct ChatScreenView: View {
             .coordinateSpace(name: "composer-attachment-root")
         }
         .background(.background)
+        .task(id: chat.id) { await onLoadMentionOptions() }
     }
 
     private var header: some View {
@@ -121,8 +130,10 @@ public struct ChatScreenView: View {
         switch chat.kind {
         case .channel:
             ChannelIconBox(appearance: chat.appearance, size: 26)
-        case .directMessage(let agent):
+        case .agentDirectMessage(let agent):
             AvatarView(name: agent.name, url: agent.avatarURL, presence: agent.presence, size: 30)
+        case .humanDirectMessage(let human):
+            AvatarView(name: human.name, url: human.avatarURL, presence: nil, size: 30)
         }
     }
 
@@ -136,7 +147,7 @@ private extension ChatKind {
 
 #Preview {
     ChatScreenView(
-        chat: ChatFixtures.chats[1],
+        chat: .durableChat(ChatFixtures.chats[1]),
         messages: ChatFixtures.messages,
         isConnected: true,
         onOpenSidebar: {},

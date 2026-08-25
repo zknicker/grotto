@@ -195,9 +195,7 @@ public struct MessageTimelineView: View {
 
                 let content = message.content.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !content.isEmpty {
-                    Text(content)
-                        .font(.body)
-                        .textSelection(.enabled)
+                    RichMessageContentView(segments: message.richSegments)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 

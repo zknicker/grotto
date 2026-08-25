@@ -176,13 +176,13 @@ public struct SettingsData: Hashable, Sendable {
 /// canonical value from the Server after a successful write. Avatar payloads
 /// have already been resized and validated by `AvatarPhotoPicker`.
 public struct SettingsPersistence: Sendable {
-    public let saveHumanProfile: @Sendable (String, String, String) async throws -> SettingsPerson
+    public let saveHumanProfile: @Sendable (String, String, String?, String) async throws -> SettingsPerson
     public let saveAgentProfile: @Sendable (String, String, String) async throws -> SettingsAgent
     public let saveHumanAvatar: @Sendable (String, AvatarImagePayload) async throws -> SettingsPerson
     public let saveAgentAvatar: @Sendable (String, AvatarImagePayload) async throws -> SettingsAgent
 
     public init(
-        saveHumanProfile: @escaping @Sendable (String, String, String) async throws -> SettingsPerson,
+        saveHumanProfile: @escaping @Sendable (String, String, String?, String) async throws -> SettingsPerson,
         saveAgentProfile: @escaping @Sendable (String, String, String) async throws -> SettingsAgent,
         saveHumanAvatar: @escaping @Sendable (String, AvatarImagePayload) async throws -> SettingsPerson,
         saveAgentAvatar: @escaping @Sendable (String, AvatarImagePayload) async throws -> SettingsAgent
@@ -194,12 +194,12 @@ public struct SettingsPersistence: Sendable {
     }
 
     public static let preview = SettingsPersistence(
-        saveHumanProfile: { id, displayName, description in
+        saveHumanProfile: { id, displayName, handle, description in
             let person = SettingsFixtures.viewer
             return SettingsPerson(
                 id: id,
                 displayName: displayName,
-                handle: person.handle,
+                handle: handle,
                 email: person.email,
                 role: person.role,
                 joined: person.joined,

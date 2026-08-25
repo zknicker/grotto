@@ -10,9 +10,9 @@ public struct ChatSidebarView: View {
     static let shadowBleedHeight: CGFloat = 32
 
     private let server: ServerPresentation
-    private let chats: [ChatPresentation]
-    private let selectedChatID: String?
-    private let onSelectChat: (ChatPresentation) -> Void
+    private let destinations: [ChatDestination]
+    private let selectedDestinationID: ChatDestination.ID?
+    private let onSelectDestination: (ChatDestination) -> Void
     private let onOpenSettings: () -> Void
     private let onOpenSearch: () -> Void
     private let onOpenTasks: () -> Void
@@ -25,9 +25,9 @@ public struct ChatSidebarView: View {
 
     public init(
         server: ServerPresentation,
-        chats: [ChatPresentation],
-        selectedChatID: String?,
-        onSelectChat: @escaping (ChatPresentation) -> Void,
+        destinations: [ChatDestination],
+        selectedDestinationID: ChatDestination.ID?,
+        onSelectDestination: @escaping (ChatDestination) -> Void,
         onOpenSettings: @escaping () -> Void,
         onOpenSearch: @escaping () -> Void = {},
         onOpenTasks: @escaping () -> Void = {},
@@ -35,9 +35,9 @@ public struct ChatSidebarView: View {
         onOpenNewChannel: @escaping () -> Void = {}
     ) {
         self.server = server
-        self.chats = chats
-        self.selectedChatID = selectedChatID
-        self.onSelectChat = onSelectChat
+        self.destinations = destinations
+        self.selectedDestinationID = selectedDestinationID
+        self.onSelectDestination = onSelectDestination
         self.onOpenSettings = onOpenSettings
         self.onOpenSearch = onOpenSearch
         self.onOpenTasks = onOpenTasks
@@ -120,12 +120,12 @@ public struct ChatSidebarView: View {
         .buttonStyle(.plain)
     }
 
-    private var channels: [ChatPresentation] {
-        chats.filter { if case .channel = $0.kind { true } else { false } }
+    private var channels: [ChatDestination] {
+        destinations.filter { if case .channel = $0.kind { true } else { false } }
     }
 
-    private var directMessages: [ChatPresentation] {
-        chats.filter { if case .directMessage = $0.kind { true } else { false } }
+    private var directMessages: [ChatDestination] {
+        destinations.filter { if case .channel = $0.kind { false } else { true } }
     }
 
     private var serverCounts: String {
@@ -169,8 +169,8 @@ public struct ChatSidebarView: View {
         colorScheme == .dark ? Color.primary.opacity(0.12) : Color.primary.opacity(0.045)
     }
 
-    private func row(_ chat: ChatPresentation) -> some View {
-        Button { onSelectChat(chat) } label: {
+    private func row(_ chat: ChatDestination) -> some View {
+        Button { onSelectDestination(chat) } label: {
             HStack(spacing: 10) {
                 chatIcon(chat)
                 Text(chat.title)
@@ -181,7 +181,7 @@ public struct ChatSidebarView: View {
             .padding(.horizontal, 12)
             .frame(height: 42)
             .background(
-                selectedChatID == chat.id ? selectedRowFill : .clear,
+                selectedDestinationID == chat.id ? selectedRowFill : .clear,
                 in: .capsule
             )
             .overlay(alignment: .leading) {
@@ -198,12 +198,14 @@ public struct ChatSidebarView: View {
     }
 
     @ViewBuilder
-    private func chatIcon(_ chat: ChatPresentation) -> some View {
+    private func chatIcon(_ chat: ChatDestination) -> some View {
         switch chat.kind {
         case .channel:
             ChannelIconBox(appearance: chat.appearance, size: 26)
-        case .directMessage(let agent):
+        case .agentDirectMessage(let agent):
             AvatarView(name: agent.name, url: agent.avatarURL, presence: agent.presence, size: 28)
+        case .humanDirectMessage(let human):
+            AvatarView(name: human.name, url: human.avatarURL, presence: nil, size: 28)
         }
     }
 }
@@ -211,9 +213,9 @@ public struct ChatSidebarView: View {
 #Preview {
     ChatSidebarView(
         server: ChatFixtures.server,
-        chats: ChatFixtures.chats,
-        selectedChatID: "product",
-        onSelectChat: { _ in },
+        destinations: ChatFixtures.chats.map(ChatDestination.durableChat),
+        selectedDestinationID: .chat("product"),
+        onSelectDestination: { _ in },
         onOpenSettings: {}
     )
     .frame(width: 330)

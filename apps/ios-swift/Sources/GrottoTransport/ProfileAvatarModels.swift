@@ -8,27 +8,37 @@ import Foundation
 public struct UpdateHumanProfileInput: Codable, Equatable, Sendable {
     public let description: String?
     public let displayName: String
+    public let handle: String?
+    public let serverID: String
 
-    public init(description: String?, displayName: String) {
+    public init(description: String?, displayName: String, handle: String?, serverID: String) {
         self.description = description
         self.displayName = displayName
+        self.handle = handle
+        self.serverID = serverID
     }
 
     private enum CodingKeys: String, CodingKey {
         case description
         case displayName
+        case handle
+        case serverID = "serverId"
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         description = try container.decodeIfPresent(String.self, forKey: .description)
         displayName = try container.decode(String.self, forKey: .displayName)
+        handle = try container.decodeIfPresent(String.self, forKey: .handle)
+        serverID = try container.decode(String.self, forKey: .serverID)
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(description, forKey: .description)
         try container.encode(displayName, forKey: .displayName)
+        try container.encodeIfPresent(handle, forKey: .handle)
+        try container.encode(serverID, forKey: .serverID)
     }
 }
 /// Input for `agent.updateProfile`.

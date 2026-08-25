@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.20 - 2026-08-24
+
+- Grotto App navigation now uses one calmer sidebar and shell rhythm, with Chat tools moved into the
+  Chat menu, dedicated Members and Tasks destinations, clearer dialogs, and stock HeroUI behavior
+  throughout Settings and Connections.
+- Tasks gain Linear-style filtering and richer Thread details, while Owners and Admins can assign
+  work directly to Agents with durable receipts and follow behavior.
+- Channels support curated icons and colors across the Server, App, and iPhone app; MCP connections
+  also surface discovered icons and summaries.
+- Grotto for iPhone adds inline image attachments, improved search-result navigation, redesigned
+  Tasks and settings surfaces, and native channel appearance.
+- First-party packages, SDK symbols, environment variables, wire identifiers, local storage, and
+  internal tooling complete the breaking Tavern-to-Grotto contract rename. Server, App, iOS, and
+  Computer artifacts move together so no deployed surface retains the retired identifiers.
+
+### Release surfaces
+
+- Server: Publish v1.8.20
+- App: Publish v1.8.20
+- iOS: Publish v1.0.2 (build 3)
+- Computer: Publish v1.4.6
+
 ## v1.8.19 - 2026-08-19
 
 - Grotto for iPhone gains unified chrome, finger-tracking sidebar gestures, and Server-wide search

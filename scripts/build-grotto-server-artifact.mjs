@@ -32,8 +32,6 @@ const binaries = [
     ['grotto-server', 'grotto-server.ts'],
     ['grotto-server-bootstrap', 'grotto-server-bootstrap.ts'],
     ['grotto-server-migrate', 'grotto-server-migrate.ts'],
-    ['grotto-server-backup', 'grotto-server-backup.ts'],
-    ['grotto-server-restore', 'grotto-server-restore.ts'],
 ];
 for (const [name, source] of binaries) {
     run('bun', [
@@ -59,7 +57,7 @@ run(
     ['x', 'vite', 'build', '--outDir', path.join(stageRoot, 'share', 'grotto-server', 'app')],
     {
         cwd: path.join(repoRoot, 'apps', 'website'),
-        env: { ...process.env, TAVERN_HOSTED_APP: '1' },
+        env: { ...process.env, GROTTO_HOSTED_APP: '1' },
     }
 );
 
@@ -91,13 +89,7 @@ await fs.cp(
     path.join(stageRoot, 'operations'),
     { recursive: true }
 );
-for (const operation of [
-    'install-colima-boot',
-    'rollback-colima-boot',
-    'run-server',
-    'run-backup',
-    'run-restore',
-]) {
+for (const operation of ['install-colima-boot', 'rollback-colima-boot', 'run-server']) {
     await fs.chmod(path.join(stageRoot, 'operations', operation), 0o755);
 }
 

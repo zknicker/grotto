@@ -1,7 +1,0 @@
-#!/bin/sh
-set -eu
-umask 077
-set -a
-. "/Users/zknicker/srv/grotto/config/backup.env"
-set +a
-exec /Users/zknicker/srv/grotto/current/bin/grotto-server-backup

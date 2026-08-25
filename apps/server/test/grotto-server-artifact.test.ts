@@ -49,8 +49,8 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     expect(paths).toContain('./bin/grotto-server');
     expect(paths).toContain('./bin/grotto-server-bootstrap');
     expect(paths).toContain('./bin/grotto-server-migrate');
-    expect(paths).toContain('./bin/grotto-server-backup');
-    expect(paths).toContain('./bin/grotto-server-restore');
+    expect(paths).not.toContain('./bin/grotto-server-backup');
+    expect(paths).not.toContain('./bin/grotto-server-restore');
     expect(paths).not.toContain('./bin/grotto-server-monitor');
     expect(paths).toContain('./bin/grotto-server-deploy');
     expect(paths).toContain('./bin/activate-grotto-server');
@@ -69,7 +69,7 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     expect(paths).toContain('./colima/com.merchbaseco.colima-autostart.plist');
     expect(paths).toContain('./launchd/com.grotto.server.plist');
     expect(paths).toContain('./launchd/com.grotto.tunnel.plist');
-    expect(paths).toContain('./launchd/com.grotto.backup.plist');
+    expect(paths).not.toContain('./launchd/com.grotto.backup.plist');
     expect(paths).not.toContain('./launchd/com.grotto.monitor.plist');
     expect(paths).not.toContain('./launchd/com.grotto.postgresql.plist');
     expect(paths).toContain('./host-services/grotto-server-activation.sudoers');
@@ -77,10 +77,14 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     expect(paths).toContain('./operations/launchctl-service-disabled');
     expect(paths).toContain('./operations/rollback-colima-boot');
     expect(paths).toContain('./operations/run-server');
-    expect(paths).toContain('./operations/run-restore');
-    expect(paths).toContain('./config/server.env.example');
+    expect(paths).not.toContain('./operations/run-backup');
+    expect(paths).not.toContain('./operations/run-restore');
+    // Runtime configuration is rendered from `.env.schema` by the deploy job,
+    // so the artifact ships no environment example of any kind.
+    expect(paths).not.toContain('./config/server.env.example');
     expect(paths).not.toContain('./config/migration.env.example');
-    expect(paths).toContain('./config/restore.env.example');
+    expect(paths).not.toContain('./config/backup.env.example');
+    expect(paths).not.toContain('./config/restore.env.example');
     expect(paths).toContain('./config/cloudflared.yml.example');
     expect(verboseArchive.stdout.toString()).toMatch(
         /-rwxr-xr-x .* \.\/operations\/install-colima-boot/u

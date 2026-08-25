@@ -9,24 +9,19 @@ import {
     useSensor,
     useSensors,
 } from '@dnd-kit/core';
-import {
-    arrayMove,
-    SortableContext,
-    useSortable,
-    verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { Agent, Chat } from '@grotto/api';
 import { Sidebar } from '@heroui-pro/react';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { channelListModifiers } from './channel-drag-modifiers.ts';
 import { orderChannels, readChannelOrder, writeChannelOrder } from './channel-order.ts';
+import { ChatNavigationRowContent, chatNavigationName } from './chat-navigation-row.tsx';
 import {
-    ChatNavigationRow,
-    ChatNavigationRowContent,
-    chatNavigationName,
-} from './chat-navigation-row.tsx';
+    type KeyboardCommand,
+    keyboardCommand,
+    SortableChannelRow,
+} from './sortable-channel-row.tsx';
 import './sortable-channel-list.css';
 
 const screenReaderInstructions = {
@@ -48,7 +43,6 @@ interface KeyboardDrag {
     name: string;
     originalIds: string[];
 }
-type KeyboardCommand = 'cancel' | 'drop' | 'move-down' | 'move-up' | 'pick-up';
 
 export function SortableChannelList({
     agents,
@@ -160,6 +154,9 @@ export function SortableChannelList({
         }
         const chat = channels.find(({ id }) => id === keyboardDrag.id);
         if (!chat) {
+            setStoredIds(keyboardDrag.originalIds);
+            setKeyboardDrag(null);
+            setKeyboardAnnouncement(`Cancelled reordering channel ${keyboardDrag.name}.`);
             return;
         }
         const handleActiveDragKey = (event: KeyboardEvent) => {
@@ -239,109 +236,6 @@ export function SortableChannelList({
             </span>
         </DndContext>
     );
-}
-
-function SortableChannelRow({
-    agent,
-    chat,
-    keyboardActive,
-    onKeyboardCommand,
-    selectedChatId,
-    slug,
-}: {
-    agent: Agent | null;
-    chat: Chat;
-    keyboardActive: boolean;
-    onKeyboardCommand: (chat: Chat, command: KeyboardCommand) => void;
-    selectedChatId: string | undefined;
-    slug: string;
-}) {
-    const shouldReduceMotion = useReducedMotion() === true;
-    const name = chatNavigationName(chat, agent);
-    const {
-        attributes,
-        isDragging,
-        listeners,
-        setActivatorNodeRef,
-        setNodeRef,
-        transform,
-        transition,
-    } = useSortable({
-        animateLayoutChanges: () => !shouldReduceMotion,
-        data: { name },
-        id: chat.id,
-        transition: shouldReduceMotion
-            ? null
-            : { duration: 180, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
-    });
-    const rowRef = React.useRef<HTMLDivElement | null>(null);
-    const setRowRef = React.useCallback(
-        (node: HTMLDivElement | null) => {
-            rowRef.current = node;
-            setNodeRef(node);
-            setActivatorNodeRef(node);
-        },
-        [setActivatorNodeRef, setNodeRef]
-    );
-
-    React.useEffect(() => {
-        const row = rowRef.current;
-        const activatePointerDrag = listeners?.onPointerDown;
-        if (!(row && activatePointerDrag)) {
-            return;
-        }
-        const handlePointerDown = (event: PointerEvent) => {
-            activatePointerDrag({ nativeEvent: event });
-        };
-        const handleKeyDown = (event: KeyboardEvent) => {
-            const command = keyboardCommand(event.key, keyboardActive);
-            if (!command) {
-                return;
-            }
-            event.preventDefault();
-            onKeyboardCommand(chat, command);
-        };
-        row.addEventListener('keydown', handleKeyDown);
-        row.addEventListener('pointerdown', handlePointerDown);
-        return () => {
-            row.removeEventListener('keydown', handleKeyDown);
-            row.removeEventListener('pointerdown', handlePointerDown);
-        };
-    }, [chat, keyboardActive, listeners, onKeyboardCommand]);
-
-    return (
-        <ChatNavigationRow
-            agent={agent}
-            ariaDescribedBy={attributes['aria-describedby']}
-            chat={chat}
-            className="sortable-channel-row"
-            name={name}
-            ref={setRowRef}
-            selectedChatId={selectedChatId}
-            slug={slug}
-            style={{
-                opacity: isDragging ? 0 : undefined,
-                transform: isDragging ? undefined : CSS.Transform.toString(transform),
-                transition,
-            }}
-        />
-    );
-}
-
-function keyboardCommand(key: string, active: boolean): KeyboardCommand | null {
-    if (key === ' ') {
-        return active ? 'drop' : 'pick-up';
-    }
-    if (!active) {
-        return null;
-    }
-    if (key === 'ArrowDown') {
-        return 'move-down';
-    }
-    if (key === 'ArrowUp') {
-        return 'move-up';
-    }
-    return key === 'Escape' ? 'cancel' : null;
 }
 
 function sortableName(item: { data: { current?: { name?: unknown } }; id: unknown }) {

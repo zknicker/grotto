@@ -3,6 +3,16 @@ import XCTest
 @testable import GrottoTransport
 
 final class ProfileAvatarModelsTests: XCTestCase {
+    func testHumanIdentitySyncEncodesNullableClerkFieldsAndServerID() throws {
+        let input = SyncHumanIdentityInput(email: nil, name: nil, serverID: "srv_123")
+        let object = try jsonObject(input)
+
+        XCTAssertEqual(Set(object.keys), ["email", "name", "serverId"])
+        XCTAssertTrue(object["email"] is NSNull)
+        XCTAssertTrue(object["name"] is NSNull)
+        XCTAssertEqual(object["serverId"] as? String, "srv_123")
+    }
+
     func testHumanProfileInputEncodesNullableDescriptionAndExactWireNames() throws {
         let input = UpdateHumanProfileInput(
             description: nil,

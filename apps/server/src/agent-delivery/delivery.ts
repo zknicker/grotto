@@ -1198,6 +1198,9 @@ async function buildInboxItems(
             : [];
     const apiMessages = serverId ? await toAgentMessages(db, serverId, messageRows) : [];
     const apiMessageById = new Map(apiMessages.map((message) => [message.id, message]));
+    const sequenceByMessageId = new Map(
+        messageRows.map((message) => [message.id, message.sequence])
+    );
     const taskByMessage = serverId
         ? await listMessageTaskMap(
               db,
@@ -1205,56 +1208,49 @@ async function buildInboxItems(
               rows.map((row) => row.dedupeKey)
           )
         : new Map();
-    return await Promise.all(
-        rows.map(async (row) => {
-            const [message] = await db
-                .select({
-                    authorAgentId: chatMessagesTable.authorAgentId,
-                    sequence: chatMessagesTable.sequence,
-                })
-                .from(chatMessagesTable)
-                .where(eq(chatMessagesTable.id, row.dedupeKey))
-                .limit(1);
-            const target = serverId
-                ? await targetForAgentChat(db, serverId, row.chatId)
-                : '#unknown';
-            const agentHandle = row.source.startsWith('agent:')
-                ? row.source.slice('agent:'.length)
-                : null;
-            const apiMessage = apiMessageById.get(row.dedupeKey);
-            const senderHandle =
+    const targetByChatId = new Map<string, string>();
+    for (const chatId of new Set(rows.map((row) => row.chatId))) {
+        targetByChatId.set(
+            chatId,
+            serverId ? await targetForAgentChat(db, serverId, chatId) : '#unknown'
+        );
+    }
+    return rows.map((row) => {
+        const target = targetByChatId.get(row.chatId) ?? '#unknown';
+        const agentHandle = row.source.startsWith('agent:')
+            ? row.source.slice('agent:'.length)
+            : null;
+        const apiMessage = apiMessageById.get(row.dedupeKey);
+        const senderHandle =
+            row.source === 'human'
+                ? (apiMessage?.sender.handle ?? humanHandleFromDmTarget(target))
+                : (agentHandle ?? row.source);
+        if (!senderHandle) {
+            throw new Error('A human delivery sender does not have an active Server handle.');
+        }
+        return {
+            chatId: row.chatId,
+            content: row.content,
+            createdAt: row.createdAt.toISOString(),
+            id: row.dedupeKey,
+            ...(apiMessage ? { message: apiMessage } : {}),
+            ...(row.mentioned ? { mentioned: true } : {}),
+            ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
+            ...(apiMessage?.sender.description
+                ? { senderDescription: apiMessage.sender.description }
+                : {}),
+            senderHandle,
+            senderType:
                 row.source === 'human'
-                    ? (apiMessage?.sender.handle ?? humanHandleFromDmTarget(target))
-                    : (agentHandle ?? row.source);
-            if (!senderHandle) {
-                throw new Error('A human delivery sender does not have an active Server handle.');
-            }
-            return {
-                chatId: row.chatId,
-                content: row.content,
-                createdAt: row.createdAt.toISOString(),
-                id: row.dedupeKey,
-                ...(apiMessage ? { message: apiMessage } : {}),
-                ...(row.mentioned ? { mentioned: true } : {}),
-                ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
-                ...(apiMessage?.sender.description
-                    ? { senderDescription: apiMessage.sender.description }
-                    : {}),
-                senderHandle,
-                senderType:
-                    row.source === 'human'
-                        ? ('human' as const)
-                        : agentHandle
-                          ? ('agent' as const)
-                          : ('system' as const),
-                sequence: message?.sequence ?? 1,
-                ...(taskByMessage.get(row.dedupeKey)
-                    ? { task: taskByMessage.get(row.dedupeKey) }
-                    : {}),
-                target,
-            };
-        })
-    );
+                    ? ('human' as const)
+                    : agentHandle
+                      ? ('agent' as const)
+                      : ('system' as const),
+            sequence: sequenceByMessageId.get(row.dedupeKey) ?? 1,
+            ...(taskByMessage.get(row.dedupeKey) ? { task: taskByMessage.get(row.dedupeKey) } : {}),
+            target,
+        };
+    });
 }
 
 function humanHandleFromDmTarget(target: string): string | null {

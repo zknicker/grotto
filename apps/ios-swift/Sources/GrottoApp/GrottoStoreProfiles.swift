@@ -4,6 +4,22 @@ import GrottoTransport
 import GrottoUI
 
 extension GrottoStore {
+    func syncHumanIdentity(serverID: String) async throws {
+        let user = clerk.user
+        let name = [user?.firstName, user?.lastName]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfBlank }
+            .joined(separator: " ")
+            .nilIfBlank
+        let _: TRPCNoContent = try await client.mutation(
+            "member.syncIdentity",
+            input: SyncHumanIdentityInput(
+                email: user?.primaryEmailAddress?.emailAddress,
+                name: name,
+                serverID: serverID
+            )
+        )
+    }
+
     func saveHumanProfile(
         userID: String,
         displayName: String,

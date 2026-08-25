@@ -1,5 +1,39 @@
 import Foundation
 
+/// Input for `member.syncIdentity`.
+public struct SyncHumanIdentityInput: Encodable, Sendable {
+    public let email: String?
+    public let name: String?
+    public let serverID: String
+
+    public init(email: String?, name: String?, serverID: String) {
+        self.email = email
+        self.name = name
+        self.serverID = serverID
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case email
+        case name
+        case serverID = "serverId"
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        if let email {
+            try container.encode(email, forKey: .email)
+        } else {
+            try container.encodeNil(forKey: .email)
+        }
+        if let name {
+            try container.encode(name, forKey: .name)
+        } else {
+            try container.encodeNil(forKey: .name)
+        }
+        try container.encode(serverID, forKey: .serverID)
+    }
+}
+
 /// Input for `member.updateProfile`.
 ///
 /// `description` is nullable but required by the Server contract. The custom

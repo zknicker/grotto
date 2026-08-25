@@ -43,10 +43,12 @@ final class GrottoStore {
     var readAcknowledgementsInFlight: Set<ChatReadAcknowledgement> = []
     var olderMessageLoadsInFlight: Set<String> = []
     private var foregroundRefreshInFlight = false
+    let clerk: Clerk
     let client: TRPCClient
     private nonisolated let eventTasks = EventTaskBag()
 
     init(clerk: Clerk) {
+        self.clerk = clerk
         let config = AppConfig(
             serverOrigin: GrottoRuntimeConfiguration.serverOrigin,
             productVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
@@ -77,6 +79,7 @@ final class GrottoStore {
                 state = .failed("You do not have a Grotto Server yet.")
                 return
             }
+            try await syncHumanIdentity(serverID: server.id)
             try await reloadServer(server.id)
             startEventStreams(serverID: server.id)
             isConnected = true

@@ -47,7 +47,9 @@ ticket procedure. A configured local build never falls back to browser OAuth.
 Swift settings use one native sheet with one `NavigationStack`. Focused screens push within that
 sheet, single-line identity values edit inline, and long-form values use a dedicated editor. All
 profile values and avatars originate from Server records; the app must not create mobile-only identity
-state. A human edits their Server-scoped handle alongside their display name. Native validation mirrors
+state. On startup, iOS reports the signed-in Clerk name and email through `member.syncIdentity` before
+loading the Server snapshot, matching the web app's default-handle bootstrap. A human edits their
+Server-scoped handle alongside their display name. Native validation mirrors
 the shared handle grammar for immediate feedback, while `member.updateProfile` carries the active
 `serverId` and Server remains authoritative for cross-human/Agent uniqueness. The app also reads
 Computers through the existing `computer.list`

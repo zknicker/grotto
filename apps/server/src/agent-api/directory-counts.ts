@@ -15,11 +15,9 @@ export async function countAgentDirectory(
     runner: ResolvedRunner,
     input: AgentDirectoryQuery
 ) {
-    const [channels, agents, humans] = await Promise.all([
-        countChannels(db, runner, input),
-        countAgents(db, runner, input),
-        countHumans(db, runner, input),
-    ]);
+    const channels = await countChannels(db, runner, input);
+    const agents = await countAgents(db, runner, input);
+    const humans = await countHumans(db, runner, input);
     return { agents, channels, humans };
 }
 
@@ -28,34 +26,32 @@ export async function countChannelMembers(
     runner: ResolvedRunner,
     chatId: string
 ) {
-    const [[humans], [agents]] = await Promise.all([
-        db
-            .select({ total: count() })
-            .from(channelParticipantsTable)
-            .innerJoin(
-                serverMembershipsTable,
-                and(
-                    eq(serverMembershipsTable.serverId, channelParticipantsTable.serverId),
-                    eq(serverMembershipsTable.userId, channelParticipantsTable.userId)
-                )
+    const [humans] = await db
+        .select({ total: count() })
+        .from(channelParticipantsTable)
+        .innerJoin(
+            serverMembershipsTable,
+            and(
+                eq(serverMembershipsTable.serverId, channelParticipantsTable.serverId),
+                eq(serverMembershipsTable.userId, channelParticipantsTable.userId)
             )
-            .where(
-                and(
-                    eq(channelParticipantsTable.serverId, runner.serverId),
-                    eq(channelParticipantsTable.chatId, chatId),
-                    isNull(serverMembershipsTable.revokedAt)
-                )
-            ),
-        db
-            .select({ total: count() })
-            .from(channelAgentParticipantsTable)
-            .where(
-                and(
-                    eq(channelAgentParticipantsTable.serverId, runner.serverId),
-                    eq(channelAgentParticipantsTable.chatId, chatId)
-                )
-            ),
-    ]);
+        )
+        .where(
+            and(
+                eq(channelParticipantsTable.serverId, runner.serverId),
+                eq(channelParticipantsTable.chatId, chatId),
+                isNull(serverMembershipsTable.revokedAt)
+            )
+        );
+    const [agents] = await db
+        .select({ total: count() })
+        .from(channelAgentParticipantsTable)
+        .where(
+            and(
+                eq(channelAgentParticipantsTable.serverId, runner.serverId),
+                eq(channelAgentParticipantsTable.chatId, chatId)
+            )
+        );
     return Number(humans?.total ?? 0) + Number(agents?.total ?? 0);
 }
 

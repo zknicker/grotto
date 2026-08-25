@@ -199,8 +199,22 @@ jobs:
           DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
         run: |
           set -euo pipefail
-          bunx varlock@1.16.1 run -- bun scripts/render-server-env.ts \
-            --source-revision "${GROTTO_SOURCE_REVISION}"
+          # Resolution is the one place this deploy leaves the machine: varlock
+          # reads every production value from 1Password, and a 502 there has
+          # already failed an otherwise healthy deploy. Rendering is idempotent
+          # — resolve, write one file — so a bounded retry is safe. The
+          # migration step deliberately gets none: it mutates the database.
+          attempt=1
+          until bunx varlock@1.16.1 run -- bun scripts/render-server-env.ts \
+            --source-revision "${GROTTO_SOURCE_REVISION}"; do
+            if [ "${attempt}" -ge 3 ]; then
+              echo "Rendering the Server environment failed ${attempt} times; giving up." >&2
+              exit 1
+            fi
+            echo "Render attempt ${attempt} failed; retrying in $((attempt * 5))s." >&2
+            /bin/sleep "$((attempt * 5))"
+            attempt=$((attempt + 1))
+          done
 
       - name: Apply database migrations
         env:

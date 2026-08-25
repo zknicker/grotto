@@ -43,7 +43,8 @@ The self-hosted `Deploy Grotto Server` workflow:
 7. renders `config/server.env` from the workflow revision's `.env.schema` under
    `varlock run`, mode `0600` plus one ACL entry granting `_grotto_server` read,
    after proving the released Server reads exactly the names that contract
-   delivers
+   delivers, retrying a transient 1Password failure up to three times because
+   resolving is idempotent
 8. runs the candidate's migration program under `varlock run`, with the
    migration credential resolved from 1Password, and records the exact
    successful migrations in the job summary

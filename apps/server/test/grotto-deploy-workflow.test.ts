@@ -119,6 +119,16 @@ test('promotes a published Grotto version only on an explicit dispatch', () => {
         );
     }
     expect(renderStep?.run).toContain('bun scripts/render-server-env.ts');
+
+    // Resolution is the deploy's only network dependency, and a transient
+    // 1Password 502 has failed a healthy deploy at this step. Rendering is
+    // idempotent, so it retries; the migration mutates the database, so it must
+    // not.
+    expect(renderStep?.run).toContain('until bunx varlock');
+    expect(renderStep?.run).toContain('attempt');
+    expect(renderStep?.run).toMatch(/-ge 3/u);
+    expect(renderStep?.run).toContain('giving up');
+    expect(migrationStep?.run).not.toContain('until ');
     expect(migrationStep?.run).toContain('/bin/grotto-server-migrate');
     expect(migrationStep?.run).toContain('Database: ✅');
     expect(migrationStep?.run).toContain('release was not activated');

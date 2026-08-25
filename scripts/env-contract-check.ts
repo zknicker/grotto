@@ -1,7 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { deliverableNames, readSchemaItems, varlockBuiltins } from './lib/env-schema.ts';
+import {
+    deliverableNames,
+    deliveredEnvironmentNames,
+    readSchemaItems,
+    varlockBuiltins,
+} from './lib/env-schema.ts';
 
 /**
  * Name-only contract check across the places a Grotto environment value
@@ -14,7 +19,6 @@ import { deliverableNames, readSchemaItems, varlockBuiltins } from './lib/env-sc
  */
 const repositoryRoot = process.cwd();
 const schemaPath = join(repositoryRoot, '.env.schema');
-const serverEnvModulePath = join(repositoryRoot, 'apps/server/src/config/env.ts');
 const runServerPath = join(repositoryRoot, 'apps/server/operations/run-server');
 const deployWorkflowPath = join(repositoryRoot, '.github/workflows/deploy-grotto-server.yml');
 const qualityWorkflowPath = join(repositoryRoot, '.github/workflows/quality.yml');
@@ -148,11 +152,7 @@ for (const item of schemaItems) {
 // 3. The Server's typed env module is its consumer-side contract. Every key it
 //    validates must be a deliverable schema item, or the Server is validating
 //    something nothing delivers.
-const serverEnvModule = readFileSync(serverEnvModulePath, 'utf8');
-const typedEnvBody = serverEnvModule.slice(serverEnvModule.indexOf('const envSchema'));
-const typedEnvNames = new Set(
-    [...typedEnvBody.matchAll(/^ {8}([A-Z][A-Z0-9_]*):/gmu)].map((match) => match[1])
-);
+const typedEnvNames = deliveredEnvironmentNames(repositoryRoot);
 if (typedEnvNames.size === 0) {
     issues.push('the Server typed env module exposed no keys; the contract check cannot see it.');
 }

@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 /**
  * Minimal `.env.schema` reader shared by the contract check, the production
@@ -67,20 +68,64 @@ export function deliverableNames(items: SchemaItem[]): Set<string> {
     );
 }
 
+/** The Server's consumer-side contract: the typed env module it validates. */
+export const serverEnvModulePath = 'apps/server/src/config/env.ts';
+
+/** The names a Server built from this module source validates at startup. */
+export function serverEnvironmentNames(moduleSource: string): string[] {
+    const body = moduleSource.slice(moduleSource.indexOf('const envSchema'));
+    return [...body.matchAll(/^ {8}([A-Z][A-Z0-9_]*):/gmu)].map((match) => match[1]);
+}
+
+function readServerEnvModule(repositoryRoot: string): string {
+    return readFileSync(join(repositoryRoot, serverEnvModulePath), 'utf8');
+}
+
 /**
- * Names in a rendered `KEY=value` environment file, read without ever touching
- * a value. Used by the delivered-secret guard against the production copy the
- * deploy job writes.
+ * The delivered name set: exactly the names `render-server-env.ts` writes into
+ * `config/server.env`, which is exactly what the Server validates at startup.
+ *
+ * It is deliberately narrower than `deliverableNames`. A deploy-time credential
+ * — the migration login, the container admin password — is a schema item the
+ * deploy job resolves for itself and must never hand to the running Server.
+ * The renderer, the post-deploy guard, and the contract check all derive the
+ * set here so the guard can never demand a name the renderer refuses to write.
  */
-export function readRenderedEnvironmentNames(path: string): string[] {
-    const names: string[] = [];
+export function deliveredEnvironmentNames(repositoryRoot: string): Set<string> {
+    return new Set(serverEnvironmentNames(readServerEnvModule(repositoryRoot)));
+}
+
+/** One `KEY=value` line of a rendered environment file, value never exposed. */
+export interface RenderedEntry {
+    /** The line assigns nothing: `KEY=`, `KEY=''`, `KEY=""`. */
+    isEmpty: boolean;
+    name: string;
+}
+
+const renderedLinePattern = /^([A-Z][A-Z0-9_]*)=(.*)$/u;
+
+/**
+ * Entries in a rendered `KEY=value` environment file, read without ever
+ * exposing a value — only its name and whether anything was assigned. Used by
+ * the delivered-secret guard against the production copy the deploy job writes.
+ */
+export function readRenderedEnvironment(path: string): RenderedEntry[] {
+    const entries: RenderedEntry[] = [];
 
     for (const line of readFileSync(path, 'utf8').split('\n')) {
-        const match = /^([A-Z][A-Z0-9_]*)=/u.exec(line);
+        const match = renderedLinePattern.exec(line);
         if (match) {
-            names.push(match[1]);
+            const assigned = match[2].trim();
+            entries.push({
+                isEmpty: assigned === '' || assigned === `''` || assigned === '""',
+                name: match[1],
+            });
         }
     }
 
-    return names;
+    return entries;
+}
+
+export function readRenderedEnvironmentNames(path: string): string[] {
+    return readRenderedEnvironment(path).map((entry) => entry.name);
 }

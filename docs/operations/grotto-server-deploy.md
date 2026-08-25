@@ -50,8 +50,9 @@ The self-hosted `Deploy Grotto Server` workflow:
 9. switches `current`, bootstraps the exact root-owned Server plist when its
    label is not loaded, otherwise restarts only `com.grotto.server`, and proves
    local health
-10. reads the delivered environment back names-only and fails on a stale name or
-    a missing production-required secret
+10. reads the delivered environment back names-only and fails on a name outside
+    the delivered set, or on a production-required name of that set arriving
+    missing or empty
 11. rolls back to the exact previous SHA on failure; a failed first activation
     boots out the label it introduced before removing `current`
 

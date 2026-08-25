@@ -18,28 +18,23 @@
  * released commit so the two can be compared — see `assertContractsAgree`.
  */
 import { execFileSync } from 'node:child_process';
-import { chmodSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { chmodSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { deliverableNames, readSchemaItems } from './lib/env-schema.ts';
+import {
+    deliverableNames,
+    deliveredEnvironmentNames,
+    readSchemaItems,
+    serverEnvironmentNames,
+    serverEnvModulePath,
+} from './lib/env-schema.ts';
 
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
 const defaultTarget = '/Users/zknicker/srv/grotto/config/server.env';
 const serviceUser = '_grotto_server';
-const serverEnvModulePath = 'apps/server/src/config/env.ts';
-
-/** The names a Server built from this module source validates at startup. */
-export function serverEnvironmentNames(moduleSource: string): string[] {
-    const body = moduleSource.slice(moduleSource.indexOf('const envSchema'));
-    return [...body.matchAll(/^ {8}([A-Z][A-Z0-9_]*):/gmu)].map((match) => match[1]);
-}
 
 export function shellQuote(value: string) {
     return `'${value.replaceAll("'", `'\\''`)}'`;
-}
-
-function readWorkingTreeEnvModule() {
-    return readFileSync(join(repositoryRoot, serverEnvModulePath), 'utf8');
 }
 
 function readReleasedEnvModule(revision: string) {
@@ -106,6 +101,35 @@ function parseArguments(args: string[]) {
     return { sourceRevision, target };
 }
 
+/**
+ * The delivered file's contents, from the delivered name set and an already
+ * resolved environment. Pure, so the guard can be run against a rendered
+ * fixture without a production host.
+ */
+export function renderEnvironmentFile(names: string[], values: NodeJS.ProcessEnv) {
+    const lines = [
+        '# Delivered runtime copy of the Grotto Server environment.',
+        '# Rendered from the repository .env.schema by scripts/render-server-env.ts',
+        '# during a deploy. Do not edit: the next deploy overwrites it, and the',
+        '# schema is the only owner of every value below.',
+    ];
+    const rendered: string[] = [];
+
+    for (const name of [...names].sort()) {
+        const value = values[name];
+        // Absent is absent: writing NAME='' would make the Server's zod schema
+        // treat the value as present and reject it instead of applying its
+        // default.
+        if (value === undefined || value === '') {
+            continue;
+        }
+        lines.push(`${name}=${shellQuote(value)}`);
+        rendered.push(name);
+    }
+
+    return { contents: `${lines.join('\n')}\n`, rendered };
+}
+
 function main() {
     if (process.env.VARLOCK_ENV && process.env.VARLOCK_ENV !== 'production') {
         throw new Error('render-server-env must run under VARLOCK_ENV=production.');
@@ -113,7 +137,7 @@ function main() {
 
     const { sourceRevision, target } = parseArguments(process.argv.slice(2));
     const deliverable = deliverableNames(readSchemaItems(join(repositoryRoot, '.env.schema')));
-    const names = serverEnvironmentNames(readWorkingTreeEnvModule());
+    const names = [...deliveredEnvironmentNames(repositoryRoot)];
 
     if (names.length === 0) {
         throw new Error(
@@ -139,27 +163,10 @@ function main() {
         );
     }
 
-    const lines = [
-        '# Delivered runtime copy of the Grotto Server environment.',
-        '# Rendered from the repository .env.schema by scripts/render-server-env.ts',
-        '# during a deploy. Do not edit: the next deploy overwrites it, and the',
-        '# schema is the only owner of every value below.',
-    ];
-    const rendered: string[] = [];
-    for (const name of names.sort()) {
-        const value = process.env[name];
-        // Absent is absent: writing NAME='' would make the Server's zod schema
-        // treat the value as present and reject it instead of applying its
-        // default.
-        if (value === undefined || value === '') {
-            continue;
-        }
-        lines.push(`${name}=${shellQuote(value)}`);
-        rendered.push(name);
-    }
+    const { contents, rendered } = renderEnvironmentFile(names, process.env);
 
     const staging = `${target}.staging`;
-    writeFileSync(staging, `${lines.join('\n')}\n`, { mode: 0o600 });
+    writeFileSync(staging, contents, { mode: 0o600 });
     chmodSync(staging, 0o600);
     // The runner writes as `zknicker`; the launchd job reads as _grotto_server.
     // An explicit ACL grants exactly that one read, without widening the file's
@@ -176,5 +183,3 @@ function main() {
 if (import.meta.main) {
     main();
 }
-
-export { readWorkingTreeEnvModule };

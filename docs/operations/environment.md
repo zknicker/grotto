@@ -104,8 +104,12 @@ strips `@internal` items by default and every release credential is one.
 The hosted Server never invokes Varlock. `config/server.env` is the delivered
 runtime copy, rendered fresh on every deploy by
 `scripts/render-server-env.ts` from exactly the names the Server's typed env
-module validates, then read back names-only by
-`scripts/verify-deployed-secrets.ts`. The contract comes from the deploy
+module validates — the delivered set — then read back names-only by
+`scripts/verify-deployed-secrets.ts` against that same set, which both derive
+from `deliveredEnvironmentNames` in `scripts/lib/env-schema.ts`. A deploy-time
+credential such as `GROTTO_DATABASE_MIGRATION_URL` is production-required in the
+schema and deliberately outside the delivered set: the deploy job resolves it
+for itself and the running Server never receives it. The contract comes from the deploy
 workflow's own revision rather than the released artifact — see
 [the deployment doc](grotto-server-deploy.md#where-the-contract-comes-from) for
 why, and for the guard that keeps the two from drifting apart silently. A launchd job stores a command line, so

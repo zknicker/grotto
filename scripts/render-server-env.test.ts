@@ -5,22 +5,18 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
     deliverableNames,
+    deliveredEnvironmentNames,
     readRenderedEnvironmentNames,
     readSchemaItems,
 } from './lib/env-schema.ts';
-import {
-    assertContractsAgree,
-    readWorkingTreeEnvModule,
-    serverEnvironmentNames,
-    shellQuote,
-} from './render-server-env.ts';
+import { assertContractsAgree, shellQuote } from './render-server-env.ts';
 
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
 const schemaItems = readSchemaItems(join(repositoryRoot, '.env.schema'));
 
 describe('the delivered Server environment', () => {
     test('names every value the Server validates, and nothing else', () => {
-        const names = serverEnvironmentNames(readWorkingTreeEnvModule());
+        const names = [...deliveredEnvironmentNames(repositoryRoot)];
         const deliverable = deliverableNames(schemaItems);
 
         expect(names.length).toBeGreaterThan(0);

@@ -40,13 +40,13 @@ const port = await getFreePort();
 const viteUrl = `http://localhost:${port}`;
 const vite = spawn('bun', ['run', 'dev'], {
     cwd: websiteRoot,
-    env: { ...process.env, TAVERN_WEBSITE_PORT: String(port) },
+    env: { ...process.env, GROTTO_WEBSITE_PORT: String(port) },
     stdio: 'ignore',
 });
 
 // Electron must not inherit the dev-port vars or its quit-cleanup would kill our Vite.
-const electronEnv = { ...process.env, TAVERN_ELECTRON_DEV_URL: viteUrl };
-for (const key of ['TAVERN_WEBSITE_PORT']) {
+const electronEnv = { ...process.env, GROTTO_ELECTRON_DEV_URL: viteUrl };
+for (const key of ['GROTTO_WEBSITE_PORT']) {
     delete electronEnv[key];
 }
 

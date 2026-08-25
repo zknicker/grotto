@@ -282,7 +282,7 @@ export const agentRuntimeSaveTimezoneSettingsResultSchema =
         restartScheduled: z.boolean(),
     });
 
-const agentRuntimeReservedEnvPrefixes = ['TAVERN_'] as const;
+const agentRuntimeReservedEnvPrefixes = ['GROTTO_'] as const;
 const agentRuntimeReservedEnvNames = new Set(['OPENAI_API_KEY', 'OPENROUTER_API_KEY']);
 
 function isAgentRuntimeReservedEnvName(name: string) {

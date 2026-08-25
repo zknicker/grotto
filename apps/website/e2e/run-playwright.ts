@@ -34,9 +34,9 @@ const [grottoServerPort, websitePort] = await Promise.all([getFreePort(), getFre
 const command = [process.execPath, 'x', 'playwright', 'test', ...process.argv.slice(2)];
 const env = {
     ...process.env,
-    TAVERN_E2E_RUN_ID: runId,
+    GROTTO_E2E_RUN_ID: runId,
     GROTTO_SERVER_PORT: `${grottoServerPort}`,
-    TAVERN_WEBSITE_PORT: `${websitePort}`,
+    GROTTO_WEBSITE_PORT: `${websitePort}`,
 };
 
 await runPreflight(env);

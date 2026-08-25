@@ -19,7 +19,7 @@ const clerkSessionPath = clerkSessionFile();
 const attachmentRoot = mkdtempSync(join(tmpdir(), 'grotto-e2e-attachments-'));
 // The browser is the frontend that asks Clerk for the session, so it is the
 // authorized party the Server binds to.
-const appOrigin = process.env.APP_ORIGIN ?? 'http://127.0.0.1:3101';
+const appOrigin = process.env.GROTTO_APP_ORIGIN ?? 'http://127.0.0.1:3101';
 
 mkdirSync(stateDirectory, { recursive: true });
 rmSync(clerkSessionPath, { force: true });
@@ -79,10 +79,10 @@ writeFileSync(
 );
 
 process.env.NODE_ENV = 'test';
-process.env.APP_ORIGIN = appOrigin;
-process.env.CLERK_API_URL = clerk.url;
-process.env.CLERK_ISSUER_URL = clerk.url;
-process.env.CLERK_SECRET_KEY = 'sk_test_grotto_e2e';
+process.env.GROTTO_APP_ORIGIN = appOrigin;
+process.env.GROTTO_CLERK_API_URL = clerk.url;
+process.env.GROTTO_CLERK_ISSUER_URL = clerk.url;
+process.env.GROTTO_CLERK_SECRET_KEY = 'sk_test_grotto_e2e';
 process.env.GROTTO_DATABASE_URL = cluster.databaseUrl;
 process.env.GROTTO_ATTACHMENT_ROOT = attachmentRoot;
 process.env.GROTTO_COMPUTER_RELEASE_MANIFEST_URL = `http://127.0.0.1:${computerReleaseServer.port}/latest.json`;

@@ -13,7 +13,7 @@ function main() {
         cwd: path.resolve(scriptDirectory, '..'),
         env: {
             ...process.env,
-            TAVERN_DEV_STACK_ID: process.env.TAVERN_DEV_STACK_ID ?? defaultSharedStackId,
+            GROTTO_DEV_STACK_ID: process.env.GROTTO_DEV_STACK_ID ?? defaultSharedStackId,
         },
         stdio: 'inherit',
     });

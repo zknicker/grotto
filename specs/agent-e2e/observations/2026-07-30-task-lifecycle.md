@@ -49,6 +49,6 @@ The same Server task was present and `in_review`. The executable scenarios
 record both user-visible gaps as expected failures rather than hiding them.
 
 Verification:
-`TAVERN_DEV_STACK_ID=agent-e2e bun run eval:agents -- task-lifecycle.spec.ts`
+`GROTTO_DEV_STACK_ID=agent-e2e bun run eval:agents -- task-lifecycle.spec.ts`
 (`2 expected failures`; Server/Computer/model lifecycle passed before the
 Thread invalidation assertion).

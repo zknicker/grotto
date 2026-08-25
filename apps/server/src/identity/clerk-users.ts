@@ -30,7 +30,7 @@ export function createClerkUsers(options: ClerkUsersOptions): ClerkUsers {
         async readVerifiedEmails(clerkUserId) {
             if (!options.secretKey) {
                 throw new Error(
-                    'Server invitations need CLERK_SECRET_KEY so the Server can confirm a verified email address.'
+                    'Server invitations need GROTTO_CLERK_SECRET_KEY so the Server can confirm a verified email address.'
                 );
             }
 

@@ -55,7 +55,7 @@ collaboration records remain durable Server history, but the executable scenario
 does not treat a retired Agent's DM as an App destination.
 
 Verification:
-`TAVERN_DEV_STACK_ID=agent-e2e bun run eval:agents -- agent-provisioning.spec.ts`
+`GROTTO_DEV_STACK_ID=agent-e2e bun run eval:agents -- agent-provisioning.spec.ts`
 (`1 passing flow`).
 
 Matched screenshots:

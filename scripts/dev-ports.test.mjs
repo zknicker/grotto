@@ -28,7 +28,7 @@ test('falls back to default dev ports without overrides', () => {
         baseEnvironment: { PATH: '/usr/bin' },
     });
 
-    assert.equal(environment.TAVERN_WEBSITE_PORT, '3100');
+    assert.equal(environment.GROTTO_WEBSITE_PORT, '3100');
     assert.equal(environment.GROTTO_SERVER_PORT, '8090');
     assert.equal(environment.PATH, '/usr/bin');
 });

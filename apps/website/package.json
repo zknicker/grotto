@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:grotto": "TAVERN_HOSTED_APP=1 vite build --outDir dist-grotto",
+    "build:grotto": "GROTTO_HOSTED_APP=1 vite build --outDir dist-grotto",
     "build:desktop:icons": "node ../../scripts/build-macos-app-icon.mjs",
     "desktop:build": "bun run build:desktop:icons && bun x electron-builder --config electron-builder.config.cjs --mac",
     "desktop:build:unsigned": "bun run build:desktop:icons && node ../../scripts/release/build-desktop-unsigned.mjs",

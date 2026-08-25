@@ -20,7 +20,7 @@ const child = spawn('bun', ['x', 'electron', 'electron/main.cjs', ...process.arg
     cwd: websiteDirectory,
     env: {
         ...environment,
-        TAVERN_ELECTRON_DEV_URL: `http://localhost:${environment.TAVERN_WEBSITE_PORT}`,
+        GROTTO_ELECTRON_DEV_URL: `http://localhost:${environment.GROTTO_WEBSITE_PORT}`,
     },
     stdio: 'inherit',
 });

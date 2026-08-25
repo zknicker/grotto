@@ -71,7 +71,7 @@ test('an unconfigured Clerk secret refuses the lookup instead of guessing', asyn
     const clerkUsers = createClerkUsers({ fetch: fetchImpl, secretKey: undefined });
 
     await expect(clerkUsers.readVerifiedEmails('user_clerk_4')).rejects.toThrow(
-        /CLERK_SECRET_KEY/u
+        /GROTTO_CLERK_SECRET_KEY/u
     );
     expect(calls).toHaveLength(0);
 });

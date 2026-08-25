@@ -36,7 +36,7 @@ Fresh isolated stack identity: `agent-e2e`
 Command:
 
 ```sh
-TAVERN_DEV_STACK_ID=agent-e2e bun run eval:agents
+GROTTO_DEV_STACK_ID=agent-e2e bun run eval:agents
 ```
 
 Result: all seven browser-driven attention and resident-delivery scenarios

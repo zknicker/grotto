@@ -30,14 +30,14 @@ test('formatPortBlockers includes current Server process details', () => {
 
 test('createDevStackEnvironment uses isolated current-product state', () => {
     const ports = resolveDevPorts({
-        baseEnvironment: { TAVERN_DEV_PORT_BASE: '42000', TAVERN_DEV_STACK_ID: 'alpha' },
+        baseEnvironment: { GROTTO_DEV_PORT_BASE: '42000', GROTTO_DEV_STACK_ID: 'alpha' },
         repositoryRoot: '/repo/tavern',
     });
     const environment = createDevStackEnvironment({
         baseEnvironment: {
             PATH: '/usr/bin',
-            TAVERN_DEV_PORT_BASE: '42000',
-            TAVERN_DEV_STACK_ID: 'alpha',
+            GROTTO_DEV_PORT_BASE: '42000',
+            GROTTO_DEV_STACK_ID: 'alpha',
         },
         ports,
         repositoryRoot: '/repo/tavern',
@@ -53,10 +53,8 @@ test('createDevStackEnvironment uses isolated current-product state', () => {
         path.join(os.homedir(), '.tavern', 'dev', 'alpha', 'postgres')
     );
     assert.equal(environment.GROTTO_SERVER_PORT, '42003');
-    assert.equal(environment.TAVERN_WEBSITE_PORT, '42000');
-    assert.equal(environment.TAVERN_DEV_STACK, '1');
-    assert.equal(environment.TAVERN_RUNTIME_PORT, undefined);
-    assert.equal(environment.TAVERN_SERVER_PORT, undefined);
+    assert.equal(environment.GROTTO_WEBSITE_PORT, '42000');
+    assert.equal(environment.GROTTO_DEV_STACK, '1');
 });
 
 test('resolveDevPorts derives different groups for different worktrees', () => {
@@ -68,7 +66,7 @@ test('resolveDevPorts derives different groups for different worktrees', () => {
 });
 
 test('resolveDevPorts shares ports for an explicit stack id', () => {
-    const baseEnvironment = { TAVERN_DEV_STACK_ID: 'tavern-shared' };
+    const baseEnvironment = { GROTTO_DEV_STACK_ID: 'tavern-shared' };
     const left = resolveDevPorts({ baseEnvironment, repositoryRoot: '/repo/left' });
     const right = resolveDevPorts({ baseEnvironment, repositoryRoot: '/repo/right' });
 

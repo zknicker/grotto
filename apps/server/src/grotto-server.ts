@@ -20,11 +20,11 @@ async function start() {
         : null;
 
     const application = await createGrottoServerApplication({
-        appOrigin: env.APP_ORIGIN,
+        appOrigin: env.GROTTO_APP_ORIGIN,
         attachmentRoot: env.GROTTO_ATTACHMENT_ROOT,
-        clerkApiUrl: env.CLERK_API_URL,
-        clerkIssuerUrl: env.CLERK_ISSUER_URL,
-        clerkSecretKey: env.CLERK_SECRET_KEY,
+        clerkApiUrl: env.GROTTO_CLERK_API_URL,
+        clerkIssuerUrl: env.GROTTO_CLERK_ISSUER_URL,
+        clerkSecretKey: env.GROTTO_CLERK_SECRET_KEY,
         computerReleaseManifestUrl: env.GROTTO_COMPUTER_RELEASE_MANIFEST_URL,
         databaseUrl: env.GROTTO_DATABASE_URL,
         staticAppRoot: env.GROTTO_STATIC_APP_ROOT,
@@ -42,15 +42,15 @@ async function start() {
     }
     logStartupDetail('🐘', 'PostgreSQL', describeDatabaseUrl(env.GROTTO_DATABASE_URL));
     logStartupDetail('📎', 'Attachments', env.GROTTO_ATTACHMENT_ROOT);
-    logStartupDetail('🔑', 'Clerk', env.CLERK_ISSUER_URL);
+    logStartupDetail('🔑', 'Clerk', env.GROTTO_CLERK_ISSUER_URL);
     logStartupDetail(
         '✉️',
         'Invitations',
-        env.CLERK_SECRET_KEY
+        env.GROTTO_CLERK_SECRET_KEY
             ? 'verified-email lookup configured'
-            : 'disabled — set CLERK_SECRET_KEY to accept invitations'
+            : 'disabled — set GROTTO_CLERK_SECRET_KEY to accept invitations'
     );
-    logStartupDetail('🌐', 'Grotto App origin', env.APP_ORIGIN);
+    logStartupDetail('🌐', 'Grotto App origin', env.GROTTO_APP_ORIGIN);
     logStartupDetail('📡', 'HTTP', `http://127.0.0.1:${env.GROTTO_SERVER_PORT}`);
     logStartupDetail('🔌', 'WebSocket', `ws://127.0.0.1:${env.GROTTO_SERVER_PORT}/trpc`);
     logStartupComplete('Grotto Server is ready');

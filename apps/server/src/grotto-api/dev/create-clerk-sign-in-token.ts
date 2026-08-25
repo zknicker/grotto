@@ -14,8 +14,8 @@ interface ClerkSignInTokenDependencies {
 
 function getDependencies(): ClerkSignInTokenDependencies {
     return {
-        clerkSecretKey: env.CLERK_SECRET_KEY,
-        devClerkSignInUserId: env.DEV_CLERK_SIGN_IN_USER_ID,
+        clerkSecretKey: env.GROTTO_CLERK_SECRET_KEY,
+        devClerkSignInUserId: env.GROTTO_DEV_CLERK_SIGN_IN_USER_ID,
         fetch: globalThis.fetch,
         nodeEnvironment: process.env.NODE_ENV,
     };
@@ -83,7 +83,8 @@ function assertDevClerkSignInAllowed(
     if (!(dependencies.clerkSecretKey && dependencies.devClerkSignInUserId)) {
         throw new TRPCError({
             code: 'NOT_FOUND',
-            message: 'Dev Clerk sign-in requires CLERK_SECRET_KEY and DEV_CLERK_SIGN_IN_USER_ID.',
+            message:
+                'Dev Clerk sign-in requires GROTTO_CLERK_SECRET_KEY and GROTTO_DEV_CLERK_SIGN_IN_USER_ID.',
         });
     }
 }

@@ -6,5 +6,5 @@ const source = readFileSync(new URL('./run-desktop-dev.mjs', import.meta.url), '
 
 test('desktop development launches Electron without building a local backend sidecar', () => {
     assert.match(source, /electron\/main\.cjs/u);
-    assert.doesNotMatch(source, /build-electron-sidecar|TAVERN_SERVER_PORT|TAVERN_RUNTIME_PORT/u);
+    assert.doesNotMatch(source, /build-electron-sidecar/u);
 });

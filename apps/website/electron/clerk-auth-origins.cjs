@@ -12,7 +12,7 @@ function resolveClerkAuthOrigins({ appUrl, clerkIssuerUrl, isPackaged }) {
     }
 
     if (!clerkIssuerUrl) {
-        throw new Error('Desktop development requires CLERK_ISSUER_URL.');
+        throw new Error('Desktop development requires GROTTO_CLERK_ISSUER_URL.');
     }
 
     return {

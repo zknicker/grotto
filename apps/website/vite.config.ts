@@ -6,7 +6,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 const websiteRoot = path.dirname(fileURLToPath(import.meta.url));
-const websitePort = Number(process.env.TAVERN_WEBSITE_PORT ?? '3100');
+const websitePort = Number(process.env.GROTTO_WEBSITE_PORT ?? '3100');
 const serverPort = Number(process.env.GROTTO_SERVER_PORT ?? '8090');
 const serverOrigin = process.env.VITE_GROTTO_SERVER_ORIGIN ?? `http://localhost:${serverPort}`;
 // Hosted avatar bytes are served by the Grotto Server, not the local API. In
@@ -20,7 +20,7 @@ const productVersion = JSON.parse(readFileSync(path.join(websiteRoot, 'package.j
     .version as string;
 
 export default defineConfig(({ command }) => ({
-    base: command === 'build' && process.env.TAVERN_HOSTED_APP !== '1' ? './' : '/',
+    base: command === 'build' && process.env.GROTTO_HOSTED_APP !== '1' ? './' : '/',
     define: {
         'import.meta.env.VITE_GROTTO_PRODUCT_VERSION': JSON.stringify(
             process.env.VITE_GROTTO_PRODUCT_VERSION ?? productVersion

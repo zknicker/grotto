@@ -44,12 +44,11 @@ public struct ChannelIconBox: View {
     @ViewBuilder
     private var glyph: some View {
         if let subpaths = ChannelIconCatalog.shared.subpaths(for: appearance.icon) {
-            ChannelIconGlyph(subpaths: subpaths)
+            HugeiconGlyph(subpaths: subpaths)
                 .frame(width: glyphSize, height: glyphSize)
                 .foregroundStyle(tint ?? .secondary)
         } else {
-            Image(systemName: "number")
-                .font(.system(size: glyphSize, weight: .medium))
+            GrottoIcon(.channel, size: glyphSize, weight: 2)
                 .foregroundStyle(tint ?? .secondary)
         }
     }
@@ -75,9 +74,11 @@ public struct ChannelIconBox: View {
     }
 }
 
-/// Draws the parsed unit-square subpaths at the size the box asked for.
-private struct ChannelIconGlyph: View {
-    let subpaths: [ChannelIconSubpath]
+/// Draws parsed unit-square hugeicons subpaths at the size the caller asked
+/// for. Shared by the channel glyphs and the app icon set, which differ only in
+/// which hugeicons family their geometry was generated from.
+struct HugeiconGlyph: View {
+    let subpaths: [HugeiconSubpath]
 
     var body: some View {
         GeometryReader { proxy in

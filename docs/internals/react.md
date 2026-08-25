@@ -133,6 +133,24 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   is you belongs in Account even when it is reached through a Server-scoped URL
   (Settings is mounted under `/s/:slug`, so device and user settings repeat per
   Server; that is a known wart, not a licence to file them under Server).
+* **A member has one page, and it lives in Settings.** Agents and humans are
+  Server members, the roster is Settings → Members, and a record's page hangs
+  off it: `settings/members/agents/:agentId/:tab` and
+  `settings/members/humans/:userId`. There is no second route for the same
+  record. When you are working rather than administering, you *peek* instead —
+  the Agent profile pane (`hooks/pane/use-agent-profile-pane.ts`) opens beside a
+  chat and takes you nowhere. The rule is one line: **navigating goes to
+  Settings, peeking opens a pane.**
+
+  The pane is keyed by chat id today because it shares the chat's right-pane
+  slot, so surfaces outside chat — the activity strip, the chat-rail context
+  menu, the Computer page's Agent table, the command palette — navigate to the
+  record page instead. Giving the pane a host outside that arbitration is the
+  change that would let them peek too; until then, navigation is the honest
+  fallback, not a second home for the record.
+* Usage is a dashboard, not a member. It lives at `/s/:slug/usage` — it was the
+  index of the deleted `/members` browser, which made a dashboard wear a
+  roster's URL.
 * A preference is a row with a control, not a page. Theme is a `Select` in
   Preferences, not three window mockups on a route of its own — a value with
   three options does not earn a destination, and it has to survive that list

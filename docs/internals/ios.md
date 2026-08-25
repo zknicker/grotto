@@ -157,9 +157,15 @@ the live Agent directory and `chat.createChannel`. These sheets receive narrow a
 
 Swift Chat and Thread composers use the system inline Photos picker and Files importer plus a focused
 AVFoundation camera surface on physical iPhones. Photos and Camera expand from the composer into one
-rounded, local attachment portal above the keyboard; they do not create routes or full-screen covers.
-That portal returns along the same bottom-leading path into the attachment preview area so source,
-selection, and staged result remain spatially continuous. Selected files stay in a composer-owned temporary directory
+rounded, local attachment portal; they do not create routes or full-screen covers. The portal card is
+painted to the true screen bottom with corners that nest concentrically inside the display's, and the
+keyboard slides out and back *behind* it: while a portal is open, the Chat screen freezes the keyboard
+bottom inset it lays out against (`ComposerPortalFreeze`), so the transcript and composer stay
+pixel-static for the portal's whole lifecycle and the keyboard is restored on close only if it was up
+when the portal opened. That portal returns along the same bottom-leading path into the attachment
+preview area so source, selection, and staged result remain spatially continuous. The composer itself
+is a floating glass surface: the transcript scrolls to the screen bottom and passes beneath it via a
+bottom safe-area inset rather than ending above an opaque band. Selected files stay in a composer-owned temporary directory
 until the message succeeds, and imported security-scoped URLs are copied while access is active rather
 than retained or buffered into memory. Sending reserves each file
 through the existing `attachment.reserve` procedure, uploads bytes through the authenticated raw

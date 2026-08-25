@@ -158,21 +158,24 @@ public struct ThreadDetailView: View {
                                 proxy.scrollTo(preservedTopReplyID, anchor: .top)
                             }
                         }
-                    }
-
-                    MessageComposerView(
-                        text: $draft,
-                        interaction: composerInteraction,
-                        placeholder: "Reply in thread",
-                        isConnected: isConnected,
-                        isTextFocused: $isComposerFocused,
-                        allowsAttachments: allowsAttachments,
-                        transitionNamespace: composerTransitionNamespace,
-                        onSend: { content, attachments in
-                            guard !pending else { return false }
-                            return await onSend(content, attachments)
+                        // Same shape as the chat screen: replies run under the floating glass
+                        // composer and the inset reserves their clearance.
+                        .safeAreaInset(edge: .bottom, spacing: 0) {
+                            MessageComposerView(
+                                text: $draft,
+                                interaction: composerInteraction,
+                                placeholder: "Reply in thread",
+                                isConnected: isConnected,
+                                isTextFocused: $isComposerFocused,
+                                allowsAttachments: allowsAttachments,
+                                transitionNamespace: composerTransitionNamespace,
+                                onSend: { content, attachments in
+                                    guard !pending else { return false }
+                                    return await onSend(content, attachments)
+                                }
+                            )
                         }
-                    )
+                    }
                 }
 
                 ComposerAttachmentPortal(
@@ -180,9 +183,15 @@ public struct ThreadDetailView: View {
                     availableSize: geometry.size,
                     transitionNamespace: composerTransitionNamespace
                 )
+                .ignoresSafeArea(.keyboard)
                 .zIndex(20)
             }
             .coordinateSpace(name: "composer-attachment-root")
+            .composerPortalFreeze(
+                interaction: composerInteraction,
+                isTextFocused: $isComposerFocused,
+                liveBottomInset: geometry.safeAreaInsets.bottom
+            )
         }
         .background(.background)
         .navigationTitle("Thread")

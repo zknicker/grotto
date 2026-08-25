@@ -21,6 +21,16 @@ public final class ComposerInteraction {
     public private(set) var attachmentReadySequence = 0
     public private(set) var lastReadyAttachmentCount = 0
     var morphDestinationFrame: CGRect?
+    /// Composer shell rect in the `composer-attachment-root` space, so the portal can sit above it.
+    var composerSurfaceFrame: CGRect?
+    /// Holds the chat's bottom inset still while the portal owns the screen.
+    var portalFreeze = ComposerPortalFreeze()
+
+    /// True from the moment the plus menu opens until the landed attachment has finished morphing
+    /// and the keyboard has settled back — the window in which nothing around the portal may move.
+    var isPortalActive: Bool {
+        overlay != nil || morphingAttachmentID != nil || portalFreeze.isEngaged
+    }
 
     private var preparationTask: Task<Void, Never>?
 

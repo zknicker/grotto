@@ -31,6 +31,8 @@ struct ComposerAttachmentTile: View {
             .background(.quaternary)
             .clipShape(.rect(cornerRadius: 14))
 
+            // The remove control is a bubble inside the image's corner, so the tile needs no
+            // compensating outer padding and sits flush with the composer's own insets.
             Button(action: onRemove) {
                 Image(systemName: "xmark")
                     .font(.caption2.weight(.bold))
@@ -39,11 +41,9 @@ struct ComposerAttachmentTile: View {
                     .background(.black.opacity(0.72), in: .circle)
             }
             .buttonStyle(.plain)
-            .offset(x: 7, y: -7)
+            .padding(5)
             .accessibilityLabel("Remove \(attachment.filename)")
         }
-        .padding(.top, 7)
-        .padding(.trailing, 7)
         .accessibilityElement(children: .contain)
     }
 

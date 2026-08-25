@@ -31,19 +31,6 @@ struct CameraCaptureView: View {
                 cameraControls
             }
         }
-        .overlay(alignment: .topLeading) {
-            Button(action: onCancel) {
-                Image(systemName: "chevron.left")
-                    .font(.headline.weight(.semibold))
-                    .frame(width: 44, height: 44)
-            }
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.circle)
-            .tint(.black.opacity(0.5))
-            .padding(.leading, 16)
-            .padding(.top, 12)
-            .accessibilityLabel("Close camera")
-        }
         .alert("Camera unavailable", isPresented: .constant(errorMessage != nil)) {
             Button("OK") { errorMessage = nil }
         } message: {
@@ -61,9 +48,20 @@ struct CameraCaptureView: View {
         .foregroundStyle(.white)
     }
 
+    /// Matches the photo portal: floating controls on the card's floor, chevron bottom-leading.
     private var cameraControls: some View {
         HStack {
-            Color.clear.frame(width: 52, height: 52)
+            Button(action: onCancel) {
+                Image(systemName: "chevron.left")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(.ultraThinMaterial, in: .circle)
+                    .overlay { Circle().stroke(.white.opacity(0.22), lineWidth: 0.5) }
+                    .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close camera")
             Spacer()
             Button {
                 captureRequest += 1
@@ -86,17 +84,20 @@ struct CameraCaptureView: View {
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.title3.weight(.medium))
-                    .frame(width: 52, height: 52)
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(.ultraThinMaterial, in: .circle)
+                    .overlay { Circle().stroke(.white.opacity(0.22), lineWidth: 0.5) }
+                    .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
             }
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.circle)
-            .tint(.black.opacity(0.5))
+            .buttonStyle(.plain)
             .disabled(AVCaptureDevice.default(for: .video) == nil)
             .accessibilityLabel("Camera options")
         }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 22)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
     }
+
 }
 
 private struct CameraPreview: UIViewRepresentable {

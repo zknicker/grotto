@@ -77,32 +77,54 @@ public struct ChatScreenView: View {
                         onTapTimeline: { isComposerFocused = false },
                         scrollTargetMessageID: $scrollTargetMessageID
                     )
-                    MessageComposerView(
-                        text: $draft,
-                        interaction: composerInteraction,
-                        placeholder: "Message \(chat.kind.isChannel ? "#" : "")\(chat.title)",
-                        isConnected: isConnected,
-                        isTextFocused: $isComposerFocused,
-                        allowsAttachments: chat.durableChat != nil,
-                        mentionOptions: mentionOptions,
-                        transitionNamespace: composerTransitionNamespace,
-                        onSend: onSend
-                    )
+                    // The composer floats over the transcript rather than capping it, so glass has
+                    // live content to refract. The inset still reserves the same scroll clearance
+                    // the old opaque band did.
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        MessageComposerView(
+                            text: $draft,
+                            interaction: composerInteraction,
+                            placeholder: "Message \(chat.kind.isChannel ? "#" : "")\(chat.title)",
+                            isConnected: isConnected,
+                            isTextFocused: $isComposerFocused,
+                            allowsAttachments: chat.durableChat != nil,
+                            mentionOptions: mentionOptions,
+                            transitionNamespace: composerTransitionNamespace,
+                            onSend: onSend
+                        )
+                        .padding(.bottom, chatBottomInset)
+                    }
                 }
                 .padding(.top, contentInsets.top)
-                .padding(.bottom, contentInsets.bottom)
 
+                // The portal measures against the container, which spans the whole screen and does
+                // not track the keyboard — so the card keeps its full height and its 8pt gap from
+                // the true screen bottom while the keyboard slides out from behind it.
                 ComposerAttachmentPortal(
                     interaction: composerInteraction,
                     availableSize: geometry.size,
                     transitionNamespace: composerTransitionNamespace
                 )
+                .ignoresSafeArea(.keyboard)
                 .zIndex(20)
             }
             .coordinateSpace(name: "composer-attachment-root")
+            .composerPortalFreeze(
+                interaction: composerInteraction,
+                isTextFocused: $isComposerFocused,
+                liveBottomInset: contentInsets.bottom
+            )
         }
         .background(.background)
         .task(id: chat.id) { await onLoadMentionOptions() }
+    }
+
+    /// The keyboard reaches this screen as a bottom safe-area inset from the shell. Freezing that
+    /// one number is what keeps the transcript and the composer pixel-static across the keyboard
+    /// leaving and returning behind an open portal: it sets how far the composer sits off the
+    /// screen bottom, and through the composer's own height it sets the transcript's clearance.
+    private var chatBottomInset: CGFloat {
+        composerInteraction.portalFreeze.bottomInset(live: contentInsets.bottom)
     }
 
     private var header: some View {

@@ -18,7 +18,7 @@ struct ComposerPhotoPickerView: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 3)
 
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack(alignment: .bottom) {
             Group {
                 if authorizationDenied {
                     ContentUnavailableView(
@@ -30,6 +30,7 @@ struct ComposerPhotoPickerView: View {
                     photoGrid
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             pickerFooter
         }
         .background(.black)
@@ -77,18 +78,24 @@ struct ComposerPhotoPickerView: View {
             }
         }
         .scrollIndicators(.hidden)
+        .contentMargins(.bottom, 76, for: .scrollContent)
     }
 
+    /// Floats over the grid the way the reference does, so photos run to the card's edges. The
+    /// resting controls are frosted glass — the grid reads through them — and only a selection
+    /// turns the action pill blue.
     private var pickerFooter: some View {
         HStack {
             Button(action: onCancel) {
                 Image(systemName: "chevron.left")
                     .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
+                    .background(.ultraThinMaterial, in: .circle)
+                    .overlay { Circle().stroke(.white.opacity(0.22), lineWidth: 0.5) }
+                    .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
             }
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.circle)
-            .tint(.black.opacity(0.72))
+            .buttonStyle(.plain)
             .accessibilityLabel("Back to attachments")
 
             Spacer()
@@ -99,26 +106,34 @@ struct ComposerPhotoPickerView: View {
                     .padding(.horizontal, 18)
                     .frame(minHeight: 44)
                     .foregroundStyle(.white)
-                    .background(.black.opacity(0.72), in: .capsule)
+                    .background(.ultraThinMaterial, in: .capsule)
+                    .overlay { Capsule().stroke(.white.opacity(0.22), lineWidth: 0.5) }
+                    .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
             } else {
+                // Plain style with an explicit 44pt capsule: `.borderedProminent` adds its own
+                // insets around the label and inflated the pill past the 44pt controls beside it.
                 Button(action: exportSelection) {
-                    if isExporting {
-                        ProgressView().tint(.white).frame(minWidth: 118, minHeight: 44)
-                    } else {
-                        Text("Add \(selectedIDs.count) photo\(selectedIDs.count == 1 ? "" : "s")")
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 18)
-                            .frame(minHeight: 44)
+                    Group {
+                        if isExporting {
+                            ProgressView().tint(.white).frame(minWidth: 82)
+                        } else {
+                            Text("Add \(selectedIDs.count) photo\(selectedIDs.count == 1 ? "" : "s")")
+                                .font(.subheadline.weight(.semibold))
+                        }
                     }
+                    .padding(.horizontal, 18)
+                    .frame(height: 44)
+                    .foregroundStyle(.white)
+                    .background(Color.accentColor, in: .capsule)
                 }
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.capsule)
+                .buttonStyle(.plain)
                 .disabled(isExporting)
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(.black)
+        .padding(.bottom, 16)
+        // The card is black regardless of the app's scheme, so the frosted controls resolve dark.
+        .environment(\.colorScheme, .dark)
         .animation(.smooth(duration: 0.22), value: selectedIDs.count)
     }
 

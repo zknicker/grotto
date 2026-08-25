@@ -11,6 +11,11 @@ struct ComposerAttachmentPortal: View {
     @State private var collapseProgress: CGFloat = 0
     @AccessibilityFocusState private var focusedSource: ComposerSource?
 
+    /// The card shrinks into the attachment tile over this window; the reference lands in ~0.24s.
+    private static let collapseDuration: TimeInterval = 0.24
+    /// The menu and the photo grid are one card, so the frame change carries the morph.
+    private static let cardMorphAnimation: Animation = .smooth(duration: 0.3)
+
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             if interaction.overlay != nil {
@@ -30,6 +35,7 @@ struct ComposerAttachmentPortal: View {
                 morphingAttachment(morphingSource)
             }
         }
+        .animation(Self.cardMorphAnimation, value: portalBottomPadding)
         .onChange(of: interaction.overlay) { _, overlay in
             if let overlay {
                 presentedOverlay = overlay
@@ -44,8 +50,8 @@ struct ComposerAttachmentPortal: View {
     }
 
     private var portalTransition: AnyTransition {
-        .scale(scale: 0.92, anchor: .bottomLeading)
-            .combined(with: .offset(x: 4, y: 12))
+        .scale(scale: 0.85, anchor: .bottomLeading)
+            .combined(with: .offset(x: 2, y: 10))
             .combined(with: .opacity)
     }
 
@@ -56,23 +62,25 @@ struct ComposerAttachmentPortal: View {
     @ViewBuilder
     private var transitioningPortal: some View {
         let destinationScale = portalDestinationScale
-        let fadeProgress = min(1, collapseProgress / 0.65)
+        // Reduce Motion keeps the fade but drops the travel, so the card dissolves in place.
+        let travelProgress = reduceMotion ? 0 : collapseProgress
+        let fadeProgress = min(1, collapseProgress / 0.45)
 
         portal
             .frame(width: portalWidth, height: portalHeight)
             .scaleEffect(
-                x: interpolate(from: 1, to: destinationScale.width, progress: collapseProgress),
-                y: interpolate(from: 1, to: destinationScale.height, progress: collapseProgress),
+                x: interpolate(from: 1, to: destinationScale.width, progress: travelProgress),
+                y: interpolate(from: 1, to: destinationScale.height, progress: travelProgress),
                 anchor: .topLeading
             )
             .offset(
-                x: portalCollapseOffset.width * collapseProgress,
-                y: portalCollapseOffset.height * collapseProgress
+                x: portalCollapseOffset.width * travelProgress,
+                y: portalCollapseOffset.height * travelProgress
             )
             .opacity(1 - fadeProgress)
-            .blur(radius: 5 * fadeProgress)
+            .blur(radius: reduceMotion ? 0 : 6 * fadeProgress)
             .allowsHitTesting(!isCommittingAttachment)
-            .animation(.easeOut(duration: 0.26), value: collapseProgress)
+            .animation(.easeOut(duration: Self.collapseDuration), value: collapseProgress)
             .animation(.smooth(duration: 0.12), value: interaction.morphDestinationFrame)
     }
 
@@ -95,20 +103,27 @@ struct ComposerAttachmentPortal: View {
         if #available(iOS 26, macOS 26, *), displayedOverlay == .sources {
             GlassEffectContainer(spacing: 12) {
                 portalContents
-                    .glassEffect(.regular, in: .rect(cornerRadius: 30))
+                    .glassEffect(.regular, in: .rect(cornerRadius: portalCornerRadius))
             }
             .accessibilityAddTraits(.isModal)
         } else {
             portalContents
                 .background(portalFallbackBackground)
-                .clipShape(.rect(cornerRadius: 30))
+                .clipShape(.rect(cornerRadius: portalCornerRadius))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 30)
+                    RoundedRectangle(cornerRadius: portalCornerRadius)
                         .stroke(.white.opacity(0.12), lineWidth: 0.5)
                 }
                 .shadow(color: .black.opacity(0.28), radius: 24, y: 10)
                 .accessibilityAddTraits(.isModal)
         }
+    }
+
+    /// The media card sits nearly full-bleed, so its corners must nest concentrically inside the
+    /// display's (~55pt) rounding: inner radius ≈ outer minus inset. The source menu floats
+    /// mid-screen with no bezel relationship and keeps the ordinary card radius.
+    private var portalCornerRadius: CGFloat {
+        displayedOverlay == .sources ? 30 : 44
     }
 
     private var portalContents: some View {
@@ -150,7 +165,7 @@ struct ComposerAttachmentPortal: View {
                 #endif
             }
         }
-        .animation(.smooth(duration: 0.2), value: displayedOverlay)
+        .animation(.smooth(duration: 0.22), value: displayedOverlay)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityAction(.escape, close)
     }
@@ -178,8 +193,28 @@ struct ComposerAttachmentPortal: View {
         }
     }
 
+    /// The source menu pops off the plus and stands clear of the composer; the media portals are
+    /// full-bleed cards that sit on the container floor the way the reference does.
     private var portalBottomPadding: CGFloat {
-        8
+        guard displayedOverlay == .sources else { return 8 }
+        guard let composerTop = interaction.composerSurfaceFrame?.minY else { return 8 }
+        return Self.sourceMenuBottomPadding(
+            composerTop: composerTop,
+            containerHeight: availableSize.height,
+            menuHeight: portalHeight
+        )
+    }
+
+    /// Sits the menu on the composer's top edge, but never so high that a tall draft or a full
+    /// attachment strip pushes the card off the top of the screen.
+    static func sourceMenuBottomPadding(
+        composerTop: CGFloat,
+        containerHeight: CGFloat,
+        menuHeight: CGFloat
+    ) -> CGFloat {
+        let aboveComposer = containerHeight - composerTop + 8
+        let highestAllowed = max(8, containerHeight - menuHeight - 8)
+        return min(max(8, aboveComposer), highestAllowed)
     }
 
     private var portalContentTransition: AnyTransition {
@@ -191,13 +226,9 @@ struct ComposerAttachmentPortal: View {
 
     private var portalCollapseOffset: CGSize {
         guard let destination = morphDestinationFrame else { return .zero }
-        let origin = CGPoint(
-            x: 12,
-            y: availableSize.height - portalBottomPadding - portalHeight
-        )
         return CGSize(
-            width: destination.minX - origin.x,
-            height: destination.minY - origin.y
+            width: destination.minX - portalOrigin.x,
+            height: destination.minY - portalOrigin.y
         )
     }
 
@@ -209,15 +240,21 @@ struct ComposerAttachmentPortal: View {
         )
     }
 
+    private var portalOrigin: CGPoint {
+        CGPoint(x: 12, y: availableSize.height - portalBottomPadding - portalHeight)
+    }
+
     private var morphDestinationFrame: CGRect? {
         interaction.morphDestinationFrame.map {
-            CGRect(x: $0.minX, y: $0.minY + 7, width: 88, height: 88)
+            CGRect(x: $0.minX, y: $0.minY, width: 88, height: 88)
         }
     }
 
     private func close() {
-        presentedOverlay = nil
-        interaction.overlay = nil
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            presentedOverlay = nil
+            interaction.overlay = nil
+        }
     }
 
     private var displayedOverlay: ComposerOverlay? {
@@ -229,7 +266,7 @@ struct ComposerAttachmentPortal: View {
     }
 
     private func show(_ overlay: ComposerOverlay) {
-        withAnimation(.smooth(duration: 0.22)) {
+        withAnimation(Self.cardMorphAnimation) {
             presentedOverlay = overlay
             interaction.overlay = overlay
         }
@@ -254,11 +291,7 @@ struct ComposerAttachmentPortal: View {
         sourceFrame: CGRect?
     ) {
         guard let first = prepared.first else { return }
-        if transitionNamespace != nil {
-            let portalOrigin = CGPoint(
-                x: 12,
-                y: availableSize.height - portalBottomPadding - portalHeight
-            )
+        if transitionNamespace != nil, !reduceMotion {
             let localSourceFrame = sourceFrame ?? CGRect(
                 x: 0,
                 y: 0,
@@ -268,7 +301,7 @@ struct ComposerAttachmentPortal: View {
             morphingSource = MorphingAttachmentSource(
                 attachment: first,
                 frame: localSourceFrame.offsetBy(dx: portalOrigin.x, dy: portalOrigin.y),
-                cornerRadius: sourceFrame == nil ? 30 : 1
+                cornerRadius: sourceFrame == nil ? portalCornerRadius : 1
             )
             showsMorphingSource = true
             collapseProgress = 0
@@ -277,18 +310,19 @@ struct ComposerAttachmentPortal: View {
             await Task.yield()
             interaction.morphDestinationFrame = nil
             interaction.morphingAttachmentID = first.id
+            // Hand the keyboard back as the morph starts, not once the card has finished leaving.
+            interaction.overlay = nil
             interaction.appendPrepared(prepared)
 
-            let deadline = ContinuousClock.now + .milliseconds(160)
+            let deadline = ContinuousClock.now + .milliseconds(120)
             while interaction.morphDestinationFrame == nil, ContinuousClock.now < deadline {
                 try? await Task.sleep(for: .milliseconds(16))
             }
 
-            withAnimation(.easeOut(duration: 0.26)) {
+            withAnimation(.easeOut(duration: Self.collapseDuration)) {
                 collapseProgress = 1
-                interaction.overlay = nil
             }
-            try? await Task.sleep(for: .milliseconds(320))
+            try? await Task.sleep(for: .milliseconds(280))
 
             withAnimation(.easeOut(duration: 0.08)) {
                 showsMorphingSource = false
@@ -304,15 +338,6 @@ struct ComposerAttachmentPortal: View {
     private func interpolate(from start: CGFloat, to end: CGFloat, progress: CGFloat) -> CGFloat {
         start + ((end - start) * progress)
     }
-
-    private func interpolate(from start: CGRect, to end: CGRect, progress: CGFloat) -> CGRect {
-        CGRect(
-            x: interpolate(from: start.minX, to: end.minX, progress: progress),
-            y: interpolate(from: start.minY, to: end.minY, progress: progress),
-            width: interpolate(from: start.width, to: end.width, progress: progress),
-            height: interpolate(from: start.height, to: end.height, progress: progress)
-        )
-    }
 }
 
 private struct PortalContentTransitionModifier: ViewModifier {
@@ -322,107 +347,4 @@ private struct PortalContentTransitionModifier: ViewModifier {
     func body(content: Content) -> some View {
         content.opacity(opacity).blur(radius: blur)
     }
-}
-
-private struct MorphingAttachmentSource {
-    let attachment: ComposerAttachment
-    let frame: CGRect
-    let cornerRadius: CGFloat
-}
-
-private struct MorphingAttachmentImage: View, @preconcurrency Animatable {
-    let url: URL
-    let sourceFrame: CGRect
-    let destinationFrame: CGRect
-    let sourceCornerRadius: CGFloat
-    var progress: CGFloat
-
-    var animatableData: CGFloat {
-        get { progress }
-        set { progress = newValue }
-    }
-
-    var body: some View {
-        let frame = interpolate(from: sourceFrame, to: destinationFrame, progress: progress)
-        let cornerRadius = interpolate(from: sourceCornerRadius, to: 14, progress: progress)
-        let revealProgress = min(1, max(0, (progress - 0.78) / 0.22))
-
-        LocalAttachmentImage(url: url)
-            .frame(width: frame.width, height: frame.height)
-            .clipShape(.rect(cornerRadius: cornerRadius))
-            .position(x: frame.midX, y: frame.midY)
-            .opacity(revealProgress)
-            .blur(radius: 5 * (1 - revealProgress))
-    }
-
-    private func interpolate(from start: CGFloat, to end: CGFloat, progress: CGFloat) -> CGFloat {
-        start + ((end - start) * progress)
-    }
-
-    private func interpolate(from start: CGRect, to end: CGRect, progress: CGFloat) -> CGRect {
-        CGRect(
-            x: interpolate(from: start.minX, to: end.minX, progress: progress),
-            y: interpolate(from: start.minY, to: end.minY, progress: progress),
-            width: interpolate(from: start.width, to: end.width, progress: progress),
-            height: interpolate(from: start.height, to: end.height, progress: progress)
-        )
-    }
-}
-
-private struct ComposerSourceMenu: View {
-    @AccessibilityFocusState.Binding var focusedSource: ComposerSource?
-    let onCamera: () -> Void
-    let onPhotos: () -> Void
-    let onFiles: () -> Void
-
-    var body: some View {
-        VStack(spacing: 0) {
-            sourceRow(.camera, title: "Camera", systemImage: "camera", action: onCamera)
-            sourceRow(.photos, title: "Photos", systemImage: "photo.on.rectangle", action: onPhotos)
-            sourceRow(.files, title: "Files", systemImage: "paperclip", action: onFiles)
-        }
-        .padding(.vertical, 6)
-        .foregroundStyle(.primary)
-    }
-
-    private func sourceRow(
-        _ source: ComposerSource,
-        title: String,
-        systemImage: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 16) {
-                sourceIcon(systemImage)
-                Text(title).font(.title3)
-                Spacer()
-            }
-            .padding(.horizontal, 18)
-            .frame(minHeight: 66)
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .accessibilityFocused($focusedSource, equals: source)
-    }
-
-    @ViewBuilder
-    private func sourceIcon(_ systemImage: String) -> some View {
-        if #available(iOS 26, macOS 26, *) {
-            Image(systemName: systemImage)
-                .font(.title3.weight(.medium))
-                .frame(width: 44, height: 44)
-                .glassEffect(.regular.interactive(), in: .circle)
-        } else {
-            Image(systemName: systemImage)
-                .font(.title3.weight(.medium))
-                .frame(width: 44, height: 44)
-                .background(.primary.opacity(0.055), in: .circle)
-        }
-    }
-}
-
-private enum ComposerSource: Hashable {
-    case camera
-    case photos
-    case files
 }

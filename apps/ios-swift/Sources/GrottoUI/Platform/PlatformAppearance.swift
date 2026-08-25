@@ -54,6 +54,15 @@ enum GrottoPlatformColor {
         Color(nsColor: .controlBackgroundColor)
         #endif
     }
+
+    /// Opaque grey for a disabled round control, so glass vibrancy cannot dissolve it.
+    static var disabledControlFill: Color {
+        #if canImport(UIKit)
+        Color(uiColor: .systemGray3)
+        #else
+        Color(nsColor: .disabledControlTextColor)
+        #endif
+    }
 }
 
 extension View {

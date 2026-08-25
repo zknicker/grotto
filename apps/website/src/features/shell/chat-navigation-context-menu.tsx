@@ -17,7 +17,7 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { ChannelAgentsDialog } from '../chats/channel-agents-dialog.tsx';
 import { ChannelAppearanceDialog } from '../chats/channel-appearance-dialog.tsx';
 import { ChannelRenameDialog } from '../chats/channel-rename-dialog.tsx';
-import { agentRoute, serverChatRoute, tasksRoute } from '../servers/server-routes.ts';
+import { serverChatRoute, settingsAgentRoute, tasksRoute } from '../servers/server-routes.ts';
 
 type ChannelEditDialog = 'agents' | 'appearance' | 'rename';
 
@@ -52,7 +52,7 @@ export function ChatNavigationContextMenu({
             return;
         }
         if (action === 'profile' && agent) {
-            navigate(agentRoute(slug, agent.id));
+            navigate(settingsAgentRoute(slug, agent.id));
             return;
         }
         if (action === 'rename' || action === 'appearance' || action === 'agents') {

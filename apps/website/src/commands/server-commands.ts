@@ -9,14 +9,13 @@ import {
     UserCircleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import {
-    agentRoute,
-    membersRoute,
     serverArchivedChatsRoute,
     serverChatRoute,
     serverComputersRoute,
     serverRoute,
     serverSearchRoute,
     serverSettingsSectionRoute,
+    settingsAgentRoute,
     tasksRoute,
 } from '../features/servers/server-routes.ts';
 import { staticSettingsNavItems } from '../features/settings/layout/navigation.ts';
@@ -84,7 +83,7 @@ function buildNavigationGroup(context: CommandContext, currentChat: Chat | null)
         {
             icon: getRouteTabIcon('members'),
             id: 'members',
-            route: membersRoute(context.serverSlug),
+            route: serverSettingsSectionRoute(context.serverSlug, 'members'),
             title: 'Members',
         },
         {
@@ -196,7 +195,8 @@ function buildCurrentChatGroup(context: CommandContext, currentChat: Chat): AppC
                           icon: UserCircleIcon,
                           id: 'current-chat.open-agent-profile',
                           keywords: ['chat', 'agent', 'profile', 'assistant'],
-                          run: () => context.navigate(agentRoute(context.serverSlug, agent.id)),
+                          run: () =>
+                              context.navigate(settingsAgentRoute(context.serverSlug, agent.id)),
                           title: 'Agent Profile',
                       } satisfies AppCommand,
                   ]

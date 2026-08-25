@@ -7,11 +7,7 @@ export const appRoutes = {
     archivedChats: '/chats/archived',
     tasks: '/tasks',
     activity: '/activity',
-    members: '/members',
-    membersHumans: '/members/humans',
-    memberAgent(agentId: string) {
-        return `/members/agents/${encodeURIComponent(agentId)}`;
-    },
+    usage: '/usage',
 
     settings: '/settings',
     settingsPreferences: '/settings/preferences',

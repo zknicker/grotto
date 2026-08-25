@@ -26,11 +26,12 @@ export function tasksRoute(slug: string) {
     return `${serverRoute(slug)}/tasks`;
 }
 
-export function membersRoute(slug: string) {
-    return `${serverRoute(slug)}/members`;
-}
-
-export function membersUsageRoute(
+/**
+ * Server-wide token usage. This lived at the `/members` index, which made a
+ * dashboard wear a roster's URL; a member is a record in Settings, and this is
+ * neither a member nor a setting.
+ */
+export function usageRoute(
     slug: string,
     filters: { computerId?: string; runtimeId?: string } = {}
 ) {
@@ -42,15 +43,7 @@ export function membersUsageRoute(
         query.set('runtime', filters.runtimeId);
     }
     const suffix = query.toString();
-    return `${membersRoute(slug)}${suffix ? `?${suffix}` : ''}`;
-}
-
-export function agentRoute(slug: string, agentId: string, tab = 'overview') {
-    return `${membersRoute(slug)}/agents/${encodeURIComponent(agentId)}/${tab}`;
-}
-
-export function humanRoute(slug: string, userId: string) {
-    return `${membersRoute(slug)}/humans/${encodeURIComponent(userId)}`;
+    return `${serverRoute(slug)}/usage${suffix ? `?${suffix}` : ''}`;
 }
 
 /** Computers live as a Settings section; the legacy /computers path redirects here. */

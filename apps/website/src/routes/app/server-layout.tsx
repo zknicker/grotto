@@ -12,11 +12,11 @@ import {
     rememberLastServerSlug,
 } from '../../features/servers/server-choice.ts';
 import {
-    membersRoute,
     serverArchivedChatsRoute,
     serverRoute,
     serverSearchRoute,
     serverSettingsRoute,
+    serverSettingsSectionRoute,
 } from '../../features/servers/server-routes.ts';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { CommandMenuProvider } from '../../features/shell/command-menu-provider.tsx';
@@ -165,7 +165,12 @@ export function ServerLayout() {
                                                             navigate(serverArchivedChatsRoute(slug))
                                                         }
                                                         onOpenMembers={() =>
-                                                            navigate(membersRoute(slug))
+                                                            navigate(
+                                                                serverSettingsSectionRoute(
+                                                                    slug,
+                                                                    'members'
+                                                                )
+                                                            )
                                                         }
                                                         onOpenSettings={() =>
                                                             navigate(serverSettingsRoute(slug))

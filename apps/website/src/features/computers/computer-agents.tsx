@@ -6,7 +6,7 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
 import { availabilityBadgeColor } from '../members/agent-avatar.tsx';
-import { agentRoute } from '../servers/server-routes.ts';
+import { settingsAgentRoute } from '../servers/server-routes.ts';
 import { agentExecutionLabels, availabilityLabel } from './presentation.ts';
 
 type Agent = GrottoOutputs['agent']['list'][number];
@@ -59,7 +59,7 @@ export function ComputerAgents({
                     </div>
                 ) : rows.length > 0 ? (
                     <ComputerAgentGrid
-                        onOpenAgent={(agentId) => navigate(agentRoute(serverSlug, agentId))}
+                        onOpenAgent={(agentId) => navigate(settingsAgentRoute(serverSlug, agentId))}
                         rows={rows}
                     />
                 ) : (

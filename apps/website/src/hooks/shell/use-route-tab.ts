@@ -7,7 +7,7 @@ export const routeTabs = [
     { id: 'chat', label: 'Chat', path: appRoutes.chats },
     { id: 'activity', label: 'Activity', path: appRoutes.activity },
     { id: 'tasks', label: 'Tasks', path: appRoutes.tasks },
-    { id: 'members', label: 'Members', path: appRoutes.members },
+    { id: 'members', label: 'Members', path: appRoutes.settingsMembers },
 ] as const;
 
 type RouteTab = (typeof routeTabs)[number]['id'];

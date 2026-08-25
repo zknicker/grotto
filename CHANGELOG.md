@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.21 - 2026-08-25
+
+- Signing in from the Grotto App works again. The desktop shell and the App ship on independent
+  channels, so a packaged shell routinely loads a differently versioned App; the shell now exposes
+  its bridge under both the current and the retired name, and the App accepts either, so sign-in
+  stays in the App instead of falling back to the browser and failing the Clerk callback.
+- The published Server artifact now points the Grotto App at the production Clerk instance. A
+  release is cut from an operator's machine, which resolves the development lifecycle, so the
+  release switch rather than the lifecycle selects the App's Clerk instance, and the artifact
+  builder refuses to build unless the resolved publishable key is a production key.
+
+### Release surfaces
+
+- Server: Publish v1.8.21
+- App: Publish v1.8.21
+- iOS: Unchanged
+- Computer: Unchanged
+
 ## v1.8.20 - 2026-08-24
 
 - Grotto App navigation now uses one calmer sidebar and shell rhythm, with Chat tools moved into the

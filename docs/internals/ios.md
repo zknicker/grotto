@@ -85,14 +85,51 @@ systems. Transcript rows, Thread previews, Task metadata, sidebars, and settings
 Glass is a navigation hierarchy, not a general content-card material.
 
 Every floating chrome control is one control. `GlassChromeButton` owns the 44-point circle, the
-19-point medium glyph, and the glass or material treatment, and `ChromeHeader` owns the 56-point
+22-point app icon, and the glass or material treatment, and `ChromeHeader` owns the 56-point
 chrome row that positions leading, centered, and trailing chrome. Call sites choose a glyph and a
 label; they do not restyle the control or set their own geometry. The sidebar and the Chat canvas
-both open with that same row, so a chrome button in either pane lands on one centerline. A fixed-size chrome circle must not
-be placed in a system navigation bar, which compresses it into an ellipse: a screen that wants the
-chrome circle supplies its own `ChromeHeader` and hides the navigation bar, as the Settings sheet
-root does. Pushed screens keep the standard navigation bar with its system back button and text
-actions.
+both open with that same row, so a chrome button in either pane lands on one centerline. A
+fixed-size chrome circle must not be placed in a system navigation bar, which compresses it into an
+ellipse: a screen that wants the chrome circle supplies its own `ChromeHeader` and hides the
+navigation bar, as the Settings sheet root does. Pushed screens keep the standard navigation bar
+with its system back button and text actions.
+
+App iconography is hugeicons stroke-rounded, the same family the App's React surfaces import, so the
+two clients draw one vocabulary. It renders through the machinery the channel glyphs already used:
+`hugeicon-paths.ts` converts a family's SVG elements to path data, `GrottoIcon` draws a name at a
+point size, and `HugeiconGlyph` strokes or fills the normalized unit square. The two resources differ
+only in family and in which names they ask for. `generate-ui-icon-paths.ts` reads the names the App
+imports *and* the raw values of `GrottoIconName`, and fails if a name the phone asks for is not in
+the family — without that check a typo renders an invisible icon. `ui-icons.json` is small enough to
+decode on first use, unlike the 1.8 MiB channel catalog, so an icon never appears after its row has
+drawn.
+
+SF Symbols stay wherever the system owns the grammar: inside `ContentUnavailableView`, `Menu` labels,
+and `Label`, and for navigation backs, disclosure chevrons, picker chevrons, and selection
+checkmarks. Those read as platform affordances rather than product iconography, and a custom glyph
+among a system menu's own rows looks foreign. Two things an SF Symbol does for free that a path does
+not: track the text baseline, and scale with Dynamic Type. `GrottoIcon` does neither, so every caller
+hands it a box, and that box is what aligns it beside text.
+
+A hugeicons name describes a shape, not a concept, and does not map onto an SF Symbol name — the
+family numbers its arrows by form, so `ArrowUp01Icon` is a bare chevron and only `ArrowUp02Icon`
+carries a shaft. Match a replacement by looking at it. The family also draws at a 1.5 stroke on its
+24pt grid, which reads thinner than the medium-weight symbols it replaced, so call sites pass a
+heavier weight; that weight is the knob to reach for when an icon looks faint.
+
+On iOS 26 that circle is the system glass button style, which owns the press treatment end to end.
+The control draws no rim or shadow of its own there: a hand-drawn edge does not travel with the
+glass as it answers a touch, so a press left the stroke stranded inside the pressed shape and the
+shadow pinned to the resting size. The style also owns its padding, so the label is inset by that
+amount to land the drawn circle back on the shared diameter. The pre-26 fallback is
+`.regularMaterial`, which has neither an edge nor a lift of its own, and still draws both.
+
+A chrome button's shadow spills past the edges of whatever contains it. The sidebar is composited
+with `.mask()`, which rasterizes into a buffer sized to the sidebar's own resolved height, so that
+spill survives only inside real layout height: `ChatSidebarView` reserves `shadowBleedHeight` of
+inert space at both ends and `GrottoShellView` grows and re-anchors the proposed height to match.
+Without the leading reservation the search button's shadow ended at a hard line on the sidebar's
+top edge.
 
 Dismiss controls follow one vocabulary. A form that creates or edits a draft uses Cancel plus a
 confirming verb (Create, Save); an informational sheet with nothing to confirm uses Done; the
@@ -239,8 +276,24 @@ navigation, Server queries, or durable app state. No artifact route is wired int
 this remains future work.
 
 Settings stay inside one native sheet and `NavigationStack`. Settings is entered from the sidebar's
-floating gear control, pinned bottom-trailing over the scrolling chat list; the sidebar's Server
-header is a plain, non-interactive title. Chat details for an Agent opens the same sheet already
+floating gear control, pinned bottom-trailing over the scrolling chat list. The sidebar navigation
+carries the App's own order: Server-wide destinations lead, then Channels, then DMs. The sidebar's
+Server header is the Server menu, as the App's sidebar band is; archived chats open from there
+rather than spending a navigation row. That header carries the Server's name and nothing else —
+Agent and member counts are a Settings readout, not standing sidebar chrome — so `ServerPresentation`
+carries only the identity the Chat surfaces render.
+
+Every line in that sidebar starts on one rail: the Server identity, the section labels, and each
+row's glyph share a single left edge, and one glyph box size puts the labels behind them on a single
+column too. A row's selection capsule is the only thing outside the rail — it bleeds into the margin,
+so the scrolling list is inset by the difference and each row re-adds it. Sections are plain labels,
+not disclosures: a phone sidebar holds few enough rows that folding one saves nothing, and the caret
+it would need is the one element that cannot sit on the rail with the rest.
+
+An unread chat hangs a disc off the sidebar's leading edge and lets that edge cut it in half, so
+what shows is a nub in the margin. The clip is load-bearing, which is why the rail inset rides on
+the scrolling list rather than on the scroll view: the scroll view has to reach the sidebar's own
+leading edge, or its bounds cut the marker away before the sidebar edge can halve it. Chat details for an Agent opens the same sheet already
 pushed to that Agent's profile. A deep link seeds the sheet's navigation path, so the hub stays behind the
 pushed screen and the system back button returns to it. The Chat details sheet and the Settings sheet
 are mutually exclusive: details dismisses first and Settings presents from its dismissal. The Settings

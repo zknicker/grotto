@@ -286,7 +286,6 @@ export function ChatView({
                                 chatId={chat.id}
                                 chatName={chatName}
                                 pendingChatId={chat.id}
-                                placeholder="Let's go on an adventure..."
                                 serverId={chat.serverId}
                             />
                         )}

@@ -33,7 +33,8 @@
    * to `calc(var(--radius) * n)` and its shells to `min(32px, --radius-3xl)`.
    * See the radius tier table in DESIGN.md before picking a step.
    */
-  --radius: 0.25rem;
+  --radius-base: 0.375rem;
+  --radius: var(--radius-base);
 
   /* Font Sizes */
   --text-xs: 0.6875rem;
@@ -60,6 +61,46 @@
 }
 
 /*
+ * Chromium's squircle support is progressive enhancement: unsupported
+ * browsers keep ordinary rounded corners. Apply the curve at the base layer
+ * so it reaches HeroUI's BEM components as well as Tailwind radius utilities;
+ * setting it on utility classes alone misses radii expanded from `@apply`.
+ *
+ * A superellipse reads slightly fuller than a circular arc at the same radius,
+ * so supported browsers use the 0.9 compensation from the original Codex-
+ * inspired treatment. Intentional circles opt back into the CSS default.
+ */
+@supports (corner-shape: superellipse(1.5)) {
+    :root,
+    .light,
+    .default,
+    [data-theme="light"],
+    [data-theme="default"] {
+        --radius: calc(var(--radius-base) * 0.9);
+    }
+
+    @layer base {
+        *,
+        *::before,
+        *::after {
+            corner-shape: superellipse(1.5);
+        }
+    }
+
+    @layer components {
+        .rounded-full,
+        .badge:empty,
+        .prompt-input__send,
+        .prompt-input [data-slot="prompt-input-action"],
+        .radio__control,
+        .tabs__list-container__scroll-prev,
+        .tabs__list-container__scroll-next {
+            corner-shape: round;
+        }
+    }
+}
+
+/*
  * Component overrides.
  *
  * HeroUI names every component part with a BEM class expressly so a theme can
@@ -72,6 +113,28 @@
  * a token belongs in `:root` above, where it propagates on its own.
  */
 @layer components {
+    /*
+     * The expanded prompt composer is a persistent foreground shell at ×5.
+     * Its collapsed row becomes a true round capsule whose arc is concentric
+     * with the circular actions, then HeroUI's stock radius transition morphs
+     * it into the global squircle tier as the editor grows.
+     */
+    .prompt-input__shell,
+    .prompt-input[data-layout="compact"] .prompt-input__shell--compact,
+    .prompt-input[data-layout="compact"]:not([data-expanded])
+        .prompt-input__shell--compact:not(:has(.prompt-input__attachments > *)),
+    .prompt-input[data-layout="compact"][data-expanded] .prompt-input__shell--compact,
+    .prompt-input[data-layout="compact"]
+        .prompt-input__shell--compact:has(.prompt-input__attachments > *) {
+        border-radius: calc(var(--radius) * 5);
+    }
+
+    .prompt-input[data-layout="compact"]:not([data-expanded])
+        .prompt-input__shell--compact:not(:has(.prompt-input__attachments > *)) {
+        border-radius: calc(var(--spacing) * 6);
+        corner-shape: round;
+    }
+
     /*
      * Menu surfaces are lists to scan, so they take the tightest step of the
      * spacing scale. HeroUI sizes `.menu-item` and `.list-box-item` purely from

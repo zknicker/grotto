@@ -44,6 +44,33 @@
     margin-bottom: calc(var(--spacing, 0.25rem) * 3);
 }
 
+@layer utilities {
+    /* The rich mention editor fills PromptInput's textarea slot. Its normal
+       inset moves to the slot so compact mode can own the single-row geometry.
+       This must follow the editor's generated padding utilities in the cascade. */
+    .chat-composer-editor [role='textbox'] {
+        padding: 0;
+        line-height: 1.25rem;
+    }
+
+    .chat-composer-editor .mention-editor__placeholder {
+        inset: 0;
+        line-height: 1.25rem;
+    }
+
+    /* Compact PromptInput vertically centers a native textarea with padding.
+       Our rich editor replaces that control, so center its one-line box directly. */
+    .prompt-input[data-layout='compact']:not([data-expanded]) .chat-composer-editor {
+        align-items: center;
+        display: flex;
+        padding-block: 0;
+    }
+
+    .prompt-input[data-layout='compact']:not([data-expanded]) .chat-composer-editor > div {
+        width: 100%;
+    }
+}
+
 @layer components {
     /* Measured manually so the turn disclosure does not share the smaller
        tool drawers' auto/closed handoff. */

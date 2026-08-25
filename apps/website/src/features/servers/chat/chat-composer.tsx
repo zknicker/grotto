@@ -20,7 +20,9 @@ import {
     MentionComposerPicker,
     useServerMentionComposer,
 } from '../../mentions/use-mention-composer.tsx';
+import { resolveChatComposerPlaceholder } from './chat-composer-presentation.ts';
 import { ComposerAttachments } from './composer-attachments.tsx';
+import { useCompactComposerLayout } from './use-compact-composer-layout.ts';
 import { type ComposerAttachment, useComposerAttachments } from './use-composer-attachments.ts';
 import {
     addPendingChatMessage,
@@ -67,6 +69,7 @@ export function ServerChatComposer({
     const agentList = agents.data ?? emptyAgents;
     const [draft, setDraft] = React.useState('');
     const [mentions, setMentions] = React.useState<Mention[]>([]);
+    const { editorSlotRef, isMultiline } = useCompactComposerLayout();
     const {
         add: addAttachments,
         attachments,
@@ -204,6 +207,8 @@ export function ServerChatComposer({
     return (
         <div className="shrink-0 px-5 pb-4">
             <PromptInput
+                data-expanded={isMultiline || attachments.length > 0 || undefined}
+                layout="compact"
                 onSubmit={() => {
                     void handleSubmit();
                 }}
@@ -219,16 +224,18 @@ export function ServerChatComposer({
                                 mentionComposer.focusTextEditor();
                             }}
                         />
-                        {/* Stands in for PromptInput.TextArea: the mention
-                            editor keeps its own text styling, and the reserved
-                            block below it clears the absolutely placed toolbar. */}
-                        <div className="mb-14 min-h-14">
+                        {/* The mention editor occupies PromptInput's textarea
+                            slot so compact and expanded layouts stay stock. */}
+                        <div
+                            className="chat-composer-editor prompt-input__textarea"
+                            ref={editorSlotRef}
+                        >
                             <MentionComposerEditor
                                 ariaLabel={`Message ${chatName}`}
                                 autoFocus={!thread}
                                 composer={mentionComposer}
                                 name="chat-message"
-                                placeholder={placeholder ?? `Message ${chatName}`}
+                                placeholder={resolveChatComposerPlaceholder(chatName, placeholder)}
                             />
                         </div>
                     </PromptInput.Content>

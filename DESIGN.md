@@ -386,8 +386,13 @@ Use HeroUI's default rounded shape language and Tailwind radius utilities. Custo
 
 | Token | Raw value | Formula / source | HeroUI variable | Tailwind / component equivalent | Purpose |
 | --- | --- | --- | --- | --- | --- |
-| `radius` | `4px` |  | `--radius` | Prefer Tailwind radius utilities like `rounded-lg`, `rounded-xl`, and `rounded-2xl`. | Global corner radius basis for surfaces, buttons, and container shapes. |
-| `field radius` | `6px` | `radius x 1.5` | `--field-radius` | Prefer HeroUI field components so this radius is applied automatically. | Corner radius basis for inputs, selects, text areas, and other form controls. |
+| `radius` | `6px` | `5.4px when superellipse corners are supported` | `--radius` | Prefer Tailwind radius utilities like `rounded-lg`, `rounded-xl`, and `rounded-2xl`. | Global corner radius basis for surfaces, buttons, and container shapes. |
+| `field radius` | `9px` | `radius x 1.5; 8.1px with superellipse support` | `--field-radius` | Prefer HeroUI field components so this radius is applied automatically. | Corner radius basis for inputs, selects, text areas, and other form controls. |
+
+Rounded rectangles use `corner-shape: superellipse(1.5)` when the browser supports it, with
+ordinary rounded corners as the fallback. The rule is global because HeroUI expands many radius
+utilities into BEM component CSS; limiting the override to Tailwind class names would miss stock
+components. Intentional circles (`rounded-full`, status dots, and radio controls) stay circular.
 
 ### Radius tiers
 
@@ -401,6 +406,7 @@ one radius drifts the moment the token moves.
 | Overlay and section shells | `min(32px, ×3)` | Card, Popover, Modal, Dropdown, Toast, Alert, Accordion, Select/ComboBox popovers. Product surfaces use the `.card-shell` class, which carries the cap. |
 | Grouped/secondary shells | `×2.5` | Tabs list, Table, date and color pickers. |
 | Interactive pill controls | `×3` | Button, ToggleButton, Pagination, Tab item, Toolbar. Reads as a pill only because ×3 exceeds half the control's height and the browser clamps it; it squares up as `--radius` drops. |
+| Prompt composer shell | Collapsed: half the row height; expanded: `×5` | Compact PromptInput is a true round capsule so its circular actions nest concentrically. As content expands, HeroUI animates the border into the global ×5 squircle tier. |
 | Items and chips | `×2` | `menu-item`, `list-box-item`, Chip, Avatar `sm`. |
 | Small adornments | `×1.5` and below | Tooltip (`×1.5` — *not* the shell tier), CloseButton, Tag, Switch; Kbd and Radio `×1`, Checkbox `×0.75`, Skeleton `×0.5`. |
 | Fields | `--field-radius`, defaulting to `×1.5` | Every input-family control via `rounded-field`. Decouple form controls by setting `--field-radius`, not by overriding call sites. |

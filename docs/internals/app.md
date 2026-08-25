@@ -23,6 +23,23 @@ processes, construct execution routing ids, connect to Computer, or keep a secon
 timeline. A Computer being offline degrades execution controls without hiding already-synced Server
 data.
 
+## Desktop Bridge Is A Cross-Version Contract
+
+A packaged shell never bundles a renderer: it loads the App the hosted Server is
+serving. The two therefore ship on independent channels — the shell through the
+S3 release feed, the App through a Server deploy — and any installed shell may be
+paired with an older or newer App. The `window` global the preload injects is a
+production wire contract between them, not an internal name.
+
+Rename it only additively. The preload injects both the current `grottoDesktop`
+and the legacy `tavernDesktop`, and `getDesktopBridge()` reads either, so neither
+channel has to ship first. Drop a name only once no supported build reads it.
+
+The failure mode is silent rather than loud: an unrecognised bridge makes the App
+believe it is an ordinary browser tab, so sign-in takes the redirect flow. Electron
+then hands the Clerk URL to the system browser, which holds none of the sign-in
+attempt's client state, and Clerk rejects the callback as `authorization_invalid`.
+
 ## Session Refresh And Reconnect
 
 The App keeps one tRPC client and React provider mounted for the signed-in human. Clerk token

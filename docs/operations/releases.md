@@ -303,7 +303,13 @@ What the schema supplies:
 * `GROTTO_RELEASE_BASE_URL`, `GROTTO_RELEASE_S3_URI`, `APPLE_TEAM_ID`, and
   `APPLE_SIGNING_IDENTITY` — public literals.
 * `VITE_CLERK_PUBLISHABLE_KEY` for the Grotto App inside the Server artifact —
-  a public literal, per lifecycle.
+  a public literal, selected by the release switch rather than the lifecycle. A
+  release always resolves the *development* lifecycle, because the production
+  1Password instance refuses desktop authorization, so the lifecycle cannot say
+  whether a build ships. `GROTTO_RESOLVE_RELEASE_TOKENS=true` can, and it
+  selects the production Clerk instance. `build-grotto-server-artifact` then
+  asserts the resolved key is a `pk_live_` key before building the App bundle,
+  so a development Clerk instance cannot reach an artifact users run.
 * `APPLE_ID` and `APPLE_APP_SPECIFIC_PASSWORD` from the shared
   `Apple Notarization - Merchbase` Tooling item.
 * `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` from the shared

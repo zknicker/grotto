@@ -15,6 +15,10 @@ test.beforeAll(async () => {
         "select id from users where clerk_user_id = 'user_e2e_human'"
     );
     assertOpaqueId(ownerUserId);
+    runPsql(
+        databaseUrl,
+        `update users set display_name = 'Zach Knickerbocker', avatar_id = null where id = '${ownerUserId}'`
+    );
     const inventory = JSON.stringify({
         importableSkills: [
             {
@@ -45,6 +49,31 @@ test.beforeAll(async () => {
            '${inventory}'::jsonb, 'healthy'
          )`
     );
+});
+
+test('reads and updates the canonical human identity in Profile settings', async ({ page }) => {
+    await signInAsClerkHuman(page);
+    await page.goto(`/s/${slug}/settings/profile`);
+
+    const name = page.getByRole('textbox', { name: 'Display name' });
+    await expect(name).toHaveValue('Zach Knickerbocker');
+    await expect(page.getByRole('button', { name: 'Upload profile photo' })).toContainText('ZK');
+
+    await name.fill('Zach');
+    await name.press('Tab');
+    await expect
+        .poll(() => {
+            const { databaseUrl } = readClerkSessionFixture();
+            return runPsql(
+                databaseUrl,
+                "select display_name from users where clerk_user_id = 'user_e2e_human'"
+            );
+        })
+        .toBe('Zach');
+
+    await page.reload();
+    await expect(name).toHaveValue('Zach');
+    await expect(page.getByRole('button', { name: 'Upload profile photo' })).toContainText('ZA');
 });
 
 test('reports current Computer models and skills in Server Settings', async ({ page }) => {

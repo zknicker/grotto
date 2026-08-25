@@ -51,7 +51,10 @@ and [Agent Inbox](../../specs/inbox.md).
   opens a side pane listing attachments from its messages. Channels render with
   a hash or chosen catalog icon and optional channel color. Opening a Server
   restores that Server's last visited Chat when it still exists, then falls back
-  to `#all` or the first available Chat.
+  to `#all` or the first available Chat. A user can drag any part of a Channel
+  row to reorder it, or use Space and the arrow keys while the row is focused. The App keeps that
+  personal presentation order per Server on the current device; direct messages
+  retain the Server list order.
   Opening a chat shows a room topbar with the chat name. On channels the name's
   dropdown also carries channel actions. Editing a channel is three separate
   decisions, each with its own dialog: Rename channel, Icon & color, and Agents,

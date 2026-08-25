@@ -232,6 +232,10 @@ function getGroupLabel(option: MentionOption) {
         return 'Agents';
     }
 
+    if (option.kind === 'user') {
+        return 'Humans';
+    }
+
     if (option.kind === 'app') {
         return 'Mac apps';
     }

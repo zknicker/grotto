@@ -15,5 +15,5 @@ export function selectVisibleOptions({
         return mentionOptions.filter((option) => option.kind === 'skill');
     }
 
-    return mentionOptions.filter((option) => option.kind === 'agent');
+    return mentionOptions.filter((option) => option.kind === 'agent' || option.kind === 'user');
 }

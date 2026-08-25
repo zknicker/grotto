@@ -2,7 +2,8 @@ import type { TokenUsageOverview } from '@grotto/api';
 import { ToggleButton, ToggleButtonGroup } from '@heroui/react';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
-import { AgentUsageKpis } from './agent-usage-kpis.tsx';
+import { PageTopbar } from '../shell/shell-topbar.tsx';
+import { AgentUsageScopePicker } from './agent-usage-scope.tsx';
 import { TokenConfigurationGrid } from './token-configuration-grid.tsx';
 import { TokenTotalKpis } from './token-total-kpis.tsx';
 import { TokenUsageChart } from './token-usage-chart.tsx';
@@ -35,15 +36,20 @@ export function AgentsTokenUsage({
     );
 
     return (
-        <UsageDashboard emptyMessage={emptyMessage} view={view}>
+        <>
+            {/* Scope sits beside the range in the shell band: both answer "what
+                am I looking at", and neither belongs in the scrolling column. */}
             {view.agents.length > 0 ? (
-                <AgentUsageKpis
-                    agents={view.agents}
-                    onSelect={setSelectedAgentId}
-                    selectedAgentId={view.selectedAgent?.agentId ?? null}
-                />
+                <PageTopbar>
+                    <AgentUsageScopePicker
+                        agents={view.agents}
+                        onSelect={setSelectedAgentId}
+                        selectedAgentId={view.selectedAgent?.agentId ?? null}
+                    />
+                </PageTopbar>
             ) : null}
-        </UsageDashboard>
+            <UsageDashboard emptyMessage={emptyMessage} view={view} />
+        </>
     );
 }
 

@@ -1,20 +1,20 @@
 import type { Agent, Chat } from '@grotto/api';
-import { Button, Chip } from '@heroui/react';
+import { Button } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import { Plus } from '@hugeicons/core-free-icons';
 import { ArrowDown01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
-import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { loadChannelIconCatalog } from '../../components/chats/channel-icon-catalog.ts';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
-import { AgentAvatar } from '../members/agent-avatar.tsx';
-import { serverChatRoute, tasksRoute } from '../servers/server-routes.ts';
+import { tasksRoute } from '../servers/server-routes.ts';
+import { ChatNavigationRow, chatNavigationName } from './chat-navigation-row.tsx';
 import { useCommandMenu } from './command-menu-provider.tsx';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
 import { shellNavigationIconSize } from './section-header.tsx';
 import { ShellSidebarPageContent } from './shell-sidebar.tsx';
+import { SortableChannelList } from './sortable-channel-list.tsx';
 
 export function ChatNavigation({
     agents,
@@ -22,6 +22,7 @@ export function ChatNavigation({
     onCreateChannel,
     onPreloadSection,
     selectedChatId,
+    serverId,
     slug,
 }: {
     agents: Agent[];
@@ -29,6 +30,7 @@ export function ChatNavigation({
     onCreateChannel: () => void;
     onPreloadSection: (section: 'search' | 'tasks') => void;
     selectedChatId: string | undefined;
+    serverId: string;
     slug: string;
 }) {
     const location = useLocation();
@@ -98,39 +100,48 @@ export function ChatNavigation({
                         <Icon aria-hidden="true" icon={Plus} size={shellNavigationIconSize} />
                     </Button>
                 }
-                agents={agentById}
-                chats={channels}
                 label="Channels"
-                selectedChatId={selectedChatId}
-                slug={slug}
-            />
-            <ChatGroup
-                agents={agentById}
-                chats={directMessages}
-                label="Direct messages"
-                selectedChatId={selectedChatId}
-                slug={slug}
-            />
+            >
+                <SortableChannelList
+                    agents={agentById}
+                    channels={channels}
+                    key={serverId}
+                    selectedChatId={selectedChatId}
+                    serverId={serverId}
+                    slug={slug}
+                />
+            </ChatGroup>
+            <ChatGroup label="Direct messages">
+                <Sidebar.Menu aria-label="Direct messages">
+                    {directMessages.map((chat) => {
+                        const agent = chat.peerAgentId
+                            ? (agentById.get(chat.peerAgentId) ?? null)
+                            : null;
+                        return (
+                            <ChatNavigationRow
+                                agent={agent}
+                                chat={chat}
+                                key={chat.id}
+                                name={chatNavigationName(chat, agent)}
+                                selectedChatId={selectedChatId}
+                                slug={slug}
+                            />
+                        );
+                    })}
+                </Sidebar.Menu>
+            </ChatGroup>
         </ShellSidebarPageContent>
     );
 }
 
 function ChatGroup({
     action,
-    agents,
-    chats,
     children,
     label,
-    selectedChatId,
-    slug,
 }: {
     action?: React.ReactNode;
-    agents: Map<string, Agent>;
-    chats: Chat[];
-    children?: React.ReactNode;
+    children: React.ReactNode;
     label: string;
-    selectedChatId: string | undefined;
-    slug: string;
 }) {
     const [collapsed, setCollapsed] = React.useState(false);
 
@@ -167,73 +178,7 @@ function ChatGroup({
                     {action}
                 </span>
             </div>
-            <Sidebar.Menu aria-label={label} className={collapsed ? 'hidden' : undefined}>
-                {chats.map((chat) => {
-                    const agent = chat.peerAgentId ? (agents.get(chat.peerAgentId) ?? null) : null;
-                    const name =
-                        chat.kind === 'channel'
-                            ? (chat.name ?? 'channel')
-                            : (agent?.displayName ?? chat.peerAgentDisplayName ?? 'DM');
-                    return (
-                        <Sidebar.MenuItem
-                            href={serverChatRoute(slug, chat.id)}
-                            id={chat.id}
-                            isCurrent={chat.id === selectedChatId}
-                            key={chat.id}
-                            textValue={name}
-                        >
-                            <Sidebar.MenuIcon>
-                                <ChatIcon agent={agent} chat={chat} />
-                            </Sidebar.MenuIcon>
-                            <Sidebar.MenuItemContent>
-                                <Sidebar.MenuLabel
-                                    className={
-                                        chat.unreadCount > 0
-                                            ? 'font-medium text-foreground'
-                                            : undefined
-                                    }
-                                >
-                                    {name}
-                                </Sidebar.MenuLabel>
-                                <ChatRowChip chat={chat} />
-                            </Sidebar.MenuItemContent>
-                        </Sidebar.MenuItem>
-                    );
-                })}
-                {children}
-            </Sidebar.Menu>
+            <div className={collapsed ? 'hidden' : undefined}>{children}</div>
         </Sidebar.Group>
     );
-}
-
-/**
- * Unread is the only quantity worth a badge on a navigation row. This slot
- * used to fall back to the channel's participant count in the same muted
- * styling, so two unrelated numbers were indistinguishable — which is what
- * made the counts read as arbitrary. A participant count is not a reason to
- * open a channel; unread mail is.
- */
-function ChatRowChip({ chat }: { chat: Chat }) {
-    if (chat.unreadCount === 0) {
-        return null;
-    }
-    return (
-        <Chip
-            aria-label={`${chat.unreadCount} unread`}
-            className="min-w-5 justify-center tabular-nums"
-            color="accent"
-            size="sm"
-            variant="primary"
-        >
-            {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
-        </Chip>
-    );
-}
-
-function ChatIcon({ agent, chat }: { agent: Agent | null; chat: Chat }) {
-    if (!agent) {
-        return <ChannelIconBox color={chat.color} icon={chat.icon} size="sidebar" />;
-    }
-
-    return <AgentAvatar agent={agent} size={24} />;
 }

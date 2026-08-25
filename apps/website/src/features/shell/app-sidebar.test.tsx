@@ -20,6 +20,7 @@ test('hides a retired Agent DM from active navigation', () => {
                                 onCreateChannel={() => undefined}
                                 onPreloadSection={() => undefined}
                                 selectedChatId={undefined}
+                                serverId="server_one"
                                 slug="grotto"
                             />
                         </ShellSidebarPage>
@@ -56,6 +57,7 @@ test('renders each DM from its own Agent availability', () => {
                                 onCreateChannel={() => undefined}
                                 onPreloadSection={() => undefined}
                                 selectedChatId="chat_blippy"
+                                serverId="server_one"
                                 slug="grotto"
                             />
                         </ShellSidebarPage>
@@ -71,7 +73,7 @@ test('renders each DM from its own Agent availability', () => {
     expect(markup).toContain('title="Online"');
 });
 
-test('paints a channel row with its chosen color', () => {
+test('renders a draggable channel row with its chosen color and no handle', () => {
     const markup = renderToStaticMarkup(
         <MemoryRouter>
             <CommandMenuProvider>
@@ -84,6 +86,7 @@ test('paints a channel row with its chosen color', () => {
                                 onCreateChannel={() => undefined}
                                 onPreloadSection={() => undefined}
                                 selectedChatId={undefined}
+                                serverId="server_one"
                                 slug="grotto"
                             />
                         </ShellSidebarPage>
@@ -93,6 +96,8 @@ test('paints a channel row with its chosen color', () => {
         </MemoryRouter>
     );
 
+    expect(markup).toContain('sortable-channel-row');
+    expect(markup).not.toContain('Reorder');
     expect(markup).toContain('--channel-color-light:#7c3aed');
     expect(markup).toContain('--channel-color-dark:#a78bfa');
 });
@@ -113,6 +118,7 @@ test('keeps unread count chips circular until the number needs a pill', () => {
                                 onCreateChannel={() => undefined}
                                 onPreloadSection={() => undefined}
                                 selectedChatId={undefined}
+                                serverId="server_one"
                                 slug="grotto"
                             />
                         </ShellSidebarPage>

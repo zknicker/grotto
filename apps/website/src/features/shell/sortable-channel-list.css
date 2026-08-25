@@ -1,0 +1,11 @@
+.sortable-channel-overlay {
+    border-radius: calc(var(--radius) * 2);
+    cursor: grabbing;
+    width: 100%;
+}
+
+@media (pointer: fine) {
+    .sortable-channel-row {
+        touch-action: none;
+    }
+}

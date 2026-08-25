@@ -45,6 +45,7 @@ export function AppSidebar({
                 onCreateChannel={openCreateChannel}
                 onPreloadSection={onPreloadSection}
                 selectedChatId={selectedChatId}
+                serverId={currentServer.id}
                 slug={slug}
             />
             <ChannelCreateDialog

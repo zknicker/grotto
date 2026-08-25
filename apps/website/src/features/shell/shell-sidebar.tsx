@@ -55,12 +55,12 @@ export function ShellSidebar({
     return (
         <Sidebar aria-label={activePageContent.ariaLabel}>
             {identity}
-            {back}
-            {/* `contents` carries the scale to the rows without adding a box. */}
+            {/* `contents` carries the scale to every navigation row without adding a box. */}
             <div
                 className="contents"
                 style={{ '--spacing': sidebarDensity } as React.CSSProperties}
             >
+                {back}
                 {activePageContent.children}
             </div>
             {footer ? <Sidebar.Footer>{footer}</Sidebar.Footer> : null}

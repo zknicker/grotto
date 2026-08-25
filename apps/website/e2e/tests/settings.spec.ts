@@ -51,6 +51,20 @@ test.beforeAll(async () => {
     );
 });
 
+test('aligns the Settings escape row with the first Chat navigation row', async ({ page }) => {
+    await signInAsClerkHuman(page);
+    await page.goto(`/s/${slug}`);
+
+    const searchBox = await page.getByRole('row', { exact: true, name: 'Search' }).boundingBox();
+    expect(searchBox).not.toBeNull();
+
+    await page.goto(`/s/${slug}/settings/appearance`);
+    const backBox = await page.getByRole('link', { name: 'Back to chat' }).boundingBox();
+    expect(backBox).not.toBeNull();
+    expect(backBox?.y).toBe(searchBox?.y);
+    expect(backBox?.height).toBe(searchBox?.height);
+});
+
 test('reads and updates the canonical human identity in Profile settings', async ({ page }) => {
     await signInAsClerkHuman(page);
     await page.goto(`/s/${slug}/settings/profile`);

@@ -75,7 +75,7 @@ export function SidebarServerBand({
  */
 export function SidebarBackToChatRow({ route }: { route: string }) {
     return (
-        <div className="px-3 pt-2">
+        <div className="px-3">
             <Link
                 className="-mx-2 flex cursor-[var(--cursor-interactive)] items-center gap-2 rounded-lg px-2 py-1.5 text-muted text-sm hover:bg-surface-hover hover:text-foreground"
                 to={route}

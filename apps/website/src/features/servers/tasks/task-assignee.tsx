@@ -23,7 +23,7 @@ type TaskAssigneeTarget = Pick<
     | 'version'
 >;
 
-const unassignedKey = 'unassigned';
+export const unassignedAssigneeKey = 'unassigned';
 const agentKeyPrefix = 'agent:';
 
 /**
@@ -47,7 +47,7 @@ export function TaskAssignee({
     const assign = useTaskAssign();
     const value = task.assigneeAgentId
         ? `${agentKeyPrefix}${task.assigneeAgentId}`
-        : (task.assigneeUserId ?? unassignedKey);
+        : (task.assigneeUserId ?? unassignedAssigneeKey);
     const valueLabel = task.assigneeLabel;
     const isAssigned = Boolean(task.assigneeAgentId || task.assigneeUserId);
 
@@ -60,29 +60,29 @@ export function TaskAssignee({
         if (!key || key === value) {
             return;
         }
-        assign.mutate(taskAssignmentInput(server.id, task, assigneeFromKey(key)));
+        assign.mutate(taskAssignmentInput(server.id, task, taskAssigneeFromKey(key)));
     };
     const options = (
         <ListBox>
-            <ListBox.Item id={unassignedKey} textValue="Unassigned">
+            <ListBox.Item id={unassignedAssigneeKey} textValue="Unassigned">
                 <Label>Unassigned</Label>
                 <ListBox.ItemIndicator />
             </ListBox.Item>
             {(assignees.data ?? []).map((option) => (
                 <ListBox.Item
-                    id={optionKey(option)}
-                    key={optionKey(option)}
-                    textValue={optionName(option, humans)}
+                    id={taskAssigneeOptionKey(option)}
+                    key={taskAssigneeOptionKey(option)}
+                    textValue={taskAssigneeOptionName(option, humans)}
                 >
                     <EntityAvatar
-                        name={optionName(option, humans)}
+                        name={taskAssigneeOptionName(option, humans)}
                         size={20}
                         src={optionAvatarUrl(option, humans)}
                     />
                     {/* Name over role/handle: on one line a long name outran the
                         popover, because Label does not shrink its own content. */}
                     <div className="flex min-w-0 flex-col">
-                        <Label className="truncate">{optionName(option, humans)}</Label>
+                        <Label className="truncate">{taskAssigneeOptionName(option, humans)}</Label>
                         <Description className="capitalize">
                             {option.kind === 'agent' ? `@${option.handle}` : option.role}
                         </Description>
@@ -158,8 +158,8 @@ export function TaskAssignee({
     );
 }
 
-function assigneeFromKey(key: string): GrottoInputs['task']['assign']['assignee'] {
-    if (key === unassignedKey) {
+export function taskAssigneeFromKey(key: string): GrottoInputs['task']['assign']['assignee'] {
+    if (key === unassignedAssigneeKey) {
         return null;
     }
     return key.startsWith(agentKeyPrefix)
@@ -167,11 +167,11 @@ function assigneeFromKey(key: string): GrottoInputs['task']['assign']['assignee'
         : { kind: 'human', userId: key };
 }
 
-function optionKey(option: TaskAssigneeOption): string {
+export function taskAssigneeOptionKey(option: TaskAssigneeOption): string {
     return option.kind === 'agent' ? `${agentKeyPrefix}${option.agentId}` : option.userId;
 }
 
-function optionName(
+export function taskAssigneeOptionName(
     option: TaskAssigneeOption,
     humans: ReturnType<typeof useHumanDirectory>
 ): string {

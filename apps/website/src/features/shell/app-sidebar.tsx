@@ -1,6 +1,8 @@
+import { toast } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAgents } from '../../hooks/members/use-agents.ts';
+import { useChannelUpdate } from '../../hooks/servers/use-channel-update.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useCreateServerChannel } from '../../hooks/servers/use-create-server-channel.ts';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
@@ -23,6 +25,7 @@ export function AppSidebar({
     const agents = useAgents(currentServer.id);
     const chats = useChats(currentServer.id);
     const createChannel = useCreateServerChannel();
+    const updateChannel = useChannelUpdate();
     const [creatingChannel, setCreatingChannel] = React.useState(false);
     const slug = currentServer.slug;
     const agentItems = agents.data ?? [];
@@ -42,6 +45,21 @@ export function AppSidebar({
             <ChatNavigation
                 agents={agentItems}
                 chats={chatItems}
+                onChangeChannelColor={(chat, color) => {
+                    updateChannel
+                        .mutateAsync({
+                            agentIds: chat.participantAgentIds,
+                            chatId: chat.id,
+                            color,
+                            icon: chat.icon,
+                            name: chat.name ?? '',
+                            serverId: chat.serverId,
+                        })
+                        .then(() => toast.success('Channel color updated'))
+                        .catch((error: Error) =>
+                            toast.danger('Channel update failed', { description: error.message })
+                        );
+                }}
                 onCreateChannel={openCreateChannel}
                 onPreloadSection={onPreloadSection}
                 selectedChatId={selectedChatId}

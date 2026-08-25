@@ -19,6 +19,7 @@ import { SortableChannelList } from './sortable-channel-list.tsx';
 export function ChatNavigation({
     agents,
     chats,
+    onChangeChannelColor,
     onCreateChannel,
     onPreloadSection,
     selectedChatId,
@@ -27,6 +28,7 @@ export function ChatNavigation({
 }: {
     agents: Agent[];
     chats: Chat[];
+    onChangeChannelColor?: (chat: Chat, color: string) => void;
     onCreateChannel: () => void;
     onPreloadSection: (section: 'search' | 'tasks') => void;
     selectedChatId: string | undefined;
@@ -106,6 +108,7 @@ export function ChatNavigation({
                     agents={agentById}
                     channels={channels}
                     key={serverId}
+                    onChangeChannelColor={onChangeChannelColor}
                     selectedChatId={selectedChatId}
                     serverId={serverId}
                     slug={slug}
@@ -123,6 +126,7 @@ export function ChatNavigation({
                                 chat={chat}
                                 key={chat.id}
                                 name={chatNavigationName(chat, agent)}
+                                onChangeChannelColor={onChangeChannelColor}
                                 selectedChatId={selectedChatId}
                                 slug={slug}
                             />

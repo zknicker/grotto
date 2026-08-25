@@ -11,13 +11,13 @@ import {
 } from '../../tasks/message-task-chip.tsx';
 import { formatTaskNumber, taskStatusLabels } from '../../tasks/task-presentation.ts';
 import { ActionTooltip } from '../chat-action-tooltip.tsx';
-import { isActivityBackedMessageRow, isStreamingPostMessageRow } from '../chat-transcript-model.ts';
 import {
     type TranscriptMessageRow,
     useTranscriptRenderContextOptional,
 } from '../chat-transcript-render-context.tsx';
-import { isLocalTimelineMessageMetadata } from '../local-timeline-message.ts';
+import { MessageContextMenu } from './message-context-menu.tsx';
 import { MessageReactionPills } from './message-reactions.tsx';
+import { isThreadAnchorRow } from './thread-anchor.ts';
 import { ThreadPreviewBlock } from './thread-preview-block.tsx';
 
 export function ThreadMessageSurface({
@@ -50,13 +50,7 @@ function EmbeddedThreadMessageSurface({
         (row.message.task ? messageTaskAssigneeLabel(row.message.task) : null);
 
     return (
-        <div
-            className={cn(
-                'group/message-row relative block min-w-0 rounded-lg',
-                flashing && 'chat-thread-flash'
-            )}
-            data-message-id={row.message.id}
-        >
+        <MessageContextMenu className={cn(flashing && 'chat-thread-flash')} row={row}>
             {children}
             <div className="flex flex-wrap items-center gap-1.5">
                 {row.message.task && !(taskLivesInPreview || taskChipHidden) ? (
@@ -88,7 +82,7 @@ function EmbeddedThreadMessageSurface({
                     row={row}
                 />
             ) : null}
-        </div>
+        </MessageContextMenu>
     );
 }
 
@@ -165,12 +159,4 @@ export function ThreadMessageActions({
     );
 }
 
-/** Only Server-persisted, settled chat messages can anchor actions. */
-export function isThreadAnchorRow(row: TranscriptMessageRow) {
-    return (
-        row.message.id.startsWith('msg_') &&
-        !isActivityBackedMessageRow(row) &&
-        !isLocalTimelineMessageMetadata(row.message.metadata) &&
-        !isStreamingPostMessageRow(row)
-    );
-}
+export { isThreadAnchorRow } from './thread-anchor.ts';

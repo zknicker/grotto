@@ -58,6 +58,7 @@ import { transcriptTurnGeometry } from './chat-transcript-turn-geometry.ts';
 import { AgentWidget } from './legacy-widget-row.tsx';
 import { isLocalTimelineMessageMetadata } from './local-timeline-message.ts';
 import { ServerTurnDetailsDrawer } from './server-turn-details-drawer.tsx';
+import { MessageContextActionsProvider } from './thread/message-context-actions.tsx';
 import { MessageReactionActions } from './thread/message-reactions.tsx';
 import { ThreadMessageActions, ThreadMessageSurface } from './thread/thread-message-surface.tsx';
 import type { TranscriptActiveReply, TranscriptActorProfile } from './transcript-contract.ts';
@@ -487,6 +488,10 @@ function AgentTurnPresentation({
     const copyValue = lastMessage?.content ?? getActiveReplyText(items);
     const [inspectOpen, setInspectOpen] = React.useState(false);
     const [inspectMounted, setInspectMounted] = React.useState(false);
+    const openTurnDetails = React.useCallback(() => {
+        setInspectMounted(true);
+        setInspectOpen(true);
+    }, []);
     const turnActions = (
         <>
             {lastMessageRow ? (
@@ -507,10 +512,7 @@ function AgentTurnPresentation({
                 <ChatMessage.Action
                     aria-label="View turn details"
                     className={turnActionClassName}
-                    onPress={() => {
-                        setInspectMounted(true);
-                        setInspectOpen(true);
-                    }}
+                    onPress={openTurnDetails}
                 >
                     <Icon icon={Activity01Icon} strokeWidth={2} />
                 </ChatMessage.Action>
@@ -532,72 +534,74 @@ function AgentTurnPresentation({
     }
 
     return (
-        <ChatMessage.Assistant
-            className={cn(
-                transcriptTurnGeometry.row,
-                turnInteractionClassName,
-                !showIdentity && followsRuntimeNotice && 'mt-0'
-            )}
-        >
-            {chatId && actorId && profilePaneChatId && !actorProfile?.deleted ? (
-                <button
-                    aria-label={`Agent details: ${displayName}`}
-                    className="shrink-0 cursor-(--cursor-interactive) self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                    onClick={() => openAgentProfilePane(profilePaneChatId, actorId)}
-                    type="button"
-                >
+        <MessageContextActionsProvider onViewTurnDetails={openTurnDetails}>
+            <ChatMessage.Assistant
+                className={cn(
+                    transcriptTurnGeometry.row,
+                    turnInteractionClassName,
+                    !showIdentity && followsRuntimeNotice && 'mt-0'
+                )}
+            >
+                {chatId && actorId && profilePaneChatId && !actorProfile?.deleted ? (
+                    <button
+                        aria-label={`Agent details: ${displayName}`}
+                        className="shrink-0 cursor-(--cursor-interactive) self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                        onClick={() => openAgentProfilePane(profilePaneChatId, actorId)}
+                        type="button"
+                    >
+                        <AgentTurnAvatar name={displayName} profile={actorProfile} />
+                    </button>
+                ) : (
                     <AgentTurnAvatar name={displayName} profile={actorProfile} />
-                </button>
-            ) : (
-                <AgentTurnAvatar name={displayName} profile={actorProfile} />
-            )}
-            <ChatMessage.Body className={transcriptTurnGeometry.body}>
-                {showIdentity ? (
-                    <TurnHeader
-                        bio={actorProfile?.bio}
-                        composerId={composerId}
-                        deleted={actorProfile?.deleted}
-                        displayName={displayName}
-                        mentionAgentId={resolveMentionAgentId(
-                            actorId,
-                            actorProfile?.kind,
-                            canRequestMention && Boolean(composerId) && !actorProfile?.deleted
-                        )}
-                        timestamp={entry.timestamp}
+                )}
+                <ChatMessage.Body className={transcriptTurnGeometry.body}>
+                    {showIdentity ? (
+                        <TurnHeader
+                            bio={actorProfile?.bio}
+                            composerId={composerId}
+                            deleted={actorProfile?.deleted}
+                            displayName={displayName}
+                            mentionAgentId={resolveMentionAgentId(
+                                actorId,
+                                actorProfile?.kind,
+                                canRequestMention && Boolean(composerId) && !actorProfile?.deleted
+                            )}
+                            timestamp={entry.timestamp}
+                        />
+                    ) : null}
+                    {visibleSegments.map((segment, index) => (
+                        <AgentTurnSegment
+                            chatId={chatId}
+                            currentSessionKey={currentSessionKey}
+                            defaultOpenWorkGroups={defaultOpenWorkGroups}
+                            key={segment.key}
+                            revealNarration={turnActive}
+                            segment={segment}
+                            turnActive={turnActive && index === visibleSegments.length - 1}
+                            turnCompletedAt={turnCompletedAt}
+                            turnStartedAt={turnStartedAt}
+                            turnStopped={turnStopped}
+                        />
+                    ))}
+                    <ChatMessageActions className={turnActionsClassName} data-turn-actions="">
+                        {turnActions}
+                    </ChatMessageActions>
+                </ChatMessage.Body>
+                {/* Mounted on first use so long transcripts don't pay a drawer per turn. */}
+                {inspectMounted && turnDetails ? (
+                    <ServerTurnDetailsDrawer
+                        access={turnDetails.access}
+                        agentAvatarUrl={actorProfile?.avatarUrl ?? null}
+                        agentId={actorId}
+                        agentName={displayName}
+                        onOpenChange={setInspectOpen}
+                        open={inspectOpen}
+                        runId={turnRunId}
+                        serverId={turnDetails.serverId}
                     />
                 ) : null}
-                {visibleSegments.map((segment, index) => (
-                    <AgentTurnSegment
-                        chatId={chatId}
-                        currentSessionKey={currentSessionKey}
-                        defaultOpenWorkGroups={defaultOpenWorkGroups}
-                        key={segment.key}
-                        revealNarration={turnActive}
-                        segment={segment}
-                        turnActive={turnActive && index === visibleSegments.length - 1}
-                        turnCompletedAt={turnCompletedAt}
-                        turnStartedAt={turnStartedAt}
-                        turnStopped={turnStopped}
-                    />
-                ))}
-                <ChatMessageActions className={turnActionsClassName} data-turn-actions="">
-                    {turnActions}
-                </ChatMessageActions>
-            </ChatMessage.Body>
-            {/* Mounted on first use so long transcripts don't pay a drawer per turn. */}
-            {inspectMounted && turnDetails ? (
-                <ServerTurnDetailsDrawer
-                    access={turnDetails.access}
-                    agentAvatarUrl={actorProfile?.avatarUrl ?? null}
-                    agentId={actorId}
-                    agentName={displayName}
-                    onOpenChange={setInspectOpen}
-                    open={inspectOpen}
-                    runId={turnRunId}
-                    serverId={turnDetails.serverId}
-                />
-            ) : null}
-        </ChatMessage.Assistant>
+            </ChatMessage.Assistant>
+        </MessageContextActionsProvider>
     );
 }
 

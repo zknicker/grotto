@@ -1,11 +1,13 @@
 import type { Agent, Chat } from '@grotto/api';
 import { Button, Chip, Dropdown, Header, Label, Separator, Tooltip, toast } from '@heroui/react';
+import { ContextMenu } from '@heroui-pro/react';
 import {
     ArchiveIcon,
     ArchiveRestoreIcon,
     ArrowDown01Icon,
     Attachment01Icon,
     CheckListIcon,
+    ColorsIcon,
     Delete02Icon,
     Edit02Icon,
     PaintBrush03Icon,
@@ -14,6 +16,7 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { channelColorOptions } from '../../../components/chats/channel-color-options.ts';
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -23,6 +26,7 @@ import {
     useChannelDelete,
     useChannelUnarchive,
 } from '../../../hooks/servers/use-channel-lifecycle.ts';
+import { useChannelUpdate } from '../../../hooks/servers/use-channel-update.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { ChannelAgentsDialog } from '../../chats/channel-agents-dialog.tsx';
@@ -116,6 +120,7 @@ export function ChatTopbarMeta({
 // Editing a channel is three separate decisions, so each one gets its own
 // small dialog instead of one dialog that asks for everything at once.
 type ChannelEditDialog = 'agents' | 'appearance' | 'rename';
+const channelColorPrefix = 'color:';
 
 /** The chat-scoped surfaces every chat menu offers: its tasks and its files. */
 function ChatSurfaceItems() {
@@ -129,6 +134,21 @@ function ChatSurfaceItems() {
                 <Icon icon={Attachment01Icon} size={16} />
                 <Label>Files</Label>
             </Dropdown.Item>
+        </>
+    );
+}
+
+function ChatContextSurfaceItems() {
+    return (
+        <>
+            <ContextMenu.Item id="tasks" textValue="View tasks">
+                <Icon icon={CheckListIcon} size={16} />
+                <Label>View tasks</Label>
+            </ContextMenu.Item>
+            <ContextMenu.Item id="files" textValue="Files">
+                <Icon icon={Attachment01Icon} size={16} />
+                <Label>Files</Label>
+            </ContextMenu.Item>
         </>
     );
 }
@@ -147,45 +167,52 @@ function DmActions({
     server: ServerDetail;
 }) {
     const navigate = useNavigate();
+    const runAction = (key: React.Key) => {
+        if (key === 'tasks') {
+            navigate(`${tasksRoute(server.slug)}?chat=${encodeURIComponent(chat.id)}`);
+            return;
+        }
+        if (key === 'files') {
+            onOpenFiles();
+        }
+    };
 
     return (
-        <Dropdown>
-            <Button
-                aria-label={`${chatName} — chat actions`}
-                // Mirrors the channel trigger: pill-local padding plus the
-                // negative margin that keeps the avatar on the band gutter.
-                className="-ms-2 min-w-0 gap-2 px-2"
-                size="sm"
-                variant="ghost"
-            >
-                <EntityAvatar
-                    name={peerAgent?.displayName ?? chatName}
-                    // Sidebar-row scale: the band is chrome, so its identity
-                    // mark stays smaller than the transcript's avatars below.
-                    size={24}
-                    src={peerAgent?.avatarUrl ?? null}
-                />
-                <span className="truncate font-semibold text-sm">{chatName}</span>
-                <Icon aria-hidden="true" className="text-muted" icon={ArrowDown01Icon} size={15} />
-            </Button>
-            <Dropdown.Popover placement="bottom start">
-                <Dropdown.Menu
-                    onAction={(key) => {
-                        if (key === 'tasks') {
-                            navigate(
-                                `${tasksRoute(server.slug)}?chat=${encodeURIComponent(chat.id)}`
-                            );
-                            return;
-                        }
-                        if (key === 'files') {
-                            onOpenFiles();
-                        }
-                    }}
-                >
-                    <ChatSurfaceItems />
-                </Dropdown.Menu>
-            </Dropdown.Popover>
-        </Dropdown>
+        <ContextMenu>
+            <ContextMenu.Trigger className="min-w-0">
+                <Dropdown>
+                    <Button
+                        aria-label={`${chatName} — chat actions`}
+                        className="-ms-2 min-w-0 gap-2 px-2"
+                        size="sm"
+                        variant="ghost"
+                    >
+                        <EntityAvatar
+                            name={peerAgent?.displayName ?? chatName}
+                            size={24}
+                            src={peerAgent?.avatarUrl ?? null}
+                        />
+                        <span className="truncate font-semibold text-sm">{chatName}</span>
+                        <Icon
+                            aria-hidden="true"
+                            className="text-muted"
+                            icon={ArrowDown01Icon}
+                            size={15}
+                        />
+                    </Button>
+                    <Dropdown.Popover placement="bottom start">
+                        <Dropdown.Menu onAction={runAction}>
+                            <ChatSurfaceItems />
+                        </Dropdown.Menu>
+                    </Dropdown.Popover>
+                </Dropdown>
+            </ContextMenu.Trigger>
+            <ContextMenu.Popover>
+                <ContextMenu.Menu onAction={runAction}>
+                    <ChatContextSurfaceItems />
+                </ContextMenu.Menu>
+            </ContextMenu.Popover>
+        </ContextMenu>
     );
 }
 
@@ -204,6 +231,7 @@ function ChannelActions({
     const archive = useChannelArchive();
     const unarchive = useChannelUnarchive();
     const deleteChannel = useChannelDelete();
+    const updateChannel = useChannelUpdate();
     const [editDialog, setEditDialog] = React.useState<ChannelEditDialog | null>(null);
     const [confirmingDelete, setConfirmingDelete] = React.useState(false);
     const count =
@@ -236,6 +264,22 @@ function ChannelActions({
             setConfirmingDelete(true);
             return;
         }
+        if (typeof key === 'string' && key.startsWith(channelColorPrefix)) {
+            updateChannel
+                .mutateAsync({
+                    agentIds: chat.participantAgentIds,
+                    chatId: chat.id,
+                    color: key.slice(channelColorPrefix.length),
+                    icon: chat.icon,
+                    name: chat.name ?? '',
+                    serverId: chat.serverId,
+                })
+                .then(() => toast.success('Channel color updated'))
+                .catch((error: Error) =>
+                    toast.danger('Channel update failed', { description: error.message })
+                );
+            return;
+        }
         const mutation = key === 'restore' ? unarchive : archive;
         mutation
             .mutateAsync({ chatId: chat.id, serverId: chat.serverId })
@@ -249,102 +293,212 @@ function ChannelActions({
 
     return (
         <>
-            <Dropdown>
-                <Button
-                    aria-label={`${chatName} — channel actions`}
-                    // Match the sidebar row's hover pill: 2 units of inner
-                    // padding so the hash sits as close to the pill edge there as
-                    // it does here, and an equal negative margin so the ink still
-                    // starts on the band gutter, level across the divider.
-                    className="-ms-2 min-w-0 gap-2 px-2"
-                    size="sm"
-                    variant="ghost"
-                >
-                    <ChannelIconBox color={chat.color} icon={chat.icon} size="topbar" />
-                    <span className="truncate font-semibold text-sm">{chatName}</span>
-                    <Icon
-                        aria-hidden="true"
-                        className="text-muted"
-                        icon={ArrowDown01Icon}
-                        size={15}
-                    />
-                </Button>
-                <Dropdown.Popover placement="bottom start">
-                    <Dropdown.Menu onAction={runLifecycleAction}>
-                        <Dropdown.Section>
-                            <Header>Channel</Header>
-                            <Dropdown.Item
-                                id="rename"
-                                isDisabled={Boolean(chat.archivedAt)}
-                                textValue="Rename channel"
-                            >
-                                <Icon aria-hidden="true" icon={Edit02Icon} size={16} />
-                                <Label>Rename channel</Label>
-                            </Dropdown.Item>
-                            <Dropdown.Item
-                                id="appearance"
-                                isDisabled={Boolean(chat.archivedAt)}
-                                textValue="Icon and color"
-                            >
-                                <Icon aria-hidden="true" icon={PaintBrush03Icon} size={16} />
-                                <Label>Icon &amp; color</Label>
-                            </Dropdown.Item>
-                            <Dropdown.Item
-                                id="agents"
-                                isDisabled={Boolean(chat.archivedAt)}
-                                textValue="Agents"
-                            >
-                                <Icon aria-hidden="true" icon={UserMultiple02Icon} size={16} />
-                                <Label>Agents</Label>
-                                <span className="ms-auto shrink-0 text-muted text-xs tabular-nums">
-                                    {count}
-                                </span>
-                            </Dropdown.Item>
-                        </Dropdown.Section>
-                        <Separator />
-                        <Dropdown.Section>
-                            <Header>Content</Header>
-                            <ChatSurfaceItems />
-                        </Dropdown.Section>
-                        {chat.isAll || !canManage ? null : (
-                            <>
-                                <Separator />
+            <ContextMenu>
+                <ContextMenu.Trigger className="min-w-0">
+                    <Dropdown>
+                        <Button
+                            aria-label={`${chatName} — channel actions`}
+                            // Match the sidebar row's hover pill: 2 units of inner
+                            // padding so the hash sits as close to the pill edge there as
+                            // it does here, and an equal negative margin so the ink still
+                            // starts on the band gutter, level across the divider.
+                            className="-ms-2 min-w-0 gap-2 px-2"
+                            size="sm"
+                            variant="ghost"
+                        >
+                            <ChannelIconBox color={chat.color} icon={chat.icon} size="topbar" />
+                            <span className="truncate font-semibold text-sm">{chatName}</span>
+                            <Icon
+                                aria-hidden="true"
+                                className="text-muted"
+                                icon={ArrowDown01Icon}
+                                size={15}
+                            />
+                        </Button>
+                        <Dropdown.Popover placement="bottom start">
+                            <Dropdown.Menu onAction={runLifecycleAction}>
                                 <Dropdown.Section>
-                                    <Header>Actions</Header>
+                                    <Header>Channel</Header>
                                     <Dropdown.Item
-                                        id={chat.archivedAt ? 'restore' : 'archive'}
-                                        isDisabled={lifecyclePending}
-                                        textValue={
-                                            chat.archivedAt ? 'Restore channel' : 'Archive channel'
-                                        }
+                                        id="rename"
+                                        isDisabled={Boolean(chat.archivedAt)}
+                                        textValue="Rename channel"
+                                    >
+                                        <Icon aria-hidden="true" icon={Edit02Icon} size={16} />
+                                        <Label>Rename channel</Label>
+                                    </Dropdown.Item>
+                                    <Dropdown.Item
+                                        id="appearance"
+                                        isDisabled={Boolean(chat.archivedAt)}
+                                        textValue="Icon and color"
                                     >
                                         <Icon
-                                            icon={
-                                                chat.archivedAt ? ArchiveRestoreIcon : ArchiveIcon
-                                            }
+                                            aria-hidden="true"
+                                            icon={PaintBrush03Icon}
                                             size={16}
                                         />
-                                        <Label>
-                                            {chat.archivedAt
-                                                ? 'Restore channel'
-                                                : 'Archive channel'}
-                                        </Label>
+                                        <Label>Icon &amp; color</Label>
                                     </Dropdown.Item>
                                     <Dropdown.Item
-                                        id="delete"
-                                        isDisabled={lifecyclePending}
-                                        textValue="Delete channel"
-                                        variant="danger"
+                                        id="agents"
+                                        isDisabled={Boolean(chat.archivedAt)}
+                                        textValue="Agents"
                                     >
-                                        <Icon icon={Delete02Icon} size={16} />
-                                        <Label>Delete channel</Label>
+                                        <Icon
+                                            aria-hidden="true"
+                                            icon={UserMultiple02Icon}
+                                            size={16}
+                                        />
+                                        <Label>Agents</Label>
+                                        <span className="ms-auto shrink-0 text-muted text-xs tabular-nums">
+                                            {count}
+                                        </span>
                                     </Dropdown.Item>
                                 </Dropdown.Section>
+                                <Separator />
+                                <Dropdown.Section>
+                                    <Header>Content</Header>
+                                    <ChatSurfaceItems />
+                                </Dropdown.Section>
+                                {chat.isAll || !canManage ? null : (
+                                    <>
+                                        <Separator />
+                                        <Dropdown.Section>
+                                            <Header>Actions</Header>
+                                            <Dropdown.Item
+                                                id={chat.archivedAt ? 'restore' : 'archive'}
+                                                isDisabled={lifecyclePending}
+                                                textValue={
+                                                    chat.archivedAt
+                                                        ? 'Restore channel'
+                                                        : 'Archive channel'
+                                                }
+                                            >
+                                                <Icon
+                                                    icon={
+                                                        chat.archivedAt
+                                                            ? ArchiveRestoreIcon
+                                                            : ArchiveIcon
+                                                    }
+                                                    size={16}
+                                                />
+                                                <Label>
+                                                    {chat.archivedAt
+                                                        ? 'Restore channel'
+                                                        : 'Archive channel'}
+                                                </Label>
+                                            </Dropdown.Item>
+                                            <Dropdown.Item
+                                                id="delete"
+                                                isDisabled={lifecyclePending}
+                                                textValue="Delete channel"
+                                                variant="danger"
+                                            >
+                                                <Icon icon={Delete02Icon} size={16} />
+                                                <Label>Delete channel</Label>
+                                            </Dropdown.Item>
+                                        </Dropdown.Section>
+                                    </>
+                                )}
+                            </Dropdown.Menu>
+                        </Dropdown.Popover>
+                    </Dropdown>
+                </ContextMenu.Trigger>
+                <ContextMenu.Popover>
+                    <ContextMenu.Menu onAction={runLifecycleAction}>
+                        <ContextMenu.Item
+                            id="rename"
+                            isDisabled={Boolean(chat.archivedAt)}
+                            textValue="Rename channel"
+                        >
+                            <Icon aria-hidden="true" icon={Edit02Icon} size={16} />
+                            <Label>Rename channel</Label>
+                        </ContextMenu.Item>
+                        <ContextMenu.Item
+                            id="appearance"
+                            isDisabled={Boolean(chat.archivedAt)}
+                            textValue="Icon and color"
+                        >
+                            <Icon aria-hidden="true" icon={PaintBrush03Icon} size={16} />
+                            <Label>Icon &amp; color…</Label>
+                        </ContextMenu.Item>
+                        <ContextMenu.SubmenuTrigger>
+                            <ContextMenu.Item
+                                id="color"
+                                isDisabled={Boolean(chat.archivedAt) || updateChannel.isPending}
+                                textValue="Color"
+                            >
+                                <Icon aria-hidden="true" icon={ColorsIcon} size={16} />
+                                <Label>Color</Label>
+                                <ContextMenu.SubmenuIndicator />
+                            </ContextMenu.Item>
+                            <ContextMenu.Popover>
+                                <ContextMenu.Menu onAction={runLifecycleAction}>
+                                    {channelColorOptions.map((option) => (
+                                        <ContextMenu.Item
+                                            id={`${channelColorPrefix}${option.id}`}
+                                            key={option.id}
+                                            textValue={option.label}
+                                        >
+                                            <span
+                                                aria-hidden="true"
+                                                className="size-4 rounded-full"
+                                                style={{ backgroundColor: option.value }}
+                                            />
+                                            <Label>{option.label}</Label>
+                                            {chat.color === option.id ? (
+                                                <ContextMenu.ItemIndicator />
+                                            ) : null}
+                                        </ContextMenu.Item>
+                                    ))}
+                                </ContextMenu.Menu>
+                            </ContextMenu.Popover>
+                        </ContextMenu.SubmenuTrigger>
+                        <ContextMenu.Item
+                            id="agents"
+                            isDisabled={Boolean(chat.archivedAt)}
+                            textValue="Agents"
+                        >
+                            <Icon aria-hidden="true" icon={UserMultiple02Icon} size={16} />
+                            <Label>Agents</Label>
+                            <span className="ms-auto shrink-0 text-muted text-xs tabular-nums">
+                                {count}
+                            </span>
+                        </ContextMenu.Item>
+                        <ContextMenu.Separator />
+                        <ChatContextSurfaceItems />
+                        {chat.isAll || !canManage ? null : (
+                            <>
+                                <ContextMenu.Separator />
+                                <ContextMenu.Item
+                                    id={chat.archivedAt ? 'restore' : 'archive'}
+                                    isDisabled={lifecyclePending}
+                                    textValue={
+                                        chat.archivedAt ? 'Restore channel' : 'Archive channel'
+                                    }
+                                >
+                                    <Icon
+                                        icon={chat.archivedAt ? ArchiveRestoreIcon : ArchiveIcon}
+                                        size={16}
+                                    />
+                                    <Label>
+                                        {chat.archivedAt ? 'Restore channel' : 'Archive channel'}
+                                    </Label>
+                                </ContextMenu.Item>
+                                <ContextMenu.Item
+                                    id="delete"
+                                    isDisabled={lifecyclePending}
+                                    textValue="Delete channel"
+                                    variant="danger"
+                                >
+                                    <Icon icon={Delete02Icon} size={16} />
+                                    <Label>Delete channel</Label>
+                                </ContextMenu.Item>
                             </>
                         )}
-                    </Dropdown.Menu>
-                </Dropdown.Popover>
-            </Dropdown>
+                    </ContextMenu.Menu>
+                </ContextMenu.Popover>
+            </ContextMenu>
             {/* Each edit dialog mounts on demand, so its draft starts from the
                 channel as it is right now. */}
             {editDialog === 'rename' ? (

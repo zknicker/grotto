@@ -5,6 +5,7 @@ import type * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { serverChatRoute } from '../servers/server-routes.ts';
+import { ChatNavigationContextMenu } from './chat-navigation-context-menu.tsx';
 
 export function ChatNavigationRow({
     agent,
@@ -12,6 +13,7 @@ export function ChatNavigationRow({
     chat,
     className,
     name,
+    onChangeChannelColor,
     ref,
     selectedChatId,
     slug,
@@ -22,6 +24,7 @@ export function ChatNavigationRow({
     chat: Chat;
     className?: string;
     name: string;
+    onChangeChannelColor?: (chat: Chat, color: string) => void;
     ref?: React.Ref<HTMLDivElement>;
     selectedChatId: string | undefined;
     slug: string;
@@ -38,7 +41,14 @@ export function ChatNavigationRow({
             style={style}
             textValue={name}
         >
-            <ChatNavigationRowContent agent={agent} chat={chat} name={name} />
+            <ChatNavigationContextMenu
+                agent={agent}
+                chat={chat}
+                onChangeChannelColor={onChangeChannelColor}
+                slug={slug}
+            >
+                <ChatNavigationRowContent agent={agent} chat={chat} name={name} />
+            </ChatNavigationContextMenu>
         </Sidebar.MenuItem>
     );
 }

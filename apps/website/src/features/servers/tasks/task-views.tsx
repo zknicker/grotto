@@ -9,6 +9,7 @@ import { taskPriorityLabels, taskStatusLabels } from '../../tasks/task-presentat
 import { TaskPriorityIcon } from '../../tasks/task-priority-icon.tsx';
 import { TaskStatusDisc } from '../../tasks/task-status-disc.tsx';
 import { TaskActions } from './task-actions.tsx';
+import { TaskContextMenu } from './task-context-menu.tsx';
 import { groupTasks, type TaskItem } from './task-model.ts';
 
 interface TaskViewProps {
@@ -43,8 +44,10 @@ export function TaskBoard({ onOpenTask, tasks }: TaskViewProps) {
                             >
                                 {(task) => (
                                     <Kanban.Card id={task.id} textValue={task.title}>
-                                        <TaskSummary onOpen={onOpenTask} task={task} />
-                                        <TaskActions task={task} />
+                                        <TaskContextMenu onOpenTask={onOpenTask} task={task}>
+                                            <TaskSummary onOpen={onOpenTask} task={task} />
+                                            <TaskActions task={task} />
+                                        </TaskContextMenu>
                                     </Kanban.Card>
                                 )}
                             </Kanban.CardList>
@@ -147,38 +150,42 @@ function TaskListRow({
     task: TaskItem;
 }) {
     return (
-        <button
-            aria-label={rowAriaLabel(task, assigneeLabel)}
-            className="flex h-9 w-full cursor-[var(--cursor-interactive)] items-center gap-2 px-3 text-left outline-none hover:bg-background-hover focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
-            onClick={() => onOpen(task)}
-            type="button"
-        >
-            <TaskPriorityIcon className="size-4 text-muted" priority={task.priority} />
-            <span className="w-10 shrink-0 text-right font-mono text-muted text-xs tabular-nums">
-                #{task.number}
-            </span>
-            <TaskStatusDisc className="size-4" status={task.status} />
-            <span className="min-w-0 flex-1 truncate text-foreground text-sm">{task.title}</span>
-            <div className="hidden shrink-0 items-center gap-1.5 lg:flex">
-                {task.labels.map((label) => (
-                    <LabelChip color={label.color} key={label.id} name={label.name} />
-                ))}
-                <span className="text-muted text-sm">{task.chatLabel}</span>
-            </div>
-            <span className="hidden shrink-0 text-muted text-xs tabular-nums sm:inline">
-                <RelativeTime value={task.updatedAt} />
-            </span>
-            <span className="shrink-0" title={assigneeLabel}>
-                {task.assigneeAgentId !== null || task.assigneeUserId !== null ? (
-                    <EntityAvatar name={assigneeLabel} size={20} src={task.assigneeAvatarUrl} />
-                ) : (
-                    <span
-                        aria-hidden="true"
-                        className="block size-5 rounded-full border border-separator border-dashed"
-                    />
-                )}
-            </span>
-        </button>
+        <TaskContextMenu onOpenTask={onOpen} task={task}>
+            <button
+                aria-label={rowAriaLabel(task, assigneeLabel)}
+                className="flex h-9 w-full cursor-[var(--cursor-interactive)] items-center gap-2 px-3 text-left outline-none hover:bg-background-hover focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
+                onClick={() => onOpen(task)}
+                type="button"
+            >
+                <TaskPriorityIcon className="size-4 text-muted" priority={task.priority} />
+                <span className="w-10 shrink-0 text-right font-mono text-muted text-xs tabular-nums">
+                    #{task.number}
+                </span>
+                <TaskStatusDisc className="size-4" status={task.status} />
+                <span className="min-w-0 flex-1 truncate text-foreground text-sm">
+                    {task.title}
+                </span>
+                <div className="hidden shrink-0 items-center gap-1.5 lg:flex">
+                    {task.labels.map((label) => (
+                        <LabelChip color={label.color} key={label.id} name={label.name} />
+                    ))}
+                    <span className="text-muted text-sm">{task.chatLabel}</span>
+                </div>
+                <span className="hidden shrink-0 text-muted text-xs tabular-nums sm:inline">
+                    <RelativeTime value={task.updatedAt} />
+                </span>
+                <span className="shrink-0" title={assigneeLabel}>
+                    {task.assigneeAgentId !== null || task.assigneeUserId !== null ? (
+                        <EntityAvatar name={assigneeLabel} size={20} src={task.assigneeAvatarUrl} />
+                    ) : (
+                        <span
+                            aria-hidden="true"
+                            className="block size-5 rounded-full border border-separator border-dashed"
+                        />
+                    )}
+                </span>
+            </button>
+        </TaskContextMenu>
     );
 }
 

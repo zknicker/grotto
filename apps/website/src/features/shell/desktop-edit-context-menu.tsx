@@ -25,6 +25,30 @@ interface EditContextMenuState {
     y: number;
 }
 
+interface ContextMenuDispositionInput {
+    defaultPrevented: boolean;
+    hasDesktopBridge: boolean;
+    hasEditableTarget: boolean;
+    hasSelection: boolean;
+}
+
+export function getContextMenuDisposition({
+    defaultPrevented,
+    hasDesktopBridge,
+    hasEditableTarget,
+    hasSelection,
+}: ContextMenuDispositionInput): 'ignore' | 'show-edit-menu' | 'suppress-native' {
+    if (defaultPrevented) {
+        return 'ignore';
+    }
+
+    if (hasEditableTarget || hasSelection) {
+        return hasDesktopBridge ? 'show-edit-menu' : 'ignore';
+    }
+
+    return 'suppress-native';
+}
+
 export function DesktopEditContextMenuProvider({
     children,
 }: {
@@ -35,25 +59,28 @@ export function DesktopEditContextMenuProvider({
     const bridge = getDesktopBridge();
 
     React.useEffect(() => {
-        if (!bridge) {
-            return;
-        }
-
         function handleContextMenu(event: MouseEvent) {
-            if (event.defaultPrevented) {
-                return;
-            }
-
             const target = event.target instanceof Element ? event.target : null;
             const editable = findEditableTarget(target);
             const hasSelection = editable ? hasEditableSelection(editable) : hasDocumentSelection();
+            const disposition = getContextMenuDisposition({
+                defaultPrevented: event.defaultPrevented,
+                hasDesktopBridge: Boolean(bridge),
+                hasEditableTarget: Boolean(editable),
+                hasSelection,
+            });
 
-            if (!(editable || hasSelection)) {
-                setMenu(null);
+            if (disposition === 'ignore') {
                 return;
             }
 
             event.preventDefault();
+
+            if (disposition === 'suppress-native') {
+                setMenu(null);
+                return;
+            }
+
             setMenu({
                 hasSelection,
                 mode: editable ? 'editable' : 'selection',

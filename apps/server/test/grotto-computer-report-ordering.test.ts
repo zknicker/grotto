@@ -34,7 +34,7 @@ beforeAll(async () => {
             computer_id, desired_runtime_id, desired_model_id
         )
         values (
-            ${agentId}, ${serverId}, 'cove', 'Cove', 'America/New_York', 'member',
+            ${agentId}, ${serverId}, 'report-cove', 'Cove', 'America/New_York', 'member',
             ${computerId}, 'codex', 'gpt-5.6-sol'
         )
     `;

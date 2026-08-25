@@ -56,7 +56,7 @@ beforeAll(async () => {
             'srv_jsonbtest000000',
             ${computerId},
             'Cove',
-            'cove',
+            'jsonb-cove',
             'UTC',
             'member',
             'codex',

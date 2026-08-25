@@ -194,6 +194,7 @@ test('rejects renaming onto an existing channel name', async () => {
 });
 
 test('rejects updating a DM as if it were a channel', async () => {
+    await owner.trpc.chat.ensureAgentDm.mutate({ agentId: firstAgentId, serverId });
     const chats = await owner.trpc.chat.list.query({ serverId });
     const dm = chats.find((chat) => chat.kind === 'dm');
     expect(dm).toBeDefined();

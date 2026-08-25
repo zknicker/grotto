@@ -161,6 +161,7 @@ test('an appearance-only change emits one updated lifecycle event', async () => 
 });
 
 test('DM chats report no channel appearance', async () => {
+    await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId });
     const chats = await owner.trpc.chat.list.query({ serverId });
     expect(chats.find((chat) => chat.kind === 'dm')).toMatchObject({ color: null, icon: null });
 });

@@ -57,7 +57,7 @@ function seedReminderState(input: {
            id, server_id, computer_id, handle, display_name, home_timezone, role,
            desired_runtime_id, desired_model_id
          ) values (
-           'agt_e2e_reminder', '${input.serverId}', '${input.computerId}', 'cove', 'Cove',
+           'agt_e2e_reminder', '${input.serverId}', '${input.computerId}', 'reminder-cove', 'Cove',
            'America/New_York', 'member', 'codex', 'gpt-5.6-sol'
          );
          insert into channel_agent_participants (server_id, chat_id, agent_id)

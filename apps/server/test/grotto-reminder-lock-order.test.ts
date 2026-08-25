@@ -39,7 +39,7 @@ beforeAll(async () => {
     agentId = 'agt_reminder_lock';
     await harness.sql`
         insert into agents (id, server_id, handle, display_name, home_timezone, role)
-        values (${agentId}, ${serverId}, 'Lock', 'Lock', 'America/New_York', 'member')
+        values (${agentId}, ${serverId}, 'lock', 'Lock', 'America/New_York', 'member')
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)

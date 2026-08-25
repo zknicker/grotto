@@ -47,8 +47,6 @@ const main = async () => {
     printSummary({ currentVersion, targetVersion });
 };
 
-await main();
-
 function printUsage() {
     console.log(
         [
@@ -154,3 +152,5 @@ function printSummary({ currentVersion, targetVersion }) {
     console.log('- update CHANGELOG.md using commit analysis');
     console.log('- bun run release:check');
 }
+
+await main();

@@ -45,6 +45,7 @@ Memory, Wiki, cron automations, and the first task tracker were retired; see
 | Models, skills, tools | [Skills API](api/skills.md), [Agent daemon delivery](internals/agent-daemon-delivery.md) |
 | Testing | [Testing](operations/testing.md) |
 | Local development | [Development](operations/development.md) |
+| Environment and secrets | [Environment](operations/environment.md) |
 
 ## Docs Layout
 

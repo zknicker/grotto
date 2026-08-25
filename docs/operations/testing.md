@@ -88,6 +88,34 @@ that matches multiple rows, run the union of their required proof.
 | Live Agent behavior, agent-test kit, or eval harness | Run the affected scenario with `bun run test:agents --only <name>` after deterministic support tests | Run the full `test:agents` set when shared kit or prompt behavior can affect several scenarios or for release confidence. |
 | App-to-Computer-to-model path through the real browser | `bun run test:tracer` | Nothing else escalates here; behavior belongs in `test:agents`. |
 
+## Quality CI And Check Lanes
+
+Per-commit CI answers exactly one question: is the contract intact and does the
+fast stuff pass? The `Quality` workflow runs `bun run check:fast` on
+`pull_request` and on `push` to `main`, and nothing else. That is policy, not
+an oversight — CI minutes are a quota, and weight belongs where no coverage is
+lost.
+
+| Lane | Contents | Runs in |
+| --- | --- | --- |
+| `check:fast` | `env:check`, `env:contract`, `lint`, `typecheck:fast` (api, sdk, usage packages, Server), `test:fast` (`packages` + `scripts`) | Quality, and inside `check` |
+| `check:heavy` | `typecheck:licensed` (App, Computer), `test:app-unit`, `test:server`, `test:computer`, `build` | `bun run check` only |
+| Neither | `test:app` (Playwright), `test:agents`, `eval:*`, release builds | opt-in, by hand |
+
+`bun run check` is `check:fast` then `check:heavy`, and that is what gates
+local work, cloud-agent runs, and release preflight. The split is structural,
+not a list of exclusions:
+
+* Everything in `check:heavy` needs something Quality must not do. The App
+  typecheck and its unit tests both resolve `@heroui-pro/react`, whose dist is
+  a licensed download. The Server suites each provision a real PostgreSQL
+  cluster. The Computer suites spawn execution runtimes. The build is the
+  deploy path's proof, not CI's.
+* `check:fast` is fully offline: it pins the schema's `test` lifecycle, so no
+  gate in it reaches 1Password. It runs in about ten seconds.
+* Keep the Quality job free of licensed downloads, databases, browsers, and
+  builds. Adding one there is how a polite CI stops being polite.
+
 ## Test Lanes
 
 | Lane | Use when | Keep current by |

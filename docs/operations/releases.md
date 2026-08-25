@@ -112,7 +112,7 @@ them.
 commit has a stable full SHA. It builds the Server artifact, including Grotto App,
 once with that SHA, verifies its archive and sidecar, then builds and
 notarizes the signed App when required. It uploads the App updater files to
-`TAVERN_RELEASE_S3_URI`, verifies that remote `main` still contains the release
+`GROTTO_RELEASE_S3_URI`, verifies that remote `main` still contains the release
 commit, pushes the version tag, and creates the GitHub Release with the App
 files plus the Server archive and sidecar. New commits may land on `main` during
 the build without invalidating the immutable release commit.
@@ -291,48 +291,41 @@ collect changes for the next release.
 
 ## Environment
 
-Required release environment:
+Release commands resolve everything they need from the committed `.env.schema`.
+Each one runs `GROTTO_RESOLVE_RELEASE_TOKENS=true varlock run --include-internal`,
+so the Tooling-vault credentials resolve through desktop authorization (Touch
+ID) on the publisher's machine and nowhere else. There is no `.env` step, and
+nothing else may resolve them: cloud agents, CI, and the dev stack never
+evaluate these references. See [environment.md](environment.md).
 
-* `TAVERN_RELEASE_BASE_URL`
-* `TAVERN_RELEASE_S3_URI`
-* `VITE_CLERK_PUBLISHABLE_KEY` for Grotto App inside the Server artifact
-* `CSC_NAME` or `CSC_LINK` + `CSC_KEY_PASSWORD`
-* `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`
-* `APPLE_PASSWORD` is accepted as a compatibility alias for
-  `APPLE_APP_SPECIFIC_PASSWORD`
-* `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+What the schema supplies:
 
-iOS releases additionally require `IOS_DEVELOPMENT_TEAM` (or the existing `APPLE_TEAM_ID`) and
-an Apple Developer account configured in Xcode. For unattended signing and upload, set the full
-App Store Connect API key set: `APPLE_API_KEY_PATH`, `APPLE_API_KEY_ID`, and
-`APPLE_API_ISSUER`.
+* `GROTTO_RELEASE_BASE_URL`, `GROTTO_RELEASE_S3_URI`, `APPLE_TEAM_ID`, and
+  `APPLE_SIGNING_IDENTITY` — public literals.
+* `VITE_CLERK_PUBLISHABLE_KEY` for the Grotto App inside the Server artifact —
+  a public literal, per lifecycle.
+* `APPLE_ID` and `APPLE_APP_SPECIFIC_PASSWORD` from the shared
+  `Apple Notarization - Merchbase` Tooling item.
+* `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` from the shared
+  `S3 Release - Merchbase Desktop` Tooling item.
+* `GROTTO_COMPUTER_RELEASE_PRIVATE_KEY` and
+  `GROTTO_COMPUTER_RELEASE_PUBLIC_KEY` from `Computer Release Signing - Grotto`.
 
-Computer releases additionally require
-`GROTTO_COMPUTER_RELEASE_PRIVATE_KEY`, the Ed25519 private release key used to
-sign the Computer descriptor, and `GROTTO_COMPUTER_RELEASE_PUBLIC_KEY`, its
-corresponding trusted public key. The publisher verifies that pair and verifies
-the current production descriptor with the public key before building. The
-public key is compiled into the Computer executable; normal installation does
-not accept a public-key environment override.
+What stays on the operator's machine:
 
-On macOS, both variables automatically fall back to the release keys in the
-login Keychain. Their generic-password service names are
-`grotto-computer-release-ed25519-private` and
-`grotto-computer-release-ed25519-public`, with the macOS username as the
-account. The current records store PEM as hex; the publishers decode that
-representation in memory. Operators do not need to copy these keys into each
-checkout's `.env`.
-`GROTTO_COMPUTER_RELEASE_BASE_URL` defaults to
-`https://releases.grotto.sh/computer`; Computer objects publish below the
-`computer/` prefix of `TAVERN_RELEASE_S3_URI`. Standalone Computer codesigning
-also requires the Developer ID certificate in the macOS keychain, selected by
-`CSC_NAME` or `APPLE_SIGNING_IDENTITY`; a `CSC_LINK` file alone is not a
-codesign identity.
+* The Developer ID certificate and its private key, in the login Keychain.
+  Only the identity's *name* travels, and it is public. `build-desktop-release`
+  bridges it onto electron-builder's literal `CSC_NAME`.
+* The App Store Connect `.p8` file for iOS TestFlight uploads. No key has been
+  issued for Grotto yet, so `APPLE_API_KEY_PATH`, `APPLE_API_KEY_ID`, and
+  `APPLE_API_ISSUER` are operator-supplied for now; iOS releases also need
+  `IOS_DEVELOPMENT_TEAM` (or `APPLE_TEAM_ID`) and an Apple Developer account
+  configured in Xcode.
 
-On macOS, `VITE_CLERK_PUBLISHABLE_KEY` also falls back to the login Keychain
-generic-password service `grotto-release-clerk-publishable-key`, using the
-macOS username as the account. The publisher resolves this value before
-committing or pushing release metadata, so checkout-local `.env` files are not
-required for the Grotto App build.
+Computer releases verify the Ed25519 pair and the current production descriptor
+before building. The public key is compiled into the Computer executable; normal
+installation does not accept a public-key environment override. Computer objects
+publish below the `computer/` prefix of `GROTTO_RELEASE_S3_URI`, and
+`GROTTO_COMPUTER_RELEASE_BASE_URL` is `https://releases.grotto.sh/computer`.
 
 The GitHub Release step uses `gh`; run `gh auth status` before publishing.

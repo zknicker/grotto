@@ -37,9 +37,10 @@ bun run setup:worktree
 ```
 
 The setup keeps lifecycle scripts disabled, installs the frozen Bun dependency
-graph, and explicitly downloads the pinned HeroUI React Pro artifacts. Local
-development uses `bunx heroui-pro@latest login` credentials from the system
-keychain; non-interactive environments provide `HEROUI_AUTH_TOKEN`.
+graph, and explicitly downloads the pinned HeroUI React Pro artifacts. Both
+licensed registry credentials it needs resolve from 1Password through the
+committed `.env.schema`; there is no `.env` step. See
+[docs/operations/environment.md](docs/operations/environment.md).
 
 Run the full local stack:
 

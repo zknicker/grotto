@@ -53,7 +53,7 @@ A Grotto User is minted in exactly one place: inside Server creation's
 transaction. Reads resolve an existing User or find none — asking never mints
 one, so an authenticated human who has done nothing leaves no row behind.
 
-`CLERK_ISSUER_URL` names the Clerk instance whose JWKS signs those tokens. The
+`GROTTO_CLERK_ISSUER_URL` names the Clerk instance whose JWKS signs those tokens. The
 Grotto App attaches the token as `Authorization: Bearer` on HTTP and as
 `connectionParams.clerkSessionToken` on the WebSocket.
 
@@ -67,11 +67,11 @@ signature, configured issuer, expiry, and subject all pass:
 | `azp` | Outcome |
 | --- | --- |
 | Absent | Accepted — Clerk omits it when no browser Origin took part, as with the native header-authenticated desktop session |
-| Exactly `APP_ORIGIN` | Accepted |
+| Exactly `GROTTO_APP_ORIGIN` | Accepted |
 | Another origin | Rejected — a same-instance token minted for someone else's frontend |
 | `null`, non-string, or empty | Rejected |
 
-The only authorized party is `APP_ORIGIN`'s exact origin. A `file://` origin, a
+The only authorized party is `GROTTO_APP_ORIGIN`'s exact origin. A `file://` origin, a
 loopback or localhost guess, and the CORS origin predicate are never authorized
 parties — CORS decides which browsers may call the Server, not whose tokens it
 trusts.
@@ -394,10 +394,10 @@ former DM or its Threads, while the peer who did not leave retains that
 history. Removal clears `channel_participants`, `chat_reads`, and
 `thread_follows`, and live composition state for every departed Chat, including Threads.
 
-`CLERK_SECRET_KEY` authorizes the Clerk Backend API lookup that reads which of a
+`GROTTO_CLERK_SECRET_KEY` authorizes the Clerk Backend API lookup that reads which of a
 human's addresses Clerk has verified; it is the only Grotto surface that reads a
 human's addresses. Without it the Server still runs and invitations simply
-cannot be accepted. `CLERK_API_URL` overrides the Clerk Backend origin for a
+cannot be accepted. `GROTTO_CLERK_API_URL` overrides the Clerk Backend origin for a
 non-production instance.
 
 The one address Grotto stores is `server_invitations.email`, the address an
@@ -496,7 +496,7 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
 - `/invite/<token>` is where an invited human accepts. It sits outside the
   `/s/<slug>` branch because a Server address may itself be `invite` or `join`.
   Manual links use `VITE_GROTTO_APP_ORIGIN` when configured; that origin must
-  match `APP_ORIGIN`.
+  match `GROTTO_APP_ORIGIN`.
 - `/privacy` serves the public privacy policy directly from the Grotto App
   artifact without loading the signed-in App shell.
 

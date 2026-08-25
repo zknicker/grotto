@@ -2,7 +2,7 @@
 summary: Build, install, supervise, back up, restore, cut over, and roll back the single-node Grotto Server at grotto.sh.
 read_when:
   - deploying or operating the hosted Grotto Server
-  - changing grotto.sh ingress, PostgreSQL roles, backups, or restores
+  - changing grotto.sh ingress, PostgreSQL roles, or the delivered Server environment
   - preparing a Grotto Server release artifact
 ---
 
@@ -20,14 +20,16 @@ or deployment uses Vercel.
 
 ## Release artifact
 
-The Server and Grotto App are one Grotto Server release. Publishing
-the repository's annotated `vX.Y.Z` GitHub Release promotes that exact tag to
-production. A push to `main` never deploys.
+The Server and Grotto App are one Grotto Server release. Publishing the
+repository's annotated `vX.Y.Z` GitHub Release makes that tag *deployable*; a
+manual `Deploy Grotto Server` dispatch is what promotes it. Neither a push to
+`main` nor publishing a Release deploys on its own — a deploy resolves
+production credentials from 1Password and rewrites the Server's delivered
+environment, so it is an explicit act.
 
 The self-hosted `Deploy Grotto Server` workflow:
 
-1. accepts the published release event, or a manual exact published `vX.Y.Z`
-   with mode `deploy` or `activate`
+1. accepts a manual exact published `vX.Y.Z` with mode `deploy` or `activate`
 2. rejects drafts, prereleases, lightweight tags, branches, and arbitrary SHAs
 3. resolves the annotated tag to a full commit SHA through the authenticated
    GitHub API
@@ -38,13 +40,18 @@ The self-hosted `Deploy Grotto Server` workflow:
    only the compiled deploy operation, and uses it to verify and install the
    immutable full-SHA release; `activate` verifies the installed release and
    skips asset download and installation
-7. runs the candidate's migration program with the workflow-held migration
-   credential and records the exact successful migrations in the job summary
-8. switches `current`, bootstraps the exact root-owned Server plist when its
+7. renders `config/server.env` from the released revision's `.env.schema` under
+   `varlock run`, mode `0600` plus one ACL entry granting `_grotto_server` read
+8. runs the candidate's migration program under `varlock run`, with the
+   migration credential resolved from 1Password, and records the exact
+   successful migrations in the job summary
+9. switches `current`, bootstraps the exact root-owned Server plist when its
    label is not loaded, otherwise restarts only `com.grotto.server`, and proves
    local health
-9. rolls back to the exact previous SHA on failure; a failed first activation
-   boots out the label it introduced before removing `current`
+10. reads the delivered environment back names-only and fails on a stale name or
+    a missing production-required secret
+11. rolls back to the exact previous SHA on failure; a failed first activation
+    boots out the label it introduced before removing `current`
 
 `productVersion` is the website version. `sourceRevision` is the full immutable
 tag commit SHA. The release id is
@@ -53,19 +60,21 @@ directory is `releases/<full-sourceRevision>`. `release.json`, the artifact
 checksum, startup logs, and activation output carry the product version, full
 revision, and content digest. Public `/healthz` does not.
 
-The trusted macOS publisher supplies the non-secret
-`VITE_CLERK_PUBLISHABLE_KEY` and builds the Server artifact once as part of
-`release:publish`. The mini never parses a build environment, installs Bun
-dependencies, resets its checkout, or rebuilds the Server. PostgreSQL and
-runtime secrets do not enter the artifact, Actions inputs, environment, or
-output.
+The trusted macOS publisher builds the Server artifact once as part of
+`release:publish`; the non-secret `VITE_CLERK_PUBLISHABLE_KEY` it inlines is a
+public literal in `.env.schema`. The mini never installs Bun dependencies,
+resets the deploy root, or rebuilds the Server. PostgreSQL and runtime secrets
+do not enter the artifact, Actions inputs, or output — they resolve from
+1Password during the deploy and land only in `config/server.env`. See
+[environment.md](environment.md).
 
 The Apple Silicon archive and SHA-256 file are built under
 `apps/server/release/`, verified by the publisher, and attached to the GitHub
 Release. The archive contains the compiled deploy operation, Server operations,
-Grotto App, PostgreSQL migration runner and files, four Grotto launchd jobs, one
-narrow activation sudoers rule, shared Colima boot assets, and safe
-configuration examples. The mini verifies the
+Grotto App, PostgreSQL migration runner and files, two Grotto launchd jobs, one
+narrow activation sudoers rule, and shared Colima boot assets. It ships no
+environment example of any kind: `config/server.env` is rendered from the
+schema at deploy time. The mini verifies the
 outer checksum before extracting or executing the deploy operation, which then
 verifies the internal manifest and release identity before atomic installation.
 A manual `activate` never downloads, rebuilds, or reinterprets an artifact.
@@ -79,19 +88,23 @@ traversal and read/write access their job needs:
 | Identity | Owns | May read |
 | --- | --- | --- |
 | `_grotto_server` | `data/attachments` | `current`, `config/server.env` |
-| `_grotto_backup` | `data/backup-staging`, `data/backup-state` | attachment tree, `current`, `config/backup.env`, restic key |
 | `_grotto_tunnel` | no application state | `config/cloudflared.yml`, Tunnel credential |
 
-Host-only state lives under `/Users/zknicker/srv/grotto`: `.env`,
-`database-roles.env`, `compose.yml`, `config/`, `data/`, `logs/`, `releases/`,
-and `current`. Preserve `bin/`, `colima/`, and `operations/` when present. Put
-these names in the checkout's local `.git/info/exclude`; do not commit them and
-never run `git clean`. Secret files are mode `0600`, owned by the one service
-identity that needs them. The migration credential is a GitHub Actions secret
-available only to the migration step; it is not stored in the release or read by
-the Server. Service identities cannot write the checkout, release, or
-activation-helper directories. The Server and PostgreSQL listen only on
-loopback.
+Host-only state lives under `/Users/zknicker/srv/grotto`: `config/`, `data/`,
+`logs/`, `releases/`, and `current`. Preserve `bin/`, `colima/`, and
+`operations/` when present. Put these names in the deploy root's local
+`.git/info/exclude`; do not commit them and never run `git clean`.
+
+The deploy root must contain **no** `.env`. Varlock loads a checkout `.env`
+above `.env.schema`, and a `$` in any of its values is parsed as an expression;
+the deploy job refuses to run when one exists. `config/server.env` is written
+by the deploy job at mode `0600`, owned by `zknicker`, with one ACL entry
+granting `_grotto_server` read — `config/` itself is `zknicker`-owned and
+traversable so the service can reach it. The migration credential is not a
+GitHub Actions secret and is not stored in the release or read by the Server: it
+resolves from 1Password during the migration step only. Service identities
+cannot write the deploy root, release, or activation-helper directories. The
+Server and PostgreSQL listen only on loopback.
 
 The only privileged executable is
 `/usr/local/libexec/grotto/activate-grotto-server`. `/usr/local`,
@@ -101,20 +114,17 @@ other path or with insecure ownership. This does not create another application
 root: checkout, releases, configuration, data, and logs remain under
 `/Users/zknicker/srv/grotto`.
 
-PostgreSQL is the only Grotto container. The host-local root `compose.yml` is
-installed once from the reviewed asset; routine application deploys only verify
-it. The mode `0600` root `.env` contains the generated PostgreSQL admin
-password. Compose project `grotto` uses the pinned
+PostgreSQL is the only Grotto container. The canonical definition is the
+repository's `apps/server/compose.yml`; the deploy job verifies the running
+container and brings it up from that file under `varlock run` only when it is
+absent or unhealthy, so the admin password is interpolated from 1Password and
+no environment file is read or written. Compose project `grotto` uses the pinned
 PostgreSQL 16.14 Alpine digest, container
 `grotto-postgres`, named volume `grotto_postgres_data`, and
 `127.0.0.1:5438:5432`. Do not add the database to Tailscale Serve or Funnel.
 Administration uses SSH and local loopback. Install PostgreSQL 16 client tools
 for the host backup and restore programs without enabling a host PostgreSQL
 service.
-
-Create `data/attachments/.backup-sentinel` with random, non-secret content
-before the first backup. PRD-142 owns attachment APIs; this deployment only
-provisions and verifies the sentinel.
 
 ## Fresh PostgreSQL authority
 
@@ -125,8 +135,9 @@ The operator creates three roles:
   Each migration run reapplies privileges so new tables and sequences are
   immediately usable by `grotto_runtime`.
 - `grotto_runtime`: login with `CONNECT`, schema `USAGE`, and table DML only.
-- `grotto_backup`: login with `CONNECT` and read-only access needed by
-  `pg_dump`.
+- `grotto_backup`: read-only login every migration re-grants. The scheduled
+  off-machine backup that used it is retired; the role stays so the migration
+  program's privilege model is unchanged.
 
 Run bootstrap once against an empty, newly created production database:
 
@@ -138,8 +149,9 @@ GROTTO_DATABASE_RUNTIME_ROLE=grotto_runtime \
 ```
 
 Bootstrap and every migration grant `grotto_backup` its required read access.
-Store the migration URL as the repository Actions secret
-`GROTTO_DATABASE_MIGRATION_URL`; store the runtime URL in `server.env`. Startup
+Both the migration URL and the runtime URL live in the `Postgres - Grotto`
+Production item and reach their consumer through `.env.schema`; neither is
+stored on the host by hand. Startup
 checks connectivity and never executes DDL. Before activation, the deployment
 workflow runs the candidate release's compiled migration program against the
 checked-in SQL under `apps/server/drizzle/postgres/`. A migration failure leaves
@@ -190,10 +202,13 @@ to an ordinary Grotto release rollback. The no-reboot installation check proves
 the daemon can run the existing healthy profile, but full no-login boot recovery
 remains unproven until the separately approved reboot drill.
 
-Install the three plists in `apps/server/launchd/` as system daemons. The Server
+Install the two plists in `apps/server/launchd/` as system daemons. The Server
 and named `grotto-production` Tunnel use `RunAtLoad` and `KeepAlive`. Tunnel
 metrics bind to `127.0.0.1:20242`; the shared existing tunnel already owns
-`20241`. Backup runs at 00:15, 06:15, 12:15, and 18:15 local time.
+`20241`. Neither plist carries environment of its own: `run-server`
+shell-sources the rendered `config/server.env` and executes the Server binary
+directly, because a launchd job that re-entered Varlock would resolve the schema
+again at boot under the development lifecycle.
 
 Installing the Server plist does not load it before the next boot. Run the
 initial deployment before rebooting so the privileged activation helper owns
@@ -211,37 +226,16 @@ The Server returns only `{"status":"ok"}` or the redacted
 
 ## Off-machine backup
 
-`grotto-server-backup` takes an asynchronous custom-format `pg_dump`, stages the
-attachment tree, verifies the attachment sentinel, writes SHA-256 checksums for
-the dump and sentinel, and sends the snapshot to the externally configured
-restic repository. Restic supplies encryption. The
-six-hour job retains 28 six-hour snapshots, 14 daily, 8 weekly, and 12 monthly
-snapshots, then prunes. A success timestamp is replaced atomically only after
-backup and retention succeed.
+There is none, deliberately. The scheduled `restic` backup and its isolated
+restore drill were retired: they never completed a working cycle, and Grotto is
+a greenfield product with no data worth the operational surface. The
+`com.grotto.backup` LaunchDaemon, the `_grotto_backup` service account, and the
+restic repository and password are host state to remove; the `grotto_backup`
+PostgreSQL role stays because every migration re-grants it.
 
-The proposed destination is a dedicated Backblaze B2 bucket/prefix. The exact
-repository, bucket, prefix, application key, and restic password are operator
-values. Keep the B2 application key limited to that bucket and keep the restic
-password in the host secret store plus the operator's separate recovery
-vault. Neither value belongs in source control or process arguments.
-
-## Isolated restore drill
-
-Choose a specific restic snapshot. Create a new empty database and a
-nonexistent restore directory outside the production attachment tree. Give the
-restore role authority only over that database. Inject the exact snapshot,
-isolated database, target root, and repository values into the root-owned
-`restore.env`, then run:
-
-```bash
-/Users/zknicker/srv/grotto/current/operations/run-restore
-```
-
-The command refuses the production database, an existing directory, an
-overlapping attachment path, or a nonempty database. It verifies the dump and
-sentinel checksums before `pg_restore`. Record the snapshot id, row-count
-checks, sentinel checksum, start/end time, and cleanup targets. Cleanup is a
-separate, explicit operator action.
+Reintroducing backups means designing them from scratch — new schema items, a
+new 1Password item for the repository credentials, and a proven restore drill
+before the first scheduled run.
 
 ## Manual cutover
 
@@ -250,30 +244,34 @@ secret source, and rollback release before changing the host.
 
 1. Initialize or fetch the Grotto repository in place at
    `/Users/zknicker/srv/grotto`. Add every host-only root named above to
-   `.git/info/exclude`; preserve existing files and never use `git clean`.
+   `.git/info/exclude`; preserve existing files and never use `git clean`. The
+   deploy root must hold no `.env`.
 2. Confirm the self-hosted runner can read this repository and invoke the
    `Deploy Grotto Server` workflow. Do not grant it general root authority.
 3. Verify the artifact checksum, host architecture, free loopback ports, and
    current service inventory.
-4. Install approved PostgreSQL client, cloudflared, and restic versions without
-   enabling a host PostgreSQL service.
+4. Install approved PostgreSQL client and cloudflared versions without enabling
+   a host PostgreSQL service.
 5. Install shared system-boot Colima supervision; confirm that existing
    containers and volumes were not restarted or replaced.
-6. Install the host-local root `compose.yml` and mode `0600` `.env`;
-   create only the `grotto` Compose project and named database volume.
+6. Bring PostgreSQL up from the repository's `apps/server/compose.yml` under
+   `varlock run`; create only the `grotto` Compose project and named database
+   volume.
 7. Create the dedicated identities, `config/`, `data/`, `logs/`, and
    `releases/` permissions, plus the attachment sentinel. Grant each service
    identity traverse-only access to `/Users/zknicker` and
    `/Users/zknicker/srv` and verify those ancestors are not group- or
    world-writable.
 8. Create the fresh database and least-privilege roles; run bootstrap once,
-   grant backup reads, and store the bootstrap-role database URL as the GitHub
-   Actions secret `GROTTO_DATABASE_MIGRATION_URL`.
-9. Create mode `0600` runtime configuration. `config/server.env` requires the
-   production database URL, `https://grotto.sh` origin, Grotto Clerk issuer,
-   and Grotto production `CLERK_SECRET_KEY`; invitation acceptance needs that
-   secret for verified-email lookup. Transfer it out of band and never put it
-   in `.env`, Actions, logs, command arguments, or version control.
+   grant backup reads, and store the runtime URL, migration URL, and container
+   admin password in the `Postgres - Grotto` Production 1Password item.
+9. Own `config/` as `zknicker`, mode `0755`, so the deploy job can write
+   `config/server.env` and `_grotto_server` can traverse to it. That file is
+   rendered by the deploy job, never by hand: it carries the production
+   database URL, the `https://grotto.sh` origin, the Grotto Clerk issuer, and
+   the Grotto production `GROTTO_CLERK_SECRET_KEY`, which invitation acceptance needs
+   for verified-email lookup. Every one of those values lives in 1Password and
+   reaches the host only through `varlock run`.
 10. Build the approved release once, then install its
     `bin/activate-grotto-server` as root-owned mode `0755` at
     `/usr/local/libexec/grotto/activate-grotto-server`. Verify every path
@@ -289,16 +287,15 @@ secret source, and rollback release before changing the host.
     the first immutable release through the same download, verification,
     install, helper-owned Server bootstrap, health, and rollback path used by
     later published releases.
-12. Inject `backup.env`, restic key, and Tunnel credential.
+12. Inject the Tunnel credential.
 13. Create the named `grotto-production` Tunnel and confirm its config routes
    only to `127.0.0.1:18791`.
 14. Verify the helper-loaded Server through the local App, `/healthz`,
     authenticated API, and WebSocket.
 15. Load the Tunnel, approve the `grotto.sh` DNS route, then verify canonical
     sign-in, Server creation, and reopen from a remote client.
-16. Run backup and the isolated restore drill; record evidence.
-17. Reboot once and prove PostgreSQL, Server, Tunnel, canonical flow,
-    and backup schedule recovered.
+16. Reboot once and prove PostgreSQL, Server, Tunnel, and the canonical flow
+    recovered.
 
 Each step needs the operator's explicit approval before the corresponding
 material host or Cloudflare change. Do not delete old state or overwrite a
@@ -308,13 +305,17 @@ database.
 
 Keep the previous full-SHA release and all state untouched. Activation switches
 `current` atomically, restarts only `com.grotto.server`, and restores the exact
-previous SHA automatically when local health fails. A manual rollback selects
+previous SHA automatically when local health fails. `config/server.env` is
+rendered before activation and is *not* reverted by a rollback: the rolled-back
+release runs with the new release's delivered environment. That is safe as long
+as a rename lands together with the code that reads it — which is what
+`env:contract` enforces — but a release that renames a variable should be rolled
+back by dispatching `deploy` on the previous version rather than `activate`. A manual rollback selects
 an already installed published version in the Actions workflow and uses
 `activate`; it never rebuilds. If a wider cutover fails, stop Tunnel ingress or
 restore its previously recorded route without changing application state.
-Stop the database with
-`docker compose -f /Users/zknicker/srv/grotto/compose.yml -p grotto down`
-without `--volumes`; preserve `grotto_postgres_data`. Never roll back PostgreSQL
+Stop the database with `docker compose -p grotto down` without `--volumes`;
+preserve `grotto_postgres_data`. Never roll back PostgreSQL
 by deleting or overwriting its data. Keep shared system Colima supervision in
 place unless the operator separately decides to restore login-scoped recovery.
 Capture redacted service status and logs before changing anything further.

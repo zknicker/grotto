@@ -183,8 +183,10 @@ so `docs:list` routes future agents correctly.
 - Keep docs current when API shape, storage models, frontend structure, or runtime assumptions
   change.
 - Keep startup status logging intact in the server entrypoint when adding features.
-- Keep secrets out of version control.
-- Update `.env.example` when environment variables change.
+- Keep secrets out of version control. The committed `.env.schema` is the
+  environment contract and 1Password holds every value; update the schema when
+  environment variables change, and never add a `.env` file. See
+  [docs/operations/environment.md](docs/operations/environment.md).
 - If requirements are unclear, update the relevant spec and ask.
 
 ## Agent Execution Work
@@ -229,12 +231,17 @@ The Cloud Agent environment is repository-managed via `.cursor/environment.json`
 `bun run setup:worktree` (frozen `bun install` + HeroUI Pro artifact download). The full stack
 (`bun run dev`) auto-starts in the `dev-stack` terminal.
 
-- Secrets have two kinds and both are needed. `HUGEICONS_LICENSE_KEY` and `HEROUI_AUTH_TOKEN`
- must be **build secrets** because they are consumed during the `install` step (the
- `@hugeicons-pro` registry 401s without the license key, and the HeroUI Pro download needs the
- auth token). `CLERK_SECRET_KEY` and `DEV_CLERK_SIGN_IN_USER_ID` are **runtime secrets** used only
- when Grotto Server runs; without them the app's automatic dev sign-in fails and product surfaces
- stay unreachable.
+- There are no per-repository Cursor secrets. Every value resolves from 1Password through the
+ committed `.env.schema`, using the fleet-wide Development identity Cursor injects as the
+ account-level Runtime Secret `CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN`. The two licensed
+ install credentials are fetched during `install` by `bun run setup:worktree` under the install
+ context switch; the Clerk credentials arrive as ordinary schema values when the stack starts.
+ See [docs/operations/environment.md](docs/operations/environment.md).
+- `.cursor/install.sh` also seeds the shared fleet skill library into `.cursor/skills` (gitignored)
+ from the private `zknicker/agents` repository, using the account-level Runtime Secret
+ `CURSOR_CLOUD_AGENTS_GH_READ_TOKEN`. That credential is agent tooling, not part of Grotto's
+ environment contract, so it lives in Cursor's own secret store and never touches the schema.
+ Grotto's own product skills stay in the committed `.agents/skills`.
 - PostgreSQL 16 lives at `/usr/lib/postgresql/16/bin`, and `.cursor/install.sh` symlinks its
  binaries into `/usr/local/bin` so every PostgreSQL-backed lane finds them on `PATH`
  (`bun run test:app`, `apps/server` tests, evals, and the dev stack). `scripts/dev-postgres.mjs` and
@@ -242,7 +249,7 @@ The Cloud Agent environment is repository-managed via `.cursor/environment.json`
  16 from a non-standard location, set `GROTTO_POSTGRES_BIN` to its bin directory (the `dev-stack`
  terminal already exports it explicitly). Do not start a system PostgreSQL service; each lane owns a
  throwaway/worktree-isolated cluster.
-- The web app auto signs in (`VITE_DEV_CLERK_AUTO_SIGN_IN=true`) against the checked-in dev Clerk
+- The web app auto signs in (`VITE_DEV_CLERK_AUTO_SIGN_IN=true`) against Grotto's development Clerk
  instance; the first Server boot seeds a demo Server (agents Blippy and Tiny, `#all`/`#product`
  channels, starter messages). No manual login is required in dev.
 - `bun run dev` renders a live TUI whose "Services" banner prints the resolved Server, Computer, and

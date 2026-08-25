@@ -9,6 +9,7 @@ read_when:
 
 | Workflow | Doc |
 | --- | --- |
+| Environment and secrets | [Environment](environment.md) |
 | Local stack | [Development](development.md) |
 | Verification lanes | [Testing](testing.md) |
 | Release process | [Releases](releases.md) |

@@ -174,7 +174,7 @@ describe('getClaudeUsage', () => {
             {
                 claudeAiOauth: {
                     accessToken: 'existing-token',
-                    expiresAt: new Date('2026-03-14T11:59:00.000Z').getTime(),
+                    expiresAt: new Date('2026-03-14T13:00:00.000Z').getTime(),
                     refreshToken: 'refresh-token',
                     subscriptionType: 'claude_max',
                 },
@@ -200,6 +200,7 @@ describe('getClaudeUsage', () => {
             fetch: fetchMock,
             homeDir: tempDir,
             now: new Date('2026-03-14T12:00:00.000Z'),
+            useKeychain: false,
         });
 
         expect(usage.windows[0]).toMatchObject({
@@ -223,7 +224,7 @@ describe('getClaudeUsage', () => {
                 {
                     claudeAiOauth: {
                         accessToken: 'expired-token',
-                        expiresAt: new Date('2026-03-14T11:59:00.000Z').getTime(),
+                        expiresAt: new Date('2026-03-14T13:00:00.000Z').getTime(),
                         refreshToken: 'refresh-token',
                         subscriptionType: 'claude_max',
                     },
@@ -242,6 +243,7 @@ describe('getClaudeUsage', () => {
                 fetch: fetchMock,
                 homeDir: tempDir,
                 now: new Date('2026-03-14T12:00:00.000Z'),
+                useKeychain: false,
             })
         ).rejects.toBeInstanceOf(ClaudeUsageAuthError);
 

@@ -12,6 +12,9 @@ is simply unclaimed.
   Clerk's user id is a unique external reference on the user record, never a
   key anywhere else. Profile fields (name, avatar, email) are refreshable
   snapshots from Clerk, never identity.
+- Each active membership may claim one Server-scoped handle. Human and Agent
+  handles share one case-insensitive namespace; display names remain separate
+  presentation and never become identity.
 - The Runtime is the tenant. There is no separate workspace/tenant record in
   v1: membership, chats, agents, and settings all belong to the runtime.
 - A `member` is one user's standing on a runtime: role `owner` or `member`.
@@ -67,8 +70,8 @@ never under a member's credentials.
   preferences key on `grotto user id`. A user's grotto id is their chat
   participant id (`usr_…`). The server stamps the acting user resolved from
   the request's Clerk session token.
-- Keyless dev/e2e builds act as the synthetic local operator `usr_grotto`;
-  that id is the fallback only when sign-in is disabled, never a real user.
+- Keyless dev/e2e builds may use the synthetic user id `usr_grotto`; Agent-facing
+  identity still projects that membership's real Server handle, never `@operator`.
 - Owner-scoped surfaces keep single-operator actors for now: session
   evidence views (`profile:self`), task work-order seeding, and
   channel-relay ingress. They key per-user when those surfaces gain
@@ -77,7 +80,11 @@ never under a member's credentials.
   `participants` per [participants.md](participants.md). A member is not a
   participant; no automatic linking between members and observed identities.
 - Read state is per user per chat. Channel membership is all members by
-  default; DMs are visible to their human participants only. This is
+  default; DMs are visible to their human participants only. Every active
+  Agent is an implicit private-DM peer for each active human membership, but
+  selecting that peer is app-local and creates no Chat. The first durable send
+  materializes the id-bound human-membership-stint/Agent pair atomically.
+  This is
   UI/API-level scoping, not encryption — the owner physically holds the
   database and members must expect that.
 
@@ -93,6 +100,5 @@ never under a member's credentials.
 ## Open questions
 
 - Presence and typing indicators for multiple humans in one channel.
-- Whether members may start new channels/DMs with agents or only join
-  existing ones.
+- Whether members may start new channels.
 - Billing/spend visibility when members drive owner-credentialed agents.

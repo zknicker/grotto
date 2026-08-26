@@ -3,7 +3,7 @@ import { DataGrid, type DataGridColumn, ItemCardGroup } from '@heroui-pro/react'
 import * as React from 'react';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
-import { SettingsPageHeader } from '../layout/settings-page.tsx';
+import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import {
     buildModelCatalog,
     buildRuntimeAccess,
@@ -142,7 +142,6 @@ const runtimeColumns: DataGridColumn<RuntimeRow>[] = [
         accessorKey: 'label',
         allowsSorting: true,
         header: 'Runtime',
-        headerClassName: 'text-sm',
         id: 'label',
         isRowHeader: true,
         minWidth: 140,
@@ -150,17 +149,15 @@ const runtimeColumns: DataGridColumn<RuntimeRow>[] = [
     {
         accessorKey: 'computer',
         allowsSorting: true,
-        cellClassName: 'text-sm text-muted',
+        cellClassName: 'text-muted',
         header: 'Computer',
-        headerClassName: 'text-sm',
         id: 'computer',
         minWidth: 160,
     },
     {
         accessorKey: 'models',
-        cellClassName: 'text-sm text-muted',
+        cellClassName: 'text-muted',
         header: 'Models',
-        headerClassName: 'text-sm',
         id: 'models',
         minWidth: 220,
     },
@@ -172,7 +169,6 @@ const runtimeColumns: DataGridColumn<RuntimeRow>[] = [
             </Chip>
         ),
         header: 'Status',
-        headerClassName: 'text-sm',
         id: 'status',
         minWidth: 100,
     },
@@ -183,7 +179,6 @@ const modelColumns: DataGridColumn<ModelCatalogItem>[] = [
         accessorKey: 'label',
         allowsSorting: true,
         header: 'Model',
-        headerClassName: 'text-sm',
         id: 'label',
         isRowHeader: true,
         minWidth: 180,
@@ -191,9 +186,8 @@ const modelColumns: DataGridColumn<ModelCatalogItem>[] = [
     },
     {
         allowsSorting: true,
-        cell: (item) => <span className="font-mono text-muted text-xs">{item.id}</span>,
+        cell: (item) => <span className="font-mono text-muted">{item.id}</span>,
         header: 'Identifier',
-        headerClassName: 'text-sm',
         id: 'id',
         minWidth: 180,
         sortFn: (a, b) => a.id.localeCompare(b.id),
@@ -209,7 +203,6 @@ const modelColumns: DataGridColumn<ModelCatalogItem>[] = [
             </div>
         ),
         header: 'Runtimes',
-        headerClassName: 'text-sm',
         id: 'runtimes',
         minWidth: 160,
     },
@@ -217,9 +210,8 @@ const modelColumns: DataGridColumn<ModelCatalogItem>[] = [
         accessorKey: 'computerCount',
         align: 'end',
         allowsSorting: true,
-        cellClassName: 'text-sm text-muted tabular-nums',
+        cellClassName: 'text-muted tabular-nums',
         header: 'Computers',
-        headerClassName: 'text-sm',
         id: 'computerCount',
         minWidth: 110,
     },

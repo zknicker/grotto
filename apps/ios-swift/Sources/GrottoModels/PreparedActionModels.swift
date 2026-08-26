@@ -99,7 +99,6 @@ public struct PreparedCreateAgentProposal: Codable, Sendable, Equatable {
 public struct PreparedCreateAgentResult: Codable, Sendable, Equatable {
     public let agentID: String
     public let avatarURL: String?
-    public let chatID: String
     public let computerID: String
     public let description: String?
     public let displayName: String
@@ -112,7 +111,6 @@ public struct PreparedCreateAgentResult: Codable, Sendable, Equatable {
     enum CodingKeys: String, CodingKey {
         case agentID = "agentId"
         case avatarURL = "avatarUrl"
-        case chatID = "chatId"
         case computerID = "computerId"
         case description
         case displayName
@@ -293,6 +291,5 @@ public struct PreparedActionCommitInput: Encodable, Sendable, Equatable {
 public struct PreparedActionCommitResult: Codable, Sendable, Equatable {
     public let action: PreparedAction
     public let agent: AgentSummary
-    public let chat: ChatSummary
     public let idempotent: Bool
 }

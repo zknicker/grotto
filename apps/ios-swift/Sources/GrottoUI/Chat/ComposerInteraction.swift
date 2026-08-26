@@ -21,6 +21,16 @@ public final class ComposerInteraction {
     public private(set) var attachmentReadySequence = 0
     public private(set) var lastReadyAttachmentCount = 0
     var morphDestinationFrame: CGRect?
+    /// Composer shell rect in the `composer-attachment-root` space, so the portal can sit above it.
+    var composerSurfaceFrame: CGRect?
+    /// Holds the chat's bottom inset still while the portal owns the screen.
+    var portalFreeze = ComposerPortalFreeze()
+
+    /// True from the moment the plus menu opens until the landed attachment has finished morphing
+    /// and the keyboard has settled back — the window in which nothing around the portal may move.
+    var isPortalActive: Bool {
+        overlay != nil || morphingAttachmentID != nil || portalFreeze.isEngaged
+    }
 
     private var preparationTask: Task<Void, Never>?
 
@@ -74,13 +84,47 @@ public final class ComposerInteraction {
 
     func appendPrepared(_ prepared: [ComposerAttachment]) {
         guard !prepared.isEmpty else { return }
+        // Warm the decoded-image cache so the strip tile, the morph, and the
+        // pending message tile all render the photo fully formed on their
+        // first frame.
+        for attachment in prepared where attachment.mediaType.hasPrefix("image/") {
+            LocalAttachmentImageCache.shared.warm(url: attachment.localURL)
+        }
         attachments.append(contentsOf: prepared)
         lastReadyAttachmentCount = prepared.count
         attachmentReadySequence += 1
     }
 
+    /// Drops everything the screen that drew the composer owned, and keeps
+    /// everything the interaction owns.
+    ///
+    /// An interaction outlives its screen — the shell keeps one per destination
+    /// so staged attachments survive a Chat switch or a push-over — but its
+    /// presentation state does not: an open portal, a frozen keyboard inset, or
+    /// an error notice belonging to a screen that is gone must not come back
+    /// haunting the next one. Staged attachments and the in-flight staging task
+    /// deliberately survive; a preparation cancelled halfway would leave the
+    /// user with some of the files they picked.
+    func resetPresentation() {
+        overlay = nil
+        isFileImporterPresented = false
+        morphingAttachmentID = nil
+        morphDestinationFrame = nil
+        composerSurfaceFrame = nil
+        errorMessage = nil
+        portalFreeze.release()
+    }
+
+    /// Tears down all staged composer state. Deleting the staged files without
+    /// also clearing `attachments` would leave tiles whose backing files are
+    /// gone — they render fallback icons and the send fails — so the two must
+    /// always move together. Only the owner discarding the whole interaction
+    /// calls this — the shell, when a destination leaves the list. Leaving a
+    /// screen does not: the files are the user's, and staging them is not a
+    /// commitment to send from the Chat they were staged in.
     func cleanUp() {
         preparationTask?.cancel()
         attachments.forEach(ComposerAttachmentStager.remove)
+        attachments.removeAll()
     }
 }

@@ -119,12 +119,11 @@ test('creates and deletes a custom Server MCP connection', async ({ page }) => {
     await page.getByRole('option', { name: 'OAuth' }).click();
     await drawer.getByRole('button', { name: 'Add Connection' }).click();
 
-    const row = page.getByRole('button', { name: new RegExp(name, 'u') });
+    const row = page.getByRole('row', { name: new RegExp(name, 'u') });
     await expect(row).toBeVisible();
     await row.click();
     const detail = page.getByRole('dialog', { name });
-    await detail.getByRole('button', { name: `${name} actions` }).click();
-    await page.getByRole('menuitem', { name: 'Delete Connection' }).click();
+    await detail.getByRole('button', { name: 'Delete' }).click();
     const confirmation = page.getByRole('alertdialog', { name: `Delete ${name}?` });
     await expect(confirmation).toContainText('No Agents currently use this connection.');
     await confirmation.getByRole('button', { name: 'Delete' }).click();

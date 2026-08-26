@@ -5,10 +5,10 @@ import { emitServerUpdated } from '../server-events.ts';
 
 /**
  * Announces a profile change after it has committed. One human has one profile
- * shared by every Server they belong to, so a rename or a new handle changes
- * the member directory on all of them: each Server hears its own event naming
- * the human whose record moved. A caller without a signed-in human never wrote
- * anything, so it announces nothing.
+ * shared by every Server they belong to, while a handle belongs to one
+ * membership. Each accessible Server hears the profile refresh; the edited
+ * Server also receives its handle change through that same event shape. A
+ * caller without a signed-in human never wrote anything, so it announces nothing.
  */
 export async function announceHumanProfileChange(
     db: GrottoDatabase,

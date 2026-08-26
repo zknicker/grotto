@@ -3,6 +3,7 @@ import { Chip } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import type * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
+import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { serverChatRoute } from '../servers/server-routes.ts';
 import { ChatNavigationContextMenu } from './chat-navigation-context-menu.tsx';
@@ -68,8 +69,20 @@ export function ChatNavigationRowContent({
                 <ChatIcon agent={agent} chat={chat} />
             </Sidebar.MenuIcon>
             <Sidebar.MenuItemContent>
+                {/* Two optical pixels, not a spacing change: a chat's mark is a
+                    filled box — a channel tile or an Agent avatar — where Search
+                    and Tasks are line glyphs carrying their own internal
+                    whitespace. At the same metric gap the filled mark reads
+                    tighter against its label, so the label buys that back. A
+                    literal px rather than a spacing step, because this corrects
+                    for the mark's shape and must not move with density. It rides
+                    here rather than on the row, because the row's gap belongs to
+                    Sidebar and is shared with those glyph rows. */}
                 <Sidebar.MenuLabel
-                    className={chat.unreadCount > 0 ? 'font-medium text-foreground' : undefined}
+                    className={cn(
+                        'ms-[2px]',
+                        chat.unreadCount > 0 && 'font-medium text-foreground'
+                    )}
                 >
                     {name}
                 </Sidebar.MenuLabel>

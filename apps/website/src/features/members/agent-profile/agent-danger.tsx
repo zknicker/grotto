@@ -5,7 +5,6 @@ import * as React from 'react';
 import { useAgentDelete } from '../../../hooks/members/use-agent-delete.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
-import { SettingsSection } from '../../settings/layout/settings-page.tsx';
 
 export function AgentDanger({
     agent,
@@ -27,7 +26,10 @@ export function AgentDanger({
     }
 
     return (
-        <SettingsSection title="Danger">
+        <ItemCardGroup variant="transparent">
+            <ItemCardGroup.Header>
+                <ItemCardGroup.Title>Danger</ItemCardGroup.Title>
+            </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
                 <ItemCard>
                     <ItemCard.Content>
@@ -64,6 +66,6 @@ export function AgentDanger({
                     title="Delete Agent"
                 />
             ) : null}
-        </SettingsSection>
+        </ItemCardGroup>
     );
 }

@@ -10,11 +10,13 @@ export function useHumanIdentity(serverId: string, userId: string) {
 
     return {
         ...mutation,
-        save: async (identity: { description: string; displayName: string }) => {
+        save: async (identity: { description: string; displayName: string; handle?: string }) => {
             await withSavingToast(() =>
                 mutation.mutateAsync({
                     description: identity.description.trim() || null,
                     displayName: identity.displayName.trim(),
+                    ...(identity.handle ? { handle: identity.handle.trim() } : {}),
+                    serverId,
                 })
             );
         },

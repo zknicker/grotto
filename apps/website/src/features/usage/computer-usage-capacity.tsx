@@ -3,7 +3,7 @@ import { Card } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useUsage } from '../../hooks/servers/use-usage.ts';
-import { membersUsageRoute } from '../servers/server-routes.ts';
+import { usageRoute } from '../servers/server-routes.ts';
 import { DetectedRuntimeUsage, DetectedRuntimeUsageSkeleton } from './detected-runtime-usage.tsx';
 
 export function ComputerUsageCapacity({
@@ -33,9 +33,7 @@ export function ComputerUsageCapacity({
             detectedRuntimeIds={detectedRuntimeIds}
             error={usage.data ? undefined : usage.error?.message}
             isPending={!usage.data && usage.isPending}
-            onViewPiUsage={() =>
-                navigate(membersUsageRoute(serverSlug, { computerId, runtimeId: 'pi' }))
-            }
+            onViewPiUsage={() => navigate(usageRoute(serverSlug, { computerId, runtimeId: 'pi' }))}
             piAgentCount={piAgentCount}
         />
     );

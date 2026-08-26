@@ -19,6 +19,11 @@ the migration command.
 | Computer data root | Grotto Computer | Attachment credentials, delivery queues, logs, Agent homes, skills, workspaces, runtime state, cached provider-usage snapshots, and effective execution evidence. |
 | Browser/App storage | Grotto App | Cache, local preferences, desktop presentation state, and optimistic rows. |
 
+An active Agent's unmaterialized pairwise DM is App-local selection state, not a
+Chat record. PostgreSQL creates the canonical human membership-stint↔Agent Chat
+only in the same transaction as the first durable write. Materialized history
+stays id-bound after retirement while the implicit roster entry disappears.
+
 Server stores bounded turn summaries and effective-state reports needed for product presentation. It
 does not ingest provider credentials, full prompts, execution transcripts, arbitrary tool traces,
 or Agent workspace contents. Computer state is not a substitute for canonical Chat history, and App

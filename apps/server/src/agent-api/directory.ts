@@ -1,4 +1,4 @@
-import { and, asc, count, eq, ilike, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, ilike, isNull, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -7,8 +7,9 @@ import {
     channelParticipantsTable,
     chatsTable,
     serverMembershipsTable,
+    usersTable,
 } from '../postgres/schema.ts';
-import { countAgentDirectory } from './directory-counts.ts';
+import { countAgentDirectory, countChannelMembers } from './directory-counts.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
 export interface AgentDirectoryQuery {
@@ -54,32 +55,15 @@ export async function readAgentChannelInfo(
     target: string
 ) {
     const channel = await findChannel(db, runner.serverId, target);
-    const [joined, members] = await Promise.all([
+    const [joined, memberCount] = await Promise.all([
         isAgentJoined(db, runner, channel.id),
-        db
-            .select({ total: count() })
-            .from(channelParticipantsTable)
-            .where(
-                and(
-                    eq(channelParticipantsTable.serverId, runner.serverId),
-                    eq(channelParticipantsTable.chatId, channel.id)
-                )
-            ),
+        countChannelMembers(db, runner, channel.id),
     ]);
-    const [agentMembers] = await db
-        .select({ total: count() })
-        .from(channelAgentParticipantsTable)
-        .where(
-            and(
-                eq(channelAgentParticipantsTable.serverId, runner.serverId),
-                eq(channelAgentParticipantsTable.chatId, channel.id)
-            )
-        );
     return {
         description: null,
         handle: `#${channel.name}`,
         joined,
-        memberCount: Number(members[0]?.total ?? 0) + Number(agentMembers?.total ?? 0),
+        memberCount,
     };
 }
 
@@ -112,8 +96,19 @@ export async function readAgentChannelMembers(
             )
             .orderBy(asc(agentsTable.handle)),
         db
-            .select({ userId: channelParticipantsTable.userId })
+            .select({
+                description: usersTable.description,
+                handle: serverMembershipsTable.handle,
+            })
             .from(channelParticipantsTable)
+            .innerJoin(
+                serverMembershipsTable,
+                and(
+                    eq(serverMembershipsTable.serverId, channelParticipantsTable.serverId),
+                    eq(serverMembershipsTable.userId, channelParticipantsTable.userId)
+                )
+            )
+            .innerJoin(usersTable, eq(usersTable.id, channelParticipantsTable.userId))
             .where(
                 and(
                     eq(channelParticipantsTable.serverId, runner.serverId),
@@ -129,8 +124,8 @@ export async function readAgentChannelMembers(
                 role: 'agent' as const,
             })),
             ...humans.map((human) => ({
-                description: null,
-                handle: humanHandle(human.userId),
+                description: human.description,
+                handle: human.handle,
                 role: 'human' as const,
             })),
         ],
@@ -228,20 +223,25 @@ async function listAgents(db: GrottoDatabase, runner: ResolvedRunner, input: Age
 
 async function listHumans(db: GrottoDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
     return await db
-        .select({ userId: serverMembershipsTable.userId })
+        .select({
+            description: usersTable.description,
+            handle: serverMembershipsTable.handle,
+        })
         .from(serverMembershipsTable)
+        .innerJoin(usersTable, eq(usersTable.id, serverMembershipsTable.userId))
         .where(
             and(
                 eq(serverMembershipsTable.serverId, runner.serverId),
-                isNull(serverMembershipsTable.revokedAt)
+                isNull(serverMembershipsTable.revokedAt),
+                input.query
+                    ? ilike(serverMembershipsTable.handle, `%${escapeLike(input.query)}%`)
+                    : undefined
             )
         )
-        .orderBy(asc(serverMembershipsTable.userId))
+        .orderBy(asc(serverMembershipsTable.handle), asc(serverMembershipsTable.userId))
         .offset(input.offset)
         .limit(input.limit)
-        .then((rows) =>
-            rows.map((row) => ({ description: null, handle: humanHandle(row.userId) }))
-        );
+        .then((rows) => rows.map((row) => ({ description: row.description, handle: row.handle })));
 }
 
 async function findChannel(db: GrottoDatabase, serverId: string, target: string) {
@@ -276,10 +276,6 @@ async function isAgentJoined(db: GrottoDatabase, runner: ResolvedRunner, chatId:
         )
         .limit(1);
     return Boolean(row);
-}
-
-function humanHandle(userId: string) {
-    return `member-${userId.replace(/^usr_/u, '').slice(0, 8)}`;
 }
 
 function escapeLike(value: string) {

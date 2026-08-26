@@ -3,6 +3,7 @@ import { Button, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Fragment } from 'react';
 import { useConnectionPresetAdd } from '../../../hooks/servers/use-connection-preset-add.ts';
+import { ConnectionGlyph } from './connection-mark.tsx';
 
 const presets: Array<{ description: string; id: McpPreset; name: string }> = [
     {
@@ -30,6 +31,17 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
                     <Fragment key={preset.id}>
                         {index > 0 ? <Separator /> : null}
                         <ItemCard>
+                            {/* A preset is an MCP server like any other row on
+                                this page, so it draws its mark the same way. */}
+                            <ItemCard.Icon>
+                                <ConnectionGlyph
+                                    connection={{
+                                        icon: null,
+                                        id: preset.id,
+                                        name: preset.name,
+                                    }}
+                                />
+                            </ItemCard.Icon>
                             <ItemCard.Content>
                                 <ItemCard.Title>{preset.name}</ItemCard.Title>
                                 <ItemCard.Description>{preset.description}</ItemCard.Description>

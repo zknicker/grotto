@@ -57,7 +57,6 @@ export const commitPreparedActionProcedure = memberProcedure
             return {
                 action: result.action,
                 agent: result.agent,
-                chat: result.chat,
                 idempotent: result.idempotent,
             };
         } catch (cause) {

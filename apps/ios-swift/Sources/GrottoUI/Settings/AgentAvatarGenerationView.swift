@@ -31,7 +31,7 @@ struct AgentAvatarGeneratorEntry: View {
                 } label: {
                     SettingsRow(
                         title: "Generate avatar",
-                        systemImage: "sparkles",
+                        icon: .image,
                         showsDivider: false
                     ) {
                         Image(systemName: "chevron.right")

@@ -1,6 +1,7 @@
 import type { Agent, Chat } from '@grotto/api';
 import { toast } from '@heroui/react';
 import {
+    Analytics01Icon,
     ArchiveIcon,
     CommandIcon,
     ComputerIcon,
@@ -9,15 +10,15 @@ import {
     UserCircleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import {
-    agentRoute,
-    membersRoute,
     serverArchivedChatsRoute,
     serverChatRoute,
     serverComputersRoute,
     serverRoute,
     serverSearchRoute,
     serverSettingsSectionRoute,
+    settingsAgentRoute,
     tasksRoute,
+    usageRoute,
 } from '../features/servers/server-routes.ts';
 import { staticSettingsNavItems } from '../features/settings/layout/navigation.ts';
 import { getRouteTabIcon } from '../features/shell/route-tab-presentation.tsx';
@@ -84,8 +85,14 @@ function buildNavigationGroup(context: CommandContext, currentChat: Chat | null)
         {
             icon: getRouteTabIcon('members'),
             id: 'members',
-            route: membersRoute(context.serverSlug),
+            route: serverSettingsSectionRoute(context.serverSlug, 'members'),
             title: 'Members',
+        },
+        {
+            icon: Analytics01Icon,
+            id: 'usage',
+            route: usageRoute(context.serverSlug),
+            title: 'Usage',
         },
         {
             icon: ArchiveIcon,
@@ -196,7 +203,8 @@ function buildCurrentChatGroup(context: CommandContext, currentChat: Chat): AppC
                           icon: UserCircleIcon,
                           id: 'current-chat.open-agent-profile',
                           keywords: ['chat', 'agent', 'profile', 'assistant'],
-                          run: () => context.navigate(agentRoute(context.serverSlug, agent.id)),
+                          run: () =>
+                              context.navigate(settingsAgentRoute(context.serverSlug, agent.id)),
                           title: 'Agent Profile',
                       } satisfies AppCommand,
                   ]

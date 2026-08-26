@@ -93,7 +93,7 @@ beforeAll(async () => {
             display_name, handle, home_timezone, role
         ) values (
             'agt_1234567890abcdef', ${serverId}, ${computerId}, 'codex', 'gpt-5.6-sol',
-            'Cove', 'cove', 'UTC', 'member'
+            'Cove', 'stats-cove', 'UTC', 'member'
         )
     `;
     await harness.sql`
@@ -133,7 +133,7 @@ test('Members read every durable Computer usage snapshot while Computers are off
     expect(overview.tokenUsage).toMatchObject({
         breakdown: [
             {
-                agentHandle: 'cove',
+                agentHandle: 'stats-cove',
                 agentId: 'agt_1234567890abcdef',
                 agentName: 'Cove',
                 cacheReadTokens: 80,

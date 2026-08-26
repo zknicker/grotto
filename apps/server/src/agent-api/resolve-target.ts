@@ -1,4 +1,5 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
+import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -6,6 +7,7 @@ import {
     channelAgentParticipantsTable,
     chatMessagesTable,
     chatsTable,
+    serverMembershipsTable,
 } from '../postgres/schema.ts';
 import { ensureThreadRecord } from '../threads/ensure-thread.ts';
 
@@ -53,17 +55,26 @@ export async function resolveAgentTarget(
 
     if (target.startsWith('dm:@')) {
         const [peer, threadAnchor, ...extra] = target.slice('dm:@'.length).split(':');
-        if (peer !== 'operator' || extra.length > 0) {
+        if (!peer || extra.length > 0) {
             throw new AgentTargetError();
         }
         const chats = await db
             .select({ id: chatsTable.id })
             .from(chatsTable)
+            .innerJoin(
+                serverMembershipsTable,
+                and(
+                    eq(serverMembershipsTable.serverId, chatsTable.serverId),
+                    eq(serverMembershipsTable.userId, chatsTable.dmMemberOneUserId)
+                )
+            )
             .where(
                 and(
                     eq(chatsTable.serverId, runner.serverId),
                     eq(chatsTable.kind, 'dm'),
-                    eq(chatsTable.dmAgentId, runner.agentId)
+                    eq(chatsTable.dmAgentId, runner.agentId),
+                    sql`lower(${serverMembershipsTable.handle}) = lower(${peer})`,
+                    isNull(serverMembershipsTable.revokedAt)
                 )
             )
             .limit(2);
@@ -96,7 +107,7 @@ async function resolveAgentSendChatTarget(
 
 async function resolvePeerAgentDmChat(db: GrottoDatabase, runner: ResolvedRunner, handle: string) {
     const [peer] = await db
-        .select({ id: agentsTable.id })
+        .select({ createdByUserId: agentsTable.createdByUserId, id: agentsTable.id })
         .from(agentsTable)
         .where(
             and(
@@ -108,7 +119,7 @@ async function resolvePeerAgentDmChat(db: GrottoDatabase, runner: ResolvedRunner
         )
         .limit(2);
     if (!peer) {
-        throw new AgentTargetError();
+        return null;
     }
     const chats = await db
         .select({ id: chatsTable.id })
@@ -121,10 +132,19 @@ async function resolvePeerAgentDmChat(db: GrottoDatabase, runner: ResolvedRunner
             )
         )
         .limit(2);
-    if (chats.length !== 1) {
+    if (chats.length === 1) {
+        return chats[0].id;
+    }
+    if (chats.length > 1 || !peer.createdByUserId) {
         throw new AgentTargetError();
     }
-    return chats[0].id;
+    return (
+        await ensureAgentDmRecord(db, {
+            agentId: peer.id,
+            serverId: runner.serverId,
+            userId: peer.createdByUserId,
+        })
+    ).id;
 }
 
 /** Send-only resolver: an Agent may create the canonical thread for a visible anchor message. */
@@ -138,6 +158,30 @@ export async function resolveAgentSendTarget(
     } catch (cause) {
         if (!(cause instanceof AgentTargetError)) {
             throw cause;
+        }
+    }
+
+    const directHumanHandle = parseDirectHumanHandle(target);
+    if (directHumanHandle) {
+        const [human] = await db
+            .select({ userId: serverMembershipsTable.userId })
+            .from(serverMembershipsTable)
+            .where(
+                and(
+                    eq(serverMembershipsTable.serverId, runner.serverId),
+                    sql`lower(${serverMembershipsTable.handle}) = lower(${directHumanHandle})`,
+                    isNull(serverMembershipsTable.revokedAt)
+                )
+            )
+            .limit(2);
+        if (human) {
+            return (
+                await ensureAgentDmRecord(db, {
+                    agentId: runner.agentId,
+                    serverId: runner.serverId,
+                    userId: human.userId,
+                })
+            ).id;
         }
     }
 
@@ -174,6 +218,14 @@ export async function resolveAgentSendTarget(
             serverId: runner.serverId,
         })
     ).id;
+}
+
+function parseDirectHumanHandle(target: string) {
+    if (!target.startsWith('dm:@')) {
+        return null;
+    }
+    const value = target.slice('dm:@'.length);
+    return value && !value.includes(':') ? value : null;
 }
 
 async function resolveAgentParentTarget(

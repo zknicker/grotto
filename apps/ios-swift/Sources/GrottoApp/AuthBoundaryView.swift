@@ -25,7 +25,9 @@ struct AuthBoundaryView: View {
             }
             #endif
         }
-        .animation(.snappy, value: hasUsableSession(clerk.session))
+        // Deliberately no implicit animation here: its branches are the whole
+        // authenticated app vs the sign-in screen, and animating that value
+        // crossfaded the entire app on any session change.
     }
 }
 
@@ -136,7 +138,7 @@ private struct SignInView: View {
             Button(action: signIn) {
                 HStack(spacing: 10) {
                     if isSigningIn { ProgressView().controlSize(.small) }
-                    Image(systemName: "person.crop.circle.badge.checkmark")
+                    GrottoIcon(.identity, size: 20, weight: 1.8)
                     Text("Continue with Google")
                 }
                 .frame(maxWidth: .infinity)

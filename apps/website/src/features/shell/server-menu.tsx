@@ -1,5 +1,6 @@
 import { Button, Dropdown, Label, Separator } from '@heroui/react';
 import {
+    Analytics01Icon,
     ArchiveIcon,
     ArrowDown01Icon,
     Link01Icon,
@@ -16,6 +17,7 @@ export function ServerMenu({
     onJoinServer,
     onOpenArchived,
     onOpenMembers,
+    onOpenUsage,
     onSwitchServer,
     servers,
 }: {
@@ -24,6 +26,7 @@ export function ServerMenu({
     onJoinServer: () => void;
     onOpenArchived: () => void;
     onOpenMembers: () => void;
+    onOpenUsage: () => void;
     onSwitchServer: (slug: string) => void;
     servers: ServerSummary[];
 }) {
@@ -52,6 +55,10 @@ export function ServerMenu({
                             onOpenMembers();
                             return;
                         }
+                        if (key === 'usage') {
+                            onOpenUsage();
+                            return;
+                        }
                         if (key === 'archived-chats') {
                             onOpenArchived();
                             return;
@@ -62,6 +69,9 @@ export function ServerMenu({
                         }
                         if (key === 'join-server') {
                             onJoinServer();
+                            return;
+                        }
+                        if (key === currentServer.id) {
                             return;
                         }
                         const server = servers.find((candidate) => candidate.id === key);
@@ -92,6 +102,15 @@ export function ServerMenu({
                         />
                         <Label>Members</Label>
                     </Dropdown.Item>
+                    <Dropdown.Item id="usage" textValue="Usage">
+                        <Icon
+                            aria-hidden="true"
+                            className="text-muted"
+                            icon={Analytics01Icon}
+                            size={16}
+                        />
+                        <Label>Usage</Label>
+                    </Dropdown.Item>
                     <Dropdown.Item id="archived-chats" textValue="Archived chats">
                         <Icon
                             aria-hidden="true"
@@ -102,16 +121,22 @@ export function ServerMenu({
                         <Label>Archived chats</Label>
                     </Dropdown.Item>
                     <Separator />
-                    <Dropdown.Item className="h-10" id="create-server" textValue="Create server">
-                        <span className="grid size-8 shrink-0 place-items-center text-muted">
-                            <Icon aria-hidden="true" icon={PlusSignIcon} size={16} />
-                        </span>
+                    <Dropdown.Item id="create-server" textValue="Create server">
+                        <Icon
+                            aria-hidden="true"
+                            className="text-muted"
+                            icon={PlusSignIcon}
+                            size={16}
+                        />
                         <Label>Create server</Label>
                     </Dropdown.Item>
-                    <Dropdown.Item className="h-10" id="join-server" textValue="Join server">
-                        <span className="grid size-8 shrink-0 place-items-center text-muted">
-                            <Icon aria-hidden="true" icon={Link01Icon} size={16} />
-                        </span>
+                    <Dropdown.Item id="join-server" textValue="Join server">
+                        <Icon
+                            aria-hidden="true"
+                            className="text-muted"
+                            icon={Link01Icon}
+                            size={16}
+                        />
                         <Label>Join server</Label>
                     </Dropdown.Item>
                 </Dropdown.Menu>

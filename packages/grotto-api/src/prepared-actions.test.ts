@@ -107,7 +107,6 @@ test('Agent commit contracts carry submitted execution and avatar values', () =>
         agentCreateActionResultSchema.safeParse({
             agentId: 'agt_1234567890abcdef',
             avatarUrl: '/api/avatars/avt_1234567890abcdef',
-            chatId: 'cht_1234567890abcdef',
             computerId: input.computerId,
             description: input.description,
             displayName: input.displayName,

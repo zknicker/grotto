@@ -3,13 +3,13 @@ import Foundation
 
 public struct GrottoShellView<SettingsContent: View>: View {
     private let server: ServerPresentation
-    let chats: [ChatPresentation]
-    private let messagesForChat: (ChatPresentation) -> [MessagePresentation]
+    let destinations: [ChatDestination]
+    private let messagesForDestination: (ChatDestination) -> [MessagePresentation]
     private let isConnected: Bool
     private let settingsContent: ([SettingsRoute]) -> SettingsContent
     let onOpenTasks: () -> Void
     private let onOpenThread: (ChatPresentation, MessagePresentation) -> Void
-    private let onSend: (ChatPresentation, String, [ComposerAttachment]) async -> Bool
+    private let onSend: (ChatDestination, String, [ComposerAttachment]) async -> Bool
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     private let hasOlderMessages: (ChatPresentation) -> Bool
     private let isLoadingOlderMessages: (ChatPresentation) -> Bool
@@ -17,14 +17,21 @@ public struct GrottoShellView<SettingsContent: View>: View {
     private let searchMessages: @Sendable (String) async throws -> [MessageSearchResultPresentation]
     private let loadArchivedChannels: @Sendable () async throws -> [ArchivedChannelPresentation]
     private let restoreArchivedChannel: @Sendable (ArchivedChannelPresentation) async throws -> Void
-    private let newChannelAgents: [NewChannelAgentPresentation]
+    /// Sheet-only inputs arrive as closures so the sheet body that draws them
+    /// is what observes them. Passing the resolved values in would subscribe
+    /// the whole shell to state only one sheet ever reads — and Agent activity
+    /// changes several times a second.
+    private let newChannelAgents: () -> [NewChannelAgentPresentation]
     private let createChannel: @Sendable (NewChannelDraft) async throws -> CreatedChannelPresentation
-    private let agentActivities: [String: AgentActivityPresentation]
+    private let currentAgentActivity: (String) -> AgentActivityPresentation?
     private let loadAgentActivity: @Sendable (String) async throws -> [AgentActivityPresentation]
     private let canManagePreparedActions: Bool
     private let onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
+    private let agentProfile: (String) -> AgentProfilePresentation?
+    private let mentionOptions: (ChatDestination) -> [MentionOptionPresentation]
+    private let loadMentionOptions: (ChatDestination) async -> Void
 
-    @Binding private var selectedChatID: String?
+    @Binding private var selectedDestinationID: ChatDestination.ID?
     @State var drawerPresented = false
     @State var settingsRequest: SettingsPresentationRequest?
     /// Settings queued behind a Chat sheet that has to dismiss first; the two
@@ -32,20 +39,27 @@ public struct GrottoShellView<SettingsContent: View>: View {
     @State var queuedSettingsRequest: SettingsPresentationRequest?
     @State var activeChatSheet: GrottoShellSheet?
     @State var pendingChatSelectionID: String?
-    @State private var scrollTarget: MessageScrollTarget?
+    /// Composer drafts live above the canvas: the canvas is keyed by
+    /// destination, so a Chat switch remounts the screen and anything the
+    /// screen owned would go with it.
+    @State var drafts: [ChatDestination.ID: String] = [:]
+    /// Staged attachments live above the canvas for the same reason drafts do —
+    /// a Chat switch or a push-over must not throw away files the user picked.
+    @State var composerInteractions = ComposerInteractionStore()
+    @State var scrollTarget: MessageScrollTarget?
     @State var dragTranslation: CGFloat?
     @Environment(\.colorScheme) private var colorScheme
 
     public init(
         server: ServerPresentation,
-        chats: [ChatPresentation],
-        selectedChatID: Binding<String?> = .constant(nil),
-        messagesForChat: @escaping (ChatPresentation) -> [MessagePresentation],
+        destinations: [ChatDestination],
+        selectedDestinationID: Binding<ChatDestination.ID?> = .constant(nil),
+        messagesForDestination: @escaping (ChatDestination) -> [MessagePresentation],
         isConnected: Bool,
         @ViewBuilder settingsContent: @escaping ([SettingsRoute]) -> SettingsContent,
         onOpenTasks: @escaping () -> Void = {},
         onOpenThread: @escaping (ChatPresentation, MessagePresentation) -> Void = { _, _ in },
-        onSend: @escaping (ChatPresentation, String, [ComposerAttachment]) async -> Bool,
+        onSend: @escaping (ChatDestination, String, [ComposerAttachment]) async -> Bool,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
             return localURL
@@ -56,19 +70,22 @@ public struct GrottoShellView<SettingsContent: View>: View {
         searchMessages: @escaping @Sendable (String) async throws -> [MessageSearchResultPresentation] = { _ in [] },
         loadArchivedChannels: @escaping @Sendable () async throws -> [ArchivedChannelPresentation] = { [] },
         restoreArchivedChannel: @escaping @Sendable (ArchivedChannelPresentation) async throws -> Void = { _ in },
-        newChannelAgents: [NewChannelAgentPresentation] = [],
-        agentActivities: [String: AgentActivityPresentation] = [:],
+        newChannelAgents: @escaping () -> [NewChannelAgentPresentation] = { [] },
+        currentAgentActivity: @escaping (String) -> AgentActivityPresentation? = { _ in nil },
         loadAgentActivity: @escaping @Sendable (String) async throws -> [AgentActivityPresentation] = { _ in [] },
         canManagePreparedActions: Bool = false,
         onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
+        agentProfile: @escaping (String) -> AgentProfilePresentation? = { _ in nil },
+        mentionOptions: @escaping (ChatDestination) -> [MentionOptionPresentation] = { _ in [] },
+        loadMentionOptions: @escaping (ChatDestination) async -> Void = { _ in },
         createChannel: @escaping @Sendable (NewChannelDraft) async throws -> CreatedChannelPresentation = { _ in
             throw CancellationError()
         }
     ) {
-        _selectedChatID = selectedChatID
+        _selectedDestinationID = selectedDestinationID
         self.server = server
-        self.chats = chats
-        self.messagesForChat = messagesForChat
+        self.destinations = destinations
+        self.messagesForDestination = messagesForDestination
         self.isConnected = isConnected
         self.settingsContent = settingsContent
         self.onOpenTasks = onOpenTasks
@@ -82,10 +99,13 @@ public struct GrottoShellView<SettingsContent: View>: View {
         self.loadArchivedChannels = loadArchivedChannels
         self.restoreArchivedChannel = restoreArchivedChannel
         self.newChannelAgents = newChannelAgents
-        self.agentActivities = agentActivities
+        self.currentAgentActivity = currentAgentActivity
         self.loadAgentActivity = loadAgentActivity
         self.canManagePreparedActions = canManagePreparedActions
         self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
+        self.agentProfile = agentProfile
+        self.mentionOptions = mentionOptions
+        self.loadMentionOptions = loadMentionOptions
         self.createChannel = createChannel
     }
 
@@ -95,9 +115,9 @@ public struct GrottoShellView<SettingsContent: View>: View {
             ZStack(alignment: .leading) {
                 ChatSidebarView(
                     server: server,
-                    chats: chats,
-                    selectedChatID: selectedChat?.id,
-                    onSelectChat: selectChat,
+                    destinations: destinations,
+                    selectedDestinationID: selectedDestination?.id,
+                    onSelectDestination: selectDestination,
                     onOpenSettings: { openSettings() },
                     onOpenSearch: { activeChatSheet = .search },
                     onOpenTasks: openTasks,
@@ -106,41 +126,66 @@ public struct GrottoShellView<SettingsContent: View>: View {
                 )
                 // `.mask()` below rasterizes this view into an offscreen buffer
                 // sized to its own resolved height, which `.ignoresSafeArea()`
-                // bleed cannot expand — so the extra room for the gear button's
-                // shadow has to come from a genuinely taller proposed frame.
-                // `ChatSidebarView` reserves that same extra height as inert
-                // space at its own bottom, so nothing else shifts.
+                // bleed cannot expand — so the room the search and gear button
+                // shadows spill into has to come from a genuinely taller
+                // proposed frame. `ChatSidebarView` reserves that height as
+                // inert space at both of its own ends; lifting the masked
+                // result by one of them puts its content back where it was.
                 .frame(
                     width: drawerWidth,
-                    height: proxy.size.height + ChatSidebarView.shadowBleedHeight,
+                    height: proxy.size.height + ChatSidebarView.shadowBleedHeight * 2,
                     alignment: .top
                 )
                 .offset(x: -(1 - drawerProgress(drawerWidth: drawerWidth)) * drawerWidth * 0.22)
                 .mask(alignment: .leading) {
                     Rectangle().frame(width: canvasOffset(drawerWidth: drawerWidth))
                 }
+                .offset(y: -ChatSidebarView.shadowBleedHeight)
+                .frame(height: proxy.size.height, alignment: .top)
                 .allowsHitTesting(drawerPresented)
                 .zIndex(1)
 
-                if let selectedChat {
+                if let selectedDestination {
                     ChatScreenView(
-                        chat: selectedChat,
-                        messages: messagesForChat(selectedChat),
+                        chat: selectedDestination,
+                        messages: messagesForDestination(selectedDestination),
+                        draft: draftBinding(for: selectedDestination),
+                        composerInteraction: composerInteraction(for: selectedDestination),
                         isConnected: isConnected,
                         onOpenSidebar: { setDrawer(open: !drawerPresented) },
-                        onOpenChatDetails: { activeChatSheet = .details(selectedChat) },
+                        onOpenChatDetails: { activeChatSheet = .details(selectedDestination) },
                         onOpenSearch: { activeChatSheet = .search },
-                        onOpenThread: { onOpenThread(selectedChat, $0) },
-                        onSend: { await onSend(selectedChat, $0, $1) },
+                        onOpenThread: { message in
+                            guard let chat = selectedDestination.durableChat else { return }
+                            onOpenThread(chat, message)
+                        },
+                        onSend: { await onSend(selectedDestination, $0, $1) },
                         onOpenAttachment: onOpenAttachment,
                         canManagePreparedActions: canManagePreparedActions,
                         onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
-                        hasOlderMessages: hasOlderMessages(selectedChat),
-                        isLoadingOlderMessages: isLoadingOlderMessages(selectedChat),
-                        onLoadOlderMessages: { await onLoadOlderMessages(selectedChat) },
+                        hasOlderMessages: selectedDestination.durableChat.map(hasOlderMessages) ?? false,
+                        isLoadingOlderMessages: selectedDestination.durableChat.map(isLoadingOlderMessages) ?? false,
+                        onLoadOlderMessages: {
+                            guard let chat = selectedDestination.durableChat else { return false }
+                            return await onLoadOlderMessages(chat)
+                        },
+                        mentionOptions: mentionOptions(selectedDestination),
+                        onLoadMentionOptions: { await loadMentionOptions(selectedDestination) },
                         contentInsets: proxy.safeAreaInsets,
-                        scrollTargetMessageID: scrollTargetBinding(for: selectedChat)
+                        scrollTargetMessageID: scrollTargetBinding(for: selectedDestination)
                     )
+                    // Each Chat gets its own screen. Reusing one screen carried
+                    // the previous Chat's scroll offset and transcript state
+                    // into the next one, and left `defaultScrollAnchor(.bottom)`
+                    // unapplied; a fresh screen lays out bottom-anchored before
+                    // the drawer reveals it.
+                    .id(selectedDestination.id)
+                    // Selecting a Chat closes the drawer in an animated
+                    // transaction, and an identity swap inside one picks up
+                    // SwiftUI's default opacity transition. The drawer's own
+                    // motion is the transition; the canvas behind it is already
+                    // the next Chat, fully formed.
+                    .transition(.identity)
                     .overlay {
                         let progress = drawerProgress(drawerWidth: drawerWidth)
                         if progress > 0 {
@@ -174,7 +219,7 @@ public struct GrottoShellView<SettingsContent: View>: View {
             switch sheet {
             case .search:
                 ServerSearchView(
-                    chats: chats,
+                    chats: durableChats,
                     searchMessages: searchMessages,
                     onSelectChat: { open($0) },
                     onSelectMessage: openSearchResult
@@ -187,7 +232,7 @@ public struct GrottoShellView<SettingsContent: View>: View {
                 )
             case .newChannel:
                 NewChannelFormView(
-                    agents: newChannelAgents,
+                    agents: newChannelAgents(),
                     create: createChannel,
                     onCreated: selectCreatedChannel
                 )
@@ -197,51 +242,56 @@ public struct GrottoShellView<SettingsContent: View>: View {
                     server: server,
                     currentActivity: agentActivity(for: chat),
                     loadAgentActivity: loadAgentActivity,
+                    agentProfile: agentProfile,
                     onOpenAgentProfile: openAgentProfile
                 )
             }
         }
-        .onChange(of: chats.map(\.id), initial: true) { _, chatIDs in
-            syncSelection(chatIDs: chatIDs)
+        .onChange(of: destinations.map(\.id), initial: true) { _, destinationIDs in
+            syncSelection(destinationIDs: destinationIDs)
         }
     }
 
-    private var selectedChat: ChatPresentation? {
-        chats.first { $0.id == selectedChatID } ?? chats.first
+    private var durableChats: [ChatPresentation] {
+        destinations.compactMap(\.durableChat)
     }
 
-    /// Adopts a requested Chat once the Server list carries it, and keeps a
-    /// removed selection from lingering as a stale id behind the rendered Chat.
-    private func syncSelection(chatIDs: [String]) {
-        if let arrivedID = ChatSelection.resolvePending(pendingID: pendingChatSelectionID, chatIDs: chatIDs),
-           let arrivedChat = chats.first(where: { $0.id == arrivedID }) {
+    private var selectedDestination: ChatDestination? {
+        destinations.first { $0.id == selectedDestinationID } ?? destinations.first
+    }
+
+    /// Adopts a requested durable Chat once the Server list carries it, while
+    /// implicit Agent destinations remain selectable without a Chat id. Also the
+    /// one place a destination is observed to have left, which is where its
+    /// composer state — draft and staged files alike — stops being worth keeping.
+    private func syncSelection(destinationIDs: [ChatDestination.ID]) {
+        dropCanvasState(outside: destinationIDs)
+
+        if let pendingID = pendingChatSelectionID,
+           let arrived = destinations.first(where: { $0.id == .chat(pendingID) }) {
             pendingChatSelectionID = nil
-            selectChat(arrivedChat)
+            selectDestination(arrived)
             return
         }
 
-        let resolved = ChatSelection.resolve(selectedID: selectedChatID, chatIDs: chatIDs)
-        guard resolved != selectedChatID else { return }
-        selectedChatID = resolved
+        guard let selectedDestinationID, destinationIDs.contains(selectedDestinationID) else {
+            self.selectedDestinationID = destinationIDs.first
+            return
+        }
     }
 
-    private func scrollTargetBinding(for chat: ChatPresentation) -> Binding<String?> {
-        Binding(
-            get: { scrollTarget?.chatID == chat.id ? scrollTarget?.messageID : nil },
-            set: { if $0 == nil { scrollTarget = nil } }
-        )
+    /// Called from the details sheet's own body, so the activity stream
+    /// invalidates that sheet rather than the shell behind it.
+    private func agentActivity(for chat: ChatDestination) -> AgentActivityPresentation? {
+        guard case .agentDirectMessage(let agent) = chat.kind else { return nil }
+        return currentAgentActivity(agent.id)
     }
 
-    private func agentActivity(for chat: ChatPresentation) -> AgentActivityPresentation? {
-        guard case .directMessage(let agent) = chat.kind else { return nil }
-        return agentActivities[agent.id]
-    }
-
-    private func selectChat(_ chat: ChatPresentation) {
-        if pendingChatSelectionID != chat.id {
+    private func selectDestination(_ destination: ChatDestination) {
+        if case .chat(let chatID) = destination.id, pendingChatSelectionID != chatID {
             pendingChatSelectionID = nil
         }
-        selectedChatID = chat.id
+        selectedDestinationID = destination.id
         setDrawer(open: false)
     }
 
@@ -250,11 +300,11 @@ public struct GrottoShellView<SettingsContent: View>: View {
     func open(_ chat: ChatPresentation, revealing messageID: String? = nil) {
         activeChatSheet = nil
         scrollTarget = messageID.map { MessageScrollTarget(chatID: chat.id, messageID: $0) }
-        selectChat(chat)
+        selectDestination(.durableChat(chat))
     }
 
     private func openSearchResult(_ result: MessageSearchResultPresentation) -> Bool {
-        guard let chat = chats.first(where: { $0.id == result.chatID }) else { return false }
+        guard let chat = durableChats.first(where: { $0.id == result.chatID }) else { return false }
         open(chat, revealing: result.id)
         return true
     }
@@ -262,13 +312,13 @@ public struct GrottoShellView<SettingsContent: View>: View {
 }
 
 #Preview {
-    @Previewable @State var selectedChatID: String? = ChatFixtures.chats.first?.id
+    @Previewable @State var selectedDestinationID: ChatDestination.ID? = ChatFixtures.chats.first.map { .chat($0.id) }
 
     GrottoShellView(
         server: ChatFixtures.server,
-        chats: ChatFixtures.chats,
-        selectedChatID: $selectedChatID,
-        messagesForChat: { _ in ChatFixtures.messages },
+        destinations: ChatFixtures.chats.map(ChatDestination.durableChat),
+        selectedDestinationID: $selectedDestinationID,
+        messagesForDestination: { _ in ChatFixtures.messages },
         isConnected: true,
         settingsContent: { path in
             SettingsSheet(initialPath: path)

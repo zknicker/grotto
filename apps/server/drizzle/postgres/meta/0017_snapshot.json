@@ -1,178 +1,9 @@
 {
-  "id": "95543d3f-4eae-456e-8a51-5cadb57dced3",
+  "id": "f9445723-5a0d-4ed4-b639-faf89863daa2",
   "prevId": "33eb0c27-67d6-4ff3-9bb7-0106c6c386d3",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.agent_action_attentions": {
-      "name": "agent_action_attentions",
-      "schema": "",
-      "columns": {
-        "action_id": {
-          "name": "action_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "chat_id": {
-          "name": "chat_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_agent_id": {
-          "name": "created_agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "dedupe_key": {
-          "name": "dedupe_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "executed_result": {
-          "name": "executed_result",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "server_id": {
-          "name": "server_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "source": {
-          "name": "source",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'action'"
-        }
-      },
-      "indexes": {
-        "agent_action_attentions_agent_idx": {
-          "name": "agent_action_attentions_agent_idx",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "agent_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "agent_action_attentions_server_id_servers_id_fk": {
-          "name": "agent_action_attentions_server_id_servers_id_fk",
-          "tableFrom": "agent_action_attentions",
-          "tableTo": "servers",
-          "columnsFrom": ["server_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agent_action_attentions_action_fk": {
-          "name": "agent_action_attentions_action_fk",
-          "tableFrom": "agent_action_attentions",
-          "tableTo": "prepared_actions",
-          "columnsFrom": ["server_id", "action_id"],
-          "columnsTo": ["server_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agent_action_attentions_agent_fk": {
-          "name": "agent_action_attentions_agent_fk",
-          "tableFrom": "agent_action_attentions",
-          "tableTo": "agents",
-          "columnsFrom": ["server_id", "agent_id"],
-          "columnsTo": ["server_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agent_action_attentions_chat_fk": {
-          "name": "agent_action_attentions_chat_fk",
-          "tableFrom": "agent_action_attentions",
-          "tableTo": "chats",
-          "columnsFrom": ["server_id", "chat_id"],
-          "columnsTo": ["server_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agent_action_attentions_created_agent_fk": {
-          "name": "agent_action_attentions_created_agent_fk",
-          "tableFrom": "agent_action_attentions",
-          "tableTo": "agents",
-          "columnsFrom": ["server_id", "created_agent_id"],
-          "columnsTo": ["server_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "agent_action_attentions_server_action_key": {
-          "name": "agent_action_attentions_server_action_key",
-          "nullsNotDistinct": false,
-          "columns": ["server_id", "action_id"]
-        },
-        "agent_action_attentions_server_dedupe_key": {
-          "name": "agent_action_attentions_server_dedupe_key",
-          "nullsNotDistinct": false,
-          "columns": ["server_id", "agent_id", "dedupe_key"]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "agent_action_attentions_id_shape": {
-          "name": "agent_action_attentions_id_shape",
-          "value": "\"agent_action_attentions\".\"id\" ~ '^aat_[A-Za-z0-9_-]{16}$'"
-        },
-        "agent_action_attentions_source": {
-          "name": "agent_action_attentions_source",
-          "value": "\"agent_action_attentions\".\"source\" = 'action'"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.agent_activity": {
       "name": "agent_activity",
       "schema": "",
@@ -2049,13 +1880,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "desired_reasoning_effort": {
-          "name": "desired_reasoning_effort",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'medium'"
-        },
         "desired_runtime_id": {
           "name": "desired_runtime_id",
           "type": "text",
@@ -2229,10 +2053,6 @@
           "name": "agents_role",
           "value": "\"agents\".\"role\" in ('admin', 'member')"
         },
-        "agents_reasoning_effort": {
-          "name": "agents_reasoning_effort",
-          "value": "\"agents\".\"desired_reasoning_effort\" in ('low', 'medium', 'high')"
-        },
         "agents_factory_kind": {
           "name": "agents_factory_kind",
           "value": "\"agents\".\"factory_kind\" in ('ordinary', 'cove')"
@@ -2244,6 +2064,10 @@
         "agents_session_reset_kind": {
           "name": "agents_session_reset_kind",
           "value": "\"agents\".\"session_reset_kind\" in ('full', 'session')"
+        },
+        "agents_handle_grammar": {
+          "name": "agents_handle_grammar",
+          "value": "\"agents\".\"handle\" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and ((\"agents\".\"factory_kind\" = 'cove' and \"agents\".\"handle\" = 'cove') or lower(\"agents\".\"handle\") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'grotto', 'here', 'human', 'humans', 'idle', 'system'))"
         },
         "agents_description_length": {
           "name": "agents_description_length",
@@ -2720,12 +2544,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "action_id": {
-          "name": "action_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "lifecycle_chat_id": {
           "name": "lifecycle_chat_id",
           "type": "text",
@@ -2753,12 +2571,6 @@
         },
         "label_id": {
           "name": "label_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "action_status": {
-          "name": "action_status",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -2848,15 +2660,6 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "chat_events_prepared_action_fk": {
-          "name": "chat_events_prepared_action_fk",
-          "tableFrom": "chat_events",
-          "tableTo": "prepared_actions",
-          "columnsFrom": ["server_id", "action_id"],
-          "columnsTo": ["server_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "chat_events_message_fk": {
           "name": "chat_events_message_fk",
           "tableFrom": "chat_events",
@@ -2890,7 +2693,7 @@
         },
         "chat_events_shape": {
           "name": "chat_events_shape",
-          "value": "(\n                (\"chat_events\".\"event_type\" = 'message.created'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'prepared-action.updated'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"action_id\" IS NOT NULL\n                    AND \"chat_events\".\"action_status\" IN ('pending', 'executed', 'superseded')\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'chat.lifecycle'\n                    AND \"chat_events\".\"chat_id\" IS NULL\n                    AND \"chat_events\".\"lifecycle_chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"chat_action\" IN (\n                        'archived', 'created', 'deleted', 'unarchived', 'updated'\n                    )\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" = 0)\n                OR\n                (\"chat_events\".\"event_type\" IN ('task.created', 'task.updated')\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'chat.read'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NOT NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" >= 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'thread.follow.updated'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NOT NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" >= 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'reminder.changed'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NOT NULL\n                    AND \"chat_events\".\"reminder_action\" IN (\n                        'scheduled', 'updated', 'snoozed', 'canceled', 'fired'\n                    )\n                    AND \"chat_events\".\"sequence\" >= 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'task.label.updated'\n                    AND \"chat_events\".\"chat_id\" IS NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NOT NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" = 0)\n            )"
+          "value": "(\n                (\"chat_events\".\"event_type\" = 'message.created'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'chat.lifecycle'\n                    AND \"chat_events\".\"chat_id\" IS NULL\n                    AND \"chat_events\".\"lifecycle_chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"chat_action\" IN (\n                        'archived', 'created', 'deleted', 'unarchived', 'updated'\n                    )\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" = 0)\n                OR\n                (\"chat_events\".\"event_type\" IN ('task.created', 'task.updated')\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'chat.read'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NOT NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" >= 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'thread.follow.updated'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NOT NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" >= 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'reminder.changed'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NOT NULL\n                    AND \"chat_events\".\"reminder_action\" IN (\n                        'scheduled', 'updated', 'snoozed', 'canceled', 'fired'\n                    )\n                    AND \"chat_events\".\"sequence\" >= 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'task.label.updated'\n                    AND \"chat_events\".\"chat_id\" IS NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NOT NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" = 0)\n            )"
         }
       },
       "isRLSEnabled": false
@@ -5016,379 +4819,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.prepared_action_media": {
-      "name": "prepared_action_media",
-      "schema": "",
-      "columns": {
-        "action_id": {
-          "name": "action_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "byte_size": {
-          "name": "byte_size",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "bytes": {
-          "name": "bytes",
-          "type": "bytea",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "media_type": {
-          "name": "media_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sha256": {
-          "name": "sha256",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "server_id": {
-          "name": "server_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "prepared_action_media_action_key": {
-          "name": "prepared_action_media_action_key",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "action_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "prepared_action_media_action_fk": {
-          "name": "prepared_action_media_action_fk",
-          "tableFrom": "prepared_action_media",
-          "tableTo": "prepared_actions",
-          "columnsFrom": ["server_id", "action_id"],
-          "columnsTo": ["server_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "prepared_action_media_server_id_key": {
-          "name": "prepared_action_media_server_id_key",
-          "nullsNotDistinct": false,
-          "columns": ["server_id", "id"]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "prepared_action_media_id_shape": {
-          "name": "prepared_action_media_id_shape",
-          "value": "\"prepared_action_media\".\"id\" ~ '^pam_[A-Za-z0-9_-]{16}$'"
-        },
-        "prepared_action_media_type": {
-          "name": "prepared_action_media_type",
-          "value": "\"prepared_action_media\".\"media_type\" in ('image/jpeg', 'image/png', 'image/webp')"
-        },
-        "prepared_action_media_size": {
-          "name": "prepared_action_media_size",
-          "value": "\"prepared_action_media\".\"byte_size\" > 0 and \"prepared_action_media\".\"byte_size\" <= 524288"
-        },
-        "prepared_action_media_sha256": {
-          "name": "prepared_action_media_sha256",
-          "value": "\"prepared_action_media\".\"sha256\" ~ '^[a-f0-9]{64}$'"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.prepared_actions": {
-      "name": "prepared_actions",
-      "schema": "",
-      "columns": {
-        "chat_id": {
-          "name": "chat_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "executed_at": {
-          "name": "executed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "executed_by_user_id": {
-          "name": "executed_by_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "executed_result": {
-          "name": "executed_result",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "message_id": {
-          "name": "message_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nonce": {
-          "name": "nonce",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "proposal": {
-          "name": "proposal",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "proposer_agent_id": {
-          "name": "proposer_agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "server_id": {
-          "name": "server_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "superseded_at": {
-          "name": "superseded_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "superseded_by_action_id": {
-          "name": "superseded_by_action_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "prepared_actions_message_key": {
-          "name": "prepared_actions_message_key",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "chat_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "message_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "prepared_actions_nonce_key": {
-          "name": "prepared_actions_nonce_key",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "proposer_agent_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "nonce",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "prepared_actions_pending_idx": {
-          "name": "prepared_actions_pending_idx",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "chat_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "proposer_agent_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "kind",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"prepared_actions\".\"status\" = 'pending'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "prepared_actions_chat_fk": {
-          "name": "prepared_actions_chat_fk",
-          "tableFrom": "prepared_actions",
-          "tableTo": "chats",
-          "columnsFrom": ["server_id", "chat_id"],
-          "columnsTo": ["server_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "prepared_actions_message_fk": {
-          "name": "prepared_actions_message_fk",
-          "tableFrom": "prepared_actions",
-          "tableTo": "chat_messages",
-          "columnsFrom": ["server_id", "chat_id", "message_id"],
-          "columnsTo": ["server_id", "chat_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "prepared_actions_proposer_fk": {
-          "name": "prepared_actions_proposer_fk",
-          "tableFrom": "prepared_actions",
-          "tableTo": "agents",
-          "columnsFrom": ["server_id", "proposer_agent_id"],
-          "columnsTo": ["server_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "prepared_actions_executor_membership_fk": {
-          "name": "prepared_actions_executor_membership_fk",
-          "tableFrom": "prepared_actions",
-          "tableTo": "server_memberships",
-          "columnsFrom": ["server_id", "executed_by_user_id"],
-          "columnsTo": ["server_id", "user_id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "prepared_actions_server_id_key": {
-          "name": "prepared_actions_server_id_key",
-          "nullsNotDistinct": false,
-          "columns": ["server_id", "id"]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "prepared_actions_id_shape": {
-          "name": "prepared_actions_id_shape",
-          "value": "\"prepared_actions\".\"id\" ~ '^act_[A-Za-z0-9_-]{16}$'"
-        },
-        "prepared_actions_status": {
-          "name": "prepared_actions_status",
-          "value": "\"prepared_actions\".\"status\" in ('pending', 'executed', 'superseded')"
-        },
-        "prepared_actions_superseded_shape": {
-          "name": "prepared_actions_superseded_shape",
-          "value": "(\"prepared_actions\".\"status\" = 'superseded') = (\"prepared_actions\".\"superseded_at\" is not null and \"prepared_actions\".\"superseded_by_action_id\" is not null)"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.reminder_agent_attention": {
       "name": "reminder_agent_attention",
       "schema": "",
@@ -6315,6 +5745,12 @@
           "notNull": true,
           "default": "now()"
         },
+        "handle": {
+          "name": "handle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "id": {
           "name": "id",
           "type": "text",
@@ -6361,6 +5797,28 @@
         }
       },
       "indexes": {
+        "server_memberships_server_handle_key": {
+          "name": "server_memberships_server_handle_key",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lower(\"handle\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"server_memberships\".\"revoked_at\" is null and \"server_memberships\".\"handle\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "server_memberships_user_idx": {
           "name": "server_memberships_user_idx",
           "columns": [
@@ -6414,6 +5872,10 @@
         "server_memberships_positive_stint": {
           "name": "server_memberships_positive_stint",
           "value": "\"server_memberships\".\"stint\" > 0"
+        },
+        "server_memberships_handle_grammar": {
+          "name": "server_memberships_handle_grammar",
+          "value": "\"server_memberships\".\"handle\" is null or (\"server_memberships\".\"handle\" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and lower(\"server_memberships\".\"handle\") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'grotto', 'here', 'human', 'humans', 'idle', 'system'))"
         }
       },
       "isRLSEnabled": false
@@ -6893,12 +6355,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "handle": {
-          "name": "handle",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "id": {
           "name": "id",
           "type": "text",
@@ -6918,22 +6374,6 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "users_handle_key": {
-          "name": "users_handle_key",
-          "columns": [
-            {
-              "expression": "handle",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"users\".\"handle\" is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}

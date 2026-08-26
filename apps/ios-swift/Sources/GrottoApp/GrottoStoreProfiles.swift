@@ -4,9 +4,26 @@ import GrottoTransport
 import GrottoUI
 
 extension GrottoStore {
+    func syncHumanIdentity(serverID: String) async throws {
+        let user = clerk.user
+        let name = [user?.firstName, user?.lastName]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfBlank }
+            .joined(separator: " ")
+            .nilIfBlank
+        let _: TRPCNoContent = try await client.mutation(
+            "member.syncIdentity",
+            input: SyncHumanIdentityInput(
+                email: user?.primaryEmailAddress?.emailAddress,
+                name: name,
+                serverID: serverID
+            )
+        )
+    }
+
     func saveHumanProfile(
         userID: String,
         displayName: String,
+        handle: String?,
         description: String
     ) async throws -> SettingsPerson {
         guard let serverID = activeServer?.id,
@@ -18,7 +35,9 @@ extension GrottoStore {
             "member.updateProfile",
             input: UpdateHumanProfileInput(
                 description: description.nilIfBlank,
-                displayName: displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+                displayName: displayName.trimmingCharacters(in: .whitespacesAndNewlines),
+                handle: handle?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+                serverID: serverID
             )
         )
         let refreshed: MemberList = try await client.query(

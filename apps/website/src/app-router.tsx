@@ -9,7 +9,11 @@ import {
 import { AppFrame } from './components/app-frame.tsx';
 import { ComputerLoginRoutes } from './features/computers/computer-login-routes.tsx';
 import { GrottoServerRoutes } from './features/servers/grotto-server-routes.tsx';
-import { serverRoute } from './features/servers/server-routes.ts';
+import {
+    serverRoute,
+    settingsAgentRoute,
+    settingsHumanRoute,
+} from './features/servers/server-routes.ts';
 import { isElectronDesktopApp } from './lib/desktop-bridge.ts';
 import { serverRouteModules } from './routes/app/server-route-modules.ts';
 
@@ -115,6 +119,13 @@ export function createAppRouter() {
                                                     ),
                                                 },
                                                 {
+                                                    path: 'dm/:agentId',
+                                                    lazy: lazyRoute(
+                                                        serverRouteModules.chat,
+                                                        'ImplicitAgentDmRoute'
+                                                    ),
+                                                },
+                                                {
                                                     path: 'tasks',
                                                     lazy: lazyRoute(
                                                         serverRouteModules.tasks,
@@ -122,47 +133,35 @@ export function createAppRouter() {
                                                     ),
                                                 },
                                                 {
-                                                    path: 'members',
+                                                    path: 'usage',
                                                     lazy: lazyRoute(
-                                                        serverRouteModules.members,
-                                                        'MembersPage'
+                                                        serverRouteModules.usage,
+                                                        'UsagePage'
                                                     ),
-                                                    children: [
-                                                        {
-                                                            index: true,
-                                                            lazy: lazyRoute(
-                                                                serverRouteModules.members,
-                                                                'AgentsOverviewPage'
-                                                            ),
-                                                        },
-                                                        {
-                                                            path: 'agents/:agentId',
-                                                            element: (
-                                                                <Navigate replace to="overview" />
-                                                            ),
-                                                        },
-                                                        {
-                                                            path: 'agents/:agentId/:tab',
-                                                            lazy: lazyRoute(
-                                                                serverRouteModules.members,
-                                                                'AgentPage'
-                                                            ),
-                                                        },
-                                                        {
-                                                            path: 'humans',
-                                                            lazy: lazyRoute(
-                                                                serverRouteModules.members,
-                                                                'HumanDirectoryPage'
-                                                            ),
-                                                        },
-                                                        {
-                                                            path: 'humans/:userId',
-                                                            lazy: lazyRoute(
-                                                                serverRouteModules.members,
-                                                                'HumanPage'
-                                                            ),
-                                                        },
-                                                    ],
+                                                },
+                                                {
+                                                    // The members browser is gone: an Agent or a
+                                                    // human is a record under Settings > Members.
+                                                    path: 'members/agents/:agentId/*',
+                                                    element: <LegacyMemberRedirect kind="agents" />,
+                                                },
+                                                {
+                                                    path: 'members/humans/:userId',
+                                                    element: <LegacyMemberRedirect kind="humans" />,
+                                                },
+                                                {
+                                                    // Splat so `/members/humans`
+                                                    // and any other stale sub-path
+                                                    // land on the directory rather
+                                                    // than falling through to the
+                                                    // Server's default route.
+                                                    path: 'members/*',
+                                                    element: (
+                                                        <Navigate
+                                                            replace
+                                                            to="../settings/members"
+                                                        />
+                                                    ),
                                                 },
                                                 {
                                                     path: 'computers',
@@ -187,7 +186,27 @@ export function createAppRouter() {
                                                         {
                                                             index: true,
                                                             element: (
-                                                                <Navigate replace to="appearance" />
+                                                                <Navigate replace to="profile" />
+                                                            ),
+                                                        },
+                                                        {
+                                                            path: 'members/agents/:agentId',
+                                                            element: (
+                                                                <Navigate replace to="overview" />
+                                                            ),
+                                                        },
+                                                        {
+                                                            path: 'members/agents/:agentId/:tab',
+                                                            lazy: lazyRoute(
+                                                                serverRouteModules.settingsSection,
+                                                                'SettingsAgentRoute'
+                                                            ),
+                                                        },
+                                                        {
+                                                            path: 'members/humans/:userId',
+                                                            lazy: lazyRoute(
+                                                                serverRouteModules.settingsSection,
+                                                                'SettingsHumanRoute'
                                                             ),
                                                         },
                                                         {
@@ -239,6 +258,31 @@ export function createAppRouter() {
 function LegacyComputersRedirect() {
     const location = useLocation();
     return <Navigate replace to={`../settings/computers${location.search}`} />;
+}
+
+/**
+ * Members moved into Settings, so an Agent or human deep link keeps working —
+ * including the Agent's tab, which is the segment after the id.
+ */
+function LegacyMemberRedirect({ kind }: { kind: 'agents' | 'humans' }) {
+    const { agentId, userId } = useParams();
+    const location = useLocation();
+    if (kind === 'humans') {
+        return (
+            <Navigate replace to={settingsHumanRoute(slugFrom(location.pathname), userId ?? '')} />
+        );
+    }
+    const tab = location.pathname.split(`/agents/${agentId}/`)[1]?.split('/')[0];
+    return (
+        <Navigate
+            replace
+            to={settingsAgentRoute(slugFrom(location.pathname), agentId ?? '', tab || 'overview')}
+        />
+    );
+}
+
+function slugFrom(pathname: string) {
+    return pathname.split('/')[2] ?? '';
 }
 
 function ServerUnknownPage() {

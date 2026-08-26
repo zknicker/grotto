@@ -438,7 +438,7 @@ async function seedOverdueReminder(grotto: GrottoConnection) {
     });
     await grotto.db.insert(agentsTable).values({
         displayName: 'Cove',
-        handle: 'Cove',
+        handle: 'scheduler-cove',
         homeTimezone: 'America/New_York',
         id: agentId,
         role: 'member',

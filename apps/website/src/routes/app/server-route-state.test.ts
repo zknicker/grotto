@@ -28,7 +28,7 @@ describe('Server route state', () => {
 
     test('reads the selected Chat and settings section from the current Server path', () => {
         expect(resolveSelectedChatId('/s/dev/chats/chat%2Fone', 'dev')).toBe('chat/one');
-        expect(resolveSettingsSection('/s/dev/settings/appearance', 'dev')).toBe('appearance');
+        expect(resolveSettingsSection('/s/dev/settings/preferences', 'dev')).toBe('preferences');
     });
 
     test('routes legacy computers paths to the settings section', () => {

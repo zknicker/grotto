@@ -22,7 +22,7 @@
   "dependencies": {
     "@ai-sdk/mcp": "2.0.31",
     "@fastify/cors": "11.2.0",
-    "@fastify/static": "9.1.3",
+    "@fastify/static": "10.1.3",
     "@grotto/api": "workspace:*",
     "@grotto/agent-manual": "workspace:*",
     "@grotto/claude-usage": "workspace:*",

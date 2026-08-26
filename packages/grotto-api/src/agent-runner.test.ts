@@ -50,7 +50,6 @@ test('typed action attention carries the action identity and executed Agent resu
     const result = agentCreateActionResultSchema.parse({
         agentId: 'agt_created',
         avatarUrl: null,
-        chatId: 'cht_created',
         computerId: 'cmp_local',
         description: 'A new teammate',
         displayName: 'Scout',

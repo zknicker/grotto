@@ -43,20 +43,20 @@ public struct SettingsListGroup<Content: View>: View {
 public struct SettingsRow<Content: View>: View {
     private let title: String
     private let subtitle: String?
-    private let systemImage: String?
+    private let icon: GrottoIconName?
     private let showsDivider: Bool
     private let content: () -> Content
 
     public init(
         title: String,
         subtitle: String? = nil,
-        systemImage: String? = nil,
+        icon: GrottoIconName? = nil,
         showsDivider: Bool = true,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
         self.subtitle = subtitle
-        self.systemImage = systemImage
+        self.icon = icon
         self.showsDivider = showsDivider
         self.content = content
     }
@@ -64,12 +64,10 @@ public struct SettingsRow<Content: View>: View {
     public var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 14) {
-                if let systemImage {
-                    Image(systemName: systemImage)
-                        .font(.system(size: 19, weight: .medium))
+                if let icon {
+                    GrottoIcon(icon, size: 21, weight: 1.8)
                         .frame(width: 24)
                         .foregroundStyle(.primary)
-                        .accessibilityHidden(true)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -95,7 +93,7 @@ public struct SettingsRow<Content: View>: View {
 
             if showsDivider {
                 Divider()
-                    .padding(.leading, systemImage == nil ? 16 : 54)
+                    .padding(.leading, icon == nil ? 16 : 54)
             }
         }
     }
@@ -104,20 +102,20 @@ public struct SettingsRow<Content: View>: View {
 public struct DisclosureRow: View {
     private let title: String
     private let subtitle: String?
-    private let systemImage: String
+    private let icon: GrottoIconName
     private let showsDivider: Bool
     private let action: () -> Void
 
     public init(
         _ title: String,
         subtitle: String? = nil,
-        systemImage: String,
+        icon: GrottoIconName,
         showsDivider: Bool = true,
         action: @escaping () -> Void
     ) {
         self.title = title
         self.subtitle = subtitle
-        self.systemImage = systemImage
+        self.icon = icon
         self.showsDivider = showsDivider
         self.action = action
     }
@@ -127,7 +125,7 @@ public struct DisclosureRow: View {
             SettingsRow(
                 title: title,
                 subtitle: subtitle,
-                systemImage: systemImage,
+                icon: icon,
                 showsDivider: false
             ) {
                 Image(systemName: "chevron.right")
@@ -141,7 +139,7 @@ public struct DisclosureRow: View {
         .overlay(alignment: .bottom) {
             if showsDivider {
                 Divider()
-                    .padding(.leading, systemImage.isEmpty ? 16 : 54)
+                    .padding(.leading, 54)
             }
         }
     }
@@ -150,25 +148,25 @@ public struct DisclosureRow: View {
 public struct ValueRow: View {
     private let title: String
     private let value: String
-    private let systemImage: String
+    private let icon: GrottoIconName
     private let showsDivider: Bool
 
     public init(
         _ title: String,
         value: String,
-        systemImage: String,
+        icon: GrottoIconName,
         showsDivider: Bool = true
     ) {
         self.title = title
         self.value = value
-        self.systemImage = systemImage
+        self.icon = icon
         self.showsDivider = showsDivider
     }
 
     public var body: some View {
         SettingsRow(
             title: title,
-            systemImage: systemImage,
+            icon: icon,
             showsDivider: showsDivider
         ) {
             Text(value)
@@ -185,7 +183,7 @@ public struct ValueRow: View {
 public struct PickerRow<Value: Hashable>: View {
     private let title: String
     private let value: Value
-    private let systemImage: String
+    private let icon: GrottoIconName
     private let options: [(Value, String)]
     private let showsDivider: Bool
     private let onChange: (Value) -> Void
@@ -193,21 +191,21 @@ public struct PickerRow<Value: Hashable>: View {
     public init(
         _ title: String,
         value: Value,
-        systemImage: String,
+        icon: GrottoIconName,
         options: [(Value, String)],
         showsDivider: Bool = true,
         onChange: @escaping (Value) -> Void
     ) {
         self.title = title
         self.value = value
-        self.systemImage = systemImage
+        self.icon = icon
         self.options = options
         self.showsDivider = showsDivider
         self.onChange = onChange
     }
 
     public var body: some View {
-        SettingsRow(title: title, systemImage: systemImage, showsDivider: false) {
+        SettingsRow(title: title, icon: icon, showsDivider: false) {
             Menu {
                 ForEach(Array(options.enumerated()), id: \.offset) { _, option in
                     Button {

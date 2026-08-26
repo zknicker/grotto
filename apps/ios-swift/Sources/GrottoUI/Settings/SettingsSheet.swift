@@ -63,7 +63,7 @@ public struct SettingsSheet: View {
                 ChromeHeader(center: {
                     Text("Settings").font(.headline)
                 }) {
-                    GlassChromeButton(.symbol("xmark"), label: "Close settings") { dismiss() }
+                    GlassChromeButton(.icon(.close), label: "Close settings") { dismiss() }
                 }
                 .padding(.top, 6)
 
@@ -116,6 +116,7 @@ public struct SettingsSheet: View {
                     let saved = try await persistence.saveHumanProfile(
                         updated.id,
                         updated.displayName,
+                        updated.handle,
                         updated.description
                     )
                     updateViewer(saved)
@@ -227,6 +228,7 @@ public struct SettingsSheet: View {
             let saved = try await persistence.saveHumanProfile(
                 draft.id,
                 draft.displayName,
+                draft.handle,
                 draft.description
             )
             updateViewer(saved)

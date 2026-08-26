@@ -1,7 +1,7 @@
 import SwiftUI
 
 public struct ChatScreenView: View {
-    private let chat: ChatPresentation
+    private let chat: ChatDestination
     private let messages: [MessagePresentation]
     private let isConnected: Bool
     private let onOpenSidebar: () -> Void
@@ -15,17 +15,25 @@ public struct ChatScreenView: View {
     private let hasOlderMessages: Bool
     private let isLoadingOlderMessages: Bool
     private let onLoadOlderMessages: () async -> Bool
+    private let mentionOptions: [MentionOptionPresentation]
+    private let onLoadMentionOptions: () async -> Void
     private let contentInsets: EdgeInsets
 
     @Binding private var scrollTargetMessageID: String?
-    @State private var draft = ""
-    @State private var composerInteraction = ComposerInteraction()
+    /// The draft is owned above this screen, which is remounted per Chat, so a
+    /// half-typed message survives a switch away and back.
+    @Binding private var draft: String
+    /// Owned above this screen for the same reason the draft is: staged
+    /// attachments belong to the Chat, not to the screen drawing it.
+    private let composerInteraction: ComposerInteraction
     @FocusState private var isComposerFocused: Bool
     @Namespace private var composerTransitionNamespace
 
     public init(
-        chat: ChatPresentation,
+        chat: ChatDestination,
         messages: [MessagePresentation],
+        draft: Binding<String>,
+        composerInteraction: ComposerInteraction,
         isConnected: Bool,
         onOpenSidebar: @escaping () -> Void,
         onOpenChatDetails: @escaping () -> Void,
@@ -41,10 +49,14 @@ public struct ChatScreenView: View {
         hasOlderMessages: Bool = false,
         isLoadingOlderMessages: Bool = false,
         onLoadOlderMessages: @escaping () async -> Bool = { false },
+        mentionOptions: [MentionOptionPresentation] = [],
+        onLoadMentionOptions: @escaping () async -> Void = {},
         contentInsets: EdgeInsets = EdgeInsets(),
         scrollTargetMessageID: Binding<String?> = .constant(nil)
     ) {
         _scrollTargetMessageID = scrollTargetMessageID
+        _draft = draft
+        self.composerInteraction = composerInteraction
         self.chat = chat
         self.messages = messages
         self.isConnected = isConnected
@@ -59,6 +71,8 @@ public struct ChatScreenView: View {
         self.hasOlderMessages = hasOlderMessages
         self.isLoadingOlderMessages = isLoadingOlderMessages
         self.onLoadOlderMessages = onLoadOlderMessages
+        self.mentionOptions = mentionOptions
+        self.onLoadMentionOptions = onLoadMentionOptions
         self.contentInsets = contentInsets
     }
 
@@ -79,29 +93,54 @@ public struct ChatScreenView: View {
                         onTapTimeline: { isComposerFocused = false },
                         scrollTargetMessageID: $scrollTargetMessageID
                     )
-                    MessageComposerView(
-                        text: $draft,
-                        interaction: composerInteraction,
-                        placeholder: "Message \(chat.kind.isChannel ? "#" : "")\(chat.title)",
-                        isConnected: isConnected,
-                        isTextFocused: $isComposerFocused,
-                        transitionNamespace: composerTransitionNamespace,
-                        onSend: onSend
-                    )
+                    // The composer floats over the transcript rather than capping it, so glass has
+                    // live content to refract. The inset still reserves the same scroll clearance
+                    // the old opaque band did.
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        MessageComposerView(
+                            text: $draft,
+                            interaction: composerInteraction,
+                            placeholder: "Message \(chat.kind.isChannel ? "#" : "")\(chat.title)",
+                            isConnected: isConnected,
+                            isTextFocused: $isComposerFocused,
+                            allowsAttachments: chat.durableChat != nil,
+                            mentionOptions: mentionOptions,
+                            transitionNamespace: composerTransitionNamespace,
+                            onSend: onSend
+                        )
+                        .padding(.bottom, chatBottomInset)
+                    }
                 }
                 .padding(.top, contentInsets.top)
-                .padding(.bottom, contentInsets.bottom)
 
+                // The portal measures against the container, which spans the whole screen and does
+                // not track the keyboard — so the card keeps its full height and its 8pt gap from
+                // the true screen bottom while the keyboard slides out from behind it.
                 ComposerAttachmentPortal(
                     interaction: composerInteraction,
                     availableSize: geometry.size,
                     transitionNamespace: composerTransitionNamespace
                 )
+                .ignoresSafeArea(.keyboard)
                 .zIndex(20)
             }
             .coordinateSpace(name: "composer-attachment-root")
+            .composerPortalFreeze(
+                interaction: composerInteraction,
+                isTextFocused: $isComposerFocused,
+                liveBottomInset: contentInsets.bottom
+            )
         }
         .background(.background)
+        .task(id: chat.id) { await onLoadMentionOptions() }
+    }
+
+    /// The keyboard reaches this screen as a bottom safe-area inset from the shell. Freezing that
+    /// one number is what keeps the transcript and the composer pixel-static across the keyboard
+    /// leaving and returning behind an open portal: it sets how far the composer sits off the
+    /// screen bottom, and through the composer's own height it sets the transcript's clearance.
+    private var chatBottomInset: CGFloat {
+        composerInteraction.portalFreeze.bottomInset(live: contentInsets.bottom)
     }
 
     private var header: some View {
@@ -120,7 +159,7 @@ public struct ChatScreenView: View {
             }
             .buttonStyle(.plain)
         } trailing: {
-            GlassChromeButton(.symbol("magnifyingglass"), label: "Search messages", action: onOpenSearch)
+            GlassChromeButton(.icon(.search), label: "Search messages", action: onOpenSearch)
         }
     }
 
@@ -129,8 +168,10 @@ public struct ChatScreenView: View {
         switch chat.kind {
         case .channel:
             ChannelIconBox(appearance: chat.appearance, size: 26)
-        case .directMessage(let agent):
+        case .agentDirectMessage(let agent):
             AvatarView(name: agent.name, url: agent.avatarURL, presence: agent.presence, size: 30)
+        case .humanDirectMessage(let human):
+            AvatarView(name: human.name, url: human.avatarURL, presence: nil, size: 30)
         }
     }
 
@@ -143,9 +184,14 @@ private extension ChatKind {
 }
 
 #Preview {
+    @Previewable @State var draft = ""
+    @Previewable @State var composerInteraction = ComposerInteraction()
+
     ChatScreenView(
-        chat: ChatFixtures.chats[1],
+        chat: .durableChat(ChatFixtures.chats[1]),
         messages: ChatFixtures.messages,
+        draft: $draft,
+        composerInteraction: composerInteraction,
         isConnected: true,
         onOpenSidebar: {},
         onOpenChatDetails: {},

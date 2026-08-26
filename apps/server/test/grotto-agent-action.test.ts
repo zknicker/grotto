@@ -29,6 +29,12 @@ beforeAll(async () => {
         slug: 'action-api-hq',
     });
     serverId = server.id;
+    await owner.trpc.member.updateProfile.mutate({
+        description: null,
+        displayName: 'Ada',
+        handle: 'ada',
+        serverId,
+    });
     const ownerUserId = await readUserId('user_action_api_owner');
     await harness.sql`
         insert into computers (
@@ -50,7 +56,7 @@ beforeAll(async () => {
         serverId,
     });
     agentId = created.agent.id;
-    chatId = created.chat.id;
+    chatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
     await owner.trpc.chat.send.mutate({
         chatId,
         content: 'Prepare an Agent proposal for the launch.',
@@ -70,7 +76,7 @@ test('prepares through the scoped API with durable media, replay, conflict, and 
     expect(missingToken.status).toBe(401);
 
     const runner = await mintRunner('run_action_api');
-    const read = await agentGet(runner.runnerToken, { target: 'dm:@operator' });
+    const read = await agentGet(runner.runnerToken, { target: 'dm:@ada' });
     expect(read.status).toBe(200);
     await recordExactMessagesServed(database.db, {
         agentId,
@@ -88,7 +94,7 @@ test('prepares through the scoped API with durable media, replay, conflict, and 
         action: { kind: 'agent:create', proposal: { name: 'Orbit' }, status: 'pending' },
         chatId,
         idempotent: false,
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     });
     const firstId = first.body.action?.id as string;
     const firstMessageId = first.body.messageId as string;
@@ -180,7 +186,7 @@ function actionBody(name: string, nonce: string) {
         action: { kind: 'agent:create', name },
         avatar: { bytesBase64: Buffer.from(png).toString('base64'), mediaType: 'image/png' },
         nonce,
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     };
 }
 

@@ -318,5 +318,5 @@ function loginDescription(
 }
 
 function LoginCommand() {
-    return <code className="font-mono text-foreground text-xs">grotto-computer login</code>;
+    return <code className="font-mono text-foreground">grotto-computer login</code>;
 }

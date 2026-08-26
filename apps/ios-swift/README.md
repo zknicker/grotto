@@ -48,15 +48,24 @@ xcodegen generate --spec project.yml
 ## Generated resources
 
 `Sources/GrottoUI/Resources/channel-icons.json` carries the channel icon
-geometry. Regenerate it after the App's icon catalog changes:
+geometry and `ui-icons.json` carries the app icon set. Regenerate them after the
+App's icon catalog changes, or after adding a `GrottoIconName` case:
 
 ```bash
 bun apps/ios-swift/scripts/generate-channel-icon-paths.ts
 ```
 
-The script reads the icon names from
-`apps/website/src/components/chats/channel-icon-catalog.generated.ts`, so the
-curation lives in one place and the two clients cannot offer different icons.
+```bash
+bun apps/ios-swift/scripts/generate-ui-icon-paths.ts
+```
+
+Both share the converter in `scripts/hugeicon-paths.ts` and differ only in which
+hugeicons family and which names they ask for. The channel script reads its
+names from `apps/website/src/components/chats/channel-icon-catalog.generated.ts`
+and the app icon script reads the names the App's own source imports plus the
+raw values of `GrottoIconName`, so the curation lives in one place and the two
+clients cannot offer different icons. The app icon script fails if a name
+`GrottoIconName` asks for is not in the stroke-rounded family.
 
 The application target under `Sources/GrottoApp` consumes the local
 `GrottoModels`, `GrottoTransport`, and `GrottoUI` products. SwiftUI previews can

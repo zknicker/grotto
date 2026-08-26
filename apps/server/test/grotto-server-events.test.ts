@@ -118,6 +118,7 @@ test('a profile edit announces the human to every Server they belong to', async 
     await owner.trpc.member.updateProfile.mutate({
         description: 'Keeps the Server honest.',
         displayName: 'Ada Lovelace',
+        serverId,
     });
 
     expect(await updates.next()).toMatchObject({

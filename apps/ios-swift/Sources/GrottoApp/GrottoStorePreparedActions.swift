@@ -87,9 +87,6 @@ extension GrottoStore {
         } else {
             agents.append(result.agent)
         }
-        if !chats.contains(where: { $0.id == result.chat.id }) {
-            chats.append(result.chat)
-        }
         await loadMessages(chatID: action.chatID)
     }
 

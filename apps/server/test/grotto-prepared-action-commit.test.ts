@@ -34,6 +34,12 @@ beforeAll(async () => {
         slug: 'prepared-commit-hq',
     });
     serverId = server.id;
+    await owner.trpc.member.updateProfile.mutate({
+        description: null,
+        displayName: 'Ada',
+        handle: 'ada',
+        serverId,
+    });
     ownerUserId = await readUserId('user_action_commit_owner');
 
     await member.trpc.server.create.mutate({
@@ -67,7 +73,8 @@ beforeAll(async () => {
         serverId,
     });
     proposerId = proposer.agent.id;
-    proposerChatId = proposer.chat.id;
+    proposerChatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId: proposerId, serverId }))
+        .id;
     proposerCredentialHash = credentialHash;
 
     await owner.trpc.chat.send.mutate({
@@ -124,7 +131,6 @@ test('commits one prepared Agent atomically and replays the stored result', asyn
             handle: 'orbit-edited',
             role: 'member',
         },
-        chat: { kind: 'dm' },
     });
 
     const replay = await owner.trpc.preparedAction.commit.mutate(input);
@@ -134,11 +140,10 @@ test('commits one prepared Agent atomically and replays the stored result', asyn
     });
 
     expect(await countAgents()).toBe(2);
-    expect(await countAgentDms(committed.agent.id)).toBe(1);
+    expect(await countAgentDms(committed.agent.id)).toBe(0);
     expect(await countAgentDeliveryRows(committed.agent.id)).toBe(0);
     expect(await countPendingWork(committed.agent.id)).toBe(0);
     expect(await countAgentTurns(committed.agent.id)).toBe(0);
-    expect(await countChatMessages(committed.chat.id)).toBe(0);
     expect(await readCopiedAvatar(committed.agent.id)).toEqual(Array.from(png));
     expect(await countActionEvents(action.id, 'executed')).toBe(1);
     expect(await readAttention(action.id)).toMatchObject({
@@ -148,6 +153,23 @@ test('commits one prepared Agent atomically and replays the stored result', asyn
         dedupe_key: action.id,
         source: 'action',
     });
+
+    const runner = await mintRunner('run-action-starter-context');
+    const sent = await fetch(new URL('/api/agent/messages/send', harness.url), {
+        body: JSON.stringify({
+            content: 'Welcome aboard. Here is the approved operating brief.',
+            nonce: 'action-starter-context',
+            target: 'dm:@orbit-edited',
+        }),
+        headers: {
+            authorization: `Bearer ${runner.runnerToken}`,
+            'content-type': 'application/json',
+        },
+        method: 'POST',
+    });
+    expect(sent.status).toBe(200);
+    expect(await countAgentDms(committed.agent.id)).toBe(1);
+    expect(await countAgentDeliveryRows(committed.agent.id)).toBe(1);
 });
 
 test('rolls back a conflicting handle and leaves the card pending', async () => {
@@ -205,7 +227,7 @@ async function prepareAction(name: string, nonce: string) {
                 mediaType: 'image/png',
             },
             nonce,
-            target: 'dm:@operator',
+            target: 'dm:@ada',
         }),
         headers: {
             authorization: `Bearer ${runner.runnerToken}`,
@@ -256,12 +278,9 @@ async function mintRunner(runId: string) {
 }
 
 async function agentGet(token: string) {
-    const response = await fetch(
-        new URL('/api/agent/history?target=dm%3A%40operator', harness.url),
-        {
-            headers: { authorization: `Bearer ${token}` },
-        }
-    );
+    const response = await fetch(new URL('/api/agent/history?target=dm%3A%40ada', harness.url), {
+        headers: { authorization: `Bearer ${token}` },
+    });
     expect(response.status).toBe(200);
     const body = (await response.json()) as { messages?: Array<{ chat_id: string; id: string }> };
     return body.messages ?? [];
@@ -320,13 +339,6 @@ async function countAgentTurns(agentId: string) {
         select count(*)::int as count
         from agent_turns
         where agent_id = ${agentId}
-    `) as { count: number }[];
-    return rows[0]?.count ?? 0;
-}
-
-async function countChatMessages(chatId: string) {
-    const rows = (await harness.sql`
-        select count(*)::int as count from chat_messages where chat_id = ${chatId}
     `) as { count: number }[];
     return rows[0]?.count ?? 0;
 }

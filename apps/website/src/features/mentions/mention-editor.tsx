@@ -186,7 +186,7 @@ export function MentionEditor({
     return (
         <div className={cn('relative', className)}>
             {value.length === 0 && placeholder ? (
-                <div className="pointer-events-none absolute inset-x-3 top-2 text-base text-muted leading-6">
+                <div className="mention-editor__placeholder pointer-events-none absolute inset-x-3 top-2 text-base text-muted leading-6">
                     {placeholder}
                 </div>
             ) : null}

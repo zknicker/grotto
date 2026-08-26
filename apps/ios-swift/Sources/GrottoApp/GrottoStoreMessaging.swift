@@ -18,7 +18,13 @@ extension GrottoStore {
     }
 
     /// Mirrors the React `useChatRead` view key while keeping unread counts
-    /// Server-owned. A successful receipt is followed by a fresh Chat list.
+    /// Server-owned.
+    ///
+    /// The durable `chat.read` event owns the Chat-list refresh, exactly as the
+    /// web App's `useChatRead` does. Server writes that event only when the read
+    /// actually moved, addresses it to the reader alone, and both live delivery
+    /// and the reconnect walk carry it, so one acknowledgement produces one list
+    /// refresh. Refreshing here as well made every opened Chat refetch twice.
     func markChatReadIfNeeded(chatID: String) async {
         guard let serverID = activeServer?.id,
               openChatID == chatID,
@@ -43,14 +49,6 @@ extension GrottoStore {
                 acknowledgedReadSequences[scope] ?? 0,
                 receipt.sequence
             )
-
-            do {
-                try await reloadChats(serverID: serverID)
-            } catch {
-                readStateLogger.error(
-                    "Refreshing Chat read projection failed: \(error.localizedDescription, privacy: .public)"
-                )
-            }
 
             // A new message can land while the mutation is in flight. Match the
             // view-key effect by immediately acknowledging the newer loaded tail.
@@ -175,6 +173,11 @@ extension GrottoStore {
             // Server before loading that page so reconciliation retires the
             // pending row instead of leaving a duplicate in the transcript.
             adoptPendingMessages(from: pendingChatID, to: receipt.message.chatID)
+            // Server has named the message, so the optimistic row can carry the
+            // canonical id before its page is refetched. The row keeps one
+            // transcript identity from here through the durable row that
+            // replaces it.
+            adoptSentMessageID(receipt.message.id, nonce: nonce, in: receipt.message.chatID)
             await loadMessages(chatID: receipt.message.chatID)
             await markChatReadIfNeeded(chatID: receipt.message.chatID)
             if threadAnchorMessageID != nil {
@@ -245,41 +248,11 @@ extension GrottoStore {
             "chat.list",
             input: ServerScopedInput(serverId: serverID)
         )
+        // Events, sends, and reads all land here, and most of those reads come
+        // back byte-identical. A freshly decoded equal value is still a write
+        // Observation reports, which is what reshuffled the sidebar mid-gesture;
+        // the `chats` setter drops it.
         chats = refreshed
-    }
-
-    func reconcilePendingMessages(chatID: String, page: ChatMessagePage) {
-        guard let pending = pendingMessagesByChatID[chatID] else { return }
-        let remaining = pending.filter { message in
-            !page.messages.contains { $0.nonce == message.nonce }
-        }
-        if remaining.isEmpty {
-            pendingMessagesByChatID.removeValue(forKey: chatID)
-        } else {
-            pendingMessagesByChatID[chatID] = remaining
-        }
-    }
-
-    func removePendingMessage(chatID: String, nonce: String) {
-        pendingMessagesByChatID[chatID]?.removeAll { $0.nonce == nonce }
-        if pendingMessagesByChatID[chatID]?.isEmpty == true {
-            pendingMessagesByChatID.removeValue(forKey: chatID)
-        }
-    }
-
-    private func removePendingMessage(nonce: String) {
-        for chatID in Array(pendingMessagesByChatID.keys) {
-            removePendingMessage(chatID: chatID, nonce: nonce)
-        }
-    }
-
-    private func adoptPendingMessages(from sourceChatID: String, to canonicalChatID: String) {
-        guard sourceChatID != canonicalChatID,
-              let pending = pendingMessagesByChatID.removeValue(forKey: sourceChatID),
-              !pending.isEmpty
-        else { return }
-
-        pendingMessagesByChatID[canonicalChatID, default: []].append(contentsOf: pending)
     }
 }
 

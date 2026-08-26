@@ -94,16 +94,26 @@ export const threadSummarySchema = z
 
 export type ThreadSummary = z.infer<typeof threadSummarySchema>;
 
-export const chatSendInputSchema = z
+const chatSendBaseSchema = z
     .object({
         attachmentIds: z.array(idSchema).default([]),
-        chatId: idSchema,
         content: z.string().trim().max(32_000),
         nonce: z.string().trim().min(1).max(128),
         serverId: idSchema,
-        thread: z.object({ anchorMessageId: idSchema }).strict().optional(),
     })
-    .strict()
+    .strict();
+
+export const chatSendInputSchema = z
+    .union([
+        chatSendBaseSchema.extend({
+            chatId: idSchema,
+            thread: z.object({ anchorMessageId: idSchema }).strict().optional(),
+        }),
+        chatSendBaseSchema.extend({
+            agentId: idSchema,
+            targetKind: z.literal('agent-dm'),
+        }),
+    ])
     .superRefine((input, context) => {
         if (input.content.length === 0 && input.attachmentIds.length === 0) {
             context.addIssue({
@@ -250,6 +260,13 @@ export type ChannelDeleteReceipt = z.infer<typeof channelDeleteReceiptSchema>;
 export const ensureDmInputSchema = z
     .object({
         peerUserId: idSchema,
+        serverId: idSchema,
+    })
+    .strict();
+
+export const ensureAgentDmInputSchema = z
+    .object({
+        agentId: idSchema,
         serverId: idSchema,
     })
     .strict();

@@ -1,9 +1,11 @@
 import type { ServerMember, ServerMemberDirectory } from '@grotto/api/membership';
 import { Button, Chip, Separator } from '@heroui/react';
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { humanDisplayName } from './human-identity.ts';
 import { type ServerMemberRowAction, serverMemberRowActions } from './server-member-actions.ts';
+import { settingsHumanRoute } from './server-routes.ts';
 
 /**
  * The humans on one Server. Rows render from the directory the Server returned,
@@ -13,9 +15,11 @@ import { type ServerMemberRowAction, serverMemberRowActions } from './server-mem
 export function ServerMemberList({
     directory,
     onChoose,
+    serverSlug,
 }: {
     directory: ServerMemberDirectory;
     onChoose(member: ServerMember, action: ServerMemberRowAction): void;
+    serverSlug: string;
 }) {
     return (
         <>
@@ -28,9 +32,15 @@ export function ServerMemberList({
                     >
                         <div className="flex min-w-0 items-center gap-2.5">
                             <EntityAvatar name={humanDisplayName(member)} size="sm" />
-                            <span className="min-w-0 truncate font-medium text-foreground text-sm">
+                            {/* Only the name opens the profile: the row's own
+                                controls are destructive, so the whole row must
+                                not be a click target. */}
+                            <Link
+                                className="min-w-0 truncate rounded-sm font-medium text-foreground text-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-focus"
+                                to={settingsHumanRoute(serverSlug, member.userId)}
+                            >
                                 {humanDisplayName(member)}
-                            </span>
+                            </Link>
                             <Chip size="sm" variant="secondary">
                                 <Chip.Label className="capitalize">{member.role}</Chip.Label>
                             </Chip>

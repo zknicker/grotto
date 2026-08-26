@@ -14,6 +14,10 @@ export function serverChatRoute(slug: string, chatId: string) {
     return `${serverRoute(slug)}/chats/${encodeURIComponent(chatId)}`;
 }
 
+export function serverAgentDmRoute(slug: string, agentId: string) {
+    return `${serverRoute(slug)}/dm/${encodeURIComponent(agentId)}`;
+}
+
 export function serverArchivedChatsRoute(slug: string) {
     return `${serverRoute(slug)}/archived`;
 }
@@ -22,11 +26,12 @@ export function tasksRoute(slug: string) {
     return `${serverRoute(slug)}/tasks`;
 }
 
-export function membersRoute(slug: string) {
-    return `${serverRoute(slug)}/members`;
-}
-
-export function membersUsageRoute(
+/**
+ * Server-wide token usage. This lived at the `/members` index, which made a
+ * dashboard wear a roster's URL; a member is a record in Settings, and this is
+ * neither a member nor a setting.
+ */
+export function usageRoute(
     slug: string,
     filters: { computerId?: string; runtimeId?: string } = {}
 ) {
@@ -38,15 +43,7 @@ export function membersUsageRoute(
         query.set('runtime', filters.runtimeId);
     }
     const suffix = query.toString();
-    return `${membersRoute(slug)}${suffix ? `?${suffix}` : ''}`;
-}
-
-export function agentRoute(slug: string, agentId: string, tab = 'overview') {
-    return `${membersRoute(slug)}/agents/${encodeURIComponent(agentId)}/${tab}`;
-}
-
-export function humanRoute(slug: string, userId: string) {
-    return `${membersRoute(slug)}/humans/${encodeURIComponent(userId)}`;
+    return `${serverRoute(slug)}/usage${suffix ? `?${suffix}` : ''}`;
 }
 
 /** Computers live as a Settings section; the legacy /computers path redirects here. */
@@ -56,6 +53,19 @@ export function serverComputersRoute(slug: string) {
 
 export function serverSettingsRoute(slug: string) {
     return `${serverRoute(slug)}/settings`;
+}
+
+/**
+ * A Member's detail inside Settings. The Members directory is a settings
+ * section, so opening one of its rows stays in Settings rather than handing the
+ * reader to the members browser and replacing the whole navigation rail.
+ */
+export function settingsAgentRoute(slug: string, agentId: string, tab = 'overview') {
+    return `${serverSettingsSectionRoute(slug, 'members')}/agents/${encodeURIComponent(agentId)}/${tab}`;
+}
+
+export function settingsHumanRoute(slug: string, userId: string) {
+    return `${serverSettingsSectionRoute(slug, 'members')}/humans/${encodeURIComponent(userId)}`;
 }
 
 export function serverSettingsSectionRoute(slug: string, section: string) {

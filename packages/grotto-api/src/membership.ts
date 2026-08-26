@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { serverRoleSchema } from './member-authority.ts';
+import { participantHandleSchema } from './participant-handle.ts';
 
 /**
  * The Server membership contract: invitations, the member directory, and the
@@ -23,7 +24,7 @@ export const serverMemberSchema = z
         description: z.string().nullable(),
         displayName: z.string().nullable(),
         email: z.string().nullable(),
-        handle: z.string().nullable(),
+        handle: participantHandleSchema.nullable(),
         joinedAt: timestampSchema,
         role: serverRoleSchema,
         userId: idSchema,
@@ -43,6 +44,7 @@ export const syncHumanIdentityInputSchema = z
     .object({
         email: z.string().trim().max(320).nullable(),
         name: z.string().trim().max(80).nullable(),
+        serverId: idSchema,
     })
     .strict();
 
@@ -53,6 +55,8 @@ export const updateHumanProfileInputSchema = z
     .object({
         description: humanDescriptionSchema.nullable(),
         displayName: humanDisplayNameSchema,
+        handle: participantHandleSchema.optional(),
+        serverId: idSchema,
     })
     .strict();
 

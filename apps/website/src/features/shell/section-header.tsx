@@ -6,24 +6,43 @@ import type { ReactNode } from 'react';
  * shell.css as --app-shell-band-height, because the native window's traffic
  * lights must be centered on the same number from outside the renderer.
  */
-export const bandHeightClassName = 'h-[var(--app-shell-band-height)]';
-
-/** Glyph size for icon-only navigation controls in shell chrome. */
-export const shellNavigationIconSize = 20;
+export const bandHeightClassName = 'app-shell-band h-[var(--app-shell-band-height)]';
 
 /**
- * The one topbar band chrome: fixed height, bottom hairline, gutter. The
- * shell renders exactly one of these above the routed content
+ * Intrinsic size for icon glyphs, in px.
+ *
+ * Inside a HeroUI Button this is only the SVG's intrinsic size — `.button--sm
+ * svg` sets `width` from `--spacing`, and a CSS rule beats an SVG presentation
+ * attribute, so the number here never reached the screen. Band chrome is sized
+ * by `.app-shell-band` in `shell.css` instead, against the 24px identity marks
+ * it sits beside; this stays as the honest intrinsic value.
+ */
+export const shellBandIconSize = 24;
+
+/**
+ * Intrinsic size for icon-only actions inside the sidebar's navigation column
+ * — a different rank from the band above, sitting beside 16px menu icons
+ * rather than 24px identity marks. Same caveat as above inside a Button.
+ */
+export const sidebarActionIconSize = 20;
+
+/**
+ * The one topbar band chrome: fixed height, gutter, and no rule beneath it.
+ * The shell renders exactly one of these above the routed content
  * (ShellTopbar); embedded surfaces that need a local band (a panel, a tab
  * body) may render their own. The px-3 gutter matches the sidebar's stock
  * content gutter, so band content on both sides of the divider shares one
  * inset; routed content below keeps its own deeper reading gutter.
+ *
+ * The band draws no bottom hairline. It sits on the same surface as the
+ * content under it, so the rule was separating a plane from itself — the
+ * sidebar's tint and the divider beside it already say where chrome ends.
+ * What remains is a title floating over one continuous page, which is the
+ * whole reason the seam reads as absent rather than missing.
  */
 export function SectionBar({ children }: { children?: ReactNode }) {
     return (
-        <header
-            className={`flex ${bandHeightClassName} shrink-0 items-center border-separator border-b px-3 has-[[data-shell-topbar-seam=hidden]]:border-b-transparent`}
-        >
+        <header className={`flex ${bandHeightClassName} shrink-0 items-center px-3`}>
             {children}
         </header>
     );

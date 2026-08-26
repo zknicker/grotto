@@ -20,7 +20,12 @@ import {
     MentionComposerPicker,
     useServerMentionComposer,
 } from '../../mentions/use-mention-composer.tsx';
+import {
+    hasChatComposerPayload,
+    resolveChatComposerPlaceholder,
+} from './chat-composer-presentation.ts';
 import { ComposerAttachments } from './composer-attachments.tsx';
+import { useCompactComposerLayout } from './use-compact-composer-layout.ts';
 import { type ComposerAttachment, useComposerAttachments } from './use-composer-attachments.ts';
 import {
     addPendingChatMessage,
@@ -30,18 +35,21 @@ import {
 
 const emptyAgents: Agent[] = [];
 
-export function ChatComposer({
+export function ServerChatComposer({
     chatId,
     chatName,
+    onMaterialized,
     onThreadCreated,
     pendingChatId,
     placeholder,
     serverId,
     thread,
+    target,
     variant = 'primary',
 }: {
-    chatId: string;
+    chatId?: string;
     chatName: string;
+    onMaterialized?: (chatId: string) => void;
     onThreadCreated?: (threadChatId: string) => void;
     /**
      * The transcript that shows this composer's sends while they are in flight.
@@ -52,6 +60,7 @@ export function ChatComposer({
     placeholder?: string;
     serverId: string;
     thread?: { anchorMessageId: string };
+    target: { agentId: string; kind: 'agent-dm' } | { chatId: string; kind: 'chat' };
     /**
      * The shell's surface styling. The primary shell is tinted for the page
      * background; on a surface (a modal dialog) it would match its host
@@ -71,9 +80,11 @@ export function ChatComposer({
         inputRef: attachmentInput,
         remove: removeAttachment,
     } = useComposerAttachments();
-    // Submitting is synchronous now, so the guard against a second handler
-    // firing for the same keystroke has to be too: React has not re-rendered
-    // yet, and both would otherwise read the same uncleared draft.
+    const { editorSlotRef, isExpanded } = useCompactComposerLayout({
+        content: draft,
+        isForcedExpanded: attachments.length > 0,
+    });
+    // Guard two handlers firing before React re-renders the cleared draft.
     const submissionRef = React.useRef({ attachments, draft, mentions });
     submissionRef.current = { attachments, draft, mentions };
     const send = useChatMessageSend();
@@ -84,7 +95,7 @@ export function ChatComposer({
     );
     const mentionComposer = useServerMentionComposer({
         agents: agentList,
-        chatId,
+        chatTarget: target,
         content: draft,
         mentionableAgentIds,
         onMentionsChange: setMentions,
@@ -100,7 +111,7 @@ export function ChatComposer({
         setDraft((current) => appendComposerInsert(current, text));
         requestAnimationFrame(mentionComposer.focusTextEditor);
     });
-    useChatComposerMentionRequest(thread ? null : chatId, ({ agentId }) => {
+    useChatComposerMentionRequest(thread ? null : (chatId ?? null), ({ agentId }) => {
         const agent = agentList.find((candidate) => candidate.id === agentId);
         if (!agent) {
             return;
@@ -144,21 +155,33 @@ export function ChatComposer({
             const uploaded = await Promise.all(
                 submitted.attachments.map((attachment) =>
                     upload.mutateAsync({
-                        chatId,
+                        chatId: chatId ?? '',
                         file: attachment.file,
                         nonce: attachment.nonce,
                         serverId,
                     })
                 )
             );
-            const receipt = await send.mutateAsync({
-                attachmentIds: uploaded.map((attachment) => attachment.id),
-                chatId,
-                content,
-                nonce,
-                serverId,
-                thread,
-            });
+            const receipt = await send.mutateAsync(
+                target.kind === 'agent-dm'
+                    ? {
+                          agentId: target.agentId,
+                          attachmentIds: [],
+                          content,
+                          nonce,
+                          serverId,
+                          targetKind: 'agent-dm',
+                      }
+                    : {
+                          attachmentIds: uploaded.map((attachment) => attachment.id),
+                          chatId: target.chatId,
+                          content,
+                          nonce,
+                          serverId,
+                          thread,
+                      }
+            );
+            onMaterialized?.(receipt.message.chatId);
             if (pendingChatId) {
                 settlePendingChatMessage({
                     chatId: pendingChatId,
@@ -185,11 +208,17 @@ export function ChatComposer({
     }
 
     const errorMessage = attachmentError ?? upload.error?.message ?? send.error?.message;
-    const canSubmit = draft.trim().length > 0 || attachments.length > 0;
+    const hasPayload = hasChatComposerPayload({
+        attachmentCount: attachments.length,
+        content: draft,
+    });
+    const canSubmit = hasPayload;
 
     return (
         <div className="shrink-0 px-5 pb-4">
             <PromptInput
+                data-expanded={isExpanded || undefined}
+                layout="compact"
                 onSubmit={() => {
                     void handleSubmit();
                 }}
@@ -205,38 +234,44 @@ export function ChatComposer({
                                 mentionComposer.focusTextEditor();
                             }}
                         />
-                        {/* Stands in for PromptInput.TextArea: the mention
-                            editor keeps its own text styling, and the reserved
-                            block below it clears the absolutely placed toolbar. */}
-                        <div className="mb-14 min-h-14">
+                        {/* The mention editor occupies PromptInput's textarea
+                            slot so compact and expanded layouts stay stock. */}
+                        <div
+                            className="chat-composer-editor prompt-input__textarea"
+                            ref={editorSlotRef}
+                        >
                             <MentionComposerEditor
                                 ariaLabel={`Message ${chatName}`}
                                 autoFocus={!thread}
                                 composer={mentionComposer}
                                 name="chat-message"
-                                placeholder={placeholder ?? `Message ${chatName}`}
+                                placeholder={resolveChatComposerPlaceholder(chatName, placeholder)}
                             />
                         </div>
                     </PromptInput.Content>
                     <PromptInput.Toolbar>
                         <PromptInput.ToolbarStart>
-                            <input
-                                className="sr-only"
-                                multiple
-                                onChange={(event) => {
-                                    const files = Array.from(event.target.files ?? []);
-                                    addAttachments(files);
-                                }}
-                                ref={attachmentInput}
-                                type="file"
-                            />
-                            <PromptInput.Action
-                                aria-label="Add attachments"
-                                onPress={() => attachmentInput.current?.click()}
-                                tooltip="Add attachments"
-                            >
-                                <Icon className="size-4" icon={Attachment01Icon} />
-                            </PromptInput.Action>
+                            {target.kind === 'chat' ? (
+                                <input
+                                    className="sr-only"
+                                    multiple
+                                    onChange={(event) => {
+                                        const files = Array.from(event.target.files ?? []);
+                                        addAttachments(files);
+                                    }}
+                                    ref={attachmentInput}
+                                    type="file"
+                                />
+                            ) : null}
+                            {target.kind === 'chat' ? (
+                                <PromptInput.Action
+                                    aria-label="Add attachments"
+                                    onPress={() => attachmentInput.current?.click()}
+                                    tooltip="Add attachments"
+                                >
+                                    <Icon className="size-4" icon={Attachment01Icon} />
+                                </PromptInput.Action>
+                            ) : null}
                         </PromptInput.ToolbarStart>
                         <PromptInput.ToolbarEnd>
                             <PromptInput.Send aria-label="Send" isDisabled={!canSubmit} />

@@ -1,0 +1,54 @@
+import type React from 'react';
+import { cn } from '../../../lib/utils.ts';
+
+/**
+ * The one thing settings composition still owns: a page's identity.
+ *
+ * Sections and rows are stock `ItemCardGroup`/`ItemCard`. The local
+ * `SettingsSection`/`SettingsGroup`/`SettingsItem` kit that used to live beside
+ * this is gone — it was a parallel implementation of those parts that drifted
+ * on heading size, row padding, and left edge. Do not reintroduce one.
+ *
+ * A settings page's identity: title and description. Page-level actions do not
+ * belong here — they go in the shell band through `PageTopbar`, which is
+ * otherwise empty on settings routes.
+ *
+ * Three details carry the whole block, and all three were wrong:
+ *
+ * - `px-4` puts the title on the same left edge as `ItemCardGroup`'s own header
+ *   and row text below it. At `px-1` the page title sat 12px inside everything
+ *   it headed, so the column had two left edges.
+ * - Semibold with tight tracking, not bold. Inter at 22px/700 with default
+ *   tracking is the browser's idea of a heading, not a designed one.
+ * - The description is body copy: the same `text-sm` step as every row title,
+ *   row description, and table cell under it, on its natural leading. It was
+ *   `leading-tight`, which reads as a caption on one line and collapses into a
+ *   block when it wraps. Stepping it up to `text-base` instead made it the
+ *   largest thing on the page after the title, which is not what a subtitle is
+ *   for — the space above and below it does that work.
+ *
+ * `meta` is the alternative to `description` for a page about one record: the
+ * facts that identify it, rather than a sentence explaining what the page is.
+ * A Computer's system, version, and last contact say more than any sentence
+ * about Computers could, and they change — a static line does not. Prose in
+ * `description`, structured facts in `meta`; a page rarely wants both.
+ */
+export function SettingsPageHeader({
+    className,
+    description,
+    meta,
+    title,
+    ...props
+}: Omit<React.ComponentProps<'header'>, 'title'> & {
+    description?: React.ReactNode;
+    meta?: React.ReactNode;
+    title: React.ReactNode;
+}) {
+    return (
+        <header className={cn('min-w-0 space-y-1.5 px-4', className)} {...props}>
+            <h1 className="font-semibold text-2xl text-foreground tracking-tight">{title}</h1>
+            {description ? <p className="text-muted text-sm">{description}</p> : null}
+            {meta}
+        </header>
+    );
+}

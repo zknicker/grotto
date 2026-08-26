@@ -17,7 +17,7 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { ChannelAgentsDialog } from '../chats/channel-agents-dialog.tsx';
 import { ChannelAppearanceDialog } from '../chats/channel-appearance-dialog.tsx';
 import { ChannelRenameDialog } from '../chats/channel-rename-dialog.tsx';
-import { agentRoute, serverChatRoute, tasksRoute } from '../servers/server-routes.ts';
+import { serverChatRoute, settingsAgentRoute, tasksRoute } from '../servers/server-routes.ts';
 
 type ChannelEditDialog = 'agents' | 'appearance' | 'rename';
 
@@ -52,7 +52,7 @@ export function ChatNavigationContextMenu({
             return;
         }
         if (action === 'profile' && agent) {
-            navigate(agentRoute(slug, agent.id));
+            navigate(settingsAgentRoute(slug, agent.id));
             return;
         }
         if (action === 'rename' || action === 'appearance' || action === 'agents') {
@@ -69,7 +69,8 @@ export function ChatNavigationContextMenu({
     return (
         <>
             <ContextMenu>
-                <ContextMenu.Trigger className="flex min-w-0 flex-1 items-center gap-2">
+                {/* The trigger wraps Sidebar's icon and content slots, so it owns their stock gap. */}
+                <ContextMenu.Trigger className="flex min-w-0 flex-1 items-center gap-3">
                     {children}
                 </ContextMenu.Trigger>
                 <ContextMenu.Popover>

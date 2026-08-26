@@ -3,6 +3,40 @@ import GrottoModels
 import GrottoUI
 
 extension GrottoStore {
+    var settingsPersistence: SettingsPersistence {
+        SettingsPersistence(
+            generateAgentAvatar: { [weak self] agentID, concept in
+                guard let self else { throw CancellationError() }
+                return try await self.generateAgentAvatar(agentID: agentID, concept: concept)
+            },
+            saveHumanProfile: { [weak self] userID, displayName, handle, description in
+                guard let self else { throw CancellationError() }
+                return try await self.saveHumanProfile(
+                    userID: userID,
+                    displayName: displayName,
+                    handle: handle,
+                    description: description
+                )
+            },
+            saveAgentProfile: { [weak self] agentID, displayName, description in
+                guard let self else { throw CancellationError() }
+                return try await self.saveAgentProfile(
+                    agentID: agentID,
+                    displayName: displayName,
+                    description: description
+                )
+            },
+            saveHumanAvatar: { [weak self] userID, payload in
+                guard let self else { throw CancellationError() }
+                return try await self.saveHumanAvatar(userID: userID, payload: payload)
+            },
+            saveAgentAvatar: { [weak self] agentID, payload in
+                guard let self else { throw CancellationError() }
+                return try await self.saveAgentAvatar(agentID: agentID, payload: payload)
+            }
+        )
+    }
+
     var settingsTasksPersistence: TaskListPersistence {
         // Snapshot the directories through the same actor projection the Thread
         // task drawer uses, so a task row and its drawer show one name and one

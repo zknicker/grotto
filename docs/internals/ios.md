@@ -47,7 +47,12 @@ ticket procedure. A configured local build never falls back to browser OAuth.
 Swift settings use one native sheet with one `NavigationStack`. Focused screens push within that
 sheet, single-line identity values edit inline, and long-form values use a dedicated editor. All
 profile values and avatars originate from Server records; the app must not create mobile-only identity
-state. The app also reads Computers through the existing `computer.list`
+state. On startup, iOS reports the signed-in Clerk name and email through `member.syncIdentity` before
+loading the Server snapshot, matching the web app's default-handle bootstrap. A human edits their
+Server-scoped handle alongside their display name. Native validation mirrors
+the shared handle grammar for immediate feedback, while `member.updateProfile` carries the active
+`serverId` and Server remains authoritative for cross-human/Agent uniqueness. The app also reads
+Computers through the existing `computer.list`
 contract; an unavailable or role-denied Computer snapshot does not block the rest of Settings.
 Server-provided relative avatar URLs resolve against the configured Server origin, including local
 development; no Swift surface hardcodes the production host or substitutes local seeded artwork.
@@ -71,11 +76,16 @@ it converts hugeicons' SVG elements into path data, and `SVGPathData` parses tha
 main actor and caches each glyph's parsed `Path` on first use. Until it lands — and for any name the
 catalog does not carry — the box renders the hash, so the glyph never changes size or position.
 
-Sent image attachments render inline as media tiles rather than file rows: the timeline downloads
+Image attachments render inline as media tiles rather than file rows: the timeline downloads
 through the same authenticated attachment route Quick Look uses, decodes a downsampled ImageIO
-thumbnail sized for the tile, and keeps the result in an in-memory `AttachmentImageCache` keyed by
-attachment id so scrolling and re-renders don't re-download or re-decode. Non-image attachments and
-still-uploading pending rows keep the existing file row.
+thumbnail off the main actor, and keeps the result in an in-memory `AttachmentImageCache` keyed by
+attachment id so scrolling and re-renders don't re-download or re-decode; `body` reads the cache
+synchronously so a recycled tile renders fully formed on its first frame. Tiles are fixed-height
+(`AttachmentImageTileSize.tileHeight`) with aspect-tracking width, so a landing decode never changes
+a row's height. Pending uploads render through the same tile from their staged local file — decoded
+once into `LocalAttachmentImageCache`, which also serves the composer strip and the attachment
+morph — and the retired pending row's replacement adopts the identical bitmap by filename and byte
+size, so a send never reflows. Non-image attachments keep the file row.
 
 The app deploys to iOS 18 and progressively adopts iOS 26 Liquid Glass for functional
 chrome. System navigation and sheet controls inherit the platform treatment; custom menu, search,
@@ -84,14 +94,51 @@ systems. Transcript rows, Thread previews, Task metadata, sidebars, and settings
 Glass is a navigation hierarchy, not a general content-card material.
 
 Every floating chrome control is one control. `GlassChromeButton` owns the 44-point circle, the
-19-point medium glyph, and the glass or material treatment, and `ChromeHeader` owns the 56-point
+22-point app icon, and the glass or material treatment, and `ChromeHeader` owns the 56-point
 chrome row that positions leading, centered, and trailing chrome. Call sites choose a glyph and a
 label; they do not restyle the control or set their own geometry. The sidebar and the Chat canvas
-both open with that same row, so a chrome button in either pane lands on one centerline. A fixed-size chrome circle must not
-be placed in a system navigation bar, which compresses it into an ellipse: a screen that wants the
-chrome circle supplies its own `ChromeHeader` and hides the navigation bar, as the Settings sheet
-root does. Pushed screens keep the standard navigation bar with its system back button and text
-actions.
+both open with that same row, so a chrome button in either pane lands on one centerline. A
+fixed-size chrome circle must not be placed in a system navigation bar, which compresses it into an
+ellipse: a screen that wants the chrome circle supplies its own `ChromeHeader` and hides the
+navigation bar, as the Settings sheet root does. Pushed screens keep the standard navigation bar
+with its system back button and text actions.
+
+App iconography is hugeicons stroke-rounded, the same family the App's React surfaces import, so the
+two clients draw one vocabulary. It renders through the machinery the channel glyphs already used:
+`hugeicon-paths.ts` converts a family's SVG elements to path data, `GrottoIcon` draws a name at a
+point size, and `HugeiconGlyph` strokes or fills the normalized unit square. The two resources differ
+only in family and in which names they ask for. `generate-ui-icon-paths.ts` reads the names the App
+imports *and* the raw values of `GrottoIconName`, and fails if a name the phone asks for is not in
+the family — without that check a typo renders an invisible icon. `ui-icons.json` is small enough to
+decode on first use, unlike the 1.8 MiB channel catalog, so an icon never appears after its row has
+drawn.
+
+SF Symbols stay wherever the system owns the grammar: inside `ContentUnavailableView`, `Menu` labels,
+and `Label`, and for navigation backs, disclosure chevrons, picker chevrons, and selection
+checkmarks. Those read as platform affordances rather than product iconography, and a custom glyph
+among a system menu's own rows looks foreign. Two things an SF Symbol does for free that a path does
+not: track the text baseline, and scale with Dynamic Type. `GrottoIcon` does neither, so every caller
+hands it a box, and that box is what aligns it beside text.
+
+A hugeicons name describes a shape, not a concept, and does not map onto an SF Symbol name — the
+family numbers its arrows by form, so `ArrowUp01Icon` is a bare chevron and only `ArrowUp02Icon`
+carries a shaft. Match a replacement by looking at it. The family also draws at a 1.5 stroke on its
+24pt grid, which reads thinner than the medium-weight symbols it replaced, so call sites pass a
+heavier weight; that weight is the knob to reach for when an icon looks faint.
+
+On iOS 26 that circle is the system glass button style, which owns the press treatment end to end.
+The control draws no rim or shadow of its own there: a hand-drawn edge does not travel with the
+glass as it answers a touch, so a press left the stroke stranded inside the pressed shape and the
+shadow pinned to the resting size. The style also owns its padding, so the label is inset by that
+amount to land the drawn circle back on the shared diameter. The pre-26 fallback is
+`.regularMaterial`, which has neither an edge nor a lift of its own, and still draws both.
+
+A chrome button's shadow spills past the edges of whatever contains it. The sidebar is composited
+with `.mask()`, which rasterizes into a buffer sized to the sidebar's own resolved height, so that
+spill survives only inside real layout height: `ChatSidebarView` reserves `shadowBleedHeight` of
+inert space at both ends and `GrottoShellView` grows and re-anchors the proposed height to match.
+Without the leading reservation the search button's shadow ended at a hard line on the sidebar's
+top edge.
 
 Dismiss controls follow one vocabulary. A form that creates or edits a draft uses Cancel plus a
 confirming verb (Create, Save); an informational sheet with nothing to confirm uses Done; the
@@ -110,7 +157,18 @@ sits behind the canvas past either edge; `DrawerInteraction` owns that math and 
 so a flick settles the drawer by velocity and a slow drag settles it by position. The drag uses a UIKit pan recognizer so it can claim
 only horizontal movement, cancel an in-flight vertical timeline scroll once it begins, and leave
 horizontally scrollable content such as staged attachments alone. There is no edge-only hit zone and
-no all-or-nothing open.
+no all-or-nothing open. Selecting a Chat is the only action that closes the drawer; every sidebar
+entry point that presents another surface — Search, Tasks, Settings, Archived, New channel — leaves
+the drawer open behind it, so dismissing returns to the open drawer and no presentation ever runs
+against the closing spring.
+
+The Chat canvas is keyed by the selected destination: a Chat switch remounts the screen, so each
+Chat lays out bottom-anchored and fully formed before the drawer reveals it, and no scroll offset or
+screen-local state crosses between Chats. Anything that must survive a switch — the composer draft,
+the staged attachments and their in-flight preparation, a pending message reveal — is owned by the
+shell per destination and reaches the screen as a binding or by reference; a remount resets only
+presentation state (an open portal, a frozen keyboard inset, an error notice). A page arriving for a Chat that was showing nothing is that Chat's first paint and settles
+at the bottom without animation; only genuine appends animate.
 
 An anchor message owns one recessed Thread ingress. On iPhone it shows the Server-projected reply and
 unread counts plus only the latest recent reply; this is a presentation reduction of the same Thread
@@ -120,17 +178,35 @@ duplicated inside the ingress.
 
 Tasks are Server work, not a settings screen. The sidebar opens the Task list as a push on the root
 navigation stack, and opening a Task row pushes its Thread on top of that list, so Back walks Thread
-→ Task list → Chat canvas. Opening a Task selects the Task's parent Chat and pushes the Thread
-together in one move; splitting those writes would return the popped stack to whichever Chat was
-selected before. A pushed Thread owns the open Chat while it is on screen, and the shell's Chat
-selection resumes ownership when it pops.
+→ Task list → Chat canvas. Opening a Task leaves the canvas selection alone — its route carries the
+parent Chat id and the Task carries the child Chat id, so selecting the parent would mark a channel
+the user never visited as read and strand them there once the Tasks list pops. A pushed Thread owns
+the open Chat while it is on screen, and the shell's Chat selection resumes ownership when it pops;
+the covered canvas Chat stays named so its page keeps refreshing underneath, but read
+acknowledgements belong to the deepest surface alone.
 
 Swift optimistic Chat and Thread rows remain app-local and keyed by the client nonce. Thread replies
 use the canonical parent Chat plus anchor-message contract. A failed mutation removes its optimistic
 row and restores the exact draft, while a successful row remains pending until a refreshed Server
 page contains the matching nonce. On returning to the foreground, the app keeps cached presentation
-visible, refetches its active Server snapshots and already-open message pages, then restarts live Chat
-and Agent lifecycle streams. Chat and Thread timelines page older history through the existing
+visible, refetches its Server snapshot in one gathered pass — applied as a single repaint, with
+every Chat surface on the stack refetched eagerly: the deepest open Chat first, then the canvas Chat
+underneath it, so popping a Thread reveals a parent that is already fresh instead of one round trip
+stale; the event walk and `openChat` cover the rest — then restarts live Chat and Agent lifecycle
+streams. A voluntary refresh keeps the connected state;
+offline is what a failed refresh or a broken stream reports. Live SSE Chat events coalesce for a
+short window (`ChatEventCoalescer`) before the existing batch applier runs, so a burst lands as one
+refetch fan-out rather than one per frame.
+
+The Chat projections the shell renders every frame — message rows and the destination list — are
+memoized in the Store behind a structural invalidation contract: their input fields are stored
+privately in `GrottoStore` and published through accessors whose setters drop equal-value writes and
+retire exactly the cached projections that field feeds. A new field a projection reads must join
+that "Projected Server state" block, and a projection must read its observable inputs before its
+cache check so a cached answer leaves the calling view subscribed to exactly what a rebuilt one
+would. Optimistic rows adopt the canonical Server message id from the send receipt, so a pending
+row's presentation id is a real Server id from that moment and its ForEach identity never changes
+when the durable row arrives. Chat and Thread timelines page older history through the existing
 `beforeSequence` cursor, merge overlapping pages by message id in Server sequence order, and preserve
 the prior top row as the scroll anchor. The Swift prototype keeps one in-memory cursor per active
 Server, walks `chat.events` from that cursor on reconnect, and refetches loaded affected Chat pages.
@@ -166,11 +242,20 @@ the live Agent directory and `chat.createChannel`. These sheets receive narrow a
 
 Swift Chat and Thread composers use the system inline Photos picker and Files importer plus a focused
 AVFoundation camera surface on physical iPhones. Photos and Camera expand from the composer into one
-rounded, local attachment portal above the keyboard; they do not create routes or full-screen covers.
-That portal returns along the same bottom-leading path into the attachment preview area so source,
-selection, and staged result remain spatially continuous. Selected files stay in a composer-owned temporary directory
+rounded, local attachment portal; they do not create routes or full-screen covers. The portal card is
+painted to the true screen bottom with corners that nest concentrically inside the display's, and the
+keyboard slides out and back *behind* it: while a portal is open, the Chat screen freezes the keyboard
+bottom inset it lays out against (`ComposerPortalFreeze`), so the transcript and composer stay
+pixel-static for the portal's whole lifecycle and the keyboard is restored on close only if it was up
+when the portal opened. That portal returns along the same bottom-leading path into the attachment
+preview area so source, selection, and staged result remain spatially continuous. The composer itself
+is a floating glass surface: the transcript scrolls to the screen bottom and passes beneath it via a
+bottom safe-area inset rather than ending above an opaque band. Selected files stay in a composer-owned temporary directory
 until the message succeeds, and imported security-scoped URLs are copied while access is active rather
-than retained or buffered into memory. Sending reserves each file
+than retained or buffered into memory. Chat-canvas staging belongs to the Chat, not the screen: it
+survives a Chat switch and a push-over, and is discarded only by a successful send, by removing the
+tile, or by the destination leaving the Server list. A Thread composer is screen-owned, so a popped
+Thread abandons its staged files to the temporary directory. Sending reserves each file
 through the existing `attachment.reserve` procedure, uploads bytes through the authenticated raw
 attachment route, then associates the returned attachment ids through `chat.send`; no native-only
 attachment record exists. Pending rows show the selected files while upload is unresolved, failures
@@ -195,10 +280,25 @@ remain app-local and are keyed by the client nonce. A pending row retires only a
 Server message arrives; a failed send restores its content to the composer for an explicit retry.
 Optimistic rows never patch durable history.
 
+The native Chat shell navigates over a typed destination rather than assuming every sidebar row is a
+persisted Chat. A durable destination carries a Server Chat id; an implicit Agent-DM destination carries
+only the Agent id. Every active Agent therefore appears in the sidebar before a DM exists. Its first
+text send uses `chat.send` with `targetKind: agent-dm`, then adopts the Chat id from the receipt and never
+creates a placeholder record. Materialized Agent and human DMs remain durable destinations; human peers
+resolve their current name, handle, and avatar from the member directory, with a former-member fallback
+when the directory no longer carries them.
+
+Native composers query `chat.mentionOptions` against either that durable Chat or the implicit Agent-DM
+target. Selecting an Agent or human writes the shared `agent://` or `user://` markdown reference into the
+draft. Transcript chips parse that markdown and resolve live Agent/member identity by immutable id;
+human references remain visual and do not create attention or notification behavior.
+
 The open native Chat and Thread surfaces acknowledge the latest loaded message sequence through
-`chat.markRead`. Identical Server/Chat/sequence acknowledgements are deduplicated in memory, and a
-successful receipt refreshes `chat.list` so unread counts remain Server projections rather than local
-durable state.
+`chat.markRead`. Identical Server/Chat/sequence acknowledgements are deduplicated in memory. The
+durable `chat.read` event — which Server writes only when the read moved and addresses to the reader
+alone — owns the `chat.list` refresh, exactly as the web App's `useChatRead` does, so one
+acknowledgement produces one list refresh and unread counts remain Server projections rather than
+local durable state.
 
 Native Thread routes are anchored by the parent message id, which exists before the child Chat is
 created. The route also carries the parent Chat id and may carry a resolved Thread Chat id. Opening an
@@ -229,11 +329,31 @@ navigation, Server queries, or durable app state. No artifact route is wired int
 this remains future work.
 
 Settings stay inside one native sheet and `NavigationStack`. Settings is entered from the sidebar's
-floating gear control, pinned bottom-trailing over the scrolling chat list; the sidebar's Server
-header is a plain, non-interactive title. Chat details for an Agent opens the same sheet already
-pushed to that Agent's profile. A deep link seeds the sheet's navigation path, so the hub stays behind the
-pushed screen and the system back button returns to it. The Chat details sheet and the Settings sheet
-are mutually exclusive: details dismisses first and Settings presents from its dismissal. The Settings
+floating gear control, pinned bottom-trailing over the scrolling chat list. The sidebar navigation
+carries the App's own order: Server-wide destinations lead, then Channels, then DMs. The sidebar's
+Server header is the Server menu, as the App's sidebar band is; archived chats open from there
+rather than spending a navigation row. That header carries the Server's name and nothing else —
+Agent and member counts are a Settings readout, not standing sidebar chrome — so `ServerPresentation`
+carries only the identity the Chat surfaces render.
+
+Every line in that sidebar starts on one rail: the Server identity, the section labels, and each
+row's glyph share a single left edge, and one glyph box size puts the labels behind them on a single
+column too. A row's selection capsule is the only thing outside the rail — it bleeds into the margin,
+so the scrolling list is inset by the difference and each row re-adds it. Sections are plain labels,
+not disclosures: a phone sidebar holds few enough rows that folding one saves nothing, and the caret
+it would need is the one element that cannot sit on the rail with the rest.
+
+An unread chat hangs a disc off the sidebar's leading edge and lets that edge cut it in half, so
+what shows is a nub in the margin. The clip is load-bearing, which is why the rail inset rides on
+the scrolling list rather than on the scroll view: the scroll view has to reach the sidebar's own
+leading edge, or its bounds cut the marker away before the sidebar edge can halve it. The Chat
+details sheet pushes a read-only Agent profile on its own `NavigationStack` — the chevron row is a
+real push, and the sheet grows to the large detent for it — so inspection never leaves the sheet.
+Editing does: the pushed profile's "Manage in Settings" row is the one details-to-Settings hop, and
+it keeps the original choreography — the two sheets are mutually exclusive, so details dismisses
+first and Settings presents from its dismissal, seeded to that Agent's Settings profile. A deep link
+seeds the Settings sheet's navigation path, so the hub stays behind the pushed screen and the system
+back button returns to it. The Settings
 hub reads lightweight Server, Agent, member, and Computer projections; profile screens own focused
 identity mutations; and long-form values use dedicated editors. Appearance is app-local presentation state and never creates or updates
 Server state. Desktop-only operational surfaces remain out of the iPhone information architecture until

@@ -19,13 +19,12 @@ export function TokenConfigurationGrid({ rows }: { rows: ConfigurationUsage[] })
                         src={item.agentAvatarUrl}
                     />
                     <div className="min-w-0">
-                        <p className="truncate font-medium text-base">{item.agentName}</p>
+                        <p className="truncate font-medium">{item.agentName}</p>
                         <p className="truncate text-muted text-sm">@{item.agentHandle}</p>
                     </div>
                 </div>
             ),
             header: 'Agent',
-            headerClassName: 'text-sm',
             id: 'agentName',
             isRowHeader: true,
             minWidth: 160,
@@ -40,7 +39,6 @@ export function TokenConfigurationGrid({ rows }: { rows: ConfigurationUsage[] })
                 </Chip>
             ),
             header: 'Runtime',
-            headerClassName: 'text-sm',
             id: 'runtimeLabel',
             minWidth: 110,
             sortFn: (a, b) => a.runtimeLabel.localeCompare(b.runtimeLabel),
@@ -49,9 +47,8 @@ export function TokenConfigurationGrid({ rows }: { rows: ConfigurationUsage[] })
         {
             accessorKey: 'modelId',
             allowsSorting: true,
-            cellClassName: 'font-mono text-base',
+            cellClassName: 'font-mono',
             header: 'Model',
-            headerClassName: 'text-sm',
             id: 'modelId',
             minWidth: 160,
         },
@@ -63,16 +60,13 @@ export function TokenConfigurationGrid({ rows }: { rows: ConfigurationUsage[] })
             allowsSorting: true,
             cell: (item) => (
                 <div className="flex flex-col items-end">
-                    <p className="font-semibold text-base tabular-nums">
-                        {formatTokens(item.totalTokens)}
-                    </p>
+                    <p className="font-semibold tabular-nums">{formatTokens(item.totalTokens)}</p>
                     <p className="text-muted text-sm tabular-nums">
                         {formatPercent(total > 0 ? (item.totalTokens / total) * 100 : 0)}
                     </p>
                 </div>
             ),
             header: 'Processed',
-            headerClassName: 'text-sm',
             id: 'totalTokens',
             minWidth: 105,
             sortFn: (a, b) => a.totalTokens - b.totalTokens,
@@ -126,11 +120,8 @@ function numericColumn(
     return {
         align: 'end',
         allowsSorting: true,
-        cell: (item) => (
-            <p className="text-base text-muted tabular-nums">{formatTokens(item[id])}</p>
-        ),
+        cell: (item) => <p className="text-muted tabular-nums">{formatTokens(item[id])}</p>,
         header,
-        headerClassName: 'text-sm',
         id,
         minWidth: 85,
         sortFn: (a, b) => a[id] - b[id],

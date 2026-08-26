@@ -9,7 +9,7 @@ import OSLog
 @MainActor
 @Observable
 final class GrottoStore {
-    private static let logger = Logger(subsystem: "build.grotto.ios", category: "server")
+    static let logger = Logger(subsystem: "build.grotto.ios", category: "server")
     enum State {
         case idle
         case loading
@@ -19,32 +19,57 @@ final class GrottoStore {
 
     private(set) var state: State = .idle
     private(set) var isConnected = false
-    private(set) var servers: [ServerSummary] = []
-    var agents: [AgentSummary] = []
-    var members: MemberList?
+    // Internal so the batched snapshot apply can live with the rest of the
+    // realtime plumbing.
+    var servers: [ServerSummary] = []
     // Internal so the app-only computer loader can live in its own file.
     var computers: [ComputerSummary]?
-    var chats: [ChatSummary] = []
-    private(set) var messagesByChatID: [String: ChatMessagePage] = [:]
-    var pendingMessagesByChatID: [String: [PendingChatMessage]] = [:]
-    var lifecycleAvailability: [String: AgentAvailability] = [:]
+    var mentionOptionsByDestinationID: [ChatDestination.ID: [MentionOptionPresentation]] = [:]
     var currentActivityByAgentID: [String: AgentActivityEvent] = [:]
     var currentActivityPositionByRunID: [String: Int] = [:]
-    private var lifecycleRevision = 0
+    var lifecycleRevision = 0
+    // Everything the memoized Chat projections read is stored here and
+    // published through the accessors under "Projected Server state" below.
+    private var storedAgents: [AgentSummary] = []
+    private var storedMembers: MemberList?
+    private var storedChats: [ChatSummary] = []
+    private var storedReceiptBackedAgentDMsByChatID: [String: String] = [:]
+    private var storedMessagesByChatID: [String: ChatMessagePage] = [:]
+    private var storedPendingMessagesByChatID: [String: [PendingChatMessage]] = [:]
+    private var storedLifecycleAvailability: [String: AgentAvailability] = [:]
     var sendError: String?
     var chatEventServerID: String?
     var chatEventReplay = ChatEventReplayState()
     var chatEventCatchUpInFlight = false
     var chatEventCatchUpPending = false
+    /// The deepest Chat surface on the user's stack, and the only Chat that
+    /// acknowledges reads: it is what the user is actually looking at.
     var openChatID: String?
+    /// The Chat the shell canvas is showing, whether or not a pushed route
+    /// covers it. A covered canvas is still a surface the user will return to,
+    /// so its page has to stay fresh — but it never acknowledges reads, which
+    /// stay with `openChatID`.
+    var canvasChatID: String?
+    /// Memoized Chat projections. Cache writes must stay invisible to
+    /// Observation: a projection read happens inside a view body, and a tracked
+    /// write there would invalidate the body that just performed it.
+    @ObservationIgnored var projections = ChatProjectionCaches()
     var acknowledgedReadSequences: [ChatReadScope: Int] = [:]
     var readAcknowledgementsInFlight: Set<ChatReadAcknowledgement> = []
-    private var olderMessageLoadsInFlight: Set<String> = []
-    private var foregroundRefreshInFlight = false
+    var olderMessageLoadsInFlight: Set<String> = []
+    /// Live SSE events accumulate here for one short window before the existing
+    /// batch applier runs; the catch-up walk already arrives batched.
+    @ObservationIgnored var liveChatEvents = ChatEventCoalescer()
+    @ObservationIgnored var liveChatEventFlush: Task<Void, Never>?
+    // Internal so the foreground refresh can live with the rest of the
+    // realtime plumbing it drives.
+    var foregroundRefreshInFlight = false
+    let clerk: Clerk
     let client: TRPCClient
     private nonisolated let eventTasks = EventTaskBag()
 
     init(clerk: Clerk) {
+        self.clerk = clerk
         let config = AppConfig(
             serverOrigin: GrottoRuntimeConfiguration.serverOrigin,
             productVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
@@ -75,6 +100,7 @@ final class GrottoStore {
                 state = .failed("You do not have a Grotto Server yet.")
                 return
             }
+            try await syncHumanIdentity(serverID: server.id)
             try await reloadServer(server.id)
             startEventStreams(serverID: server.id)
             isConnected = true
@@ -89,99 +115,6 @@ final class GrottoStore {
         stopEventStreams()
         state = .idle
         await start()
-    }
-
-    /// Rehydrates durable Server state after iOS suspends the app.
-    ///
-    /// Subscriptions are notification streams, not a durable history. Refetching the
-    /// canonical lists and every message page already held in memory prevents a
-    /// foregrounded app from presenting a stale cache while the streams reconnect.
-    func resumeAfterForeground() async {
-        guard case .loaded = state,
-              !foregroundRefreshInFlight,
-              let serverID = activeServer?.id
-        else { return }
-
-        foregroundRefreshInFlight = true
-        defer { foregroundRefreshInFlight = false }
-        isConnected = false
-        stopEventStreams()
-
-        do {
-            try await refreshServerSnapshot(serverID: serverID)
-            startEventStreams(serverID: serverID)
-            isConnected = true
-        } catch {
-            sendError = error.localizedDescription
-            Self.logger.error("Foreground refresh failed: \(error.localizedDescription, privacy: .public)")
-            startEventStreams(serverID: serverID)
-        }
-    }
-
-    func loadMessages(chatID: String) async {
-        guard let serverID = activeServer?.id else { return }
-        do {
-            let page: ChatMessagePage = try await client.query(
-                "chat.messages",
-                input: ChatMessagesInput(serverId: serverID, chatId: chatID, limit: 50)
-            )
-            let storedPage: ChatMessagePage
-            if let existing = messagesByChatID[chatID],
-               let existingFirstSequence = existing.messages.first?.sequence,
-               let pageFirstSequence = page.messages.first?.sequence,
-               existingFirstSequence < pageFirstSequence {
-                storedPage = page.merging(older: existing)
-            } else {
-                storedPage = page
-            }
-            messagesByChatID[chatID] = storedPage
-            reconcilePendingMessages(chatID: chatID, page: storedPage)
-        } catch {
-            sendError = error.localizedDescription
-            Self.logger.error("Loading messages failed: \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
-    func hasOlderMessages(chatID: String) -> Bool {
-        messagesByChatID[chatID]?.nextBeforeSequence != nil
-    }
-
-    func isLoadingOlderMessages(chatID: String) -> Bool {
-        olderMessageLoadsInFlight.contains(chatID)
-    }
-
-    @discardableResult
-    func loadOlderMessages(chatID: String) async -> Bool {
-        guard let serverID = activeServer?.id,
-              let current = messagesByChatID[chatID],
-              let beforeSequence = current.nextBeforeSequence,
-              olderMessageLoadsInFlight.insert(chatID).inserted
-        else { return false }
-        defer { olderMessageLoadsInFlight.remove(chatID) }
-
-        do {
-            let older: ChatMessagePage = try await client.query(
-                "chat.messages",
-                input: ChatMessagesInput(
-                    serverId: serverID,
-                    chatId: chatID,
-                    limit: 50,
-                    beforeSequence: beforeSequence
-                )
-            )
-            let merged = messagesByChatID[chatID, default: current].merging(older: older)
-            messagesByChatID[chatID] = merged
-            reconcilePendingMessages(chatID: chatID, page: merged)
-            return true
-        } catch {
-            sendError = error.localizedDescription
-            Self.logger.error("Loading older messages failed: \(error.localizedDescription, privacy: .public)")
-            return false
-        }
-    }
-
-    func availability(for agent: AgentSummary) -> AgentAvailability {
-        lifecycleAvailability[agent.id] ?? agent.availability
     }
 
     private func reloadServer(_ serverID: String) async throws {
@@ -199,7 +132,7 @@ final class GrottoStore {
         )
         chats = try await loadedChats
         agents = try await loadedAgents
-        lifecycleAvailability.removeAll()
+        if !lifecycleAvailability.isEmpty { lifecycleAvailability.removeAll() }
         members = try await loadedMembers
         await reloadActiveActivity(serverID: serverID)
         await loadComputers(serverID: serverID)
@@ -209,38 +142,7 @@ final class GrottoStore {
         }
     }
 
-    func refreshServerSnapshot(serverID: String) async throws {
-        async let loadedServers: [ServerSummary] = client.query("server.list")
-        async let loadedChats: [ChatSummary] = client.query(
-            "chat.list",
-            input: ServerScopedInput(serverId: serverID)
-        )
-        async let loadedAgents: [AgentSummary] = client.query(
-            "agent.list",
-            input: ServerScopedInput(serverId: serverID)
-        )
-        async let loadedMembers: MemberList = client.query(
-            "member.list",
-            input: ServerScopedInput(serverId: serverID)
-        )
-        servers = try await loadedServers
-        chats = try await loadedChats
-        agents = try await loadedAgents
-        lifecycleAvailability.removeAll()
-        members = try await loadedMembers
-        await reloadActiveActivity(serverID: serverID)
-        await loadComputers(serverID: serverID)
-
-        // Keep the best cached presentation visible if one page cannot be refreshed.
-        for chatID in Array(messagesByChatID.keys) {
-            await loadMessages(chatID: chatID)
-        }
-        if let openChatID {
-            await markChatReadIfNeeded(chatID: openChatID)
-        }
-    }
-
-    private func startEventStreams(serverID: String) {
+    func startEventStreams(serverID: String) {
         stopEventStreams()
         if chatEventServerID != serverID {
             chatEventServerID = serverID
@@ -262,7 +164,9 @@ final class GrottoStore {
                     await handle(chatEvent: event, serverID: serverID)
                 }
             } catch {
-                isConnected = false
+                // A cancelled stream is a teardown we asked for, not an outage.
+                guard !Task.isCancelled else { return }
+                markDisconnected()
             }
         }
         let lifecycleTask = Task { [weak self] in
@@ -279,7 +183,8 @@ final class GrottoStore {
                     handle(lifecycleEvent: event)
                 }
             } catch {
-                isConnected = false
+                guard !Task.isCancelled else { return }
+                markDisconnected()
             }
         }
         let activityTask = Task { [weak self] in
@@ -306,54 +211,102 @@ final class GrottoStore {
         ])
     }
 
-    private func handle(chatEvent event: ChatEvent, serverID: String) async {
-        isConnected = true
-        await applyChatEvents([event], serverID: serverID)
+    /// Observation notifies on equal-value writes, so the event paths must not
+    /// restate a connection they already have: doing so invalidated the root
+    /// body once per SSE frame. `markDisconnected` is the same rule for the
+    /// paths that observe an outage.
+    func markConnected() {
+        if !isConnected { isConnected = true }
     }
 
-    private func handle(lifecycleEvent event: AgentLifecycleEvent) {
-        isConnected = true
-        lifecycleRevision += 1
-        switch event.phase {
-        case .working, .reading, .sending:
-            if currentActivityByAgentID[event.agentID]?.runID != event.runID {
-                currentActivityByAgentID.removeValue(forKey: event.agentID)
-            }
-            lifecycleAvailability[event.agentID] = .working
-        case .settled:
-            lifecycleAvailability[event.agentID] = switch event.outcome {
-            case .completed: .idle
-            case .failed: .error
-            case .stopped: .stopped
-            case nil: .idle
-            }
-            currentActivityByAgentID.removeValue(forKey: event.agentID)
-            currentActivityPositionByRunID.removeValue(forKey: event.runID)
-        }
+    func markDisconnected() {
+        if isConnected { isConnected = false }
     }
 
-    private func reloadAgentAvailability(serverID: String) async {
-        guard activeServer?.id == serverID else { return }
-        let revisionAtStart = lifecycleRevision
-        do {
-            let refreshed: [AgentSummary] = try await client.query(
-                "agent.list",
-                input: ServerScopedInput(serverId: serverID)
-            )
-            guard activeServer?.id == serverID else { return }
-            agents = refreshed
-            if lifecycleRevision == revisionAtStart {
-                lifecycleAvailability.removeAll()
-            }
-            await reloadActiveActivity(serverID: serverID)
-        } catch is CancellationError {
-            return
-        } catch {
-            Self.logger.warning("Agent availability refresh failed: \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
-    private func stopEventStreams() {
+    func stopEventStreams() {
+        flushLiveChatEventsBeforeTeardown()
         eventTasks.cancelAll()
+    }
+
+    // MARK: - Projected Server state
+    //
+    // The Chat projections are memoized, and these fields are their inputs. Each
+    // one is stored privately and published through the accessor below it, so
+    // the invalidation contract holds structurally rather than by convention: a
+    // write cannot reach this state without passing through a setter that
+    // retires the projections that field feeds.
+    //
+    // The setters also drop equal-value writes. Observation reports those as
+    // changes, and every event path here refetches lists that usually come back
+    // byte-identical.
+
+    /// Names, avatars, and presence for every Agent-authored row, mention, and
+    /// sidebar entry, so an Agent write retires both projections.
+    var agents: [AgentSummary] {
+        get { storedAgents }
+        set {
+            guard storedAgents != newValue else { return }
+            storedAgents = newValue
+            projections.retireDirectoryProjections()
+        }
+    }
+
+    /// Names and avatars for human authors, mentions, and human DMs.
+    var members: MemberList? {
+        get { storedMembers }
+        set {
+            guard storedMembers != newValue else { return }
+            storedMembers = newValue
+            projections.retireDirectoryProjections()
+        }
+    }
+
+    /// The live presence overlay. It reaches message rows through the author's
+    /// presence dot and sidebar rows through the Agent's, so it counts as part
+    /// of the directory.
+    var lifecycleAvailability: [String: AgentAvailability] {
+        get { storedLifecycleAvailability }
+        set {
+            guard storedLifecycleAvailability != newValue else { return }
+            storedLifecycleAvailability = newValue
+            projections.retireDirectoryProjections()
+        }
+    }
+
+    var chats: [ChatSummary] {
+        get { storedChats }
+        set {
+            guard storedChats != newValue else { return }
+            storedChats = newValue
+            projections.retireChatListProjection()
+        }
+    }
+
+    /// Agent DMs Server has materialized but the Chat list has not caught up to.
+    var receiptBackedAgentDMsByChatID: [String: String] {
+        get { storedReceiptBackedAgentDMsByChatID }
+        set {
+            guard storedReceiptBackedAgentDMsByChatID != newValue else { return }
+            storedReceiptBackedAgentDMsByChatID = newValue
+            projections.retireChatListProjection()
+        }
+    }
+
+    var messagesByChatID: [String: ChatMessagePage] {
+        get { storedMessagesByChatID }
+        set {
+            guard storedMessagesByChatID != newValue else { return }
+            storedMessagesByChatID = newValue
+            projections.retireMessageProjections()
+        }
+    }
+
+    var pendingMessagesByChatID: [String: [PendingChatMessage]] {
+        get { storedPendingMessagesByChatID }
+        set {
+            guard storedPendingMessagesByChatID != newValue else { return }
+            storedPendingMessagesByChatID = newValue
+            projections.retireMessageProjections()
+        }
     }
 }

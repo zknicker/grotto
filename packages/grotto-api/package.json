@@ -16,6 +16,7 @@
     "./development-chat-demos": "./src/development-chat-demos.ts",
     "./computer-runtime": "./src/computer-runtime.ts",
     "./membership": "./src/membership.ts",
+    "./participant-handle": "./src/participant-handle.ts",
     "./pane-links": "./src/runtime/pane-links.ts",
     "./prepared-actions": "./src/prepared-actions.ts",
     "./rich-references": "./src/rich-references.ts",

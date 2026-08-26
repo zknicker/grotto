@@ -11,9 +11,13 @@ struct AuthenticatedGrottoView: View {
     @State private var selectedThread: ThreadSelection?
     /// The App owns the open Chat so the shell canvas, the pushed Thread, and
     /// the Store's read acknowledgements always name the same Chat.
-    @State private var selectedChatID: String?
+    @State private var selectedDestinationID: ChatDestination.ID?
     @State private var path: [GrottoRootRoute] = []
     @State private var preparedActionReview: PreparedCreateAgentActionPresentation?
+    /// iOS reaches `.active` through `.inactive` from both a real suspension and
+    /// a Control Center pull or app-switcher peek. Only the first is a stale
+    /// cache, so the refresh waits for a phase run that actually backgrounded.
+    @State private var hasBackgrounded = false
     @AppStorage("appearancePreference") private var appearanceRawValue = AppearancePreference.system.rawValue
     @Environment(\.scenePhase) private var scenePhase
 
@@ -47,26 +51,29 @@ struct AuthenticatedGrottoView: View {
         }
         .task { await store.start() }
         .onChange(of: scenePhase) { _, phase in
-            guard phase == .active else { return }
-            Task { await store.resumeAfterForeground() }
-        }
-        .sheet(item: $preparedActionReview) { action in
-            PreparedAgentCreateSheet(
-                action: action,
-                configuration: store.preparedAgentCreationConfiguration
-            )
+            switch phase {
+            case .background:
+                hasBackgrounded = true
+            case .active:
+                guard hasBackgrounded else { return }
+                hasBackgrounded = false
+                Task { await store.resumeAfterForeground() }
+            default:
+                break
+            }
         }
     }
 
     @ViewBuilder
     private var loadedContent: some View {
-        if let server = store.serverPresentation, !store.chatPresentations.isEmpty {
-            NavigationStack(path: $path) {
+        Group {
+            if let server = store.serverPresentation, !store.chatDestinations.isEmpty {
+                NavigationStack(path: $path) {
                 GrottoShellView(
                     server: server,
-                    chats: store.chatPresentations,
-                    selectedChatID: $selectedChatID,
-                    messagesForChat: { store.messagePresentations(chatID: $0.id) },
+                    destinations: store.chatDestinations,
+                    selectedDestinationID: $selectedDestinationID,
+                    messagesForDestination: { store.messagePresentations(chatID: $0.pendingKey) },
                     isConnected: store.isConnected,
                     settingsContent: { initialPath in
                         if let settingsData = store.settingsData {
@@ -82,8 +89,18 @@ struct AuthenticatedGrottoView: View {
                     },
                     onOpenTasks: { path.append(.tasks) },
                     onOpenThread: openThread,
-                    onSend: { chat, content, attachments in
-                        await store.send(content, to: chat.id, attachments: attachments)
+                    onSend: { destination, content, attachments in
+                        switch destination {
+                        case .durableChat(let chat):
+                            return await store.send(content, to: chat.id, attachments: attachments)
+                        case .implicitAgentDM(let agent):
+                            guard attachments.isEmpty,
+                                  let chatID = await store.sendAgentDM(content, to: agent.id) else {
+                                return false
+                            }
+                            selectedDestinationID = .chat(chatID)
+                            return true
+                        }
                     },
                     onOpenAttachment: { attachment in
                         try await store.downloadAttachment(attachment)
@@ -115,13 +132,16 @@ struct AuthenticatedGrottoView: View {
                             serverID: serverID
                         )
                     },
-                    newChannelAgents: store.newChannelAgentPresentations,
-                    agentActivities: store.currentAgentActivityPresentations,
+                    newChannelAgents: { store.newChannelAgentPresentations },
+                    currentAgentActivity: { store.currentActivityPresentation(agentID: $0) },
                     loadAgentActivity: { agentID in
                         try await store.agentActivityPresentations(agentID: agentID)
                     },
                     canManagePreparedActions: store.canManagePreparedActions,
                     onReviewPreparedCreateAgent: { preparedActionReview = $0 },
+                    agentProfile: { store.agentProfilePresentation(agentID: $0) },
+                    mentionOptions: { store.mentionOptions(for: $0) },
+                    loadMentionOptions: { await store.loadMentionOptions(for: $0) },
                     createChannel: { draft in
                         try await store.createNativeChannel(draft)
                     }
@@ -138,28 +158,56 @@ struct AuthenticatedGrottoView: View {
                         threadDestination(thread)
                     }
                 }
-                .onChange(of: path) { previous, current in
+                .onChange(of: path) { _, current in
                     guard !current.carriesThread else { return }
                     selectedThread = nil
-                    // The shell selection is the source of truth for what the
-                    // canvas shows once a Thread pops.
-                    guard previous.carriesThread, let selectedChatID else { return }
-                    Task { await store.openChat(chatID: selectedChatID) }
                 }
-                .onChange(of: selectedChatID) { _, chatID in
-                    // A pushed Thread owns the open Chat while it is on screen.
-                    guard selectedThread == nil, let chatID else { return }
-                    Task { await store.openChat(chatID: chatID) }
+                // One load at a time: selecting another Chat cancels the load
+                // the previous selection started, so a slow `chat.list` behind a
+                // stale read acknowledgement cannot land after a newer one.
+                .task(id: canvasOpenChatID) {
+                    guard let canvasOpenChatID else { return }
+                    await store.openChat(chatID: canvasOpenChatID)
+                }
+                // The canvas Chat is recorded even while a pushed route covers
+                // it, because that is the surface a pop returns to and the
+                // Store has to keep its page fresh across a foreground. The
+                // open-Chat load above deliberately stands down when covered,
+                // so it cannot carry this.
+                .onChange(of: selectedCanvasChatID, initial: true) { _, current in
+                    store.canvasChatID = current
                 }
                 .preferredColorScheme(preferredColorScheme)
+                }
+            } else {
+                ContentUnavailableView(
+                    "No chats yet",
+                    systemImage: "bubble.left.and.bubble.right",
+                    description: Text("Create a channel from the sidebar, or message an Agent once one joins this Server.")
+                )
             }
-        } else {
-            ContentUnavailableView(
-                "No chats yet",
-                systemImage: "bubble.left.and.bubble.right",
-                description: Text("Create a channel from the sidebar, or message an Agent once one joins this Server.")
+        }
+        .sheet(item: $preparedActionReview) { action in
+            PreparedAgentCreateSheet(
+                action: action,
+                configuration: store.preparedAgentCreationConfiguration
             )
         }
+    }
+
+    /// The Chat the canvas has to have open. A pushed Thread or the Tasks list
+    /// covers the canvas and owns the open Chat while it is on screen.
+    private var canvasOpenChatID: String? {
+        ChatCanvasOpen.chatID(
+            selectedID: selectedDestinationID,
+            isCovered: !path.isEmpty || selectedThread != nil
+        )
+    }
+
+    /// The Chat the canvas is showing, covered or not. It is what a pop lands
+    /// on, so the Store keeps its page fresh even while it is off screen.
+    private var selectedCanvasChatID: String? {
+        ChatCanvasOpen.canvasChatID(selectedID: selectedDestinationID)
     }
 
     private var appearanceBinding: Binding<AppearancePreference> {
@@ -173,6 +221,8 @@ struct AuthenticatedGrottoView: View {
         (AppearancePreference(rawValue: appearanceRawValue) ?? .system).colorScheme
     }
 
+    /// A Thread opened from the canvas pops back to the canvas, so the canvas
+    /// underneath has to be its parent Chat.
     private func openThread(_ chat: ChatPresentation, _ anchor: MessagePresentation) {
         pushThread(
             ThreadSelection(
@@ -180,13 +230,16 @@ struct AuthenticatedGrottoView: View {
                 threadChatID: anchor.thread?.threadChatID,
                 anchor: anchor
             ),
-            parentChatID: chat.id
+            selectingParent: chat.id
         )
     }
 
-    /// Opening a Task is one move: the parent Chat selection and the Thread push
-    /// have to happen together, or popping the Thread lands on whichever Chat
-    /// was selected before.
+    /// A Thread opened from the Tasks list pops back to the Tasks list, and the
+    /// Task's parent Chat may be one the user has never visited. Selecting it
+    /// would mark it read on the way back out and strand the user in it once the
+    /// Tasks list pops, so this route leaves the canvas selection alone. The
+    /// Thread needs no selection of its own: its route carries the parent Chat
+    /// id and the Task carries the child Chat id.
     private func openTask(_ item: TaskListItem) {
         guard let anchor = store.taskMessagePresentation(item) else { return }
         pushThread(
@@ -195,12 +248,14 @@ struct AuthenticatedGrottoView: View {
                 threadChatID: item.task.threadChatID,
                 anchor: anchor
             ),
-            parentChatID: item.message.chatID
+            selectingParent: nil
         )
     }
 
-    private func pushThread(_ thread: ThreadSelection, parentChatID: String) {
-        selectedChatID = parentChatID
+    private func pushThread(_ thread: ThreadSelection, selectingParent parentChatID: String?) {
+        if let parentChatID {
+            selectedDestinationID = .chat(parentChatID)
+        }
         selectedThread = thread
         path.append(.thread(thread))
     }
@@ -254,9 +309,7 @@ struct AuthenticatedGrottoView: View {
             onLoadOlderReplies: {
                 guard let chatID = resolvedThreadChatID(for: thread) else { return false }
                 return await store.loadOlderMessages(chatID: chatID)
-            },
-            canManagePreparedActions: store.canManagePreparedActions,
-            onReviewPreparedCreateAgent: { preparedActionReview = $0 }
+            }
         )
         .task {
             guard let chatID = resolvedThreadChatID(for: thread) else { return }
@@ -276,50 +329,4 @@ struct AuthenticatedGrottoView: View {
             )
     }
 
-}
-
-/// The settings sheet's fallback when Server settings data has not loaded yet.
-/// It owns its own `NavigationStack` and Done control so it dismisses like any
-/// other informational sheet in the app, rather than presenting bare.
-private struct SettingsUnavailableSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView {
-                Label("Settings unavailable", systemImage: "gearshape")
-            } description: {
-                Text("Settings are still loading. Try again in a moment.")
-            }
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
-    }
-}
-
-/// The screens the App pushes on the root navigation stack. Tasks and Threads
-/// share one stack, so a Thread opened from a Task pops back to the Task list
-/// rather than to the Chat canvas.
-private enum GrottoRootRoute: Hashable {
-    case tasks
-    case thread(ThreadSelection)
-}
-
-/// A Thread route anchored by the parent message, which exists before the child
-/// Chat does.
-private struct ThreadSelection: Hashable, Identifiable {
-    let parentChatID: String
-    var threadChatID: String?
-    let anchor: MessagePresentation
-
-    var id: String { anchor.id }
-}
-
-private extension Array where Element == GrottoRootRoute {
-    var carriesThread: Bool {
-        contains { if case .thread = $0 { true } else { false } }
-    }
 }

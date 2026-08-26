@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.23 - 2026-08-26
+
+- The Grotto App now carries its sidebar treatment through the macOS titlebar, lifts Settings into
+  that band, and gives topbars, side panels, icons, and update controls a cleaner shared rhythm.
+- Artifact and Thread surfaces gain clearer empty and menu states, better light-mode separation,
+  and reliable horizontal containment for long task content.
+- Server menu actions now use consistent labels and behavior.
+
+### Release surfaces
+
+- Server: Publish v1.8.23
+- App: Unchanged
+- iOS: Unchanged
+- Computer: Unchanged
+
+## v1.8.22 - 2026-08-25
+
+- People and Agents now share durable, unique handles. Human references work alongside Agent
+  mentions, and opening or messaging an Agent creates its direct conversation only when needed.
+- Channels can be reordered by dragging, and Channels, messages, and tasks gain compact native
+  context menus for their common actions.
+- The Grotto App reorganizes Settings around people, Servers, and app preferences, restores visible
+  desktop-update progress, and gives Usage a clearer dedicated destination and focused controls.
+- Grotto for iPhone gains handle and Agent-DM parity, a rebuilt attachment composer, and a unified
+  Hugeicons-based icon system across chat, navigation, and settings.
+
+### Release surfaces
+
+- Server: Publish v1.8.22
+- App: Publish v1.8.22
+- iOS: Publish v1.0.3 (build 4)
+- Computer: Publish v1.4.7
+
 ## v1.8.21 - 2026-08-25
 
 - Signing in from the Grotto App works again. The desktop shell and the App ship on independent

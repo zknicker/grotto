@@ -10,7 +10,10 @@ export function useChatMessageSend() {
         // it is never awaited: the composer has already cleared and the
         // transcript's pending row is carrying the message.
         onSuccess: (result, input) => {
-            const chatIds = [input.chatId, ...(result.threadChatId ? [result.threadChatId] : [])];
+            const chatIds = [
+                result.message.chatId,
+                ...(result.threadChatId ? [result.threadChatId] : []),
+            ];
 
             for (const chatId of chatIds) {
                 void utils.chat.messages.invalidate({ chatId, serverId: input.serverId });

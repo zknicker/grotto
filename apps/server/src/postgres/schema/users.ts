@@ -1,4 +1,3 @@
-import { sql } from 'drizzle-orm';
 import { pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { avatarsTable } from './avatars.ts';
 
@@ -18,11 +17,7 @@ export const usersTable = pgTable(
         // by the human. Null until they have opened the App.
         displayName: text('display_name'),
         email: text('email'),
-        handle: text('handle'),
         id: text('id').primaryKey(),
     },
-    (table) => [
-        uniqueIndex('users_clerk_user_id_key').on(table.clerkUserId),
-        uniqueIndex('users_handle_key').on(table.handle).where(sql`${table.handle} is not null`),
-    ]
+    (table) => [uniqueIndex('users_clerk_user_id_key').on(table.clerkUserId)]
 );

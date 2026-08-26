@@ -81,9 +81,8 @@ extension GrottoStore {
         case .channel:
             return (chat.name ?? (chat.isAll ? "all" : "Channel"), .channel)
         case .dm:
-            let name = chat.peerAgentID.flatMap { agentID in
-                agents.first { $0.id == agentID }?.displayName
-            } ?? chat.peerAgentDisplayName ?? "DM"
+            let name = chat.peerAgentID.flatMap { agentsByID[$0]?.displayName }
+                ?? chat.peerAgentDisplayName ?? "DM"
             return (name, .directMessage)
         }
     }

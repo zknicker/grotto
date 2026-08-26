@@ -43,7 +43,7 @@ beforeAll(async () => {
         serverId,
     });
     agentId = created.agent.id;
-    chatId = created.chat.id;
+    chatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
 });
 
 afterAll(async () => {
@@ -243,7 +243,11 @@ async function createOtherServer() {
         runtimeId: 'codex',
         serverId: server.id,
     });
-    return { agentId: created.agent.id, chatId: created.chat.id, serverId: server.id };
+    const chat = await owner.trpc.chat.ensureAgentDm.mutate({
+        agentId: created.agent.id,
+        serverId: server.id,
+    });
+    return { agentId: created.agent.id, chatId: chat.id, serverId: server.id };
 }
 
 async function manualGet(token: string, query: Record<string, string>) {

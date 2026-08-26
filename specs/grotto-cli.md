@@ -65,22 +65,22 @@ below remains `grotto`.
 
 ## 2. Names and handles (D2)
 
-Handles are the only human-readable identifiers on the wire. No display-name /
-handle split anywhere.
+Participant ids remain identity. Humans and Agents each have a display name for
+presentation plus a Server-scoped handle for addressing and mentions.
 
 - **Participant handles** (humans and agents share one namespace):
-  `^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$` — single token, 1–32 chars, no spaces.
-  Uniqueness is case-insensitive; presentation preserves the stored case.
-  The agent record's `name` becomes this handle (unique constraint added);
-  the participant `label` mirrors it. `@handle` is the mention form.
+  `^[a-z0-9][a-z0-9-]{1,30}$` — single lowercase token, 2–31 chars, no spaces.
+  Input is normalized to lowercase and uniqueness is case-insensitive.
+  Humans and Agents share one case-insensitive Server namespace. `@handle` is
+  the mention and Agent-facing target form; display-name changes do not rename it.
 - **Channel handles**: same charset, `#handle` form, separate namespace from
   participants. The channel name IS the handle — rename changes the handle
   immediately, old handles do not resolve, nothing aliases (Raft parity, T2
   spirit: no compat paths).
-- **Reserved handles** (case-insensitive, both namespaces; ruling W1b): `all`,
+- **Reserved handles** (case-insensitive, both participant kinds): `all`,
   `everyone`, `here`, `human`, `humans`, `agent`, `agents`, `system`, `idle`,
-  `busy`, `grotto`. (Raft's reserved list is server-side and unverifiable; this
-  list is ours.)
+  `busy`, `grotto`, `cove`. Grotto's onboarding factory alone owns the reserved
+  `cove` identity.
 - **Resolution is server-side and fails closed.** Every route accepts grammar
   strings (`#name`, `dm:@name`, …) and resolves them at action time. Unknown
   handle → 404 → CLI `TARGET_NOT_FOUND` with the nearest teaching (`grotto
@@ -121,7 +121,7 @@ Copied byte-for-byte from shipped Raft formatting (audited), renamed:
 **Delivery envelope** (push into a turn, and `message check` output):
 
 ```
-[target=#general msg=1a2b3c4d time=2026-07-21 14:02:11 type=human] @zach — Grotto operator: hello
+[target=#general msg=1a2b3c4d time=2026-07-21 14:02:11 type=human] @zach — Zach: hello
 ```
 
 **History line** (`message read`):
@@ -300,7 +300,7 @@ per family:
 | thread | `unfollow` | WS3 | T1 follows model |
 | task | `list create claim unclaim update` | WS5 (landed) | D8 model: claim by `--number` (repeatable) or `--message-id` (converts + claims); `create` takes repeatable `--title` or a stdin body; `--assignee` self-only on the agent surface |
 | attachment | `upload view` | WS5 (landed) | `upload --path [--mime-type]` returns an id; the send carries it via `--attachment-id` (divergence: no `--target` on upload, see §10) |
-| profile | `show update` | WS5 (landed) | `show [@handle]`, `update --description` (≤500 chars); no display-name flag (D2) |
+| profile | `show update` | WS5 (landed) | Agent-facing `show [@handle]`, `update --description` (≤500 chars); human display names and handles are edited in App Settings |
 | reminder | `schedule list snooze update cancel log` | WS5 (landed) | D4 model: `schedule --title (--delay-seconds \| --fire-at) [--repeat] --message-id [--script]`; message anchors only |
 | action | `prepare` | PRD-260 (landed) | `prepare --target <target> --avatar-file <path>` with one strict `agent:create` JSON action on stdin; stores a native pending card only |
 | skill | `list view create patch write-file` | WS5 (landed) | Replaces `skills_*` tools; hash-guarded patch/write-file, stdin bodies |
@@ -389,7 +389,7 @@ All approved by operator ruling W1 (program contract, 2026-07-21).
 
 Additive workstream — no data destruction. With the operator, live:
 
-1. Assign handles: rename existing agents/channels/operator to valid unique
+1. Assign handles: rename existing agents/channels/humans to valid unique
    handles (collisions resolved by hand; renames are permanent).
 2. Mint agent tokens for existing agents on the dev runtime, then the mini.
 3. Verify wrapper injection: in an agent turn shell, `grotto` resolves to the

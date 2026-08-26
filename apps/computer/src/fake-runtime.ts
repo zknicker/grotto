@@ -9,7 +9,7 @@
 async function main(): Promise<number> {
     const prompt = process.env.GROTTO_TURN_PROMPT ?? '';
     const ask = readLatestHumanMessage(prompt);
-    const reply = ask ? `Acknowledged: ${ask}` : 'Acknowledged.';
+    const reply = ask ? `Acknowledged: ${ask.content}` : 'Acknowledged.';
 
     const grotto = Bun.which('grotto') ?? process.env.GROTTO_WRAPPER;
     if (!grotto) {
@@ -17,7 +17,7 @@ async function main(): Promise<number> {
         return 1;
     }
 
-    const child = Bun.spawn([grotto, 'message', 'send', '--target', 'dm:@operator'], {
+    const child = Bun.spawn([grotto, 'message', 'send', '--target', ask?.target ?? '#all'], {
         stderr: 'inherit',
         stdin: new TextEncoder().encode(reply),
         stdout: 'inherit',
@@ -25,9 +25,10 @@ async function main(): Promise<number> {
     return await child.exited;
 }
 
-function readLatestHumanMessage(prompt: string): string | null {
-    const matches = [...prompt.matchAll(/\[target=\S+[^\]]*type=human\]\s*@[^:]+:\s*(.*)/gu)];
-    return matches.at(-1)?.[1]?.trim() ?? null;
+function readLatestHumanMessage(prompt: string): { content: string; target: string } | null {
+    const matches = [...prompt.matchAll(/\[target=(\S+)[^\]]*type=human\]\s*@[^:]+:\s*(.*)/gu)];
+    const latest = matches.at(-1);
+    return latest?.[1] && latest[2] ? { content: latest[2].trim(), target: latest[1] } : null;
 }
 
 if (import.meta.main) {

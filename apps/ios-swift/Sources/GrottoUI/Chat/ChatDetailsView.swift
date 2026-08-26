@@ -8,31 +8,40 @@ import SwiftUI
 public struct ChatDetailsView: View {
     @Environment(\.dismiss) private var dismiss
 
-    private let chat: ChatPresentation
+    private let chat: ChatDestination
     private let server: ServerPresentation
     private let currentActivity: AgentActivityPresentation?
     private let loadAgentActivity: @Sendable (String) async throws -> [AgentActivityPresentation]
+    private let agentProfile: (String) -> AgentProfilePresentation?
     private let onOpenAgentProfile: (String) -> Void
     @State private var historyState = ActivityHistoryState.idle
+    @State private var path: [ChatDetailsRoute] = []
+    @State private var detent = PresentationDetent.medium
 
+    /// - Parameter agentProfile: the Server facts the Chat itself does not
+    ///   carry — handle, description, role, runtime, model. Absent, the pushed
+    ///   profile still shows identity and presence.
     /// - Parameter onOpenAgentProfile: hands the Agent id to the shell, which
-    ///   dismisses this sheet and opens Settings on that Agent's profile.
+    ///   dismisses this sheet and opens Settings on that Agent's profile. Only
+    ///   the pushed profile's explicit "Manage in Settings" row uses it.
     public init(
-        chat: ChatPresentation,
+        chat: ChatDestination,
         server: ServerPresentation,
         currentActivity: AgentActivityPresentation? = nil,
         loadAgentActivity: @escaping @Sendable (String) async throws -> [AgentActivityPresentation] = { _ in [] },
+        agentProfile: @escaping (String) -> AgentProfilePresentation? = { _ in nil },
         onOpenAgentProfile: @escaping (String) -> Void = { _ in }
     ) {
         self.chat = chat
         self.server = server
         self.currentActivity = currentActivity
         self.loadAgentActivity = loadAgentActivity
+        self.agentProfile = agentProfile
         self.onOpenAgentProfile = onOpenAgentProfile
     }
 
     public var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
                 Section {
                     hero
@@ -40,7 +49,7 @@ public struct ChatDetailsView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
 
-                if case .directMessage(let agent) = chat.kind {
+                if case .agentDirectMessage(let agent) = chat.kind {
                     activitySections(agent: agent)
                 }
             }
@@ -51,16 +60,33 @@ public struct ChatDetailsView: View {
 #endif
             .navigationTitle("")
             .grottoInlineNavigationTitle()
+            .navigationDestination(for: ChatDetailsRoute.self) { route in
+                switch route {
+                case .agentProfile(let agent):
+                    AgentProfileDetailsView(
+                        agent: agent,
+                        profile: agentProfile(agent.id),
+                        currentActivity: currentActivity,
+                        onManageInSettings: { onOpenAgentProfile(agent.id) }
+                    )
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.medium, .large], selection: $detent)
         .presentationDragIndicator(.visible)
         .presentationBackground(GrottoPlatformColor.groupedBackground)
         .task(id: agentID) { await loadHistory() }
+        // A profile is a screenful of facts. The sheet grows to meet the push
+        // rather than sliding a full screen into a half-height window, and it
+        // stays large on the way back so returning is one animation, not two.
+        .onChange(of: path.isEmpty) { _, isRoot in
+            if !isRoot { detent = .large }
+        }
     }
 
     @ViewBuilder
@@ -84,7 +110,7 @@ public struct ChatDetailsView: View {
             case .loaded(let events):
                 ForEach(events) { event in
                     HStack(spacing: 12) {
-                        Image(systemName: event.state.systemImage)
+                        activityMark(event.state)
                             .foregroundStyle(event.state.color)
                             .frame(width: 22)
                         Text(event.title)
@@ -102,25 +128,17 @@ public struct ChatDetailsView: View {
         }
 
         Section {
-            Button { onOpenAgentProfile(agent.id) } label: {
-                HStack(spacing: 12) {
-                    Label("View profile", systemImage: "person.crop.circle")
-                        .foregroundStyle(.primary)
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.tertiary)
-                        .accessibilityHidden(true)
-                }
-                .contentShape(Rectangle())
+            // A real push, so the row's chevron is the stack's own and the
+            // profile arrives on this surface instead of replacing it.
+            NavigationLink(value: ChatDetailsRoute.agentProfile(agent)) {
+                Label("View profile", systemImage: "person.crop.circle")
             }
-            .buttonStyle(.plain)
             .accessibilityLabel("View \(agent.name)'s profile")
         }
     }
 
     private var agentID: String? {
-        guard case .directMessage(let agent) = chat.kind else { return nil }
+        guard case .agentDirectMessage(let agent) = chat.kind else { return nil }
         return agent.id
     }
 
@@ -159,18 +177,12 @@ public struct ChatDetailsView: View {
             Text("Channel · \(server.name)")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-        case .directMessage(let agent):
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(agent.presence.activityColor)
-                    .frame(width: 8, height: 8)
-                Text(currentActivity?.title ?? agent.presence.title)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                if currentActivity != nil {
-                    ProgressView().controlSize(.mini)
-                }
-            }
+        case .agentDirectMessage(let agent):
+            AgentStatusLine(presence: agent.presence, currentActivity: currentActivity)
+        case .humanDirectMessage(let human):
+            Text(human.handle.map { "Human · @\($0)" } ?? "Human")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -181,15 +193,22 @@ public struct ChatDetailsView: View {
             // The hero sits where a DM's circular Agent avatar sits, so it keeps
             // the circle and only takes the channel's glyph and tint.
             ChannelIconBox(appearance: chat.appearance, size: 72, glyphSize: 32, shape: .circle)
-        case .directMessage(let agent):
+        case .agentDirectMessage(let agent):
             AvatarView(
                 name: agent.name,
                 url: agent.avatarURL,
                 presence: agent.presence,
                 size: 72
             )
+        case .humanDirectMessage(let human):
+            AvatarView(name: human.name, url: human.avatarURL, presence: nil, size: 72)
         }
     }
+}
+
+/// Everything the details sheet can push to on its own stack.
+enum ChatDetailsRoute: Hashable {
+    case agentProfile(AgentPresentation)
 }
 
 private enum ActivityHistoryState {
@@ -199,12 +218,22 @@ private enum ActivityHistoryState {
     case failed
 }
 
+/// Work still running reads as a live dot; a settled state names itself.
+@ViewBuilder
+private func activityMark(_ state: AgentActivityState) -> some View {
+    if let icon = state.icon {
+        GrottoIcon(icon, size: 18, weight: 1.8)
+    } else {
+        Circle().frame(width: 9, height: 9)
+    }
+}
+
 private extension AgentActivityState {
-    var systemImage: String {
+    var icon: GrottoIconName? {
         switch self {
-        case .active: "circle.fill"
-        case .completed: "checkmark.circle"
-        case .failed: "exclamationmark.circle"
+        case .active: nil
+        case .completed: .complete
+        case .failed: .alert
         }
     }
 
@@ -217,36 +246,25 @@ private extension AgentActivityState {
     }
 }
 
-private extension AgentPresence {
-    var activityColor: Color {
-        switch self {
-        case .idle: .green
-        case .working: .yellow
-        case .error, .offline, .stopped: .gray
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .idle: "Online"
-        case .working: "Working"
-        case .error: "Error"
-        case .offline: "Offline"
-        case .stopped: "Stopped"
-        }
-    }
-}
-
 #Preview("Channel details") {
     ChatDetailsView(
-        chat: ChatFixtures.chats[1],
+        chat: .durableChat(ChatFixtures.chats[1]),
         server: ChatFixtures.server
     )
 }
 
 #Preview("Agent details") {
     ChatDetailsView(
-        chat: ChatFixtures.chats[3],
-        server: ChatFixtures.server
+        chat: .durableChat(ChatFixtures.chats[3]),
+        server: ChatFixtures.server,
+        agentProfile: { _ in
+            AgentProfilePresentation(
+                handle: "cove",
+                description: "Onboards new Servers and keeps the plan tight.",
+                role: "Owner",
+                runtime: "Claude Code",
+                model: "claude-opus-4"
+            )
+        }
     )
 }

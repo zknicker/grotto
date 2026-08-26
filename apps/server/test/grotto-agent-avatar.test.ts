@@ -67,7 +67,7 @@ beforeAll(async () => {
         serverId,
     });
     agentId = created.agent.id;
-    chatId = created.chat.id;
+    chatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
 });
 
 afterAll(async () => {

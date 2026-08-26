@@ -21,7 +21,7 @@ import { AgentProfilePanel } from '../agent-profile-panel.tsx';
 import { ThreadPanel } from '../thread/thread-panel.tsx';
 import { ChatAgentComposition, hasAgentComposition } from './agent-composition.tsx';
 import { ArchivedChannelBar } from './archived-channel-bar.tsx';
-import { ChatComposer } from './chat-composer.tsx';
+import { ChatComposer } from './chat-composer-variants.tsx';
 import { ChatFilesPanel } from './chat-files.tsx';
 import { mergeTaskAnchor } from './chat-message-model.ts';
 import { ChatTopbar } from './chat-topbar.tsx';
@@ -287,7 +287,6 @@ export function ChatView({
                                 chatId={chat.id}
                                 chatName={chatName}
                                 pendingChatId={chat.id}
-                                placeholder="Let's go on an adventure..."
                                 serverId={chat.serverId}
                             />
                         )}

@@ -1,7 +1,7 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { agentsTable } from '../postgres/schema.ts';
+import { agentsTable, serverMembershipsTable, usersTable } from '../postgres/schema.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
 export async function readAgentProfile(
@@ -10,9 +10,6 @@ export async function readAgentProfile(
     target?: string
 ) {
     const handle = stripAt(target ?? '');
-    if (handle === 'operator') {
-        return { profile: { description: null, handle, isSelf: false } };
-    }
     const [agent] = await db
         .select({
             description: agentsTable.description,
@@ -23,12 +20,34 @@ export async function readAgentProfile(
         .where(
             and(
                 eq(agentsTable.serverId, runner.serverId),
-                target ? eq(agentsTable.handle, handle) : eq(agentsTable.id, runner.agentId),
+                target
+                    ? sql`lower(${agentsTable.handle}) = lower(${handle})`
+                    : eq(agentsTable.id, runner.agentId),
                 isNull(agentsTable.retiredAt)
             )
         )
         .limit(1);
     if (!agent) {
+        if (target) {
+            const [human] = await db
+                .select({
+                    description: usersTable.description,
+                    handle: serverMembershipsTable.handle,
+                })
+                .from(serverMembershipsTable)
+                .innerJoin(usersTable, eq(usersTable.id, serverMembershipsTable.userId))
+                .where(
+                    and(
+                        eq(serverMembershipsTable.serverId, runner.serverId),
+                        sql`lower(${serverMembershipsTable.handle}) = lower(${handle})`,
+                        isNull(serverMembershipsTable.revokedAt)
+                    )
+                )
+                .limit(1);
+            if (human?.handle) {
+                return { profile: { ...human, isSelf: false } };
+            }
+        }
         throw new AgentTargetError('No visible participant has that handle.');
     }
     return {

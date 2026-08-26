@@ -93,8 +93,8 @@ reuses the latest local snapshot while realtime invalidations refresh it.
 * `ServerLayout` owns the stable `AppLayout` scaffold and one persistent
   `ShellSidebar` — there is no icon rail. The sidebar leads with the server
   identity row (server switcher plus the settings entry), then Search and
-  Tasks rows, then chat navigation; the footer stays reserved for the live
-  agent activity strip. Sections compose `ShellSidebarPage` slots; route state
+  Tasks rows, then chat navigation; the footer holds live Agent activity above
+  the bottom-pinned desktop update status. Sections compose `ShellSidebarPage` slots; route state
   selects one slot without replacing the sidebar root, and non-chat pages
   render a shared back-to-chat row. The sidebar is persistent — every routed
   destination, search included, keeps it mounted.
@@ -124,7 +124,45 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   second by `lib/heroui-composition-contract.test.ts`. Neither sees a `className`
   built through `cn()` or a variable, so read the component's anatomy before
   reaching for a wrapper.
-* Settings-style surfaces compose stock Pro parts, not a local row kit. A
+* Settings groups by *who a setting belongs to*, not by which feature shipped
+  it: **Account** (you and this device), **Server** (this Server and who is in
+  it), **Agents** (what Agents can reach), then the roster-driven **Computers**.
+  `features/settings/layout/navigation.ts` is the source of that grouping and
+  `navigation.test.ts` guards it. A new section joins one of those three or
+  argues for a fourth — it does not go in a flat list. A setting whose subject
+  is you belongs in Account even when it is reached through a Server-scoped URL
+  (Settings is mounted under `/s/:slug`, so device and user settings repeat per
+  Server; that is a known wart, not a licence to file them under Server).
+* **A member has one page, and it lives in Settings.** Agents and humans are
+  Server members, the roster is Settings → Members, and a record's page hangs
+  off it: `settings/members/agents/:agentId/:tab` and
+  `settings/members/humans/:userId`. There is no second route for the same
+  record. When you are working rather than administering, you *peek* instead —
+  the Agent profile pane (`hooks/pane/use-agent-profile-pane.ts`) opens beside a
+  chat and takes you nowhere. The rule is one line: **navigating goes to
+  Settings, peeking opens a pane.**
+
+  The pane is keyed by chat id today because it shares the chat's right-pane
+  slot, so surfaces outside chat — the activity strip, the chat-rail context
+  menu, the Computer page's Agent table, the command palette — navigate to the
+  record page instead. Giving the pane a host outside that arbitration is the
+  change that would let them peek too; until then, navigation is the honest
+  fallback, not a second home for the record.
+* Usage is a dashboard, not a member. It lives at `/s/:slug/usage` — it was the
+  index of the deleted `/members` browser, which made a dashboard wear a
+  roster's URL.
+* A preference is a row with a control, not a page. Theme is a `Select` in
+  Preferences, not three window mockups on a route of its own — a value with
+  three options does not earn a destination, and it has to survive that list
+  growing. Give a preference its own page only when it has state to show beyond
+  its own value.
+* Settings-style surfaces compose stock Pro parts, not a local row kit — the
+  `SettingsSection`/`SettingsGroup`/`SettingsItem` kit that used to sit in
+  `features/settings/layout/` is gone, and `settings-page-header.tsx` now holds
+  only `SettingsPageHeader`. That kit was a parallel implementation of
+  `ItemCardGroup`/`ItemCard` and drifted from them on heading size, row padding,
+  and left edge; every surface it served (agent profile, human directory,
+  created agents) is stock now. Do not reintroduce one. A
   section is `ItemCardGroup variant="transparent"` with `Header`/`Title`; a row
   is `ItemCard` with `Content`/`Title`/`Description`/`Action`, separated by
   `Separator`; tabular data is `DataGrid` with a typed column array. The
@@ -276,9 +314,16 @@ identity is the change signal** — hosted chat messages carry no version or
 ## Styling
 
 * `styles/global.css` owns import order and document defaults only.
-* `styles/default-theme.css` and root `DESIGN.md` are the generated exports
-  from the saved HeroUI Pro design system. Replace them together; never
-  hand-edit either file.
+* `styles/default-theme.css` and root `DESIGN.md` started as exports from the
+  saved HeroUI Pro design system and are now owned in code — the saved system is
+  stale. Edit both directly and keep them consistent. `default-theme.css` holds
+  the tokens in `:root` and one `@layer components` block of BEM overrides;
+  reach for a token first, a BEM override when no token can express it, and a
+  call-site class only for a genuine one-off.
+* Page, dialog, section, and body text use the four type roles in `DESIGN.md`
+  ("Document type roles"). Every step is carried by a stock component or by
+  `SettingsPageHeader`; a call site setting its own `text-*` size on a
+  HeroUI part is the bug that role table exists to prevent.
 * `styles/product-tokens.css` owns only cross-feature product concepts HeroUI
   cannot provide, currently sender differentiation and task-label colors.
 * `styles/artifact-tokens.css` is the stable compatibility boundary for

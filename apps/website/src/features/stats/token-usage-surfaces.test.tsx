@@ -40,14 +40,14 @@ test('Agent usage uses the HeroUI Pro dashboard primitives', () => {
     expect(html.match(/data-slot="kpi"/g)).toHaveLength(4);
 });
 
-test('Agents overview leaves the range picker to the shell band', () => {
+test('Agents overview keeps its controls with the content column', () => {
     const html = renderToStaticMarkup(
-        <AgentsTokenUsage days={30} usage={{ breakdown: [], days: 90, totals }} />
+        <AgentsTokenUsage usage={{ breakdown: [], days: 90, totals }} />
     );
 
-    // The Agents destination hosts the picker in the shell topbar, so the
-    // dashboard must not render a second one over the cards.
-    expect(html).not.toContain('aria-label="Token usage range"');
+    // Scope and range describe the cards, so they render inside the column
+    // rather than portalling into the shell band's window chrome.
+    expect(html).toContain('aria-label="Token usage range"');
     expect(html).not.toContain('Usage by Agent');
     expect(html).not.toContain('Choose an Agent');
 });

@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
-import { check, index, integer, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import {
+    check,
+    index,
+    integer,
+    pgTable,
+    text,
+    timestamp,
+    unique,
+    uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { serversTable } from './servers.ts';
 import { usersTable } from './users.ts';
 
@@ -13,6 +22,7 @@ export const serverMembershipsTable = pgTable(
     'server_memberships',
     {
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        handle: text('handle'),
         id: text('id').primaryKey(),
         joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
         revokedAt: timestamp('revoked_at', { withTimezone: true }),
@@ -27,8 +37,15 @@ export const serverMembershipsTable = pgTable(
     },
     (table) => [
         unique('server_memberships_server_user_key').on(table.serverId, table.userId),
+        uniqueIndex('server_memberships_server_handle_key')
+            .on(table.serverId, sql`lower(${table.handle})`)
+            .where(sql`${table.revokedAt} is null and ${table.handle} is not null`),
         index('server_memberships_user_idx').on(table.userId),
         check('server_memberships_role', sql`${table.role} in ('owner', 'admin', 'member')`),
         check('server_memberships_positive_stint', sql`${table.stint} > 0`),
+        check(
+            'server_memberships_handle_grammar',
+            sql`${table.handle} is null or (${table.handle} ~ '^[a-z0-9][a-z0-9-]{1,30}$' and lower(${table.handle}) not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'grotto', 'here', 'human', 'humans', 'idle', 'system'))`
+        ),
     ]
 );

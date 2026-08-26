@@ -35,7 +35,7 @@ beforeAll(async () => {
     agentId = 'agt_reminder_api';
     await harness.sql`
         insert into agents (id, server_id, handle, display_name, home_timezone, role)
-        values (${agentId}, ${serverId}, 'Cove', 'Cove', 'America/New_York', 'member')
+        values (${agentId}, ${serverId}, 'reminder-cove', 'Cove', 'America/New_York', 'member')
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)
@@ -69,7 +69,7 @@ describe('reminder operator API', () => {
         await expect(
             owner.trpc.reminder.list.query({ agentId, serverId, status: 'scheduled' })
         ).resolves.toContainEqual(
-            expect.objectContaining({ id: reminder.reminder.id, ownerHandle: 'Cove' })
+            expect.objectContaining({ id: reminder.reminder.id, ownerHandle: 'reminder-cove' })
         );
         await expect(
             admin.trpc.reminder.runs.query({

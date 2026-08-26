@@ -7,6 +7,7 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
+    agentTokenUsageDailyTable,
     channelAgentParticipantsTable,
     channelParticipantsTable,
     chatMessagesTable,
@@ -23,6 +24,7 @@ import {
 import { listAccessibleServers } from '../servers/accessible-servers.ts';
 import type { ServerSummary } from '../servers/contracts.ts';
 import { ensureUserByClerkId } from '../users/grotto-user.ts';
+import { demoTokenUsage } from './demo-token-usage.ts';
 import { ensureDevelopmentCove } from './seed-cove.ts';
 import { insertSeedAvatars } from './seed-demo-avatars.ts';
 
@@ -317,6 +319,15 @@ export async function seedDevelopmentServer(
             tools: ['search_docs', 'fetch_page'],
             url: 'https://example.invalid/mcp',
         });
+
+        // Ninety days of token usage, so the Usage dashboard has a shape to
+        // read at every range and its breakdown has more than one row.
+        await tx.insert(agentTokenUsageDailyTable).values(
+            demoTokenUsage(serverId, now, [
+                { id: blippyId, modelId: 'gpt-5.6-sol', weight: 1 },
+                { id: tinyId, modelId: 'gpt-5.6-terra', weight: 0.55 },
+            ])
+        );
 
         return { displayName: 'Dev Server', id: serverId, role: 'owner' as const, slug: 'dev' };
     });

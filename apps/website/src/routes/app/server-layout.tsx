@@ -12,14 +12,16 @@ import {
     rememberLastServerSlug,
 } from '../../features/servers/server-choice.ts';
 import {
-    membersRoute,
     serverArchivedChatsRoute,
     serverRoute,
     serverSearchRoute,
     serverSettingsRoute,
+    serverSettingsSectionRoute,
+    usageRoute,
 } from '../../features/servers/server-routes.ts';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { CommandMenuProvider } from '../../features/shell/command-menu-provider.tsx';
+import { DesktopUpdateFooter } from '../../features/shell/desktop-update-footer.tsx';
 import { CommandMenu } from '../../features/shell/server-command-menu.tsx';
 import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
 import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pane.tsx';
@@ -43,6 +45,7 @@ import { preloadServerRoutes, preloadServerSection } from './server-route-module
 import {
     resolveActiveSection,
     resolveChatSectionRoute,
+    resolveSelectedAgentDmId,
     resolveSelectedChatId,
     resolveSettingsSection,
     resolveSidebarPage,
@@ -57,6 +60,7 @@ export function ServerLayout() {
     const chats = useChats(server.data?.id);
     const currentServerSlug = server.data?.slug;
     const selectedChatId = resolveSelectedChatId(location.pathname, slug);
+    const selectedAgentDmId = resolveSelectedAgentDmId(location.pathname, slug);
     const [serverDialog, setServerDialog] = React.useState<'create' | 'join' | null>(null);
 
     useDesktopMenuNavigation({
@@ -143,10 +147,13 @@ export function ServerLayout() {
                                                     )
                                                 }
                                                 footer={
-                                                    <SidebarAgentActivityStrip
-                                                        serverId={server.data.id}
-                                                        slug={slug}
-                                                    />
+                                                    <div className="flex w-full flex-col gap-2">
+                                                        <SidebarAgentActivityStrip
+                                                            serverId={server.data.id}
+                                                            slug={slug}
+                                                        />
+                                                        <DesktopUpdateFooter />
+                                                    </div>
                                                 }
                                                 identity={
                                                     <SidebarServerBand
@@ -159,10 +166,18 @@ export function ServerLayout() {
                                                             navigate(serverArchivedChatsRoute(slug))
                                                         }
                                                         onOpenMembers={() =>
-                                                            navigate(membersRoute(slug))
+                                                            navigate(
+                                                                serverSettingsSectionRoute(
+                                                                    slug,
+                                                                    'members'
+                                                                )
+                                                            )
                                                         }
                                                         onOpenSettings={() =>
                                                             navigate(serverSettingsRoute(slug))
+                                                        }
+                                                        onOpenUsage={() =>
+                                                            navigate(usageRoute(slug))
                                                         }
                                                         onPreloadSettings={() =>
                                                             preloadServerSection('settings')
@@ -178,6 +193,7 @@ export function ServerLayout() {
                                                     <AppSidebar
                                                         currentServer={server.data}
                                                         onPreloadSection={preloadServerSection}
+                                                        selectedAgentDmId={selectedAgentDmId}
                                                         selectedChatId={selectedChatId}
                                                     />
                                                 </ShellSidebarPage>

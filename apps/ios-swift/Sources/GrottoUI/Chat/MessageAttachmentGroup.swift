@@ -61,8 +61,10 @@ public struct MessageAttachmentGroup: View {
                         imageTile(attachment)
                     }
                     .buttonStyle(.plain)
-                    .disabled(loadingAttachmentID != nil)
-                    .accessibilityLabel("Preview \(attachment.filename)")
+                    .disabled(isPending || loadingAttachmentID != nil)
+                    .accessibilityLabel(
+                        isPending ? "Uploading \(attachment.filename)" : "Preview \(attachment.filename)"
+                    )
                 } else {
                     Button {
                         open(attachment)
@@ -79,10 +81,14 @@ public struct MessageAttachmentGroup: View {
         }
     }
 
-    /// Sent (non-pending) image attachments render as inline media tiles;
-    /// pending uploads and everything else keep the file row.
+    /// Image attachments render as inline media tiles — including pending
+    /// uploads, which decode from their staged local file so the row occupies
+    /// its final box from the first frame instead of morphing file row →
+    /// placeholder → photo. Everything else keeps the file row.
     private func showsImageTile(_ attachment: MessageAttachmentPresentation) -> Bool {
-        attachment.isImage && !isPending && !imageTileFailedIDs.contains(attachment.id)
+        attachment.isImage
+            && (!isPending || attachment.localURL != nil)
+            && !imageTileFailedIDs.contains(attachment.id)
     }
 
     private func imageTile(_ attachment: MessageAttachmentPresentation) -> some View {
@@ -138,8 +144,7 @@ public struct MessageAttachmentGroup: View {
         if attachment.isImage, let localURL = attachment.localURL {
             LocalAttachmentImage(url: localURL)
         } else {
-            Image(systemName: attachmentSymbol(attachment))
-                .font(.body)
+            GrottoIcon(attachmentIcon(attachment), size: 19, weight: 1.6)
                 .foregroundStyle(.secondary)
         }
     }
@@ -169,12 +174,12 @@ public struct MessageAttachmentGroup: View {
         return "\(kind.uppercased()) · \(size)"
     }
 
-    private func attachmentSymbol(_ attachment: MessageAttachmentPresentation) -> String {
-        if attachment.mediaType == "application/pdf" { return "doc.richtext" }
-        if attachment.mediaType.hasPrefix("video/") { return "video" }
-        if attachment.mediaType.hasPrefix("audio/") { return "waveform" }
-        if attachment.isImage { return "photo" }
-        return "doc"
+    private func attachmentIcon(_ attachment: MessageAttachmentPresentation) -> GrottoIconName {
+        if attachment.mediaType == "application/pdf" { return .pdf }
+        if attachment.mediaType.hasPrefix("video/") { return .video }
+        if attachment.mediaType.hasPrefix("audio/") { return .voice }
+        if attachment.isImage { return .image }
+        return .document
     }
 
     private var errorPresented: Binding<Bool> {

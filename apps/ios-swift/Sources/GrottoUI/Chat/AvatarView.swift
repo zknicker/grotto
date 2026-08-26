@@ -7,6 +7,7 @@ public struct AvatarView: View {
     private let presence: AgentPresence?
     private let presenceAlignment: Alignment
     private let size: CGFloat
+    @State private var imageLoadState = AvatarImageLoadState<AvatarPlatformImage>()
 
     public init(
         name: String,
@@ -26,16 +27,20 @@ public struct AvatarView: View {
 
     public var body: some View {
         ZStack(alignment: presenceAlignment) {
-            AsyncImage(url: url) { image in
-                image.resizable().scaledToFill()
-            } placeholder: {
-                Circle()
-                    .fill(Color.secondary.opacity(0.1))
-                    .overlay {
-                        Text(initials)
-                            .font(.system(size: size * 0.38, weight: .medium))
-                            .foregroundStyle(.tint)
-                    }
+            Group {
+                if let image = displayedImage {
+                    platformImage(image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Circle()
+                        .fill(Color.secondary.opacity(0.1))
+                        .overlay {
+                            Text(initials)
+                                .font(.system(size: size * 0.38, weight: .medium))
+                                .foregroundStyle(.tint)
+                        }
+                }
             }
             .frame(width: size, height: size)
             .clipShape(.circle)
@@ -50,6 +55,32 @@ public struct AvatarView: View {
         }
         .frame(width: size, height: size)
         .accessibilityLabel(accessibilityLabel)
+        .task(id: url) {
+            await loadImage()
+        }
+    }
+
+    private var displayedImage: AvatarPlatformImage? {
+        guard let url else { return nil }
+        if let loadedImage = imageLoadState.value(for: url) {
+            return loadedImage
+        }
+        return AvatarImageCache.shared.image(for: url)
+    }
+
+    private func platformImage(_ image: AvatarPlatformImage) -> Image {
+        #if canImport(UIKit)
+        Image(uiImage: image)
+        #elseif canImport(AppKit)
+        Image(nsImage: image)
+        #endif
+    }
+
+    private func loadImage() async {
+        imageLoadState.begin(url: url)
+        guard let url else { return }
+        let image = await AvatarImageCache.shared.load(url: url)
+        imageLoadState.complete(value: image, for: url, isCancelled: Task.isCancelled)
     }
 
     private var presenceDotSize: CGFloat {
@@ -67,6 +98,28 @@ public struct AvatarView: View {
     private var accessibilityLabel: String {
         guard let presence else { return name }
         return "\(name), \(presence.accessibilityName)"
+    }
+}
+
+struct AvatarImageLoadState<Value> {
+    private var loaded: (url: URL, value: Value)?
+    private var requestedURL: URL?
+
+    mutating func begin(url: URL?) {
+        requestedURL = url
+        if loaded?.url != url {
+            loaded = nil
+        }
+    }
+
+    mutating func complete(value: Value?, for url: URL, isCancelled: Bool) {
+        guard !isCancelled, requestedURL == url, let value else { return }
+        loaded = (url, value)
+    }
+
+    func value(for url: URL) -> Value? {
+        guard loaded?.url == url else { return nil }
+        return loaded?.value
     }
 }
 

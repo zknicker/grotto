@@ -3,82 +3,69 @@ import GrottoModels
 import GrottoUI
 
 extension GrottoStore {
-    var settingsPersistence: SettingsPersistence {
-        SettingsPersistence(
-            generateAgentAvatar: { [weak self] agentID, concept in
-                guard let self else { throw CancellationError() }
-                return try await self.generateAgentAvatar(agentID: agentID, concept: concept)
-            },
-            saveHumanProfile: { [weak self] userID, displayName, description in
-                guard let self else { throw CancellationError() }
-                return try await self.saveHumanProfile(
-                    userID: userID,
-                    displayName: displayName,
-                    description: description
-                )
-            },
-            saveAgentProfile: { [weak self] agentID, displayName, description in
-                guard let self else { throw CancellationError() }
-                return try await self.saveAgentProfile(
-                    agentID: agentID,
-                    displayName: displayName,
-                    description: description
-                )
-            },
-            saveHumanAvatar: { [weak self] userID, payload in
-                guard let self else { throw CancellationError() }
-                return try await self.saveHumanAvatar(userID: userID, payload: payload)
-            },
-            saveAgentAvatar: { [weak self] agentID, payload in
-                guard let self else { throw CancellationError() }
-                return try await self.saveAgentAvatar(agentID: agentID, payload: payload)
-            }
-        )
-    }
-
     var serverPresentation: ServerPresentation? {
         guard let server = activeServer else { return nil }
-        return ServerPresentation(
-            name: server.displayName,
-            agentCount: agents.count,
-            memberCount: members?.members.count ?? 0
-        )
+        return ServerPresentation(name: server.displayName)
     }
 
-    var chatPresentations: [ChatPresentation] {
-        chats.compactMap { chat in
-            switch chat.kind {
-            case .channel:
-                return ChatPresentation(
-                    id: chat.id,
-                    title: chat.name ?? (chat.isAll ? "all" : "Channel"),
-                    kind: .channel,
-                    unreadCount: chat.unreadCount,
-                    appearance: ChannelAppearance(icon: chat.icon, color: chat.color)
-                )
-            case .dm:
-                guard let agentID = chat.peerAgentID,
-                      let agent = agents.first(where: { $0.id == agentID }) else { return nil }
-                let presentation = AgentPresentation(
-                    id: agent.id,
-                    name: agent.displayName,
-                    avatarURL: resolvedAvatarURL(agent.avatarURL),
-                    presence: presence(availability(for: agent))
-                )
-                return ChatPresentation(
-                    id: chat.id,
-                    title: agent.displayName,
-                    kind: .directMessage(agent: presentation),
-                    unreadCount: chat.unreadCount
-                )
-            }
-        }
+    /// Reads — and so subscribes the calling view body to — every observable
+    /// directory field the projections resolve names, avatars, and presence
+    /// from. The memoized projections skip the work, never the observation: a
+    /// cached answer has to leave its caller subscribed to exactly what a
+    /// rebuilt one would.
+    func trackProjectionDirectory() {
+        // Presence reaches rows through `availability(for:)`, which only the
+        // rebuild path calls.
+        _ = lifecycleAvailability.count
+        _ = agentsByID
+        _ = membersByID
     }
 
+    /// The Agent directory as an index. `GrottoStore` rebuilds it with the
+    /// Agent list, so resolving an author or a mention is a dictionary read
+    /// rather than a scan of every Agent per row.
+    var agentsByID: [String: AgentSummary] {
+        let list = agents
+        if let cached = projections.agentsByID { return cached }
+        let index = Dictionary(list.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        projections.agentsByID = index
+        return index
+    }
+
+    var membersByID: [String: MemberSummary] {
+        let list = members?.members ?? []
+        if let cached = projections.membersByID { return cached }
+        let index = Dictionary(list.map { ($0.userID, $0) }, uniquingKeysWith: { first, _ in first })
+        projections.membersByID = index
+        return index
+    }
+
+    /// The transcript the canvas renders.
+    ///
+    /// `GrottoShellView.body` calls this on every evaluation — every frame of a
+    /// drawer pan, every keyboard inset change — so the result is memoized per
+    /// Chat. It is rebuilt only when one of its inputs is written: the Chat's
+    /// page, its optimistic rows, the Agent and Member directories, and the
+    /// lifecycle presence overlay. Each of those is a `GrottoStore` accessor
+    /// whose setter retires this cache, so a stale row is not expressible.
     func messagePresentations(chatID: String) -> [MessagePresentation] {
+        trackProjectionDirectory()
         let page = messagesByChatID[chatID]
-        let threadByAnchor = Dictionary(uniqueKeysWithValues: (page?.threads ?? []).map { ($0.anchorMessageID, $0) })
-        let durable: [MessagePresentation] = (page?.messages ?? []).compactMap { message in
+        let pending = pendingMessagesByChatID[chatID] ?? []
+        if let cached = projections.messagePresentationsByChatID[chatID] { return cached }
+
+        let rows = durableMessagePresentations(page) + pendingMessagePresentations(pending, page: page)
+        projections.messagePresentationsByChatID[chatID] = rows
+        return rows
+    }
+
+    private func durableMessagePresentations(_ page: ChatMessagePage?) -> [MessagePresentation] {
+        guard let page else { return [] }
+        let threadByAnchor = Dictionary(
+            page.threads.map { ($0.anchorMessageID, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        return page.messages.compactMap { message in
             guard let author = authorPresentation(message.author) else { return nil }
             // Task records carry the canonical child Chat created with the task;
             // ordinary messages only gain a child id once a Thread exists.
@@ -99,20 +86,38 @@ extension GrottoStore {
                 attachments: message.attachments.map(attachmentPresentation),
                 thread: thread,
                 task: message.task.map(taskPresentation),
-                preparedAction: message.preparedAction.map(preparedActionPresentation)
+                preparedAction: message.preparedAction.map(preparedActionPresentation),
+                richSegments: richMessageSegments(message.content)
             )
         }
-        let pending = (pendingMessagesByChatID[chatID] ?? []).map { message in
-            MessagePresentation(
+    }
+
+    /// An optimistic row is projected only until the page carries its nonce.
+    /// The Store retires it in the same pass the page lands, and both rows carry
+    /// the same id once the send receipt has been adopted — so this filter is
+    /// what guarantees the transcript shows one row, never the pair.
+    private func pendingMessagePresentations(
+        _ pending: [PendingChatMessage],
+        page: ChatMessagePage?
+    ) -> [MessagePresentation] {
+        guard !pending.isEmpty else { return [] }
+        let durableNonces = OptimisticMessageRow.durableNonces(in: page?.messages ?? [])
+        let viewer = viewerAuthorPresentation
+        return pending.compactMap { message in
+            guard !OptimisticMessageRow.isSuperseded(
+                nonce: message.nonce,
+                durableNonces: durableNonces
+            ) else { return nil }
+            return MessagePresentation(
                 id: message.id,
-                author: viewerAuthorPresentation,
+                author: viewer,
                 content: message.content,
                 createdAt: message.createdAt,
                 attachments: message.attachments.map(\.presentation),
-                isPending: true
+                isPending: true,
+                richSegments: richMessageSegments(message.content)
             )
         }
-        return durable + pending
     }
 
     private func attachmentPresentation(_ attachment: AttachmentMetadata) -> MessageAttachmentPresentation {
@@ -122,6 +127,72 @@ extension GrottoStore {
             mediaType: attachment.mediaType,
             sizeBytes: attachment.sizeBytes
         )
+    }
+
+    private func richMessageSegments(_ content: String) -> [RichMessageSegment] {
+        RichMessageParser.parse(content) { kind, id, fallback in
+            switch kind {
+            case .agent:
+                guard let agent = agentsByID[id] else { return nil }
+                return RichReferencePresentation(
+                    id: id,
+                    kind: .agent,
+                    label: "@\(agent.displayName)",
+                    avatarURL: resolvedAvatarURL(agent.avatarURL)
+                )
+            case .human:
+                guard let member = membersByID[id] else { return nil }
+                let name = member.displayName ?? member.handle ?? fallback.trimmingCharacters(in: CharacterSet(charactersIn: "@"))
+                return RichReferencePresentation(
+                    id: id,
+                    kind: .human,
+                    label: "@\(name)",
+                    avatarURL: resolvedAvatarURL(member.avatarURL)
+                )
+            }
+        }
+    }
+
+    private func preparedActionPresentation(_ action: PreparedAction) -> PreparedActionPresentation {
+        switch action {
+        case let .createAgent(action):
+            let guidance = action.proposal.computer
+            let computerDetail = guidance.map {
+                "\($0.label ?? $0.computerID) (\($0.kindLabel.lowercased()))"
+            }
+            let committer = action.executedByUserID.flatMap { userID in
+                members?.members.first(where: { $0.userID == userID })
+            }
+            let requiredComputerID: String? = switch guidance {
+            case let .required(computerID, _): computerID
+            case .suggested, .none: nil
+            }
+            return .createAgent(
+                PreparedCreateAgentActionPresentation(
+                    avatarURL: resolvedAvatarURL(action.proposal.avatar.url),
+                    chatID: action.chatID,
+                    computerDetail: computerDetail,
+                    createdAt: action.createdAt,
+                    description: action.proposal.description,
+                    draftHint: action.proposal.draftHint,
+                    executedByDisplayName: committer?.displayName ?? committer?.email,
+                    id: action.id,
+                    name: action.proposal.name,
+                    proposedComputerID: guidance?.computerID,
+                    requiredComputerID: requiredComputerID,
+                    status: action.status
+                )
+            )
+        case let .unsupported(action):
+            return .unsupported(
+                UnsupportedPreparedActionPresentation(
+                    createdAt: action.createdAt,
+                    id: action.id,
+                    kind: action.kind,
+                    status: action.status
+                )
+            )
+        }
     }
 
     /// Projects a task-list row back into the shared message presentation used
@@ -181,54 +252,12 @@ extension GrottoStore {
         )
     }
 
-    private func preparedActionPresentation(_ action: PreparedAction) -> PreparedActionPresentation {
-        switch action {
-        case let .createAgent(action):
-            let guidance = action.proposal.computer
-            let computerDetail = guidance.map {
-                "\($0.label ?? $0.computerID) (\($0.kindLabel.lowercased()))"
-            }
-            let committer = action.executedByUserID.flatMap { userID in
-                members?.members.first(where: { $0.userID == userID })
-            }
-            let requiredComputerID: String? = switch guidance {
-            case let .required(computerID, _): computerID
-            case .suggested, .none: nil
-            }
-            return .createAgent(
-                PreparedCreateAgentActionPresentation(
-                    avatarURL: resolvedAvatarURL(action.proposal.avatar.url),
-                    chatID: action.chatID,
-                    computerDetail: computerDetail,
-                    createdAt: action.createdAt,
-                    description: action.proposal.description,
-                    draftHint: action.proposal.draftHint,
-                    executedByDisplayName: committer?.displayName ?? committer?.email,
-                    id: action.id,
-                    name: action.proposal.name,
-                    proposedComputerID: guidance?.computerID,
-                    requiredComputerID: requiredComputerID,
-                    status: action.status
-                )
-            )
-        case let .unsupported(action):
-            return .unsupported(
-                UnsupportedPreparedActionPresentation(
-                    createdAt: action.createdAt,
-                    id: action.id,
-                    kind: action.kind,
-                    status: action.status
-                )
-            )
-        }
-    }
-
     func actorPresentation(
         agentID: String?,
         userID: String?
     ) -> MessageAuthorPresentation? {
         if let agentID {
-            let agent = agents.first { $0.id == agentID }
+            let agent = agentsByID[agentID]
             return MessageAuthorPresentation(
                 id: agentID,
                 name: agent?.displayName ?? "Deleted agent",
@@ -237,7 +266,7 @@ extension GrottoStore {
             )
         }
         if let userID {
-            let member = members?.members.first { $0.userID == userID }
+            let member = membersByID[userID]
             return MessageAuthorPresentation(
                 id: userID,
                 name: member?.displayName ?? member?.handle ?? "Grotto member",
@@ -250,7 +279,7 @@ extension GrottoStore {
     func authorPresentation(_ author: ChatAuthor) -> MessageAuthorPresentation? {
         switch author {
         case .agent(let agentID, let profile):
-            let agent = agents.first { $0.id == agentID }
+            let agent = agentsByID[agentID]
             return MessageAuthorPresentation(
                 id: agentID,
                 name: agent?.displayName ?? profile?.displayName ?? "Deleted agent",
@@ -258,7 +287,7 @@ extension GrottoStore {
                 presence: agent.map { presence(availability(for: $0)) }
             )
         case .human(let profile, let userID):
-            let member = members?.members.first { $0.userID == userID }
+            let member = membersByID[userID]
             return MessageAuthorPresentation(
                 id: userID,
                 name: member?.displayName ?? profile?.displayName ?? "Grotto member",
@@ -271,7 +300,7 @@ extension GrottoStore {
 
     private var viewerAuthorPresentation: MessageAuthorPresentation {
         guard let directory = members,
-              let viewer = directory.members.first(where: { $0.userID == directory.viewerUserID })
+              let viewer = membersByID[directory.viewerUserID]
         else {
             return MessageAuthorPresentation(id: "viewer", name: "You", avatarURL: nil)
         }
@@ -283,7 +312,7 @@ extension GrottoStore {
         )
     }
 
-    private func presence(_ availability: AgentAvailability) -> AgentPresence {
+    func presence(_ availability: AgentAvailability) -> AgentPresence {
         switch availability {
         case .error: .error
         case .idle: .idle

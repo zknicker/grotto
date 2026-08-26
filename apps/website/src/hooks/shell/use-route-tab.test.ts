@@ -8,7 +8,7 @@ describe('app route tab', () => {
             { id: 'chat', label: 'Chat', path: '/chats' },
             { id: 'activity', label: 'Activity', path: '/activity' },
             { id: 'tasks', label: 'Tasks', path: '/tasks' },
-            { id: 'members', label: 'Members', path: '/members' },
+            { id: 'members', label: 'Members', path: '/settings/members' },
         ]);
     });
 
@@ -18,7 +18,8 @@ describe('app route tab', () => {
         expect(getRouteTab('/chats/chat_123')).toBe('chat');
         expect(getRouteTab('/activity')).toBe('activity');
         expect(getRouteTab('/tasks')).toBe('tasks');
-        expect(getRouteTab('/members/agents/agent_123')).toBe('members');
+        // Members lives under Settings now, so it is no longer a top-level tab.
+        expect(getRouteTab('/settings/members')).toBeNull();
     });
 
     test('keeps dashboard tab detection during redirects', () => {

@@ -4,6 +4,7 @@ import {
     ServerMemberAuthorityError,
     ServerMemberNotFoundError,
 } from '../../servers/member-access.ts';
+import { ParticipantHandleTakenError } from '../../servers/participant-handles.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 /**
@@ -30,6 +31,10 @@ export const serverMemberProcedure = memberProcedure.use(async ({ next }) => {
 
     if (cause instanceof ServerMemberNotFoundError) {
         throw new TRPCError({ cause, code: 'NOT_FOUND', message: cause.message });
+    }
+
+    if (cause instanceof ParticipantHandleTakenError) {
+        throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
 
     throw result.error;

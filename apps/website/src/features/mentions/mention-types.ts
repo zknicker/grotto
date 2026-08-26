@@ -15,7 +15,8 @@ export type MentionProjection =
     | 'capability-reference'
     | 'image-input'
     | 'path-reference'
-    | 'skill-activation';
+    | 'skill-activation'
+    | 'user-reference';
 
 export interface Mention {
     end: number;

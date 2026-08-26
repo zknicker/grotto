@@ -2,9 +2,19 @@ import Foundation
 import Observation
 import SwiftUI
 
-/// One filled or stroked shape inside a channel glyph, in the unit square the
-/// 24x24 hugeicons viewBox was normalized into.
-struct ChannelIconSubpath {
+/// One subpath as it is stored in a generated icon resource, before its `d` is
+/// parsed. Both families decode into this.
+struct HugeiconResourceSubpath: Decodable, Sendable {
+    let cap: String?
+    let d: String
+    let join: String?
+    let rule: String?
+    let strokeWidth: CGFloat?
+}
+
+/// One filled or stroked shape inside a hugeicons glyph, in the unit square the
+/// 24x24 viewBox was normalized into.
+struct HugeiconSubpath {
     let path: Path
     let evenOdd: Bool
     let stroke: Stroke?
@@ -29,8 +39,8 @@ struct ChannelIconSubpath {
 public final class ChannelIconCatalog {
     public static let shared = ChannelIconCatalog()
 
-    @ObservationIgnored private var pathData: [String: [ResourceSubpath]] = [:]
-    @ObservationIgnored private var parsed: [String: [ChannelIconSubpath]] = [:]
+    @ObservationIgnored private var pathData: [String: [HugeiconResourceSubpath]] = [:]
+    @ObservationIgnored private var parsed: [String: [HugeiconSubpath]] = [:]
     /// The only observed property: reading it in `subpaths(for:)` is what makes
     /// a rendered glyph refresh when the catalog finishes loading.
     private var state = LoadState.idle
@@ -64,7 +74,7 @@ public final class ChannelIconCatalog {
 
     /// The glyph for a stored icon name, or nil while loading, when the name is
     /// unknown, or when its geometry could not be parsed.
-    func subpaths(for name: String?) -> [ChannelIconSubpath]? {
+    func subpaths(for name: String?) -> [HugeiconSubpath]? {
         guard case .loaded = state, let name, !name.isEmpty else { return nil }
         if let cached = parsed[name] { return cached }
         guard let data = pathData[name] else { return nil }
@@ -75,18 +85,18 @@ public final class ChannelIconCatalog {
         return subpaths
     }
 
-    private static func subpath(_ resource: ResourceSubpath) -> ChannelIconSubpath? {
+    private static func subpath(_ resource: HugeiconResourceSubpath) -> HugeiconSubpath? {
         // Hugeicons draws in a 24x24 viewBox; the renderer scales the unit
         // square to whatever box size the surface asked for.
         let path = SVGPathData.path(from: resource.d)
             .applying(CGAffineTransform(scaleX: 1.0 / 24, y: 1.0 / 24))
         guard !path.isEmpty else { return nil }
 
-        return ChannelIconSubpath(
+        return HugeiconSubpath(
             path: path,
             evenOdd: resource.rule == "evenodd",
             stroke: resource.strokeWidth.map { width in
-                ChannelIconSubpath.Stroke(
+                HugeiconSubpath.Stroke(
                     width: width / 24,
                     cap: resource.cap == "round" ? .round : .butt,
                     join: resource.join == "round" ? .round : .miter
@@ -95,7 +105,7 @@ public final class ChannelIconCatalog {
         )
     }
 
-    private static func decodeResource() async -> [String: [ResourceSubpath]]? {
+    private static func decodeResource() async -> [String: [HugeiconResourceSubpath]]? {
         await Task.detached(priority: .utility) {
             guard let url = Bundle.module.url(forResource: "channel-icons", withExtension: "json"),
                   let data = try? Data(contentsOf: url, options: .mappedIfSafe),
@@ -106,14 +116,7 @@ public final class ChannelIconCatalog {
     }
 
     private struct Resource: Decodable {
-        let icons: [String: [ResourceSubpath]]
+        let icons: [String: [HugeiconResourceSubpath]]
     }
 
-    struct ResourceSubpath: Decodable, Sendable {
-        let cap: String?
-        let d: String
-        let join: String?
-        let rule: String?
-        let strokeWidth: CGFloat?
-    }
 }

@@ -53,6 +53,13 @@ A Grotto User is minted in exactly one place: inside Server creation's
 transaction. Reads resolve an existing User or find none — asking never mints
 one, so an authenticated human who has done nothing leaves no row behind.
 
+Human profile fields live on that stable User. A human handle lives on the
+active Server membership because humans and Agents share a Server-scoped,
+case-insensitive namespace. PostgreSQL triggers and partial unique indexes
+serialize cross-kind claims; App availability or suggestion UI is never the
+authority. Departure clears the active membership handle while authored history
+continues to point at the immutable User id.
+
 `GROTTO_CLERK_ISSUER_URL` names the Clerk instance whose JWKS signs those tokens. The
 Grotto App attaches the token as `Authorization: Bearer` on HTTP and as
 `connectionParams.clerkSessionToken` on the WebSocket.
@@ -480,7 +487,7 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
   files to the hosted Server, renders only attachment metadata in messages,
   and performs authenticated downloads.
   An author already visible in the transcript is the entry point for their DM.
-  A retired Agent's Owner DM leaves active navigation and is not an App destination.
+  A retired Agent's implicit DM row leaves active navigation and is not an App destination.
   Canonical collaboration records remain durable Server history; the retired Agent is absent from
   every member control and receives no new sends or task messages.
   Message replies open hidden child Threads in the resizable side pane; Threads

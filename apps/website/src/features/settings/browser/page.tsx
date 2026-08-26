@@ -6,7 +6,7 @@ import { useBrowserSettings } from '../../../hooks/servers/use-browser-settings.
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { withSavingToast } from '../../../lib/saving-toast.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
-import { SettingsPageHeader } from '../layout/settings-page.tsx';
+import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { SettingsFact } from '../layout/settings-text.tsx';
 import { BrowserSettingsCard } from './browser-settings-card.tsx';
 

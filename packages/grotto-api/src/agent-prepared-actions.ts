@@ -2,7 +2,7 @@ import * as z from 'zod';
 import { agentCreatedSchema, agentHandleSchema } from './agent.ts';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { avatarBytesInputSchema } from './avatar.ts';
-import { chatSchema, idSchema } from './chat.ts';
+import { idSchema } from './chat.ts';
 import { preparedActionSchema } from './prepared-actions.ts';
 
 const actionIdSchema = z.string().regex(/^act_[A-Za-z0-9_-]{16}$/u);
@@ -29,7 +29,6 @@ export const preparedActionCommitResultSchema = z
     .object({
         action: preparedActionSchema,
         agent: agentCreatedSchema.shape.agent,
-        chat: chatSchema,
         idempotent: z.boolean(),
     })
     .strict();

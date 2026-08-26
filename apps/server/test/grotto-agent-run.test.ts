@@ -23,8 +23,6 @@ let serverId: string;
 let ownerUserId: string;
 let agentId: string;
 let dmChatId: string;
-let peerAgentId: string;
-let peerDmChatId: string;
 
 const computerId = 'cmp_rrrrrrrrrrrrrrrr';
 const credentialHash = 'd'.repeat(64);
@@ -38,6 +36,12 @@ beforeAll(async () => {
     const server = await owner.trpc.server.create.mutate({ displayName: 'Run HQ', slug: 'run-hq' });
     serverId = server.id;
     ownerUserId = await readUserId('user_run_owner');
+    await owner.trpc.member.updateProfile.mutate({
+        description: null,
+        displayName: 'Ada',
+        handle: 'ada',
+        serverId,
+    });
 
     await harness.sql`
         insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
@@ -54,18 +58,7 @@ beforeAll(async () => {
         serverId,
     });
     agentId = created.agent.id;
-    dmChatId = created.chat.id;
-    const peer = await owner.trpc.agent.create.mutate({
-        computerId,
-        displayName: 'Orbit',
-        handle: 'orbit',
-        modelId: 'gpt-5.6-sol',
-        role: 'member',
-        runtimeId: 'codex',
-        serverId,
-    });
-    peerAgentId = peer.agent.id;
-    peerDmChatId = peer.chat.id;
+    dmChatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
     await harness.sql`
         update computers
         set reported_inventory = ${{
@@ -88,55 +81,13 @@ beforeAll(async () => {
     `;
 });
 
-test('an Agent can send an ordinary message to another Agent target', async () => {
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_peer_dm_1' });
-
-    const sent = await agentSend(minted.runnerToken, {
-        content: 'A useful starter message for Orbit.',
-        nonce: 'agent_peer_dm_1',
-        target: 'dm:@orbit',
-    });
-
-    expect(sent).toMatchObject({
-        body: {
-            message: {
-                chat_id: peerDmChatId,
-                content: 'A useful starter message for Orbit.',
-                sender: { handle: 'sage', type: 'agent' },
-            },
-            state: 'sent',
-        },
-        status: 200,
-    });
-    const peerMessages = (await owner.trpc.chat.messages.query({ chatId: peerDmChatId, serverId }))
-        .messages;
-    expect(peerMessages.find((message) => message.nonce === 'agent_peer_dm_1')).toMatchObject({
-        author: { agentId, kind: 'agent' },
-        content: 'A useful starter message for Orbit.',
-    });
-    const pending = (await harness.sql`
-        select count(*)::int as count
-        from agent_pending_work
-        where server_id = ${serverId}
-         and agent_id = ${peerAgentId}
-          and dedupe_key = ${sent.body.message.id}
-    `) as Array<{ count: number }>;
-    expect(pending[0]?.count).toBe(1);
-
-    const privateRead = await agentGet(minted.runnerToken, '/api/agent/history', {
-        target: 'dm:@orbit',
-    });
-    expect(privateRead.status).toBe(404);
-    expect(privateRead.body.code).toBe('INVALID_TARGET');
-});
-
 afterAll(async () => {
     owner.close();
     await connection.close();
     await harness.close();
 });
 
-test('chat mention options expose only the DM Agent and its reported skills', async () => {
+test('chat mention options expose the DM Agent, active humans, and reported skills', async () => {
     const result = await owner.trpc.chat.mentionOptions.query({
         agentIds: [agentId],
         chatId: dmChatId,
@@ -148,6 +99,11 @@ test('chat mention options expose only the DM Agent and its reported skills', as
             id: `agent://${agentId}`,
             kind: 'agent',
             label: 'Sage',
+        }),
+        expect.objectContaining({
+            id: expect.stringMatching(/^user:\/\/usr_/u),
+            kind: 'user',
+            label: 'Ada',
         }),
         expect.objectContaining({
             id: 'skill://agent-browser',
@@ -169,7 +125,7 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
         compositionId: 'cmp_send_1',
         content: 'Hello from the Agent.',
         nonce: 'agent_nonce_1',
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     });
     expect(sent.status).toBe(200);
     expect(sent.body.message).toMatchObject({
@@ -215,7 +171,7 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
     const again = await agentSend(minted.runnerToken, {
         content: 'Hello from the Agent.',
         nonce: 'agent_nonce_1',
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     });
     expect(again.body.message?.id).toBe(sent.body.message?.id);
     const dupCount = (await harness.sql`
@@ -239,7 +195,7 @@ test('Agent sends remove terminal whitespace while preserving leading and intern
     const sent = await agentSend(minted.runnerToken, {
         content: '  Leading indentation\n\n    internal code  \n\nFinal line \t\n',
         nonce: 'agent_send_whitespace_1',
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     });
 
     expect(sent).toMatchObject({
@@ -388,7 +344,7 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
     });
     const history = await agentGet(minted.runnerToken, '/api/agent/history', {
         limit: '10',
-        target: `dm:@operator:${shortAnchor}`,
+        target: `dm:@ada:${shortAnchor}`,
     });
     expect(history).toMatchObject({
         body: {
@@ -425,7 +381,7 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
     const sent = await agentSend(minted.runnerToken, {
         content: 'This belongs in the DM task thread.',
         nonce: 'agent_dm_thread_target_1',
-        target: `dm:@operator:${shortAnchor}`,
+        target: `dm:@ada:${shortAnchor}`,
     });
     expect(sent).toMatchObject({
         body: {
@@ -442,8 +398,8 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
 
     for (const target of [
         `dm:@someone-else:${shortAnchor}`,
-        'dm:@operator:deadbeef',
-        `dm:@operator:${shortAnchor}:extra`,
+        'dm:@ada:deadbeef',
+        `dm:@ada:${shortAnchor}:extra`,
     ]) {
         const denied = await agentSend(minted.runnerToken, {
             content: 'This must not route.',
@@ -456,7 +412,7 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
         });
     }
 
-    const target = `dm:@operator:${shortAnchor}`;
+    const target = `dm:@ada:${shortAnchor}`;
     await agentPost(minted.runnerToken, '/api/agent/threads/unfollow', { target });
     const suppressed = await owner.trpc.chat.send.mutate({
         chatId: dmChatId,
@@ -553,7 +509,7 @@ test('As Task enters the Agent inbox with canonical unassigned task metadata', a
 
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_task_projection' });
     const history = await agentGet(minted.runnerToken, '/api/agent/history', {
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     });
     expect(
         history.body.messages?.find((message) => message.id === created.task.messageId)?.task
@@ -1110,7 +1066,7 @@ test('the ported Agent CLI read surface can read, search, and resolve visible me
     const sent = await agentSend(minted.runnerToken, {
         content: 'Distinctive telescope release note.',
         nonce: 'agent_read_nonce_1',
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     });
     expect(sent.status).toBe(200);
     const messageId = sent.body.message?.id;
@@ -1118,7 +1074,7 @@ test('the ported Agent CLI read surface can read, search, and resolve visible me
 
     const history = await agentGet(minted.runnerToken, '/api/agent/history', {
         limit: '10',
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     });
     expect(history.status).toBe(200);
     expect(history.body.messages).toEqual(
@@ -1139,7 +1095,7 @@ test('the ported Agent CLI read surface can read, search, and resolve visible me
         expect.arrayContaining([
             expect.objectContaining({
                 id: messageId,
-                target: 'dm:@operator',
+                target: 'dm:@ada',
             }),
         ])
     );
@@ -1172,7 +1128,7 @@ test('an Agent uploads, sends, reads, and downloads its own attachment', async (
         attachmentIds: [attachmentId],
         content: 'The notes are attached.',
         nonce: 'agent_attachment_nonce_1',
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     });
     expect(sent.status).toBe(200);
     expect(sent.body.message?.attachments).toEqual([
@@ -1181,7 +1137,7 @@ test('an Agent uploads, sends, reads, and downloads its own attachment', async (
 
     const history = await agentGet(minted.runnerToken, '/api/agent/history', {
         limit: '10',
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     });
     expect(
         history.body.messages?.find((message) => message.id === sent.body.message?.id)?.attachments
@@ -1199,7 +1155,7 @@ test('an Agent adds and removes its own canonical message reaction', async () =>
     const sent = await agentSend(minted.runnerToken, {
         content: 'React to this canonical message.',
         nonce: 'agent_reaction_nonce_1',
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     });
     const messageId = String(sent.body.message?.id);
 
@@ -1650,7 +1606,7 @@ test('task status updates wait for newer exact-thread context', async () => {
     const created = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
         assignee: '@sage',
         nonce: 'agent_task_freshness',
-        target: 'dm:@operator',
+        target: 'dm:@ada',
         titles: ['Incorporate every late correction.'],
     });
     const task = created.body.tasks[0] as {
@@ -1669,7 +1625,7 @@ test('task status updates wait for newer exact-thread context', async () => {
     const held = await agentPost(minted.runnerToken, '/api/agent/tasks/update', {
         number: task.number,
         status: 'in_review',
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     });
     expect(held).toMatchObject({
         body: {
@@ -1688,7 +1644,7 @@ test('task status updates wait for newer exact-thread context', async () => {
     const updated = await agentPost(minted.runnerToken, '/api/agent/tasks/update', {
         number: task.number,
         status: 'in_review',
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     });
     expect(updated).toMatchObject({
         body: { task: { status: 'in_review' } },
@@ -1920,7 +1876,7 @@ test('an Agent owns its profile description and that description rides its messa
     const sent = await agentSend(minted.runnerToken, {
         content: 'Profile descriptions should travel.',
         nonce: 'agent_profile_nonce_1',
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     });
     expect(sent.body.message?.sender).toEqual({
         description: 'Resident systems investigator',
@@ -1934,7 +1890,7 @@ test('the ported Agent reminder flow schedules against a DM message and can mana
     const anchor = await agentSend(minted.runnerToken, {
         content: 'Remember this exact DM.',
         nonce: 'agent_reminder_anchor_1',
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     });
     expect(anchor.status).toBe(200);
 
@@ -1947,7 +1903,7 @@ test('the ported Agent reminder flow schedules against a DM message and can mana
     });
     expect(scheduled.status).toBe(200);
     expect(scheduled.body.reminder).toMatchObject({
-        anchorTarget: 'dm:@operator',
+        anchorTarget: 'dm:@ada',
         script: false,
         status: 'scheduled',
         title: 'Follow up on the DM',
@@ -2006,7 +1962,7 @@ test('a revoked runner token can no longer speak as the Agent', async () => {
     const blocked = await agentSend(minted.runnerToken, {
         content: 'Should not land.',
         nonce: 'agent_nonce_revoked',
-        target: 'dm:@operator',
+        target: 'dm:@ada',
     });
     expect(blocked.status).toBe(401);
     expect(blocked.body.code).toBe('MISSING_TOKEN');

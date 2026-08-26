@@ -27,6 +27,7 @@
          */
         --nested-surface: var(--surface-secondary);
         --nested-surface-hover: var(--surface-tertiary);
+        --nested-surface-ring: none;
 
         --sender-1: var(--color-violet-400);
         --sender-2: var(--color-blue-400);
@@ -74,8 +75,30 @@
     :root[data-theme='light'] {
         --background-hover: var(--background-secondary);
 
+        /*
+         * White, and the hairline below draws the edge. Fill alone could never
+         * carry this in light: at 1.8 L above a 98.24 page the box was
+         * invisible, and stepping down instead only traded that for a grey
+         * slab. The line is what makes white legible, so the fill is free to
+         * stay the lightest thing on the page — the box reads as a clean sheet
+         * set on the page rather than a patch cut out of it.
+         *
+         * It also strengthens where it used to fail. Hovering a turn washes
+         * the page to 95.15, which is *away* from a white box, so the state
+         * that once collapsed the fill now separates it.
+         */
         --nested-surface: var(--surface);
         --nested-surface-hover: var(--background);
+
+        /*
+         * The fill alone cannot carry it. Hovering a turn washes the page to
+         * 95.15 L, which leaves 1.7 between wash and box — the collapse that
+         * pushed this to pure white in the first place. An inset hairline
+         * draws the edge from inside the box, so it holds whatever the ground
+         * does, and an inner edge is what reads as recessed rather than
+         * stacked on top.
+         */
+        --nested-surface-ring: inset 0 0 0 var(--hairline-width) var(--hairline);
 
         --sender-1: var(--color-violet-700);
         --sender-2: var(--color-blue-700);

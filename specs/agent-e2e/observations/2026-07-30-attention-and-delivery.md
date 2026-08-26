@@ -15,7 +15,7 @@ Workspace: `arcade`
 - Channel: `attention-e2e-0730`
 - Evidence:
   `https://app.raft.build/s/arcade/channel/a3989783-c55a-4797-9034-202b7ba29c93`
-- DM: Cindy's existing Owner DM
+- DM: Cindy's already-materialized pairwise human-Agent DM
 
 | Behavior | Prompt | Observed outcome |
 | --- | --- | --- |

@@ -14,6 +14,7 @@ import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
 import { PreparedActionCard } from '../../chats/prepared-action-card.tsx';
 import {
     applyAgentMentionAppearance,
+    applyHumanMentionAppearance,
     readMentionsFromMarkdown,
 } from '../../mentions/mention-metadata.ts';
 import { ArtifactMessage } from './artifact-message.tsx';
@@ -246,15 +247,23 @@ export function useChatTranscript({
                             />
                         );
                     }
-                    const mentions = applyAgentMentionAppearance(
-                        readMentionsFromMarkdown(message.content),
-                        (agentId) => {
-                            const agent = agentId ? agentsById.get(agentId) : undefined;
-                            return {
-                                avatarUrl: agent?.avatarUrl ?? null,
-                                primaryColor: null,
-                            };
-                        }
+                    const mentions = applyHumanMentionAppearance(
+                        applyAgentMentionAppearance(
+                            readMentionsFromMarkdown(message.content),
+                            (agentId) => {
+                                const agent = agentId ? agentsById.get(agentId) : undefined;
+                                return {
+                                    avatarUrl: agent?.avatarUrl ?? null,
+                                    primaryColor: null,
+                                };
+                            }
+                        ),
+                        (userId) => ({
+                            avatarUrl: humans.avatarUrl(userId ?? null),
+                            displayName: humans.member(userId ?? null)
+                                ? humans.name(userId ?? null)
+                                : null,
+                        })
                     );
 
                     return message.grottoAgentId ? (
@@ -275,6 +284,7 @@ export function useChatTranscript({
                 threadActionsEnabled: Boolean(onOpenThread),
             }) satisfies TranscriptRenderContextValue,
         [
+            agentList,
             agentsById,
             canManage,
             chatId,
@@ -289,7 +299,6 @@ export function useChatTranscript({
             serverId,
             taskChipHidden,
             turnDetailsAccess,
-            agentList,
         ]
     );
 

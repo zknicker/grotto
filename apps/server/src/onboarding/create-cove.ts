@@ -9,7 +9,6 @@ import {
     agentsTable,
     avatarsTable,
     channelAgentParticipantsTable,
-    chatsTable,
     serverMembershipsTable,
     serverOnboardingTable,
 } from '../postgres/schema.ts';
@@ -109,14 +108,6 @@ export async function createCove(
             homeTimezone: 'UTC',
             id: agentId,
             role: 'admin',
-            serverId: input.serverId,
-        });
-        await tx.insert(chatsTable).values({
-            dmAgentId: agentId,
-            dmMemberOneStint: standing.stint,
-            dmMemberOneUserId: member.id,
-            id: createOpaqueId('cht'),
-            kind: 'dm',
             serverId: input.serverId,
         });
         await tx.insert(agentDeliveryTable).values({ agentId, serverId: input.serverId });

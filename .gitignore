@@ -26,6 +26,11 @@ scripts/design-battery/output
 # Claude Code preview launch config — generated per checkout by scripts/generate-claude-launch.mjs
 .claude/launch.json
 
+# Claude-managed worktrees. Nested checkouts, never part of this checkout's tree;
+# committing them leaves stale worktree configs that break lint runs across the fleet.
+# The tracked .claude/settings.json and .claude/skills stay committed.
+.claude/worktrees/
+
 # Xcode derived data written by the documented iOS Simulator build recipe
 /build/
 

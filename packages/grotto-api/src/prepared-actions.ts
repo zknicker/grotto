@@ -62,7 +62,6 @@ export const agentCreateActionResultSchema = z
     .object({
         agentId: idSchema,
         avatarUrl: z.string().nullable(),
-        chatId: idSchema,
         computerId: idSchema,
         description: z.string().max(500).nullable(),
         displayName: z.string().trim().min(1).max(80),

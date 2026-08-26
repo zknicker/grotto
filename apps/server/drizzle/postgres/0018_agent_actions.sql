@@ -67,6 +67,7 @@ ALTER TABLE "prepared_actions" ADD CONSTRAINT "prepared_actions_chat_fk" FOREIGN
 ALTER TABLE "prepared_actions" ADD CONSTRAINT "prepared_actions_message_fk" FOREIGN KEY ("server_id","chat_id","message_id") REFERENCES "public"."chat_messages"("server_id","chat_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "prepared_actions" ADD CONSTRAINT "prepared_actions_proposer_fk" FOREIGN KEY ("server_id","proposer_agent_id") REFERENCES "public"."agents"("server_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "prepared_actions" ADD CONSTRAINT "prepared_actions_executor_membership_fk" FOREIGN KEY ("server_id","executed_by_user_id") REFERENCES "public"."server_memberships"("server_id","user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "prepared_actions" ALTER CONSTRAINT "prepared_actions_executor_membership_fk" DEFERRABLE INITIALLY DEFERRED;--> statement-breakpoint
 CREATE INDEX "agent_action_attentions_agent_idx" ON "agent_action_attentions" USING btree ("server_id","agent_id","created_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "prepared_action_media_action_key" ON "prepared_action_media" USING btree ("server_id","action_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "prepared_actions_message_key" ON "prepared_actions" USING btree ("server_id","chat_id","message_id");--> statement-breakpoint
@@ -168,12 +169,4 @@ ALTER TABLE "chat_events" ADD CONSTRAINT "chat_events_shape" CHECK ((
                     AND "chat_events"."reminder_id" IS NULL
                     AND "chat_events"."reminder_action" IS NULL
                     AND "chat_events"."sequence" = 0)
-            ));--> statement-breakpoint
--- Server deletion and Agent creation touch both sides of these relationships in one transaction.
--- Validate them at commit so PostgreSQL observes the completed graph rather than insertion order.
-ALTER TABLE "prepared_actions" ALTER CONSTRAINT "prepared_actions_executor_membership_fk" DEFERRABLE INITIALLY DEFERRED;--> statement-breakpoint
-ALTER TABLE "agent_action_attentions" ALTER CONSTRAINT "agent_action_attentions_server_id_servers_id_fk" DEFERRABLE INITIALLY DEFERRED;--> statement-breakpoint
-ALTER TABLE "agent_action_attentions" ALTER CONSTRAINT "agent_action_attentions_action_fk" DEFERRABLE INITIALLY DEFERRED;--> statement-breakpoint
-ALTER TABLE "agent_action_attentions" ALTER CONSTRAINT "agent_action_attentions_agent_fk" DEFERRABLE INITIALLY DEFERRED;--> statement-breakpoint
-ALTER TABLE "agent_action_attentions" ALTER CONSTRAINT "agent_action_attentions_chat_fk" DEFERRABLE INITIALLY DEFERRED;--> statement-breakpoint
-ALTER TABLE "agent_action_attentions" ALTER CONSTRAINT "agent_action_attentions_created_agent_fk" DEFERRABLE INITIALLY DEFERRED;
+            ));

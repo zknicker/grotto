@@ -7,13 +7,13 @@ import {
 } from './use-mention-composer.tsx';
 
 describe('selectVisibleOptions', () => {
-    it('uses @ only for agent mentions', () => {
+    it('uses @ for Agent and human references', () => {
         expect(
             selectVisibleOptions({
                 activeQuery: createQuery('@'),
-                mentionOptions: [agentOption, skillOption, appOption],
+                mentionOptions: [agentOption, humanOption, skillOption, appOption],
             })
-        ).toEqual([agentOption]);
+        ).toEqual([agentOption, humanOption]);
     });
 
     it('uses $ only for skill mentions', () => {
@@ -181,6 +181,15 @@ const skillOption: MentionOption = {
     kind: 'skill',
     label: 'Grotto Agent',
     projection: 'skill-activation',
+};
+
+const humanOption: MentionOption = {
+    description: 'Human · @ada',
+    id: 'user://usr_ada',
+    insertText: '@Ada Lovelace',
+    kind: 'user',
+    label: 'Ada Lovelace',
+    projection: 'user-reference',
 };
 
 const appOption: MentionOption = {

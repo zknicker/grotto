@@ -5,6 +5,7 @@ export type DesktopUpdateBridgeStatus =
     | { phase: 'available'; version: string }
     | { phase: 'downloading'; progress: number; version: string }
     | { phase: 'ready'; version: string }
+    | { phase: 'restarting'; version: string }
     | { phase: 'error'; message: string };
 
 export type DesktopEditCommand = 'copy' | 'cut' | 'paste' | 'redo' | 'selectAll' | 'undo';

@@ -2,9 +2,8 @@ import { Alert, Button, Chip, Modal, Separator, Spinner, Tooltip } from '@heroui
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { ArrowReloadHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Fragment, type ReactNode, useState } from 'react';
-import { useResolvedThemeOptional } from '../../../components/theme-provider.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { connectionIcon } from './connection-icon.ts';
+import { ConnectionGlyph } from './connection-mark.tsx';
 import {
     ConnectionDestructiveDialog,
     type McpDestructiveAction,
@@ -72,7 +71,7 @@ export function McpConnectionDetailDialog({
                                 stranded on its own row. */}
                             <Modal.Header>
                                 <Modal.Icon className="overflow-hidden bg-default text-foreground">
-                                    <ConnectionMark connection={connection} />
+                                    <ConnectionGlyph connection={connection} />
                                 </Modal.Icon>
                                 <Modal.Heading>
                                     {connection.name}
@@ -354,23 +353,6 @@ function ToolList({
             </ItemCard>
         </Fragment>
     ));
-}
-
-function ConnectionMark({ connection }: { connection: McpConnection }) {
-    const icon = connectionIcon(connection, useResolvedThemeOptional());
-
-    if (icon.kind === 'image') {
-        return (
-            <img
-                alt=""
-                className="size-full rounded-[inherit] object-cover"
-                height={32}
-                src={icon.src}
-                width={32}
-            />
-        );
-    }
-    return <span style={{ color: `var(${icon.colorVar})` }}>{icon.letter}</span>;
 }
 
 function ManageRow({

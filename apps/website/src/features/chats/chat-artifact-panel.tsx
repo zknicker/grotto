@@ -1,3 +1,4 @@
+import { EmptyState } from '@heroui-pro/react';
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -87,7 +88,7 @@ function ArtifactPanelBody({
             style={width ? { width } : undefined}
         >
             <header
-                className={`relative z-40 flex ${bandHeightClassName} shrink-0 items-center border-separator border-b bg-background`}
+                className={`relative z-40 flex ${bandHeightClassName} shrink-0 items-center bg-background`}
                 data-window-drag-region=""
             >
                 <ArtifactPanelChrome
@@ -174,16 +175,24 @@ function workspaceInitialDirectory(target: GrottoResourceTarget) {
     return target.path;
 }
 
+/**
+ * Stock `EmptyState`, the same composition the chat transcript uses. This was
+ * hand-built from divs — its own icon box, its own `text-sm` title, its own
+ * centring — which is why an empty pane and an empty chat did not look like
+ * the same product side by side.
+ */
 function ArtifactPanelEmpty({ detail, title }: { detail: string; title: string }) {
     return (
-        <div className="grid h-full min-h-0 place-items-center px-8 text-center">
-            <div className="max-w-sm">
-                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg border border-separator bg-surface-secondary">
-                    <Icon className="size-4 text-muted" icon={File01Icon} />
-                </div>
-                <div className="truncate font-medium text-sm">{title}</div>
-                <div className="mt-1 text-muted text-sm leading-6">{detail}</div>
-            </div>
+        <div className="grid h-full min-h-0 place-items-center">
+            <EmptyState>
+                <EmptyState.Header>
+                    <EmptyState.Media variant="icon">
+                        <Icon aria-hidden="true" icon={File01Icon} />
+                    </EmptyState.Media>
+                    <EmptyState.Title>{title}</EmptyState.Title>
+                    <EmptyState.Description>{detail}</EmptyState.Description>
+                </EmptyState.Header>
+            </EmptyState>
         </div>
     );
 }

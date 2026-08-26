@@ -9,7 +9,11 @@ import type {
 } from '@grotto/api';
 import { agentActionAttentionSchema } from '@grotto/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import { messageSelection, toAgentMessages } from '../agent-api/message-view.ts';
+import {
+    messageSelection,
+    targetForChat as targetForAgentChat,
+    toAgentMessages,
+} from '../agent-api/message-view.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -19,7 +23,6 @@ import {
     agentMessageDraftsTable,
     agentsTable,
     chatMessagesTable,
-    chatsTable,
 } from '../postgres/schema.ts';
 import {
     listReminderScriptCommands,
@@ -144,6 +147,7 @@ export class AgentDelivery {
         const plan = await this.db.transaction(async (tx) => {
             await lockServerRow(tx, serverId);
             await store.ensureDeliveryState(tx, { agentId, serverId });
+            await store.materializeActionAttentions(tx, { agentId, serverId });
             return this.planDispatch(tx, agentId, options);
         });
         this.emit(plan);
@@ -737,7 +741,7 @@ export class AgentDelivery {
         agentName: string;
         computerId: string;
         modelId: string;
-        reasoningEffort: import('@grotto/api').AgentReasoningEffort;
+        reasoningEffort: Agent['desiredReasoningEffort'];
         runtimeId: string;
     }): Promise<void> {
         const config = await store.readAgentDispatchConfig(this.db, input.agentId);
@@ -796,11 +800,7 @@ export class AgentDelivery {
     ): Promise<DispatchPlan | null> {
         const state = await store.readDeliveryState(tx, agentId);
         const config = await store.readAgentDispatchConfig(tx, agentId);
-        if (!(state && config) || config.retiredAt) {
-            return null;
-        }
-        await store.materializeActionAttentions(tx, { agentId, serverId: state.serverId });
-        if (!isConfigured(config) || state.stopped) {
+        if (!(state && isConfigured(config)) || state.stopped) {
             return null;
         }
         if (!this.transport.isOnline(config.computerId)) {
@@ -1025,12 +1025,12 @@ interface ConfiguredAgent {
     agentName: string;
     computerId: string;
     desiredModelId: string;
-    desiredReasoningEffort: import('@grotto/api').AgentReasoningEffort;
+    desiredReasoningEffort: Agent['desiredReasoningEffort'];
     desiredRuntimeId: string;
     factoryAppliedAt: Date | null;
     factoryKind: 'cove' | 'ordinary';
     homeTimezone: string;
-    retiredAt: Date | null;
+    retiredAt: null;
     sessionGeneration: number;
     sessionResetKind: 'full' | 'session';
 }
@@ -1039,8 +1039,8 @@ function isConfigured(config: AgentDispatchConfig | null): config is ConfiguredA
     return Boolean(
         config?.computerId &&
             config.desiredRuntimeId &&
-            config.retiredAt === null &&
             config.desiredModelId &&
+            config.retiredAt === null &&
             (config.factoryKind === 'ordinary' || config.factoryAppliedAt)
     );
 }
@@ -1093,7 +1093,7 @@ async function startFrame(
                       agentId: state.agentId,
                       runId: state.activeRunId,
                   })
-              ).filter((row) => !isConcreteSource(row.source))
+              ).filter((row) => row.source !== 'onboarding')
             : [];
     return {
         agentId: state.agentId,
@@ -1263,6 +1263,9 @@ async function buildInboxItems(
             }),
         ])
     );
+    const sequenceByMessageId = new Map(
+        messageRows.map((message) => [message.id, message.sequence])
+    );
     const taskByMessage = serverId
         ? await listMessageTaskMap(
               db,
@@ -1270,88 +1273,64 @@ async function buildInboxItems(
               rows.map((row) => row.dedupeKey)
           )
         : new Map();
-    return await Promise.all(
-        rows.map(async (row) => {
-            const actionAttention =
-                row.source === 'action' ? actionById.get(row.dedupeKey) : undefined;
-            if (row.source === 'action' && !actionAttention) {
-                throw new Error(`Action attention ${row.dedupeKey} is missing.`);
-            }
-            if (actionAttention && actionAttention.chatId !== row.chatId) {
-                throw new Error(`Action attention ${row.dedupeKey} targets the wrong Chat.`);
-            }
-            const [message] = await db
-                .select({
-                    authorAgentId: chatMessagesTable.authorAgentId,
-                    sequence: chatMessagesTable.sequence,
-                })
-                .from(chatMessagesTable)
-                .where(eq(chatMessagesTable.id, row.dedupeKey))
-                .limit(1);
-            const target = await targetForChat(db, row.chatId);
-            const agentHandle = row.source.startsWith('agent:')
-                ? row.source.slice('agent:'.length)
-                : null;
-            const [senderAgent] =
-                agentHandle && message?.authorAgentId
-                    ? await db
-                          .select({ description: agentsTable.description })
-                          .from(agentsTable)
-                          .where(eq(agentsTable.id, message.authorAgentId))
-                          .limit(1)
-                    : [];
-            return {
-                chatId: row.chatId,
-                content: actionAttention ? '' : row.content,
-                createdAt: row.createdAt.toISOString(),
-                id: row.dedupeKey,
-                ...(actionAttention ? { actionAttention } : {}),
-                ...(apiMessageById.get(row.dedupeKey)
-                    ? { message: apiMessageById.get(row.dedupeKey) }
-                    : {}),
-                ...(row.mentioned ? { mentioned: true } : {}),
-                ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
-                ...(senderAgent?.description ? { senderDescription: senderAgent.description } : {}),
-                senderHandle: actionAttention
-                    ? 'grotto'
-                    : row.source === 'human'
-                      ? 'operator'
-                      : (agentHandle ?? row.source),
-                senderType: actionAttention
-                    ? ('system' as const)
-                    : agentHandle
-                      ? ('agent' as const)
-                      : row.source === 'human'
-                        ? ('human' as const)
-                        : ('system' as const),
-                sequence: actionAttention ? 0 : (message?.sequence ?? 1),
-                ...(taskByMessage.get(row.dedupeKey)
-                    ? { task: taskByMessage.get(row.dedupeKey) }
-                    : {}),
-                target,
-            };
-        })
-    );
+    const targetByChatId = new Map<string, string>();
+    for (const chatId of new Set(rows.map((row) => row.chatId))) {
+        targetByChatId.set(
+            chatId,
+            serverId ? await targetForAgentChat(db, serverId, chatId) : '#unknown'
+        );
+    }
+    return rows.map((row) => {
+        const actionAttention = row.source === 'action' ? actionById.get(row.dedupeKey) : undefined;
+        if (row.source === 'action' && !actionAttention) {
+            throw new Error(`Action attention ${row.dedupeKey} is missing.`);
+        }
+        if (actionAttention && actionAttention.chatId !== row.chatId) {
+            throw new Error(`Action attention ${row.dedupeKey} targets the wrong Chat.`);
+        }
+        const target = targetByChatId.get(row.chatId) ?? '#unknown';
+        const agentHandle = row.source.startsWith('agent:')
+            ? row.source.slice('agent:'.length)
+            : null;
+        const apiMessage = apiMessageById.get(row.dedupeKey);
+        const senderHandle = actionAttention
+            ? 'grotto'
+            : row.source === 'human'
+              ? (apiMessage?.sender.handle ?? humanHandleFromDmTarget(target))
+              : (agentHandle ?? row.source);
+        if (!senderHandle) {
+            throw new Error('A human delivery sender does not have an active Server handle.');
+        }
+        return {
+            chatId: row.chatId,
+            content: actionAttention ? '' : row.content,
+            createdAt: row.createdAt.toISOString(),
+            id: row.dedupeKey,
+            ...(actionAttention ? { actionAttention } : {}),
+            ...(apiMessage ? { message: apiMessage } : {}),
+            ...(row.mentioned ? { mentioned: true } : {}),
+            ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
+            ...(apiMessage?.sender.description
+                ? { senderDescription: apiMessage.sender.description }
+                : {}),
+            senderHandle,
+            senderType: actionAttention
+                ? ('system' as const)
+                : row.source === 'human'
+                  ? ('human' as const)
+                  : agentHandle
+                    ? ('agent' as const)
+                    : ('system' as const),
+            sequence: actionAttention ? 0 : (sequenceByMessageId.get(row.dedupeKey) ?? 1),
+            ...(taskByMessage.get(row.dedupeKey) ? { task: taskByMessage.get(row.dedupeKey) } : {}),
+            target,
+        };
+    });
 }
 
-async function targetForChat(db: GrottoDatabase, chatId: string): Promise<string> {
-    const [chat] = await db
-        .select({
-            anchorMessageId: chatsTable.anchorMessageId,
-            kind: chatsTable.kind,
-            name: chatsTable.name,
-            parentChatId: chatsTable.parentChatId,
-        })
-        .from(chatsTable)
-        .where(eq(chatsTable.id, chatId))
-        .limit(1);
-    if (!chat || chat.kind === 'dm') {
-        return 'dm:@operator';
+function humanHandleFromDmTarget(target: string): string | null {
+    if (!target.startsWith('dm:@')) {
+        return null;
     }
-    if (chat.kind === 'channel') {
-        return `#${chat.name}`;
-    }
-    const parent = chat.parentChatId ? await targetForChat(db, chat.parentChatId) : '#unknown';
-    const anchor = chat.anchorMessageId?.replace(/^msg_/u, '').slice(0, 8) ?? 'unknown';
-    return `${parent}:${anchor}`;
+    return target.slice('dm:@'.length).split(':')[0] || null;
 }

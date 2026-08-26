@@ -8,7 +8,6 @@ import {
 import { and, eq } from 'drizzle-orm';
 import { readAvatarBytes } from '../avatars/avatar-bytes.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
-import { listChats } from '../chats/list-chats.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -49,7 +48,7 @@ export async function commitPreparedAction(
 ): Promise<PreparedActionCommitTransactionResult> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
-        const memberStanding = await requireAgentCreationAuthority(tx, member, input.serverId);
+        await requireAgentCreationAuthority(tx, member, input.serverId);
         const row = await readCommitRow(tx, input.serverId, input.actionId);
 
         if (!row) {
@@ -110,13 +109,11 @@ export async function commitPreparedAction(
                 runtimeId: input.runtimeId,
                 serverId: input.serverId,
             },
-            memberStanding.stint,
             avatar
         );
         const result = agentCreateActionResultSchema.parse({
             agentId: created.agent.id,
             avatarUrl: created.agent.avatarUrl,
-            chatId: created.chat.id,
             computerId: created.agent.computerId,
             description: created.agent.description,
             displayName: created.agent.displayName,
@@ -166,7 +163,7 @@ export async function commitPreparedAction(
         if (!action) {
             throw new Error('The committed prepared action could not be projected.');
         }
-        return { action, agent: created.agent, chat: created.chat, event, idempotent: false };
+        return { action, agent: created.agent, event, idempotent: false };
     });
 }
 
@@ -183,12 +180,10 @@ async function replayCommit(
         throw new Error('The executed prepared action has no stored result.');
     }
     const [agent] = await queryAgents(db, member, serverId, result.agentId);
-    const chats = await listChats(db, member, serverId, 'all');
-    const chat = chats.find((candidate) => candidate.id === result.chatId);
-    if (!(agent && chat)) {
+    if (!agent) {
         throw new Error('The executed prepared action result could not be replayed.');
     }
-    return { action, agent, chat, event: null, idempotent: true };
+    return { action, agent, event: null, idempotent: true };
 }
 
 function readProposal(value: unknown) {

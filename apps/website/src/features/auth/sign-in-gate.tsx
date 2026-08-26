@@ -5,6 +5,7 @@ import { ActivationShell, ActivationStep } from '../../components/activation/act
 import { getClerkSessionToken, isClerkEnabled } from '../../lib/clerk.tsx';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 import { useDesktopOAuth } from './use-desktop-oauth.ts';
+import { useSignOut } from './use-sign-out.ts';
 
 /**
  * Mandatory sign-in (specs/identity.md): with Clerk configured, the app
@@ -42,7 +43,7 @@ export function SignInGate({ children }: { children: ReactNode }) {
 
 function ClerkSessionGate({ children }: { children: ReactNode }) {
     const { isLoaded, isSignedIn, sessionId, userId } = useAuth();
-    const clerk = useClerk();
+    const signOut = useSignOut();
     const [tokenSnapshot, setTokenSnapshot] = useState<ClerkSessionTokenSnapshot>({
         sessionId: null,
         state: 'loading',
@@ -83,18 +84,10 @@ function ClerkSessionGate({ children }: { children: ReactNode }) {
     }
 
     if (gate.kind === 'missing') {
-        const signInAgain = () => {
-            if (isElectronDesktopApp()) {
-                void clerk.signOut(() => undefined);
-                return;
-            }
-            void clerk.signOut();
-        };
-
         return (
             <SignInSessionRecovery
                 onRetry={() => setRetryKey((key) => key + 1)}
-                onSignOut={signInAgain}
+                onSignOut={signOut}
             />
         );
     }

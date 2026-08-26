@@ -82,11 +82,10 @@ function runtimeColumns(onViewPiUsage?: () => void): DataGridColumn<RuntimeUsage
             cell: (item) => (
                 <div className="flex min-w-0 items-center gap-3">
                     <ProviderMark className="size-5 shrink-0 text-muted" provider={item.id} />
-                    <p className="truncate font-medium text-base">{item.title}</p>
+                    <p className="truncate font-medium">{item.title}</p>
                 </div>
             ),
             header: 'Runtime',
-            headerClassName: 'text-sm',
             id: 'runtime',
             isRowHeader: true,
             minWidth: 180,
@@ -99,7 +98,6 @@ function runtimeColumns(onViewPiUsage?: () => void): DataGridColumn<RuntimeUsage
                     <span className="truncate text-muted text-sm">{item.status}</span>
                 ),
             header: 'Weekly limit',
-            headerClassName: 'text-sm',
             id: 'limit',
             minWidth: 240,
         },
@@ -128,7 +126,6 @@ function runtimeColumns(onViewPiUsage?: () => void): DataGridColumn<RuntimeUsage
                     <UnsupportedMeter />
                 ),
             header: '5h limit',
-            headerClassName: 'text-sm',
             id: 'burst',
             minWidth: 190,
         },
@@ -149,7 +146,6 @@ function runtimeColumns(onViewPiUsage?: () => void): DataGridColumn<RuntimeUsage
                 ) : null;
             },
             header: 'Resets',
-            headerClassName: 'text-sm',
             id: 'resets',
             minWidth: 150,
         },

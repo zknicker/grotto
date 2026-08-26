@@ -93,7 +93,9 @@ public struct TaskListDestinationView: View {
     private var content: some View {
         switch state {
         case .loading:
-            ProgressView()
+            // Blank on purpose: the destination arrives empty and fills in one
+            // step, instead of flashing a spinner on fast loads.
+            Color.clear
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case let .loaded(items):
             VStack(spacing: 0) {
@@ -139,7 +141,11 @@ public struct TaskListDestinationView: View {
     }
 
     private func loadTasks() async {
-        state = .loading
+        // A refresh with content on screen keeps the loaded list rendered;
+        // only a not-yet-loaded destination enters the blank loading state.
+        if case .loaded = state {} else {
+            state = .loading
+        }
         errorMessage = nil
         do {
             let items = try await persistence.load()
@@ -149,7 +155,11 @@ public struct TaskListDestinationView: View {
             return
         } catch {
             guard !Task.isCancelled else { return }
-            state = .failed(error.localizedDescription)
+            if case .loaded = state {
+                errorMessage = error.localizedDescription
+            } else {
+                state = .failed(error.localizedDescription)
+            }
         }
     }
 

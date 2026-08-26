@@ -1,10 +1,17 @@
 import CoreGraphics
 
-/// Pure sizing logic for inline image attachment tiles. Fits the source image's
-/// pixel aspect ratio inside a square bound without upscaling past it.
+/// Pure sizing logic for inline image attachment tiles.
+///
+/// Every tile is exactly `tileHeight` tall — the placeholder and the decoded
+/// image share the same height for every aspect ratio, so a row never changes
+/// height when a decode lands and the timeline never jumps. Width tracks the
+/// source aspect ratio between `minWidth` and `maxDimension`; when the width
+/// clamps, the bitmap fill-crops inside the box instead of resizing it.
 enum AttachmentImageTileSize {
     static let maxDimension: CGFloat = 240
-    static let placeholderSize = CGSize(width: 240, height: 160)
+    static let tileHeight: CGFloat = 180
+    static let minWidth: CGFloat = 96
+    static let placeholderSize = CGSize(width: maxDimension, height: tileHeight)
 
     static func fitted(
         pixelWidth: Int,
@@ -13,9 +20,7 @@ enum AttachmentImageTileSize {
     ) -> CGSize {
         guard pixelWidth > 0, pixelHeight > 0 else { return placeholderSize }
         let aspect = CGFloat(pixelWidth) / CGFloat(pixelHeight)
-        if aspect >= 1 {
-            return CGSize(width: maxDimension, height: (maxDimension / aspect).rounded())
-        }
-        return CGSize(width: (maxDimension * aspect).rounded(), height: maxDimension)
+        let width = min(maxDimension, max(minWidth, (tileHeight * aspect).rounded()))
+        return CGSize(width: width, height: tileHeight)
     }
 }

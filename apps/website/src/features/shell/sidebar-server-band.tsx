@@ -12,6 +12,12 @@ import { ServerMenu } from './server-menu.tsx';
  * the shared shell band height so its midline matches the content topbar
  * across the divider, and the sidebar bottom stays reserved for live agent
  * activity.
+ *
+ * On the macOS desktop the settings action lifts out of this row into the
+ * titlebar strip beside the traffic lights, which is otherwise reserved space
+ * doing nothing. `shell.css` owns that move — the strip only exists there —
+ * and this row keeps one markup shape for both surfaces. The switcher then has
+ * the whole row, which is the width a long Server name needs.
  */
 export function SidebarServerBand({
     currentServer,
@@ -50,24 +56,26 @@ export function SidebarServerBand({
                     servers={servers}
                 />
             </div>
-            <Tooltip>
-                <Button
-                    aria-label="Settings"
-                    isIconOnly
-                    onHoverStart={onPreloadSettings}
-                    onPress={onOpenSettings}
-                    size="sm"
-                    variant="ghost"
-                >
-                    <Icon
-                        aria-hidden="true"
-                        className="text-muted"
-                        icon={Settings01Icon}
-                        size={shellNavigationIconSize}
-                    />
-                </Button>
-                <Tooltip.Content>Settings</Tooltip.Content>
-            </Tooltip>
+            <div className="app-shell-titlebar-action flex items-center">
+                <Tooltip>
+                    <Button
+                        aria-label="Settings"
+                        isIconOnly
+                        onHoverStart={onPreloadSettings}
+                        onPress={onOpenSettings}
+                        size="sm"
+                        variant="ghost"
+                    >
+                        <Icon
+                            aria-hidden="true"
+                            className="text-muted"
+                            icon={Settings01Icon}
+                            size={shellNavigationIconSize}
+                        />
+                    </Button>
+                    <Tooltip.Content>Settings</Tooltip.Content>
+                </Tooltip>
+            </div>
         </div>
     );
 }

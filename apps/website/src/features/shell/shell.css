@@ -157,6 +157,25 @@
         pointer-events: none;
     }
 
+    /*
+     * The titlebar strip is reserved space with one occupant: three native
+     * traffic lights on the leading edge. Settings lifts out of the row below
+     * into the space beside them, so the strip earns its height and the Server
+     * switcher gets the whole row it used to share.
+     *
+     * The move is a shell concern, not the row's — the strip only exists on
+     * this platform — so the row keeps one markup shape and this rule takes the
+     * action out of flow. Above the ::before band, and `app-region: no-drag`
+     * already reaches it as a button, so the strip stays draggable around it.
+     */
+    html.macos-electron .app-shell [data-slot='sidebar'] .app-shell-titlebar-action {
+        position: absolute;
+        z-index: 2;
+        inset-block-start: 0;
+        inset-inline-end: calc(var(--spacing) * 3);
+        height: var(--app-shell-titlebar-inset);
+    }
+
     html.macos-electron
         .app-shell
         [data-slot='sidebar'].sidebar--default::before {

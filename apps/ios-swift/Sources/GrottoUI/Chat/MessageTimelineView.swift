@@ -93,19 +93,26 @@ public struct MessageTimelineView: View {
                     isNearBottom = nearBottom
                 }
             }
-            .onChange(of: messages.last?.id) { _, latestMessageID in
+            .onChange(of: messages.last?.id) { previousMessageID, latestMessageID in
                 guard let latestMessageID else { return }
 
-                // Pending rows are created only for the viewer's outgoing
-                // sends. That lets a send reveal itself even if the user
-                // had scrolled slightly above the tail; other incoming
-                // messages respect the reader's current position.
-                guard isNearBottom || messages.last?.isPending == true else {
+                switch MessageTimelineTailScroll.decide(
+                    hadMessages: previousMessageID != nil,
+                    isNearBottom: isNearBottom,
+                    isLatestPending: messages.last?.isPending == true
+                ) {
+                case .ignore:
                     return
-                }
-
-                withAnimation(.easeOut(duration: 0.2)) {
-                    proxy.scrollTo(latestMessageID, anchor: .bottom)
+                case .snap:
+                    var transaction = Transaction()
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) {
+                        proxy.scrollTo(latestMessageID, anchor: .bottom)
+                    }
+                case .animate:
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo(latestMessageID, anchor: .bottom)
+                    }
                 }
             }
             .onChange(of: scrollTargetMessageID, initial: true) { _, _ in
@@ -262,40 +269,6 @@ public struct MessageTimelineView: View {
             && message.createdAt.timeIntervalSince(previous.createdAt) < 5 * 60
     }
 
-}
-
-/// Resolves a request to reveal one message against the loaded page.
-enum MessageTimelineScrollTarget {
-    enum Resolution: Equatable {
-        /// No page is loaded yet; keep the request until messages arrive.
-        case waiting
-        case reveal(String)
-        /// The loaded page does not contain the message; drop the request.
-        case unavailable
-    }
-
-    static func resolve(target: String, messageIDs: [String]) -> Resolution {
-        if messageIDs.isEmpty {
-            return .waiting
-        }
-        return messageIDs.contains(target) ? .reveal(target) : .unavailable
-    }
-}
-
-enum MessageTimelineScrollPosition {
-    private static let bottomTolerance: CGFloat = 80
-
-    static func isNearBottom(
-        contentHeight: CGFloat,
-        containerHeight: CGFloat,
-        visibleMaxY: CGFloat
-    ) -> Bool {
-        if contentHeight <= containerHeight + 1 {
-            return true
-        }
-
-        return visibleMaxY >= contentHeight - bottomTolerance
-    }
 }
 
 #Preview {

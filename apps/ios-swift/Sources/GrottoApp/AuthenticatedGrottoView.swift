@@ -13,6 +13,10 @@ struct AuthenticatedGrottoView: View {
     /// the Store's read acknowledgements always name the same Chat.
     @State private var selectedDestinationID: ChatDestination.ID?
     @State private var path: [GrottoRootRoute] = []
+    /// iOS reaches `.active` through `.inactive` from both a real suspension and
+    /// a Control Center pull or app-switcher peek. Only the first is a stale
+    /// cache, so the refresh waits for a phase run that actually backgrounded.
+    @State private var hasBackgrounded = false
     @AppStorage("appearancePreference") private var appearanceRawValue = AppearancePreference.system.rawValue
     @Environment(\.scenePhase) private var scenePhase
 
@@ -46,8 +50,16 @@ struct AuthenticatedGrottoView: View {
         }
         .task { await store.start() }
         .onChange(of: scenePhase) { _, phase in
-            guard phase == .active else { return }
-            Task { await store.resumeAfterForeground() }
+            switch phase {
+            case .background:
+                hasBackgrounded = true
+            case .active:
+                guard hasBackgrounded else { return }
+                hasBackgrounded = false
+                Task { await store.resumeAfterForeground() }
+            default:
+                break
+            }
         }
     }
 
@@ -141,20 +153,16 @@ struct AuthenticatedGrottoView: View {
                         threadDestination(thread)
                     }
                 }
-                .onChange(of: path) { previous, current in
+                .onChange(of: path) { _, current in
                     guard !current.carriesThread else { return }
                     selectedThread = nil
-                    // The shell selection is the source of truth for what the
-                    // canvas shows once a Thread pops.
-                    guard previous.carriesThread,
-                          case .chat(let chatID) = selectedDestinationID else { return }
-                    Task { await store.openChat(chatID: chatID) }
                 }
-                .onChange(of: selectedDestinationID) { _, destinationID in
-                    // A pushed Thread owns the open Chat while it is on screen.
-                    guard selectedThread == nil,
-                          case .chat(let chatID) = destinationID else { return }
-                    Task { await store.openChat(chatID: chatID) }
+                // One load at a time: selecting another Chat cancels the load
+                // the previous selection started, so a slow `chat.list` behind a
+                // stale read acknowledgement cannot land after a newer one.
+                .task(id: canvasChatID) {
+                    guard let canvasChatID else { return }
+                    await store.openChat(chatID: canvasChatID)
                 }
                 .preferredColorScheme(preferredColorScheme)
             }
@@ -165,6 +173,15 @@ struct AuthenticatedGrottoView: View {
                 description: Text("Create a channel from the sidebar, or message an Agent once one joins this Server.")
             )
         }
+    }
+
+    /// The Chat the canvas has to have open. A pushed Thread or the Tasks list
+    /// covers the canvas and owns the open Chat while it is on screen.
+    private var canvasChatID: String? {
+        ChatCanvasOpen.chatID(
+            selectedID: selectedDestinationID,
+            isCovered: !path.isEmpty || selectedThread != nil
+        )
     }
 
     private var appearanceBinding: Binding<AppearancePreference> {
@@ -178,6 +195,8 @@ struct AuthenticatedGrottoView: View {
         (AppearancePreference(rawValue: appearanceRawValue) ?? .system).colorScheme
     }
 
+    /// A Thread opened from the canvas pops back to the canvas, so the canvas
+    /// underneath has to be its parent Chat.
     private func openThread(_ chat: ChatPresentation, _ anchor: MessagePresentation) {
         pushThread(
             ThreadSelection(
@@ -185,13 +204,16 @@ struct AuthenticatedGrottoView: View {
                 threadChatID: anchor.thread?.threadChatID,
                 anchor: anchor
             ),
-            parentChatID: chat.id
+            selectingParent: chat.id
         )
     }
 
-    /// Opening a Task is one move: the parent Chat selection and the Thread push
-    /// have to happen together, or popping the Thread lands on whichever Chat
-    /// was selected before.
+    /// A Thread opened from the Tasks list pops back to the Tasks list, and the
+    /// Task's parent Chat may be one the user has never visited. Selecting it
+    /// would mark it read on the way back out and strand the user in it once the
+    /// Tasks list pops, so this route leaves the canvas selection alone. The
+    /// Thread needs no selection of its own: its route carries the parent Chat
+    /// id and the Task carries the child Chat id.
     private func openTask(_ item: TaskListItem) {
         guard let anchor = store.taskMessagePresentation(item) else { return }
         pushThread(
@@ -200,12 +222,14 @@ struct AuthenticatedGrottoView: View {
                 threadChatID: item.task.threadChatID,
                 anchor: anchor
             ),
-            parentChatID: item.message.chatID
+            selectingParent: nil
         )
     }
 
-    private func pushThread(_ thread: ThreadSelection, parentChatID: String) {
-        selectedDestinationID = .chat(parentChatID)
+    private func pushThread(_ thread: ThreadSelection, selectingParent parentChatID: String?) {
+        if let parentChatID {
+            selectedDestinationID = .chat(parentChatID)
+        }
         selectedThread = thread
         path.append(.thread(thread))
     }

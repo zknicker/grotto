@@ -22,13 +22,14 @@ extension GrottoShellView {
         activeChatSheet = nil
     }
 
+    /// Every sidebar entry point leaves the drawer open behind the surface it
+    /// presents: closing it in the same frame runs two animations at once, and
+    /// dismissing would land on a canvas the user never asked to return to.
     func openSettings() {
-        setDrawer(open: false)
         settingsRequest = SettingsPresentationRequest(path: [])
     }
 
     func openTasks() {
-        setDrawer(open: false)
         onOpenTasks()
     }
 

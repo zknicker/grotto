@@ -32,7 +32,11 @@ public struct GrottoShellView<SettingsContent: View>: View {
     @State var queuedSettingsRequest: SettingsPresentationRequest?
     @State var activeChatSheet: GrottoShellSheet?
     @State var pendingChatSelectionID: String?
-    @State private var scrollTarget: MessageScrollTarget?
+    /// Composer drafts live above the canvas: the canvas is keyed by
+    /// destination, so a Chat switch remounts the screen and anything the
+    /// screen owned would go with it.
+    @State var drafts: [ChatDestination.ID: String] = [:]
+    @State var scrollTarget: MessageScrollTarget?
     @State var dragTranslation: CGFloat?
     @Environment(\.colorScheme) private var colorScheme
 
@@ -129,6 +133,7 @@ public struct GrottoShellView<SettingsContent: View>: View {
                     ChatScreenView(
                         chat: selectedDestination,
                         messages: messagesForDestination(selectedDestination),
+                        draft: draftBinding(for: selectedDestination),
                         isConnected: isConnected,
                         onOpenSidebar: { setDrawer(open: !drawerPresented) },
                         onOpenChatDetails: { activeChatSheet = .details(selectedDestination) },
@@ -150,6 +155,18 @@ public struct GrottoShellView<SettingsContent: View>: View {
                         contentInsets: proxy.safeAreaInsets,
                         scrollTargetMessageID: scrollTargetBinding(for: selectedDestination)
                     )
+                    // Each Chat gets its own screen. Reusing one screen carried
+                    // the previous Chat's scroll offset and transcript state
+                    // into the next one, and left `defaultScrollAnchor(.bottom)`
+                    // unapplied; a fresh screen lays out bottom-anchored before
+                    // the drawer reveals it.
+                    .id(selectedDestination.id)
+                    // Selecting a Chat closes the drawer in an animated
+                    // transaction, and an identity swap inside one picks up
+                    // SwiftUI's default opacity transition. The drawer's own
+                    // motion is the transition; the canvas behind it is already
+                    // the next Chat, fully formed.
+                    .transition(.identity)
                     .overlay {
                         let progress = drawerProgress(drawerWidth: drawerWidth)
                         if progress > 0 {
@@ -237,16 +254,6 @@ public struct GrottoShellView<SettingsContent: View>: View {
             self.selectedDestinationID = destinationIDs.first
             return
         }
-    }
-
-    private func scrollTargetBinding(for destination: ChatDestination) -> Binding<String?> {
-        Binding(
-            get: {
-                guard case .chat(let chatID) = destination.id else { return nil }
-                return scrollTarget?.chatID == chatID ? scrollTarget?.messageID : nil
-            },
-            set: { if $0 == nil { scrollTarget = nil } }
-        )
     }
 
     private func agentActivity(for chat: ChatDestination) -> AgentActivityPresentation? {

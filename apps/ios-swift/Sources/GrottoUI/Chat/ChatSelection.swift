@@ -21,6 +21,20 @@ public enum ChatSelection {
     }
 }
 
+/// Which Chat the shell canvas is responsible for opening on the Server.
+///
+/// A pushed route — a Thread or the Tasks list — covers the canvas and owns the
+/// open Chat while it is on screen, so the canvas stands down entirely rather
+/// than loading and acknowledging reads for a Chat nobody is looking at. When
+/// the stack empties the canvas is the visible surface again and re-opens
+/// whatever it is showing.
+public enum ChatCanvasOpen {
+    public static func chatID(selectedID: ChatDestination.ID?, isCovered: Bool) -> String? {
+        guard !isCovered, case .chat(let chatID) = selectedID else { return nil }
+        return chatID
+    }
+}
+
 /// A request to reveal one message inside a Chat. The Chat id travels with the
 /// message id so a request cannot land on whichever Chat happens to be open.
 public struct MessageScrollTarget: Hashable, Sendable {

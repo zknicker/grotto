@@ -18,7 +18,9 @@ public struct ChatScreenView: View {
     private let contentInsets: EdgeInsets
 
     @Binding private var scrollTargetMessageID: String?
-    @State private var draft = ""
+    /// The draft is owned above this screen, which is remounted per Chat, so a
+    /// half-typed message survives a switch away and back.
+    @Binding private var draft: String
     @State private var composerInteraction = ComposerInteraction()
     @FocusState private var isComposerFocused: Bool
     @Namespace private var composerTransitionNamespace
@@ -26,6 +28,7 @@ public struct ChatScreenView: View {
     public init(
         chat: ChatDestination,
         messages: [MessagePresentation],
+        draft: Binding<String>,
         isConnected: Bool,
         onOpenSidebar: @escaping () -> Void,
         onOpenChatDetails: @escaping () -> Void,
@@ -45,6 +48,7 @@ public struct ChatScreenView: View {
         scrollTargetMessageID: Binding<String?> = .constant(nil)
     ) {
         _scrollTargetMessageID = scrollTargetMessageID
+        _draft = draft
         self.chat = chat
         self.messages = messages
         self.isConnected = isConnected
@@ -168,9 +172,12 @@ private extension ChatKind {
 }
 
 #Preview {
+    @Previewable @State var draft = ""
+
     ChatScreenView(
         chat: .durableChat(ChatFixtures.chats[1]),
         messages: ChatFixtures.messages,
+        draft: $draft,
         isConnected: true,
         onOpenSidebar: {},
         onOpenChatDetails: {},

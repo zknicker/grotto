@@ -669,7 +669,7 @@ export async function markAccepted(
                 eq(agentDeliveryTable.activeRunId, input.runId),
                 isNull(agentDeliveryTable.acceptedAt)
             )
-    );
+        );
     await markPendingAccepted(db, input);
     await markActionPendingServed(db, input);
 }

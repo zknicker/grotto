@@ -174,18 +174,22 @@ duplicated inside the ingress.
 
 Tasks are Server work, not a settings screen. The sidebar opens the Task list as a push on the root
 navigation stack, and opening a Task row pushes its Thread on top of that list, so Back walks Thread
-→ Task list → Chat canvas. Opening a Task selects the Task's parent Chat and pushes the Thread
-together in one move; splitting those writes would return the popped stack to whichever Chat was
-selected before. A pushed Thread owns the open Chat while it is on screen, and the shell's Chat
-selection resumes ownership when it pops.
+→ Task list → Chat canvas. Opening a Task leaves the canvas selection alone — its route carries the
+parent Chat id and the Task carries the child Chat id, so selecting the parent would mark a channel
+the user never visited as read and strand them there once the Tasks list pops. A pushed Thread owns
+the open Chat while it is on screen, and the shell's Chat selection resumes ownership when it pops;
+the covered canvas Chat stays named so its page keeps refreshing underneath, but read
+acknowledgements belong to the deepest surface alone.
 
 Swift optimistic Chat and Thread rows remain app-local and keyed by the client nonce. Thread replies
 use the canonical parent Chat plus anchor-message contract. A failed mutation removes its optimistic
 row and restores the exact draft, while a successful row remains pending until a refreshed Server
 page contains the matching nonce. On returning to the foreground, the app keeps cached presentation
-visible, refetches its Server snapshot in one gathered pass — applied as a single repaint, with only
-the open Chat's message page refetched eagerly; the event walk and `openChat` cover the rest — then
-restarts live Chat and Agent lifecycle streams. A voluntary refresh keeps the connected state;
+visible, refetches its Server snapshot in one gathered pass — applied as a single repaint, with
+every Chat surface on the stack refetched eagerly: the deepest open Chat first, then the canvas Chat
+underneath it, so popping a Thread reveals a parent that is already fresh instead of one round trip
+stale; the event walk and `openChat` cover the rest — then restarts live Chat and Agent lifecycle
+streams. A voluntary refresh keeps the connected state;
 offline is what a failed refresh or a broken stream reports. Live SSE Chat events coalesce for a
 short window (`ChatEventCoalescer`) before the existing batch applier runs, so a burst lands as one
 refetch fan-out rather than one per frame.

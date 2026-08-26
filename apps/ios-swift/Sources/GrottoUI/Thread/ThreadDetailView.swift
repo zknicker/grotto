@@ -18,6 +18,7 @@ public struct ThreadDetailView: View {
 
     @State private var draft = ""
     @State private var preservedTopReplyID: String?
+    @State private var isNearBottom = true
     @State private var composerInteraction = ComposerInteraction()
     @FocusState private var isComposerFocused: Bool
     @Namespace private var composerTransitionNamespace
@@ -149,6 +150,38 @@ public struct ThreadDetailView: View {
                         .scrollDismissesKeyboard(.interactively)
                         .contentShape(.rect)
                         .simultaneousGesture(TapGesture().onEnded { isComposerFocused = false })
+                        .defaultScrollAnchor(.bottom)
+                        .onScrollGeometryChange(for: Bool.self) { geometry in
+                            ThreadReplyScrollPosition.isNearBottom(
+                                contentHeight: geometry.contentSize.height,
+                                containerHeight: geometry.containerSize.height,
+                                visibleMaxY: geometry.visibleRect.maxY
+                            )
+                        } action: { _, nearBottom in
+                            isNearBottom = nearBottom
+                        }
+                        .onChange(of: replies.last?.id) { previousLatestID, latestReplyID in
+                            guard let latestReplyID else { return }
+
+                            switch ThreadReplyReveal.onLatestReplyChange(
+                                previousLatestID: previousLatestID,
+                                isNearBottom: isNearBottom,
+                                latestIsPending: replies.last?.isPending == true
+                            ) {
+                            case .settle:
+                                var transaction = Transaction()
+                                transaction.disablesAnimations = true
+                                withTransaction(transaction) {
+                                    proxy.scrollTo(latestReplyID, anchor: .bottom)
+                                }
+                            case .animate:
+                                withAnimation(.easeOut(duration: 0.2)) {
+                                    proxy.scrollTo(latestReplyID, anchor: .bottom)
+                                }
+                            case .stay:
+                                break
+                            }
+                        }
                         .onChange(of: replies.count) { _, _ in
                             guard let preservedTopReplyID else { return }
                             self.preservedTopReplyID = nil
@@ -198,6 +231,52 @@ public struct ThreadDetailView: View {
         .grottoInlineNavigationTitle()
     }
 
+}
+
+/// Decides how the thread transcript responds when its latest reply changes.
+///
+/// Local to the Thread surface on purpose: the chat timeline owns its own
+/// parallel rule, and the two surfaces may diverge.
+enum ThreadReplyReveal: Equatable {
+    /// The first page just arrived; place it at the bottom with no animation
+    /// so the thread appears already settled.
+    case settle
+    /// Reveal the latest reply with a short animated scroll.
+    case animate
+    /// Leave the reader where they are.
+    case stay
+
+    static func onLatestReplyChange(
+        previousLatestID: String?,
+        isNearBottom: Bool,
+        latestIsPending: Bool
+    ) -> ThreadReplyReveal {
+        if previousLatestID == nil {
+            return .settle
+        }
+        // Pending rows exist only for the viewer's outgoing sends, so a send
+        // always reveals itself; other appends respect the reader's position.
+        if latestIsPending || isNearBottom {
+            return .animate
+        }
+        return .stay
+    }
+}
+
+/// Mirror of the chat timeline's near-bottom rule, owned by the Thread surface.
+enum ThreadReplyScrollPosition {
+    private static let bottomTolerance: CGFloat = 80
+
+    static func isNearBottom(
+        contentHeight: CGFloat,
+        containerHeight: CGFloat,
+        visibleMaxY: CGFloat
+    ) -> Bool {
+        if contentHeight <= containerHeight + 1 {
+            return true
+        }
+        return visibleMaxY >= contentHeight - bottomTolerance
+    }
 }
 
 #Preview("Thread") {

@@ -73,7 +73,9 @@ public struct ArchivedChannelsView: View {
     private var content: some View {
         switch state {
         case .loading:
-            ProgressView()
+            // Blank on purpose: the sheet arrives empty and fills in one
+            // step, instead of flashing a spinner on fast loads.
+            Color.clear
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case let .loaded(channels):
             if channels.isEmpty {
@@ -120,7 +122,11 @@ public struct ArchivedChannelsView: View {
     }
 
     private func loadChannels() async {
-        state = .loading
+        // A refresh with content on screen keeps the loaded list rendered;
+        // only a not-yet-loaded sheet enters the blank loading state.
+        if case .loaded = state {} else {
+            state = .loading
+        }
         errorMessage = nil
         do {
             let channels = try await load()
@@ -130,7 +136,11 @@ public struct ArchivedChannelsView: View {
             return
         } catch {
             guard !Task.isCancelled else { return }
-            state = .failed(error.localizedDescription)
+            if case .loaded = state {
+                errorMessage = error.localizedDescription
+            } else {
+                state = .failed(error.localizedDescription)
+            }
         }
     }
 

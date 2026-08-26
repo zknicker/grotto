@@ -25,7 +25,9 @@ struct AuthBoundaryView: View {
             }
             #endif
         }
-        .animation(.snappy, value: hasUsableSession(clerk.session))
+        // Deliberately no implicit animation here: its branches are the whole
+        // authenticated app vs the sign-in screen, and animating that value
+        // crossfaded the entire app on any session change.
     }
 }
 

@@ -531,13 +531,16 @@ Two rules that are easy to get wrong:
   `components/ui/entity-avatar.tsx` does this for identity marks. Note it deliberately
   normalizes where HeroUI itself is inconsistent (Avatar `md` is 40px at ×3, off the ratio
   its siblings share).
-- **A control's tier follows its job, not its component.** HeroUI assigns the tier by
-  component family, so a Select is a field (`×1.5`) even when it is doing a button's work.
-  Set beside a ToggleButtonGroup in a filter bar it shows a visibly different corner — the
-  two are two tiers apart. When a field-family control serves as a toolbar filter rather
-  than form input, give it the pill step through `--field-radius` scoped to that control
-  (`agent-usage-scope.tsx`). Never move `--field-radius` globally for one control's sake:
-  real form fields belong on the field tier.
+- **A control's chrome follows its job, not its component.** HeroUI dresses a control by
+  component family: input-family controls get field chrome — the `×1.5` radius tier, a
+  `--field-border` hairline, `--field-shadow` — and buttons get pill chrome at `×3` with
+  neither. So a Select set beside a ToggleButtonGroup in a filter bar reads as the heavier,
+  larger control even at the same background and height, because an outline enlarges what
+  it wraps. When a field-family control serves as a toolbar filter rather than form input,
+  move it onto the pill tier through the variables HeroUI exposes — `--field-radius`,
+  `--border-width-field`, and `variant="secondary"` for the shadow — scoped to that control
+  (`agent-usage-scope.tsx`). Never move those tokens globally for one control's sake: real
+  form fields belong in field chrome.
 - **Some things opt out.** A status dot is a dot at every radius: `.badge:empty` — and only
   the empty case, which is HeroUI's own definition of a dot — is pinned to a full radius in
   the component-overrides block of `styles/default-theme.css`. A Badge carrying a count or a

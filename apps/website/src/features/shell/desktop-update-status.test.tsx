@@ -13,7 +13,7 @@ describe('desktop update footer', () => {
         );
         expect(renderStatus({ phase: 'ready', version: '1.9.0' })).toContain('Restart to update');
         expect(renderStatus({ message: 'No network', phase: 'error' })).toContain(
-            'Update failed · Retry'
+            'Update failed. Retry'
         );
     });
 
@@ -21,6 +21,24 @@ describe('desktop update footer', () => {
         expect(renderStatus({ phase: 'current' })).toBe('');
         expect(renderStatus({ phase: 'checking' })).toBe('');
         expect(renderStatus({ phase: 'unsupported' })).toBe('');
+    });
+
+    test('renders active updates as full-opacity icon statuses instead of disabled buttons', () => {
+        const downloading = renderStatus({
+            phase: 'downloading',
+            progress: 0.42,
+            version: '1.9.0',
+        });
+        const restarting = renderStatus({ phase: 'restarting', version: '1.9.0' });
+
+        for (const status of [downloading, restarting]) {
+            expect(status).toContain(
+                'class="button button--icon-only button--primary button--sm pointer-events-none"'
+            );
+            expect(status).not.toContain('<button');
+            expect(status).not.toContain('disabled');
+            expect(status).not.toContain('role="status"');
+        }
     });
 });
 

@@ -1,4 +1,6 @@
-import { Button, ProgressCircle } from '@heroui/react';
+import { Button, ProgressCircle, Tooltip } from '@heroui/react';
+import { Alert01Icon, Download04Icon, ReloadIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { Icon } from '../../components/ui/icon.tsx';
 import type { DesktopUpdateStatus } from '../../hooks/desktop/use-desktop-update.ts';
 
 export function DesktopUpdateStatusControl({
@@ -13,37 +15,42 @@ export function DesktopUpdateStatusControl({
     switch (status.phase) {
         case 'available':
             return (
-                <Button onPress={onUpdate} size="sm" variant="secondary">
-                    Update available
-                </Button>
+                <Tooltip delay={0}>
+                    <Button aria-label="Update available" isIconOnly onPress={onUpdate} size="sm">
+                        <Icon icon={Download04Icon} />
+                    </Button>
+                    <Tooltip.Content placement="top">Update available</Tooltip.Content>
+                </Tooltip>
             );
         case 'downloading': {
             const percentage = Math.round(status.progress * 100);
-            return (
-                <Button aria-label={`Downloading update, ${percentage}%`} isDisabled size="sm">
-                    <UpdateProgress value={percentage} />
-                    Updating · {percentage}%
-                </Button>
-            );
+            return <UpdateProgressStatus label={`Updating · ${percentage}%`} value={percentage} />;
         }
         case 'ready':
             return (
-                <Button onPress={onUpdate} size="sm">
-                    Restart to update
-                </Button>
+                <Tooltip delay={0}>
+                    <Button aria-label="Restart to update" isIconOnly onPress={onUpdate} size="sm">
+                        <Icon icon={ReloadIcon} />
+                    </Button>
+                    <Tooltip.Content placement="top">Restart to update</Tooltip.Content>
+                </Tooltip>
             );
         case 'restarting':
-            return (
-                <Button aria-label="Restarting to finish the update" isDisabled size="sm">
-                    <UpdateProgress isIndeterminate />
-                    Restarting…
-                </Button>
-            );
+            return <UpdateProgressStatus isIndeterminate label="Restarting…" />;
         case 'error':
             return (
-                <Button onPress={onCheck} size="sm" variant="secondary">
-                    Update failed · Retry
-                </Button>
+                <Tooltip delay={0}>
+                    <Button
+                        aria-label="Update failed. Retry"
+                        isIconOnly
+                        onPress={onCheck}
+                        size="sm"
+                        variant="danger-soft"
+                    >
+                        <Icon icon={Alert01Icon} />
+                    </Button>
+                    <Tooltip.Content placement="top">Update failed · Retry</Tooltip.Content>
+                </Tooltip>
             );
         case 'checking':
         case 'current':
@@ -51,6 +58,28 @@ export function DesktopUpdateStatusControl({
         case 'unsupported':
             return null;
     }
+}
+
+function UpdateProgressStatus({
+    isIndeterminate = false,
+    label,
+    value = 0,
+}: {
+    isIndeterminate?: boolean;
+    label: string;
+    value?: number;
+}) {
+    return (
+        <div
+            className="button button--icon-only button--primary button--sm pointer-events-none"
+            title={label}
+        >
+            <span className="sr-only">{label}</span>
+            <span aria-hidden="true" className="contents">
+                <UpdateProgress isIndeterminate={isIndeterminate} value={value} />
+            </span>
+        </div>
+    );
 }
 
 function UpdateProgress({
@@ -68,8 +97,8 @@ function UpdateProgress({
             value={value}
         >
             <ProgressCircle.Track>
-                <ProgressCircle.TrackCircle />
-                <ProgressCircle.FillCircle />
+                <ProgressCircle.TrackCircle className="stroke-current opacity-30" />
+                <ProgressCircle.FillCircle className="stroke-current" />
             </ProgressCircle.Track>
         </ProgressCircle>
     );

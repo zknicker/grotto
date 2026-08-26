@@ -1,6 +1,6 @@
 import type { ChatMessage } from '@grotto/api';
 import { Button, Tooltip } from '@heroui/react';
-import { Attachment01Icon, Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Attachment01Icon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ChatSidePaneShell } from '../../chats/chat-side-pane-shell.tsx';
 import { bandHeightClassName, shellBandIconSize } from '../../shell/section-header.tsx';
@@ -40,7 +40,11 @@ export function ChatFilesPanel({
                                 size="sm"
                                 variant="ghost"
                             >
-                                <Icon icon={Cancel01Icon} size={shellBandIconSize} />
+                                <Icon
+                                    className="rotate-45"
+                                    icon={PlusSignIcon}
+                                    size={shellBandIconSize}
+                                />
                             </Button>
                             <Tooltip.Content>Close files</Tooltip.Content>
                         </Tooltip>

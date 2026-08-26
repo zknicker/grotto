@@ -4,10 +4,10 @@ import {
     ArrowDown01Icon,
     ArrowLeft01Icon,
     ArrowUpRight01Icon,
-    Cancel01Icon,
     Copy01Icon,
     Notification01Icon,
     NotificationOff01Icon,
+    PlusSignIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
@@ -139,7 +139,12 @@ export function ThreadPanelHeader({
                     size="sm"
                     variant="ghost"
                 >
-                    <Icon aria-hidden="true" icon={Cancel01Icon} size={shellBandIconSize} />
+                    <Icon
+                        aria-hidden="true"
+                        className="rotate-45"
+                        icon={PlusSignIcon}
+                        size={shellBandIconSize}
+                    />
                 </Button>
                 <Tooltip.Content>Close thread</Tooltip.Content>
             </Tooltip>

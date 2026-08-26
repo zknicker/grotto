@@ -1,9 +1,9 @@
 import { Button, Dropdown, Label, ScrollShadow, Separator } from '@heroui/react';
 import {
-    Cancel01Icon,
     File01Icon,
     Link01Icon,
     MoreHorizontalIcon,
+    PlusSignIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
@@ -68,7 +68,7 @@ export function ArtifactPanelChrome({
                     size="sm"
                     variant="ghost"
                 >
-                    <Icon icon={Cancel01Icon} size={shellBandIconSize} />
+                    <Icon className="rotate-45" icon={PlusSignIcon} size={shellBandIconSize} />
                 </Button>
             )}
         </div>

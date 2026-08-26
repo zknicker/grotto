@@ -1,7 +1,7 @@
 import type { Agent } from '@grotto/api';
 import { Button, Tooltip } from '@heroui/react';
 import { Segment } from '@heroui-pro/react';
-import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
@@ -158,7 +158,12 @@ function AgentProfileTabs({
                             size="sm"
                             variant="ghost"
                         >
-                            <Icon aria-hidden="true" icon={Cancel01Icon} size={shellBandIconSize} />
+                            <Icon
+                                aria-hidden="true"
+                                className="rotate-45"
+                                icon={PlusSignIcon}
+                                size={shellBandIconSize}
+                            />
                         </Button>
                         <Tooltip.Content>Close</Tooltip.Content>
                     </Tooltip>

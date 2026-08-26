@@ -20,7 +20,6 @@ import {
     preparedActionsTable,
 } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import { insertMessageCreatedEvent, insertPreparedActionEvent } from './events.ts';
 import { assertFreshAgentView } from './freshness.ts';
 import { assertIdempotentProposal, readActionByNonce } from './idempotency.ts';
@@ -113,7 +112,7 @@ async function prepareAgentActionInTransaction(
     await assertFreshAgentView(db, runner, input.chatId);
 
     const [agent] = await db
-        .select({ displayName: agentsTable.displayName, handle: agentsTable.handle })
+        .select({ handle: agentsTable.handle })
         .from(agentsTable)
         .where(
             and(
@@ -206,14 +205,6 @@ async function prepareAgentActionInTransaction(
             serverId: input.serverId,
             threadChatId: input.chatId,
         });
-        if (chat.parentChatId) {
-            await autoFollowThreadMentions(db, {
-                content: '',
-                parentChatId: chat.parentChatId,
-                serverId: input.serverId,
-                threadChatId: input.chatId,
-            });
-        }
     }
 
     const recipients = await planAgentMessageRecipients(db, {

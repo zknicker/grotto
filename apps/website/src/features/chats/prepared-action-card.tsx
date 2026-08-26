@@ -112,7 +112,7 @@ function AgentCreateActionCard({
     );
 }
 
-export function PreparedActionCardShell({
+function PreparedActionCardShell({
     action,
     children,
     proposer,

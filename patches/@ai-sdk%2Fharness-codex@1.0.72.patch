@@ -1,0 +1,32 @@
+diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
+index 6c1c509f21a94baff377a92383adf1b52c5b5f1e..5d90668f5d8f9bda833bf6a2c9909785ca99a32d 100644
+--- a/dist/bridge/index.mjs
++++ b/dist/bridge/index.mjs
+@@ -744,9 +744,8 @@ function createEmitStreamEvent({
+       return;
+     }
+     if (event.type === "error") {
+-      emitError({
+-        error: event.message ?? "codex error",
+-        message: "codex stream error"
++      emitWarning({
++        message: event.message ?? "codex stream warning"
+       });
+       return;
+     }
+diff --git a/src/bridge/create-emit-stream-event.ts b/src/bridge/create-emit-stream-event.ts
+index 0a53589ee0cb532bfbc7141275aa97e099e69d7d..93556420342fa9be772c21bacd65009b45aa6349 100644
+--- a/src/bridge/create-emit-stream-event.ts
++++ b/src/bridge/create-emit-stream-event.ts
+@@ -96,9 +96,8 @@ export function createEmitStreamEvent({
+       return;
+     }
+     if (event.type === 'error') {
+-      emitError({
+-        error: event.message ?? 'codex error',
+-        message: 'codex stream error',
++      emitWarning({
++        message: event.message ?? 'codex stream warning',
+       });
+       return;
+     }

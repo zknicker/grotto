@@ -77,6 +77,16 @@ test('Computer embeds every packaged harness bridge asset', async () => {
     await expect(validateComputerBridgeAssets()).resolves.toBeUndefined();
 });
 
+test('Codex bridge keeps recoverable transport errors distinct from failed turns', async () => {
+    const bootstrap = await withComputerBridgeBootstrap(createCodex(), 'codex').getBootstrap?.();
+    const bridge = bootstrap?.files?.find((file) => file.path.endsWith('/bridge.mjs'))?.content;
+
+    expect(bridge).toContain('codex stream warning');
+    expect(bridge).toContain('emitWarning');
+    expect(bridge).toContain('codex turn failed');
+    expect(bridge).toContain('emitError');
+});
+
 test('Claude Code bridge captures structured plan usage only when Computer leases a refresh', async () => {
     const bootstrap = await withComputerBridgeBootstrap(
         createClaudeCode(),

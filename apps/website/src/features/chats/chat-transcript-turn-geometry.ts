@@ -4,5 +4,5 @@ export const transcriptTurnGeometry = {
     body: 'gap-0',
     header: 'flex min-w-0 max-w-full items-center gap-2 text-muted text-xs',
     name: 'shrink-0 truncate font-semibold text-sm leading-5',
-    row: '-mx-5 relative w-[calc(100%+2.5rem)] px-5 py-2',
+    row: '-mx-5 relative px-5 py-2',
 } as const;

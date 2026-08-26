@@ -27,6 +27,10 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
     const dialog = page.getByRole('dialog', { name: 'Task #1 thread' });
     await expect(dialog.getByRole('region', { name: 'Task #1 details' })).toBeVisible();
     await expect(dialog.getByText('Prove the hosted task flow', { exact: true })).toBeVisible();
+    const threadViewport = dialog.locator('.overflow-y-auto');
+    await expect
+        .poll(() => threadViewport.evaluate((element) => element.scrollWidth - element.clientWidth))
+        .toBeLessThanOrEqual(0);
     await dialog.getByRole('button', { name: 'Close thread' }).click();
     await expect(dialog).toHaveCount(0);
 

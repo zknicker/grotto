@@ -187,7 +187,17 @@ the open Chat's message page refetched eagerly; the event walk and `openChat` co
 restarts live Chat and Agent lifecycle streams. A voluntary refresh keeps the connected state;
 offline is what a failed refresh or a broken stream reports. Live SSE Chat events coalesce for a
 short window (`ChatEventCoalescer`) before the existing batch applier runs, so a burst lands as one
-refetch fan-out rather than one per frame. Chat and Thread timelines page older history through the existing
+refetch fan-out rather than one per frame.
+
+The Chat projections the shell renders every frame — message rows and the destination list — are
+memoized in the Store behind a structural invalidation contract: their input fields are stored
+privately in `GrottoStore` and published through accessors whose setters drop equal-value writes and
+retire exactly the cached projections that field feeds. A new field a projection reads must join
+that "Projected Server state" block, and a projection must read its observable inputs before its
+cache check so a cached answer leaves the calling view subscribed to exactly what a rebuilt one
+would. Optimistic rows adopt the canonical Server message id from the send receipt, so a pending
+row's presentation id is a real Server id from that moment and its ForEach identity never changes
+when the durable row arrives. Chat and Thread timelines page older history through the existing
 `beforeSequence` cursor, merge overlapping pages by message id in Server sequence order, and preserve
 the prior top row as the scroll anchor. The Swift prototype keeps one in-memory cursor per active
 Server, walks `chat.events` from that cursor on reconnect, and refetches loaded affected Chat pages.
@@ -314,10 +324,14 @@ it would need is the one element that cannot sit on the rail with the rest.
 An unread chat hangs a disc off the sidebar's leading edge and lets that edge cut it in half, so
 what shows is a nub in the margin. The clip is load-bearing, which is why the rail inset rides on
 the scrolling list rather than on the scroll view: the scroll view has to reach the sidebar's own
-leading edge, or its bounds cut the marker away before the sidebar edge can halve it. Chat details for an Agent opens the same sheet already
-pushed to that Agent's profile. A deep link seeds the sheet's navigation path, so the hub stays behind the
-pushed screen and the system back button returns to it. The Chat details sheet and the Settings sheet
-are mutually exclusive: details dismisses first and Settings presents from its dismissal. The Settings
+leading edge, or its bounds cut the marker away before the sidebar edge can halve it. The Chat
+details sheet pushes a read-only Agent profile on its own `NavigationStack` — the chevron row is a
+real push, and the sheet grows to the large detent for it — so inspection never leaves the sheet.
+Editing does: the pushed profile's "Manage in Settings" row is the one details-to-Settings hop, and
+it keeps the original choreography — the two sheets are mutually exclusive, so details dismisses
+first and Settings presents from its dismissal, seeded to that Agent's Settings profile. A deep link
+seeds the Settings sheet's navigation path, so the hub stays behind the pushed screen and the system
+back button returns to it. The Settings
 hub reads lightweight Server, Agent, member, and Computer projections; profile screens own focused
 identity mutations; and long-form values use dedicated editors. Appearance is app-local presentation state and never creates or updates
 Server state. Desktop-only operational surfaces remain out of the iPhone information architecture until

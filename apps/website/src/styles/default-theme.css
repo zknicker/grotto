@@ -225,8 +225,11 @@
     /*
      * The expanded prompt composer is a persistent foreground shell at ×5.
      * Its collapsed row becomes a true round capsule whose arc is concentric
-     * with the circular actions, then HeroUI's stock radius transition morphs
-     * it into the global squircle tier as the editor grows.
+     * with the circular actions, then moves into the global squircle tier as
+     * the editor wraps, then returns to the capsule when it fits the compact
+     * width again. The shell changes geometry on one short curve; the editor
+     * layer uses a FLIP transform so its text and native caret keep one
+     * continuous path across the grid/flex handoff.
      */
     .prompt-input__shell,
     .prompt-input[data-layout="compact"] .prompt-input__shell--compact,
@@ -242,6 +245,24 @@
         .prompt-input__shell--compact:not(:has(.prompt-input__attachments > *)) {
         border-radius: calc(var(--spacing) * 6);
         corner-shape: round;
+    }
+
+    .prompt-input[data-layout="compact"] .prompt-input__shell--compact {
+        transition:
+            background-color 150ms var(--ease-smooth),
+            border-color 150ms var(--ease-smooth),
+            border-radius 100ms var(--ease-out),
+            box-shadow 150ms var(--ease-out),
+            min-height 100ms var(--ease-out);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .prompt-input[data-layout="compact"] .prompt-input__shell--compact {
+            transition:
+                background-color 150ms var(--ease-smooth),
+                border-color 150ms var(--ease-smooth),
+                box-shadow 150ms var(--ease-out);
+        }
     }
 
     /*

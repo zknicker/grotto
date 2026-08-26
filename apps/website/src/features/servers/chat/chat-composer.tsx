@@ -20,7 +20,10 @@ import {
     MentionComposerPicker,
     useServerMentionComposer,
 } from '../../mentions/use-mention-composer.tsx';
-import { resolveChatComposerPlaceholder } from './chat-composer-presentation.ts';
+import {
+    hasChatComposerPayload,
+    resolveChatComposerPlaceholder,
+} from './chat-composer-presentation.ts';
 import { ComposerAttachments } from './composer-attachments.tsx';
 import { useCompactComposerLayout } from './use-compact-composer-layout.ts';
 import { type ComposerAttachment, useComposerAttachments } from './use-composer-attachments.ts';
@@ -69,7 +72,6 @@ export function ServerChatComposer({
     const agentList = agents.data ?? emptyAgents;
     const [draft, setDraft] = React.useState('');
     const [mentions, setMentions] = React.useState<Mention[]>([]);
-    const { editorSlotRef, isMultiline } = useCompactComposerLayout();
     const {
         add: addAttachments,
         attachments,
@@ -78,6 +80,10 @@ export function ServerChatComposer({
         inputRef: attachmentInput,
         remove: removeAttachment,
     } = useComposerAttachments();
+    const { editorSlotRef, isExpanded } = useCompactComposerLayout({
+        content: draft,
+        isForcedExpanded: attachments.length > 0,
+    });
     // Guard two handlers firing before React re-renders the cleared draft.
     const submissionRef = React.useRef({ attachments, draft, mentions });
     submissionRef.current = { attachments, draft, mentions };
@@ -202,12 +208,16 @@ export function ServerChatComposer({
     }
 
     const errorMessage = attachmentError ?? upload.error?.message ?? send.error?.message;
-    const canSubmit = draft.trim().length > 0 || attachments.length > 0;
+    const hasPayload = hasChatComposerPayload({
+        attachmentCount: attachments.length,
+        content: draft,
+    });
+    const canSubmit = hasPayload;
 
     return (
         <div className="shrink-0 px-5 pb-4">
             <PromptInput
-                data-expanded={isMultiline || attachments.length > 0 || undefined}
+                data-expanded={isExpanded || undefined}
                 layout="compact"
                 onSubmit={() => {
                     void handleSubmit();

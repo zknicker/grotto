@@ -30,8 +30,36 @@ public enum ChatSelection {
 /// whatever it is showing.
 public enum ChatCanvasOpen {
     public static func chatID(selectedID: ChatDestination.ID?, isCovered: Bool) -> String? {
-        guard !isCovered, case .chat(let chatID) = selectedID else { return nil }
+        guard !isCovered else { return nil }
+        return canvasChatID(selectedID: selectedID)
+    }
+
+    /// The Chat the canvas is showing, covered or not. An implicit Agent DM has
+    /// no Server Chat yet, so it names none.
+    public static func canvasChatID(selectedID: ChatDestination.ID?) -> String? {
+        guard case .chat(let chatID) = selectedID else { return nil }
         return chatID
+    }
+}
+
+/// Which Chat pages have to be refetched when the app returns to the
+/// foreground.
+///
+/// The focused Chat is the deepest surface on the stack — a pushed Thread's
+/// child Chat, or the canvas when nothing covers it — and it alone acknowledges
+/// reads, because it is the only one the user is actually looking at. The
+/// canvas Chat underneath is off screen, but it is the surface a pop returns
+/// to, so its page has to be fresh *before* the pop rather than one round trip
+/// after it. Refreshing a page that did not change repaints nothing: the
+/// Store's page setter drops equal writes.
+///
+/// The focused Chat comes first so the surface on screen updates first.
+public enum OpenChatPages {
+    public static func toRefresh(focusedChatID: String?, canvasChatID: String?) -> [String] {
+        var chatIDs: [String] = []
+        if let focusedChatID { chatIDs.append(focusedChatID) }
+        if let canvasChatID, canvasChatID != focusedChatID { chatIDs.append(canvasChatID) }
+        return chatIDs
     }
 }
 

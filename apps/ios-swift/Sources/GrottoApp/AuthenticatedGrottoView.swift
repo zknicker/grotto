@@ -161,9 +161,17 @@ struct AuthenticatedGrottoView: View {
                 // One load at a time: selecting another Chat cancels the load
                 // the previous selection started, so a slow `chat.list` behind a
                 // stale read acknowledgement cannot land after a newer one.
-                .task(id: canvasChatID) {
-                    guard let canvasChatID else { return }
-                    await store.openChat(chatID: canvasChatID)
+                .task(id: canvasOpenChatID) {
+                    guard let canvasOpenChatID else { return }
+                    await store.openChat(chatID: canvasOpenChatID)
+                }
+                // The canvas Chat is recorded even while a pushed route covers
+                // it, because that is the surface a pop returns to and the
+                // Store has to keep its page fresh across a foreground. The
+                // open-Chat load above deliberately stands down when covered,
+                // so it cannot carry this.
+                .onChange(of: selectedCanvasChatID, initial: true) { _, current in
+                    store.canvasChatID = current
                 }
                 .preferredColorScheme(preferredColorScheme)
             }
@@ -178,11 +186,17 @@ struct AuthenticatedGrottoView: View {
 
     /// The Chat the canvas has to have open. A pushed Thread or the Tasks list
     /// covers the canvas and owns the open Chat while it is on screen.
-    private var canvasChatID: String? {
+    private var canvasOpenChatID: String? {
         ChatCanvasOpen.chatID(
             selectedID: selectedDestinationID,
             isCovered: !path.isEmpty || selectedThread != nil
         )
+    }
+
+    /// The Chat the canvas is showing, covered or not. It is what a pop lands
+    /// on, so the Store keeps its page fresh even while it is off screen.
+    private var selectedCanvasChatID: String? {
+        ChatCanvasOpen.canvasChatID(selectedID: selectedDestinationID)
     }
 
     private var appearanceBinding: Binding<AppearancePreference> {

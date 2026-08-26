@@ -42,7 +42,14 @@ final class GrottoStore {
     var chatEventReplay = ChatEventReplayState()
     var chatEventCatchUpInFlight = false
     var chatEventCatchUpPending = false
+    /// The deepest Chat surface on the user's stack, and the only Chat that
+    /// acknowledges reads: it is what the user is actually looking at.
     var openChatID: String?
+    /// The Chat the shell canvas is showing, whether or not a pushed route
+    /// covers it. A covered canvas is still a surface the user will return to,
+    /// so its page has to stay fresh — but it never acknowledges reads, which
+    /// stay with `openChatID`.
+    var canvasChatID: String?
     /// Memoized Chat projections. Cache writes must stay invisible to
     /// Observation: a projection read happens inside a view body, and a tracked
     /// write there would invalidate the body that just performed it.

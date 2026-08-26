@@ -1,5 +1,6 @@
 import Foundation
 import GrottoModels
+import GrottoUI
 import OSLog
 
 /// One foreground or reconnect read of the durable Server projections the shell
@@ -103,11 +104,21 @@ extension GrottoStore {
         let snapshot = try await fetchServerSnapshot(serverID: serverID)
         apply(snapshot, lifecycleRevisionAtStart: lifecycleRevisionAtStart)
 
-        // Only the open Chat's page is refetched eagerly. Every other cached
-        // page is refreshed by the event walk that follows this snapshot, by
-        // live events, and by `openChat` when the user navigates back to it.
+        // Every Chat surface on the user's stack is refetched eagerly, not just
+        // the deepest one: a pushed Thread covers its parent Chat, and popping
+        // back to a page that is one round trip stale flashes pre-background
+        // content through the pop animation. Every other cached page is
+        // refreshed by the event walk that follows this snapshot, by live
+        // events, and by `openChat` when the user navigates back to it.
+        for chatID in OpenChatPages.toRefresh(
+            focusedChatID: openChatID,
+            canvasChatID: canvasChatID
+        ) {
+            await loadMessages(chatID: chatID)
+        }
+        // Reads belong to the deepest surface alone. A covered canvas Chat was
+        // refreshed above but is not what the user is looking at.
         if let openChatID {
-            await loadMessages(chatID: openChatID)
             await markChatReadIfNeeded(chatID: openChatID)
         }
     }

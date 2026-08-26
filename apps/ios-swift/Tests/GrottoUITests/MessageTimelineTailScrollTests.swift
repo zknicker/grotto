@@ -81,4 +81,40 @@ struct ChatCanvasOpenTests {
         #expect(ChatCanvasOpen.chatID(selectedID: .agentDM("a1"), isCovered: false) == nil)
         #expect(ChatCanvasOpen.chatID(selectedID: nil, isCovered: false) == nil)
     }
+
+    @Test func namesTheCanvasChatEvenWhileAPushedRouteCoversIt() {
+        // The canvas stands down from opening a covered Chat, but the Chat it
+        // is showing still has to be nameable: it is what a pop lands on.
+        #expect(ChatCanvasOpen.canvasChatID(selectedID: .chat("c1")) == "c1")
+    }
+
+    @Test func namesNoCanvasChatWithoutADurableChatSelection() {
+        #expect(ChatCanvasOpen.canvasChatID(selectedID: .agentDM("a1")) == nil)
+        #expect(ChatCanvasOpen.canvasChatID(selectedID: nil) == nil)
+    }
+}
+
+struct OpenChatPagesTests {
+    @Test func refreshesTheCanvasOnceWhenItIsTheSurfaceOnScreen() {
+        #expect(
+            OpenChatPages.toRefresh(focusedChatID: "c1", canvasChatID: "c1") == ["c1"]
+        )
+    }
+
+    @Test func refreshesTheCoveredParentBehindAnOpenThread() {
+        // The Thread is on screen, so it refreshes first; the parent Chat is
+        // covered but is what the pop reveals, so it refreshes too.
+        #expect(
+            OpenChatPages.toRefresh(focusedChatID: "thread-c1", canvasChatID: "c1")
+                == ["thread-c1", "c1"]
+        )
+    }
+
+    @Test func refreshesTheCanvasWhileANonChatRouteCoversIt() {
+        #expect(OpenChatPages.toRefresh(focusedChatID: nil, canvasChatID: "c1") == ["c1"])
+    }
+
+    @Test func refreshesNothingWithoutAnOpenSurface() {
+        #expect(OpenChatPages.toRefresh(focusedChatID: nil, canvasChatID: nil).isEmpty)
+    }
 }

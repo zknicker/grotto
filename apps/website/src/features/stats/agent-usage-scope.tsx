@@ -10,13 +10,24 @@ const ALL_AGENTS = 'all';
 const triggerMarkSize = 20;
 
 /**
- * HeroUI puts input-family controls on the field tier (`×1.5`) and buttons on
- * the pill tier (`×3`), so a stock Select set beside a ToggleButtonGroup shows
- * two different corners. This one is a toolbar filter rather than a form field
- * — DESIGN.md files Toolbar under the pill tier — so it takes that step through
- * `--field-radius`, the hook HeroUI provides, scoped to this control alone.
+ * Pill chrome instead of field chrome.
+ *
+ * HeroUI dresses input-family controls as fields — the `×1.5` radius tier and a
+ * `--field-border` hairline — and buttons as pills, at `×3` with no border. A
+ * stock Select beside a ToggleButtonGroup therefore reads as the heavier, larger
+ * control even at the same background and near-identical height, because an
+ * outline enlarges what it wraps.
+ *
+ * This one is a toolbar filter, not form input, and DESIGN.md files Toolbar
+ * under the pill tier. Both differences resolve through the variables HeroUI
+ * exposes for exactly this, scoped to this control so real form fields keep
+ * their field chrome. `variant="secondary"` already drops the third piece, the
+ * field shadow, and lands the same `--default` background as the pill.
  */
-const toolbarFilterRadius = { '--field-radius': 'calc(var(--radius) * 3)' } as CSSProperties;
+const toolbarFilterChrome = {
+    '--border-width-field': '0',
+    '--field-radius': 'calc(var(--radius) * 3)',
+} as CSSProperties;
 
 /**
  * Whose usage the dashboard is showing.
@@ -52,7 +63,7 @@ export function AgentUsageScopePicker({
             aria-label="Token usage scope"
             className="w-56"
             onChange={(value) => onSelect(value === ALL_AGENTS ? null : String(value))}
-            style={toolbarFilterRadius}
+            style={toolbarFilterChrome}
             value={selectedAgentId ?? ALL_AGENTS}
             variant="secondary"
         >

@@ -98,7 +98,8 @@ extension GrottoStore {
                 createdAt: message.createdAt,
                 attachments: message.attachments.map(attachmentPresentation),
                 thread: thread,
-                task: message.task.map(taskPresentation)
+                task: message.task.map(taskPresentation),
+                preparedAction: message.preparedAction.map(preparedActionPresentation)
             )
         }
         let pending = (pendingMessagesByChatID[chatID] ?? []).map { message in
@@ -178,6 +179,48 @@ extension GrottoStore {
                 userID: task.createdByUserID
             )
         )
+    }
+
+    private func preparedActionPresentation(_ action: PreparedAction) -> PreparedActionPresentation {
+        switch action {
+        case let .createAgent(action):
+            let guidance = action.proposal.computer
+            let computerDetail = guidance.map {
+                "\($0.label ?? $0.computerID) (\($0.kindLabel.lowercased()))"
+            }
+            let committer = action.executedByUserID.flatMap { userID in
+                members?.members.first(where: { $0.userID == userID })
+            }
+            let requiredComputerID: String? = switch guidance {
+            case let .required(computerID, _): computerID
+            case .suggested, .none: nil
+            }
+            return .createAgent(
+                PreparedCreateAgentActionPresentation(
+                    avatarURL: resolvedAvatarURL(action.proposal.avatar.url),
+                    chatID: action.chatID,
+                    computerDetail: computerDetail,
+                    createdAt: action.createdAt,
+                    description: action.proposal.description,
+                    draftHint: action.proposal.draftHint,
+                    executedByDisplayName: committer?.displayName ?? committer?.email,
+                    id: action.id,
+                    name: action.proposal.name,
+                    proposedComputerID: guidance?.computerID,
+                    requiredComputerID: requiredComputerID,
+                    status: action.status
+                )
+            )
+        case let .unsupported(action):
+            return .unsupported(
+                UnsupportedPreparedActionPresentation(
+                    createdAt: action.createdAt,
+                    id: action.id,
+                    kind: action.kind,
+                    status: action.status
+                )
+            )
+        }
     }
 
     func actorPresentation(

@@ -65,6 +65,7 @@ public struct AgentLifecycleEvent: Codable, Identifiable, Sendable, Equatable {
 
 public enum ChatEventKind: String, Codable, Sendable {
     case messageCreated = "message.created"
+    case preparedActionUpdated = "prepared-action.updated"
     case chatRead = "chat.read"
     case threadFollowUpdated = "thread.follow.updated"
     case taskCreated = "task.created"
@@ -89,6 +90,7 @@ public struct ChatEvent: Codable, Identifiable, Sendable, Equatable {
     /// Event-specific action. Reminder actions and Chat lifecycle actions use
     /// different unions on the Server, so preserve the wire string losslessly.
     public let action: String?
+    public let actionID: String?
     public let chatID: String?
     public let createdAt: Date
     public let cursor: String
@@ -99,10 +101,12 @@ public struct ChatEvent: Codable, Identifiable, Sendable, Equatable {
     public let reminderID: String?
     public let sequence: Int
     public let serverID: String
+    public let status: PreparedActionStatus?
     public let type: ChatEventKind
 
     enum CodingKeys: String, CodingKey {
         case action
+        case actionID = "actionId"
         case chatID = "chatId"
         case createdAt
         case cursor
@@ -113,11 +117,13 @@ public struct ChatEvent: Codable, Identifiable, Sendable, Equatable {
         case reminderID = "reminderId"
         case sequence
         case serverID = "serverId"
+        case status
         case type
     }
 
     public init(
         action: String? = nil,
+        actionID: String? = nil,
         chatID: String?,
         createdAt: Date,
         cursor: String,
@@ -128,9 +134,11 @@ public struct ChatEvent: Codable, Identifiable, Sendable, Equatable {
         reminderID: String? = nil,
         sequence: Int,
         serverID: String,
+        status: PreparedActionStatus? = nil,
         type: ChatEventKind
     ) {
         self.action = action
+        self.actionID = actionID
         self.chatID = chatID
         self.createdAt = createdAt
         self.cursor = cursor
@@ -141,6 +149,7 @@ public struct ChatEvent: Codable, Identifiable, Sendable, Equatable {
         self.reminderID = reminderID
         self.sequence = sequence
         self.serverID = serverID
+        self.status = status
         self.type = type
     }
 }

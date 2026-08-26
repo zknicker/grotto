@@ -101,6 +101,7 @@ extension GrottoStore {
 
         var affectedChatIDs: Set<String> = []
         var shouldReloadChats = false
+        var shouldReloadAgents = false
         for event in events {
             guard event.serverID == serverID else { continue }
             guard chatEventReplay.receive(event) else { continue }
@@ -114,6 +115,16 @@ extension GrottoStore {
                     affectedChatIDs.insert(parentChatID)
                 }
                 shouldReloadChats = true
+            case .preparedActionUpdated:
+                if let chatID = event.chatID {
+                    affectedChatIDs.insert(chatID)
+                }
+                if let parentChatID = event.parentChatID {
+                    affectedChatIDs.insert(parentChatID)
+                }
+                if event.status == .executed {
+                    shouldReloadAgents = true
+                }
             case .chatRead:
                 shouldReloadChats = true
             case .threadFollowUpdated:
@@ -140,6 +151,9 @@ extension GrottoStore {
         }
         if shouldReloadChats {
             try? await reloadChats(serverID: serverID)
+        }
+        if shouldReloadAgents {
+            try? await reloadAgents(serverID: serverID)
         }
     }
 }

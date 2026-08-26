@@ -10,6 +10,8 @@ public struct ChatScreenView: View {
     private let onOpenThread: (MessagePresentation) -> Void
     private let onSend: (String, [ComposerAttachment]) async -> Bool
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
+    private let canManagePreparedActions: Bool
+    private let onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
     private let hasOlderMessages: Bool
     private let isLoadingOlderMessages: Bool
     private let onLoadOlderMessages: () async -> Bool
@@ -34,6 +36,8 @@ public struct ChatScreenView: View {
             guard let localURL = attachment.localURL else { throw CancellationError() }
             return localURL
         },
+        canManagePreparedActions: Bool = false,
+        onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
         hasOlderMessages: Bool = false,
         isLoadingOlderMessages: Bool = false,
         onLoadOlderMessages: @escaping () async -> Bool = { false },
@@ -50,6 +54,8 @@ public struct ChatScreenView: View {
         self.onOpenThread = onOpenThread
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
+        self.canManagePreparedActions = canManagePreparedActions
+        self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
         self.hasOlderMessages = hasOlderMessages
         self.isLoadingOlderMessages = isLoadingOlderMessages
         self.onLoadOlderMessages = onLoadOlderMessages
@@ -65,6 +71,8 @@ public struct ChatScreenView: View {
                         messages: messages,
                         onOpenThread: onOpenThread,
                         onOpenAttachment: onOpenAttachment,
+                        canManagePreparedActions: canManagePreparedActions,
+                        onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
                         hasOlderMessages: hasOlderMessages,
                         isLoadingOlderMessages: isLoadingOlderMessages,
                         onLoadOlderMessages: onLoadOlderMessages,

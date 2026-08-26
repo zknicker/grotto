@@ -4,6 +4,8 @@ public struct MessageTimelineView: View {
     private let messages: [MessagePresentation]
     private let onOpenThread: (MessagePresentation) -> Void
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
+    private let canManagePreparedActions: Bool
+    private let onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
     private let hasOlderMessages: Bool
     private let isLoadingOlderMessages: Bool
     private let onLoadOlderMessages: (() async -> Bool)?
@@ -21,6 +23,8 @@ public struct MessageTimelineView: View {
             guard let localURL = attachment.localURL else { throw CancellationError() }
             return localURL
         },
+        canManagePreparedActions: Bool = false,
+        onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
         hasOlderMessages: Bool = false,
         isLoadingOlderMessages: Bool = false,
         onLoadOlderMessages: (() async -> Bool)? = nil,
@@ -31,6 +35,8 @@ public struct MessageTimelineView: View {
         self.messages = messages
         self.onOpenThread = onOpenThread
         self.onOpenAttachment = onOpenAttachment
+        self.canManagePreparedActions = canManagePreparedActions
+        self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
         self.hasOlderMessages = hasOlderMessages
         self.isLoadingOlderMessages = isLoadingOlderMessages
         self.onLoadOlderMessages = onLoadOlderMessages
@@ -208,6 +214,15 @@ public struct MessageTimelineView: View {
                         onOpen: onOpenAttachment
                     )
                     .padding(.top, content.isEmpty ? 0 : 3)
+                }
+
+                if let preparedAction = message.preparedAction {
+                    PreparedActionCardView(
+                        action: preparedAction,
+                        canManage: canManagePreparedActions,
+                        onReviewCreateAgent: onReviewPreparedCreateAgent
+                    )
+                    .padding(.top, content.isEmpty ? 0 : 6)
                 }
 
                 if message.isPending {

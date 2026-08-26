@@ -170,6 +170,9 @@ public struct AgentSummary: Codable, Identifiable, Sendable, Equatable {
     public let createdByUserID: String?
     public let description: String?
     public let desiredModelID: String
+    /// Older cached/development fixtures predate this Server field. Missing
+    /// values retain the contract's `medium` default at the creation boundary.
+    public let desiredReasoningEffort: AgentReasoningEffort?
     public let desiredRuntimeID: String
     public let displayName: String
     public let dmChatID: String?
@@ -192,6 +195,7 @@ public struct AgentSummary: Codable, Identifiable, Sendable, Equatable {
         case createdByUserID = "createdByUserId"
         case description
         case desiredModelID = "desiredModelId"
+        case desiredReasoningEffort
         case desiredRuntimeID = "desiredRuntimeId"
         case displayName
         case dmChatID = "dmChatId"

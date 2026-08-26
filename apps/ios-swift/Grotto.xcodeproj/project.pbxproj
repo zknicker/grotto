@@ -26,6 +26,7 @@
 		AD2B00625CA2470F49F1D65C /* GrottoStoreActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 693415FC47007B7270A56BCB /* GrottoStoreActivity.swift */; };
 		B7293BC132A3F842F962AC94 /* GrottoStoreMessaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCC588D17F3F90D1477622EF /* GrottoStoreMessaging.swift */; };
 		BEA9B33A26AB2BD4758E1788 /* UtilityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D421FE0B04D7E39610A26989 /* UtilityPresentationAdapters.swift */; };
+		D7B520EF9536810D6B119421 /* GrottoStorePreparedActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 361C79C0F2D66C1B12D57D11 /* GrottoStorePreparedActions.swift */; };
 		D82B5A6B9306B3792F3C7B1B /* GrottoStoreUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2389AEB5150BEDF1546392DE /* GrottoStoreUtilities.swift */; };
 		E0E64863D2B24638E641C010 /* GrottoStoreRealtime.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8F5FC9DF30C369C0E780880 /* GrottoStoreRealtime.swift */; };
 		EF0076073426D216D2E87562 /* ClerkKit in Frameworks */ = {isa = PBXBuildFile; productRef = EB3B0876E1F16328F43C33BA /* ClerkKit */; };
@@ -36,6 +37,7 @@
 		18AD969F813C627B3591C65A /* mac-icon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = "mac-icon.icon"; sourceTree = "<group>"; };
 		2389AEB5150BEDF1546392DE /* GrottoStoreUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreUtilities.swift; sourceTree = "<group>"; };
 		2FEEDD6F107B57EA7A1266C6 /* GrottoStoreProfiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreProfiles.swift; sourceTree = "<group>"; };
+		361C79C0F2D66C1B12D57D11 /* GrottoStorePreparedActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStorePreparedActions.swift; sourceTree = "<group>"; };
 		376429A0E7D643A4B068D961 /* SettingsPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPresentationAdapters.swift; sourceTree = "<group>"; };
 		3DCBDC564DDB7D1C15F96F78 /* Grotto.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Grotto.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A71525ABB1071E9D4A2BA0A /* ios-swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "ios-swift"; path = .; sourceTree = SOURCE_ROOT; };
@@ -114,6 +116,7 @@
 				693415FC47007B7270A56BCB /* GrottoStoreActivity.swift */,
 				F206B3DCFC70B480F60D9707 /* GrottoStoreComputers.swift */,
 				FCC588D17F3F90D1477622EF /* GrottoStoreMessaging.swift */,
+				361C79C0F2D66C1B12D57D11 /* GrottoStorePreparedActions.swift */,
 				2FEEDD6F107B57EA7A1266C6 /* GrottoStoreProfiles.swift */,
 				C8F5FC9DF30C369C0E780880 /* GrottoStoreRealtime.swift */,
 				EC153273DF887840EEF5E222 /* GrottoStoreSupport.swift */,
@@ -229,6 +232,7 @@
 				AD2B00625CA2470F49F1D65C /* GrottoStoreActivity.swift in Sources */,
 				026D32C8C8DADD07AD9E0AA1 /* GrottoStoreComputers.swift in Sources */,
 				B7293BC132A3F842F962AC94 /* GrottoStoreMessaging.swift in Sources */,
+				D7B520EF9536810D6B119421 /* GrottoStorePreparedActions.swift in Sources */,
 				5FFDA54F6B9596C063956F0F /* GrottoStoreProfiles.swift in Sources */,
 				E0E64863D2B24638E641C010 /* GrottoStoreRealtime.swift in Sources */,
 				4BEFE7459773A86CE9CAC9B2 /* GrottoStoreSupport.swift in Sources */,
@@ -257,7 +261,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.8.20;
+				MARKETING_VERSION = 1.8.21;
 				PRODUCT_BUNDLE_IDENTIFIER = build.grotto.ios;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -342,7 +346,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.8.20;
+				MARKETING_VERSION = 1.8.21;
 				PRODUCT_BUNDLE_IDENTIFIER = build.grotto.ios;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;

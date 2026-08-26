@@ -7,6 +7,8 @@ struct ThreadMessageRow: View {
         guard let localURL = attachment.localURL else { throw CancellationError() }
         return localURL
     }
+    var canManagePreparedActions = false
+    var onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void = { _ in }
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -42,6 +44,15 @@ struct ThreadMessageRow: View {
                         isPending: message.isPending,
                         onOpen: onOpenAttachment
                     )
+                }
+
+                if let preparedAction = message.preparedAction {
+                    PreparedActionCardView(
+                        action: preparedAction,
+                        canManage: canManagePreparedActions,
+                        onReviewCreateAgent: onReviewPreparedCreateAgent
+                    )
+                    .padding(.top, content.isEmpty ? 0 : 6)
                 }
 
                 if message.isPending {

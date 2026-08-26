@@ -13,6 +13,7 @@ struct AuthenticatedGrottoView: View {
     /// the Store's read acknowledgements always name the same Chat.
     @State private var selectedChatID: String?
     @State private var path: [GrottoRootRoute] = []
+    @State private var preparedActionReview: PreparedCreateAgentActionPresentation?
     @AppStorage("appearancePreference") private var appearanceRawValue = AppearancePreference.system.rawValue
     @Environment(\.scenePhase) private var scenePhase
 
@@ -48,6 +49,12 @@ struct AuthenticatedGrottoView: View {
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             Task { await store.resumeAfterForeground() }
+        }
+        .sheet(item: $preparedActionReview) { action in
+            PreparedAgentCreateSheet(
+                action: action,
+                configuration: store.preparedAgentCreationConfiguration
+            )
         }
     }
 
@@ -113,6 +120,8 @@ struct AuthenticatedGrottoView: View {
                     loadAgentActivity: { agentID in
                         try await store.agentActivityPresentations(agentID: agentID)
                     },
+                    canManagePreparedActions: store.canManagePreparedActions,
+                    onReviewPreparedCreateAgent: { preparedActionReview = $0 },
                     createChannel: { draft in
                         try await store.createNativeChannel(draft)
                     }
@@ -245,7 +254,9 @@ struct AuthenticatedGrottoView: View {
             onLoadOlderReplies: {
                 guard let chatID = resolvedThreadChatID(for: thread) else { return false }
                 return await store.loadOlderMessages(chatID: chatID)
-            }
+            },
+            canManagePreparedActions: store.canManagePreparedActions,
+            onReviewPreparedCreateAgent: { preparedActionReview = $0 }
         )
         .task {
             guard let chatID = resolvedThreadChatID(for: thread) else { return }

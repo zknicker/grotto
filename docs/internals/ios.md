@@ -139,6 +139,16 @@ the walk completes, so events arriving during recovery are not missed. A cold st
 from `chat.eventHead` after refreshing the Server snapshot;
 cursor state is intentionally process-memory only for this prototype.
 
+Prepared actions stay inside that same canonical message pipeline. `GrottoModels` decodes the
+Server's prepared-action projection on each message, and native Chat and Thread timelines render its
+pending, committed, superseded, or unsupported lifecycle state. A pending `agent.create` action opens
+an editable SwiftUI review sheet whose Computer, runtime, model, and reasoning choices come from the
+Store's existing Server snapshots. Confirming the sheet calls `preparedAction.commit`; the client does
+not create an Agent locally. A `prepared-action.updated` event refetches the affected loaded message
+page, and an executed action also refreshes the Agent directory, so the action card itself becomes the
+committed receipt and the new Agent appears from Server state. Suggested Computers remain editable;
+a required Computer stays locked to the proposal and blocks creation while its inventory is unavailable.
+
 Utility navigation stays on the same Server contracts and Store cache. One search surface serves the
 active Server, reachable from the Chat header and from the sidebar's own chrome button. Like the
 desktop command menu, it unifies in the UI rather than in the API: chats match locally against the

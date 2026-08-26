@@ -15,6 +15,8 @@ public struct ThreadDetailView: View {
     private let hasOlderReplies: Bool
     private let isLoadingOlderReplies: Bool
     private let onLoadOlderReplies: (() async -> Bool)?
+    private let canManagePreparedActions: Bool
+    private let onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
 
     @State private var draft = ""
     @State private var preservedTopReplyID: String?
@@ -35,7 +37,9 @@ public struct ThreadDetailView: View {
         },
         hasOlderReplies: Bool = false,
         isLoadingOlderReplies: Bool = false,
-        onLoadOlderReplies: (() async -> Bool)? = nil
+        onLoadOlderReplies: (() async -> Bool)? = nil,
+        canManagePreparedActions: Bool = false,
+        onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in }
     ) {
         self.anchor = anchor
         self.replyProvider = { replies }
@@ -47,6 +51,8 @@ public struct ThreadDetailView: View {
         self.hasOlderReplies = hasOlderReplies
         self.isLoadingOlderReplies = isLoadingOlderReplies
         self.onLoadOlderReplies = onLoadOlderReplies
+        self.canManagePreparedActions = canManagePreparedActions
+        self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
     }
 
     /// Resolves replies while this view's body is being evaluated so an
@@ -65,7 +71,9 @@ public struct ThreadDetailView: View {
         },
         hasOlderReplies: Bool = false,
         isLoadingOlderReplies: Bool = false,
-        onLoadOlderReplies: (() async -> Bool)? = nil
+        onLoadOlderReplies: (() async -> Bool)? = nil,
+        canManagePreparedActions: Bool = false,
+        onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in }
     ) {
         self.anchor = anchor
         self.replyProvider = replies
@@ -77,6 +85,8 @@ public struct ThreadDetailView: View {
         self.hasOlderReplies = hasOlderReplies
         self.isLoadingOlderReplies = isLoadingOlderReplies
         self.onLoadOlderReplies = onLoadOlderReplies
+        self.canManagePreparedActions = canManagePreparedActions
+        self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
     }
 
     public var body: some View {
@@ -115,7 +125,9 @@ public struct ThreadDetailView: View {
                         ThreadMessageRow(
                             message: anchor,
                             emphasized: true,
-                            onOpenAttachment: onOpenAttachment
+                            onOpenAttachment: onOpenAttachment,
+                            canManagePreparedActions: canManagePreparedActions,
+                            onReviewPreparedCreateAgent: onReviewPreparedCreateAgent
                         )
                             .padding(.bottom, replies.isEmpty ? 0 : 2)
 
@@ -126,7 +138,12 @@ public struct ThreadDetailView: View {
                         }
 
                         ForEach(replies) { message in
-                            ThreadMessageRow(message: message, onOpenAttachment: onOpenAttachment)
+                            ThreadMessageRow(
+                                message: message,
+                                onOpenAttachment: onOpenAttachment,
+                                canManagePreparedActions: canManagePreparedActions,
+                                onReviewPreparedCreateAgent: onReviewPreparedCreateAgent
+                            )
                                 .id(message.id)
                                 .padding(.top, 10)
                         }

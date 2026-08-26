@@ -27,7 +27,7 @@ final class GrottoStore {
     var chats: [ChatSummary] = []
     private(set) var messagesByChatID: [String: ChatMessagePage] = [:]
     var pendingMessagesByChatID: [String: [PendingChatMessage]] = [:]
-    private(set) var lifecycleAvailability: [String: AgentAvailability] = [:]
+    var lifecycleAvailability: [String: AgentAvailability] = [:]
     var currentActivityByAgentID: [String: AgentActivityEvent] = [:]
     var currentActivityPositionByRunID: [String: Int] = [:]
     private var lifecycleRevision = 0

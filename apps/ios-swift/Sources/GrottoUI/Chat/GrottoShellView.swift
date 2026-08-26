@@ -21,6 +21,8 @@ public struct GrottoShellView<SettingsContent: View>: View {
     private let createChannel: @Sendable (NewChannelDraft) async throws -> CreatedChannelPresentation
     private let agentActivities: [String: AgentActivityPresentation]
     private let loadAgentActivity: @Sendable (String) async throws -> [AgentActivityPresentation]
+    private let canManagePreparedActions: Bool
+    private let onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
 
     @Binding private var selectedChatID: String?
     @State var drawerPresented = false
@@ -57,6 +59,8 @@ public struct GrottoShellView<SettingsContent: View>: View {
         newChannelAgents: [NewChannelAgentPresentation] = [],
         agentActivities: [String: AgentActivityPresentation] = [:],
         loadAgentActivity: @escaping @Sendable (String) async throws -> [AgentActivityPresentation] = { _ in [] },
+        canManagePreparedActions: Bool = false,
+        onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
         createChannel: @escaping @Sendable (NewChannelDraft) async throws -> CreatedChannelPresentation = { _ in
             throw CancellationError()
         }
@@ -80,6 +84,8 @@ public struct GrottoShellView<SettingsContent: View>: View {
         self.newChannelAgents = newChannelAgents
         self.agentActivities = agentActivities
         self.loadAgentActivity = loadAgentActivity
+        self.canManagePreparedActions = canManagePreparedActions
+        self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
         self.createChannel = createChannel
     }
 
@@ -127,6 +133,8 @@ public struct GrottoShellView<SettingsContent: View>: View {
                         onOpenThread: { onOpenThread(selectedChat, $0) },
                         onSend: { await onSend(selectedChat, $0, $1) },
                         onOpenAttachment: onOpenAttachment,
+                        canManagePreparedActions: canManagePreparedActions,
+                        onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
                         hasOlderMessages: hasOlderMessages(selectedChat),
                         isLoadingOlderMessages: isLoadingOlderMessages(selectedChat),
                         onLoadOlderMessages: { await onLoadOlderMessages(selectedChat) },

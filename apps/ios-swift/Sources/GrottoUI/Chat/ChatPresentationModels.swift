@@ -93,6 +93,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let thread: ThreadPreviewPresentation?
     public let task: TaskPresentation?
     public let isPending: Bool
+    public let preparedAction: PreparedActionPresentation?
 
     public init(
         id: String,
@@ -102,7 +103,8 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         attachments: [MessageAttachmentPresentation] = [],
         thread: ThreadPreviewPresentation? = nil,
         task: TaskPresentation? = nil,
-        isPending: Bool = false
+        isPending: Bool = false,
+        preparedAction: PreparedActionPresentation? = nil
     ) {
         self.id = id
         self.author = author
@@ -112,6 +114,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         self.thread = thread
         self.task = task
         self.isPending = isPending
+        self.preparedAction = preparedAction
     }
 }
 

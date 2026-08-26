@@ -1,6 +1,7 @@
 import { appProtocolHeaders } from '@grotto/api';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
+import type { AvatarImageService } from '../avatar-generation/service.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { ClerkSessions } from '../identity/clerk-sessions.ts';
 import type { ClerkUsers } from '../identity/clerk-users.ts';
@@ -20,6 +21,7 @@ export interface GrottoContext {
     /** App provenance and exact wire-contract declaration for this request. */
     appProtocol: { productVersion: string | null; protocolVersion: number | null };
     attachmentRoot: AttachmentRoot;
+    avatarImageService: AvatarImageService;
     clerkSessions: ClerkSessions;
     /**
      * Clerk session token presented by the App. HTTP requests carry it as an
@@ -43,6 +45,7 @@ export interface GrottoContextDependencies {
     agentDelivery: AgentDelivery;
     appOrigin: string;
     attachmentRoot: AttachmentRoot;
+    avatarImageService: AvatarImageService;
     clerkSessions: ClerkSessions;
     clerkUsers: ClerkUsers;
     computerConnections: ComputerConnections;

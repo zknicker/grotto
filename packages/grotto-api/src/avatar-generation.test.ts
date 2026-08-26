@@ -1,10 +1,29 @@
 import { expect, test } from 'bun:test';
 import {
+    agentAvatarGenerationInputSchema,
     avatarGenerationConceptMaxLength,
     avatarGenerationPromptTemplate,
     avatarGenerationRequestSchema,
     buildAvatarGenerationPrompt,
 } from './avatar-generation.ts';
+
+test('scopes human avatar generation to one active Agent and Server', () => {
+    expect(
+        agentAvatarGenerationInputSchema.parse({
+            agentId: 'agt_scout',
+            concept: '  fox mechanic  ',
+            serverId: 'srv_hq',
+        })
+    ).toEqual({ agentId: 'agt_scout', concept: 'fox mechanic', serverId: 'srv_hq' });
+    expect(
+        agentAvatarGenerationInputSchema.safeParse({
+            agentId: 'agt_scout',
+            concept: 'fox',
+            serverId: 'srv_hq',
+            target: 'name-derived',
+        }).success
+    ).toBe(false);
+});
 
 test('builds the canonical avatar prompt with only the trimmed concept substituted', () => {
     const concept = 'a moonlit raccoon cartographer';

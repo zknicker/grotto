@@ -6,6 +6,7 @@ import { useAgentIdentity } from '../../../hooks/members/use-agent-identity.ts';
 import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
 import { MemberProfileHeader } from '../member-profile-header.tsx';
 import { ProfileEdit } from '../profile-edit.tsx';
+import { AgentAvatarGenerator } from './agent-avatar-generator.tsx';
 
 export function AgentIdentity({
     agent,
@@ -29,22 +30,31 @@ export function AgentIdentity({
         <MemberProfileHeader
             avatar={
                 canEdit ? (
-                    <AvatarPicker
-                        isDisabled={setAvatar.isPending}
-                        label="Agent photo"
-                        name={agent.displayName}
-                        onError={setAvatarError}
-                        onSelect={async (image) => {
-                            await setAvatar.mutateAsync({
-                                bytesBase64: image.base64,
-                                mediaType: image.mediaType,
-                                serverId,
-                                target: { agentId: agent.id, kind: 'agent' },
-                            });
-                        }}
-                        size={64}
-                        src={agent.avatarUrl}
-                    />
+                    <div className="flex flex-col items-center gap-1.5">
+                        <AvatarPicker
+                            isDisabled={setAvatar.isPending}
+                            label="Agent photo"
+                            name={agent.displayName}
+                            onError={setAvatarError}
+                            onSelect={async (image) => {
+                                await setAvatar.mutateAsync({
+                                    bytesBase64: image.base64,
+                                    mediaType: image.mediaType,
+                                    serverId,
+                                    target: { agentId: agent.id, kind: 'agent' },
+                                });
+                            }}
+                            size={64}
+                            src={agent.avatarUrl}
+                        />
+                        {agent.factoryKind === 'ordinary' ? (
+                            <AgentAvatarGenerator
+                                agentId={agent.id}
+                                name={agent.displayName}
+                                serverId={serverId}
+                            />
+                        ) : null}
+                    </div>
                 ) : (
                     <EntityAvatar name={agent.displayName} size={64} src={agent.avatarUrl} />
                 )

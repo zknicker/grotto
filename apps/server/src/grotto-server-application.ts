@@ -120,6 +120,7 @@ export async function createGrottoServerApplication(
             agentDelivery,
             appOrigin: options.appOrigin,
             attachmentRoot,
+            avatarImageService,
             clerkSessions,
             clerkUsers:
                 options.clerkUsers ??

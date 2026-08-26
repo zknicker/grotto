@@ -81,6 +81,11 @@ validated transient avatar file from a short concept. The Server owns the prompt
 normalization, validation, and concurrency limits; the Computer writes the result only to the
 requested local path. This command does not assign or persist an Agent avatar.
 
+Owners and Admins can also choose **Generate avatar** on an ordinary Agent's profile. The profile
+requires a short concept, previews one transient result, and only applies it after an explicit Save;
+Cancel and failed retries leave the current avatar unchanged. Uploading a file and falling back to
+initials remain available alongside generation.
+
 ## Execution lifecycle
 
 One resident Computer execution host serves each assigned Agent. The Agent's

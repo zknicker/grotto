@@ -46,6 +46,13 @@ provider failures or malformed output never expose provider details. Safe operat
 request identity, actor/Server, model, duration, outcome, and normalized metadata only — no concept
 text or image bytes.
 
+The human App exposes the same service through `avatar.generate` for Server Owners and Admins on an
+active ordinary Agent. It accepts only the explicit short concept plus the Server and Agent ids; it
+does not derive a concept from profile fields. The App holds one returned image in local preview
+state, and an explicit Save sends those bytes through ordinary `avatar.set`. Canceling, replacing a
+preview, or retrying a failed generation leaves the current avatar and hosted rows untouched; upload
+and initials behavior remain unchanged.
+
 ## Storage
 
 **Hosted (Postgres).** Bytes live in an `avatars` table

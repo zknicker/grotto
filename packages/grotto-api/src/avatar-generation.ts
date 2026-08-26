@@ -1,6 +1,8 @@
 import * as z from 'zod';
 import { avatarMaxBytes, avatarMediaTypeSchema, avatarPixelSize } from './avatar.ts';
 
+const idSchema = z.string().trim().min(1);
+
 /** The one image model Grotto uses for transient avatar generation. */
 export const avatarGenerationModel = 'gpt-image-2' as const;
 
@@ -19,6 +21,13 @@ export const avatarGenerationRequestSchema = z
     .strict();
 
 export type AvatarGenerationRequest = z.infer<typeof avatarGenerationRequestSchema>;
+
+/** Human App generation targets one existing Agent without mutating it. */
+export const agentAvatarGenerationInputSchema = avatarGenerationRequestSchema
+    .extend({ agentId: idSchema, serverId: idSchema })
+    .strict();
+
+export type AgentAvatarGenerationInput = z.infer<typeof agentAvatarGenerationInputSchema>;
 
 export const generatedAvatarSchema = z
     .object({

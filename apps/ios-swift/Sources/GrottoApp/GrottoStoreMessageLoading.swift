@@ -18,7 +18,11 @@ extension GrottoStore {
             } else {
                 storedPage = page
             }
-            messagesByChatID[chatID] = storedPage
+            // A no-op refetch — a read echo, an event for a sibling Chat — must
+            // not invalidate the timeline that is already showing this page.
+            if messagesByChatID[chatID] != storedPage {
+                messagesByChatID[chatID] = storedPage
+            }
             reconcilePendingMessages(chatID: chatID, page: storedPage)
         } catch {
             sendError = error.localizedDescription

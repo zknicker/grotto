@@ -18,7 +18,13 @@ extension GrottoStore {
     }
 
     /// Mirrors the React `useChatRead` view key while keeping unread counts
-    /// Server-owned. A successful receipt is followed by a fresh Chat list.
+    /// Server-owned.
+    ///
+    /// The durable `chat.read` event owns the Chat-list refresh, exactly as the
+    /// web App's `useChatRead` does. Server writes that event only when the read
+    /// actually moved, addresses it to the reader alone, and both live delivery
+    /// and the reconnect walk carry it, so one acknowledgement produces one list
+    /// refresh. Refreshing here as well made every opened Chat refetch twice.
     func markChatReadIfNeeded(chatID: String) async {
         guard let serverID = activeServer?.id,
               openChatID == chatID,
@@ -43,14 +49,6 @@ extension GrottoStore {
                 acknowledgedReadSequences[scope] ?? 0,
                 receipt.sequence
             )
-
-            do {
-                try await reloadChats(serverID: serverID)
-            } catch {
-                readStateLogger.error(
-                    "Refreshing Chat read projection failed: \(error.localizedDescription, privacy: .public)"
-                )
-            }
 
             // A new message can land while the mutation is in flight. Match the
             // view-key effect by immediately acknowledging the newer loaded tail.
@@ -245,7 +243,10 @@ extension GrottoStore {
             "chat.list",
             input: ServerScopedInput(serverId: serverID)
         )
-        chats = refreshed
+        // Events, sends, and reads all land here, and most of those reads come
+        // back byte-identical. A freshly decoded equal value is still a write
+        // Observation reports, which is what reshuffled the sidebar mid-gesture.
+        if chats != refreshed { chats = refreshed }
     }
 
     func reconcilePendingMessages(chatID: String, page: ChatMessagePage) {

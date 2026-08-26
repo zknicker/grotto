@@ -1,11 +1,6 @@
-import { createHash } from 'node:crypto';
 import type { Agent, CoveApplyCommand, CoveApplyResult } from '@grotto/api';
 import { and, eq, isNull } from 'drizzle-orm';
-import coveAvatarPath from '../../../website/public/prototypes/cove-avatar.png' with {
-    type: 'file',
-};
 import { enqueuePendingWork } from '../agent-delivery/store.ts';
-import { createAvatarId } from '../avatars/avatar-bytes.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -26,6 +21,7 @@ import { queryAgents } from '../server-agents/query-agents.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
+import { createCoveAvatarRow } from './cove-avatar.ts';
 
 export interface CreateCoveInput {
     computerId: string;
@@ -96,7 +92,7 @@ export async function createCove(
         }
         assertRuntimeModelReported(inventory, input.runtimeId, input.modelId);
 
-        const avatar = await coveAvatarRow();
+        const avatar = await createCoveAvatarRow();
         const agentId = createOpaqueId('agt');
         const applicationId = createOpaqueId('cap');
         await tx.insert(avatarsTable).values(avatar);
@@ -292,15 +288,4 @@ function assertSameConfiguration(
             'Cove configuration is already locked and cannot be rebound.'
         );
     }
-}
-
-async function coveAvatarRow() {
-    const bytes = new Uint8Array(await Bun.file(coveAvatarPath).arrayBuffer());
-    return {
-        byteSize: bytes.byteLength,
-        bytes,
-        id: createAvatarId(),
-        mediaType: 'image/png' as const,
-        sha256: createHash('sha256').update(bytes).digest('hex'),
-    };
 }

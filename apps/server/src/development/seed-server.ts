@@ -23,6 +23,7 @@ import {
 import { listAccessibleServers } from '../servers/accessible-servers.ts';
 import type { ServerSummary } from '../servers/contracts.ts';
 import { ensureUserByClerkId } from '../users/grotto-user.ts';
+import { ensureDevelopmentCove } from './seed-cove.ts';
 import { insertSeedAvatars } from './seed-demo-avatars.ts';
 
 const demoInventory = {
@@ -51,6 +52,7 @@ export async function seedDevelopmentServer(
     const user = await ensureUserByClerkId(db, clerkUserId);
     const existing = await listAccessibleServers(db, user.id);
     if (existing[0]) {
+        await ensureDevelopmentCove(db, { serverId: existing[0].id, userId: user.id });
         await ensureDevelopmentComputerAttachment(db, existing[0], options);
         return existing[0];
     }
@@ -318,6 +320,7 @@ export async function seedDevelopmentServer(
 
         return { displayName: 'Dev Server', id: serverId, role: 'owner' as const, slug: 'dev' };
     });
+    await ensureDevelopmentCove(db, { serverId: seeded.id, userId: user.id });
     await ensureDevelopmentComputerAttachment(db, seeded, options);
     return seeded;
 }

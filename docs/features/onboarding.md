@@ -11,6 +11,12 @@ the existing first Owner and `#all` guarantees while adding durable onboarding
 progress and private `#onboarding-owner`, initially containing only that Owner.
 No Computer, Agent, or execution configuration is created automatically.
 
+The development bootstrap is the deliberate exception: `/dev` includes Cove alongside the demo
+Agents. Bootstrap idempotently reserves Cove with the development Computer and Terra model, then
+uses the same `cove-apply` factory command as production onboarding so Cove's workspace and recipes
+are real rather than database-only fixtures. Existing development databases gain Cove on their next
+bootstrap.
+
 The first step gives the Owner two Server-specific commands: install Grotto Computer, then set it
 up for this Server. `grotto-computer setup /<slug>` reuses a valid Computer login or opens and
 prints a complete device URL plus a short code that can also be entered manually. Grotto App

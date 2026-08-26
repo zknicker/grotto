@@ -71,6 +71,9 @@ export function ServerMenu({
                             onJoinServer();
                             return;
                         }
+                        if (key === currentServer.id) {
+                            return;
+                        }
                         const server = servers.find((candidate) => candidate.id === key);
                         if (server) {
                             onSwitchServer(server.slug);
@@ -118,16 +121,22 @@ export function ServerMenu({
                         <Label>Archived chats</Label>
                     </Dropdown.Item>
                     <Separator />
-                    <Dropdown.Item className="h-10" id="create-server" textValue="Create server">
-                        <span className="grid size-8 shrink-0 place-items-center text-muted">
-                            <Icon aria-hidden="true" icon={PlusSignIcon} size={16} />
-                        </span>
+                    <Dropdown.Item id="create-server" textValue="Create server">
+                        <Icon
+                            aria-hidden="true"
+                            className="text-muted"
+                            icon={PlusSignIcon}
+                            size={16}
+                        />
                         <Label>Create server</Label>
                     </Dropdown.Item>
-                    <Dropdown.Item className="h-10" id="join-server" textValue="Join server">
-                        <span className="grid size-8 shrink-0 place-items-center text-muted">
-                            <Icon aria-hidden="true" icon={Link01Icon} size={16} />
-                        </span>
+                    <Dropdown.Item id="join-server" textValue="Join server">
+                        <Icon
+                            aria-hidden="true"
+                            className="text-muted"
+                            icon={Link01Icon}
+                            size={16}
+                        />
                         <Label>Join server</Label>
                     </Dropdown.Item>
                 </Dropdown.Menu>

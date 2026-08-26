@@ -12,18 +12,22 @@ export const bandHeightClassName = 'h-[var(--app-shell-band-height)]';
 export const shellNavigationIconSize = 20;
 
 /**
- * The one topbar band chrome: fixed height, bottom hairline, gutter. The
- * shell renders exactly one of these above the routed content
+ * The one topbar band chrome: fixed height, gutter, and no rule beneath it.
+ * The shell renders exactly one of these above the routed content
  * (ShellTopbar); embedded surfaces that need a local band (a panel, a tab
  * body) may render their own. The px-3 gutter matches the sidebar's stock
  * content gutter, so band content on both sides of the divider shares one
  * inset; routed content below keeps its own deeper reading gutter.
+ *
+ * The band draws no bottom hairline. It sits on the same surface as the
+ * content under it, so the rule was separating a plane from itself — the
+ * sidebar's tint and the divider beside it already say where chrome ends.
+ * What remains is a title floating over one continuous page, which is the
+ * whole reason the seam reads as absent rather than missing.
  */
 export function SectionBar({ children }: { children?: ReactNode }) {
     return (
-        <header
-            className={`flex ${bandHeightClassName} shrink-0 items-center border-separator border-b px-3 has-[[data-shell-topbar-seam=hidden]]:border-b-transparent`}
-        >
+        <header className={`flex ${bandHeightClassName} shrink-0 items-center px-3`}>
             {children}
         </header>
     );

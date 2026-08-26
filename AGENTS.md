@@ -116,23 +116,13 @@ so `docs:list` routes future agents correctly.
   in HeroUI Pro and are now owned in code. The saved design system is stale; the repo is the
   source of truth. Edit both directly and keep them consistent.
 - `default-theme.css` is the whole design system, in HeroUI's own theme shape: tokens in
-  `:root`, then one `@layer components` block for BEM overrides. Reach for them in that order:
-  1. **A token.** Almost always the answer. Tokens propagate on their own; a value that looks
-     wrong in one region is usually wrong globally.
-  2. **A BEM override** in that `@layer components` block, when no token can express it.
-     HeroUI names every component part expressly to support this — see their "Customizing
-     components globally" guide. Keep it to one property with the reason written down.
-  3. **A structural component**, when the BEM override has nothing to hang on. If the rule
-     you want is real but no class expresses it, the missing piece is usually markup rather
-     than CSS: HeroUI ships containers whose whole job is to say "these controls are a set"
-     — `Toolbar`, `ButtonGroup`, `InputGroup`, `Fieldset` — and each one adds a class the
-     theme layer can key on. Compose the container and write the rule against it
-     (`.toolbar .select__trigger`), rather than dropping to a call site because no selector
-     existed. Composing one usually buys behavior too, not just a hook.
-  4. **A call-site class** only for a genuine one-off.
-  Do not add new per-region `--spacing` or `--radius` scopes, and do not scatter override rules
-  into feature CSS. Product CSS may own layout or behavior HeroUI cannot express, but must not
-  recreate component appearance.
+  `:root`, then one `@layer components` block for BEM overrides. A customization climbs that
+  order and never skips up: a **token**, then a **BEM override** in the theme layer, then a
+  **structural component** that gives the rule a class to hang on, and only then a
+  **call-site class** for a genuine one-off. `DESIGN.md` → "Where a customization goes"
+  carries the ladder with its reasons. Do not add new per-region `--spacing` or `--radius`
+  scopes, and do not scatter override rules into feature CSS. Product CSS may own layout or
+  behavior HeroUI cannot express, but must not recreate component appearance.
 - HeroUI pairs each component's **box** with a matching **radius step**. If you force a box —
   an exact-pixel avatar, an icon container — derive the radius too (`identityMarkRadius` in
   `components/ui/entity-avatar.tsx`), or the corner stays fixed while the box moves and the

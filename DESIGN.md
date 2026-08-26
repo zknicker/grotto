@@ -568,6 +568,32 @@ track the scale.
 Before adding a radius rule here, check that the shape is genuinely semantic.
 A card, a button, or a field is not — those follow the tier table above.
 
+## Where a customization goes
+
+`default-theme.css` is the whole design system, in HeroUI's own theme shape: tokens in
+`:root`, then one `@layer components` block for BEM overrides. A customization climbs
+this order and never skips up.
+
+1. **A token.** Almost always the answer. Tokens propagate on their own; a value that
+   looks wrong in one region is usually wrong globally.
+2. **A BEM override** in that `@layer components` block, when no token can express it.
+   HeroUI names every component part expressly to support this — see their "Customizing
+   components globally" guide. Keep it to one property with the reason written down.
+3. **A structural component**, when the BEM override has nothing to hang on. If the rule
+   you want is real but no class expresses it, the missing piece is usually markup rather
+   than CSS: HeroUI ships containers whose whole job is to say "these controls are a set"
+   — `Toolbar`, `ButtonGroup`, `InputGroup`, `Fieldset` — and each one adds a class the
+   theme layer can key on. Compose the container and write the rule against it
+   (`.toolbar .select__trigger`), rather than dropping to a call site because no selector
+   existed. Check the component catalog before concluding one does not exist, and note
+   that composing a container usually buys behavior too, not just a hook: `Toolbar` also
+   carries the arrow-key navigation a filter cluster should have.
+4. **A call-site class** only for a genuine one-off.
+
+Two constraints hold at every rung. Do not add new per-region `--spacing` or `--radius`
+scopes, and do not scatter override rules into feature CSS. Product CSS may own layout or
+behavior HeroUI cannot express, but must not recreate component appearance.
+
 ## Components
 - **Buttons:** Use HeroUI Button semantic variants. Primary actions use `variant="primary"`; alternatives use `secondary`, `tertiary`, `outline`, or `ghost`; destructive actions use `danger` or `danger-soft`.
 - **Cursors:** Keep the desktop arrow on buttons and other app controls. Reserve the pointer for

@@ -125,7 +125,14 @@
      * clears the three 12px lights inset 17px from the window edge.
      */
     html.macos-electron .app-shell {
-        --app-shell-titlebar-inset: var(--app-shell-band-height);
+        /*
+         * The strip only has to clear the traffic lights, not stand as tall as
+         * a band. electron/main.cjs seats them at `(band - 12) / 2 - 1`, so the
+         * dots end 5px past the band's midpoint and a full 48 left a visible
+         * shelf of dead space above the Server row. Three quarters clears them
+         * with room to breathe and pulls the row up flush.
+         */
+        --app-shell-titlebar-inset: calc(var(--app-shell-band-height) * 0.75);
         --app-shell-traffic-light-gutter: 5rem;
     }
 
@@ -173,7 +180,12 @@
         z-index: 2;
         inset-block-start: 0;
         inset-inline-end: calc(var(--spacing) * 3);
-        height: var(--app-shell-titlebar-inset);
+        /*
+         * Centred on the lights rather than on the strip: the same arithmetic
+         * main.cjs uses puts their midline at `band / 2 - 1`, so a box of twice
+         * that lands the gear on their axis whatever the strip's height.
+         */
+        height: calc(var(--app-shell-band-height) - 2px);
     }
 
     html.macos-electron

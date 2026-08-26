@@ -16,6 +16,7 @@ import {
     type Attachment,
     parseResetCommand,
     parseRestartCommand,
+    parseStartCommand,
     resetAgentState,
     runAgentLaunch,
 } from './launch.ts';
@@ -33,6 +34,54 @@ interface FakeServerState {
 }
 
 let state: FakeServerState;
+
+test('rejects a typed action whose envelope identity does not match its attention', () => {
+    expect(
+        parseStartCommand({
+            agentId: 'agt_launchtest',
+            chatId: 'cht_origin',
+            inbox: [
+                {
+                    actionAttention: {
+                        actionId: 'act_create_agent',
+                        chatId: 'cht_origin',
+                        createdAgentId: 'agt_created',
+                        executedResult: {
+                            agentId: 'agt_created',
+                            avatarUrl: null,
+                            chatId: 'cht_created',
+                            computerId: 'cmp_local',
+                            description: null,
+                            displayName: 'Scout',
+                            handle: 'scout',
+                            modelId: 'gpt-5',
+                            reasoningEffort: 'medium',
+                            role: 'member',
+                            runtimeId: 'codex',
+                        },
+                        kind: 'agent:create',
+                    },
+                    chatId: 'cht_origin',
+                    content: '',
+                    createdAt: '2026-08-26T12:00:00.000Z',
+                    id: 'msg_wrong_identity',
+                    senderHandle: 'grotto',
+                    senderType: 'system',
+                    sequence: 0,
+                    target: '#product',
+                },
+            ],
+            inboxDelivery: 'concrete',
+            modelId: 'gpt-5',
+            runId: 'run_launchtest',
+            runtimeId: 'codex',
+            sessionGeneration: 1,
+            totalPending: 0,
+            type: 'start',
+        })
+    ).toBeNull();
+});
+
 let dataRoot: string;
 beforeEach(async () => {
     dataRoot = await mkdtemp(join(tmpdir(), 'grotto-launch-'));

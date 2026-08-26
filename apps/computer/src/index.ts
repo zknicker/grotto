@@ -1438,16 +1438,16 @@ async function connect(attachment: Attachment) {
                                 injected = await sink.deliver(projected);
                             }
                         },
-                        { messageIds: notice.inbox.map((item) => item.id), runId: notice.runId }
+                        { runId: notice.runId, workIds: notice.inbox.map((item) => item.id) }
                     )
                         .then(() => {
                             if (injected) {
                                 socket.send(
                                     JSON.stringify({
                                         agentId: notice.agentId,
-                                        messageIds: notice.inbox.map((item) => item.id),
                                         runId: notice.runId,
                                         type: 'notice-ack',
+                                        workIds: notice.inbox.map((item) => item.id),
                                     })
                                 );
                             }
@@ -1557,11 +1557,13 @@ async function handleStartCommand(input: {
                 command.runId
             );
         }
+        let modelInbox = command.inbox ?? [];
+        const launchCommand = { ...command, inbox: modelInbox };
         let summary: AgentTurnFrame;
         try {
             summary = await runAgentLaunch({
                 attachment,
-                command,
+                command: launchCommand,
                 dataRoot,
                 onRuntimeReady: async () => {
                     const location = {
@@ -1577,7 +1579,15 @@ async function handleStartCommand(input: {
                             command.totalPending
                         );
                     } else {
-                        await acceptRunInbox(location, command.runId, command.inbox ?? []);
+                        if (marker?.status !== 'accepted') {
+                            await reofferPendingMessages(location, command.inbox ?? []);
+                        }
+                        modelInbox = await acceptRunInbox(
+                            location,
+                            command.runId,
+                            command.inbox ?? []
+                        );
+                        launchCommand.inbox = modelInbox;
                     }
                     await writeRunMarker(dataRoot, {
                         marker: { status: 'accepted' },

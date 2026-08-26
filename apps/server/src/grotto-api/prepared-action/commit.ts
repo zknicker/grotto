@@ -41,6 +41,17 @@ export const commitPreparedActionProcedure = memberProcedure
                         cause
                     );
                 }
+                try {
+                    await ctx.agentDelivery.dispatchAgent(
+                        result.action.proposerAgentId,
+                        input.serverId
+                    );
+                } catch (cause) {
+                    console.error(
+                        '[grotto] committed action attention could not be dispatched',
+                        cause
+                    );
+                }
             }
 
             return {

@@ -37,15 +37,21 @@ A durable `message.created` is planned once by Server delivery
   receipt is `mentioned=true`, so it is actionable even through a mute, and is visible in Agent
   history/inbox envelopes while remaining filtered from the human App transcript, search, and unread
   counts.
-- After planning, an idle agent gets a notice turn; a busy agent receives the
-  same notice in its live turn. Humans keep their own read/unread system; the inbox
-  is agent-only state.
+- A successfully committed prepared action creates one typed terminal attention for only its
+  proposer. The attention carries the originating Chat, action identity, created Agent identity,
+  and executed result; it never creates a Chat message or a receipt for the Chat transcript.
+- After planning, ordinary Chat work gives an idle Agent a notice turn and a busy Agent receives the
+  same notice in its live turn. A committed action attention is the typed concrete exception: an idle
+  proposer receives its result in a distinct continuation turn; a busy proposer receives only the
+  content-free notice at a safe boundary, then the still-queued action in the next turn. Humans keep
+  their own read/unread system; the inbox is agent-only state.
 
 ## Visibility ledger (I3)
 
 Transport debt is the exact queued set in `agent_pending_work`; delivery never advances a scalar
 high-water mark. Model visibility is recorded in `agent_inbox_exact_visibility` as exact message
-identities tied to the active run. Freshness treats an identity as visible when it settled in this
+identities tied to the active run. Typed action attentions use their action identity in the durable
+delivery ledger and intentionally have no Chat cursor. Freshness treats an identity as visible when it settled in this
 session generation or was served to the current run. A verified contiguous boundary in
 `agent_inbox_cursors` is only an optional compaction/baseline; exact identities beyond it never
 consume the gaps between them. Notices and wakes advance nothing, ever.
@@ -66,8 +72,11 @@ Restart, Start, or session reset explicitly offers pending work again. Chain
 budget follows rows made model-visible, not notice-only turns.
 
 Non-Chat system attention is a separate typed concrete lane. Cove's one-shot
-bootstrap instruction uses that lane, settles against its own identity, and
-never enters Chat message resolution or Chat cursor accounting.
+bootstrap instruction and committed action terminal attention use that lane, settle against their
+own stable identities, and never enter Chat message resolution or Chat cursor accounting. The
+Computer suppresses an already-consumed action identity on accepted-run replay; a failed unsettled
+new run explicitly reoffers it so a terminal result is model-visible at most once per committed
+attention.
 
 ## Notices (I2)
 
@@ -92,7 +101,7 @@ This is runner-local projection state; Server exact pending and visibility rows 
 
 ## Pulls
 
-`grotto message check` serves Computer-local pending envelopes first and falls
+`grotto message check` serves Computer-local pending message envelopes first and falls
 through to Server only when that local cache is empty. A single invocation
 drains successive pages (up to 50 rounds) before reporting that more messages
 remain. Exact local identities
@@ -124,6 +133,22 @@ is not a request; exact exposure is not settled consumption; and only settled `s
 work from catch-up. An unpulled row remains pending without immediately waking
 the Agent again. A pull followed by a crash replays from canonical Server state.
 
+For a committed prepared action, the typed terminal attention follows the concrete lane:
+
+```text
+Server commits the action attention for its proposer
+  -> Server materializes one action-identity work row
+  -> Computer durably accepts the concrete run
+  -> Agent sees the originating Chat, created Agent, and executed result
+  -> turn settlement records served/seen for that action identity
+```
+
+The action row is proposer-only, has no Chat message or cursor, and does not create a
+receipt in the Chat transcript. A busy proposer gets a notice at the current safe boundary,
+then a distinct concrete continuation. The Computer suppresses the same action result on
+accepted-run replay and reoffers it only when Server explicitly starts a new unsettled run.
+Creating the target Agent configures it without scheduling an empty bootstrap turn.
+
 ## Regression guards
 
 | Contract | Executable guard |
@@ -134,7 +159,9 @@ the Agent again. A pull followed by a crash replays from canonical Server state.
 | Stale notices cannot resurrect identities already made visible | `apps/computer/src/inbox-store.test.ts` |
 | Accepted work and pull evidence survive reconnect or replay correctly | `apps/computer/src/delivery.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Unpulled work is offered once; new identities wake again; subsets and targets settle independently | `apps/server/test/agent-delivery.test.ts` |
+| Committed action attentions are proposer-only typed work with concrete continuation, durable lifecycle, retry/reconnect dedupe, and retirement gating | `apps/server/test/agent-delivery.test.ts`, `apps/computer/src/inbox-store.test.ts`, `packages/grotto-api/src/agent-runner.test.ts` |
 | Notices inject only at safe tool boundaries or remain durable for the next turn | `apps/computer/src/harness/executor.test.ts`, `apps/server/test/agent-delivery.test.ts` |
+| Committing an action creates no empty bootstrap turn for the new Agent | `apps/server/test/grotto-prepared-action-commit.test.ts` |
 | Agent instructions teach notice, pull, silence, and deferral semantics without losing required capabilities | `apps/computer/src/harness/managed-instructions.test.ts` |
 
 ## Presentation split (I1/I4)

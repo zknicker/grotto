@@ -39,7 +39,10 @@ execution values and committing human in `prepared_actions.executed_result`,
 `executed_by_user_id`, and `executed_at`; the proposal JSON and action-owned media never change.
 `agent_action_attentions` stores one record-only proposer handoff keyed by `(server_id, action_id)`
 with the originating Chat, executed result, created Agent, and dedupe key. PRD-261 writes that row
-atomically; PRD-262 owns delivery and execution of the attention.
+atomically; PRD-262 materializes it as one `agent_pending_work` row and owns the
+Server-to-Computer delivery, exact action identity, and execution settlement. The
+pending row uses the action id as its durable work identity and remains in the
+retained delivery ledger after `seen`.
 
 The Server application PostgreSQL role receives normal table/sequence privileges; migration and
 backup roles remain separate operational credentials.

@@ -494,13 +494,11 @@ function createNoticeCoordinator(deliver: (notice: string) => Promise<boolean>) 
 }
 
 function parseStoredNoticeReceipt(value: unknown): StoredNoticeReceipt | null {
-    if (!(isRecord(value) && typeof value.runId === 'string' && Array.isArray(value.messageIds))) {
+    if (!(isRecord(value) && typeof value.runId === 'string' && Array.isArray(value.workIds))) {
         return null;
     }
-    const messageIds = value.messageIds.filter((id): id is string => typeof id === 'string');
-    return messageIds.length === value.messageIds.length
-        ? { messageIds, runId: value.runId }
-        : null;
+    const workIds = value.workIds.filter((id): id is string => typeof id === 'string');
+    return workIds.length === value.workIds.length ? { runId: value.runId, workIds } : null;
 }
 
 function pendingNoticePath(agentRoot: string) {

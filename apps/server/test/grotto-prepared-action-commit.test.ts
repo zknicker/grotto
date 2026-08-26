@@ -135,6 +135,9 @@ test('commits one prepared Agent atomically and replays the stored result', asyn
 
     expect(await countAgents()).toBe(2);
     expect(await countAgentDms(committed.agent.id)).toBe(1);
+    expect(await countAgentDeliveryRows(committed.agent.id)).toBe(0);
+    expect(await countPendingWork(committed.agent.id)).toBe(0);
+    expect(await countAgentTurns(committed.agent.id)).toBe(0);
     expect(await countChatMessages(committed.chat.id)).toBe(0);
     expect(await readCopiedAvatar(committed.agent.id)).toEqual(Array.from(png));
     expect(await countActionEvents(action.id, 'executed')).toBe(1);
@@ -290,6 +293,33 @@ async function countAgentDms(agentId: string) {
         select count(*)::int as count
         from chats
         where server_id = ${serverId} and kind = 'dm' and dm_agent_id = ${agentId}
+    `) as { count: number }[];
+    return rows[0]?.count ?? 0;
+}
+
+async function countAgentDeliveryRows(agentId: string) {
+    const rows = (await harness.sql`
+        select count(*)::int as count
+        from agent_delivery
+        where agent_id = ${agentId}
+    `) as { count: number }[];
+    return rows[0]?.count ?? 0;
+}
+
+async function countPendingWork(agentId: string) {
+    const rows = (await harness.sql`
+        select count(*)::int as count
+        from agent_pending_work
+        where agent_id = ${agentId}
+    `) as { count: number }[];
+    return rows[0]?.count ?? 0;
+}
+
+async function countAgentTurns(agentId: string) {
+    const rows = (await harness.sql`
+        select count(*)::int as count
+        from agent_turns
+        where agent_id = ${agentId}
     `) as { count: number }[];
     return rows[0]?.count ?? 0;
 }

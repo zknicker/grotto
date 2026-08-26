@@ -28,6 +28,10 @@ model session. Per-turn message delivery is an inbox concern; see
 - A fresh session with pending work uses its notice or typed attention as the
   first prompt. `Start.` is used only when no delivery is pending. Later
   deliveries resume the same session without replaying that marker.
+- A committed action attention is an identity-addressed typed continuation for
+  the proposing Agent. Same-run reconnect replay suppresses an already-consumed
+  action result; a failed new run reoffers it. Action attention has no Chat
+  cursor, and creating an Agent does not schedule an empty bootstrap turn.
 - Restart recreates the Agent runner and resumes the same native conversation.
   Its next delivery applies the latest composed instructions once without
   rotating the session generation or replaying `Start.`.

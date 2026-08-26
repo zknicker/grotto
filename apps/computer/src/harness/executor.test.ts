@@ -341,6 +341,49 @@ test('uses a concrete cold inbox as the first prompt without mid-turn injection'
     expect(sentUserMessages).toEqual([]);
 });
 
+test('projects a concrete action attention into the first prompt by action identity', async () => {
+    await runHarnessTurn(
+        turnInput({
+            inbox: [
+                {
+                    actionAttention: {
+                        actionId: 'act_create_agent',
+                        chatId: 'cht_origin',
+                        createdAgentId: 'agt_created',
+                        executedResult: {
+                            agentId: 'agt_created',
+                            avatarUrl: null,
+                            chatId: 'cht_created',
+                            computerId: 'cmp_local',
+                            description: 'A new teammate',
+                            displayName: 'Scout',
+                            handle: 'scout',
+                            modelId: 'gpt-5',
+                            reasoningEffort: 'medium',
+                            role: 'member',
+                            runtimeId: 'codex',
+                        },
+                        kind: 'agent:create',
+                    },
+                    chatId: 'cht_origin',
+                    content: '',
+                    createdAt: '2026-07-27T00:00:00.000Z',
+                    id: 'act_create_agent',
+                    senderHandle: 'grotto',
+                    senderType: 'system',
+                    sequence: 0,
+                    target: '#general',
+                },
+            ],
+            inboxDelivery: 'concrete',
+        })
+    );
+
+    expect(streamedPrompts[0]).toContain('act_create_agent');
+    expect(streamedPrompts[0]).toContain('agt_created');
+    expect(streamedPrompts[0]).toContain('"handle":"scout"');
+});
+
 test('cold-starts ordinary Chat work with a content-free notice in the same task', async () => {
     const input = turnInput({ inboxDelivery: 'notice' });
     const runtimeDir = join(agentRoot, 'runtime');
@@ -503,10 +546,10 @@ test('reports a busy notice delivered after the start ack and before sink regist
         join(runtimeDir, 'pending-notice.json'),
         JSON.stringify({
             notice,
-            receipt: { messageIds: ['msg_late'], runId: 'run_active' },
+            receipt: { runId: 'run_active', workIds: ['msg_late'] },
         })
     );
-    const receipts: Array<{ messageIds: string[]; runId: string }> = [];
+    const receipts: Array<{ runId: string; workIds: string[] }> = [];
 
     await runHarnessTurn(
         turnInput({
@@ -517,7 +560,7 @@ test('reports a busy notice delivered after the start ack and before sink regist
     );
 
     expect(sentUserMessages).toEqual([notice]);
-    expect(receipts).toEqual([{ messageIds: ['msg_late'], runId: 'run_active' }]);
+    expect(receipts).toEqual([{ runId: 'run_active', workIds: ['msg_late'] }]);
 });
 
 test('leaves a late busy notice unacknowledged when no safe tool boundary remains', async () => {
@@ -530,10 +573,10 @@ test('leaves a late busy notice unacknowledged when no safe tool boundary remain
         join(runtimeDir, 'pending-notice.json'),
         JSON.stringify({
             notice,
-            receipt: { messageIds: ['msg_late'], runId: 'run_active' },
+            receipt: { runId: 'run_active', workIds: ['msg_late'] },
         })
     );
-    const receipts: Array<{ messageIds: string[]; runId: string }> = [];
+    const receipts: Array<{ runId: string; workIds: string[] }> = [];
 
     await runHarnessTurn(
         turnInput({

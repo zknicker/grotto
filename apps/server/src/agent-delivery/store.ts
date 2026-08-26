@@ -3,6 +3,7 @@ import { and, eq, inArray, isNotNull, isNull, lt, lte, ne, or, sql } from 'drizz
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
+    agentActionAttentionsTable,
     agentDeliveryTable,
     agentPendingWorkTable,
     agentsTable,
@@ -50,6 +51,7 @@ export interface AgentDispatchConfig {
     factoryAppliedAt: Date | null;
     factoryKind: 'cove' | 'ordinary';
     homeTimezone: string;
+    retiredAt: Date | null;
     sessionGeneration: number;
     sessionResetKind: 'full' | 'session';
 }
@@ -71,6 +73,7 @@ export async function readAgentDispatchConfig(
             factoryAppliedAt: agentsTable.factoryAppliedAt,
             factoryKind: agentsTable.factoryKind,
             homeTimezone: agentsTable.homeTimezone,
+            retiredAt: agentsTable.retiredAt,
             sessionGeneration: agentsTable.sessionGeneration,
             sessionResetKind: agentsTable.sessionResetKind,
         })
@@ -137,6 +140,7 @@ export async function enqueuePendingWork(
         agentId: string;
         chatId: string;
         content: string;
+        createdAt?: Date;
         dedupeKey: string;
         mentioned?: boolean;
         serverId: string;
@@ -150,6 +154,7 @@ export async function enqueuePendingWork(
             agentId: input.agentId,
             chatId: input.chatId,
             content: input.content,
+            ...(input.createdAt ? { createdAt: input.createdAt } : {}),
             dedupeKey: input.dedupeKey,
             id: createOpaqueId('apw'),
             mentioned: input.mentioned ?? false,
@@ -158,6 +163,45 @@ export async function enqueuePendingWork(
             threadFollowReactivated: input.threadFollowReactivated ?? false,
         })
         .onConflictDoNothing();
+}
+
+/** Materializes PRD-261 terminal attentions into the ordinary durable Agent queue. */
+export async function materializeActionAttentions(
+    db: GrottoDatabase,
+    input: { agentId: string; serverId: string }
+): Promise<void> {
+    const attentions = await db
+        .select({
+            actionId: agentActionAttentionsTable.actionId,
+            chatId: agentActionAttentionsTable.chatId,
+            createdAt: agentActionAttentionsTable.createdAt,
+        })
+        .from(agentActionAttentionsTable)
+        .innerJoin(
+            agentsTable,
+            and(
+                eq(agentsTable.serverId, agentActionAttentionsTable.serverId),
+                eq(agentsTable.id, agentActionAttentionsTable.agentId)
+            )
+        )
+        .where(
+            and(
+                eq(agentActionAttentionsTable.serverId, input.serverId),
+                eq(agentActionAttentionsTable.agentId, input.agentId),
+                isNull(agentsTable.retiredAt)
+            )
+        );
+    for (const attention of attentions) {
+        await enqueuePendingWork(db, {
+            agentId: input.agentId,
+            chatId: attention.chatId,
+            content: '',
+            createdAt: attention.createdAt,
+            dedupeKey: attention.actionId,
+            serverId: input.serverId,
+            source: 'action',
+        });
+    }
 }
 
 export async function countQueuedPending(db: GrottoDatabase, agentId: string): Promise<number> {
@@ -169,6 +213,24 @@ export async function countQueuedPending(db: GrottoDatabase, agentId: string): P
 }
 
 export async function countQueuedMessagePending(
+    db: GrottoDatabase,
+    agentId: string
+): Promise<number> {
+    const [row] = await db
+        .select({ total: sql<number>`count(*)::int` })
+        .from(agentPendingWorkTable)
+        .where(
+            and(
+                queuedFor(agentId),
+                ne(agentPendingWorkTable.source, 'onboarding'),
+                ne(agentPendingWorkTable.source, 'action')
+            )
+        );
+    return row?.total ?? 0;
+}
+
+/** Counts work represented by a notice; concrete onboarding work is not notice-only. */
+export async function countQueuedNoticePending(
     db: GrottoDatabase,
     agentId: string
 ): Promise<number> {
@@ -210,6 +272,25 @@ async function markPendingAccepted(
                 eq(agentPendingWorkTable.agentId, input.agentId),
                 eq(agentPendingWorkTable.runId, input.runId),
                 isNull(agentPendingWorkTable.acceptedAt)
+            )
+        );
+}
+
+/** A concrete action is served when the Computer accepts its model-visible run inbox. */
+async function markActionPendingServed(
+    db: GrottoDatabase,
+    input: { agentId: string; runId: string }
+): Promise<void> {
+    await db
+        .update(agentPendingWorkTable)
+        .set({ servedAt: new Date(), state: 'served' })
+        .where(
+            and(
+                eq(agentPendingWorkTable.agentId, input.agentId),
+                eq(agentPendingWorkTable.runId, input.runId),
+                eq(agentPendingWorkTable.source, 'action'),
+                eq(agentPendingWorkTable.state, 'accepted'),
+                isNull(agentPendingWorkTable.servedAt)
             )
         );
 }
@@ -292,6 +373,31 @@ export async function listQueuedPending(
         })
         .from(agentPendingWorkTable)
         .where(queuedFor(agentId))
+        .orderBy(...pendingOrder())
+        .limit(limit);
+}
+
+/** Action attentions stay eligible for a concrete continuation after a busy notice. */
+export async function listQueuedActionPending(
+    db: GrottoDatabase,
+    agentId: string,
+    limit: number
+): Promise<PendingWorkRow[]> {
+    return await db
+        .select({
+            chatId: agentPendingWorkTable.chatId,
+            content: agentPendingWorkTable.content,
+            createdAt: agentPendingWorkTable.createdAt,
+            dedupeKey: agentPendingWorkTable.dedupeKey,
+            id: agentPendingWorkTable.id,
+            mentioned: agentPendingWorkTable.mentioned,
+            noticeRunId: agentPendingWorkTable.noticeRunId,
+            serverId: agentPendingWorkTable.serverId,
+            source: agentPendingWorkTable.source,
+            threadFollowReactivated: agentPendingWorkTable.threadFollowReactivated,
+        })
+        .from(agentPendingWorkTable)
+        .where(and(queuedFor(agentId), eq(agentPendingWorkTable.source, 'action')))
         .orderBy(...pendingOrder())
         .limit(limit);
 }
@@ -427,7 +533,13 @@ export async function listQueuedMessagePending(
             threadFollowReactivated: agentPendingWorkTable.threadFollowReactivated,
         })
         .from(agentPendingWorkTable)
-        .where(and(queuedFor(agentId), ne(agentPendingWorkTable.source, 'onboarding')))
+        .where(
+            and(
+                queuedFor(agentId),
+                ne(agentPendingWorkTable.source, 'onboarding'),
+                ne(agentPendingWorkTable.source, 'action')
+            )
+        )
         .orderBy(...pendingOrder())
         .limit(limit);
 }
@@ -557,8 +669,9 @@ export async function markAccepted(
                 eq(agentDeliveryTable.activeRunId, input.runId),
                 isNull(agentDeliveryTable.acceptedAt)
             )
-        );
+    );
     await markPendingAccepted(db, input);
+    await markActionPendingServed(db, input);
 }
 
 export async function markDispatched(
@@ -636,7 +749,12 @@ export async function markPendingSeenForRun(
 ): Promise<void> {
     await db
         .update(agentPendingWorkTable)
-        .set({ seenAt: new Date(), settledRunId: input.runId, state: 'seen' })
+        .set({
+            servedAt: sql`coalesce(${agentPendingWorkTable.servedAt}, ${new Date()})`,
+            seenAt: new Date(),
+            settledRunId: input.runId,
+            state: 'seen',
+        })
         .where(
             and(
                 eq(agentPendingWorkTable.agentId, input.agentId),
@@ -716,8 +834,19 @@ export async function listDispatchCandidates(
     const unacknowledged = await db
         .select({ agentId: agentDeliveryTable.agentId, serverId: agentDeliveryTable.serverId })
         .from(agentDeliveryTable)
+        .innerJoin(
+            agentsTable,
+            and(
+                eq(agentsTable.serverId, agentDeliveryTable.serverId),
+                eq(agentsTable.id, agentDeliveryTable.agentId)
+            )
+        )
         .where(
-            and(isNotNull(agentDeliveryTable.activeRunId), isNull(agentDeliveryTable.acceptedAt))
+            and(
+                isNotNull(agentDeliveryTable.activeRunId),
+                isNull(agentDeliveryTable.acceptedAt),
+                isNull(agentsTable.retiredAt)
+            )
         );
     const queued = await db
         .selectDistinct({
@@ -729,20 +858,74 @@ export async function listDispatchCandidates(
             agentDeliveryTable,
             eq(agentDeliveryTable.agentId, agentPendingWorkTable.agentId)
         )
+        .innerJoin(
+            agentsTable,
+            and(
+                eq(agentsTable.serverId, agentDeliveryTable.serverId),
+                eq(agentsTable.id, agentDeliveryTable.agentId)
+            )
+        )
         .where(
             and(
                 isNull(agentPendingWorkTable.runId),
                 eq(agentPendingWorkTable.state, 'queued'),
                 isNull(agentDeliveryTable.activeRunId),
                 eq(agentDeliveryTable.stopped, false),
+                isNull(agentsTable.retiredAt),
                 lt(agentDeliveryTable.consecutiveFailures, maxFailures),
                 or(isNull(agentDeliveryTable.retryAfter), lte(agentDeliveryTable.retryAfter, now))
+            )
+        );
+
+    const unmaterializedActions = await db
+        .selectDistinct({
+            agentId: agentActionAttentionsTable.agentId,
+            serverId: agentActionAttentionsTable.serverId,
+            activeRunId: agentDeliveryTable.activeRunId,
+            stopped: agentDeliveryTable.stopped,
+            consecutiveFailures: agentDeliveryTable.consecutiveFailures,
+            retryAfter: agentDeliveryTable.retryAfter,
+        })
+        .from(agentActionAttentionsTable)
+        .leftJoin(
+            agentDeliveryTable,
+            and(
+                eq(agentDeliveryTable.serverId, agentActionAttentionsTable.serverId),
+                eq(agentDeliveryTable.agentId, agentActionAttentionsTable.agentId)
+            )
+        )
+        .innerJoin(
+            agentsTable,
+            and(
+                eq(agentsTable.serverId, agentActionAttentionsTable.serverId),
+                eq(agentsTable.id, agentActionAttentionsTable.agentId)
+            )
+        )
+        .where(
+            and(
+                isNull(agentsTable.retiredAt),
+                sql`not exists (
+                    select 1 from ${agentPendingWorkTable} pending
+                    where pending.server_id = ${agentActionAttentionsTable.serverId}
+                      and pending.agent_id = ${agentActionAttentionsTable.agentId}
+                      and pending.dedupe_key = ${agentActionAttentionsTable.actionId}
+                )`
             )
         );
 
     const byAgent = new Map<string, { agentId: string; serverId: string }>();
     for (const row of [...unacknowledged, ...queued]) {
         byAgent.set(row.agentId, row);
+    }
+    for (const row of unmaterializedActions) {
+        if (
+            row.activeRunId === null &&
+            row.stopped !== true &&
+            (row.consecutiveFailures ?? 0) < maxFailures &&
+            (row.retryAfter === null || row.retryAfter === undefined || row.retryAfter <= now)
+        ) {
+            byAgent.set(row.agentId, { agentId: row.agentId, serverId: row.serverId });
+        }
     }
     return [...byAgent.values()];
 }

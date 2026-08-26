@@ -44,6 +44,39 @@ test('mirrors the latest busy snapshot and removes next-run claims', async () =>
     expect(await readPendingInbox(location())).toEqual([second]);
 });
 
+test('does not expose a replayed action result twice, but reoffers it for a new run', async () => {
+    const action = {
+        ...item('act_create_agent', '#product', 0),
+        actionAttention: {
+            actionId: 'act_create_agent',
+            chatId: 'cht_origin',
+            createdAgentId: 'agt_created',
+            executedResult: {
+                agentId: 'agt_created',
+                avatarUrl: null,
+                chatId: 'cht_created',
+                computerId: 'cmp_local',
+                description: 'A new teammate',
+                displayName: 'Scout',
+                handle: 'scout',
+                modelId: 'gpt-5',
+                reasoningEffort: 'medium' as const,
+                role: 'member' as const,
+                runtimeId: 'codex',
+            },
+            kind: 'agent:create' as const,
+        },
+        content: '',
+        sequence: 0,
+    };
+
+    expect(await acceptRunInbox(location(), 'run_action', [action])).toEqual([action]);
+    expect(await acceptRunInbox(location(), 'run_action', [action])).toEqual([]);
+
+    await reofferPendingMessages(location(), [action]);
+    expect(await acceptRunInbox(location(), 'run_action_retry', [action])).toEqual([action]);
+});
+
 test('dedupes and orders a replacement snapshot', async () => {
     const first = item('msg_first', '#general', 1);
     const second = item('msg_second', '#general', 2);

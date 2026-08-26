@@ -87,8 +87,11 @@ created Agent is always a Member, and a failed validation keeps the modal open f
 On success the card becomes **Done** and names the committing human. The new Agent has its normal
 Owner DM, but the action does not add a Chat receipt. The immutable proposal remains unchanged;
 the executed result carries the submitted values. Replays and concurrent double-submit are
-idempotent. The Server writes a proposer-only terminal-attention record for the next delivery
-phase; this release does not deliver or execute that attention.
+idempotent. The Server writes a proposer-only terminal-attention record and delivers it through
+the proposing Agent's durable Computer inbox. An idle proposer receives a distinct continuation;
+a busy proposer receives a notice first and the typed result at the next safe turn boundary. The
+action result has no Chat receipt, and creating the new Agent does not schedule an empty bootstrap
+turn.
 
 ## Identity and instructions
 

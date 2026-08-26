@@ -27,6 +27,7 @@ export function composeInboxNotice(
     if (items.length === 0) {
         return null;
     }
+    const hasActionAttention = items.some((item) => item.actionAttention);
     const targets = new Map<string, AgentInboxItem[]>();
     for (const item of items) {
         const rows = targets.get(item.target) ?? [];
@@ -42,7 +43,7 @@ export function composeInboxNotice(
         }
         return [
             target,
-            `  pending: ${ordered.length} ${plural(ordered.length, 'message')}`,
+            `  pending: ${ordered.length} ${plural(ordered.length, ordered.some((item) => item.actionAttention) ? 'work item' : 'message')}`,
             ` · first msg=${shortId(first.id)}`,
             ` · latest sender @${latest.senderHandle}`,
             ` · latest msg=${shortId(latest.id)}`,
@@ -51,7 +52,9 @@ export function composeInboxNotice(
     });
     return [
         '[Grotto inbox notice:',
-        `Inbox update: ${totalPending} unread ${plural(totalPending, 'message')} total; ${targets.size} changed ${plural(targets.size, 'target')}`,
+        hasActionAttention
+            ? `Inbox update: ${totalPending} pending ${plural(totalPending, 'work item')} total; ${targets.size} changed ${plural(targets.size, 'target')}`
+            : `Inbox update: ${totalPending} unread ${plural(totalPending, 'message')} total; ${targets.size} changed ${plural(targets.size, 'target')}`,
         ...lines,
         ']',
     ].join('\n');
@@ -62,6 +65,9 @@ function plural(count: number, singular: string): string {
 }
 
 function formatEnvelope(item: AgentInboxItem, homeTimezone: string): string {
+    if (item.actionAttention) {
+        return formatActionAttention(item);
+    }
     const sender = item.senderDescription
         ? `@${item.senderHandle} — ${item.senderDescription}`
         : `@${item.senderHandle}`;
@@ -75,6 +81,18 @@ function formatEnvelope(item: AgentInboxItem, homeTimezone: string): string {
     return item.threadFollowReactivated
         ? `${formatThreadFollowRestoration(item.target)}\n${envelope}`
         : envelope;
+}
+
+function formatActionAttention(item: AgentInboxItem): string {
+    const attention = item.actionAttention;
+    if (!attention) {
+        throw new Error('Action attention is required.');
+    }
+    return [
+        `[Grotto action attention kind=${attention.kind} action=${attention.actionId} target=${item.target}]`,
+        `The committed action completed. createdAgentId=${attention.createdAgentId}`,
+        `executedResult=${JSON.stringify(attention.executedResult)}`,
+    ].join('\n');
 }
 
 export function formatThreadFollowRestoration(target: string): string {
@@ -112,6 +130,7 @@ function noticeTag(target: string, items: AgentInboxItem[]): string {
     const tags = [
         target.startsWith('dm:') ? 'dm' : target.includes(':') ? 'thread' : null,
         latest?.task ? `task #${latest.task.number}` : null,
+        items.some((item) => item.actionAttention) ? 'action attention' : null,
         items.some((item) => item.mentioned) ? 'you were mentioned' : null,
     ].filter(Boolean);
     return tags.length > 0 ? ` · ${tags.join(' · ')}` : '';

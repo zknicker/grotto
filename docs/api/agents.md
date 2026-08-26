@@ -34,9 +34,12 @@ positive proof the Agent chose to stay quiet, not evidence of a lost run.
 
 `agent.deliveries` returns that Agent's delivery ledger, newest first by
 `createdAt`, with `limit` between 1 and 100 (default 50). Each record carries
-`chatId`, `messageId`, `state` (`queued`, `accepted`, `served`, `seen`),
-`turnId`, and the per-state timestamps `createdAt`, `acceptedAt`, `servedAt`,
-and `seenAt`. Rows are retained after settlement rather than deleted, so
+`chatId`, `source`, `workId`, `actionId`, `messageId`, `state` (`queued`,
+`accepted`, `served`, `seen`), `turnId`, and the per-state timestamps `createdAt`,
+`acceptedAt`, `servedAt`, and `seenAt`. `workId` is the durable identity for
+either kind of work; `actionId` is populated for a committed action attention,
+while `messageId` is null for that non-Chat work. Rows are retained after
+settlement rather than deleted, so
 "never delivered" and "delivered and answered with silence" read differently.
 `turnId` is the run that consumed the row; it stays null when the seen cursor
 subsumed the row instead of a turn settling it.
@@ -99,9 +102,12 @@ may call it. The Server locks and revalidates the pending action, originating Ch
 current Computer inventory, and ordinary Agent invariants before one PostgreSQL transaction
 creates exactly one Member Agent, its Owner DM, and a copied avatar. The same transaction stores
 the executed result with the submitted values and committing human, appends the durable
-`prepared-action.updated` event, and writes the record-only proposer attention consumed by the
-future PRD-262 delivery flow. Replays return the stored result; concurrent submissions create
-one Agent. Validation or transaction failure leaves the action pending.
+`prepared-action.updated` event, and writes the record-only proposer attention. After
+the transaction, Server dispatches that attention through the proposing Agent's
+ordinary durable delivery lifecycle. Replays return the stored result without
+creating another attention; concurrent submissions create one Agent. The new Agent
+is configured without an empty bootstrap turn. Validation or transaction failure
+leaves the action pending.
 
 Each settled turn summary includes its runtime and model plus normalized input,
 output, cache-read, and cache-write counts when the runtime reports them. Server

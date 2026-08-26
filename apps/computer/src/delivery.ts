@@ -16,8 +16,8 @@ export interface RunMarker {
 }
 
 export interface StoredNoticeReceipt {
-    messageIds: string[];
     runId: string;
+    workIds: string[];
 }
 
 export type StartDecision = { kind: 'replay'; summary: AgentTurnFrame } | { kind: 'run' };
@@ -124,8 +124,8 @@ function markerPath(dataRoot: string, serverId: string, runId: string): string {
 
 /**
  * Records a content-free notice for a busy Agent in its runtime directory, where
- * a running turn can read it at a safe boundary. The notice never carries message
- * content; bodies become model-visible only when the Agent checks messages.
+ * a running turn can read it at a safe boundary. The notice never carries work
+ * content; bodies/results become model-visible only in a concrete continuation.
  */
 export async function writePendingNotice(
     dataRoot: string,

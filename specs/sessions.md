@@ -26,10 +26,15 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   content-free notice in its live turn. Bodies remain Computer-local until an
   explicit pull. Chain budgets follow model-visible Agent traffic
   ([inbox.md](inbox.md)).
+- A committed prepared action is the typed concrete exception: its proposer gets a
+  distinct continuation with the originating Chat, created Agent identity, and executed
+  result. A busy proposer receives only the notice at the safe boundary and gets the
+  concrete action on the next turn. The action has no Chat cursor or visible Chat receipt.
 - A fresh session with no pending delivery starts with bare `Start.`. After a
   reset, the recovery line precedes either `Start.` or the pending notice/typed
-  attention that becomes the first prompt. Startup never races a second
-  mid-turn delivery.
+  attention that becomes the first prompt. Creating an Agent configures its
+  executor but never schedules an empty bootstrap turn. Startup never races a
+  second mid-turn delivery.
 - Stop interrupts the live turn and persists the Agent's stopped lifecycle state. New messages and
   reminders continue to accumulate in its inbox but cannot wake it. A human Start resumes the
   current session and offers pending work again.

@@ -251,8 +251,13 @@ restart-durable per-run marker under `~/.grotto/computer`, replaying a settled
 run's stored summary instead of re-running it. A busy Agent accumulates queued
 work and receives a content-free `notice`, recorded in the running turn's runtime
 directory. Idle ordinary work also starts with a notice; full envelopes stay in
-Computer-local pending state until `grotto message check` returns them. The
-Computer records those exact visible identities against the active run, and the
+Computer-local pending state until `grotto message check` returns them. A committed
+prepared-action attention is the typed concrete exception: it is materialized only
+for its proposer, carries the originating Chat, created Agent, and executed result,
+and starts a distinct continuation when the proposer is idle. A busy proposer
+receives the content-free notice first and the action on the next turn. It has no
+Chat message or cursor. The Computer records those exact visible identities against
+the active run and suppresses an already-consumed action on same-run replay; the
 Server advances `seen` only at settlement. Unread identities stay pending but an
 unchanged offered set does not start another turn; a new identity wakes the Agent
 again. A failed or Stopped turn requeues visible work when no durable output proves

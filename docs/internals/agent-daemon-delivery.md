@@ -35,9 +35,10 @@ the Server and Computer implementation.
 Server queued work
   -> full envelope in Computer-local pending inbox
   -> accepted ACK
-  -> content-free notice
-  -> Agent-chosen local message check
-  -> exact visibility receipt
+  -> content-free notice (ordinary Chat work)
+  -> Agent-chosen local message check (ordinary Chat work)
+  -> concrete typed attention (Cove or committed action)
+  -> exact visibility receipt where applicable
   -> settled proof
   -> Server exact seen evidence + consumption
 ```
@@ -52,7 +53,11 @@ to `queued` and clears the accepted and served stamps.
 Acceptance means only that Computer durably stored the run inbox. It is not
 model-seen proof. An accepted run that loses its process before settlement is
 replayed at least once. Duplicate effects are preferable to silently dropping
-unseen human work.
+unseen human work. The committed-action exception is identity-addressed: the
+Computer suppresses an action result already consumed by that accepted run, so
+reconnect and delivery-ledger replay cannot show that terminal result twice.
+If Server requeues an unsettled action into a new run, it explicitly reoffers the
+action identity.
 
 Settled exact visibility is the only consumption authority. A CLI pull serves Computer-local
 bodies first, attaches exact identities to that run, and records those identities for
@@ -97,7 +102,9 @@ cold startup remains durable and is offered after that turn instead of racing
 a mid-turn injection. Idle and busy Agents durably receive full envelopes but
 project only target/count/id/sender metadata. Message bodies enter the model
 only through explicit `grotto message check`, history/hold context, or the
-typed non-Chat system-attention lane.
+typed non-Chat system-attention lane. A committed action's concrete projection
+includes its action identity, originating Chat, created Agent identity, and
+executed result; its result is never exposed by the ordinary message-check path.
 
 Busy notices queue behind the active turn and inject only after a completed
 tool boundary. Computer acknowledges the notice after that injection succeeds;
@@ -117,10 +124,12 @@ for freshness and repeats the identities in the turn summary. Server remains
 canonical and advances `seen` only on settlement.
 
 System attention that is not itself a Chat message, including Cove's one-shot
-first-greeting request, uses the same structured run inbox and exact-identity
-Computer replay. It is intentionally absent from Chat cursor accounting. Its
-owning Server record prevents recreation after settlement; the Computer still
-replays the same run id until its durable marker is settled.
+first-greeting request and a committed action terminal attention, uses the same
+structured run inbox and exact-identity Computer replay. It is intentionally
+absent from Chat cursor accounting. Cove's owning Server record prevents
+recreation after settlement; a committed action's `(Server, action)` identity
+does the same. The Computer suppresses a consumed action on same-run replay and
+only reoffers it when a failed new run is explicitly materialized.
 
 Task messages use the same exact inbox path as ordinary messages and carry their
 canonical task number, state, priority, and assignee metadata. A mention may bypass a Channel mute

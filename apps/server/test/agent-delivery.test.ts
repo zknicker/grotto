@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-import type { AgentCommand, AgentTurnSummary } from '@grotto/api';
+import type { AgentCommand, AgentCreateActionResult, AgentTurnSummary } from '@grotto/api';
 import { and, eq, ne } from 'drizzle-orm';
 import { attestAgentEvents, pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { markCursorSubsumedSeen } from '../src/agent-delivery/cursors.ts';
@@ -11,6 +11,7 @@ import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
+    agentActionAttentionsTable,
     agentDeliveryTable,
     agentInboxCursorsTable,
     agentInboxExactVisibilityTable,
@@ -22,6 +23,7 @@ import {
     chatsTable,
     computersTable,
     messageTasksTable,
+    preparedActionsTable,
     serverMembershipsTable,
     serversTable,
     usersTable,
@@ -171,6 +173,7 @@ async function readDeliveryLedger(agentId: string) {
             acceptedAt: agentPendingWorkTable.acceptedAt,
             dedupeKey: agentPendingWorkTable.dedupeKey,
             seenAt: agentPendingWorkTable.seenAt,
+            servedAt: agentPendingWorkTable.servedAt,
             settledRunId: agentPendingWorkTable.settledRunId,
             state: agentPendingWorkTable.state,
         })
@@ -201,6 +204,74 @@ async function insertHumanMessage(seed: Seed, content: string, sequence: number)
         serverId: seed.serverId,
     });
     return messageId;
+}
+
+async function seedActionAttention(seed: Seed, suffix: string) {
+    const db = connection.db;
+    const actionId = createOpaqueId('act');
+    const createdAgentId = createOpaqueId('agt');
+    const createdChatId = createOpaqueId('cht');
+    const messageId = await insertHumanMessage(seed, `Prepare ${suffix}.`, 1);
+    const result: AgentCreateActionResult = {
+        agentId: createdAgentId,
+        avatarUrl: null,
+        chatId: createdChatId,
+        computerId: seed.computerId,
+        description: `Created for ${suffix}.`,
+        displayName: `Created ${suffix}`,
+        handle: `created-${randomBytes(4).toString('hex')}`,
+        modelId: 'fake-model',
+        reasoningEffort: 'medium',
+        role: 'member',
+        runtimeId: 'fake',
+    };
+    await db.insert(agentsTable).values({
+        computerId: seed.computerId,
+        description: result.description,
+        desiredModelId: result.modelId,
+        desiredReasoningEffort: result.reasoningEffort,
+        desiredRuntimeId: result.runtimeId,
+        displayName: result.displayName,
+        handle: result.handle,
+        homeTimezone: 'UTC',
+        id: createdAgentId,
+        role: result.role,
+        serverId: seed.serverId,
+    });
+    await db.insert(chatsTable).values({
+        dmAgentId: createdAgentId,
+        dmMemberOneStint: 1,
+        dmMemberOneUserId: seed.userId,
+        id: createdChatId,
+        kind: 'dm',
+        serverId: seed.serverId,
+    });
+    await db.insert(preparedActionsTable).values({
+        chatId: seed.chatId,
+        executedAt: new Date(),
+        executedByUserId: seed.userId,
+        executedResult: result,
+        id: actionId,
+        kind: 'agent:create',
+        messageId,
+        nonce: `action-${suffix}-${randomBytes(4).toString('hex')}`,
+        proposal: { kind: 'agent:create', name: result.displayName },
+        proposerAgentId: seed.agentId,
+        serverId: seed.serverId,
+        status: 'executed',
+    });
+    await db.insert(agentActionAttentionsTable).values({
+        actionId,
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        createdAgentId,
+        dedupeKey: actionId,
+        executedResult: result,
+        id: createOpaqueId('aat'),
+        serverId: seed.serverId,
+        source: 'action',
+    });
+    return { actionId, createdAgentId, messageId, result };
 }
 
 /** Adds a second Owner↔Agent DM for the same Agent, seated by a fresh user. */
@@ -468,6 +539,203 @@ test('keeps onboarding attention out of message check while an ordinary turn is 
     expect(transport.framesOfType('start')[1]?.inbox[0]?.senderType).toBe('system');
 });
 
+test('delivers a committed action attention concretely and settles one typed identity', async () => {
+    const seed = await seedAgent();
+    const attention = await seedActionAttention(seed, 'idle');
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.dispatchAgent(seed.agentId, seed.serverId);
+
+    const start = transport.framesOfType('start')[0];
+    expect(start).toMatchObject({ chatId: seed.chatId, inboxDelivery: 'concrete' });
+    expect(start?.inbox).toHaveLength(1);
+    expect(start?.inbox[0]).toMatchObject({
+        actionAttention: {
+            actionId: attention.actionId,
+            chatId: seed.chatId,
+            createdAgentId: attention.createdAgentId,
+            kind: 'agent:create',
+        },
+        chatId: seed.chatId,
+        content: '',
+        id: attention.actionId,
+        senderHandle: 'grotto',
+        senderType: 'system',
+        sequence: 0,
+    });
+    expect(start?.inbox[0]?.message).toBeUndefined();
+
+    const accepted = await readDeliveryLedger(seed.agentId);
+    expect(accepted).toEqual([
+        expect.objectContaining({
+            acceptedAt: null,
+            dedupeKey: attention.actionId,
+            seenAt: null,
+            servedAt: null,
+            state: 'accepted',
+        }),
+    ]);
+
+    const runId = start?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId });
+    expect((await readDeliveryLedger(seed.agentId))[0]?.acceptedAt).not.toBeNull();
+    expect((await readDeliveryLedger(seed.agentId))[0]).toMatchObject({ state: 'served' });
+    expect((await readDeliveryLedger(seed.agentId))[0]?.servedAt).not.toBeNull();
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, runId, 'completed', false)
+    );
+
+    const settled = await readDeliveryLedger(seed.agentId);
+    expect(settled).toEqual([
+        expect.objectContaining({
+            dedupeKey: attention.actionId,
+            settledRunId: runId,
+            state: 'seen',
+        }),
+    ]);
+    expect(settled[0]?.servedAt).not.toBeNull();
+    expect(await countTurns(seed.agentId)).toBe(1);
+
+    await delivery.dispatchAgent(seed.agentId, seed.serverId);
+    await delivery.sweep();
+    expect(transport.framesOfType('start')).toHaveLength(1);
+});
+
+test('busy action attention is noticed without a second run, then continues concretely', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'Keep working.',
+        dedupeKey: 'msg_busy_action',
+        serverId: seed.serverId,
+    });
+    const firstRun = transport.framesOfType('start')[0]?.runId ?? '';
+    await delivery.onAck({ agentId: seed.agentId, runId: firstRun });
+
+    const attention = await seedActionAttention(seed, 'busy');
+    await delivery.dispatchAgent(seed.agentId, seed.serverId);
+
+    expect(transport.framesOfType('start')).toHaveLength(1);
+    const notice = transport.framesOfType('notice')[0];
+    const noticedAction = notice?.inbox.find((item) => item.id === attention.actionId);
+    expect(noticedAction).toMatchObject({
+        actionAttention: { actionId: attention.actionId },
+        content: '',
+        id: attention.actionId,
+    });
+    expect(notice?.totalPending).toBe(2);
+    await delivery.onNoticeAck({
+        agentId: seed.agentId,
+        runId: firstRun,
+        workIds: [attention.actionId],
+    });
+
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, firstRun, 'completed', false)
+    );
+    const continuation = transport.framesOfType('start')[1];
+    expect(continuation).toMatchObject({ inboxDelivery: 'concrete' });
+    expect(continuation?.runId).not.toBe(firstRun);
+    expect(continuation?.inbox.map((item) => item.id)).toEqual([attention.actionId]);
+});
+
+test('retains an action attention offline and while stopped, then wakes after recovery', async () => {
+    const offline = await seedAgent();
+    const offlineAttention = await seedActionAttention(offline, 'offline');
+    const offlineTransport = new FakeTransport();
+    const offlineDelivery = new AgentDelivery(connection.db, offlineTransport);
+
+    await offlineDelivery.dispatchAgent(offline.agentId, offline.serverId);
+    expect(offlineTransport.framesOfType('start')).toHaveLength(0);
+    expect(await readDeliveryLedger(offline.agentId)).toEqual([
+        expect.objectContaining({ dedupeKey: offlineAttention.actionId, state: 'queued' }),
+    ]);
+
+    offlineTransport.online.add(offline.computerId);
+    await offlineDelivery.dispatchAgent(offline.agentId, offline.serverId);
+    expect(offlineTransport.framesOfType('start')[0]?.inbox[0]?.id).toBe(offlineAttention.actionId);
+
+    const stopped = await seedAgent();
+    const stoppedAttention = await seedActionAttention(stopped, 'stopped');
+    const stoppedTransport = new FakeTransport();
+    stoppedTransport.online.add(stopped.computerId);
+    const stoppedDelivery = new AgentDelivery(connection.db, stoppedTransport);
+    await stoppedDelivery.stop({ agentId: stopped.agentId, serverId: stopped.serverId });
+    await stoppedDelivery.dispatchAgent(stopped.agentId, stopped.serverId);
+    expect(stoppedTransport.framesOfType('start')).toHaveLength(0);
+    expect(await readDeliveryLedger(stopped.agentId)).toEqual([
+        expect.objectContaining({ dedupeKey: stoppedAttention.actionId, state: 'queued' }),
+    ]);
+    await stoppedDelivery.start({ agentId: stopped.agentId, serverId: stopped.serverId });
+    expect(stoppedTransport.framesOfType('start')[0]?.inbox[0]?.id).toBe(stoppedAttention.actionId);
+});
+
+test('retries and reconnects the same action run without adding ledger rows', async () => {
+    const seed = await seedAgent();
+    const attention = await seedActionAttention(seed, 'reconnect');
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.dispatchAgent(seed.agentId, seed.serverId);
+    const first = transport.framesOfType('start')[0];
+    await delivery.sweep();
+    await delivery.onAck({ agentId: seed.agentId, runId: first?.runId ?? '' });
+    await delivery.dispatchAgent(seed.agentId, seed.serverId, { resendActive: true });
+
+    const starts = transport.framesOfType('start');
+    expect(starts).toHaveLength(3);
+    expect(starts.map((frame) => frame.runId)).toEqual([first?.runId, first?.runId, first?.runId]);
+    expect(starts.map((frame) => frame.inbox[0]?.actionAttention?.actionId)).toEqual([
+        attention.actionId,
+        attention.actionId,
+        attention.actionId,
+    ]);
+    expect(await readDeliveryLedger(seed.agentId)).toHaveLength(1);
+
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, first?.runId ?? '', 'completed', false)
+    );
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, first?.runId ?? '', 'completed', false)
+    );
+    expect(await countTurns(seed.agentId)).toBe(1);
+    expect((await readDeliveryLedger(seed.agentId))[0]?.state).toBe('seen');
+});
+
+test('does not materialize or dispatch a committed attention for a retired proposer', async () => {
+    const seed = await seedAgent();
+    const attention = await seedActionAttention(seed, 'retired');
+    await connection.db
+        .update(agentsTable)
+        .set({ retiredAt: new Date() })
+        .where(eq(agentsTable.id, seed.agentId));
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.dispatchAgent(seed.agentId, seed.serverId);
+    await delivery.sweep();
+    expect(transport.framesOfType('start')).toHaveLength(0);
+    expect(await readDeliveryLedger(seed.agentId)).toHaveLength(0);
+    const rows = await connection.db
+        .select({ actionId: agentActionAttentionsTable.actionId })
+        .from(agentActionAttentionsTable)
+        .where(eq(agentActionAttentionsTable.actionId, attention.actionId));
+    expect(rows).toEqual([{ actionId: attention.actionId }]);
+});
+
 test('resends an unacknowledged delivery idempotently on the retry sweep', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
@@ -596,7 +864,7 @@ test('queues work for a busy Agent and notices it, then drains at the boundary',
     ]);
     await delivery.onNoticeAck({
         agentId: seed.agentId,
-        messageIds: ['msg-1', 'msg-2'],
+        workIds: ['msg-1', 'msg-2'],
         runId: firstRun,
     });
 
@@ -739,7 +1007,7 @@ test('a bounded notice window always contains the newly unnoticed identity', asy
     const fullWindow = transport.framesOfType('notice').at(-1);
     await delivery.onNoticeAck({
         agentId: seed.agentId,
-        messageIds: fullWindow?.inbox.map((item) => item.id) ?? [],
+        workIds: fullWindow?.inbox.map((item) => item.id) ?? [],
         runId,
     });
 

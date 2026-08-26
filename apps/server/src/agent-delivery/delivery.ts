@@ -7,6 +7,7 @@ import type {
     ReminderScriptCommand,
     ReminderScriptResult,
 } from '@grotto/api';
+import { agentActionAttentionSchema } from '@grotto/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { messageSelection, toAgentMessages } from '../agent-api/message-view.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
@@ -14,6 +15,7 @@ import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.t
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
+    agentActionAttentionsTable,
     agentMessageDraftsTable,
     agentsTable,
     chatMessagesTable,
@@ -141,6 +143,7 @@ export class AgentDelivery {
     ): Promise<void> {
         const plan = await this.db.transaction(async (tx) => {
             await lockServerRow(tx, serverId);
+            await store.ensureDeliveryState(tx, { agentId, serverId });
             return this.planDispatch(tx, agentId, options);
         });
         this.emit(plan);
@@ -396,7 +399,7 @@ export class AgentDelivery {
         this.emit(stateAndPlan?.plan ?? null);
     }
 
-    async onNoticeAck(input: { agentId: string; messageIds: string[]; runId: string }) {
+    async onNoticeAck(input: { agentId: string; runId: string; workIds: string[] }) {
         const serverId = await store.readAgentServerId(this.db, input.agentId);
         if (!serverId) {
             return;
@@ -411,7 +414,7 @@ export class AgentDelivery {
             await store.markPendingNoticed(tx, {
                 agentId: input.agentId,
                 pendingIds: queued
-                    .filter((row) => input.messageIds.includes(row.dedupeKey))
+                    .filter((row) => input.workIds.includes(row.dedupeKey))
                     .map((row) => row.id),
                 runId: input.runId,
             });
@@ -793,7 +796,11 @@ export class AgentDelivery {
     ): Promise<DispatchPlan | null> {
         const state = await store.readDeliveryState(tx, agentId);
         const config = await store.readAgentDispatchConfig(tx, agentId);
-        if (!(state && isConfigured(config)) || state.stopped) {
+        if (!(state && config) || config.retiredAt) {
+            return null;
+        }
+        await store.materializeActionAttentions(tx, { agentId, serverId: state.serverId });
+        if (!isConfigured(config) || state.stopped) {
             return null;
         }
         if (!this.transport.isOnline(config.computerId)) {
@@ -860,7 +867,7 @@ export class AgentDelivery {
                         agentId,
                         inbox: await buildInboxItems(tx, pending),
                         runId: state.activeRunId,
-                        totalPending: await store.countQueuedMessagePending(tx, agentId),
+                        totalPending: await store.countQueuedNoticePending(tx, agentId),
                         type: 'notice',
                     },
                     serverId: state.serverId,
@@ -871,8 +878,17 @@ export class AgentDelivery {
         if (isBackedOff(state)) {
             return null;
         }
-        const candidates = await store.listUnnoticedQueuedPending(tx, agentId, maxDrainRows);
-        const first = candidates.find((row) => row.source === 'onboarding') ?? candidates[0];
+        const [unnoticed, actionRows] = await Promise.all([
+            store.listUnnoticedQueuedPending(tx, agentId, maxDrainRows),
+            store.listQueuedActionPending(tx, agentId, maxDrainRows),
+        ]);
+        const candidates = [
+            ...new Map([...unnoticed, ...actionRows].map((row) => [row.id, row])).values(),
+        ];
+        const first =
+            candidates.find((row) => row.source === 'onboarding') ??
+            candidates.find((row) => row.source === 'action') ??
+            candidates[0];
         if (!first) {
             return null;
         }
@@ -880,8 +896,8 @@ export class AgentDelivery {
             return null;
         }
         const runId = createOpaqueId('run');
-        const concrete = first.source === 'onboarding';
-        const selected = boundedCompatibleRows(candidates, concrete);
+        const concrete = isConcreteSource(first.source);
+        const selected = boundedCompatibleRows(candidates, first.source);
         let noticeRows: store.PendingWorkRow[] = [];
         if (concrete) {
             await store.attachQueuedPendingToRun(tx, {
@@ -892,7 +908,7 @@ export class AgentDelivery {
         } else {
             noticeRows = noticeWindow(
                 (await store.listQueuedPending(tx, agentId, 1000)).filter(
-                    (row) => row.source !== 'onboarding'
+                    (row) => !isConcreteSource(row.source)
                 ),
                 selected
             );
@@ -935,7 +951,7 @@ export class AgentDelivery {
                 runId,
                 runtimeId: config.desiredRuntimeId,
                 sessionGeneration: config.sessionGeneration,
-                totalPending: concrete ? 0 : await store.countQueuedMessagePending(tx, agentId),
+                totalPending: concrete ? 0 : await store.countQueuedNoticePending(tx, agentId),
                 type: 'start',
             },
             serverId: state.serverId,
@@ -1014,6 +1030,7 @@ interface ConfiguredAgent {
     factoryAppliedAt: Date | null;
     factoryKind: 'cove' | 'ordinary';
     homeTimezone: string;
+    retiredAt: Date | null;
     sessionGeneration: number;
     sessionResetKind: 'full' | 'session';
 }
@@ -1022,6 +1039,7 @@ function isConfigured(config: AgentDispatchConfig | null): config is ConfiguredA
     return Boolean(
         config?.computerId &&
             config.desiredRuntimeId &&
+            config.retiredAt === null &&
             config.desiredModelId &&
             (config.factoryKind === 'ordinary' || config.factoryAppliedAt)
     );
@@ -1075,7 +1093,7 @@ async function startFrame(
                       agentId: state.agentId,
                       runId: state.activeRunId,
                   })
-              ).filter((row) => row.source !== 'onboarding')
+              ).filter((row) => !isConcreteSource(row.source))
             : [];
     return {
         agentId: state.agentId,
@@ -1090,16 +1108,22 @@ async function startFrame(
         runtimeId: state.activeRunRuntimeId ?? '',
         sessionGeneration: config.sessionGeneration,
         totalPending:
-            runRows.length > 0 ? 0 : await store.countQueuedMessagePending(db, state.agentId),
+            runRows.length > 0 ? 0 : await store.countQueuedNoticePending(db, state.agentId),
         type: 'start',
     };
 }
 
-function boundedCompatibleRows(rows: store.PendingWorkRow[], concrete: boolean) {
+function boundedCompatibleRows(rows: store.PendingWorkRow[], source: string) {
     const selected: store.PendingWorkRow[] = [];
     let chars = 0;
     for (const row of rows) {
-        if ((row.source === 'onboarding') !== concrete) {
+        if (source === 'onboarding' && row.source !== 'onboarding') {
+            continue;
+        }
+        if (source === 'action' && row.source !== 'action') {
+            continue;
+        }
+        if (!isConcreteSource(source) && isConcreteSource(row.source)) {
             continue;
         }
         const nextChars = chars + row.content.length;
@@ -1110,6 +1134,10 @@ function boundedCompatibleRows(rows: store.PendingWorkRow[], concrete: boolean) 
         chars = nextChars;
     }
     return selected;
+}
+
+function isConcreteSource(source: string): boolean {
+    return source === 'onboarding' || source === 'action';
 }
 
 function noticeWindow(
@@ -1205,6 +1233,36 @@ async function buildInboxItems(
             : [];
     const apiMessages = serverId ? await toAgentMessages(db, serverId, messageRows) : [];
     const apiMessageById = new Map(apiMessages.map((message) => [message.id, message]));
+    const actionIds = rows.filter((row) => row.source === 'action').map((row) => row.dedupeKey);
+    const actionRows =
+        serverId && actionIds.length > 0
+            ? await db
+                  .select({
+                      actionId: agentActionAttentionsTable.actionId,
+                      chatId: agentActionAttentionsTable.chatId,
+                      createdAgentId: agentActionAttentionsTable.createdAgentId,
+                      executedResult: agentActionAttentionsTable.executedResult,
+                  })
+                  .from(agentActionAttentionsTable)
+                  .where(
+                      and(
+                          eq(agentActionAttentionsTable.serverId, serverId),
+                          inArray(agentActionAttentionsTable.actionId, actionIds)
+                      )
+                  )
+            : [];
+    const actionById = new Map(
+        actionRows.map((row) => [
+            row.actionId,
+            agentActionAttentionSchema.parse({
+                actionId: row.actionId,
+                chatId: row.chatId,
+                createdAgentId: row.createdAgentId,
+                executedResult: row.executedResult,
+                kind: 'agent:create',
+            }),
+        ])
+    );
     const taskByMessage = serverId
         ? await listMessageTaskMap(
               db,
@@ -1214,6 +1272,14 @@ async function buildInboxItems(
         : new Map();
     return await Promise.all(
         rows.map(async (row) => {
+            const actionAttention =
+                row.source === 'action' ? actionById.get(row.dedupeKey) : undefined;
+            if (row.source === 'action' && !actionAttention) {
+                throw new Error(`Action attention ${row.dedupeKey} is missing.`);
+            }
+            if (actionAttention && actionAttention.chatId !== row.chatId) {
+                throw new Error(`Action attention ${row.dedupeKey} targets the wrong Chat.`);
+            }
             const [message] = await db
                 .select({
                     authorAgentId: chatMessagesTable.authorAgentId,
@@ -1236,23 +1302,29 @@ async function buildInboxItems(
                     : [];
             return {
                 chatId: row.chatId,
-                content: row.content,
+                content: actionAttention ? '' : row.content,
                 createdAt: row.createdAt.toISOString(),
                 id: row.dedupeKey,
+                ...(actionAttention ? { actionAttention } : {}),
                 ...(apiMessageById.get(row.dedupeKey)
                     ? { message: apiMessageById.get(row.dedupeKey) }
                     : {}),
                 ...(row.mentioned ? { mentioned: true } : {}),
                 ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
                 ...(senderAgent?.description ? { senderDescription: senderAgent.description } : {}),
-                senderHandle: row.source === 'human' ? 'operator' : (agentHandle ?? row.source),
-                senderType:
-                    row.source === 'human'
+                senderHandle: actionAttention
+                    ? 'grotto'
+                    : row.source === 'human'
+                      ? 'operator'
+                      : (agentHandle ?? row.source),
+                senderType: actionAttention
+                    ? ('system' as const)
+                    : agentHandle
+                      ? ('agent' as const)
+                      : row.source === 'human'
                         ? ('human' as const)
-                        : agentHandle
-                          ? ('agent' as const)
-                          : ('system' as const),
-                sequence: message?.sequence ?? 1,
+                        : ('system' as const),
+                sequence: actionAttention ? 0 : (message?.sequence ?? 1),
                 ...(taskByMessage.get(row.dedupeKey)
                     ? { task: taskByMessage.get(row.dedupeKey) }
                     : {}),

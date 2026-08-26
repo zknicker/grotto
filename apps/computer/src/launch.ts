@@ -60,6 +60,7 @@ export interface AgentStartCommand {
 }
 
 export interface AgentInboxItem {
+    actionAttention?: AgentActionAttention;
     chatId: string;
     content: string;
     createdAt: string;
@@ -80,6 +81,26 @@ export interface AgentInboxItem {
         status: 'closed' | 'done' | 'in_progress' | 'in_review' | 'todo';
     };
     threadFollowReactivated?: boolean;
+}
+
+export interface AgentActionAttention {
+    actionId: string;
+    chatId: string;
+    createdAgentId: string;
+    executedResult: {
+        agentId: string;
+        avatarUrl: string | null;
+        chatId: string;
+        computerId: string;
+        description: string | null;
+        displayName: string;
+        handle: string;
+        modelId: string;
+        reasoningEffort: 'high' | 'low' | 'medium';
+        role: 'member';
+        runtimeId: string;
+    };
+    kind: 'agent:create';
 }
 
 /** Server→Computer command to terminate the named in-flight run. */
@@ -543,9 +564,10 @@ function parseInbox(value: unknown): AgentInboxItem[] | null {
         if (
             !(
                 isRecord(item) &&
-                ['chatId', 'content', 'createdAt', 'id', 'senderHandle', 'target'].every(
+                ['chatId', 'createdAt', 'id', 'senderHandle', 'target'].every(
                     (field) => typeof item[field] === 'string' && item[field].length > 0
                 ) &&
+                typeof item.content === 'string' &&
                 (item.senderDescription === undefined ||
                     typeof item.senderDescription === 'string') &&
                 (item.message === undefined || isRecord(item.message)) &&
@@ -555,13 +577,77 @@ function parseInbox(value: unknown): AgentInboxItem[] | null {
             ) ||
             typeof item.sequence !== 'number' ||
             !Number.isInteger(item.sequence) ||
-            item.sequence < 1
+            item.sequence < 0
         ) {
             return null;
         }
-        inbox.push(item as unknown as AgentInboxItem);
+        const actionAttention = parseActionAttention(item.actionAttention);
+        if (item.actionAttention !== undefined && !actionAttention) {
+            return null;
+        }
+        if (
+            actionAttention
+                ? item.sequence !== 0 ||
+                  item.id !== actionAttention.actionId ||
+                  item.chatId !== actionAttention.chatId ||
+                  item.senderType !== 'system'
+                : item.sequence === 0
+        ) {
+            return null;
+        }
+        inbox.push({
+            ...item,
+            ...(actionAttention ? { actionAttention } : {}),
+        } as unknown as AgentInboxItem);
     }
     return inbox;
+}
+
+function parseActionAttention(value: unknown): AgentActionAttention | undefined | null {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (
+        !isRecord(value) ||
+        value.kind !== 'agent:create' ||
+        typeof value.actionId !== 'string' ||
+        value.actionId.length === 0 ||
+        typeof value.chatId !== 'string' ||
+        value.chatId.length === 0 ||
+        typeof value.createdAgentId !== 'string' ||
+        value.createdAgentId.length === 0 ||
+        !isRecord(value.executedResult)
+    ) {
+        return null;
+    }
+    const result = value.executedResult;
+    const stringFields = [
+        'agentId',
+        'chatId',
+        'computerId',
+        'displayName',
+        'handle',
+        'modelId',
+        'runtimeId',
+    ] as const;
+    if (
+        stringFields.some(
+            (field) => typeof result[field] !== 'string' || result[field].length === 0
+        ) ||
+        (result.avatarUrl !== null && typeof result.avatarUrl !== 'string') ||
+        (result.description !== null && typeof result.description !== 'string') ||
+        !['high', 'low', 'medium'].includes(result.reasoningEffort as string) ||
+        result.role !== 'member'
+    ) {
+        return null;
+    }
+    return {
+        actionId: value.actionId,
+        chatId: value.chatId,
+        createdAgentId: value.createdAgentId,
+        executedResult: result as AgentActionAttention['executedResult'],
+        kind: 'agent:create',
+    };
 }
 
 export function parseServerDeleteCommand(frame: unknown): ServerDeleteCommand | null {

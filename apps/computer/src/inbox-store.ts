@@ -30,12 +30,20 @@ export async function acceptRunInbox(
     location: AgentInboxLocation,
     runId: string,
     items: AgentInboxItem[]
-): Promise<void> {
-    await withInboxWrite(location, async () => {
+): Promise<AgentInboxItem[]> {
+    return await withInboxWrite(location, async () => {
+        const current = await readPendingState(location);
+        const consumed = new Set(current.consumedMessageIds);
+        // A terminal action result is identity-addressed and must not be exposed
+        // again when the same accepted run is replayed after reconnect.
+        const modelItems = items.filter(
+            (item) => !(item.actionAttention && consumed.has(item.actionAttention.actionId))
+        );
         const root = inboxRoot(location);
         await mkdir(join(root, 'runs'), { mode: 0o700, recursive: true });
-        await writeJsonAtomic(join(root, 'runs', `${runId}.json`), items);
+        await writeJsonAtomic(join(root, 'runs', `${runId}.json`), modelItems);
         await consumeVisibleMessagesLocked(location, items);
+        return modelItems;
     });
 }
 

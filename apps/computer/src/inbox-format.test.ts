@@ -57,6 +57,44 @@ test('busy notices include target metadata but never message bodies', () => {
     expect(notice).not.toContain('This must also stay hidden');
 });
 
+test('projects an action attention with its typed result and identity', () => {
+    const attention = item({
+        actionAttention: {
+            actionId: 'act_create_agent',
+            chatId: 'cht_origin',
+            createdAgentId: 'agt_created',
+            executedResult: {
+                agentId: 'agt_created',
+                avatarUrl: null,
+                chatId: 'cht_created',
+                computerId: 'cmp_local',
+                description: 'A new teammate',
+                displayName: 'Scout',
+                handle: 'scout',
+                modelId: 'gpt-5',
+                reasoningEffort: 'medium',
+                role: 'member',
+                runtimeId: 'codex',
+            },
+            kind: 'agent:create',
+        },
+        chatId: 'cht_origin',
+        content: '',
+        id: 'act_create_agent',
+        senderHandle: 'grotto',
+        senderType: 'system',
+        sequence: 0,
+    });
+
+    const drain = composeInboxDrain([attention], 'UTC');
+
+    expect(drain).toContain('action attention');
+    expect(drain).toContain('act_create_agent');
+    expect(drain).toContain('agt_created');
+    expect(drain).toContain('"handle":"scout"');
+    expect(composeInboxNotice([attention])).not.toContain('"handle":"scout"');
+});
+
 test('projects task and mention intent into both drain and busy-notice metadata', () => {
     const task = item({
         mentioned: true,

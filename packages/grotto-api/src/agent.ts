@@ -397,22 +397,26 @@ export type AgentTurnsInput = z.infer<typeof agentTurnsInputSchema>;
 export const agentTurnsSchema = z.array(agentTurnSchema);
 
 /**
- * One durable delivery of one message to one Agent. `seen` rows are retained
- * after settlement with the `turnId` that consumed them, so an observer can
- * tell "the Agent never received it" from "the Agent received it and said
- * nothing".
+ * One durable delivery of one unit of work to one Agent. `seen` rows are
+ * retained after settlement with the `turnId` that consumed them, so an
+ * observer can tell "the Agent never received it" from "the Agent received it
+ * and said nothing". Non-Chat action work identifies its action explicitly.
  */
 export const agentDeliveryRecordSchema = z
     .object({
         acceptedAt: timestampSchema.nullable(),
+        actionId: idSchema.nullable(),
         agentId: idSchema,
         chatId: idSchema,
         createdAt: timestampSchema,
-        messageId: z.string().trim().min(1).max(128),
+        /** Null for non-Chat work such as a committed action attention. */
+        messageId: z.string().trim().min(1).max(128).nullable(),
+        source: z.string().trim().min(1).max(64),
         seenAt: timestampSchema.nullable(),
         servedAt: timestampSchema.nullable(),
         state: z.enum(['queued', 'accepted', 'served', 'seen']),
         turnId: z.string().trim().min(1).max(128).nullable(),
+        workId: idSchema,
     })
     .strict();
 

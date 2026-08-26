@@ -1,6 +1,7 @@
 import * as z from 'zod';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { idSchema } from './chat.ts';
+import { agentCreateActionResultSchema } from './prepared-actions.ts';
 import {
     agentRuntimeBrowserActionResultSchema,
     agentRuntimeBrowserSettingsSchema,
@@ -10,6 +11,19 @@ import { messageTaskSchema } from './task-shared.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
+/** A committed prepared action's terminal result, addressed by action identity. */
+export const agentActionAttentionSchema = z
+    .object({
+        actionId: idSchema,
+        chatId: idSchema,
+        createdAgentId: idSchema,
+        executedResult: agentCreateActionResultSchema,
+        kind: z.literal('agent:create'),
+    })
+    .strict();
+
+export type AgentActionAttention = z.infer<typeof agentActionAttentionSchema>;
+
 /** One Server-owned message envelope durably accepted into a Computer inbox. */
 export const agentInboxItemSchema = z
     .object({
@@ -17,18 +31,34 @@ export const agentInboxItemSchema = z
         content: z.string().max(32_000),
         createdAt: timestampSchema,
         id: idSchema,
+        /** Typed Server attention; unlike a Chat message, it has no message cursor. */
+        actionAttention: agentActionAttentionSchema.optional(),
         /** Canonical Agent API shape cached for Computer-local message checks. */
         message: z.record(z.string(), z.unknown()).optional(),
         mentioned: z.boolean().optional(),
         senderDescription: z.string().trim().max(500).optional(),
         senderHandle: z.string().trim().min(1).max(128),
         senderType: z.enum(['agent', 'human', 'system']),
-        sequence: z.number().int().positive(),
+        /** Chat sequence, or zero for a typed attention with no Chat cursor. */
+        sequence: z.number().int().nonnegative(),
         task: messageTaskSchema.optional(),
         target: z.string().trim().min(1).max(200),
         threadFollowReactivated: z.boolean().optional(),
     })
-    .strict();
+    .strict()
+    .refine(
+        (item) =>
+            item.actionAttention
+                ? item.sequence === 0 &&
+                  item.id === item.actionAttention.actionId &&
+                  item.chatId === item.actionAttention.chatId &&
+                  item.senderType === 'system'
+                : item.sequence > 0,
+        {
+            message: 'Typed action attentions use their action identity and zero Chat sequence.',
+            path: ['sequence'],
+        }
+    );
 
 export type AgentInboxItem = z.infer<typeof agentInboxItemSchema>;
 
@@ -430,7 +460,7 @@ export type AgentDeliveryAck = z.infer<typeof agentDeliveryAckSchema>;
 export const agentNoticeAckSchema = z
     .object({
         agentId: idSchema,
-        messageIds: z.array(idSchema).min(1).max(100),
+        workIds: z.array(idSchema).min(1).max(100),
         runId: idSchema,
         type: z.literal('notice-ack'),
     })

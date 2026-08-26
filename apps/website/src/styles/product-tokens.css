@@ -79,12 +79,16 @@
          * Light steps down where dark steps up. A nested box lifted to pure
          * --surface sat 1.8 L above a 98.24 page — technically lighter, visibly
          * nothing, and lifted is the wrong read anyway: a card inside a turn is
-         * set into the page, not floating over it. The same two surface steps
-         * dark uses put it 4.8 below instead, which is the inset it looks like
-         * it wants to be.
+         * set into the page, not floating over it.
+         *
+         * One step down the background scale, not the surface scale: derived
+         * from the page, so the box stays exactly one step under it whatever
+         * the page becomes. The surface steps put it 4.8 L down, which read as
+         * a slab; this is 3.1, and the hairline below does the work that extra
+         * depth was doing.
          */
-        --nested-surface: var(--surface-secondary);
-        --nested-surface-hover: var(--surface-tertiary);
+        --nested-surface: var(--background-secondary);
+        --nested-surface-hover: var(--surface-secondary);
 
         /*
          * The fill alone cannot carry it. Hovering a turn washes the page to

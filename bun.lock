@@ -14,7 +14,7 @@
     },
     "apps/computer": {
       "name": "@grotto/computer",
-      "version": "1.4.6",
+      "version": "1.4.7",
       "bin": {
         "grotto-computer": "src/index.ts",
       },

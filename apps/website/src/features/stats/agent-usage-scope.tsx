@@ -1,4 +1,5 @@
 import { Description, Label, ListBox, Select } from '@heroui/react';
+import type { CSSProperties } from 'react';
 import { EntityAvatar, type EntityAvatarProps } from '../../components/ui/entity-avatar.tsx';
 import type { AgentUsage } from './token-usage-view.ts';
 import { formatTokens } from './usage-format.ts';
@@ -7,6 +8,15 @@ const ALL_AGENTS = 'all';
 
 /** Rail scale: an identity mark the trigger can carry without growing around it. */
 const triggerMarkSize = 20;
+
+/**
+ * HeroUI puts input-family controls on the field tier (`×1.5`) and buttons on
+ * the pill tier (`×3`), so a stock Select set beside a ToggleButtonGroup shows
+ * two different corners. This one is a toolbar filter rather than a form field
+ * — DESIGN.md files Toolbar under the pill tier — so it takes that step through
+ * `--field-radius`, the hook HeroUI provides, scoped to this control alone.
+ */
+const toolbarFilterRadius = { '--field-radius': 'calc(var(--radius) * 3)' } as CSSProperties;
 
 /**
  * Whose usage the dashboard is showing.
@@ -42,6 +52,7 @@ export function AgentUsageScopePicker({
             aria-label="Token usage scope"
             className="w-56"
             onChange={(value) => onSelect(value === ALL_AGENTS ? null : String(value))}
+            style={toolbarFilterRadius}
             value={selectedAgentId ?? ALL_AGENTS}
             variant="secondary"
         >

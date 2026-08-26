@@ -370,6 +370,33 @@
     }
 
     /*
+     * Re-seat the sidebar's interactive fill on the sidebar's own ground.
+     *
+     * HeroUI ships `.sidebar { bg-background }`, so every fill inside it —
+     * row hover, the current row, menu actions, any `secondary` button — is
+     * `--default`, a value chosen to sit 4.2 lightness points below that
+     * ground. Tinting the sidebar moved the ground to 95.24% and left
+     * `--default` at 94%, a 1.2-point separation: the selected channel, every
+     * hover, and the update pill all went nearly invisible at once. Same
+     * offset, measured from the tinted surface instead.
+     *
+     * Light only, and by the same test as the tint above: dark has no
+     * `--sidebar-surface`, so its sidebar is still `--background` and
+     * `--default` still lands where HeroUI put it.
+     */
+    [data-theme="light"] .sidebar,
+    [data-theme="default"] .sidebar,
+    .light .sidebar,
+    .default .sidebar {
+        --default: oklch(91% 0.0013 286.4);
+        --default-hover: color-mix(
+            in oklab,
+            oklch(91% 0.0013 286.4) 96%,
+            oklch(0.2103 0.0059 285.89) 4%
+        );
+    }
+
+    /*
      * Dividers inside a surface are the same hairline as that surface's own
      * outline — see `--hairline`. HeroUI hardcodes `height: 1px`, so thickness
      * cannot come from a token; the fallbacks leave dark mode exactly as it

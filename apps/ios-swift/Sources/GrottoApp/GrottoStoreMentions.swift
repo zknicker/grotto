@@ -44,7 +44,7 @@ extension GrottoStore {
             kind = .agent
             let agentID = referenceID(option.id, scheme: "agent")
             avatarURL = agentID
-                .flatMap { id in agents.first(where: { $0.id == id })?.avatarURL }
+                .flatMap { agentsByID[$0]?.avatarURL }
                 .flatMap(resolvedAvatarURL)
         case .user:
             kind = .human

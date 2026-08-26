@@ -3,7 +3,7 @@ import { ArrowLeft01Icon, Settings01Icon } from '@hugeicons-pro/core-stroke-roun
 import { Link } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
-import { bandHeightClassName, shellNavigationIconSize } from './section-header.tsx';
+import { bandHeightClassName, shellBandIconSize } from './section-header.tsx';
 import { ServerMenu } from './server-menu.tsx';
 
 /**
@@ -70,7 +70,7 @@ export function SidebarServerBand({
                             aria-hidden="true"
                             className="text-muted"
                             icon={Settings01Icon}
-                            size={shellNavigationIconSize}
+                            size={shellBandIconSize}
                         />
                     </Button>
                     <Tooltip.Content>Settings</Tooltip.Content>

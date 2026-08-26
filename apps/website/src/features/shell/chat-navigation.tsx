@@ -13,7 +13,7 @@ import { serverAgentDmRoute, tasksRoute } from '../servers/server-routes.ts';
 import { ChatNavigationRow, chatNavigationName } from './chat-navigation-row.tsx';
 import { useCommandMenu } from './command-menu-provider.tsx';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
-import { shellNavigationIconSize } from './section-header.tsx';
+import { sidebarActionIconSize } from './section-header.tsx';
 import { ShellSidebarPageContent } from './shell-sidebar.tsx';
 import { SortableChannelList } from './sortable-channel-list.tsx';
 
@@ -106,7 +106,7 @@ export function ChatNavigation({
                         size="sm"
                         variant="ghost"
                     >
-                        <Icon aria-hidden="true" icon={Plus} size={shellNavigationIconSize} />
+                        <Icon aria-hidden="true" icon={Plus} size={sidebarActionIconSize} />
                     </Button>
                 }
                 label="Channels"

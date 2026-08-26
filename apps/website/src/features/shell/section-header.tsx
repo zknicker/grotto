@@ -6,10 +6,25 @@ import type { ReactNode } from 'react';
  * shell.css as --app-shell-band-height, because the native window's traffic
  * lights must be centered on the same number from outside the renderer.
  */
-export const bandHeightClassName = 'h-[var(--app-shell-band-height)]';
+export const bandHeightClassName = 'app-shell-band h-[var(--app-shell-band-height)]';
 
-/** Glyph size for icon-only navigation controls in shell chrome. */
-export const shellNavigationIconSize = 20;
+/**
+ * Intrinsic size for icon glyphs, in px.
+ *
+ * Inside a HeroUI Button this is only the SVG's intrinsic size — `.button--sm
+ * svg` sets `width` from `--spacing`, and a CSS rule beats an SVG presentation
+ * attribute, so the number here never reached the screen. Band chrome is sized
+ * by `.app-shell-band` in `shell.css` instead, against the 24px identity marks
+ * it sits beside; this stays as the honest intrinsic value.
+ */
+export const shellBandIconSize = 24;
+
+/**
+ * Intrinsic size for icon-only actions inside the sidebar's navigation column
+ * — a different rank from the band above, sitting beside 16px menu icons
+ * rather than 24px identity marks. Same caveat as above inside a Button.
+ */
+export const sidebarActionIconSize = 20;
 
 /**
  * The one topbar band chrome: fixed height, gutter, and no rule beneath it.

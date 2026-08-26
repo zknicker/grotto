@@ -32,7 +32,7 @@ import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { ChannelAgentsDialog } from '../../chats/channel-agents-dialog.tsx';
 import { ChannelAppearanceDialog } from '../../chats/channel-appearance-dialog.tsx';
 import { ChannelRenameDialog } from '../../chats/channel-rename-dialog.tsx';
-import { SectionHeader, shellNavigationIconSize } from '../../shell/section-header.tsx';
+import { SectionHeader, shellBandIconSize } from '../../shell/section-header.tsx';
 import { serverRoute, tasksRoute } from '../server-routes.ts';
 
 export function ChatTopbar({
@@ -89,11 +89,7 @@ export function ChatTopbar({
                     size="sm"
                     variant={artifactVisible ? 'secondary' : 'ghost'}
                 >
-                    <Icon
-                        aria-hidden="true"
-                        icon={SidebarRightIcon}
-                        size={shellNavigationIconSize}
-                    />
+                    <Icon aria-hidden="true" icon={SidebarRightIcon} size={shellBandIconSize} />
                 </Button>
                 <Tooltip.Content>
                     {artifactVisible ? 'Hide artifacts' : 'Show artifacts'}

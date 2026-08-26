@@ -185,6 +185,30 @@
 
 @layer components {
     /*
+     * Band chrome glyphs, sized against the marks beside them.
+     *
+     * A band's identity is 24px boxes — the Server mark, a channel's icon box,
+     * an Agent avatar. HeroUI sizes a Button's glyph from `--spacing`
+     * (`.button--sm svg` → 15px here), which is right for a form row and small
+     * beside a 24px box, so every icon-only action in a band read as the minor
+     * thing in the row. A CSS rule also beats the SVG's own width attribute,
+     * which is why passing `size` to these never moved them.
+     *
+     * 21 rather than the 24 of the marks: a filled box and an open stroke glyph
+     * do not carry the same ink at the same measure, so the glyph sits a step
+     * under the box to weigh the same. 20 read light against them and 24 read
+     * heavy in a 30px button.
+     *
+     * Icon-only actions only: a button carrying text — the Server switcher, the
+     * channel button — keeps its chevron at the text's rank, and ChannelIconBox
+     * pins its own glyph inline so the box stays 24 with a 16 inside.
+     */
+    .app-shell-band .button.button--icon-only svg:not([data-slot='spinner'] svg) {
+        width: var(--app-shell-band-icon-size, 21px);
+        height: var(--app-shell-band-icon-size, 21px);
+    }
+
+    /*
      * Route changes may add or remove the contextual left sidebar. Reflow the
      * workspace immediately; right-side inspector panes own their own motion.
      */

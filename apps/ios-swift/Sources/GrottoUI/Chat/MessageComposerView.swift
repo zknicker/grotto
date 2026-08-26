@@ -89,9 +89,16 @@ public struct MessageComposerView: View {
                 case .failure(let error): interaction.errorMessage = error.localizedDescription
                 }
             }
+            // The interaction outlives this view — a Chat switch or a push-over
+            // destroys the screen while the shell keeps the staged attachments —
+            // so leaving takes the presentation state and nothing else. Files
+            // the user picked are discarded only by sending, by removing a tile,
+            // or by their whole destination going away. Skipped while the file
+            // importer owns the screen: that presentation is what dismissed this
+            // view, and resetting would dismiss the importer with it.
             .onDisappear {
-                guard interaction.overlay == nil, !interaction.isFileImporterPresented else { return }
-                interaction.cleanUp()
+                guard !interaction.isFileImporterPresented else { return }
+                interaction.resetPresentation()
             }
     }
 

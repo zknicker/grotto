@@ -41,6 +41,9 @@ public struct GrottoShellView<SettingsContent: View>: View {
     /// destination, so a Chat switch remounts the screen and anything the
     /// screen owned would go with it.
     @State var drafts: [ChatDestination.ID: String] = [:]
+    /// Staged attachments live above the canvas for the same reason drafts do —
+    /// a Chat switch or a push-over must not throw away files the user picked.
+    @State var composerInteractions = ComposerInteractionStore()
     @State var scrollTarget: MessageScrollTarget?
     @State var dragTranslation: CGFloat?
     @Environment(\.colorScheme) private var colorScheme
@@ -141,6 +144,7 @@ public struct GrottoShellView<SettingsContent: View>: View {
                         chat: selectedDestination,
                         messages: messagesForDestination(selectedDestination),
                         draft: draftBinding(for: selectedDestination),
+                        composerInteraction: composerInteraction(for: selectedDestination),
                         isConnected: isConnected,
                         onOpenSidebar: { setDrawer(open: !drawerPresented) },
                         onOpenChatDetails: { activeChatSheet = .details(selectedDestination) },
@@ -249,8 +253,12 @@ public struct GrottoShellView<SettingsContent: View>: View {
     }
 
     /// Adopts a requested durable Chat once the Server list carries it, while
-    /// implicit Agent destinations remain selectable without a Chat id.
+    /// implicit Agent destinations remain selectable without a Chat id. Also the
+    /// one place a destination is observed to have left, which is where its
+    /// composer state — draft and staged files alike — stops being worth keeping.
     private func syncSelection(destinationIDs: [ChatDestination.ID]) {
+        dropCanvasState(outside: destinationIDs)
+
         if let pendingID = pendingChatSelectionID,
            let arrived = destinations.first(where: { $0.id == .chat(pendingID) }) {
             pendingChatSelectionID = nil

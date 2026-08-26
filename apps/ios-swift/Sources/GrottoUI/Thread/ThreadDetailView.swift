@@ -19,6 +19,10 @@ public struct ThreadDetailView: View {
     @State private var draft = ""
     @State private var preservedTopReplyID: String?
     @State private var isNearBottom = true
+    /// A Thread is one pushed screen rather than a keyed canvas, so its composer
+    /// state is screen-owned: it survives anything presented over the Thread and
+    /// goes away with the pop, unlike the Chat canvas, whose interactions the
+    /// shell keeps per destination.
     @State private var composerInteraction = ComposerInteraction()
     @FocusState private var isComposerFocused: Bool
     @Namespace private var composerTransitionNamespace

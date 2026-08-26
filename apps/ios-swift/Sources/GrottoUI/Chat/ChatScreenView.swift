@@ -21,7 +21,9 @@ public struct ChatScreenView: View {
     /// The draft is owned above this screen, which is remounted per Chat, so a
     /// half-typed message survives a switch away and back.
     @Binding private var draft: String
-    @State private var composerInteraction = ComposerInteraction()
+    /// Owned above this screen for the same reason the draft is: staged
+    /// attachments belong to the Chat, not to the screen drawing it.
+    private let composerInteraction: ComposerInteraction
     @FocusState private var isComposerFocused: Bool
     @Namespace private var composerTransitionNamespace
 
@@ -29,6 +31,7 @@ public struct ChatScreenView: View {
         chat: ChatDestination,
         messages: [MessagePresentation],
         draft: Binding<String>,
+        composerInteraction: ComposerInteraction,
         isConnected: Bool,
         onOpenSidebar: @escaping () -> Void,
         onOpenChatDetails: @escaping () -> Void,
@@ -49,6 +52,7 @@ public struct ChatScreenView: View {
     ) {
         _scrollTargetMessageID = scrollTargetMessageID
         _draft = draft
+        self.composerInteraction = composerInteraction
         self.chat = chat
         self.messages = messages
         self.isConnected = isConnected
@@ -173,11 +177,13 @@ private extension ChatKind {
 
 #Preview {
     @Previewable @State var draft = ""
+    @Previewable @State var composerInteraction = ComposerInteraction()
 
     ChatScreenView(
         chat: .durableChat(ChatFixtures.chats[1]),
         messages: ChatFixtures.messages,
         draft: $draft,
+        composerInteraction: composerInteraction,
         isConnected: true,
         onOpenSidebar: {},
         onOpenChatDetails: {},

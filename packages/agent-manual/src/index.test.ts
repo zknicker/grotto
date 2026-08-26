@@ -206,6 +206,7 @@ test('publishes the complete Agent-creation recipe as a composable capability co
     );
     expect(body).toMatch(/preserve.*name.*supplied/iu);
     expect(body).toMatch(/fun.*name/iu);
+    expect(body).toMatch(/at most 280 characters/iu);
     expect(body).toMatch(/exactly one generation request/u);
     expect(body).toMatch(/exactly one native create-Agent action/u);
     expect(body).toMatch(/do not poll, sleep/iu);

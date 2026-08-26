@@ -6,6 +6,7 @@ import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 
 const avatarGenerationTimeoutMs = 75_000;
+const maxAvatarConceptLength = 280;
 
 interface AvatarDeps {
     client: AgentApiRequester;
@@ -38,6 +39,13 @@ export async function runAvatarGenerate(args: ParsedArgs, deps: AvatarDeps): Pro
     const concept = args.values['--concept']?.trim();
     if (!concept) {
         throw new AgentCliError('INVALID_ARG', '--concept is required.');
+    }
+    if (concept.length > maxAvatarConceptLength) {
+        throw new AgentCliError(
+            'INVALID_ARG',
+            `--concept must be ${maxAvatarConceptLength} characters or fewer.`,
+            { nextAction: 'Shorten the concept and retry once.' }
+        );
     }
     const outputPath = args.values['--output']?.trim();
     if (!outputPath) {

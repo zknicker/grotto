@@ -105,6 +105,7 @@ test('composes the Agent-creation capability order without prescribing model pro
     const actions = instructions.slice(start, end);
 
     expect(actions).toContain('recipes/playbook/agent-creation');
+    expect(actions).toContain('at most 280 characters');
     expect(actions).toContain('grotto avatar generate');
     expect(actions).toContain('grotto action prepare');
     expect(actions).toContain('typed terminal action attention');

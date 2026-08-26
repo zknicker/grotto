@@ -193,7 +193,7 @@ const preparedActionsSection = `### Preparing native action cards
 For Agent creation, read:
 \`grotto manual get recipes/playbook/agent-creation --intent "create one Agent" --reason "approved recipe"\`
 
-Compose concept; generate avatar first:
+Compose one concept of at most 280 characters; generate avatar first:
 \`grotto avatar generate --concept <text> --output <path>\`
 On success, prepare exactly one native create-Agent action via \`grotto action prepare\` with avatar. Preparation stores exact proposal data and bytes for human review; never creates an Agent or chooses runtime/model/reasoning/role. Use user defaults; deterministic modal permits edits.
 Finish: no poll/sleep/review wait/resident turn. Continue in a distinct turn only after proposer receives typed terminal action attention for committed action; use identity/result, then send one meaningful starter via ordinary \`grotto message send\`. Never send empty bootstrap. Corrections supersede pending cards; stale views need reread; human commit/edit separate.`;

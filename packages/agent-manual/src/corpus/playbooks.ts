@@ -13,7 +13,7 @@ Use this when an owner wants a new Agent from a short freeform brief. This is a 
 ## Steps
 
 1. Read the owner's brief and form one vivid, high-personality cartoon character whose playful animal, object, food, celestial, or fantasy identity makes the requested role memorable. Preserve an Agent name the owner supplied. If no name was supplied, choose one fun, pronounceable name that fits the concept. Ask only when a missing detail changes authority or the requested outcome.
-2. Write a short concept that carries the character, personality, role, and useful visual details. Keep one concept, not a gallery or a menu of alternatives.
+2. Write one concept of at most 280 characters that carries the character, personality, role, and useful visual details. Keep one concept, not a gallery or a menu of alternatives.
 3. Generate the avatar before preparing any action:
 
    \`grotto avatar generate --concept <concept> --output <path>\`

@@ -72,6 +72,28 @@ test('requires both the concept and output file without calling the Server', asy
     ).rejects.toMatchObject({ code: 'INVALID_ARG' });
 });
 
+test('rejects an oversized concept locally without calling the Server', async () => {
+    let requestCount = 0;
+
+    await expect(
+        runAvatarGenerate(args({ '--concept': 'x'.repeat(281), '--output': './avatar.png' }), {
+            client: {
+                async request<T>() {
+                    requestCount += 1;
+                    return response as T;
+                },
+            },
+            write: () => {},
+            writeFile: async () => {},
+        })
+    ).rejects.toMatchObject({
+        code: 'INVALID_ARG',
+        message: '--concept must be 280 characters or fewer.',
+        options: { nextAction: 'Shorten the concept and retry once.' },
+    });
+    expect(requestCount).toBe(0);
+});
+
 test('maps a local output failure without pretending the file was written', async () => {
     await expect(
         runAvatarGenerate(args({ '--concept': 'fox', '--output': './avatar.png' }), {

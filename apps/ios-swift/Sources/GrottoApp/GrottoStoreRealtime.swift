@@ -64,6 +64,79 @@ extension GrottoStore {
         )
     }
 
+    /// Rehydrates durable Server state after iOS suspends the app.
+    ///
+    /// Subscriptions are notification streams, not a durable history. Refetching
+    /// the canonical lists and the open message page prevents a foregrounded app
+    /// from presenting a stale cache while the streams reconnect.
+    ///
+    /// This is a voluntary refresh, so it keeps the connected state: dropping it
+    /// slid the offline banner over the composer on every single foreground.
+    /// Offline is what a failed refresh or a broken stream reports.
+    func resumeAfterForeground() async {
+        guard case .loaded = state,
+              !foregroundRefreshInFlight,
+              let serverID = activeServer?.id
+        else { return }
+
+        foregroundRefreshInFlight = true
+        defer { foregroundRefreshInFlight = false }
+        stopEventStreams()
+
+        do {
+            try await refreshServerSnapshot(serverID: serverID)
+            startEventStreams(serverID: serverID)
+            markConnected()
+        } catch {
+            markDisconnected()
+            sendError = error.localizedDescription
+            Self.logger.error("Foreground refresh failed: \(error.localizedDescription, privacy: .public)")
+            startEventStreams(serverID: serverID)
+        }
+    }
+
+    /// Reads the durable Server projections concurrently and applies them in one
+    /// pass, so a foreground or reconnect lands as a single repaint rather than
+    /// a stagger of half-updated lists.
+    func refreshServerSnapshot(serverID: String) async throws {
+        let lifecycleRevisionAtStart = lifecycleRevision
+        let snapshot = try await fetchServerSnapshot(serverID: serverID)
+        apply(snapshot, lifecycleRevisionAtStart: lifecycleRevisionAtStart)
+
+        // Only the open Chat's page is refetched eagerly. Every other cached
+        // page is refreshed by the event walk that follows this snapshot, by
+        // live events, and by `openChat` when the user navigates back to it.
+        if let openChatID {
+            await loadMessages(chatID: openChatID)
+            await markChatReadIfNeeded(chatID: openChatID)
+        }
+    }
+
+    /// The Chat-list and directory assignments below pass through a
+    /// `GrottoStore` setter that drops equal-value writes and retires the
+    /// projections that field feeds, so a snapshot that changed nothing
+    /// repaints nothing. `servers` is plain storage and guards its own write.
+    private func apply(_ snapshot: ServerSnapshot, lifecycleRevisionAtStart: Int) {
+        if servers != snapshot.servers { servers = snapshot.servers }
+        chats = snapshot.chats
+        agents = snapshot.agents
+        members = snapshot.members
+        // The live overlay outranks `agent.list` only when a lifecycle event
+        // landed while the snapshot was in flight. Clearing it unconditionally
+        // traded live presence for a list read that may already be older.
+        clearLifecycleAvailability(ifRevisionIs: lifecycleRevisionAtStart)
+        // Activity is derived from the Agent list and its availability, so it
+        // applies after both.
+        if let activity = snapshot.activity {
+            replaceActiveActivitySnapshot(activity)
+        }
+    }
+
+    func handle(chatEvent event: ChatEvent, serverID: String) async {
+        markConnected()
+        await bufferLiveChatEvent(event, serverID: serverID)
+    }
+
     /// Live delivery arrives one SSE frame at a time and each event fans out
     /// into Server refetches, so a burst — an Agent posting a run of messages, a
     /// reconnect echo — became one refetch and one shell repaint per frame.
@@ -198,58 +271,5 @@ extension GrottoStore {
         }
 
         return (events, cursor)
-    }
-
-    /// Refetches only the loaded message pages touched by the event batch,
-    /// while refreshing the Chat list once for ordering, unread counts, and
-    /// lifecycle changes. Event IDs make live/catch-up overlap idempotent.
-    func applyChatEvents(_ events: [ChatEvent], serverID: String) async {
-        guard activeServer?.id == serverID, chatEventServerID == serverID else { return }
-
-        var affectedChatIDs: Set<String> = []
-        var shouldReloadChats = false
-        for event in events {
-            guard event.serverID == serverID else { continue }
-            guard chatEventReplay.receive(event) else { continue }
-
-            switch event.type {
-            case .messageCreated:
-                if let chatID = event.chatID {
-                    affectedChatIDs.insert(chatID)
-                }
-                if let parentChatID = event.parentChatID {
-                    affectedChatIDs.insert(parentChatID)
-                }
-                shouldReloadChats = true
-            case .chatRead:
-                // Server addresses this event to the reader alone, so every one
-                // that reaches this client is the echo of its own
-                // acknowledgement. It is the single refresh for that read.
-                shouldReloadChats = true
-            case .threadFollowUpdated:
-                if let parentChatID = event.parentChatID {
-                    affectedChatIDs.insert(parentChatID)
-                }
-                shouldReloadChats = true
-            case .taskCreated, .taskUpdated:
-                if let chatID = event.chatID {
-                    affectedChatIDs.insert(chatID)
-                }
-            case .chatLifecycle:
-                shouldReloadChats = true
-            case .taskLabelUpdated, .reminderChanged:
-                break
-            }
-        }
-
-        for chatID in affectedChatIDs.sorted() where messagesByChatID[chatID] != nil {
-            await loadMessages(chatID: chatID)
-            if openChatID == chatID {
-                await markChatReadIfNeeded(chatID: chatID)
-            }
-        }
-        if shouldReloadChats {
-            try? await reloadChats(serverID: serverID)
-        }
     }
 }

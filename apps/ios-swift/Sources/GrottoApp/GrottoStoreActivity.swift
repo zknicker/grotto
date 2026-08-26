@@ -43,7 +43,7 @@ extension GrottoStore {
                 input: ServerScopedInput(serverId: serverID)
             )
             guard activeServer?.id == serverID else { return }
-            if agents != refreshed { agents = refreshed }
+            agents = refreshed
             clearLifecycleAvailability(ifRevisionIs: revisionAtStart)
             await reloadActiveActivity(serverID: serverID)
         } catch is CancellationError {

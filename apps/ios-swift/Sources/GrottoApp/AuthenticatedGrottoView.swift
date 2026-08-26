@@ -130,11 +130,12 @@ struct AuthenticatedGrottoView: View {
                             serverID: serverID
                         )
                     },
-                    newChannelAgents: store.newChannelAgentPresentations,
-                    agentActivities: store.currentAgentActivityPresentations,
+                    newChannelAgents: { store.newChannelAgentPresentations },
+                    currentAgentActivity: { store.currentActivityPresentation(agentID: $0) },
                     loadAgentActivity: { agentID in
                         try await store.agentActivityPresentations(agentID: agentID)
                     },
+                    agentProfile: { store.agentProfilePresentation(agentID: $0) },
                     mentionOptions: { store.mentionOptions(for: $0) },
                     loadMentionOptions: { await store.loadMentionOptions(for: $0) },
                     createChannel: { draft in

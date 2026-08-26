@@ -37,6 +37,7 @@ extension GrottoStore {
             let chatID = receipt.message.chatID
             receiptBackedAgentDMsByChatID[chatID] = agentID
             adoptPendingMessages(from: pendingKey, to: chatID)
+            adoptSentMessageID(receipt.message.id, nonce: nonce, in: chatID)
             await loadMessages(chatID: chatID)
             try? await reloadChats(serverID: serverID)
             return chatID

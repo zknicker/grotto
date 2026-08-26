@@ -173,6 +173,11 @@ extension GrottoStore {
             // Server before loading that page so reconciliation retires the
             // pending row instead of leaving a duplicate in the transcript.
             adoptPendingMessages(from: pendingChatID, to: receipt.message.chatID)
+            // Server has named the message, so the optimistic row can carry the
+            // canonical id before its page is refetched. The row keeps one
+            // transcript identity from here through the durable row that
+            // replaces it.
+            adoptSentMessageID(receipt.message.id, nonce: nonce, in: receipt.message.chatID)
             await loadMessages(chatID: receipt.message.chatID)
             await markChatReadIfNeeded(chatID: receipt.message.chatID)
             if threadAnchorMessageID != nil {
@@ -245,42 +250,9 @@ extension GrottoStore {
         )
         // Events, sends, and reads all land here, and most of those reads come
         // back byte-identical. A freshly decoded equal value is still a write
-        // Observation reports, which is what reshuffled the sidebar mid-gesture.
-        if chats != refreshed { chats = refreshed }
-    }
-
-    func reconcilePendingMessages(chatID: String, page: ChatMessagePage) {
-        guard let pending = pendingMessagesByChatID[chatID] else { return }
-        let remaining = pending.filter { message in
-            !page.messages.contains { $0.nonce == message.nonce }
-        }
-        if remaining.isEmpty {
-            pendingMessagesByChatID.removeValue(forKey: chatID)
-        } else {
-            pendingMessagesByChatID[chatID] = remaining
-        }
-    }
-
-    func removePendingMessage(chatID: String, nonce: String) {
-        pendingMessagesByChatID[chatID]?.removeAll { $0.nonce == nonce }
-        if pendingMessagesByChatID[chatID]?.isEmpty == true {
-            pendingMessagesByChatID.removeValue(forKey: chatID)
-        }
-    }
-
-    func removePendingMessage(nonce: String) {
-        for chatID in Array(pendingMessagesByChatID.keys) {
-            removePendingMessage(chatID: chatID, nonce: nonce)
-        }
-    }
-
-    func adoptPendingMessages(from sourceChatID: String, to canonicalChatID: String) {
-        guard sourceChatID != canonicalChatID,
-              let pending = pendingMessagesByChatID.removeValue(forKey: sourceChatID),
-              !pending.isEmpty
-        else { return }
-
-        pendingMessagesByChatID[canonicalChatID, default: []].append(contentsOf: pending)
+        // Observation reports, which is what reshuffled the sidebar mid-gesture;
+        // the `chats` setter drops it.
+        chats = refreshed
     }
 }
 

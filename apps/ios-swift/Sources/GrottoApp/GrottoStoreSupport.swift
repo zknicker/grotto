@@ -1,5 +1,6 @@
 import ClerkKit
 import Foundation
+import GrottoModels
 import GrottoTransport
 import GrottoUI
 
@@ -136,8 +137,45 @@ struct PendingChatMessage: Identifiable, Equatable, Sendable {
     let content: String
     let createdAt: Date
     let nonce: String
+    /// Adopted from the send receipt, before the page that carries the message
+    /// is refetched. Nil until Server has named the message.
+    var serverMessageID: String?
 
-    var id: String { "pending:\(nonce)" }
+    var id: String {
+        OptimisticMessageRow.id(nonce: nonce, serverMessageID: serverMessageID)
+    }
+}
+
+/// The memoized Chat projections.
+///
+/// These are derived views of `GrottoStore`'s projected Server state, and the
+/// Store owns every write to that state. So they are retired by those writes
+/// rather than validated on each read: see the accessors under "Projected
+/// Server state" in `GrottoStore`, which are the only way that state changes.
+struct ChatProjectionCaches {
+    var agentsByID: [String: AgentSummary]?
+    var membersByID: [String: MemberSummary]?
+    var messagePresentationsByChatID: [String: [MessagePresentation]] = [:]
+    var chatDestinations: [ChatDestination]?
+
+    /// Agent and Member names, avatars, and presence reach every row the shell
+    /// draws, so a directory write retires everything.
+    mutating func retireDirectoryProjections() {
+        agentsByID = nil
+        membersByID = nil
+        messagePresentationsByChatID.removeAll()
+        chatDestinations = nil
+    }
+
+    /// Message pages and optimistic rows reach the transcript alone.
+    mutating func retireMessageProjections() {
+        messagePresentationsByChatID.removeAll()
+    }
+
+    /// The Chat list and its receipt-backed Agent DMs reach the sidebar alone.
+    mutating func retireChatListProjection() {
+        chatDestinations = nil
+    }
 }
 
 enum GrottoStoreError: LocalizedError {

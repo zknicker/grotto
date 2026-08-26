@@ -2,20 +2,55 @@ import GrottoModels
 import GrottoUI
 
 extension GrottoStore {
+    /// Every Chat the sidebar can open, in one memoized list.
+    ///
+    /// Rebuilt only when the Chat list, its receipt-backed Agent DMs, or the
+    /// directories are written — each of those is a `GrottoStore` accessor
+    /// whose setter retires this cache.
     var chatDestinations: [ChatDestination] {
+        trackProjectionDirectory()
+        let chats = chats
+        let receiptBackedAgentDMs = receiptBackedAgentDMsByChatID
+        if let cached = projections.chatDestinations { return cached }
+
+        let destinations = buildChatDestinations(
+            chats: chats,
+            receiptBackedAgentDMs: receiptBackedAgentDMs
+        )
+        projections.chatDestinations = destinations
+        return destinations
+    }
+
+    private func buildChatDestinations(
+        chats: [ChatSummary],
+        receiptBackedAgentDMs: [String: String]
+    ) -> [ChatDestination] {
         let durable = chats.compactMap(durableChatDestination)
         let listedChatIDs = Set(chats.map(\.id))
-        let receiptBacked: [ChatDestination] = receiptBackedAgentDMsByChatID.compactMap { chatID, agentID in
-            guard !listedChatIDs.contains(chatID),
-                  let agent = agents.first(where: { $0.id == agentID }) else { return nil }
-            return ChatDestination.durableChat(ChatPresentation(
-                id: chatID,
-                title: agent.displayName,
-                kind: .agentDirectMessage(agentPresentation(agent))
-            ))
-        }
+        // A Dictionary has no order of its own, so this slice is sorted into the
+        // Agent list's order — the same order the implicit slice below follows —
+        // with the Chat id breaking ties. Iterating the Dictionary directly
+        // reshuffled these rows between renders.
+        let agentPositions = Dictionary(
+            agents.enumerated().map { ($0.element.id, $0.offset) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let receiptBacked: [ChatDestination] = receiptBackedAgentDMs
+            .sorted { left, right in
+                (agentPositions[left.value] ?? .max, left.key)
+                    < (agentPositions[right.value] ?? .max, right.key)
+            }
+            .compactMap { chatID, agentID in
+                guard !listedChatIDs.contains(chatID),
+                      let agent = agentsByID[agentID] else { return nil }
+                return ChatDestination.durableChat(ChatPresentation(
+                    id: chatID,
+                    title: agent.displayName,
+                    kind: .agentDirectMessage(agentPresentation(agent))
+                ))
+            }
         let materializedAgentIDs = Set(
-            chats.compactMap(\.peerAgentID) + receiptBackedAgentDMsByChatID.values
+            chats.compactMap(\.peerAgentID) + receiptBackedAgentDMs.values
         )
         let implicit = agents
             .filter { !materializedAgentIDs.contains($0.id) }
@@ -35,7 +70,7 @@ extension GrottoStore {
             ))
         case .dm:
             if let agentID = chat.peerAgentID {
-                let agent = agents.first { $0.id == agentID }
+                let agent = agentsByID[agentID]
                 let name = agent?.displayName ?? chat.peerAgentDisplayName ?? "Former Agent"
                 let presentation = agent.map(agentPresentation)
                     ?? AgentPresentation(id: agentID, name: name, avatarURL: nil, presence: .offline)
@@ -47,7 +82,7 @@ extension GrottoStore {
                 ))
             }
             if let userID = chat.peerUserID {
-                let member = members?.members.first { $0.userID == userID }
+                let member = membersByID[userID]
                 let name = member?.displayName ?? member?.handle ?? member?.email ?? "Former member"
                 return .durableChat(ChatPresentation(
                     id: chat.id,
@@ -71,6 +106,22 @@ extension GrottoStore {
             name: agent.displayName,
             avatarURL: resolvedAvatarURL(agent.avatarURL),
             presence: presence(availability(for: agent))
+        )
+    }
+
+    /// Chat details pushes a read-only Agent profile, so it needs the Server
+    /// facts a ChatDestination does not carry. Sourced from the live Agent
+    /// directory, not `settingsData`, which stays nil until the member
+    /// directory loads and would blank the profile on a cold open. Keep the
+    /// field derivations in step with `SettingsAgent`.
+    func agentProfilePresentation(agentID: String) -> AgentProfilePresentation? {
+        guard let agent = agentsByID[agentID] else { return nil }
+        return AgentProfilePresentation(
+            handle: agent.handle,
+            description: agent.description ?? "",
+            role: agent.role.rawValue.capitalized,
+            runtime: settingsRuntimeDisplayName(agent.effectiveRuntimeID ?? agent.desiredRuntimeID),
+            model: agent.effectiveModelID ?? agent.desiredModelID
         )
     }
 }

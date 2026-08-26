@@ -17,10 +17,15 @@ public struct GrottoShellView<SettingsContent: View>: View {
     private let searchMessages: @Sendable (String) async throws -> [MessageSearchResultPresentation]
     private let loadArchivedChannels: @Sendable () async throws -> [ArchivedChannelPresentation]
     private let restoreArchivedChannel: @Sendable (ArchivedChannelPresentation) async throws -> Void
-    private let newChannelAgents: [NewChannelAgentPresentation]
+    /// Sheet-only inputs arrive as closures so the sheet body that draws them
+    /// is what observes them. Passing the resolved values in would subscribe
+    /// the whole shell to state only one sheet ever reads — and Agent activity
+    /// changes several times a second.
+    private let newChannelAgents: () -> [NewChannelAgentPresentation]
     private let createChannel: @Sendable (NewChannelDraft) async throws -> CreatedChannelPresentation
-    private let agentActivities: [String: AgentActivityPresentation]
+    private let currentAgentActivity: (String) -> AgentActivityPresentation?
     private let loadAgentActivity: @Sendable (String) async throws -> [AgentActivityPresentation]
+    private let agentProfile: (String) -> AgentProfilePresentation?
     private let mentionOptions: (ChatDestination) -> [MentionOptionPresentation]
     private let loadMentionOptions: (ChatDestination) async -> Void
 
@@ -60,9 +65,10 @@ public struct GrottoShellView<SettingsContent: View>: View {
         searchMessages: @escaping @Sendable (String) async throws -> [MessageSearchResultPresentation] = { _ in [] },
         loadArchivedChannels: @escaping @Sendable () async throws -> [ArchivedChannelPresentation] = { [] },
         restoreArchivedChannel: @escaping @Sendable (ArchivedChannelPresentation) async throws -> Void = { _ in },
-        newChannelAgents: [NewChannelAgentPresentation] = [],
-        agentActivities: [String: AgentActivityPresentation] = [:],
+        newChannelAgents: @escaping () -> [NewChannelAgentPresentation] = { [] },
+        currentAgentActivity: @escaping (String) -> AgentActivityPresentation? = { _ in nil },
         loadAgentActivity: @escaping @Sendable (String) async throws -> [AgentActivityPresentation] = { _ in [] },
+        agentProfile: @escaping (String) -> AgentProfilePresentation? = { _ in nil },
         mentionOptions: @escaping (ChatDestination) -> [MentionOptionPresentation] = { _ in [] },
         loadMentionOptions: @escaping (ChatDestination) async -> Void = { _ in },
         createChannel: @escaping @Sendable (NewChannelDraft) async throws -> CreatedChannelPresentation = { _ in
@@ -86,8 +92,9 @@ public struct GrottoShellView<SettingsContent: View>: View {
         self.loadArchivedChannels = loadArchivedChannels
         self.restoreArchivedChannel = restoreArchivedChannel
         self.newChannelAgents = newChannelAgents
-        self.agentActivities = agentActivities
+        self.currentAgentActivity = currentAgentActivity
         self.loadAgentActivity = loadAgentActivity
+        self.agentProfile = agentProfile
         self.mentionOptions = mentionOptions
         self.loadMentionOptions = loadMentionOptions
         self.createChannel = createChannel
@@ -213,7 +220,7 @@ public struct GrottoShellView<SettingsContent: View>: View {
                 )
             case .newChannel:
                 NewChannelFormView(
-                    agents: newChannelAgents,
+                    agents: newChannelAgents(),
                     create: createChannel,
                     onCreated: selectCreatedChannel
                 )
@@ -223,6 +230,7 @@ public struct GrottoShellView<SettingsContent: View>: View {
                     server: server,
                     currentActivity: agentActivity(for: chat),
                     loadAgentActivity: loadAgentActivity,
+                    agentProfile: agentProfile,
                     onOpenAgentProfile: openAgentProfile
                 )
             }
@@ -256,9 +264,11 @@ public struct GrottoShellView<SettingsContent: View>: View {
         }
     }
 
+    /// Called from the details sheet's own body, so the activity stream
+    /// invalidates that sheet rather than the shell behind it.
     private func agentActivity(for chat: ChatDestination) -> AgentActivityPresentation? {
         guard case .agentDirectMessage(let agent) = chat.kind else { return nil }
-        return agentActivities[agent.id]
+        return currentAgentActivity(agent.id)
     }
 
     private func selectDestination(_ destination: ChatDestination) {

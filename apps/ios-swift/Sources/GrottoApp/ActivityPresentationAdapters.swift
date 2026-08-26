@@ -2,17 +2,12 @@ import GrottoModels
 import GrottoUI
 
 extension GrottoStore {
-    var currentAgentActivityPresentations: [String: AgentActivityPresentation] {
-        Dictionary(
-            uniqueKeysWithValues: agents.compactMap { agent in
-                currentActivityPresentation(agentID: agent.id).map { (agent.id, $0) }
-            }
-        )
-    }
-
+    /// Resolved where it is drawn — inside the Chat details sheet — rather than
+    /// at the shell's root. `agent.onActivity` ticks constantly, and reading
+    /// this projection at the root invalidated the whole shell once per frame.
     func currentActivityPresentation(agentID: String) -> AgentActivityPresentation? {
         guard let event = currentActivityByAgentID[agentID],
-              agents.first(where: { $0.id == agentID }).map({ availability(for: $0) == .working }) == true
+              agentsByID[agentID].map({ availability(for: $0) == .working }) == true
         else { return nil }
         return activityPresentation(event, active: true)
     }

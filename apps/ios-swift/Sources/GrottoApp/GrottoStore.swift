@@ -19,27 +19,34 @@ final class GrottoStore {
 
     private(set) var state: State = .idle
     private(set) var isConnected = false
-    private(set) var servers: [ServerSummary] = []
-    var agents: [AgentSummary] = []
-    var members: MemberList?
+    // Internal so the batched snapshot apply can live with the rest of the
+    // realtime plumbing.
+    var servers: [ServerSummary] = []
     // Internal so the app-only computer loader can live in its own file.
     var computers: [ComputerSummary]?
-    var chats: [ChatSummary] = []
-    var receiptBackedAgentDMsByChatID: [String: String] = [:]
-    var messagesByChatID: [String: ChatMessagePage] = [:]
-    var pendingMessagesByChatID: [String: [PendingChatMessage]] = [:]
     var mentionOptionsByDestinationID: [ChatDestination.ID: [MentionOptionPresentation]] = [:]
-    // Internal so the lifecycle overlay can live in its own file.
-    var lifecycleAvailability: [String: AgentAvailability] = [:]
     var currentActivityByAgentID: [String: AgentActivityEvent] = [:]
     var currentActivityPositionByRunID: [String: Int] = [:]
     var lifecycleRevision = 0
+    // Everything the memoized Chat projections read is stored here and
+    // published through the accessors under "Projected Server state" below.
+    private var storedAgents: [AgentSummary] = []
+    private var storedMembers: MemberList?
+    private var storedChats: [ChatSummary] = []
+    private var storedReceiptBackedAgentDMsByChatID: [String: String] = [:]
+    private var storedMessagesByChatID: [String: ChatMessagePage] = [:]
+    private var storedPendingMessagesByChatID: [String: [PendingChatMessage]] = [:]
+    private var storedLifecycleAvailability: [String: AgentAvailability] = [:]
     var sendError: String?
     var chatEventServerID: String?
     var chatEventReplay = ChatEventReplayState()
     var chatEventCatchUpInFlight = false
     var chatEventCatchUpPending = false
     var openChatID: String?
+    /// Memoized Chat projections. Cache writes must stay invisible to
+    /// Observation: a projection read happens inside a view body, and a tracked
+    /// write there would invalidate the body that just performed it.
+    @ObservationIgnored var projections = ChatProjectionCaches()
     var acknowledgedReadSequences: [ChatReadScope: Int] = [:]
     var readAcknowledgementsInFlight: Set<ChatReadAcknowledgement> = []
     var olderMessageLoadsInFlight: Set<String> = []
@@ -47,7 +54,9 @@ final class GrottoStore {
     /// batch applier runs; the catch-up walk already arrives batched.
     @ObservationIgnored var liveChatEvents = ChatEventCoalescer()
     @ObservationIgnored var liveChatEventFlush: Task<Void, Never>?
-    private var foregroundRefreshInFlight = false
+    // Internal so the foreground refresh can live with the rest of the
+    // realtime plumbing it drives.
+    var foregroundRefreshInFlight = false
     let clerk: Clerk
     let client: TRPCClient
     private nonisolated let eventTasks = EventTaskBag()
@@ -101,37 +110,6 @@ final class GrottoStore {
         await start()
     }
 
-    /// Rehydrates durable Server state after iOS suspends the app.
-    ///
-    /// Subscriptions are notification streams, not a durable history. Refetching
-    /// the canonical lists and the open message page prevents a foregrounded app
-    /// from presenting a stale cache while the streams reconnect.
-    ///
-    /// This is a voluntary refresh, so it keeps the connected state: dropping it
-    /// slid the offline banner over the composer on every single foreground.
-    /// Offline is what a failed refresh or a broken stream reports.
-    func resumeAfterForeground() async {
-        guard case .loaded = state,
-              !foregroundRefreshInFlight,
-              let serverID = activeServer?.id
-        else { return }
-
-        foregroundRefreshInFlight = true
-        defer { foregroundRefreshInFlight = false }
-        stopEventStreams()
-
-        do {
-            try await refreshServerSnapshot(serverID: serverID)
-            startEventStreams(serverID: serverID)
-            markConnected()
-        } catch {
-            isConnected = false
-            sendError = error.localizedDescription
-            Self.logger.error("Foreground refresh failed: \(error.localizedDescription, privacy: .public)")
-            startEventStreams(serverID: serverID)
-        }
-    }
-
     private func reloadServer(_ serverID: String) async throws {
         async let loadedChats: [ChatSummary] = client.query(
             "chat.list",
@@ -157,40 +135,7 @@ final class GrottoStore {
         }
     }
 
-    /// Reads the durable Server projections concurrently and applies them in one
-    /// pass, so a foreground or reconnect lands as a single repaint rather than
-    /// a stagger of half-updated lists.
-    func refreshServerSnapshot(serverID: String) async throws {
-        let lifecycleRevisionAtStart = lifecycleRevision
-        let snapshot = try await fetchServerSnapshot(serverID: serverID)
-        apply(snapshot, lifecycleRevisionAtStart: lifecycleRevisionAtStart)
-
-        // Only the open Chat's page is refetched eagerly. Every other cached
-        // page is refreshed by the event walk that follows this snapshot, by
-        // live events, and by `openChat` when the user navigates back to it.
-        if let openChatID {
-            await loadMessages(chatID: openChatID)
-            await markChatReadIfNeeded(chatID: openChatID)
-        }
-    }
-
-    private func apply(_ snapshot: ServerSnapshot, lifecycleRevisionAtStart: Int) {
-        if servers != snapshot.servers { servers = snapshot.servers }
-        if chats != snapshot.chats { chats = snapshot.chats }
-        if agents != snapshot.agents { agents = snapshot.agents }
-        if members != snapshot.members { members = snapshot.members }
-        // The live overlay outranks `agent.list` only when a lifecycle event
-        // landed while the snapshot was in flight. Clearing it unconditionally
-        // traded live presence for a list read that may already be older.
-        clearLifecycleAvailability(ifRevisionIs: lifecycleRevisionAtStart)
-        // Activity is derived from the Agent list and its availability, so it
-        // applies after both.
-        if let activity = snapshot.activity {
-            replaceActiveActivitySnapshot(activity)
-        }
-    }
-
-    private func startEventStreams(serverID: String) {
+    func startEventStreams(serverID: String) {
         stopEventStreams()
         if chatEventServerID != serverID {
             chatEventServerID = serverID
@@ -214,7 +159,7 @@ final class GrottoStore {
             } catch {
                 // A cancelled stream is a teardown we asked for, not an outage.
                 guard !Task.isCancelled else { return }
-                isConnected = false
+                markDisconnected()
             }
         }
         let lifecycleTask = Task { [weak self] in
@@ -232,7 +177,7 @@ final class GrottoStore {
                 }
             } catch {
                 guard !Task.isCancelled else { return }
-                isConnected = false
+                markDisconnected()
             }
         }
         let activityTask = Task { [weak self] in
@@ -259,20 +204,102 @@ final class GrottoStore {
         ])
     }
 
-    private func handle(chatEvent event: ChatEvent, serverID: String) async {
-        markConnected()
-        await bufferLiveChatEvent(event, serverID: serverID)
-    }
-
     /// Observation notifies on equal-value writes, so the event paths must not
     /// restate a connection they already have: doing so invalidated the root
-    /// body once per SSE frame.
+    /// body once per SSE frame. `markDisconnected` is the same rule for the
+    /// paths that observe an outage.
     func markConnected() {
         if !isConnected { isConnected = true }
     }
 
-    private func stopEventStreams() {
+    func markDisconnected() {
+        if isConnected { isConnected = false }
+    }
+
+    func stopEventStreams() {
         flushLiveChatEventsBeforeTeardown()
         eventTasks.cancelAll()
+    }
+
+    // MARK: - Projected Server state
+    //
+    // The Chat projections are memoized, and these fields are their inputs. Each
+    // one is stored privately and published through the accessor below it, so
+    // the invalidation contract holds structurally rather than by convention: a
+    // write cannot reach this state without passing through a setter that
+    // retires the projections that field feeds.
+    //
+    // The setters also drop equal-value writes. Observation reports those as
+    // changes, and every event path here refetches lists that usually come back
+    // byte-identical.
+
+    /// Names, avatars, and presence for every Agent-authored row, mention, and
+    /// sidebar entry, so an Agent write retires both projections.
+    var agents: [AgentSummary] {
+        get { storedAgents }
+        set {
+            guard storedAgents != newValue else { return }
+            storedAgents = newValue
+            projections.retireDirectoryProjections()
+        }
+    }
+
+    /// Names and avatars for human authors, mentions, and human DMs.
+    var members: MemberList? {
+        get { storedMembers }
+        set {
+            guard storedMembers != newValue else { return }
+            storedMembers = newValue
+            projections.retireDirectoryProjections()
+        }
+    }
+
+    /// The live presence overlay. It reaches message rows through the author's
+    /// presence dot and sidebar rows through the Agent's, so it counts as part
+    /// of the directory.
+    var lifecycleAvailability: [String: AgentAvailability] {
+        get { storedLifecycleAvailability }
+        set {
+            guard storedLifecycleAvailability != newValue else { return }
+            storedLifecycleAvailability = newValue
+            projections.retireDirectoryProjections()
+        }
+    }
+
+    var chats: [ChatSummary] {
+        get { storedChats }
+        set {
+            guard storedChats != newValue else { return }
+            storedChats = newValue
+            projections.retireChatListProjection()
+        }
+    }
+
+    /// Agent DMs Server has materialized but the Chat list has not caught up to.
+    var receiptBackedAgentDMsByChatID: [String: String] {
+        get { storedReceiptBackedAgentDMsByChatID }
+        set {
+            guard storedReceiptBackedAgentDMsByChatID != newValue else { return }
+            storedReceiptBackedAgentDMsByChatID = newValue
+            projections.retireChatListProjection()
+        }
+    }
+
+    var messagesByChatID: [String: ChatMessagePage] {
+        get { storedMessagesByChatID }
+        set {
+            guard storedMessagesByChatID != newValue else { return }
+            storedMessagesByChatID = newValue
+            projections.retireMessageProjections()
+        }
+    }
+
+    var pendingMessagesByChatID: [String: [PendingChatMessage]] {
+        get { storedPendingMessagesByChatID }
+        set {
+            guard storedPendingMessagesByChatID != newValue else { return }
+            storedPendingMessagesByChatID = newValue
+            projections.retireMessageProjections()
+        }
     }
 }

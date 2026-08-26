@@ -33,6 +33,10 @@ extension GrottoShellView {
         onOpenTasks()
     }
 
+    /// Escalation only. Inspecting an Agent is a push inside the details
+    /// sheet's own stack; this is the deliberate hop to Settings for editing,
+    /// which the profile's "Manage in Settings" row asks for by name.
+    ///
     /// Chat details and Settings are mutually exclusive sheets, so the details
     /// sheet dismisses first and Settings presents from its `onDismiss`.
     func openAgentProfile(_ agentID: String) {

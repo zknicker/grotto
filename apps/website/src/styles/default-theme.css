@@ -208,6 +208,21 @@
  */
 @layer components {
     /*
+     * A Select inside a Toolbar is a filter, not form input: it opens a menu
+     * and never takes typed text. HeroUI assigns chrome by component family,
+     * so it would otherwise wear the field tier's ×1.5 corner and
+     * `--field-border` hairline beside borderless ×3 pills — reading as the
+     * heavier, larger control at the same background and height, because an
+     * outline enlarges what it wraps. Give it the pill chrome its neighbours
+     * already have. Fields that do take typed text keep theirs; a search box
+     * in a toolbar should still look like somewhere to type.
+     */
+    .toolbar .select__trigger {
+        --border-width-field: 0;
+        --field-radius: calc(var(--radius) * 3);
+    }
+
+    /*
      * The expanded prompt composer is a persistent foreground shell at ×5.
      * Its collapsed row becomes a true round capsule whose arc is concentric
      * with the circular actions, then HeroUI's stock radius transition morphs

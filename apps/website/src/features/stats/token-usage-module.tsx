@@ -1,5 +1,5 @@
 import type { TokenUsageOverview } from '@grotto/api';
-import { ToggleButton, ToggleButtonGroup } from '@heroui/react';
+import { ToggleButton, ToggleButtonGroup, Toolbar } from '@heroui/react';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { AgentUsageScopePicker } from './agent-usage-scope.tsx';
@@ -100,7 +100,7 @@ function UsageDashboard({
             {heading || controls ? (
                 <div className="flex flex-wrap items-center justify-end gap-3">
                     {heading ? <div className="me-auto">{heading}</div> : null}
-                    {controls}
+                    {controls ? <Toolbar aria-label="Usage filters">{controls}</Toolbar> : null}
                 </div>
             ) : null}
             {children}

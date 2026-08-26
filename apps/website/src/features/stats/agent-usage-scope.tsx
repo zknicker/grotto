@@ -1,5 +1,4 @@
 import { Description, Label, ListBox, Select } from '@heroui/react';
-import type { CSSProperties } from 'react';
 import { EntityAvatar, type EntityAvatarProps } from '../../components/ui/entity-avatar.tsx';
 import type { AgentUsage } from './token-usage-view.ts';
 import { formatTokens } from './usage-format.ts';
@@ -8,26 +7,6 @@ const ALL_AGENTS = 'all';
 
 /** Rail scale: an identity mark the trigger can carry without growing around it. */
 const triggerMarkSize = 20;
-
-/**
- * Pill chrome instead of field chrome.
- *
- * HeroUI dresses input-family controls as fields — the `×1.5` radius tier and a
- * `--field-border` hairline — and buttons as pills, at `×3` with no border. A
- * stock Select beside a ToggleButtonGroup therefore reads as the heavier, larger
- * control even at the same background and near-identical height, because an
- * outline enlarges what it wraps.
- *
- * This one is a toolbar filter, not form input, and DESIGN.md files Toolbar
- * under the pill tier. Both differences resolve through the variables HeroUI
- * exposes for exactly this, scoped to this control so real form fields keep
- * their field chrome. `variant="secondary"` already drops the third piece, the
- * field shadow, and lands the same `--default` background as the pill.
- */
-const toolbarFilterChrome = {
-    '--border-width-field': '0',
-    '--field-radius': 'calc(var(--radius) * 3)',
-} as CSSProperties;
 
 /**
  * Whose usage the dashboard is showing.
@@ -63,7 +42,6 @@ export function AgentUsageScopePicker({
             aria-label="Token usage scope"
             className="w-56"
             onChange={(value) => onSelect(value === ALL_AGENTS ? null : String(value))}
-            style={toolbarFilterChrome}
             value={selectedAgentId ?? ALL_AGENTS}
             variant="secondary"
         >

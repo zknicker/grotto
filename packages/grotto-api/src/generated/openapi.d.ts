@@ -736,6 +736,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent/avatar/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate one normalized avatar from a concept. */
+        post: operations["generateAgentAvatar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agent/profile/update": {
         parameters: {
             query?: never;
@@ -900,6 +917,7 @@ export interface components {
             code: string;
             message: string;
             nextAction?: string;
+            retryable?: boolean;
         };
         AgentSendApiError: {
             code: string;
@@ -1206,6 +1224,22 @@ export interface components {
         };
         AgentProfileResponse: {
             profile: components["schemas"]["AgentProfile"];
+        };
+        AgentAvatarGenerationRequest: {
+            concept: string;
+        };
+        AgentGeneratedAvatar: {
+            bytesBase64: string;
+            byteSize: number;
+            /** @constant */
+            height: 256;
+            /** @constant */
+            mediaType: "image/png";
+            /** @constant */
+            width: 256;
+        };
+        AgentAvatarGenerationResponse: {
+            avatar: components["schemas"]["AgentGeneratedAvatar"];
         };
         AgentProfileUpdateRequest: {
             description: string;
@@ -2913,6 +2947,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentProfileResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    generateAgentAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentAvatarGenerationRequest"];
+            };
+        };
+        responses: {
+            /** @description One transient normalized avatar. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentAvatarGenerationResponse"];
+                };
+            };
+            /** @description Avatar generation capacity is currently full. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentApiError"];
                 };
             };
             default: components["responses"]["AgentError"];

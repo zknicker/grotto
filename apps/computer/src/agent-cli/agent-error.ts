@@ -31,7 +31,7 @@ export class AgentCliError extends Error {
     constructor(
         readonly code: AgentCliErrorCode | string,
         message: string,
-        readonly options: { draftSaved?: boolean; nextAction?: string } = {}
+        readonly options: { draftSaved?: boolean; nextAction?: string; retryable?: boolean } = {}
     ) {
         super(message);
         this.name = 'AgentCliError';
@@ -45,6 +45,9 @@ export function renderAgentCliError(error: AgentCliError): string {
     }
     if (error.options.nextAction) {
         lines.push(`Next action: ${error.options.nextAction}`);
+    }
+    if (error.options.retryable) {
+        lines.push('Retryable: yes');
     }
     return `${lines.join('\n')}\n`;
 }

@@ -1,9 +1,16 @@
-import { agentSendInputSchema } from '@grotto/api';
+import { agentSendInputSchema, avatarGenerationRequestSchema } from '@grotto/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import { publishAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
+import {
+    AvatarGenerationBusyError,
+    AvatarGenerationProviderError,
+    AvatarGenerationUnavailableError,
+    AvatarImageOutputError,
+    type AvatarImageService,
+} from '../avatar-generation/service.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { AgentSendConflictError, sendAgentMessage } from '../chats/send-agent-message.ts';
@@ -67,6 +74,7 @@ export function registerAgentApiRoutes(
     app: FastifyInstance,
     options: {
         agentDelivery: import('../agent-delivery/delivery.ts').AgentDelivery;
+        avatarImageService: AvatarImageService;
         attachmentRoot: AttachmentRoot;
         db: GrottoDatabase;
         mcpRuntime: import('../server-mcp/runtime.ts').McpRuntime;
@@ -81,6 +89,83 @@ export function registerAgentApiRoutes(
     registerAgentTaskRoutes(app, {
         agentDelivery: options.agentDelivery,
         db: options.db,
+    });
+
+    app.post('/api/agent/avatar/generate', async (request, reply) => {
+        const runner = await authorizeAgentRunner(options.db, request);
+        const parsed = avatarGenerationRequestSchema.safeParse(request.body);
+        if (!(runner && parsed.success)) {
+            return sendAgentApiError(
+                reply,
+                runner ? 400 : 401,
+                runner ? 'INVALID_ARG' : 'MISSING_TOKEN',
+                runner
+                    ? 'The avatar generation request was invalid.'
+                    : 'A valid runner credential is required.'
+            );
+        }
+        try {
+            const generated = await options.avatarImageService.generate({
+                agentId: runner.agentId,
+                concept: parsed.data.concept,
+                serverId: runner.serverId,
+            });
+            return {
+                avatar: {
+                    bytesBase64: Buffer.from(generated.bytes).toString('base64'),
+                    byteSize: generated.byteSize,
+                    height: generated.height,
+                    mediaType: generated.mediaType,
+                    width: generated.width,
+                },
+            };
+        } catch (cause) {
+            if (cause instanceof AvatarGenerationBusyError) {
+                return sendAgentApiError(
+                    reply,
+                    429,
+                    'AVATAR_GENERATION_BUSY',
+                    'Avatar generation is at capacity. Retry shortly.',
+                    { nextAction: 'Retry the avatar command shortly.', retryable: true }
+                );
+            }
+            if (cause instanceof AvatarGenerationUnavailableError) {
+                return sendAgentApiError(
+                    reply,
+                    503,
+                    'AVATAR_PROVIDER_UNAVAILABLE',
+                    'Avatar generation is not configured on this Server.',
+                    {
+                        nextAction: 'Ask a Server operator to configure avatar generation.',
+                        retryable: true,
+                    }
+                );
+            }
+            if (cause instanceof AvatarGenerationProviderError) {
+                return sendAgentApiError(
+                    reply,
+                    502,
+                    'AVATAR_PROVIDER_FAILED',
+                    'The image provider could not generate an avatar.',
+                    { nextAction: 'Retry the avatar command.', retryable: true }
+                );
+            }
+            if (cause instanceof AvatarImageOutputError) {
+                return sendAgentApiError(
+                    reply,
+                    502,
+                    'AVATAR_OUTPUT_INVALID',
+                    'The image provider returned an unusable avatar.',
+                    { nextAction: 'Retry the avatar command.', retryable: true }
+                );
+            }
+            return sendAgentApiError(
+                reply,
+                500,
+                'SERVER_5XX',
+                'The Server could not generate an avatar.'
+            );
+        }
     });
 
     app.get('/api/agent/profile', async (request, reply) => {

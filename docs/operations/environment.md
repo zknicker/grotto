@@ -52,6 +52,12 @@ the access boundary.
 resolves through the *development* instance: an operator running a release
 under `varlock run` satisfies it with desktop authorization.
 
+Transient avatar generation uses the optional `GROTTO_OPENAI_API_KEY`. The
+schema deliberately leaves it undefined until the operator provisions the
+credential for the intended lifecycle; without it, the Server reports the
+avatar provider as unavailable. Test fixtures never need this key and never
+call the provider.
+
 ## Who is allowed to read
 
 Humans and supervised local agents authorize through the 1Password desktop app.

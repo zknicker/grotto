@@ -27,6 +27,7 @@ async function start() {
         clerkSecretKey: env.GROTTO_CLERK_SECRET_KEY,
         computerReleaseManifestUrl: env.GROTTO_COMPUTER_RELEASE_MANIFEST_URL,
         databaseUrl: env.GROTTO_DATABASE_URL,
+        openAiApiKey: env.GROTTO_OPENAI_API_KEY,
         staticAppRoot: env.GROTTO_STATIC_APP_ROOT,
     });
 

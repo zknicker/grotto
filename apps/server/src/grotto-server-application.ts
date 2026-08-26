@@ -7,6 +7,12 @@ import { startDeliveryRetrySweep } from './agent-delivery/retry-sweep.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
 import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { reconcileAttachments } from './attachments/reconcile-attachments.ts';
+import {
+    type AvatarGenerationLogger,
+    type AvatarImageProvider,
+    AvatarImageService,
+    OpenAiAvatarImageProvider,
+} from './avatar-generation/index.ts';
 import { registerAvatarRoutes } from './avatars/avatar-routes.ts';
 import { purgeDeletedChannels } from './chats/channel-lifecycle.ts';
 import { ComputerConnections } from './computers/connections.ts';
@@ -43,6 +49,10 @@ export interface GrottoServerApplicationOptions {
     appOrigin: string;
     /** Absolute private root for Server-owned attachment bytes. */
     attachmentRoot: string;
+    /** Safe operational logger for transient avatar generation. */
+    avatarGenerationLogger?: AvatarGenerationLogger;
+    /** Testable Server-owned image provider; production uses OpenAI when configured. */
+    avatarImageProvider?: AvatarImageProvider;
     /** Clerk Backend API origin; defaults to Clerk's production endpoint. */
     clerkApiUrl?: string;
     /** Origin of the Clerk instance that authenticates humans. */
@@ -55,6 +65,8 @@ export interface GrottoServerApplicationOptions {
     computerReleaseManifestUrl?: string;
     /** PostgreSQL database owning Users, Servers, memberships, and Channels. */
     databaseUrl: string;
+    /** Server-owned OpenAI key; omitted when avatar generation is unavailable. */
+    openAiApiKey?: string;
     /** Controlled time seam for deterministic reminder lifecycle tests. */
     reminderClock?: ReminderClock;
     /** Timer seam; production uses the process interval. */
@@ -97,6 +109,11 @@ export async function createGrottoServerApplication(
         const clerkSessions = createClerkSessions(options.clerkIssuerUrl, options.appOrigin);
         const computerConnections = new ComputerConnections();
         const agentDelivery = new AgentDelivery(grotto.db, computerConnections);
+        const avatarImageService = new AvatarImageService(
+            options.avatarImageProvider ??
+                new OpenAiAvatarImageProvider({ apiKey: options.openAiApiKey }),
+            options.avatarGenerationLogger
+        );
         const mcpRuntime = new McpRuntime(grotto.db);
         const mcpOAuthRelay = new McpOAuthRelay(grotto.db, mcpRuntime);
         const createContext = createGrottoContextFactory({
@@ -139,6 +156,7 @@ export async function createGrottoServerApplication(
         registerComputerRoutes(app, { appOrigin: options.appOrigin, db: grotto.db });
         registerAgentApiRoutes(app, {
             agentDelivery,
+            avatarImageService,
             attachmentRoot,
             db: grotto.db,
             mcpRuntime,

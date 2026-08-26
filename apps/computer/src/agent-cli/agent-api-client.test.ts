@@ -35,3 +35,26 @@ test('allows Server writes to queue longer than the local proxy fast path', asyn
         })
     ).resolves.toEqual({ ok: true });
 }, 3000);
+
+test('preserves retryable structured errors from a Server 5xx response', async () => {
+    const fetcher = (async () =>
+        Response.json(
+            {
+                code: 'AVATAR_PROVIDER_FAILED',
+                message: 'The image provider could not generate an avatar.',
+                retryable: true,
+            },
+            { status: 502 }
+        )) as unknown as typeof fetch;
+    const client = new AgentApiClient(context, fetcher);
+
+    await expect(
+        client.request('/api/agent/avatar/generate', z.object({ ok: z.boolean() }), {
+            body: { concept: 'fox' },
+            method: 'POST',
+        })
+    ).rejects.toMatchObject({
+        code: 'AVATAR_PROVIDER_FAILED',
+        options: { retryable: true },
+    });
+});

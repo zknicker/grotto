@@ -76,6 +76,11 @@ creates.
 Grotto does not generate an `AGENTS.md`, `SOUL.md`, or injected memory layer
 inside the workspace.
 
+Managed Agents can use `grotto avatar generate --concept <text> --output <path>` to create one
+validated transient avatar file from a short concept. The Server owns the prompt, provider call,
+normalization, validation, and concurrency limits; the Computer writes the result only to the
+requested local path. This command does not assign or persist an Agent avatar.
+
 ## Execution lifecycle
 
 One resident Computer execution host serves each assigned Agent. The Agent's

@@ -44,7 +44,7 @@ Each package gate includes its tests and typecheck:
 
 | Touched path | Gate |
 | --- | --- |
-| `apps/server` | `@grotto/server test` + `typecheck`. Hosted Server tests provision a throwaway cluster from locally installed PostgreSQL binaries; install PostgreSQL 16 or point `GROTTO_POSTGRES_BIN` at its bin directory. |
+| `apps/server` | `@grotto/server test` + `typecheck`. Hosted Server tests provision a throwaway cluster from locally installed PostgreSQL binaries; install PostgreSQL 16 or point `GROTTO_POSTGRES_BIN` at its bin directory. Avatar generation tests inject a deterministic fake provider and never call OpenAI. |
 | `apps/computer` | `@grotto/computer test` + `typecheck` |
 | `apps/website` | `@grotto/website test` + `typecheck` |
 | `packages/grotto-api` | `@grotto/api check`, plus typecheck of the consuming apps you touched |

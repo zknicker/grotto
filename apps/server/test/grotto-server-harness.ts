@@ -3,6 +3,10 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
+import type {
+    AvatarGenerationLogger,
+    AvatarImageProvider,
+} from '../src/avatar-generation/service.ts';
 import {
     createGrottoServerApplication,
     type GrottoServerApplication,
@@ -52,7 +56,11 @@ export interface GrottoServerHarness {
 export const harnessAppOrigin = 'https://app.grotto.test';
 
 export async function startGrottoServerHarness(
-    options: { postgresIcuLocale?: string } = {}
+    options: {
+        avatarGenerationLogger?: AvatarGenerationLogger;
+        avatarImageProvider?: AvatarImageProvider;
+        postgresIcuLocale?: string;
+    } = {}
 ): Promise<GrottoServerHarness> {
     const cluster: PostgresCluster = await startPostgresCluster({
         icuLocale: options.postgresIcuLocale,
@@ -94,6 +102,8 @@ export async function startGrottoServerHarness(
         const startApplication = async () => {
             const next = await createGrottoServerApplication({
                 appOrigin: harnessAppOrigin,
+                avatarGenerationLogger: options.avatarGenerationLogger,
+                avatarImageProvider: options.avatarImageProvider,
                 attachmentRoot,
                 clerkIssuerUrl: issuer.url,
                 clerkUsers,

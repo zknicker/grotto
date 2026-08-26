@@ -63,6 +63,7 @@ describe('Grotto OpenAPI contract', () => {
             '/api/agent/attachments/upload',
             '/api/agent/attachments/{id}',
             '/api/agent/profile',
+            '/api/agent/avatar/generate',
             '/api/agent/profile/update',
             '/api/agent/messages/react',
             '/api/agent/skills',
@@ -146,6 +147,8 @@ describe('Grotto OpenAPI contract', () => {
         expect(document.components?.schemas).toHaveProperty('AgentReminder');
         expect(document.components?.schemas).toHaveProperty('AgentAttachment');
         expect(document.components?.schemas).toHaveProperty('AgentProfile');
+        expect(document.components?.schemas).toHaveProperty('AgentAvatarGenerationRequest');
+        expect(document.components?.schemas).toHaveProperty('AgentAvatarGenerationResponse');
         expect(document.components?.schemas).toHaveProperty('AgentReactionRequest');
         expect(document.components?.schemas).toHaveProperty('AgentSkillSummary');
     });

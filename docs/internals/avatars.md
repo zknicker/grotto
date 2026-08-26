@@ -31,6 +31,21 @@ an absolute-or-relative URL a surface drops straight into an `<img src>`. Call
 sites never see an avatar id, media type, or byte payload. This holds for
 `Agent` and `ServerMember` alike.
 
+## Transient generation
+
+The managed Agent CLI's `grotto avatar generate` command is a creation aid, not a second avatar
+storage path. It sends a short concept to `POST /api/agent/avatar/generate`; the Server-owned
+image service applies the canonical pixel-art prompt, requests one `gpt-image-2` PNG without a
+reference image, center-crops and normalizes it to the ordinary 256×256 PNG/512 KiB contract, and
+returns the bytes transiently. The CLI writes them to the caller-selected local file. It never
+creates a draft repository or changes `agents.avatar_id`; assigning an avatar remains the ordinary
+authorized `avatar.set` flow.
+
+The service admits one request per Agent and two per Server. Busy requests are retryable, and
+provider failures or malformed output never expose provider details. Safe operational logs include
+request identity, actor/Server, model, duration, outcome, and normalized metadata only — no concept
+text or image bytes.
+
 ## Storage
 
 **Hosted (Postgres).** Bytes live in an `avatars` table

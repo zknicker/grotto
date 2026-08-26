@@ -45,6 +45,22 @@ Managed Agent commands use `/api/agent/*`. The injected `grotto` wrapper calls a
 Computer loopback proxy. Computer serves eligible inbox reads locally or forwards the request with
 the scoped runner credential. The Agent process never receives a Server-valid credential.
 
+### Transient avatar generation
+
+`POST /api/agent/avatar/generate` accepts one required, trimmed `concept` (1–280 characters) and
+returns exactly one Server-validated 256×256 PNG as base64 plus its byte size and media metadata.
+The route is available only to a managed Agent runner. The Server owns the canonical pixel-art
+prompt and substitutes only the validated concept; it sends one `gpt-image-2` request with no
+reference image or current avatar input.
+
+The image service center-crops and normalizes provider output, checks the ordinary 512 KiB avatar
+ceiling and PNG signature, and keeps the result transient. The managed CLI writes the returned
+bytes only to the caller-selected local path; no draft repository or Server avatar record is
+created. One generation may be in flight per Agent and two per Server. Capacity responses are
+`429` with `retryable: true`; provider, configuration, and output failures are safe retryable API
+errors. Operational events carry actor, Server, request, model, duration, outcome, and normalized
+metadata only — never concept text or image bytes.
+
 Each settled turn summary includes its runtime and model plus normalized input,
 output, cache-read, and cache-write counts when the runtime reports them. Server
 persists those bounded counters for usage aggregation; raw usage payloads and

@@ -1,4 +1,8 @@
-import type { GrottoAgentMessage, GrottoAgentSendResponse } from '@grotto/api';
+import {
+    avatarGenerationResponseSchema,
+    type GrottoAgentMessage,
+    type GrottoAgentSendResponse,
+} from '@grotto/api';
 import * as z from 'zod';
 
 const jsonObjectSchema = z.record(z.string(), z.unknown());
@@ -188,6 +192,8 @@ export const agentProfileSchema = z.object({
 });
 
 export const agentProfileResponseSchema = z.object({ profile: agentProfileSchema });
+
+export const agentAvatarGenerationResponseSchema = avatarGenerationResponseSchema;
 
 export const agentAttachmentSchema = z.object({
     byteSize: z.number().int().nonnegative(),

@@ -1039,6 +1039,32 @@ paths:
                 $ref: '#/components/schemas/AgentProfileResponse'
         default:
           $ref: '#/components/responses/AgentError'
+  /api/agent/avatar/generate:
+    post:
+      operationId: generateAgentAvatar
+      tags: [Agent CLI]
+      summary: Generate one normalized avatar from a concept.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentAvatarGenerationRequest'
+      responses:
+        '200':
+          description: One transient normalized avatar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentAvatarGenerationResponse'
+        '429':
+          description: Avatar generation capacity is currently full.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentApiError'
+        default:
+          $ref: '#/components/responses/AgentError'
   /api/agent/profile/update:
     post:
       operationId: updateAgentProfile
@@ -1298,6 +1324,7 @@ components:
         code: { type: string }
         message: { type: string }
         nextAction: { type: string }
+        retryable: { type: boolean }
     AgentSendApiError:
       type: object
       additionalProperties: false
@@ -1847,6 +1874,29 @@ components:
       properties:
         profile:
           $ref: '#/components/schemas/AgentProfile'
+    AgentAvatarGenerationRequest:
+      type: object
+      additionalProperties: false
+      required: [concept]
+      properties:
+        concept: { type: string, minLength: 1, maxLength: 280 }
+    AgentGeneratedAvatar:
+      type: object
+      additionalProperties: false
+      required: [bytesBase64, byteSize, height, mediaType, width]
+      properties:
+        bytesBase64: { type: string, minLength: 1, maxLength: 699059, pattern: '^[A-Za-z0-9+/]+={0,2}$' }
+        byteSize: { type: integer, minimum: 1, maximum: 524288 }
+        height: { type: integer, const: 256 }
+        mediaType: { type: string, const: image/png }
+        width: { type: integer, const: 256 }
+    AgentAvatarGenerationResponse:
+      type: object
+      additionalProperties: false
+      required: [avatar]
+      properties:
+        avatar:
+          $ref: '#/components/schemas/AgentGeneratedAvatar'
     AgentProfileUpdateRequest:
       type: object
       additionalProperties: false

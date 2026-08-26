@@ -17,7 +17,7 @@ export function sendAgentApiError(
     status: number,
     code: string,
     message: string,
-    options: { nextAction?: string } = {}
+    options: { nextAction?: string; retryable?: boolean } = {}
 ) {
     return reply.code(status).send({ code, message, ...options });
 }

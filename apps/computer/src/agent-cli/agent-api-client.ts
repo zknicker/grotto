@@ -8,6 +8,7 @@ const errorResponseSchema = z.object({
     draftSaved: z.boolean().optional(),
     message: z.string().min(1),
     nextAction: z.string().min(1).optional(),
+    retryable: z.boolean().optional(),
 });
 
 export interface AgentApiRequest {
@@ -15,6 +16,7 @@ export interface AgentApiRequest {
     method?: 'DELETE' | 'GET' | 'POST';
     query?: Record<string, boolean | number | string | undefined>;
     signal?: AbortSignal;
+    timeoutMs?: number;
 }
 
 export interface AgentApiRequester {
@@ -44,26 +46,33 @@ export class AgentApiClient implements AgentApiRequester {
                 },
                 method: input.method ?? 'GET',
                 signal: input.signal
-                    ? AbortSignal.any([input.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)])
-                    : AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+                    ? AbortSignal.any([
+                          input.signal,
+                          AbortSignal.timeout(input.timeoutMs ?? REQUEST_TIMEOUT_MS),
+                      ])
+                    : AbortSignal.timeout(input.timeoutMs ?? REQUEST_TIMEOUT_MS),
             });
         } catch {
             throw serverFailure();
         }
-        if (response.status >= 500) {
-            throw serverFailure();
-        }
-        const payload = await readJson(response);
         if (!response.ok) {
+            let payload: unknown;
+            try {
+                payload = await response.json();
+            } catch {
+                throw response.status >= 500 ? serverFailure() : invalidJson();
+            }
             const parsedError = errorResponseSchema.safeParse(payload);
             if (!parsedError.success) {
-                throw invalidJson();
+                throw response.status >= 500 ? serverFailure() : invalidJson();
             }
             throw new AgentCliError(parsedError.data.code, parsedError.data.message, {
                 draftSaved: parsedError.data.draftSaved,
                 nextAction: parsedError.data.nextAction,
+                retryable: parsedError.data.retryable,
             });
         }
+        const payload = await readJson(response);
         const parsed = schema.safeParse(payload);
         if (!parsed.success) {
             throw invalidJson();

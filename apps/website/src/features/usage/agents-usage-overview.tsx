@@ -1,6 +1,6 @@
 import { Button, Card, Skeleton } from '@heroui/react';
 import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
@@ -10,15 +10,13 @@ import { computerLabel } from '../computers/presentation.ts';
 import { PageColumn } from '../shell/page-column.tsx';
 import { SectionHeader } from '../shell/section-header.tsx';
 import { PageTopbar } from '../shell/shell-topbar.tsx';
-import { AgentsTokenUsage, TokenUsageRangePicker } from '../stats/token-usage-module.tsx';
-import type { TokenUsageRange } from '../stats/token-usage-view.ts';
+import { AgentsTokenUsage } from '../stats/token-usage-module.tsx';
 
 export function AgentsUsageOverview({ serverId }: { serverId: string }) {
     const usage = useUsage(serverId);
     const agents = useAgents(serverId);
     const computers = useComputers(serverId);
     const [searchParams, setSearchParams] = useSearchParams();
-    const [days, setDays] = useState<TokenUsageRange>(30);
     const requestedComputerId = searchParams.get('computer');
     const runtimeId = searchParams.get('runtime') || undefined;
     const computer = computers.data?.find((item) => item.id === requestedComputerId);
@@ -55,12 +53,11 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
 
     return (
         <>
-            {/* The range is this destination's only page-level control, so it sits
-                in the shell band beside its sibling routes' controls. */}
+            {/* Reached from the Server menu rather than the rail, so the band
+                names the destination; its scope and range controls live with the
+                content column below. */}
             <PageTopbar>
-                <SectionHeader>
-                    <TokenUsageRangePicker days={days} onChange={setDays} />
-                </SectionHeader>
+                <SectionHeader title="Usage" />
             </PageTopbar>
             <PageColumn width="wide">
                 {computerFilterLabel || runtimeId ? (
@@ -83,7 +80,6 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
                     <TokenUsageSkeleton />
                 ) : usage.data?.tokenUsage ? (
                     <AgentsTokenUsage
-                        days={days}
                         emptyMessage={
                             runtimeId === 'pi'
                                 ? 'Usage will appear after a Pi Agent completes a model turn.'

@@ -2,7 +2,6 @@ import type { TokenUsageOverview } from '@grotto/api';
 import { ToggleButton, ToggleButtonGroup } from '@heroui/react';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
-import { PageTopbar } from '../shell/shell-topbar.tsx';
 import { AgentUsageScopePicker } from './agent-usage-scope.tsx';
 import { TokenConfigurationGrid } from './token-configuration-grid.tsx';
 import { TokenTotalKpis } from './token-total-kpis.tsx';
@@ -19,16 +18,15 @@ import {
 const ranges: TokenUsageRange[] = [7, 30, 90];
 
 export function AgentsTokenUsage({
-    days,
     emptyMessage,
     scope,
     usage,
 }: {
-    days: TokenUsageRange;
     emptyMessage?: string;
     scope?: TokenUsageScope;
     usage: TokenUsageOverview;
 }) {
+    const [days, setDays] = useState<TokenUsageRange>(30);
     const [selectedAgentId, setSelectedAgentId] = useState<null | string>(null);
     const view = useMemo(
         () => buildTokenUsageView(usage, days, selectedAgentId, new Date(), scope),
@@ -36,20 +34,22 @@ export function AgentsTokenUsage({
     );
 
     return (
-        <>
-            {/* Scope sits beside the range in the shell band: both answer "what
-                am I looking at", and neither belongs in the scrolling column. */}
-            {view.agents.length > 0 ? (
-                <PageTopbar>
-                    <AgentUsageScopePicker
-                        agents={view.agents}
-                        onSelect={setSelectedAgentId}
-                        selectedAgentId={view.selectedAgent?.agentId ?? null}
-                    />
-                </PageTopbar>
-            ) : null}
-            <UsageDashboard emptyMessage={emptyMessage} view={view} />
-        </>
+        <UsageDashboard
+            controls={
+                <>
+                    {view.agents.length > 0 ? (
+                        <AgentUsageScopePicker
+                            agents={view.agents}
+                            onSelect={setSelectedAgentId}
+                            selectedAgentId={view.selectedAgent?.agentId ?? null}
+                        />
+                    ) : null}
+                    <TokenUsageRangePicker days={days} onChange={setDays} />
+                </>
+            }
+            emptyMessage={emptyMessage}
+            view={view}
+        />
     );
 }
 
@@ -94,10 +94,11 @@ function UsageDashboard({
 }) {
     return (
         <div className="grid gap-8">
-            {/* Surfaces that host the range picker in the shell band pass neither
-                slot, so the row collapses instead of floating a lone control. */}
+            {/* Scope and range sit with the cards they describe, on the column's
+                own edges — not in the shell band, where a page-level filter
+                right-aligns against window chrome instead of its content. */}
             {heading || controls ? (
-                <div className="flex flex-wrap items-end justify-end gap-3 px-1.5">
+                <div className="flex flex-wrap items-center justify-end gap-3">
                     {heading ? <div className="me-auto">{heading}</div> : null}
                     {controls}
                 </div>
@@ -129,7 +130,6 @@ export function TokenUsageRangePicker({
             }}
             selectedKeys={new Set([String(days)])}
             selectionMode="single"
-            size="sm"
         >
             {ranges.map((range) => (
                 <ToggleButton id={String(range)} key={range}>

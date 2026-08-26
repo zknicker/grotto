@@ -1,9 +1,12 @@
 import { Description, Label, ListBox, Select } from '@heroui/react';
-import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { EntityAvatar, type EntityAvatarProps } from '../../components/ui/entity-avatar.tsx';
 import type { AgentUsage } from './token-usage-view.ts';
 import { formatTokens } from './usage-format.ts';
 
 const ALL_AGENTS = 'all';
+
+/** Rail scale: an identity mark the trigger can carry without growing around it. */
+const triggerMarkSize = 20;
 
 /**
  * Whose usage the dashboard is showing.
@@ -17,6 +20,10 @@ const ALL_AGENTS = 'all';
  *
  * The totals ride along as each option's description, so the dropdown still
  * answers "who is burning tokens" without a card per Agent.
+ *
+ * The list carries full-size marks; the trigger uses the rail-scale one, so the
+ * control keeps its own field height instead of being pushed taller by an
+ * avatar and towering over the range beside it.
  */
 export function AgentUsageScopePicker({
     agents,
@@ -45,14 +52,14 @@ export function AgentUsageScopePicker({
                             <span className="flex min-w-0 items-center gap-2">
                                 <EntityAvatar
                                     name={selected.agentName}
-                                    size="sm"
+                                    size={triggerMarkSize}
                                     src={selected.agentAvatarUrl}
                                 />
                                 <span className="truncate">{selected.agentName}</span>
                             </span>
                         ) : (
                             <span className="flex min-w-0 items-center gap-2">
-                                <AllAgentsMark agents={agents} />
+                                <AllAgentsMark agents={agents} size={triggerMarkSize} />
                                 <span className="truncate">All Agents</span>
                             </span>
                         )
@@ -100,7 +107,13 @@ export function AgentUsageScopePicker({
 }
 
 /** The whole roster as one mark, so "everyone" reads as a face rather than a word. */
-function AllAgentsMark({ agents }: { agents: AgentUsage[] }) {
+function AllAgentsMark({
+    agents,
+    size = 'sm',
+}: {
+    agents: AgentUsage[];
+    size?: EntityAvatarProps['size'];
+}) {
     return (
         <span className="flex shrink-0 -space-x-2">
             {agents.slice(0, 3).map((agent) => (
@@ -108,7 +121,7 @@ function AllAgentsMark({ agents }: { agents: AgentUsage[] }) {
                     className="ring-2 ring-surface"
                     key={agent.agentId}
                     name={agent.agentName}
-                    size="sm"
+                    size={size}
                     src={agent.agentAvatarUrl}
                 />
             ))}

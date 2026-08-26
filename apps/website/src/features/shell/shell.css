@@ -131,8 +131,16 @@
 
     /*
      * Keep HeroUI's sidebar panels full-height, then reserve a native titlebar
-     * band inside them. Its hairline aligns with the shell topbar while its
-     * background masks any panel edge behind the macOS traffic lights.
+     * band inside them, masking any panel edge behind the macOS traffic lights.
+     *
+     * The band paints the sidebar's own surface and draws no line. It used to
+     * do both the other way round — `--background` plus a hairline continuing
+     * the shell topbar's — which read as one continuous rule back when the
+     * sidebar was `--background` too. Once the sidebar took its own tint that
+     * band became a lighter rectangle over it, and its hairline crossed the
+     * sidebar's trailing edge to grid the top-left corner. The tint already
+     * separates chrome from content, so the line has nothing left to do: the
+     * sidebar is one unbroken column and the topbar's rule stops at it.
      */
     html.macos-electron .app-shell [data-slot='sidebar'] {
         padding-block-start: var(--app-shell-titlebar-inset);
@@ -144,8 +152,7 @@
         inset-block-start: 0;
         inset-inline: 0;
         height: var(--app-shell-titlebar-inset);
-        border-block-end: 1px solid var(--separator);
-        background: var(--background);
+        background: var(--sidebar-surface, var(--background));
         content: '';
         pointer-events: none;
     }

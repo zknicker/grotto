@@ -34,22 +34,34 @@ public enum GrottoJSON {
 }
 
 public enum GrottoISO8601 {
-    public static func date(from value: String) -> Date? {
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = fractional.date(from: value) {
-            return date
-        }
+    // ISO8601DateFormatter is documented thread-safe; constructing one per
+    // timestamp dominated page-decode cost, so these are shared.
+    // nonisolated(unsafe) because the class predates Sendable; it is never
+    // mutated after construction.
+    nonisolated(unsafe) private static let fractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
 
-        let standard = ISO8601DateFormatter()
-        standard.formatOptions = [.withInternetDateTime]
-        return standard.date(from: value)
-    }
+    nonisolated(unsafe) private static let standard: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
 
-    public static func string(from date: Date) -> String {
+    nonisolated(unsafe) private static let output: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        return formatter.string(from: date)
+        return formatter
+    }()
+
+    public static func date(from value: String) -> Date? {
+        fractional.date(from: value) ?? standard.date(from: value)
+    }
+
+    public static func string(from date: Date) -> String {
+        output.string(from: date)
     }
 }

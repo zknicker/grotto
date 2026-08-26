@@ -73,12 +73,17 @@ public struct RichReferencePresentation: Hashable, Sendable {
 }
 
 public enum RichMessageParser {
+    // Compiled once: this parser runs per message inside hot view bodies, and
+    // per-call NSRegularExpression construction dominated its cost.
+    private static let referenceExpression = try? NSRegularExpression(
+        pattern: #"\[([^\]]+)\]\((agent|user)://([^\)]+)\)"#
+    )
+
     public static func parse(
         _ content: String,
         resolve: (MentionPresentationKind, String, String) -> RichReferencePresentation?
     ) -> [RichMessageSegment] {
-        let pattern = #"\[([^\]]+)\]\((agent|user)://([^\)]+)\)"#
-        guard let expression = try? NSRegularExpression(pattern: pattern) else {
+        guard let expression = referenceExpression else {
             return [.text(content)]
         }
         let range = NSRange(content.startIndex..., in: content)

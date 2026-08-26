@@ -161,8 +161,9 @@ against the closing spring.
 The Chat canvas is keyed by the selected destination: a Chat switch remounts the screen, so each
 Chat lays out bottom-anchored and fully formed before the drawer reveals it, and no scroll offset or
 screen-local state crosses between Chats. Anything that must survive a switch — the composer draft,
-a pending message reveal — is owned by the shell per destination and reaches the screen as a
-binding. A page arriving for a Chat that was showing nothing is that Chat's first paint and settles
+the staged attachments and their in-flight preparation, a pending message reveal — is owned by the
+shell per destination and reaches the screen as a binding or by reference; a remount resets only
+presentation state (an open portal, a frozen keyboard inset, an error notice). A page arriving for a Chat that was showing nothing is that Chat's first paint and settles
 at the bottom without animation; only genuine appends animate.
 
 An anchor message owns one recessed Thread ingress. On iPhone it shows the Server-projected reply and
@@ -233,7 +234,10 @@ preview area so source, selection, and staged result remain spatially continuous
 is a floating glass surface: the transcript scrolls to the screen bottom and passes beneath it via a
 bottom safe-area inset rather than ending above an opaque band. Selected files stay in a composer-owned temporary directory
 until the message succeeds, and imported security-scoped URLs are copied while access is active rather
-than retained or buffered into memory. Sending reserves each file
+than retained or buffered into memory. Chat-canvas staging belongs to the Chat, not the screen: it
+survives a Chat switch and a push-over, and is discarded only by a successful send, by removing the
+tile, or by the destination leaving the Server list. A Thread composer is screen-owned, so a popped
+Thread abandons its staged files to the temporary directory. Sending reserves each file
 through the existing `attachment.reserve` procedure, uploads bytes through the authenticated raw
 attachment route, then associates the returned attachment ids through `chat.send`; no native-only
 attachment record exists. Pending rows show the selected files while upload is unresolved, failures

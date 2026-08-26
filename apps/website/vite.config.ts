@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { rejectNodeBuiltins } from './vite-browser-module-guard.ts';
 
 const websiteRoot = path.dirname(fileURLToPath(import.meta.url));
 const websitePort = Number(process.env.GROTTO_WEBSITE_PORT ?? '3100');
@@ -26,7 +27,7 @@ export default defineConfig(({ command }) => ({
             process.env.VITE_GROTTO_PRODUCT_VERSION ?? productVersion
         ),
     },
-    plugins: [tailwindcss(), react()],
+    plugins: [rejectNodeBuiltins(), tailwindcss(), react()],
     resolve: {
         alias: {
             '@': path.join(websiteRoot, 'src'),

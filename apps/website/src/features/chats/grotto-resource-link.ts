@@ -1,7 +1,4 @@
 import type { ChatPaneTarget } from '@grotto/api';
-// Value imports must use the pane-links subpath: the @grotto/api root index
-// reaches node:crypto via runtime config helpers and cannot evaluate in the
-// browser.
 import {
     formatChatPaneTargetLink,
     isWorkspaceChatPaneTarget,

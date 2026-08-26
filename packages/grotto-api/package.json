@@ -9,7 +9,10 @@
     "./app-protocol": "./src/app-protocol.ts",
     "./avatar": "./src/avatar.ts",
     "./avatar-generation": "./src/avatar-generation.ts",
-    "./config": "./src/runtime/config.ts",
+    "./node/config": {
+      "types": "./src/node/config.ts",
+      "node": "./src/node/config.ts"
+    },
     "./development-chat-demos": "./src/development-chat-demos.ts",
     "./computer-runtime": "./src/computer-runtime.ts",
     "./membership": "./src/membership.ts",

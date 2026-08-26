@@ -18,6 +18,12 @@ Agent CLI -- localhost proxy --> Computer -- scoped HTTP --> Server
 OpenAPI document describes only the managed Agent HTTP surface and generates
 `src/generated/openapi.d.ts`.
 
+The `@grotto/api` package root is a browser-safe contract surface. It must not import Node built-ins
+or re-export modules that do. Browser clients may use the root for types and browser-safe values;
+narrow subpaths remain preferred for values. Node-only implementations live under explicit
+`@grotto/api/node/*` exports whose package conditions exclude browser resolution. The Website build
+rejects any `node:*` module that enters its browser dependency graph.
+
 Server is authoritative for collaboration and authorization. Computer is authoritative for local
 execution facts and reports bounded state through typed protocol messages. Realtime notifications
 invalidate or update durable Server reads; clients recover after reconnect by refetching Server

@@ -378,6 +378,10 @@ Use the generated font and text scale through HeroUI components and Tailwind tex
 | `7xl` | Inter | `64px` | `64px` | `--text-7xl` | `text-7xl` |
 | `8xl` | Inter | `84px` | `84px` | `--text-8xl` | `text-8xl` |
 | `9xl` | Inter | `112px` | `112px` | `--text-9xl` | `text-9xl` |
+
+Product copy uses `base`; compact app chrome uses `sm`. Tooltips are globally promoted from
+HeroUI's stock `xs` to `sm` in `default-theme.css` so action labels never read as fine print.
+
 ### Document type roles
 
 Settings, member profiles, and every other page built from `PageColumn` use four

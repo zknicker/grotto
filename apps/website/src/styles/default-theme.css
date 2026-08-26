@@ -416,6 +416,12 @@
         line-height: var(--text-sm--line-height);
     }
 
+    /* Tooltips are compact app chrome, not 11px fine print. */
+    .tooltip {
+        font-size: var(--text-sm);
+        line-height: var(--text-sm--line-height);
+    }
+
     /*
      * A section heading outranks the rows beneath it. Stock puts
      * `.item-card-group__title` at `text-sm`/600 directly above

@@ -536,11 +536,12 @@ Two rules that are easy to get wrong:
   `--field-border` hairline, `--field-shadow` — and buttons get pill chrome at `×3` with
   neither. So a Select set beside a ToggleButtonGroup in a filter bar reads as the heavier,
   larger control even at the same background and height, because an outline enlarges what
-  it wraps. When a field-family control serves as a toolbar filter rather than form input,
-  move it onto the pill tier through the variables HeroUI exposes — `--field-radius`,
-  `--border-width-field`, and `variant="secondary"` for the shadow — scoped to that control
-  (`agent-usage-scope.tsx`). Never move those tokens globally for one control's sake: real
-  form fields belong in field chrome.
+  it wraps. Put the cluster in HeroUI's `Toolbar` and the mismatch becomes addressable in
+  the theme: `.toolbar .select__trigger` moves that Select onto the pill tier through the
+  variables HeroUI already exposes. Reach for `Toolbar` rather than a call-site override —
+  it is the component that says "these controls are a set", it carries the arrow-key
+  navigation a filter cluster should have, and it gives the rule a class to hang on. Fields
+  that take typed text keep field chrome wherever they sit.
 - **Some things opt out.** A status dot is a dot at every radius: `.badge:empty` — and only
   the empty case, which is HeroUI's own definition of a dot — is pinned to a full radius in
   the component-overrides block of `styles/default-theme.css`. A Badge carrying a count or a

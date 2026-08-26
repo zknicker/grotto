@@ -197,6 +197,32 @@ The Server-scoped alias used to address one active Agent. A retired Agent keeps 
 handle, while a newly created Agent may reuse that alias with a new Agent identity.
 _Avoid_: Agent id, display name, permanent username
 
+**Prepared action**:
+An immutable Server-owned proposal that an Agent posts to a Chat for an authorized human to
+review and commit. Preparing records the exact proposed values and bytes but grants no mutation
+authority. A correction creates a new prepared action that supersedes the earlier pending one;
+the committed result separately records the human's final edited values.
+_Avoid_: draft mutation, Agent approval, editable action, Widget
+
+**Action card**:
+The native Grotto App projection of one prepared action. It previews the proposal and opens the
+ordinary deterministic product modal for an authorized human to edit and commit once; it is not
+model-authored UI or a visual fence.
+_Avoid_: prepared action record, Widget, artifact, confirmation message
+
+**Action terminal attention**:
+Durable Server-owned pending work queued only for the Agent that prepared an action after a human
+successfully commits it. It begins a new Agent turn with the result and continuation context; the preparing
+turn never waits, polls, or remains resident for a human decision.
+_Avoid_: Chat receipt, approval message, waiting Agent turn, transient App notification
+
+**Avatar generation**:
+A Server-owned image operation that turns a short freeform brief into square avatar bytes using
+Grotto's canonical release-owned pixel-art prompt. Generation does not change an identity or
+create a durable avatar: the caller keeps the preview until a human saves it or a prepared action
+captures the exact bytes.
+_Avoid_: avatar repository, automatic profile update, Agent-created identity
+
 **Agent execution configuration**:
 The Grotto server's immutable Computer assignment plus desired executor, model reference, execution
 policy, Server-owned MCP connection grants, and lifecycle state for an Agent. Humans may edit this desired

@@ -72,11 +72,16 @@ it converts hugeicons' SVG elements into path data, and `SVGPathData` parses tha
 main actor and caches each glyph's parsed `Path` on first use. Until it lands — and for any name the
 catalog does not carry — the box renders the hash, so the glyph never changes size or position.
 
-Sent image attachments render inline as media tiles rather than file rows: the timeline downloads
+Image attachments render inline as media tiles rather than file rows: the timeline downloads
 through the same authenticated attachment route Quick Look uses, decodes a downsampled ImageIO
-thumbnail sized for the tile, and keeps the result in an in-memory `AttachmentImageCache` keyed by
-attachment id so scrolling and re-renders don't re-download or re-decode. Non-image attachments and
-still-uploading pending rows keep the existing file row.
+thumbnail off the main actor, and keeps the result in an in-memory `AttachmentImageCache` keyed by
+attachment id so scrolling and re-renders don't re-download or re-decode; `body` reads the cache
+synchronously so a recycled tile renders fully formed on its first frame. Tiles are fixed-height
+(`AttachmentImageTileSize.tileHeight`) with aspect-tracking width, so a landing decode never changes
+a row's height. Pending uploads render through the same tile from their staged local file — decoded
+once into `LocalAttachmentImageCache`, which also serves the composer strip and the attachment
+morph — and the retired pending row's replacement adopts the identical bitmap by filename and byte
+size, so a send never reflows. Non-image attachments keep the file row.
 
 The app deploys to iOS 18 and progressively adopts iOS 26 Liquid Glass for functional
 chrome. System navigation and sheet controls inherit the platform treatment; custom menu, search,
@@ -148,7 +153,17 @@ sits behind the canvas past either edge; `DrawerInteraction` owns that math and 
 so a flick settles the drawer by velocity and a slow drag settles it by position. The drag uses a UIKit pan recognizer so it can claim
 only horizontal movement, cancel an in-flight vertical timeline scroll once it begins, and leave
 horizontally scrollable content such as staged attachments alone. There is no edge-only hit zone and
-no all-or-nothing open.
+no all-or-nothing open. Selecting a Chat is the only action that closes the drawer; every sidebar
+entry point that presents another surface — Search, Tasks, Settings, Archived, New channel — leaves
+the drawer open behind it, so dismissing returns to the open drawer and no presentation ever runs
+against the closing spring.
+
+The Chat canvas is keyed by the selected destination: a Chat switch remounts the screen, so each
+Chat lays out bottom-anchored and fully formed before the drawer reveals it, and no scroll offset or
+screen-local state crosses between Chats. Anything that must survive a switch — the composer draft,
+a pending message reveal — is owned by the shell per destination and reaches the screen as a
+binding. A page arriving for a Chat that was showing nothing is that Chat's first paint and settles
+at the bottom without animation; only genuine appends animate.
 
 An anchor message owns one recessed Thread ingress. On iPhone it shows the Server-projected reply and
 unread counts plus only the latest recent reply; this is a presentation reduction of the same Thread
@@ -167,8 +182,12 @@ Swift optimistic Chat and Thread rows remain app-local and keyed by the client n
 use the canonical parent Chat plus anchor-message contract. A failed mutation removes its optimistic
 row and restores the exact draft, while a successful row remains pending until a refreshed Server
 page contains the matching nonce. On returning to the foreground, the app keeps cached presentation
-visible, refetches its active Server snapshots and already-open message pages, then restarts live Chat
-and Agent lifecycle streams. Chat and Thread timelines page older history through the existing
+visible, refetches its Server snapshot in one gathered pass — applied as a single repaint, with only
+the open Chat's message page refetched eagerly; the event walk and `openChat` cover the rest — then
+restarts live Chat and Agent lifecycle streams. A voluntary refresh keeps the connected state;
+offline is what a failed refresh or a broken stream reports. Live SSE Chat events coalesce for a
+short window (`ChatEventCoalescer`) before the existing batch applier runs, so a burst lands as one
+refetch fan-out rather than one per frame. Chat and Thread timelines page older history through the existing
 `beforeSequence` cursor, merge overlapping pages by message id in Server sequence order, and preserve
 the prior top row as the scroll anchor. The Swift prototype keeps one in-memory cursor per active
 Server, walks `chat.events` from that cursor on reconnect, and refetches loaded affected Chat pages.
@@ -243,9 +262,11 @@ draft. Transcript chips parse that markdown and resolve live Agent/member identi
 human references remain visual and do not create attention or notification behavior.
 
 The open native Chat and Thread surfaces acknowledge the latest loaded message sequence through
-`chat.markRead`. Identical Server/Chat/sequence acknowledgements are deduplicated in memory, and a
-successful receipt refreshes `chat.list` so unread counts remain Server projections rather than local
-durable state.
+`chat.markRead`. Identical Server/Chat/sequence acknowledgements are deduplicated in memory. The
+durable `chat.read` event — which Server writes only when the read moved and addresses to the reader
+alone — owns the `chat.list` refresh, exactly as the web App's `useChatRead` does, so one
+acknowledgement produces one list refresh and unread counts remain Server projections rather than
+local durable state.
 
 Native Thread routes are anchored by the parent message id, which exists before the child Chat is
 created. The route also carries the parent Chat id and may carry a resolved Thread Chat id. Opening an

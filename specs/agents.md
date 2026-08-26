@@ -13,3 +13,9 @@ One Agent owns one global session across all Chats and runs at most one turn at 
 Agent also creates its ordinary human↔Agent DM. Deleting an Agent preserves authored collaboration
 history but permanently removes its Computer-local workspace and execution state when Computer can
 perform the deletion.
+
+Agent-authored ordinary Chat can address another active Agent with
+`dm:@<agent-handle>`. Server resolves that handle within the sender's Server
+to the target Agent's existing Owner DM and queues the same ordinary delivery;
+the target must not be retired or the sender itself. This target syntax adds
+peer routing only and does not bypass Chat or delivery authorization.

@@ -4,6 +4,67 @@ import type { ManualRecipeTopic } from '../types.ts';
 export const playbookRecipes: readonly ManualRecipeTopic[] = [
     createManualRecipe({
         body: `
+# Create a vivid Agent from a short brief
+
+## When
+
+Use this when an owner wants a new Agent from a short freeform brief. This is a composition of existing Grotto capabilities: avatar generation, native action preparation, typed action continuation, and ordinary Chat delivery. It is not a separate create-Agent tool.
+
+## Steps
+
+1. Read the owner's brief and form one vivid, high-personality cartoon character whose playful animal, object, food, celestial, or fantasy identity makes the requested role memorable. Preserve an Agent name the owner supplied. If no name was supplied, choose one fun, pronounceable name that fits the concept. Ask only when a missing detail changes authority or the requested outcome.
+2. Write a short concept that carries the character, personality, role, and useful visual details. Keep one concept, not a gallery or a menu of alternatives.
+3. Generate the avatar before preparing any action:
+
+   \`grotto avatar generate --concept <concept> --output <path>\`
+
+   Make exactly one generation request for the normal preparation path. Pass the concept as the only substitution to the approved fixed retro pixel-art prompt; do not add Blippy or Tiny reference images, inspect their avatars as references, or create a draft gallery. If generation fails, report the blocker and do not prepare an action.
+4. After the avatar succeeds, prepare exactly one native create-Agent action carrying the owner-approved name, concept/description, Computer guidance, draft hint, and generated avatar:
+
+   \`printf '{"kind":"agent:create","name":"<name>","description":"<description>"}' | grotto action prepare --target <target> --avatar-file <path>\`
+
+   The action is a proposal for human review. Do not create an Agent directly or emit a second create action for the same brief. Leave runtime, model, reasoning, and role choices to the user's set defaults and the deterministic review modal; the owner may edit fields or the avatar before committing.
+5. Finish the preparation turn immediately after the action is prepared. Do not poll, sleep, keep a resident turn, wait for a modal, inspect a gallery, or perform repository/expiry cleanup. A human commit is a separate event.
+6. Start one distinct continuation only when the proposer receives the typed terminal action attention for that committed action. Use its action identity and created-Agent result; do not treat an ordinary Chat receipt or an inbox notice as permission to continue.
+7. In that continuation, send one meaningful starter message through ordinary Chat delivery:
+
+   \`grotto message send --target dm:@<created-agent>\`
+
+   Include useful first context from the committed concept and a concrete next step. The message must have substantive content; never send an empty bootstrap turn and never use a privileged delivery path.
+
+## Corrections
+
+If the owner asks to change the name, concept, personality, avatar, or other field before commit, take the new instruction as input, generate the revised avatar only then, and prepare a new action that supersedes the pending one. If the action has already committed, treat the request as a new proposal and preserve the existing Agent until the new human review completes. Never silently mutate a pending or committed proposal.
+
+## Proof it works
+
+The normal path has one concept, one avatar request, one pending action with avatar media, one completed preparation turn, one human commit, one typed proposer continuation, and one ordinary starter Chat message delivered to the created Agent. The durable action identity, not a guessed name or Chat cursor, joins the commit to the continuation.`,
+        class: 'playbook',
+        industries: ['agent teams, onboarding, creative operations, personal assistants'],
+        prereqs: [
+            'a short owner brief',
+            'grotto avatar generate',
+            'grotto action prepare',
+            'ordinary grotto message send',
+        ],
+        related: [
+            'decision/when-to-ask-human',
+            'pattern/discuss-then-assign',
+            'technique/sent-zero',
+        ],
+        slug: 'agent-creation',
+        summary:
+            'Compose one vivid Agent concept into an avatar-backed action, then continue after human commit with a useful first Chat message.',
+        tier: 'query',
+        title: 'Create a vivid Agent from a short brief',
+        triggers: [
+            'owner asks for a new Agent from a role or personality brief',
+            'create an Agent with an avatar or character concept',
+            'turn a short idea into an avatar-backed Agent proposal',
+        ],
+    }),
+    createManualRecipe({
+        body: `
 # Billing strictness loop
 
 ## When

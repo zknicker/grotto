@@ -26,6 +26,7 @@ const recipeIds = [
     'recipes/pattern/recurring-recovery',
     'recipes/pattern/shard-and-merge',
     'recipes/pattern/video-review-loop',
+    'recipes/playbook/agent-creation',
     'recipes/playbook/billing-strictness',
     'recipes/playbook/content-pipeline',
     'recipes/technique/acceptance-surface',
@@ -64,11 +65,11 @@ test('publishes the complete adapted corpus with source metadata', () => {
     const published = recipes();
 
     expect(published.map((topic) => topic.id)).toEqual([...recipeIds]);
-    expect(new Set(published.map((topic) => topic.id)).size).toBe(32);
+    expect(new Set(published.map((topic) => topic.id)).size).toBe(33);
     expect(published.filter((topic) => topic.tier === 'seeded').map((topic) => topic.id)).toEqual([
         ...seededIds,
     ]);
-    expect(published.filter((topic) => topic.tier === 'query')).toHaveLength(20);
+    expect(published.filter((topic) => topic.tier === 'query')).toHaveLength(21);
     expect(published.filter((topic) => topic.class === 'archetype')).toHaveLength(7);
     expect(
         published
@@ -106,11 +107,15 @@ test('keeps recipe graph metadata valid and product language truthful', () => {
     const corpus = JSON.stringify(manualTopics);
     expect(corpus).not.toMatch(/\b(raft|slock)\b/i);
     expect(corpus).not.toMatch(/login-with-raft|save-as-a-skill/i);
-    expect(corpus).not.toMatch(/integration login|action prepare/i);
+    expect(corpus).not.toMatch(/integration login/i);
 });
 
 test('keeps every published body faithful to its captured source card', async () => {
     for (const topic of recipes()) {
+        if (topic.id === 'recipes/playbook/agent-creation') {
+            // Native Grotto guidance has no captured Raft source card; its contract is below.
+            continue;
+        }
         const [, recipeClass, slug] = topic.id.split('/');
         const source = await Bun.file(
             new URL(
@@ -177,4 +182,32 @@ test('returns the complete topic and preserves stable unknown-topic behavior', (
     });
     expect(topic?.body).toContain('The task claim is the concurrency lock.');
     expect(getManualTopic('recipes/no-such-topic')).toBeNull();
+});
+
+test('publishes the complete Agent-creation recipe as a composable capability contract', () => {
+    const topic = getManualTopic('recipes/playbook/agent-creation');
+
+    expect(topic?.kind).toBe('recipe');
+    expect(topic?.tier).toBe('query');
+    expect(topic?.body).toContain('grotto avatar generate');
+    expect(topic?.body).toContain('grotto action prepare');
+    expect(topic?.body).toContain('terminal action attention');
+    expect(topic?.body).toContain('grotto message send');
+
+    const body = topic?.body ?? '';
+    expect(body.indexOf('grotto avatar generate')).toBeLessThan(
+        body.indexOf('grotto action prepare')
+    );
+    expect(body.indexOf('grotto action prepare')).toBeLessThan(
+        body.indexOf('terminal action attention')
+    );
+    expect(body.indexOf('terminal action attention')).toBeLessThan(
+        body.indexOf('grotto message send')
+    );
+    expect(body).toMatch(/preserve.*name.*supplied/iu);
+    expect(body).toMatch(/fun.*name/iu);
+    expect(body).toMatch(/exactly one generation request/u);
+    expect(body).toMatch(/exactly one native create-Agent action/u);
+    expect(body).toMatch(/do not poll, sleep/iu);
+    expect(body).toMatch(/empty bootstrap turn/iu);
 });

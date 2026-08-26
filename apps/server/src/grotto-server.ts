@@ -1,3 +1,4 @@
+import { DeterministicAvatarImageProvider } from './avatar-generation/deterministic-provider.ts';
 import { env } from './config/env.ts';
 import { readGrottoReleaseIdentity } from './grotto-release-identity.ts';
 import {
@@ -27,6 +28,7 @@ async function start() {
         clerkSecretKey: env.GROTTO_CLERK_SECRET_KEY,
         computerReleaseManifestUrl: env.GROTTO_COMPUTER_RELEASE_MANIFEST_URL,
         databaseUrl: env.GROTTO_DATABASE_URL,
+        avatarImageProvider: createAvatarImageProvider(),
         openAiApiKey: env.GROTTO_OPENAI_API_KEY,
         staticAppRoot: env.GROTTO_STATIC_APP_ROOT,
     });
@@ -55,6 +57,21 @@ async function start() {
     logStartupDetail('📡', 'HTTP', `http://127.0.0.1:${env.GROTTO_SERVER_PORT}`);
     logStartupDetail('🔌', 'WebSocket', `ws://127.0.0.1:${env.GROTTO_SERVER_PORT}/trpc`);
     logStartupComplete('Grotto Server is ready');
+}
+
+function createAvatarImageProvider() {
+    if (process.env.GROTTO_DEV_STACK !== '1' || env.GROTTO_AGENT_E2E_AVATAR_FIXTURE !== '1') {
+        return undefined;
+    }
+    if (!env.GROTTO_AGENT_E2E_AVATAR_FIXTURE_PATH) {
+        throw new Error(
+            'GROTTO_AGENT_E2E_AVATAR_FIXTURE_PATH is required when the local avatar fixture is enabled.'
+        );
+    }
+    return new DeterministicAvatarImageProvider(
+        env.GROTTO_AGENT_E2E_AVATAR_FIXTURE_PATH,
+        env.GROTTO_AGENT_E2E_AVATAR_REQUEST_LOG
+    );
 }
 
 function registerShutdown(application: GrottoServerApplication) {

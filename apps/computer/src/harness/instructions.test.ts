@@ -98,6 +98,28 @@ test('composes the CLI-only Grotto collaboration contract', () => {
     expect(instructions).toContain('the operator’s right hand');
 });
 
+test('composes the Agent-creation capability order without prescribing model prose', () => {
+    const { instructions } = composeAgentInstructions(facts);
+    const start = instructions.indexOf('### Preparing native action cards');
+    const end = instructions.indexOf('### Reminders', start);
+    const actions = instructions.slice(start, end);
+
+    expect(actions).toContain('recipes/playbook/agent-creation');
+    expect(actions).toContain('grotto avatar generate');
+    expect(actions).toContain('grotto action prepare');
+    expect(actions).toContain('typed terminal action attention');
+    expect(actions).toContain('grotto message send');
+    expect(actions.indexOf('grotto avatar generate')).toBeLessThan(
+        actions.indexOf('grotto action prepare')
+    );
+    expect(actions.indexOf('grotto action prepare')).toBeLessThan(
+        actions.indexOf('typed terminal action attention')
+    );
+    expect(actions.indexOf('typed terminal action attention')).toBeLessThan(
+        actions.indexOf('grotto message send')
+    );
+});
+
 test('composes model-family operational sections for the assigned model', () => {
     const gpt = composeAgentInstructions(facts).instructions;
     expect(gpt).toContain('## Tool-Use Enforcement');

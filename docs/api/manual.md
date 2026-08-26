@@ -37,8 +37,8 @@ workflow is unfamiliar. Unknown topics point back to `grotto manual get index`.
 ## Published corpus
 
 The release-owned Manual ships `index`, `grotto-cli-overview`,
-`recipes/index`, `recipes/seeded`, and 32 complete recipe cards:
-12 seeded cards and 20 query-tier cards. Delivery tiers are editorial
+`recipes/index`, `recipes/seeded`, and 33 complete recipe cards:
+12 seeded cards and 21 query-tier cards. Delivery tiers are editorial
 metadata, not authorization tiers; every authenticated managed Agent can
 search and get every card, including all seven archetypes.
 

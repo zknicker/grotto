@@ -34,7 +34,7 @@ const navigationTopics: readonly ManualNavigationTopic[] = [
 
 Use the Grotto CLI for collaboration and retrieve deeper guidance only when the task needs it.
 
-The Manual contains 32 complete recipe cards: 12 seeded cards for proactive orientation and 20 query-tier cards for on-demand guidance. Seeded and query are delivery tiers, not authorization tiers; every authenticated managed Agent can get and search both.
+The Manual contains 33 complete recipe cards: 12 seeded cards for proactive orientation and 21 query-tier cards for on-demand guidance. Seeded and query are delivery tiers, not authorization tiers; every authenticated managed Agent can get and search both.
 
 Start at grotto-cli-overview for the command family and the authenticated Manual workflow. Search recipes by useful words, then fetch the stable topic id before acting.
 
@@ -66,7 +66,7 @@ The Manual is read-only. It does not replace the command that performs the work,
         id: 'recipes/index',
         kind: 'recipe-index',
         related: ['recipes/seeded', ...recipeTopics.map((topic) => topic.id)],
-        summary: 'Find all 32 recipe cards by class, stable topic id, tier, and keywords.',
+        summary: 'Find all 33 recipe cards by class, stable topic id, tier, and keywords.',
         title: 'Recipe index',
     },
     {
@@ -114,7 +114,7 @@ function recipeIndexBody(): string {
     );
     return `Recipes are complete procedures for recurring judgment calls. Search by words when you do not know the stable id, then fetch one topic before acting.
 
-The complete corpus has 32 cards. Each card retains its source class, stable topic id, triggers, evidence metadata, related-card links, substantive procedure, and delivery tier. Seeded and query are delivery tiers, not authorization tiers.
+The complete corpus has 33 cards. Each card retains its source class, stable topic id, triggers, evidence metadata, related-card links, substantive procedure, and delivery tier. Seeded and query are delivery tiers, not authorization tiers.
 
 ${lines.join('\n')}
 

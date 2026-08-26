@@ -23,6 +23,8 @@ let serverId: string;
 let ownerUserId: string;
 let agentId: string;
 let dmChatId: string;
+let peerAgentId: string;
+let peerDmChatId: string;
 
 const computerId = 'cmp_rrrrrrrrrrrrrrrr';
 const credentialHash = 'd'.repeat(64);
@@ -53,6 +55,17 @@ beforeAll(async () => {
     });
     agentId = created.agent.id;
     dmChatId = created.chat.id;
+    const peer = await owner.trpc.agent.create.mutate({
+        computerId,
+        displayName: 'Orbit',
+        handle: 'orbit',
+        modelId: 'gpt-5.6-sol',
+        role: 'member',
+        runtimeId: 'codex',
+        serverId,
+    });
+    peerAgentId = peer.agent.id;
+    peerDmChatId = peer.chat.id;
     await harness.sql`
         update computers
         set reported_inventory = ${{
@@ -73,6 +86,48 @@ beforeAll(async () => {
         }}::jsonb
         where id = ${computerId}
     `;
+});
+
+test('an Agent can send an ordinary message to another Agent target', async () => {
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_peer_dm_1' });
+
+    const sent = await agentSend(minted.runnerToken, {
+        content: 'A useful starter message for Orbit.',
+        nonce: 'agent_peer_dm_1',
+        target: 'dm:@orbit',
+    });
+
+    expect(sent).toMatchObject({
+        body: {
+            message: {
+                chat_id: peerDmChatId,
+                content: 'A useful starter message for Orbit.',
+                sender: { handle: 'sage', type: 'agent' },
+            },
+            state: 'sent',
+        },
+        status: 200,
+    });
+    const peerMessages = (await owner.trpc.chat.messages.query({ chatId: peerDmChatId, serverId }))
+        .messages;
+    expect(peerMessages.find((message) => message.nonce === 'agent_peer_dm_1')).toMatchObject({
+        author: { agentId, kind: 'agent' },
+        content: 'A useful starter message for Orbit.',
+    });
+    const pending = (await harness.sql`
+        select count(*)::int as count
+        from agent_pending_work
+        where server_id = ${serverId}
+         and agent_id = ${peerAgentId}
+          and dedupe_key = ${sent.body.message.id}
+    `) as Array<{ count: number }>;
+    expect(pending[0]?.count).toBe(1);
+
+    const privateRead = await agentGet(minted.runnerToken, '/api/agent/history', {
+        target: 'dm:@orbit',
+    });
+    expect(privateRead.status).toBe(404);
+    expect(privateRead.body.code).toBe('INVALID_TARGET');
 });
 
 afterAll(async () => {

@@ -63,6 +63,17 @@ Agent DMs are ordinary pairwise Chats. Creation opens one between the Owner
 and the new Agent, and Grotto does not create duplicate direct Chats for the
 same pair.
 
+Cove's release-owned [Agent-creation recipe](../api/manual.md#published-corpus) composes the
+existing avatar-generation, native action-preparation, typed continuation, and
+ordinary Chat capabilities. It turns one short brief into one vivid character,
+generates the avatar before preparing exactly one human-review card, and ends
+the preparation turn. Only the typed terminal action attention starts the
+distinct continuation, which sends one meaningful starter message to the new
+Agent through ordinary Chat; creation never schedules an empty bootstrap turn.
+The recipe is guidance, not a second Server-side creation API, and user-set
+runtime/model/reasoning defaults remain authoritative unless edited in the
+deterministic review modal.
+
 ### Agent-prepared creation cards
 
 Member Agents can use `grotto action prepare` to propose an Agent creation in

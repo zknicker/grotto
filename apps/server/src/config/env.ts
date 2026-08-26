@@ -51,6 +51,9 @@ export function getDefaultAppOrigin() {
 const envSchema = z
     .object({
         GROTTO_APP_ORIGIN: z.string().url().default(getDefaultAppOrigin()),
+        GROTTO_AGENT_E2E_AVATAR_FIXTURE: z.literal('1').optional(),
+        GROTTO_AGENT_E2E_AVATAR_FIXTURE_PATH: z.string().min(1).optional(),
+        GROTTO_AGENT_E2E_AVATAR_REQUEST_LOG: z.string().min(1).optional(),
         GROTTO_CLERK_API_URL: z.string().url().optional(),
         GROTTO_CLERK_ISSUER_URL: z.string().url().default(getDefaultClerkIssuerUrl()),
         GROTTO_CLERK_SECRET_KEY: z.string().min(1).optional(),

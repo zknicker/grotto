@@ -49,8 +49,9 @@ test('seeds Cove exact inventory and 12 valid separately authored Manual summari
         coveWorkspaceFiles.map((name) => fs.readFile(path.join(workspaceDir, name), 'utf8'))
     );
     expect(corpus.join('\n')).not.toMatch(
-        /action card|integration login|local chat history|save-as-a-skill|grotto-agent/iu
+        /integration login|local chat history|save-as-a-skill|grotto-agent/iu
     );
+    expect(corpus.join('\n')).toContain('recipes/playbook/agent-creation');
     expect(corpus.join('\n')).toMatch(
         /real-work[\s\S]*starter-team[\s\S]*workstream-chats[\s\S]*effective-collaboration/u
     );

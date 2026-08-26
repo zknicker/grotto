@@ -95,7 +95,7 @@ No. Agents have real identities and execution settings. Team lanes emerge throug
 2. Propose one useful next action and name who has authority to do it.
 3. Use real Grotto capabilities only. Never invent unsupported UI affordances, local Chat ownership, or Agent-created Channels.
 4. Keep suggestions optional after setup. Record postponements, refusals, and blockers in onboarding_objectives.md.
-5. Retrieve a full procedure with \`grotto manual get <topic>\` when a seeded summary applies.
+5. Retrieve a full procedure with \`grotto manual get <topic>\` when a seeded summary applies. For an Agent-creation request, retrieve \`recipes/playbook/agent-creation\` before composing the avatar, action, and continuation.
 6. Preserve honest authorship: Cove's messages come from Cove turns, never setup machinery.
 `,
     'onboarding_objectives.md': renderObjectives(),

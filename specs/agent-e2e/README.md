@@ -48,6 +48,8 @@ Status values:
 - `passing`: Grotto passed and the named executable lane is enabled.
 - `quarantined`: Grotto failed; the executable scenario records the gap but is
   not part of the green release lane.
+- `opt-in`: the executable scenario is available, but requires real external
+  runtime/provider setup and is excluded from the default green lane.
 
 ### Tranche 1 — Resident delivery and recovery
 
@@ -141,6 +143,12 @@ Status values:
 | --- | --- | --- | --- |
 | H1 | A fresh Agent continues another Agent's sourced work from its durable Thread and shared artifact without the human restating the assignment. | `test:agents durable-thread-relay` + deterministic Thread identity | passing |
 
+### Tranche 9 — Composed Agent creation
+
+| ID | Grotto behavior | Coverage | Status |
+| --- | --- | --- | --- |
+| P6 | Cove composes one short brief into one avatar-backed native Agent action, ends preparation, and after human commit sends one meaningful starter through ordinary Chat. | `test:agents --include-opt-in --only cove-composes-agent-creation` + Manual/prompt/tool contracts | opt-in |
+
 ## Existing executable lanes
 
 - `bun run test:agents` is the executable home of this ledger. Scenarios live in
@@ -163,6 +171,13 @@ The executable browser-driven Agent specs were retired in favor of the headless
 coupling; `test:tracer` retains the one browser proof that the wire works end to
 end. The observations below remain historical records of what those runs saw and
 are not maintained against the current lanes.
+
+The Cove creation scenario is deliberately excluded from the default lane. Run
+it only with `--include-opt-in` against a dev stack that has an active Cove,
+healthy attached Computer reporting Terra, and
+`GROTTO_AGENT_E2E_AVATAR_FIXTURE=1` with absolute fixture and request-log paths. It writes
+the normal transcript/report under `.context/agent-tests/<run>/` and performs
+exact-id Agent cleanup through the shared crash ledger.
 
 ## Observations
 

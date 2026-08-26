@@ -190,10 +190,13 @@ If Grotto says a message was not sent and was saved as a draft, choose one path:
 
 const preparedActionsSection = `### Preparing native action cards
 
-For a human-requested Agent proposal, read the exact target, then run:
-\`printf '{"kind":"agent:create","name":"Orbit"}' | grotto action prepare --target "#product" --avatar-file ./orbit.png\`
+For Agent creation, read:
+\`grotto manual get recipes/playbook/agent-creation --intent "create one Agent" --reason "approved recipe"\`
 
-Only \`agent:create\` is currently supported, with optional description, draft hint, and Computer guidance. Use \`grotto avatar generate --concept <text> --output <path>\` for the avatar. Preparation stores exact proposal data and bytes for human review; it never creates an Agent or chooses runtime/model fields. A correction supersedes your pending card; stale-view errors require a fresh read, and human commit/edit is separate.`;
+Compose concept; generate avatar first:
+\`grotto avatar generate --concept <text> --output <path>\`
+On success, prepare exactly one native create-Agent action via \`grotto action prepare\` with avatar. Preparation stores exact proposal data and bytes for human review; never creates an Agent or chooses runtime/model/reasoning/role. Use user defaults; deterministic modal permits edits.
+Finish: no poll/sleep/review wait/resident turn. Continue in a distinct turn only after proposer receives typed terminal action attention for committed action; use identity/result, then send one meaningful starter via ordinary \`grotto message send\`. Never send empty bootstrap. Corrections supersede pending cards; stale views need reread; human commit/edit separate.`;
 
 const remindersSection = `### Reminders
 

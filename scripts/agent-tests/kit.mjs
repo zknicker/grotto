@@ -207,6 +207,15 @@ export function createAgentTestKit(
         return agents;
     }
 
+    /** Registers an existing Agent this scenario creates through a product action. */
+    async function trackAgent(agent) {
+        if (!provisioned.some((candidate) => candidate.id === agent.id)) {
+            provisioned.push(agent);
+            await ledger.rememberAgent(agent);
+        }
+        return agent;
+    }
+
     /** Retires this scenario's Agents. Unconfirmed deletes stay in the ledger. */
     async function retire() {
         const result = await retireAgents(harness, provisioned);
@@ -254,6 +263,7 @@ export function createAgentTestKit(
         serverId,
         settleTurn,
         stamp: context.stamp,
+        trackAgent,
         trackChat,
         transcript: () => ({
             chats: [...ownedChats.entries()].map(([id, name]) => ({ id, name })),

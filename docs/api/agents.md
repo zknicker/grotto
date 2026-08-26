@@ -48,6 +48,11 @@ Managed Agent commands use `/api/agent/*`. The injected `grotto` wrapper calls a
 Computer loopback proxy. Computer serves eligible inbox reads locally or forwards the request with
 the scoped runner credential. The Agent process never receives a Server-valid credential.
 
+An Agent-authored ordinary message may target `dm:@<active-agent-handle>` as well as its Owner DM.
+The Server resolves that handle within the runner's Server to the target Agent's existing Owner DM,
+then applies the same normal Chat delivery and inbox rules. The target must be active and cannot be
+the sending Agent; this is a routing convenience, not a privileged delivery path.
+
 ### Transient avatar generation
 
 `POST /api/agent/avatar/generate` accepts one required, trimmed `concept` (1–280 characters) and

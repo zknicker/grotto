@@ -58,6 +58,14 @@ credential for the intended lifecycle; without it, the Server reports the
 avatar provider as unavailable. Test fixtures never need this key and never
 call the provider.
 
+The opt-in Cove Agent E2E scenario can set `GROTTO_AGENT_E2E_AVATAR_FIXTURE=1`,
+an absolute `GROTTO_AGENT_E2E_AVATAR_FIXTURE_PATH`, and an absolute
+`GROTTO_AGENT_E2E_AVATAR_REQUEST_LOG` path. The Server honors these only when
+`GROTTO_DEV_STACK=1`, reads the operator-selected stable PNG, and logs request
+metadata without the concept or image bytes. The fixture path is runtime input,
+so the PNG is not bundled into the Server artifact. Do not enable the fixture in
+a released Server environment.
+
 ## Who is allowed to read
 
 Humans and supervised local agents authorize through the 1Password desktop app.

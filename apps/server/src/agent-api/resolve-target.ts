@@ -1,7 +1,8 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
+    agentsTable,
     channelAgentParticipantsTable,
     chatMessagesTable,
     chatsTable,
@@ -78,6 +79,54 @@ export async function resolveAgentTarget(
     throw new AgentTargetError();
 }
 
+async function resolveAgentSendChatTarget(
+    db: GrottoDatabase,
+    runner: ResolvedRunner,
+    target: string
+): Promise<string | null> {
+    if (!target.startsWith('dm:@')) {
+        return null;
+    }
+    const [peer, ...extra] = target.slice('dm:@'.length).split(':');
+    if (!(peer && extra.length === 0) || peer === 'operator') {
+        return null;
+    }
+    return await resolvePeerAgentDmChat(db, runner, peer);
+}
+
+async function resolvePeerAgentDmChat(db: GrottoDatabase, runner: ResolvedRunner, handle: string) {
+    const [peer] = await db
+        .select({ id: agentsTable.id })
+        .from(agentsTable)
+        .where(
+            and(
+                eq(agentsTable.serverId, runner.serverId),
+                eq(agentsTable.handle, handle),
+                isNull(agentsTable.retiredAt),
+                sql`${agentsTable.id} <> ${runner.agentId}`
+            )
+        )
+        .limit(2);
+    if (!peer) {
+        throw new AgentTargetError();
+    }
+    const chats = await db
+        .select({ id: chatsTable.id })
+        .from(chatsTable)
+        .where(
+            and(
+                eq(chatsTable.serverId, runner.serverId),
+                eq(chatsTable.kind, 'dm'),
+                eq(chatsTable.dmAgentId, peer.id)
+            )
+        )
+        .limit(2);
+    if (chats.length !== 1) {
+        throw new AgentTargetError();
+    }
+    return chats[0].id;
+}
+
 /** Send-only resolver: an Agent may create the canonical thread for a visible anchor message. */
 export async function resolveAgentSendTarget(
     db: GrottoDatabase,
@@ -90,6 +139,11 @@ export async function resolveAgentSendTarget(
         if (!(cause instanceof AgentTargetError)) {
             throw cause;
         }
+    }
+
+    const peerChatId = await resolveAgentSendChatTarget(db, runner, target);
+    if (peerChatId) {
+        return peerChatId;
     }
 
     const parsed = await resolveAgentParentTarget(db, runner, target);
@@ -135,12 +189,14 @@ async function resolveAgentParentTarget(
         const parentChatId = await resolveAgentTarget(db, runner, `#${channelName}`);
         return { anchor, parentChatId };
     }
-    if (target.startsWith('dm:@operator:')) {
-        const anchor = target.slice('dm:@operator:'.length);
-        if (!anchor || anchor.includes(':')) {
+    if (target.startsWith('dm:@')) {
+        const [peer, anchor, ...extra] = target.slice('dm:@'.length).split(':');
+        if (!(peer && anchor) || extra.length > 0) {
             return null;
         }
-        const parentChatId = await resolveAgentTarget(db, runner, 'dm:@operator');
+        const parentChatId =
+            (await resolveAgentSendChatTarget(db, runner, `dm:@${peer}`)) ??
+            (await resolveAgentTarget(db, runner, `dm:@${peer}`));
         return { anchor, parentChatId };
     }
     return null;

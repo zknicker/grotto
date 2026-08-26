@@ -3,7 +3,7 @@
 // Agent API contracts the App uses.
 //
 //   bun scripts/agent-tests/cli.mjs [--only <substring>] [--list] [--json]
-//                                   [--lanes <n>]
+//                                   [--include-opt-in] [--lanes <n>]
 
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -26,7 +26,7 @@ const scenariosDirectory = fileURLToPath(new URL('./scenarios/', import.meta.url
 const repositoryRoot = path.resolve(fileURLToPath(new URL('../../', import.meta.url)));
 
 const options = parseArgv(process.argv.slice(2));
-const scenarios = filterScenarios(await loadScenarios(), options.only);
+const scenarios = filterScenarios(await loadScenarios(), options.only, options.includeOptIn);
 
 if (options.list) {
     const listed = scenarios.map((scenario) => ({
@@ -203,20 +203,23 @@ async function loadScenarios() {
     return loaded;
 }
 
-function filterScenarios(loaded, only) {
+function filterScenarios(loaded, only, includeOptIn) {
+    const eligible = loaded.filter((scenario) => includeOptIn || !scenario.optIn);
     return only.length > 0
-        ? loaded.filter((scenario) => only.some((filter) => scenario.name.includes(filter)))
-        : loaded;
+        ? eligible.filter((scenario) => only.some((filter) => scenario.name.includes(filter)))
+        : eligible;
 }
 
 /** Unknown args abort: a typo must never quietly become a full live-agent run. */
 function parseArgv(argv) {
-    const parsed = { json: false, lanes: null, list: false, only: [] };
+    const parsed = { includeOptIn: false, json: false, lanes: null, list: false, only: [] };
     const rest = [...argv];
     while (rest.length > 0) {
         const arg = rest.shift();
         if (arg === '--json' || arg === '--list') {
             parsed[arg.slice(2)] = true;
+        } else if (arg === '--include-opt-in') {
+            parsed.includeOptIn = true;
         } else if (arg === '--only') {
             const filter = rest.shift();
             if (!filter || filter.startsWith('--')) {
@@ -238,7 +241,7 @@ function parseArgv(argv) {
         } else {
             process.stderr.write(
                 `Unknown argument ${arg}.\n` +
-                    '  usage: bun run test:agents [--only <substring>] [--list] [--json] [--lanes <n>]\n'
+                    '  usage: bun run test:agents [--only <substring>] [--list] [--json] [--include-opt-in] [--lanes <n>]\n'
             );
             process.exit(2);
         }

@@ -9,9 +9,9 @@ export const scenarioKind = 'agent-test-scenario';
  *
  * `agents` declares the Agents to create for this scenario by kind:
  * `{ kind: 'worker' | 'coordinator' }`. `run` receives
- * `{ agents, expect, kit, log, marker }`.
+ * `{ agents, expect, kit, log, marker, settleTurn }`.
  */
-export function defineScenario({ agents = [], contract = '', name, run }) {
+export function defineScenario({ agents = [], contract = '', name, optIn = false, run }) {
     if (typeof name !== 'string' || name.trim().length === 0) {
         throw new Error('A scenario needs a name.');
     }
@@ -23,6 +23,7 @@ export function defineScenario({ agents = [], contract = '', name, run }) {
         contract,
         kind: scenarioKind,
         name: name.trim(),
+        optIn,
         run,
     });
 }

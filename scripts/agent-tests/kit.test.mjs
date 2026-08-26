@@ -109,6 +109,16 @@ describe('defineScenario', () => {
         expect(unknownKind).toThrow(/Unknown agent kind/u);
         expect(() => defineScenario({ name: 'x' })).toThrow(/needs a run function/u);
     });
+
+    test('marks opt-in scenarios without changing the default shape', () => {
+        const scenario = defineScenario({
+            name: 'live-only',
+            optIn: true,
+            run: () => undefined,
+        });
+        expect(scenario.optIn).toBe(true);
+        expect(isScenario(scenario)).toBe(true);
+    });
 });
 
 describe('cleanup expansion', () => {
@@ -361,6 +371,16 @@ describe('cli scenario selection', () => {
         const listed = runCli(['--list']);
         expect(listed.status).toBe(0);
         expect(listed.stdout).toContain('task-thread-routing');
+    });
+
+    test('keeps opt-in scenarios out unless explicitly included', () => {
+        const defaultList = runCli(['--list']);
+        expect(defaultList.status).toBe(0);
+        expect(defaultList.stdout).not.toContain('cove-composes-agent-creation');
+
+        const optInList = runCli(['--list', '--include-opt-in']);
+        expect(optInList.status).toBe(0);
+        expect(optInList.stdout).toContain('cove-composes-agent-creation');
     });
 
     test('combines repeated scenario filters', () => {

@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.23 - 2026-08-26
+
+- The Grotto App now carries its sidebar treatment through the macOS titlebar, lifts Settings into
+  that band, and gives topbars, side panels, icons, and update controls a cleaner shared rhythm.
+- Artifact and Thread surfaces gain clearer empty and menu states, better light-mode separation,
+  and reliable horizontal containment for long task content.
+- Server menu actions now use consistent labels and behavior.
+
+### Release surfaces
+
+- Server: Publish v1.8.23
+- App: Unchanged
+- iOS: Unchanged
+- Computer: Unchanged
+
 ## v1.8.22 - 2026-08-25
 
 - People and Agents now share durable, unique handles. Human references work alongside Agent

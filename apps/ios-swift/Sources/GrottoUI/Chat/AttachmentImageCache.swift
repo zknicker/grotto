@@ -1,10 +1,40 @@
 import CoreGraphics
+import Foundation
+import ImageIO
 import SwiftUI
 
 /// A decoded, downsampled attachment image ready for display.
 struct AttachmentThumbnail {
     let image: Image
     let size: CGSize
+}
+
+/// An immutable decoded bitmap handed across executors. `CGImage` is
+/// immutable; the wrapper exists only because the SDK does not declare it
+/// `Sendable`.
+struct DecodedAttachmentBitmap: @unchecked Sendable {
+    let cgImage: CGImage
+
+    var pixelCost: Int { cgImage.width * cgImage.height * 4 }
+}
+
+/// ImageIO thumbnailing shared by every attachment surface. The function is
+/// nonisolated async so the decode always runs on the concurrent pool, never
+/// the main actor.
+enum AttachmentImageDecoder {
+    static func decode(at url: URL, maxPixelSize: CGFloat) async -> DecodedAttachmentBitmap? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+        ]
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+            return nil
+        }
+        return DecodedAttachmentBitmap(cgImage: cgImage)
+    }
 }
 
 /// In-memory cache of decoded attachment thumbnails keyed by attachment id.
@@ -20,7 +50,7 @@ final class AttachmentImageCache {
 
     private let cache = NSCache<NSString, ThumbnailBox>()
 
-    private init() {
+    init() {
         cache.countLimit = 80
         cache.totalCostLimit = 64 * 1024 * 1024
     }
@@ -29,16 +59,46 @@ final class AttachmentImageCache {
         cache.object(forKey: attachmentID as NSString)?.thumbnail
     }
 
-    func store(_ thumbnail: AttachmentThumbnail, for attachmentID: String, decodedPixelCost: Int) {
-        cache.setObject(
-            ThumbnailBox(thumbnail: thumbnail),
-            forKey: attachmentID as NSString,
-            cost: decodedPixelCost
-        )
+    func store(
+        _ thumbnail: AttachmentThumbnail,
+        for attachmentID: String,
+        decodedPixelCost: Int,
+        stagedContentKey: String? = nil
+    ) {
+        let box = ThumbnailBox(thumbnail: thumbnail, pixelCost: decodedPixelCost)
+        cache.setObject(box, forKey: attachmentID as NSString, cost: decodedPixelCost)
+        if let stagedContentKey {
+            cache.setObject(box, forKey: stagedContentKey as NSString, cost: decodedPixelCost)
+        }
+    }
+
+    /// A pending upload decodes from its staged local file under the composer
+    /// attachment id, but the durable message arrives under a fresh Server
+    /// attachment id with no local file. Matching on filename + byte size lets
+    /// the retired row's replacement render the identical bitmap on its first
+    /// frame instead of flashing the placeholder and re-downloading.
+    func adoptStagedThumbnail(
+        filename: String,
+        sizeBytes: Int,
+        as attachmentID: String
+    ) -> AttachmentThumbnail? {
+        let key = Self.stagedContentKey(filename: filename, sizeBytes: sizeBytes)
+        guard let box = cache.object(forKey: key as NSString) else { return nil }
+        cache.setObject(box, forKey: attachmentID as NSString, cost: box.pixelCost)
+        return box.thumbnail
+    }
+
+    static func stagedContentKey(filename: String, sizeBytes: Int) -> String {
+        "staged-content:\(sizeBytes):\(filename)"
     }
 
     private final class ThumbnailBox {
         let thumbnail: AttachmentThumbnail
-        init(thumbnail: AttachmentThumbnail) { self.thumbnail = thumbnail }
+        let pixelCost: Int
+
+        init(thumbnail: AttachmentThumbnail, pixelCost: Int) {
+            self.thumbnail = thumbnail
+            self.pixelCost = pixelCost
+        }
     }
 }

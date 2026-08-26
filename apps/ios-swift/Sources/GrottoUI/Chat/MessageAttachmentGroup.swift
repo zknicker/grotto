@@ -61,8 +61,10 @@ public struct MessageAttachmentGroup: View {
                         imageTile(attachment)
                     }
                     .buttonStyle(.plain)
-                    .disabled(loadingAttachmentID != nil)
-                    .accessibilityLabel("Preview \(attachment.filename)")
+                    .disabled(isPending || loadingAttachmentID != nil)
+                    .accessibilityLabel(
+                        isPending ? "Uploading \(attachment.filename)" : "Preview \(attachment.filename)"
+                    )
                 } else {
                     Button {
                         open(attachment)
@@ -79,10 +81,14 @@ public struct MessageAttachmentGroup: View {
         }
     }
 
-    /// Sent (non-pending) image attachments render as inline media tiles;
-    /// pending uploads and everything else keep the file row.
+    /// Image attachments render as inline media tiles — including pending
+    /// uploads, which decode from their staged local file so the row occupies
+    /// its final box from the first frame instead of morphing file row →
+    /// placeholder → photo. Everything else keeps the file row.
     private func showsImageTile(_ attachment: MessageAttachmentPresentation) -> Bool {
-        attachment.isImage && !isPending && !imageTileFailedIDs.contains(attachment.id)
+        attachment.isImage
+            && (!isPending || attachment.localURL != nil)
+            && !imageTileFailedIDs.contains(attachment.id)
     }
 
     private func imageTile(_ attachment: MessageAttachmentPresentation) -> some View {

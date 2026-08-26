@@ -84,13 +84,24 @@ public final class ComposerInteraction {
 
     func appendPrepared(_ prepared: [ComposerAttachment]) {
         guard !prepared.isEmpty else { return }
+        // Warm the decoded-image cache so the strip tile, the morph, and the
+        // pending message tile all render the photo fully formed on their
+        // first frame.
+        for attachment in prepared where attachment.mediaType.hasPrefix("image/") {
+            LocalAttachmentImageCache.shared.warm(url: attachment.localURL)
+        }
         attachments.append(contentsOf: prepared)
         lastReadyAttachmentCount = prepared.count
         attachmentReadySequence += 1
     }
 
+    /// Tears down all staged composer state. Deleting the staged files without
+    /// also clearing `attachments` would leave tiles whose backing files are
+    /// gone — they render fallback icons and the send fails — so the two must
+    /// always move together.
     func cleanUp() {
         preparationTask?.cancel()
         attachments.forEach(ComposerAttachmentStager.remove)
+        attachments.removeAll()
     }
 }

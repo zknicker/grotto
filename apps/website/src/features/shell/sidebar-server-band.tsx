@@ -19,6 +19,7 @@ export function SidebarServerBand({
     onJoinServer,
     onOpenArchived,
     onOpenMembers,
+    onOpenUsage,
     onOpenSettings,
     onPreloadSettings,
     onSwitchServer,
@@ -29,6 +30,7 @@ export function SidebarServerBand({
     onJoinServer: () => void;
     onOpenArchived: () => void;
     onOpenMembers: () => void;
+    onOpenUsage: () => void;
     onOpenSettings: () => void;
     onPreloadSettings: () => void;
     onSwitchServer: (slug: string) => void;
@@ -43,6 +45,7 @@ export function SidebarServerBand({
                     onJoinServer={onJoinServer}
                     onOpenArchived={onOpenArchived}
                     onOpenMembers={onOpenMembers}
+                    onOpenUsage={onOpenUsage}
                     onSwitchServer={onSwitchServer}
                     servers={servers}
                 />

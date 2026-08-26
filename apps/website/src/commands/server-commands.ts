@@ -1,6 +1,7 @@
 import type { Agent, Chat } from '@grotto/api';
 import { toast } from '@heroui/react';
 import {
+    Analytics01Icon,
     ArchiveIcon,
     CommandIcon,
     ComputerIcon,
@@ -17,6 +18,7 @@ import {
     serverSettingsSectionRoute,
     settingsAgentRoute,
     tasksRoute,
+    usageRoute,
 } from '../features/servers/server-routes.ts';
 import { staticSettingsNavItems } from '../features/settings/layout/navigation.ts';
 import { getRouteTabIcon } from '../features/shell/route-tab-presentation.tsx';
@@ -85,6 +87,12 @@ function buildNavigationGroup(context: CommandContext, currentChat: Chat | null)
             id: 'members',
             route: serverSettingsSectionRoute(context.serverSlug, 'members'),
             title: 'Members',
+        },
+        {
+            icon: Analytics01Icon,
+            id: 'usage',
+            route: usageRoute(context.serverSlug),
+            title: 'Usage',
         },
         {
             icon: ArchiveIcon,

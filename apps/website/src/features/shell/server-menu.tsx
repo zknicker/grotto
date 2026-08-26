@@ -1,5 +1,6 @@
 import { Button, Dropdown, Label, Separator } from '@heroui/react';
 import {
+    Analytics01Icon,
     ArchiveIcon,
     ArrowDown01Icon,
     Link01Icon,
@@ -16,6 +17,7 @@ export function ServerMenu({
     onJoinServer,
     onOpenArchived,
     onOpenMembers,
+    onOpenUsage,
     onSwitchServer,
     servers,
 }: {
@@ -24,6 +26,7 @@ export function ServerMenu({
     onJoinServer: () => void;
     onOpenArchived: () => void;
     onOpenMembers: () => void;
+    onOpenUsage: () => void;
     onSwitchServer: (slug: string) => void;
     servers: ServerSummary[];
 }) {
@@ -50,6 +53,10 @@ export function ServerMenu({
                     onAction={(key) => {
                         if (key === 'members') {
                             onOpenMembers();
+                            return;
+                        }
+                        if (key === 'usage') {
+                            onOpenUsage();
                             return;
                         }
                         if (key === 'archived-chats') {
@@ -91,6 +98,15 @@ export function ServerMenu({
                             size={16}
                         />
                         <Label>Members</Label>
+                    </Dropdown.Item>
+                    <Dropdown.Item id="usage" textValue="Usage">
+                        <Icon
+                            aria-hidden="true"
+                            className="text-muted"
+                            icon={Analytics01Icon}
+                            size={16}
+                        />
+                        <Label>Usage</Label>
                     </Dropdown.Item>
                     <Dropdown.Item id="archived-chats" textValue="Archived chats">
                         <Icon

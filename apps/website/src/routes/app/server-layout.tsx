@@ -17,6 +17,7 @@ import {
     serverSearchRoute,
     serverSettingsRoute,
     serverSettingsSectionRoute,
+    usageRoute,
 } from '../../features/servers/server-routes.ts';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { CommandMenuProvider } from '../../features/shell/command-menu-provider.tsx';
@@ -174,6 +175,9 @@ export function ServerLayout() {
                                                         }
                                                         onOpenSettings={() =>
                                                             navigate(serverSettingsRoute(slug))
+                                                        }
+                                                        onOpenUsage={() =>
+                                                            navigate(usageRoute(slug))
                                                         }
                                                         onPreloadSettings={() =>
                                                             preloadServerSection('settings')

@@ -8,6 +8,7 @@ import {
 } from '@grotto/agent-workspace';
 import {
     type AgentConfigureCommand,
+    type AgentReasoningEffort,
     agentConfigureCommandSchema,
     type ComputerInventory,
     type CoveApplyCommand,
@@ -18,6 +19,7 @@ import {
 export interface AppliedAgentConfiguration {
     missingResources: string[];
     modelId: string | null;
+    reasoningEffort: AgentReasoningEffort;
     runtimeId: string | null;
 }
 
@@ -163,6 +165,9 @@ export async function readAppliedAgentConfiguration(
             ? {
                   missingResources: value.missingResources,
                   modelId: value.modelId,
+                  reasoningEffort: isReasoningEffort(value.reasoningEffort)
+                      ? value.reasoningEffort
+                      : 'medium',
                   runtimeId: value.runtimeId,
               }
             : null;
@@ -198,6 +203,7 @@ function resolveConfiguration(
         return {
             missingResources: [`runtime:${command.runtimeId}`],
             modelId: null,
+            reasoningEffort: reasoningEffortFor(command),
             runtimeId: null,
         };
     }
@@ -205,14 +211,22 @@ function resolveConfiguration(
         return {
             missingResources: [`model:${command.modelId}`],
             modelId: null,
+            reasoningEffort: reasoningEffortFor(command),
             runtimeId: runtime.id,
         };
     }
     return {
         missingResources: [],
         modelId: command.modelId,
+        reasoningEffort: reasoningEffortFor(command),
         runtimeId: command.runtimeId,
     };
+}
+
+function reasoningEffortFor(
+    command: AgentConfigureCommand | CoveApplyCommand
+): AgentReasoningEffort {
+    return 'reasoningEffort' in command ? command.reasoningEffort : 'medium';
 }
 
 interface CoveReceipt {
@@ -284,8 +298,13 @@ function isAppliedConfiguration(value: unknown): value is AppliedAgentConfigurat
         Array.isArray(value.missingResources) &&
         value.missingResources.every((item) => typeof item === 'string') &&
         (typeof value.modelId === 'string' || value.modelId === null) &&
+        (value.reasoningEffort === undefined || isReasoningEffort(value.reasoningEffort)) &&
         (typeof value.runtimeId === 'string' || value.runtimeId === null)
     );
+}
+
+function isReasoningEffort(value: unknown): value is AgentReasoningEffort {
+    return value === 'low' || value === 'medium' || value === 'high';
 }
 
 function isAgentSeedConfiguration(value: unknown): value is AgentSeedConfiguration {

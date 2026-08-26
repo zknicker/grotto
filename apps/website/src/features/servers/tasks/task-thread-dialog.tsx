@@ -65,6 +65,7 @@ export function TaskThreadDialog() {
                     <ThreadContent
                         active
                         anchor={anchor}
+                        canManage={server.role === 'owner' || server.role === 'admin'}
                         chat={chat}
                         composerVariant="secondary"
                         headerTitle={`Task #${item.task.number}`}

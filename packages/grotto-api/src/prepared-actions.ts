@@ -1,10 +1,9 @@
 import * as z from 'zod';
-import { avatarMaxBytes, avatarMediaTypeSchema } from './avatar.ts';
+import { agentReasoningEffortSchema } from './agent-execution.ts';
+import { avatarBytesInputSchema, avatarMaxBytes, avatarMediaTypeSchema } from './avatar.ts';
 
 const idSchema = z.string().trim().min(1).max(200);
 const timestampSchema = z.iso.datetime({ offset: true });
-const base64MaxLength = Math.ceil((avatarMaxBytes * 4) / 3) + 8;
-
 export const preparedActionStatusSchema = z.enum(['executed', 'pending', 'superseded']);
 
 export type PreparedActionStatus = z.infer<typeof preparedActionStatusSchema>;
@@ -59,6 +58,24 @@ export const actionCardActionSchema = z.discriminatedUnion('kind', [agentCreateA
 
 export type ActionCardAction = z.infer<typeof actionCardActionSchema>;
 
+export const agentCreateActionResultSchema = z
+    .object({
+        agentId: idSchema,
+        avatarUrl: z.string().nullable(),
+        chatId: idSchema,
+        computerId: idSchema,
+        description: z.string().max(500).nullable(),
+        displayName: z.string().trim().min(1).max(80),
+        handle: z.string().trim().min(1).max(31),
+        modelId: z.string().trim().min(1).max(128),
+        reasoningEffort: agentReasoningEffortSchema,
+        role: z.literal('member'),
+        runtimeId: z.string().trim().min(1).max(64),
+    })
+    .strict();
+
+export type AgentCreateActionResult = z.infer<typeof agentCreateActionResultSchema>;
+
 const preparedActionBaseSchema = z
     .object({
         chatId: idSchema,
@@ -74,6 +91,7 @@ const preparedActionBaseSchema = z
             .string()
             .regex(/^act_[A-Za-z0-9_-]{16}$/u)
             .nullable(),
+        result: z.record(z.string(), z.unknown()).nullable().optional(),
     })
     .strict();
 
@@ -83,6 +101,7 @@ const agentCreatePreparedActionSchema = preparedActionBaseSchema
         proposal: agentCreateActionInputSchema.extend({
             avatar: preparedActionMediaSchema,
         }),
+        result: agentCreateActionResultSchema.strict().nullable().optional(),
     })
     .strict();
 
@@ -95,6 +114,7 @@ const unknownPreparedActionSchema = preparedActionBaseSchema
             .min(1)
             .refine((kind) => kind !== 'agent:create'),
         proposal: z.record(z.string(), z.unknown()),
+        result: z.record(z.string(), z.unknown()).nullable().optional(),
     })
     .strict();
 
@@ -107,16 +127,7 @@ export type AgentCreatePreparedAction = z.infer<typeof agentCreatePreparedAction
 export type UnknownPreparedAction = z.infer<typeof unknownPreparedActionSchema>;
 export type PreparedAction = z.infer<typeof preparedActionSchema>;
 
-const actionAvatarInputSchema = z
-    .object({
-        bytesBase64: z
-            .string()
-            .min(1)
-            .max(base64MaxLength)
-            .regex(/^[A-Za-z0-9+/]+={0,2}$/u, 'Action avatar bytes must be base64.'),
-        mediaType: avatarMediaTypeSchema,
-    })
-    .strict();
+const actionAvatarInputSchema = avatarBytesInputSchema;
 
 export const agentActionPrepareInputSchema = z
     .object({

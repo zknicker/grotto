@@ -6,6 +6,7 @@ import {
     applyAgentConfiguration,
     applyCoveConfiguration,
     parseAgentConfigureCommand,
+    readAppliedAgentConfiguration,
 } from './agent-configuration.ts';
 import { readEffectiveAgentStates } from './effective-state.ts';
 
@@ -26,6 +27,7 @@ test('applies desired runtime and model without waiting for the first turn', asy
         agentName: 'Scout',
         factoryKind: 'ordinary',
         modelId: 'gpt-5.6-sol',
+        reasoningEffort: 'high',
         runtimeId: 'codex',
         sessionGeneration: 1,
         sessionResetKind: 'full',
@@ -58,6 +60,11 @@ test('applies desired runtime and model without waiting for the first turn', asy
             runtimeId: 'codex',
         },
     ]);
+    await expect(
+        readAppliedAgentConfiguration(
+            join(dataRoot, 'servers', 'srv_configuration', 'agents', command.agentId)
+        )
+    ).resolves.toMatchObject({ reasoningEffort: 'high' });
     for (const directory of ['home', 'runtime', 'skills', 'workspace']) {
         expect(
             (

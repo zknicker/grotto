@@ -1,4 +1,4 @@
-import type { Agent, AgentAvailability, AgentStatus } from '@grotto/api';
+import type { Agent, AgentAvailability, AgentReasoningEffort, AgentStatus } from '@grotto/api';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
 export interface ConfiguredAgentRow {
@@ -11,6 +11,7 @@ export interface ConfiguredAgentRow {
     createdByUserId: string | null;
     description: string | null;
     desiredModelId: string | null;
+    desiredReasoningEffort: AgentReasoningEffort;
     desiredRuntimeId: string | null;
     displayName: string;
     dmChatId: string | null;
@@ -77,6 +78,7 @@ export function toAgent(row: ConfiguredAgentRow): Agent {
         createdByUserId: row.createdByUserId ?? null,
         description: row.description,
         desiredModelId: row.desiredModelId,
+        desiredReasoningEffort: row.desiredReasoningEffort,
         desiredRuntimeId: row.desiredRuntimeId,
         displayName: row.displayName,
         dmChatId: row.dmChatId,

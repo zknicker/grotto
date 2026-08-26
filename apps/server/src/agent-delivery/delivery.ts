@@ -658,6 +658,7 @@ export class AgentDelivery {
                     agentId: agent.agentId,
                     agentName: agent.agentName,
                     modelId: agent.desiredModelId,
+                    reasoningEffort: agent.desiredReasoningEffort,
                     runtimeId: agent.desiredRuntimeId,
                     sessionGeneration: agent.sessionGeneration,
                     sessionResetKind: agent.sessionResetKind,
@@ -718,6 +719,7 @@ export class AgentDelivery {
             agentName: agent.displayName,
             computerId: agent.computerId,
             modelId: agent.desiredModelId,
+            reasoningEffort: agent.desiredReasoningEffort,
             runtimeId: agent.desiredRuntimeId,
         });
         if (rotation) {
@@ -732,6 +734,7 @@ export class AgentDelivery {
         agentName: string;
         computerId: string;
         modelId: string;
+        reasoningEffort: import('@grotto/api').AgentReasoningEffort;
         runtimeId: string;
     }): Promise<void> {
         const config = await store.readAgentDispatchConfig(this.db, input.agentId);
@@ -743,6 +746,7 @@ export class AgentDelivery {
             agentId: input.agentId,
             agentName: input.agentName,
             modelId: input.modelId,
+            reasoningEffort: input.reasoningEffort,
             runtimeId: input.runtimeId,
             sessionGeneration: config.sessionGeneration,
             sessionResetKind: config.sessionResetKind,
@@ -1005,6 +1009,7 @@ interface ConfiguredAgent {
     agentName: string;
     computerId: string;
     desiredModelId: string;
+    desiredReasoningEffort: import('@grotto/api').AgentReasoningEffort;
     desiredRuntimeId: string;
     factoryAppliedAt: Date | null;
     factoryKind: 'cove' | 'ordinary';
@@ -1029,6 +1034,7 @@ function configureFrame(agentId: string, config: ConfiguredAgent): AgentCommand 
         agentName: config.agentDisplayName,
         factoryKind: 'ordinary',
         modelId: config.desiredModelId,
+        reasoningEffort: config.desiredReasoningEffort,
         runtimeId: config.desiredRuntimeId,
         sessionGeneration: config.sessionGeneration,
         sessionResetKind: config.sessionResetKind,

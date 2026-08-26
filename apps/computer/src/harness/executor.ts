@@ -12,6 +12,7 @@ import { createCodex } from '@ai-sdk/harness-codex';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
 import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { AgentReasoningEffort } from '@grotto/api';
 import { type ClaudeUsageSnapshot, normalizeClaudeUsageResponse } from '@grotto/claude-usage';
 import type { ComputerAgentActivityUpdate } from '../agent-activity.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
@@ -75,6 +76,7 @@ export interface HarnessTurnInput {
     modelId: string;
     onActivity?: (activity: ComputerAgentActivityUpdate) => void;
     onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
+    reasoningEffort: AgentReasoningEffort;
     registerNoticeSink?: NoticeSinkRegistrar;
     runId: string;
     runtimeId: string;
@@ -666,6 +668,7 @@ function createHarnessAgent(
         harness: createHarnessForRuntime(
             input.runtimeId,
             input.modelId,
+            input.reasoningEffort,
             input.webAccess !== null,
             bridgeStoreDir(input)
         ),
@@ -756,6 +759,7 @@ function bridgeStoreDir(input: HarnessTurnInput) {
 function createHarnessForRuntime(
     runtimeId: string,
     modelId: string,
+    reasoningEffort: AgentReasoningEffort,
     webAccess = false,
     storeDir?: string
 ): HarnessV1<ToolSet> {
@@ -767,6 +771,7 @@ function createHarnessForRuntime(
                     // legitimately run long tool loops.
                     maxTurns: 50,
                     model: modelId,
+                    effort: reasoningEffort,
                 }),
                 'claude-code',
                 { storeDir }
@@ -775,6 +780,7 @@ function createHarnessForRuntime(
             return withComputerBridgeBootstrap(
                 createCodex({
                     model: modelId,
+                    reasoningEffort,
                     ...(webAccess ? { webSearch: true } : {}),
                 }),
                 'codex',
@@ -783,7 +789,10 @@ function createHarnessForRuntime(
         case 'grok-build':
             return createGrokBuild({ model: modelId }) as HarnessV1<ToolSet>;
         case 'pi':
-            return createPi({ model: modelId }) as HarnessV1<ToolSet>;
+            return createPi({
+                model: modelId,
+                thinkingLevel: reasoningEffort,
+            }) as HarnessV1<ToolSet>;
         default:
             throw new Error(`Unsupported runtime "${runtimeId}".`);
     }

@@ -59,6 +59,8 @@ export type GrottoUpsertResponseRequest = GrottoApiSchema<'UpsertResponseRequest
 
 export * from './agent.ts';
 export * from './agent-activity.ts';
+export * from './agent-execution.ts';
+export * from './agent-prepared-actions.ts';
 export * from './agent-runner.ts';
 export * from './app-protocol.ts';
 export * from './attachments.ts';

@@ -17,6 +17,7 @@ export const updateAgentProfileProcedure = memberProcedure
                 agentName: agent.displayName,
                 computerId: agent.computerId,
                 modelId: agent.desiredModelId,
+                reasoningEffort: agent.desiredReasoningEffort,
                 runtimeId: agent.desiredRuntimeId,
             });
             emitServerUpdated({ agentId: agent.id, scope: 'agent', serverId: input.serverId });

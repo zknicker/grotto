@@ -238,6 +238,7 @@ function agent(): Agent {
         createdByUserId: 'user_one',
         description: null,
         desiredModelId: 'model_one',
+        desiredReasoningEffort: 'medium',
         desiredRuntimeId: 'runtime_one',
         displayName: 'Fen',
         dmChatId: null,

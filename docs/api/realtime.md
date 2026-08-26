@@ -105,12 +105,15 @@ it.
 
 `prepared-action.updated` is a participant-gated durable event carrying the
 action id, message id, Chat sequence, and lifecycle status (`pending`,
-`executed`, or `superseded`). The App invalidates the affected Chat message
-reads, Chat search, and the child Thread snapshot when applicable. Its payload
-never carries proposal text or media bytes; those are recovered through the
-focused message read and action-owned media URL. Reconnect recovery therefore
-refetches the same durable message snapshot and cannot lose a pending or
-superseded card when a notification was dropped.
+`executed`, or `superseded`). A prepared Agent commit inserts the `executed`
+event in the same PostgreSQL transaction as the Agent, Owner DM, copied avatar,
+executed result, and proposer attention record. The App invalidates the affected
+Chat message reads, Chat search, and the child Thread snapshot when applicable;
+the Server Agent event also refreshes the Agent list. Its payload never carries
+proposal text or media bytes; those are recovered through the focused message
+read and action-owned media URL. Reconnect recovery therefore refetches the
+same durable message snapshot and cannot lose a pending or completed card when
+a notification was dropped. The commit creates no extra Chat receipt.
 
 `chat.markRead` does not invalidate anything from its mutation result. Its
 durable `chat.read` event reaches the reader's own subscription and owns the

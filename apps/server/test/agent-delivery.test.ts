@@ -523,6 +523,7 @@ test('ignores a duplicate delivery of the same message', async () => {
             agentName: 'Ada',
             factoryKind: 'ordinary',
             modelId: 'fake-model',
+            reasoningEffort: 'medium',
             runtimeId: 'fake',
             sessionGeneration: 1,
             sessionResetKind: 'session',

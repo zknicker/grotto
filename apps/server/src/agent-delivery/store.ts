@@ -1,3 +1,4 @@
+import type { AgentReasoningEffort } from '@grotto/api';
 import { and, eq, inArray, isNotNull, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -44,6 +45,7 @@ export interface AgentDispatchConfig {
     agentName: string;
     computerId: string | null;
     desiredModelId: string | null;
+    desiredReasoningEffort: AgentReasoningEffort;
     desiredRuntimeId: string | null;
     factoryAppliedAt: Date | null;
     factoryKind: 'cove' | 'ordinary';
@@ -64,6 +66,7 @@ export async function readAgentDispatchConfig(
             agentName: agentsTable.handle,
             computerId: agentsTable.computerId,
             desiredModelId: agentsTable.desiredModelId,
+            desiredReasoningEffort: agentsTable.desiredReasoningEffort,
             desiredRuntimeId: agentsTable.desiredRuntimeId,
             factoryAppliedAt: agentsTable.factoryAppliedAt,
             factoryKind: agentsTable.factoryKind,
@@ -670,6 +673,7 @@ export async function listComputerAgents(
         agentId: string;
         agentName: string;
         desiredModelId: string | null;
+        desiredReasoningEffort: AgentReasoningEffort;
         desiredRuntimeId: string | null;
         factoryAppliedAt: Date | null;
         factoryKind: 'cove' | 'ordinary';
@@ -685,6 +689,7 @@ export async function listComputerAgents(
             agentId: agentsTable.id,
             agentName: agentsTable.displayName,
             desiredModelId: agentsTable.desiredModelId,
+            desiredReasoningEffort: agentsTable.desiredReasoningEffort,
             desiredRuntimeId: agentsTable.desiredRuntimeId,
             factoryAppliedAt: agentsTable.factoryAppliedAt,
             factoryKind: agentsTable.factoryKind,

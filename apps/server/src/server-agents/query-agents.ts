@@ -31,6 +31,7 @@ export async function queryAgents(
             createdAt: agentsTable.createdAt,
             description: agentsTable.description,
             desiredModelId: agentsTable.desiredModelId,
+            desiredReasoningEffort: agentsTable.desiredReasoningEffort,
             desiredRuntimeId: agentsTable.desiredRuntimeId,
             displayName: agentsTable.displayName,
             dmChatId: agentDm.id,

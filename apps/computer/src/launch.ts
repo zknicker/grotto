@@ -8,7 +8,10 @@ import {
     seedFactoryManagedSkills,
 } from '@grotto/agent-workspace';
 import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
-import { readAgentSeedConfiguration } from './agent-configuration.ts';
+import {
+    readAgentSeedConfiguration,
+    readAppliedAgentConfiguration,
+} from './agent-configuration.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
 import { computerEntrypoint } from './build-identity.ts';
 import type { StoredNoticeReceipt } from './delivery.ts';
@@ -674,6 +677,8 @@ async function runRealRuntime(
             homeTimezone: command.homeTimezone ?? 'UTC',
             initialRole: command.agentDescription ?? null,
             modelId: command.modelId,
+            reasoningEffort:
+                (await readAppliedAgentConfiguration(input.agentRoot))?.reasoningEffort ?? 'medium',
             inbox: command.inbox ?? [],
             inboxDelivery: command.inboxDelivery,
             onStoredNoticeDelivered: input.onStoredNoticeDelivered,

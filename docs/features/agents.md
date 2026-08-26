@@ -11,7 +11,7 @@ Agents are Server members whose execution runs on an assigned Grotto Computer.
 
 ## Ownership
 
-The Server owns Agent identity, role, memberships, desired runtime and model,
+The Server owns Agent identity, role, memberships, desired runtime, model, and reasoning effort,
 Computer assignment, connection grants, and canonical Chats. Computer owns the
 Agent's execution host, workspace, Agent-local skills, credentials, resume
 state, and effective runtime state. Server retains only reported skill
@@ -26,7 +26,7 @@ writes Computer-local files.
 A new Server starts with no ordinary Agents. Once an attached Computer reports
 its runtime and model inventory, the Members Agents page lets an Owner or Admin
 choose the Computer, runtime, and model, then create an Agent with a name and
-optional description.
+optional description, reasoning effort, and avatar.
 
 Creation opens the same ordinary Owner-to-Agent DM used by every Agent. There
 is no archetype field, picker, automatic lane-note seed, or special creation
@@ -76,7 +76,19 @@ kinds stay inert until Grotto ships a renderer.
 
 This capability prepares data only. It does not create an Agent, choose
 human-owned runtime/model fields, or mutate an existing profile. Human commit
-and edit belong to the follow-up Agent creation workflow.
+and edit belong to the follow-up Agent creation workflow. Selecting **Create Agent** on a pending
+card opens the ordinary deterministic creation modal with the proposal's name, description,
+Computer guidance, and exact avatar media already present. The modal revalidates the current
+Computer inventory and initializes runtime, model, and reasoning defaults from Cove when that
+configuration is still reported; otherwise it uses ordinary product defaults. Owners and Admins
+can edit the name, description, Computer, runtime, model, reasoning effort, and avatar. The
+created Agent is always a Member, and a failed validation keeps the modal open for recovery.
+
+On success the card becomes **Done** and names the committing human. The new Agent has its normal
+Owner DM, but the action does not add a Chat receipt. The immutable proposal remains unchanged;
+the executed result carries the submitted values. Replays and concurrent double-submit are
+idempotent. The Server writes a proposer-only terminal-attention record for the next delivery
+phase; this release does not deliver or execute that attention.
 
 ## Identity and instructions
 

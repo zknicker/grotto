@@ -34,7 +34,12 @@ export async function readEffectiveAgentStates(
                 const agentRoot = join(agentsRoot, entry.name);
                 const configuration = await readAppliedAgentConfiguration(agentRoot);
                 if (configuration) {
-                    return { agentId: entry.name, ...configuration };
+                    return {
+                        agentId: entry.name,
+                        missingResources: configuration.missingResources,
+                        modelId: configuration.modelId,
+                        runtimeId: configuration.runtimeId,
+                    };
                 }
                 const session = await readAgentSessionState(agentRoot);
                 return session

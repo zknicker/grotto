@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test';
+import { preparedActionCommitInputSchema } from './agent-prepared-actions.ts';
 import {
     actionCardActionSchema,
     agentActionPrepareInputSchema,
+    agentCreateActionResultSchema,
     preparedActionSchema,
 } from './prepared-actions.ts';
 
@@ -84,4 +86,42 @@ test('known and future action records share a status envelope', () => {
 
     expect(known.kind).toBe('agent:create');
     expect(future.kind).toBe('channel:create');
+});
+
+test('Agent commit contracts carry submitted execution and avatar values', () => {
+    const input = preparedActionCommitInputSchema.parse({
+        actionId: 'act_1234567890abcdef',
+        avatar: { bytesBase64: 'iVBORw0KGgo=', mediaType: 'image/png' },
+        computerId: 'cmp_1234567890abcdef',
+        description: 'A launch helper.',
+        displayName: 'Orbit Edited',
+        handle: 'orbit-edited',
+        modelId: 'gpt-5.6-sol',
+        reasoningEffort: 'high',
+        runtimeId: 'codex',
+        serverId: 'srv_1234567890abcdef',
+    });
+
+    expect(input.reasoningEffort).toBe('high');
+    expect(
+        agentCreateActionResultSchema.safeParse({
+            agentId: 'agt_1234567890abcdef',
+            avatarUrl: '/api/avatars/avt_1234567890abcdef',
+            chatId: 'cht_1234567890abcdef',
+            computerId: input.computerId,
+            description: input.description,
+            displayName: input.displayName,
+            handle: input.handle,
+            modelId: input.modelId,
+            reasoningEffort: input.reasoningEffort,
+            role: 'member',
+            runtimeId: input.runtimeId,
+        }).success
+    ).toBe(true);
+    expect(
+        preparedActionCommitInputSchema.safeParse({
+            ...input,
+            role: 'admin',
+        }).success
+    ).toBe(false);
 });

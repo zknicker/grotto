@@ -142,6 +142,7 @@ function agent(overrides: Pick<Agent, 'availability' | 'displayName' | 'id'>): A
         createdByUserId: 'user_one',
         description: null,
         desiredModelId: 'model_one',
+        desiredReasoningEffort: 'medium',
         desiredRuntimeId: 'runtime_one',
         displayName: overrides.displayName,
         dmChatId: null,

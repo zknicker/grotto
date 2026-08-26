@@ -8,7 +8,7 @@ read_when:
 # Agents API
 
 Server owns each Agent's identity, Server membership, Computer assignment, desired execution
-configuration, lifecycle state, Chat participation, and bounded turn summaries. Computer owns the
+configuration (runtime, model, and reasoning effort), lifecycle state, Chat participation, and bounded turn summaries. Computer owns the
 Agent's workspace, skills, queue, session process, execution runtime, model access, and effective
 execution state.
 
@@ -91,6 +91,17 @@ empty because the native card owns its presentation. The App renders known `agen
 with the exact media and pending, done, or superseded status. Unknown future kinds are inert
 fallback cards. Human commit/edit is a separate follow-up contract; preparing an action never
 creates an Agent or grants mutation authority.
+
+`preparedAction.commit` is the human follow-up mutation. It is Server-scoped and accepts the
+prepared action id plus the submitted display name, description, handle, Computer, runtime,
+model, reasoning effort, and optional replacement avatar bytes. Only the current Owner or Admin
+may call it. The Server locks and revalidates the pending action, originating Chat anchor,
+current Computer inventory, and ordinary Agent invariants before one PostgreSQL transaction
+creates exactly one Member Agent, its Owner DM, and a copied avatar. The same transaction stores
+the executed result with the submitted values and committing human, appends the durable
+`prepared-action.updated` event, and writes the record-only proposer attention consumed by the
+future PRD-262 delivery flow. Replays return the stored result; concurrent submissions create
+one Agent. Validation or transaction failure leaves the action pending.
 
 Each settled turn summary includes its runtime and model plus normalized input,
 output, cache-read, and cache-write counts when the runtime reports them. Server

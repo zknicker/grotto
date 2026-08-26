@@ -11,6 +11,7 @@ test('live Agent profiles preserve canonical availability for transcript avatars
         createdByUserId: 'usr_owner',
         description: 'Product Agent',
         desiredModelId: 'gpt-5',
+        desiredReasoningEffort: 'medium',
         desiredRuntimeId: 'codex',
         displayName: 'Blippy',
         dmChatId: 'cht_blippy',

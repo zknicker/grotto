@@ -1,5 +1,7 @@
 import * as z from 'zod';
+import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { workspacePathSchema } from './agent-runner.ts';
+import { avatarBytesInputSchema } from './avatar.ts';
 import { chatSchema, idSchema } from './chat.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -104,6 +106,8 @@ export type ComputerInventory = z.infer<typeof computerInventorySchema>;
 
 export const agentRoleSchema = z.enum(['admin', 'member']);
 
+export { agentReasoningEffortSchema } from './agent-execution.ts';
+
 /**
  * `pending` — no Computer-reported effective snapshot matches the desired
  * runtime/model yet. `applied` — the Computer reports the exact desired
@@ -127,6 +131,7 @@ export const agentSchema = z
         createdByUserId: z.string().nullable(),
         description: z.string().max(500).nullable(),
         desiredModelId: z.string(),
+        desiredReasoningEffort: agentReasoningEffortSchema.default('medium'),
         desiredRuntimeId: z.string(),
         displayName: z.string(),
         dmChatId: idSchema.nullable(),
@@ -155,11 +160,13 @@ export const agentHandleSchema = z
 /** Creating an Agent binds it to exactly one reported Computer, runtime, and model. */
 export const createAgentInputSchema = z
     .object({
+        avatar: avatarBytesInputSchema.optional(),
         computerId: idSchema,
         description: z.string().trim().min(1).max(500).nullable().optional(),
         displayName: z.string().trim().min(1).max(80),
         handle: agentHandleSchema,
         modelId: z.string().trim().min(1).max(128),
+        reasoningEffort: agentReasoningEffortSchema.default('medium'),
         role: agentRoleSchema.default('member'),
         runtimeId: z.string().trim().min(1).max(64),
         serverId: idSchema,
@@ -184,6 +191,7 @@ export const configureAgentInputSchema = z
     .object({
         agentId: idSchema,
         modelId: z.string().trim().min(1).max(128),
+        reasoningEffort: agentReasoningEffortSchema.optional(),
         runtimeId: z.string().trim().min(1).max(64),
         serverId: idSchema,
     })

@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { idSchema } from './chat.ts';
 import {
     agentRuntimeBrowserActionResultSchema,
@@ -116,6 +117,7 @@ export const agentConfigureCommandSchema = z
         agentName: z.string().trim().min(1).max(80),
         factoryKind: z.literal('ordinary'),
         modelId: z.string().trim().min(1).max(128),
+        reasoningEffort: agentReasoningEffortSchema.default('medium'),
         runtimeId: z.string().trim().min(1).max(64),
         sessionGeneration: z.number().int().positive(),
         sessionResetKind: z.enum(['full', 'session']),

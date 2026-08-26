@@ -183,6 +183,7 @@ function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput 
         ],
         inboxDelivery: 'concrete',
         modelId: 'gpt-5.6-sol',
+        reasoningEffort: 'medium',
         runId: 'run_test',
         runtimeId: 'codex',
         sessionGeneration: 1,

@@ -69,6 +69,7 @@ export async function configureAgent(
                 computerId: agentsTable.computerId,
                 createdByUserId: agentsTable.createdByUserId,
                 desiredModelId: agentsTable.desiredModelId,
+                desiredReasoningEffort: agentsTable.desiredReasoningEffort,
                 desiredRuntimeId: agentsTable.desiredRuntimeId,
                 factoryAppliedAt: agentsTable.factoryAppliedAt,
                 factoryKind: agentsTable.factoryKind,
@@ -93,7 +94,10 @@ export async function configureAgent(
         assertRuntimeModelReported(inventory, input.runtimeId, input.modelId);
 
         const changed =
-            agent.desiredRuntimeId !== input.runtimeId || agent.desiredModelId !== input.modelId;
+            agent.desiredRuntimeId !== input.runtimeId ||
+            agent.desiredModelId !== input.modelId ||
+            (input.reasoningEffort !== undefined &&
+                agent.desiredReasoningEffort !== input.reasoningEffort);
         const delivery = changed ? await deliveryStore.readDeliveryState(tx, input.agentId) : null;
         let activity: AgentActivityEvent | null = null;
         if (changed && delivery?.activeRunId) {
@@ -120,6 +124,7 @@ export async function configureAgent(
             .update(agentsTable)
             .set({
                 desiredModelId: input.modelId,
+                ...(input.reasoningEffort ? { desiredReasoningEffort: input.reasoningEffort } : {}),
                 desiredRuntimeId: input.runtimeId,
                 ...(changed
                     ? {
@@ -165,6 +170,7 @@ export async function configureAgent(
                 createdAt: agentsTable.createdAt,
                 description: agentsTable.description,
                 desiredModelId: agentsTable.desiredModelId,
+                desiredReasoningEffort: agentsTable.desiredReasoningEffort,
                 desiredRuntimeId: agentsTable.desiredRuntimeId,
                 displayName: agentsTable.displayName,
                 dmChatId: agentDm.id,

@@ -22,11 +22,14 @@ and [Agent Inbox](../../specs/inbox.md).
 * **Native action cards.** A managed Agent can prepare a typed `agent:create`
   proposal with `grotto action prepare`. The Server posts an empty canonical
   Agent anchor and projects its immutable proposal and exact avatar media
-  through `preparedAction`. The App renders the native card and its pending,
-  done, or superseded state; it never treats the proposal as a Widget, visual
-  fence, artifact, or model-authored form. Unknown kinds render an inert
-  fallback. Dropped realtime events recover through the ordinary message
-  snapshot on reconnect.
+  through `preparedAction`. A current Owner or Admin can open the ordinary
+  Create Agent modal from a pending card, edit the human-owned fields, and
+  commit one Member Agent after current Computer inventory validation. The
+  App renders the native card and its pending, done, or superseded state; it
+  never treats the proposal as a Widget, visual fence, artifact, or
+  model-authored form. Unknown kinds render an inert fallback. A successful
+  commit names the human and does not add a Chat receipt. Dropped realtime
+  events recover through the ordinary message snapshot on reconnect.
 * **Hosted attachments.** A human can attach local files to a hosted Server
   message. The App streams bytes directly to that Server, publishes the ready
   attachment and message atomically, renders filename/type/size metadata, and

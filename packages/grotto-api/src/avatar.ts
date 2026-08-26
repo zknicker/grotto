@@ -28,14 +28,7 @@ const idSchema = z.string().trim().min(1);
 /** Base64 inflates the byte ceiling by 4/3; the slack covers padding. */
 const base64MaxLength = Math.ceil((avatarMaxBytes * 4) / 3) + 8;
 
-export const avatarTargetSchema = z.discriminatedUnion('kind', [
-    z.object({ agentId: idSchema, kind: z.literal('agent') }).strict(),
-    z.object({ kind: z.literal('user') }).strict(),
-]);
-
-export type AvatarTarget = z.infer<typeof avatarTargetSchema>;
-
-export const setAvatarInputSchema = z
+export const avatarBytesInputSchema = z
     .object({
         bytesBase64: z
             .string()
@@ -43,6 +36,20 @@ export const setAvatarInputSchema = z
             .max(base64MaxLength)
             .regex(/^[A-Za-z0-9+/]+={0,2}$/u, 'Avatar bytes must be base64.'),
         mediaType: avatarMediaTypeSchema,
+    })
+    .strict();
+
+export type AvatarBytesInput = z.infer<typeof avatarBytesInputSchema>;
+
+export const avatarTargetSchema = z.discriminatedUnion('kind', [
+    z.object({ agentId: idSchema, kind: z.literal('agent') }).strict(),
+    z.object({ kind: z.literal('user') }).strict(),
+]);
+
+export type AvatarTarget = z.infer<typeof avatarTargetSchema>;
+
+export const setAvatarInputSchema = avatarBytesInputSchema
+    .extend({
         serverId: idSchema,
         target: avatarTargetSchema,
     })

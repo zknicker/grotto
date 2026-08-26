@@ -1,5 +1,6 @@
 import { agentCreatedSchema, createAgentInputSchema } from '@grotto/api';
 import { TRPCError } from '@trpc/server';
+import { AvatarRejectedError } from '../../avatars/avatar-errors.ts';
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
 import { createAgent } from '../../server-agents/create-agent.ts';
 import { memberProcedure } from '../server/procedure.ts';
@@ -17,6 +18,7 @@ export const createAgentProcedure = memberProcedure
                 agentName: created.agent.displayName,
                 computerId: created.agent.computerId,
                 modelId: created.agent.desiredModelId,
+                reasoningEffort: created.agent.desiredReasoningEffort,
                 runtimeId: created.agent.desiredRuntimeId,
             });
             emitServerUpdated({
@@ -28,6 +30,9 @@ export const createAgentProcedure = memberProcedure
         } catch (cause) {
             if (cause instanceof AgentConfigDeniedError) {
                 throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });
+            }
+            if (cause instanceof AvatarRejectedError) {
+                throw new TRPCError({ cause, code: 'BAD_REQUEST', message: cause.message });
             }
             throw cause;
         }

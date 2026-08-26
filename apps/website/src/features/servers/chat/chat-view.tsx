@@ -183,6 +183,7 @@ export function ChatView({
         <ThreadPanel
             active={activeSidePane === 'thread'}
             anchor={threadSelection.anchor}
+            canManage={server.role === 'owner' || server.role === 'admin'}
             chat={chat}
             initialThreadChatId={threadSelection.initialThreadChatId}
             onClose={closeThread}
@@ -300,6 +301,7 @@ export function ChatView({
                 rowCount={transcriptMessages?.length ?? 0}
                 timelineContent={(scrollContentRef) => (
                     <ChatTranscript
+                        canManage={server.role === 'owner' || server.role === 'admin'}
                         chatId={chat.id}
                         composition={
                             <ChatAgentComposition chatId={chat.id} serverId={chat.serverId} />

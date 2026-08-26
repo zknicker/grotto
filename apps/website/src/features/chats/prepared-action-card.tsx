@@ -1,9 +1,10 @@
-import type { AgentCreatePreparedAction, PreparedAction } from '@grotto/api';
+import type { Agent, AgentCreatePreparedAction, PreparedAction } from '@grotto/api';
 import { isAgentCreatePreparedAction } from '@grotto/api/prepared-actions';
-import { Card, Chip } from '@heroui/react';
-import type * as React from 'react';
+import { Button, Card, Chip } from '@heroui/react';
+import * as React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { formatShortTime } from '../../lib/format.ts';
+import { PreparedAgentCreateDialog } from './prepared-agent-create-dialog.tsx';
 
 export interface PreparedActionProposer {
     avatarUrl: string | null;
@@ -12,20 +13,29 @@ export interface PreparedActionProposer {
 
 export function PreparedActionCard({
     action,
+    agents = [],
+    canManage = false,
+    executedByDisplayName,
     proposer,
+    serverId,
 }: {
     action: PreparedAction;
+    agents?: readonly Agent[];
+    canManage?: boolean;
+    executedByDisplayName?: string;
     proposer: PreparedActionProposer;
+    serverId?: string;
 }) {
     if (isAgentCreatePreparedAction(action)) {
         return (
-            <PreparedActionCardShell
+            <AgentCreateActionCard
                 action={action}
+                agents={agents}
+                canManage={canManage}
+                executedByDisplayName={executedByDisplayName}
                 proposer={proposer}
-                title="Agent creation proposal"
-            >
-                <AgentCreateActionPreview action={action} />
-            </PreparedActionCardShell>
+                serverId={serverId}
+            />
         );
     }
 
@@ -35,6 +45,70 @@ export function PreparedActionCard({
                 This action is not available in this version of Grotto.
             </p>
         </PreparedActionCardShell>
+    );
+}
+
+function AgentCreateActionCard({
+    action,
+    agents,
+    canManage,
+    executedByDisplayName,
+    proposer,
+    serverId,
+}: {
+    action: AgentCreatePreparedAction;
+    agents: readonly Agent[];
+    canManage: boolean;
+    executedByDisplayName?: string;
+    proposer: PreparedActionProposer;
+    serverId?: string;
+}) {
+    const [open, setOpen] = React.useState(false);
+
+    React.useEffect(() => {
+        if (action.status !== 'pending') {
+            setOpen(false);
+        }
+    }, [action.status]);
+
+    return (
+        <>
+            <PreparedActionCardShell
+                action={action}
+                proposer={proposer}
+                title="Agent creation proposal"
+            >
+                <AgentCreateActionPreview action={action} />
+                {action.status === 'executed' && executedByDisplayName ? (
+                    <p className="mt-4 text-muted text-sm">
+                        Committed by{' '}
+                        <span className="text-foreground">{executedByDisplayName}</span>
+                    </p>
+                ) : null}
+                {action.status === 'pending' && canManage && serverId ? (
+                    <div className="mt-4 flex justify-end">
+                        <Button onPress={() => setOpen(true)} size="sm" variant="secondary">
+                            Create Agent
+                        </Button>
+                    </div>
+                ) : null}
+                {action.status === 'pending' && !canManage ? (
+                    <p className="mt-4 text-muted text-sm">
+                        Only a Server Owner or Admin can commit this Agent.
+                    </p>
+                ) : null}
+            </PreparedActionCardShell>
+            {open && serverId ? (
+                <PreparedAgentCreateDialog
+                    action={action}
+                    agents={agents}
+                    onCommitted={() => setOpen(false)}
+                    onOpenChange={setOpen}
+                    open={open}
+                    serverId={serverId}
+                />
+            ) : null}
+        </>
     );
 }
 

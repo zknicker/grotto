@@ -36,6 +36,7 @@ const conversationLayout = {
 const emptyPendingMessages: readonly PendingChatMessage[] = [];
 
 interface ChatTranscriptInput {
+    canManage?: boolean;
     chatId: string;
     messages: readonly ChatMessage[] | undefined;
     onOpenArtifact: (target: GrottoResourceTarget) => void;
@@ -92,6 +93,7 @@ export function ChatTranscript({
  * how stable the rows were.
  */
 export function useChatTranscript({
+    canManage = false,
     chatId,
     messages,
     onOpenArtifact,
@@ -229,10 +231,18 @@ export function useChatTranscript({
                         return (
                             <PreparedActionCard
                                 action={message.preparedAction}
+                                agents={agentList}
+                                canManage={canManage}
+                                executedByDisplayName={
+                                    message.preparedAction.executedByUserId
+                                        ? humans.name(message.preparedAction.executedByUserId)
+                                        : undefined
+                                }
                                 proposer={{
                                     avatarUrl: proposer?.avatarUrl ?? null,
                                     displayName: message.sender,
                                 }}
+                                serverId={serverId}
                             />
                         );
                     }
@@ -266,8 +276,10 @@ export function useChatTranscript({
             }) satisfies TranscriptRenderContextValue,
         [
             agentsById,
+            canManage,
             chatId,
             handleOpenThread,
+            humans,
             onOpenThread,
             onOpenArtifact,
             onStartDm,
@@ -277,6 +289,7 @@ export function useChatTranscript({
             serverId,
             taskChipHidden,
             turnDetailsAccess,
+            agentList,
         ]
     );
 

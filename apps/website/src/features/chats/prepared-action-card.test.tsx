@@ -83,3 +83,37 @@ test('unknown action kinds are inert fallback cards', () => {
     expect(markup).toContain('not available in this version of Grotto');
     expect(markup).not.toContain('<button');
 });
+
+test('lets a current admin open the ordinary create modal from a pending card', () => {
+    const markup = renderToStaticMarkup(
+        <PreparedActionCard
+            action={pendingAction}
+            canManage
+            proposer={{ avatarUrl: null, displayName: 'Builder' }}
+            serverId="srv_1234567890abcdef"
+        />
+    );
+
+    expect(markup).toContain('Create Agent');
+    expect(markup).toContain('data-action-status="pending"');
+});
+
+test('shows the committing human on a completed card without a Chat receipt', () => {
+    const markup = renderToStaticMarkup(
+        <PreparedActionCard
+            action={{
+                ...pendingAction,
+                executedAt: '2026-08-25T12:01:00.000Z',
+                executedByUserId: 'usr_owner',
+                status: 'executed',
+            }}
+            executedByDisplayName="Owner"
+            proposer={{ avatarUrl: null, displayName: 'Builder' }}
+        />
+    );
+
+    expect(markup).toContain('Done');
+    expect(markup).toContain('Committed by <span');
+    expect(markup).toContain('Owner');
+    expect(markup).not.toContain('receipt');
+});

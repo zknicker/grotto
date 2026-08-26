@@ -1,3 +1,4 @@
+import type { AgentReasoningEffort } from '@grotto/api';
 import { sql } from 'drizzle-orm';
 import {
     check,
@@ -27,6 +28,10 @@ export const agentsTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         createdByUserId: text('created_by_user_id'),
         desiredModelId: text('desired_model_id'),
+        desiredReasoningEffort: text('desired_reasoning_effort')
+            .notNull()
+            .default('medium')
+            .$type<AgentReasoningEffort>(),
         desiredRuntimeId: text('desired_runtime_id'),
         description: text('description'),
         displayName: text('display_name').notNull(),
@@ -64,6 +69,10 @@ export const agentsTable = pgTable(
             name: 'agents_computer_fk',
         }),
         check('agents_role', sql`${table.role} in ('admin', 'member')`),
+        check(
+            'agents_reasoning_effort',
+            sql`${table.desiredReasoningEffort} in ('low', 'medium', 'high')`
+        ),
         check('agents_factory_kind', sql`${table.factoryKind} in ('ordinary', 'cove')`),
         check('agents_positive_session_generation', sql`${table.sessionGeneration} > 0`),
         check('agents_session_reset_kind', sql`${table.sessionResetKind} in ('full', 'session')`),

@@ -34,8 +34,12 @@ action; it is never replaced in place and is served through an immutable media U
 is a new action row that records `superseded_by_action_id`; a partial unique pending index and the
 Server lock make same-proposer supersession atomic while leaving other proposers independent.
 Prepared rows and media are deleted with their Chat/action, while the canonical message and event
-cursor remain the recovery boundary for App clients. Human execution fields are nullable until
-the separate commit flow exists.
+cursor remain the recovery boundary for App clients. A successful commit stores the submitted
+execution values and committing human in `prepared_actions.executed_result`,
+`executed_by_user_id`, and `executed_at`; the proposal JSON and action-owned media never change.
+`agent_action_attentions` stores one record-only proposer handoff keyed by `(server_id, action_id)`
+with the originating Chat, executed result, created Agent, and dedupe key. PRD-261 writes that row
+atomically; PRD-262 owns delivery and execution of the attention.
 
 The Server application PostgreSQL role receives normal table/sequence privileges; migration and
 backup roles remain separate operational credentials.

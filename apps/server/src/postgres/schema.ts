@@ -1,5 +1,6 @@
 // Typed query surface and source of truth for Server PostgreSQL migrations.
 
+export * from './schema/agent-action-attentions.ts';
 export * from './schema/agent-activity.ts';
 export * from './schema/agent-attention.ts';
 export * from './schema/agent-delivery.ts';

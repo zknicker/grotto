@@ -82,6 +82,7 @@ function toPreparedAction(
         status: row.status,
         supersededAt: row.supersededAt?.toISOString() ?? null,
         supersededByActionId: row.supersededByActionId,
+        result: row.executedResult ?? null,
     };
 
     if (row.kind === 'agent:create') {

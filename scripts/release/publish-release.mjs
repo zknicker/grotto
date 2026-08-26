@@ -8,6 +8,7 @@ import path from 'node:path';
 import { loadAppReleaseEnvironment } from './app-release-environment.mjs';
 import { checkComputerReleasePrerequisite } from './check-computer-prerequisite.mjs';
 import { findGrottoServerReleaseAssets } from './grotto-server-release-assets.mjs';
+import { releaseMetadataPaths } from './release-metadata-paths.mjs';
 import { releasePublishesSurface } from './release-surfaces.mjs';
 import { fail, isSemver, readFlagValue, readJson, readText, repoRoot } from './release-utils.mjs';
 
@@ -19,11 +20,7 @@ if (argv.includes('--help') || argv.includes('-h')) {
     process.exit(0);
 }
 
-const allowedDirtyPaths = new Set([
-    'CHANGELOG.md',
-    'apps/website/package.json',
-    'release-surfaces.json',
-]);
+const allowedDirtyPaths = new Set(releaseMetadataPaths);
 const bundleRoot = path.join(repoRoot, 'apps', 'website', 'electron-dist');
 const serverReleaseRoot = path.join(repoRoot, 'apps', 'server', 'release');
 

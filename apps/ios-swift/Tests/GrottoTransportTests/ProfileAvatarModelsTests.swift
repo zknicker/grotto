@@ -59,6 +59,31 @@ final class ProfileAvatarModelsTests: XCTestCase {
         XCTAssertEqual(clear, Avatar(avatarID: nil, avatarURL: nil))
     }
 
+    func testAvatarGenerationUsesTheServerProcedureShape() throws {
+        let input = GenerateAgentAvatarInput(
+            agentID: "agent_cove",
+            concept: "  a moonlit fox cartographer  ",
+            serverID: "srv_123"
+        )
+        let object = try jsonObject(input)
+
+        XCTAssertEqual(Set(object.keys), ["agentId", "concept", "serverId"])
+        XCTAssertEqual(object["agentId"] as? String, "agent_cove")
+        XCTAssertEqual(object["concept"] as? String, "  a moonlit fox cartographer  ")
+        XCTAssertEqual(object["serverId"] as? String, "srv_123")
+
+        let response = try JSONDecoder().decode(
+            GenerateAgentAvatarResponse.self,
+            from: Data(
+                #"{"avatar":{"bytesBase64":"iVBORw0KGgo=","byteSize":8,"height":256,"mediaType":"image/png","width":256}}"#.utf8
+            )
+        )
+        XCTAssertEqual(response.avatar.byteSize, 8)
+        XCTAssertEqual(response.avatar.height, 256)
+        XCTAssertEqual(response.avatar.mediaType, .png)
+        XCTAssertEqual(response.avatar.width, 256)
+    }
+
     private func jsonObject<Value: Encodable>(_ value: Value) throws -> [String: Any] {
         let data = try JSONEncoder().encode(value)
         return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])

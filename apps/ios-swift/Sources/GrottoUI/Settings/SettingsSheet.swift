@@ -39,6 +39,7 @@ public struct SettingsSheet: View {
     private let persistence: SettingsPersistence
     @State private var data: SettingsData
     @State private var path: [SettingsRoute]
+    @State private var avatarGenerator: AvatarGeneratorSheet?
     @Binding private var appearance: AppearancePreference
 
     /// - Parameter initialPath: screens the sheet opens already pushed to, so a
@@ -86,6 +87,20 @@ public struct SettingsSheet: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .presentationBackground(GrottoPlatformColor.groupedBackground)
+        .sheet(item: $avatarGenerator) { generator in
+            AgentAvatarGenerationView(
+                agentName: generator.agentName,
+                onGenerate: { concept in
+                    try await persistence.generateAgentAvatar(generator.agentID, concept)
+                },
+                onSave: { payload in
+                    let saved = try await persistence.saveAgentAvatar(generator.agentID, payload)
+                    await MainActor.run {
+                        updateAgent(saved)
+                    }
+                }
+            )
+        }
     }
 
     @ViewBuilder
@@ -134,6 +149,12 @@ public struct SettingsSheet: View {
                         await MainActor.run {
                             updateAgent(saved)
                         }
+                    },
+                    onOpenAvatarGenerator: {
+                        avatarGenerator = AvatarGeneratorSheet(
+                            agentID: agent.id,
+                            agentName: agent.displayName
+                        )
                     }
                 )
             } else {
@@ -233,6 +254,13 @@ public struct SettingsSheet: View {
         )
         updateAgent(saved)
     }
+}
+
+private struct AvatarGeneratorSheet: Identifiable {
+    let agentID: String
+    let agentName: String
+
+    var id: String { agentID }
 }
 
 #Preview("Settings sheet") {

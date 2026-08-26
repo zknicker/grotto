@@ -113,6 +113,35 @@ extension GrottoStore {
         return agent
     }
 
+    func generateAgentAvatar(agentID: String, concept: String) async throws -> AvatarImagePayload {
+        guard let serverID = activeServer?.id,
+              agents.contains(where: { $0.id == agentID }) else {
+            throw GrottoStoreError.profileUnavailable
+        }
+        let response: GenerateAgentAvatarResponse = try await client.mutation(
+            "avatar.generate",
+            input: GenerateAgentAvatarInput(
+                agentID: agentID,
+                concept: concept,
+                serverID: serverID
+            )
+        )
+        let avatar = response.avatar
+        guard avatar.width == AvatarImageConstraints.pixelSize,
+              avatar.height == AvatarImageConstraints.pixelSize,
+              avatar.mediaType == .png,
+              let data = Data(base64Encoded: avatar.bytesBase64),
+              !data.isEmpty,
+              data.count == avatar.byteSize,
+              AvatarImageConstraints.fits(byteCount: data.count) else {
+            throw GrottoStoreError.invalidGeneratedAvatar
+        }
+        return AvatarImagePayload(
+            data: data,
+            mediaType: .png
+        )
+    }
+
     private func transportMediaType(for mediaType: AvatarImageMediaType) -> AvatarMediaType {
         switch mediaType {
         case .jpeg:
@@ -121,4 +150,5 @@ extension GrottoStore {
             .png
         }
     }
+
 }

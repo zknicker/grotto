@@ -51,6 +51,10 @@ state. The app also reads Computers through the existing `computer.list`
 contract; an unavailable or role-denied Computer snapshot does not block the rest of Settings.
 Server-provided relative avatar URLs resolve against the configured Server origin, including local
 development; no Swift surface hardcodes the production host or substitutes local seeded artwork.
+An Agent profile may call the same Server-owned `avatar.generate` procedure as the desktop App with
+one short concept. Swift keeps the returned image only in the generation sheet until the human taps
+Save, which applies it through the ordinary `avatar.set` contract; dismissal discards the preview,
+and the existing native photo picker remains the manual-upload path.
 
 Channel appearance is Server state the iPhone app only renders. A channel's `icon` and `color` reach
 `ChatSummary` unchanged, and `ChannelIconBox` draws the chosen glyph in its tinted box everywhere a

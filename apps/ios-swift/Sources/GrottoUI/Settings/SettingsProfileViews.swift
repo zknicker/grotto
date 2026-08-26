@@ -139,6 +139,7 @@ struct AgentProfileView: View {
     let onEditDescription: (String, String) -> Void
     let onSave: (SettingsAgent) async throws -> SettingsAgent
     let onSaveAvatar: @Sendable (AvatarImagePayload) async throws -> Void
+    let onOpenAvatarGenerator: () -> Void
     @State private var name: String
     @State private var savedName: String
     @State private var isSaving = false
@@ -148,12 +149,14 @@ struct AgentProfileView: View {
         agent: SettingsAgent,
         onEditDescription: @escaping (String, String) -> Void,
         onSave: @escaping (SettingsAgent) async throws -> SettingsAgent = { $0 },
-        onSaveAvatar: @escaping @Sendable (AvatarImagePayload) async throws -> Void = { _ in }
+        onSaveAvatar: @escaping @Sendable (AvatarImagePayload) async throws -> Void = { _ in },
+        onOpenAvatarGenerator: @escaping () -> Void = {}
     ) {
         self.agent = agent
         self.onEditDescription = onEditDescription
         self.onSave = onSave
         self.onSaveAvatar = onSaveAvatar
+        self.onOpenAvatarGenerator = onOpenAvatarGenerator
         _name = State(initialValue: agent.displayName)
         _savedName = State(initialValue: agent.displayName)
     }
@@ -192,6 +195,8 @@ struct AgentProfileView: View {
                         )
                     }
                 }
+
+                AgentAvatarGeneratorEntry(onOpen: onOpenAvatarGenerator)
 
                 SettingsSection("Details") {
                     SettingsListGroup {

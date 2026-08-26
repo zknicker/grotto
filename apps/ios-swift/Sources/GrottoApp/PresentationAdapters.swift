@@ -5,6 +5,10 @@ import GrottoUI
 extension GrottoStore {
     var settingsPersistence: SettingsPersistence {
         SettingsPersistence(
+            generateAgentAvatar: { [weak self] agentID, concept in
+                guard let self else { throw CancellationError() }
+                return try await self.generateAgentAvatar(agentID: agentID, concept: concept)
+            },
             saveHumanProfile: { [weak self] userID, displayName, description in
                 guard let self else { throw CancellationError() }
                 return try await self.saveHumanProfile(

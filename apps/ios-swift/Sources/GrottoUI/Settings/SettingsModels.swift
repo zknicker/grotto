@@ -174,19 +174,22 @@ public struct SettingsData: Hashable, Sendable {
 /// The settings views deliberately do not know about tRPC, authentication, or
 /// transport errors. Callers provide narrow mutation seams and return the
 /// canonical value from the Server after a successful write. Avatar payloads
-/// have already been resized and validated by `AvatarPhotoPicker`.
+/// have already been validated by the photo picker or generation adapter.
 public struct SettingsPersistence: Sendable {
+    public let generateAgentAvatar: @Sendable (String, String) async throws -> AvatarImagePayload
     public let saveHumanProfile: @Sendable (String, String, String) async throws -> SettingsPerson
     public let saveAgentProfile: @Sendable (String, String, String) async throws -> SettingsAgent
     public let saveHumanAvatar: @Sendable (String, AvatarImagePayload) async throws -> SettingsPerson
     public let saveAgentAvatar: @Sendable (String, AvatarImagePayload) async throws -> SettingsAgent
 
     public init(
+        generateAgentAvatar: @escaping @Sendable (String, String) async throws -> AvatarImagePayload,
         saveHumanProfile: @escaping @Sendable (String, String, String) async throws -> SettingsPerson,
         saveAgentProfile: @escaping @Sendable (String, String, String) async throws -> SettingsAgent,
         saveHumanAvatar: @escaping @Sendable (String, AvatarImagePayload) async throws -> SettingsPerson,
         saveAgentAvatar: @escaping @Sendable (String, AvatarImagePayload) async throws -> SettingsAgent
     ) {
+        self.generateAgentAvatar = generateAgentAvatar
         self.saveHumanProfile = saveHumanProfile
         self.saveAgentProfile = saveAgentProfile
         self.saveHumanAvatar = saveHumanAvatar
@@ -194,6 +197,9 @@ public struct SettingsPersistence: Sendable {
     }
 
     public static let preview = SettingsPersistence(
+        generateAgentAvatar: { _, _ in
+            throw CancellationError()
+        },
         saveHumanProfile: { id, displayName, description in
             let person = SettingsFixtures.viewer
             return SettingsPerson(

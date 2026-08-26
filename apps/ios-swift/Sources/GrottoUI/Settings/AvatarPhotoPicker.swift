@@ -12,7 +12,7 @@ public struct AvatarImagePayload: Equatable, Sendable {
     public let data: Data
     public let mediaType: AvatarImageMediaType
 
-    init(data: Data, mediaType: AvatarImageMediaType) {
+    public init(data: Data, mediaType: AvatarImageMediaType) {
         self.data = data
         self.mediaType = mediaType
     }

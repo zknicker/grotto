@@ -75,6 +75,56 @@ public enum AvatarMediaType: String, Codable, Equatable, Sendable {
     case webp = "image/webp"
 }
 
+/// Input for the Server-owned transient `avatar.generate` capability.
+public struct GenerateAgentAvatarInput: Codable, Equatable, Sendable {
+    public let agentID: String
+    public let concept: String
+    public let serverID: String
+
+    public init(agentID: String, concept: String, serverID: String) {
+        self.agentID = agentID
+        self.concept = concept
+        self.serverID = serverID
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case agentID = "agentId"
+        case concept
+        case serverID = "serverId"
+    }
+}
+
+/// One generated preview. The Server does not persist these bytes.
+public struct GeneratedAvatar: Codable, Equatable, Sendable {
+    public let bytesBase64: String
+    public let byteSize: Int
+    public let height: Int
+    public let mediaType: AvatarMediaType
+    public let width: Int
+
+    public init(
+        bytesBase64: String,
+        byteSize: Int,
+        height: Int,
+        mediaType: AvatarMediaType,
+        width: Int
+    ) {
+        self.bytesBase64 = bytesBase64
+        self.byteSize = byteSize
+        self.height = height
+        self.mediaType = mediaType
+        self.width = width
+    }
+}
+
+public struct GenerateAgentAvatarResponse: Codable, Equatable, Sendable {
+    public let avatar: GeneratedAvatar
+
+    public init(avatar: GeneratedAvatar) {
+        self.avatar = avatar
+    }
+}
+
 /// The Server's avatar owner discriminator. A user target always means the
 /// signed-in human; an agent target is authorized against the supplied server.
 public enum AvatarTarget: Codable, Equatable, Sendable {

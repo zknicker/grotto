@@ -141,11 +141,14 @@ struct PendingChatMessage: Identifiable, Equatable, Sendable {
 }
 
 enum GrottoStoreError: LocalizedError {
+    case invalidGeneratedAvatar
     case profileUnavailable
     case serverUnavailable
 
     var errorDescription: String? {
         switch self {
+        case .invalidGeneratedAvatar:
+            "The Server returned an avatar preview that could not be used."
         case .profileUnavailable:
             "This profile is no longer available."
         case .serverUnavailable:

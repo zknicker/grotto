@@ -11,7 +11,7 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
-import { bandHeightClassName, shellNavigationIconSize } from '../../shell/section-header.tsx';
+import { bandHeightClassName, shellBandIconSize } from '../../shell/section-header.tsx';
 
 export function ThreadPanelHeader({
     followed,
@@ -53,9 +53,7 @@ export function ThreadPanelHeader({
     };
 
     return (
-        <header
-            className={`flex ${bandHeightClassName} shrink-0 items-center gap-3 border-separator border-b px-5`}
-        >
+        <header className={`flex ${bandHeightClassName} shrink-0 items-center gap-3 px-5`}>
             {takeover ? (
                 <Tooltip>
                     <Button
@@ -65,11 +63,7 @@ export function ThreadPanelHeader({
                         size="sm"
                         variant="ghost"
                     >
-                        <Icon
-                            aria-hidden="true"
-                            icon={ArrowLeft01Icon}
-                            size={shellNavigationIconSize}
-                        />
+                        <Icon aria-hidden="true" icon={ArrowLeft01Icon} size={shellBandIconSize} />
                     </Button>
                     <Tooltip.Content>Back to chat</Tooltip.Content>
                 </Tooltip>
@@ -145,7 +139,7 @@ export function ThreadPanelHeader({
                     size="sm"
                     variant="ghost"
                 >
-                    <Icon aria-hidden="true" icon={Cancel01Icon} size={shellNavigationIconSize} />
+                    <Icon aria-hidden="true" icon={Cancel01Icon} size={shellBandIconSize} />
                 </Button>
                 <Tooltip.Content>Close thread</Tooltip.Content>
             </Tooltip>

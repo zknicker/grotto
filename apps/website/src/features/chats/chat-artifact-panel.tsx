@@ -87,7 +87,7 @@ function ArtifactPanelBody({
             style={width ? { width } : undefined}
         >
             <header
-                className={`relative z-40 flex ${bandHeightClassName} shrink-0 items-center border-separator border-b bg-background`}
+                className={`relative z-40 flex ${bandHeightClassName} shrink-0 items-center bg-background`}
                 data-window-drag-region=""
             >
                 <ArtifactPanelChrome

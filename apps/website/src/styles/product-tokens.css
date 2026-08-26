@@ -76,19 +76,19 @@
         --background-hover: var(--background-secondary);
 
         /*
-         * Light steps down where dark steps up. A nested box lifted to pure
-         * --surface sat 1.8 L above a 98.24 page — technically lighter, visibly
-         * nothing, and lifted is the wrong read anyway: a card inside a turn is
-         * set into the page, not floating over it.
+         * White, and the hairline below draws the edge. Fill alone could never
+         * carry this in light: at 1.8 L above a 98.24 page the box was
+         * invisible, and stepping down instead only traded that for a grey
+         * slab. The line is what makes white legible, so the fill is free to
+         * stay the lightest thing on the page — the box reads as a clean sheet
+         * set on the page rather than a patch cut out of it.
          *
-         * One step down the background scale, not the surface scale: derived
-         * from the page, so the box stays exactly one step under it whatever
-         * the page becomes. The surface steps put it 4.8 L down, which read as
-         * a slab; this is 3.1, and the hairline below does the work that extra
-         * depth was doing.
+         * It also strengthens where it used to fail. Hovering a turn washes
+         * the page to 95.15, which is *away* from a white box, so the state
+         * that once collapsed the fill now separates it.
          */
-        --nested-surface: var(--background-secondary);
-        --nested-surface-hover: var(--surface-secondary);
+        --nested-surface: var(--surface);
+        --nested-surface-hover: var(--background);
 
         /*
          * The fill alone cannot carry it. Hovering a turn washes the page to

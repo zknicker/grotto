@@ -122,7 +122,14 @@ so `docs:list` routes future agents correctly.
   2. **A BEM override** in that `@layer components` block, when no token can express it.
      HeroUI names every component part expressly to support this — see their "Customizing
      components globally" guide. Keep it to one property with the reason written down.
-  3. **A call-site class** only for a genuine one-off.
+  3. **A structural component**, when the BEM override has nothing to hang on. If the rule
+     you want is real but no class expresses it, the missing piece is usually markup rather
+     than CSS: HeroUI ships containers whose whole job is to say "these controls are a set"
+     — `Toolbar`, `ButtonGroup`, `InputGroup`, `Fieldset` — and each one adds a class the
+     theme layer can key on. Compose the container and write the rule against it
+     (`.toolbar .select__trigger`), rather than dropping to a call site because no selector
+     existed. Composing one usually buys behavior too, not just a hook.
+  4. **A call-site class** only for a genuine one-off.
   Do not add new per-region `--spacing` or `--radius` scopes, and do not scatter override rules
   into feature CSS. Product CSS may own layout or behavior HeroUI cannot express, but must not
   recreate component appearance.
@@ -145,7 +152,9 @@ so `docs:list` routes future agents correctly.
   is first added to the theme layer.
 - Follow `DESIGN.md` for generated tokens, component guidance, and visual rules. Consult the
   `heroui-react-pro` and `heroui-pro-design-taste` skills
-  plus the HeroUI Pro MCP (`list_components` → `get_component_docs`) before building UI.
+  plus the HeroUI Pro MCP (`list_components` → `get_component_docs`) before building UI —
+  and before reshaping it. A mismatch you are about to solve with CSS is often a component
+  you have not looked for yet; check the catalog before concluding one does not exist.
 - For motion polish, use Fluid Functionalism's motion guidance and ThinkingIndicator reference:
   https://www.fluidfunctionalism.com/docs/motion and
   https://www.fluidfunctionalism.com/docs/thinking-indicator.

@@ -105,12 +105,8 @@
           "name": "agent_action_attentions_server_id_servers_id_fk",
           "tableFrom": "agent_action_attentions",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -118,14 +114,8 @@
           "name": "agent_action_attentions_action_fk",
           "tableFrom": "agent_action_attentions",
           "tableTo": "prepared_actions",
-          "columnsFrom": [
-            "server_id",
-            "action_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "action_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -133,14 +123,8 @@
           "name": "agent_action_attentions_agent_fk",
           "tableFrom": "agent_action_attentions",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -148,14 +132,8 @@
           "name": "agent_action_attentions_chat_fk",
           "tableFrom": "agent_action_attentions",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "chat_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -163,14 +141,8 @@
           "name": "agent_action_attentions_created_agent_fk",
           "tableFrom": "agent_action_attentions",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "created_agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "created_agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -180,19 +152,12 @@
         "agent_action_attentions_server_action_key": {
           "name": "agent_action_attentions_server_action_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "action_id"
-          ]
+          "columns": ["server_id", "action_id"]
         },
         "agent_action_attentions_server_dedupe_key": {
           "name": "agent_action_attentions_server_dedupe_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "agent_id",
-            "dedupe_key"
-          ]
+          "columns": ["server_id", "agent_id", "dedupe_key"]
         }
       },
       "policies": {},
@@ -476,12 +441,8 @@
           "name": "agent_activity_server_id_servers_id_fk",
           "tableFrom": "agent_activity",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -489,14 +450,8 @@
           "name": "agent_activity_agent_fk",
           "tableFrom": "agent_activity",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -583,14 +538,8 @@
           "name": "agent_channel_mutes_agent_fk",
           "tableFrom": "agent_channel_mutes",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -598,16 +547,8 @@
           "name": "agent_channel_mutes_chat_fk",
           "tableFrom": "agent_channel_mutes",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id",
-            "chat_kind"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id",
-            "kind"
-          ],
+          "columnsFrom": ["server_id", "chat_id", "chat_kind"],
+          "columnsTo": ["server_id", "id", "kind"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -615,11 +556,7 @@
       "compositePrimaryKeys": {
         "agent_channel_mutes_server_id_agent_id_chat_id_pk": {
           "name": "agent_channel_mutes_server_id_agent_id_chat_id_pk",
-          "columns": [
-            "server_id",
-            "agent_id",
-            "chat_id"
-          ]
+          "columns": ["server_id", "agent_id", "chat_id"]
         }
       },
       "uniqueConstraints": {},
@@ -689,14 +626,8 @@
           "name": "agent_thread_follows_agent_fk",
           "tableFrom": "agent_thread_follows",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -704,16 +635,8 @@
           "name": "agent_thread_follows_thread_fk",
           "tableFrom": "agent_thread_follows",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "thread_chat_id",
-            "thread_chat_kind"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id",
-            "kind"
-          ],
+          "columnsFrom": ["server_id", "thread_chat_id", "thread_chat_kind"],
+          "columnsTo": ["server_id", "id", "kind"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -721,11 +644,7 @@
       "compositePrimaryKeys": {
         "agent_thread_follows_server_id_agent_id_thread_chat_id_pk": {
           "name": "agent_thread_follows_server_id_agent_id_thread_chat_id_pk",
-          "columns": [
-            "server_id",
-            "agent_id",
-            "thread_chat_id"
-          ]
+          "columns": ["server_id", "agent_id", "thread_chat_id"]
         }
       },
       "uniqueConstraints": {},
@@ -837,12 +756,8 @@
           "name": "agent_delivery_server_id_servers_id_fk",
           "tableFrom": "agent_delivery",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -850,14 +765,8 @@
           "name": "agent_delivery_agent_fk",
           "tableFrom": "agent_delivery",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1110,12 +1019,8 @@
           "name": "agent_pending_work_server_id_servers_id_fk",
           "tableFrom": "agent_pending_work",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1123,14 +1028,8 @@
           "name": "agent_pending_work_agent_fk",
           "tableFrom": "agent_pending_work",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1138,14 +1037,8 @@
           "name": "agent_pending_work_chat_fk",
           "tableFrom": "agent_pending_work",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "chat_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1214,14 +1107,8 @@
           "name": "agent_inbox_cursors_agent_fk",
           "tableFrom": "agent_inbox_cursors",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1229,14 +1116,8 @@
           "name": "agent_inbox_cursors_chat_fk",
           "tableFrom": "agent_inbox_cursors",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "chat_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1244,12 +1125,7 @@
       "compositePrimaryKeys": {
         "agent_inbox_cursors_server_id_agent_id_session_generation_chat_id_pk": {
           "name": "agent_inbox_cursors_server_id_agent_id_session_generation_chat_id_pk",
-          "columns": [
-            "server_id",
-            "agent_id",
-            "session_generation",
-            "chat_id"
-          ]
+          "columns": ["server_id", "agent_id", "session_generation", "chat_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1334,14 +1210,8 @@
           "name": "agent_inbox_exact_visibility_agent_fk",
           "tableFrom": "agent_inbox_exact_visibility",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1349,14 +1219,8 @@
           "name": "agent_inbox_exact_visibility_chat_fk",
           "tableFrom": "agent_inbox_exact_visibility",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "chat_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1364,14 +1228,8 @@
           "name": "agent_inbox_exact_visibility_message_fk",
           "tableFrom": "agent_inbox_exact_visibility",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "server_id",
-            "message_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "message_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1459,14 +1317,8 @@
           "name": "agent_message_drafts_agent_fk",
           "tableFrom": "agent_message_drafts",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1474,14 +1326,8 @@
           "name": "agent_message_drafts_chat_fk",
           "tableFrom": "agent_message_drafts",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "chat_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1489,12 +1335,7 @@
       "compositePrimaryKeys": {
         "agent_message_drafts_server_id_agent_id_session_generation_chat_id_pk": {
           "name": "agent_message_drafts_server_id_agent_id_session_generation_chat_id_pk",
-          "columns": [
-            "server_id",
-            "agent_id",
-            "session_generation",
-            "chat_id"
-          ]
+          "columns": ["server_id", "agent_id", "session_generation", "chat_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1607,14 +1448,8 @@
           "name": "manual_lookup_audit_agent_fk",
           "tableFrom": "manual_lookup_audit",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1622,12 +1457,8 @@
           "name": "manual_lookup_audit_server_fk",
           "tableFrom": "manual_lookup_audit",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1767,12 +1598,8 @@
           "name": "agent_runner_credentials_server_id_servers_id_fk",
           "tableFrom": "agent_runner_credentials",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1780,14 +1607,8 @@
           "name": "agent_runner_credentials_computer_fk",
           "tableFrom": "agent_runner_credentials",
           "tableTo": "computers",
-          "columnsFrom": [
-            "server_id",
-            "computer_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "computer_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1795,14 +1616,8 @@
           "name": "agent_runner_credentials_agent_fk",
           "tableFrom": "agent_runner_credentials",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1810,14 +1625,8 @@
           "name": "agent_runner_credentials_chat_fk",
           "tableFrom": "agent_runner_credentials",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "chat_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1827,9 +1636,7 @@
         "agent_runner_credentials_token_hash_unique": {
           "name": "agent_runner_credentials_token_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
+          "columns": ["token_hash"]
         }
       },
       "policies": {},
@@ -1928,12 +1735,8 @@
           "name": "agent_token_usage_daily_server_id_servers_id_fk",
           "tableFrom": "agent_token_usage_daily",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1941,14 +1744,8 @@
           "name": "agent_token_usage_daily_agent_fk",
           "tableFrom": "agent_token_usage_daily",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1956,13 +1753,7 @@
       "compositePrimaryKeys": {
         "agent_token_usage_daily_pk": {
           "name": "agent_token_usage_daily_pk",
-          "columns": [
-            "server_id",
-            "date",
-            "agent_id",
-            "runtime_id",
-            "model_id"
-          ]
+          "columns": ["server_id", "date", "agent_id", "runtime_id", "model_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2176,12 +1967,8 @@
           "name": "agent_turns_server_id_servers_id_fk",
           "tableFrom": "agent_turns",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2189,14 +1976,8 @@
           "name": "agent_turns_agent_fk",
           "tableFrom": "agent_turns",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2204,14 +1985,8 @@
           "name": "agent_turns_computer_fk",
           "tableFrom": "agent_turns",
           "tableTo": "computers",
-          "columnsFrom": [
-            "server_id",
-            "computer_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "computer_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2416,12 +2191,8 @@
           "name": "agents_avatar_id_avatars_id_fk",
           "tableFrom": "agents",
           "tableTo": "avatars",
-          "columnsFrom": [
-            "avatar_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["avatar_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2429,12 +2200,8 @@
           "name": "agents_server_id_servers_id_fk",
           "tableFrom": "agents",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2442,14 +2209,8 @@
           "name": "agents_computer_fk",
           "tableFrom": "agents",
           "tableTo": "computers",
-          "columnsFrom": [
-            "server_id",
-            "computer_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "computer_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2459,10 +2220,7 @@
         "agents_server_id_key": {
           "name": "agents_server_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "id"
-          ]
+          "columns": ["server_id", "id"]
         }
       },
       "policies": {},
@@ -2737,14 +2495,8 @@
           "name": "attachments_chat_fk",
           "tableFrom": "attachments",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "chat_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2752,14 +2504,8 @@
           "name": "attachments_uploader_membership_fk",
           "tableFrom": "attachments",
           "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "uploader_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
+          "columnsFrom": ["server_id", "uploader_user_id"],
+          "columnsTo": ["server_id", "user_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2767,14 +2513,8 @@
           "name": "attachments_uploader_agent_fk",
           "tableFrom": "attachments",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "uploader_agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "uploader_agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2782,16 +2522,8 @@
           "name": "attachments_message_fk",
           "tableFrom": "attachments",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "server_id",
-            "chat_id",
-            "message_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "chat_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "chat_id", "message_id"],
+          "columnsTo": ["server_id", "chat_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2941,16 +2673,8 @@
           "name": "channel_agent_participants_chat_fk",
           "tableFrom": "channel_agent_participants",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id",
-            "chat_kind"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id",
-            "kind"
-          ],
+          "columnsFrom": ["server_id", "chat_id", "chat_kind"],
+          "columnsTo": ["server_id", "id", "kind"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2958,14 +2682,8 @@
           "name": "channel_agent_participants_agent_fk",
           "tableFrom": "channel_agent_participants",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2973,11 +2691,7 @@
       "compositePrimaryKeys": {
         "channel_agent_participants_server_id_chat_id_agent_id_pk": {
           "name": "channel_agent_participants_server_id_chat_id_agent_id_pk",
-          "columns": [
-            "server_id",
-            "chat_id",
-            "agent_id"
-          ]
+          "columns": ["server_id", "chat_id", "agent_id"]
         }
       },
       "uniqueConstraints": {},
@@ -3120,14 +2834,8 @@
           "name": "chat_events_chat_fk",
           "tableFrom": "chat_events",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "chat_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3135,14 +2843,8 @@
           "name": "chat_events_reminder_fk",
           "tableFrom": "chat_events",
           "tableTo": "reminders",
-          "columnsFrom": [
-            "server_id",
-            "reminder_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "reminder_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3150,14 +2852,8 @@
           "name": "chat_events_prepared_action_fk",
           "tableFrom": "chat_events",
           "tableTo": "prepared_actions",
-          "columnsFrom": [
-            "server_id",
-            "action_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "action_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3165,14 +2861,8 @@
           "name": "chat_events_message_fk",
           "tableFrom": "chat_events",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "server_id",
-            "message_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "message_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3180,14 +2870,8 @@
           "name": "chat_events_reader_membership_fk",
           "tableFrom": "chat_events",
           "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "reader_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
+          "columnsFrom": ["server_id", "reader_user_id"],
+          "columnsTo": ["server_id", "user_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3396,14 +3080,8 @@
           "name": "chat_messages_chat_fk",
           "tableFrom": "chat_messages",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "chat_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3411,14 +3089,8 @@
           "name": "chat_messages_author_membership_fk",
           "tableFrom": "chat_messages",
           "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "author_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
+          "columnsFrom": ["server_id", "author_user_id"],
+          "columnsTo": ["server_id", "user_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3426,14 +3098,8 @@
           "name": "chat_messages_author_agent_fk",
           "tableFrom": "chat_messages",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "author_agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "author_agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3443,19 +3109,12 @@
         "chat_messages_server_id_key": {
           "name": "chat_messages_server_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "id"
-          ]
+          "columns": ["server_id", "id"]
         },
         "chat_messages_chat_id_key": {
           "name": "chat_messages_chat_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "chat_id",
-            "id"
-          ]
+          "columns": ["server_id", "chat_id", "id"]
         }
       },
       "policies": {},
@@ -3514,14 +3173,8 @@
           "name": "chat_reads_chat_fk",
           "tableFrom": "chat_reads",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "chat_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3529,14 +3182,8 @@
           "name": "chat_reads_reader_membership_fk",
           "tableFrom": "chat_reads",
           "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "reader_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
+          "columnsFrom": ["server_id", "reader_user_id"],
+          "columnsTo": ["server_id", "user_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3544,11 +3191,7 @@
       "compositePrimaryKeys": {
         "chat_reads_server_id_chat_id_reader_user_id_pk": {
           "name": "chat_reads_server_id_chat_id_reader_user_id_pk",
-          "columns": [
-            "server_id",
-            "chat_id",
-            "reader_user_id"
-          ]
+          "columns": ["server_id", "chat_id", "reader_user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -3621,16 +3264,8 @@
           "name": "channel_participants_chat_fk",
           "tableFrom": "channel_participants",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id",
-            "chat_kind"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id",
-            "kind"
-          ],
+          "columnsFrom": ["server_id", "chat_id", "chat_kind"],
+          "columnsTo": ["server_id", "id", "kind"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3638,14 +3273,8 @@
           "name": "channel_participants_membership_fk",
           "tableFrom": "channel_participants",
           "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
+          "columnsFrom": ["server_id", "user_id"],
+          "columnsTo": ["server_id", "user_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3653,11 +3282,7 @@
       "compositePrimaryKeys": {
         "channel_participants_server_id_chat_id_user_id_pk": {
           "name": "channel_participants_server_id_chat_id_user_id_pk",
-          "columns": [
-            "server_id",
-            "chat_id",
-            "user_id"
-          ]
+          "columns": ["server_id", "chat_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -3964,12 +3589,8 @@
           "name": "chats_server_id_servers_id_fk",
           "tableFrom": "chats",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3977,14 +3598,8 @@
           "name": "chats_dm_member_one_membership_fk",
           "tableFrom": "chats",
           "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "dm_member_one_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
+          "columnsFrom": ["server_id", "dm_member_one_user_id"],
+          "columnsTo": ["server_id", "user_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3992,14 +3607,8 @@
           "name": "chats_dm_member_two_membership_fk",
           "tableFrom": "chats",
           "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "dm_member_two_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
+          "columnsFrom": ["server_id", "dm_member_two_user_id"],
+          "columnsTo": ["server_id", "user_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4007,16 +3616,8 @@
           "name": "chats_thread_parent_fk",
           "tableFrom": "chats",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "parent_chat_id",
-            "parent_chat_kind"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id",
-            "kind"
-          ],
+          "columnsFrom": ["server_id", "parent_chat_id", "parent_chat_kind"],
+          "columnsTo": ["server_id", "id", "kind"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4024,14 +3625,8 @@
           "name": "chats_dm_agent_fk",
           "tableFrom": "chats",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "dm_agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "dm_agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4041,19 +3636,12 @@
         "chats_server_id_key": {
           "name": "chats_server_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "id"
-          ]
+          "columns": ["server_id", "id"]
         },
         "chats_server_id_kind_key": {
           "name": "chats_server_id_kind_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "id",
-            "kind"
-          ]
+          "columns": ["server_id", "id", "kind"]
         }
       },
       "policies": {},
@@ -4352,12 +3940,8 @@
           "name": "computer_login_refresh_tokens_session_id_computer_login_sessions_id_fk",
           "tableFrom": "computer_login_refresh_tokens",
           "tableTo": "computer_login_sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4522,12 +4106,8 @@
           "name": "computer_login_sessions_grant_id_computer_login_grants_id_fk",
           "tableFrom": "computer_login_sessions",
           "tableTo": "computer_login_grants",
-          "columnsFrom": [
-            "grant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["grant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4755,12 +4335,8 @@
           "name": "computers_server_id_servers_id_fk",
           "tableFrom": "computers",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4768,14 +4344,8 @@
           "name": "computers_attacher_membership_fk",
           "tableFrom": "computers",
           "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "attached_by_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
+          "columnsFrom": ["server_id", "attached_by_user_id"],
+          "columnsTo": ["server_id", "user_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4785,10 +4355,7 @@
         "computers_server_id_key": {
           "name": "computers_server_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "id"
-          ]
+          "columns": ["server_id", "id"]
         }
       },
       "policies": {},
@@ -4852,14 +4419,8 @@
           "name": "agent_mcp_connection_grants_agent_fk",
           "tableFrom": "agent_mcp_connection_grants",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4867,14 +4428,8 @@
           "name": "agent_mcp_connection_grants_connection_fk",
           "tableFrom": "agent_mcp_connection_grants",
           "tableTo": "mcp_connections",
-          "columnsFrom": [
-            "server_id",
-            "connection_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "connection_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4882,11 +4437,7 @@
       "compositePrimaryKeys": {
         "agent_mcp_connection_grants_server_id_agent_id_connection_id_pk": {
           "name": "agent_mcp_connection_grants_server_id_agent_id_connection_id_pk",
-          "columns": [
-            "server_id",
-            "agent_id",
-            "connection_id"
-          ]
+          "columns": ["server_id", "agent_id", "connection_id"]
         }
       },
       "uniqueConstraints": {},
@@ -4984,12 +4535,8 @@
           "name": "mcp_connections_server_id_servers_id_fk",
           "tableFrom": "mcp_connections",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4999,10 +4546,7 @@
         "mcp_connections_server_id_key": {
           "name": "mcp_connections_server_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "id"
-          ]
+          "columns": ["server_id", "id"]
         }
       },
       "policies": {},
@@ -5052,12 +4596,8 @@
           "name": "mcp_secrets_connection_id_mcp_connections_id_fk",
           "tableFrom": "mcp_secrets",
           "tableTo": "mcp_connections",
-          "columnsFrom": [
-            "connection_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["connection_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5144,14 +4684,8 @@
           "name": "message_reactions_message_fk",
           "tableFrom": "message_reactions",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "server_id",
-            "message_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "message_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5159,14 +4693,8 @@
           "name": "message_reactions_actor_agent_fk",
           "tableFrom": "message_reactions",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "actor_agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "actor_agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5206,14 +4734,8 @@
           "name": "message_task_labels_task_fk",
           "tableFrom": "message_task_labels",
           "tableTo": "message_tasks",
-          "columnsFrom": [
-            "server_id",
-            "message_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "message_id"
-          ],
+          "columnsFrom": ["server_id", "message_id"],
+          "columnsTo": ["server_id", "message_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5221,14 +4743,8 @@
           "name": "message_task_labels_label_fk",
           "tableFrom": "message_task_labels",
           "tableTo": "task_labels",
-          "columnsFrom": [
-            "server_id",
-            "label_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "label_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5236,11 +4752,7 @@
       "compositePrimaryKeys": {
         "message_task_labels_server_id_message_id_label_id_pk": {
           "name": "message_task_labels_server_id_message_id_label_id_pk",
-          "columns": [
-            "server_id",
-            "message_id",
-            "label_id"
-          ]
+          "columns": ["server_id", "message_id", "label_id"]
         }
       },
       "uniqueConstraints": {},
@@ -5409,14 +4921,8 @@
           "name": "message_tasks_chat_fk",
           "tableFrom": "message_tasks",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "chat_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5424,16 +4930,8 @@
           "name": "message_tasks_message_fk",
           "tableFrom": "message_tasks",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "server_id",
-            "chat_id",
-            "message_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "chat_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "chat_id", "message_id"],
+          "columnsTo": ["server_id", "chat_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5441,14 +4939,8 @@
           "name": "message_tasks_creator_membership_fk",
           "tableFrom": "message_tasks",
           "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "created_by_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
+          "columnsFrom": ["server_id", "created_by_user_id"],
+          "columnsTo": ["server_id", "user_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5456,14 +4948,8 @@
           "name": "message_tasks_creator_agent_fk",
           "tableFrom": "message_tasks",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "created_by_agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "created_by_agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5471,14 +4957,8 @@
           "name": "message_tasks_assignee_membership_fk",
           "tableFrom": "message_tasks",
           "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "assignee_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
+          "columnsFrom": ["server_id", "assignee_user_id"],
+          "columnsTo": ["server_id", "user_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5486,14 +4966,8 @@
           "name": "message_tasks_assignee_agent_fk",
           "tableFrom": "message_tasks",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "assignee_agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "assignee_agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5501,10 +4975,7 @@
       "compositePrimaryKeys": {
         "message_tasks_server_id_message_id_pk": {
           "name": "message_tasks_server_id_message_id_pk",
-          "columns": [
-            "server_id",
-            "message_id"
-          ]
+          "columns": ["server_id", "message_id"]
         }
       },
       "uniqueConstraints": {},
@@ -5627,14 +5098,8 @@
           "name": "prepared_action_media_action_fk",
           "tableFrom": "prepared_action_media",
           "tableTo": "prepared_actions",
-          "columnsFrom": [
-            "server_id",
-            "action_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "action_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5644,10 +5109,7 @@
         "prepared_action_media_server_id_key": {
           "name": "prepared_action_media_server_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "id"
-          ]
+          "columns": ["server_id", "id"]
         }
       },
       "policies": {},
@@ -5869,14 +5331,8 @@
           "name": "prepared_actions_chat_fk",
           "tableFrom": "prepared_actions",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "chat_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5884,16 +5340,8 @@
           "name": "prepared_actions_message_fk",
           "tableFrom": "prepared_actions",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "server_id",
-            "chat_id",
-            "message_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "chat_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "chat_id", "message_id"],
+          "columnsTo": ["server_id", "chat_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5901,14 +5349,8 @@
           "name": "prepared_actions_proposer_fk",
           "tableFrom": "prepared_actions",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "proposer_agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "proposer_agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5916,14 +5358,8 @@
           "name": "prepared_actions_executor_membership_fk",
           "tableFrom": "prepared_actions",
           "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "executed_by_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
+          "columnsFrom": ["server_id", "executed_by_user_id"],
+          "columnsTo": ["server_id", "user_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5933,10 +5369,7 @@
         "prepared_actions_server_id_key": {
           "name": "prepared_actions_server_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "id"
-          ]
+          "columns": ["server_id", "id"]
         }
       },
       "policies": {},
@@ -6070,12 +5503,8 @@
           "name": "reminder_agent_attention_server_id_servers_id_fk",
           "tableFrom": "reminder_agent_attention",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6083,14 +5512,8 @@
           "name": "reminder_agent_attention_agent_fk",
           "tableFrom": "reminder_agent_attention",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6098,14 +5521,8 @@
           "name": "reminder_agent_attention_reminder_fk",
           "tableFrom": "reminder_agent_attention",
           "tableTo": "reminders",
-          "columnsFrom": [
-            "server_id",
-            "reminder_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "reminder_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6113,14 +5530,8 @@
           "name": "reminder_agent_attention_fire_fk",
           "tableFrom": "reminder_agent_attention",
           "tableTo": "reminder_fires",
-          "columnsFrom": [
-            "server_id",
-            "fire_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "fire_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6128,14 +5539,8 @@
           "name": "reminder_agent_attention_anchor_chat_fk",
           "tableFrom": "reminder_agent_attention",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "anchor_chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "anchor_chat_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6143,14 +5548,8 @@
           "name": "reminder_agent_attention_receipt_fk",
           "tableFrom": "reminder_agent_attention",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "server_id",
-            "receipt_message_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "receipt_message_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6277,12 +5676,8 @@
           "name": "reminder_commands_server_id_servers_id_fk",
           "tableFrom": "reminder_commands",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6290,14 +5685,8 @@
           "name": "reminder_commands_reminder_fk",
           "tableFrom": "reminder_commands",
           "tableTo": "reminders",
-          "columnsFrom": [
-            "server_id",
-            "reminder_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "reminder_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6411,12 +5800,8 @@
           "name": "reminder_fires_server_id_servers_id_fk",
           "tableFrom": "reminder_fires",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6424,14 +5809,8 @@
           "name": "reminder_fires_reminder_fk",
           "tableFrom": "reminder_fires",
           "tableTo": "reminders",
-          "columnsFrom": [
-            "server_id",
-            "reminder_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "reminder_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6439,14 +5818,8 @@
           "name": "reminder_fires_receipt_fk",
           "tableFrom": "reminder_fires",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "server_id",
-            "receipt_message_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "receipt_message_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6456,10 +5829,7 @@
         "reminder_fires_server_id_key": {
           "name": "reminder_fires_server_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "id"
-          ]
+          "columns": ["server_id", "id"]
         }
       },
       "policies": {},
@@ -6596,12 +5966,8 @@
           "name": "reminders_server_id_servers_id_fk",
           "tableFrom": "reminders",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6609,14 +5975,8 @@
           "name": "reminders_owner_agent_fk",
           "tableFrom": "reminders",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "owner_agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "owner_agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6624,14 +5984,8 @@
           "name": "reminders_anchor_chat_fk",
           "tableFrom": "reminders",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "anchor_chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "anchor_chat_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6639,16 +5993,8 @@
           "name": "reminders_anchor_message_fk",
           "tableFrom": "reminders",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "server_id",
-            "anchor_chat_id",
-            "anchor_message_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "chat_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "anchor_chat_id", "anchor_message_id"],
+          "columnsTo": ["server_id", "chat_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6656,14 +6002,8 @@
           "name": "reminders_schedule_receipt_fk",
           "tableFrom": "reminders",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "server_id",
-            "schedule_receipt_message_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "schedule_receipt_message_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6673,10 +6013,7 @@
         "reminders_server_id_key": {
           "name": "reminders_server_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "id"
-          ]
+          "columns": ["server_id", "id"]
         }
       },
       "policies": {},
@@ -6776,12 +6113,8 @@
           "name": "server_deletions_requested_by_user_id_users_id_fk",
           "tableFrom": "server_deletions",
           "tableTo": "users",
-          "columnsFrom": [
-            "requested_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requested_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6932,12 +6265,8 @@
           "name": "server_invitations_server_id_servers_id_fk",
           "tableFrom": "server_invitations",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6945,14 +6274,8 @@
           "name": "server_invitations_inviter_membership_fk",
           "tableFrom": "server_invitations",
           "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "invited_by_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
+          "columnsFrom": ["server_id", "invited_by_user_id"],
+          "columnsTo": ["server_id", "user_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6960,14 +6283,8 @@
           "name": "server_invitations_accepted_membership_fk",
           "tableFrom": "server_invitations",
           "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "accepted_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
+          "columnsFrom": ["server_id", "accepted_user_id"],
+          "columnsTo": ["server_id", "user_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7065,12 +6382,8 @@
           "name": "server_memberships_server_id_servers_id_fk",
           "tableFrom": "server_memberships",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -7078,12 +6391,8 @@
           "name": "server_memberships_user_id_users_id_fk",
           "tableFrom": "server_memberships",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -7093,10 +6402,7 @@
         "server_memberships_server_user_key": {
           "name": "server_memberships_server_user_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "user_id"
-          ]
+          "columns": ["server_id", "user_id"]
         }
       },
       "policies": {},
@@ -7228,12 +6534,8 @@
           "name": "server_onboarding_server_id_servers_id_fk",
           "tableFrom": "server_onboarding",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -7241,16 +6543,8 @@
           "name": "server_onboarding_channel_fk",
           "tableFrom": "server_onboarding",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "channel_id",
-            "channel_kind"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id",
-            "kind"
-          ],
+          "columnsFrom": ["server_id", "channel_id", "channel_kind"],
+          "columnsTo": ["server_id", "id", "kind"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7258,14 +6552,8 @@
           "name": "server_onboarding_agent_fk",
           "tableFrom": "server_onboarding",
           "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7273,14 +6561,8 @@
           "name": "server_onboarding_computer_fk",
           "tableFrom": "server_onboarding",
           "tableTo": "computers",
-          "columnsFrom": [
-            "server_id",
-            "computer_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
+          "columnsFrom": ["server_id", "computer_id"],
+          "columnsTo": ["server_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7288,9 +6570,7 @@
       "compositePrimaryKeys": {
         "server_onboarding_server_id_pk": {
           "name": "server_onboarding_server_id_pk",
-          "columns": [
-            "server_id"
-          ]
+          "columns": ["server_id"]
         }
       },
       "uniqueConstraints": {},
@@ -7462,12 +6742,8 @@
           "name": "task_labels_server_id_servers_id_fk",
           "tableFrom": "task_labels",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -7475,10 +6751,7 @@
       "compositePrimaryKeys": {
         "task_labels_server_id_id_pk": {
           "name": "task_labels_server_id_id_pk",
-          "columns": [
-            "server_id",
-            "id"
-          ]
+          "columns": ["server_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -7548,16 +6821,8 @@
           "name": "thread_follows_thread_fk",
           "tableFrom": "thread_follows",
           "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "thread_chat_id",
-            "thread_chat_kind"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id",
-            "kind"
-          ],
+          "columnsFrom": ["server_id", "thread_chat_id", "thread_chat_kind"],
+          "columnsTo": ["server_id", "id", "kind"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -7565,14 +6830,8 @@
           "name": "thread_follows_membership_fk",
           "tableFrom": "thread_follows",
           "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
+          "columnsFrom": ["server_id", "user_id"],
+          "columnsTo": ["server_id", "user_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -7580,11 +6839,7 @@
       "compositePrimaryKeys": {
         "thread_follows_server_id_thread_chat_id_user_id_pk": {
           "name": "thread_follows_server_id_thread_chat_id_user_id_pk",
-          "columns": [
-            "server_id",
-            "thread_chat_id",
-            "user_id"
-          ]
+          "columns": ["server_id", "thread_chat_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -7689,12 +6944,8 @@
           "name": "users_avatar_id_avatars_id_fk",
           "tableFrom": "users",
           "tableTo": "avatars",
-          "columnsFrom": [
-            "avatar_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["avatar_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }

@@ -1,4 +1,4 @@
-import type { AttachmentMetadata, ChatMessage } from '@grotto/api';
+import type { AttachmentMetadata, ChatMessage, PreparedAction } from '@grotto/api';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
 interface StoredChatMessage {
@@ -60,7 +60,8 @@ export function readStoredAuthorProfile(
 export function toChatMessage(
     message: StoredChatMessage,
     attachments: AttachmentMetadata[] = [],
-    authorProfile?: StoredChatMessageAuthorProfile
+    authorProfile?: StoredChatMessageAuthorProfile,
+    preparedAction?: PreparedAction
 ): ChatMessage {
     return {
         attachments,
@@ -73,6 +74,7 @@ export function toChatMessage(
         runId: message.runId,
         sequence: message.sequence,
         serverId: message.serverId,
+        ...(preparedAction ? { preparedAction } : {}),
     };
 }
 

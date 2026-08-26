@@ -1,7 +1,9 @@
 import {
+    agentActionPrepareReceiptSchema,
     avatarGenerationResponseSchema,
     type GrottoAgentMessage,
     type GrottoAgentSendResponse,
+    preparedActionSchema,
 } from '@grotto/api';
 import * as z from 'zod';
 
@@ -56,6 +58,7 @@ export const agentMessageSchema = z.object({
     id: z.string().min(1),
     metadata: jsonObjectSchema,
     nonce: z.string().nullable(),
+    preparedAction: preparedActionSchema.optional(),
     reactions: z
         .array(z.object({ actors: z.array(taskActorSchema), emoji: z.string() }))
         .optional(),
@@ -73,6 +76,8 @@ export const agentMessageSchema = z.object({
 }) satisfies z.ZodType<GrottoAgentMessage>;
 
 export type AgentCliMessage = GrottoAgentMessage;
+
+export const agentActionPrepareResponseSchema = agentActionPrepareReceiptSchema;
 
 export const agentSendResponseSchema: z.ZodType<GrottoAgentSendResponse> = z.discriminatedUnion(
     'state',

@@ -19,6 +19,14 @@ and [Agent Inbox](../../specs/inbox.md).
   The timeline carries conversation units only — messages, artifacts,
   notices, thread anchors — and nothing turn-shaped. See
   [chat-timeline](../../specs/chat-timeline.md).
+* **Native action cards.** A managed Agent can prepare a typed `agent:create`
+  proposal with `grotto action prepare`. The Server posts an empty canonical
+  Agent anchor and projects its immutable proposal and exact avatar media
+  through `preparedAction`. The App renders the native card and its pending,
+  done, or superseded state; it never treats the proposal as a Widget, visual
+  fence, artifact, or model-authored form. Unknown kinds render an inert
+  fallback. Dropped realtime events recover through the ordinary message
+  snapshot on reconnect.
 * **Hosted attachments.** A human can attach local files to a hosted Server
   message. The App streams bytes directly to that Server, publishes the ready
   attachment and message atomically, renders filename/type/size metadata, and

@@ -34,6 +34,7 @@ export function renderAgentInstructions(input: AgentPromptRenderInput): string {
         startupSection,
         messagingSection,
         sendingMessagesSection,
+        preparedActionsSection,
         remindersSection,
         threadsSection,
         discoveringSection,
@@ -92,7 +93,8 @@ function communicationSection() {
         '7. **Profiles** — `grotto profile show`, `grotto profile update`.',
         '8. **Reminders** — `grotto reminder schedule`, `grotto reminder list`, `grotto reminder snooze`, `grotto reminder update`, `grotto reminder cancel`, `grotto reminder log`.',
         '9. **Skills** — `grotto skill list`, `grotto skill view`, `grotto skill create`, `grotto skill patch`, `grotto skill write-file`.',
-        '10. **Manual** — `grotto manual get <topic>`, `grotto manual search <keywords>`; start with `grotto manual get grotto-cli-overview`.',
+        '10. **Prepared actions** — `grotto action prepare` for typed native action cards.',
+        '11. **Manual** — `grotto manual get <topic>`, `grotto manual search <keywords>`; start with `grotto manual get grotto-cli-overview`.',
     ].join('\n');
     const criticalRules = [
         '- Always communicate through `grotto` CLI commands. This is your only output channel: text you produce outside a `grotto` command is not delivered to anyone.',
@@ -185,6 +187,13 @@ If Grotto says a message was not sent and was saved as a draft, choose one path:
 - To send the current draft unchanged, use \`grotto message send --send-draft --target <target>\` with no stdin. Do not use \`--send-draft\` when changing content.
 
 **IMPORTANT**: To reply to any message, always reuse the exact \`target\` from the received message. This ensures your reply goes to the right place — whether it's a channel, DM, or thread.`;
+
+const preparedActionsSection = `### Preparing native action cards
+
+For a human-requested Agent proposal, read the exact target, then run:
+\`printf '{"kind":"agent:create","name":"Orbit"}' | grotto action prepare --target "#product" --avatar-file ./orbit.png\`
+
+Only \`agent:create\` is currently supported, with optional description, draft hint, and Computer guidance. Use \`grotto avatar generate --concept <text> --output <path>\` for the avatar. Preparation stores exact proposal data and bytes for human review; it never creates an Agent or chooses runtime/model fields. A correction supersedes your pending card; stale-view errors require a fresh read, and human commit/edit is separate.`;
 
 const remindersSection = `### Reminders
 

@@ -302,12 +302,13 @@ per family:
 | attachment | `upload view` | WS5 (landed) | `upload --path [--mime-type]` returns an id; the send carries it via `--attachment-id` (divergence: no `--target` on upload, see §10) |
 | profile | `show update` | WS5 (landed) | `show [@handle]`, `update --description` (≤500 chars); no display-name flag (D2) |
 | reminder | `schedule list snooze update cancel log` | WS5 (landed) | D4 model: `schedule --title (--delay-seconds \| --fire-at) [--repeat] --message-id [--script]`; message anchors only |
+| action | `prepare` | PRD-260 (landed) | `prepare --target <target> --avatar-file <path>` with one strict `agent:create` JSON action on stdin; stores a native pending card only |
 | skill | `list view create patch write-file` | WS5 (landed) | Replaces `skills_*` tools; hash-guarded patch/write-file, stdin bodies |
 | manual | `get <topic>`, `search <keywords>` | PRD-187 (landed) | Authenticated, read-only Server-hosted topics; `--intent`/`--reason`; optional `--scope recipes` |
 
 Stubs are real registered commands with real `--help`; they fail honestly with
 a stable code and never fake data. Not copied from Raft: `agent login/bridge`,
-`mention *`, `integration`, `action` (see program contract).
+`mention *`, and `integration`.
 
 ## 8. Server API (`/api/agent/*`)
 
@@ -333,6 +334,8 @@ GET  /api/agent/channels/info      ?target=
 GET  /api/agent/channels/members   ?target=
 GET  /api/agent/events             (message check drain — WS4)
 GET  /api/agent/inbox              (inbox check — WS4)
+POST /api/agent/actions/prepare    { action, avatar, nonce, target }
+                                   → { action, chatId, idempotent, messageId, sequence, target }
 ```
 
 - Sends are idempotent by `nonce` (existing message dedupe rules).

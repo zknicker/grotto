@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { attachmentMetadataSchema } from './attachments.ts';
+import { preparedActionSchema, preparedActionStatusSchema } from './prepared-actions.ts';
 import { messageTaskSchema } from './task-shared.ts';
 
 export const idSchema = z.string().trim().min(1);
@@ -50,6 +51,7 @@ export const chatMessageSchema = z
         createdAt: timestampSchema,
         id: idSchema,
         nonce: z.string().trim().min(1).max(128),
+        preparedAction: preparedActionSchema.optional(),
         /** The real Server-assigned Agent run; human/system messages are null. */
         runId: idSchema.nullable(),
         sequence: z.number().int().positive(),
@@ -374,6 +376,22 @@ export const messageCreatedEventSchema = z
     })
     .strict();
 
+export const preparedActionUpdatedEventSchema = z
+    .object({
+        actionId: idSchema,
+        chatId: idSchema,
+        createdAt: timestampSchema,
+        cursor: z.string().regex(/^[1-9]\d*$/u),
+        id: idSchema,
+        messageId: idSchema,
+        parentChatId: idSchema.nullable(),
+        sequence: z.number().int().positive(),
+        serverId: idSchema,
+        status: preparedActionStatusSchema,
+        type: z.literal('prepared-action.updated'),
+    })
+    .strict();
+
 export const chatReadEventSchema = z
     .object({
         chatId: idSchema,
@@ -467,6 +485,7 @@ export const chatLifecycleEventSchema = z
 
 export const serverdurableeventSchema = z.discriminatedUnion('type', [
     messageCreatedEventSchema,
+    preparedActionUpdatedEventSchema,
     chatReadEventSchema,
     threadFollowUpdatedEventSchema,
     taskChangedEventSchema,

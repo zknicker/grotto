@@ -85,6 +85,27 @@ export function taskEvent(
     };
 }
 
+export function preparedActionEvent(
+    cursor: string,
+    chatId: string,
+    status: 'pending' | 'superseded' | 'executed' = 'pending',
+    parentChatId: string | null = null
+): ChatEventOf<'prepared-action.updated'> {
+    return {
+        actionId: `action_${cursor}`,
+        chatId,
+        createdAt: '2026-08-25T12:00:00.000Z',
+        cursor,
+        id: `event_${cursor}`,
+        messageId: `message_${cursor}`,
+        parentChatId,
+        sequence: Number(cursor),
+        serverId: 'server_one',
+        status,
+        type: 'prepared-action.updated',
+    };
+}
+
 export function taskLabelEvent(cursor: string, labelId: string): ChatEventOf<'task.label.updated'> {
     return {
         chatId: null,

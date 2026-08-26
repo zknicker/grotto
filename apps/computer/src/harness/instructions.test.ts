@@ -28,6 +28,10 @@ test('composes the CLI-only Grotto collaboration contract', () => {
     // The critical message verbs the Agent needs to receive and reply.
     expect(instructions).toContain('grotto message check');
     expect(instructions).toContain('grotto message send');
+    expect(instructions).toContain('grotto action prepare');
+    expect(instructions).toContain(
+        'Preparation stores exact proposal data and bytes for human review'
+    );
     expect(instructions).toContain(
         '**Manual** — `grotto manual get <topic>`, `grotto manual search <keywords>`; start with `grotto manual get grotto-cli-overview`.'
     );

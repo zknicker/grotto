@@ -17,7 +17,7 @@ clients recover through durable reads.
 
 | Component | Owner | Role |
 | --- | --- | --- |
-| Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for messages, reads, follows, Chat lifecycle, and reminder changes |
+| Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for messages, reads, follows, Chat lifecycle, prepared-action changes, and reminder changes |
 | Hosted durable subscription | Grotto Server | Live notification after commit; membership rechecked at delivery |
 | Hosted composition hub | Grotto Server | In-memory, membership-checked, no persistence or replay |
 | Hosted Agent activity journal | Grotto Server | Durable semantic execution metadata plus live current-state projection |
@@ -50,7 +50,7 @@ from durable `chat_events`.
 ## Hosted Server Realtime
 
 `chat.send`, an advancing `chat.markRead`, `thread.setFollow`, Chat lifecycle
-mutations, task mutations, and reminder mutations insert their durable event in
+mutations, prepared-action mutations, task mutations, and reminder mutations insert their durable event in
 the same PostgreSQL transaction as the owned row. `chat.events` lists accessible
 events after a cursor in ascending order. `chat.onEvent` does not replay; it
 notifies the App after commit. On subscription start or reconnect, the App
@@ -103,6 +103,15 @@ Replay applies the same rule — a member walks a lifecycle event while the Chat
 is still visible to them, or once the Chat row is gone because a delete purged
 it.
 
+`prepared-action.updated` is a participant-gated durable event carrying the
+action id, message id, Chat sequence, and lifecycle status (`pending`,
+`executed`, or `superseded`). The App invalidates the affected Chat message
+reads, Chat search, and the child Thread snapshot when applicable. Its payload
+never carries proposal text or media bytes; those are recovered through the
+focused message read and action-owned media URL. Reconnect recovery therefore
+refetches the same durable message snapshot and cannot lose a pending or
+superseded card when a notification was dropped.
+
 `chat.markRead` does not invalidate anything from its mutation result. Its
 durable `chat.read` event reaches the reader's own subscription and owns the
 Chat list refresh.
@@ -148,9 +157,9 @@ run as `Finishing up…`. Terminal lifecycle proof owns both sidebar-row removal
 working-to-idle transition, keeping those surfaces synchronized. Trailing completion events preserve
 the finishing state; a later started operation replaces it.
 
-Hosted durable event kinds are `message.created`, `chat.read`, `chat.lifecycle`, the
-reader-private `thread.follow.updated`, `task.created`, `task.updated`, and
-`task.label.updated`, plus `reminder.changed`.
+Hosted durable event kinds are `message.created`, `prepared-action.updated`,
+`chat.read`, `chat.lifecycle`, the reader-private `thread.follow.updated`,
+`task.created`, `task.updated`, and `task.label.updated`, plus `reminder.changed`.
 
 Reminder scheduling, update, snooze, cancel, and fire append
 `reminder.changed` to the same per-Server cursor. A fire appends

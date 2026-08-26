@@ -102,6 +102,7 @@ PostgreSQL owns the hosted collaboration tables
 | `agent_delivery` / `agent_pending_work` | One-row-per-Agent Stop flag and single in-flight run (the per-Agent serialization boundary), and the durable pending inbox drained into runs |
 | `agent_turns` | Compact per-run turn summary reported by a Computer after a launch settles |
 | `chat_messages` | Immutable human or reminder-system messages ordered by per-Chat sequence and nonce |
+| `prepared_actions` / `prepared_action_media` | Immutable Agent-prepared action proposals, lifecycle/supersession state, and exact action-owned avatar bytes |
 | `chat_reads` | One monotonic reader high-water mark per Chat |
 | `chat_events` | Durable message/read/task/reminder-change events ordered by PostgreSQL cursor |
 | `attachments` | Server/Chat-scoped metadata, upload state, content digest, and optional message association |

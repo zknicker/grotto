@@ -1,4 +1,4 @@
-import type { AgentAvailability, TaskLabel } from '@grotto/api';
+import type { AgentAvailability, PreparedAction, TaskLabel } from '@grotto/api';
 import type { MessageTask } from '../tasks/message-task-chip.tsx';
 
 export type TranscriptActor =
@@ -87,6 +87,7 @@ export interface TranscriptMessage {
     grottoAgentId?: string | null;
     id: string;
     metadata?: TranscriptMessageMetadata;
+    preparedAction?: PreparedAction;
     reactions?: TranscriptMessageReaction[];
     sender: string;
     senderType: 'agent' | 'system' | 'user';

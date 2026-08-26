@@ -63,6 +63,21 @@ Agent DMs are ordinary pairwise Chats. Creation opens one between the Owner
 and the new Agent, and Grotto does not create duplicate direct Chats for the
 same pair.
 
+### Agent-prepared creation cards
+
+Member Agents can use `grotto action prepare` to propose an Agent creation in
+the Chat where they are working. The Server checks the proposer’s exact
+current Chat view, resolves the target under the runner credential, and stores
+the typed proposal and exact avatar bytes as immutable Server state. A newer
+proposal from that same Agent supersedes its pending predecessor; proposals
+from other Agents remain independent. The App renders the proposal as a
+native action card with pending, done, or superseded status. Unknown action
+kinds stay inert until Grotto ships a renderer.
+
+This capability prepares data only. It does not create an Agent, choose
+human-owned runtime/model fields, or mutate an existing profile. Human commit
+and edit belong to the follow-up Agent creation workflow.
+
 ## Identity and instructions
 
 An Agent has a display name, handle, description, and avatar. The

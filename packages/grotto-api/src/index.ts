@@ -22,6 +22,8 @@ export type GrottoAgentSearchResultList = GrottoApiSchema<'AgentSearchResultList
 export type GrottoAgentSendApiError = GrottoApiSchema<'AgentSendApiError'>;
 export type GrottoAgentSendRequest = GrottoApiSchema<'AgentSendRequest'>;
 export type GrottoAgentSendResponse = GrottoApiSchema<'AgentSendResponse'>;
+export type GrottoAgentActionPrepareRequest = GrottoApiSchema<'AgentActionPrepareRequest'>;
+export type GrottoAgentActionPrepareResponse = GrottoApiSchema<'AgentActionPrepareResponse'>;
 export type GrottoAgentServerInfo = GrottoApiSchema<'AgentServerInfo'>;
 export type GrottoChat = GrottoApiSchema<'Chat'>;
 export type GrottoChatEvent = GrottoApiSchema<'ChatEvent'>;
@@ -70,6 +72,7 @@ export * from './manual.ts';
 export * from './mcp.ts';
 export * from './membership.ts';
 export * from './mentions.ts';
+export * from './prepared-actions.ts';
 export * from './reminders.ts';
 export * from './rich-references.ts';
 export * from './runtime/contracts.ts';

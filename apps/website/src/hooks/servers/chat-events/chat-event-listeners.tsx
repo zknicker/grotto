@@ -2,6 +2,7 @@ import { ChatEventStreamProvider } from './use-chat-event-stream.tsx';
 import { useChatLifecycleEvents } from './use-chat-lifecycle-events.ts';
 import { useChatReadEvents } from './use-chat-read-events.ts';
 import { useMessageCreatedEvents } from './use-message-created-events.ts';
+import { usePreparedActionEvents } from './use-prepared-action-events.ts';
 import { useTaskChangeEvents } from './use-task-change-events.ts';
 import { useTaskLabelEvents } from './use-task-label-events.ts';
 import { useThreadFollowEvents } from './use-thread-follow-events.ts';
@@ -20,6 +21,7 @@ export function ChatEventListeners({ serverId }: { serverId: string | undefined 
 
 function ChatEventInvalidations() {
     useMessageCreatedEvents();
+    usePreparedActionEvents();
     useChatReadEvents();
     useChatLifecycleEvents();
     useThreadFollowEvents();

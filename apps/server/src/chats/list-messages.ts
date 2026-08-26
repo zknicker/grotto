@@ -8,6 +8,7 @@ import {
     serverMembershipsTable,
     usersTable,
 } from '../postgres/schema.ts';
+import { readPreparedActionsForMessages } from '../prepared-actions/read.ts';
 import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
@@ -77,15 +78,17 @@ export async function listChatMessages(
     const hasOlderMessages = newestFirst.length > input.limit;
     const messageRows = newestFirst.slice(0, input.limit).reverse();
     const messageIds = messageRows.map((message) => message.id);
-    const [attachmentsByMessageId, taskByMessageId] = await Promise.all([
+    const [attachmentsByMessageId, taskByMessageId, actionByMessageId] = await Promise.all([
         readMessageAttachments(db, input.serverId, messageIds),
         listMessageTaskMap(db, input.serverId, messageIds),
+        readPreparedActionsForMessages(db, input.serverId, messageIds),
     ]);
     const messages = messageRows.map((message) => ({
         ...toChatMessage(
             message,
             attachmentsByMessageId.get(message.id) ?? [],
-            readStoredAuthorProfile(message)
+            readStoredAuthorProfile(message),
+            actionByMessageId.get(message.id)
         ),
         task: taskByMessageId.get(message.id) ?? null,
     }));

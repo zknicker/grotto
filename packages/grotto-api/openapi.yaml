@@ -554,6 +554,26 @@ paths:
                 $ref: '#/components/schemas/AgentSendResponse'
         default:
           $ref: '#/components/responses/AgentSendError'
+  /api/agent/actions/prepare:
+    post:
+      operationId: prepareAgentAction
+      tags: [Agent CLI]
+      summary: Prepare a native action card from the calling Agent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentActionPrepareRequest'
+      responses:
+        '200':
+          description: Prepared or idempotently replayed action card.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentActionPrepareResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
   /api/agent/history:
     get:
       operationId: readAgentHistory
@@ -1383,6 +1403,130 @@ components:
         continueAnyway: { type: boolean }
         compositionId: { type: string, minLength: 1 }
         nonce: { type: string, minLength: 1 }
+    AgentActionPrepareRequest:
+      type: object
+      additionalProperties: false
+      required: [action, avatar, nonce, target]
+      properties:
+        action:
+          $ref: '#/components/schemas/ActionCardAction'
+        avatar:
+          type: object
+          additionalProperties: false
+          required: [bytesBase64, mediaType]
+          properties:
+            bytesBase64:
+              type: string
+              minLength: 1
+              maxLength: 699059
+              pattern: '^[A-Za-z0-9+/]+={0,2}$'
+            mediaType: { type: string, enum: [image/jpeg, image/png, image/webp] }
+        nonce: { type: string, minLength: 1, maxLength: 128 }
+        target: { type: string, minLength: 1, maxLength: 200 }
+    ActionCardAction:
+      oneOf:
+        - $ref: '#/components/schemas/AgentCreateAction'
+      discriminator:
+        propertyName: kind
+        mapping:
+          agent:create: '#/components/schemas/AgentCreateAction'
+    AgentCreateAction:
+      type: object
+      additionalProperties: false
+      required: [kind, name]
+      properties:
+        kind: { type: string, const: agent:create }
+        name: { type: string, minLength: 1, maxLength: 80 }
+        description: { type: [string, 'null'], maxLength: 500, default: null }
+        draftHint: { type: [string, 'null'], maxLength: 1000, default: null }
+        computer:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/PreparedActionComputer'
+          default: null
+    PreparedActionComputer:
+      type: object
+      additionalProperties: false
+      required: [kind, computerId]
+      properties:
+        kind: { type: string, enum: [required, suggested] }
+        computerId: { type: string, minLength: 1, maxLength: 200 }
+        label: { type: [string, 'null'], maxLength: 100 }
+    PreparedActionMedia:
+      type: object
+      additionalProperties: false
+      required: [byteSize, id, mediaType, sha256, url]
+      properties:
+        byteSize: { type: integer, minimum: 1, maximum: 524288 }
+        id: { type: string, pattern: '^pam_[A-Za-z0-9_-]{16}$' }
+        mediaType: { type: string, enum: [image/jpeg, image/png, image/webp] }
+        sha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+        url: { type: string, minLength: 1 }
+    AgentCreatePreparedAction:
+      type: object
+      additionalProperties: false
+      required: [chatId, createdAt, executedAt, executedByUserId, id, kind, messageId, proposerAgentId, proposal, status, supersededAt, supersededByActionId]
+      properties:
+        chatId: { type: string, minLength: 1 }
+        createdAt: { $ref: '#/components/schemas/Timestamp' }
+        executedAt: { type: [string, 'null'], format: date-time }
+        executedByUserId: { type: [string, 'null'] }
+        id: { type: string, pattern: '^act_[A-Za-z0-9_-]{16}$' }
+        kind: { type: string, const: agent:create }
+        messageId: { type: string, minLength: 1 }
+        proposerAgentId: { type: string, minLength: 1 }
+        proposal:
+          type: object
+          additionalProperties: false
+          required: [kind, name, avatar]
+          properties:
+            kind: { type: string, const: agent:create }
+            name: { type: string, minLength: 1, maxLength: 80 }
+            description: { type: [string, 'null'], maxLength: 500, default: null }
+            draftHint: { type: [string, 'null'], maxLength: 1000, default: null }
+            computer:
+              oneOf:
+                - type: 'null'
+                - $ref: '#/components/schemas/PreparedActionComputer'
+              default: null
+            avatar:
+              $ref: '#/components/schemas/PreparedActionMedia'
+        status: { type: string, enum: [pending, executed, superseded] }
+        supersededAt: { type: [string, 'null'], format: date-time }
+        supersededByActionId: { type: [string, 'null'], pattern: '^act_[A-Za-z0-9_-]{16}$' }
+    UnknownPreparedAction:
+      type: object
+      additionalProperties: false
+      required: [chatId, createdAt, executedAt, executedByUserId, id, kind, messageId, proposerAgentId, proposal, status, supersededAt, supersededByActionId]
+      properties:
+        chatId: { type: string, minLength: 1 }
+        createdAt: { $ref: '#/components/schemas/Timestamp' }
+        executedAt: { type: [string, 'null'], format: date-time }
+        executedByUserId: { type: [string, 'null'] }
+        id: { type: string, pattern: '^act_[A-Za-z0-9_-]{16}$' }
+        kind: { type: string, minLength: 1 }
+        messageId: { type: string, minLength: 1 }
+        proposerAgentId: { type: string, minLength: 1 }
+        proposal: { $ref: '#/components/schemas/JsonObject' }
+        status: { type: string, enum: [pending, executed, superseded] }
+        supersededAt: { type: [string, 'null'], format: date-time }
+        supersededByActionId: { type: [string, 'null'], pattern: '^act_[A-Za-z0-9_-]{16}$' }
+    PreparedAction:
+      oneOf:
+        - $ref: '#/components/schemas/AgentCreatePreparedAction'
+        - $ref: '#/components/schemas/UnknownPreparedAction'
+    AgentActionPrepareResponse:
+      type: object
+      additionalProperties: false
+      required: [action, chatId, idempotent, messageId, sequence, target]
+      properties:
+        action:
+          $ref: '#/components/schemas/PreparedAction'
+        chatId: { type: string, minLength: 1 }
+        idempotent: { type: boolean }
+        messageId: { type: string, minLength: 1 }
+        sequence: { type: integer, minimum: 1 }
+        target: { type: string, minLength: 1 }
     AgentSentMessage:
       type: object
       additionalProperties: false
@@ -2314,6 +2458,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/MessageReaction'
+        preparedAction:
+          $ref: '#/components/schemas/PreparedAction'
     MessageTask:
       type: object
       additionalProperties: false

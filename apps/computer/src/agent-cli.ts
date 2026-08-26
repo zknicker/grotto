@@ -1,4 +1,5 @@
 import { AgentCliError, renderAgentCliError } from './agent-cli/agent-error.ts';
+import { ACTION_SUBCOMMANDS } from './agent-cli/commands/agent-action.ts';
 import { ATTACHMENT_SUBCOMMANDS } from './agent-cli/commands/agent-attachment.ts';
 import { AVATAR_SUBCOMMANDS } from './agent-cli/commands/agent-avatar.ts';
 import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/agent-directory.ts';
@@ -15,6 +16,7 @@ import { dispatchSubcommand, type SubCommand } from './agent-cli/subcommand.ts';
 import { errorBlock } from './agent-cli/ui.ts';
 
 const commandGroups = {
+    action: ACTION_SUBCOMMANDS,
     attachment: ATTACHMENT_SUBCOMMANDS,
     avatar: AVATAR_SUBCOMMANDS,
     channel: CHANNEL_SUBCOMMANDS,

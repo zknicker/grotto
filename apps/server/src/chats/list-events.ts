@@ -25,6 +25,8 @@ export async function listChatEvents(
             createdAt: chatEventsTable.createdAt,
             cursor: chatEventsTable.cursor,
             id: chatEventsTable.id,
+            actionId: chatEventsTable.actionId,
+            actionStatus: chatEventsTable.actionStatus,
             labelId: chatEventsTable.labelId,
             lifecycleChatId: chatEventsTable.lifecycleChatId,
             messageId: chatEventsTable.messageId,
@@ -59,6 +61,7 @@ export async function listChatEvents(
                             // reminder lane (reminder.changes) owns cross-chat replay.
                             eq(chatEventsTable.type, 'reminder.changed'),
                             eq(chatEventsTable.type, 'message.created'),
+                            eq(chatEventsTable.type, 'prepared-action.updated'),
                             eq(chatEventsTable.type, 'task.created'),
                             eq(chatEventsTable.type, 'task.updated'),
                             and(
@@ -115,6 +118,19 @@ export async function listChatEvents(
                 parentChatId: event.parentChatId,
                 sequence: event.sequence,
                 type: 'message.created' as const,
+            };
+        }
+
+        if (event.type === 'prepared-action.updated') {
+            return {
+                ...common,
+                actionId: event.actionId as string,
+                chatId: event.chatId as string,
+                messageId: event.messageId as string,
+                parentChatId: event.parentChatId,
+                sequence: event.sequence,
+                status: event.actionStatus as 'pending' | 'superseded' | 'executed',
+                type: 'prepared-action.updated' as const,
             };
         }
 

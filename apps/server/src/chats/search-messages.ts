@@ -9,6 +9,7 @@ import {
     serverMembershipsTable,
     usersTable,
 } from '../postgres/schema.ts';
+import { readPreparedActionsForMessages } from '../prepared-actions/read.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { requireChatAccess } from './chat-access.ts';
@@ -112,17 +113,18 @@ export async function searchChatMessages(
         .orderBy(sql`${chatMessagesTable.createdAt} desc`, sql`${chatMessagesTable.id} desc`)
         .limit(input.limit);
 
-    const attachments = await readMessageAttachments(
-        db,
-        input.serverId,
-        rows.map((message) => message.id)
-    );
+    const messageIds = rows.map((message) => message.id);
+    const [attachments, actions] = await Promise.all([
+        readMessageAttachments(db, input.serverId, messageIds),
+        readPreparedActionsForMessages(db, input.serverId, messageIds),
+    ]);
 
     return rows.map((message) => ({
         ...toChatMessage(
             message,
             attachments.get(message.id) ?? [],
-            readStoredAuthorProfile(message)
+            readStoredAuthorProfile(message),
+            actions.get(message.id)
         ),
         chatArchivedAt: message.chatArchivedAt?.toISOString() ?? null,
     }));

@@ -61,6 +61,37 @@ created. One generation may be in flight per Agent and two per Server. Capacity 
 errors. Operational events carry actor, Server, request, model, duration, outcome, and normalized
 metadata only — never concept text or image bytes.
 
+### Prepared Agent action cards
+
+Managed Agents can post a native Agent-creation proposal to a current Chat:
+
+```sh
+printf '{"kind":"agent:create","name":"Orbit","description":"Release helper"}' \
+  | grotto action prepare --target "#product" --avatar-file ./orbit.png
+```
+
+`grotto action prepare` accepts one strict `ActionCardAction` JSON object on stdin and a local
+PNG, JPEG, or WebP avatar file up to 512 KiB. Version 1 exposes only `agent:create`; its optional
+fields are `description`, `draftHint`, and `computer` guidance (`required` or `suggested` with a
+Server-resolved Computer id). Runtime, model, role, and credentials are deliberately absent.
+The Server resolves the target from the scoped runner, verifies the Agent's exact current Chat
+view, and stores the proposal plus the exact avatar bytes in one transaction. The response is a
+typed receipt containing the prepared action, its canonical Chat anchor, sequence, and idempotency
+result.
+
+The same `(Server, proposer Agent, nonce)` and identical proposal/media returns the original
+receipt. Reusing that nonce for different values returns `ACTION_IDEMPOTENCY_CONFLICT`. A newer
+proposal from the same Agent for the same Chat and action kind creates a new immutable row and
+marks the older pending row `superseded`; another Agent's pending proposal is isolated. If a
+human or another Agent changed the target after the proposer last saw it, the Server returns
+`ACTION_VIEW_STALE` and tells the Agent to read again before preparing.
+
+Chat message reads project the prepared action through `preparedAction`; the anchor body remains
+empty because the native card owns its presentation. The App renders known `agent:create` cards
+with the exact media and pending, done, or superseded status. Unknown future kinds are inert
+fallback cards. Human commit/edit is a separate follow-up contract; preparing an action never
+creates an Agent or grants mutation authority.
+
 Each settled turn summary includes its runtime and model plus normalized input,
 output, cache-read, and cache-write counts when the runtime reports them. Server
 persists those bounded counters for usage aggregation; raw usage payloads and

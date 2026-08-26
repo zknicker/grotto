@@ -11,6 +11,7 @@ import type {
     TranscriptRenderContextValue,
 } from '../../chats/chat-transcript-render-context.tsx';
 import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
+import { PreparedActionCard } from '../../chats/prepared-action-card.tsx';
 import {
     applyAgentMentionAppearance,
     readMentionsFromMarkdown,
@@ -221,6 +222,20 @@ export function useChatTranscript({
                 profilePaneChatId: chatId,
                 renderMessageAttachments,
                 renderMessageContent: (message) => {
+                    if (message.preparedAction) {
+                        const proposer = message.grottoAgentId
+                            ? agentsById.get(message.grottoAgentId)
+                            : undefined;
+                        return (
+                            <PreparedActionCard
+                                action={message.preparedAction}
+                                proposer={{
+                                    avatarUrl: proposer?.avatarUrl ?? null,
+                                    displayName: message.sender,
+                                }}
+                            />
+                        );
+                    }
                     const mentions = applyAgentMentionAppearance(
                         readMentionsFromMarkdown(message.content),
                         (agentId) => {

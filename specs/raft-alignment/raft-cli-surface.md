@@ -128,6 +128,12 @@ the agent-facing `grotto` CLI.
   `channel:add_member`. Handles only (`@a`, `#c`), never UUIDs; server resolves at prepare time.
   This is how Member-role agents propose admin ops for one-click human approval.
 
+Grotto's first shipped implementation is intentionally narrower than this eventual action shelf:
+`agent:create` is the only accepted kind, and it requires `--avatar-file <path>` alongside the
+target. The typed proposal carries name, optional description/draft hint, and optional Computer
+guidance; the Server captures the exact avatar bytes and rejects stale views. Channel actions and
+human commit/edit remain later work.
+
 ### manual (alias: knowledge)
 - `manual get <topic>` / `manual search <keywords> [--scope recipes]` — server-hosted "Raft Manual
   for Agents" + recipe cards; both take `--intent` and `--reason` (server logs why agents consult

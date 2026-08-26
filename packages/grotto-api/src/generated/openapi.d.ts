@@ -362,6 +362,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent/actions/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Prepare a native action card from the calling Agent. */
+        post: operations["prepareAgentAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agent/history": {
         parameters: {
             query?: never;
@@ -952,6 +969,100 @@ export interface components {
             compositionId?: string;
             nonce?: string;
         };
+        AgentActionPrepareRequest: {
+            action: components["schemas"]["ActionCardAction"];
+            avatar: {
+                bytesBase64: string;
+                /** @enum {string} */
+                mediaType: "image/jpeg" | "image/png" | "image/webp";
+            };
+            nonce: string;
+            target: string;
+        };
+        ActionCardAction: components["schemas"]["AgentCreateAction"];
+        AgentCreateAction: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "agent:create";
+            name: string;
+            /** @default null */
+            description: string | null;
+            /** @default null */
+            draftHint: string | null;
+            /** @default null */
+            computer: null | components["schemas"]["PreparedActionComputer"];
+        };
+        PreparedActionComputer: {
+            /** @enum {string} */
+            kind: "required" | "suggested";
+            computerId: string;
+            label?: string | null;
+        };
+        PreparedActionMedia: {
+            byteSize: number;
+            id: string;
+            /** @enum {string} */
+            mediaType: "image/jpeg" | "image/png" | "image/webp";
+            sha256: string;
+            url: string;
+        };
+        AgentCreatePreparedAction: {
+            chatId: string;
+            createdAt: components["schemas"]["Timestamp"];
+            /** Format: date-time */
+            executedAt: string | null;
+            executedByUserId: string | null;
+            id: string;
+            /** @constant */
+            kind: "agent:create";
+            messageId: string;
+            proposerAgentId: string;
+            proposal: {
+                /** @constant */
+                kind: "agent:create";
+                name: string;
+                /** @default null */
+                description: string | null;
+                /** @default null */
+                draftHint: string | null;
+                /** @default null */
+                computer: null | components["schemas"]["PreparedActionComputer"];
+                avatar: components["schemas"]["PreparedActionMedia"];
+            };
+            /** @enum {string} */
+            status: "pending" | "executed" | "superseded";
+            /** Format: date-time */
+            supersededAt: string | null;
+            supersededByActionId: string | null;
+        };
+        UnknownPreparedAction: {
+            chatId: string;
+            createdAt: components["schemas"]["Timestamp"];
+            /** Format: date-time */
+            executedAt: string | null;
+            executedByUserId: string | null;
+            id: string;
+            kind: string;
+            messageId: string;
+            proposerAgentId: string;
+            proposal: components["schemas"]["JsonObject"];
+            /** @enum {string} */
+            status: "pending" | "executed" | "superseded";
+            /** Format: date-time */
+            supersededAt: string | null;
+            supersededByActionId: string | null;
+        };
+        PreparedAction: components["schemas"]["AgentCreatePreparedAction"] | components["schemas"]["UnknownPreparedAction"];
+        AgentActionPrepareResponse: {
+            action: components["schemas"]["PreparedAction"];
+            chatId: string;
+            idempotent: boolean;
+            messageId: string;
+            sequence: number;
+            target: string;
+        };
         AgentSentMessage: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -1407,6 +1518,7 @@ export interface components {
             metadata: components["schemas"]["JsonObject"];
             task?: components["schemas"]["MessageTask"] | null;
             reactions?: components["schemas"]["MessageReaction"][];
+            preparedAction?: components["schemas"]["PreparedAction"];
         };
         MessageTask: {
             number: number;
@@ -2390,6 +2502,31 @@ export interface operations {
                 };
             };
             default: components["responses"]["AgentSendError"];
+        };
+    };
+    prepareAgentAction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentActionPrepareRequest"];
+            };
+        };
+        responses: {
+            /** @description Prepared or idempotently replayed action card. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentActionPrepareResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
         };
     };
     readAgentHistory: {

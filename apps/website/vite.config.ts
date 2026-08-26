@@ -39,6 +39,9 @@ export default defineConfig(({ command }) => ({
             '/api/avatars': {
                 target: grottoServerOrigin,
             },
+            '/api/prepared-action-media': {
+                target: grottoServerOrigin,
+            },
             '/healthz': {
                 target: serverOrigin,
             },

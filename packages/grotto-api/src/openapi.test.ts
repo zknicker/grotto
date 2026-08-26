@@ -41,6 +41,7 @@ describe('Grotto OpenAPI contract', () => {
             '/api/turns/{run_id}/prompt',
             '/api/turns/{run_id}/file-changes',
             '/api/agent/messages/send',
+            '/api/agent/actions/prepare',
             '/api/agent/history',
             '/api/agent/manual/get',
             '/api/agent/manual/search',

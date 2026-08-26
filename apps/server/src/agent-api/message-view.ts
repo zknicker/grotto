@@ -9,6 +9,7 @@ import {
     chatsTable,
     messageReactionsTable,
 } from '../postgres/schema.ts';
+import { readPreparedActionsForMessages } from '../prepared-actions/read.ts';
 import { listMessageTaskMap } from '../tasks/task-shape.ts';
 
 export interface MessageRow {
@@ -40,11 +41,11 @@ export async function toAgentMessages(
     serverId: string,
     rows: MessageRow[]
 ): Promise<GrottoAgentMessage[]> {
-    const tasksByMessage = await listMessageTaskMap(
-        db,
-        serverId,
-        rows.map(({ id }) => id)
-    );
+    const messageIds = rows.map(({ id }) => id);
+    const [tasksByMessage, preparedActionsByMessage] = await Promise.all([
+        listMessageTaskMap(db, serverId, messageIds),
+        readPreparedActionsForMessages(db, serverId, messageIds),
+    ]);
     const agentIds = [
         ...new Set(
             rows
@@ -67,16 +68,8 @@ export async function toAgentMessages(
                       and(eq(agentsTable.serverId, serverId), inArray(agentsTable.id, agentIds))
                   );
     const agentById = new Map(agents.map((agent) => [agent.id, agent]));
-    const attachmentsByMessage = await readMessageAttachments(
-        db,
-        serverId,
-        rows.map(({ id }) => id)
-    );
-    const reactionsByMessage = await readMessageReactions(
-        db,
-        serverId,
-        rows.map(({ id }) => id)
-    );
+    const attachmentsByMessage = await readMessageAttachments(db, serverId, messageIds);
+    const reactionsByMessage = await readMessageReactions(db, serverId, messageIds);
     return rows.map((row) => {
         const agent = row.authorAgentId ? agentById.get(row.authorAgentId) : undefined;
         const system = row.systemAuthor !== null;
@@ -111,6 +104,9 @@ export async function toAgentMessages(
                 type: system ? 'system' : agent ? 'agent' : 'human',
             },
             sequence: row.sequence,
+            ...(preparedActionsByMessage.has(row.id)
+                ? { preparedAction: preparedActionsByMessage.get(row.id) }
+                : {}),
             ...(task
                 ? {
                       task: {

@@ -16,6 +16,7 @@ import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { AgentSendConflictError, sendAgentMessage } from '../chats/send-agent-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { registerAgentActionRoutes } from './action-routes.ts';
 import { registerAgentAttachmentRoutes } from './attachment-routes.ts';
 import { changeAgentChannelMute, unfollowAgentThread } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
@@ -81,6 +82,10 @@ export function registerAgentApiRoutes(
     }
 ) {
     registerAgentAttachmentRoutes(app, { db: options.db, root: options.attachmentRoot });
+    registerAgentActionRoutes(app, {
+        agentDelivery: options.agentDelivery,
+        db: options.db,
+    });
     registerAgentInboxRoutes(app, options.db);
     registerAgentManualRoutes(app, options.db);
     registerAgentMcpRoutes(app, { db: options.db, runtime: options.mcpRuntime });

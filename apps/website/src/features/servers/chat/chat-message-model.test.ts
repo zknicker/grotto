@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { ChatMessage } from '@grotto/api';
+import type { AgentCreatePreparedAction, ChatMessage } from '@grotto/api';
 import { buildTranscriptEntries, getItemRunId } from '../../chats/chat-transcript-model.ts';
 import { mergeTaskAnchor, projectChatMessages } from './chat-message-model.ts';
 
@@ -95,6 +95,50 @@ test('preserves one global Agent run identity when messages come from multiple C
             .filter((row) => row.kind === 'message')
             .map((row) => (row.kind === 'message' ? row.runId : null))
     ).toEqual([runId, runId]);
+});
+
+test('projects a prepared action alongside its empty Chat anchor', () => {
+    const action: AgentCreatePreparedAction = {
+        chatId: 'chat_one',
+        createdAt: '2026-08-25T12:00:00.000Z',
+        executedAt: null,
+        executedByUserId: null,
+        id: 'act_1234567890abcdef',
+        kind: 'agent:create',
+        messageId: 'message_action',
+        proposerAgentId: 'agent_one',
+        proposal: {
+            avatar: {
+                byteSize: 8,
+                id: 'pam_1234567890abcdef',
+                mediaType: 'image/png',
+                sha256: 'a'.repeat(64),
+                url: '/api/prepared-action-media/pam_1234567890abcdef',
+            },
+            computer: null,
+            description: null,
+            draftHint: null,
+            kind: 'agent:create',
+            name: 'Orbit',
+        },
+        status: 'pending',
+        supersededAt: null,
+        supersededByActionId: null,
+    };
+    const row = projectChatMessages(
+        [
+            {
+                ...message('message_action', 1),
+                author: { agentId: 'agent_one', kind: 'agent' },
+                content: '',
+                preparedAction: action,
+                runId: 'run_agent',
+            },
+        ],
+        []
+    )[0];
+
+    expect(row?.kind === 'message' ? row.message.preparedAction : null).toBe(action);
 });
 
 test('keeps private task assignment receipts out of the App transcript', () => {

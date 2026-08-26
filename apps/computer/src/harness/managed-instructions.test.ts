@@ -98,5 +98,6 @@ test('keeps the managed prompt within its reviewed size budget', () => {
         workspacePath: '/workbench',
     });
 
-    expect(prompt.length).toBeLessThanOrEqual(32_500);
+    // The native action-card command is part of the managed prompt contract.
+    expect(prompt.length).toBeLessThanOrEqual(33_500);
 });

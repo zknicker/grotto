@@ -43,16 +43,6 @@ struct ChromeHeader<Leading: View, Center: View, Trailing: View>: View {
     }
 }
 
-extension ChromeHeader where Leading == EmptyView {
-    init(
-        inset: CGFloat = 16,
-        @ViewBuilder center: @escaping () -> Center,
-        @ViewBuilder trailing: @escaping () -> Trailing
-    ) {
-        self.init(inset: inset, leading: { EmptyView() }, center: center, trailing: trailing)
-    }
-}
-
 extension ChromeHeader where Center == EmptyView {
     init(
         inset: CGFloat = 16,

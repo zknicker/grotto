@@ -59,22 +59,31 @@ public struct SettingsSheet: View {
 
     public var body: some View {
         NavigationStack(path: $path) {
-            VStack(spacing: 0) {
-                ChromeHeader(center: {
-                    Text("Settings").font(.headline)
-                }) {
-                    GlassChromeButton(.icon(.close), label: "Close settings") { dismiss() }
+            // The hub carries the same system navigation bar its pushed screens
+            // do. It must not hide the bar and draw a `ChromeHeader` instead:
+            // inside a sheet, a hidden-to-visible bar toggle lays the pushed
+            // screen out against the pre-push top safe area, so it drew one
+            // grabber-height too high for the whole transition and dropped into
+            // place a frame after it ended.
+            SettingsHubView(
+                data: data,
+                appearance: $appearance,
+                onNavigate: { path.append($0) }
+            )
+            .navigationTitle("Settings")
+            .grottoInlineNavigationTitle()
+            .toolbar {
+                ToolbarItem(placement: .automatic) {
+                    Button { dismiss() } label: {
+                        GrottoIcon(.close, size: 19, weight: GlassChromeButton.iconGlyphWeight)
+                    }
+                    // The sheet's blue tint belongs to its rows and pickers.
+                    // This control is chrome and reads in label colour, like
+                    // the back chevron a pushed screen puts on the same rail.
+                    .foregroundStyle(GrottoPlatformColor.label)
+                    .accessibilityLabel("Close settings")
                 }
-                .padding(.top, 6)
-
-                SettingsHubView(
-                    data: data,
-                    appearance: $appearance,
-                    onNavigate: { path.append($0) }
-                )
             }
-            .background(GrottoPlatformColor.groupedBackground)
-            .grottoHiddenNavigationBar()
             .navigationDestination(for: SettingsRoute.self) { route in
                 destination(for: route)
             }

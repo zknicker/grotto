@@ -184,14 +184,20 @@ struct AgentProfileView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                ProfileHero(
-                    initials: agent.initials,
-                    avatarURL: agent.avatarURL,
-                    presence: agent.presence,
-                    displayName: name,
-                    handle: "@\(agent.handle)",
-                    onSaveAvatar: onSaveAvatar
-                )
+                VStack(spacing: 6) {
+                    ProfileHero(
+                        initials: agent.initials,
+                        avatarURL: agent.avatarURL,
+                        presence: agent.presence,
+                        displayName: name,
+                        handle: "@\(agent.handle)",
+                        onSaveAvatar: onSaveAvatar
+                    )
+
+                    if agent.canGenerateAvatar {
+                        AgentAvatarGeneratorEntry(onOpen: onOpenAvatarGenerator)
+                    }
+                }
 
                 SettingsSection("Identity") {
                     SettingsListGroup {
@@ -215,8 +221,6 @@ struct AgentProfileView: View {
                         )
                     }
                 }
-
-                AgentAvatarGeneratorEntry(onOpen: onOpenAvatarGenerator)
 
                 SettingsSection("Details") {
                     SettingsListGroup {
@@ -290,7 +294,8 @@ struct AgentProfileView: View {
                 status: agent.status,
                 avatarURL: agent.avatarURL,
                 presence: agent.presence,
-                initials: agent.initials
+                initials: agent.initials,
+                canGenerateAvatar: agent.canGenerateAvatar
             )
             let saved = try await onSave(draft)
             name = saved.displayName

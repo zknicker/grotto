@@ -31,6 +31,7 @@ public enum GrottoIconName: String, CaseIterable, Sendable {
     case identity = "UserCheck01Icon"
     case image = "Image01Icon"
     case info = "InformationCircleIcon"
+    case magic = "AiMagicIcon"
     case media = "Album02Icon"
     case members = "UserMultiple02Icon"
     case menu = "Menu02Icon"

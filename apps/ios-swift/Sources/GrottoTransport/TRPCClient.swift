@@ -39,11 +39,16 @@ public actor TRPCClient {
         try await request(path: path, kind: .mutation, body: nil)
     }
 
+    /// - Parameter timeout: overrides the session default for one operation. A
+    ///   procedure that waits on a slow external provider — image generation is
+    ///   the current one — outlives `URLSession`'s 60-second default, and the
+    ///   client would otherwise fail a request the Server is still answering.
     public func mutation<Input: Encodable, Output: Decodable>(
         _ path: String,
-        input: Input
+        input: Input,
+        timeout: TimeInterval? = nil
     ) async throws -> Output {
-        try await request(path: path, kind: .mutation, body: try encode(input))
+        try await request(path: path, kind: .mutation, body: try encode(input), timeout: timeout)
     }
 
     private enum OperationKind {
@@ -54,11 +59,15 @@ public actor TRPCClient {
     private func request<Output: Decodable>(
         path: String,
         kind: OperationKind,
-        body: Data?
+        body: Data?,
+        timeout: TimeInterval? = nil
     ) async throws -> Output {
         let url = try procedureURL(path: path)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        if let timeout {
+            request.timeoutInterval = timeout
+        }
         request.httpBody = body
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")

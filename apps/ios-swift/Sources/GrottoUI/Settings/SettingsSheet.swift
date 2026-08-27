@@ -256,7 +256,8 @@ public struct SettingsSheet: View {
             status: agent.status,
             avatarURL: agent.avatarURL,
             presence: agent.presence,
-            initials: agent.initials
+            initials: agent.initials,
+            canGenerateAvatar: agent.canGenerateAvatar
         )
         let saved = try await persistence.saveAgentProfile(
             draft.id,

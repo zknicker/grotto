@@ -125,7 +125,8 @@ extension GrottoStore {
                     model: agent.effectiveModelID ?? agent.desiredModelID,
                     status: availability(for: agent).rawValue.capitalized,
                     avatarURL: resolvedAvatarURL(agent.avatarURL),
-                    presence: settingsPresence(availability(for: agent))
+                    presence: settingsPresence(availability(for: agent)),
+                    canGenerateAvatar: agent.factoryKind == .ordinary
                 )
             },
             computers: computers?.map(computerPresentation)

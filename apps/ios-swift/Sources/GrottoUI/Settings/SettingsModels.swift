@@ -82,6 +82,9 @@ public struct SettingsAgent: Identifiable, Hashable, Sendable {
     public let avatarURL: URL?
     public let presence: AgentPresence
     public let initials: String
+    /// Grotto's own factory Agents keep a product-owned avatar the Server
+    /// refuses to replace, so only an ordinary Agent offers the generator.
+    public let canGenerateAvatar: Bool
 
     public init(
         id: String,
@@ -94,7 +97,8 @@ public struct SettingsAgent: Identifiable, Hashable, Sendable {
         status: String = "Online",
         avatarURL: URL? = nil,
         presence: AgentPresence = .idle,
-        initials: String? = nil
+        initials: String? = nil,
+        canGenerateAvatar: Bool = true
     ) {
         self.id = id
         self.displayName = displayName
@@ -107,6 +111,7 @@ public struct SettingsAgent: Identifiable, Hashable, Sendable {
         self.avatarURL = avatarURL
         self.presence = presence
         self.initials = initials ?? Self.makeInitials(from: displayName)
+        self.canGenerateAvatar = canGenerateAvatar
     }
 
     private static func makeInitials(from name: String) -> String {
@@ -227,7 +232,8 @@ public struct SettingsPersistence: Sendable {
                 status: agent.status,
                 avatarURL: agent.avatarURL,
                 presence: agent.presence,
-                initials: agent.initials
+                initials: agent.initials,
+                canGenerateAvatar: agent.canGenerateAvatar
             )
         },
         saveHumanAvatar: { _, _ in
@@ -268,7 +274,20 @@ public enum SettingsFixtures {
         runtime: "Computer",
         model: "Default",
         status: "Online",
-        initials: "CO"
+        initials: "CO",
+        canGenerateAvatar: false
+    )
+
+    public static let blippy = SettingsAgent(
+        id: "agent-blippy",
+        displayName: "Blippy",
+        handle: "blippy",
+        description: "Ships small changes and keeps the board honest.",
+        role: "Agent",
+        runtime: "Computer",
+        model: "Default",
+        status: "Online",
+        initials: "BL"
     )
 
     public static let computers = [

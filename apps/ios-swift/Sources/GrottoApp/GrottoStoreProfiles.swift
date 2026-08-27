@@ -112,15 +112,21 @@ extension GrottoStore {
               agents.contains(where: { $0.id == agentID }) else {
             throw GrottoStoreError.profileUnavailable
         }
-        let _: Avatar = try await client.mutation(
-            "avatar.set",
-            input: SetAvatarInput(
-                bytesBase64: payload.data.base64EncodedString(),
-                mediaType: transportMediaType(for: payload.mediaType),
-                serverID: serverID,
-                target: .agent(agentID: agentID)
+        do {
+            let _: Avatar = try await client.mutation(
+                "avatar.set",
+                input: SetAvatarInput(
+                    bytesBase64: payload.data.base64EncodedString(),
+                    mediaType: transportMediaType(for: payload.mediaType),
+                    serverID: serverID,
+                    target: .agent(agentID: agentID)
+                )
             )
-        )
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw AvatarGenerationFailure.from(error)
+        }
         let refreshed: [AgentSummary] = try await client.query(
             "agent.list",
             input: ServerScopedInput(serverId: serverID)
@@ -137,14 +143,22 @@ extension GrottoStore {
               agents.contains(where: { $0.id == agentID }) else {
             throw GrottoStoreError.profileUnavailable
         }
-        let response: GenerateAgentAvatarResponse = try await client.mutation(
-            "avatar.generate",
-            input: GenerateAgentAvatarInput(
-                agentID: agentID,
-                concept: concept,
-                serverID: serverID
+        let response: GenerateAgentAvatarResponse
+        do {
+            response = try await client.mutation(
+                "avatar.generate",
+                input: GenerateAgentAvatarInput(
+                    agentID: agentID,
+                    concept: concept,
+                    serverID: serverID
+                ),
+                timeout: avatarGenerationTimeout
             )
-        )
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw AvatarGenerationFailure.from(error)
+        }
         let avatar = response.avatar
         guard avatar.width == AvatarImageConstraints.pixelSize,
               avatar.height == AvatarImageConstraints.pixelSize,
@@ -160,6 +174,11 @@ extension GrottoStore {
             mediaType: .png
         )
     }
+
+    /// One drawing takes the image provider tens of seconds, and the Server
+    /// waits up to a minute on it, so this outlives `URLSession`'s 60-second
+    /// default rather than abandoning a request the Server is still answering.
+    private var avatarGenerationTimeout: TimeInterval { 180 }
 
     private func transportMediaType(for mediaType: AvatarImageMediaType) -> AvatarMediaType {
         switch mediaType {

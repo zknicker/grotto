@@ -191,7 +191,18 @@ against the closing spring.
 
 The Chat canvas is keyed by the selected destination: a Chat switch remounts the screen, so each
 Chat lays out bottom-anchored and fully formed before the drawer reveals it, and no scroll offset or
-screen-local state crosses between Chats. Anything that must survive a switch — the composer draft,
+screen-local state crosses between Chats. The swap and the closing slide are two events and must land
+in two frames. The drawer's geometry — offset, corner radius, veil, shadow, and the pan — belongs to a
+container that outlives the keyed screen, because a view that did not exist a frame ago has no offset
+to animate from. That container is not enough on its own: SwiftUI places a view inserted *inside* an
+animating transaction at that animation's destination rather than at its in-flight geometry, so
+selecting a Chat and closing the drawer in the same turn pinned the incoming transcript at the closed
+position while the canvas frame slid over it — a wipe across a stationary Chat, with each line
+uncovered from its right end. `selectDestination` therefore commits the selection and defers
+`setDrawer(open:)` to the next main-actor turn, so the spring animates a screen that is already there
+and the Chat travels with the drawer, its leading edge fixed to the canvas's. The drawer holds open
+for that turn plus the new screen's first layout — around 70ms, and visible as a beat before the
+slide, which is the behaviour to preserve rather than tune away. Anything that must survive a switch — the composer draft,
 the staged attachments and their in-flight preparation, a pending message reveal — is owned by the
 shell per destination and reaches the screen as a binding or by reference; a remount resets only
 presentation state (an open portal, a frozen keyboard inset, an error notice). A page arriving for a Chat that was showing nothing is that Chat's first paint and settles

@@ -56,10 +56,27 @@ Computers through the existing `computer.list`
 contract; an unavailable or role-denied Computer snapshot does not block the rest of Settings.
 Server-provided relative avatar URLs resolve against the configured Server origin, including local
 development; no Swift surface hardcodes the production host or substitutes local seeded artwork.
-An Agent profile may call the same Server-owned `avatar.generate` procedure as the desktop App with
-one short concept. Swift keeps the returned image only in the generation sheet until the human taps
-Save, which applies it through the ordinary `avatar.set` contract; dismissal discards the preview,
-and the existing native photo picker remains the manual-upload path.
+An ordinary Agent's profile may call the same Server-owned `avatar.generate` procedure as the desktop
+App with one short concept, from a capsule directly under the avatar it changes. A factory Agent does
+not offer it: the Server refuses to replace Cove's product-owned artwork, so `SettingsAgent` carries
+`canGenerateAvatar` from the Agent's `factoryKind` and the App and the phone gate the entry the same
+way. Swift keeps the returned image only in the generation sheet until the human taps Save, which
+applies it through the ordinary `avatar.set` contract; dismissal discards the preview, and the
+existing native photo picker remains the manual-upload path.
+
+The generation sheet leads with the preview at the size and circular shape the product actually draws
+an avatar, so what the human approves is what every surface will show. It is an ordinary scrolling
+sheet: Cancel and Save are the navigation bar's own actions, Generate is one button inline under the
+concept field, and the keyboard toolbar carries Done because a vertical-axis field spends Return on a
+newline. Nothing is pinned above the keyboard, so raising it never buries a control. Concept
+suggestions live inside the concept card and appear only while the field is empty, so the layout below
+the card never shifts, and the only prose under the preview is the wait itself — the screen does not
+narrate controls that are already on it. Drawing one avatar takes the image provider tens of seconds: the operation carries its
+own request timeout well past `URLSession`'s 60-second default, the wait is marked on the preview
+itself, and Cancel stays live for the whole generation — only the save that writes the avatar holds
+the sheet open. No Server failure reaches a human as a tRPC string; `AvatarGenerationFailure` maps each
+documented outcome — unconfigured provider, capacity, authorization, missing owner, provider failure,
+unreachable Server — onto one sentence that says what to do next.
 
 Channel appearance is Server state the iPhone app only renders. A channel's `icon` and `color` reach
 `ChatSummary` unchanged, and `ChannelIconBox` draws the chosen glyph in its tinted box everywhere a

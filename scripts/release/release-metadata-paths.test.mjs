@@ -6,6 +6,6 @@ test('publisher accepts every file changed by the coordinated release bump', () 
         'CHANGELOG.md',
         'apps/ios-swift/project.yml',
         'apps/website/package.json',
-        'release-surfaces.json',
+        'releases.json',
     ]);
 });

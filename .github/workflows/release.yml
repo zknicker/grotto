@@ -1,0 +1,299 @@
+name: Release
+# One operator-visible graph: pull requests changing releases.json validate
+# only; a main push may publish the appended entry. Initial ledger migration is
+# a no-op.
+# Secrets stay scoped: GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN -> CI_OP_TOKEN only
+# in dependency setup (bun run setup:worktree), and
+# GH_RELEASE_AGENT_TOOLING_OP_TOKEN -> RELEASE_AGENT_TOOLING_OP_TOKEN only in
+# release-material/publish steps. Required Tooling fields:
+# GROTTO_RELEASE_APPLE_CERTIFICATES_P12_BASE64,
+# GROTTO_RELEASE_APPLE_CERTIFICATES_PASSWORD,
+# GROTTO_RELEASE_APP_STORE_CONNECT_PRIVATE_KEY; plus
+# APPLE_API_KEY_ID/APPLE_API_ISSUER. No Apple material has a GitHub secret.
+# The p12 contains Developer ID Application and Apple Distribution identities.
+# Helpers write p12, randomized keychain, and AuthKey_${APPLE_API_KEY_ID}.p8
+# under RUNNER_TEMP, cleanup runs with always(), and iOS uses automatic signing
+# with -allowProvisioningUpdates (no provisioning-profile secret). Missing
+# Tooling fields fail closed.
+# Apple jobs pin hosted macos-15 arm64 M1; production Server deployment remains
+# the separate manual Deploy Grotto Server workflow.
+on:
+  pull_request:
+    paths:
+      - releases.json
+  push:
+    branches:
+      - main
+    paths:
+      - releases.json
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  plan:
+    name: Validate release plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      plan: ${{ steps.release_plan.outputs.plan }}
+      initial_ledger_migration: ${{ steps.release_plan.outputs.initial_ledger_migration }}
+      publish_computer: ${{ steps.release_plan.outputs.publish_computer }}
+      publish_app: ${{ steps.release_plan.outputs.publish_app }}
+      publish_ios: ${{ steps.release_plan.outputs.publish_ios }}
+      publish_server: ${{ steps.release_plan.outputs.publish_server }}
+      release_version: ${{ steps.release_plan.outputs.release_version }}
+      computer_version: ${{ steps.release_plan.outputs.computer_version }}
+      ios_version: ${{ steps.release_plan.outputs.ios_version }}
+      ios_build_number: ${{ steps.release_plan.outputs.ios_build_number }}
+    steps:
+      - name: Check out release ledger
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Calculate, project, and validate changed release
+        id: release_plan
+        env:
+          BEFORE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          AFTER_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "${BEFORE_SHA}" =~ ^[0-9a-f]{40}$ || ! "${AFTER_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "release plan before and after must be full lowercase Git SHAs" >&2
+            exit 1
+          fi
+          node scripts/release/release-plan.mjs \
+            --before "${BEFORE_SHA}" \
+            --after "${AFTER_SHA}"
+  publish_computer:
+    name: Publish Computer
+    needs: plan
+    if: >-
+      needs.plan.result == 'success' &&
+      github.event_name == 'push' &&
+      needs.plan.outputs.initial_ledger_migration == 'false' &&
+      needs.plan.outputs.publish_computer == 'true'
+    runs-on: macos-15
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up release dependencies
+        uses: ./.github/actions/setup-release-dependencies
+        with:
+          ci-op-token: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
+
+      - name: Import Apple material into temporary keychain
+        env:
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${RELEASE_AGENT_TOOLING_OP_TOKEN:-}" ]]; then
+            echo "GH_RELEASE_AGENT_TOOLING_OP_TOKEN is required for release Tooling access" >&2
+            exit 1
+          fi
+          GROTTO_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal -- \
+            bash scripts/release/setup-apple-material.sh computer
+      - name: Publish Computer
+        env:
+          COMPUTER_VERSION: ${{ needs.plan.outputs.computer_version }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: bun run computer:release "${COMPUTER_VERSION}"
+
+      - name: Clean up Apple material
+        if: ${{ always() }}
+        run: bash scripts/release/cleanup-apple-material.sh
+
+  publish_app:
+    name: Publish App
+    needs: plan
+    if: >-
+      needs.plan.result == 'success' &&
+      github.event_name == 'push' &&
+      needs.plan.outputs.initial_ledger_migration == 'false' &&
+      needs.plan.outputs.publish_app == 'true'
+    runs-on: macos-15
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up release dependencies
+        uses: ./.github/actions/setup-release-dependencies
+        with:
+          ci-op-token: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
+
+      - name: Import Apple material into temporary keychain
+        env:
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${RELEASE_AGENT_TOOLING_OP_TOKEN:-}" ]]; then
+            echo "GH_RELEASE_AGENT_TOOLING_OP_TOKEN is required for release Tooling access" >&2
+            exit 1
+          fi
+          GROTTO_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal -- \
+            bash scripts/release/setup-apple-material.sh computer
+      - name: Publish App
+        env:
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: bun run publish:desktop
+
+      - name: Upload App release bundle for Server
+        uses: actions/upload-artifact@v4
+        with:
+          name: grotto-app-release-assets
+          path: |
+            apps/website/electron-dist/latest-mac.yml
+            apps/website/electron-dist/Grotto_${{ needs.plan.outputs.release_version }}_arm64.dmg
+            apps/website/electron-dist/Grotto_${{ needs.plan.outputs.release_version }}_arm64.zip
+            apps/website/electron-dist/Grotto_${{ needs.plan.outputs.release_version }}_arm64.dmg.blockmap
+            apps/website/electron-dist/Grotto_${{ needs.plan.outputs.release_version }}_arm64.zip.blockmap
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Clean up Apple material
+        if: ${{ always() }}
+        run: bash scripts/release/cleanup-apple-material.sh
+
+  upload_ios:
+    name: Upload iOS
+    needs: plan
+    if: >-
+      needs.plan.result == 'success' &&
+      github.event_name == 'push' &&
+      needs.plan.outputs.initial_ledger_migration == 'false' &&
+      needs.plan.outputs.publish_ios == 'true'
+    runs-on: macos-15
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up release dependencies
+        uses: ./.github/actions/setup-release-dependencies
+        with:
+          ci-op-token: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
+
+      - name: Import Apple material and App Store Connect key
+        env:
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${RELEASE_AGENT_TOOLING_OP_TOKEN:-}" ]]; then
+            echo "GH_RELEASE_AGENT_TOOLING_OP_TOKEN is required for release Tooling access" >&2
+            exit 1
+          fi
+          GROTTO_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal -- \
+            bash scripts/release/setup-apple-material.sh ios
+      - name: Upload iOS
+        env:
+          IOS_VERSION: ${{ needs.plan.outputs.ios_version }}
+          IOS_BUILD_NUMBER: ${{ needs.plan.outputs.ios_build_number }}
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: |
+          GROTTO_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal -- \
+            env "APPLE_API_KEY_PATH=${APPLE_API_KEY_PATH}" \
+              bun run ios:release "${IOS_VERSION}" --build-number "${IOS_BUILD_NUMBER}"
+
+      - name: Clean up Apple material
+        if: ${{ always() }}
+        run: bash scripts/release/cleanup-apple-material.sh
+
+  publish_server:
+    name: Publish Server
+    needs:
+      - plan
+      - publish_computer
+      - publish_app
+      - upload_ios
+    if: >-
+      always() &&
+      needs.plan.result == 'success' &&
+      github.event_name == 'push' &&
+      needs.plan.outputs.initial_ledger_migration == 'false' &&
+      needs.plan.outputs.publish_server == 'true' &&
+      (needs.publish_computer.result == 'success' || needs.plan.outputs.publish_computer == 'false') &&
+      (needs.publish_app.result == 'success' || needs.plan.outputs.publish_app == 'false') &&
+      (needs.upload_ios.result == 'success' || needs.plan.outputs.publish_ios == 'false')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download App release bundle for Server
+        if: ${{ needs.plan.outputs.publish_app == 'true' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: grotto-app-release-assets
+          path: apps/website/electron-dist
+      - name: Set up release dependencies
+        uses: ./.github/actions/setup-release-dependencies
+        with:
+          ci-op-token: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
+
+      - name: Publish Server
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: bun run release:publish
+
+  finalize_release:
+    name: Finalize release
+    needs:
+      - plan
+      - publish_computer
+      - publish_app
+      - upload_ios
+      - publish_server
+    if: >-
+      always() &&
+      needs.plan.result == 'success' &&
+      github.event_name == 'push' &&
+      needs.plan.outputs.initial_ledger_migration == 'false' &&
+      (
+        needs.plan.outputs.publish_computer == 'true' ||
+        needs.plan.outputs.publish_app == 'true' ||
+        needs.plan.outputs.publish_ios == 'true' ||
+        needs.plan.outputs.publish_server == 'true'
+      ) &&
+      (needs.publish_computer.result == 'success' || needs.plan.outputs.publish_computer == 'false') &&
+      (needs.publish_app.result == 'success' || needs.plan.outputs.publish_app == 'false') &&
+      (needs.upload_ios.result == 'success' || needs.plan.outputs.publish_ios == 'false') &&
+      (needs.publish_server.result == 'success' || needs.plan.outputs.publish_server == 'false')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out release verification helpers
+        uses: actions/checkout@v4
+      - name: Verify published release and record outcome
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_REVISION: ${{ github.sha }}
+          RELEASE_VERSION: ${{ needs.plan.outputs.release_version }}
+          COMPUTER_VERSION: ${{ needs.plan.outputs.computer_version }}
+          PUBLISH_COMPUTER: ${{ needs.plan.outputs.publish_computer }}
+          PUBLISH_APP: ${{ needs.plan.outputs.publish_app }}
+          PUBLISH_IOS: ${{ needs.plan.outputs.publish_ios }}
+          PUBLISH_SERVER: ${{ needs.plan.outputs.publish_server }}
+        run: node scripts/release/verify-release.mjs

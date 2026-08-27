@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { assertReleaseSurfaceDecision, formatReleaseSurfaceDecision } from './release-surfaces.mjs';
+import { assertReleaseLedger, formatReleaseTargets, latestMainVersion } from './release-ledger.mjs';
 import {
     compareVersions,
     fail,
@@ -23,13 +23,23 @@ if (argv.includes('--help') || argv.includes('-h')) {
 const main = async () => {
     const targetVersion = await readCurrentVersion();
     const latestChangelogVersion = await readLatestChangelogVersion();
-    const surfaceDecision = await readJson('release-surfaces.json');
-    let computerOnly = false;
+    const ledger = await readJson('releases.json');
+    const ledgerResult = assertReleaseLedger(ledger);
+    const latestEntry = ledgerResult.latest;
+    const computerOnly = ledgerResult.complete && latestEntry.version === null;
     try {
-        const result = assertReleaseSurfaceDecision(surfaceDecision);
-        computerOnly = result.complete && surfaceDecision.targetVersion === null;
-    } catch {
-        // The context still prints an incomplete Server release decision for the operator to finish.
+        if (!ledgerResult.complete && latestEntry.version !== targetVersion) {
+            fail(
+                `latest release draft version (${latestEntry.version}) must match current Server version (${targetVersion})`
+            );
+        }
+        if (latestMainVersion(ledger) !== targetVersion && !computerOnly) {
+            fail(
+                `latest release ledger Server version (${latestMainVersion(ledger)}) must match current Server version (${targetVersion})`
+            );
+        }
+    } catch (error) {
+        fail(error instanceof Error ? error.message : String(error));
     }
 
     if (compareVersions(targetVersion, latestChangelogVersion) <= 0 && !computerOnly) {
@@ -52,7 +62,7 @@ const main = async () => {
         baseRef,
         commitCount: commits.length,
         commits,
-        surfaceDecision,
+        releaseEntry: latestEntry,
     });
 };
 
@@ -155,7 +165,7 @@ function printContext({
     baseRef,
     commitCount,
     commits,
-    surfaceDecision,
+    releaseEntry,
 }) {
     console.log('# Release Changelog Context');
     console.log('');
@@ -177,13 +187,11 @@ function printContext({
     }
 
     console.log('');
-    console.log('## Required Release Surface Decision');
+    console.log('## Required Release Target Decision');
     console.log('');
-    console.log(
-        'Edit `release-surfaces.json`, then include this generated block in the changelog:'
-    );
+    console.log('Edit the latest draft in `releases.json` and keep the ledger oldest-first:');
     console.log('');
-    console.log(formatReleaseSurfaceDecision(surfaceDecision));
+    console.log(formatReleaseTargets(releaseEntry));
     console.log('');
     console.log('## AI Changelog Writing Guidance');
     console.log('');

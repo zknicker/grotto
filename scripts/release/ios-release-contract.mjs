@@ -2,17 +2,17 @@ import path from 'node:path';
 
 import { isSemver } from './release-utils.mjs';
 
-export function assertIOSReleaseDecision(decision, version, buildNumber) {
-    const ios = decision?.surfaces?.ios;
-    if (ios?.action !== 'publish') {
-        throw new Error('release surface decision does not publish iOS');
+export function assertIOSReleaseTarget(release, version, buildNumber) {
+    const ios = release?.targets?.ios;
+    if (!(ios && typeof ios === 'object' && !Array.isArray(ios))) {
+        throw new Error('release ledger entry does not publish iOS');
     }
     if (ios.version !== version) {
-        throw new Error(`declared iOS version ${ios.version} does not match ${version}`);
+        throw new Error(`declared iOS target version ${ios.version} does not match ${version}`);
     }
     if (ios.buildNumber !== buildNumber) {
         throw new Error(
-            `declared iOS build ${ios.buildNumber} does not match build ${buildNumber}`
+            `declared iOS target build ${ios.buildNumber} does not match build ${buildNumber}`
         );
     }
 }

@@ -38,7 +38,7 @@ jobs:
       - name: Install dependencies
         timeout-minutes: 5
         env:
-          CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
+          CI_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
         run: |
           set -euo pipefail
           MERCHBASE_HUGEICONS_LICENSE_KEY="$(
@@ -62,6 +62,8 @@ jobs:
       # Playwright; the agent evals call live models. All of that lives in
       # `check:heavy`, which `bun run check` runs on the operator's machine, in
       # cloud agents, and in the release preflight. Keep this job free of
-      # licensed downloads, databases, browsers, and builds.
+      # licensed downloads, databases, browsers, and builds. The one focused
+      # Computer prompt-contract file in `check:fast` is pure and catches prompt
+      # budget drift without spawning an execution runtime.
       - name: Run fast quality gates
         run: bun run check:fast

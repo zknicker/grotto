@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grotto Release"
+  short_description: "Plan, prepare, monitor, and hand off a Grotto release"
+  default_prompt: "Use $release-grotto to prepare and monitor the next Grotto release."

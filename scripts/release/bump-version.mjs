@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { resetReleaseSurfaceDecision } from './release-surfaces.mjs';
+import { appendReleaseDraft, assertReleaseLedger, latestMainVersion } from './release-ledger.mjs';
 import {
     compareVersions,
     fail,
@@ -41,8 +41,20 @@ const main = async () => {
         fail(`target version ${targetVersion} must be greater than current ${currentVersion}`);
     }
 
+    const ledger = await readJson('releases.json');
+    try {
+        assertReleaseLedger(ledger, { requireComplete: true });
+        if (latestMainVersion(ledger) !== currentVersion) {
+            fail(
+                `latest release ledger Server version (${latestMainVersion(ledger)}) must match current Server version (${currentVersion}) before bumping`
+            );
+        }
+    } catch (error) {
+        fail(error instanceof Error ? error.message : String(error));
+    }
+
     await updateVersionedFiles(targetVersion);
-    await updateJson('release-surfaces.json', () => resetReleaseSurfaceDecision(targetVersion));
+    await appendLedgerDraft(ledger, targetVersion);
 
     printSummary({ currentVersion, targetVersion });
 };
@@ -57,6 +69,26 @@ function printUsage() {
             '  bun run release:bump 1.0.1',
         ].join('\n')
     );
+}
+
+async function appendLedgerDraft(ledger, targetVersion) {
+    let nextLedger;
+    try {
+        nextLedger = appendReleaseDraft(ledger, targetVersion);
+    } catch (error) {
+        fail(error instanceof Error ? error.message : String(error));
+    }
+
+    const rawLedger = await readText('releases.json');
+    const closingBracket = /\n\]\n$/u;
+    if (!closingBracket.test(rawLedger)) {
+        fail('releases.json must end with a newline-delimited array bracket');
+    }
+    const draft = JSON.stringify(nextLedger.at(-1), null, 2)
+        .split('\n')
+        .map((line) => `  ${line}`)
+        .join('\n');
+    await writeText('releases.json', rawLedger.replace(closingBracket, `,\n${draft}\n]\n`));
 }
 
 async function readCurrentVersion() {
@@ -144,11 +176,11 @@ function printSummary({ currentVersion, targetVersion }) {
     console.log('Updated files:');
     console.log('- apps/website/package.json');
     console.log('- apps/ios-swift/project.yml (local-build MARKETING_VERSION default)');
-    console.log('- release-surfaces.json');
+    console.log('- releases.json (append the next release draft)');
     console.log('Next:');
     console.log('- bun install --frozen-lockfile');
     console.log('- bun run release:collect-changelog-context');
-    console.log('- decide publish or unchanged for every surface in release-surfaces.json');
+    console.log('- decide publish or unchanged for every target in releases.json');
     console.log('- update CHANGELOG.md using commit analysis');
     console.log('- bun run release:check');
 }

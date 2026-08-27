@@ -223,6 +223,14 @@ Use the default five-label triage vocabulary in Linear. See `docs/agents/triage-
 
 Single-context repo: use root `CONTEXT.md` and `docs/adr/`. See `docs/agents/domain.md`.
 
+### Release operations
+
+For release target decisions, `releases.json` preparation, the single release PR, post-merge
+target-job monitoring, or the operator handoff, use `.agents/skills/release-grotto/SKILL.md`.
+Route durable artifact and target contracts through `docs/operations/releases.md`; production
+Grotto Server promotion remains a separate manual operation in
+`docs/operations/grotto-server-deploy.md`.
+
 ## Cursor Cloud specific instructions
 
 The Cloud Agent environment is repository-managed via `.cursor/environment.json` and

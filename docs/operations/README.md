@@ -12,6 +12,7 @@ read_when:
 | Environment and secrets | [Environment](environment.md) |
 | Local stack | [Development](development.md) |
 | Verification lanes | [Testing](testing.md) |
+| Release planning, workflow, and handoff | [Grotto release skill](../../.agents/skills/release-grotto/SKILL.md) |
 | Release process | [Releases](releases.md) |
 | iOS and TestFlight | [iOS TestFlight](ios-testflight.md) |
 | Hosted Server deployment | [Grotto Server Deployment](grotto-server-deploy.md) |

@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { assertReleaseSurfaceDecision, formatReleaseSurfaceDecision } from './release-surfaces.mjs';
+import { assertReleaseLedger, latestMainVersion } from './release-ledger.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,19 +53,25 @@ const main = async () => {
             `expected version ${expectedVersion} does not match ${releaseVersion}`
         );
     }
-    const surfaceDecision = await readJson('release-surfaces.json');
     try {
-        const result = assertReleaseSurfaceDecision(surfaceDecision, {
-            requireDecision: Boolean(expectedVersion),
-            targetVersion:
-                surfaceDecision.targetVersion === null && !expectedVersion
-                    ? undefined
-                    : releaseVersion,
+        const ledger = await readJson('releases.json');
+        const result = assertReleaseLedger(ledger, {
+            requireComplete: Boolean(expectedVersion),
         });
-        if (result.complete) {
+        assert(
+            latestMainVersion(ledger) === releaseVersion,
+            'latest release ledger Server version must match the website version'
+        );
+        if (result.complete && result.latest.version !== null) {
             assert(
-                latestRelease.body.includes(formatReleaseSurfaceDecision(surfaceDecision)),
-                'latest changelog entry must include the exact release surface decision'
+                result.latest.version === latestRelease.version,
+                'latest release ledger version must match the latest changelog version'
+            );
+        }
+        if (expectedVersion) {
+            assert(
+                result.latest.version === expectedVersion,
+                'latest release ledger entry must match the expected Server version'
             );
         }
     } catch (error) {

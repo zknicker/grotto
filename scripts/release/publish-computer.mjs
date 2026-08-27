@@ -34,7 +34,7 @@ import {
     verifyPublicDescriptor,
     verifyPublicObjects,
 } from './computer-release-publication.mjs';
-import { assertReleaseSurfaceDecision } from './release-surfaces.mjs';
+import { assertReleaseLedger, releaseTargetVersion } from './release-ledger.mjs';
 import { fail, isSemver, readJson, repoRoot } from './release-utils.mjs';
 
 const args = process.argv.slice(2).filter((arg) => arg !== '--');
@@ -189,15 +189,15 @@ async function assertPublishState(releaseVersion, releasePublicKey) {
     if (packageJson.version !== releaseVersion) {
         fail(`apps/computer/package.json must be version ${releaseVersion}`);
     }
-    const surfaceDecision = await readJson('release-surfaces.json');
+    const ledger = await readJson('releases.json');
     try {
-        assertReleaseSurfaceDecision(surfaceDecision, { requireDecision: true });
+        const result = assertReleaseLedger(ledger, { requireComplete: true });
+        const declaredVersion = releaseTargetVersion(result.latest, 'computer');
+        if (declaredVersion !== releaseVersion) {
+            throw new Error(`release ledger must publish Computer ${releaseVersion}`);
+        }
     } catch (error) {
         fail(error instanceof Error ? error.message : String(error));
-    }
-    const computer = surfaceDecision.surfaces.computer;
-    if (computer.action !== 'publish' || computer.version !== releaseVersion) {
-        fail(`release surface decision must publish Computer ${releaseVersion}`);
     }
     const current = await readProductionComputerRelease(
         `${releaseBaseUrl}/latest.json`,

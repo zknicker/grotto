@@ -8,9 +8,10 @@ import path from 'node:path';
 import {
     appStoreConnectAuthenticationArgs,
     appStoreConnectExportOptions,
-    assertIOSReleaseDecision,
+    assertIOSReleaseTarget,
     parseIOSReleaseArgs,
 } from './ios-release-contract.mjs';
+import { assertReleaseLedger } from './release-ledger.mjs';
 import { fail, readJson, repoRoot } from './release-utils.mjs';
 
 const iosRoot = path.join(repoRoot, 'apps', 'ios-swift');
@@ -25,8 +26,9 @@ if (args.help) {
 await main(args);
 
 async function main(input) {
-    const decision = await readJson('release-surfaces.json');
-    assertIOSReleaseDecision(decision, input.version, input.buildNumber);
+    const ledger = await readJson('releases.json');
+    const { latest } = assertReleaseLedger(ledger, { requireComplete: true });
+    assertIOSReleaseTarget(latest, input.version, input.buildNumber);
     assertCommand('xcodebuild');
     assertCommand('xcodegen');
     verifyGeneratedProject();

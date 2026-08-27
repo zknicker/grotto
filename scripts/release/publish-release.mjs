@@ -8,19 +8,20 @@ import path from 'node:path';
 import { loadAppReleaseEnvironment } from './app-release-environment.mjs';
 import { checkComputerReleasePrerequisite } from './check-computer-prerequisite.mjs';
 import { findGrottoServerReleaseAssets } from './grotto-server-release-assets.mjs';
-import { releaseMetadataPaths } from './release-metadata-paths.mjs';
-import { releasePublishesSurface } from './release-surfaces.mjs';
-import { fail, isSemver, readFlagValue, readJson, readText, repoRoot } from './release-utils.mjs';
+import {
+    assertReleaseLedger,
+    releasePublishesTarget,
+    releaseTargetVersion,
+} from './release-ledger.mjs';
+import { fail, isSemver, readJson, readText, repoRoot } from './release-utils.mjs';
 
 const argv = process.argv.slice(2);
-const pushBranch = readFlagValue(argv, '--push-branch') ?? 'main';
 
 if (argv.includes('--help') || argv.includes('-h')) {
     printUsage();
     process.exit(0);
 }
 
-const allowedDirtyPaths = new Set(releaseMetadataPaths);
 const bundleRoot = path.join(repoRoot, 'apps', 'website', 'electron-dist');
 const serverReleaseRoot = path.join(repoRoot, 'apps', 'server', 'release');
 
@@ -30,8 +31,10 @@ const main = async () => {
     const tagName = `v${version}`;
 
     assertVersion(version);
+    assertCleanWorktree();
     assertNoTag(tagName);
     run('bun', ['run', 'release:check', '--', '--expect-version', version]);
+    const release = await readPublishedRelease(version);
     const computerRelease = await checkComputerReleasePrerequisite().catch((error) => {
         fail('compatible Grotto Computer must be published before Server', {
             message: error instanceof Error ? error.message : String(error),
@@ -40,34 +43,19 @@ const main = async () => {
     console.log(
         `Computer prerequisite: ${computerRelease.version} (protocol ${computerRelease.protocolVersion})`
     );
-    const surfaceDecision = await readJson('release-surfaces.json');
-    const publishApp = releasePublishesSurface(surfaceDecision, 'app');
-    if (
-        surfaceDecision.surfaces.computer.action === 'publish' &&
-        surfaceDecision.surfaces.computer.version !== computerRelease.version
-    ) {
+    const publishApp = releasePublishesTarget(release, 'app');
+    const declaredComputerVersion = releaseTargetVersion(release, 'computer');
+    if (declaredComputerVersion && declaredComputerVersion !== computerRelease.version) {
         fail('the declared Computer release is not the publicly verified production release', {
-            declared: surfaceDecision.surfaces.computer.version,
+            declared: declaredComputerVersion,
             production: computerRelease.version,
         });
     }
-    const releasePaths = readReleaseDirtyPaths();
-    stageReleasePaths(releasePaths);
-    commitReleaseIfNeeded(tagName);
     const sourceRevision = readSourceRevision();
-    pushReleaseCommit(pushBranch);
     run('bun', ['run', 'build:grotto-server-artifact'], {
         env: { ...process.env, GROTTO_SOURCE_REVISION: sourceRevision },
     });
 
-    if (publishApp) {
-        run('bun', ['run', 'publish:desktop'], {
-            env: {
-                ...process.env,
-                GROTTO_RELEASE_INCLUDE_DESKTOP: '1',
-            },
-        });
-    }
     if (publishApp) {
         run('bun', ['run', 'release:check-desktop-artifacts']);
     }
@@ -79,8 +67,8 @@ const main = async () => {
         version,
     });
 
-    createTag(tagName);
-    pushReleaseTag({ pushBranch, tagName });
+    createTag(tagName, sourceRevision);
+    pushReleaseTag(tagName);
     createGithubRelease({ artifacts, notesPath, tagName });
     console.log(`Released ${tagName}`);
 };
@@ -90,10 +78,10 @@ await main();
 function printUsage() {
     console.log(
         [
-            'Usage: bun run release:publish [-- --push-branch main]',
+            'Usage: bun run release:publish',
             '',
-            'Builds the Server and each declared release surface,',
-            'pushes the release commit and tag, and creates the GitHub Release.',
+            'Builds the Server and each declared release target from the already-merged commit,',
+            'pushes the release tag, and creates the GitHub Release.',
         ].join('\n')
     );
 }
@@ -135,73 +123,52 @@ function assertNoTag(tagName) {
     }
 }
 
-function readReleaseDirtyPaths() {
+function assertCleanWorktree() {
     const status = runCapture('git', ['status', '--porcelain']);
-    const dirtyPaths = status
-        .split('\n')
-        .filter(Boolean)
-        .map((line) => line.slice(3).replace(/^.* -> /, ''));
-    const unexpectedPaths = dirtyPaths.filter((filePath) => !allowedDirtyPaths.has(filePath));
-
-    if (unexpectedPaths.length > 0) {
-        fail('release has unexpected dirty files', { unexpectedPaths });
+    if (status.trim()) {
+        fail('release publishing requires the already-merged checkout to be clean', {
+            status: status.trim(),
+        });
     }
-
-    return dirtyPaths;
 }
 
-function stageReleasePaths(paths) {
-    if (paths.length === 0) {
-        return;
-    }
-
-    run('git', ['add', ...paths]);
-}
-
-function commitReleaseIfNeeded(tagName) {
-    const diff = spawnSync('git', ['diff', '--cached', '--quiet'], {
-        cwd: repoRoot,
-        stdio: 'ignore',
-    });
-
-    if (diff.status === 0) {
-        return;
-    }
-
-    run('git', ['commit', '-m', `release: ${tagName}`]);
-}
-
-function createTag(tagName) {
-    run('git', ['tag', '-a', tagName, '-m', tagName]);
+function createTag(tagName, sourceRevision) {
+    run('git', ['tag', '-a', tagName, sourceRevision, '-m', tagName]);
 }
 
 function readSourceRevision() {
-    const sourceRevision = runCapture('git', ['rev-parse', 'HEAD']).trim();
+    const checkedOutRevision = runCapture('git', ['rev-parse', 'HEAD']).trim();
+    const sourceRevision = process.env.GITHUB_SHA?.trim() || checkedOutRevision;
     if (!/^[0-9a-f]{40}$/u.test(sourceRevision)) {
         fail('release source revision must be a full lowercase Git SHA');
+    }
+    if (sourceRevision !== checkedOutRevision) {
+        fail('GITHUB_SHA must match the already-merged checkout revision', {
+            github: sourceRevision,
+            checkout: checkedOutRevision,
+        });
     }
     return sourceRevision;
 }
 
-function pushReleaseCommit(pushBranch) {
-    run('git', ['push', 'origin', `HEAD:${pushBranch}`]);
+function pushReleaseTag(tagName) {
+    run('git', ['push', 'origin', tagName]);
 }
 
-function pushReleaseTag({ pushBranch, tagName }) {
-    run('git', ['fetch', 'origin', pushBranch]);
-    const containsRelease = spawnSync(
-        'git',
-        ['merge-base', '--is-ancestor', 'HEAD', `origin/${pushBranch}`],
-        {
-            cwd: repoRoot,
-            env: process.env,
-            stdio: 'ignore',
+async function readPublishedRelease(version) {
+    try {
+        const ledger = await readJson('releases.json');
+        const result = assertReleaseLedger(ledger, { requireComplete: true });
+        if (result.latest.version !== version) {
+            throw new Error(`latest release ledger entry is not Server ${version}`);
         }
-    );
-    if (containsRelease.status !== 0) {
-        fail(`origin/${pushBranch} no longer contains the release commit`);
+        if (!releasePublishesTarget(result.latest, 'server')) {
+            throw new Error(`release ledger entry does not publish Server ${version}`);
+        }
+        return result.latest;
+    } catch (error) {
+        fail(error instanceof Error ? error.message : String(error));
     }
-    run('git', ['push', 'origin', tagName]);
 }
 
 async function writeReleaseNotes(version) {

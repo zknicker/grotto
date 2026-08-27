@@ -1,0 +1,98 @@
+import { expect, test } from 'bun:test';
+import { readFile } from 'node:fs/promises';
+import {
+    appendReleaseDraft,
+    assertReleaseLedger,
+    createReleaseDraft,
+    formatReleaseTargets,
+    latestMainVersion,
+    releaseTargetBuildNumber,
+    releaseTargetVersion,
+} from './release-ledger.mjs';
+
+const normalRelease = {
+    version: '1.2.3',
+    date: '2026-08-01',
+    targets: {
+        server: '1.2.3',
+        app: '1.2.3',
+        ios: { version: '2.0.0', buildNumber: 7 },
+        computer: '3.0.0',
+    },
+};
+
+test('migrated ledger is oldest-first and keeps independent target versions', async () => {
+    const ledger = JSON.parse(await readFile('releases.json', 'utf8'));
+    const result = assertReleaseLedger(ledger, { requireComplete: true });
+
+    expect(ledger).toHaveLength(34);
+    expect(ledger[0]).toEqual({
+        version: '1.6.7',
+        date: '2026-07-28',
+        targets: { server: '1.6.7', app: '1.6.7', ios: null, computer: '1.1.1' },
+    });
+    expect(ledger.at(-1)).toEqual({
+        version: '1.8.24',
+        date: '2026-08-26',
+        targets: {
+            server: '1.8.24',
+            app: null,
+            ios: { version: '1.0.4', buildNumber: 5 },
+            computer: '1.4.8',
+        },
+    });
+    expect(ledger.find((entry) => entry.date === '2026-08-18')).toMatchObject({
+        version: '1.8.18',
+        targets: { ios: { version: '1.0.0', buildNumber: 1 } },
+    });
+    expect(result.latest.version).toBe('1.8.24');
+});
+
+test('validates normal and Computer-only release entries', () => {
+    const ledger = [
+        normalRelease,
+        {
+            version: null,
+            date: '2026-08-02',
+            targets: { server: null, app: null, ios: null, computer: '3.0.1' },
+        },
+    ];
+
+    expect(assertReleaseLedger(ledger, { requireComplete: true }).complete).toBe(true);
+    expect(latestMainVersion(ledger)).toBe('1.2.3');
+    expect(releaseTargetVersion(ledger[0], 'ios')).toBe('2.0.0');
+    expect(releaseTargetBuildNumber(ledger[0])).toBe(7);
+});
+
+test('requires every release target key', () => {
+    const incomplete = {
+        ...normalRelease,
+        targets: { server: '1.2.3', app: '1.2.3', computer: '3.0.0' },
+    };
+
+    expect(() => assertReleaseLedger([incomplete], { requireComplete: true })).toThrow(
+        'release ledger targets must contain exactly Server, App, iOS, and Computer'
+    );
+});
+
+test('allows undecided targets only in the latest draft', () => {
+    const draft = createReleaseDraft('1.2.4');
+    const result = assertReleaseLedger([normalRelease, draft]);
+
+    expect(result.complete).toBe(false);
+    expect(() => assertReleaseLedger([draft, normalRelease])).toThrow(
+        'only the latest release ledger entry may be a draft'
+    );
+    expect(formatReleaseTargets(draft)).toContain('- App: Undecided');
+});
+
+test('appends one higher Server draft without rewriting history', () => {
+    const ledger = appendReleaseDraft([normalRelease], '1.2.4');
+
+    expect(ledger).toHaveLength(2);
+    expect(ledger[0]).toBe(normalRelease);
+    expect(ledger[1]).toEqual(createReleaseDraft('1.2.4'));
+    expect(() => appendReleaseDraft(ledger, '1.2.5')).toThrow(
+        'latest release ledger entry is still a draft'
+    );
+});

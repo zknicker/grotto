@@ -34,6 +34,7 @@
     "lint:fix": "ultracite fix .",
     "publish:desktop": "GROTTO_RESOLVE_RELEASE_TOKENS=true varlock run --include-internal -- bun run --filter @grotto/website desktop:publish",
     "release:bump": "node scripts/release/bump-version.mjs",
+    "release:changed": "node scripts/release/changed-release.mjs",
     "release:check": "node scripts/release/validate-release-metadata.mjs",
     "release:check-desktop-artifacts": "node scripts/release/check-desktop-artifacts.mjs",
     "release:collect-changelog-context": "node scripts/release/collect-changelog-context.mjs",

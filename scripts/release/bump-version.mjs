@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { resetReleaseSurfaceDecision } from './release-surfaces.mjs';
+import { appendReleaseDraft, assertReleaseLedger, latestMainVersion } from './release-ledger.mjs';
 import {
     compareVersions,
     fail,
@@ -41,8 +41,26 @@ const main = async () => {
         fail(`target version ${targetVersion} must be greater than current ${currentVersion}`);
     }
 
+    const ledger = await readJson('releases.json');
+    try {
+        assertReleaseLedger(ledger, { requireComplete: true });
+        if (latestMainVersion(ledger) !== currentVersion) {
+            fail(
+                `latest release ledger Server version (${latestMainVersion(ledger)}) must match current Server version (${currentVersion}) before bumping`
+            );
+        }
+    } catch (error) {
+        fail(error instanceof Error ? error.message : String(error));
+    }
+
     await updateVersionedFiles(targetVersion);
-    await updateJson('release-surfaces.json', () => resetReleaseSurfaceDecision(targetVersion));
+    await updateJson('releases.json', (currentLedger) => {
+        try {
+            return appendReleaseDraft(currentLedger, targetVersion);
+        } catch (error) {
+            fail(error instanceof Error ? error.message : String(error));
+        }
+    });
 
     printSummary({ currentVersion, targetVersion });
 };
@@ -144,11 +162,11 @@ function printSummary({ currentVersion, targetVersion }) {
     console.log('Updated files:');
     console.log('- apps/website/package.json');
     console.log('- apps/ios-swift/project.yml (local-build MARKETING_VERSION default)');
-    console.log('- release-surfaces.json');
+    console.log('- releases.json (append the next release draft)');
     console.log('Next:');
     console.log('- bun install --frozen-lockfile');
     console.log('- bun run release:collect-changelog-context');
-    console.log('- decide publish or unchanged for every surface in release-surfaces.json');
+    console.log('- decide publish or unchanged for every target in releases.json');
     console.log('- update CHANGELOG.md using commit analysis');
     console.log('- bun run release:check');
 }

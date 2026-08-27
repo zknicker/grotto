@@ -13,13 +13,6 @@ All notable changes to this project will be documented in this file.
 - Grotto Computer 1.4.8 carries the new prepared-action and avatar commands and preserves Codex
   network fallback behavior.
 
-### Release surfaces
-
-- Server: Publish v1.8.24
-- App: Unchanged
-- iOS: Publish v1.0.4 (build 5)
-- Computer: Publish v1.4.8
-
 ## v1.8.23 - 2026-08-26
 
 - The Grotto App now carries its sidebar treatment through the macOS titlebar, lifts Settings into
@@ -27,13 +20,6 @@ All notable changes to this project will be documented in this file.
 - Artifact and Thread surfaces gain clearer empty and menu states, better light-mode separation,
   and reliable horizontal containment for long task content.
 - Server menu actions now use consistent labels and behavior.
-
-### Release surfaces
-
-- Server: Publish v1.8.23
-- App: Unchanged
-- iOS: Unchanged
-- Computer: Unchanged
 
 ## v1.8.22 - 2026-08-25
 
@@ -46,13 +32,6 @@ All notable changes to this project will be documented in this file.
 - Grotto for iPhone gains handle and Agent-DM parity, a rebuilt attachment composer, and a unified
   Hugeicons-based icon system across chat, navigation, and settings.
 
-### Release surfaces
-
-- Server: Publish v1.8.22
-- App: Publish v1.8.22
-- iOS: Publish v1.0.3 (build 4)
-- Computer: Publish v1.4.7
-
 ## v1.8.21 - 2026-08-25
 
 - Signing in from the Grotto App works again. The desktop shell and the App ship on independent
@@ -63,13 +42,6 @@ All notable changes to this project will be documented in this file.
   release is cut from an operator's machine, which resolves the development lifecycle, so the
   release switch rather than the lifecycle selects the App's Clerk instance, and the artifact
   builder refuses to build unless the resolved publishable key is a production key.
-
-### Release surfaces
-
-- Server: Publish v1.8.21
-- App: Publish v1.8.21
-- iOS: Unchanged
-- Computer: Unchanged
 
 ## v1.8.20 - 2026-08-24
 
@@ -86,13 +58,6 @@ All notable changes to this project will be documented in this file.
   internal tooling complete the breaking Tavern-to-Grotto contract rename. Server, App, iOS, and
   Computer artifacts move together so no deployed surface retains the retired identifiers.
 
-### Release surfaces
-
-- Server: Publish v1.8.20
-- App: Publish v1.8.20
-- iOS: Publish v1.0.2 (build 3)
-- Computer: Publish v1.4.6
-
 ## v1.8.19 - 2026-08-19
 
 - Grotto for iPhone gains unified chrome, finger-tracking sidebar gestures, and Server-wide search
@@ -103,13 +68,6 @@ All notable changes to this project will be documented in this file.
   now explain unavailable details instead of showing empty space.
 - The Server now accepts long batched tRPC request paths without Fastify rejecting them at the
   default parameter-length limit.
-
-### Release surfaces
-
-- Server: Publish v1.8.19
-- App: Unchanged
-- iOS: Publish v1.0.1 (build 2)
-- Computer: Unchanged
 
 ## v1.8.18 - 2026-08-18
 
@@ -122,13 +80,6 @@ All notable changes to this project will be documented in this file.
 - Grotto Computer 1.4.5 adds Grok Build support, verified and pre-warmed harness bridges, shared
   bridge storage, and clearer startup and stall diagnostics.
 
-### Release surfaces
-
-- Server: Publish v1.8.18
-- App: Publish v1.8.18
-- iOS: Publish v1.0.0 (build 1)
-- Computer: Publish v1.4.5
-
 ## v1.8.17 - 2026-08-11
 
 - Agent inboxes now follow Raft's notice-then-pull model: pending Chat bodies stay durable and
@@ -139,24 +90,11 @@ All notable changes to this project will be documented in this file.
   exact subset and multi-Chat settlement for Computer protocol 7.
 - The Grotto App ships the latest macOS icon material and lighting effects.
 
-### Release surfaces
-
-- Server: Publish v1.8.17
-- App: Publish v1.8.17
-- Computer: Publish v1.4.4
-
 ## v1.8.16 - 2026-08-10
 
 - Server releases now apply pending database migrations as an explicit deployment step before
   activation, using the deployment workflow's dedicated migration credential.
 - Release output now reports the exact database migrations applied and whether they succeeded.
-
-### Release surfaces
-
-- Server: Publish v1.8.16
-- App: Unchanged
-- Computer: Unchanged
-- Runtime: Unchanged
 
 ## v1.8.15 - 2026-08-10
 
@@ -164,13 +102,6 @@ All notable changes to this project will be documented in this file.
   records cross-reference one another, releasing the Server address once the purge completes.
 - Startup recovery retries previously failed Server purges after the corrected PostgreSQL constraint
   contract is installed.
-
-### Release surfaces
-
-- Server: Publish v1.8.15
-- App: Unchanged
-- Computer: Unchanged
-- Runtime: Unchanged
 
 ## v1.8.14 - 2026-08-10
 
@@ -180,13 +111,6 @@ All notable changes to this project will be documented in this file.
   success or failure verdict, with redesigned help, status, doctor, and update-check surfaces.
 - Bare, unknown, and incomplete Computer commands now lead to actionable help, while scripts and
   piped output retain their plain machine-readable contracts.
-
-### Release surfaces
-
-- Server: Publish v1.8.14
-- App: Unchanged
-- Computer: Publish v1.4.3
-- Runtime: Unchanged
 
 ## v1.8.13 - 2026-08-10
 
@@ -198,13 +122,6 @@ All notable changes to this project will be documented in this file.
 - Signed Grotto Computer builds now resolve their embedded Claude Code and Codex harness bridge
   assets from the packaged executable correctly.
 
-### Release surfaces
-
-- Server: Publish v1.8.13
-- App: Unchanged
-- Computer: Publish v1.4.2
-- Runtime: Unchanged
-
 ## v1.8.12 - 2026-08-10
 
 - First-boot Server creation, invitation joining, Computer connection, and Cove setup now use
@@ -213,13 +130,6 @@ All notable changes to this project will be documented in this file.
   attachment daemon across its service lifecycle, diagnostics, and local state.
 - Existing development Servers now apply checked-in PostgreSQL migrations automatically when the
   managed development stack starts.
-
-### Release surfaces
-
-- Server: Publish v1.8.12
-- App: Unchanged
-- Computer: Publish v1.4.1
-- Runtime: Unchanged
 
 ## v1.8.11 - 2026-08-10
 
@@ -230,13 +140,6 @@ All notable changes to this project will be documented in this file.
 - Production database changes now ship as checked-in, forward-only PostgreSQL
   migrations that are verified and applied atomically before Server activation.
 
-### Release surfaces
-
-- Server: Publish v1.8.11
-- App: Unchanged
-- Computer: Unchanged
-- Runtime: Unchanged
-
 ## v1.8.10 - 2026-08-10
 
 - Deleted Agents and departed humans now remain recognizable in historical
@@ -245,13 +148,6 @@ All notable changes to this project will be documented in this file.
   reachable as durable history.
 - Retiring an Agent releases its handle for a new Agent identity without moving
   old messages, references, queued work, DMs, or execution history to the replacement.
-
-### Release surfaces
-
-- Server: Publish v1.8.10
-- App: Unchanged
-- Computer: Unchanged
-- Runtime: Unchanged
 
 ## v1.8.9 - 2026-08-10
 
@@ -264,13 +160,6 @@ All notable changes to this project will be documented in this file.
 - Returning to Chat opens the last valid conversation directly, and non-owner members
   and Admins no longer get redirected toward the owner-only onboarding channel.
 
-### Release surfaces
-
-- Server: Publish v1.8.9
-- App: Unchanged
-- Computer: Unchanged
-- Runtime: Unchanged
-
 ## v1.8.8 - 2026-08-10
 
 - Computer removal now releases its durable onboarding reference, preserving
@@ -278,26 +167,12 @@ All notable changes to this project will be documented in this file.
 - Removing a Computer closes its live Server connection immediately, and unexpected
   failures no longer expose database queries in the confirmation dialog.
 
-### Release surfaces
-
-- Server: Publish v1.8.8
-- App: Unchanged
-- Computer: Unchanged
-- Runtime: Unchanged
-
 ## v1.8.7 - 2026-08-10
 
 - Computer settings now disable **Remove Computer** while assigned Agents remain
   and identify the Agent that must be deleted first.
 - The disabled action includes the same remediation in a tooltip, and any
   Server-side removal rejection remains visible in the confirmation dialog.
-
-### Release surfaces
-
-- Server: Publish v1.8.7
-- App: Unchanged
-- Computer: Unchanged
-- Runtime: Unchanged
 
 ## v1.8.6 - 2026-08-09
 
@@ -312,13 +187,6 @@ All notable changes to this project will be documented in this file.
 - Development activation previews now exercise the real UI against fixtures
   without shipping that fixture Server in production builds.
 
-### Release surfaces
-
-- Server: Publish v1.8.6
-- App: Unchanged
-- Computer: Unchanged
-- Runtime: Unchanged
-
 ## v1.8.5 - 2026-08-09
 
 - Final Server removes the temporary one-off Computer approval protocol;
@@ -330,13 +198,6 @@ All notable changes to this project will be documented in this file.
   workspaces remain intact; the cutover does not rewrite production data.
 - Grotto Computer 1.4.0 is the already-published prerequisite for this final
   Server cutover. App and Runtime remain unchanged.
-
-### Release surfaces
-
-- Server: Publish v1.8.5
-- App: Unchanged
-- Computer: Publish v1.4.0
-- Runtime: Unchanged
 
 ## v1.8.4 - 2026-08-09
 
@@ -358,13 +219,6 @@ All notable changes to this project will be documented in this file.
 - Server remains unchanged at the already-published v1.8.4 expanded
   compatibility checkpoint; App and Runtime remain unchanged.
 
-### Release surfaces
-
-- Server: Unchanged
-- App: Unchanged
-- Computer: Publish v1.4.0
-- Runtime: Unchanged
-
 ## v1.8.3 - 2026-08-08
 
 - Server addresses once again follow the Server name while typing, while preserving
@@ -375,13 +229,6 @@ All notable changes to this project will be documented in this file.
 - Grotto Computer 1.3.3 opens fresh setup approval in the default browser, keeps the
   URL visible as a fallback, and lets interactive operators press Enter to retry.
 
-### Release surfaces
-
-- Server: Unchanged
-- App: Unchanged
-- Computer: Publish v1.3.3
-- Runtime: Unchanged
-
 ## v1.8.2 - 2026-08-08
 
 - Fresh onboarding now creates Cove's built-in direct message with the Server
@@ -390,26 +237,12 @@ All notable changes to this project will be documented in this file.
   bootstrap targeting so dependencies install and launch from their dedicated
   harness directories.
 
-### Release surfaces
-
-- Server: Publish v1.8.2
-- App: Publish v1.8.2
-- Computer: Publish v1.3.1
-- Runtime: Publish v1.8.2
-
 ## v1.8.1 - 2026-08-08
 
 - Fixed Cove onboarding and Add Computer to show the standalone Computer's one
   install-and-setup command, passing the selected Server slug through the POSIX
   pipe invocation instead of presenting an installer call that exited before
   installation and a redundant second setup command.
-
-### Release surfaces
-
-- Server: Publish v1.8.1
-- App: Publish v1.8.1
-- Computer: Unchanged
-- Runtime: Publish v1.8.1
 
 ## v1.8.0 - 2026-08-08
 
@@ -434,13 +267,6 @@ All notable changes to this project will be documented in this file.
   ships as a compatible 1.8.0 artifact; the App still supports the existing
   minimum Runtime 1.6.2 because no new Runtime behavior is required.
 
-### Release surfaces
-
-- Server: Publish v1.8.0
-- App: Publish v1.8.0
-- Computer: Publish v1.3.0
-- Runtime: Publish v1.8.0
-
 ## v1.7.0 - 2026-08-03
 
 - Rebuilt the Server UI on HeroUI across the shell, chat, Agent profiles,
@@ -462,13 +288,6 @@ All notable changes to this project will be documented in this file.
   parent-Chat event attribution, OAuth isolation, exact evaluation cleanup,
   and avatar storage and delivery.
 
-### Release surfaces
-
-- Server: Publish v1.7.0
-- App: Unchanged
-- Computer: Publish v1.2.0
-- Runtime: Unchanged
-
 ## v1.6.14 - 2026-07-29
 
 - Grotto Computer 1.1.5 embeds the Codex and Claude Code harness bridge
@@ -479,24 +298,10 @@ All notable changes to this project will be documented in this file.
 - Hosted Agent Stop and Restart failures now surface their actual error instead
   of silently returning to an unchanged profile.
 
-### Release surfaces
-
-- Server: Publish v1.6.14
-- App: Unchanged
-- Computer: Publish v1.1.5
-- Runtime: Unchanged
-
 ## v1.6.13 - 2026-07-29
 
 - Restarting a degraded Agent now clears its failure hold and immediately
   redrives queued work without rotating the Agent's session.
-
-### Release surfaces
-
-- Server: Publish v1.6.13
-- App: Unchanged
-- Computer: Unchanged
-- Runtime: Unchanged
 
 ## v1.6.12 - 2026-07-29
 
@@ -519,25 +324,11 @@ All notable changes to this project will be documented in this file.
   entries in `.env`; interrupted immutable uploads also resume safely after
   verifying the published artifact and exact source revision.
 
-### Release surfaces
-
-- Server: Publish v1.6.12
-- App: Publish v1.6.12
-- Computer: Publish v1.1.4
-- Runtime: Unchanged
-
 ## v1.6.11 - 2026-07-29
 
 - Computer inventory and Agent effective-state reports are now applied in
   WebSocket order, preventing an older reconnect snapshot from overwriting the
   resolved runtime state reported immediately after configuration.
-
-### Release surfaces
-
-- Server: Publish v1.6.11
-- App: Publish v1.6.11
-- Computer: Unchanged
-- Runtime: Unchanged
 
 ## v1.6.10 - 2026-07-29
 
@@ -545,13 +336,6 @@ All notable changes to this project will be documented in this file.
   its idle baseline, allowing the real Settings update flow to proceed through
   download, verification, installation, restart, and reconnect.
 - Removed the redundant divider inside the Computer Updates card.
-
-### Release surfaces
-
-- Server: Publish v1.6.10
-- App: Publish v1.6.10
-- Computer: Unchanged
-- Runtime: Unchanged
 
 ## v1.6.9 - 2026-07-29
 
@@ -565,25 +349,11 @@ All notable changes to this project will be documented in this file.
 - Release publishing lands the immutable source revision before slow signing
   and uploads, so unrelated commits can continue landing on `main`.
 
-### Release surfaces
-
-- Server: Publish v1.6.9
-- App: Publish v1.6.9
-- Computer: Publish v1.1.2
-- Runtime: Unchanged
-
 ## v1.6.8 - 2026-07-29
 
 - Hosted Grotto now serves its public privacy policy from the same Mac mini
   Server as the App. `www.grotto.sh` redirects to the matching apex path
   entirely through Cloudflare, and Vercel no longer serves production traffic.
-
-### Release surfaces
-
-- Server: Publish v1.6.8
-- App: Publish v1.6.8
-- Computer: Unchanged
-- Runtime: Unchanged
 
 ## v1.6.7 - 2026-07-28
 
@@ -601,13 +371,6 @@ All notable changes to this project will be documented in this file.
 - Server release publication now requires a compatible publicly verified
   Computer release, while immutable publishing, version monotonicity, and
   release-key continuity fail closed.
-
-### Release surfaces
-
-- Server: Publish v1.6.7
-- App: Publish v1.6.7
-- Computer: Publish v1.1.1
-- Runtime: Unchanged
 
 ## v1.6.6 - 2026-07-28
 

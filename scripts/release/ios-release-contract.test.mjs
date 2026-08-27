@@ -3,7 +3,7 @@ import { expect, test } from 'bun:test';
 import {
     appStoreConnectAuthenticationArgs,
     appStoreConnectExportOptions,
-    assertIOSReleaseDecision,
+    assertIOSReleaseTarget,
     parseIOSReleaseArgs,
 } from './ios-release-contract.mjs';
 
@@ -27,11 +27,16 @@ test('preserves the coordinated version and build during App Store export', () =
 });
 
 test('requires the exact declared iOS release', () => {
-    const decision = {
-        surfaces: { ios: { action: 'publish', buildNumber: 7, version: '1.0.0' } },
+    const release = {
+        targets: {
+            server: null,
+            app: null,
+            ios: { buildNumber: 7, version: '1.0.0' },
+            computer: null,
+        },
     };
-    expect(() => assertIOSReleaseDecision(decision, '1.0.0', 7)).not.toThrow();
-    expect(() => assertIOSReleaseDecision(decision, '1.0.1', 7)).toThrow('does not match 1.0.1');
+    expect(() => assertIOSReleaseTarget(release, '1.0.0', 7)).not.toThrow();
+    expect(() => assertIOSReleaseTarget(release, '1.0.1', 7)).toThrow('does not match 1.0.1');
 });
 
 test('uses App Store Connect authentication only as a complete set', () => {

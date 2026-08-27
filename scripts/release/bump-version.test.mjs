@@ -15,7 +15,7 @@ test('bumps every coordinated release file before returning success', async () =
     const root = await mkdtemp(join(tmpdir(), 'grotto-release-bump-'));
     temporaryRoots.push(root);
     await mkdir(join(root, 'apps/website'), { recursive: true });
-    await mkdir(join(root, 'apps/ios-swift'), { recursive: true });
+    await mkdir(join(root, 'apps/ios-swift/Grotto.xcodeproj'), { recursive: true });
     await mkdir(join(root, 'scripts/release'), { recursive: true });
     await Promise.all(
         ['bump-version.mjs', 'release-ledger.mjs', 'release-utils.mjs'].map((file) =>
@@ -29,6 +29,10 @@ test('bumps every coordinated release file before returning success', async () =
     await writeFile(
         join(root, 'apps/ios-swift/project.yml'),
         'settings:\n  base:\n    MARKETING_VERSION: 1.8.19\n'
+    );
+    await writeFile(
+        join(root, 'apps/ios-swift/Grotto.xcodeproj/project.pbxproj'),
+        'Debug { MARKETING_VERSION = 1.8.19; }\nRelease { MARKETING_VERSION = 1.8.19; }\n'
     );
     await writeFile(join(root, 'CHANGELOG.md'), '## v1.8.19 - 2026-08-19\n');
     const originalLedger = `${JSON.stringify(
@@ -61,6 +65,9 @@ test('bumps every coordinated release file before returning success', async () =
     expect(await readFile(join(root, 'apps/ios-swift/project.yml'), 'utf8')).toContain(
         'MARKETING_VERSION: 1.8.20'
     );
+    expect(
+        await readFile(join(root, 'apps/ios-swift/Grotto.xcodeproj/project.pbxproj'), 'utf8')
+    ).toBe('Debug { MARKETING_VERSION = 1.8.20; }\nRelease { MARKETING_VERSION = 1.8.20; }\n');
     const updatedLedger = await readFile(join(root, 'releases.json'), 'utf8');
     expect(updatedLedger.startsWith(originalLedger.replace(/\n\]\n$/u, ''))).toBe(true);
     expect(JSON.parse(updatedLedger).at(-1)).toEqual({

@@ -17,6 +17,10 @@ runtime and model references came from the assigned Computer's reported inventor
 recorded while Computer is offline and are applied after reconnect; Computer reports degraded state
 instead of silently substituting another runtime or model.
 
+When runtime, model, or reasoning effort changes during an active turn, Server preserves that turn's
+frozen configuration through settlement. It then rotates the Agent session and applies the complete
+new configuration before the next turn starts.
+
 ## Turn And Delivery Observability
 
 Two member-scoped queries expose what an Agent actually did, without reading

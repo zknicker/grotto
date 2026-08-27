@@ -6,6 +6,7 @@ import type {
     AgentTurnSummary,
     ReminderScriptCommand,
     ReminderScriptResult,
+    ServerDurableEvent,
 } from '@grotto/api';
 import { agentActionAttentionSchema } from '@grotto/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
@@ -52,6 +53,7 @@ export interface DeliveryTransport {
 interface DispatchPlan {
     activities?: AgentActivityEvent[];
     computerId: string;
+    configuration?: DeferredConfiguration;
     frame: AgentCommand;
     serverId: string;
     suppressSend?: boolean;
@@ -182,11 +184,19 @@ export class AgentDelivery {
                 runId: state.activeRunId,
                 serverId: input.serverId,
             });
+            const configuration = await rotateDeferredConfiguration(tx, {
+                activeRunModelId: state.activeRunModelId,
+                activeRunReasoningEffort: state.activeRunReasoningEffort,
+                activeRunRuntimeId: state.activeRunRuntimeId,
+                agentId: input.agentId,
+                serverId: input.serverId,
+            });
             await store.clearActiveRun(tx, input.agentId);
             return {
                 activity,
                 chatId: state.activeRunChatId,
                 computerId: state.activeRunComputerId,
+                configuration,
                 runId: state.activeRunId,
             };
         });
@@ -209,6 +219,9 @@ export class AgentDelivery {
                 runId: kill.runId,
                 type: 'stop',
             });
+            if (kill.configuration) {
+                sendDeferredConfiguration(this.transport, input.agentId, kill.configuration);
+            }
         }
     }
 
@@ -250,6 +263,9 @@ export class AgentDelivery {
                 runId: interrupted.runId,
                 type: 'stop',
             });
+            if (interrupted.configuration) {
+                sendDeferredConfiguration(this.transport, input.agentId, interrupted.configuration);
+            }
         }
         if (
             !this.transport.send(config.computerId, {
@@ -312,6 +328,14 @@ export class AgentDelivery {
                 .delete(agentMessageDraftsTable)
                 .where(eq(agentMessageDraftsTable.agentId, input.agentId));
             const config = await store.readAgentDispatchConfig(tx, input.agentId);
+            const configuration =
+                state?.activeRunId &&
+                isConfigured(config) &&
+                (state.activeRunModelId !== config.desiredModelId ||
+                    state.activeRunRuntimeId !== config.desiredRuntimeId ||
+                    state.activeRunReasoningEffort !== config.desiredReasoningEffort)
+                    ? { agentId: input.agentId, config, events: [] }
+                    : null;
             const events = await recordSessionRotationReceipts(tx, {
                 agentId: input.agentId,
                 generation: rotated.sessionGeneration,
@@ -322,6 +346,7 @@ export class AgentDelivery {
                 activity,
                 chatId: state?.activeRunChatId ?? null,
                 computerId: config?.computerId ?? null,
+                configuration,
                 events,
                 runId: state?.activeRunId ?? null,
                 sessionGeneration: rotated.sessionGeneration,
@@ -352,6 +377,9 @@ export class AgentDelivery {
                 runId: result.runId,
                 type: 'stop',
             });
+        }
+        if (result.configuration) {
+            sendDeferredConfiguration(this.transport, input.agentId, result.configuration);
         }
         this.transport.send(result.computerId, {
             agentId: input.agentId,
@@ -574,8 +602,20 @@ export class AgentDelivery {
                     runId: summary.runId,
                     serverId,
                 });
+                const configuration = await rotateDeferredConfiguration(tx, {
+                    activeRunModelId: state.activeRunModelId,
+                    activeRunReasoningEffort: state.activeRunReasoningEffort,
+                    activeRunRuntimeId: state.activeRunRuntimeId,
+                    agentId: summary.agentId,
+                    serverId,
+                });
                 await store.clearActiveRun(tx, summary.agentId);
-                return { activity, chatId, plan: await this.planDispatch(tx, summary.agentId) };
+                return {
+                    activity,
+                    chatId,
+                    configuration,
+                    plan: await this.planDispatch(tx, summary.agentId),
+                };
             }
             // A failed turn that produced model-visible output must not requeue
             // its work — redelivering it would re-trigger that output. Only a
@@ -610,6 +650,13 @@ export class AgentDelivery {
                 runId: summary.runId,
                 serverId,
             });
+            const configuration = await rotateDeferredConfiguration(tx, {
+                activeRunModelId: state.activeRunModelId,
+                activeRunReasoningEffort: state.activeRunReasoningEffort,
+                activeRunRuntimeId: state.activeRunRuntimeId,
+                agentId: summary.agentId,
+                serverId,
+            });
             await store.clearActiveRun(tx, summary.agentId);
             const retryable = shouldRetryFailure(summary.failureKind);
             const failures = retryable ? state.consecutiveFailures + 1 : maxDeliveryFailures;
@@ -619,13 +666,16 @@ export class AgentDelivery {
                 retryAfter:
                     retryable && failures < maxDeliveryFailures ? nextRetryAt(failures) : null,
             });
-            return { activity, chatId, plan: null };
+            return { activity, chatId, configuration, plan: null };
         });
         if (!settlement) {
             return;
         }
         if (settlement.activity) {
             publishCommittedAgentActivity(settlement.activity);
+        }
+        if (settlement.configuration) {
+            sendDeferredConfiguration(this.transport, summary.agentId, settlement.configuration);
         }
         publishAgentLifecycle({
             agentId: summary.agentId,
@@ -659,7 +709,13 @@ export class AgentDelivery {
             if (agent.factoryKind === 'cove' && !agent.factoryAppliedAt) {
                 continue;
             }
-            if (agent.desiredModelId && agent.desiredRuntimeId) {
+            const state = await store.readDeliveryState(this.db, agent.agentId);
+            const activeConfigurationChanged =
+                Boolean(state?.activeRunId) &&
+                (state?.activeRunModelId !== agent.desiredModelId ||
+                    state?.activeRunRuntimeId !== agent.desiredRuntimeId ||
+                    state?.activeRunReasoningEffort !== agent.desiredReasoningEffort);
+            if (!activeConfigurationChanged && agent.desiredModelId && agent.desiredRuntimeId) {
                 this.transport.send(computerId, {
                     agentDescription: agent.agentDescription,
                     agentId: agent.agentId,
@@ -695,6 +751,9 @@ export class AgentDelivery {
         rotation: AgentConfigurationRotation | null;
     }): Promise<void> {
         const { agent, rotation } = input;
+        if (rotation?.deferred) {
+            return;
+        }
         if (rotation) {
             if (rotation.activity) {
                 publishCommittedAgentActivity(rotation.activity);
@@ -826,6 +885,13 @@ export class AgentDelivery {
                         runId: state.activeRunId,
                         serverId: state.serverId,
                     });
+                    const configuration = await rotateDeferredConfiguration(tx, {
+                        activeRunModelId: state.activeRunModelId,
+                        activeRunReasoningEffort: state.activeRunReasoningEffort,
+                        activeRunRuntimeId: state.activeRunRuntimeId,
+                        agentId,
+                        serverId: state.serverId,
+                    });
                     await store.clearActiveRun(tx, agentId);
                     const next = await this.planDispatch(tx, agentId);
                     if (next) {
@@ -835,11 +901,13 @@ export class AgentDelivery {
                                 ...(activity ? [activity] : []),
                                 ...(next.activities ?? []),
                             ],
+                            configuration: configuration ?? next.configuration,
                         };
                     }
                     return {
                         activities: activity ? [activity] : [],
                         computerId: state.activeRunComputerId,
+                        configuration: configuration ?? undefined,
                         frame,
                         serverId: state.serverId,
                         suppressSend: true,
@@ -920,12 +988,13 @@ export class AgentDelivery {
             });
         }
         const chatId = first.chatId;
-        // Freeze runtime/model onto the run so every resend uses these values.
+        // Freeze execution configuration onto the run so every resend uses these values.
         await store.beginActiveRun(tx, {
             agentId,
             chatId,
             computerId: config.computerId,
             modelId: config.desiredModelId,
+            reasoningEffort: config.desiredReasoningEffort,
             runId,
             runtimeId: config.desiredRuntimeId,
         });
@@ -968,6 +1037,13 @@ export class AgentDelivery {
             }
             publishCommittedAgentActivity(activity);
         }
+        if (plan.configuration) {
+            sendDeferredConfiguration(
+                this.transport,
+                plan.configuration.agentId,
+                plan.configuration
+            );
+        }
         if (plan.suppressSend) {
             return;
         }
@@ -1008,15 +1084,89 @@ export class AgentDelivery {
                 runId: state.activeRunId,
                 serverId: input.serverId,
             });
+            const configuration = await rotateDeferredConfiguration(tx, {
+                activeRunModelId: state.activeRunModelId,
+                activeRunReasoningEffort: state.activeRunReasoningEffort,
+                activeRunRuntimeId: state.activeRunRuntimeId,
+                agentId: input.agentId,
+                serverId: input.serverId,
+            });
             await store.clearActiveRun(tx, input.agentId);
             return {
                 activity,
                 chatId: state.activeRunChatId,
                 computerId: state.activeRunComputerId,
+                configuration,
                 runId: state.activeRunId,
             };
         });
     }
+}
+
+interface DeferredConfiguration {
+    agentId: string;
+    config: ConfiguredAgent;
+    events: ServerDurableEvent[];
+}
+
+function sendDeferredConfiguration(
+    transport: DeliveryTransport,
+    agentId: string,
+    configuration: DeferredConfiguration
+): void {
+    for (const event of configuration.events) {
+        emitDurableChatEvent({ audienceUserId: null, event });
+    }
+    transport.send(configuration.config.computerId, configureFrame(agentId, configuration.config));
+}
+
+/** Applies desired execution configuration only after the run using the old values settles. */
+async function rotateDeferredConfiguration(
+    db: GrottoDatabase,
+    input: {
+        activeRunModelId: string | null;
+        activeRunReasoningEffort: Agent['desiredReasoningEffort'] | null;
+        activeRunRuntimeId: string | null;
+        agentId: string;
+        serverId: string;
+    }
+): Promise<DeferredConfiguration | null> {
+    const config = await store.readAgentDispatchConfig(db, input.agentId);
+    if (
+        !isConfigured(config) ||
+        (config.desiredModelId === input.activeRunModelId &&
+            config.desiredRuntimeId === input.activeRunRuntimeId &&
+            config.desiredReasoningEffort === input.activeRunReasoningEffort)
+    ) {
+        return null;
+    }
+
+    const [rotated] = await db
+        .update(agentsTable)
+        .set({
+            sessionGeneration: sql`${agentsTable.sessionGeneration} + 1`,
+            sessionResetKind: 'session',
+        })
+        .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
+        .returning({ sessionGeneration: agentsTable.sessionGeneration });
+    if (!rotated) {
+        throw new Error('The Agent configuration session could not be rotated.');
+    }
+
+    await db
+        .delete(agentMessageDraftsTable)
+        .where(eq(agentMessageDraftsTable.agentId, input.agentId));
+    const events = await recordSessionRotationReceipts(db, {
+        agentId: input.agentId,
+        generation: rotated.sessionGeneration,
+        reason: 'configuration',
+        serverId: input.serverId,
+    });
+    const latestConfig = await store.readAgentDispatchConfig(db, input.agentId);
+    if (!isConfigured(latestConfig)) {
+        return null;
+    }
+    return { agentId: input.agentId, config: latestConfig, events };
 }
 
 interface ConfiguredAgent {

@@ -1,3 +1,4 @@
+import type { AgentReasoningEffort } from '@grotto/api';
 import { sql } from 'drizzle-orm';
 import {
     boolean,
@@ -29,6 +30,7 @@ export const agentDeliveryTable = pgTable(
         activeRunComputerId: text('active_run_computer_id'),
         activeRunId: text('active_run_id'),
         activeRunModelId: text('active_run_model_id'),
+        activeRunReasoningEffort: text('active_run_reasoning_effort').$type<AgentReasoningEffort>(),
         activeRunRuntimeId: text('active_run_runtime_id'),
         agentChainTurns: integer('agent_chain_turns').notNull().default(0),
         agentId: text('agent_id').primaryKey(),
@@ -57,6 +59,7 @@ export const agentDeliveryTable = pgTable(
                 and ${table.activeRunComputerId} is null
                 and ${table.activeRunRuntimeId} is null
                 and ${table.activeRunModelId} is null
+                and ${table.activeRunReasoningEffort} is null
                 and ${table.acceptedAt} is null
                 and ${table.dispatchedAt} is null
             ) or (
@@ -65,7 +68,12 @@ export const agentDeliveryTable = pgTable(
                 and ${table.activeRunComputerId} is not null
                 and ${table.activeRunRuntimeId} is not null
                 and ${table.activeRunModelId} is not null
+                and ${table.activeRunReasoningEffort} is not null
             )`
+        ),
+        check(
+            'agent_delivery_active_run_reasoning_effort',
+            sql`${table.activeRunReasoningEffort} is null or ${table.activeRunReasoningEffort} in ('low', 'medium', 'high')`
         ),
     ]
 );

@@ -1,7 +1,7 @@
 ---
 summary: Fresh-session instruction composition and persistent Agent context.
 read_when:
-  - changing generated Agent instructions or model-family directives
+  - changing generated Agent instructions
   - changing session resume, reset, model switching, or recovery
 ---
 
@@ -15,16 +15,18 @@ model session. Per-turn message delivery is an inbox concern; see
 
 - Computer composes managed product instructions, the Agent description,
   assigned skills, and tool guidance when a fresh model session starts.
-- Model-family operational directives are appended only for models that need
-  them.
+- Computer does not append Grotto-specific model-family steering. Every model receives the same
+  managed product contract; executor-native instructions remain owned by that executor.
 - Instructions include current time, home timezone, and the rule that old
   context and prior data reads must be rechecked.
 - The model session spans every Chat the Agent participates in and resumes
   between deliveries and Computer restarts.
 - Sessions never rotate because of age or idle time.
-- A fresh session starts only for initial creation, a runtime or model switch,
-  manual session reset, or one automatic recovery after the harness rejects a
-  stored resume state.
+- A fresh session starts only for initial creation, a runtime, model, or reasoning-effort switch,
+  manual session reset, or one automatic recovery after the harness rejects a stored resume state.
+- An execution-configuration change never interrupts an active turn. The active turn finishes
+  with its frozen runtime, model, and reasoning effort; Server then rotates the session, applies
+  the new configuration, and uses it for the next turn.
 - A fresh session with pending work uses its notice or typed attention as the
   first prompt. `Start.` is used only when no delivery is pending. Later
   deliveries resume the same session without replaying that marker.

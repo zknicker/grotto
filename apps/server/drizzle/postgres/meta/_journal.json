@@ -134,6 +134,13 @@
       "when": 1787775538796,
       "tag": "0018_agent_actions",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1787855776083,
+      "tag": "0019_breezy_inertia",
+      "breakpoints": true
     }
   ]
 }

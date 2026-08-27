@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import type { AgentCommand, AgentCreateActionResult, AgentTurnSummary } from '@grotto/api';
 import { and, eq, ne } from 'drizzle-orm';
 import { attestAgentEvents, pullAgentEvents } from '../src/agent-api/inbox.ts';
-import { markCursorSubsumedSeen } from '../src/agent-delivery/cursors.ts';
+import { advanceSeenCursor, markCursorSubsumedSeen } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { subscribeToAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { countQueuedPending, readDeliveryState } from '../src/agent-delivery/store.ts';
@@ -12,6 +12,7 @@ import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/co
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentActionAttentionsTable,
+    agentActivityTable,
     agentDeliveryTable,
     agentInboxCursorsTable,
     agentInboxExactVisibilityTable,
@@ -28,6 +29,7 @@ import {
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
+import { configureAgent } from '../src/server-agents/configure-agent.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 let cluster: PostgresCluster;
@@ -2013,6 +2015,634 @@ test('a resent run stays frozen and the next delivery uses the changed runtime a
             .framesOfType('start')
             .filter((frame) => frame.modelId === 'new-model' && frame.runtimeId === 'new-runtime')
     ).toHaveLength(1);
+});
+
+test('defers a public Agent configuration change until the active run settles', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+    const runnerId = createOpaqueId('arc');
+
+    await connection.db
+        .update(computersTable)
+        .set({
+            health: 'healthy',
+            reportedInventory: {
+                runtimes: [
+                    {
+                        id: 'fake',
+                        label: 'Fake',
+                        models: [
+                            { id: 'fake-model', label: 'Fake model' },
+                            { id: 'new-model', label: 'New model' },
+                        ],
+                    },
+                ],
+            },
+        })
+        .where(eq(computersTable.id, seed.computerId));
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'finish this before switching models',
+        dedupeKey: 'config-switch-active-run',
+        serverId: seed.serverId,
+        source: 'onboarding',
+    });
+    const first = transport.framesOfType('start')[0];
+    if (!first) {
+        throw new Error('Expected the active run to start.');
+    }
+    await delivery.onAck({ agentId: seed.agentId, runId: first.runId });
+    await connection.db.insert(agentRunnerCredentialsTable).values({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        computerId: seed.computerId,
+        id: runnerId,
+        runId: first.runId,
+        serverId: seed.serverId,
+        tokenHash: randomBytes(32).toString('hex'),
+    });
+
+    const configured = await configureAgent(
+        connection.db,
+        {
+            clerkUserId: 'config-switch-owner',
+            id: seed.userId,
+        },
+        {
+            agentId: seed.agentId,
+            modelId: 'new-model',
+            runtimeId: 'fake',
+            serverId: seed.serverId,
+        }
+    );
+    await delivery.applyAgentConfiguration(configured);
+
+    expect(configured.agent).toMatchObject({ desiredModelId: 'new-model' });
+    expect(transport.framesOfType('stop')).toEqual([]);
+    expect(transport.framesOfType('agent-configure')).toEqual([]);
+    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(await readDeliveryState(connection.db, seed.agentId)).toMatchObject({
+        activeRunId: first.runId,
+        activeRunModelId: 'fake-model',
+        activeRunRuntimeId: 'fake',
+    });
+    const [pendingBeforeSettlement] = await connection.db
+        .select({ runId: agentPendingWorkTable.runId, state: agentPendingWorkTable.state })
+        .from(agentPendingWorkTable)
+        .where(
+            and(
+                eq(agentPendingWorkTable.agentId, seed.agentId),
+                eq(agentPendingWorkTable.dedupeKey, 'config-switch-active-run')
+            )
+        );
+    expect(pendingBeforeSettlement).toEqual({ runId: first.runId, state: 'accepted' });
+    const [credentialBeforeSettlement] = await connection.db
+        .select({ revokedAt: agentRunnerCredentialsTable.revokedAt })
+        .from(agentRunnerCredentialsTable)
+        .where(eq(agentRunnerCredentialsTable.id, runnerId));
+    expect(credentialBeforeSettlement?.revokedAt).toBeNull();
+    const [generationBeforeSettlement] = await connection.db
+        .select({ sessionGeneration: agentsTable.sessionGeneration })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, seed.agentId));
+    expect(generationBeforeSettlement?.sessionGeneration).toBe(1);
+    const receiptsBeforeSettlement = await connection.db
+        .select({
+            content: chatMessagesTable.content,
+            systemAuthor: chatMessagesTable.systemAuthor,
+        })
+        .from(chatMessagesTable)
+        .where(
+            and(
+                eq(chatMessagesTable.chatId, seed.chatId),
+                eq(chatMessagesTable.systemAuthor, 'session')
+            )
+        );
+    expect(receiptsBeforeSettlement).toEqual([]);
+    const failedActivity = await connection.db
+        .select({ phase: agentActivityTable.phase })
+        .from(agentActivityTable)
+        .where(
+            and(
+                eq(agentActivityTable.agentId, seed.agentId),
+                eq(agentActivityTable.runId, first.runId),
+                eq(agentActivityTable.phase, 'failed')
+            )
+        );
+    expect(failedActivity).toEqual([]);
+
+    await delivery.onComputerReconnect(seed.computerId);
+    const replayed = transport.framesOfType('start')[1];
+    expect(transport.framesOfType('agent-configure')).toEqual([]);
+    expect(replayed).toMatchObject({
+        modelId: 'fake-model',
+        runtimeId: 'fake',
+        sessionGeneration: 1,
+        runId: first.runId,
+    });
+
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, first.runId, 'completed')
+    );
+
+    expect(transport.framesOfType('agent-configure')).toHaveLength(1);
+    expect(transport.framesOfType('agent-configure')[0]).toMatchObject({
+        modelId: 'new-model',
+        runtimeId: 'fake',
+        sessionGeneration: 2,
+    });
+    const [rotated] = await connection.db
+        .select({ sessionGeneration: agentsTable.sessionGeneration })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, seed.agentId));
+    expect(rotated?.sessionGeneration).toBe(2);
+    expect(
+        await connection.db
+            .select({
+                content: chatMessagesTable.content,
+                systemAuthor: chatMessagesTable.systemAuthor,
+            })
+            .from(chatMessagesTable)
+            .where(
+                and(
+                    eq(chatMessagesTable.chatId, seed.chatId),
+                    eq(chatMessagesTable.systemAuthor, 'session')
+                )
+            )
+    ).toEqual([
+        {
+            content:
+                'Started a fresh session with the newly selected runtime and model. The workspace and MEMORY.md are intact.',
+            systemAuthor: 'session',
+        },
+    ]);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'use the new model for this',
+        dedupeKey: 'config-switch-next-run',
+        serverId: seed.serverId,
+        source: 'onboarding',
+    });
+    const starts = transport.framesOfType('start');
+    expect(starts).toHaveLength(3);
+    expect(starts[2]).toMatchObject({
+        modelId: 'new-model',
+        runtimeId: 'fake',
+        sessionGeneration: 2,
+    });
+});
+
+test('defers a reasoning-effort change until the active run settles', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await connection.db
+        .update(computersTable)
+        .set({
+            health: 'healthy',
+            reportedInventory: {
+                runtimes: [
+                    {
+                        id: 'fake',
+                        label: 'Fake',
+                        models: [{ id: 'fake-model', label: 'Fake model' }],
+                    },
+                ],
+            },
+        })
+        .where(eq(computersTable.id, seed.computerId));
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'finish this before changing effort',
+        dedupeKey: 'effort-switch-active-run',
+        serverId: seed.serverId,
+        source: 'onboarding',
+    });
+    const first = transport.framesOfType('start')[0];
+    if (!first) {
+        throw new Error('Expected the active run to start.');
+    }
+    await delivery.onAck({ agentId: seed.agentId, runId: first.runId });
+
+    const configured = await configureAgent(
+        connection.db,
+        {
+            clerkUserId: 'effort-switch-owner',
+            id: seed.userId,
+        },
+        {
+            agentId: seed.agentId,
+            modelId: 'fake-model',
+            reasoningEffort: 'high',
+            runtimeId: 'fake',
+            serverId: seed.serverId,
+        }
+    );
+    await delivery.applyAgentConfiguration(configured);
+
+    expect(configured.agent).toMatchObject({ desiredReasoningEffort: 'high' });
+    expect(transport.framesOfType('stop')).toEqual([]);
+    expect(transport.framesOfType('agent-configure')).toEqual([]);
+    const [generationBeforeSettlement] = await connection.db
+        .select({ sessionGeneration: agentsTable.sessionGeneration })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, seed.agentId));
+    expect(generationBeforeSettlement?.sessionGeneration).toBe(1);
+
+    await delivery.onTurnSettled(
+        seed.computerId,
+        turnSummary(seed.agentId, first.runId, 'completed')
+    );
+
+    expect(transport.framesOfType('agent-configure')).toHaveLength(1);
+    expect(transport.framesOfType('agent-configure')[0]).toMatchObject({
+        modelId: 'fake-model',
+        reasoningEffort: 'high',
+        runtimeId: 'fake',
+        sessionGeneration: 2,
+    });
+    const [generationAfterSettlement] = await connection.db
+        .select({ sessionGeneration: agentsTable.sessionGeneration })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, seed.agentId));
+    expect(generationAfterSettlement?.sessionGeneration).toBe(2);
+});
+
+test('applies deferred configuration at Stop without auto-starting, then starts explicitly', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await connection.db
+        .update(computersTable)
+        .set({
+            health: 'healthy',
+            reportedInventory: {
+                runtimes: [
+                    {
+                        id: 'fake',
+                        label: 'Fake',
+                        models: [
+                            { id: 'fake-model', label: 'Fake model' },
+                            { id: 'new-model', label: 'New model' },
+                        ],
+                    },
+                ],
+            },
+        })
+        .where(eq(computersTable.id, seed.computerId));
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'finish before stopping',
+        dedupeKey: 'config-stop-active-run',
+        serverId: seed.serverId,
+        source: 'onboarding',
+    });
+    const first = transport.framesOfType('start')[0];
+    if (!first) {
+        throw new Error('Expected the active run to start.');
+    }
+    await delivery.onAck({ agentId: seed.agentId, runId: first.runId });
+
+    const configured = await configureAgent(
+        connection.db,
+        {
+            clerkUserId: 'config-stop-owner',
+            id: seed.userId,
+        },
+        {
+            agentId: seed.agentId,
+            modelId: 'new-model',
+            runtimeId: 'fake',
+            serverId: seed.serverId,
+        }
+    );
+    await delivery.applyAgentConfiguration(configured);
+
+    await delivery.stop({ agentId: seed.agentId, serverId: seed.serverId });
+
+    expect(transport.framesOfType('stop')).toEqual([
+        { agentId: seed.agentId, runId: first.runId, type: 'stop' },
+    ]);
+    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(transport.framesOfType('agent-configure')).toHaveLength(1);
+    expect(transport.framesOfType('agent-configure')[0]).toMatchObject({
+        modelId: 'new-model',
+        runtimeId: 'fake',
+        sessionGeneration: 2,
+    });
+    expect((await readDeliveryState(connection.db, seed.agentId))?.stopped).toBe(true);
+    expect((await readDeliveryState(connection.db, seed.agentId))?.activeRunId).toBeNull();
+
+    const [afterStop] = await connection.db
+        .select({ sessionGeneration: agentsTable.sessionGeneration })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, seed.agentId));
+    expect(afterStop?.sessionGeneration).toBe(2);
+
+    await delivery.start({ agentId: seed.agentId, serverId: seed.serverId });
+
+    const starts = transport.framesOfType('start');
+    expect(starts).toHaveLength(2);
+    expect(starts[1]).toMatchObject({
+        modelId: 'new-model',
+        runtimeId: 'fake',
+        sessionGeneration: 2,
+    });
+});
+
+test('applies deferred configuration before Restart redrives pending work', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await connection.db
+        .update(computersTable)
+        .set({
+            health: 'healthy',
+            reportedInventory: {
+                runtimes: [
+                    {
+                        id: 'fake',
+                        label: 'Fake',
+                        models: [
+                            { id: 'fake-model', label: 'Fake model' },
+                            { id: 'new-model', label: 'New model' },
+                        ],
+                    },
+                ],
+            },
+        })
+        .where(eq(computersTable.id, seed.computerId));
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'finish before restarting',
+        dedupeKey: 'config-restart-active-run',
+        serverId: seed.serverId,
+        source: 'onboarding',
+    });
+    const first = transport.framesOfType('start')[0];
+    if (!first) {
+        throw new Error('Expected the active run to start.');
+    }
+    await delivery.onAck({ agentId: seed.agentId, runId: first.runId });
+
+    const configured = await configureAgent(
+        connection.db,
+        {
+            clerkUserId: 'config-restart-owner',
+            id: seed.userId,
+        },
+        {
+            agentId: seed.agentId,
+            modelId: 'new-model',
+            runtimeId: 'fake',
+            serverId: seed.serverId,
+        }
+    );
+    await delivery.applyAgentConfiguration(configured);
+
+    await delivery.restart({ agentId: seed.agentId, serverId: seed.serverId });
+
+    expect(transport.framesOfType('stop')).toEqual([
+        { agentId: seed.agentId, runId: first.runId, type: 'stop' },
+    ]);
+    expect(transport.framesOfType('agent-configure')).toHaveLength(1);
+    expect(transport.framesOfType('agent-configure')[0]).toMatchObject({
+        modelId: 'new-model',
+        runtimeId: 'fake',
+        sessionGeneration: 2,
+    });
+    expect(transport.framesOfType('agent-restart')).toEqual([
+        { agentId: seed.agentId, type: 'agent-restart' },
+    ]);
+    const starts = transport.framesOfType('start');
+    expect(starts).toHaveLength(2);
+    expect(starts[1]).toMatchObject({
+        modelId: 'new-model',
+        runtimeId: 'fake',
+        sessionGeneration: 2,
+    });
+    expect(starts[1]?.runId).not.toBe(first.runId);
+
+    const [afterRestart] = await connection.db
+        .select({ sessionGeneration: agentsTable.sessionGeneration })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, seed.agentId));
+    expect(afterRestart?.sessionGeneration).toBe(2);
+});
+
+test('applies deferred configuration with one strongest Reset generation', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await connection.db
+        .update(computersTable)
+        .set({
+            health: 'healthy',
+            reportedInventory: {
+                runtimes: [
+                    {
+                        id: 'fake',
+                        label: 'Fake',
+                        models: [
+                            { id: 'fake-model', label: 'Fake model' },
+                            { id: 'new-model', label: 'New model' },
+                        ],
+                    },
+                ],
+            },
+        })
+        .where(eq(computersTable.id, seed.computerId));
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'finish before resetting',
+        dedupeKey: 'config-reset-active-run',
+        serverId: seed.serverId,
+        source: 'onboarding',
+    });
+    const first = transport.framesOfType('start')[0];
+    if (!first) {
+        throw new Error('Expected the active run to start.');
+    }
+    await delivery.onAck({ agentId: seed.agentId, runId: first.runId });
+
+    const configured = await configureAgent(
+        connection.db,
+        {
+            clerkUserId: 'config-reset-owner',
+            id: seed.userId,
+        },
+        {
+            agentId: seed.agentId,
+            modelId: 'new-model',
+            runtimeId: 'fake',
+            serverId: seed.serverId,
+        }
+    );
+    await delivery.applyAgentConfiguration(configured);
+
+    await delivery.reset({ agentId: seed.agentId, kind: 'full', serverId: seed.serverId });
+
+    expect(transport.sent.map(({ frame }) => frame.type)).toEqual([
+        'start',
+        'stop',
+        'agent-configure',
+        'agent-reset',
+    ]);
+    expect(transport.framesOfType('stop')).toEqual([
+        { agentId: seed.agentId, runId: first.runId, type: 'stop' },
+    ]);
+    expect(transport.framesOfType('agent-reset')).toEqual([
+        {
+            agentId: seed.agentId,
+            kind: 'full',
+            sessionGeneration: 2,
+            type: 'agent-reset',
+        },
+    ]);
+    expect(transport.framesOfType('agent-configure')).toHaveLength(1);
+    expect(transport.framesOfType('agent-configure')[0]).toMatchObject({
+        modelId: 'new-model',
+        runtimeId: 'fake',
+        sessionGeneration: 2,
+        sessionResetKind: 'full',
+    });
+    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect((await readDeliveryState(connection.db, seed.agentId))?.activeRunId).toBeNull();
+
+    const [afterReset] = await connection.db
+        .select({ sessionGeneration: agentsTable.sessionGeneration })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, seed.agentId));
+    expect(afterReset?.sessionGeneration).toBe(2);
+    const [receipt] = await connection.db
+        .select({
+            content: chatMessagesTable.content,
+            systemAuthor: chatMessagesTable.systemAuthor,
+        })
+        .from(chatMessagesTable)
+        .where(
+            and(
+                eq(chatMessagesTable.chatId, seed.chatId),
+                eq(chatMessagesTable.systemAuthor, 'session')
+            )
+        );
+    expect(receipt).toEqual({
+        content:
+            'Started completely fresh: new session and a factory-fresh local workspace. Earlier files and MEMORY.md are gone.',
+        systemAuthor: 'session',
+    });
+});
+
+test('rotates deferred configuration when an empty notice run is retired', async () => {
+    const seed = await seedAgent();
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+    const messageId = await insertHumanMessage(seed, 'notice to retire', 2);
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'notice to retire',
+        dedupeKey: messageId,
+        serverId: seed.serverId,
+    });
+    const first = transport.framesOfType('start')[0];
+    if (!first) {
+        throw new Error('Expected the notice run to start.');
+    }
+    expect(first.inboxDelivery).toBe('notice');
+    await delivery.onAck({ agentId: seed.agentId, runId: first.runId });
+
+    await connection.db
+        .update(agentsTable)
+        .set({ desiredModelId: 'new-model' })
+        .where(eq(agentsTable.id, seed.agentId));
+    await advanceSeenCursor(connection.db, {
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        sequence: 2,
+        serverId: seed.serverId,
+    });
+
+    // Reconnect reconstructs the old notice run after its only queued row has
+    // been subsumed. The empty notice is a retired run boundary, not a reason
+    // to launch a stale model or silently lose the desired configuration.
+    await delivery.onComputerReconnect(seed.computerId);
+
+    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(transport.framesOfType('agent-configure')).toMatchObject([
+        {
+            modelId: 'new-model',
+            sessionGeneration: 2,
+        },
+    ]);
+    expect((await readDeliveryState(connection.db, seed.agentId))?.activeRunId).toBeNull();
+    const [receipt] = await connection.db
+        .select({
+            content: chatMessagesTable.content,
+            systemAuthor: chatMessagesTable.systemAuthor,
+        })
+        .from(chatMessagesTable)
+        .where(
+            and(
+                eq(chatMessagesTable.chatId, seed.chatId),
+                eq(chatMessagesTable.systemAuthor, 'session')
+            )
+        );
+    expect(receipt).toEqual({
+        content:
+            'Started a fresh session with the newly selected runtime and model. The workspace and MEMORY.md are intact.',
+        systemAuthor: 'session',
+    });
+
+    await delivery.deliver({
+        agentId: seed.agentId,
+        chatId: seed.chatId,
+        content: 'next after empty notice',
+        dedupeKey: 'after-empty-notice',
+        serverId: seed.serverId,
+    });
+
+    const starts = transport.framesOfType('start');
+    expect(starts).toHaveLength(2);
+    expect(starts[1]).toMatchObject({
+        modelId: 'new-model',
+        sessionGeneration: 2,
+    });
+    expect(transport.sent.map(({ frame }) => frame.type)).toEqual([
+        'start',
+        'agent-configure',
+        'start',
+    ]);
+    const [agent] = await connection.db
+        .select({ sessionGeneration: agentsTable.sessionGeneration })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, seed.agentId));
+    expect(agent?.sessionGeneration).toBe(2);
 });
 
 test('bounds one drain and carries the overflow in a later run', async () => {

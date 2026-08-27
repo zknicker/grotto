@@ -18,6 +18,7 @@ export interface AgentDeliveryRow {
     activeRunComputerId: string | null;
     activeRunId: string | null;
     activeRunModelId: string | null;
+    activeRunReasoningEffort: AgentReasoningEffort | null;
     activeRunRuntimeId: string | null;
     agentChainTurns: number;
     agentId: string;
@@ -636,6 +637,7 @@ export async function beginActiveRun(
         chatId: string;
         computerId: string;
         modelId: string;
+        reasoningEffort: AgentReasoningEffort;
         runId: string;
         runtimeId: string;
     }
@@ -648,6 +650,7 @@ export async function beginActiveRun(
             activeRunComputerId: input.computerId,
             activeRunId: input.runId,
             activeRunModelId: input.modelId,
+            activeRunReasoningEffort: input.reasoningEffort,
             activeRunRuntimeId: input.runtimeId,
             dispatchedAt: new Date(),
             updatedAt: new Date(),
@@ -698,6 +701,7 @@ export async function clearActiveRun(db: GrottoDatabase, agentId: string): Promi
             activeRunComputerId: null,
             activeRunId: null,
             activeRunModelId: null,
+            activeRunReasoningEffort: null,
             activeRunRuntimeId: null,
             dispatchedAt: null,
             updatedAt: new Date(),

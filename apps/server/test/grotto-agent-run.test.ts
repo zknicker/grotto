@@ -790,10 +790,11 @@ test('history visibility across a muted gap prevents a duplicate freshness hold'
         insert into agent_delivery (
             agent_id, server_id, active_run_id, active_run_chat_id,
             active_run_computer_id, active_run_runtime_id, active_run_model_id,
+            active_run_reasoning_effort,
             accepted_at, dispatched_at
         ) values (
             ${agentId}, ${serverId}, 'run_muted_history_visibility', ${channel.id},
-            ${computerId}, 'codex', 'gpt-5.6-sol', now(), now()
+            ${computerId}, 'codex', 'gpt-5.6-sol', 'medium', now(), now()
         )
         on conflict (agent_id) do update set
             active_run_id = excluded.active_run_id,
@@ -801,6 +802,7 @@ test('history visibility across a muted gap prevents a duplicate freshness hold'
             active_run_computer_id = excluded.active_run_computer_id,
             active_run_runtime_id = excluded.active_run_runtime_id,
             active_run_model_id = excluded.active_run_model_id,
+            active_run_reasoning_effort = excluded.active_run_reasoning_effort,
             accepted_at = excluded.accepted_at,
             dispatched_at = excluded.dispatched_at
     `;
@@ -865,6 +867,7 @@ test('history visibility across a muted gap prevents a duplicate freshness hold'
             active_run_computer_id = null,
             active_run_runtime_id = null,
             active_run_model_id = null,
+            active_run_reasoning_effort = null,
             accepted_at = null,
             dispatched_at = null
         where agent_id = ${agentId}
@@ -1786,6 +1789,7 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
             active_run_computer_id = ${computerId},
             active_run_runtime_id = 'codex',
             active_run_model_id = 'gpt-5.6-sol',
+            active_run_reasoning_effort = 'medium',
             accepted_at = now(),
             dispatched_at = now()
         where agent_id = ${peer.agent.id}

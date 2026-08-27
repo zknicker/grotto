@@ -8,7 +8,6 @@ import { and, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { recordSessionRotationReceipts } from '../agent-delivery/session-rotation.ts';
 import * as deliveryStore from '../agent-delivery/store.ts';
-import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     agentDeliveryTable,
@@ -19,7 +18,6 @@ import {
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { appendServerAgentActivity } from './agent-activity.ts';
 import { AgentConfigDeniedError } from './agent-config-errors.ts';
 import { assertRuntimeModelReported, resolveAssignedComputer } from './agent-inventory.ts';
 import { type ConfiguredAgentRow, toAgent } from './agent-shape.ts';
@@ -28,6 +26,7 @@ export interface AgentConfigurationRotation {
     activity: AgentActivityEvent | null;
     chatId: string | null;
     computerId: string;
+    deferred: boolean;
     events: ServerDurableEvent[];
     runId: string | null;
     sessionGeneration: number;
@@ -93,32 +92,19 @@ export async function configureAgent(
         });
         assertRuntimeModelReported(inventory, input.runtimeId, input.modelId);
 
+        const desiredReasoningEffort = input.reasoningEffort ?? agent.desiredReasoningEffort;
         const changed =
             agent.desiredRuntimeId !== input.runtimeId ||
             agent.desiredModelId !== input.modelId ||
-            (input.reasoningEffort !== undefined &&
-                agent.desiredReasoningEffort !== input.reasoningEffort);
-        const delivery = changed ? await deliveryStore.readDeliveryState(tx, input.agentId) : null;
-        let activity: AgentActivityEvent | null = null;
-        if (changed && delivery?.activeRunId) {
-            await revokeRunnerCredentialsForRun(tx, {
-                agentId: input.agentId,
-                runId: delivery.activeRunId,
-                serverId: input.serverId,
-            });
-            await deliveryStore.requeuePendingForRun(tx, {
-                agentId: input.agentId,
-                runId: delivery.activeRunId,
-            });
-            activity = await appendServerAgentActivity(tx, {
-                agentId: input.agentId,
-                category: 'working',
-                phase: 'failed',
-                runId: delivery.activeRunId,
-                serverId: input.serverId,
-            });
-            await deliveryStore.clearActiveRun(tx, input.agentId);
-        }
+            agent.desiredReasoningEffort !== desiredReasoningEffort;
+        const delivery = await deliveryStore.readDeliveryState(tx, input.agentId);
+        const hasActiveRun = Boolean(delivery?.activeRunId);
+        const deferred =
+            hasActiveRun &&
+            (delivery?.activeRunModelId !== input.modelId ||
+                delivery.activeRunRuntimeId !== input.runtimeId ||
+                delivery.activeRunReasoningEffort !== desiredReasoningEffort);
+        const rotateNow = changed && !hasActiveRun;
 
         const [configured] = await tx
             .update(agentsTable)
@@ -126,7 +112,7 @@ export async function configureAgent(
                 desiredModelId: input.modelId,
                 ...(input.reasoningEffort ? { desiredReasoningEffort: input.reasoningEffort } : {}),
                 desiredRuntimeId: input.runtimeId,
-                ...(changed
+                ...(rotateNow
                     ? {
                           sessionGeneration: sql`${agentsTable.sessionGeneration} + 1`,
                           sessionResetKind: 'session' as const,
@@ -140,21 +126,26 @@ export async function configureAgent(
         }
 
         let rotation: AgentConfigurationRotation | null = null;
-        if (changed) {
-            await tx
-                .delete(agentMessageDraftsTable)
-                .where(eq(agentMessageDraftsTable.agentId, input.agentId));
-            rotation = {
-                activity,
-                chatId: delivery?.activeRunChatId ?? null,
-                computerId: agent.computerId,
-                events: await recordSessionRotationReceipts(tx, {
+        if (changed || deferred) {
+            let events: ServerDurableEvent[] = [];
+            if (rotateNow) {
+                await tx
+                    .delete(agentMessageDraftsTable)
+                    .where(eq(agentMessageDraftsTable.agentId, input.agentId));
+                events = await recordSessionRotationReceipts(tx, {
                     agentId: input.agentId,
                     generation: configured.sessionGeneration,
                     reason: 'configuration',
                     serverId: input.serverId,
-                }),
-                runId: delivery?.activeRunId ?? null,
+                });
+            }
+            rotation = {
+                activity: null,
+                chatId: delivery?.activeRunChatId ?? null,
+                computerId: agent.computerId,
+                deferred,
+                events,
+                runId: rotateNow ? (delivery?.activeRunId ?? null) : null,
                 sessionGeneration: configured.sessionGeneration,
             };
         }

@@ -1,0 +1,908 @@
+name: Release
+
+# This workflow is intentionally driven by the release ledger. Pull requests
+# validate the proposed ledger change only. A push to main may publish the
+# appended release, but the initial ledger migration is explicitly a no-op.
+#
+# Required GitHub secrets, each scoped to one boundary:
+#   GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN
+#     Existing install-bootstrap identity, mapped to CI_OP_TOKEN only while
+#     bun run setup:worktree resolves the licensed HugeIcons and HeroUI
+#     artifacts. It is never passed to a release publisher.
+#   GH_RELEASE_AGENT_TOOLING_OP_TOKEN
+#     Dedicated 1Password service-account token for the release Tooling
+#     identity. Release-material and publish steps map it to
+#     RELEASE_AGENT_TOOLING_OP_TOKEN, the canonical schema slot. There is no
+#     legacy fallback identity and no duplicated install credential.
+#
+# Required Tooling-resolved release material for Apple jobs:
+#   GROTTO_RELEASE_APPLE_CERTIFICATES_P12_BASE64
+#   GROTTO_RELEASE_APPLE_CERTIFICATES_PASSWORD
+#     One p12 bundle containing the Developer ID Application and Apple
+#     Distribution identities.
+#   GROTTO_RELEASE_APP_STORE_CONNECT_PRIVATE_KEY
+#     Raw App Store Connect .p8 text. APPLE_API_KEY_ID and APPLE_API_ISSUER
+#     remain schema values. The workflow writes the .p8 only to RUNNER_TEMP;
+#     missing fields fail closed with a precise error and no placeholder path.
+#
+# Production Server deployment is not part of this workflow. Use the separate,
+# manual Deploy Grotto Server workflow after a published Server release.
+#
+# Apple jobs pin GitHub's macos-15 hosted arm64 M1 runner. The Intel
+# macos-15-intel image is intentionally not used for these targets.
+
+on:
+  pull_request:
+    paths:
+      - releases.json
+  push:
+    branches:
+      - main
+    paths:
+      - releases.json
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: Validate release plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      plan: ${{ steps.release_plan.outputs.plan }}
+      initial_ledger_migration: ${{ steps.release_plan.outputs.initial_ledger_migration }}
+      publish_computer: ${{ steps.release_plan.outputs.publish_computer }}
+      publish_app: ${{ steps.release_plan.outputs.publish_app }}
+      publish_ios: ${{ steps.release_plan.outputs.publish_ios }}
+      publish_server: ${{ steps.release_plan.outputs.publish_server }}
+      release_version: ${{ steps.ledger_values.outputs.release_version }}
+      computer_version: ${{ steps.ledger_values.outputs.computer_version }}
+      ios_version: ${{ steps.ledger_values.outputs.ios_version }}
+      ios_build_number: ${{ steps.ledger_values.outputs.ios_build_number }}
+    steps:
+      - name: Check out release ledger
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Calculate and validate changed release
+        id: release_plan
+        env:
+          BEFORE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          AFTER_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "${BEFORE_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "release plan before SHA is not a full lowercase Git SHA" >&2
+            exit 1
+          fi
+          if [[ ! "${AFTER_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "release plan after SHA is not a full lowercase Git SHA" >&2
+            exit 1
+          fi
+
+          plan_path="${RUNNER_TEMP}/release-plan.json"
+          node scripts/release/changed-release.mjs \
+            --before "${BEFORE_SHA}" \
+            --after "${AFTER_SHA}" >"${plan_path}"
+
+          PLAN_PATH="${plan_path}" node --input-type=module <<'NODE'
+          import { appendFileSync, readFileSync } from 'node:fs';
+          import { randomUUID } from 'node:crypto';
+
+          const planPath = process.env.PLAN_PATH;
+          const raw = readFileSync(planPath, 'utf8');
+          if (!raw.trim()) {
+              throw new Error('changed-release.mjs returned an empty release plan');
+          }
+
+          let plan;
+          try {
+              plan = JSON.parse(raw);
+          } catch {
+              throw new Error('changed-release.mjs returned malformed JSON');
+          }
+
+          assertRecord(plan, 'release plan');
+          assertExactKeys(plan, ['initialLedgerMigration', 'targets'], 'release plan');
+          if (typeof plan.initialLedgerMigration !== 'boolean') {
+              throw new Error('release plan initialLedgerMigration must be boolean');
+          }
+
+          assertRecord(plan.targets, 'release plan targets');
+          const targetNames = ['computer', 'app', 'ios', 'server'];
+          assertExactKeys(plan.targets, targetNames, 'release plan targets');
+          for (const target of targetNames) {
+              if (typeof plan.targets[target] !== 'boolean') {
+                  throw new Error(`release plan target ${target} must be boolean`);
+              }
+          }
+          if (
+              plan.initialLedgerMigration &&
+              targetNames.some((target) => plan.targets[target])
+          ) {
+              throw new Error(
+                  'initial ledger migration must not request a release publication target'
+              );
+          }
+
+          const output = process.env.GITHUB_OUTPUT;
+          const delimiter = `grotto_release_plan_${randomUUID()}`;
+          appendFileSync(
+              output,
+              `plan<<${delimiter}\n${raw}${raw.endsWith('\n') ? '' : '\n'}${delimiter}\n`
+          );
+          appendFileSync(
+              output,
+              [
+                  `initial_ledger_migration=${plan.initialLedgerMigration}`,
+                  ...targetNames.map((target) => `publish_${target}=${plan.targets[target]}`),
+                  '',
+              ].join('\n')
+          );
+          appendFileSync(
+              process.env.GITHUB_STEP_SUMMARY,
+              [
+                  '### Release plan',
+                  '',
+                  `- Initial ledger migration: ${plan.initialLedgerMigration}`,
+                  ...targetNames.map((target) => `- Publish ${target}: ${plan.targets[target]}`),
+                  '',
+              ].join('\n')
+          );
+
+          function assertRecord(value, label) {
+              if (!(value && typeof value === 'object' && !Array.isArray(value))) {
+                  throw new Error(`${label} must be an object`);
+              }
+          }
+
+          function assertExactKeys(value, expected, label) {
+              const actual = Object.keys(value).sort();
+              const sortedExpected = [...expected].sort();
+              if (
+                  actual.length !== sortedExpected.length ||
+                  actual.some((key, index) => key !== sortedExpected[index])
+              ) {
+                  throw new Error(`${label} has missing or unexpected fields`);
+              }
+          }
+          NODE
+
+      - name: Read latest ledger release values
+        id: ledger_values
+        env:
+          PLAN_PATH: ${{ runner.temp }}/release-plan.json
+        run: |
+          set -euo pipefail
+
+          if ! jq -e 'type == "array" and length > 0 and (.[-1] | type == "object")' releases.json >/dev/null; then
+            echo "releases.json must be a non-empty oldest-first array" >&2
+            exit 1
+          fi
+          if ! jq -e '.[-1].targets | type == "object"' releases.json >/dev/null; then
+            echo "latest releases.json entry is missing its targets object" >&2
+            exit 1
+          fi
+
+          initial_ledger_migration="$(jq -er '.initialLedgerMigration | tostring' "${PLAN_PATH}")"
+          publish_computer="$(jq -er '.targets.computer | tostring' "${PLAN_PATH}")"
+          publish_app="$(jq -er '.targets.app | tostring' "${PLAN_PATH}")"
+          publish_ios="$(jq -er '.targets.ios | tostring' "${PLAN_PATH}")"
+          publish_server="$(jq -er '.targets.server | tostring' "${PLAN_PATH}")"
+
+          release_version=''
+          computer_version=''
+          ios_version=''
+          ios_build_number=''
+
+          read_required_value() {
+            local expression="$1"
+            local label="$2"
+            local value
+            if ! value="$(jq -er "${expression}" releases.json)"; then
+              echo "latest releases.json entry is missing ${label}" >&2
+              exit 1
+            fi
+            if [[ "${value}" == 'undecided' ]]; then
+              echo "latest releases.json entry has undecided ${label}" >&2
+              exit 1
+            fi
+            printf '%s' "${value}"
+          }
+
+          read_semver() {
+            local expression="$1"
+            local label="$2"
+            local value
+            value="$(read_required_value "${expression}" "${label}")"
+            if [[ ! "${value}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "latest releases.json ${label} must be X.Y.Z, got ${value}" >&2
+              exit 1
+            fi
+            printf '%s' "${value}"
+          }
+
+          assert_target_value() {
+            local expression="$1"
+            local label="$2"
+            read_required_value "${expression}" "${label}" >/dev/null
+          }
+
+          if [[ "${initial_ledger_migration}" == 'false' ]]; then
+            if [[ "${publish_server}" == 'true' ]]; then
+              release_version="$(read_semver '.[-1].version' 'version')"
+              assert_target_value '.[-1].targets.server' 'targets.server'
+            fi
+
+            if [[ "${publish_computer}" == 'true' ]]; then
+              computer_version="$(read_semver '.[-1].targets.computer' 'targets.computer')"
+              assert_target_value '.[-1].targets.computer' 'targets.computer'
+            fi
+
+            if [[ "${publish_ios}" == 'true' ]]; then
+              ios_version="$(read_semver '.[-1].targets.ios.version' 'targets.ios.version')"
+              ios_build_number="$(read_required_value '.[-1].targets.ios.buildNumber' 'targets.ios.buildNumber')"
+              if [[ ! "${ios_build_number}" =~ ^[1-9][0-9]*$ ]]; then
+                echo "latest releases.json targets.ios.buildNumber must be a positive integer, got ${ios_build_number}" >&2
+                exit 1
+              fi
+              assert_target_value '.[-1].targets.ios.version' 'targets.ios.version'
+            fi
+
+            if [[ "${publish_app}" == 'true' ]]; then
+              assert_target_value '.[-1].targets.app' 'targets.app'
+            fi
+
+            if [[ "${publish_server}" != 'true' && "${publish_computer}" != 'true' ]]; then
+              if [[ "${publish_app}" == 'true' || "${publish_ios}" == 'true' ]]; then
+                echo "App/iOS publication requires a Server release or Computer-only publication for finalization" >&2
+                exit 1
+              fi
+            elif [[ "${publish_server}" != 'true' && ("${publish_app}" == 'true' || "${publish_ios}" == 'true') ]]; then
+              echo "Computer-only publication cannot include App or iOS targets" >&2
+              exit 1
+            fi
+          fi
+
+          {
+            echo "release_version=${release_version}"
+            echo "computer_version=${computer_version}"
+            echo "ios_version=${ios_version}"
+            echo "ios_build_number=${ios_build_number}"
+          } >>"${GITHUB_OUTPUT}"
+
+  publish_computer:
+    name: Publish Computer
+    needs: plan
+    if: >-
+      needs.plan.result == 'success' &&
+      github.event_name == 'push' &&
+      needs.plan.outputs.initial_ledger_migration == 'false' &&
+      needs.plan.outputs.publish_computer == 'true'
+    runs-on: macos-15
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.5'
+
+      # The release Tooling identity intentionally cannot read the licensed
+      # install artifacts. Keep dependency bootstrap on the existing CI
+      # identity, and keep that identity out of release-material/publish steps.
+      - name: Install dependencies with CI bootstrap identity
+        env:
+          CI_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CI_OP_TOKEN:-}" ]]; then
+            echo "GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN is required for dependency bootstrap" >&2
+            exit 1
+          fi
+          bun run setup:worktree
+
+      - name: Import Apple material into a temporary keychain
+        env:
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${RELEASE_AGENT_TOOLING_OP_TOKEN:-}" ]]; then
+            echo "GH_RELEASE_AGENT_TOOLING_OP_TOKEN is required for release Tooling access" >&2
+            exit 1
+          fi
+          GROTTO_RESOLVE_RELEASE_TOKENS=true \
+            bunx varlock@1.16.1 run --include-internal -- \
+            bash -euo pipefail -c '
+              require_material() {
+                local name="$1"
+                if [[ -z "${!name:-}" ]]; then
+                  echo "Missing release material ${name}; provision the matching Tooling item field." >&2
+                  exit 1
+                fi
+              }
+
+              require_material GROTTO_RELEASE_APPLE_CERTIFICATES_P12_BASE64
+              require_material GROTTO_RELEASE_APPLE_CERTIFICATES_PASSWORD
+
+              certificate_path="${RUNNER_TEMP}/grotto-release-certificates.p12"
+              keychain_path="${RUNNER_TEMP}/grotto-release-$(uuidgen).keychain-db"
+              keychain_password="$(openssl rand -hex 32)"
+              {
+                echo "GROTTO_RELEASE_CERTIFICATE_PATH=${certificate_path}"
+                echo "GROTTO_RELEASE_KEYCHAIN_PATH=${keychain_path}"
+              } >>"${GITHUB_ENV}"
+
+              umask 077
+              printf "%s" "${GROTTO_RELEASE_APPLE_CERTIFICATES_P12_BASE64}" |
+                base64 --decode >"${certificate_path}"
+              security create-keychain -p "${keychain_password}" "${keychain_path}"
+              security set-keychain-settings -lut 21600 "${keychain_path}"
+              security unlock-keychain -p "${keychain_password}" "${keychain_path}"
+              security import "${certificate_path}" \
+                -P "${GROTTO_RELEASE_APPLE_CERTIFICATES_PASSWORD}" \
+                -A -t cert -f pkcs12 -k "${keychain_path}"
+              security set-key-partition-list \
+                -S apple-tool:,apple: \
+                -k "${keychain_password}" \
+                "${keychain_path}"
+              security list-keychain -d user -s "${keychain_path}"
+
+              if ! identities="$(security find-identity -v -p codesigning "${keychain_path}")"; then
+                echo "Apple release keychain could not be inspected after certificate import" >&2
+                exit 1
+              fi
+              if ! grep -Fq "Developer ID Application:" <<<"${identities}"; then
+                echo "Apple release p12 is missing a Developer ID Application identity" >&2
+                exit 1
+              fi
+              if ! grep -Fq "Apple Distribution:" <<<"${identities}"; then
+                echo "Apple release p12 is missing an Apple Distribution identity" >&2
+                exit 1
+              fi
+            '
+
+      - name: Publish Computer
+        env:
+          COMPUTER_VERSION: ${{ needs.plan.outputs.computer_version }}
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: |
+          set -euo pipefail
+          bun run computer:release "${COMPUTER_VERSION}"
+
+      - name: Clean up Apple material
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          cleanup_failed=0
+          if [[ -n "${GROTTO_RELEASE_KEYCHAIN_PATH:-}" && -e "${GROTTO_RELEASE_KEYCHAIN_PATH}" ]]; then
+            security delete-keychain "${GROTTO_RELEASE_KEYCHAIN_PATH}" || cleanup_failed=1
+          fi
+          for material_path in "${GROTTO_RELEASE_CERTIFICATE_PATH:-}"; do
+            if [[ -n "${material_path}" ]]; then
+              rm -f "${material_path}" || cleanup_failed=1
+            fi
+          done
+          if [[ "${cleanup_failed}" -ne 0 ]]; then
+            echo "Apple release material cleanup failed; refusing a clean job result" >&2
+            exit 1
+          fi
+
+  publish_app:
+    name: Publish App
+    needs: plan
+    if: >-
+      needs.plan.result == 'success' &&
+      github.event_name == 'push' &&
+      needs.plan.outputs.initial_ledger_migration == 'false' &&
+      needs.plan.outputs.publish_app == 'true'
+    runs-on: macos-15
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.5'
+
+      # The release Tooling identity intentionally cannot read the licensed
+      # install artifacts. Keep dependency bootstrap on the existing CI
+      # identity, and keep that identity out of release-material/publish steps.
+      - name: Install dependencies with CI bootstrap identity
+        env:
+          CI_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CI_OP_TOKEN:-}" ]]; then
+            echo "GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN is required for dependency bootstrap" >&2
+            exit 1
+          fi
+          bun run setup:worktree
+
+      - name: Import Apple material into a temporary keychain
+        env:
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${RELEASE_AGENT_TOOLING_OP_TOKEN:-}" ]]; then
+            echo "GH_RELEASE_AGENT_TOOLING_OP_TOKEN is required for release Tooling access" >&2
+            exit 1
+          fi
+          GROTTO_RESOLVE_RELEASE_TOKENS=true \
+            bunx varlock@1.16.1 run --include-internal -- \
+            bash -euo pipefail -c '
+              require_material() {
+                local name="$1"
+                if [[ -z "${!name:-}" ]]; then
+                  echo "Missing release material ${name}; provision the matching Tooling item field." >&2
+                  exit 1
+                fi
+              }
+
+              require_material GROTTO_RELEASE_APPLE_CERTIFICATES_P12_BASE64
+              require_material GROTTO_RELEASE_APPLE_CERTIFICATES_PASSWORD
+
+              certificate_path="${RUNNER_TEMP}/grotto-release-certificates.p12"
+              keychain_path="${RUNNER_TEMP}/grotto-release-$(uuidgen).keychain-db"
+              keychain_password="$(openssl rand -hex 32)"
+              {
+                echo "GROTTO_RELEASE_CERTIFICATE_PATH=${certificate_path}"
+                echo "GROTTO_RELEASE_KEYCHAIN_PATH=${keychain_path}"
+              } >>"${GITHUB_ENV}"
+
+              umask 077
+              printf "%s" "${GROTTO_RELEASE_APPLE_CERTIFICATES_P12_BASE64}" |
+                base64 --decode >"${certificate_path}"
+              security create-keychain -p "${keychain_password}" "${keychain_path}"
+              security set-keychain-settings -lut 21600 "${keychain_path}"
+              security unlock-keychain -p "${keychain_password}" "${keychain_path}"
+              security import "${certificate_path}" \
+                -P "${GROTTO_RELEASE_APPLE_CERTIFICATES_PASSWORD}" \
+                -A -t cert -f pkcs12 -k "${keychain_path}"
+              security set-key-partition-list \
+                -S apple-tool:,apple: \
+                -k "${keychain_password}" \
+                "${keychain_path}"
+              security list-keychain -d user -s "${keychain_path}"
+
+              if ! identities="$(security find-identity -v -p codesigning "${keychain_path}")"; then
+                echo "Apple release keychain could not be inspected after certificate import" >&2
+                exit 1
+              fi
+              if ! grep -Fq "Developer ID Application:" <<<"${identities}"; then
+                echo "Apple release p12 is missing a Developer ID Application identity" >&2
+                exit 1
+              fi
+              if ! grep -Fq "Apple Distribution:" <<<"${identities}"; then
+                echo "Apple release p12 is missing an Apple Distribution identity" >&2
+                exit 1
+              fi
+            '
+
+      - name: Publish App
+        env:
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: bun run publish:desktop
+
+      - name: Upload App release bundle for Server
+        uses: actions/upload-artifact@v4
+        with:
+          name: grotto-app-release-assets
+          path: |
+            apps/website/electron-dist/latest-mac.yml
+            apps/website/electron-dist/Grotto_*_arm64.dmg
+            apps/website/electron-dist/Grotto_*_arm64.zip
+            apps/website/electron-dist/Grotto_*_arm64.dmg.blockmap
+            apps/website/electron-dist/Grotto_*_arm64.zip.blockmap
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Clean up Apple material
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          cleanup_failed=0
+          if [[ -n "${GROTTO_RELEASE_KEYCHAIN_PATH:-}" && -e "${GROTTO_RELEASE_KEYCHAIN_PATH}" ]]; then
+            security delete-keychain "${GROTTO_RELEASE_KEYCHAIN_PATH}" || cleanup_failed=1
+          fi
+          for material_path in "${GROTTO_RELEASE_CERTIFICATE_PATH:-}"; do
+            if [[ -n "${material_path}" ]]; then
+              rm -f "${material_path}" || cleanup_failed=1
+            fi
+          done
+          if [[ "${cleanup_failed}" -ne 0 ]]; then
+            echo "Apple release material cleanup failed; refusing a clean job result" >&2
+            exit 1
+          fi
+
+  upload_ios:
+    name: Upload iOS
+    needs: plan
+    if: >-
+      needs.plan.result == 'success' &&
+      github.event_name == 'push' &&
+      needs.plan.outputs.initial_ledger_migration == 'false' &&
+      needs.plan.outputs.publish_ios == 'true'
+    runs-on: macos-15
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.5'
+
+      # The release Tooling identity intentionally cannot read the licensed
+      # install artifacts. Keep dependency bootstrap on the existing CI
+      # identity, and keep that identity out of release-material/publish steps.
+      - name: Install dependencies with CI bootstrap identity
+        env:
+          CI_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CI_OP_TOKEN:-}" ]]; then
+            echo "GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN is required for dependency bootstrap" >&2
+            exit 1
+          fi
+          bun run setup:worktree
+
+      - name: Import Apple material and App Store Connect key
+        env:
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${RELEASE_AGENT_TOOLING_OP_TOKEN:-}" ]]; then
+            echo "GH_RELEASE_AGENT_TOOLING_OP_TOKEN is required for release Tooling access" >&2
+            exit 1
+          fi
+          GROTTO_RESOLVE_RELEASE_TOKENS=true \
+            bunx varlock@1.16.1 run --include-internal -- \
+            bash -euo pipefail -c '
+              require_material() {
+                local name="$1"
+                if [[ -z "${!name:-}" ]]; then
+                  echo "Missing release material ${name}; provision the matching Tooling item field." >&2
+                  exit 1
+                fi
+              }
+
+              require_material GROTTO_RELEASE_APPLE_CERTIFICATES_P12_BASE64
+              require_material GROTTO_RELEASE_APPLE_CERTIFICATES_PASSWORD
+
+              certificate_path="${RUNNER_TEMP}/grotto-release-certificates.p12"
+              keychain_path="${RUNNER_TEMP}/grotto-release-$(uuidgen).keychain-db"
+              keychain_password="$(openssl rand -hex 32)"
+              {
+                echo "GROTTO_RELEASE_CERTIFICATE_PATH=${certificate_path}"
+                echo "GROTTO_RELEASE_KEYCHAIN_PATH=${keychain_path}"
+              } >>"${GITHUB_ENV}"
+
+              umask 077
+              printf "%s" "${GROTTO_RELEASE_APPLE_CERTIFICATES_P12_BASE64}" |
+                base64 --decode >"${certificate_path}"
+              security create-keychain -p "${keychain_password}" "${keychain_path}"
+              security set-keychain-settings -lut 21600 "${keychain_path}"
+              security unlock-keychain -p "${keychain_password}" "${keychain_path}"
+              security import "${certificate_path}" \
+                -P "${GROTTO_RELEASE_APPLE_CERTIFICATES_PASSWORD}" \
+                -A -t cert -f pkcs12 -k "${keychain_path}"
+              security set-key-partition-list \
+                -S apple-tool:,apple: \
+                -k "${keychain_password}" \
+                "${keychain_path}"
+              security list-keychain -d user -s "${keychain_path}"
+
+              if ! identities="$(security find-identity -v -p codesigning "${keychain_path}")"; then
+                echo "Apple release keychain could not be inspected after certificate import" >&2
+                exit 1
+              fi
+              if ! grep -Fq "Developer ID Application:" <<<"${identities}"; then
+                echo "Apple release p12 is missing a Developer ID Application identity" >&2
+                exit 1
+              fi
+              if ! grep -Fq "Apple Distribution:" <<<"${identities}"; then
+                echo "Apple release p12 is missing an Apple Distribution identity" >&2
+                exit 1
+              fi
+
+              require_material GROTTO_RELEASE_APP_STORE_CONNECT_PRIVATE_KEY
+              require_material APPLE_API_KEY_ID
+              require_material APPLE_API_ISSUER
+              if [[ ! "${APPLE_API_KEY_ID}" =~ ^[A-Za-z0-9_-]+$ ]]; then
+                echo "APPLE_API_KEY_ID contains unsupported path characters" >&2
+                exit 1
+              fi
+              api_key_path="${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8"
+              echo "APPLE_API_KEY_PATH=${api_key_path}" >>"${GITHUB_ENV}"
+              printf "%s" "${GROTTO_RELEASE_APP_STORE_CONNECT_PRIVATE_KEY}" >"${api_key_path}"
+            '
+
+      - name: Upload iOS
+        env:
+          IOS_VERSION: ${{ needs.plan.outputs.ios_version }}
+          IOS_BUILD_NUMBER: ${{ needs.plan.outputs.ios_build_number }}
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: |
+          set -euo pipefail
+          GROTTO_RESOLVE_RELEASE_TOKENS=true \
+            bunx varlock@1.16.1 run --include-internal -- \
+            env "APPLE_API_KEY_PATH=${APPLE_API_KEY_PATH}" \
+              bun run ios:release "${IOS_VERSION}" --build-number "${IOS_BUILD_NUMBER}"
+
+      - name: Clean up Apple material
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          cleanup_failed=0
+          if [[ -n "${GROTTO_RELEASE_KEYCHAIN_PATH:-}" && -e "${GROTTO_RELEASE_KEYCHAIN_PATH}" ]]; then
+            security delete-keychain "${GROTTO_RELEASE_KEYCHAIN_PATH}" || cleanup_failed=1
+          fi
+          for material_path in "${GROTTO_RELEASE_CERTIFICATE_PATH:-}" "${APPLE_API_KEY_PATH:-}"; do
+            if [[ -n "${material_path}" ]]; then
+              rm -f "${material_path}" || cleanup_failed=1
+            fi
+          done
+          if [[ "${cleanup_failed}" -ne 0 ]]; then
+            echo "Apple release material cleanup failed; refusing a clean job result" >&2
+            exit 1
+          fi
+
+  publish_server:
+    name: Publish Server
+    needs:
+      - plan
+      - publish_computer
+      - publish_app
+      - upload_ios
+    if: >-
+      always() &&
+      needs.plan.result == 'success' &&
+      github.event_name == 'push' &&
+      needs.plan.outputs.initial_ledger_migration == 'false' &&
+      needs.plan.outputs.publish_server == 'true' &&
+      (needs.publish_computer.result == 'success' || needs.plan.outputs.publish_computer == 'false') &&
+      (needs.publish_app.result == 'success' || needs.plan.outputs.publish_app == 'false') &&
+      (needs.upload_ios.result == 'success' || needs.plan.outputs.publish_ios == 'false')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download App release bundle for Server
+        if: ${{ needs.plan.outputs.publish_app == 'true' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: grotto-app-release-assets
+          path: apps/website/electron-dist
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.5'
+
+      # The release Tooling identity intentionally cannot read the licensed
+      # install artifacts. Keep dependency bootstrap on the existing CI
+      # identity, and keep that identity out of release-material/publish steps.
+      - name: Install dependencies with CI bootstrap identity
+        env:
+          CI_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CI_OP_TOKEN:-}" ]]; then
+            echo "GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN is required for dependency bootstrap" >&2
+            exit 1
+          fi
+          bun run setup:worktree
+
+      - name: Publish Server
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: bun run release:publish
+
+  finalize_release:
+    name: Finalize release
+    needs:
+      - plan
+      - publish_computer
+      - publish_app
+      - upload_ios
+      - publish_server
+    if: >-
+      always() &&
+      needs.plan.result == 'success' &&
+      github.event_name == 'push' &&
+      needs.plan.outputs.initial_ledger_migration == 'false' &&
+      (
+        needs.plan.outputs.publish_computer == 'true' ||
+        needs.plan.outputs.publish_app == 'true' ||
+        needs.plan.outputs.publish_ios == 'true' ||
+        needs.plan.outputs.publish_server == 'true'
+      ) &&
+      (needs.publish_computer.result == 'success' || needs.plan.outputs.publish_computer == 'false') &&
+      (needs.publish_app.result == 'success' || needs.plan.outputs.publish_app == 'false') &&
+      (needs.upload_ios.result == 'success' || needs.plan.outputs.publish_ios == 'false') &&
+      (needs.publish_server.result == 'success' || needs.plan.outputs.publish_server == 'false')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Verify published release and record outcome
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_REVISION: ${{ github.sha }}
+          RELEASE_VERSION: ${{ needs.plan.outputs.release_version }}
+          COMPUTER_VERSION: ${{ needs.plan.outputs.computer_version }}
+          PUBLISH_COMPUTER: ${{ needs.plan.outputs.publish_computer }}
+          PUBLISH_APP: ${{ needs.plan.outputs.publish_app }}
+          PUBLISH_IOS: ${{ needs.plan.outputs.publish_ios }}
+          PUBLISH_SERVER: ${{ needs.plan.outputs.publish_server }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "${SOURCE_REVISION}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "release finalization source revision is not a full lowercase Git SHA" >&2
+            exit 1
+          fi
+
+          resolve_tag_commit() {
+            local tag_name="$1"
+            local ref_object
+            local tag_object
+            local object_type
+            local object_sha
+
+            ref_object="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag_name}" --jq '.object.type + "\t" + .object.sha')"
+            read -r object_type object_sha <<<"${ref_object}"
+            case "${object_type}" in
+              commit)
+                printf '%s' "${object_sha}"
+                ;;
+              tag)
+                tag_object="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${object_sha}" --jq '.object.type + "\t" + .object.sha')"
+                read -r object_type object_sha <<<"${tag_object}"
+                if [[ "${object_type}" != 'commit' ]]; then
+                  echo "tag ${tag_name} does not resolve directly to a commit" >&2
+                  exit 1
+                fi
+                printf '%s' "${object_sha}"
+                ;;
+              *)
+                echo "tag ${tag_name} has unsupported Git object type ${object_type}" >&2
+                exit 1
+                ;;
+            esac
+          }
+
+          verify_tag() {
+            local tag_name="$1"
+            local resolved_sha
+            resolved_sha="$(resolve_tag_commit "${tag_name}")"
+            if [[ "${resolved_sha}" != "${SOURCE_REVISION}" ]]; then
+              echo "tag ${tag_name} resolves to ${resolved_sha}, expected merged SHA ${SOURCE_REVISION}" >&2
+              exit 1
+            fi
+          }
+
+          verify_release_asset() {
+            local release_json="$1"
+            local asset_name="$2"
+            if ! jq -e --arg asset_name "${asset_name}" '.assets[]? | select(.name == $asset_name)' <<<"${release_json}" >/dev/null; then
+              echo "GitHub Release is missing asset ${asset_name}" >&2
+              exit 1
+            fi
+          }
+
+          target_state() {
+            if [[ "$1" == 'true' ]]; then
+              printf 'published'
+            else
+              printf 'unchanged'
+            fi
+          }
+
+          verification=''
+          if [[ "${PUBLISH_SERVER}" == 'true' ]]; then
+            if [[ ! "${RELEASE_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "release finalization is missing the latest ledger version" >&2
+              exit 1
+            fi
+            tag_name="v${RELEASE_VERSION}"
+            verify_tag "${tag_name}"
+            release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag_name}")"
+            if ! jq -e '(.draft == false) and (.prerelease == false) and (.published_at != null) and ((.assets | length) > 0)' <<<"${release_json}" >/dev/null; then
+              echo "GitHub Release ${tag_name} is missing a published release or assets" >&2
+              exit 1
+            fi
+            if [[ "${PUBLISH_APP}" == 'true' ]]; then
+              for asset_name in \
+                "Grotto_${RELEASE_VERSION}_arm64.dmg" \
+                "Grotto_${RELEASE_VERSION}_arm64.zip" \
+                "Grotto_${RELEASE_VERSION}_arm64.dmg.blockmap" \
+                "Grotto_${RELEASE_VERSION}_arm64.zip.blockmap" \
+                "latest-mac.yml"
+              do
+                verify_release_asset "${release_json}" "${asset_name}"
+              done
+            fi
+            release_id="${RELEASE_VERSION}+git.${SOURCE_REVISION:0:12}"
+            verify_release_asset "${release_json}" "grotto-server-${release_id}-aarch64-apple-darwin.tar.gz"
+            verify_release_asset "${release_json}" "grotto-server-${release_id}-aarch64-apple-darwin.tar.gz.sha256"
+            verification="verified main tag ${tag_name}, merged SHA, non-draft GitHub Release, and Server assets"
+          elif [[ "${PUBLISH_COMPUTER}" == 'true' ]]; then
+            if [[ ! "${COMPUTER_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Computer-only finalization is missing the latest ledger Computer version" >&2
+              exit 1
+            fi
+            tag_name="computer-v${COMPUTER_VERSION}"
+            verify_tag "${tag_name}"
+            descriptor_path="${RUNNER_TEMP}/grotto-computer-release-${COMPUTER_VERSION}.json"
+            trap 'rm -f -- "${descriptor_path}"' EXIT
+            curl --fail --silent --show-error --location --retry 3 \
+              "https://releases.grotto.sh/computer/${COMPUTER_VERSION}/release.json" \
+              >"${descriptor_path}"
+            if ! jq -e \
+              --arg expected_version "${COMPUTER_VERSION}" \
+              --arg expected_revision "${SOURCE_REVISION}" \
+              '(
+                .release.version == $expected_version and
+                .release.sourceRevision == $expected_revision and
+                (.signature | type == "string" and length > 0)
+              )' \
+              "${descriptor_path}" >/dev/null; then
+              echo "public Computer descriptor does not match ${tag_name} and merged SHA ${SOURCE_REVISION}" >&2
+              exit 1
+            fi
+            verification="verified Computer tag ${tag_name}, merged SHA, and public descriptor"
+          else
+            echo "release finalization has no supported Server or Computer publication" >&2
+            exit 1
+          fi
+
+          {
+            echo '## Coordinated release finalized'
+            echo
+            echo "${verification}."
+            echo
+            echo '| Target | Outcome |'
+            echo '| --- | --- |'
+            echo "| Computer | $(target_state "${PUBLISH_COMPUTER}") |"
+            echo "| App | $(target_state "${PUBLISH_APP}") |"
+            echo "| iOS | $(target_state "${PUBLISH_IOS}") |"
+            echo "| Server | $(target_state "${PUBLISH_SERVER}") |"
+            echo
+            echo 'Production Server deployment remains an explicit action in the manual Deploy Grotto Server workflow.'
+          } >>"${GITHUB_STEP_SUMMARY}"

@@ -100,8 +100,17 @@ label; they do not restyle the control or set their own geometry. The sidebar an
 both open with that same row, so a chrome button in either pane lands on one centerline. A
 fixed-size chrome circle must not be placed in a system navigation bar, which compresses it into an
 ellipse: a screen that wants the chrome circle supplies its own `ChromeHeader` and hides the
-navigation bar, as the Settings sheet root does. Pushed screens keep the standard navigation bar
-with its system back button and text actions.
+navigation bar, as the Chat shell root does. Pushed screens keep the standard navigation bar with
+its system back button and text actions.
+
+One navigation stack answers to one bar decision, and inside a sheet that is not a preference. A
+stack whose root hides the bar and whose pushed screens show it lays the incoming screen out against
+the pre-push top safe area: the pushed bar and its content drew a grabber-height too high for the
+whole transition, then dropped into place a frame after it ended. The Chat shell survives the same
+toggle only because a full-screen root's top inset does not change when the bar appears. A sheet's
+stack therefore keeps the system bar on every screen, root included — the Settings root carries an
+inline "Settings" title with a trailing close button, which lands on the same rail and centerline as
+the back chevron of every screen it pushes.
 
 App iconography is hugeicons stroke-rounded, the same family the App's React surfaces import, so the
 two clients draw one vocabulary. It renders through the machinery the channel glyphs already used:
@@ -142,8 +151,9 @@ top edge.
 
 Dismiss controls follow one vocabulary. A form that creates or edits a draft uses Cancel plus a
 confirming verb (Create, Save); an informational sheet with nothing to confirm uses Done; the
-Settings sheet root uses its glass X because it owns a `ChromeHeader` instead of a navigation bar;
-and a pushed screen uses the system back chevron rather than an explicit control.
+Settings sheet root uses an X in its navigation bar, which the system draws as the same glass circle
+it gives the back chevron; and a pushed screen uses the system back chevron rather than an explicit
+control.
 
 Dark mode cannot use the canvas shadow to separate an open drawer from the sidebar, because a black
 canvas over a black sidebar has no edge. The veil painted over the slid-aside canvas therefore

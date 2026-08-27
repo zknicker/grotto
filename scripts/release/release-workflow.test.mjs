@@ -98,7 +98,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(workflow, /bun run computer:release "\$\{COMPUTER_VERSION\}"/);
     assert.match(
         workflow,
-        /bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
+        /name: Upload iOS[\s\S]*?DEVELOPER_DIR: \/Applications\/Xcode_26\.3\.app\/Contents\/Developer[\s\S]*?bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
     );
     assert.match(workflow, /run: bun run publish:desktop/);
     assert.match(workflow, /run: bun run release:publish/);

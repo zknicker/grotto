@@ -170,6 +170,14 @@ shell per destination and reaches the screen as a binding or by reference; a rem
 presentation state (an open portal, a frozen keyboard inset, an error notice). A page arriving for a Chat that was showing nothing is that Chat's first paint and settles
 at the bottom without animation; only genuine appends animate.
 
+Both transcripts — the Chat timeline and a Thread's replies — hold the bottom as a scroll *edge*,
+through `ScrollPosition(edge: .bottom)`, and never as an offset onto the last row. An offset has to
+resolve against a container height, and a Chat's first paint asks for one before the canvas has that
+height, which parked the transcript a full screen past its own content until the reader dragged it
+back. An edge stays pinned while the page lands and the rows settle, and stops following the moment
+the reader scrolls away from it. `defaultScrollAnchor(.bottom)` remains alongside it for the other
+job it does: aligning a transcript shorter than the screen onto the composer instead of the header.
+
 An anchor message owns one recessed Thread ingress. On iPhone it shows the Server-projected reply and
 unread counts plus only the latest recent reply; this is a presentation reduction of the same Thread
 summary used by the desktop App. A Task uses that same ingress with its number, status disc, and

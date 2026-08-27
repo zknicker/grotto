@@ -23,15 +23,16 @@ const normalRelease = {
 
 test('migrated ledger is oldest-first and keeps independent target versions', async () => {
     const ledger = JSON.parse(await readFile('releases.json', 'utf8'));
+    const websitePackage = JSON.parse(await readFile('apps/website/package.json', 'utf8'));
     const result = assertReleaseLedger(ledger, { requireComplete: true });
 
-    expect(ledger).toHaveLength(34);
+    expect(ledger.length).toBeGreaterThanOrEqual(34);
     expect(ledger[0]).toEqual({
         version: '1.6.7',
         date: '2026-07-28',
         targets: { server: '1.6.7', app: '1.6.7', ios: null, computer: '1.1.1' },
     });
-    expect(ledger.at(-1)).toEqual({
+    expect(ledger.find((entry) => entry.version === '1.8.24')).toEqual({
         version: '1.8.24',
         date: '2026-08-26',
         targets: {
@@ -45,7 +46,8 @@ test('migrated ledger is oldest-first and keeps independent target versions', as
         version: '1.8.18',
         targets: { ios: { version: '1.0.0', buildNumber: 1 } },
     });
-    expect(result.latest.version).toBe('1.8.24');
+    expect(result.latest).toBe(ledger.at(-1));
+    expect(latestMainVersion(ledger)).toBe(websitePackage.version);
 });
 
 test('validates normal and Computer-only release entries', () => {

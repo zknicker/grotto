@@ -52,6 +52,10 @@ evidence; tester invitation and production App Store promotion are separate acti
 
 ## Production Server promotion
 
+The Server and web Grotto App are one atomic production artifact with one Server SemVer.
+A push to `main` does not deploy. The manual workflow offers `deploy`: download, verify, install,
+and activate the published artifact; or `activate`: verify and switch to an already installed release.
+
 The selected `server` target publishes a deployable artifact through the `Release` workflow. That
 workflow does not deploy the hosted Server. Production promotion is a separate manual
 `Deploy Grotto Server` action for the exact published version and source identity.

@@ -46,7 +46,8 @@ record or attempt according to the release record contract.
 When `ios` is `publish`, the single `Release` workflow runs the iOS target job after the release PR
 merges. The job signs, archives, and uploads the exact version/build pair. `xcodebuild` authenticates
 the upload directly, so neither the workflow nor a local publisher needs a TestFlight browser login.
-The job does not invite testers or submit the app for public App Review.
+Release archives use the Apple Distribution identity; Debug builds retain Xcode's development
+identity. The job does not invite testers or submit the app for public App Review.
 
 After Apple finishes processing:
 

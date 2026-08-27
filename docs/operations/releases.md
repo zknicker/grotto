@@ -126,10 +126,10 @@ when the native shell or preload bridge changes. The publisher reads the
 release-surface decision and skips App building, notarization, updater
 upload, and GitHub artifacts when App is unchanged.
 
-Publishing the annotated `vX.Y.Z` GitHub Release triggers the production
-deployment. A push to `main` does not. The deploy resolves that immutable tag to
-its full commit SHA, downloads only the matching Server archive and sidecar
-through the authenticated GitHub Release API, verifies them, installs the
+Publishing the annotated `vX.Y.Z` GitHub Release makes the version deployable;
+it does not promote production. A manual `Deploy Grotto Server` dispatch
+resolves that immutable tag to its full commit SHA, downloads only the matching
+Server archive and sidecar through the authenticated GitHub Release API, verifies them, installs the
 release under that full SHA, then atomically activates it. The mini does not
 install JavaScript dependencies or rebuild release source. Human-facing
 identity is `X.Y.Z`; deploy, rollback, audit, and artifact identity use the full

@@ -53,6 +53,11 @@ export APPLE_API_ISSUER=<issuer-id>
 Keep the `.p8` key outside the repository. Never commit Apple credentials, certificates, or
 provisioning profiles.
 
+Neither credential path requires a TestFlight web login to upload. `xcodebuild` authenticates the
+archive upload directly and returns after App Store Connect accepts the package for processing.
+A browser or App Store Connect API call is only needed afterward for processing issues,
+export-compliance answers, tester-group promotion, and release administration.
+
 ## Version And Build Number
 
 `project.yml` bakes in a local-build default only: `MARKETING_VERSION` mirrors the Server/App
@@ -76,7 +81,8 @@ bun run ios:release 1.0.0 --build-number 1
 
 The dry run verifies that `Grotto.xcodeproj` matches `project.yml` and performs an unsigned Release
 build. The publication command archives with automatic signing and uploads through App Store
-Connect. It does not invite testers or submit the app for public App Review.
+Connect without a browser session. It does not wait for processing, invite testers, or submit the
+app for public App Review.
 
 After Apple finishes processing:
 

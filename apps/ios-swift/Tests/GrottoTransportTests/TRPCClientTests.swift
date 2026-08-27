@@ -67,6 +67,32 @@ final class TRPCClientTests: XCTestCase {
         }
     }
 
+    func testMutationAppliesTheOperationTimeoutItIsGiven() async throws {
+        var seenTimeouts: [TimeInterval] = []
+        StubURLProtocol.requestHandler = { request in
+            seenTimeouts.append(request.timeoutInterval)
+            return response(data: Data(#"{"result":{"data":{"count":1}}}"#.utf8))
+        }
+        let client = TRPCClient(
+            config: AppConfig(serverOrigin: URL(string: "https://grotto.test")!, productVersion: "test"),
+            sessionTokenProvider: StaticSessionTokenProvider(token: "token"),
+            session: makeStubSession()
+        )
+
+        let _: QueryOutput = try await client.mutation(
+            "avatar.generate",
+            input: QueryInput(serverID: "srv_123"),
+            timeout: 180
+        )
+        let _: QueryOutput = try await client.mutation(
+            "avatar.set",
+            input: QueryInput(serverID: "srv_123")
+        )
+
+        XCTAssertEqual(seenTimeouts.first, 180)
+        XCTAssertEqual(seenTimeouts.last, 60)
+    }
+
     func testMutationSupportsSuccessfulUndefinedResult() async throws {
         StubURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.url?.path, "/trpc/member.updateProfile")

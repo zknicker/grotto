@@ -379,5 +379,18 @@
       },
       "computer": null
     }
+  },
+  {
+    "version": "1.8.27",
+    "date": "2026-08-27",
+    "targets": {
+      "server": "1.8.27",
+      "app": null,
+      "ios": {
+        "version": "1.0.5",
+        "buildNumber": 6
+      },
+      "computer": null
+    }
   }
 ]

@@ -49,10 +49,10 @@ Promotion creates or resolves the deterministic hosted child Thread anchored to 
 message. Opening a task opens that Thread. The Thread has no independent membership: Server
 membership and parent-Chat participation remain the sole access authority.
 
-Agents use the Task Thread for progress and execution discussion. They deliver the final result
-there unless a human names another final-delivery target. That exception applies only to the final
-result, which is delivered once to the exact requested target. `Here` always means the human
-instruction message's target, never the Task Thread the Agent moved into.
+Agents use the Task Thread for progress and execution discussion. Claiming a message does not
+reroute the originating conversation: replies reuse the exact target where the human's message
+arrived, while task-specific follow-up belongs in the Task Thread. A human-named delivery target
+always wins, and `here` means the human instruction message's target.
 
 Task lists, eligible assignees, messages with task projections, task events, and Thread reads all
 apply the same hosted Server and parent-Chat authorization. Revoked members and humans who lose

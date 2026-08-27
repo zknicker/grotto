@@ -131,12 +131,15 @@ export async function runTaskClaim(args: ParsedArgs, deps: TaskDeps): Promise<nu
             method: 'POST',
         })
     );
-    const lines = response.claimed.map(
+    const claims = response.claimed.map(
+        (task) => `#${task.number} (msg:${shortMessageId(task.message.id)}): claimed`
+    );
+    const threadTargets = response.claimed.map(
         (task) =>
-            `Claimed task #${task.number} [${task.status}]. Work it in thread target "${task.target ?? target}:${shortMessageId(task.message.id)}".`
+            `#${task.number} → grotto message send --target "${task.target ?? target}:${shortMessageId(task.message.id)}"`
     );
     deps.write(
-        `${lines.join('\n')}\nWhen ready for validation: grotto task update --status in_review.\n`
+        `Claim results (${response.claimed.length} claimed):\n${claims.join('\n')}\nFollow up in each task's thread:\n${threadTargets.join('\n')}\n`
     );
     return 0;
 }

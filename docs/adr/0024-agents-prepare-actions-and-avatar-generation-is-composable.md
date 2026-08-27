@@ -14,11 +14,11 @@ Accepted 2026-08-25.
 
 ## Decision
 
-Every managed Agent may use Grotto capabilities such as Chat creation, avatar generation, and
-prepared actions. Cove is taught to proactively compose those capabilities into an Agent-creation
-workflow, but receives no exclusive mutation or image-generation privilege. This follows Raft's
-authority shape: Cindy is the onboarding guide, while Member Agents can prepare typed action cards
-for a human to commit.
+Every managed Agent may use Grotto capabilities such as avatar generation and prepared actions.
+Cove receives the same general action-card onboarding guidance as Cindy, adapted only to Grotto's
+supported action schema, but receives no exclusive mutation or image-generation privilege. This
+follows Raft's authority shape: the onboarding Agent helps make a proposed setup executable, while
+Member Agents can prepare typed action cards for a human to commit.
 
 Avatar generation is a Server-owned `gpt-image-2` service shared by the Agent CLI and Grotto App.
 It accepts one required short freeform concept and uses the canonical release-owned pixel-art prompt
@@ -28,10 +28,11 @@ holds it in form state. One in-flight call per actor and a two-call Server-wide 
 parallel requests without introducing persistent quotas or spend policy.
 
 An Agent creation proposal captures the exact generated avatar together with name, description,
-Computer guidance, and a draft hint in one immutable prepared action. Cove chooses a single playful
-character and, absent an explicit user name, a fun name. Runtime, model, reasoning, role, and other
-human-owned fields do not ride the proposal: the card opens the ordinary editable Create Agent
-modal, whose defaults may begin from Cove's current user-selected execution configuration. An Owner
+Computer guidance, and a draft hint in one immutable prepared action. Character and name choices
+remain ordinary Agent judgment shaped by the human's request; Grotto adds no creative decision
+policy. Runtime, model, reasoning, and other human-owned fields do not ride the proposal: the card
+opens the ordinary editable Create Agent modal, whose defaults may begin from Cove's current
+user-selected execution configuration; the new Agent's Server role is fixed to Member. An Owner
 or Admin commits as a Member Agent under their own identity. Generation failure prevents Cove from
 presenting an incomplete card.
 

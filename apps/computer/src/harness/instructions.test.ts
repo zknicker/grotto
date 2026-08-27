@@ -11,7 +11,6 @@ const facts = {
     agentName: 'Cove',
     homeTimezone: 'America/Los_Angeles',
     initialRole: 'the operator’s right hand',
-    modelId: 'gpt-5.6-sol',
     webAccess: null,
     workspacePath: '/home/agt_cove/workspace',
 } as const;
@@ -29,11 +28,9 @@ test('composes the CLI-only Grotto collaboration contract', () => {
     expect(instructions).toContain('grotto message check');
     expect(instructions).toContain('grotto message send');
     expect(instructions).toContain('grotto action prepare');
+    expect(instructions).toContain('grotto avatar generate');
     expect(instructions).toContain(
-        'Preparation stores exact proposal data and bytes for human review'
-    );
-    expect(instructions).toContain(
-        '**Manual** — `grotto manual get <topic>`, `grotto manual search <keywords>`; start with `grotto manual get grotto-cli-overview`.'
+        '**Manual** — `grotto manual get`, `grotto manual search`. Both require `--intent`'
     );
     expect(instructions).toContain('## Startup sequence');
     expect(instructions).toContain('## Message Notifications');
@@ -98,43 +95,26 @@ test('composes the CLI-only Grotto collaboration contract', () => {
     expect(instructions).toContain('the operator’s right hand');
 });
 
-test('composes the Agent-creation capability order without prescribing model prose', () => {
+test('advertises action capabilities without inventing an Agent-creation policy', () => {
     const { instructions } = composeAgentInstructions(facts);
-    const start = instructions.indexOf('### Preparing native action cards');
-    const end = instructions.indexOf('### Reminders', start);
-    const actions = instructions.slice(start, end);
 
-    expect(actions).toContain('recipes/playbook/agent-creation');
-    expect(actions).toContain('at most 280 characters');
-    expect(actions).toContain('grotto avatar generate');
-    expect(actions).toContain('grotto action prepare');
-    expect(actions).toContain('typed terminal action attention');
-    expect(actions).toContain('grotto message send');
-    expect(actions.indexOf('grotto avatar generate')).toBeLessThan(
-        actions.indexOf('grotto action prepare')
-    );
-    expect(actions.indexOf('grotto action prepare')).toBeLessThan(
-        actions.indexOf('typed terminal action attention')
-    );
-    expect(actions.indexOf('typed terminal action attention')).toBeLessThan(
-        actions.indexOf('grotto message send')
-    );
+    expect(instructions).toContain('**Action cards** — `grotto action prepare`.');
+    expect(instructions).toContain('**Avatar generation** — `grotto avatar generate`.');
+    expect(instructions).not.toContain('recipes/playbook/agent-creation');
+    expect(instructions).not.toContain('### Preparing native action cards');
+    expect(instructions).not.toMatch(/playful character|fun name|exactly one generation/iu);
 });
 
-test('composes model-family operational sections for the assigned model', () => {
-    const gpt = composeAgentInstructions(facts).instructions;
-    expect(gpt).toContain('## Tool-Use Enforcement');
-    expect(gpt).toContain('## Execution Discipline');
+test('does not append retired model-family operational instructions', () => {
+    const { instructions } = composeAgentInstructions(facts);
 
-    // Claude-family models get none — they act on tools without enforcement.
-    const claude = composeAgentInstructions({ ...facts, modelId: 'claude-opus-4-8' }).instructions;
-    expect(claude).not.toContain('## Tool-Use Enforcement');
+    expect(instructions).not.toContain('## Tool-Use Enforcement');
+    expect(instructions).not.toContain('## Execution Discipline');
+    expect(instructions).not.toContain('## Operational Directives');
 });
 
-test('fingerprint is stable per composed text and shifts with the model', () => {
+test('fingerprint is stable per composed text', () => {
     const a = composeAgentInstructions(facts);
     const b = composeAgentInstructions(facts);
-    const other = composeAgentInstructions({ ...facts, modelId: 'claude-opus-4-8' });
     expect(a.fingerprint).toBe(b.fingerprint);
-    expect(a.fingerprint).not.toBe(other.fingerprint);
 });

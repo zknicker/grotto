@@ -65,16 +65,14 @@ Agent DMs become ordinary pairwise Chats on their first durable message. Each
 human membership stint and Agent id has one canonical Chat, so different humans
 receive different private DMs and retries cannot create duplicates.
 
-Cove's release-owned [Agent-creation recipe](../api/manual.md#published-corpus) composes the
-existing avatar-generation, native action-preparation, typed continuation, and
-ordinary Chat capabilities. It turns one short brief into one vivid character,
-generates the avatar before preparing exactly one human-review card, and ends
-the preparation turn. Only the typed terminal action attention starts the
-distinct continuation, which sends one meaningful starter message to the new
-Agent through ordinary Chat; creation never schedules an empty bootstrap turn.
-The recipe is guidance, not a second Server-side creation API, and user-set
-runtime/model/reasoning defaults remain authoritative unless edited in the
-deterministic review modal.
+Cove's factory onboarding playbook uses the same general action-card pattern as
+Cindy: make the next action executable, prefill useful known values, and leave
+the human to review and commit it. Grotto's narrower technical contract requires
+an avatar before an `agent:create` card can be prepared. The shared Manual's
+[`agent` and `action-cards`](../api/manual.md#published-corpus) pages document
+that capability without adding a special creation recipe or creative policy.
+User-set runtime, model, and reasoning defaults remain authoritative unless
+edited in the deterministic review modal.
 
 ### Agent-prepared creation cards
 

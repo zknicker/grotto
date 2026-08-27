@@ -4,7 +4,7 @@ import type { AgentApiRequester } from '../agent-api-client.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { runTaskClaim } from './agent-task-actions.ts';
 
-test('a claim directs updates to the Task Thread without rerouting replies', async () => {
+test('a claim matches Raft follow-up guidance without rerouting replies', async () => {
     const outputs: string[] = [];
     const client: AgentApiRequester = {
         request: async <T>(_route: string, schema: z.ZodType<T>) =>
@@ -59,6 +59,11 @@ test('a claim directs updates to the Task Thread without rerouting replies', asy
         write: (text) => outputs.push(text),
     });
 
-    expect(outputs.join('')).toContain('Work it in thread target "#general:1a2b3c4d".');
-    expect(outputs.join('')).not.toContain('post the final result there');
+    expect(outputs.join('')).toBe(
+        'Claim results (1 claimed):\n' +
+            '#7 (msg:1a2b3c4d): claimed\n' +
+            "Follow up in each task's thread:\n" +
+            '#7 → grotto message send --target "#general:1a2b3c4d"\n'
+    );
+    expect(outputs.join('')).not.toContain('Work it in thread target');
 });

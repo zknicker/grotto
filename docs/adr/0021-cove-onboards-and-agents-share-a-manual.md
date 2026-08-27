@@ -109,6 +109,7 @@ The initial Manual contains:
 
 - `index`;
 - `grotto-cli-overview`;
+- `agent` and `action-cards` product reference topics;
 - `recipes/index`;
 - `recipes/seeded`; and
 - thirty-two full recipe cards.
@@ -120,6 +121,11 @@ become Grotto nouns and commands only where Grotto has an analogous
 capability. Unsupported claims are removed rather than approximated. The
 twenty query-tier cards include all seven archetype cards; those remain
 reference guidance available to every Agent.
+
+The Agent and action-card pages are product references, not additional recipe
+cards. They carry Grotto's narrower supported schema and human-commit boundary
+without adding a Grotto-only decision policy to the captured Raft recipe
+corpus.
 
 `grotto-cli-overview` is the expandable operating guide. The universal Agent
 prompt retains only mandatory operating rules and points Agents to this Manual

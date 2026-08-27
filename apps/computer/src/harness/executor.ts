@@ -168,7 +168,6 @@ async function executeHarnessTurn(
         agentName: input.agentName,
         homeTimezone: input.homeTimezone,
         initialRole: input.initialRole,
-        modelId: input.modelId,
         webAccess: input.webAccess,
         workspacePath: input.workspaceDir,
     });

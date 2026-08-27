@@ -147,7 +147,7 @@ Status values:
 
 | ID | Grotto behavior | Coverage | Status |
 | --- | --- | --- | --- |
-| P6 | Cove composes one short brief into one avatar-backed native Agent action, ends preparation, and after human commit sends one meaningful starter through ordinary Chat. | `test:agents --include-opt-in --only cove-composes-agent-creation` + Manual/prompt/tool contracts | opt-in |
+| P6 | Cove answers a natural Agent proposal in its parent DM without an action, then a separate approved creation request prepares an avatar-backed action in that same DM; after human commit, typed attention enables an ordinary starter Chat. | `test:agents --include-opt-in --only cove-composes-agent-creation` + factory-playbook/Manual/tool contracts | opt-in |
 
 ## Existing executable lanes
 

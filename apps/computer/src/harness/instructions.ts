@@ -2,13 +2,11 @@ import { createHash } from 'node:crypto';
 import { hostname, release, type } from 'node:os';
 import computerPackage from '../../package.json' with { type: 'json' };
 import { type AgentPromptRenderInput, renderAgentInstructions } from './managed-instructions.ts';
-import { modelOperationalInstructions } from './model-instructions.ts';
 
 /**
  * Ported composition seam (Runtime's `agent-instructions.ts` +
  * `generateAgentInstructions`): every real Agent turn's system prompt is the
- * managed Grotto operating contract plus the assigned model's operational
- * sections, fingerprinted. The Computer composes this itself — the Server never
+ * managed Grotto operating contract, fingerprinted. The Computer composes this itself — the Server never
  * ships prompt text — so every cold start delivers the full CLI-only Grotto
  * collaboration contract.
  *
@@ -21,7 +19,6 @@ export interface AgentInstructionFacts {
     agentName: string;
     homeTimezone: string;
     initialRole: string | null;
-    modelId: string;
     webAccess: 'fetch-only' | 'search' | 'search-only' | null;
     workspacePath: string;
 }
@@ -43,11 +40,7 @@ export function composeAgentInstructions(facts: AgentInstructionFacts): Composed
         webAccess: facts.webAccess,
         workspacePath: facts.workspacePath,
     };
-    const modelSections = modelOperationalInstructions(facts.modelId);
-    const instructions = [
-        renderAgentInstructions(render),
-        ...(modelSections ? [modelSections] : []),
-    ].join('\n\n');
+    const instructions = renderAgentInstructions(render);
     const fingerprint = createHash('sha256').update(instructions).digest('hex');
     return { fingerprint, instructions };
 }

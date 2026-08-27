@@ -40,6 +40,36 @@ test('replies keep the received target while Task updates use the Task Thread', 
     expect(prompt).not.toContain('Deliver the final result there unless');
 });
 
+test('keeps current Raft instruction precedence without an Agent-creation policy', () => {
+    const prompt = renderAgentInstructions({
+        agentId: 'agt_prompt_test',
+        agentName: 'Cove',
+        homeTimezone: 'UTC',
+        hostname: 'computer.test',
+        initialRole: null,
+        os: 'macOS',
+        runtimeVersion: 'test',
+        webAccess: null,
+        workspacePath: '/workbench',
+    });
+
+    expect(prompt).toContain('## How these instructions apply');
+    expect(prompt).toContain(
+        "A user's own instructions override any default that only shapes how you serve them"
+    );
+    expect(prompt).toContain('### Credential handling');
+    expect(prompt).toContain('Credentials follow human intent.');
+    expect(prompt).toContain('### Capability and execution-surface selection');
+    expect(prompt).toContain("The human's explicit choice of surface is part of that fit.");
+    expect(prompt).toContain('### Formatting — URLs in non-English text');
+    expect(prompt).not.toContain('### Preparing native action cards');
+    expect(prompt).not.toContain('## Security');
+
+    expect(prompt.indexOf('## How these instructions apply')).toBeLessThan(
+        prompt.indexOf('## Communication — grotto CLI ONLY')
+    );
+});
+
 test('teaches Raft-aligned claim conflicts, assignment receipts, and message quality', () => {
     const prompt = renderAgentInstructions({
         agentId: 'agt_prompt_test',
@@ -98,6 +128,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
         workspacePath: '/workbench',
     });
 
-    // The native action-card command is part of the managed prompt contract.
-    expect(prompt.length).toBeLessThanOrEqual(33_500);
+    // Current Raft parity adds precedence, credential, capability-selection,
+    // and URL-formatting guidance. Keep a tight reviewed ceiling around the
+    // rendered Grotto delta instead of the older pre-parity budget.
+    expect(prompt.length).toBeLessThanOrEqual(35_000);
 });

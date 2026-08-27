@@ -122,8 +122,8 @@ describe('defineScenario', () => {
     });
 });
 
-describe('Cove scenario configuration isolation', () => {
-    test('restores Cove’s exact original runtime and model when the recipe fails', async () => {
+describe('Agent scenario configuration isolation', () => {
+    test('restores the exact original runtime and model when an operation fails', async () => {
         const calls = [];
         const harness = {
             configureAgent: async (_agent, runtimeId, modelId) => {
@@ -138,9 +138,9 @@ describe('Cove scenario configuration isolation', () => {
 
         await expect(
             withTemporaryAgentConfiguration(harness, cove, terra, async () => {
-                throw new Error('recipe assertion failed');
+                throw new Error('scenario assertion failed');
             })
-        ).rejects.toThrow('recipe assertion failed');
+        ).rejects.toThrow('scenario assertion failed');
 
         expect(calls).toEqual([
             { modelId: terra.modelId, runtimeId: terra.runtimeId },

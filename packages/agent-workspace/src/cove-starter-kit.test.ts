@@ -51,9 +51,63 @@ test('seeds Cove exact inventory and 12 valid separately authored Manual summari
     expect(corpus.join('\n')).not.toMatch(
         /integration login|local chat history|save-as-a-skill|grotto-agent/iu
     );
-    expect(corpus.join('\n')).toContain('recipes/playbook/agent-creation');
+    expect(corpus.join('\n')).not.toContain('recipes/playbook/agent-creation');
+    expect(corpus.join('\n')).toContain('grotto action prepare');
+    expect(corpus.join('\n')).toContain(
+        'Do not just describe or list copyable specs once action cards are available'
+    );
+    expect(corpus.join('\n')).toContain(
+        'Only ask one blocking question first if the answer is required'
+    );
     expect(corpus.join('\n')).toMatch(
         /real-work[\s\S]*starter-team[\s\S]*workstream-chats[\s\S]*effective-collaboration/u
+    );
+});
+
+test('preserves the Cindy factory guidance shape with only supported Grotto actions', async () => {
+    await seedCoveWorkspace(workspaceDir);
+
+    const memory = await fs.readFile(path.join(workspaceDir, 'MEMORY.md'), 'utf8');
+    const playbook = await fs.readFile(path.join(workspaceDir, 'onboarding_playbook.md'), 'utf8');
+    const faq = await fs.readFile(path.join(workspaceDir, 'onboarding_knowledge_faq.md'), 'utf8');
+    const objectives = await fs.readFile(
+        path.join(workspaceDir, 'onboarding_objectives.md'),
+        'utf8'
+    );
+
+    for (const heading of [
+        '## Role',
+        '## Core Goals',
+        '## What Grotto Is (Practical Definition)',
+        '## Decision Principles',
+        '## Tone Principles',
+        '## Behavioral Invariant',
+        '## Knowledge Index',
+        '## Success Criteria',
+    ]) {
+        expect(memory).toContain(heading);
+    }
+    for (const heading of [
+        '## Step 1: Open Practical',
+        '## Step 2: Activate or Propose',
+        '## Step 3: Route by Intent',
+        '### Starter Plan Output',
+        '### Capability Boundary Pivot',
+        '### Active-Elsewhere Handoff',
+        '## Step 4: Progress Setup (Soft Guidance)',
+        '## Team-Shape Flexibility Principle',
+        '## Step 5: End Every Turn with One Next Step',
+        '## Inspiration Stories',
+        '## Operational Guardrails',
+    ]) {
+        expect(playbook).toContain(heading);
+    }
+    expect(playbook).toContain('Grotto action-card v1 supports Agent creation only');
+    expect(playbook).toContain('let an Owner or Admin perform the unsupported mutation');
+    expect(faq.match(/^## /gmu)).toHaveLength(15);
+    expect(faq).toContain('How do I create Agents or Chats?');
+    expect(objectives).toContain(
+        'Status values are exactly: `todo`, `done`, `skipped`, `later`, `blocked`'
     );
 });
 

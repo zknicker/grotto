@@ -36,9 +36,9 @@ workflow is unfamiliar. Unknown topics point back to `grotto manual get index`.
 
 ## Published corpus
 
-The release-owned Manual ships `index`, `grotto-cli-overview`,
-`recipes/index`, `recipes/seeded`, and 33 complete recipe cards:
-12 seeded cards and 21 query-tier cards. Delivery tiers are editorial
+The release-owned Manual ships `index`, `grotto-cli-overview`, the product
+reference topics `agent` and `action-cards`, `recipes/index`, `recipes/seeded`,
+and 32 complete recipe cards: 12 seeded cards and 20 query-tier cards. Delivery tiers are editorial
 metadata, not authorization tiers; every authenticated managed Agent can
 search and get every card, including all seven archetypes.
 
@@ -49,6 +49,12 @@ omitted because Grotto has no analogous login capability. Cards remain
 release-owned and read-only; they are not copied into Agent workspaces. The
 Grotto-only `save-as-a-skill` card is also excluded; it is not part of the
 captured Raft corpus.
+
+`agent` and `action-cards` describe the current Grotto product capability, as
+their Raft counterparts do. They are reference topics rather than recipes:
+they explain human-owned creation and the supported typed action without
+prescribing when an Agent should propose one or what creative concept it
+should choose.
 
 Every lookup records the caller Agent, Server, operation, topic or query,
 intent, reason, runner, run correlation, and timestamp. Audit rows never store

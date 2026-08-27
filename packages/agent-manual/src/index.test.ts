@@ -26,7 +26,6 @@ const recipeIds = [
     'recipes/pattern/recurring-recovery',
     'recipes/pattern/shard-and-merge',
     'recipes/pattern/video-review-loop',
-    'recipes/playbook/agent-creation',
     'recipes/playbook/billing-strictness',
     'recipes/playbook/content-pipeline',
     'recipes/technique/acceptance-surface',
@@ -65,11 +64,11 @@ test('publishes the complete adapted corpus with source metadata', () => {
     const published = recipes();
 
     expect(published.map((topic) => topic.id)).toEqual([...recipeIds]);
-    expect(new Set(published.map((topic) => topic.id)).size).toBe(33);
+    expect(new Set(published.map((topic) => topic.id)).size).toBe(32);
     expect(published.filter((topic) => topic.tier === 'seeded').map((topic) => topic.id)).toEqual([
         ...seededIds,
     ]);
-    expect(published.filter((topic) => topic.tier === 'query')).toHaveLength(21);
+    expect(published.filter((topic) => topic.tier === 'query')).toHaveLength(20);
     expect(published.filter((topic) => topic.class === 'archetype')).toHaveLength(7);
     expect(
         published
@@ -112,10 +111,6 @@ test('keeps recipe graph metadata valid and product language truthful', () => {
 
 test('keeps every published body faithful to its captured source card', async () => {
     for (const topic of recipes()) {
-        if (topic.id === 'recipes/playbook/agent-creation') {
-            // Native Grotto guidance has no captured Raft source card; its contract is below.
-            continue;
-        }
         const [, recipeClass, slug] = topic.id.split('/');
         const source = await Bun.file(
             new URL(
@@ -184,31 +179,18 @@ test('returns the complete topic and preserves stable unknown-topic behavior', (
     expect(getManualTopic('recipes/no-such-topic')).toBeNull();
 });
 
-test('publishes the complete Agent-creation recipe as a composable capability contract', () => {
-    const topic = getManualTopic('recipes/playbook/agent-creation');
+test('publishes Raft-aligned Agent and action-card reference topics', () => {
+    const agent = getManualTopic('agent');
+    const actionCards = getManualTopic('action-cards');
 
-    expect(topic?.kind).toBe('recipe');
-    expect(topic?.tier).toBe('query');
-    expect(topic?.body).toContain('grotto avatar generate');
-    expect(topic?.body).toContain('grotto action prepare');
-    expect(topic?.body).toContain('terminal action attention');
-    expect(topic?.body).toContain('grotto message send');
-
-    const body = topic?.body ?? '';
-    expect(body.indexOf('grotto avatar generate')).toBeLessThan(
-        body.indexOf('grotto action prepare')
-    );
-    expect(body.indexOf('grotto action prepare')).toBeLessThan(
-        body.indexOf('terminal action attention')
-    );
-    expect(body.indexOf('terminal action attention')).toBeLessThan(
-        body.indexOf('grotto message send')
-    );
-    expect(body).toMatch(/preserve.*name.*supplied/iu);
-    expect(body).toMatch(/fun.*name/iu);
-    expect(body).toMatch(/at most 280 characters/iu);
-    expect(body).toMatch(/exactly one generation request/u);
-    expect(body).toMatch(/exactly one native create-Agent action/u);
-    expect(body).toMatch(/do not poll, sleep/iu);
-    expect(body).toMatch(/empty bootstrap turn/iu);
+    expect(getManualTopic('recipes/playbook/agent-creation')).toBeNull();
+    expect(agent?.kind).toBe('overview');
+    expect(agent?.body).toContain('Agents cannot create other Agents directly');
+    expect(agent?.body).toContain('grotto action prepare');
+    expect(actionCards?.kind).toBe('overview');
+    expect(actionCards?.body).toContain('grotto avatar generate');
+    expect(actionCards?.body).toContain('grotto action prepare');
+    expect(actionCards?.body).toContain('Runtime, model, and reasoning effort');
+    expect(actionCards?.body).toContain('Server role is fixed to Member');
+    expect(actionCards?.body).toContain('typed terminal action attention');
 });

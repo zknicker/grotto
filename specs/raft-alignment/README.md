@@ -427,12 +427,14 @@ one deliberate diff; `bun run eval:prompt` runs against a dev stack after the sw
 
 ### Raft sections taken (verbatim modulo naming)
 
-Identity + `## Who you are`; `## Current Runtime Context`; `## Communication — CLI ONLY`
-(grotto command families); Raft's credential-intent policy (minus the profile-resolution paragraph, until
-external agents); CRITICAL RULES; `## Startup sequence`; `## Messaging` header contract;
+Identity + `## Who you are`; `## Current Runtime Context`; `## How these instructions apply`;
+`## Communication — CLI ONLY` (Grotto command families, including action cards and Manual);
+Raft's credential-intent policy (minus the profile-resolution paragraph, until external agents);
+CRITICAL RULES; `## Startup sequence`; `## Messaging` header contract;
 `### Sending messages` + draft flow (`GROTTOMSG` delimiter); `### Reminders`; `### Threads`;
 `### Discovering people and channels`; `### Channel awareness`; `### Reading history`;
-`### Historical references`; `### Tasks` + splitting (reconciled to D8); `## @Mentions`;
+`### Capability and execution-surface selection`; `### Historical references`; `### Tasks` +
+splitting (reconciled to D8); `## @Mentions`;
 `## Communication style` + etiquette; Formatting sections; `## Workspace & Memory` + MEMORY.md +
 compaction safety (now our entire memory story per D3); `## Capabilities`;
 `## Message Notifications`; `## Initial role`.
@@ -444,13 +446,12 @@ compaction safety (now our entire memory story per D3); `## Capabilities`;
 | Profile credential resolution ladder | No per-agent credential profiles until external agents (WS6 era). |
 | `### Third-party integrations` (Agent Login) | Plugins are Runtime-owned; revisit post-WS6. |
 | `### Third-party app message safety` | No inbound third-party app events yet; adopt verbatim the day they exist. |
-| Action cards | Predicated on Member-role agents + multi-human roles; deferred to WS6 era, not rejected. |
-| `## Manual` | The initial authenticated, read-only tracer landed in PRD-187; PRD-191 owns the full corpus. |
 | PowerShell variant, `slock` aliasing, `## Runtime Profile Control` | N/A. |
 
 ### Grotto sections added on top
 
-Outputs & Visuals (the landed rev3 skill pointer — `visual`/`artifact` fences ride send bodies,
+Avatar generation (required by Grotto's narrower `agent:create` action), Outputs & Visuals (the
+landed rev3 skill pointer — `visual`/`artifact` fences ride send bodies,
 taught by the seeded visuals skill; the widget catalog and `document` fence died pre-flip with
 main a20acd0c); per-plugin CLI mentions; web-access lines. ~~SOUL~~ and ~~Skills listing~~ retired
 by W2 — identity is description + memory; skill discovery is harness-native. Grotto adds no
@@ -725,9 +726,8 @@ deployment, so intermediate brokenness is not a constraint.
   profile (absorbs the agent drawer and per-agent settings), per-conversation Chat|Tasks|Files
   tabs (U3), Activity inbox page (with WS4), Search page. Largely parallel to WS3–WS5; shares
   the same design language pass.
-- **WS8 — Onboarding agent + seeded knowledge.** Starter `MEMORY.md` + seed-practice notes at
-  agent creation, adapted from the full recipe set in [raft-recipes/](raft-recipes/) (13 seeded
-  summaries + 20 query-tier cards; card anatomy — `triggers`, `related`, evidence grades,
-  When/Rule/Steps/Failure-modes/Proof — adopted as our card format). The 7 archetype cards
-  (kickoff prompts + lane design) power agent-creation proposals. Grotto onboarding agent
-  modeled on Cindy (local captures of her playbook/objectives/FAQ are the reference).
+- **WS8 — Onboarding Agent + seeded knowledge.** Cove's `MEMORY.md`, playbook, objectives, FAQ,
+  and 12 applicable seeded summaries are adapted from Cindy; the shared Manual holds 32 captured
+  Raft recipe cards after omitting `login-with-raft`. Product references such as `agent` and
+  `action-cards` stay outside the recipe corpus. The 7 archetype cards remain optional guidance
+  for team-shape discussions. Cindy's local factory files are the reference.

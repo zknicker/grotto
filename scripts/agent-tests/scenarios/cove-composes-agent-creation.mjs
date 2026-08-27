@@ -1,5 +1,5 @@
-// Opt-in live proof for the complete Cove recipe. This uses the real seeded
-// Server and attached Computer; the image fixture makes the one provider
+// Opt-in live proof for Cove's factory action-card guidance. This uses the real
+// seeded Server and attached Computer; the image fixture makes the provider
 // boundary deterministic without persisting the concept or calling OpenAI.
 
 import { readFile } from 'node:fs/promises';
@@ -8,7 +8,7 @@ import { defineScenario } from '../scenario.mjs';
 
 export default defineScenario({
     contract:
-        'Cove turns one short brief into one avatar-backed pending Agent action, finishes the preparation turn, then after human commit makes one distinct continuation that sends one substantive ordinary Chat message to the created Agent.',
+        'Cove first answers a natural Agent proposal request in its Owner DM without an action, then a separate creation request produces one avatar-backed action in that same DM; human commit later drives one substantive ordinary starter Chat.',
     name: 'cove-composes-agent-creation',
     optIn: true,
     async run({ expect, kit, log, marker, settleTurn }) {
@@ -36,24 +36,65 @@ export default defineScenario({
             );
         }
         expect(cove.dmChatId, 'Cove Owner DM').toBeTruthy();
+        if (!(cove.desiredModelId && cove.desiredRuntimeId)) {
+            throw new Error(
+                'This opt-in scenario requires Cove to have a configured runtime and model.'
+            );
+        }
 
-        const target = await terraTarget(kit, cove.computerId);
+        const target = {
+            modelId: cove.desiredModelId,
+            runtimeId: cove.desiredRuntimeId,
+        };
         await withTemporaryAgentConfiguration(
             kit.harness,
             cove,
             target,
             async () => {
                 const requestsBefore = await fixtureRequestCount(requestLogPath);
-                const brief = [
-                    `${marker('COVE')} Use recipes/playbook/agent-creation for this short freeform Agent request.`,
-                    'Create one vivid, high-personality cartoon character for a teammate who keeps launch notes clear and useful.',
-                    'Preserve the requested Agent name: Mossy Lantern.',
-                    'Generate exactly one avatar before preparing exactly one native create-Agent action carrying that avatar.',
-                    'After preparing the action, finish this preparation turn. Do not create the Agent, poll, sleep, or send a bootstrap message yet.',
-                ].join(' ');
+                const proposalBrief = `${marker('COVE')} Can you propose a CTO / Systems Steward Agent for keeping this Computer reliable and secure?`;
 
-                log('asking Cove for one avatar-backed proposal');
-                const receipt = await kit.harness.send(cove.dmChatId, brief);
+                log('asking Cove for a prose Agent proposal');
+                const proposalReceipt = await kit.harness.send(cove.dmChatId, proposalBrief);
+                const proposalTurn = await settleTurn(cove.id, {
+                    settleWithin: 300_000,
+                    startWithin: 120_000,
+                });
+                expect(proposalTurn.status, 'proposal turn status').toBe('completed');
+                expect(proposalTurn.failureKind ?? 'none', 'proposal turn failure kind').toBe(
+                    'none'
+                );
+
+                const proposalMessages = (await kit.readMessages(cove.dmChatId)).filter(
+                    (message) =>
+                        message.sequence > proposalReceipt.message.sequence &&
+                        message.author.kind === 'agent' &&
+                        message.author.agentId === cove.id
+                );
+                expect(
+                    proposalMessages.filter((message) => message.content.trim().length > 0),
+                    'a substantive proposal in the parent DM'
+                ).not.toHaveLength(0);
+                expect(
+                    proposalMessages.filter((message) => message.preparedAction),
+                    'no action before the owner asks to create it'
+                ).toHaveLength(0);
+                const proposalTask = (await kit.trpc('task.list', { serverId: kit.serverId })).find(
+                    (entry) => entry.message.id === proposalReceipt.message.id
+                );
+                if (proposalTask) {
+                    await kit.trackChat(proposalTask.task.threadChatId);
+                    expect(
+                        (await kit.readMessages(proposalTask.task.threadChatId)).filter(
+                            (message) => message.preparedAction
+                        ),
+                        'no premature action in the proposal Task Thread'
+                    ).toHaveLength(0);
+                }
+
+                const creationBrief = `${marker('CREATE')} Looks good. Can you prepare that creation action? Name the Agent Mossy Lantern.`;
+                log('asking Cove to prepare the approved Agent action');
+                const creationReceipt = await kit.harness.send(cove.dmChatId, creationBrief);
                 const preparation = await settleTurn(cove.id, {
                     settleWithin: 300_000,
                     startWithin: 120_000,
@@ -66,7 +107,7 @@ export default defineScenario({
                 const coveMessages = await kit.readMessages(cove.dmChatId);
                 const pendingActions = coveMessages.filter(
                     (message) =>
-                        message.sequence > receipt.message.sequence &&
+                        message.sequence > creationReceipt.message.sequence &&
                         message.author.kind === 'agent' &&
                         message.author.agentId === cove.id &&
                         message.preparedAction?.kind === 'agent:create' &&
@@ -84,7 +125,7 @@ export default defineScenario({
                 const requestsAfter = await fixtureRequestCount(requestLogPath);
                 expect(requestsAfter - requestsBefore, 'avatar provider requests').toBe(1);
 
-                const handle = `cove-recipe-${kit.stamp.slice(-10).toLowerCase()}`;
+                const handle = `cove-parity-${kit.stamp.slice(-10).toLowerCase()}`;
                 const committed = await kit.trpc('preparedAction.commit', {
                     actionId: action.id,
                     computerId: cove.computerId,
@@ -164,7 +205,7 @@ export async function withTemporaryAgentConfiguration(harness, agent, target, op
     try {
         if (changed) {
             configured = true;
-            log?.('configuring Cove on the reported Terra inventory');
+            log?.('configuring Cove on the requested temporary runtime/model');
             await harness.configureAgent(agent, target.runtimeId, target.modelId);
         }
         return await operation();
@@ -174,23 +215,6 @@ export async function withTemporaryAgentConfiguration(harness, agent, target, op
             await harness.configureAgent(agent, original.runtimeId, original.modelId);
         }
     }
-}
-
-async function terraTarget(kit, computerId) {
-    const computers = await kit.trpc('computer.list', { serverId: kit.serverId });
-    const computer = computers.find((candidate) => candidate.id === computerId);
-    const runtime = computer?.reportedInventory?.runtimes?.find(
-        (candidate) => candidate.id === 'codex'
-    );
-    const model = runtime?.models?.find((candidate) =>
-        candidate.id.toLowerCase().includes('terra')
-    );
-    if (!(computer && runtime && model && computer.health === 'healthy')) {
-        throw new Error(
-            'This opt-in scenario requires Cove’s attached Computer to be healthy and report a codex Terra model.'
-        );
-    }
-    return { modelId: model.id, runtimeId: runtime.id };
 }
 
 async function fixtureRequestCount(file) {

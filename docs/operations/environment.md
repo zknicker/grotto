@@ -98,6 +98,9 @@ and a cloud agent that can reach none of them still passes `check`.
 
 Release commands run `varlock run --include-internal`, because `varlock run`
 strips `@internal` items by default and every release credential is one.
+The release switch also leaves development-only Clerk and Google runtime values
+undefined. This keeps GitHub release jobs on their Tooling-only identity instead
+of making an unrelated Development-vault read part of signing or publication.
 
 ## Source → delivery → runtime
 

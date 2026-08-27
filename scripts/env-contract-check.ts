@@ -244,10 +244,7 @@ const allowedWorkflowSecrets = new Map([
     [qualityWorkflowPath, new Set(['GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN'])],
     [
         releaseWorkflowPath,
-        new Set([
-            'GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN',
-            'GH_RELEASE_AGENT_TOOLING_OP_TOKEN',
-        ]),
+        new Set(['GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN', 'GH_RELEASE_AGENT_TOOLING_OP_TOKEN']),
     ],
 ]);
 const workflowContents = new Map<string, string>();

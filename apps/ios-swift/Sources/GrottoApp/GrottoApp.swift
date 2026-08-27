@@ -20,12 +20,8 @@ struct GrottoApp: App {
     var body: some Scene {
         WindowGroup {
             #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains(where: {
-                $0 == "--avatar-generation-preview"
-                    || $0 == "--avatar-generation-preview-filled"
-                    || $0 == "--avatar-generation-preview-progress"
-            }) {
-                AvatarGenerationDebugPreview()
+            if let scene = AvatarGenerationDebugScene.resolve(ProcessInfo.processInfo.arguments) {
+                AvatarGenerationDebugPreview(scene: scene)
             } else {
                 AuthBoundaryView()
                     .environment(Clerk.shared)

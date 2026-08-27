@@ -3,15 +3,46 @@ import Foundation
 import SwiftUI
 import UIKit
 
-/// Deterministic screenshot host. It exercises the production generation UI
-/// without authenticating or calling the paid image provider.
+/// The avatar surfaces a screenshot can reach without a Server.
+///
+/// Generation is a paid, authenticated, tens-of-seconds operation, so its
+/// states are unreachable in a normal Simulator run. Each scene mounts the
+/// production view with fixed inputs.
+public enum AvatarGenerationDebugScene: String, CaseIterable, Sendable {
+    case generator = "--avatar-generation-preview"
+    case generatorFilled = "--avatar-generation-preview-filled"
+    case generatorProgress = "--avatar-generation-preview-progress"
+    /// The Agent profile that opens the generator.
+    case profile = "--avatar-generation-preview-profile"
+    /// The same profile for a factory Agent, which offers no generator.
+    case factoryProfile = "--avatar-generation-preview-factory-profile"
+
+    public static func resolve(_ arguments: [String]) -> AvatarGenerationDebugScene? {
+        arguments.lazy.compactMap(AvatarGenerationDebugScene.init(rawValue:)).first
+    }
+}
+
+/// Deterministic screenshot host. It exercises the production avatar UI without
+/// authenticating or calling the paid image provider.
 public struct AvatarGenerationDebugPreview: View {
-    public init() {}
+    private let scene: AvatarGenerationDebugScene
+
+    public init(scene: AvatarGenerationDebugScene) {
+        self.scene = scene
+    }
 
     public var body: some View {
-        let arguments = ProcessInfo.processInfo.arguments
-        let filled = arguments.contains("--avatar-generation-preview-filled")
-        let progress = arguments.contains("--avatar-generation-preview-progress")
+        switch scene {
+        case .profile:
+            profile(SettingsFixtures.blippy)
+        case .factoryProfile:
+            profile(SettingsFixtures.cove)
+        case .generator, .generatorFilled, .generatorProgress:
+            generator
+        }
+    }
+
+    private var generator: some View {
         AgentAvatarGenerationView(
             agentName: "Blippy",
             onGenerate: { _ in
@@ -19,12 +50,18 @@ public struct AvatarGenerationDebugPreview: View {
                 return AvatarImagePayload(data: debugAvatarData(), mediaType: .png)
             },
             onSave: { _ in },
-            initialConcept: filled || progress ? "a moonlit fox cartographer" : "",
-            initialPreview: filled
+            initialConcept: scene == .generator ? "" : "a moonlit fox cartographer",
+            initialPreview: scene == .generatorFilled
                 ? AvatarImagePayload(data: debugAvatarData(), mediaType: .png)
                 : nil,
-            initiallyGenerating: progress
+            initiallyGenerating: scene == .generatorProgress
         )
+    }
+
+    private func profile(_ agent: SettingsAgent) -> some View {
+        NavigationStack {
+            AgentProfileView(agent: agent, onEditDescription: { _, _ in })
+        }
     }
 }
 

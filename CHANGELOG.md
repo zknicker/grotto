@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.29 - 2026-08-27
+
+- Grotto for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
+  first layout settles, while preserving the reader's position after they scroll away.
+- The whole iPhone sidebar row is now tappable, not just its icon and title.
+- Grotto App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
+  presentation.
+
 ## v1.8.28 - 2026-08-27
 
 - Grotto for iPhone keeps Chat and Thread transcripts anchored to the latest message as their

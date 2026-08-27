@@ -157,6 +157,7 @@ async function updateVersionedFiles(targetVersion) {
 }
 
 const iosProjectSpecPath = 'apps/ios-swift/project.yml';
+const iosGeneratedProjectPath = 'apps/ios-swift/Grotto.xcodeproj/project.pbxproj';
 
 async function updateIOSLocalDefaultVersion(targetVersion) {
     const raw = await readText(iosProjectSpecPath);
@@ -169,6 +170,16 @@ async function updateIOSLocalDefaultVersion(targetVersion) {
     if (next !== raw) {
         await writeText(iosProjectSpecPath, next);
     }
+
+    const generated = await readText(iosGeneratedProjectPath);
+    const generatedPattern = /(MARKETING_VERSION = )\d+\.\d+\.\d+(;)/gu;
+    if (!generated.match(generatedPattern)?.length) {
+        fail(`could not find MARKETING_VERSION in ${iosGeneratedProjectPath}`);
+    }
+    await writeText(
+        iosGeneratedProjectPath,
+        generated.replace(generatedPattern, `$1${targetVersion}$2`)
+    );
 }
 
 function printSummary({ currentVersion, targetVersion }) {
@@ -176,6 +187,7 @@ function printSummary({ currentVersion, targetVersion }) {
     console.log('Updated files:');
     console.log('- apps/website/package.json');
     console.log('- apps/ios-swift/project.yml (local-build MARKETING_VERSION default)');
+    console.log('- apps/ios-swift/Grotto.xcodeproj/project.pbxproj (generated project)');
     console.log('- releases.json (append the next release draft)');
     console.log('Next:');
     console.log('- bun install --frozen-lockfile');

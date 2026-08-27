@@ -46,6 +46,7 @@ export function ChatTranscriptMessageContent({
         () =>
             applyAgentMentionAppearance(readMentionsFromMarkdown(content), () => ({
                 avatarUrl: null,
+                displayName: null,
                 primaryColor: null,
             })),
         [content]

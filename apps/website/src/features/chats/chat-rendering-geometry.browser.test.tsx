@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { type Browser, chromium, type Page } from '@playwright/test';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { ReferenceChip } from '../mentions/reference-chip.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import {
     ChatTranscriptMessageContent,
@@ -14,6 +15,10 @@ import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 const appointmentText =
     'Your next dentist appointment is Dental Cleaning on Monday, September 28, 2026 at 10:00 AM EDT, at Meridian Dental, NYC. 🫡';
 const chatCss = readFileSync(new URL('./chat.css', import.meta.url), 'utf8');
+const defaultThemeCss = readFileSync(
+    new URL('../../styles/default-theme.css', import.meta.url),
+    'utf8'
+);
 
 let browser: Browser;
 
@@ -190,6 +195,158 @@ test('settled Markdown keeps visible rhythm between paragraphs', async () => {
     await page.close();
 });
 
+test('reference labels align with surrounding text for activated and inert chips', async () => {
+    const inert = renderToStaticMarkup(
+        <ReferenceChip
+            id="agent://agt_blippy"
+            kind="agent"
+            label="blippy"
+            metadata={{ agentAvatarUrl: '/blippy.png' }}
+        />
+    );
+    const activated = renderToStaticMarkup(
+        <ReferenceChip
+            id="agent://agt_blippy"
+            kind="agent"
+            label="blippy"
+            metadata={{ agentAvatarUrl: '/blippy.png' }}
+            onActivate={() => undefined}
+        />
+    );
+    const page = await newGeometryPage(`
+        <style>
+            ${referenceChipCss}
+            ${defaultThemeCss}
+        </style>
+        <p class="reference-line" id="inert">Before ${inert} after</p>
+        <p class="reference-line" id="activated">Before ${activated} after</p>
+    `);
+
+    const metrics = await page.evaluate(() => {
+        const readMetrics = (id: string) => {
+            const line = document.getElementById(id);
+            const chip = line?.querySelector('[data-slot="chip"]');
+            const label = chip?.querySelector('[data-slot="chip-label"]');
+            const mark = chip?.querySelector('.avatar');
+
+            if (
+                !(
+                    line instanceof HTMLElement &&
+                    chip instanceof HTMLElement &&
+                    label instanceof HTMLElement &&
+                    mark instanceof HTMLElement
+                )
+            ) {
+                throw new Error(`Missing reference geometry target ${id}.`);
+            }
+
+            const referenceNode =
+                chip.parentElement instanceof HTMLButtonElement ? chip.parentElement : chip;
+            const adjacentText = referenceNode.nextSibling;
+
+            if (!(adjacentText instanceof Text)) {
+                throw new Error(`Missing adjacent reference text for ${id}.`);
+            }
+
+            const lineRect = line.getBoundingClientRect();
+            const chipRect = chip.getBoundingClientRect();
+            const chipStyle = getComputedStyle(chip);
+            const labelRange = document.createRange();
+            labelRange.selectNodeContents(label);
+            const adjacentRange = document.createRange();
+            const adjacentWordStart = adjacentText.data.indexOf('after');
+            adjacentRange.setStart(adjacentText, adjacentWordStart);
+            adjacentRange.setEnd(adjacentText, adjacentWordStart + 'after'.length);
+            const adjacentTextRect = adjacentRange.getBoundingClientRect();
+            const labelTextRect = labelRange.getBoundingClientRect();
+
+            return {
+                adjacentTextTop: adjacentTextRect.top - lineRect.top,
+                chipFontSize: chipStyle.fontSize,
+                chipHeight: chipRect.height,
+                chipLineHeight: chipStyle.lineHeight,
+                chipPaddingEnd: chipStyle.paddingInlineEnd,
+                chipPaddingStart: chipStyle.paddingInlineStart,
+                chipTop: chipRect.top - lineRect.top,
+                gap: chipStyle.gap,
+                labelTextOffset: labelTextRect.top - adjacentTextRect.top,
+                labelTextTop: labelTextRect.top - lineRect.top,
+                lineHeight: lineRect.height,
+                markHeight: mark.getBoundingClientRect().height,
+                markTextOffset: mark.getBoundingClientRect().top - adjacentTextRect.top,
+            };
+        };
+
+        return {
+            activated: readMetrics('activated'),
+            inert: readMetrics('inert'),
+        };
+    });
+
+    expect(metrics.activated.chipHeight).toBe(metrics.inert.chipHeight);
+    expect(metrics.activated.lineHeight).toBe(metrics.inert.lineHeight);
+    expect(Math.abs(metrics.activated.chipTop - metrics.inert.chipTop)).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(metrics.activated.labelTextOffset)).toBeLessThanOrEqual(0.25);
+    expect(Math.abs(metrics.inert.labelTextOffset)).toBeLessThanOrEqual(0.25);
+    expect(Math.abs(metrics.activated.markTextOffset)).toBeLessThanOrEqual(0.75);
+    expect(Math.abs(metrics.inert.markTextOffset)).toBeLessThanOrEqual(0.75);
+    expect(metrics.inert).toMatchObject({
+        chipFontSize: '15px',
+        chipHeight: 18,
+        chipLineHeight: '15px',
+        chipPaddingEnd: '0px',
+        chipPaddingStart: '0px',
+        gap: '3.75px',
+        lineHeight: 24,
+        markHeight: 18,
+    });
+
+    await page.close();
+});
+
+test('channel reference labels use the configured channel color', async () => {
+    const markup = renderToStaticMarkup(
+        <ReferenceChip
+            id="chat://cht_product"
+            kind="chat"
+            label="product"
+            metadata={{ chatColor: 'violet', chatIcon: 'RocketIcon' }}
+        />
+    );
+    const page = await newGeometryPage(`
+        <style>
+            ${referenceChipCss}
+            ${defaultThemeCss}
+        </style>
+        <div class="light" id="light">${markup}</div>
+        <div class="dark" data-theme="dark" id="dark">${markup}</div>
+    `);
+
+    const colors = await page.evaluate(() => {
+        const getChipColor = (id: string) => {
+            const chip = document.querySelector(`#${id} [data-slot="chip"]`);
+
+            if (!(chip instanceof HTMLElement)) {
+                throw new Error(`Missing channel color target ${id}.`);
+            }
+
+            return getComputedStyle(chip).color;
+        };
+
+        return {
+            dark: getChipColor('dark'),
+            light: getChipColor('light'),
+        };
+    });
+
+    expect(colors).toEqual({
+        dark: 'rgb(167, 139, 250)',
+        light: 'rgb(124, 58, 237)',
+    });
+
+    await page.close();
+});
+
 test('work disclosure anchoring keeps the header pinned while content expands below it', async () => {
     const page = await newGeometryPage(`
         <style>
@@ -359,6 +516,67 @@ const chatMessageCss = `
     .chat-message__content {
         font-size: 14px;
         line-height: 1.5;
+    }
+`;
+
+const referenceChipCss = `
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button {
+        margin: 0;
+        border: 0;
+        padding: 0;
+        color: inherit;
+        font: inherit;
+        background: transparent;
+    }
+
+    .reference-line {
+        margin: 24px;
+        font-size: 15px;
+        line-height: 24px;
+    }
+
+    .inline-flex {
+        display: inline-flex;
+    }
+
+    .align-middle {
+        vertical-align: middle;
+    }
+
+    @layer components {
+        .chip {
+            display: inline-flex;
+            width: fit-content;
+            align-items: center;
+            gap: 2px;
+            padding: 1.25px 7.5px;
+            --chip-fg: currentColor;
+            color: var(--chip-fg);
+            font-size: 13px;
+            line-height: 20px;
+        }
+
+        .chip--default {
+            --chip-fg: var(--default-foreground);
+        }
+
+        .chip__label {
+            padding-inline: 1.875px;
+        }
+    }
+
+    .avatar {
+        display: inline-flex;
+        flex-shrink: 0;
     }
 `;
 

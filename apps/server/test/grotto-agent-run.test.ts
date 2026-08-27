@@ -216,6 +216,133 @@ test('Agent sends remove terminal whitespace while preserving leading and intern
     ]);
 });
 
+test('Agent message references persist as stable Agent and Chat links', async () => {
+    const blippy = await owner.trpc.agent.create.mutate({
+        computerId,
+        displayName: 'Blippy',
+        handle: 'blippy',
+        modelId: 'gpt-5.6-sol',
+        role: 'member',
+        runtimeId: 'codex',
+        serverId,
+    });
+    const tiny = await owner.trpc.agent.create.mutate({
+        computerId,
+        displayName: 'Tiny',
+        handle: 'tiny',
+        modelId: 'gpt-5.6-sol',
+        role: 'member',
+        runtimeId: 'codex',
+        serverId,
+    });
+    const channel = await owner.trpc.chat.createChannel.mutate({
+        agentIds: [agentId, blippy.agent.id, tiny.agent.id],
+        name: 'canonical-product',
+        serverId,
+    });
+    // The referenced Channel need not include the author Agent; target access
+    // is checked separately by the Agent send resolver.
+    const unjoinedChannelId = 'cht_unjoinedreference';
+    await harness.sql`
+        insert into chats (id, server_id, kind, name)
+        values (${unjoinedChannelId}, ${serverId}, 'channel', 'unjoined-product')
+    `;
+    await harness.sql`
+        insert into channel_participants (server_id, chat_id, user_id)
+        values (${serverId}, ${unjoinedChannelId}, ${ownerUserId})
+    `;
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_reference_canonicalization' });
+    const inputContent =
+        'Coordinate @blippy, @tiny, and unknown @future in #unjoined-product and #canonical-product.';
+    const sent = await agentSend(minted.runnerToken, {
+        content: inputContent,
+        nonce: 'agent_reference_canonicalization_1',
+        target: '#canonical-product',
+    });
+    const expectedContent = `Coordinate [@blippy](agent://${blippy.agent.id}), [@tiny](agent://${tiny.agent.id}), and unknown @future in [#unjoined-product](chat://${unjoinedChannelId}) and [#canonical-product](chat://${channel.id}).`;
+
+    expect(sent).toMatchObject({
+        body: { message: { chat_id: channel.id, content: expectedContent }, state: 'sent' },
+        status: 200,
+    });
+    const rows = (await harness.sql`
+        select content from chat_messages
+        where server_id = ${serverId} and nonce = 'agent_reference_canonicalization_1'
+    `) as { content: string }[];
+    expect(rows).toEqual([{ content: expectedContent }]);
+
+    const pending = (await harness.sql`
+        select agent_id, content from agent_pending_work
+        where server_id = ${serverId} and dedupe_key = ${sent.body.message?.id ?? ''}
+        order by agent_id
+    `) as { agent_id: string; content: string }[];
+    expect(pending).toEqual(
+        expect.arrayContaining([
+            { agent_id: blippy.agent.id, content: expectedContent },
+            { agent_id: tiny.agent.id, content: expectedContent },
+        ])
+    );
+    expect(pending).toHaveLength(2);
+
+    await owner.trpc.agent.delete.mutate({
+        agentId: blippy.agent.id,
+        confirmation: 'Blippy',
+        serverId,
+    });
+    const replacement = await owner.trpc.agent.create.mutate({
+        computerId,
+        displayName: 'Blippy Replacement',
+        handle: 'blippy',
+        modelId: 'gpt-5.6-sol',
+        role: 'member',
+        runtimeId: 'codex',
+        serverId,
+    });
+    await harness.sql`
+        insert into channel_agent_participants (server_id, chat_id, agent_id)
+        values (${serverId}, ${channel.id}, ${replacement.agent.id})
+    `;
+    await owner.trpc.agent.create.mutate({
+        computerId,
+        displayName: 'Future',
+        handle: 'future',
+        modelId: 'gpt-5.6-sol',
+        role: 'member',
+        runtimeId: 'codex',
+        serverId,
+    });
+    const replay = await agentSend(minted.runnerToken, {
+        content: inputContent,
+        nonce: 'agent_reference_canonicalization_1',
+        target: '#canonical-product',
+    });
+    expect(replay).toMatchObject({
+        body: { message: { content: expectedContent, id: sent.body.message?.id } },
+        status: 200,
+    });
+});
+
+test('Agent reference expansion cannot exceed the durable message limit', async () => {
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_reference_length' });
+    const content = `${'x'.repeat(31_990)} @sage`;
+    expect(content.length).toBeLessThanOrEqual(32_000);
+
+    const sent = await agentSend(minted.runnerToken, {
+        content,
+        nonce: 'agent_reference_length_1',
+        target: 'dm:@ada',
+    });
+
+    expect(sent).toMatchObject({ body: { code: 'INVALID_ARG' }, status: 400 });
+    const rows = (await harness.sql`
+        select id from chat_messages
+        where server_id = ${serverId}
+          and chat_id = ${dmChatId}
+          and nonce = 'agent_reference_length_1'
+    `) as { id: string }[];
+    expect(rows).toEqual([]);
+});
+
 test('an Agent send resolves its target instead of writing into the launch chat', async () => {
     const channelId = 'cht_targetchannel01';
     await harness.sql`

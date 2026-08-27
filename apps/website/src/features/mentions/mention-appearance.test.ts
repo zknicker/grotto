@@ -10,7 +10,6 @@ describe('mention appearance', () => {
                 label: 'ui',
             })
         ).toEqual({
-            brandColor: '#64748b',
             icon: 'skill',
         });
         expect(
@@ -22,6 +21,16 @@ describe('mention appearance', () => {
         ).toBe('My Skill');
     });
 
+    it('uses the hash icon for chat references', () => {
+        expect(
+            getMentionAppearance({
+                id: 'chat://cht_product',
+                kind: 'chat',
+                label: '#product',
+            })
+        ).toEqual({ channelAppearance: { color: null, icon: null }, icon: 'chat' });
+    });
+
     it('resolves bundled GitHub skills to branded presentation', () => {
         const input = {
             id: 'skill://github',
@@ -30,7 +39,6 @@ describe('mention appearance', () => {
         };
 
         expect(getMentionAppearance(input)).toEqual({
-            brandColor: '#64748b',
             icon: 'github',
             label: 'GitHub',
         });
@@ -45,7 +53,6 @@ describe('mention appearance', () => {
                 label: 'gh-issues',
             })
         ).toEqual({
-            brandColor: '#64748b',
             icon: 'github',
             label: 'GitHub Issues',
         });
@@ -103,16 +110,20 @@ describe('mention appearance', () => {
             getMentionAppearance({
                 id: 'agent://agt_blippy',
                 kind: 'agent',
-                label: 'Blippy',
-                metadata: { agentAvatarUrl: '/api/avatars/avt_0123456789abcdef' },
+                label: 'blippy',
+                metadata: {
+                    agentAvatarUrl: '/api/avatars/avt_0123456789abcdef',
+                    agentDisplayName: 'Blippy',
+                },
             })
         ).toEqual({
             agentAvatar: { name: 'Blippy', src: '/api/avatars/avt_0123456789abcdef' },
             icon: 'agent',
+            label: 'Blippy',
         });
     });
 
-    it('falls back to initials and keeps the agent color as the chip tint', () => {
+    it('falls back to initials and preserves agent appearance metadata', () => {
         expect(
             getMentionAppearance({
                 id: 'agent://agt_plain',

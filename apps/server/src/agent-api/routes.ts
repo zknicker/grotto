@@ -13,7 +13,11 @@ import {
 } from '../avatar-generation/service.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import { AgentSendConflictError, sendAgentMessage } from '../chats/send-agent-message.ts';
+import {
+    AgentMessageContentTooLongError,
+    AgentSendConflictError,
+    sendAgentMessage,
+} from '../chats/send-agent-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { registerAgentActionRoutes } from './action-routes.ts';
@@ -465,6 +469,9 @@ export function registerAgentApiRoutes(
             );
             return { message: result.message, recentUnread: [], state: 'sent' as const };
         } catch (cause) {
+            if (cause instanceof AgentMessageContentTooLongError) {
+                return sendAgentApiError(reply, 400, 'INVALID_ARG', cause.message);
+            }
             if (cause instanceof AgentSendConflictError) {
                 return sendAgentApiError(reply, 409, 'SEND_FAILED', cause.message);
             }

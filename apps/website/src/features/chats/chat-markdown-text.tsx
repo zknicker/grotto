@@ -1,4 +1,4 @@
-import type { Mention } from '../mentions/mention-types.ts';
+import type { Mention, ReferenceActivation } from '../mentions/mention-types.ts';
 import { ReferenceChip } from '../mentions/reference-chip.tsx';
 import { ReferenceMarkdown } from '../mentions/reference-markdown.tsx';
 import { splitMentionText } from '../mentions/render-mention-text.tsx';
@@ -10,10 +10,12 @@ export function ChatMarkdownText({
     animatedRanges = [],
     content,
     mentions,
+    onReferenceActivate,
 }: {
     animatedRanges?: readonly ChatTextAnimationRange[];
     content: string;
     mentions?: readonly Mention[];
+    onReferenceActivate?: ReferenceActivation;
 }) {
     if (animatedRanges.length === 0) {
         return (
@@ -21,6 +23,7 @@ export function ChatMarkdownText({
                 className="chat-markdown text-base"
                 content={content}
                 mentions={mentions}
+                onReferenceActivate={onReferenceActivate}
             />
         );
     }
@@ -35,6 +38,7 @@ export function ChatMarkdownText({
                     block={block}
                     key={`heading:${block.start}`}
                     mentions={mentions}
+                    onReferenceActivate={onReferenceActivate}
                 />
             );
         }
@@ -53,6 +57,7 @@ export function ChatMarkdownText({
                     content: block.text,
                     keyPrefix: `prose:${block.start}`,
                     mentions: sliceMentions(mentions, block.start, block.start + block.text.length),
+                    onReferenceActivate,
                     sourceOffset: block.start,
                 })}
             </p>
@@ -65,12 +70,14 @@ function renderMarkdownInline({
     content,
     keyPrefix,
     mentions,
+    onReferenceActivate,
     sourceOffset,
 }: {
     animatedRanges: readonly ChatTextAnimationRange[];
     content: string;
     keyPrefix: string;
     mentions?: readonly Mention[];
+    onReferenceActivate?: ReferenceActivation;
     sourceOffset: number;
 }) {
     if (!mentions || mentions.length === 0) {
@@ -89,6 +96,7 @@ function renderMarkdownInline({
                     kind={fragment.mention.kind}
                     label={fragment.mention.label}
                     metadata={fragment.mention.metadata}
+                    onActivate={onReferenceActivate}
                 />
             );
         }
@@ -109,16 +117,19 @@ function ChatMarkdownHeading({
     animatedRanges,
     block,
     mentions,
+    onReferenceActivate,
 }: {
     animatedRanges: readonly ChatTextAnimationRange[];
     block: ChatMarkdownHeadingBlock;
     mentions?: readonly Mention[];
+    onReferenceActivate?: ReferenceActivation;
 }) {
     const content = renderMarkdownInline({
         animatedRanges,
         content: block.text,
         keyPrefix: `heading:${block.start}`,
         mentions: sliceMentions(mentions, block.textStart, block.textStart + block.text.length),
+        onReferenceActivate,
         sourceOffset: block.textStart,
     });
 

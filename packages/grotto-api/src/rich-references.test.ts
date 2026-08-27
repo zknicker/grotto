@@ -2,9 +2,11 @@ import { describe, expect, it } from 'bun:test';
 import {
     formatAgentReferenceTarget,
     formatAppReferenceTarget,
+    formatChatReferenceTarget,
     formatSkillReferenceTarget,
     parseAgentReferenceTarget,
     parseAppReferenceTarget,
+    parseChatReferenceTarget,
     parseGrottoRichReferences,
     parseSkillReferenceTarget,
     parseUserReferenceTarget,
@@ -24,11 +26,14 @@ describe('Grotto rich references', () => {
 
         expect(formatSkillReferenceTarget('agent-browser')).toBe('skill://agent-browser');
         expect(parseSkillReferenceTarget('skill://agent-browser')).toBe('agent-browser');
+
+        expect(formatChatReferenceTarget('cht_product')).toBe('chat://cht_product');
+        expect(parseChatReferenceTarget('chat://cht_product')).toBe('cht_product');
     });
 
     it('parses explicit markdown links into rich references', () => {
         const content =
-            'Ask [@Planner](agent://agent%3Aplanner), use [$ui](skill://ui), open [@Chrome](app://computer-use/com.google.Chrome), and inspect [specs/mentions.md](/repo/specs/mentions.md).';
+            'Ask [@Planner](agent://agent%3Aplanner), use [$ui](skill://ui), open [@Chrome](app://computer-use/com.google.Chrome), jump to [#product](chat://cht_product), and inspect [specs/mentions.md](/repo/specs/mentions.md).';
 
         expect(parseGrottoRichReferences(content)).toEqual([
             {
@@ -59,12 +64,21 @@ describe('Grotto rich references', () => {
                 text: '[@Chrome](app://computer-use/com.google.Chrome)',
             },
             {
-                end: 174,
+                end: 156,
+                id: 'chat://cht_product',
+                kind: 'chat',
+                label: 'product',
+                projection: 'chat-reference',
+                start: 126,
+                text: '[#product](chat://cht_product)',
+            },
+            {
+                end: 214,
                 id: '/repo/specs/mentions.md',
                 kind: 'file',
                 label: 'specs/mentions.md',
                 projection: 'path-reference',
-                start: 130,
+                start: 170,
                 text: '[specs/mentions.md](/repo/specs/mentions.md)',
             },
         ]);

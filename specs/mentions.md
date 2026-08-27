@@ -7,8 +7,11 @@ read_when:
 
 # Rich References
 
-Rich references are explicit typed links in message text. The visible markdown is
-the durable source of truth:
+Rich references are typed links in message text. The visible Markdown is the
+durable source of truth. Human composer selections are serialized as explicit
+typed links. Agent output may use bare `@handle` and `#channel` tokens; the
+Server canonicalizes known tokens once at send time before persisting the
+message:
 
 ```md
 [@Grotto](agent://agt_primary)
@@ -16,17 +19,21 @@ the durable source of truth:
 [$ui](skill://ui)
 [@Computer Use](plugin://computer-use@openai-bundled)
 [@Chrome](app://computer-use/com.google.Chrome)
+[#product](chat://cht_product)
 [mentions.md](/Users/zknicker/.codex/worktrees/1b41/grotto/specs/mentions.md)
 ```
 
 Autocomplete inserts friendly text while editing, then the composer serializes
-the selected reference into markdown. Grotto does not persist a parallel
+the selected reference into Markdown. Grotto does not persist a parallel
 `metadata.grotto.mentions` index for user-authored messages. Metadata may carry
 local picker or chip appearance while editing, but saved messages must render
 and route from content alone.
 
-Bare mention-looking text is plain text. `@Grotto`, `$ui`, and an ASIN-looking
-token do nothing unless the user selected or typed explicit link syntax.
+Human-authored bare mention-looking text remains plain text. Agent-authored bare
+`@handle` and `#channel` tokens become immutable typed links at send time when
+they resolve to a known Agent or channel. Unknown and protected tokens remain
+plain text; protected text includes code spans and Markdown constructs whose
+leading sigil is presentation syntax.
 
 ## Triggers
 
@@ -46,6 +53,7 @@ token do nothing unless the user selected or typed explicit link syntax.
 | Kind | Target | Projection | Behavior |
 | --- | --- | --- | --- |
 | `agent` | `agent://<encoded-agent-id>` | `agent-reference` | Channel messages retain ordinary delivery to eligible joined Agents while the linked participant receives durable direct-attention metadata; a mention bypasses that Agent's Channel mute, while a direct Thread mention restores an explicit unfollow and resumes ordinary Thread delivery. Agent DMs address their one Agent participant without a link. |
+| `chat` | `chat://<encoded-chat-id>` | `chat-reference` | Visual channel reference. The chip opens the referenced channel by immutable chat id. |
 | `user` | `user://<encoded-user-id>` | `user-reference` | Visual human reference only. Resolve the current display name/avatar by immutable user id; unknown or departed humans keep the persisted label. No notification or wake behavior. |
 | `skill` | `skill://<encoded-skill-id>` | `skill-activation` | Runtime adds a compact turn hint only if the addressed Agent already has that skill enabled. |
 | `plugin` | `plugin://<name>@<marketplace>` | `capability-reference` | Preserve the link. Do not enable, install, connect, or authorize the plugin from the reference alone. |
@@ -70,17 +78,27 @@ All surfaces render one shared reference chip component built on HeroUI
 `Chip`. HeroUI owns the shell's shape, spacing, size, and label structure. The
 kind registry owns icons, labels, colors, and fallbacks so new reference types
 do not add conditionals to chat renderers or introduce another chip primitive.
-Agent chips show the agent's avatar tinted with
-its configured color — the same color the user picks from the agent color
-presets in Settings. Transcript surfaces resolve that appearance live from the
-agent record by decoding the `agent://...` target; the composer embeds the same
-appearance in local option metadata at pick time because composer chips mount
-outside app providers. An agent with no uploaded avatar shows its initials and
-keeps its configured color as the chip tint; unknown agents fall back to the
-generic agent icon.
+References use the transparent tertiary shell, inherit the surrounding text's
+size, and carry an 18px identity mark plus a semibold label. Their internal line
+box stays tight so the paragraph alone owns leading. They add no outer padding;
+the message's ordinary spaces own paragraph rhythm, and one theme spacing step
+separates the identity mark from the label. The label is optically raised by
+`0.1em` to align its text with the surrounding paragraph baseline, and the
+fixed-size mark is raised by 1.5px. Agent labels use the accent (blue) foreground, Skill
+labels use warning (gold), and chat labels use the Channel's configured color.
+The reference shell has no background. A Channel identity mark retains the
+Channel's own colored box.
+Agent chips show the Agent's avatar; transcript surfaces resolve it live from
+the Agent record by decoding the `agent://...` target. Their label likewise
+uses the live Agent display name, with the persisted Markdown label as fallback. The composer
+embeds the same appearance in local option metadata at pick time because
+composer chips mount outside app providers. An Agent with no uploaded avatar
+shows its initials; unknown Agents fall back to the generic Agent icon.
 
 Settled transcript content renders through HeroUI Markdown. Typed Grotto links
-are projected into reference chips without changing the stored markdown.
+are projected into reference chips without changing the stored Markdown. Agent
+and chat chips are interactive: Agent chips open the Agent profile, and chat
+chips open the referenced channel.
 Ordinary web links use the same chip shell with the site's favicon and a globe
 fallback.
 
@@ -137,15 +155,18 @@ The user explicitly referenced these enabled skills for this turn. Use the norma
   markdown and Runtime silently ignores it for addressed Agents that do not have
   that skill enabled.
 - Capability and path references remain visible markdown in the prompt.
-- Unknown markdown links render as normal markdown, not chips.
+- Unknown markdown links render as normal markdown, not chips. Unknown or
+  protected bare Agent and channel tokens remain normal text.
 
 ## Future Reference Types
 
 New rich references should follow the same rules:
 
-- Require explicit syntax.
+- Require explicit typed syntax at the durable boundary. A narrowly defined
+  Agent send path may accept bare `@handle` and `#channel` input only when it
+  canonicalizes each known token before persistence.
 - Use a durable, typed target.
 - Keep message content readable without Grotto.
 - Do not rely on persisted mention metadata for identity.
 - Add parser, rendering, routing, and projection tests before exposing the
-  reference in autocomplete.
+  reference in autocomplete or Agent output.

@@ -6,9 +6,9 @@ import { useChannelIconGlyph } from './channel-icon-catalog.ts';
 
 // Sidebar and topbar boxes match the 24px agent avatars beside them, right
 // down to the shape: an exact box pairs its own radius, so a channel stays as
-// round as the Agents beside it at every scale step. `inline` keeps the
-// smaller chip for text rows, and `modal` fills a Modal.Icon slot so a dialog
-// header can preview the channel itself.
+// round as the Agents beside it at every scale step. `inline` serves compact
+// text rows, `reference` serves rich inline references, and `modal` fills a
+// Modal.Icon slot so a dialog header can preview the channel itself.
 const channelIconBoxVariants = {
     inline: {
         boxSize: 20,
@@ -20,6 +20,12 @@ const channelIconBoxVariants = {
         boxClassName:
             'size-10 rounded-3xl bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
         iconSize: 20,
+    },
+    reference: {
+        boxSize: 18,
+        boxClassName:
+            'bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
+        iconSize: 13,
     },
     sidebar: {
         // Fixed, not size-6: the box must hold the 24px Agent avatars' scale

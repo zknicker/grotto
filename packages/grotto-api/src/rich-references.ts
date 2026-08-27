@@ -1,6 +1,7 @@
 export type GrottoRichReferenceKind =
     | 'agent'
     | 'app'
+    | 'chat'
     | 'directory'
     | 'file'
     | 'plugin'
@@ -10,6 +11,7 @@ export type GrottoRichReferenceKind =
 export type GrottoRichReferenceProjection =
     | 'agent-reference'
     | 'capability-reference'
+    | 'chat-reference'
     | 'path-reference'
     | 'skill-activation'
     | 'user-reference';
@@ -32,6 +34,10 @@ export function formatAppReferenceTarget(appId: string) {
     return `app://computer-use/${encodeReferenceId(appId)}`;
 }
 
+export function formatChatReferenceTarget(chatId: string) {
+    return `chat://${encodeReferenceId(chatId)}`;
+}
+
 export function formatSkillReferenceTarget(skillId: string) {
     return `skill://${encodeReferenceId(skillId)}`;
 }
@@ -50,6 +56,10 @@ export function parseAppReferenceTarget(target: string) {
     }
 
     return decodeReferenceId(target.slice('app://computer-use/'.length));
+}
+
+export function parseChatReferenceTarget(target: string) {
+    return parseSchemeReferenceTarget(target, 'chat');
 }
 
 export function parseSkillReferenceTarget(target: string) {
@@ -120,6 +130,14 @@ function parseRichReferenceLink({
         };
     }
 
+    if (parseChatReferenceTarget(target)) {
+        return {
+            kind: 'chat',
+            label: stripReferenceLabelSigil(rawLabel, '#'),
+            projection: 'chat-reference',
+        };
+    }
+
     if (target.startsWith('plugin://')) {
         return {
             kind: 'plugin',
@@ -181,8 +199,8 @@ function decodeReferenceId(value: string) {
     }
 }
 
-function stripReferenceLabelSigil(label: string) {
-    return label.replace(/^[@$]/u, '');
+function stripReferenceLabelSigil(label: string, sigils = '@$') {
+    return label.replace(new RegExp(`^[${sigils}]`, 'u'), '');
 }
 
 function inferPathKind(target: string): Extract<GrottoRichReferenceKind, 'directory' | 'file'> {

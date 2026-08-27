@@ -1,6 +1,7 @@
 export type MentionKind =
     | 'agent'
     | 'app'
+    | 'chat'
     | 'directory'
     | 'file'
     | 'image'
@@ -13,17 +14,24 @@ export type MentionTrigger = '@' | '$';
 export type MentionProjection =
     | 'agent-reference'
     | 'capability-reference'
+    | 'chat-reference'
     | 'image-input'
     | 'path-reference'
     | 'skill-activation'
     | 'user-reference';
 
-export interface Mention {
-    end: number;
+export interface ReferenceActivationTarget {
     id: string;
-    kind: MentionKind;
+    kind: ReferenceKind;
     label: string;
     metadata?: Record<string, unknown>;
+}
+
+export type ReferenceActivation = (reference: ReferenceActivationTarget) => void;
+
+export interface Mention extends ReferenceActivationTarget {
+    end: number;
+    kind: MentionKind;
     projection: MentionProjection;
     start: number;
     text: string;

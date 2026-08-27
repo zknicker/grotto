@@ -180,7 +180,7 @@ inside the New channel dialog's name field, or from an existing channel's Icon &
 color dialog. Both show the same control: one toolbar row that searches the
 catalog, opens the color presets, and resets to the hash, with the icon grid
 under it. They change only the channel glyph box in the sidebar, topbar, command
-menu, and the Agent profile's chat list, and never affect membership, message
+menu, rich-reference chips, and the Agent profile's chat list, and never affect membership, message
 ordering, or archive behavior. The App loads the icon catalog as a lazy chunk and
 shows the hash until it arrives. The iPhone app renders the same glyph and tint
 from a bundled copy of that catalog's geometry — in its sidebar, chat header,

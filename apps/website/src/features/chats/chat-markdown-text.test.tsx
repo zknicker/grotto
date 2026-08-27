@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
+import type { Mention } from '../mentions/mention-types.ts';
 import { ArtifactPanelOpenProvider } from './artifact-panel-context.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import {
@@ -73,6 +74,96 @@ test('ChatMarkdownText renders rich references as shared chips', () => {
     expect(markup).toContain('Blippy');
     expect(markup).toContain('Design');
     expect(markup).toContain('example.com/favicon.ico');
+});
+
+test('ChatMarkdownText renders typed chat references as activated chips', () => {
+    const content = '[#product](chat://cht_product)';
+    const mentions = [
+        {
+            end: content.length,
+            id: 'chat://cht_product',
+            kind: 'chat',
+            label: '#product',
+            projection: 'chat-reference',
+            start: 0,
+            text: content,
+        },
+    ] satisfies Mention[];
+
+    const markup = renderToStaticMarkup(
+        <ChatMarkdownText
+            content={content}
+            mentions={mentions}
+            onReferenceActivate={() => undefined}
+        />
+    );
+
+    expect(markup).toContain('<button');
+    expect(markup).toContain('#product');
+    expect(markup).toContain('data-slot="chip"');
+});
+
+test('ChatMarkdownText keeps activated references in the animated inline path', () => {
+    const content = '[#product](chat://cht_product)';
+    const mentions = [
+        {
+            end: content.length,
+            id: 'chat://cht_product',
+            kind: 'chat',
+            label: '#product',
+            projection: 'chat-reference',
+            start: 0,
+            text: content,
+        },
+    ] satisfies Mention[];
+
+    const markup = renderToStaticMarkup(
+        <ChatMarkdownText
+            animatedRanges={[{ end: content.length, id: 'range-1', start: 0 }]}
+            content={content}
+            mentions={mentions}
+            onReferenceActivate={() => undefined}
+        />
+    );
+
+    expect(markup).toContain('<button');
+    expect(markup).toContain('#product');
+});
+
+test('ChatMarkdownText keeps non-navigable references inert in both render paths', () => {
+    const content = '[$design](skill://design)';
+    const mentions = [
+        {
+            end: content.length,
+            id: 'skill://design',
+            kind: 'skill',
+            label: 'design',
+            projection: 'skill-activation',
+            start: 0,
+            text: content,
+        },
+    ] satisfies Mention[];
+
+    const settledMarkup = renderToStaticMarkup(
+        <ChatMarkdownText
+            content={content}
+            mentions={mentions}
+            onReferenceActivate={() => undefined}
+        />
+    );
+    const animatedMarkup = renderToStaticMarkup(
+        <ChatMarkdownText
+            animatedRanges={[{ end: content.length, id: 'range-1', start: 0 }]}
+            content={content}
+            mentions={mentions}
+            onReferenceActivate={() => undefined}
+        />
+    );
+
+    expect(settledMarkup).not.toContain('<button');
+    expect(animatedMarkup).not.toContain('<button');
+    expect(settledMarkup).toContain('Design');
+    expect(animatedMarkup).toContain('Design');
 });
 
 test('ChatMarkdownText renders Grotto resource links', () => {

@@ -1,6 +1,7 @@
 import type { Chat, ChatMessage, ThreadSummary } from '@grotto/api';
 import { ChatSidePaneShell } from '../../chats/chat-side-pane-shell.tsx';
 import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
+import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { ThreadContent } from './thread-content.tsx';
 
 export function ThreadPanel({
@@ -12,6 +13,7 @@ export function ThreadPanel({
     onClose,
     onExitComplete,
     onOpenArtifact,
+    onReferenceActivate,
     onViewInChannel,
     readOnly,
     summary,
@@ -26,6 +28,7 @@ export function ThreadPanel({
     onClose: () => void;
     onExitComplete: () => void;
     onOpenArtifact: (target: GrottoResourceTarget) => void;
+    onReferenceActivate?: ReferenceActivation;
     onViewInChannel: () => void;
     readOnly: boolean;
     summary: ThreadSummary | null;
@@ -50,6 +53,7 @@ export function ThreadPanel({
                     key={anchor.id}
                     onClose={onClose}
                     onOpenArtifact={onOpenArtifact}
+                    onReferenceActivate={onReferenceActivate}
                     onViewInChannel={onViewInChannel}
                     readOnly={readOnly}
                     summary={summary}

@@ -3,7 +3,7 @@ import * as React from 'react';
 import { MarkdownLink } from '../chats/chat-inline-markdown-link.tsx';
 import { parseGrottoResourceLink } from '../chats/grotto-resource-link.ts';
 import { areMentionsEqual, readMentionsFromMarkdown } from './mention-metadata.ts';
-import type { Mention } from './mention-types.ts';
+import type { Mention, ReferenceActivation } from './mention-types.ts';
 import { ReferenceChip } from './reference-chip.tsx';
 
 const referenceOrigin = 'https://references.grotto.invalid';
@@ -15,13 +15,14 @@ interface ReferenceMarkdownProps {
     className?: string;
     content: string;
     mentions?: readonly Mention[];
+    onReferenceActivate?: ReferenceActivation;
 }
 
 // A rendered message re-parses its whole markdown source on every render, and
 // a transcript re-renders far more often than its history changes. Callers
 // re-read mentions from the same text each time, so equality is by value.
 export const ReferenceMarkdown = React.memo(
-    ({ className, content, mentions }: ReferenceMarkdownProps) => {
+    ({ className, content, mentions, onReferenceActivate }: ReferenceMarkdownProps) => {
         const prepared = prepareMarkdownReferences(content, mentions);
 
         return (
@@ -29,7 +30,11 @@ export const ReferenceMarkdown = React.memo(
                 className={className}
                 components={{
                     a: ({ children, href }) => (
-                        <ReferenceLink href={href} links={prepared.links}>
+                        <ReferenceLink
+                            href={href}
+                            links={prepared.links}
+                            onReferenceActivate={onReferenceActivate}
+                        >
                             {children}
                         </ReferenceLink>
                     ),
@@ -42,7 +47,8 @@ export const ReferenceMarkdown = React.memo(
     (previous, next) =>
         previous.className === next.className &&
         previous.content === next.content &&
-        areMentionsEqual(previous.mentions, next.mentions)
+        areMentionsEqual(previous.mentions, next.mentions) &&
+        previous.onReferenceActivate === next.onReferenceActivate
 );
 
 ReferenceMarkdown.displayName = 'ReferenceMarkdown';
@@ -97,10 +103,12 @@ function ReferenceLink({
     children,
     href,
     links,
+    onReferenceActivate,
 }: {
     children: React.ReactNode;
     href?: string;
     links: ReadonlyMap<string, PreparedLink>;
+    onReferenceActivate?: ReferenceActivation;
 }) {
     const prepared = href ? links.get(href) : undefined;
 
@@ -112,6 +120,7 @@ function ReferenceLink({
                 kind={reference.kind}
                 label={reference.label}
                 metadata={reference.metadata}
+                onActivate={onReferenceActivate}
             />
         );
     }

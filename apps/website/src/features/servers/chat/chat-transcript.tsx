@@ -2,8 +2,8 @@ import type { ChatMessage, ThreadSummary } from '@grotto/api';
 import * as React from 'react';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';
+import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
-import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
 import { ChatTranscriptPresentation } from '../../chats/chat-transcript.tsx';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type {
@@ -11,13 +11,7 @@ import type {
     TranscriptRenderContextValue,
 } from '../../chats/chat-transcript-render-context.tsx';
 import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
-import { PreparedActionCard } from '../../chats/prepared-action-card.tsx';
-import {
-    applyAgentMentionAppearance,
-    applyHumanMentionAppearance,
-    readMentionsFromMarkdown,
-} from '../../mentions/mention-metadata.ts';
-import { ArtifactMessage } from './artifact-message.tsx';
+import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { useResolveActorProfile } from './chat-actor-profiles.ts';
 import { applyLocalReactions, useLocalChatReactions } from './chat-local-reactions.ts';
 import {
@@ -28,6 +22,7 @@ import {
 } from './chat-message-projection.ts';
 import { MessageAttachments } from './message-attachments.tsx';
 import { PendingMessageAttachments, projectPendingChatMessageRows } from './pending-messages.tsx';
+import { ServerChatMessageContent } from './server-chat-message-content.tsx';
 import type { PendingChatMessage } from './use-pending-messages.ts';
 
 const conversationLayout = {
@@ -42,6 +37,7 @@ interface ChatTranscriptInput {
     messages: readonly ChatMessage[] | undefined;
     onOpenArtifact: (target: GrottoResourceTarget) => void;
     onOpenThread?: (message: ChatMessage, summary: ThreadSummary | null) => void;
+    onReferenceActivate?: ReferenceActivation;
     onStartDm?: (userId: string) => void;
     pendingMessages?: readonly PendingChatMessage[];
     serverId: string;
@@ -98,6 +94,7 @@ export function useChatTranscript({
     chatId,
     messages,
     onOpenArtifact,
+    onReferenceActivate,
     onOpenThread,
     onStartDm,
     pendingMessages = emptyPendingMessages,
@@ -110,6 +107,7 @@ export function useChatTranscript({
     const messageList = messages ?? emptyChatMessages;
     const agents = useAgents(serverId);
     const agentList = agents.data ?? emptyChatAgents;
+    const chats = useChats(serverId);
     const download = useAttachmentDownload();
     const humans = useHumanDirectory(serverId);
     const { onToggleReaction, reactions } = useLocalChatReactions();
@@ -134,6 +132,10 @@ export function useChatTranscript({
     const agentsById = React.useMemo(
         () => new Map(agentList.map((agent) => [agent.id, agent])),
         [agentList]
+    );
+    const chatsById = React.useMemo(
+        () => new Map((chats.data ?? []).map((chat) => [chat.id, chat])),
+        [chats.data]
     );
     // Read through a ref: these lookups answer a click or a row's own render,
     // both of which already happen after the newest snapshot landed. Depending
@@ -224,59 +226,19 @@ export function useChatTranscript({
                 onUnfollowThread: () => undefined,
                 profilePaneChatId: chatId,
                 renderMessageAttachments,
-                renderMessageContent: (message) => {
-                    if (message.preparedAction) {
-                        const proposer = message.grottoAgentId
-                            ? agentsById.get(message.grottoAgentId)
-                            : undefined;
-                        return (
-                            <PreparedActionCard
-                                action={message.preparedAction}
-                                agents={agentList}
-                                canManage={canManage}
-                                executedByDisplayName={
-                                    message.preparedAction.executedByUserId
-                                        ? humans.name(message.preparedAction.executedByUserId)
-                                        : undefined
-                                }
-                                proposer={{
-                                    avatarUrl: proposer?.avatarUrl ?? null,
-                                    displayName: message.sender,
-                                }}
-                                serverId={serverId}
-                            />
-                        );
-                    }
-                    const mentions = applyHumanMentionAppearance(
-                        applyAgentMentionAppearance(
-                            readMentionsFromMarkdown(message.content),
-                            (agentId) => {
-                                const agent = agentId ? agentsById.get(agentId) : undefined;
-                                return {
-                                    avatarUrl: agent?.avatarUrl ?? null,
-                                    primaryColor: null,
-                                };
-                            }
-                        ),
-                        (userId) => ({
-                            avatarUrl: humans.avatarUrl(userId ?? null),
-                            displayName: humans.member(userId ?? null)
-                                ? humans.name(userId ?? null)
-                                : null,
-                        })
-                    );
-
-                    return message.grottoAgentId ? (
-                        <ArtifactMessage
-                            agentId={message.grottoAgentId}
-                            content={message.content}
-                            mentions={mentions}
-                            onOpenArtifact={onOpenArtifact}
-                        />
-                    ) : (
-                        <ChatMarkdownText content={message.content} mentions={mentions} />
-                    );
-                },
+                renderMessageContent: (message) => (
+                    <ServerChatMessageContent
+                        agentList={agentList}
+                        agentsById={agentsById}
+                        canManage={canManage}
+                        chatsById={chatsById}
+                        humans={humans}
+                        message={message}
+                        onOpenArtifact={onOpenArtifact}
+                        onReferenceActivate={onReferenceActivate}
+                        serverId={serverId}
+                    />
+                ),
                 repliedRunIds: new Set<string>(),
                 resolveActorProfile,
                 shouldAnimateItemEnter: () => false,
@@ -288,10 +250,12 @@ export function useChatTranscript({
             agentsById,
             canManage,
             chatId,
+            chatsById,
             handleOpenThread,
             humans,
             onOpenThread,
             onOpenArtifact,
+            onReferenceActivate,
             onStartDm,
             onToggleReaction,
             renderMessageAttachments,

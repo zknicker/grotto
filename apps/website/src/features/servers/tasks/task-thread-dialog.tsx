@@ -1,8 +1,11 @@
+import { parseAgentReferenceTarget, parseChatReferenceTarget } from '@grotto/api';
 import { Modal } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { openAgentProfilePane } from '../../../hooks/pane/use-agent-profile-pane.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useTasks } from '../../../hooks/servers/use-tasks.ts';
+import type { ReferenceActivationTarget } from '../../mentions/mention-types.ts';
 import { useServerContext } from '../server-context.ts';
 import { serverChatRoute } from '../server-routes.ts';
 import { ThreadContent } from '../thread/thread-content.tsx';
@@ -42,6 +45,29 @@ export function TaskThreadDialog() {
         closeTask();
         navigate(serverChatRoute(server.slug, chat.id));
     };
+    const onReferenceActivate = (reference: ReferenceActivationTarget) => {
+        if (reference.kind === 'agent') {
+            const agentId = parseAgentReferenceTarget(reference.id);
+            if (!agentId) {
+                return;
+            }
+
+            closeTask();
+            openAgentProfilePane(chat.id, agentId);
+            navigate(serverChatRoute(server.slug, chat.id));
+            return;
+        }
+
+        if (reference.kind === 'chat') {
+            const chatId = parseChatReferenceTarget(reference.id);
+            if (!chatId) {
+                return;
+            }
+
+            closeTask();
+            navigate(serverChatRoute(server.slug, chatId));
+        }
+    };
     const readOnly = (chat.kind === 'dm' && chat.peerAgentRetired) || chat.archivedAt !== null;
 
     return (
@@ -73,6 +99,7 @@ export function TaskThreadDialog() {
                         key={anchor.id}
                         onClose={closeTask}
                         onOpenArtifact={openParentChat}
+                        onReferenceActivate={onReferenceActivate}
                         onViewInChannel={openParentChat}
                         readOnly={readOnly}
                         summary={item.threadSummary}

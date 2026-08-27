@@ -22,7 +22,10 @@ import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import { allocateEventCursor } from './allocate-event-cursor.ts';
+import { canonicalizeAgentMessageContentForPersistence } from './canonicalize-agent-references.ts';
 import { requireChatWritable } from './chat-access.ts';
+
+const maxAgentMessageContentLength = 32_000;
 
 export interface SendAgentMessageInput {
     agentId: string;
@@ -103,6 +106,17 @@ export async function sendAgentMessage(
                 )
             )
             .limit(1);
+        const content =
+            existing?.content === input.content
+                ? input.content
+                : await canonicalizeAgentMessageContentForPersistence(tx, {
+                      content: input.content,
+                      existingContent: existing?.content,
+                      serverId: input.serverId,
+                  });
+        if (content.length > maxAgentMessageContentLength) {
+            throw new AgentMessageContentTooLongError();
+        }
 
         if (existing) {
             const existingAttachments =
@@ -111,7 +125,7 @@ export async function sendAgentMessage(
                 ) ?? [];
             if (
                 existing.authorAgentId !== input.agentId ||
-                existing.content !== input.content ||
+                existing.content !== content ||
                 existingAttachments.map(({ id }) => id).join('\0') !==
                     input.attachmentIds.join('\0')
             ) {
@@ -170,7 +184,7 @@ export async function sendAgentMessage(
             .values({
                 authorAgentId: input.agentId,
                 chatId: input.chatId,
-                content: input.content,
+                content,
                 id: createOpaqueId('msg'),
                 nonce: input.nonce,
                 runId: input.runId,
@@ -193,7 +207,7 @@ export async function sendAgentMessage(
             });
             if (writtenChat.parentChatId) {
                 await autoFollowThreadMentions(tx, {
-                    content: input.content,
+                    content,
                     parentChatId: writtenChat.parentChatId,
                     serverId: input.serverId,
                     threadChatId: input.chatId,
@@ -203,14 +217,14 @@ export async function sendAgentMessage(
         const recipients = await planAgentMessageRecipients(tx, {
             authorAgentId: input.agentId,
             chatId: input.chatId,
-            content: input.content,
+            content,
             serverId: input.serverId,
         });
         for (const recipient of recipients) {
             await agentDelivery.enqueue(tx, {
                 agentId: recipient.agentId,
                 chatId: input.chatId,
-                content: input.content,
+                content,
                 dedupeKey: message.id,
                 mentioned: recipient.mentioned,
                 sequence: message.sequence,
@@ -323,5 +337,12 @@ export class AgentSendConflictError extends Error {
     constructor() {
         super('That message nonce already belongs to a different Agent send.');
         this.name = 'AgentSendConflictError';
+    }
+}
+
+export class AgentMessageContentTooLongError extends Error {
+    constructor() {
+        super('The message is too long after rich references are resolved.');
+        this.name = 'AgentMessageContentTooLongError';
     }
 }

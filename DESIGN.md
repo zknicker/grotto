@@ -608,6 +608,7 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   the shape HeroUI's own theme exports take — variables and BEM overrides in one file.
 - **Forms:** Use HeroUI field components so `--field-background`, `--field-border`, `--field-foreground`, `--field-radius`, and field widths resolve consistently.
 - **Status:** Use semantic status tokens for actual meaning: success for positive outcomes, warning for caution, danger for destructive or critical states.
+- **Inline references:** Use the transparent HeroUI Chip shell with inherited font size, a tight internal line box, no outer padding, one `--spacing` gap, and an 18px identity mark. Optically raise the label by `0.1em` and the fixed-size mark by 1.5px to align them with the surrounding text. Agent labels use accent, Skill labels warning, and Channel labels their configured Channel color. The paragraph owns leading; references should read as enhanced text, not standalone badges.
 - **Charts:** Use `--chart-1` through `--chart-5` for multi-series charts; `--chart-3` aligns to the accent baseline.
 
 ## Do's and Don'ts

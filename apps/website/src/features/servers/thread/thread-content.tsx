@@ -11,6 +11,7 @@ import { TranscriptRenderProvider } from '../../chats/chat-transcript-render-con
 import { TranscriptEntryView } from '../../chats/chat-transcript-turn.tsx';
 import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
 import { ThreadPanelHeader } from '../../chats/thread/thread-panel-header.tsx';
+import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { ChatAgentComposition } from '../chat/agent-composition.tsx';
 import { ChatComposer } from '../chat/chat-composer-variants.tsx';
 import { useChatTranscript } from '../chat/chat-transcript.tsx';
@@ -33,6 +34,7 @@ export function ThreadContent({
     initialThreadChatId,
     onClose,
     onOpenArtifact,
+    onReferenceActivate,
     onViewInChannel,
     readOnly,
     summary,
@@ -54,6 +56,7 @@ export function ThreadContent({
     initialThreadChatId?: string;
     onClose: () => void;
     onOpenArtifact: (target: GrottoResourceTarget) => void;
+    onReferenceActivate?: ReferenceActivation;
     onViewInChannel: () => void;
     readOnly: boolean;
     summary: ThreadSummary | null;
@@ -84,6 +87,7 @@ export function ThreadContent({
         chatId: threadChatId ?? chat.id,
         messages: threadMessages,
         onOpenArtifact,
+        onReferenceActivate,
         pendingMessages: pendingReplies,
         serverId: chat.serverId,
         // The metadata panel above the anchor already states the task.

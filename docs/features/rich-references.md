@@ -7,9 +7,9 @@ read_when:
 
 # Rich References
 
-Grotto messages can include explicit rich references. A rich reference is a
-normal markdown link whose target tells Grotto what the link points at. Settled
-chat messages render through HeroUI Markdown; the stored markdown remains the
+Grotto messages can include typed rich references. A rich reference is a normal
+Markdown link whose target tells Grotto what the link points at. Settled chat
+messages render through HeroUI Markdown; the stored Markdown remains the
 portable fallback.
 
 Examples:
@@ -18,10 +18,15 @@ Examples:
 - `[@Ada Lovelace](user://usr_ada)` references a human by immutable user id.
 - `[$ui](skill://ui)` references a skill for the turn.
 - `[@Chrome](app://computer-use/com.google.Chrome)` references a Mac app.
+- `[#product](chat://cht_product)` opens a channel by immutable chat id.
 - `[README.md](/repo/README.md)` references a file.
 
-Bare text is not a rich reference. `@Grotto`, `$ui`, and ASIN-looking text stay
-plain text unless the user selects or types explicit link syntax.
+The human composer persists selected references as explicit typed links. Agent
+output may use bare `@handle` and `#channel` tokens; the Server resolves known
+tokens once at send time and persists immutable typed links. Unknown or protected
+tokens stay plain text. For example, `@blippy` becomes
+`[@blippy](agent://agt_blippy)` and `#product` becomes
+`[#product](chat://cht_product)`.
 
 ## Product Rules
 
@@ -29,6 +34,14 @@ plain text unless the user selects or types explicit link syntax.
 - Agent references bind to immutable Agent ids, not reusable handles. A reference
   to a deleted Agent stays attached to that historical identity even if a new
   Agent later reuses the same visible handle.
+- Agent reference chips resolve the current Agent display name and avatar. The
+  persisted label remains the fallback when that Agent is unavailable.
+- Agent-authored bare `@handle` and `#channel` tokens are canonicalized once at
+  send time. Human-authored composer references remain explicit typed links.
+- Unknown or protected bare tokens remain unchanged. Protected text includes
+  code spans and Markdown constructs whose leading sigil is presentation syntax.
+- Agent chips open the referenced Agent profile. Chat chips open the referenced
+  channel; both actions use the immutable target id.
 - Human references bind to immutable user ids. Their visible chip label and
   avatar resolve from the live profile; departed or unknown humans keep the
   persisted label and never rebind when a handle is reused.
@@ -37,8 +50,8 @@ plain text unless the user selects or types explicit link syntax.
 - The composer may keep local metadata for live chip appearance while the user
   edits a draft.
 - A channel message reaches every joined agent's inbox regardless of mentions
-  (see [Agent Inbox](../../specs/inbox.md)). A personal @mention — rich
-  `agent://` reference or plain `@handle` — pierces a Channel mute without unmuting it and restores
+  (see [Agent Inbox](../../specs/inbox.md)). A personal @mention — an explicit rich
+  `agent://` reference or a human-authored plain `@handle` — pierces a Channel mute without unmuting it and restores
   an explicitly unfollowed Thread; it does not gate who else sees the
   message. Followed Threads keep their ordinary delivery when their parent
   Channel is muted.
@@ -62,15 +75,22 @@ plain text unless the user selects or types explicit link syntax.
 - One shared reference-chip registry owns icons, labels, colors, and fallbacks
   for composer and transcript surfaces. The renderer uses the stock HeroUI
   `Chip` shell; the registry supplies only reference-specific appearance.
-  Inline reference chips use the default shell spacing with chat-sized label text.
-  That spacing keeps nested avatars and icons concentric with the shell's token-derived
-  radius, while content-independent optical alignment keeps the chip on the text line.
-  Skill references use one neutral treatment and the shared sparkles mark across
-  composer, transcript, and Skill surfaces.
+  Inline references use the transparent tertiary shell, inherit the surrounding
+  paragraph's type size, and carry an 18px identity mark plus a semibold label.
+  Their internal line box stays tight so the paragraph alone owns leading. They
+  add no outer padding, so ordinary text spaces own paragraph rhythm; one theme
+  spacing step separates the mark from its label. The label and fixed-size mark
+  receive small optical lifts so they align with the surrounding paragraph text. Agent
+  labels use the accent (blue) foreground, Skill labels use warning (gold), and
+  Channel labels use the Channel's configured color. A Channel identity mark
+  retains the Channel's own colored box. Chat references resolve that mark and
+  label color from the Channel's live appearance, while the persisted Chat id
+  remains the appearance-independent source of identity.
   Adding a new chip kind extends that registry instead of adding
   message-renderer conditionals or another chip primitive.
 - Ordinary web links use the same chip shell with the site's favicon and a
-  globe fallback. Activating one opens the original URL.
+  globe fallback. Activating one opens the original URL. Agent and chat chips
+  are interactive: they open the referenced Agent profile or channel.
 
 See [Rich References](../../specs/mentions.md) for the normative implementation
 contract.

@@ -1,5 +1,6 @@
 import {
     parseAgentReferenceTarget,
+    parseChatReferenceTarget,
     parseGrottoRichReferences,
     parseUserReferenceTarget,
 } from '@grotto/api/rich-references';
@@ -72,12 +73,13 @@ function isSameMentionMetadata(
 
 export interface AgentMentionAppearance {
     avatarUrl: string | null;
+    displayName: string | null;
     primaryColor: string | null;
 }
 
 // Saved messages carry no appearance metadata (content is the source of
-// truth), so transcript surfaces resolve each agent mention's avatar and color
-// live from the agent record before rendering chips.
+// truth), so transcript surfaces resolve each agent mention's display name,
+// avatar, and color live from the agent record before rendering chips.
 export function applyAgentMentionAppearance(
     mentions: readonly Mention[],
     lookupAgentAppearance: (agentId: string | null | undefined) => AgentMentionAppearance
@@ -90,7 +92,11 @@ export function applyAgentMentionAppearance(
         const agentId = parseAgentReferenceTarget(mention.id);
         const appearance = lookupAgentAppearance(agentId);
 
-        if (appearance.avatarUrl === null && appearance.primaryColor === null) {
+        if (
+            appearance.avatarUrl === null &&
+            appearance.displayName === null &&
+            appearance.primaryColor === null
+        ) {
             return mention;
         }
 
@@ -100,6 +106,34 @@ export function applyAgentMentionAppearance(
                 ...mention.metadata,
                 agentAvatarUrl: appearance.avatarUrl,
                 agentColor: appearance.primaryColor,
+                ...(appearance.displayName ? { agentDisplayName: appearance.displayName } : {}),
+            },
+        };
+    });
+}
+
+export interface ChatMentionAppearance {
+    color: string | null;
+    icon: string | null;
+}
+
+export function applyChatMentionAppearance(
+    mentions: readonly Mention[],
+    lookupChatAppearance: (chatId: string | null | undefined) => ChatMentionAppearance
+): Mention[] {
+    return mentions.map((mention) => {
+        if (mention.kind !== 'chat') {
+            return mention;
+        }
+
+        const appearance = lookupChatAppearance(parseChatReferenceTarget(mention.id));
+
+        return {
+            ...mention,
+            metadata: {
+                ...mention.metadata,
+                chatColor: appearance.color,
+                chatIcon: appearance.icon,
             },
         };
     });

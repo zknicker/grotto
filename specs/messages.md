@@ -13,7 +13,12 @@ Messages are Grotto's normal conversational interactions.
 - A message has stable identity, timestamp, author, and text.
 - A message preserves who said it and when.
 - A message may carry model and provider metadata when Grotto has it.
-- A user-authored message may include explicit rich-reference markdown links.
+- A human-authored message may include explicit rich-reference Markdown links;
+  the composer persists those links as written.
+- Agent output may contain bare `@handle` and `#channel` tokens. The Server
+  canonicalizes known tokens once at send time to immutable `agent://…` and
+  `chat://…` links before persisting the message.
+- Unknown or protected Agent and channel tokens remain plain text.
 - Capability references do not make a message a tool interaction and do not grant tool access.
 
 ## Relationships
@@ -27,12 +32,14 @@ Messages are Grotto's normal conversational interactions.
 - Messages render from server-owned normalized rows.
 - The product does not require React to infer authorship or model identity from raw runtime
   payloads.
-- Rich references render as message fragments when the durable message content includes explicit
-  typed markdown links such as `[@Grotto](agent://agt_primary)` or
-  `[$ui](skill://ui)`.
+- Rich references render as message fragments when durable message content includes explicit
+  typed Markdown links such as `[@Grotto](agent://agt_primary)`,
+  `[#product](chat://cht_product)`, or `[$ui](skill://ui)`. Agent and chat
+  fragments are interactive: they open the Agent profile or referenced channel.
 - Grotto parses message content to find rich references. Message metadata is not the source of
   truth for mention identity.
-- Unrecognized links and bare mention-looking text render as normal text or markdown.
+- Unrecognized links, unknown bare tokens, and protected bare tokens render as
+  normal text or Markdown.
 - Grotto may project referenced, assigned skills into the execution-only prompt as a compact
   activation hint. Capability and path references stay as visible markdown. This does not change
   durable message text and does not grant access to tools or skills that the runtime would not

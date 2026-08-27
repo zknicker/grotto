@@ -5,6 +5,7 @@ import {
     File01Icon,
     Folder01Icon,
     Github01Icon,
+    HashtagIcon,
     Image01Icon,
     MagicWand01Icon,
     PlugIcon,
@@ -12,15 +13,16 @@ import {
     UserIcon,
 } from '@hugeicons-pro/core-solid-rounded';
 import { Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
-import { agentColorPresets } from '../agents/agent-color-presets.ts';
 import { formatSkillName } from '../skills/skill-name-format.ts';
 import type { ReferenceKind } from './mention-types.ts';
 
 const mentionIconKeys = [
     'agent',
+    'chat',
     'chrome',
     'file',
     'folder',
@@ -38,6 +40,7 @@ export type MentionIconKey = (typeof mentionIconKeys)[number];
 export interface MentionAppearance {
     agentAvatar?: { name: string; src: string | null };
     brandColor?: string;
+    channelAppearance?: { color: string | null; icon: string | null };
     icon: MentionIconKey;
     iconDataUrl?: string;
     label?: string;
@@ -55,11 +58,12 @@ type MentionAppearanceOverride = Partial<MentionAppearance>;
 const defaultMentionAppearance = {
     agent: { icon: 'agent' },
     app: { icon: 'plugin' },
+    chat: { channelAppearance: { color: null, icon: null }, icon: 'chat' },
     directory: { icon: 'folder' },
     file: { icon: 'file' },
     image: { icon: 'image' },
     plugin: { icon: 'plugin' },
-    skill: { brandColor: agentColorPresets[0].color, icon: 'skill' },
+    skill: { icon: 'skill' },
     user: { icon: 'user' },
     website: { icon: 'website' },
 } satisfies Record<ReferenceKind, MentionAppearance>;
@@ -96,6 +100,7 @@ const capabilityAppearanceOverrides = {
 
 const mentionIconMap = {
     agent: CubeIcon,
+    chat: HashtagIcon,
     chrome: ChromeIcon,
     file: File01Icon,
     folder: Folder01Icon,
@@ -120,11 +125,13 @@ export function getMentionAppearance(input: MentionAppearanceInput): MentionAppe
 
 export function MentionAppearanceIcon({
     agentAvatar,
+    channelAppearance,
     className,
     iconDataUrl,
     icon,
 }: {
     agentAvatar?: MentionAppearance['agentAvatar'];
+    channelAppearance?: MentionAppearance['channelAppearance'];
     className?: string;
     iconDataUrl?: string;
     icon: MentionIconKey;
@@ -134,8 +141,19 @@ export function MentionAppearanceIcon({
             <EntityAvatar
                 className={className}
                 name={agentAvatar.name}
-                size={16}
+                size={18}
                 src={agentAvatar.src}
+            />
+        );
+    }
+
+    if (channelAppearance) {
+        return (
+            <ChannelIconBox
+                className={className}
+                color={channelAppearance.color}
+                icon={channelAppearance.icon}
+                size="reference"
             />
         );
     }
@@ -165,16 +183,6 @@ export function getMentionDisplayLabel(input: MentionAppearanceInput) {
     return input.kind === 'skill' ? formatSkillName(input.label) : input.label;
 }
 
-// The accent driving a reference Chip's tint: the agent's configured
-// color, a brand override, or the shared mention accent.
-export function getMentionChipColor(appearance: MentionAppearance) {
-    if (appearance.agentAvatar) {
-        return appearance.brandColor ?? agentColorPresets[0].color;
-    }
-
-    return appearance.brandColor ?? 'var(--accent-foreground)';
-}
-
 function getMentionAppearanceOverride(input: MentionAppearanceInput) {
     const metadataIconDataUrl = readString(input.metadata?.iconDataUrl);
 
@@ -184,6 +192,15 @@ function getMentionAppearanceOverride(input: MentionAppearanceInput) {
 
     if (input.kind === 'user') {
         return getUserAvatarOverride(input);
+    }
+
+    if (input.kind === 'chat') {
+        return {
+            channelAppearance: {
+                color: readString(input.metadata?.chatColor),
+                icon: readString(input.metadata?.chatIcon),
+            },
+        } satisfies MentionAppearanceOverride;
     }
 
     if ((input.kind === 'app' || input.kind === 'website') && metadataIconDataUrl) {
@@ -213,17 +230,20 @@ function getUserAvatarOverride(input: MentionAppearanceInput) {
     } satisfies MentionAppearanceOverride;
 }
 
-// Agent chips carry the agent's avatar (initials when it has no image) tinted
-// with its configured color. Appearance rides in mention metadata: composer
+// Agent chips carry the agent's avatar (initials when it has no image). Appearance rides in
+// mention metadata: composer
 // options embed it at pick time (composer chips mount outside app providers)
 // and transcript surfaces resolve it live from the agent record before
 // rendering.
 function getAgentAvatarOverride(input: MentionAppearanceInput) {
     const color = readString(input.metadata?.agentColor);
+    const liveDisplayName = readString(input.metadata?.agentDisplayName);
+    const displayName = liveDisplayName ?? input.label;
 
     return {
-        agentAvatar: { name: input.label, src: readString(input.metadata?.agentAvatarUrl) },
+        agentAvatar: { name: displayName, src: readString(input.metadata?.agentAvatarUrl) },
         ...(color ? { brandColor: color } : {}),
+        ...(liveDisplayName ? { label: liveDisplayName } : {}),
     } satisfies MentionAppearanceOverride;
 }
 

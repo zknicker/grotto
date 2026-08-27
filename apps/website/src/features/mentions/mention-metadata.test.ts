@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import type { AgentMentionAppearance } from './mention-metadata.ts';
 import {
     applyAgentMentionAppearance,
+    applyChatMentionAppearance,
     applyHumanMentionAppearance,
     readMentionsFromMarkdown,
 } from './mention-metadata.ts';
@@ -108,13 +109,21 @@ describe('human rich references', () => {
 
 describe('applyAgentMentionAppearance', () => {
     const appearances: Record<string, AgentMentionAppearance> = {
-        agt_blippy: { avatarUrl: '/api/avatars/avt_0123456789abcdef', primaryColor: '#2563eb' },
-        agt_plain: { avatarUrl: null, primaryColor: '#f97316' },
+        agt_blippy: {
+            avatarUrl: '/api/avatars/avt_0123456789abcdef',
+            displayName: 'Blippy',
+            primaryColor: '#2563eb',
+        },
+        agt_plain: { avatarUrl: null, displayName: 'Plain Agent', primaryColor: '#f97316' },
     };
     const lookup = (agentId: string | null | undefined): AgentMentionAppearance =>
-        (agentId ? appearances[agentId] : undefined) ?? { avatarUrl: null, primaryColor: null };
+        (agentId ? appearances[agentId] : undefined) ?? {
+            avatarUrl: null,
+            displayName: null,
+            primaryColor: null,
+        };
 
-    it('adds live agent avatar and color metadata to agent mentions', () => {
+    it('adds live agent display name, avatar, and color metadata to agent mentions', () => {
         const mentions = readMentionsFromMarkdown('Ask [@Blippy](agent://agt_blippy)');
 
         expect(applyAgentMentionAppearance(mentions, lookup)).toEqual([
@@ -123,6 +132,7 @@ describe('applyAgentMentionAppearance', () => {
                 metadata: {
                     agentAvatarUrl: '/api/avatars/avt_0123456789abcdef',
                     agentColor: '#2563eb',
+                    agentDisplayName: 'Blippy',
                 },
             },
         ]);
@@ -134,6 +144,7 @@ describe('applyAgentMentionAppearance', () => {
         expect(applyAgentMentionAppearance(mentions, lookup)[0]?.metadata).toEqual({
             agentAvatarUrl: null,
             agentColor: '#f97316',
+            agentDisplayName: 'Plain Agent',
         });
     });
 
@@ -143,5 +154,19 @@ describe('applyAgentMentionAppearance', () => {
         );
 
         expect(applyAgentMentionAppearance(mentions, lookup)).toEqual(mentions);
+    });
+});
+
+describe('applyChatMentionAppearance', () => {
+    it('adds the live Channel icon and color to a persisted chat reference', () => {
+        const mentions = readMentionsFromMarkdown('[#product](chat://cht_product)');
+
+        expect(
+            applyChatMentionAppearance(mentions, (chatId) =>
+                chatId === 'cht_product'
+                    ? { color: 'violet', icon: 'RocketIcon' }
+                    : { color: null, icon: null }
+            )[0]?.metadata
+        ).toEqual({ chatColor: 'violet', chatIcon: 'RocketIcon' });
     });
 });

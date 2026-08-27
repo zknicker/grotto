@@ -1,9 +1,16 @@
-import type { Chat, ChatMessage, ThreadSummary } from '@grotto/api';
+import {
+    type Chat,
+    type ChatMessage,
+    parseAgentReferenceTarget,
+    parseChatReferenceTarget,
+    type ThreadSummary,
+} from '@grotto/api';
 import { EmptyState } from '@heroui-pro/react';
 import { Message01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { openAgentProfilePane } from '../../../hooks/pane/use-agent-profile-pane.ts';
 import { setChatSidePane, useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
 import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
 import { useChatRead } from '../../../hooks/servers/use-chat-read.ts';
@@ -14,6 +21,7 @@ import { useViewportBelow } from '../../../hooks/use-viewport-below.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { ChatArtifactPanel } from '../../chats/chat-artifact-panel.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
+import type { ReferenceActivationTarget } from '../../mentions/mention-types.ts';
 import { ShellSidePane } from '../../shell/shell-side-pane.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { useAgentLifecycle } from '../agent-lifecycle.tsx';
@@ -179,6 +187,25 @@ export function ChatView({
         (peerUserId: string) => ensureDm.mutate({ peerUserId, serverId: chat.serverId }),
         [chat.serverId, ensureDm.mutate]
     );
+    const handleReferenceActivate = React.useCallback(
+        (reference: ReferenceActivationTarget) => {
+            if (reference.kind === 'agent') {
+                const agentId = parseAgentReferenceTarget(reference.id);
+                if (agentId) {
+                    openAgentProfilePane(chat.id, agentId);
+                }
+                return;
+            }
+
+            if (reference.kind === 'chat') {
+                const chatId = parseChatReferenceTarget(reference.id);
+                if (chatId) {
+                    onOpenChat(chatId);
+                }
+            }
+        },
+        [chat.id, onOpenChat]
+    );
     const threadPanel = threadSelection ? (
         <ThreadPanel
             active={activeSidePane === 'thread'}
@@ -194,6 +221,7 @@ export function ChatView({
                 }
             }}
             onOpenArtifact={openArtifact}
+            onReferenceActivate={handleReferenceActivate}
             onViewInChannel={viewThreadInChannel}
             readOnly={readOnly}
             summary={threadSummary}
@@ -308,6 +336,7 @@ export function ChatView({
                         messages={transcriptMessages}
                         onOpenArtifact={openArtifact}
                         onOpenThread={openThread}
+                        onReferenceActivate={handleReferenceActivate}
                         onStartDm={startDm}
                         pendingMessages={pendingMessages}
                         scrollContentRef={scrollContentRef}

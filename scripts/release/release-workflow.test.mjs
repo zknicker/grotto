@@ -9,6 +9,7 @@ import { writeReleaseSummary } from './verify-release.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const workflow = readFileSync(path.join(repositoryRoot, '.github/workflows/release.yml'), 'utf8');
+const environmentSchema = readFileSync(path.join(repositoryRoot, '.env.schema'), 'utf8');
 const dependencyAction = readFileSync(
     path.join(repositoryRoot, '.github/actions/setup-release-dependencies/action.yml'),
     'utf8'
@@ -127,4 +128,32 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
         'GH_RELEASE_AGENT_TOOLING_OP_TOKEN',
     ]);
     assert.doesNotMatch(workflow, /PROVISIONING_PROFILE|release:finalize|macos-15-intel/);
+});
+
+test('release context skips development-only runtime and App values', () => {
+    for (const name of [
+        'GROTTO_CLERK_SECRET_KEY',
+        'GROTTO_DEV_CLERK_SIGN_IN_USER_ID',
+        'GROTTO_GOOGLE_OAUTH_CLIENT_ID',
+        'GROTTO_GOOGLE_OAUTH_CLIENT_SECRET',
+    ]) {
+        const declaration = environmentSchema
+            .split('\n')
+            .find((line) => line.startsWith(`${name}=`));
+        assert.ok(declaration, `${name} must remain declared`);
+        assert.match(
+            declaration,
+            /^.+ifs\(eq\(\$GROTTO_RESOLVE_RELEASE_TOKENS, true\), undefined,/,
+            `${name} must skip Development resolution during releases`
+        );
+    }
+    const autoSignIn = environmentSchema
+        .split('\n')
+        .find((line) => line.startsWith('VITE_DEV_CLERK_AUTO_SIGN_IN='));
+    assert.ok(autoSignIn, 'VITE_DEV_CLERK_AUTO_SIGN_IN must remain declared');
+    assert.match(
+        autoSignIn,
+        /^.+ifs\(eq\(\$GROTTO_RESOLVE_RELEASE_TOKENS, true\), undefined,/,
+        'release artifacts must disable development auto sign-in'
+    );
 });

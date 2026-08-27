@@ -15,8 +15,7 @@ name: Release
 # under RUNNER_TEMP, cleanup runs with always(), and iOS uses automatic signing
 # with -allowProvisioningUpdates (no provisioning-profile secret). Missing
 # Tooling fields fail closed.
-# Apple jobs pin hosted macos-15 arm64 M1; production Server deployment remains
-# the separate manual Deploy Grotto Server workflow.
+# Apple jobs use hosted macos-15 arm64 M1; iOS pins Xcode 26.3. Production Server deploy stays manual.
 on:
   pull_request:
     paths:
@@ -202,6 +201,7 @@ jobs:
             bash scripts/release/setup-apple-material.sh ios
       - name: Upload iOS
         env:
+          DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
           IOS_VERSION: ${{ needs.plan.outputs.ios_version }}
           IOS_BUILD_NUMBER: ${{ needs.plan.outputs.ios_build_number }}
           RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}

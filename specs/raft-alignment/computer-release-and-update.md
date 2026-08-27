@@ -7,8 +7,8 @@ Computer settings, and local recovery CLI.
 ## Product contract
 
 Grotto Computer is a separately versioned part of one Grotto product. Every Grotto release
-decision assesses Server, App, Computer, and any remaining Runtime surface together.
-Those surfaces may remain unchanged, but the decision must be explicit. Releases are ordered:
+decision assesses the Server, App, iOS, and Computer targets together.
+Targets may remain unchanged, but the decision must be explicit. Releases are ordered:
 a compatible Computer release is published and publicly verified before a Server release
 that requires its protocol.
 
@@ -58,8 +58,9 @@ the old key that trusts both the old and new public keys. A later release may re
 
 ## Publishing
 
-`bun run computer:release <version>` is the dedicated Computer publisher. It runs locally on
-macOS, following the same authority model as the Server release publisher.
+The `computer` target job in the single `Release` workflow is the Computer publisher. It runs from
+the merged release commit in the approved release environment and follows the same trust model as
+the other target jobs.
 
 The publisher must:
 
@@ -82,15 +83,16 @@ The publisher must:
 Failure before step 10 leaves the current production pointer unchanged. The publisher never
 builds from a branch name, mutable remote ref, or dirty worktree.
 
-Before every Grotto release, the release instructions require an explicit surface decision:
+Before every Grotto release, the release record requires an explicit target decision:
 
-| Surface | Publish when |
+| Target | Publish when |
 | --- | --- |
 | Server | Grotto App React UI, hosted API, persistence, or Server behavior changes |
 | App | The Electron shell or installed desktop artifact changes |
+| iOS | The native iPhone app or its release metadata, entitlements, dependencies, or assets change |
 | Computer | Computer execution, lifecycle, local CLI, updater, embedded managed CLI, bootstrap or ordinary protocol, or required shared Computer dependencies change |
 
-A Server protocol-floor increase cannot publish until the signed production Computer descriptor
+A Server protocol-floor increase cannot be promoted until the signed production Computer descriptor
 reports a compatible protocol. Computer-only repairs are allowed, but the release record still
 marks Server and App unchanged.
 
@@ -225,7 +227,7 @@ Implement the contract in this order:
 7. **App experience** — implement the large determinate download bar, phase copy, drain count,
    indeterminate verification/install/restart motion, expected-disconnect handling, recovery
    copy, accessibility, and responsive layout.
-8. **Release integration** — make the holistic surface decision mandatory in release guidance,
+8. **Release integration** — make the holistic target decision mandatory in release guidance,
    changelog context, and release checks.
 
 ## Acceptance

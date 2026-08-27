@@ -1,97 +1,68 @@
 ---
-summary: One-time App Store Connect setup and recurring TestFlight publication for the Grotto iPhone app.
+summary: App Store Connect setup and the durable TestFlight contract for the Grotto iPhone target.
 read_when:
-  - preparing the first Grotto iOS or TestFlight release
-  - signing, archiving, uploading, or promoting a Grotto iOS build
+  - preparing or promoting a Grotto iOS target
+  - signing, archiving, or uploading a Grotto iOS build
   - changing the iOS bundle identifier, entitlements, version, build number, or App Store metadata
 ---
 
 # iOS TestFlight
 
-Grotto iOS uses bundle identifier `build.grotto.ios`, independent SemVer, and an integer build
-number that increases for every upload. The checked-in XcodeGen project is canonical. The shared
-`assets/mac-icon.icon` Icon Composer source supplies the iPhone and App Store icon.
+Grotto iOS uses bundle identifier `build.grotto.ios`, independent SemVer, and a positive integer
+build number that increases for every upload. The checked-in XcodeGen project is canonical. The
+shared `assets/mac-icon.icon` Icon Composer source supplies the iPhone and App Store icon.
 
-## One-Time Apple Setup
+## One-time Apple setup
 
-An Account Holder, Admin, or App Manager completes the account work before the first upload:
+Before the first upload, an Account Holder, Admin, or App Manager must:
 
-1. Accept any pending agreements in App Store Connect.
-2. In Certificates, Identifiers & Profiles, register the explicit App ID `build.grotto.ios` and
-   enable Associated Domains for `webcredentials:clerk.grotto.sh`.
-3. In App Store Connect, create or verify the **Grotto Chat** app record (Apple ID `6802799165`)
-   with that bundle ID and the internal SKU `grotto-ios`.
-4. Add the Apple Developer account in Xcode, or create an App Store Connect API key with permission
-   to manage and upload builds. Automatic signing creates or downloads the App Store distribution
-   certificate and provisioning profile.
-5. Add TestFlight beta details: description, feedback email, contact information, sign-in/review
-   instructions, and what testers should exercise.
-6. Create or verify the **Grotto Internal** TestFlight group and enable automatic distribution.
-   External testing comes later; its first build requires TestFlight App Review.
+1. Accept pending App Store Connect agreements.
+2. Register the explicit App ID `build.grotto.ios` and enable Associated Domains for
+   `webcredentials:clerk.grotto.sh`.
+3. Create or verify the **Grotto Chat** app record (Apple ID `6802799165`) with that bundle ID and
+   SKU `grotto-ios`.
+4. Configure the Apple Developer account or an App Store Connect API key with permission to sign
+   and upload builds.
+5. Add TestFlight beta details, including feedback contact, sign-in/review instructions, and what
+   testers should exercise.
+6. Create or verify the **Grotto Internal** TestFlight group and its automatic distribution.
 
-The App Store product page also requires a privacy policy URL and age rating before public App
-Review. Screenshots are not required for an internal TestFlight upload, but the eventual App Store
-submission needs at least one accepted iPhone screenshot.
+The App Store product page also needs a privacy policy URL and age rating before public App Review.
+Internal TestFlight does not require screenshots; a public submission does.
 
-## Local Credentials
+## Version and build identity
 
-Interactive uploads can use the Apple account stored in Xcode. Set the team explicitly so the
-publisher never guesses between memberships:
+The release record is the source of the published iOS marketing version and build number. The
+`MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` values baked into `project.yml` are local-build
+defaults only. The iOS target job passes the record's explicit values to `xcodebuild`, verifies the
+generated project is current, and never uses a CI run number as the build number.
 
-```sh
-export IOS_DEVELOPMENT_TEAM=<Apple-Team-ID>
-```
+Every upload consumes its build number, including an upload that later fails processing or belongs
+to a release that stops. A replacement upload uses a new number and a new append-only release
+record or attempt according to the release record contract.
 
-For unattended signing and upload, set all three App Store Connect API key values:
+## Target publication and promotion
 
-```sh
-export APPLE_API_KEY_PATH=/absolute/path/to/AuthKey_<key-id>.p8
-export APPLE_API_KEY_ID=<key-id>
-export APPLE_API_ISSUER=<issuer-id>
-```
-
-Keep the `.p8` key outside the repository. Never commit Apple credentials, certificates, or
-provisioning profiles.
-
-Neither credential path requires a TestFlight web login to upload. `xcodebuild` authenticates the
-archive upload directly and returns after App Store Connect accepts the package for processing.
-A browser or App Store Connect API call is only needed afterward for processing issues,
-export-compliance answers, tester-group promotion, and release administration.
-
-## Version And Build Number
-
-`project.yml` bakes in a local-build default only: `MARKETING_VERSION` mirrors the Server/App
-release version and is kept current by `bun run release:bump`; `CURRENT_PROJECT_VERSION` is a
-fixed dev placeholder. Neither is the published iOS version. `bun run ios:release <version>
---build-number <number>` (both `--dry-run` and the real upload) always passes
-`MARKETING_VERSION=<version>` and `CURRENT_PROJECT_VERSION=<number>` as `xcodebuild` arguments,
-overriding whatever `project.yml` bakes in. Those explicit arguments, sourced from the operator
-decision recorded in `release-surfaces.json`, are the only source of truth for what ships. There
-is no CI job that builds or uploads iOS; the build number is an operator-chosen integer, not a CI
-run number, and it only ever increases.
-
-## Publish A Build
-
-Record the independent version and next unused build number in `release-surfaces.json`, then run:
-
-```sh
-bun run ios:release 1.0.0 --build-number 1 --dry-run
-bun run ios:release 1.0.0 --build-number 1
-```
-
-The dry run verifies that `Grotto.xcodeproj` matches `project.yml` and performs an unsigned Release
-build. The publication command archives with automatic signing and uploads through App Store
-Connect without a browser session. It does not wait for processing, invite testers, or submit the
-app for public App Review.
+When `ios` is `publish`, the single `Release` workflow runs the iOS target job after the release PR
+merges. The job signs, archives, and uploads the exact version/build pair. `xcodebuild` authenticates
+the upload directly, so neither the workflow nor a local publisher needs a TestFlight browser login.
+The job does not invite testers or submit the app for public App Review.
 
 After Apple finishes processing:
 
-1. Resolve any build warning or export-compliance prompt. The app declares that its ordinary HTTPS
-   use does not contain non-exempt encryption.
-2. Add the build to **Grotto Internal** and provide **What to Test** notes.
-3. Install through TestFlight on a real iPhone and smoke sign-in, Server discovery, Chat send and
-   realtime receive, photo attachment, Thread reply, and foreground recovery.
-4. Record the processed build and real-device evidence in the coordinated release handoff.
+1. Resolve any build warning or export-compliance prompt. Ordinary HTTPS use is declared
+   non-exempt encryption.
+2. Add the processed build to **Grotto Internal** and provide **What to Test** notes.
+3. Install it through TestFlight on a real iPhone and smoke sign-in, Server discovery, Chat send
+   and realtime receive, photo attachment, Thread reply, and foreground recovery.
+4. Record the processed build, tester distribution, and device evidence in the release record and
+   operator handoff.
 
-TestFlight builds expire after 90 days. Never upload a second binary with a reused build number;
-increment it even when the marketing version is unchanged.
+TestFlight builds expire after 90 days. Never reuse a build number.
+
+## Credentials
+
+Keep Apple credentials, certificates, provisioning profiles, and App Store Connect `.p8` keys out
+of the repository. Use the approved release environment for the target job; a local operator may
+be required for account setup or an explicitly manual Apple action. Do not place any credential in
+release metadata, changelog text, or the handoff.

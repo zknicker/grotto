@@ -20,12 +20,14 @@ or deployment uses Vercel.
 
 ## Release artifact
 
-The Server and Grotto App are one Grotto Server release. Publishing the
-repository's annotated `vX.Y.Z` GitHub Release makes that tag *deployable*; a
-manual `Deploy Grotto Server` dispatch is what promotes it. Neither a push to
-`main` nor publishing a Release deploys on its own — a deploy resolves
-production credentials from 1Password and rewrites the Server's delivered
-environment, so it is an explicit act.
+The Server and web Grotto App are one `server` target. Merging the release PR
+starts one `Release` workflow; its Server job publishes the exact artifact and
+source identity needed for deployment. Publication makes the release
+*deployable* but does not promote production. A separate manual `Deploy Grotto
+Server` dispatch performs promotion because it resolves production credentials
+and rewrites the Server's delivered environment.
+
+Neither a push to `main` nor a completed target job alone is deployment evidence.
 
 The self-hosted `Deploy Grotto Server` workflow:
 
@@ -64,13 +66,12 @@ directory is `releases/<full-sourceRevision>`. `release.json`, the artifact
 checksum, startup logs, and activation output carry the product version, full
 revision, and content digest. Public `/healthz` does not.
 
-The trusted macOS publisher builds the Server artifact once as part of
-`release:publish`; the non-secret `VITE_CLERK_PUBLISHABLE_KEY` it inlines is a
-public literal in `.env.schema`. The mini never installs Bun dependencies,
-resets the deploy root, or rebuilds the Server. PostgreSQL and runtime secrets
-do not enter the artifact, Actions inputs, or output — they resolve from
-1Password during the deploy and land only in `config/server.env`. See
-[environment.md](environment.md).
+The `Release` workflow builds the Server artifact once; the non-secret
+`VITE_CLERK_PUBLISHABLE_KEY` it inlines is a public literal in `.env.schema`.
+The mini never installs Bun dependencies, resets the deploy root, or rebuilds
+the Server. PostgreSQL and runtime secrets do not enter the artifact, Actions
+inputs, or output — they resolve from 1Password during the deploy and land only
+in `config/server.env`. See [environment.md](environment.md).
 
 The Apple Silicon archive and SHA-256 file are built under
 `apps/server/release/`, verified by the publisher, and attached to the GitHub

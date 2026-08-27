@@ -76,7 +76,7 @@ names three bootstrap slots for them:
 | --- | --- | --- |
 | `DEPLOY_AGENT_PRODUCTION_OP_TOKEN` | the `GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN` repository secret, on the mini's self-hosted runner | `Production` + `Development` |
 | `CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN` | a Cursor account-level Runtime Secret, fleet-wide | `Development` |
-| `CI_DEVELOPMENT_OP_TOKEN` | the same GitHub repository secret, mapped only by Quality | `Development` |
+| `CI_OP_TOKEN` | the same GitHub repository secret, mapped only by Quality | `Development` |
 
 All are `@internal`, so `varlock run` never passes them to a child process.
 That repository secret is the only platform-held credential Grotto has, and

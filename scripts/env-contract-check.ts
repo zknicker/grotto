@@ -68,7 +68,7 @@ const processContractNames = new Set([
 const externallyConsumedNames = new Map([
     ['AWS_ACCESS_KEY_ID', 'the aws CLI in scripts/release/publish-desktop.mjs'],
     ['AWS_SECRET_ACCESS_KEY', 'the aws CLI in scripts/release/publish-desktop.mjs'],
-    ['CI_DEVELOPMENT_OP_TOKEN', 'varlock @initOp(id=development)'],
+    ['CI_OP_TOKEN', 'varlock @initOp(id=development)'],
     ['CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN', 'varlock @initOp(id=development)'],
     ['DEPLOY_AGENT_PRODUCTION_OP_TOKEN', 'varlock @initOp(id=production)'],
 ]);
@@ -251,7 +251,7 @@ for (const workflowPath of [deployWorkflowPath, qualityWorkflowPath]) {
 const githubDeploySecret = ['$', '{{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}'].join('');
 const requiredWorkflowMappings = new Map([
     [deployWorkflowPath, `DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${githubDeploySecret}`],
-    [qualityWorkflowPath, `CI_DEVELOPMENT_OP_TOKEN: ${githubDeploySecret}`],
+    [qualityWorkflowPath, `CI_OP_TOKEN: ${githubDeploySecret}`],
 ]);
 for (const [workflowPath, requiredMapping] of requiredWorkflowMappings) {
     if (!workflowContents.get(workflowPath)?.includes(requiredMapping)) {

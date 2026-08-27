@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.24 - 2026-08-26
+
+- Agents can now prepare an Agent creation action in Chat for a person to review and commit, with
+  the same approval flow in the Grotto App and on iPhone.
+- Agent avatar generation is available across Grotto App and iPhone, with validated concepts and
+  durable generated images that stay consistent across profiles and conversations.
+- Grotto for iPhone is faster and steadier across Chat navigation, Threads, attachments, profile
+  details, foreground refresh, and high-volume realtime updates.
+- Grotto Computer 1.4.8 carries the new prepared-action and avatar commands and preserves Codex
+  network fallback behavior.
+
+### Release surfaces
+
+- Server: Publish v1.8.24
+- App: Unchanged
+- iOS: Publish v1.0.4 (build 5)
+- Computer: Publish v1.4.8
+
 ## v1.8.23 - 2026-08-26
 
 - The Grotto App now carries its sidebar treatment through the macOS titlebar, lifts Settings into

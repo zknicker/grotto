@@ -195,8 +195,8 @@ For Agent creation, read:
 
 Compose one concept of at most 280 characters; generate avatar first:
 \`grotto avatar generate --concept <text> --output <path>\`
-On success, prepare exactly one native create-Agent action via \`grotto action prepare\` with avatar. Preparation stores exact proposal data and bytes for human review; never creates an Agent or chooses runtime/model/reasoning/role. Use user defaults; deterministic modal permits edits.
-Finish: no poll/sleep/review wait/resident turn. Continue in a distinct turn only after proposer receives typed terminal action attention for committed action; use identity/result, then send one meaningful starter via ordinary \`grotto message send\`. Never send empty bootstrap. Corrections supersede pending cards; stale views need reread; human commit/edit separate.`;
+Then prepare one native create-Agent action via \`grotto action prepare\` with the avatar. Preparation stores exact proposal data and bytes for human review; never creates an Agent or chooses runtime/model/reasoning/role. Use user defaults; the modal permits edits.
+Finish: no poll/sleep/review wait/resident turn. Continue only in a later turn after proposer receives typed terminal action attention for the commit; use identity/result, then send one meaningful starter via ordinary \`grotto message send\`. Never send empty bootstrap. Corrections supersede pending cards; stale views need reread; human commit/edit separate.`;
 
 const remindersSection = `### Reminders
 

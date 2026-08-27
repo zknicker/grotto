@@ -127,7 +127,8 @@ release-surface decision and skips App building, notarization, updater
 upload, and GitHub artifacts when App is unchanged.
 
 Publishing the annotated `vX.Y.Z` GitHub Release makes the version deployable;
-it does not promote production. A manual `Deploy Grotto Server` dispatch
+it does not promote production. A push to `main` does not deploy. A manual
+`Deploy Grotto Server` dispatch
 resolves that immutable tag to its full commit SHA, downloads only the matching
 Server archive and sidecar through the authenticated GitHub Release API, verifies them, installs the
 release under that full SHA, then atomically activates it. The mini does not

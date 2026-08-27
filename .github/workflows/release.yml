@@ -10,7 +10,7 @@ name: Release
 # GROTTO_RELEASE_APPLE_CERTIFICATES_PASSWORD,
 # GROTTO_RELEASE_APP_STORE_CONNECT_PRIVATE_KEY; plus
 # APPLE_API_KEY_ID/APPLE_API_ISSUER. No Apple material has a GitHub secret.
-# The p12 contains Developer ID Application and Apple Distribution identities.
+# The p12 contains Apple Development, Apple Distribution, and Developer ID Application identities.
 # Helpers write p12, randomized keychain, and AuthKey_${APPLE_API_KEY_ID}.p8
 # under RUNNER_TEMP, cleanup runs with always(), and iOS uses automatic signing
 # with -allowProvisioningUpdates (no provisioning-profile secret). Missing

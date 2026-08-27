@@ -119,6 +119,12 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
             workflow.indexOf('run: node scripts/release/verify-release.mjs')
     );
     assert.match(dependencyAction, /CI_OP_TOKEN: \$\{\{ inputs\.ci-op-token \}\}/);
+    assert.match(dependencyAction, /if: inputs\.install-xcodegen == 'true'/);
+    assert.match(dependencyAction, /run: brew install xcodegen/);
+    assert.match(
+        workflow,
+        /name: Upload iOS[\s\S]*?install-xcodegen: 'true'[\s\S]*?name: Import Apple material/
+    );
     assert.match(workflow, /if: \$\{\{ always\(\) \}\}/);
     const secrets = [...workflow.matchAll(/\$\{\{\s*secrets\.([A-Z0-9_]+)\s*\}\}/g)].map(
         (match) => match[1]

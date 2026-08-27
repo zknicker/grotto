@@ -188,7 +188,7 @@ jobs:
         uses: ./.github/actions/setup-release-dependencies
         with:
           ci-op-token: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
-
+          install-xcodegen: 'true'
       - name: Import Apple material and App Store Connect key
         env:
           RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}

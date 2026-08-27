@@ -146,46 +146,53 @@ public struct GrottoShellView<SettingsContent: View>: View {
                 .zIndex(1)
 
                 if let selectedDestination {
-                    ChatScreenView(
-                        chat: selectedDestination,
-                        messages: messagesForDestination(selectedDestination),
-                        draft: draftBinding(for: selectedDestination),
-                        composerInteraction: composerInteraction(for: selectedDestination),
-                        isConnected: isConnected,
-                        onOpenSidebar: { setDrawer(open: !drawerPresented) },
-                        onOpenChatDetails: { activeChatSheet = .details(selectedDestination) },
-                        onOpenSearch: { activeChatSheet = .search },
-                        onOpenThread: { message in
-                            guard let chat = selectedDestination.durableChat else { return }
-                            onOpenThread(chat, message)
-                        },
-                        onSend: { await onSend(selectedDestination, $0, $1) },
-                        onOpenAttachment: onOpenAttachment,
-                        canManagePreparedActions: canManagePreparedActions,
-                        onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
-                        hasOlderMessages: selectedDestination.durableChat.map(hasOlderMessages) ?? false,
-                        isLoadingOlderMessages: selectedDestination.durableChat.map(isLoadingOlderMessages) ?? false,
-                        onLoadOlderMessages: {
-                            guard let chat = selectedDestination.durableChat else { return false }
-                            return await onLoadOlderMessages(chat)
-                        },
-                        mentionOptions: mentionOptions(selectedDestination),
-                        onLoadMentionOptions: { await loadMentionOptions(selectedDestination) },
-                        contentInsets: proxy.safeAreaInsets,
-                        scrollTargetMessageID: scrollTargetBinding(for: selectedDestination)
-                    )
-                    // Each Chat gets its own screen. Reusing one screen carried
-                    // the previous Chat's scroll offset and transcript state
-                    // into the next one, and left `defaultScrollAnchor(.bottom)`
-                    // unapplied; a fresh screen lays out bottom-anchored before
-                    // the drawer reveals it.
-                    .id(selectedDestination.id)
-                    // Selecting a Chat closes the drawer in an animated
-                    // transaction, and an identity swap inside one picks up
-                    // SwiftUI's default opacity transition. The drawer's own
-                    // motion is the transition; the canvas behind it is already
-                    // the next Chat, fully formed.
-                    .transition(.identity)
+                    // The drawer's geometry belongs to this container, not
+                    // to the screen inside it. The screen is keyed by
+                    // destination, so selecting a Chat replaces it, and a
+                    // view that did not exist a frame ago has no offset to
+                    // animate from. The container outlives the swap, so the
+                    // spring keeps running through it.
+                    ZStack {
+                        ChatScreenView(
+                            chat: selectedDestination,
+                            messages: messagesForDestination(selectedDestination),
+                            draft: draftBinding(for: selectedDestination),
+                            composerInteraction: composerInteraction(for: selectedDestination),
+                            isConnected: isConnected,
+                            onOpenSidebar: { setDrawer(open: !drawerPresented) },
+                            onOpenChatDetails: { activeChatSheet = .details(selectedDestination) },
+                            onOpenSearch: { activeChatSheet = .search },
+                            onOpenThread: { message in
+                                guard let chat = selectedDestination.durableChat else { return }
+                                onOpenThread(chat, message)
+                            },
+                            onSend: { await onSend(selectedDestination, $0, $1) },
+                            onOpenAttachment: onOpenAttachment,
+                            canManagePreparedActions: canManagePreparedActions,
+                            onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
+                            hasOlderMessages: selectedDestination.durableChat.map(hasOlderMessages) ?? false,
+                            isLoadingOlderMessages: selectedDestination.durableChat.map(isLoadingOlderMessages) ?? false,
+                            onLoadOlderMessages: {
+                                guard let chat = selectedDestination.durableChat else { return false }
+                                return await onLoadOlderMessages(chat)
+                            },
+                            mentionOptions: mentionOptions(selectedDestination),
+                            onLoadMentionOptions: { await loadMentionOptions(selectedDestination) },
+                            contentInsets: proxy.safeAreaInsets,
+                            scrollTargetMessageID: scrollTargetBinding(for: selectedDestination)
+                        )
+                        // Each Chat gets its own screen. Reusing one screen carried
+                        // the previous Chat's scroll offset and transcript state
+                        // into the next one, and left `defaultScrollAnchor(.bottom)`
+                        // unapplied; a fresh screen lays out bottom-anchored before
+                        // the drawer reveals it.
+                        .id(selectedDestination.id)
+                        // The drawer's own motion is the transition. The Chat
+                        // behind it is already the next one, fully formed, and
+                        // `selectDestination` has given it a frame of its own
+                        // to land in before the spring starts.
+                        .transition(.identity)
+                    }
                     .overlay {
                         let progress = drawerProgress(drawerWidth: drawerWidth)
                         if progress > 0 {
@@ -292,7 +299,16 @@ public struct GrottoShellView<SettingsContent: View>: View {
             pendingChatSelectionID = nil
         }
         selectedDestinationID = destination.id
-        setDrawer(open: false)
+        // The swap and the slide are two events, and they have to land in two
+        // frames. The canvas is keyed by destination, so this selection inserts
+        // a new Chat screen — and SwiftUI places a view inserted *inside* an
+        // animating transaction at that animation's destination, not at its
+        // in-flight geometry. Closing the drawer in the same turn therefore
+        // pinned the incoming Chat at the closed position while the canvas
+        // frame slid over it: a wipe across a stationary transcript rather than
+        // the Chat travelling with the drawer. Letting the selection commit on
+        // its own frame first means the spring animates a screen already there.
+        Task { @MainActor in setDrawer(open: false) }
     }
 
     /// The one path a sheet uses to reach a Chat, so every sheet dismisses and

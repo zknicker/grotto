@@ -12,8 +12,9 @@ deployment contracts remain in the routed docs and specs below; do not recreate 
 
 - One release has one append-only `releases.json` record, one release PR, and one `Release`
   workflow run after that PR merges.
-- The record uses `targets`: `server`, `app`, `ios`, and `computer`. Each target is explicitly
-  `publish` or `unchanged`, with its version; iOS also records its build number.
+- The record uses exact `targets` keys: `server`, `app`, `ios`, and `computer`. A published target
+  carries its version; an unchanged target is `null`; iOS publication carries `{ version,
+  buildNumber }`.
 - The `Release` workflow owns per-target build, signing, publication, and evidence jobs. It runs
   selected target jobs and reports every unselected target as unchanged.
 - Release publication makes artifacts available. Production Grotto Server promotion is a separate
@@ -66,31 +67,31 @@ reason tied to the diff or to a prerequisite.
 
 ## 2. Prepare the append-only record
 
-Before editing, read the existing `releases.json` and its schema. Preserve every prior record and
+Before editing, read the existing `releases.json` and ledger validator. Preserve every prior record and
 append exactly one planned release record at the end. Never sort, compact, rewrite, delete, or amend
-an earlier release entry. If the file or schema is missing, stop and route the contract gap; do not
+an earlier release entry. If the file or validator is missing, stop and route the contract gap; do not
 invent a competing ledger format.
 
-The new record must carry the repository's required release identity and, at minimum, the planned:
+The new record contains only `version`, `date`, and `targets`:
 
-- Server/App product version and independent iOS and Computer versions;
-- selected `targets` and each target's `publish`/`unchanged` decision;
-- iOS build number when `ios` publishes;
-- source ref or full source SHA when known, plus the release PR link;
-- Computer protocol prerequisite and rollback checkpoint when applicable;
-- the record's required correlation fields for the `Release` workflow and manual Server deployment
-  evidence.
+- A normal release uses the Server/App product version at `version`, publishes `server` at that
+  version, and sets every unchanged target to `null`.
+- A Computer-only release uses `version: null`, publishes only `computer`, and sets the other
+  targets to `null`.
+- A published App matches the main version. Published iOS and Computer targets carry their
+  independent versions; iOS also carries its next unused build number.
+- A release draft may use `date: null` and `"undecided"` target values only in the newest entry.
+  Complete every decision and set the date before merge.
 
-Keep planned, published, deployed, failed, and skipped states distinct. Do not turn a failed run
-into a success by editing its old record. Use the repository's supported append-only retry shape, or
-append a new attempt record when the contract requires one.
+The ledger is the immutable publication decision, not a mutable run log. Keep workflow, deployment,
+and smoke evidence in GitHub and the final handoff; never edit an old entry to change an outcome.
 
 Update the release changelog entry and target-owned version metadata in the same PR. Keep the
 changelog user-facing; keep operational evidence in the record and final handoff. Run the relevant
 local gates, `git diff --check`, and the documentation check before opening the PR.
 
-Completion criterion: one new valid record describes every target, version/build input, prerequisite,
-and planned promotion boundary without changing historical entries.
+Completion criterion: one new valid record describes every target and version/build input without
+changing historical entries.
 
 ## 3. Open and merge one release PR
 
@@ -113,10 +114,8 @@ workflow correlation.
 ## 4. Monitor the one Release workflow
 
 Find the `Release` workflow run for the merge commit, then watch the run and each target job to
-completion. Capture URLs and exact outcomes in the workflow/deployment evidence. If the checked-in
-ledger schema provides an append-only result path, use it; otherwise leave the merged record
-immutable and link the evidence from the handoff. A target job must prove the contract owned by its
-routed doc, not merely report that a command started.
+completion. Leave the merged ledger immutable; capture URLs and exact outcomes for the handoff. A
+target job must prove the contract owned by its routed doc, not merely report that a command started.
 
 Check the result in this order:
 
@@ -177,7 +176,8 @@ List only actionable updates in `Required updates`, naming the exact version and
 all four targets with their actual published/deployed state. Distinguish `published` from `deployed`,
 name failed or missing proof, and describe destructive data work and recoverability.
 
-Completion criterion: one concise handoff matches the terminal record and links every material claim.
+Completion criterion: one concise handoff matches the release decision and terminal evidence and
+links every material claim.
 
 ## Closeout
 

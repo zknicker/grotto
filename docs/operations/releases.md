@@ -15,8 +15,9 @@ the operator handoff. This document keeps the durable target and promotion contr
 ## One release, four targets
 
 Each release has one append-only `releases.json` record and one release PR. Merging that PR starts
-one `Release` workflow with a job per target. The record explicitly marks every target `publish` or
-`unchanged`; an unchanged target is skipped, not silently rebuilt.
+one `Release` workflow with a job per target. Every entry contains all four target keys: a published
+target carries its version, while an unchanged target is `null` and is skipped rather than rebuilt.
+iOS publication carries both its version and build number.
 
 | Target | Publish when |
 | --- | --- |

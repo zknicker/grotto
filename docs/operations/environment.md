@@ -48,9 +48,9 @@ the access boundary.
 | `S3 Release - Merchbase Desktop` | `Tooling` | shared release-bucket IAM key (adopted, not copied) |
 | `Computer Release Signing - Grotto` | `Tooling` | Ed25519 keypair that signs Computer releases |
 
-`Tooling` is readable by no service identity, so every release reference
-resolves through the *development* instance: an operator running a release
-under `varlock run` satisfies it with desktop authorization.
+Local release operators read `Tooling` through desktop authorization. The
+GitHub Release workflow uses a separate read-only service identity scoped to
+that vault; no deploy, Quality, Cursor, or product runtime identity can read it.
 
 Transient avatar generation uses the optional `GROTTO_OPENAI_API_KEY`. The
 schema deliberately leaves it undefined until the operator provisions the
@@ -70,17 +70,19 @@ a released Server environment.
 
 Humans and supervised local agents authorize through the 1Password desktop app.
 Unattended consumers each hold their own read-only identity, and the schema
-names three bootstrap slots for them:
+names four bootstrap slots for them:
 
 | Slot | Filled by | Reads |
 | --- | --- | --- |
 | `DEPLOY_AGENT_PRODUCTION_OP_TOKEN` | the `GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN` repository secret, on the mini's self-hosted runner | `Production` + `Development` |
 | `CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN` | a Cursor account-level Runtime Secret, fleet-wide | `Development` |
 | `CI_OP_TOKEN` | the same GitHub repository secret, mapped only by Quality | `Development` |
+| `RELEASE_AGENT_TOOLING_OP_TOKEN` | the `GH_RELEASE_AGENT_TOOLING_OP_TOKEN` repository secret, mapped only by Release target jobs | `Tooling` |
 
-All are `@internal`, so `varlock run` never passes them to a child process.
-That repository secret is the only platform-held credential Grotto has, and
-`env:contract` fails the build if a workflow grows another.
+All are `@internal`, so ordinary `varlock run` never passes them to a child
+process. GitHub holds two bootstraps: the existing deploy identity and a
+separate read-only Tooling identity for releases. `env:contract` rejects any
+other workflow secret or any mapping outside its named consumer.
 
 ## Context switches
 

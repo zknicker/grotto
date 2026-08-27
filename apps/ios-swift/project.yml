@@ -45,10 +45,6 @@ targets:
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: false
-      configs:
-        Release:
-          CODE_SIGN_IDENTITY: Apple Distribution
-          CODE_SIGN_STYLE: Automatic
     info:
       path: Config/Info.plist
       properties:

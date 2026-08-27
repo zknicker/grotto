@@ -114,6 +114,13 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(workflow, /Grotto_\$\{\{ needs\.plan\.outputs\.release_version \}\}_arm64\.dmg/);
     assert.doesNotMatch(workflow, /Grotto_\*_arm64/);
     assert.match(setupAppleSource, /base64 -D/);
+    for (const identity of [
+        'Apple Development',
+        'Apple Distribution',
+        'Developer ID Application',
+    ]) {
+        assert.match(setupAppleSource, new RegExp(identity));
+    }
     assert.ok(
         workflow.indexOf('Check out release verification helpers') <
             workflow.indexOf('run: node scripts/release/verify-release.mjs')

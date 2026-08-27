@@ -74,6 +74,10 @@ if ! grep -Fq "Apple Distribution:" <<<"${identities}"; then
   echo "Apple release p12 is missing an Apple Distribution identity" >&2
   exit 1
 fi
+if ! grep -Fq "Apple Development:" <<<"${identities}"; then
+  echo "Apple release p12 is missing an Apple Development identity" >&2
+  exit 1
+fi
 
 if [[ "${mode}" == 'ios' ]]; then
   api_key_path="${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8"

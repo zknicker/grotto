@@ -41,11 +41,13 @@ public struct MessageComposerView: View {
     }
 
     public var body: some View {
-        // Deliberately not wrapped in a `GlassEffectContainer`: the container hoists every glass
-        // shape inside it into one merged layer that composites *above* sibling content, which
-        // rendered the shell's rim at roughly a twentieth of its intended strength. The composer
-        // has a single glass shape and the status banner is a separate object, so nothing here
-        // needs merging.
+        // Deliberately not wrapped in a `GlassEffectContainer`: a container exists to merge sibling
+        // glass shapes into one layer, and the composer has a single glass shape with the status
+        // banner as a separate object, so there is nothing here to merge. The earlier reason — that
+        // the merged layer dimmed the shell's rim — described the hand-rolled specular overlay that
+        // `ComposerGlassSurface` no longer paints, so it no longer argues against a container. If
+        // the composer and the attachment portal are ever morphed as one glass object, that is the
+        // change to reach for.
         composerStack
             .padding(.horizontal, isExpanded ? 12 : 24)
             .padding(.top, 4)

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { readFileSync } from 'node:fs';
 
 import {
     appStoreConnectAuthenticationArgs,
@@ -6,6 +7,11 @@ import {
     assertIOSReleaseTarget,
     parseIOSReleaseArgs,
 } from './ios-release-contract.mjs';
+
+const generatedProject = readFileSync(
+    new URL('../../apps/ios-swift/Grotto.xcodeproj/project.pbxproj', import.meta.url),
+    'utf8'
+);
 
 test('parses an iOS version and monotonically increasing build number', () => {
     expect(parseIOSReleaseArgs(['1.0.0', '--build-number', '7', '--dry-run'])).toEqual({
@@ -24,6 +30,11 @@ test('preserves the coordinated version and build during App Store export', () =
     const options = appStoreConnectExportOptions('TEAM123');
     expect(options).toContain('<key>manageAppVersionAndBuildNumber</key>\n    <false/>');
     expect(options).toContain('<key>teamID</key>\n    <string>TEAM123</string>');
+});
+
+test('archives Release builds with the CI distribution identity', () => {
+    expect(generatedProject).toContain('CODE_SIGN_IDENTITY = "Apple Distribution";');
+    expect(generatedProject).toContain('CODE_SIGN_STYLE = Automatic;');
 });
 
 test('requires the exact declared iOS release', () => {

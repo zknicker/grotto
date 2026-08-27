@@ -54,13 +54,7 @@ const main = async () => {
     }
 
     await updateVersionedFiles(targetVersion);
-    await updateJson('releases.json', (currentLedger) => {
-        try {
-            return appendReleaseDraft(currentLedger, targetVersion);
-        } catch (error) {
-            fail(error instanceof Error ? error.message : String(error));
-        }
-    });
+    await appendLedgerDraft(ledger, targetVersion);
 
     printSummary({ currentVersion, targetVersion });
 };
@@ -75,6 +69,26 @@ function printUsage() {
             '  bun run release:bump 1.0.1',
         ].join('\n')
     );
+}
+
+async function appendLedgerDraft(ledger, targetVersion) {
+    let nextLedger;
+    try {
+        nextLedger = appendReleaseDraft(ledger, targetVersion);
+    } catch (error) {
+        fail(error instanceof Error ? error.message : String(error));
+    }
+
+    const rawLedger = await readText('releases.json');
+    const closingBracket = /\n\]\n$/u;
+    if (!closingBracket.test(rawLedger)) {
+        fail('releases.json must end with a newline-delimited array bracket');
+    }
+    const draft = JSON.stringify(nextLedger.at(-1), null, 2)
+        .split('\n')
+        .map((line) => `  ${line}`)
+        .join('\n');
+    await writeText('releases.json', rawLedger.replace(closingBracket, `,\n${draft}\n]\n`));
 }
 
 async function readCurrentVersion() {

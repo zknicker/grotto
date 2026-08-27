@@ -1,3 +1,4 @@
+import type { DesktopUpdateStatus } from '../../hooks/desktop/use-desktop-update.ts';
 import { useDesktopUpdate } from '../../hooks/desktop/use-desktop-update.ts';
 import { DesktopUpdateStatusControl } from './desktop-update-status.tsx';
 
@@ -5,21 +6,42 @@ export function DesktopUpdateFooter() {
     const { checkForUpdate, status, updateAndRestart } = useDesktopUpdate();
 
     return (
-        // The compact status circle shares the composer's visual midline.
+        <DesktopUpdateFooterStatus
+            onCheck={() => {
+                void checkForUpdate();
+            }}
+            onUpdate={() => {
+                void updateAndRestart();
+            }}
+            status={status}
+        />
+    );
+}
+
+export function DesktopUpdateFooterStatus({
+    onCheck,
+    onUpdate,
+    status,
+}: {
+    onCheck: () => void;
+    onUpdate: () => void;
+    status: DesktopUpdateStatus;
+}) {
+    if (!isVisibleDesktopUpdateStatus(status)) {
+        return null;
+    }
+
+    return (
         <section
             aria-label="Grotto app update"
             aria-live="polite"
-            className="mb-2 flex w-full flex-col items-start gap-1"
+            className="flex w-full flex-col items-start px-2"
         >
-            <DesktopUpdateStatusControl
-                onCheck={() => {
-                    void checkForUpdate();
-                }}
-                onUpdate={() => {
-                    void updateAndRestart();
-                }}
-                status={status}
-            />
+            <DesktopUpdateStatusControl onCheck={onCheck} onUpdate={onUpdate} status={status} />
         </section>
     );
+}
+
+function isVisibleDesktopUpdateStatus(status: DesktopUpdateStatus) {
+    return !['checking', 'current', 'idle', 'unsupported'].includes(status.phase);
 }

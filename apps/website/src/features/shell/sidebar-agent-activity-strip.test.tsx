@@ -33,6 +33,8 @@ test('renders independently keyed Agent rows inside one coordinated list', () =>
     expect(markup).toContain('data-agent-activity-label="Thinking…"');
     expect(markup).toContain('data-agent-activity-row="agt_tiny"');
     expect(markup).toContain('data-agent-activity-label="Running a command…"');
+    expect(markup).toContain('px-2 py-1');
+    expect(markup).not.toContain('w-full px-1');
 });
 
 function row(agentId: string, runId: string, category: AgentActivityEvent['category']) {

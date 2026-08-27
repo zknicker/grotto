@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { DesktopUpdateStatus } from '../../hooks/desktop/use-desktop-update.ts';
+import { DesktopUpdateFooterStatus } from './desktop-update-footer.tsx';
 import { DesktopUpdateStatusControl } from './desktop-update-status.tsx';
 
 describe('desktop update footer', () => {
@@ -21,6 +22,14 @@ describe('desktop update footer', () => {
         expect(renderStatus({ phase: 'current' })).toBe('');
         expect(renderStatus({ phase: 'checking' })).toBe('');
         expect(renderStatus({ phase: 'unsupported' })).toBe('');
+    });
+
+    test('removes the entire footer footprint when no update UI is visible', () => {
+        expect(renderFooterStatus({ phase: 'idle' })).toBe('');
+        expect(renderFooterStatus({ phase: 'checking' })).toBe('');
+        expect(renderFooterStatus({ phase: 'available', version: '1.9.0' })).toContain(
+            'aria-label="Grotto app update"'
+        );
     });
 
     test('renders active updates as full-opacity icon statuses instead of disabled buttons', () => {
@@ -45,6 +54,16 @@ describe('desktop update footer', () => {
 function renderStatus(status: DesktopUpdateStatus) {
     return renderToStaticMarkup(
         <DesktopUpdateStatusControl
+            onCheck={() => undefined}
+            onUpdate={() => undefined}
+            status={status}
+        />
+    );
+}
+
+function renderFooterStatus(status: DesktopUpdateStatus) {
+    return renderToStaticMarkup(
+        <DesktopUpdateFooterStatus
             onCheck={() => undefined}
             onUpdate={() => undefined}
             status={status}

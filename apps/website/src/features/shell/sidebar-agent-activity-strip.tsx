@@ -69,7 +69,7 @@ export function AgentActivityStrip({
     return (
         <section
             aria-label="Current Agent activity"
-            className="w-full px-1"
+            className="w-full"
             data-slot="agent-activity-strip"
         >
             <LayoutGroup id={`agent-activity-strip-${slug}`}>
@@ -143,7 +143,7 @@ function AgentActivityRow({
         >
             <Link
                 aria-label={`${agent.displayName}: ${label}`}
-                className="flex min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left text-muted text-sm outline-none hover:bg-background-hover focus-visible:ring-2 focus-visible:ring-focus"
+                className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1 text-left text-muted text-sm outline-none hover:bg-background-hover focus-visible:ring-2 focus-visible:ring-focus"
                 to={settingsAgentRoute(slug, row.activity.agentId)}
             >
                 {row.agent.kind === 'live' ? (

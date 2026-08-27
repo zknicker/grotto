@@ -12,6 +12,12 @@ public struct MessageTimelineView: View {
     private let onTapTimeline: () -> Void
 
     @Binding private var scrollTargetMessageID: String?
+    /// The bottom is held as a scroll *edge*, not as an offset onto the last row. An
+    /// offset has to resolve against a container height, and a Chat's first paint
+    /// resolves before the canvas has one, which parked the transcript a full screen
+    /// past its own content. An edge stays pinned while the page lands and the rows
+    /// settle, and stops following the moment the reader scrolls away from it.
+    @State private var scrollPosition = ScrollPosition(edge: .bottom)
     @State private var preservedTopMessageID: String?
     @State private var highlightedMessageID: String?
     @State private var isNearBottom = true
@@ -47,112 +53,110 @@ public struct MessageTimelineView: View {
     /// content: the transcript then runs to the bottom of the screen and passes under the
     /// composer's glass, while the inset still reserves its scroll clearance.
     public var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    if hasOlderMessages, let onLoadOlderMessages {
-                        Button {
-                            preservedTopMessageID = messages.first?.id
-                            Task { @MainActor in
-                                if !(await onLoadOlderMessages()) {
-                                    preservedTopMessageID = nil
-                                }
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                if hasOlderMessages, let onLoadOlderMessages {
+                    Button {
+                        preservedTopMessageID = messages.first?.id
+                        Task { @MainActor in
+                            if !(await onLoadOlderMessages()) {
+                                preservedTopMessageID = nil
                             }
-                        } label: {
-                            Group {
-                                if isLoadingOlderMessages {
-                                    ProgressView()
-                                } else {
-                                    Label("Load older messages", systemImage: "chevron.up")
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .disabled(isLoadingOlderMessages)
-                        .padding(.bottom, 8)
+                    } label: {
+                        Group {
+                            if isLoadingOlderMessages {
+                                ProgressView()
+                            } else {
+                                Label("Load older messages", systemImage: "chevron.up")
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
                     }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(isLoadingOlderMessages)
+                    .padding(.bottom, 8)
+                }
 
-                    ForEach(Array(messages.enumerated()), id: \.element.id) { index, message in
-                        let continuation = isContinuation(at: index)
-                        messageRow(message, isContinuation: continuation)
-                            .id(message.id)
-                            .padding(.top, index == 0 ? 0 : continuation ? 4 : 16)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .contentShape(.rect)
-            .simultaneousGesture(TapGesture().onEnded { onTapTimeline() })
-            .defaultScrollAnchor(.bottom)
-            .onScrollGeometryChange(for: Bool.self) { geometry in
-                MessageTimelineScrollPosition.isNearBottom(
-                    contentHeight: geometry.contentSize.height,
-                    containerHeight: geometry.containerSize.height,
-                    visibleMaxY: geometry.visibleRect.maxY
-                )
-            } action: { _, nearBottom in
-                withAnimation(.easeOut(duration: 0.18)) {
-                    isNearBottom = nearBottom
+                ForEach(Array(messages.enumerated()), id: \.element.id) { index, message in
+                    let continuation = isContinuation(at: index)
+                    messageRow(message, isContinuation: continuation)
+                        .id(message.id)
+                        .padding(.top, index == 0 ? 0 : continuation ? 4 : 16)
                 }
             }
-            .onChange(of: messages.last?.id) { previousMessageID, latestMessageID in
-                guard let latestMessageID else { return }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .contentShape(.rect)
+        .simultaneousGesture(TapGesture().onEnded { onTapTimeline() })
+        .scrollPosition($scrollPosition)
+        // A transcript shorter than the screen still sits on the composer.
+        .defaultScrollAnchor(.bottom)
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            MessageTimelineScrollPosition.isNearBottom(
+                contentHeight: geometry.contentSize.height,
+                containerHeight: geometry.containerSize.height,
+                visibleMaxY: geometry.visibleRect.maxY
+            )
+        } action: { _, nearBottom in
+            withAnimation(.easeOut(duration: 0.18)) {
+                isNearBottom = nearBottom
+            }
+        }
+        .onChange(of: messages.last?.id) { previousMessageID, latestMessageID in
+            guard latestMessageID != nil else { return }
 
-                switch MessageTimelineTailScroll.decide(
-                    hadMessages: previousMessageID != nil,
-                    isNearBottom: isNearBottom,
-                    isLatestPending: messages.last?.isPending == true
-                ) {
-                case .ignore:
-                    return
-                case .snap:
-                    var transaction = Transaction()
-                    transaction.disablesAnimations = true
-                    withTransaction(transaction) {
-                        proxy.scrollTo(latestMessageID, anchor: .bottom)
-                    }
-                case .animate:
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        proxy.scrollTo(latestMessageID, anchor: .bottom)
-                    }
-                }
-            }
-            .onChange(of: scrollTargetMessageID, initial: true) { _, _ in
-                revealScrollTarget(using: proxy)
-            }
-            .onChange(of: messages.map(\.id)) { _, _ in
-                // A search can select a Chat whose page is still loading, so
-                // the pending request is re-resolved when messages arrive.
-                revealScrollTarget(using: proxy)
-            }
-            .onChange(of: messages.first?.id) { _, _ in
-                guard let preservedTopMessageID else { return }
-                self.preservedTopMessageID = nil
+            switch MessageTimelineTailScroll.decide(
+                hadMessages: previousMessageID != nil,
+                isNearBottom: isNearBottom,
+                isLatestPending: messages.last?.isPending == true
+            ) {
+            case .ignore:
+                return
+            case .snap:
                 var transaction = Transaction()
                 transaction.disablesAnimations = true
                 withTransaction(transaction) {
-                    proxy.scrollTo(preservedTopMessageID, anchor: .top)
+                    scrollPosition.scrollTo(edge: .bottom)
+                }
+            case .animate:
+                withAnimation(.easeOut(duration: 0.2)) {
+                    scrollPosition.scrollTo(edge: .bottom)
                 }
             }
-
-            // The scroll clearance the composer reserves arrives as this view's bottom safe
-            // area, so the button rides above the glass instead of under it.
-            .overlay(alignment: .bottom) {
-                if !isNearBottom {
-                    GlassChromeButton(.icon(.arrowDown), label: "Scroll to latest message") {
-                        guard let latestMessageID = messages.last?.id else { return }
-                        withAnimation(.easeOut(duration: 0.2)) {
-                            proxy.scrollTo(latestMessageID, anchor: .bottom)
-                        }
+        }
+        .onChange(of: scrollTargetMessageID, initial: true) { _, _ in
+            revealScrollTarget()
+        }
+        .onChange(of: messages.map(\.id)) { _, _ in
+            // A search can select a Chat whose page is still loading, so
+            // the pending request is re-resolved when messages arrive.
+            revealScrollTarget()
+        }
+        .onChange(of: messages.first?.id) { _, _ in
+            guard let preservedTopMessageID else { return }
+            self.preservedTopMessageID = nil
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                scrollPosition.scrollTo(id: preservedTopMessageID, anchor: .top)
+            }
+        }
+        // The scroll clearance the composer reserves arrives as this view's bottom safe
+        // area, so the button rides above the glass instead of under it.
+        .overlay(alignment: .bottom) {
+            if !isNearBottom {
+                GlassChromeButton(.icon(.arrowDown), label: "Scroll to latest message") {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        scrollPosition.scrollTo(edge: .bottom)
                     }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .padding(.bottom, 10)
-                    .safeAreaPadding(.bottom)
                 }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .padding(.bottom, 10)
+                .safeAreaPadding(.bottom)
             }
         }
         .task(id: highlightedMessageID) {
@@ -163,7 +167,7 @@ public struct MessageTimelineView: View {
         }
     }
 
-    private func revealScrollTarget(using proxy: ScrollViewProxy) {
+    private func revealScrollTarget() {
         guard let scrollTargetMessageID else { return }
 
         switch MessageTimelineScrollTarget.resolve(
@@ -178,7 +182,7 @@ public struct MessageTimelineView: View {
         case .reveal(let messageID):
             self.scrollTargetMessageID = nil
             withAnimation(.easeInOut(duration: 0.25)) {
-                proxy.scrollTo(messageID, anchor: .center)
+                scrollPosition.scrollTo(id: messageID, anchor: .center)
             }
             highlightedMessageID = messageID
         }

@@ -19,6 +19,10 @@ public struct ThreadDetailView: View {
     private let onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
 
     @State private var draft = ""
+    /// The bottom is held as a scroll *edge* for the reason the Chat transcript holds
+    /// it that way: an offset onto the last row resolves against a container height the
+    /// first paint may not have yet. See `MessageTimelineView`.
+    @State private var scrollPosition = ScrollPosition(edge: .bottom)
     @State private var preservedTopReplyID: String?
     @State private var isNearBottom = true
     /// A Thread is one pushed screen rather than a keyed canvas, so its composer
@@ -100,135 +104,135 @@ public struct ThreadDetailView: View {
         GeometryReader { geometry in
             ZStack(alignment: .bottomLeading) {
                 VStack(spacing: 0) {
-                    ScrollViewReader { proxy in
-                        ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        if hasOlderReplies, let onLoadOlderReplies {
-                            Button {
-                                preservedTopReplyID = replies.first?.id
-                                Task { @MainActor in
-                                    if !(await onLoadOlderReplies()) {
-                                        preservedTopReplyID = nil
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            if hasOlderReplies, let onLoadOlderReplies {
+                                Button {
+                                    preservedTopReplyID = replies.first?.id
+                                    Task { @MainActor in
+                                        if !(await onLoadOlderReplies()) {
+                                            preservedTopReplyID = nil
+                                        }
                                     }
-                                }
-                            } label: {
-                                Group {
-                                    if isLoadingOlderReplies {
-                                        ProgressView()
-                                    } else {
-                                        Label("Load older replies", systemImage: "chevron.up")
+                                } label: {
+                                    Group {
+                                        if isLoadingOlderReplies {
+                                            ProgressView()
+                                        } else {
+                                            Label("Load older replies", systemImage: "chevron.up")
+                                        }
                                     }
+                                    .frame(maxWidth: .infinity)
                                 }
-                                .frame(maxWidth: .infinity)
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .disabled(isLoadingOlderReplies)
+                                .padding(.bottom, 8)
                             }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .disabled(isLoadingOlderReplies)
-                            .padding(.bottom, 8)
-                        }
 
-                        ThreadMessageRow(
-                            message: anchor,
-                            emphasized: true,
-                            onOpenAttachment: onOpenAttachment,
-                            canManagePreparedActions: canManagePreparedActions,
-                            onReviewPreparedCreateAgent: onReviewPreparedCreateAgent
-                        )
-                            .padding(.bottom, replies.isEmpty ? 0 : 2)
-
-                        if let task = anchor.task {
-                            ThreadTaskMetadataView(task: task)
-                                .padding(.top, 12)
-                                .padding(.bottom, replies.isEmpty ? 0 : 2)
-                        }
-
-                        ForEach(replies) { message in
                             ThreadMessageRow(
-                                message: message,
+                                message: anchor,
+                                emphasized: true,
                                 onOpenAttachment: onOpenAttachment,
                                 canManagePreparedActions: canManagePreparedActions,
                                 onReviewPreparedCreateAgent: onReviewPreparedCreateAgent
                             )
-                                .id(message.id)
-                                .padding(.top, 10)
-                        }
+                                .padding(.bottom, replies.isEmpty ? 0 : 2)
 
-                        if pending {
-                            HStack(spacing: 7) {
-                                ProgressView()
-                                    .controlSize(.small)
-                                Text("Sending")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                            if let task = anchor.task {
+                                ThreadTaskMetadataView(task: task)
+                                    .padding(.top, 12)
+                                    .padding(.bottom, replies.isEmpty ? 0 : 2)
                             }
-                            .padding(.leading, 46)
-                            .padding(.top, 12)
+
+                            ForEach(replies) { message in
+                                ThreadMessageRow(
+                                    message: message,
+                                    onOpenAttachment: onOpenAttachment,
+                                    canManagePreparedActions: canManagePreparedActions,
+                                    onReviewPreparedCreateAgent: onReviewPreparedCreateAgent
+                                )
+                                    .id(message.id)
+                                    .padding(.top, 10)
+                            }
+
+                            if pending {
+                                HStack(spacing: 7) {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                    Text("Sending")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .padding(.leading, 46)
+                                .padding(.top, 12)
+                            }
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-                        }
-                        .scrollDismissesKeyboard(.interactively)
-                        .contentShape(.rect)
-                        .simultaneousGesture(TapGesture().onEnded { isComposerFocused = false })
-                        .defaultScrollAnchor(.bottom)
-                        .onScrollGeometryChange(for: Bool.self) { geometry in
-                            ThreadReplyScrollPosition.isNearBottom(
-                                contentHeight: geometry.contentSize.height,
-                                containerHeight: geometry.containerSize.height,
-                                visibleMaxY: geometry.visibleRect.maxY
-                            )
-                        } action: { _, nearBottom in
-                            isNearBottom = nearBottom
-                        }
-                        .onChange(of: replies.last?.id) { previousLatestID, latestReplyID in
-                            guard let latestReplyID else { return }
+                    .scrollDismissesKeyboard(.interactively)
+                    .contentShape(.rect)
+                    .simultaneousGesture(TapGesture().onEnded { isComposerFocused = false })
+                    .scrollPosition($scrollPosition)
+                    // A thread shorter than the screen still sits on the composer.
+                    .defaultScrollAnchor(.bottom)
+                    .onScrollGeometryChange(for: Bool.self) { geometry in
+                        ThreadReplyScrollPosition.isNearBottom(
+                            contentHeight: geometry.contentSize.height,
+                            containerHeight: geometry.containerSize.height,
+                            visibleMaxY: geometry.visibleRect.maxY
+                        )
+                    } action: { _, nearBottom in
+                        isNearBottom = nearBottom
+                    }
+                    .onChange(of: replies.last?.id) { previousLatestID, latestReplyID in
+                        guard latestReplyID != nil else { return }
 
-                            switch ThreadReplyReveal.onLatestReplyChange(
-                                previousLatestID: previousLatestID,
-                                isNearBottom: isNearBottom,
-                                latestIsPending: replies.last?.isPending == true
-                            ) {
-                            case .settle:
-                                var transaction = Transaction()
-                                transaction.disablesAnimations = true
-                                withTransaction(transaction) {
-                                    proxy.scrollTo(latestReplyID, anchor: .bottom)
-                                }
-                            case .animate:
-                                withAnimation(.easeOut(duration: 0.2)) {
-                                    proxy.scrollTo(latestReplyID, anchor: .bottom)
-                                }
-                            case .stay:
-                                break
-                            }
-                        }
-                        .onChange(of: replies.count) { _, _ in
-                            guard let preservedTopReplyID else { return }
-                            self.preservedTopReplyID = nil
+                        switch ThreadReplyReveal.onLatestReplyChange(
+                            previousLatestID: previousLatestID,
+                            isNearBottom: isNearBottom,
+                            latestIsPending: replies.last?.isPending == true
+                        ) {
+                        case .settle:
                             var transaction = Transaction()
                             transaction.disablesAnimations = true
                             withTransaction(transaction) {
-                                proxy.scrollTo(preservedTopReplyID, anchor: .top)
+                                scrollPosition.scrollTo(edge: .bottom)
                             }
+                        case .animate:
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                scrollPosition.scrollTo(edge: .bottom)
+                            }
+                        case .stay:
+                            break
                         }
-                        // Same shape as the chat screen: replies run under the floating glass
-                        // composer and the inset reserves their clearance.
-                        .safeAreaInset(edge: .bottom, spacing: 0) {
-                            MessageComposerView(
-                                text: $draft,
-                                interaction: composerInteraction,
-                                placeholder: "Reply in thread",
-                                isConnected: isConnected,
-                                isTextFocused: $isComposerFocused,
-                                allowsAttachments: allowsAttachments,
-                                transitionNamespace: composerTransitionNamespace,
-                                onSend: { content, attachments in
-                                    guard !pending else { return false }
-                                    return await onSend(content, attachments)
-                                }
-                            )
+                    }
+                    .onChange(of: replies.count) { _, _ in
+                        guard let preservedTopReplyID else { return }
+                        self.preservedTopReplyID = nil
+                        var transaction = Transaction()
+                        transaction.disablesAnimations = true
+                        withTransaction(transaction) {
+                            scrollPosition.scrollTo(id: preservedTopReplyID, anchor: .top)
                         }
+                    }
+                    // Same shape as the chat screen: replies run under the floating glass
+                    // composer and the inset reserves their clearance.
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        MessageComposerView(
+                            text: $draft,
+                            interaction: composerInteraction,
+                            placeholder: "Reply in thread",
+                            isConnected: isConnected,
+                            isTextFocused: $isComposerFocused,
+                            allowsAttachments: allowsAttachments,
+                            transitionNamespace: composerTransitionNamespace,
+                            onSend: { content, attachments in
+                                guard !pending else { return false }
+                                return await onSend(content, attachments)
+                            }
+                        )
                     }
                 }
 

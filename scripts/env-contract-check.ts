@@ -68,6 +68,7 @@ const processContractNames = new Set([
 const externallyConsumedNames = new Map([
     ['AWS_ACCESS_KEY_ID', 'the aws CLI in scripts/release/publish-desktop.mjs'],
     ['AWS_SECRET_ACCESS_KEY', 'the aws CLI in scripts/release/publish-desktop.mjs'],
+    ['CI_DEVELOPMENT_OP_TOKEN', 'varlock @initOp(id=development)'],
     ['CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN', 'varlock @initOp(id=development)'],
     ['DEPLOY_AGENT_PRODUCTION_OP_TOKEN', 'varlock @initOp(id=production)'],
 ]);
@@ -230,17 +231,41 @@ for (const match of runServer.matchAll(/^export ([A-Z][A-Z0-9_]*)=/gmu)) {
 }
 
 // 7. The deploy agent's bootstrap token is the only secret a workflow may hold.
-//    It fills the schema's production role slot rather than naming a
-//    credential; anything else here is a value that escaped the contract.
+//    Each workflow maps it to its own role slot; Cursor's account-level token
+//    name never appears in GitHub Actions. Anything else here is a value that
+//    escaped the contract.
 const allowedWorkflowSecrets = new Set(['GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN']);
+const workflowContents = new Map<string, string>();
 for (const workflowPath of [deployWorkflowPath, qualityWorkflowPath]) {
     const workflow = readFileSync(workflowPath, 'utf8');
+    workflowContents.set(workflowPath, workflow);
     for (const match of workflow.matchAll(/secrets\.([A-Z][A-Z0-9_]*)/gu)) {
         if (!allowedWorkflowSecrets.has(match[1])) {
             issues.push(
                 `${workflowPath.replace(`${repositoryRoot}/`, '')} reads secrets.${match[1]}; the only platform-held secret is the deploy agent bootstrap.`
             );
         }
+    }
+}
+
+const githubDeploySecret = ['$', '{{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}'].join('');
+const requiredWorkflowMappings = new Map([
+    [deployWorkflowPath, `DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${githubDeploySecret}`],
+    [qualityWorkflowPath, `CI_DEVELOPMENT_OP_TOKEN: ${githubDeploySecret}`],
+]);
+for (const [workflowPath, requiredMapping] of requiredWorkflowMappings) {
+    if (!workflowContents.get(workflowPath)?.includes(requiredMapping)) {
+        issues.push(
+            `${workflowPath.replace(`${repositoryRoot}/`, '')} must map the GitHub deploy secret to its role-specific bootstrap slot.`
+        );
+    }
+}
+
+for (const [workflowPath, workflow] of workflowContents) {
+    if (workflow.includes('CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN')) {
+        issues.push(
+            `${workflowPath.replace(`${repositoryRoot}/`, '')} uses the Cursor bootstrap slot; that name belongs only to Cursor Runtime Secrets.`
+        );
     }
 }
 

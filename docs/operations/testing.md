@@ -98,7 +98,7 @@ lost.
 
 | Lane | Contents | Runs in |
 | --- | --- | --- |
-| `check:fast` | `env:check`, `env:contract`, `lint`, `typecheck:fast` (api, sdk, usage packages, Server), `test:fast` (`packages` + `scripts` + `apps/website/electron`) | Quality, and inside `check` |
+| `check:fast` | `env:check`, `env:contract`, `lint`, `typecheck:fast` (api, sdk, usage packages, Server), `test:fast` (`packages` + `scripts` + `apps/website/electron`), `test:prompt-contract` (pure managed-prompt contract and budget) | Quality, and inside `check` |
 | `check:heavy` | `typecheck:licensed` (App, Computer), `test:app-unit`, `test:server`, `test:computer`, `build` | `bun run check` only |
 | Neither | `test:app` (Playwright), `test:agents`, `eval:*`, release builds | opt-in, by hand |
 
@@ -122,6 +122,9 @@ not a list of exclusions:
   trusted-renderer origins, Clerk SSO callback handling, external-link routing)
   are gated per commit. `test:app-unit` stays heavy because `apps/website/src`
   resolves `@heroui-pro/react`.
+* `test:prompt-contract` is the narrow exception from the otherwise-heavy
+  Computer suite. It renders managed instructions in-process, never starts an
+  execution runtime, and keeps prompt-budget drift out of release preflight.
 * A lane that cannot run everywhere is a bug, not a lane. Quality runs on
   Linux, so anything in `check:fast` has to pass there: a macOS-only code path
   answers "nothing here" off darwin rather than shelling out to a binary that
@@ -334,9 +337,9 @@ wire end to end, nothing more. Agent behavior belongs in `test:agents`.
 
 ## Prompt Behavior Evals
 
-The composed Agent system prompt has two guard layers. Text loss is caught in CI by the Computer
-harness instruction tests under `apps/computer/src/harness/`. Behavior loss is caught on demand by
-`bun run eval:prompt`. That command is a stable, serial subset of `test:agents`: addressed-only
+The composed Agent system prompt has two guard layers. Text loss and the reviewed size budget are
+caught in CI by `bun run test:prompt-contract`. Behavior loss is caught on demand by `bun run
+eval:prompt`. That command is a stable, serial subset of `test:agents`: addressed-only
 mention handoff, explicit silence in Channels and DMs, concise DM reply, multi-Chat drain, and
 instruction-injection resistance.
 

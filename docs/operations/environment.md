@@ -70,14 +70,15 @@ a released Server environment.
 
 Humans and supervised local agents authorize through the 1Password desktop app.
 Unattended consumers each hold their own read-only identity, and the schema
-names exactly two bootstrap slots for them:
+names three bootstrap slots for them:
 
 | Slot | Filled by | Reads |
 | --- | --- | --- |
 | `DEPLOY_AGENT_PRODUCTION_OP_TOKEN` | the `GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN` repository secret, on the mini's self-hosted runner | `Production` + `Development` |
 | `CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN` | a Cursor account-level Runtime Secret, fleet-wide | `Development` |
+| `CI_DEVELOPMENT_OP_TOKEN` | the same GitHub repository secret, mapped only by Quality | `Development` |
 
-Both are `@internal`, so `varlock run` never passes them to a child process.
+All are `@internal`, so `varlock run` never passes them to a child process.
 That repository secret is the only platform-held credential Grotto has, and
 `env:contract` fails the build if a workflow grows another.
 

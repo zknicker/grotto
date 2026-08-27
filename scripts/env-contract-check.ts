@@ -22,6 +22,11 @@ const schemaPath = join(repositoryRoot, '.env.schema');
 const runServerPath = join(repositoryRoot, 'apps/server/operations/run-server');
 const deployWorkflowPath = join(repositoryRoot, '.github/workflows/deploy-grotto-server.yml');
 const qualityWorkflowPath = join(repositoryRoot, '.github/workflows/quality.yml');
+const releaseWorkflowPath = join(repositoryRoot, '.github/workflows/release.yml');
+const releaseSetupActionPath = join(
+    repositoryRoot,
+    '.github/actions/setup-release-dependencies/action.yml'
+);
 
 // Supplied by the operating system, the toolchain, or GitHub Actions itself.
 // Out of the environment contract by design.
@@ -71,6 +76,7 @@ const externallyConsumedNames = new Map([
     ['CI_OP_TOKEN', 'varlock @initOp(id=development)'],
     ['CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN', 'varlock @initOp(id=development)'],
     ['DEPLOY_AGENT_PRODUCTION_OP_TOKEN', 'varlock @initOp(id=production)'],
+    ['RELEASE_AGENT_TOOLING_OP_TOKEN', 'varlock @initOp(id=tooling)'],
 ]);
 
 // Names run-server may set for itself. Everything else the Server receives
@@ -230,35 +236,63 @@ for (const match of runServer.matchAll(/^export ([A-Z][A-Z0-9_]*)=/gmu)) {
     }
 }
 
-// 7. The deploy agent's bootstrap token is the only secret a workflow may hold.
-//    Each workflow maps it to its own role slot; Cursor's account-level token
-//    name never appears in GitHub Actions. Anything else here is a value that
-//    escaped the contract.
-const allowedWorkflowSecrets = new Set(['GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN']);
+// 7. Workflows may hold only the deploy/CI bootstrap and the dedicated release
+//    Tooling bootstrap. Each maps to its named consumer role; Cursor's
+//    account-level token never appears in GitHub Actions.
+const allowedWorkflowSecrets = new Map([
+    [deployWorkflowPath, new Set(['GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN'])],
+    [qualityWorkflowPath, new Set(['GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN'])],
+    [
+        releaseWorkflowPath,
+        new Set([
+            'GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN',
+            'GH_RELEASE_AGENT_TOOLING_OP_TOKEN',
+        ]),
+    ],
+]);
 const workflowContents = new Map<string, string>();
-for (const workflowPath of [deployWorkflowPath, qualityWorkflowPath]) {
+for (const workflowPath of [deployWorkflowPath, qualityWorkflowPath, releaseWorkflowPath]) {
     const workflow = readFileSync(workflowPath, 'utf8');
     workflowContents.set(workflowPath, workflow);
     for (const match of workflow.matchAll(/secrets\.([A-Z][A-Z0-9_]*)/gu)) {
-        if (!allowedWorkflowSecrets.has(match[1])) {
+        if (!allowedWorkflowSecrets.get(workflowPath)?.has(match[1])) {
             issues.push(
-                `${workflowPath.replace(`${repositoryRoot}/`, '')} reads secrets.${match[1]}; the only platform-held secret is the deploy agent bootstrap.`
+                `${workflowPath.replace(`${repositoryRoot}/`, '')} reads undeclared workflow secret secrets.${match[1]}.`
             );
         }
     }
 }
 
 const githubDeploySecret = ['$', '{{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}'].join('');
-const requiredWorkflowMappings = new Map([
-    [deployWorkflowPath, `DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${githubDeploySecret}`],
-    [qualityWorkflowPath, `CI_OP_TOKEN: ${githubDeploySecret}`],
-]);
-for (const [workflowPath, requiredMapping] of requiredWorkflowMappings) {
+const githubReleaseSecret = ['$', '{{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}'].join('');
+const requiredWorkflowMappings: [string, string, string][] = [
+    [
+        deployWorkflowPath,
+        `DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${githubDeploySecret}`,
+        'deploy bootstrap',
+    ],
+    [qualityWorkflowPath, `CI_OP_TOKEN: ${githubDeploySecret}`, 'CI bootstrap'],
+    [releaseWorkflowPath, `ci-op-token: ${githubDeploySecret}`, 'release dependency bootstrap'],
+    [
+        releaseWorkflowPath,
+        `RELEASE_AGENT_TOOLING_OP_TOKEN: ${githubReleaseSecret}`,
+        'release Tooling bootstrap',
+    ],
+];
+for (const [workflowPath, requiredMapping, role] of requiredWorkflowMappings) {
     if (!workflowContents.get(workflowPath)?.includes(requiredMapping)) {
         issues.push(
-            `${workflowPath.replace(`${repositoryRoot}/`, '')} must map the GitHub deploy secret to its role-specific bootstrap slot.`
+            `${workflowPath.replace(`${repositoryRoot}/`, '')} must map its ${role} to the role-specific slot.`
         );
     }
+}
+
+const releaseSetupAction = readFileSync(releaseSetupActionPath, 'utf8');
+const compositeBootstrapMapping = ['CI_OP_TOKEN: $', '{{ inputs.ci-op-token }}'].join('');
+if (!releaseSetupAction.includes(compositeBootstrapMapping)) {
+    issues.push(
+        '.github/actions/setup-release-dependencies/action.yml must scope the release dependency bootstrap to CI_OP_TOKEN.'
+    );
 }
 
 for (const [workflowPath, workflow] of workflowContents) {

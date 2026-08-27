@@ -13,6 +13,12 @@ import {
     releasePublishesTarget,
     releaseTargetVersion,
 } from './release-ledger.mjs';
+import {
+    assertNoTag,
+    createGithubRelease,
+    createTag,
+    pushReleaseTag,
+} from './release-publication.mjs';
 import { fail, isSemver, readJson, readText, repoRoot } from './release-utils.mjs';
 
 const argv = process.argv.slice(2);
@@ -97,32 +103,6 @@ function assertVersion(version) {
     }
 }
 
-function assertNoTag(tagName) {
-    const localTag = spawnSync(
-        'git',
-        ['rev-parse', '--verify', '--quiet', `refs/tags/${tagName}`],
-        {
-            cwd: repoRoot,
-            stdio: 'ignore',
-        }
-    );
-    if (localTag.status === 0) {
-        fail(`tag ${tagName} already exists locally`);
-    }
-
-    const remoteTag = spawnSync(
-        'git',
-        ['ls-remote', '--exit-code', 'origin', `refs/tags/${tagName}`],
-        {
-            cwd: repoRoot,
-            encoding: 'utf8',
-        }
-    );
-    if (remoteTag.status === 0) {
-        fail(`tag ${tagName} already exists on origin`);
-    }
-}
-
 function assertCleanWorktree() {
     const status = runCapture('git', ['status', '--porcelain']);
     if (status.trim()) {
@@ -130,10 +110,6 @@ function assertCleanWorktree() {
             status: status.trim(),
         });
     }
-}
-
-function createTag(tagName, sourceRevision) {
-    run('git', ['tag', '-a', tagName, sourceRevision, '-m', tagName]);
 }
 
 function readSourceRevision() {
@@ -149,10 +125,6 @@ function readSourceRevision() {
         });
     }
     return sourceRevision;
-}
-
-function pushReleaseTag(tagName) {
-    run('git', ['push', 'origin', tagName]);
 }
 
 async function readPublishedRelease(version) {
@@ -232,20 +204,6 @@ async function findDesktopArtifacts(version) {
 
 async function findFiles(directory, predicate) {
     return (await readdir(directory)).filter(predicate).map((entry) => path.join(directory, entry));
-}
-
-function createGithubRelease({ artifacts, notesPath, tagName }) {
-    run('gh', [
-        'release',
-        'create',
-        tagName,
-        ...artifacts,
-        '--title',
-        tagName,
-        '--notes-file',
-        notesPath,
-        '--latest',
-    ]);
 }
 
 function run(command, args, options = {}) {

@@ -239,6 +239,9 @@ public struct ChatSidebarView: View {
                         .offset(x: -Self.listInset - Self.unreadMarkerDiameter / 2)
                 }
             }
+            // The label's own drawing stops at the title, so without this the
+            // tappable area is the glyph and the text rather than the row.
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(chat.unreadCount > 0 ? "\(chat.title), unread" : chat.title)

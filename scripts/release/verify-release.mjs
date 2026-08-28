@@ -7,6 +7,27 @@ import { verifyNormalRelease } from './github-release-verifier.mjs';
 
 export { verifyComputerOnlyRelease, verifyNormalRelease };
 
+export function assertSelectedJobResults({ results, targets }) {
+    assertRecord(results, 'release job results');
+    assertRecord(targets, 'release target outcomes');
+    const selectedJobs = [
+        ['computer', 'publish_computer'],
+        ['app', 'publish_app'],
+        ['ios', 'upload_ios'],
+        ['server', 'publish_server'],
+    ];
+    if (targets.server) {
+        selectedJobs.push(['server', 'promote_server']);
+    }
+    for (const [target, job] of selectedJobs) {
+        if (targets[target] && results[job]?.result !== 'success') {
+            throw new Error(
+                `selected release job ${job} ended ${results[job]?.result ?? 'missing'}`
+            );
+        }
+    }
+}
+
 export function writeReleaseSummary({ summaryPath, verification, targets }) {
     if (typeof summaryPath !== 'string' || !summaryPath) {
         throw new Error('GITHUB_STEP_SUMMARY is required for release finalization');
@@ -94,6 +115,13 @@ async function main() {
         ios: booleanEnvironment('PUBLISH_IOS'),
         server: booleanEnvironment('PUBLISH_SERVER'),
     };
+    let jobResults;
+    try {
+        jobResults = JSON.parse(requiredEnvironment('RELEASE_JOB_RESULTS'));
+    } catch {
+        throw new Error('RELEASE_JOB_RESULTS must be valid JSON');
+    }
+    assertSelectedJobResults({ results: jobResults, targets });
     let verification;
     if (targets.server) {
         verification = await verifyNormalRelease({

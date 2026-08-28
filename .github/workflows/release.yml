@@ -240,6 +240,7 @@ jobs:
     name: Promote Server
     needs: [plan, publish_server]
     if: >-
+      always() &&
       needs.plan.result == 'success' &&
       needs.plan.outputs.publish_server == 'true' &&
       needs.publish_server.result == 'success'
@@ -272,12 +273,7 @@ jobs:
         needs.plan.outputs.publish_app == 'true' ||
         needs.plan.outputs.publish_ios == 'true' ||
         needs.plan.outputs.publish_server == 'true'
-      ) &&
-      (needs.publish_computer.result == 'success' || needs.plan.outputs.publish_computer == 'false') &&
-      (needs.publish_app.result == 'success' || needs.plan.outputs.publish_app == 'false') &&
-      (needs.upload_ios.result == 'success' || needs.plan.outputs.publish_ios == 'false') &&
-      (needs.publish_server.result == 'success' || needs.plan.outputs.publish_server == 'false') &&
-      (needs.promote_server.result == 'success' || needs.plan.outputs.publish_server == 'false')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -295,4 +291,5 @@ jobs:
           PUBLISH_APP: ${{ needs.plan.outputs.publish_app }}
           PUBLISH_IOS: ${{ needs.plan.outputs.publish_ios }}
           PUBLISH_SERVER: ${{ needs.plan.outputs.publish_server }}
+          RELEASE_JOB_RESULTS: ${{ toJSON(needs) }}
         run: node scripts/release/verify-release.mjs

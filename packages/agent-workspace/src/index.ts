@@ -1,6 +1,10 @@
 export {
+    type CoveFactoryGuidanceFile,
+    type CoveFactoryGuidancePlan,
     coveSeededSummaries,
     coveWorkspaceFiles,
+    inspectCoveFactoryGuidance,
+    reconcileCoveFactoryGuidance,
     seedCoveWorkspace,
     validateCoveWorkspace,
 } from './cove-starter-kit.ts';

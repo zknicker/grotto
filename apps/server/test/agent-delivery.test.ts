@@ -829,6 +829,26 @@ test('replays durable Agent retirement tombstones on Computer reconnect', async 
     expect(transport.framesOfType('start')).toEqual([]);
 });
 
+test('reconnect configuration preserves Cove factory identity', async () => {
+    const seed = await seedAgent();
+    await connection.db
+        .update(agentsTable)
+        .set({ factoryAppliedAt: new Date(), factoryKind: 'cove' })
+        .where(eq(agentsTable.id, seed.agentId));
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.onComputerReconnect(seed.computerId);
+
+    expect(transport.framesOfType('agent-configure')).toEqual([
+        expect.objectContaining({
+            agentId: seed.agentId,
+            factoryKind: 'cove',
+        }),
+    ]);
+});
+
 test('queues work for a busy Agent and notices it, then drains at the boundary', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();

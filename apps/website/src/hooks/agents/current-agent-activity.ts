@@ -17,6 +17,7 @@ const activityLabels: Record<AgentActivityEvent['category'], string> = {
     sending_message: 'Sending a message…',
     starting_work: 'Starting work…',
     thinking: 'Thinking…',
+    updating_instructions: 'Updating instructions…',
     using_tool: 'Using a tool…',
     working: 'Working…',
 };

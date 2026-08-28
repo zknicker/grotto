@@ -1,4 +1,4 @@
-import { readFile, rm } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import type { HarnessV1 } from '@ai-sdk/harness';
 import {
@@ -12,6 +12,7 @@ import { createCodex } from '@ai-sdk/harness-codex';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
 import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import { inspectCoveFactoryGuidance, reconcileCoveFactoryGuidance } from '@grotto/agent-workspace';
 import type { AgentReasoningEffort } from '@grotto/api';
 import { type ClaudeUsageSnapshot, normalizeClaudeUsageResponse } from '@grotto/claude-usage';
 import type { ComputerAgentActivityUpdate } from '../agent-activity.ts';
@@ -26,6 +27,7 @@ import {
     createComputerActivityProjector,
     createComputerActivityRegistry,
 } from './activity-projector.ts';
+import { fingerprintHarnessBootstrap, refreshHarnessBootstrap } from './bootstrap-refresh.ts';
 import { bridgeStoreDirForAgentsRoot, withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
 import {
     type ComputerExecutionJournal,
@@ -65,6 +67,7 @@ export interface HarnessTurnInput {
     dataRoot: string;
     /** Sandbox env: `grotto` on PATH, proxy/MCP identity, HOME. */
     env: Record<string, string>;
+    factoryKind: 'cove' | 'ordinary';
     homeDir: string;
     /** Home timezone for the Current Runtime Context section. */
     homeTimezone: string;
@@ -140,8 +143,7 @@ export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTu
             runtimeId: input.runtimeId,
         });
         const restartRequested = await isSessionRestartRequested(input.agentRoot);
-        const refreshInstructions = session.resumeState !== null && restartRequested;
-        const result = await executeHarnessTurn(input, session, refreshInstructions, journal);
+        const result = await executeHarnessTurn(input, session, restartRequested, journal);
         if (restartRequested) {
             await clearSessionRestartRequest(input.agentRoot);
         }
@@ -156,20 +158,31 @@ export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTu
 async function executeHarnessTurn(
     input: HarnessTurnInput,
     session: AgentSessionState,
-    refreshInstructions: boolean,
+    restartRequested: boolean,
     journal: ComputerExecutionJournal
 ): Promise<HarnessTurnResult> {
     const skills = await readAgentSkills(input.skillsDir);
-    // The Computer composes the managed Grotto operating contract itself; the
-    // harness adapter delivers it on a fresh session or once after an explicit
-    // Restart. Ordinary resumes preserve the no-redelivery contract.
-    const { instructions } = composeAgentInstructions({
+    // The Computer composes the managed Grotto operating contract itself. A
+    // changed fingerprint restarts the adapter boundary before this turn while
+    // preserving the native conversation.
+    const { fingerprint: instructionFingerprint, instructions } = composeAgentInstructions({
         agentId: input.agentId,
         agentName: input.agentName,
         homeTimezone: input.homeTimezone,
         initialRole: input.initialRole,
         webAccess: input.webAccess,
         workspacePath: input.workspaceDir,
+    });
+    const harness = createHarnessForRuntime(
+        input.runtimeId,
+        input.modelId,
+        input.reasoningEffort,
+        input.webAccess !== null,
+        bridgeStoreDir(input)
+    );
+    const bootstrapFingerprint = await fingerprintHarnessBootstrap({
+        abortSignal: input.signal,
+        harness,
     });
     const collectClaudePlanUsage =
         input.runtimeId === 'claude-code' && (await claimClaudeSdkUsageRefresh(input.dataRoot));
@@ -179,13 +192,53 @@ async function executeHarnessTurn(
               env: { ...input.env, GROTTO_CLAUDE_USAGE_REFRESH: '1' },
           }
         : input;
-    const agent = harnessAgentFactory(effectiveInput, { instructions, skills });
+    const agent = harnessAgentFactory(effectiveInput, { harness, instructions, skills });
     let live: HarnessAgentSession | undefined;
+    let instructionUpdate: 'completed' | 'none' | 'started' = 'none';
     try {
         const sessionId = session.runtimeSessionId ?? `${input.agentId}-${session.generation}`;
         const resumeFrom =
             (session.resumeState as HarnessAgentResumeSessionState | null) ?? undefined;
         let effectiveResumeFrom = resumeFrom;
+        let factoryGuidanceNotice: string | null = null;
+        let factoryGuidanceRefreshPending =
+            input.factoryKind === 'cove' && (await hasPendingCoveGuidanceRefresh(input.agentRoot));
+        let factoryGuidanceRefreshCanComplete = factoryGuidanceRefreshPending;
+        if (factoryGuidanceRefreshPending) {
+            input.onActivity?.({ category: 'updating_instructions', phase: 'started' });
+            instructionUpdate = 'started';
+            factoryGuidanceNotice = coveGuidanceRefreshNotice;
+        }
+        if (input.factoryKind === 'cove') {
+            const plan = await inspectCoveFactoryGuidance(input.workspaceDir);
+            if (plan.kind !== 'current') {
+                if (instructionUpdate === 'none') {
+                    input.onActivity?.({ category: 'updating_instructions', phase: 'started' });
+                }
+                if (plan.kind === 'conflict') {
+                    input.onActivity?.({ category: 'updating_instructions', phase: 'failed' });
+                    instructionUpdate = 'none';
+                    factoryGuidanceRefreshCanComplete = false;
+                    factoryGuidanceNotice = coveGuidanceConflictNotice(plan.files);
+                } else {
+                    instructionUpdate = 'started';
+                    await markCoveGuidanceRefreshPending(input.agentRoot);
+                    factoryGuidanceRefreshPending = true;
+                    factoryGuidanceRefreshCanComplete = true;
+                    const result = await reconcileCoveFactoryGuidance(input.workspaceDir);
+                    if (result.kind !== 'conflict') {
+                        factoryGuidanceNotice = coveGuidanceRefreshNotice;
+                    } else {
+                        input.onActivity?.({ category: 'updating_instructions', phase: 'failed' });
+                        instructionUpdate = 'none';
+                        factoryGuidanceRefreshCanComplete = false;
+                        factoryGuidanceNotice = coveGuidanceConflictNotice(
+                            result.kind === 'conflict' ? result.files : plan.files
+                        );
+                    }
+                }
+            }
+        }
         // Unlike Runtime's DB-issued session ids, Computer derives its cold id
         // from the durable generation. A failed/interrupted cold start can leave
         // an unresumable harness run directory behind; remove only that exact
@@ -197,19 +250,40 @@ async function executeHarnessTurn(
                 recursive: true,
             });
         }
-        if (resumeFrom && refreshInstructions) {
-            let parked: HarnessAgentSession | undefined;
+        const instructionDrift = session.instructionFingerprint !== instructionFingerprint;
+        const bootstrapDrift = session.bootstrapFingerprint !== bootstrapFingerprint;
+        const refreshBootstrap = resumeFrom !== undefined && (restartRequested || bootstrapDrift);
+        if (
+            resumeFrom &&
+            (restartRequested || instructionDrift || bootstrapDrift) &&
+            instructionUpdate === 'none'
+        ) {
+            input.onActivity?.({ category: 'updating_instructions', phase: 'started' });
+            instructionUpdate = 'started';
+        }
+        if (resumeFrom && refreshBootstrap) {
+            let parked: HarnessAgentSession;
             try {
                 parked = await agent.createSession({
                     abortSignal: input.signal,
                     resumeFrom,
                     sessionId,
                 });
-                effectiveResumeFrom = withInstructionRefresh(await parked.stop());
             } catch (error) {
-                await parked?.destroy().catch(() => undefined);
                 throw new AgentSessionResumeRejectedError(input.agentId, { cause: error });
             }
+            // Only creation rejection proves the native resume state is bad.
+            // Parking or bootstrap I/O failures leave this generation intact so
+            // a later delivery can retry the idempotent refresh.
+            const parkedState = await parked.stop();
+            await harnessBootstrapRefresh({
+                abortSignal: input.signal,
+                harness,
+                provider: createLocalTrustedSandboxProvider(sandboxOptions(input)),
+                sessionId,
+                workDir: basename(input.workspaceDir),
+            });
+            effectiveResumeFrom = parkedState;
         }
         // Wedge attribution: a turn stuck before its first stream event is
         // invisible to the stream watchdog, so the startup path logs its own
@@ -250,16 +324,17 @@ async function executeHarnessTurn(
                 ? null
                 : 'Fresh session: your previous conversation context is gone. Your workspace and MEMORY.md are intact — MEMORY.md is your recovery point.';
         const coldStart = resetContext ? `Start.\n${resetContext}` : 'Start.';
+        const turnContent = isColdStart
+            ? coldInbox
+                ? [resetContext, coldInbox].filter(Boolean).join('\n\n')
+                : coldStart
+            : input.inboxDelivery === 'concrete'
+              ? composeInboxDrain(input.inbox, input.homeTimezone)
+              : (warmNotice ?? 'Resume the interrupted turn.');
         const turn = await agent.stream({
             abortSignal: input.signal,
             prompt: projectMessageForAgent({
-                content: isColdStart
-                    ? coldInbox
-                        ? [resetContext, coldInbox].filter(Boolean).join('\n\n')
-                        : coldStart
-                    : input.inboxDelivery === 'concrete'
-                      ? composeInboxDrain(input.inbox, input.homeTimezone)
-                      : (warmNotice ?? 'Resume the interrupted turn.'),
+                content: [factoryGuidanceNotice, turnContent].filter(Boolean).join('\n\n'),
                 enabledSkillIds: skills.map((skill) => skill.name),
             }),
             session: live,
@@ -342,14 +417,26 @@ async function executeHarnessTurn(
             session.cumulativeTokenUsage
         );
         await writeAgentSessionState(input.agentRoot, {
+            bootstrapFingerprint,
             cumulativeTokenUsage: normalizedUsage.cumulative,
             effectiveModel: { modelId: input.modelId, runtimeId: input.runtimeId },
             generation: session.generation,
+            instructionFingerprint,
             resumeState: resumeState as Record<string, unknown>,
             runtimeSessionId: live.sessionId,
         });
+        if (factoryGuidanceRefreshPending && factoryGuidanceRefreshCanComplete) {
+            await clearPendingCoveGuidanceRefresh(input.agentRoot);
+        }
+        if (instructionUpdate === 'started') {
+            instructionUpdate = 'completed';
+            input.onActivity?.({ category: 'updating_instructions', phase: 'completed' });
+        }
         return { ...observation, tokenUsage: normalizedUsage.turn };
     } catch (error) {
+        if (instructionUpdate === 'started') {
+            input.onActivity?.({ category: 'updating_instructions', phase: 'failed' });
+        }
         await live?.destroy().catch(() => undefined);
         if (error instanceof HarnessTurnFailedError) {
             const normalizedUsage = normalizeRuntimeUsage(
@@ -363,16 +450,36 @@ async function executeHarnessTurn(
     }
 }
 
-function withInstructionRefresh(
-    state: HarnessAgentResumeSessionState
-): HarnessAgentResumeSessionState {
-    return {
-        ...state,
-        data: {
-            ...(isRecord(state.data) ? state.data : {}),
-            refreshInstructions: true,
-        },
-    };
+const coveGuidanceRefreshNotice =
+    "Grotto updated Cove's factory-managed onboarding guidance. Before acting on this request, re-read onboarding_playbook.md and onboarding_knowledge_faq.md. Their current action-card guidance supersedes earlier assumptions from this session.";
+
+function coveGuidanceConflictNotice(files: readonly string[]): string {
+    return `Grotto could not update Cove's factory-managed onboarding guidance because these files were changed or removed: ${files.join(', ')}. Do not overwrite them. Retrieve the relevant Grotto Manual topic before claiming a capability is unavailable.`;
+}
+
+async function hasPendingCoveGuidanceRefresh(agentRoot: string): Promise<boolean> {
+    return await readFile(coveGuidanceRefreshReceiptPath(agentRoot))
+        .then(() => true)
+        .catch((error: unknown) => {
+            if (isRecord(error) && error.code === 'ENOENT') {
+                return false;
+            }
+            throw error;
+        });
+}
+
+async function markCoveGuidanceRefreshPending(agentRoot: string): Promise<void> {
+    const receiptPath = coveGuidanceRefreshReceiptPath(agentRoot);
+    await mkdir(dirname(receiptPath), { recursive: true });
+    await writeFile(receiptPath, '{"version":1}\n', { mode: 0o600 });
+}
+
+async function clearPendingCoveGuidanceRefresh(agentRoot: string): Promise<void> {
+    await rm(coveGuidanceRefreshReceiptPath(agentRoot), { force: true });
+}
+
+function coveGuidanceRefreshReceiptPath(agentRoot: string): string {
+    return join(agentRoot, 'runtime', 'cove-guidance-refresh.json');
 }
 
 function createNoticeDelivery(
@@ -644,7 +751,7 @@ function readClaudePlanUsageMetadata(value: unknown): ClaudeUsageSnapshot | null
 // executor and CLI-reply path without a real model.
 export type HarnessAgentFactory = (
     input: HarnessTurnInput,
-    options: { instructions: string; skills: HarnessAgentSkill[] }
+    options: { harness: HarnessV1<ToolSet>; instructions: string; skills: HarnessAgentSkill[] }
 ) => Pick<HarnessAgent, 'createSession' | 'stream'>;
 
 let harnessAgentFactory: HarnessAgentFactory = createHarnessAgent;
@@ -657,18 +764,24 @@ export function setHarnessAgentFactoryForTesting(factory: HarnessAgentFactory) {
     };
 }
 
+type HarnessBootstrapRefresh = typeof refreshHarnessBootstrap;
+
+let harnessBootstrapRefresh: HarnessBootstrapRefresh = refreshHarnessBootstrap;
+
+export function setHarnessBootstrapRefreshForTesting(refresh: HarnessBootstrapRefresh) {
+    const previous = harnessBootstrapRefresh;
+    harnessBootstrapRefresh = refresh;
+    return () => {
+        harnessBootstrapRefresh = previous;
+    };
+}
+
 function createHarnessAgent(
     input: HarnessTurnInput,
-    options: { instructions: string; skills: HarnessAgentSkill[] }
+    options: { harness: HarnessV1<ToolSet>; instructions: string; skills: HarnessAgentSkill[] }
 ): HarnessAgent {
     return new HarnessAgent({
-        harness: createHarnessForRuntime(
-            input.runtimeId,
-            input.modelId,
-            input.reasoningEffort,
-            input.webAccess !== null,
-            bridgeStoreDir(input)
-        ),
+        harness: options.harness,
         id: input.agentId,
         ...(input.runtimeId === 'claude-code'
             ? {

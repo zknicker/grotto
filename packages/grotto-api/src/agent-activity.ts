@@ -15,6 +15,7 @@ export const agentActivityCategorySchema = z.enum([
     'starting_work',
     'checking_messages',
     'thinking',
+    'updating_instructions',
     'browsing',
     'searching_web',
     'reading_files',

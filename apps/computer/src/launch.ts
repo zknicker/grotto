@@ -751,6 +751,7 @@ async function runRealRuntime(
 }> {
     const { command } = input;
     try {
+        const seed = await readAgentSeedConfiguration(input.agentRoot);
         const turn = await runHarnessTurn({
             agentId: command.agentId,
             // The Server owns the Agent handle/description; sensible defaults keep
@@ -759,6 +760,7 @@ async function runRealRuntime(
             agentRoot: input.agentRoot,
             dataRoot: input.dataRoot,
             env: input.agentEnv,
+            factoryKind: seed?.factoryKind ?? 'ordinary',
             homeDir: input.dirs.home,
             homeTimezone: command.homeTimezone ?? 'UTC',
             initialRole: command.agentDescription ?? null,

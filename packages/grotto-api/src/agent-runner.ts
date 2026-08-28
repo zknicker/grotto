@@ -145,7 +145,7 @@ export const agentConfigureCommandSchema = z
         agentDescription: z.string().trim().min(1).max(500).nullable(),
         agentId: idSchema,
         agentName: z.string().trim().min(1).max(80),
-        factoryKind: z.literal('ordinary'),
+        factoryKind: z.enum(['cove', 'ordinary']),
         modelId: z.string().trim().min(1).max(128),
         reasoningEffort: agentReasoningEffortSchema.default('medium'),
         runtimeId: z.string().trim().min(1).max(64),

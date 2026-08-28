@@ -36,6 +36,13 @@ is copied. Computer records the four-file manifest in the durable Cove
 application receipt and validates it before replaying success. Cove still gets
 the normal isolated skill library and release-owned `visuals` skill.
 
+After creation, `MEMORY.md` and `onboarding_objectives.md` are Cove-owned state and are never
+factory-refreshed. `onboarding_playbook.md` and `onboarding_knowledge_faq.md` are versioned factory
+guidance: before a Cove turn, Computer may replace them only when their bytes exactly match a known
+prior factory release. Missing or edited files are preserved as conflicts. Both successful refreshes
+and conflicts appear in Agent Activity History. A successful refresh adds a one-turn private notice
+that tells the existing model session to re-read the two files; it does not rotate the session.
+
 There is no managed `NOTES.md`, `SOUL.md`, injected core-memory section,
 automatic extraction or dreaming pipeline, or separate Wiki primitive.
 Personality comes from the Server-owned Agent description. Durable learned

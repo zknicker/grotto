@@ -14,7 +14,8 @@ model session. Per-turn message delivery is an inbox concern; see
 ## Contract
 
 - Computer composes managed product instructions, the Agent description,
-  assigned skills, and tool guidance when a fresh model session starts.
+  assigned skills, and tool guidance for every accepted turn. It persists the
+  applied instruction and Harness bootstrap fingerprints with the resumed session.
 - Computer does not append Grotto-specific model-family steering. Every model receives the same
   managed product contract; executor-native instructions remain owned by that executor.
 - Instructions include current time, home timezone, and the rule that old
@@ -22,6 +23,19 @@ model session. Per-turn message delivery is an inbox concern; see
 - The model session spans every Chat the Agent participates in and resumes
   between deliveries and Computer restarts.
 - Sessions never rotate because of age or idle time.
+- The Harness supplies current composed instructions on every accepted turn. When the persisted
+  instruction fingerprint differs, the same native conversation therefore adopts them without
+  adapter rotation. Bootstrap drift or Restart parks the adapter at the turn boundary, applies the
+  current content-addressed bootstrap, and resumes that conversation. Activity History records the
+  update as started, completed, or failed without prompt text, local paths, commands, or hashes.
+- Before Cove turns, Computer also reconciles recognized prior factory revisions of the playbook
+  and FAQ. It never replaces Cove's memory, objectives, missing files, or edited guidance. A
+  successful reconciliation gives the current session a one-turn private re-read notice; conflicts
+  remain visible as failed instruction-update activity while the turn continues.
+- Fingerprints advance only after the refreshed turn successfully detaches with new resume state.
+  A bootstrap or turn failure keeps the previous receipt and session generation so a later delivery
+  can retry. Only rejection of the stored native resume state enters Server-authorized session
+  recovery; Computer never silently discards conversation context.
 - A fresh session starts only for initial creation, a runtime, model, or reasoning-effort switch,
   manual session reset, or one automatic recovery after the harness rejects a stored resume state.
 - An execution-configuration change never interrupts an active turn. The active turn finishes
@@ -35,8 +49,8 @@ model session. Per-turn message delivery is an inbox concern; see
   action result; a failed new run reoffers it. Action attention has no Chat
   cursor, and creating an Agent does not schedule an empty bootstrap turn.
 - Restart recreates the Agent runner and resumes the same native conversation.
-  Its next delivery applies the latest composed instructions once without
-  rotating the session generation or replaying `Start.`.
+  Its next delivery uses the same refresh path without rotating the session generation or
+  replaying `Start.`.
 - Session reset preserves workspace, memory, skills, identity, and Server
   history. Full reset restores an ordinary Agent's minimal `MEMORY.md` and
   factory-managed skills.

@@ -170,8 +170,17 @@ Human Restart is distinct from session reset. Server requires the assigned
 Computer to be online, stops any active run, and sends an `agent-restart`
 command before redriving pending work. Computer records that command durably,
 recreates the runner boundary, resumes the same native conversation, and
-applies the latest composed instructions exactly once on the next delivery.
-Ordinary resume never redelivers instructions.
+uses the same fingerprinted instruction/bootstrap refresh path as automatic drift.
+
+Before every accepted turn, Computer composes current instructions and fingerprints both them and
+the selected Harness bootstrap. The AI SDK Harness supplies those instructions on each stream call,
+so instruction-only drift keeps the adapter attached. Bootstrap drift or Restart parks the adapter,
+applies the content-addressed bootstrap recipe, and resumes the same native conversation. Before a
+Cove turn, Computer also replaces exact recognized prior playbook and FAQ revisions and privately
+asks the same session to re-read them; edited or missing files are preserved and reported as a
+conflict. The receipt advances only after the turn returns valid resume state. Failure remains stale
+and preserves the generation for retry. Only rejection of the stored native resume state is reported
+as resume rejection, so only Server-authorized recovery may advance the session generation.
 
 Reminders are canonical Server schedules anchored to an Agent and Chat
 target. When due, they enter the same delivery path as other work. Computer
@@ -208,6 +217,9 @@ activity journal: Computer maps known Harness and product boundaries into safe c
 persists them, and the sidebar strip projects the latest category for each unsettled Agent. Unknown
 and MCP tools remain generic. Neither lifecycle nor semantic activity carries arguments, command
 contents, model reasoning, draft messages, tool outputs, or private file contents.
+Instruction, Cove factory-guidance, or bootstrap drift adds an explicit `updating_instructions`
+activity lifecycle. Its rows contain no prompt text, paths, commands, hashes, file contents, or raw
+bootstrap errors.
 
 Computer separately records a detailed execution journal keyed by run. Owner/Admin inspection uses
 an authorized live relay; Server never persists that response. Chat does not project run-attached
@@ -220,6 +232,7 @@ message and its composition id.
 | --- | --- |
 | One persistent session; pending delivery or cold `Start.`, then resume | `apps/computer/src/harness/executor.test.ts` |
 | Restart preserves generation and refreshes instructions exactly once | `apps/server/test/agent-delivery.test.ts`, `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/session-restart.test.ts` |
+| Instruction or bridge drift refreshes once in place and exposes the outcome safely | `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/bootstrap-refresh.test.ts`, `packages/grotto-api/src/agent-activity.test.ts` |
 | Known tools map through the semantic registry; unknown and MCP tools remain generic | `apps/computer/src/harness/executor.test.ts` |
 | Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
 | Session reset preserves workspace and skills; full reset restores the Agent-kind workspace and only factory-managed skills | `apps/computer/src/launch.test.ts` |

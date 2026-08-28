@@ -69,6 +69,16 @@ Sessions never rotate because of age or idleness. A new session starts only on:
    Session reset and Full reset rotate the agent token and land a system receipt
    in the agent's built-in DM. Restart does neither.
 
+Managed instruction, Cove factory-guidance, or Harness bootstrap drift does not rotate the session.
+The AI SDK Harness supplies current composed instructions on every accepted turn. Bootstrap drift or
+an explicit Restart additionally parks the adapter, installs the current bootstrap, and resumes the
+same native conversation. A recognized prior Cove playbook or FAQ revision is replaced before the
+turn and the current session receives a one-turn re-read notice; edited or missing guidance is
+preserved as a conflict. Applied fingerprints persist only after the refreshed turn successfully
+detaches. Activity History records refresh outcomes without instruction text or local implementation
+details. A bootstrap or turn failure keeps the previous fingerprints and generation for retry. Only
+rejection of stored native resume state uses Server-authorized recovery.
+
 Long-horizon continuity across resets comes from engine-native compaction
 and the agent's workspace MEMORY.md ([ADR 0014](../docs/adr/0014-cli-is-the-agents-only-output-channel.md)).
 

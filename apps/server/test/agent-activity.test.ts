@@ -241,6 +241,30 @@ test('deduplicates out-of-order Computer frames and interleaves by Server positi
     expect(secondPage.nextBefore).toBeNull();
 });
 
+test('persists instruction refresh activity in agent history', async () => {
+    const seed = await seedActivity();
+    const { delivery, frame } = await startRun(seed);
+    await delivery.onAck({ agentId: seed.agentId, runId: frame.runId });
+
+    const activity = await recordComputerAgentActivity(connection.db, {
+        computerId: seed.computerId,
+        frame: {
+            ...activityFrame(seed, frame.runId, 1),
+            category: 'updating_instructions',
+        },
+        serverId: seed.serverId,
+    });
+    const history = await listAgentActivityHistory(connection.db, {
+        agentId: seed.agentId,
+        limit: 10,
+        runId: frame.runId,
+        serverId: seed.serverId,
+    });
+
+    expect(activity?.category).toBe('updating_instructions');
+    expect(history.events[0]?.category).toBe('updating_instructions');
+});
+
 test('rejects wrong identities and settled runs, while active snapshot recovers the latest event', async () => {
     const seed = await seedActivity();
     const { delivery, frame } = await startRun(seed);

@@ -6,6 +6,8 @@ import { getManualTopic } from '@grotto/agent-manual';
 import {
     coveSeededSummaries,
     coveWorkspaceFiles,
+    inspectCoveFactoryGuidance,
+    reconcileCoveFactoryGuidance,
     seedCoveWorkspace,
     validateCoveWorkspace,
 } from './cove-starter-kit.ts';
@@ -122,3 +124,73 @@ test('refuses a preexisting noncanonical Cove file instead of blessing its bytes
 
     await expect(seedCoveWorkspace(workspaceDir)).rejects.toThrow(/contents/u);
 });
+
+test('refreshes factory guidance without overwriting Cove-owned memory or objectives', async () => {
+    await fs.writeFile(path.join(workspaceDir, 'MEMORY.md'), '# Cove\n\nLearned context.\n');
+    await fs.writeFile(path.join(workspaceDir, 'onboarding_objectives.md'), 'owner progress\n');
+    await fs.writeFile(path.join(workspaceDir, 'onboarding_playbook.md'), legacyPlaybook);
+    await fs.writeFile(path.join(workspaceDir, 'onboarding_knowledge_faq.md'), legacyFaq);
+    await fs.writeFile(path.join(workspaceDir, 'owner-note.md'), 'keep me\n');
+
+    expect(await inspectCoveFactoryGuidance(workspaceDir)).toMatchObject({ kind: 'refresh' });
+    expect(await reconcileCoveFactoryGuidance(workspaceDir)).toMatchObject({ kind: 'refresh' });
+    expect(await inspectCoveFactoryGuidance(workspaceDir)).toEqual({ kind: 'current' });
+    expect(await reconcileCoveFactoryGuidance(workspaceDir)).toEqual({ kind: 'current' });
+    expect(await fs.readFile(path.join(workspaceDir, 'MEMORY.md'), 'utf8')).toContain(
+        'Learned context.'
+    );
+    expect(await fs.readFile(path.join(workspaceDir, 'onboarding_objectives.md'), 'utf8')).toBe(
+        'owner progress\n'
+    );
+    expect(await fs.readFile(path.join(workspaceDir, 'owner-note.md'), 'utf8')).toBe('keep me\n');
+    expect(await fs.readFile(path.join(workspaceDir, 'onboarding_playbook.md'), 'utf8')).toContain(
+        'post an **action card** rather than a copyable spec'
+    );
+    expect(
+        await fs.readFile(path.join(workspaceDir, 'onboarding_knowledge_faq.md'), 'utf8')
+    ).toContain('prepare a native action card');
+});
+
+test('refuses to replace missing or Agent-edited factory guidance', async () => {
+    await fs.writeFile(path.join(workspaceDir, 'onboarding_playbook.md'), 'owner customization\n');
+
+    expect(await reconcileCoveFactoryGuidance(workspaceDir)).toEqual({
+        files: ['onboarding_knowledge_faq.md', 'onboarding_playbook.md'],
+        kind: 'conflict',
+    });
+    expect(await fs.readFile(path.join(workspaceDir, 'onboarding_playbook.md'), 'utf8')).toBe(
+        'owner customization\n'
+    );
+    await expect(
+        fs.readFile(path.join(workspaceDir, 'onboarding_knowledge_faq.md'), 'utf8')
+    ).rejects.toThrow();
+});
+
+const legacyFaq = `# Onboarding Knowledge FAQ
+
+## What can Cove do?
+
+Cove can collaborate in joined Chats, read Server-owned history through the Grotto CLI, work in this private workspace, use granted tools and skills, manage Tasks and reminders within current authority, and consult the shared Manual.
+
+## What stays with the owner?
+
+Owners and Admins create and administer Channels, Computers, members, roles, and external connections in the App. Cove should explain the next action and ask the owner to perform it when no Agent command exists.
+
+## Where does history live?
+
+Canonical Chat history lives on Grotto Server. Workspace notes are Cove's durable working memory, not a transcript mirror.
+
+## Are Agents archetypes?
+
+No. Agents have real identities and execution settings. Team lanes emerge through work; optional Manual cards can help design them.
+`;
+
+const legacyPlaybook = `# Onboarding Playbook
+
+1. Start with the owner's concrete goal, not a feature tour.
+2. Propose one useful next action and name who has authority to do it.
+3. Use real Grotto capabilities only. Never invent unsupported UI affordances, local Chat ownership, or Agent-created Channels.
+4. Keep suggestions optional after setup. Record postponements, refusals, and blockers in onboarding_objectives.md.
+5. Retrieve a full procedure with \`grotto manual get <topic>\` when a seeded summary applies. For an Agent-creation request, retrieve \`recipes/playbook/agent-creation\` before composing the avatar, action, and continuation.
+6. Preserve honest authorship: Cove's messages come from Cove turns, never setup machinery.
+`;

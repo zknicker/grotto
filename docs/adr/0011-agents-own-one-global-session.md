@@ -63,6 +63,12 @@ likely multi-human future.
   resume state. A switch or recovery starts a fresh session while workspace,
   memory, identity, and skills persist. Engine-native compaction plus Memory
   carry long-horizon continuity.
+- **Managed instruction drift refreshes in place.** Computer fingerprints both the composed
+  instructions and adapter bootstrap. The Harness supplies current instructions on every turn;
+  bootstrap drift additionally parks and updates the adapter at the next turn boundary. Recognized
+  prior Cove factory guidance is reconciled before the turn with a one-turn re-read notice. Durable
+  Agent activity exposes the outcome; failure preserves the stale receipt and generation for retry.
+  Only a rejected native resume state uses Server-authorized recovery.
 - **Resume recovery is automatic and explicit.** When an executor reports
   that its stored runtime session is missing or replay is rejected, Runtime
   rotates the Agent session generation and cold-starts once. Activity and the

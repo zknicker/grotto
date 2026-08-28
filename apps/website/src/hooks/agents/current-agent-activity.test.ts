@@ -350,6 +350,9 @@ test('semantic activity labels use the product catalog', () => {
     expect(formatCurrentAgentActivityLabel(activity({ category: 'using_tool' }))).toBe(
         'Using a tool…'
     );
+    expect(formatCurrentAgentActivityLabel(activity({ category: 'updating_instructions' }))).toBe(
+        'Updating instructions…'
+    );
 });
 
 test('semantic activity never overrides canonical Agent availability', () => {

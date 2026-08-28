@@ -10,9 +10,11 @@ import { join } from 'node:path';
  * next turn cold-starts (specs/sessions.md).
  */
 export interface AgentSessionState {
+    bootstrapFingerprint: string | null;
     cumulativeTokenUsage: AgentSessionTokenUsage | null;
     effectiveModel: { modelId: string; runtimeId: string };
     generation: number;
+    instructionFingerprint: string | null;
     resumeState: Record<string, unknown> | null;
     runtimeSessionId: string | null;
 }
@@ -38,7 +40,9 @@ export async function readAgentSessionState(agentRoot: string): Promise<AgentSes
         ) {
             return {
                 ...parsed,
+                bootstrapFingerprint: parseFingerprint(parsed.bootstrapFingerprint),
                 cumulativeTokenUsage: parseTokenUsage(parsed.cumulativeTokenUsage),
+                instructionFingerprint: parseFingerprint(parsed.instructionFingerprint),
             };
         }
         return null;
@@ -75,14 +79,20 @@ export function resolveTurnSession(
             stored.effectiveModel.modelId !== assigned.modelId);
     if (stored === null || modelChanged || stored.generation !== assigned.generation) {
         return {
+            bootstrapFingerprint: null,
             cumulativeTokenUsage: emptyTokenUsage(),
             effectiveModel: { modelId: assigned.modelId, runtimeId: assigned.runtimeId },
             generation: assigned.generation,
+            instructionFingerprint: null,
             resumeState: null,
             runtimeSessionId: null,
         };
     }
     return stored;
+}
+
+function parseFingerprint(value: unknown): string | null {
+    return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
 function parseTokenUsage(value: unknown): AgentSessionTokenUsage | null {

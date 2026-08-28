@@ -38,6 +38,9 @@ cache entry.
   import a Server router merely to inherit its output types.
 - Semantic activity is the default human-readable evidence. Raw execution
   journal data is restricted to the access policy enforced by Server.
+- A managed instruction, Cove factory-guidance, or Harness bootstrap refresh is durable semantic activity:
+  `Updating instructions…`, `Updated instructions`, or `Failed to update instructions`. It exposes
+  only the lifecycle outcome; instruction text, hashes, paths, commands, and raw errors stay local.
 - Tool-specific labels and bodies may extend the App registries, but their
   input must come through the transcript contract or execution journal path.
   They must not restore a direct Runtime fetch.

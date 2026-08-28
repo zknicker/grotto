@@ -9,6 +9,7 @@ export type ComputerAgentActivityCategory =
     | 'sending_message'
     | 'starting_work'
     | 'thinking'
+    | 'updating_instructions'
     | 'using_tool'
     | 'working';
 

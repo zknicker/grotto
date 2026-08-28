@@ -46,6 +46,23 @@ test('Cove application uses one explicit factory command and durable result', ()
     ).toMatchObject({ status: 'applied' });
 });
 
+test('ordinary configuration replay preserves Cove factory identity', () => {
+    expect(
+        agentCommandSchema.parse({
+            agentDescription: 'Onboarding Assistant',
+            agentId: 'agt_cove',
+            agentName: 'Cove',
+            factoryKind: 'cove',
+            modelId: 'gpt-5.6-sol',
+            reasoningEffort: 'medium',
+            runtimeId: 'codex',
+            sessionGeneration: 1,
+            sessionResetKind: 'session',
+            type: 'agent-configure',
+        })
+    ).toMatchObject({ factoryKind: 'cove', type: 'agent-configure' });
+});
+
 test('typed action attention carries the action identity and executed Agent result', () => {
     const result = agentCreateActionResultSchema.parse({
         agentId: 'agt_created',

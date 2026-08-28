@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getManualTopic } from '@grotto/agent-manual';
@@ -63,7 +63,24 @@ const coveFiles = {
     'onboarding_objectives.md': renderObjectives(),
 } as const;
 
+const coveFactoryGuidanceFiles = {
+    'onboarding_knowledge_faq.md': coveOnboardingFaq,
+    'onboarding_playbook.md': coveOnboardingPlaybook,
+} as const;
+
+const recognizedFactoryGuidanceHashes: Record<CoveFactoryGuidanceFile, readonly string[]> = {
+    'onboarding_knowledge_faq.md': [
+        '83778cfc1a8f9ee7b3e6674812d6a4b1b81f69a645cc374431cb5f5466ff6357',
+    ],
+    'onboarding_playbook.md': ['623fa0c5f8d30ba38058cd8f6e844c27126f8696df5e7ff47ce84ccf0bbca316'],
+};
+
 export type CoveWorkspaceFile = keyof typeof coveFiles;
+export type CoveFactoryGuidanceFile = keyof typeof coveFactoryGuidanceFiles;
+export type CoveFactoryGuidancePlan =
+    | { kind: 'conflict'; files: CoveFactoryGuidanceFile[] }
+    | { kind: 'current' }
+    | { kind: 'refresh'; files: CoveFactoryGuidanceFile[] };
 export const coveWorkspaceFiles = Object.keys(coveFiles).sort() as CoveWorkspaceFile[];
 
 export async function seedCoveWorkspace(workspaceDir: string): Promise<string> {
@@ -99,6 +116,69 @@ export async function validateCoveWorkspace(workspaceDir: string): Promise<strin
         hash.update(actual);
     }
     return hash.digest('hex');
+}
+
+/**
+ * Classifies only the two immutable factory guidance files. Learned memory and
+ * onboarding progress remain Agent-owned and are never candidates for refresh.
+ */
+export async function inspectCoveFactoryGuidance(
+    workspaceDir: string
+): Promise<CoveFactoryGuidancePlan> {
+    const refresh: CoveFactoryGuidanceFile[] = [];
+    const conflicts: CoveFactoryGuidanceFile[] = [];
+    for (const name of Object.keys(coveFactoryGuidanceFiles) as CoveFactoryGuidanceFile[]) {
+        const actual = await fs.readFile(path.join(workspaceDir, name)).catch((error: unknown) => {
+            if (isNotFound(error)) {
+                return null;
+            }
+            throw error;
+        });
+        if (actual?.equals(Buffer.from(coveFactoryGuidanceFiles[name]))) {
+            continue;
+        }
+        const hash = actual ? createHash('sha256').update(actual).digest('hex') : null;
+        if (hash && recognizedFactoryGuidanceHashes[name].includes(hash)) {
+            refresh.push(name);
+        } else {
+            conflicts.push(name);
+        }
+    }
+    if (conflicts.length > 0) {
+        return { files: conflicts, kind: 'conflict' };
+    }
+    return refresh.length > 0 ? { files: refresh, kind: 'refresh' } : { kind: 'current' };
+}
+
+/**
+ * Replaces recognized prior factory revisions with current bytes. The plan is
+ * revalidated immediately before writing so an Agent edit wins any race.
+ */
+export async function reconcileCoveFactoryGuidance(
+    workspaceDir: string
+): Promise<CoveFactoryGuidancePlan> {
+    const plan = await inspectCoveFactoryGuidance(workspaceDir);
+    if (plan.kind !== 'refresh') {
+        return plan;
+    }
+    for (const name of plan.files) {
+        const destination = path.join(workspaceDir, name);
+        const actual = await fs.readFile(destination);
+        const hash = createHash('sha256').update(actual).digest('hex');
+        if (!recognizedFactoryGuidanceHashes[name].includes(hash)) {
+            return { files: [name], kind: 'conflict' };
+        }
+    }
+    for (const name of plan.files) {
+        const destination = path.join(workspaceDir, name);
+        const temporary = `${destination}.grotto-refresh-${process.pid}-${randomUUID()}`;
+        await fs.writeFile(temporary, coveFactoryGuidanceFiles[name], { mode: 0o600 });
+        await fs.rename(temporary, destination).catch(async (error) => {
+            await fs.rm(temporary, { force: true });
+            throw error;
+        });
+    }
+    return plan;
 }
 
 function renderObjectives(): string {
@@ -195,5 +275,11 @@ ${summaries.join('\n\n')}
 function isExists(error: unknown): boolean {
     return (
         typeof error === 'object' && error !== null && 'code' in error && error.code === 'EEXIST'
+    );
+}
+
+function isNotFound(error: unknown): boolean {
+    return (
+        typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT'
     );
 }

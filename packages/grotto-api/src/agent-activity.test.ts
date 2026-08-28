@@ -18,6 +18,7 @@ const frame = {
 
 test('activity categories are the safe semantic vocabulary', () => {
     expect(agentActivityCategorySchema.safeParse('running_command').success).toBe(true);
+    expect(agentActivityCategorySchema.safeParse('updating_instructions').success).toBe(true);
     expect(agentActivityCategorySchema.safeParse('drafting').success).toBe(false);
 });
 

@@ -725,7 +725,7 @@ export class AgentDelivery {
                     runtimeId: agent.desiredRuntimeId,
                     sessionGeneration: agent.sessionGeneration,
                     sessionResetKind: agent.sessionResetKind,
-                    factoryKind: 'ordinary',
+                    factoryKind: agent.factoryKind,
                     type: 'agent-configure',
                 });
             }
@@ -816,7 +816,7 @@ export class AgentDelivery {
             runtimeId: input.runtimeId,
             sessionGeneration: config.sessionGeneration,
             sessionResetKind: config.sessionResetKind,
-            factoryKind: 'ordinary',
+            factoryKind: config.factoryKind,
             type: 'agent-configure',
         });
     }
@@ -1200,7 +1200,7 @@ function configureFrame(agentId: string, config: ConfiguredAgent): AgentCommand 
         agentDescription: config.agentDescription,
         agentId,
         agentName: config.agentDisplayName,
-        factoryKind: 'ordinary',
+        factoryKind: config.factoryKind,
         modelId: config.desiredModelId,
         reasoningEffort: config.desiredReasoningEffort,
         runtimeId: config.desiredRuntimeId,

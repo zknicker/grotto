@@ -6,6 +6,7 @@ import {
     applyAgentConfiguration,
     applyCoveConfiguration,
     parseAgentConfigureCommand,
+    readAgentSeedConfiguration,
     readAppliedAgentConfiguration,
 } from './agent-configuration.ts';
 import { readEffectiveAgentStates } from './effective-state.ts';
@@ -206,6 +207,26 @@ test('durably applies and replays the exact Cove factory workspace', async () =>
         'skills/',
         'workspace/',
     ]);
+
+    const replay = parseAgentConfigureCommand({
+        agentDescription: command.agentDescription,
+        agentId: command.agentId,
+        agentName: command.agentName,
+        factoryKind: 'cove',
+        modelId: command.modelId,
+        reasoningEffort: 'medium',
+        runtimeId: command.runtimeId,
+        sessionGeneration: 1,
+        sessionResetKind: 'session',
+        type: 'agent-configure',
+    });
+    if (!replay) {
+        throw new Error('Cove replay fixture did not parse.');
+    }
+    await applyAgentConfiguration({ ...input, command: replay });
+    await expect(readAgentSeedConfiguration(agentRoot)).resolves.toMatchObject({
+        factoryKind: 'cove',
+    });
 
     const receiptPath = join(agentRoot, 'cove-application.json');
     await writeFile(receiptPath, '{malformed receipt\n');

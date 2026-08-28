@@ -53,6 +53,11 @@ const activityCopy: Record<AgentActivityCategory, ActivityCopy> = {
         failed: 'Failed while thinking',
         started: 'Thinking…',
     },
+    updating_instructions: {
+        completed: 'Updated instructions',
+        failed: 'Failed to update instructions',
+        started: 'Updating instructions…',
+    },
     using_tool: {
         completed: 'Used a tool',
         failed: 'Failed while using a tool',

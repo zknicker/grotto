@@ -43,6 +43,7 @@ for (const [name, source] of binaries) {
         `apps/server/src/${source}`,
         '--compile',
         '--compile-autoload-package-json',
+        '--target=bun-darwin-arm64',
         '--outfile',
         path.join(stageRoot, 'bin', name),
     ]);
@@ -52,9 +53,13 @@ run('bun', [
     'scripts/deploy-grotto-server.ts',
     '--compile',
     '--compile-autoload-package-json',
+    '--target=bun-darwin-arm64',
     '--outfile',
     path.join(stageRoot, 'bin', 'grotto-server-deploy'),
 ]);
+for (const [name] of [...binaries, ['grotto-server-deploy']]) {
+    assertAppleSiliconExecutable(path.join(stageRoot, 'bin', name));
+}
 
 run(
     'bun',
@@ -123,6 +128,13 @@ function run(command, args, options = {}) {
         env: options.env ?? process.env,
         stdio: 'inherit',
     });
+}
+
+function assertAppleSiliconExecutable(filePath) {
+    const description = execFileSync('/usr/bin/file', ['-b', filePath], { encoding: 'utf8' });
+    if (!(description.includes('Mach-O') && description.includes('arm64'))) {
+        throw new Error(`${path.basename(filePath)} is not an Apple Silicon Mach-O executable`);
+    }
 }
 
 async function sha256(filePath) {

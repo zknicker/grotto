@@ -40,7 +40,7 @@ targets:
         # docs/operations/ios-testflight.md. MARKETING_VERSION mirrors the repo
         # release version and is kept in sync by `bun run release:bump`.
         CURRENT_PROJECT_VERSION: "1"
-        MARKETING_VERSION: 1.8.34
+        MARKETING_VERSION: 1.8.35
         SWIFT_VERSION: "6.0"
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         TARGETED_DEVICE_FAMILY: "1"

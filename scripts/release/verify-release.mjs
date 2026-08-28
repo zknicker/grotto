@@ -36,7 +36,9 @@ export function writeReleaseSummary({ summaryPath, verification, targets }) {
             );
         }),
         '',
-        'Production Server deployment remains an explicit action in the manual Deploy Grotto Server workflow.',
+        targets.server
+            ? 'Production Server deployed and publicly verified in this Release workflow.'
+            : 'Production Server unchanged; no production promotion requested.',
         '',
     ];
     appendFileSync(summaryPath, lines.join('\n'));

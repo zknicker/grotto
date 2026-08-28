@@ -28,7 +28,22 @@ export function assertNoTag(tagName) {
 }
 
 export function createTag(tagName, sourceRevision) {
-    run('git', ['tag', '-a', tagName, sourceRevision, '-m', tagName]);
+    run('git', releaseTagArgs(tagName, sourceRevision));
+}
+
+export function releaseTagArgs(tagName, sourceRevision) {
+    return [
+        '-c',
+        'user.name=github-actions[bot]',
+        '-c',
+        'user.email=41898282+github-actions[bot]@users.noreply.github.com',
+        'tag',
+        '-a',
+        tagName,
+        sourceRevision,
+        '-m',
+        tagName,
+    ];
 }
 
 export function pushReleaseTag(tagName) {

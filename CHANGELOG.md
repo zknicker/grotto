@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.38 - 2026-08-28
+
+- Server release artifacts are now compiled and verified for the production Mac mini's Apple
+  Silicon platform before publication.
+
 ## v1.8.37 - 2026-08-28
 
 - Grotto App renders Agent-authored references to people, Agents, skills, apps, files, and

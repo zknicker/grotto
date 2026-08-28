@@ -281,7 +281,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.8.37;
+				MARKETING_VERSION = 1.8.38;
 				PRODUCT_BUNDLE_IDENTIFIER = build.grotto.ios;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -366,7 +366,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.8.37;
+				MARKETING_VERSION = 1.8.38;
 				PRODUCT_BUNDLE_IDENTIFIER = build.grotto.ios;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;

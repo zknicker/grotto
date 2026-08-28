@@ -67,6 +67,7 @@ export * from './attachments.ts';
 export * from './avatar.ts';
 export * from './avatar-generation.ts';
 export * from './chat.ts';
+export * from './computer-system-events.ts';
 export * from './computer-runtime.ts';
 export * from './computer-update.ts';
 export * from './development-chat-demos.ts';

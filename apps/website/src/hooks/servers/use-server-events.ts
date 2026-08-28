@@ -45,10 +45,10 @@ type ServerEventUtils = ReturnType<typeof grottoTrpc.useUtils>;
 
 /**
  * One Server's realtime notice, as this listener reads it. The ids are the
- * event's own precision: present when the change belongs to one Agent or one
- * human, absent when it is broad enough that the whole scope must refresh.
+ * event's own precision: present when the change belongs to one Agent,
+ * Computer, or human, absent when the whole scope must refresh.
  */
-type ServerUpdateNotice = Pick<ServerUpdatedEvent, 'agentId' | 'memberId' | 'scope'>;
+type ServerUpdateNotice = Pick<ServerUpdatedEvent, 'agentId' | 'computerId' | 'memberId' | 'scope'>;
 
 /**
  * Each subscription watches one Server, so `slug` names the only Server detail
@@ -71,6 +71,9 @@ export function createServerUpdateHandler(
         if (event.scope === 'computer') {
             invalidateServerDetail(utils, slug);
             void utils.computer.list.invalidate({ serverId });
+            void (event.computerId
+                ? utils.computer.systemLog.invalidate({ computerId: event.computerId, serverId })
+                : utils.computer.systemLog.invalidate(undefined, { exact: false }));
             void utils.agent.activeActivity.invalidate({ serverId });
             invalidateAgentDetail(utils, serverId, event.agentId);
             void utils.agent.list.invalidate({ serverId });

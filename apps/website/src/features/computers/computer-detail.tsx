@@ -7,6 +7,7 @@ import { PageColumn } from '../shell/page-column.tsx';
 import { ComputerUsageCapacity } from '../usage/computer-usage-capacity.tsx';
 import { ComputerActions } from './computer-actions.tsx';
 import { ComputerAgents } from './computer-agents.tsx';
+import { ComputerSystemLog } from './computer-system-log-card.tsx';
 import {
     computerHealthColor,
     computerHealthLabel,
@@ -117,6 +118,7 @@ export function ComputerDetail({
             </section>
 
             <ComputerAgents computerId={computerId} serverId={serverId} serverSlug={serverSlug} />
+            <ComputerSystemLog computerId={computerId} serverId={serverId} />
             <ComputerActions
                 computerId={computerId}
                 onRemove={onRemove}

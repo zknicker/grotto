@@ -1,12 +1,20 @@
 import { createHash } from 'node:crypto';
 import {
     type ComputerInventory,
+    type ComputerManagementEvent,
+    type ComputerSystemEvent,
     type ComputerUpdateProgress,
     computerProtocolVersion,
 } from '@grotto/api';
-import { and, desc, eq, isNotNull, isNull, ne, or } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { agentsTable, computersTable, serverOnboardingTable } from '../postgres/schema.ts';
+import { createOpaqueId } from '../postgres/opaque-id.ts';
+import {
+    agentsTable,
+    computerSystemEventsTable,
+    computersTable,
+    serverOnboardingTable,
+} from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
@@ -51,26 +59,21 @@ export async function validateComputerCredential(
 
 export async function reportComputerHandshake(
     db: GrottoDatabase,
-    credentialHash: string,
+    computer: { id: string; serverId: string },
     handshake: ComputerHandshake
 ) {
-    const [computer] = await db
-        .select({ id: computersTable.id, serverId: computersTable.serverId })
-        .from(computersTable)
-        .where(eq(computersTable.credentialHash, credentialHash))
-        .limit(1);
-    if (!computer) {
-        throw new ComputerSetupDeniedError('Computer credential was rejected.');
-    }
     const { update, ...facts } = handshake;
     const compatible = handshake.protocolVersion === computerProtocolVersion;
+    const connectedAt = new Date();
+    const connectionGeneration = createOpaqueId('ccn');
     await db.transaction(async (tx) => {
         await tx
             .update(computersTable)
             .set({
                 ...facts,
+                connectionGeneration,
                 health: compatible ? handshake.health : 'update-required',
-                lastConnectedAt: new Date(),
+                lastConnectedAt: connectedAt,
                 updateDetail: update.detail,
                 updateDownloadedBytes: update.downloadedBytes,
                 updateFailedPhase: update.failedPhase,
@@ -81,6 +84,14 @@ export async function reportComputerHandshake(
                 updateUpdatedAt: new Date(update.updatedAt),
             })
             .where(eq(computersTable.id, computer.id));
+        await tx.insert(computerSystemEventsTable).values({
+            computerId: computer.id,
+            id: createOpaqueId('cse'),
+            occurredAt: connectedAt,
+            serverId: computer.serverId,
+            type: 'connected',
+        });
+        await pruneComputerSystemEvents(tx, computer.id);
         await tx
             .update(serverOnboardingTable)
             .set({
@@ -108,6 +119,18 @@ export async function reportComputerHandshake(
                 )
             );
     });
+    return { ...computer, connectionGeneration };
+}
+
+export async function resolveComputerCredential(db: GrottoDatabase, credentialHash: string) {
+    const [computer] = await db
+        .select({ id: computersTable.id, serverId: computersTable.serverId })
+        .from(computersTable)
+        .where(eq(computersTable.credentialHash, credentialHash))
+        .limit(1);
+    if (!computer) {
+        throw new ComputerSetupDeniedError('Computer credential was rejected.');
+    }
     return computer;
 }
 
@@ -200,20 +223,66 @@ export async function recordComputerInventory(
     });
 }
 
-export async function markComputerOffline(db: GrottoDatabase, computerId: string) {
+export async function recordComputerManagementEvents(
+    db: GrottoDatabase,
+    computerId: string,
+    serverId: string,
+    events: ComputerManagementEvent[]
+) {
+    const latestAcceptedTime = Date.now() + 5 * 60_000;
+    const acceptedEvents = events.filter(
+        (event) => Date.parse(event.occurredAt) <= latestAcceptedTime
+    );
+    if (acceptedEvents.length === 0) {
+        return;
+    }
+    await db.transaction(async (tx) => {
+        await tx
+            .insert(computerSystemEventsTable)
+            .values(
+                acceptedEvents.map((event) => ({
+                    command: event.command,
+                    computerId,
+                    id: event.id,
+                    occurredAt: new Date(event.occurredAt),
+                    serverId,
+                    type: event.type,
+                }))
+            )
+            .onConflictDoNothing({ target: computerSystemEventsTable.id });
+        await pruneComputerSystemEvents(tx, computerId);
+    });
+}
+
+export async function markComputerOffline(
+    db: GrottoDatabase,
+    computerId: string,
+    connectionGeneration: string,
+    reason: Extract<ComputerSystemEvent, { type: 'disconnected' }>['reason']
+) {
     await db.transaction(async (tx) => {
         const [computer] = await tx
-            .select({ serverId: computersTable.serverId })
-            .from(computersTable)
-            .where(eq(computersTable.id, computerId))
-            .limit(1);
+            .update(computersTable)
+            .set({ connectionGeneration: null, health: 'offline' })
+            .where(
+                and(
+                    eq(computersTable.id, computerId),
+                    eq(computersTable.connectionGeneration, connectionGeneration)
+                )
+            )
+            .returning({ serverId: computersTable.serverId });
         if (!computer) {
             return;
         }
-        await tx
-            .update(computersTable)
-            .set({ health: 'offline' })
-            .where(eq(computersTable.id, computerId));
+        await tx.insert(computerSystemEventsTable).values({
+            computerId,
+            id: createOpaqueId('cse'),
+            occurredAt: new Date(),
+            reason,
+            serverId: computer.serverId,
+            type: 'disconnected',
+        });
+        await pruneComputerSystemEvents(tx, computerId);
         await tx
             .update(serverOnboardingTable)
             .set({
@@ -233,6 +302,25 @@ export async function markComputerOffline(db: GrottoDatabase, computerId: string
                 )
             );
     });
+}
+
+async function pruneComputerSystemEvents(
+    db: Parameters<Parameters<GrottoDatabase['transaction']>[0]>[0],
+    computerId: string
+) {
+    await db.execute(sql`
+        delete from ${computerSystemEventsTable}
+        where ${computerSystemEventsTable.computerId} = ${computerId}
+          and ${computerSystemEventsTable.id} not in (
+              select ${computerSystemEventsTable.id}
+              from ${computerSystemEventsTable}
+              where ${computerSystemEventsTable.computerId} = ${computerId}
+              order by ${computerSystemEventsTable.occurredAt} desc,
+                       ${computerSystemEventsTable.recordedAt} desc,
+                       ${computerSystemEventsTable.id} desc
+              limit 1000
+          )
+    `);
 }
 
 export async function recordInvalidComputerInventory(
@@ -263,7 +351,26 @@ export async function recordInvalidComputerInventory(
 /** Process startup has no live attachment registry, so persisted online state is stale. */
 export async function markAllComputersOffline(db: GrottoDatabase) {
     await db.transaction(async (tx) => {
-        await tx.update(computersTable).set({ health: 'offline' });
+        const connected = await tx
+            .update(computersTable)
+            .set({ connectionGeneration: null, health: 'offline' })
+            .where(ne(computersTable.health, 'offline'))
+            .returning({ id: computersTable.id, serverId: computersTable.serverId });
+        if (connected.length > 0) {
+            await tx.insert(computerSystemEventsTable).values(
+                connected.map((computer) => ({
+                    computerId: computer.id,
+                    id: createOpaqueId('cse'),
+                    occurredAt: new Date(),
+                    reason: 'server-restarted' as const,
+                    serverId: computer.serverId,
+                    type: 'disconnected' as const,
+                }))
+            );
+            for (const computer of connected) {
+                await pruneComputerSystemEvents(tx, computer.id);
+            }
+        }
         await tx
             .update(serverOnboardingTable)
             .set({
@@ -320,6 +427,44 @@ export async function listServerComputers(
         ...computer,
         name: computer.reportedInventory?.name ?? null,
     }));
+}
+
+export async function listComputerSystemEvents(
+    db: GrottoDatabase,
+    member: GrottoUser | null,
+    input: { computerId: string; serverId: string }
+) {
+    const server = await requireServerMembership(db, member, input.serverId);
+    if (server.role !== 'owner' && server.role !== 'admin') {
+        throw new ComputerSetupDeniedError('Only a Server Owner or Admin can view Computer logs.');
+    }
+    const events = await db
+        .select({
+            command: computerSystemEventsTable.command,
+            id: computerSystemEventsTable.id,
+            occurredAt: computerSystemEventsTable.occurredAt,
+            reason: computerSystemEventsTable.reason,
+            type: computerSystemEventsTable.type,
+        })
+        .from(computerSystemEventsTable)
+        .where(
+            and(
+                eq(computerSystemEventsTable.serverId, input.serverId),
+                eq(computerSystemEventsTable.computerId, input.computerId)
+            )
+        )
+        .orderBy(desc(computerSystemEventsTable.occurredAt))
+        .limit(50);
+    return events.map((event): ComputerSystemEvent => {
+        const occurredAt = event.occurredAt.toISOString();
+        if (event.type === 'management-command' && event.command) {
+            return { command: event.command, id: event.id, occurredAt, type: event.type };
+        }
+        if (event.type === 'disconnected' && event.reason) {
+            return { id: event.id, occurredAt, reason: event.reason, type: event.type };
+        }
+        return { id: event.id, occurredAt, type: 'connected' };
+    });
 }
 
 /** A Computer credential is deleted only after every assigned Agent is retired. */

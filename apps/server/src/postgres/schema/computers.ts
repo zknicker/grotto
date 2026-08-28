@@ -25,6 +25,7 @@ export const computersTable = pgTable(
         attachmentIdempotencyKey: text('attachment_idempotency_key'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         credentialHash: text('credential_hash').notNull(),
+        connectionGeneration: text('connection_generation'),
         health: text('health').notNull().default('offline').$type<ComputerHealth>(),
         id: text('id').primaryKey(),
         lastConnectedAt: timestamp('last_connected_at', { withTimezone: true }),
@@ -59,6 +60,10 @@ export const computersTable = pgTable(
         }),
         check('computers_id_shape', sql`${table.id} ~ '^cmp_[A-Za-z0-9_-]{16}$'`),
         check('computers_credential_hash_shape', sql`${table.credentialHash} ~ '^[a-f0-9]{64}$'`),
+        check(
+            'computers_connection_generation_shape',
+            sql`${table.connectionGeneration} IS NULL OR ${table.connectionGeneration} ~ '^ccn_[A-Za-z0-9_-]{16}$'`
+        ),
         check(
             'computers_health',
             sql`${table.health} in ('offline', 'healthy', 'degraded', 'update-required')`

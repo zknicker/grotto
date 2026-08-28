@@ -1,10 +1,5 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import {
-    readAttachmentConnectionHistory,
-    recentDisconnectCount,
-    reconnectStormThreshold,
-} from './attachment-connection-history.ts';
 import { type CliRenderer, plainCliRenderer } from './cli/render.ts';
 import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
 import type { Attachment } from './launch.ts';
@@ -12,7 +7,6 @@ import { readComputerLoginSession } from './login.ts';
 
 interface AttachmentStatus {
     daemon: 'running' | 'setup-required' | 'stopped';
-    recentDisconnects: number;
     serverId: string;
     slug: string;
 }
@@ -36,17 +30,12 @@ export async function readComputerStatus(dataRoot: string): Promise<{
             attachments.map(async (attachment) => {
                 const marker = await readAttachmentDaemonMarker(dataRoot, attachment.serverId);
                 const terminal = await readTerminalUnlinked(dataRoot, attachment);
-                const history = await readAttachmentConnectionHistory(
-                    dataRoot,
-                    attachment.serverId
-                );
                 return {
                     daemon: terminal
                         ? 'setup-required'
                         : marker && isPidAlive(marker.pid)
                           ? 'running'
                           : 'stopped',
-                    recentDisconnects: recentDisconnectCount(history),
                     serverId: attachment.serverId,
                     slug: attachment.slug,
                 };
@@ -171,16 +160,7 @@ function attachmentLine(item: AttachmentStatus, render: CliRenderer) {
         item.daemon === 'running'
             ? render.ok('running')
             : render.warn(`stopped — run grotto-computer start /${item.slug}`);
-    if (item.recentDisconnects >= reconnectStormThreshold) {
-        return `${state}, ${render.warn(
-            `unstable — ${item.recentDisconnects} disconnects in 5m; run grotto-computer logs 200`
-        )} ${render.hint(`(${item.serverId})`)}`;
-    }
-    const recentActivity =
-        item.recentDisconnects > 0
-            ? ` · ${item.recentDisconnects} disconnect${item.recentDisconnects === 1 ? '' : 's'} in 5m`
-            : '';
-    return `${state} ${render.hint(`(${item.serverId})${recentActivity}`)}`;
+    return `${state} ${render.hint(`(${item.serverId})`)}`;
 }
 
 async function readAttachments(dataRoot: string): Promise<Attachment[]> {

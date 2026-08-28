@@ -782,17 +782,6 @@ test('resident start reconnects an attachment when Server heartbeats silently st
         ]);
         expect(heartbeats).toBeGreaterThan(1);
         expect(connections).toBe(2);
-        const historyRoot = join(attachmentRoot, 'connection-history');
-        const history = await Promise.all(
-            (await readdir(historyRoot)).map(async (entry) =>
-                JSON.parse(await readFile(join(historyRoot, entry), 'utf8'))
-            )
-        );
-        expect(history).toContainEqual({
-            at: expect.any(String),
-            kind: 'disconnected',
-            reason: 'heartbeat-timeout',
-        });
     } finally {
         for (const socket of sockets) {
             socket.close();

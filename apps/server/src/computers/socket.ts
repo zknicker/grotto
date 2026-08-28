@@ -16,6 +16,7 @@ import {
     computerHeartbeatSchema,
     computerInventorySchema,
     computerProtocolVersion,
+    computerSystemEventReportSchema,
     computerUpdateProgressFrameSchema,
     coveApplyResultSchema,
     grottoAgentReportFrameSchema,
@@ -41,9 +42,11 @@ import {
     hashComputerSecret,
     markComputerOffline,
     recordComputerInventory,
+    recordComputerManagementEvents,
     recordInvalidComputerInventory,
     reportComputerHandshake,
     reportComputerUpdateProgress,
+    resolveComputerCredential,
 } from './service.ts';
 
 /** Ongoing report of last-reported inventory and per-Agent effective state. */
@@ -85,16 +88,18 @@ export function startComputerAttachmentSocket(
         let attachedServerId: string | null = null;
         let closed = false;
         let ordinary = false;
+        let connectionGeneration: string | null = null;
+        let disconnectReason: 'heartbeat-timeout' | 'socket-closed' = 'socket-closed';
         let messageQueue = Promise.resolve();
         let heartbeatTimeout: ReturnType<typeof setTimeout> | null = null;
         const armHeartbeatTimeout = () => {
             if (heartbeatTimeout) {
                 clearTimeout(heartbeatTimeout);
             }
-            heartbeatTimeout = setTimeout(
-                () => socket.terminate(),
-                heartbeatConfiguration.timeoutMs
-            );
+            heartbeatTimeout = setTimeout(() => {
+                disconnectReason = 'heartbeat-timeout';
+                socket.terminate();
+            }, heartbeatConfiguration.timeoutMs);
         };
         const handleHeartbeatFrame = (raw: string) => {
             if (!(computerId && attachedServerId)) {
@@ -142,20 +147,21 @@ export function startComputerAttachmentSocket(
                     }
                     try {
                         const hello = computerBootstrapHelloSchema.parse(JSON.parse(rawString));
-                        const computer = await reportComputerHandshake(
+                        const resolvedComputer = await resolveComputerCredential(
                             db,
-                            hashComputerSecret(hello.credential),
-                            hello
+                            hashComputerSecret(hello.credential)
                         );
-                        if (sockets.has(computer.id)) {
+                        if (sockets.has(resolvedComputer.id)) {
                             socket.close(4409, 'A Computer may have one attachment socket.');
                             return;
                         }
+                        computerId = resolvedComputer.id;
+                        attachedServerId = resolvedComputer.serverId;
+                        sockets.set(resolvedComputer.id, socket);
+                        const computer = await reportComputerHandshake(db, resolvedComputer, hello);
+                        connectionGeneration = computer.connectionGeneration;
                         await clearGrottoAgentState(db, computer.id);
-                        computerId = computer.id;
-                        attachedServerId = computer.serverId;
                         ordinary = hello.protocolVersion === computerProtocolVersion;
-                        sockets.set(computer.id, socket);
                         connections.register(computer.id, {
                             disconnect: (reason) => socket.close(4000, reason),
                             ordinary,
@@ -169,7 +175,11 @@ export function startComputerAttachmentSocket(
                                 type: 'bootstrap-accepted',
                             })
                         );
-                        emitServerUpdated({ scope: 'computer', serverId: computer.serverId });
+                        emitServerUpdated({
+                            computerId: computer.id,
+                            scope: 'computer',
+                            serverId: computer.serverId,
+                        });
                         if (!ordinary) {
                             return;
                         }
@@ -192,16 +202,24 @@ export function startComputerAttachmentSocket(
             if (heartbeatTimeout) {
                 clearTimeout(heartbeatTimeout);
             }
-            if (computerId) {
+            if (computerId && sockets.get(computerId) === socket) {
+                const closedComputerId = computerId;
                 sockets.delete(computerId);
                 connections.unregister(computerId);
-                if (attachedServerId) {
+                if (attachedServerId && connectionGeneration) {
                     const serverId = attachedServerId;
-                    void markComputerOffline(db, computerId).then(() => {
-                        emitServerUpdated({ scope: 'computer', serverId });
+                    void markComputerOffline(
+                        db,
+                        closedComputerId,
+                        connectionGeneration,
+                        disconnectReason
+                    ).then(() => {
+                        emitServerUpdated({
+                            computerId: closedComputerId,
+                            scope: 'computer',
+                            serverId,
+                        });
                     });
-                } else {
-                    void markComputerOffline(db, computerId);
                 }
             }
         });
@@ -355,6 +373,13 @@ async function ingestReport(
             usage: usage.data.usage,
         });
         emitServerUpdated({ scope: 'computer', serverId });
+        return;
+    }
+
+    const systemEvents = computerSystemEventReportSchema.safeParse(frame);
+    if (systemEvents.success) {
+        await recordComputerManagementEvents(db, computerId, serverId, systemEvents.data.events);
+        emitServerUpdated({ computerId, scope: 'computer', serverId });
         return;
     }
 

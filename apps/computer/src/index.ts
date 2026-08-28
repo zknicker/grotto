@@ -17,10 +17,6 @@ import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.t
 import { AgentRunSettlements } from './agent-run-settlements.ts';
 import { applyAuthoritativeSession } from './agent-session-authority.ts';
 import { parseAgentSkillFileRequest, runAgentSkillFileRequest } from './agent-skill-files.ts';
-import {
-    type AttachmentConnectionEvent,
-    recordAttachmentConnectionEvent,
-} from './attachment-connection-history.ts';
 import { type AttachmentHeartbeat, startAttachmentHeartbeat } from './attachment-heartbeat.ts';
 import {
     archiveUnlinkedAttachment,
@@ -34,6 +30,10 @@ import {
     readPendingAttachment,
     removePendingAttachment,
 } from './attachment-state.ts';
+import {
+    readAttachmentManagementEvents,
+    recordAttachmentManagementEvent,
+} from './attachment-system-event-outbox.ts';
 import { parseBrowserRequest, runBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import {
@@ -209,6 +209,7 @@ async function main(args: string[]) {
                 },
                 restart: restartAfterUpdate,
             });
+            await recordManagementCommandForAttachments('rollback');
             console.log(
                 stdoutRenderer.ok('Grotto Computer restored the previous verified executable.')
             );
@@ -239,6 +240,7 @@ async function main(args: string[]) {
             console.log(stdoutRenderer.warn(describeConcurrentUpdate(outcome.progress)));
             return;
         }
+        await recordManagementCommandForAttachments('upgrade');
         console.log(
             stdoutRenderer.ok(
                 `Grotto Computer ${outcome.version} is installed. The Computer service is restarting.`
@@ -331,10 +333,18 @@ async function main(args: string[]) {
         await recoverInterruptedUpdate();
         await finishRestart();
         await rm(stoppedPath(), { force: true });
-        if (target && (await reportUnlinkedAttachment(await requiredAttachment(target)))) {
-            return;
+        const targetAttachment = target ? await requiredAttachment(target) : null;
+        if (targetAttachment) {
+            if (await reportUnlinkedAttachment(targetAttachment)) {
+                return;
+            }
         }
         await startAttachments(target);
+        if (targetAttachment) {
+            await recordAttachmentManagementEvent(dataRoot, targetAttachment.serverId, 'start');
+        } else {
+            await recordManagementCommandForAttachments('start');
+        }
         if (process.env.GROTTO_COMPUTER_RESIDENT === '1') {
             for (;;) {
                 await Bun.sleep(500);
@@ -346,11 +356,14 @@ async function main(args: string[]) {
     }
     if (command === 'stop') {
         if (target) {
-            await stopAttachmentDaemon(await requiredAttachment(target));
+            const attachment = await requiredAttachment(target);
+            await stopAttachmentDaemon(attachment);
+            await recordAttachmentManagementEvent(dataRoot, attachment.serverId, 'stop');
             console.log(stdoutRenderer.ok(`Stopped ${target}.`));
             return;
         }
         await stopComputerService();
+        await recordManagementCommandForAttachments('stop');
         console.log(stdoutRenderer.ok('Grotto Computer stopped.'));
         return;
     }
@@ -365,6 +378,7 @@ async function main(args: string[]) {
         }
         await stopAttachmentDaemon(attachment);
         await startAttachmentDaemon(attachment);
+        await recordAttachmentManagementEvent(dataRoot, attachment.serverId, 'restart');
         console.log(stdoutRenderer.ok(`Restarted /${attachment.slug}.`));
         return;
     }
@@ -1091,28 +1105,7 @@ async function connect(attachment: Attachment) {
     };
     let lastProgress = JSON.stringify(initialProgress);
     let heartbeat: AttachmentHeartbeat | null = null;
-    let connected = false;
-    let disconnectWrite: Promise<void> | null = null;
-    let disconnectReason: Extract<AttachmentConnectionEvent, { kind: 'disconnected' }>['reason'] =
-        'socket-close';
     let usageTimer: ReturnType<typeof setInterval> | null = null;
-    const recordConnectionEvent = (event: AttachmentConnectionEvent) =>
-        recordAttachmentConnectionEvent(dataRoot, attachment.serverId, event).catch((error) => {
-            console.error(
-                `Computer connection history failed: ${error instanceof Error ? error.message : error}`
-            );
-        });
-    const recordDisconnect = () => {
-        if (disconnectWrite) {
-            return disconnectWrite;
-        }
-        disconnectWrite = recordConnectionEvent({
-            at: new Date().toISOString(),
-            kind: 'disconnected',
-            reason: disconnectReason,
-        });
-        return disconnectWrite;
-    };
     const progressTimer = setInterval(() => {
         void readUpdateProgress(dataRoot).then((update) => {
             const serialized = JSON.stringify(update);
@@ -1130,14 +1123,11 @@ async function connect(attachment: Attachment) {
             if (usageTimer) {
                 clearInterval(usageTimer);
             }
-            void recordDisconnect().finally(resolve);
+            resolve();
         });
         socket.addEventListener('error', () => {
             heartbeat?.dispose();
-            disconnectReason = 'socket-error';
-            void recordDisconnect().finally(() => {
-                reject(new Error('Computer attachment socket failed.'));
-            });
+            reject(new Error('Computer attachment socket failed.'));
         });
         socket.addEventListener('message', (event) => {
             const frame = JSON.parse(String(event.data)) as { type?: string };
@@ -1146,9 +1136,7 @@ async function connect(attachment: Attachment) {
                 heartbeat?.dispose();
                 heartbeat = startAttachmentHeartbeat({
                     configuration: heartbeatConfiguration,
-                    onTimeout: () => {
-                        disconnectReason = 'heartbeat-timeout';
-                    },
+                    onTimeout: () => undefined,
                     socket,
                 });
                 return;
@@ -1177,20 +1165,13 @@ async function connect(attachment: Attachment) {
             }
             const bootstrap = parseBootstrapAccepted(frame);
             if (bootstrap) {
-                if (!connected) {
-                    connected = true;
-                    void recordConnectionEvent({
-                        at: new Date().toISOString(),
-                        kind: 'connected',
-                    });
-                }
                 socket.send(JSON.stringify({ type: 'heartbeat-negotiate' }));
                 if (bootstrap.mode === 'ordinary') {
-                    const initialReport = sendComputerReport(
-                        socket,
-                        attachment.serverId,
-                        computerName
-                    ).then(async () => {
+                    const initialReport = Promise.resolve().then(async () => {
+                        await Promise.all([
+                            sendComputerReport(socket, attachment.serverId, computerName),
+                            sendSystemEventReport(socket, attachment.serverId),
+                        ]);
                         const acceptedImports = await listAcceptedHostSkillImports(
                             dataRoot,
                             attachment.serverId
@@ -1731,6 +1712,26 @@ async function sendComputerReport(socket: WebSocket, serverId: string, computerN
             ),
             type: 'grotto-agent-report',
         })
+    );
+}
+
+async function sendSystemEventReport(socket: WebSocket, serverId: string) {
+    const events = await readAttachmentManagementEvents(dataRoot, serverId);
+    socket.send(
+        JSON.stringify({
+            events,
+            type: 'system-event-report',
+        })
+    );
+}
+
+async function recordManagementCommandForAttachments(
+    command: 'rollback' | 'start' | 'stop' | 'upgrade'
+) {
+    await Promise.all(
+        (await listAttachments()).map((attachment) =>
+            recordAttachmentManagementEvent(dataRoot, attachment.serverId, command)
+        )
     );
 }
 

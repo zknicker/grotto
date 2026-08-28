@@ -172,6 +172,32 @@ test('a compatible Computer reports its name through versioned inventory', async
     expect(await message(socket)).toEqual({ id: 0, type: 'heartbeat-ack' });
     socket.send(
         JSON.stringify({
+            events: [
+                {
+                    command: 'restart',
+                    id: 'cse_1234567890123456',
+                    occurredAt: '2026-08-28T12:00:00.000Z',
+                    type: 'management-command',
+                },
+            ],
+            type: 'system-event-report',
+        })
+    );
+    socket.send(
+        JSON.stringify({
+            events: [
+                {
+                    command: 'restart',
+                    id: 'cse_1234567890123456',
+                    occurredAt: '2026-08-28T12:00:00.000Z',
+                    type: 'management-command',
+                },
+            ],
+            type: 'system-event-report',
+        })
+    );
+    socket.send(
+        JSON.stringify({
             agents: [],
             inventory: {
                 name: "Zach's MacBook Pro",
@@ -187,6 +213,16 @@ test('a compatible Computer reports its name through versioned inventory', async
             from computers where id = ${computerId}
         `) as { name: string | null }[];
         expect(row.name).toBe("Zach's MacBook Pro");
+        const [event] = (await harness.sql`
+            select command, event_type, count(*) over ()::int as event_count
+            from computer_system_events
+            where id = 'cse_1234567890123456'
+        `) as { command: string; event_count: number; event_type: string }[];
+        expect(event).toEqual({
+            command: 'restart',
+            event_count: 1,
+            event_type: 'management-command',
+        });
     });
     socket.close();
 });

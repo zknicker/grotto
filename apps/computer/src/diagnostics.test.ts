@@ -57,27 +57,6 @@ test('status gives an actionable setup command for a terminally unlinked attachm
     );
 });
 
-test('status warns when an attachment is rapidly disconnecting', async () => {
-    const historyRoot = join(dataRoot, 'servers', 'srv_diagnostics', 'connection-history');
-    await mkdir(historyRoot, { recursive: true });
-    await Promise.all(
-        Array.from({ length: 5 }, (_, index) =>
-            writeFile(
-                join(historyRoot, `${index}.json`),
-                JSON.stringify({
-                    at: new Date(Date.now() - index * 1000).toISOString(),
-                    kind: 'disconnected',
-                    reason: 'socket-close',
-                })
-            )
-        )
-    );
-
-    expect(formatComputerStatus(await readComputerStatus(dataRoot))).toContain(
-        'unstable — 5 disconnects in 5m; run grotto-computer logs 200'
-    );
-});
-
 test('logs returns a bounded tail from the stable data root', async () => {
     await mkdir(join(dataRoot, 'logs'));
     await writeFile(join(dataRoot, 'logs', 'computer.log'), 'one\ntwo\nthree\n');

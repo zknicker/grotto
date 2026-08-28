@@ -12,15 +12,16 @@ export const serverUpdateScopeSchema = z.enum(['agent', 'computer', 'mcp', 'serv
 export type ServerUpdateScope = z.infer<typeof serverUpdateScopeSchema>;
 
 /**
- * One Server-scoped realtime notification. `agentId` and `memberId` are present
- * only when the change belongs to exactly one record, and they are what lets a
+ * One Server-scoped realtime notification. The Agent, Computer, or member id is
+ * present only when the change belongs to exactly one record, and lets a
  * listener invalidate that record's detail read instead of every cached detail
- * read in the scope. Their absence is meaningful: it says the change is broad,
- * so the listener falls back to refreshing the whole scope.
+ * read in the scope. Its absence means the change is broad, so the listener
+ * falls back to refreshing the whole scope.
  */
 export const serverUpdatedEventSchema = z
     .object({
         agentId: idSchema.optional(),
+        computerId: idSchema.optional(),
         emittedAt: z.iso.datetime({ offset: true }),
         memberId: idSchema.optional(),
         scope: serverUpdateScopeSchema,

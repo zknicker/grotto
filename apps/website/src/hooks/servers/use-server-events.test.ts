@@ -25,7 +25,10 @@ function recordingUtils() {
                 workspaceFiles: { invalidate: invalidate('agent.workspaceFiles') },
             },
             chat: { list: { invalidate: invalidate('chat.list') } },
-            computer: { list: { invalidate: invalidate('computer.list') } },
+            computer: {
+                list: { invalidate: invalidate('computer.list') },
+                systemLog: { invalidate: invalidate('computer.systemLog') },
+            },
             invitation: { list: { invalidate: invalidate('invitation.list') } },
             mcp: { list: { invalidate: invalidate('mcp.list') } },
             member: {
@@ -53,6 +56,7 @@ test('computer events refresh Server workspace reads without polling', () => {
     expect(names(invalidated)).toEqual([
         'server.bySlug',
         'computer.list',
+        'computer.systemLog',
         'agent.activeActivity',
         'agent.get',
         'agent.list',
@@ -61,6 +65,21 @@ test('computer events refresh Server workspace reads without polling', () => {
         'agent.workspaceFiles',
         'stats.live',
     ]);
+});
+
+test('a named Computer event refreshes only that Computer system log', () => {
+    const { invalidated, utils } = recordingUtils();
+
+    createServerUpdateHandler(
+        utils,
+        'server-one',
+        'team-room'
+    )({ computerId: 'cmp_macbook', scope: 'computer' });
+
+    expect(invalidated[2]).toEqual({
+        input: { computerId: 'cmp_macbook', serverId: 'server-one' },
+        name: 'computer.systemLog',
+    });
 });
 
 test('Agent events refresh the active directory and durable Chat list', () => {
@@ -107,7 +126,7 @@ test('a named Agent on a Computer event refreshes that Agent exactly', () => {
         'team-room'
     )({ agentId: 'agt_scout', scope: 'computer' });
 
-    expect(invalidated[3]).toEqual({
+    expect(invalidated[4]).toEqual({
         input: { agentId: 'agt_scout', serverId: 'server-one' },
         name: 'agent.get',
     });

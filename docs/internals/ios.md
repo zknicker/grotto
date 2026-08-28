@@ -56,6 +56,12 @@ Computers through the existing `computer.list`
 contract; an unavailable or role-denied Computer snapshot does not block the rest of Settings.
 Server-provided relative avatar URLs resolve against the configured Server origin, including local
 development; no Swift surface hardcodes the production host or substitutes local seeded artwork.
+An avatar URL names immutable bytes, and `AvatarImageCache` treats it that way twice over: decoded
+images live in a process-wide `NSCache`, and the bytes behind them persist across launches in the
+cache's own `URLSession`/`URLCache` on disk, fetched with `returnCacheDataElseLoad`. Immutability is
+the license to ignore the Server's freshness headers — nothing the Server says can make a stored
+avatar wrong — so a cold launch paints identities the human has already seen instead of holding
+initials until the network answers.
 An ordinary Agent's profile may call the same Server-owned `avatar.generate` procedure as the desktop
 App with one short concept, from a capsule directly under the avatar it changes. A factory Agent does
 not offer it: the Server refuses to replace Cove's product-owned artwork, so `SettingsAgent` carries
@@ -97,7 +103,25 @@ Image attachments render inline as media tiles rather than file rows: the timeli
 through the same authenticated attachment route Quick Look uses, decodes a downsampled ImageIO
 thumbnail off the main actor, and keeps the result in an in-memory `AttachmentImageCache` keyed by
 attachment id so scrolling and re-renders don't re-download or re-decode; `body` reads the cache
-synchronously so a recycled tile renders fully formed on its first frame. Tiles are fixed-height
+synchronously so a recycled tile renders fully formed on its first frame. The bytes underneath
+outlive the process in `AttachmentFileCache`, a disk cache in the user Caches directory keyed by
+`(serverID, attachmentID)`, one directory per attachment holding the sanitized display filename
+Quick Look derives its title and type from. A Server attachment is an immutable record, so a hit is
+answered from disk with no revalidation, and only a miss reaches the transport's temporary download.
+The returned URL is cache-owned: consumers render or preview it and never delete it. That inverts
+`TRPCClient.downloadAttachment`'s caller-owned temporary file, which the cache takes over on the way
+in — the transport still hands out a temp directory, and the cache is now the caller that owns it.
+Concurrent opens of one attachment share a single download, and the finished file is moved into
+place so a partial write is never observable at the cache path. The cache bounds itself to roughly
+256 MB, evicting least-recently-used attachments after inserts; a hit stamps the file's date, so
+attachments people reopen outlive ones nobody returns to, and a system purge of Caches costs only
+the next open a download. It lives in `GrottoTransport` beside the filename sanitizer and download
+it wraps, while `GrottoStore` owns the instance: what to cache and when to consult it is app state.
+An async decode that lands
+after first paint must arrive through `@State` the body actually reads — SwiftUI invalidates a view
+only for state its body reads, so bumping a side-channel marker leaves a finished decode painted as
+the placeholder forever. `AvatarView`, `AttachmentImageTile`, and `LocalAttachmentImage` all render
+from such landed state, with the shared cache as the recycled-view fast path. Tiles are fixed-height
 (`AttachmentImageTileSize.tileHeight`) with aspect-tracking width, so a landing decode never changes
 a row's height. Pending uploads render through the same tile from their staged local file — decoded
 once into `LocalAttachmentImageCache`, which also serves the composer strip and the attachment
@@ -109,6 +133,16 @@ chrome. System navigation and sheet controls inherit the platform treatment; cus
 and composer controls use native glass only on iOS 26 and retain an opaque semantic fallback on older
 systems. Transcript rows, Thread previews, Task metadata, sidebars, and settings groups stay opaque.
 Glass is a navigation hierarchy, not a general content-card material.
+
+Every touch answers. On iOS 26 a live glass surface owns its whole press response — fill, rim, and
+the press-driven bloom — so nothing is ever drawn over glass: an overlaid stroke or shadow cannot
+travel with a flexing shape, and every past radius or stranded-rim bug came from trying. Controls
+that draw their own content instead of wearing glass — drawn circles, cards, list rows — take
+`PressableButtonStyle`: compact controls scale toward the finger and full-width rows highlight,
+because a row that shrinks reads as breakage. `.plain` on an interactive element is a defect, not a
+neutral default. The chat transcript passes under the chrome at both ends — beneath the composer's
+glass via a bottom safe-area inset, and beneath the `ChromeHeader` row via a top one, with the
+system's soft scroll-edge effect keeping iOS 26 chrome legible over moving content.
 
 Every floating chrome control is one control. `GlassChromeButton` owns the 44-point circle, the
 22-point app icon, and the glass or material treatment, and `ChromeHeader` owns the 56-point
@@ -200,9 +234,15 @@ selecting a Chat and closing the drawer in the same turn pinned the incoming tra
 position while the canvas frame slid over it — a wipe across a stationary Chat, with each line
 uncovered from its right end. `selectDestination` therefore commits the selection and defers
 `setDrawer(open:)` to the next main-actor turn, so the spring animates a screen that is already there
-and the Chat travels with the drawer, its leading edge fixed to the canvas's. The drawer holds open
-for that turn plus the new screen's first layout — around 70ms, and visible as a beat before the
-slide, which is the behaviour to preserve rather than tune away. Anything that must survive a switch — the composer draft,
+and the Chat travels with the drawer, its leading edge fixed to the canvas's. That hop is the
+earliest legal one — SwiftUI merges every mutation made in one turn into a single transaction — so
+the hold is one frame plus the new screen's first layout and cannot go lower. What keeps it from
+reading as a beat is the veil: the veil leaves by removal, never by animating to clear, so which
+transaction the removal lands in decides what the user sees. An interactive close (drag, veil tap,
+header button) removes it inside the closing spring — the fade that reads as the canvas lifting off
+the same Chat — while a Chat selection drops it unanimated in the frame the new screen mounts, so
+the incoming Chat arrives fully lit and the slide is the whole transition. `GrottoDrawerClose`
+carries that distinction and `GrottoDrawerVeil.isPainted` applies it. Anything that must survive a switch — the composer draft,
 the staged attachments and their in-flight preparation, a pending message reveal — is owned by the
 shell per destination and reaches the screen as a binding or by reference; a remount resets only
 presentation state (an open portal, a frozen keyboard inset, an error notice). A page arriving for a Chat that was showing nothing is that Chat's first paint and settles
@@ -294,8 +334,12 @@ keyboard slides out and back *behind* it: while a portal is open, the Chat scree
 bottom inset it lays out against (`ComposerPortalFreeze`), so the transcript and composer stay
 pixel-static for the portal's whole lifecycle and the keyboard is restored on close only if it was up
 when the portal opened. That portal returns along the same bottom-leading path into the attachment
-preview area so source, selection, and staged result remain spatially continuous. The composer itself
-is a floating glass surface: the transcript scrolls to the screen bottom and passes beneath it via a
+preview area so source, selection, and staged result remain spatially continuous; that return flight
+is one interruptible spring that retargets as the landing tile settles, and the composer stays live
+beneath it — a new portal, a send, or a Chat switch mid-flight abandons the flight rather than
+waiting on it. The composer itself
+is a floating interactive glass surface — the system's press bloom, with no overlay of any kind on
+iOS 26 — and the transcript scrolls to the screen bottom and passes beneath it via a
 bottom safe-area inset rather than ending above an opaque band. Selected files stay in a composer-owned temporary directory
 until the message succeeds, and imported security-scoped URLs are copied while access is active rather
 than retained or buffered into memory. Chat-canvas staging belongs to the Chat, not the screen: it

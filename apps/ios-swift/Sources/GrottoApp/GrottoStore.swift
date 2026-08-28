@@ -66,6 +66,9 @@ final class GrottoStore {
     var foregroundRefreshInFlight = false
     let clerk: Clerk
     let client: TRPCClient
+    /// Downloaded attachment bytes are app cache state, like every other
+    /// snapshot the Store holds; the transport stays a pure transfer boundary.
+    let attachmentFiles = AttachmentFileCache()
     private nonisolated let eventTasks = EventTaskBag()
 
     init(clerk: Clerk) {

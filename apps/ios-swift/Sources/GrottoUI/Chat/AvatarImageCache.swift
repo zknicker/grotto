@@ -9,12 +9,15 @@ import AppKit
 typealias AvatarPlatformImage = NSImage
 #endif
 
-/// Process-wide decoded avatar cache.
+/// Process-wide decoded avatar cache over a disk-persisted byte cache.
 ///
 /// Avatar URLs are immutable Server resources. Keeping their decoded images
 /// here lets a newly constructed chat render a previously seen identity in
 /// its first frame instead of briefly falling back to initials. In-flight
-/// requests are shared so repeated rows do not download the same avatar.
+/// requests are shared so repeated rows do not download the same avatar. The
+/// bytes behind those images survive the process in `Self.session`'s own
+/// `URLCache`, so a cold launch paints known identities instead of showing
+/// initials until the network answers.
 @MainActor
 final class AvatarImageCache {
     static let shared = AvatarImageCache()
@@ -63,9 +66,29 @@ final class AvatarImageCache {
         return decoded.image
     }
 
+    /// Avatars get their own session because `URLSession.shared` caches for
+    /// ordinary API traffic and evicts image bytes long before the next
+    /// launch needs them.
+    private static let session: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.urlCache = URLCache(
+            memoryCapacity: 4 * 1024 * 1024,
+            diskCapacity: 64 * 1024 * 1024,
+            directory: FileManager.default
+                .urls(for: .cachesDirectory, in: .userDomainMask)
+                .first?
+                .appendingPathComponent("grotto-avatars", isDirectory: true)
+        )
+        return URLSession(configuration: configuration)
+    }()
+
     private static func fetch(_ url: URL) async -> Data? {
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            // An avatar URL names immutable bytes, which is the license to
+            // answer from disk without revalidating: whatever the Server said
+            // about freshness cannot make a stored avatar wrong.
+            let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad)
+            let (data, response) = try await session.data(for: request)
             guard let response = response as? HTTPURLResponse,
                   (200..<300).contains(response.statusCode)
             else { return nil }

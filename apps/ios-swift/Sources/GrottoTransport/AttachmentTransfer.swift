@@ -187,7 +187,7 @@ private struct AttachmentErrorBody: Decodable {
     let error: String
 }
 
-private func isSafeAttachmentPathComponent(_ value: String) -> Bool {
+func isSafeAttachmentPathComponent(_ value: String) -> Bool {
     !value.isEmpty &&
         value != "." &&
         value != ".." &&
@@ -196,7 +196,9 @@ private func isSafeAttachmentPathComponent(_ value: String) -> Bool {
         !value.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
 }
 
-private func safeAttachmentFilename(_ filename: String) -> String {
+/// The one sanitizer for an attachment's on-disk name, shared by the transport's
+/// temporary download directory and `AttachmentFileCache`.
+func safeAttachmentFilename(_ filename: String) -> String {
     let pathComponent = URL(fileURLWithPath: filename).lastPathComponent
     let sanitized = pathComponent.unicodeScalars.map { scalar in
         CharacterSet.controlCharacters.contains(scalar) ? "_" : String(scalar)

@@ -202,14 +202,27 @@ extension GrottoStore {
         }
     }
 
+    /// Resolves an attachment to a readable file, downloading it at most once.
+    ///
+    /// The returned URL belongs to either the composer's staged file or the
+    /// attachment cache. Callers render or preview it and never delete it.
     func downloadAttachment(_ attachment: MessageAttachmentPresentation) async throws -> URL {
         if let localURL = attachment.localURL { return localURL }
         guard let serverID = activeServer?.id else { throw GrottoStoreError.serverUnavailable }
-        return try await client.downloadAttachment(
+        let client = self.client
+        let attachmentID = attachment.id
+        let filename = attachment.filename
+        return try await attachmentFiles.file(
             serverID: serverID,
-            attachmentID: attachment.id,
-            displayFilename: attachment.filename
-        )
+            attachmentID: attachmentID,
+            displayFilename: filename
+        ) {
+            try await client.downloadAttachment(
+                serverID: serverID,
+                attachmentID: attachmentID,
+                displayFilename: filename
+            )
+        }
     }
 
     private func uploadAttachments(

@@ -18,6 +18,11 @@ import { AgentRunSettlements } from './agent-run-settlements.ts';
 import { applyAuthoritativeSession } from './agent-session-authority.ts';
 import { parseAgentSkillFileRequest, runAgentSkillFileRequest } from './agent-skill-files.ts';
 import {
+    type AttachmentConnectionEvent,
+    recordAttachmentConnectionEvent,
+} from './attachment-connection-history.ts';
+import { type AttachmentHeartbeat, startAttachmentHeartbeat } from './attachment-heartbeat.ts';
+import {
     archiveUnlinkedAttachment,
     clearTerminalUnlinked,
     computerMachineUnlinkedExitCode,
@@ -121,6 +126,8 @@ import {
     computerBootstrapProtocolVersion,
     computerProtocolVersion,
     parseBootstrapAccepted,
+    parseComputerHeartbeatAck,
+    parseComputerHeartbeatConfiguration,
     parseComputerUpdateCommand,
 } from './update-contract.ts';
 import { createUpgradeRenderer, describeConcurrentUpdate } from './upgrade-render.ts';
@@ -1083,7 +1090,29 @@ async function connect(attachment: Attachment) {
         }
     };
     let lastProgress = JSON.stringify(initialProgress);
+    let heartbeat: AttachmentHeartbeat | null = null;
+    let connected = false;
+    let disconnectWrite: Promise<void> | null = null;
+    let disconnectReason: Extract<AttachmentConnectionEvent, { kind: 'disconnected' }>['reason'] =
+        'socket-close';
     let usageTimer: ReturnType<typeof setInterval> | null = null;
+    const recordConnectionEvent = (event: AttachmentConnectionEvent) =>
+        recordAttachmentConnectionEvent(dataRoot, attachment.serverId, event).catch((error) => {
+            console.error(
+                `Computer connection history failed: ${error instanceof Error ? error.message : error}`
+            );
+        });
+    const recordDisconnect = () => {
+        if (disconnectWrite) {
+            return disconnectWrite;
+        }
+        disconnectWrite = recordConnectionEvent({
+            at: new Date().toISOString(),
+            kind: 'disconnected',
+            reason: disconnectReason,
+        });
+        return disconnectWrite;
+    };
     const progressTimer = setInterval(() => {
         void readUpdateProgress(dataRoot).then((update) => {
             const serialized = JSON.stringify(update);
@@ -1097,16 +1126,38 @@ async function connect(attachment: Attachment) {
     await new Promise<void>((resolve, reject) => {
         socket.addEventListener('close', () => {
             clearInterval(progressTimer);
+            heartbeat?.dispose();
             if (usageTimer) {
                 clearInterval(usageTimer);
             }
-            resolve();
+            void recordDisconnect().finally(resolve);
         });
         socket.addEventListener('error', () => {
-            reject(new Error('Computer attachment socket failed.'));
+            heartbeat?.dispose();
+            disconnectReason = 'socket-error';
+            void recordDisconnect().finally(() => {
+                reject(new Error('Computer attachment socket failed.'));
+            });
         });
         socket.addEventListener('message', (event) => {
             const frame = JSON.parse(String(event.data)) as { type?: string };
+            const heartbeatConfiguration = parseComputerHeartbeatConfiguration(frame);
+            if (heartbeatConfiguration) {
+                heartbeat?.dispose();
+                heartbeat = startAttachmentHeartbeat({
+                    configuration: heartbeatConfiguration,
+                    onTimeout: () => {
+                        disconnectReason = 'heartbeat-timeout';
+                    },
+                    socket,
+                });
+                return;
+            }
+            const heartbeatAck = parseComputerHeartbeatAck(frame);
+            if (heartbeatAck) {
+                heartbeat?.acceptAck(heartbeatAck.id);
+                return;
+            }
             if (parseServerDeleteCommand(frame)) {
                 deleting = true;
                 disposeServerLaunchHosts(attachment.serverId);
@@ -1126,6 +1177,14 @@ async function connect(attachment: Attachment) {
             }
             const bootstrap = parseBootstrapAccepted(frame);
             if (bootstrap) {
+                if (!connected) {
+                    connected = true;
+                    void recordConnectionEvent({
+                        at: new Date().toISOString(),
+                        kind: 'connected',
+                    });
+                }
+                socket.send(JSON.stringify({ type: 'heartbeat-negotiate' }));
                 if (bootstrap.mode === 'ordinary') {
                     const initialReport = sendComputerReport(
                         socket,

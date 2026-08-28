@@ -12,6 +12,8 @@ import {
     agentWorkspaceResultSchema,
     browserResultSchema,
     computerBootstrapHelloSchema,
+    computerHeartbeatNegotiationSchema,
+    computerHeartbeatSchema,
     computerInventorySchema,
     computerProtocolVersion,
     computerUpdateProgressFrameSchema,
@@ -48,6 +50,12 @@ const reportSchema = z
     })
     .strict();
 
+const heartbeatConfiguration = {
+    intervalMs: 10_000,
+    timeoutMs: 30_000,
+    type: 'heartbeat-configuration',
+} as const;
+
 /** The only Server-to-Computer transport: one authenticated outbound socket per Computer. */
 export function startComputerAttachmentSocket(
     server: Server,
@@ -70,12 +78,52 @@ export function startComputerAttachmentSocket(
     socketServer.on('connection', (socket) => {
         let computerId: string | null = null;
         let attachedServerId: string | null = null;
+        let closed = false;
         let ordinary = false;
         let messageQueue = Promise.resolve();
+        let heartbeatTimeout: ReturnType<typeof setTimeout> | null = null;
+        const armHeartbeatTimeout = () => {
+            if (heartbeatTimeout) {
+                clearTimeout(heartbeatTimeout);
+            }
+            heartbeatTimeout = setTimeout(
+                () => socket.terminate(),
+                heartbeatConfiguration.timeoutMs
+            );
+        };
+        const handleHeartbeatFrame = (raw: string) => {
+            if (!(computerId && attachedServerId)) {
+                return false;
+            }
+            if (parseComputerHeartbeatNegotiation(raw)) {
+                if (!closed) {
+                    armHeartbeatTimeout();
+                    socket.send(JSON.stringify(heartbeatConfiguration));
+                }
+                return true;
+            }
+            const heartbeat = parseComputerHeartbeat(raw);
+            if (!heartbeat) {
+                return false;
+            }
+            if (!closed) {
+                socket.send(JSON.stringify({ id: heartbeat.id, type: 'heartbeat-ack' }));
+                armHeartbeatTimeout();
+            }
+            return true;
+        };
         socket.on('message', (raw) => {
+            const rawString = raw.toString();
+            if (handleHeartbeatFrame(rawString)) {
+                return;
+            }
             messageQueue = messageQueue
                 .then(async () => {
                     if (computerId && attachedServerId) {
+                        // A negotiation can arrive while its bootstrap is still queued.
+                        if (handleHeartbeatFrame(rawString)) {
+                            return;
+                        }
                         await ingestReport(
                             db,
                             connections,
@@ -83,14 +131,12 @@ export function startComputerAttachmentSocket(
                             computerId,
                             attachedServerId,
                             ordinary,
-                            raw.toString()
+                            rawString
                         );
                         return;
                     }
                     try {
-                        const hello = computerBootstrapHelloSchema.parse(
-                            JSON.parse(raw.toString())
-                        );
+                        const hello = computerBootstrapHelloSchema.parse(JSON.parse(rawString));
                         const computer = await reportComputerHandshake(
                             db,
                             hashComputerSecret(hello.credential),
@@ -136,6 +182,10 @@ export function startComputerAttachmentSocket(
                 });
         });
         socket.on('close', () => {
+            closed = true;
+            if (heartbeatTimeout) {
+                clearTimeout(heartbeatTimeout);
+            }
             if (computerId) {
                 sockets.delete(computerId);
                 connections.unregister(computerId);
@@ -159,6 +209,23 @@ export function startComputerAttachmentSocket(
             socketServer.close();
         },
     };
+}
+
+function parseComputerHeartbeat(raw: string) {
+    try {
+        const parsed = computerHeartbeatSchema.safeParse(JSON.parse(raw));
+        return parsed.success ? parsed.data : null;
+    } catch {
+        return null;
+    }
+}
+
+function parseComputerHeartbeatNegotiation(raw: string) {
+    try {
+        return computerHeartbeatNegotiationSchema.safeParse(JSON.parse(raw)).success;
+    } catch {
+        return false;
+    }
 }
 
 async function ingestReport(

@@ -1,3 +1,5 @@
+import { computerHeartbeatAckSchema, computerHeartbeatConfigurationSchema } from '@grotto/api';
+
 export {
     computerBootstrapProtocolVersion,
     computerProtocolVersion,
@@ -93,6 +95,16 @@ export function parseBootstrapAccepted(value: unknown) {
         return null;
     }
     return { mode: value.mode, type: value.type };
+}
+
+export function parseComputerHeartbeatConfiguration(value: unknown) {
+    const parsed = computerHeartbeatConfigurationSchema.safeParse(value);
+    return parsed.success ? parsed.data : null;
+}
+
+export function parseComputerHeartbeatAck(value: unknown) {
+    const parsed = computerHeartbeatAckSchema.safeParse(value);
+    return parsed.success ? parsed.data : null;
 }
 
 export function parseComputerUpdateCommand(value: unknown) {

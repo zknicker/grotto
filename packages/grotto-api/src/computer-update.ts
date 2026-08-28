@@ -80,6 +80,39 @@ export const computerBootstrapAcceptedSchema = z
     })
     .strict();
 
+export const computerHeartbeatConfigurationSchema = z
+    .object({
+        intervalMs: z.number().int().min(100).max(60_000),
+        timeoutMs: z.number().int().min(300).max(300_000),
+        type: z.literal('heartbeat-configuration'),
+    })
+    .strict()
+    .refine((configuration) => configuration.timeoutMs >= configuration.intervalMs * 2, {
+        message: 'Heartbeat timeout must cover at least two intervals.',
+        path: ['timeoutMs'],
+    });
+export type ComputerHeartbeatConfiguration = z.infer<typeof computerHeartbeatConfigurationSchema>;
+
+export const computerHeartbeatNegotiationSchema = z
+    .object({ type: z.literal('heartbeat-negotiate') })
+    .strict();
+
+export const computerHeartbeatSchema = z
+    .object({
+        id: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+        type: z.literal('heartbeat'),
+    })
+    .strict();
+export type ComputerHeartbeat = z.infer<typeof computerHeartbeatSchema>;
+
+export const computerHeartbeatAckSchema = z
+    .object({
+        id: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+        type: z.literal('heartbeat-ack'),
+    })
+    .strict();
+export type ComputerHeartbeatAck = z.infer<typeof computerHeartbeatAckSchema>;
+
 export const computerUpdateCommandSchema = z
     .object({
         release: signedComputerReleaseSchema,

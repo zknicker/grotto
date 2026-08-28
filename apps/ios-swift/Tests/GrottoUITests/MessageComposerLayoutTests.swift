@@ -108,7 +108,7 @@ final class MessageComposerLayoutTests: XCTestCase {
     }
 
     func testSourceMenuSitsOnTheComposerTopEdge() {
-        let padding = ComposerAttachmentPortal.sourceMenuBottomPadding(
+        let padding = ComposerPortalGeometry.sourceMenuBottomPadding(
             composerTop: 440,
             containerHeight: 540,
             menuHeight: 210
@@ -118,7 +118,7 @@ final class MessageComposerLayoutTests: XCTestCase {
     }
 
     func testSourceMenuNeverLeavesTheTopOfTheScreen() {
-        let padding = ComposerAttachmentPortal.sourceMenuBottomPadding(
+        let padding = ComposerPortalGeometry.sourceMenuBottomPadding(
             composerTop: 180,
             containerHeight: 540,
             menuHeight: 210

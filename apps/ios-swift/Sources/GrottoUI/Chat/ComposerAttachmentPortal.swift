@@ -4,17 +4,27 @@ struct ComposerAttachmentPortal: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var interaction: ComposerInteraction
     let availableSize: CGSize
+    /// A screen that owns a transition namespace is one whose composer reports a landing frame, so
+    /// it is the flag for whether a committed photo flies down or simply appears.
     let transitionNamespace: Namespace.ID?
+
     @State private var presentedOverlay: ComposerOverlay?
-    @State private var morphingSource: MorphingAttachmentSource?
-    @State private var showsMorphingSource = false
-    @State private var collapseProgress: CGFloat = 0
+    @State private var flight: ComposerAttachmentFlight?
+    @State private var flightGeneration = 0
+    @State private var flightProgress: CGFloat = 0
     @AccessibilityFocusState private var focusedSource: ComposerSource?
 
-    /// The card shrinks into the attachment tile over this window; the reference lands in ~0.24s.
-    private static let collapseDuration: TimeInterval = 0.24
+    /// One spring carries the card's collapse and the photo's travel. It starts once per flight and
+    /// is never restarted, so its own completion is what ends the flight — no clock decides.
+    private static let travelAnimation: Animation = .spring(response: 0.34, dampingFraction: 0.86)
+    /// Reduce Motion has nothing to travel, so the card only dissolves.
+    private static let dissolveAnimation: Animation = .easeOut(duration: 0.24)
+    /// An abandoned flight leaves the photo already sitting in the strip, so the card springs back
+    /// to rest rather than finishing a collapse into a tile that stopped meaning anything.
+    private static let abandonAnimation: Animation = .spring(response: 0.28, dampingFraction: 0.9)
     /// The menu and the photo grid are one card, so the frame change carries the morph.
     private static let cardMorphAnimation: Animation = .smooth(duration: 0.3)
+    private static let teardownAnimation: Animation = .easeOut(duration: 0.08)
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -24,28 +34,27 @@ struct ComposerAttachmentPortal: View {
                     .onTapGesture { close() }
             }
 
-            if interaction.overlay != nil || interaction.morphingAttachmentID != nil {
-                transitioningPortal
-                    .padding(.leading, 12)
-                    .padding(.bottom, portalBottomPadding)
+            if interaction.overlay != nil || flight != nil {
+                collapsingCard
+                    // The collapse measures from this inset, so both come from the same number.
+                    .padding(.leading, ComposerPortalGeometry.leadingInset)
+                    .padding(.bottom, geometry.bottomPadding)
                     .transition(reduceMotion ? .opacity : activePortalTransition)
             }
 
-            if showsMorphingSource, let morphingSource {
-                morphingAttachment(morphingSource)
+            if let photo = flight?.photo {
+                flyingPhoto(photo)
             }
         }
-        .animation(Self.cardMorphAnimation, value: portalBottomPadding)
-        .onChange(of: interaction.overlay) { _, overlay in
-            if let overlay {
-                presentedOverlay = overlay
-            } else if interaction.morphingAttachmentID == nil {
-                presentedOverlay = nil
-            }
-            Task { @MainActor in
-                await Task.yield()
-                focusedSource = overlay == .sources ? .camera : nil
-            }
+        .animation(Self.cardMorphAnimation, value: geometry.bottomPadding)
+        .onChange(of: interaction.overlay, handleOverlayChange)
+        .onChange(of: interaction.morphDestinationFrame) { _, landing in
+            guard landing != nil else { return }
+            launchFlight()
+        }
+        .onChange(of: interaction.attachments.map(\.id)) { _, attachmentIDs in
+            guard let flight, !flight.targetExists(in: attachmentIDs) else { return }
+            abandonFlight()
         }
     }
 
@@ -59,194 +68,68 @@ struct ComposerAttachmentPortal: View {
         interaction.overlay == .sources ? portalTransition : .opacity
     }
 
-    @ViewBuilder
-    private var transitioningPortal: some View {
-        let destinationScale = portalDestinationScale
-        // Reduce Motion keeps the fade but drops the travel, so the card dissolves in place.
-        let travelProgress = reduceMotion ? 0 : collapseProgress
-        let fadeProgress = min(1, collapseProgress / 0.45)
-
-        portal
-            .frame(width: portalWidth, height: portalHeight)
-            .scaleEffect(
-                x: interpolate(from: 1, to: destinationScale.width, progress: travelProgress),
-                y: interpolate(from: 1, to: destinationScale.height, progress: travelProgress),
-                anchor: .topLeading
-            )
-            .offset(
-                x: portalCollapseOffset.width * travelProgress,
-                y: portalCollapseOffset.height * travelProgress
-            )
-            .opacity(1 - fadeProgress)
-            .blur(radius: reduceMotion ? 0 : 6 * fadeProgress)
-            .allowsHitTesting(!isCommittingAttachment)
-            .animation(.easeOut(duration: Self.collapseDuration), value: collapseProgress)
-            .animation(.smooth(duration: 0.12), value: interaction.morphDestinationFrame)
-    }
-
-    @ViewBuilder
-    private func morphingAttachment(_ source: MorphingAttachmentSource) -> some View {
-        let destination = morphDestinationFrame ?? source.frame
-        MorphingAttachmentImage(
-            url: source.attachment.localURL,
-            sourceFrame: source.frame,
-            destinationFrame: destination,
-            sourceCornerRadius: source.cornerRadius,
-            progress: collapseProgress
+    private var collapsingCard: some View {
+        let box = geometry
+        return ComposerPortalCard(
+            overlay: displayedOverlay,
+            cornerRadius: box.cornerRadius,
+            remainingCapacity: interaction.remainingCapacity,
+            focusedSource: $focusedSource,
+            onShow: show,
+            onFiles: openFileImporter,
+            onAddPhotos: commitPhotos,
+            onCapture: commitCapture,
+            onEscape: close
         )
-            .zIndex(30)
-            .animation(.smooth(duration: 0.12), value: interaction.morphDestinationFrame)
-    }
-
-    @ViewBuilder
-    private var portal: some View {
-        if #available(iOS 26, macOS 26, *), displayedOverlay == .sources {
-            GlassEffectContainer(spacing: 12) {
-                portalContents
-                    .glassEffect(.regular, in: .rect(cornerRadius: portalCornerRadius))
-            }
-            .accessibilityAddTraits(.isModal)
-        } else {
-            portalContents
-                .background(portalFallbackBackground)
-                .clipShape(.rect(cornerRadius: portalCornerRadius))
-                .overlay {
-                    RoundedRectangle(cornerRadius: portalCornerRadius)
-                        .stroke(.white.opacity(0.12), lineWidth: 0.5)
-                }
-                .shadow(color: .black.opacity(0.28), radius: 24, y: 10)
-                .accessibilityAddTraits(.isModal)
-        }
-    }
-
-    /// The media card sits nearly full-bleed, so its corners must nest concentrically inside the
-    /// display's (~55pt) rounding: inner radius ≈ outer minus inset. The source menu floats
-    /// mid-screen with no bezel relationship and keeps the ordinary card radius.
-    private var portalCornerRadius: CGFloat {
-        displayedOverlay == .sources ? 30 : 44
-    }
-
-    private var portalContents: some View {
-        ZStack {
-            if displayedOverlay == .sources {
-                ComposerSourceMenu(
-                    focusedSource: $focusedSource,
-                    onCamera: { show(.camera) },
-                    onPhotos: { show(.photos) },
-                    onFiles: {
-                        presentedOverlay = nil
-                        interaction.overlay = nil
-                        interaction.isFileImporterPresented = true
-                    }
-                )
-                .transition(portalContentTransition)
-            }
-            if displayedOverlay == .photos {
-                #if os(iOS)
-                ComposerPhotoPickerView(
-                    maximumSelectionCount: interaction.remainingCapacity,
-                    onCancel: { show(.sources) },
-                    onAdd: commitPhotos
-                )
-                .transition(portalContentTransition)
-                #else
-                EmptyView()
-                #endif
-            }
-            if displayedOverlay == .camera {
-                #if os(iOS)
-                CameraCaptureView(
-                    onCancel: { show(.sources) },
-                    onCapture: commitCapture
-                )
-                .transition(portalContentTransition)
-                #else
-                ContentUnavailableView("Camera unavailable", systemImage: "camera")
-                #endif
-            }
-        }
-        .animation(.smooth(duration: 0.22), value: displayedOverlay)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .accessibilityAction(.escape, close)
-    }
-
-    @ViewBuilder
-    private var portalFallbackBackground: some View {
-        if displayedOverlay == .sources {
-            Rectangle().fill(.regularMaterial)
-        } else {
-            Color.black
-        }
-    }
-
-    private var portalWidth: CGFloat {
-        switch displayedOverlay {
-        case .sources: min(286, availableSize.width - 32)
-        default: availableSize.width - 24
-        }
-    }
-
-    private var portalHeight: CGFloat {
-        switch displayedOverlay {
-        case .sources: 210
-        default: min(520, max(390, availableSize.height * 0.58))
-        }
-    }
-
-    /// The source menu pops off the plus and stands clear of the composer; the media portals are
-    /// full-bleed cards that sit on the container floor the way the reference does.
-    private var portalBottomPadding: CGFloat {
-        guard displayedOverlay == .sources else { return 8 }
-        guard let composerTop = interaction.composerSurfaceFrame?.minY else { return 8 }
-        return Self.sourceMenuBottomPadding(
-            composerTop: composerTop,
-            containerHeight: availableSize.height,
-            menuHeight: portalHeight
-        )
-    }
-
-    /// Sits the menu on the composer's top edge, but never so high that a tall draft or a full
-    /// attachment strip pushes the card off the top of the screen.
-    static func sourceMenuBottomPadding(
-        composerTop: CGFloat,
-        containerHeight: CGFloat,
-        menuHeight: CGFloat
-    ) -> CGFloat {
-        let aboveComposer = containerHeight - composerTop + 8
-        let highestAllowed = max(8, containerHeight - menuHeight - 8)
-        return min(max(8, aboveComposer), highestAllowed)
-    }
-
-    private var portalContentTransition: AnyTransition {
+        .frame(width: box.width, height: box.height)
         .modifier(
-            active: PortalContentTransitionModifier(opacity: 0, blur: 2),
-            identity: PortalContentTransitionModifier(opacity: 1, blur: 0)
+            ComposerPortalCollapseModifier(
+                scale: box.collapseScale(landing: interaction.morphDestinationFrame),
+                offset: box.collapseOffset(landing: interaction.morphDestinationFrame),
+                travels: !reduceMotion,
+                progress: flightProgress
+            )
+        )
+        // A card that has committed a photo is on its way out and takes no more taps. It covers
+        // the composer, so this is what keeps the composer live for the whole flight — nothing
+        // else on the screen is gated, and the card is back the instant a new portal opens.
+        .allowsHitTesting(flight == nil)
+    }
+
+    private func flyingPhoto(_ photo: ComposerAttachmentFlight.Photo) -> some View {
+        MorphingAttachmentImage(
+            url: photo.url,
+            sourceFrame: photo.frame,
+            destinationFrame: interaction.morphDestinationFrame ?? photo.frame,
+            sourceCornerRadius: photo.cornerRadius,
+            progress: flightProgress
+        )
+        .zIndex(30)
+    }
+
+    private var geometry: ComposerPortalGeometry {
+        ComposerPortalGeometry(
+            overlay: displayedOverlay,
+            availableSize: availableSize,
+            composerTop: interaction.composerSurfaceFrame?.minY
         )
     }
 
-    private var portalCollapseOffset: CGSize {
-        guard let destination = morphDestinationFrame else { return .zero }
-        return CGSize(
-            width: destination.minX - portalOrigin.x,
-            height: destination.minY - portalOrigin.y
-        )
+    private var displayedOverlay: ComposerOverlay? {
+        presentedOverlay ?? interaction.overlay
     }
 
-    private var portalDestinationScale: CGSize {
-        guard let destination = morphDestinationFrame else { return CGSize(width: 1, height: 1) }
-        return CGSize(
-            width: destination.width / portalWidth,
-            height: destination.height / portalHeight
-        )
-    }
-
-    private var portalOrigin: CGPoint {
-        CGPoint(x: 12, y: availableSize.height - portalBottomPadding - portalHeight)
-    }
-
-    private var morphDestinationFrame: CGRect? {
-        interaction.morphDestinationFrame.map {
-            CGRect(x: $0.minX, y: $0.minY, width: 88, height: 88)
+    private func handleOverlayChange(_: ComposerOverlay?, _ overlay: ComposerOverlay?) {
+        if let overlay {
+            // A portal opening mid-flight takes the card back before the collapse finishes.
+            abandonFlight()
+            presentedOverlay = overlay
+        } else if flight == nil {
+            presentedOverlay = nil
+        }
+        Task { @MainActor in
+            await Task.yield()
+            focusedSource = overlay == .sources ? .camera : nil
         }
     }
 
@@ -257,19 +140,17 @@ struct ComposerAttachmentPortal: View {
         }
     }
 
-    private var displayedOverlay: ComposerOverlay? {
-        presentedOverlay ?? interaction.overlay
-    }
-
-    private var isCommittingAttachment: Bool {
-        interaction.morphingAttachmentID != nil
-    }
-
     private func show(_ overlay: ComposerOverlay) {
         withAnimation(Self.cardMorphAnimation) {
             presentedOverlay = overlay
             interaction.overlay = overlay
         }
+    }
+
+    private func openFileImporter() {
+        presentedOverlay = nil
+        interaction.overlay = nil
+        interaction.isFileImporterPresented = true
     }
 
     private func commitPhotos(_ urls: [URL], sourceFrame: CGRect?) {
@@ -286,64 +167,81 @@ struct ComposerAttachmentPortal: View {
         )
     }
 
-    private func commit(
-        _ prepared: [ComposerAttachment],
-        sourceFrame: CGRect?
-    ) {
+    private func commit(_ prepared: [ComposerAttachment], sourceFrame: CGRect?) {
         guard let first = prepared.first else { return }
-        if transitionNamespace != nil, !reduceMotion {
-            let localSourceFrame = sourceFrame ?? CGRect(
-                x: 0,
-                y: 0,
-                width: portalWidth,
-                height: portalHeight
-            )
-            morphingSource = MorphingAttachmentSource(
-                attachment: first,
-                frame: localSourceFrame.offsetBy(dx: portalOrigin.x, dy: portalOrigin.y),
-                cornerRadius: sourceFrame == nil ? portalCornerRadius : 1
-            )
-            showsMorphingSource = true
-            collapseProgress = 0
-        }
-        Task { @MainActor in
-            await Task.yield()
-            interaction.morphDestinationFrame = nil
-            interaction.morphingAttachmentID = first.id
-            // Hand the keyboard back as the morph starts, not once the card has finished leaving.
+        guard transitionNamespace != nil else {
+            // Nothing reports a landing frame on this screen, so there is nowhere to fly to: the
+            // card closes and the attachment simply appears.
             interaction.overlay = nil
             interaction.appendPrepared(prepared)
+            return
+        }
 
-            let deadline = ContinuousClock.now + .milliseconds(120)
-            while interaction.morphDestinationFrame == nil, ContinuousClock.now < deadline {
-                try? await Task.sleep(for: .milliseconds(16))
-            }
+        flightGeneration += 1
+        withTransaction(Transaction(animation: nil)) { flightProgress = 0 }
+        flight = ComposerAttachmentFlight(
+            generation: flightGeneration,
+            attachmentID: first.id,
+            photo: flightPhoto(for: first, sourceFrame: sourceFrame)
+        )
+        interaction.morphDestinationFrame = nil
+        interaction.morphingAttachmentID = first.id
+        // Hand the keyboard back as the flight starts, not once the card has finished leaving.
+        interaction.overlay = nil
+        interaction.appendPrepared(prepared)
+    }
 
-            withAnimation(.easeOut(duration: Self.collapseDuration)) {
-                collapseProgress = 1
-            }
-            try? await Task.sleep(for: .milliseconds(280))
+    private func flightPhoto(
+        for attachment: ComposerAttachment,
+        sourceFrame: CGRect?
+    ) -> ComposerAttachmentFlight.Photo? {
+        guard !reduceMotion else { return nil }
+        let box = geometry
+        // A capture has no source cell, so the whole card is what shrinks into the tile.
+        let takeOff = sourceFrame ?? CGRect(origin: .zero, size: box.size)
+        return ComposerAttachmentFlight.Photo(
+            url: attachment.localURL,
+            frame: takeOff.offsetBy(dx: box.origin.x, dy: box.origin.y),
+            cornerRadius: sourceFrame == nil ? box.cornerRadius : 1
+        )
+    }
 
-            withAnimation(.easeOut(duration: 0.08)) {
-                showsMorphingSource = false
-                presentedOverlay = nil
-                morphingSource = nil
-                collapseProgress = 0
-                interaction.morphingAttachmentID = nil
-                interaction.morphDestinationFrame = nil
-            }
+    private func launchFlight() {
+        guard var flight, flight.launch() else { return }
+        self.flight = flight
+        let generation = flight.generation
+        withAnimation(
+            reduceMotion ? Self.dissolveAnimation : Self.travelAnimation,
+            completionCriteria: .logicallyComplete
+        ) {
+            flightProgress = 1
+        } completion: {
+            endFlight(generation: generation)
         }
     }
 
-    private func interpolate(from start: CGFloat, to end: CGFloat, progress: CGFloat) -> CGFloat {
-        start + ((end - start) * progress)
+    /// Ends the flight whose photo the composer's tile now owns. A superseded flight's completion
+    /// still arrives, so the generation check keeps it from tearing down its successor.
+    ///
+    /// The landing frame outlives the flight on purpose: `commit` is the only thing that clears it,
+    /// so the collapse geometry stays put while the card finishes leaving instead of springing back
+    /// to full size the moment its target disappears.
+    private func endFlight(generation: Int) {
+        guard flight?.generation == generation else { return }
+        withAnimation(Self.teardownAnimation) {
+            flight = nil
+            presentedOverlay = interaction.overlay
+        }
+        interaction.morphingAttachmentID = nil
     }
-}
-private struct PortalContentTransitionModifier: ViewModifier {
-    let opacity: Double
-    let blur: CGFloat
 
-    func body(content: Content) -> some View {
-        content.opacity(opacity).blur(radius: blur)
+    /// Drops a flight whose landing tile is gone, or whose screen a new portal has taken back. The
+    /// photo is already staged either way, so revealing the tile is the whole cleanup — and the
+    /// card unwinds along the collapse it was already on rather than cutting back to rest.
+    private func abandonFlight() {
+        guard flight != nil else { return }
+        withAnimation(Self.teardownAnimation) { flight = nil }
+        withAnimation(Self.abandonAnimation) { flightProgress = 0 }
+        interaction.morphingAttachmentID = nil
     }
 }

@@ -2,27 +2,13 @@ import SwiftUI
 
 struct ComposerAttachmentTile: View {
     let attachment: ComposerAttachment
-    let transitionNamespace: Namespace.ID?
-    let isTransitionDestination: Bool
     let onRemove: () -> Void
-
-    init(
-        attachment: ComposerAttachment,
-        transitionNamespace: Namespace.ID? = nil,
-        isTransitionDestination: Bool = false,
-        onRemove: @escaping () -> Void
-    ) {
-        self.attachment = attachment
-        self.transitionNamespace = transitionNamespace
-        self.isTransitionDestination = isTransitionDestination
-        self.onRemove = onRemove
-    }
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
             Group {
                 if attachment.mediaType.hasPrefix("image/") {
-                    attachmentImage
+                    LocalAttachmentImage(url: attachment.localURL)
                 } else {
                     fileTile
                 }
@@ -44,22 +30,6 @@ struct ComposerAttachmentTile: View {
             .accessibilityLabel("Remove \(attachment.filename)")
         }
         .accessibilityElement(children: .contain)
-    }
-
-    @ViewBuilder
-    private var attachmentImage: some View {
-        if isTransitionDestination, let transitionNamespace {
-            LocalAttachmentImage(url: attachment.localURL)
-                .matchedGeometryEffect(
-                    id: attachment.id,
-                    in: transitionNamespace,
-                    properties: .frame,
-                    anchor: .center,
-                    isSource: false
-                )
-        } else {
-            LocalAttachmentImage(url: attachment.localURL)
-        }
     }
 
     private var fileTile: some View {

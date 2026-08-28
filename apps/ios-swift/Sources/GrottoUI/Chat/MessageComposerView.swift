@@ -17,6 +17,9 @@ public struct MessageComposerView: View {
     @FocusState.Binding private var isTextFocused: Bool
     @AccessibilityFocusState private var isAttachmentButtonFocused: Bool
     @State private var attachmentReadyFeedback = 0
+    /// True while a surface tap re-issues a focus summons, so the momentary
+    /// focus drop never reaches the expansion layout.
+    @State private var isReissuingFocus = false
 
     public init(
         text: Binding<String>,
@@ -115,7 +118,30 @@ public struct MessageComposerView: View {
     private var composerSurface: some View {
         surfaceBody
             .contentShape(.rect(cornerRadius: surfaceCornerRadius))
-            .onTapGesture { isTextFocused = true }
+            // Taps on the text area itself go to the field natively; this
+            // gesture only catches the surface around it.
+            .onTapGesture {
+                guard isTextFocused else {
+                    isTextFocused = true
+                    return
+                }
+                // Already focused: either the keyboard is up and the tap has
+                // nothing to do, or a prior programmatic focus never reached
+                // UIKit's responder chain and the field only looks focused —
+                // the same failure the portal freeze recovers from. Cycling
+                // re-issues the summons. `isReissuingFocus` holds the expanded
+                // layout through the flip: without it, every tap in an
+                // environment where no keyboard can rise (a hardware keyboard)
+                // visibly collapses and re-expands the composer, and the
+                // controls dodge the very tap trying to reach them.
+                isReissuingFocus = true
+                isTextFocused = false
+                Task { @MainActor in
+                    await Task.yield()
+                    isTextFocused = true
+                    isReissuingFocus = false
+                }
+            }
             .background {
                 GeometryReader { geometry in
                     Color.clear
@@ -192,7 +218,7 @@ public struct MessageComposerView: View {
                 }
                 .compositingGroup()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .disabled(!canSend)
         .animation(.easeOut(duration: 0.16), value: canSend)
         .accessibilityLabel("Send message")
@@ -208,7 +234,7 @@ public struct MessageComposerView: View {
                 .frame(width: 32, height: 32)
                 .contentShape(.circle)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .foregroundStyle(.primary)
         .disabled(!allowsAttachments || interaction.remainingCapacity == 0)
         .accessibilityLabel("Add attachment")
@@ -233,18 +259,19 @@ public struct MessageComposerView: View {
     }
 
     private func attachmentTile(_ attachment: ComposerAttachment) -> some View {
-        let isTransitionDestination = interaction.morphingAttachmentID == attachment.id
-        return ComposerAttachmentTile(
-            attachment: attachment,
-            transitionNamespace: transitionNamespace,
-            isTransitionDestination: false
-        ) {
+        // Only a screen that owns a transition namespace runs the attachment flight, and only its
+        // landing tile hides itself and reports where the flying photo has to arrive. The frame is
+        // reported for as long as the flight lasts, because the tile keeps moving while the
+        // composer grows the strip around it.
+        let isFlightDestination = transitionNamespace != nil
+            && interaction.morphingAttachmentID == attachment.id
+        return ComposerAttachmentTile(attachment: attachment) {
             announceAccessibility("Removed \(attachment.filename)")
             interaction.remove(attachment)
         }
-        .opacity(isTransitionDestination ? 0 : 1)
+        .opacity(isFlightDestination ? 0 : 1)
         .background {
-            if isTransitionDestination {
+            if isFlightDestination {
                 GeometryReader { geometry in
                     Color.clear
                         .onAppear { reportDestinationFrame(geometry) }
@@ -294,7 +321,7 @@ public struct MessageComposerView: View {
 
     private var isExpanded: Bool {
         Self.shouldExpand(
-            isFocused: isTextFocused,
+            isFocused: isTextFocused || isReissuingFocus,
             hasAttachments: !interaction.attachments.isEmpty,
             isPreparingAttachment: interaction.isPreparingAttachment,
             isPortalActive: interaction.isPortalActive

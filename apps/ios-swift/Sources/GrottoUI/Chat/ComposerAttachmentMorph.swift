@@ -1,15 +1,13 @@
 import SwiftUI
 
-struct MorphingAttachmentSource {
-    let attachment: ComposerAttachment
-    let frame: CGRect
-    let cornerRadius: CGFloat
-}
-
 /// The chosen photo flying from the picker into the composer's attachment tile.
 ///
 /// The reveal starts early on purpose: what lands in the composer should read as the photo, not as
 /// a shrinking screenshot of the grid it came from.
+///
+/// `progress` is the animated value, not the frame: the destination is still settling while the
+/// composer grows its attachment strip, and animating progress lets a moving target change where
+/// the photo is going without restarting how it gets there.
 struct MorphingAttachmentImage: View, @preconcurrency Animatable {
     let url: URL
     let sourceFrame: CGRect

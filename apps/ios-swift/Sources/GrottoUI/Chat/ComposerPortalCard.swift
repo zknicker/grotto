@@ -1,0 +1,132 @@
+import SwiftUI
+
+/// The portal's one card. The source menu and the media pickers share it, so moving between them
+/// changes the card's frame, corner radius, and contents instead of swapping two surfaces.
+struct ComposerPortalCard: View {
+    let overlay: ComposerOverlay?
+    let cornerRadius: CGFloat
+    let remainingCapacity: Int
+    @AccessibilityFocusState.Binding var focusedSource: ComposerSource?
+    let onShow: (ComposerOverlay) -> Void
+    let onFiles: () -> Void
+    let onAddPhotos: ([URL], CGRect?) -> Void
+    let onCapture: (Data) -> Void
+    let onEscape: () -> Void
+
+    /// Whether the card is the floating glass menu (true) or an opaque media surface.
+    private var isSourceMenu: Bool { overlay == .sources }
+
+    var body: some View {
+        // One card, one identity, every overlay. `if #available` never flips at runtime, but a
+        // branch on the overlay would: the menu-to-media switch then removes one card and inserts
+        // another, and the morph the frame change should carry degrades to a crossfade. So the
+        // card stays neutral — clip, an opaque fill that swaps in for media, a stroke — and the
+        // glass belongs to the menu *content*, which already swaps under the morphing frame.
+        // Content inside a glass effect is what the container composites in its glass layer;
+        // glass as a sibling background instead draws that layer over the card's plain content
+        // and frosts the row labels out of existence.
+        if #available(iOS 26, macOS 26, *) {
+            GlassEffectContainer(spacing: 12) {
+                contents
+                    .clipShape(.rect(cornerRadius: cornerRadius))
+                    .background {
+                        if !isSourceMenu {
+                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                .fill(.black)
+                                .shadow(color: .black.opacity(0.28), radius: 24, y: 10)
+                        }
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .stroke(.white.opacity(0.12), lineWidth: 0.5)
+                            .opacity(isSourceMenu ? 0 : 1)
+                    }
+            }
+            .accessibilityAddTraits(.isModal)
+        } else {
+            contents
+                .background(fallbackBackground)
+                .clipShape(.rect(cornerRadius: cornerRadius))
+                .overlay {
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .stroke(.white.opacity(0.12), lineWidth: 0.5)
+                }
+                .shadow(color: .black.opacity(0.28), radius: 24, y: 10)
+                .accessibilityAddTraits(.isModal)
+        }
+    }
+
+    private var contents: some View {
+        ZStack {
+            if overlay == .sources {
+                sourceMenu
+                    .transition(contentTransition)
+            }
+            if overlay == .photos {
+                #if os(iOS)
+                ComposerPhotoPickerView(
+                    maximumSelectionCount: remainingCapacity,
+                    onCancel: { onShow(.sources) },
+                    onAdd: onAddPhotos
+                )
+                .transition(contentTransition)
+                #endif
+            }
+            if overlay == .camera {
+                #if os(iOS)
+                CameraCaptureView(onCancel: { onShow(.sources) }, onCapture: onCapture)
+                    .transition(contentTransition)
+                #else
+                ContentUnavailableView("Camera unavailable", systemImage: "camera")
+                #endif
+            }
+        }
+        .animation(.smooth(duration: 0.22), value: overlay)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityAction(.escape, onEscape)
+    }
+
+    /// The menu wears the card-sized glass itself, so its rows render inside the effect's
+    /// vibrancy context and leave with the content fade while the card's frame morphs on.
+    @ViewBuilder
+    private var sourceMenu: some View {
+        let menu = ComposerSourceMenu(
+            focusedSource: $focusedSource,
+            onCamera: { onShow(.camera) },
+            onPhotos: { onShow(.photos) },
+            onFiles: onFiles
+        )
+        if #available(iOS 26, macOS 26, *) {
+            menu
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+        } else {
+            menu
+        }
+    }
+
+    @ViewBuilder
+    private var fallbackBackground: some View {
+        if overlay == .sources {
+            Rectangle().fill(.regularMaterial)
+        } else {
+            Color.black
+        }
+    }
+
+    private var contentTransition: AnyTransition {
+        .modifier(
+            active: PortalContentTransitionModifier(opacity: 0, blur: 2),
+            identity: PortalContentTransitionModifier(opacity: 1, blur: 0)
+        )
+    }
+}
+
+private struct PortalContentTransitionModifier: ViewModifier {
+    let opacity: Double
+    let blur: CGFloat
+
+    func body(content: Content) -> some View {
+        content.opacity(opacity).blur(radius: blur)
+    }
+}

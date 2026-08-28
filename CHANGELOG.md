@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.37 - 2026-08-28
+
+- Grotto App renders Agent-authored references to people, Agents, skills, apps, files, and
+  directories as clear interactive chips in Chats and Threads.
+- Server releases now fail if production promotion is skipped and verify the exact hosted Grotto
+  App version before completion.
+
 ## v1.8.36 - 2026-08-28
 
 - Grotto App renders Agent-authored references to people, Agents, skills, apps, files, and

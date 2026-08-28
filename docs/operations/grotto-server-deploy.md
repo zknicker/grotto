@@ -87,6 +87,8 @@ environment example of any kind: `config/server.env` is rendered from the
 schema at deploy time. The mini verifies the
 outer checksum before extracting or executing the deploy operation, which then
 verifies the internal manifest and release identity before atomic installation.
+A packaging guard rejects any compiled operation that is not an Apple Silicon
+Mach-O executable, including a host-native Linux binary from an Ubuntu release runner.
 A manual `activate` never downloads, rebuilds, or reinterprets an artifact.
 Urgent production changes require a patch release.
 

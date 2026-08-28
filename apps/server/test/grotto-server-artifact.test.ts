@@ -110,6 +110,11 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
                 stdout: 'pipe',
             }).exitCode
         ).toBe(0);
+        expect(
+            Bun.spawnSync(['/usr/bin/file', '-b', 'bin/grotto-server-deploy'], {
+                cwd: unpacked,
+            }).stdout.toString()
+        ).toMatch(/Mach-O.*arm64/u);
 
         const release = JSON.parse(readFileSync(join(unpacked, 'release.json'), 'utf8')) as {
             contentDigest: string;

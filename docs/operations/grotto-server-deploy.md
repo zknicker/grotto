@@ -22,16 +22,20 @@ or deployment uses Vercel.
 
 The Server and web Grotto App are one `server` target. Merging the release PR
 starts one `Release` workflow; its Server job publishes the exact artifact and
-source identity needed for deployment. Publication makes the release
-*deployable* but does not promote production. A separate manual `Deploy Grotto
-Server` dispatch performs promotion because it resolves production credentials
-and rewrites the Server's delivered environment.
+source identity needed for deployment. The graph then calls `Deploy Grotto
+Server` through the protected `production` Environment. Approval is explicit;
+after approval the reusable workflow resolves production credentials and
+rewrites the Server's delivered environment. Manual dispatch remains available
+for recovery and activation. GitHub's `production` Environment requires reviewer
+approval and accepts deployments only from `main`; verify those repository settings
+before merging a Server release.
 
 Neither a push to `main` nor a completed target job alone is deployment evidence.
 
 The self-hosted `Deploy Grotto Server` workflow:
 
-1. accepts a manual exact published `vX.Y.Z` with mode `deploy` or `activate`
+1. accepts the Release workflow's exact published `vX.Y.Z` and source SHA, or a manual exact
+   version with mode `deploy` or `activate`
 2. rejects drafts, prereleases, lightweight tags, branches, and arbitrary SHAs
 3. resolves the annotated tag to a full commit SHA through the authenticated
    GitHub API
@@ -56,7 +60,8 @@ The self-hosted `Deploy Grotto Server` workflow:
 10. reads the delivered environment back names-only and fails on a name outside
     the delivered set, or on a production-required name of that set arriving
     missing or empty
-11. rolls back to the exact previous SHA on failure; a failed first activation
+11. verifies public `/healthz`, the hosted Grotto App shell, and the App's exact product version
+12. rolls back to the exact previous SHA on failure; a failed first activation
     boots out the label it introduced before removing `current`
 
 `productVersion` is the website version. `sourceRevision` is the full immutable

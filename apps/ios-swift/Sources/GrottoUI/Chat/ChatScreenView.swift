@@ -79,20 +79,15 @@ public struct ChatScreenView: View {
     public var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .bottomLeading) {
-                VStack(spacing: 0) {
-                    header
-                    MessageTimelineView(
-                        messages: messages,
-                        onOpenThread: onOpenThread,
-                        onOpenAttachment: onOpenAttachment,
-                        canManagePreparedActions: canManagePreparedActions,
-                        onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
-                        hasOlderMessages: hasOlderMessages,
-                        isLoadingOlderMessages: isLoadingOlderMessages,
-                        onLoadOlderMessages: onLoadOlderMessages,
-                        onTapTimeline: { isComposerFocused = false },
-                        scrollTargetMessageID: $scrollTargetMessageID
-                    )
+                timeline
+                    // The header floats over the transcript rather than capping it, so glass has
+                    // live content to refract behind it. The shell ignores safe areas on this
+                    // canvas, so the status-bar clearance that used to sit on the outer VStack
+                    // moves onto the header itself, inside the inset.
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        header
+                            .padding(.top, contentInsets.top)
+                    }
                     // The composer floats over the transcript rather than capping it, so glass has
                     // live content to refract. The inset still reserves the same scroll clearance
                     // the old opaque band did.
@@ -110,8 +105,6 @@ public struct ChatScreenView: View {
                         )
                         .padding(.bottom, chatBottomInset)
                     }
-                }
-                .padding(.top, contentInsets.top)
 
                 // The portal measures against the container, which spans the whole screen and does
                 // not track the keyboard — so the card keeps its full height and its 8pt gap from
@@ -141,6 +134,31 @@ public struct ChatScreenView: View {
     /// screen bottom, and through the composer's own height it sets the transcript's clearance.
     private var chatBottomInset: CGFloat {
         composerInteraction.portalFreeze.bottomInset(live: contentInsets.bottom)
+    }
+
+    /// A caller's `safeAreaInset` lands on `MessageTimelineView`'s own `ScrollView` root, so the
+    /// transcript scrolls beneath both the header and the composer instead of clipping under them.
+    private var timeline: some View {
+        let content = MessageTimelineView(
+            messages: messages,
+            onOpenThread: onOpenThread,
+            onOpenAttachment: onOpenAttachment,
+            canManagePreparedActions: canManagePreparedActions,
+            onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
+            hasOlderMessages: hasOlderMessages,
+            isLoadingOlderMessages: isLoadingOlderMessages,
+            onLoadOlderMessages: onLoadOlderMessages,
+            onTapTimeline: { isComposerFocused = false },
+            scrollTargetMessageID: $scrollTargetMessageID
+        )
+
+        return Group {
+            if #available(iOS 26, macOS 26, *) {
+                content.scrollEdgeEffectStyle(.soft, for: .top)
+            } else {
+                content
+            }
+        }
     }
 
     private var header: some View {

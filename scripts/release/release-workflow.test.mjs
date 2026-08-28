@@ -9,6 +9,10 @@ import { writeReleaseSummary } from './verify-release.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const workflow = readFileSync(path.join(repositoryRoot, '.github/workflows/release.yml'), 'utf8');
+const deployWorkflow = readFileSync(
+    path.join(repositoryRoot, '.github/workflows/deploy-grotto-server.yml'),
+    'utf8'
+);
 const environmentSchema = readFileSync(path.join(repositoryRoot, '.env.schema'), 'utf8');
 const dependencyAction = readFileSync(
     path.join(repositoryRoot, '.github/actions/setup-release-dependencies/action.yml'),
@@ -34,7 +38,7 @@ test('summary and Apple lifecycle helpers expose outcomes and clean temporary fi
         const summary = readFileSync(summaryPath, 'utf8');
         assert.match(summary, /\| Computer \| published \|/);
         assert.match(summary, /\| App \| unchanged \|/);
-        assert.match(summary, /manual Deploy Grotto Server workflow/);
+        assert.match(summary, /Production Server deployed and publicly verified/);
 
         const setup = spawnSync('bash', [setupApple, 'computer'], {
             cwd: repositoryRoot,
@@ -97,6 +101,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
         'Publish App',
         'Upload iOS',
         'Publish Server',
+        'Promote Server',
         'Finalize release',
     ]) {
         assert.match(workflow, new RegExp(`name: ${jobName}`));
@@ -110,6 +115,18 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     );
     assert.match(workflow, /run: bun run publish:desktop/);
     assert.match(workflow, /run: bun run release:publish/);
+    assert.match(
+        workflow,
+        /promote_server:[\s\S]*needs: \[plan, publish_server\][\s\S]*uses: \.\/\.github\/workflows\/deploy-grotto-server\.yml[\s\S]*version: v\$\{\{ needs\.plan\.outputs\.release_version \}\}[\s\S]*source_revision: \$\{\{ github\.sha \}\}/
+    );
+    assert.match(
+        workflow,
+        /finalize_release:[\s\S]*- promote_server[\s\S]*needs\.promote_server\.result == 'success'/
+    );
+    assert.match(deployWorkflow, /workflow_call:/);
+    assert.match(deployWorkflow, /environment:\s+name: production\s+url: https:\/\/grotto\.sh/);
+    assert.match(deployWorkflow, /EXPECTED_SOURCE_REVISION: \$\{\{ inputs\.source_revision \}\}/);
+    assert.match(deployWorkflow, /bun scripts\/release\/verify-hosted-grotto\.mjs/);
     assert.ok(
         workflow.indexOf('actions/upload-artifact@v4') <
             workflow.indexOf('actions/download-artifact@v4')

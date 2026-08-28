@@ -1,9 +1,25 @@
 name: Deploy Grotto Server
 
-# Manual only. Publishing a GitHub Release no longer deploys: a deploy is an
-# explicit act now that it resolves production credentials from 1Password and
-# renders the Server's delivered environment from the committed .env.schema.
+# Release calls this workflow through the protected production Environment.
+# Manual dispatch remains available for explicit deployment and activation.
 on:
+  workflow_call:
+    inputs:
+      version:
+        description: Published Grotto version (vX.Y.Z)
+        required: true
+        type: string
+      mode:
+        description: Production action
+        required: true
+        type: string
+      source_revision:
+        description: Expected full release source SHA
+        required: true
+        type: string
+    secrets:
+      GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN:
+        required: true
   workflow_dispatch:
     inputs:
       version:
@@ -17,6 +33,10 @@ on:
         options:
           - deploy
           - activate
+      source_revision:
+        description: Optional expected full release source SHA
+        required: false
+        type: string
 
 concurrency:
   group: grotto-production
@@ -26,6 +46,9 @@ jobs:
   deploy:
     name: Deploy published Grotto version
     runs-on: [self-hosted, grotto]
+    environment:
+      name: production
+      url: https://grotto.sh
     timeout-minutes: 30
     permissions:
       contents: read
@@ -37,6 +60,7 @@ jobs:
       - name: Resolve published version
         working-directory: /Users/zknicker/srv/grotto
         env:
+          EXPECTED_SOURCE_REVISION: ${{ inputs.source_revision }}
           REQUESTED_MODE: ${{ inputs.mode }}
           REQUESTED_VERSION: ${{ inputs.version }}
         run: |
@@ -78,6 +102,10 @@ jobs:
           IFS=$'\t' read -r annotated_tag target_type revision <<<"${tag_state}"
           if [[ "${annotated_tag}" != "${REQUESTED_VERSION}" || "${target_type}" != "commit" || ! "${revision}" =~ ^[0-9a-f]{40}$ ]]; then
             echo "release tag did not resolve to a full commit" >&2
+            exit 1
+          fi
+          if [[ -n "${EXPECTED_SOURCE_REVISION}" && "${revision}" != "${EXPECTED_SOURCE_REVISION}" ]]; then
+            echo "release tag resolved to ${revision}, expected ${EXPECTED_SOURCE_REVISION}" >&2
             exit 1
           fi
 
@@ -262,3 +290,6 @@ jobs:
       # a production-required secret missing from delivery is a failure.
       - name: Verify the delivered environment
         run: bun scripts/verify-deployed-secrets.ts
+
+      - name: Prove public Server and hosted Grotto App
+        run: bun scripts/release/verify-hosted-grotto.mjs "${GROTTO_RELEASE_VERSION#v}"

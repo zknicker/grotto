@@ -17,9 +17,9 @@ deployment contracts remain in the routed docs and specs below; do not recreate 
   buildNumber }`.
 - The `Release` workflow owns per-target build, signing, publication, and evidence jobs. It runs
   selected target jobs and reports every unselected target as unchanged.
-- Release publication makes artifacts available. Production Grotto Server promotion is a separate
-  manual `Deploy Grotto Server` action. Do not call a release production-ready until that action
-  and public health checks succeed.
+- Release publication makes artifacts available. When Server publishes, the Release graph enters
+  the protected `production` Environment and calls `Deploy Grotto Server`. Do not call a release
+  production-ready until deployment and public checks succeed.
 - Never put credentials, tokens, or private key material in the record, PR, changelog, or handoff.
 
 The skill owns decision prompts, record preparation, PR/merge flow, monitoring, and handoff. Read
@@ -101,8 +101,11 @@ Create one release PR from an up-to-date branch based on `origin/main`. Its body
 - a target table with publish/unchanged decisions and reasons;
 - required Computer-before-Server ordering or login-cutover checkpoints;
 - local proof and expected target-job proof;
-- the separate manual Server promotion and rollback plan;
+- the protected Server promotion and rollback plan;
 - the exact operator handoff still needed after publication.
+
+When Server publishes, verify that GitHub's `production` Environment still requires reviewer
+approval and permits only the `main` branch. Stop before merge if either protection is missing.
 
 Do not create one PR per target, publish from the PR branch, push a release tag by hand, or merge
 around a failing check. Use the repository's normal `gh`/GitHub workflow and approval policy. Merge
@@ -138,13 +141,13 @@ after the workflow starts. Record any rerun and its reason.
 Completion criterion: the one workflow has a terminal result, every target has an explicit outcome,
 and the evidence links the merge commit, run, artifacts, and verification gaps.
 
-## 5. Promote Grotto Server separately
+## 5. Promote Grotto Server through the production gate
 
-When `server` publishes, manually dispatch `Deploy Grotto Server` for the exact published version
-and source identity. Monitor the deployment run to completion; dispatching it is not evidence of
-success. Confirm the deployment's migration result, local activation/rollback result, public
-`/healthz`, and the hosted App smoke. Read the Server deployment doc for `deploy` versus `activate`
-and migration compatibility.
+When `server` publishes, the Release workflow calls `Deploy Grotto Server` for the exact published
+version and source identity. The protected `production` Environment requires explicit approval.
+Monitor the deployment to completion; approval is not evidence of success. Confirm the migration
+result, local activation/rollback result, public `/healthz`, and hosted App smoke. Use manual
+`deploy` or `activate` only for recovery and read the Server deployment doc first.
 
 If Server is unchanged, record that no Server promotion was requested. If promotion fails, keep the
 release outcome failed or pending, follow the documented rollback path, and do not report the release
@@ -156,7 +159,7 @@ action, or failed with recorded recovery evidence.
 
 ## 6. Write one release handoff
 
-After target jobs and any required manual Server promotion finish, send one operator-facing message.
+After target jobs and any required Server promotion finish, send one operator-facing message.
 Use actual evidence, not the planned record or changed files alone:
 
 ```text

@@ -31,9 +31,9 @@ Computer targets retain their independent versioning rules. An iOS publication a
 positive build number. A target that is unchanged keeps its latest published version; do not copy
 the release version into it.
 
-The `Release` workflow builds, signs, publishes, and records evidence for selected targets. It runs
-from the merged release commit. It does not make production Server state healthy: artifact
-publication and Server promotion are separate states.
+The `Release` workflow builds, signs, publishes, and records evidence for selected targets. When
+Server publishes, the same graph waits at the protected `production` Environment, promotes the
+exact artifact after approval, and verifies the public Server and hosted Grotto App.
 
 ## Prerequisites
 
@@ -53,16 +53,19 @@ evidence; tester invitation and production App Store promotion are separate acti
 ## Production Server promotion
 
 The Server and web Grotto App are one atomic production artifact with one Server SemVer.
-A push to `main` does not deploy. The manual workflow offers `deploy`: download, verify, install,
-and activate the published artifact; or `activate`: verify and switch to an already installed release.
+A push to `main` without a release record does not deploy. A selected Server release queues
+production promotion behind the `production` Environment approval. The deployment workflow also
+keeps its manual entry point: `deploy` downloads, verifies, installs, and activates a published
+artifact; `activate` verifies and switches to an already installed release.
 
-The selected `server` target publishes a deployable artifact through the `Release` workflow. That
-workflow does not deploy the hosted Server. Production promotion is a separate manual
-`Deploy Grotto Server` action for the exact published version and source identity.
+The selected `server` target publishes a deployable artifact, then calls the reusable `Deploy
+Grotto Server` workflow with the exact version and source identity. The production Environment is
+the explicit human promotion boundary; it requires reviewer approval and permits only `main`. The
+Release workflow cannot finalize while approval or deployment is pending.
 
 Read [Grotto Server deployment](grotto-server-deploy.md) for artifact verification, migrations,
-activation, health checks, and rollback. A release is production-ready only after the manual
-deployment succeeds and public health is healthy. A deployment dispatch, a merged PR, or a green
+activation, health checks, and rollback. A release is production-ready only after the protected
+deployment succeeds and public health is healthy. Environment approval, a merged PR, or a green
 artifact job alone is not deployment evidence.
 
 The Server deployment path preserves the full source SHA and content digest as deployment identity.
@@ -75,12 +78,12 @@ The record and handoff distinguish these states:
 
 - planned target decision;
 - published target artifact;
-- manual Server deployment and database result;
+- protected Server deployment and database result;
 - target-specific smoke and public health;
 - failed, skipped, pending, and recovered work.
 
 The release skill sends one operator-facing handoff after the selected target jobs and any required
-manual Server promotion reach a terminal or explicitly pending state. It lists all four target
+Server promotion reach a terminal or explicitly pending state. It lists all four target
 states, names only actionable updates, links the PR/workflow/deployment evidence, and reports gaps
 instead of inferring success from changed files.
 

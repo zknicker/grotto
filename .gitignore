@@ -34,6 +34,6 @@ scripts/design-battery/output
 # Xcode derived data written by the documented iOS Simulator build recipe
 /build/
 
-# Fleet agent skills seeded into the Cursor cloud environment at install time.
+# Old install-time fleet copy path. Fleet skills now seed from start.sh.
 # Grotto's own product skills live in the committed .agents/skills.
 .cursor/skills

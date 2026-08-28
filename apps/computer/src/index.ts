@@ -17,11 +17,11 @@ import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.t
 import { AgentRunSettlements } from './agent-run-settlements.ts';
 import { applyAuthoritativeSession } from './agent-session-authority.ts';
 import { parseAgentSkillFileRequest, runAgentSkillFileRequest } from './agent-skill-files.ts';
+import { type AttachmentConnectionOutcome, runAttachmentDaemon } from './attachment-daemon-loop.ts';
 import { type AttachmentHeartbeat, startAttachmentHeartbeat } from './attachment-heartbeat.ts';
 import {
     archiveUnlinkedAttachment,
     clearTerminalUnlinked,
-    computerMachineUnlinkedExitCode,
     isTerminalUnlinked,
     markTerminalUnlinked,
 } from './attachment-recovery.ts';
@@ -346,7 +346,13 @@ async function main(args: string[]) {
         if (process.env.GROTTO_COMPUTER_RESIDENT === '1') {
             for (;;) {
                 await Bun.sleep(500);
-                await startAttachments(target);
+                try {
+                    await startAttachments(target);
+                } catch (error) {
+                    // The resident supervisor outlives transient respawn failures;
+                    // exiting here would strand every attachment until a full restart.
+                    console.error(error instanceof Error ? error.message : String(error));
+                }
             }
         }
         console.log(stdoutRenderer.ok(target ? `Started ${target}.` : 'Grotto Computer started.'));
@@ -385,25 +391,28 @@ async function main(args: string[]) {
         if (!attachment) {
             throw new Error('This Server is not attached to this Grotto Computer.');
         }
-        try {
-            await validate(attachment);
-        } catch (error) {
-            if (!isComputerMachineUnlinked(error)) {
-                throw error;
-            }
-            await markTerminalUnlinked(dataRoot, attachment);
-            process.exitCode = computerMachineUnlinkedExitCode;
-            return;
-        }
-        // Fire-and-forget: a warm store makes first Agent bootstraps local
-        // hard-links; a failed warm just means they fetch, as before. Tests
-        // exercise this daemon path and must not spawn real installs.
-        if (process.env.NODE_ENV !== 'test') {
-            void prewarmBridgeStores({
-                agentsRoot: join(dataRoot, 'servers', attachment.serverId, 'agents'),
-            });
-        }
-        await connect(attachment);
+        let prewarmed = false;
+        process.exitCode = await runAttachmentDaemon({
+            attachmentExists: async () => (await readAttachment(target)) !== null,
+            connect: () => {
+                // Fire-and-forget: a warm store makes first Agent bootstraps local
+                // hard-links; a failed warm just means they fetch, as before. Tests
+                // exercise this daemon path and must not spawn real installs.
+                if (!prewarmed && process.env.NODE_ENV !== 'test') {
+                    prewarmed = true;
+                    void prewarmBridgeStores({
+                        agentsRoot: join(dataRoot, 'servers', attachment.serverId, 'agents'),
+                    });
+                }
+                return connect(attachment);
+            },
+            isTerminalUnlinkedError: isComputerMachineUnlinked,
+            log: (message) => console.error(`/${attachment.slug}: ${message}`),
+            markTerminalUnlinked: () => markTerminalUnlinked(dataRoot, attachment),
+            oneshot: process.env.GROTTO_COMPUTER_ONESHOT === '1',
+            sleep: (ms) => Bun.sleep(ms),
+            validate: () => validate(attachment),
+        });
         return;
     }
     if (command === 'attach') {
@@ -963,7 +972,7 @@ function escapeXml(value: string) {
         .replaceAll('"', '&quot;');
 }
 
-async function connect(attachment: Attachment) {
+async function connect(attachment: Attachment): Promise<AttachmentConnectionOutcome> {
     const browserRoot = join(dataRoot, 'servers', attachment.serverId, 'browser');
     void reconcileComputerBrowser(browserRoot).catch((error) => {
         console.error(error instanceof Error ? error.message : error);
@@ -1114,18 +1123,21 @@ async function connect(attachment: Attachment) {
             socket.send(JSON.stringify({ type: 'update-progress', update }));
         });
     }, 500);
-    await new Promise<void>((resolve, reject) => {
+    let opened = false;
+    // A failed socket still fires close after error, so resolving on close is
+    // the one settled path; the reconnect loop reads `connected` to tell a
+    // Server disconnect from a Server that was never reachable.
+    return await new Promise<AttachmentConnectionOutcome>((resolve) => {
         socket.addEventListener('close', () => {
             clearInterval(progressTimer);
             heartbeat?.dispose();
             if (usageTimer) {
                 clearInterval(usageTimer);
             }
-            resolve();
+            resolve({ connected: opened, deleted: deleting });
         });
         socket.addEventListener('error', () => {
             heartbeat?.dispose();
-            reject(new Error('Computer attachment socket failed.'));
         });
         socket.addEventListener('message', (event) => {
             const frame = JSON.parse(String(event.data)) as { type?: string };
@@ -1505,6 +1517,7 @@ async function connect(attachment: Attachment) {
             }
         });
         socket.addEventListener('open', () => {
+            opened = true;
             void readUpdateProgress(dataRoot).then((update) => {
                 lastProgress = JSON.stringify(update);
                 socket.send(

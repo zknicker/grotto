@@ -17,6 +17,10 @@ const dependencyAction = readFileSync(
 const setupApple = path.join(repositoryRoot, 'scripts/release/setup-apple-material.sh');
 const cleanupApple = path.join(repositoryRoot, 'scripts/release/cleanup-apple-material.sh');
 const setupAppleSource = readFileSync(setupApple, 'utf8');
+const publishIOSSource = readFileSync(
+    path.join(repositoryRoot, 'scripts/release/publish-ios.mjs'),
+    'utf8'
+);
 
 test('summary and Apple lifecycle helpers expose outcomes and clean temporary files', () => {
     const directory = mkdtempSync(path.join(tmpdir(), 'grotto-release-test-'));
@@ -52,8 +56,10 @@ test('summary and Apple lifecycle helpers expose outcomes and clean temporary fi
 
         const certificatePath = path.join(directory, 'certificate.p12');
         const apiKeyPath = path.join(directory, 'AuthKey_TEST.p8');
+        const provisioningProfilePath = path.join(directory, 'profile.mobileprovision');
         writeFileSync(certificatePath, 'temporary certificate');
         writeFileSync(apiKeyPath, 'temporary key');
+        writeFileSync(provisioningProfilePath, 'temporary profile');
         const cleanup = spawnSync('bash', [cleanupApple], {
             cwd: repositoryRoot,
             encoding: 'utf8',
@@ -62,11 +68,13 @@ test('summary and Apple lifecycle helpers expose outcomes and clean temporary fi
                 GROTTO_RELEASE_KEYCHAIN_PATH: path.join(directory, 'missing.keychain-db'),
                 GROTTO_RELEASE_CERTIFICATE_PATH: certificatePath,
                 APPLE_API_KEY_PATH: apiKeyPath,
+                GROTTO_RELEASE_PROVISIONING_PROFILE_PATH: provisioningProfilePath,
             },
         });
         assert.equal(cleanup.status, 0, cleanup.stderr);
         assert.equal(existsSync(certificatePath), false);
         assert.equal(existsSync(apiKeyPath), false);
+        assert.equal(existsSync(provisioningProfilePath), false);
     } finally {
         rmSync(directory, { force: true, recursive: true });
     }
@@ -114,6 +122,8 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(workflow, /Grotto_\$\{\{ needs\.plan\.outputs\.release_version \}\}_arm64\.dmg/);
     assert.doesNotMatch(workflow, /Grotto_\*_arm64/);
     assert.match(setupAppleSource, /base64 -D/);
+    assert.match(publishIOSSource, /installIOSProvisioningProfile/);
+    assert.match(publishIOSSource, /appStoreConnectUploadArgs/);
     for (const identity of [
         'Apple Development',
         'Apple Distribution',

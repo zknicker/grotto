@@ -3,6 +3,7 @@ import { expect, test } from 'bun:test';
 import {
     appStoreConnectAuthenticationArgs,
     appStoreConnectExportOptions,
+    appStoreConnectUploadArgs,
     assertIOSReleaseTarget,
     parseIOSReleaseArgs,
 } from './ios-release-contract.mjs';
@@ -21,9 +22,18 @@ test('parses an iOS version and monotonically increasing build number', () => {
 });
 
 test('preserves the coordinated version and build during App Store export', () => {
-    const options = appStoreConnectExportOptions('TEAM123');
+    const options = appStoreConnectExportOptions('TEAM123', 'PROFILE-UUID');
     expect(options).toContain('<key>manageAppVersionAndBuildNumber</key>\n    <false/>');
     expect(options).toContain('<key>teamID</key>\n    <string>TEAM123</string>');
+    expect(options).toContain('<key>signingStyle</key>\n    <string>manual</string>');
+    expect(options).toContain(
+        '<key>signingCertificate</key>\n    <string>Apple Distribution</string>'
+    );
+    expect(options).toContain('<key>build.grotto.ios</key>\n        <string>PROFILE-UUID</string>');
+    expect(options).toContain('<key>destination</key>\n    <string>export</string>');
+    expect(() => appStoreConnectExportOptions('TEAM<bad', 'PROFILE-UUID')).toThrow(
+        'team ID contains unsupported characters'
+    );
 });
 
 test('requires the exact declared iOS release', () => {
@@ -57,5 +67,29 @@ test('uses App Store Connect authentication only as a complete set', () => {
         'KEY',
         '-authenticationKeyIssuerID',
         'issuer',
+    ]);
+});
+
+test('uploads the exported IPA separately with the same API key', () => {
+    const args = appStoreConnectUploadArgs('/tmp/Grotto.ipa', {
+        APPLE_API_ISSUER: 'issuer',
+        APPLE_API_KEY_ID: 'KEY',
+        APPLE_API_KEY_PATH: '/tmp/AuthKey.p8',
+    });
+    expect(args).toEqual([
+        'altool',
+        '--upload-app',
+        '-f',
+        '/tmp/Grotto.ipa',
+        '-t',
+        'ios',
+        '--api-key',
+        'KEY',
+        '--api-issuer',
+        'issuer',
+        '--p8-file-path',
+        '/tmp/AuthKey.p8',
+        '--output-format',
+        'json',
     ]);
 });

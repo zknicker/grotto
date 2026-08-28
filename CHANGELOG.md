@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.8.36 - 2026-08-28
+
+- Grotto App renders Agent-authored references to people, Agents, skills, apps, files, and
+  directories as clear interactive chips in Chats and Threads.
+- Server releases now pause for production approval, deploy the exact published artifact, and
+  verify the public Server and hosted Grotto App before completion.
+
 ## v1.8.35 - 2026-08-27
 
 - Grotto for iPhone keeps Chat and Thread transcripts anchored to the latest message as their

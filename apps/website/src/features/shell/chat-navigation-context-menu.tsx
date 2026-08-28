@@ -75,14 +75,15 @@ export function ChatNavigationContextMenu({
                 </ContextMenu.Trigger>
                 <ContextMenu.Popover>
                     <ContextMenu.Menu onAction={onAction}>
+                        {/* A row's first menu item echoes what clicking it does.
+                            Everything under it follows the topbar menu's order —
+                            the chat's own subject first, then its content — so
+                            both menus for one chat read the same way. */}
                         <ContextMenu.Item id="open" textValue={`Open ${chatName}`}>
                             <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={16} />
                             <Label>Open {chat.kind === 'channel' ? 'channel' : 'chat'}</Label>
                         </ContextMenu.Item>
-                        <ContextMenu.Item id="tasks" textValue="View tasks">
-                            <Icon aria-hidden="true" icon={CheckListIcon} size={16} />
-                            <Label>View tasks</Label>
-                        </ContextMenu.Item>
+                        <ContextMenu.Separator />
                         {chat.kind === 'dm' ? (
                             <ContextMenu.Item
                                 id="profile"
@@ -99,6 +100,10 @@ export function ChatNavigationContextMenu({
                                 onAction={onAction}
                             />
                         )}
+                        <ContextMenu.Item id="tasks" textValue="View tasks">
+                            <Icon aria-hidden="true" icon={CheckListIcon} size={16} />
+                            <Label>View tasks</Label>
+                        </ContextMenu.Item>
                     </ContextMenu.Menu>
                 </ContextMenu.Popover>
             </ContextMenu>
@@ -126,7 +131,6 @@ function ChannelContextItems({
 }) {
     return (
         <>
-            <ContextMenu.Separator />
             <ContextMenu.Item
                 id="rename"
                 isDisabled={Boolean(chat.archivedAt)}
@@ -177,6 +181,7 @@ function ChannelContextItems({
                 <Icon aria-hidden="true" icon={UserMultiple02Icon} size={16} />
                 <Label>Agents</Label>
             </ContextMenu.Item>
+            <ContextMenu.Separator />
         </>
     );
 }

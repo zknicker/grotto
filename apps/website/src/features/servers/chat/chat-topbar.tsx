@@ -12,6 +12,7 @@ import {
     Edit02Icon,
     PaintBrush03Icon,
     SidebarRightIcon,
+    UserCircleIcon,
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
@@ -33,7 +34,7 @@ import { ChannelAgentsDialog } from '../../chats/channel-agents-dialog.tsx';
 import { ChannelAppearanceDialog } from '../../chats/channel-appearance-dialog.tsx';
 import { ChannelRenameDialog } from '../../chats/channel-rename-dialog.tsx';
 import { SectionHeader, shellBandIconSize } from '../../shell/section-header.tsx';
-import { serverRoute, tasksRoute } from '../server-routes.ts';
+import { serverRoute, settingsAgentRoute, tasksRoute } from '../server-routes.ts';
 
 export function ChatTopbar({
     artifactVisible,
@@ -164,6 +165,10 @@ function DmActions({
 }) {
     const navigate = useNavigate();
     const runAction = (key: React.Key) => {
+        if (key === 'profile' && peerAgent) {
+            navigate(settingsAgentRoute(server.slug, peerAgent.id));
+            return;
+        }
         if (key === 'tasks') {
             navigate(`${tasksRoute(server.slug)}?chat=${encodeURIComponent(chat.id)}`);
             return;
@@ -198,13 +203,37 @@ function DmActions({
                     </Button>
                     <Dropdown.Popover placement="bottom start">
                         <Dropdown.Menu onAction={runAction}>
-                            <ChatSurfaceItems />
+                            <Dropdown.Section>
+                                <Header>Agent</Header>
+                                <Dropdown.Item
+                                    id="profile"
+                                    isDisabled={!peerAgent}
+                                    textValue="View agent profile"
+                                >
+                                    <Icon aria-hidden="true" icon={UserCircleIcon} size={16} />
+                                    <Label>View agent profile</Label>
+                                </Dropdown.Item>
+                            </Dropdown.Section>
+                            <Separator />
+                            <Dropdown.Section>
+                                <Header>Content</Header>
+                                <ChatSurfaceItems />
+                            </Dropdown.Section>
                         </Dropdown.Menu>
                     </Dropdown.Popover>
                 </Dropdown>
             </ContextMenu.Trigger>
             <ContextMenu.Popover>
                 <ContextMenu.Menu onAction={runAction}>
+                    <ContextMenu.Item
+                        id="profile"
+                        isDisabled={!peerAgent}
+                        textValue="View agent profile"
+                    >
+                        <Icon aria-hidden="true" icon={UserCircleIcon} size={16} />
+                        <Label>View agent profile</Label>
+                    </ContextMenu.Item>
+                    <ContextMenu.Separator />
                     <ChatContextSurfaceItems />
                 </ContextMenu.Menu>
             </ContextMenu.Popover>

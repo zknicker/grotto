@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { writeReleaseSummary } from './verify-release.mjs';
+import { assertSelectedJobResults, writeReleaseSummary } from './verify-release.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const workflow = readFileSync(path.join(repositoryRoot, '.github/workflows/release.yml'), 'utf8');
@@ -84,6 +84,30 @@ test('summary and Apple lifecycle helpers expose outcomes and clean temporary fi
     }
 });
 
+test('finalization rejects a skipped selected job', () => {
+    const targets = { computer: false, app: false, ios: false, server: true };
+    assert.doesNotThrow(() =>
+        assertSelectedJobResults({
+            targets,
+            results: {
+                publish_server: { result: 'success' },
+                promote_server: { result: 'success' },
+            },
+        })
+    );
+    assert.throws(
+        () =>
+            assertSelectedJobResults({
+                targets,
+                results: {
+                    publish_server: { result: 'success' },
+                    promote_server: { result: 'skipped' },
+                },
+            }),
+        /promote_server ended skipped/
+    );
+});
+
 test('Release workflow stays under the cap and preserves the operator graph', () => {
     assert.ok(workflow.split('\n').length - 1 < 300);
     assert.match(workflow, /^name: Release$/m);
@@ -119,10 +143,8 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
         workflow,
         /promote_server:[\s\S]*needs: \[plan, publish_server\][\s\S]*uses: \.\/\.github\/workflows\/deploy-grotto-server\.yml[\s\S]*version: v\$\{\{ needs\.plan\.outputs\.release_version \}\}[\s\S]*source_revision: \$\{\{ github\.sha \}\}/
     );
-    assert.match(
-        workflow,
-        /finalize_release:[\s\S]*- promote_server[\s\S]*needs\.promote_server\.result == 'success'/
-    );
+    assert.match(workflow, /promote_server:[\s\S]*if: >-\s+always\(\) &&/);
+    assert.match(workflow, /RELEASE_JOB_RESULTS: \$\{\{ toJSON\(needs\) \}\}/);
     assert.match(deployWorkflow, /workflow_call:/);
     assert.match(deployWorkflow, /environment:\s+name: production\s+url: https:\/\/grotto\.sh/);
     assert.match(deployWorkflow, /EXPECTED_SOURCE_REVISION: \$\{\{ inputs\.source_revision \}\}/);

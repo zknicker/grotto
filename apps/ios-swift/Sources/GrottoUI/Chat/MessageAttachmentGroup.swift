@@ -1,16 +1,11 @@
 import SwiftUI
 
-#if os(iOS)
-import QuickLook
-#endif
-
 public struct MessageAttachmentGroup: View {
     private let attachments: [MessageAttachmentPresentation]
     private let isPending: Bool
     private let onOpen: (MessageAttachmentPresentation) async throws -> URL
 
     @State private var previewURL: URL?
-    @State private var downloadedPreviewURL: URL?
     @State private var loadingAttachmentID: String?
     @State private var errorMessage: String?
     @State private var imageTileFailedIDs: Set<String> = []
@@ -28,26 +23,12 @@ public struct MessageAttachmentGroup: View {
     public var body: some View {
         attachmentRows
         #if os(iOS)
-            .quickLookPreview($previewURL)
+            .background { AttachmentQuickLook(url: $previewURL) }
         #endif
             .alert("Couldn’t open attachment", isPresented: errorPresented) {
                 Button("OK", role: .cancel) { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "Try again.")
-            }
-            .onChange(of: previewURL) { _, currentURL in
-                guard currentURL == nil, let downloadedPreviewURL else { return }
-                try? FileManager.default.removeItem(
-                    at: downloadedPreviewURL.deletingLastPathComponent()
-                )
-                self.downloadedPreviewURL = nil
-            }
-            .onDisappear {
-                guard let downloadedPreviewURL else { return }
-                try? FileManager.default.removeItem(
-                    at: downloadedPreviewURL.deletingLastPathComponent()
-                )
-                self.downloadedPreviewURL = nil
             }
     }
 
@@ -149,13 +130,14 @@ public struct MessageAttachmentGroup: View {
         }
     }
 
+    /// `onOpen` resolves a staged file or a cached one. Either way the URL is
+    /// owned by the caller's cache and outlives this preview, so dismissal
+    /// deletes nothing.
     private func open(_ attachment: MessageAttachmentPresentation) {
         loadingAttachmentID = attachment.id
         Task {
             do {
-                let url = try await onOpen(attachment)
-                if attachment.localURL == nil { downloadedPreviewURL = url }
-                previewURL = url
+                previewURL = try await onOpen(attachment)
             } catch is CancellationError {
                 // A dismissed preview or canceled transfer needs no error UI.
             } catch {

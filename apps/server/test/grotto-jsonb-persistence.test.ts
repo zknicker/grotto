@@ -13,6 +13,9 @@ let connection: GrottoConnection;
 
 const computerId = 'cmp_jsonbtest0000000';
 const agentId = 'agt_jsonbtest0000000';
+const omittedAgentId = 'agt_jsonbomitted00000';
+const otherComputerId = 'cmp_jsonbother000000';
+const otherAgentId = 'agt_jsonbother000000';
 
 beforeAll(async () => {
     harness = await startGrottoServerHarness();
@@ -36,12 +39,19 @@ beforeAll(async () => {
     `;
     await harness.sql`
         insert into computers (id, server_id, attached_by_user_id, credential_hash)
-        values (
-            ${computerId},
-            'srv_jsonbtest000000',
-            'usr_jsonbtest000000',
-            ${'a'.repeat(64)}
-        )
+        values
+            (
+                ${computerId},
+                'srv_jsonbtest000000',
+                'usr_jsonbtest000000',
+                ${'a'.repeat(64)}
+            ),
+            (
+                ${otherComputerId},
+                'srv_jsonbtest000000',
+                'usr_jsonbtest000000',
+                ${'b'.repeat(64)}
+            )
     `;
     await harness.sql`
         insert into agents (
@@ -55,17 +65,40 @@ beforeAll(async () => {
             desired_runtime_id,
             desired_model_id
         )
-        values (
-            ${agentId},
-            'srv_jsonbtest000000',
-            ${computerId},
-            'Cove',
-            'jsonb-cove',
-            'UTC',
-            'member',
-            'codex',
-            'gpt-5.6-sol'
-        )
+        values
+            (
+                ${agentId},
+                'srv_jsonbtest000000',
+                ${computerId},
+                'Cove',
+                'jsonb-cove',
+                'UTC',
+                'member',
+                'codex',
+                'gpt-5.6-sol'
+            ),
+            (
+                ${omittedAgentId},
+                'srv_jsonbtest000000',
+                ${computerId},
+                'Scout',
+                'jsonb-scout',
+                'UTC',
+                'member',
+                'codex',
+                'gpt-5.6-sol'
+            ),
+            (
+                ${otherAgentId},
+                'srv_jsonbtest000000',
+                ${otherComputerId},
+                'Other',
+                'jsonb-other',
+                'UTC',
+                'member',
+                'codex',
+                'gpt-5.6-sol'
+            )
     `;
 });
 
@@ -149,4 +182,78 @@ test('Drizzle writes JSONB values as objects and arrays instead of JSON strings'
         effective_grotto_agent_status: null,
         effective_grotto_agent_version: null,
     });
+});
+
+test('Grotto Agent reports replace one Computer snapshot without crossing assignments', async () => {
+    await harness.sql`
+        update agents
+        set effective_grotto_agent_applied_at = '2026-08-27T16:00:00.000Z',
+            effective_grotto_agent_status = 'current',
+            effective_grotto_agent_version = '0.9.0'
+        where id in (${agentId}, ${omittedAgentId})
+    `;
+    await harness.sql`
+        update agents
+        set effective_grotto_agent_applied_at = '2026-08-26T16:00:00.000Z',
+            effective_grotto_agent_status = 'current',
+            effective_grotto_agent_version = '8.8.8'
+        where id = ${otherAgentId}
+    `;
+
+    await recordGrottoAgentState(connection.db, computerId, [
+        {
+            agentId,
+            appliedAt: '2026-08-28T16:00:00.000Z',
+            status: 'current',
+            version: '1.0.0',
+        },
+        {
+            agentId: otherAgentId,
+            appliedAt: '2026-08-28T16:00:00.000Z',
+            status: 'current',
+            version: '1.0.0',
+        },
+    ]);
+
+    const rows = await harness.sql<
+        {
+            effective_grotto_agent_applied_at: Date | null;
+            effective_grotto_agent_status: string | null;
+            effective_grotto_agent_version: string | null;
+            id: string;
+        }[]
+    >`
+        select
+            id,
+            effective_grotto_agent_applied_at,
+            effective_grotto_agent_status,
+            effective_grotto_agent_version
+        from agents
+        where id in (${agentId}, ${omittedAgentId}, ${otherAgentId})
+        order by case id
+            when ${agentId} then 0
+            when ${omittedAgentId} then 1
+            else 2
+        end
+    `;
+    expect(rows).toEqual([
+        {
+            effective_grotto_agent_applied_at: new Date('2026-08-28T16:00:00.000Z'),
+            effective_grotto_agent_status: 'current',
+            effective_grotto_agent_version: '1.0.0',
+            id: agentId,
+        },
+        {
+            effective_grotto_agent_applied_at: null,
+            effective_grotto_agent_status: null,
+            effective_grotto_agent_version: null,
+            id: omittedAgentId,
+        },
+        {
+            effective_grotto_agent_applied_at: new Date('2026-08-26T16:00:00.000Z'),
+            effective_grotto_agent_status: 'current',
+            effective_grotto_agent_version: '8.8.8',
+            id: otherAgentId,
+        },
+    ]);
 });

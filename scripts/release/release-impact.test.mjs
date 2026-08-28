@@ -20,6 +20,12 @@ const ledger = [
         targets: { server: '1.8.25', app: null, ios: null, computer: null },
     },
 ];
+const resolveTag = async (tag) =>
+    ({
+        'computer-v1.4.8': sha('c'),
+        'v1.8.24': sha('a'),
+        'v1.8.25': sha('b'),
+    })[tag] ?? null;
 
 test('pending Computer code remains required after later Server-only releases', async () => {
     const impact = await calculateReleaseImpact({
@@ -138,6 +144,97 @@ test('Agent actions and their Server implementation require a Grotto Agent relea
         'apps/server/src/agent-api/action-routes.ts',
         'apps/server/src/prepared-actions/prepare.ts',
     ]);
+});
+
+const requiredAgentContractFiles = [
+    'packages/grotto-api/src/agent-activity.ts',
+    'packages/grotto-api/src/agent-execution.ts',
+    'packages/grotto-api/src/agent-prepared-actions.ts',
+    'packages/grotto-api/src/agent-runner.ts',
+    'packages/grotto-api/src/agent.ts',
+    'packages/grotto-api/src/grotto-agent-version.ts',
+];
+
+for (const file of requiredAgentContractFiles) {
+    test(`${file} requires a Grotto Agent release`, async () => {
+        const impact = await calculateReleaseImpact({
+            ledger,
+            resolveTag,
+            listChangedFiles: async () => [file],
+        });
+
+        assert.equal(impact.targets.agent.status, 'required');
+        assert.deepEqual(impact.targets.agent.requiredFiles, [file]);
+        assert.deepEqual(impact.targets.agent.reviewFiles, []);
+    });
+}
+
+const agentLifecycleReviewFiles = [
+    'apps/computer/src/agent-activity.ts',
+    'apps/computer/src/agent-configuration.ts',
+    'apps/computer/src/effective-state.ts',
+    'apps/computer/src/index.ts',
+    'apps/computer/src/launch.ts',
+    'apps/server/src/agent-delivery/delivery.ts',
+    'apps/server/src/computers/socket.ts',
+    'apps/server/src/server-agents/record-grotto-agent-state.ts',
+];
+
+for (const file of agentLifecycleReviewFiles) {
+    test(`${file} requests Grotto Agent review`, async () => {
+        const impact = await calculateReleaseImpact({
+            ledger,
+            resolveTag,
+            listChangedFiles: async () => [file],
+        });
+
+        assert.equal(impact.targets.agent.status, 'review');
+        assert.deepEqual(impact.targets.agent.requiredFiles, []);
+        assert.deepEqual(impact.targets.agent.reviewFiles, [file]);
+    });
+}
+
+const nonAgentControlFiles = [
+    'apps/computer/src/launcher.ts',
+    'apps/server/src/computers/socket-client.ts',
+    'packages/grotto-api/src/agent-settings.ts',
+];
+
+for (const file of nonAgentControlFiles) {
+    test(`${file} does not classify as Grotto Agent impact`, async () => {
+        const impact = await calculateReleaseImpact({
+            ledger,
+            resolveTag,
+            listChangedFiles: async () => [file],
+        });
+
+        assert.equal(impact.targets.agent.status, 'unchanged');
+        assert.deepEqual(impact.targets.agent.requiredFiles, []);
+        assert.deepEqual(impact.targets.agent.reviewFiles, []);
+    });
+}
+
+test('an unselected required Agent contract fails release selection enforcement', async () => {
+    const impact = await calculateReleaseImpact({
+        ledger,
+        resolveTag,
+        listChangedFiles: async () => ['packages/grotto-api/src/agent.ts'],
+    });
+
+    assert.throws(
+        () =>
+            assertRequiredTargetsSelected({
+                impact,
+                selectedTargets: {
+                    server: true,
+                    app: false,
+                    ios: false,
+                    computer: false,
+                    agent: false,
+                },
+            }),
+        /agent: packages\/grotto-api\/src\/agent\.ts/
+    );
 });
 
 test('legacy targets without tags use the last historical release commit, not the candidate', async () => {

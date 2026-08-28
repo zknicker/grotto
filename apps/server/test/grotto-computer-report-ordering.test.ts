@@ -8,6 +8,7 @@ const userId = 'usr_reportorder00000';
 const serverId = 'srv_reportorder00000';
 const computerId = 'cmp_reportorder00000';
 const agentId = 'agt_reportorder00000';
+const omittedAgentId = 'agt_reportomitted0000';
 const credential = 'computer-report-order-credential';
 
 beforeAll(async () => {
@@ -33,10 +34,15 @@ beforeAll(async () => {
             id, server_id, handle, display_name, home_timezone, role,
             computer_id, desired_runtime_id, desired_model_id
         )
-        values (
-            ${agentId}, ${serverId}, 'report-cove', 'Cove', 'America/New_York', 'member',
-            ${computerId}, 'codex', 'gpt-5.6-sol'
-        )
+        values
+            (
+                ${agentId}, ${serverId}, 'report-cove', 'Cove', 'America/New_York', 'member',
+                ${computerId}, 'codex', 'gpt-5.6-sol'
+            ),
+            (
+                ${omittedAgentId}, ${serverId}, 'report-scout', 'Scout', 'America/New_York',
+                'member', ${computerId}, 'codex', 'gpt-5.6-sol'
+            )
     `;
 });
 
@@ -45,6 +51,13 @@ afterAll(async () => {
 });
 
 test('Computer reports are applied in socket order', async () => {
+    await harness.sql`
+        update agents
+        set effective_grotto_agent_applied_at = '2026-08-27T16:00:00.000Z',
+            effective_grotto_agent_status = 'current',
+            effective_grotto_agent_version = '0.9.0'
+        where id in (${agentId}, ${omittedAgentId})
+    `;
     const socket = new WebSocket(computerSocketUrl());
     await opened(socket);
     socket.send(JSON.stringify(bootstrapFrame()));
@@ -52,6 +65,10 @@ test('Computer reports are applied in socket order', async () => {
         mode: 'ordinary',
         type: 'bootstrap-accepted',
     });
+    expect(await readGrottoAgentStates()).toEqual([
+        pendingGrottoAgentState(omittedAgentId),
+        pendingGrottoAgentState(agentId),
+    ]);
 
     const staleStates = Array.from({ length: 499 }, (_, index) => ({
         agentId: `agt_${String(index).padStart(16, '0')}`,
@@ -79,6 +96,34 @@ test('Computer reports are applied in socket order', async () => {
             type: 'report',
         })
     );
+    await waitForCurrentRuntimeReport();
+    await waitForGrottoAgentStates([
+        pendingGrottoAgentState(omittedAgentId),
+        pendingGrottoAgentState(agentId),
+    ]);
+    socket.send(
+        JSON.stringify({
+            agents: [
+                {
+                    agentId,
+                    appliedAt: '2026-08-28T16:00:00.000Z',
+                    status: 'current',
+                    version: '1.0.0',
+                },
+                {
+                    agentId: omittedAgentId,
+                    appliedAt: '2026-08-28T16:00:00.000Z',
+                    status: 'current',
+                    version: '1.0.0',
+                },
+            ],
+            type: 'grotto-agent-report',
+        })
+    );
+    await waitForGrottoAgentStates([
+        currentGrottoAgentState(omittedAgentId),
+        currentGrottoAgentState(agentId),
+    ]);
     socket.send(
         JSON.stringify({
             agents: [
@@ -92,7 +137,10 @@ test('Computer reports are applied in socket order', async () => {
             type: 'grotto-agent-report',
         })
     );
-    await Bun.sleep(1000);
+    await waitForGrottoAgentStates([
+        pendingGrottoAgentState(omittedAgentId),
+        currentGrottoAgentState(agentId),
+    ]);
 
     const [row] = (await harness.sql`
         select
@@ -122,6 +170,85 @@ test('Computer reports are applied in socket order', async () => {
     });
     socket.close();
 });
+
+interface StoredGrottoAgentState {
+    effective_grotto_agent_applied_at: Date | null;
+    effective_grotto_agent_status: string | null;
+    effective_grotto_agent_version: string | null;
+    id: string;
+}
+
+function currentGrottoAgentState(id: string): StoredGrottoAgentState {
+    return {
+        effective_grotto_agent_applied_at: new Date('2026-08-28T16:00:00.000Z'),
+        effective_grotto_agent_status: 'current',
+        effective_grotto_agent_version: '1.0.0',
+        id,
+    };
+}
+
+function pendingGrottoAgentState(id: string): StoredGrottoAgentState {
+    return {
+        effective_grotto_agent_applied_at: null,
+        effective_grotto_agent_status: null,
+        effective_grotto_agent_version: null,
+        id,
+    };
+}
+
+async function readGrottoAgentStates(): Promise<StoredGrottoAgentState[]> {
+    return await harness.sql<StoredGrottoAgentState[]>`
+        select
+            id,
+            effective_grotto_agent_applied_at,
+            effective_grotto_agent_status,
+            effective_grotto_agent_version
+        from agents
+        where id in (${agentId}, ${omittedAgentId})
+        order by id
+    `;
+}
+
+async function waitForGrottoAgentStates(expected: StoredGrottoAgentState[]): Promise<void> {
+    const deadline = Date.now() + 3000;
+    while (Date.now() < deadline) {
+        if (Bun.deepEquals(await readGrottoAgentStates(), expected)) {
+            return;
+        }
+        await Bun.sleep(20);
+    }
+    expect(await readGrottoAgentStates()).toEqual(expected);
+}
+
+async function waitForCurrentRuntimeReport(): Promise<void> {
+    const expected = {
+        effective_missing: [],
+        effective_model_id: 'gpt-5.6-sol',
+        effective_runtime_id: 'codex',
+    };
+    const read = async () => {
+        const [state] = await harness.sql<
+            {
+                effective_missing: string[] | null;
+                effective_model_id: string | null;
+                effective_runtime_id: string | null;
+            }[]
+        >`
+            select effective_missing, effective_model_id, effective_runtime_id
+            from agents
+            where id = ${agentId}
+        `;
+        return state;
+    };
+    const deadline = Date.now() + 3000;
+    while (Date.now() < deadline) {
+        if (Bun.deepEquals(await read(), expected)) {
+            return;
+        }
+        await Bun.sleep(20);
+    }
+    expect(await read()).toEqual(expected);
+}
 
 function bootstrapFrame() {
     return {

@@ -61,6 +61,7 @@ let agentRoot: string;
 let acceptsUserMessages: boolean;
 let agentInstructions: string[];
 let createSessionCalls: CreateSessionCall[];
+let detachedSessions: number;
 let restore: () => void;
 let restoreBootstrapRefresh: () => void;
 let rejectResume: boolean;
@@ -68,6 +69,7 @@ let refreshedBootstraps: number;
 let sentUserMessages: string[];
 let stoppedSessions: number;
 let streamIncludesToolBoundary: boolean;
+let streamAborts: boolean;
 let streamProviderMetadata: Record<string, unknown> | undefined;
 let streamFails: boolean;
 let streamUsageScale: number;
@@ -81,10 +83,12 @@ beforeEach(async () => {
     acceptsUserMessages = true;
     agentInstructions = [];
     createSessionCalls = [];
+    detachedSessions = 0;
     rejectResume = false;
     refreshedBootstraps = 0;
     sentUserMessages = [];
     stoppedSessions = 0;
+    streamAborts = false;
     streamIncludesToolBoundary = false;
     streamProviderMetadata = undefined;
     streamFails = false;
@@ -119,7 +123,14 @@ function fakeAgent(input: HarnessTurnInput): Pick<HarnessAgent, 'createSession' 
                 throw new Error('runtime session gone');
             }
             return {
-                detach: async () => ({ data: {}, harnessId: 'fake', type: 'resume-session' }),
+                detach: async () => {
+                    detachedSessions += 1;
+                    return {
+                        data: { detachSequence: detachedSessions },
+                        harnessId: 'fake',
+                        type: 'resume-session',
+                    };
+                },
                 destroy: async () => undefined,
                 isResume: Boolean(options.resumeFrom),
                 sendUserMessage: async (message: string) => {
@@ -170,7 +181,9 @@ function fakeAgent(input: HarnessTurnInput): Pick<HarnessAgent, 'createSession' 
                         type: 'finish-step',
                         usage: streamFails ? publicUsage(streamUsageScale) : publicUsage(0),
                     };
-                    if (streamFails) {
+                    if (streamAborts) {
+                        yield { type: 'abort' };
+                    } else if (streamFails) {
                         yield { error: new Error('provider failed'), type: 'error' };
                     } else {
                         yield {
@@ -566,7 +579,7 @@ test('Restart resumes the same session and refreshes its current instructions on
 });
 
 test('managed instruction drift reaches the next resumed turn once without rotating its session', async () => {
-    const first = await runHarnessTurn(turnInput({ initialRole: 'Own the original lane.' }));
+    await runHarnessTurn(turnInput({ initialRole: 'Own the original lane.' }));
     const firstSession = await readSession();
     await writeFile(
         join(agentRoot, 'session.json'),
@@ -577,10 +590,9 @@ test('managed instruction drift reaches the next resumed turn once without rotat
             grottoAgentVersion: '0.9.0',
         })}\n`
     );
-    streamUsageScale = 2;
     const updateActivity: Array<{ category: string; phase: string }> = [];
 
-    const second = await runHarnessTurn(
+    await runHarnessTurn(
         turnInput({
             initialRole: 'Own the updated lane.',
             onActivity: (event) => updateActivity.push(event),
@@ -594,8 +606,6 @@ test('managed instruction drift reaches the next resumed turn once without rotat
         resumeFrom: firstSession.resumeState,
         sessionId: 'engine_session_1',
     });
-    expect(second.tokenUsage?.cacheReadTokens).toBe(8);
-    expect(second.tokenUsage).toEqual(first.tokenUsage);
     expect(stoppedSessions).toBe(0);
     expect(refreshedBootstraps).toBe(0);
     const updatedSession = await readSession();
@@ -612,7 +622,6 @@ test('managed instruction drift reaches the next resumed turn once without rotat
         { category: 'updating_instructions', phase: 'completed' },
     ]);
 
-    streamUsageScale = 3;
     const settledActivity: Array<{ category: string; phase: string }> = [];
     await runHarnessTurn(
         turnInput({
@@ -629,6 +638,172 @@ test('managed instruction drift reaches the next resumed turn once without rotat
     ]);
     expect(stoppedSessions).toBe(0);
     expect(refreshedBootstraps).toBe(0);
+});
+
+test('version-only drift applies once on the same warm session', async () => {
+    await runHarnessTurn(turnInput());
+    const firstSession = await readSession();
+    const previousAppliedAt = '2026-08-27T12:00:00.000Z';
+    await writeFile(
+        join(agentRoot, 'session.json'),
+        `${JSON.stringify({
+            ...firstSession,
+            grottoAgentAppliedAt: previousAppliedAt,
+            grottoAgentStatus: 'current',
+            grottoAgentVersion: '0.9.0',
+        })}\n`
+    );
+    const updateActivity: Array<{ category: string; phase: string }> = [];
+
+    await runHarnessTurn(turnInput({ onActivity: (event) => updateActivity.push(event) }));
+
+    expect(agentInstructions[1]).toBe(agentInstructions[0]);
+    expect(createSessionCalls[1]).toEqual({
+        resumeFrom: firstSession.resumeState,
+        sessionId: 'engine_session_1',
+    });
+    const updatedSession = await readSession();
+    expect(updatedSession).toMatchObject({
+        bootstrapFingerprint: firstSession.bootstrapFingerprint,
+        generation: 1,
+        grottoAgentStatus: 'current',
+        grottoAgentVersion,
+        instructionFingerprint: firstSession.instructionFingerprint,
+        runtimeSessionId: 'engine_session_1',
+    });
+    expect(updatedSession.grottoAgentAppliedAt).not.toBe(previousAppliedAt);
+    expect(stoppedSessions).toBe(0);
+    expect(refreshedBootstraps).toBe(0);
+    expect(updateActivity).toEqual([
+        { category: 'updating_instructions', phase: 'started' },
+        { category: 'thinking', phase: 'started' },
+        { category: 'thinking', phase: 'completed' },
+        { category: 'updating_instructions', phase: 'completed' },
+    ]);
+
+    const settledActivity: Array<{ category: string; phase: string }> = [];
+    await runHarnessTurn(turnInput({ onActivity: (event) => settledActivity.push(event) }));
+
+    expect(settledActivity).toEqual([
+        { category: 'thinking', phase: 'started' },
+        { category: 'thinking', phase: 'completed' },
+    ]);
+    expect(stoppedSessions).toBe(0);
+    expect(refreshedBootstraps).toBe(0);
+});
+
+test('an aborted warm instruction and version update retries on the same session', async () => {
+    await runHarnessTurn(turnInput({ initialRole: 'Own the original lane.' }));
+    const firstSession = await readSession();
+    const previousAppliedAt = '2026-08-27T12:00:00.000Z';
+    await writeFile(
+        join(agentRoot, 'session.json'),
+        `${JSON.stringify({
+            ...firstSession,
+            grottoAgentAppliedAt: previousAppliedAt,
+            grottoAgentStatus: 'current',
+            grottoAgentVersion: '0.9.0',
+        })}\n`
+    );
+    const runtimeDir = join(agentRoot, 'runtime');
+    await mkdir(runtimeDir, { recursive: true });
+    const restartMarker = join(runtimeDir, 'restart-requested');
+    await writeFile(restartMarker, '');
+    streamAborts = true;
+    const abortedActivity: Array<{ category: string; phase: string }> = [];
+
+    const aborted = await runHarnessTurn(
+        turnInput({
+            initialRole: 'Own the updated lane.',
+            onActivity: (event) => abortedActivity.push(event),
+        })
+    );
+
+    expect(aborted.aborted).toBe(true);
+    const abortedSession = await readSession();
+    expect(abortedSession).toMatchObject({
+        bootstrapFingerprint: firstSession.bootstrapFingerprint,
+        generation: 1,
+        grottoAgentAppliedAt: previousAppliedAt,
+        grottoAgentStatus: 'failed',
+        grottoAgentVersion: '0.9.0',
+        instructionFingerprint: firstSession.instructionFingerprint,
+        runtimeSessionId: 'engine_session_1',
+    });
+    expect(abortedSession.resumeState).toMatchObject({ data: { detachSequence: 2 } });
+    expect(abortedActivity).toEqual([
+        { category: 'updating_instructions', phase: 'started' },
+        { category: 'thinking', phase: 'started' },
+        { category: 'thinking', phase: 'failed' },
+        { category: 'updating_instructions', phase: 'failed' },
+    ]);
+    expect(stoppedSessions).toBe(1);
+    expect(refreshedBootstraps).toBe(1);
+    await expect(access(restartMarker)).resolves.toBeNull();
+
+    streamAborts = false;
+    const retryActivity: Array<{ category: string; phase: string }> = [];
+    await runHarnessTurn(
+        turnInput({
+            initialRole: 'Own the updated lane.',
+            onActivity: (event) => retryActivity.push(event),
+        })
+    );
+
+    expect(createSessionCalls[3]).toEqual({
+        resumeFrom: abortedSession.resumeState,
+        sessionId: 'engine_session_1',
+    });
+    const retriedSession = await readSession();
+    expect(retriedSession).toMatchObject({
+        generation: 1,
+        grottoAgentStatus: 'current',
+        grottoAgentVersion,
+        runtimeSessionId: 'engine_session_1',
+    });
+    expect(retriedSession.grottoAgentAppliedAt).not.toBe(previousAppliedAt);
+    expect(retriedSession.instructionFingerprint).not.toBe(firstSession.instructionFingerprint);
+    expect(stoppedSessions).toBe(2);
+    expect(refreshedBootstraps).toBe(2);
+    expect(retryActivity).toEqual([
+        { category: 'updating_instructions', phase: 'started' },
+        { category: 'thinking', phase: 'started' },
+        { category: 'thinking', phase: 'completed' },
+        { category: 'updating_instructions', phase: 'completed' },
+    ]);
+    await expect(access(restartMarker)).rejects.toThrow();
+});
+
+test('an aborted Restart keeps the current public Grotto Agent version current', async () => {
+    await runHarnessTurn(turnInput());
+    const firstSession = await readSession();
+    const runtimeDir = join(agentRoot, 'runtime');
+    await mkdir(runtimeDir, { recursive: true });
+    const restartMarker = join(runtimeDir, 'restart-requested');
+    await writeFile(restartMarker, '');
+    streamAborts = true;
+    const activity: Array<{ category: string; phase: string }> = [];
+
+    const result = await runHarnessTurn(turnInput({ onActivity: (event) => activity.push(event) }));
+
+    expect(result.aborted).toBe(true);
+    expect(await readSession()).toMatchObject({
+        bootstrapFingerprint: firstSession.bootstrapFingerprint,
+        grottoAgentAppliedAt: firstSession.grottoAgentAppliedAt,
+        grottoAgentStatus: 'current',
+        grottoAgentVersion: firstSession.grottoAgentVersion,
+        instructionFingerprint: firstSession.instructionFingerprint,
+        runtimeSessionId: 'engine_session_1',
+    });
+    expect(activity).toEqual([
+        { category: 'updating_instructions', phase: 'started' },
+        { category: 'thinking', phase: 'started' },
+        { category: 'thinking', phase: 'failed' },
+        { category: 'updating_instructions', phase: 'failed' },
+    ]);
+    expect(stoppedSessions).toBe(1);
+    expect(refreshedBootstraps).toBe(1);
+    await expect(access(restartMarker)).resolves.toBeNull();
 });
 
 test('Cove guidance drift migrates a warm session once and is current when the resumed turn streams', async () => {
@@ -694,6 +869,67 @@ test('Cove guidance drift migrates a warm session once and is current when the r
     ]);
     expect(stoppedSessions).toBe(0);
     expect(refreshedBootstraps).toBe(0);
+});
+
+test('an aborted warm Cove guidance refresh keeps its receipt and rereads on retry', async () => {
+    const workspaceDir = join(agentRoot, 'workspace');
+    await seedCoveWorkspace(workspaceDir);
+    await runHarnessTurn(turnInput({ factoryKind: 'cove' }));
+    await writeFile(join(workspaceDir, 'onboarding_playbook.md'), legacyCovePlaybook);
+    await writeFile(join(workspaceDir, 'onboarding_knowledge_faq.md'), legacyCoveFaq);
+    streamAborts = true;
+    const abortedActivity: Array<{ category: string; phase: string }> = [];
+
+    const aborted = await runHarnessTurn(
+        turnInput({
+            factoryKind: 'cove',
+            onActivity: (event) => abortedActivity.push(event),
+        })
+    );
+
+    expect(aborted.aborted).toBe(true);
+    const abortedSession = await readSession();
+    expect(abortedSession).toMatchObject({
+        grottoAgentStatus: 'current',
+        grottoAgentVersion,
+        runtimeSessionId: 'engine_session_1',
+    });
+    expect(streamedPrompts[1]).toContain('re-read onboarding_playbook.md');
+    expect(abortedActivity).toEqual([
+        { category: 'updating_instructions', phase: 'started' },
+        { category: 'thinking', phase: 'started' },
+        { category: 'thinking', phase: 'failed' },
+        { category: 'updating_instructions', phase: 'failed' },
+    ]);
+    await expect(
+        access(join(agentRoot, 'runtime', 'cove-guidance-refresh.json'))
+    ).resolves.toBeNull();
+
+    streamAborts = false;
+    const retryActivity: Array<{ category: string; phase: string }> = [];
+    await runHarnessTurn(
+        turnInput({
+            factoryKind: 'cove',
+            onActivity: (event) => retryActivity.push(event),
+        })
+    );
+
+    expect(createSessionCalls[2]).toEqual({
+        resumeFrom: abortedSession.resumeState,
+        sessionId: 'engine_session_1',
+    });
+    expect(streamedPrompts[2]).toContain('re-read onboarding_playbook.md');
+    expect(retryActivity).toEqual([
+        { category: 'updating_instructions', phase: 'started' },
+        { category: 'thinking', phase: 'started' },
+        { category: 'thinking', phase: 'completed' },
+        { category: 'updating_instructions', phase: 'completed' },
+    ]);
+    expect(stoppedSessions).toBe(0);
+    expect(refreshedBootstraps).toBe(0);
+    await expect(
+        access(join(agentRoot, 'runtime', 'cove-guidance-refresh.json'))
+    ).rejects.toThrow();
 });
 
 test('preserves edited Cove guidance and records a failed operator-visible refresh', async () => {

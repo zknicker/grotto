@@ -612,6 +612,172 @@ test('the Server attachment daemon stays connected until the Server closes it', 
     }
 });
 
+test('the attachment daemon itself reconnects with backoff across Server restarts', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const reconnected = Promise.withResolvers<void>();
+    const sockets = new Set<ServerWebSocket<undefined>>();
+    let connections = 0;
+    let failedValidations = 0;
+    const peer = Bun.serve({
+        fetch(request, server) {
+            const pathname = new URL(request.url).pathname;
+            if (pathname === '/computer/validate') {
+                // The first validation after the dropped socket fails, like a
+                // Server that is still restarting; the daemon must retry it.
+                if (connections === 1 && failedValidations === 0) {
+                    failedValidations += 1;
+                    return new Response('restarting', { status: 500 });
+                }
+                return Response.json({ valid: true });
+            }
+            if (pathname === '/computer/attachment' && server.upgrade(request)) {
+                return;
+            }
+            return new Response('missing', { status: 404 });
+        },
+        port: 0,
+        websocket: {
+            message(socket, message) {
+                sockets.add(socket);
+                const frame = JSON.parse(String(message)) as { type?: string };
+                if (frame.type !== 'bootstrap') {
+                    return;
+                }
+                connections += 1;
+                socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                if (connections === 1) {
+                    setTimeout(() => socket.terminate(), 10);
+                } else {
+                    reconnected.resolve();
+                }
+            },
+        },
+    });
+    const serverId = 'srv_test';
+    const attachmentRoot = join(dataRoot, 'servers', serverId);
+    await mkdir(attachmentRoot, { recursive: true });
+    await writeFile(
+        join(attachmentRoot, 'attachment.json'),
+        JSON.stringify({
+            computerId: 'cmp_1234567890123456',
+            credential: 'credential',
+            serverId,
+            serverOrigin: `http://127.0.0.1:${peer.port}`,
+            slug: 'hq',
+        })
+    );
+    const child = Bun.spawn(['bun', entrypoint, '__attachment-daemon', serverId], {
+        env: { ...process.env, GROTTO_COMPUTER_DATA_ROOT: dataRoot },
+        stderr: 'pipe',
+        stdout: 'pipe',
+    });
+    try {
+        await Promise.race([
+            reconnected.promise,
+            child.exited.then(async (code) => {
+                throw new Error(
+                    `The attachment daemon exited ${code} instead of reconnecting: ${await new Response(child.stderr).text()}`
+                );
+            }),
+            Bun.sleep(6000).then(() => {
+                throw new Error('The attachment daemon did not reconnect after a Server restart.');
+            }),
+        ]);
+        expect(connections).toBe(2);
+        expect(failedValidations).toBe(1);
+        expect(child.exitCode).toBeNull();
+    } finally {
+        for (const socket of sockets) {
+            socket.close();
+        }
+        child.kill();
+        peer.stop(true);
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+}, 8000);
+
+test('a watch-mode attachment daemon reconnects instead of idling in the watcher', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const reconnected = Promise.withResolvers<void>();
+    const sockets = new Set<ServerWebSocket<undefined>>();
+    let connections = 0;
+    const peer = Bun.serve({
+        fetch(request, server) {
+            const pathname = new URL(request.url).pathname;
+            if (pathname === '/computer/validate') {
+                return Response.json({ valid: true });
+            }
+            if (pathname === '/computer/attachment' && server.upgrade(request)) {
+                return;
+            }
+            return new Response('missing', { status: 404 });
+        },
+        port: 0,
+        websocket: {
+            message(socket, message) {
+                sockets.add(socket);
+                const frame = JSON.parse(String(message)) as { type?: string };
+                if (frame.type !== 'bootstrap') {
+                    return;
+                }
+                connections += 1;
+                socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                if (connections === 1) {
+                    setTimeout(() => socket.terminate(), 10);
+                } else {
+                    reconnected.resolve();
+                }
+            },
+        },
+    });
+    const serverId = 'srv_test';
+    const attachmentRoot = join(dataRoot, 'servers', serverId);
+    await mkdir(attachmentRoot, { recursive: true });
+    await writeFile(
+        join(attachmentRoot, 'attachment.json'),
+        JSON.stringify({
+            computerId: 'cmp_1234567890123456',
+            credential: 'credential',
+            serverId,
+            serverOrigin: `http://127.0.0.1:${peer.port}`,
+            slug: 'hq',
+        })
+    );
+    // The dev resident spawns daemons under `bun --watch`, where a finished
+    // script leaves an idle watcher holding the daemon's pid, so the resident
+    // never respawns it. The daemon must reconnect inside the same process.
+    const child = Bun.spawn(['bun', entrypoint, 'start'], {
+        env: {
+            ...process.env,
+            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
+            GROTTO_COMPUTER_RESIDENT: '1',
+            GROTTO_COMPUTER_USAGE_DISABLED: '1',
+            GROTTO_COMPUTER_WATCH_ATTACHMENT_DAEMON: '1',
+        },
+        stderr: 'pipe',
+        stdout: 'pipe',
+    });
+    try {
+        await Promise.race([
+            reconnected.promise,
+            Bun.sleep(9000).then(() => {
+                throw new Error(
+                    'The watch-mode attachment daemon did not reconnect after the Server closed its socket.'
+                );
+            }),
+        ]);
+        expect(connections).toBe(2);
+    } finally {
+        for (const socket of sockets) {
+            socket.close();
+        }
+        child.kill();
+        await killAttachmentDaemon(attachmentRoot);
+        peer.stop(true);
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+}, 12_000);
+
 test('resident start reconnects an attachment after the Server closes it', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
     const reconnected = Promise.withResolvers<void>();
@@ -688,6 +854,7 @@ test('resident start reconnects an attachment after the Server closes it', async
             socket.close();
         }
         child.kill();
+        await killAttachmentDaemon(attachmentRoot);
         peer.stop(true);
         await rm(dataRoot, { force: true, recursive: true });
     }
@@ -787,6 +954,7 @@ test('resident start reconnects an attachment when Server heartbeats silently st
             socket.close();
         }
         child.kill();
+        await killAttachmentDaemon(attachmentRoot);
         peer.stop(true);
         await rm(dataRoot, { force: true, recursive: true });
     }
@@ -827,6 +995,24 @@ test('startup reopens admission after an interrupted update', async () => {
         await rm(dataRoot, { force: true, recursive: true });
     }
 });
+
+/**
+ * Attachment daemons reconnect forever by design, so tests that leave one
+ * running must kill it by its durable pid marker; killing the resident child
+ * alone leaks the daemon past the test.
+ */
+async function killAttachmentDaemon(attachmentRoot: string) {
+    try {
+        const marker = JSON.parse(
+            await readFile(join(attachmentRoot, 'attachment-daemon.pid'), 'utf8')
+        ) as { pid?: number };
+        if (typeof marker.pid === 'number') {
+            process.kill(marker.pid, 'SIGKILL');
+        }
+    } catch {
+        // The daemon already exited or never started.
+    }
+}
 
 async function runCli(environment: Record<string, string | undefined>) {
     const child = Bun.spawn(['bun', entrypoint, 'setup', '/hq'], {

@@ -19,8 +19,10 @@ instead of silently substituting another runtime or model.
 
 Each Agent projection includes `grottoAgent`: the release's `currentVersion`, the Computer-reported
 `appliedVersion` and `appliedAt`, and `status` (`pending`, `current`, or `failed`). Computer carries
-the applied version receipt in a separate additive report frame, so an older Server can safely
-ignore it and an older Computer simply leaves the new Server pending. Server derives **current**
+the applied version receipt in a separate additive snapshot frame, so an older Server can safely
+ignore it and an older Computer simply leaves the new Server pending. Each snapshot replaces that
+Computer's prior receipts; an omitted assigned Agent returns to pending instead of remaining
+incorrectly current. Server derives **current**
 only from an exact version match, so a newer Server deployment cannot claim that an older Computer
 or an idle Agent has applied the release. A Computer reconnect clears the Server projection until
 that connection reports its durable receipt, preventing a rollback to an older Computer from

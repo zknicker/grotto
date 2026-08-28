@@ -14,20 +14,35 @@ export async function clearGrottoAgentState(db: GrottoDatabase, computerId: stri
         .where(eq(agentsTable.computerId, computerId));
 }
 
-/** Applies one Computer's public Grotto Agent version receipts to its assigned Agents. */
+/** Applies one Computer's complete Grotto Agent version snapshot to its assigned Agents. */
 export async function recordGrottoAgentState(
     db: GrottoDatabase,
     computerId: string,
     states: GrottoAgentAppliedState[]
 ): Promise<void> {
-    for (const state of states) {
-        await db
+    await db.transaction(async (tx) => {
+        await tx
             .update(agentsTable)
             .set({
-                effectiveGrottoAgentAppliedAt: state.appliedAt ? new Date(state.appliedAt) : null,
-                effectiveGrottoAgentStatus: state.status,
-                effectiveGrottoAgentVersion: state.version,
+                effectiveGrottoAgentAppliedAt: null,
+                effectiveGrottoAgentStatus: null,
+                effectiveGrottoAgentVersion: null,
             })
-            .where(and(eq(agentsTable.id, state.agentId), eq(agentsTable.computerId, computerId)));
-    }
+            .where(eq(agentsTable.computerId, computerId));
+
+        for (const state of states) {
+            await tx
+                .update(agentsTable)
+                .set({
+                    effectiveGrottoAgentAppliedAt: state.appliedAt
+                        ? new Date(state.appliedAt)
+                        : null,
+                    effectiveGrottoAgentStatus: state.status,
+                    effectiveGrottoAgentVersion: state.version,
+                })
+                .where(
+                    and(eq(agentsTable.id, state.agentId), eq(agentsTable.computerId, computerId))
+                );
+        }
+    });
 }

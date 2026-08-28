@@ -75,8 +75,9 @@ an explicit Restart additionally parks the adapter, installs the current bootstr
 same native conversation. A recognized prior Cove playbook or FAQ revision is replaced before the
 turn and the current session receives a one-turn re-read notice; edited or missing guidance is
 preserved as a conflict. Applied fingerprints persist only after the refreshed turn successfully
-detaches. Activity History records refresh outcomes without instruction text or local implementation
-details. A bootstrap or turn failure keeps the previous fingerprints and generation for retry. Only
+successfully detaches. Activity History records refresh outcomes without instruction text or local implementation
+details. An interrupted turn, bootstrap failure, or turn failure keeps the previous fingerprints
+and generation for retry. Only
 rejection of stored native resume state uses Server-authorized recovery.
 
 Grotto Agent SemVer is the public release receipt layered over those exact fingerprints and managed

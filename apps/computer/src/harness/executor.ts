@@ -144,7 +144,7 @@ export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTu
         });
         const restartRequested = await isSessionRestartRequested(input.agentRoot);
         const result = await executeHarnessTurn(input, session, restartRequested, journal);
-        if (restartRequested) {
+        if (restartRequested && !result.aborted) {
             await clearSessionRestartRequest(input.agentRoot);
         }
         await journal.finish(result.aborted ? 'interrupted' : 'completed');
@@ -423,6 +423,20 @@ async function executeHarnessTurn(
             observation.tokenUsage,
             session.cumulativeTokenUsage
         );
+        if (observation.aborted) {
+            await writeAgentSessionState(input.agentRoot, {
+                ...session,
+                cumulativeTokenUsage: normalizedUsage.cumulative,
+                grottoAgentStatus: grottoAgentVersionDrift ? 'failed' : session.grottoAgentStatus,
+                resumeState: resumeState as Record<string, unknown>,
+                runtimeSessionId: live.sessionId,
+            });
+            if (instructionUpdate === 'started') {
+                instructionUpdate = 'none';
+                input.onActivity?.({ category: 'updating_instructions', phase: 'failed' });
+            }
+            return { ...observation, tokenUsage: normalizedUsage.turn };
+        }
         const appliesGrottoAgentVersion = !grottoAgentVersionDrift || grottoAgentVersionCanApply;
         await writeAgentSessionState(input.agentRoot, {
             bootstrapFingerprint,

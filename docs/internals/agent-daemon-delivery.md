@@ -178,8 +178,8 @@ so instruction-only drift keeps the adapter attached. Bootstrap drift or Restart
 applies the content-addressed bootstrap recipe, and resumes the same native conversation. Before a
 Cove turn, Computer also replaces exact recognized prior playbook and FAQ revisions and privately
 asks the same session to re-read them; edited or missing files are preserved and reported as a
-conflict. The receipt advances only after the turn returns valid resume state. Failure remains stale
-and preserves the generation for retry. Only rejection of the stored native resume state is reported
+conflict. The receipt advances only after the turn completes and returns valid resume state. Failure
+or interruption remains stale and preserves the generation for retry. Only rejection of the stored native resume state is reported
 as resume rejection, so only Server-authorized recovery may advance the session generation.
 
 The release-owned Grotto Agent version groups those managed behavior inputs into one public SemVer.

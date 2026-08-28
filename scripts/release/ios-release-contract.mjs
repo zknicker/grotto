@@ -69,24 +69,56 @@ export function appStoreConnectAuthenticationArgs(environment = process.env) {
     ];
 }
 
-export function appStoreConnectExportOptions(teamId) {
+export function appStoreConnectExportOptions(teamId, profileSpecifier) {
+    assertPlistToken('team ID', teamId);
+    assertPlistToken('provisioning profile specifier', profileSpecifier);
     return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>destination</key>
-    <string>upload</string>
+    <string>export</string>
     <key>manageAppVersionAndBuildNumber</key>
     <false/>
     <key>method</key>
     <string>app-store-connect</string>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>build.grotto.ios</key>
+        <string>${profileSpecifier}</string>
+    </dict>
+    <key>signingCertificate</key>
+    <string>Apple Distribution</string>
     <key>signingStyle</key>
-    <string>automatic</string>
+    <string>manual</string>
     <key>teamID</key>
     <string>${teamId}</string>
 </dict>
 </plist>
 `;
+}
+
+export function appStoreConnectUploadArgs(ipaPath, environment = process.env) {
+    const authentication = appStoreConnectAuthenticationArgs(environment);
+    if (authentication.length === 0) {
+        throw new Error('App Store Connect authentication is required to upload iOS');
+    }
+    return [
+        'altool',
+        '--upload-app',
+        '-f',
+        path.resolve(ipaPath),
+        '-t',
+        'ios',
+        '--api-key',
+        environment.APPLE_API_KEY_ID,
+        '--api-issuer',
+        environment.APPLE_API_ISSUER,
+        '--p8-file-path',
+        path.resolve(environment.APPLE_API_KEY_PATH),
+        '--output-format',
+        'json',
+    ];
 }
 
 function readBuildNumber(argv) {
@@ -98,4 +130,10 @@ function readBuildNumber(argv) {
 
     const value = Number.parseInt(raw, 10);
     return Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
+function assertPlistToken(name, value) {
+    if (!(typeof value === 'string' && /^[A-Za-z0-9.-]+$/u.test(value))) {
+        throw new Error(`${name} contains unsupported characters`);
+    }
 }

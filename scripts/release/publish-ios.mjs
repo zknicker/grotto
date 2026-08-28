@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
+import { installIOSProvisioningProfile } from './ios-provisioning-profile.mjs';
 import {
     appStoreConnectAuthenticationArgs,
     appStoreConnectExportOptions,
+    appStoreConnectUploadArgs,
     assertIOSReleaseTarget,
     parseIOSReleaseArgs,
 } from './ios-release-contract.mjs';
@@ -45,11 +47,17 @@ async function main(input) {
     }
 
     const authentication = appStoreConnectAuthenticationArgs();
+    const provisioningProfile = await installIOSProvisioningProfile();
     const outputRoot = mkdtempSync(path.join(tmpdir(), 'grotto-ios-release-'));
     const archivePath = path.join(outputRoot, 'Grotto.xcarchive');
     const exportPath = path.join(outputRoot, 'export');
     const exportOptionsPath = path.join(outputRoot, 'ExportOptions.plist');
-    writeFileSync(exportOptionsPath, appStoreConnectExportOptions(teamId), 'utf8');
+    assertProvisioningProfileReadable(provisioningProfile.path);
+    writeFileSync(
+        exportOptionsPath,
+        appStoreConnectExportOptions(teamId, provisioningProfile.uuid),
+        'utf8'
+    );
 
     run('xcodebuild', [
         '-project',
@@ -77,12 +85,30 @@ async function main(input) {
         exportPath,
         '-exportOptionsPlist',
         exportOptionsPath,
-        '-allowProvisioningUpdates',
-        ...authentication,
     ]);
+    const ipaPath = findExportedIPA(exportPath);
+    run('xcrun', appStoreConnectUploadArgs(ipaPath));
 
     console.log(`Uploaded iOS ${input.version} (${input.buildNumber}) to App Store Connect`);
     console.log('Wait for Apple processing, then add the build to the internal TestFlight group.');
+}
+
+function assertProvisioningProfileReadable(profilePath) {
+    const result = spawnSync('security', ['cms', '-D', '-i', profilePath], {
+        cwd: repoRoot,
+        stdio: 'ignore',
+    });
+    if (result.status !== 0) {
+        fail('downloaded iOS provisioning profile is not a readable CMS document');
+    }
+}
+
+function findExportedIPA(exportPath) {
+    const ipaFiles = readdirSync(exportPath).filter((file) => file.endsWith('.ipa'));
+    if (ipaFiles.length !== 1) {
+        fail(`expected exactly one exported IPA, found ${ipaFiles.length}`);
+    }
+    return path.join(exportPath, ipaFiles[0]);
 }
 
 function parseArgs() {

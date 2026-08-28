@@ -45,10 +45,12 @@ recorded release commit for legacy entries that predate reliable tagging. Direct
 `unchanged`.
 
 Required impact is a floor, not a suggestion. `release:check` and the Release workflow reject a
-ledger entry that marks a required target `null`. The release agent resolves review inputs and may
-widen the release for compatibility or an explicit operational reason. Because every target uses
-its own published baseline, an incorrect earlier `null` cannot hide pending changes from later
-release preparation.
+ledger entry that marks a required target `null`. For every review file, the release agent traces the
+changed export, dependency, or generated input to each named target and records `affects` or `does
+not affect` with a reason. Files may share one disposition only when the same evidence applies. The
+agent may widen the release for compatibility or an explicit operational reason. Because every
+target uses its own published baseline, an incorrect earlier `null` cannot hide pending changes from
+later release preparation.
 
 The same target-scoped evidence feeds changelog writing. Programmatic scope determines what ships;
 agent judgment assigns versions, groups commits into user-facing outcomes, and removes internal

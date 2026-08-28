@@ -66,7 +66,9 @@ After reading the impact report, ask:
 2. Does the Server require a higher Computer protocol floor? If yes, the compatible Computer
    target must publish and verify before Server promotion.
 3. Does iOS publish? Choose a new positive build number; never reuse a number that reached Apple.
-4. Does every `review` file affect a shipped target, and what is the reason for the decision?
+4. For every listed `review` file, does its diff affect each named target? Trace changed exports,
+   dependencies, and generated inputs to their consumers. Record `affects` or `does not affect` with
+   a reason; group files only when the same evidence applies.
 5. Does the change use the login cutover sequence? Plan expanded Server, Computer, and final Server
    checkpoints and their rollback order from the cutover contract.
 
@@ -75,8 +77,8 @@ reason tied to the diff or to a prerequisite.
 
 Assign SemVer and any iOS build number only after target scope is settled.
 
-Completion criterion: every required target publishes, every review target has a reason, and each
-selected target has an exact version/build decision.
+Completion criterion: every required target publishes, every review file has an explicit disposition
+for each named target, and each selected target has an exact version/build decision.
 
 ## 2. Prepare the append-only record
 
@@ -116,7 +118,7 @@ churn or filler.
 Create one release PR from an up-to-date branch based on `origin/main`. Its body should show:
 
 - the release version(s), source context, and the appended record;
-- the programmatic impact result plus publish/unchanged decisions and review reasons;
+- the programmatic impact result plus publish/unchanged decisions and file-level review reasons;
 - required Computer-before-Server ordering or login-cutover checkpoints;
 - local proof and expected target-job proof;
 - the protected Server promotion and rollback plan;

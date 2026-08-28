@@ -3,6 +3,11 @@ import { randomUUID } from 'node:crypto';
 import { appendFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+    assertRequiredTargetsSelected,
+    calculateReleaseImpact,
+    formatReleaseImpact,
+} from './release-impact.mjs';
 
 export const RELEASE_TARGETS = Object.freeze(['computer', 'app', 'ios', 'server']);
 
@@ -83,7 +88,7 @@ export function projectLedgerValues({ ledger, plan }) {
     return values;
 }
 
-export function writeReleaseOutputs({ rawPlan, plan, values, outputPath, summaryPath }) {
+export function writeReleaseOutputs({ rawPlan, plan, values, impact, outputPath, summaryPath }) {
     validateDetectorPlan(plan);
     if (typeof rawPlan !== 'string' || !rawPlan.trim()) {
         throw new Error('changed-release.mjs returned an empty release plan');
@@ -120,6 +125,7 @@ export function writeReleaseOutputs({ rawPlan, plan, values, outputPath, summary
             '',
             `- Initial ledger migration: ${plan.initialLedgerMigration}`,
             ...RELEASE_TARGETS.map((target) => `- Publish ${target}: ${plan.targets[target]}`),
+            ...(impact ? ['', formatReleaseImpact(impact)] : []),
             '',
         ].join('\n')
     );
@@ -211,7 +217,7 @@ function readFlag(args, flag) {
     return value;
 }
 
-function main() {
+async function main() {
     const args = process.argv.slice(2);
     const before = readFlag(args, '--before');
     const after = readFlag(args, '--after');
@@ -259,10 +265,17 @@ function main() {
         throw new Error('releases.json is missing or malformed');
     }
     const values = projectLedgerValues({ ledger, plan });
+    const impact = plan.initialLedgerMigration
+        ? null
+        : await calculateReleaseImpact({ ledger, candidateRef: after });
+    if (impact) {
+        assertRequiredTargetsSelected({ impact, selectedTargets: plan.targets });
+    }
     writeReleaseOutputs({
         rawPlan,
         plan,
         values,
+        impact,
         outputPath: process.env[githubOutputName],
         summaryPath: process.env.GITHUB_STEP_SUMMARY,
     });
@@ -270,7 +283,7 @@ function main() {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
     try {
-        main();
+        await main();
     } catch (error) {
         console.error(
             'release workflow plan error: ' +

@@ -113,6 +113,7 @@ test('release plan output preserves raw detector JSON and projected outputs', ()
                 iosVersion: '',
                 iosBuildNumber: '',
             },
+            impact: null,
             outputPath,
             summaryPath,
         });

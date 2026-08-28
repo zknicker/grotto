@@ -4,7 +4,13 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { assertReleaseLedger, latestMainVersion } from './release-ledger.mjs';
+import { assertRequiredTargetsSelected, calculateReleaseImpact } from './release-impact.mjs';
+import {
+    assertReleaseLedger,
+    latestMainVersion,
+    releasePublishesTarget,
+    releaseTargetNames,
+} from './release-ledger.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -73,6 +79,18 @@ const main = async () => {
                 result.latest.version === expectedVersion,
                 'latest release ledger entry must match the expected Server version'
             );
+        }
+        if (result.complete) {
+            const impact = await calculateReleaseImpact({ ledger });
+            assertRequiredTargetsSelected({
+                impact,
+                selectedTargets: Object.fromEntries(
+                    releaseTargetNames.map((target) => [
+                        target,
+                        releasePublishesTarget(result.latest, target),
+                    ])
+                ),
+            });
         }
     } catch (error) {
         fail(error instanceof Error ? error.message : String(error));

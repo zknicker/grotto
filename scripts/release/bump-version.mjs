@@ -191,9 +191,8 @@ function printSummary({ currentVersion, targetVersion }) {
     console.log('- releases.json (append the next release draft)');
     console.log('Next:');
     console.log('- bun install --frozen-lockfile');
-    console.log('- bun run release:collect-changelog-context');
-    console.log('- decide publish or unchanged for every target in releases.json');
-    console.log('- update CHANGELOG.md using commit analysis');
+    console.log('- apply the target decisions from the previously collected release context');
+    console.log('- update CHANGELOG.md from that target-scoped evidence');
     console.log('- bun run release:check');
 }
 

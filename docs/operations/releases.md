@@ -35,6 +35,25 @@ The `Release` workflow builds, signs, publishes, and records evidence for select
 Server publishes, the same graph waits at the protected `production` Environment, promotes the
 exact artifact after approval, and verifies the public Server and hosted Grotto App.
 
+## Target impact
+
+Release preparation starts with `bun run release:collect-changelog-context`, before versions or the
+new ledger entry are chosen. The helper resolves each target's latest recorded release source and
+compares its owned shipping inputs with the candidate. It uses target tags when available and the
+recorded release commit for legacy entries that predate reliable tagging. Direct target changes are
+`required`; shared, generated, or dependency inputs are `review`; targets without owned changes are
+`unchanged`.
+
+Required impact is a floor, not a suggestion. `release:check` and the Release workflow reject a
+ledger entry that marks a required target `null`. The release agent resolves review inputs and may
+widen the release for compatibility or an explicit operational reason. Because every target uses
+its own published baseline, an incorrect earlier `null` cannot hide pending changes from later
+release preparation.
+
+The same target-scoped evidence feeds changelog writing. Programmatic scope determines what ships;
+agent judgment assigns versions, groups commits into user-facing outcomes, and removes internal
+churn and filler before the release PR.
+
 ## Prerequisites
 
 When a Server change raises the required Computer protocol, the compatible Computer artifact must

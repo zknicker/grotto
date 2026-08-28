@@ -41,8 +41,17 @@ release command path.
 
 ## 1. Decide the targets
 
-Inspect the complete change set against the release base, including generated files and shared
-contracts. Record a target as `publish` when its shipped behavior or artifact changes:
+Before assigning versions or editing release metadata, run:
+
+```sh
+bun run release:collect-changelog-context
+```
+
+The helper compares each target with its own last recorded release source and classifies pending
+inputs as `required`, `review`, or `unchanged`. Required targets are the publication floor. Agent
+judgment may add targets and resolves every review result, but it must not mark a required target
+unchanged. Inspect the complete evidence, including generated files and shared contracts. Record a
+target as `publish` when its shipped behavior or artifact changes:
 
 | Target | Select `publish` for |
 | --- | --- |
@@ -51,19 +60,23 @@ contracts. Record a target as `publish` when its shipped behavior or artifact ch
 | `ios` | Native iPhone code, metadata, entitlements, dependencies, or assets |
 | `computer` | Computer execution, lifecycle, human CLI, updater, embedded managed CLI, bootstrap/ordinary protocol, or required Computer dependency |
 
-Ask these questions before writing the record:
+After reading the impact report, ask:
 
 1. Which target owns the changed behavior, and which shared dependency consumers ship with it?
 2. Does the Server require a higher Computer protocol floor? If yes, the compatible Computer
    target must publish and verify before Server promotion.
 3. Does iOS publish? Choose a new positive build number; never reuse a number that reached Apple.
-4. Is a target truly unchanged? Record `unchanged` and resolve its current published version from
-   the release evidence rather than copying another target's version.
+4. Does every `review` file affect a shipped target, and what is the reason for the decision?
 5. Does the change use the login cutover sequence? Plan expanded Server, Computer, and final Server
    checkpoints and their rollback order from the cutover contract.
 
 Do not widen a target merely because a release is coordinated. Every target decision needs a short
 reason tied to the diff or to a prerequisite.
+
+Assign SemVer and any iOS build number only after target scope is settled.
+
+Completion criterion: every required target publishes, every review target has a reason, and each
+selected target has an exact version/build decision.
 
 ## 2. Prepare the append-only record
 
@@ -86,19 +99,24 @@ The new record contains only `version`, `date`, and `targets`:
 The ledger is the immutable publication decision, not a mutable run log. Keep workflow, deployment,
 and smoke evidence in GitHub and the final handoff; never edit an old entry to change an outcome.
 
-Update the release changelog entry and target-owned version metadata in the same PR. Keep the
-changelog user-facing; keep operational evidence in the record and final handoff. Run the relevant
-local gates, `git diff --check`, and the documentation check before opening the PR.
+Apply the version decisions to `releases.json` and target-owned version metadata first. Then update
+the release changelog in the same PR. Before writing it, read
+[Grotto changelog writing](references/changelog-writing.md). Draft from the target-scoped evidence,
+compare the draft with recent entries to avoid repeating an already shipped outcome, then run the
+guide's deslop pass over only the new entry. Keep operational evidence in the PR and final handoff.
+Run `release:check`; it rejects a required target recorded as unchanged. Then run the relevant local
+gates, `git diff --check`, and the documentation check before opening the PR.
 
 Completion criterion: one new valid record describes every target and version/build input without
-changing historical entries.
+changing historical entries, and its changelog entry describes shipped outcomes without internal
+churn or filler.
 
 ## 3. Open and merge one release PR
 
 Create one release PR from an up-to-date branch based on `origin/main`. Its body should show:
 
 - the release version(s), source context, and the appended record;
-- a target table with publish/unchanged decisions and reasons;
+- the programmatic impact result plus publish/unchanged decisions and review reasons;
 - required Computer-before-Server ordering or login-cutover checkpoints;
 - local proof and expected target-job proof;
 - the protected Server promotion and rollback plan;

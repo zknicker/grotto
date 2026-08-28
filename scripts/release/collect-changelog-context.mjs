@@ -1,18 +1,15 @@
 #!/usr/bin/env node
 
-import { assertReleaseLedger, formatReleaseTargets, latestMainVersion } from './release-ledger.mjs';
 import {
-    compareVersions,
-    fail,
-    findSingleGitLine,
-    readFlagValue,
-    readJson,
-    readText,
-    runGit,
-} from './release-utils.mjs';
+    calculateReleaseImpact,
+    formatReleaseImpact,
+    releaseImpactTargets,
+} from './release-impact.mjs';
+import { assertReleaseLedger, latestMainVersion } from './release-ledger.mjs';
+import { readFlagValue, readJson, runGit } from './release-utils.mjs';
 
 const argv = process.argv.slice(2);
-const sinceRef = readFlagValue(argv, '--since-ref');
+const candidateRef = readFlagValue(argv, '--candidate-ref') ?? 'HEAD';
 const maxCommits = readMaxCommits(argv);
 
 if (argv.includes('--help') || argv.includes('-h')) {
@@ -20,107 +17,55 @@ if (argv.includes('--help') || argv.includes('-h')) {
     process.exit(0);
 }
 
-const main = async () => {
-    const targetVersion = await readCurrentVersion();
-    const latestChangelogVersion = await readLatestChangelogVersion();
-    const ledger = await readJson('releases.json');
-    const ledgerResult = assertReleaseLedger(ledger);
-    const latestEntry = ledgerResult.latest;
-    const computerOnly = ledgerResult.complete && latestEntry.version === null;
-    try {
-        if (!ledgerResult.complete && latestEntry.version !== targetVersion) {
-            fail(
-                `latest release draft version (${latestEntry.version}) must match current Server version (${targetVersion})`
-            );
-        }
-        if (latestMainVersion(ledger) !== targetVersion && !computerOnly) {
-            fail(
-                `latest release ledger Server version (${latestMainVersion(ledger)}) must match current Server version (${targetVersion})`
-            );
-        }
-    } catch (error) {
-        fail(error instanceof Error ? error.message : String(error));
-    }
+const ledger = await readJson('releases.json');
+assertReleaseLedger(ledger);
+const impact = await calculateReleaseImpact({ ledger, candidateRef });
 
-    if (compareVersions(targetVersion, latestChangelogVersion) <= 0 && !computerOnly) {
-        fail(
-            `Server version ${targetVersion} must be greater than changelog latest ${latestChangelogVersion}. Run release:bump first.`
-        );
-    }
+console.log('# Release preparation context');
+console.log('');
+console.log(`- Candidate: ${candidateRef}`);
+console.log(`- Latest Server version: ${latestMainVersion(ledger)}`);
+console.log('');
+console.log(formatReleaseImpact(impact));
+console.log('');
+console.log('## Relevant commits by target');
+console.log('');
 
-    const baseRef = sinceRef ?? (await detectReleaseBaseRef(latestChangelogVersion));
-    if (!baseRef) {
-        fail(
-            `could not determine base ref for ${latestChangelogVersion}; use --since-ref <git-ref>`
-        );
+for (const target of releaseImpactTargets) {
+    const result = impact.targets[target];
+    const files = [...result.requiredFiles, ...result.reviewFiles];
+    console.log(`### ${target}`);
+    console.log('');
+    if (files.length === 0) {
+        console.log('- No target-owned commits pending.');
+        console.log('');
+        continue;
     }
-
-    const commits = await readCommits(baseRef, maxCommits);
-    printContext({
-        targetVersion,
-        previousVersion: latestChangelogVersion,
-        baseRef,
-        commitCount: commits.length,
-        commits,
-        releaseEntry: latestEntry,
+    const commits = await readCommits({
+        before: result.baseline.sourceRevision,
+        after: candidateRef,
+        files,
+        max: maxCommits,
     });
-};
-
-await main();
-
-function printUsage() {
-    console.log(
-        [
-            'Usage: bun run release:collect-changelog-context [--since-ref <git-ref>] [--max-commits <N>]',
-            '',
-            'Examples:',
-            '  bun run release:collect-changelog-context',
-            '  bun run release:collect-changelog-context --since-ref v1.0.0',
-        ].join('\n')
-    );
+    if (commits.length === 0) {
+        console.log('- No product commits after release-only metadata was removed.');
+    }
+    for (const commit of commits) {
+        console.log(`- ${commit}`);
+    }
+    console.log('');
 }
 
-async function readCurrentVersion() {
-    const packageJson = await readJson('apps/website/package.json');
-    return packageJson.version;
-}
+console.log('## Next decisions');
+console.log('');
+console.log('- Publish every required target.');
+console.log('- Resolve each review target from the diff and record the reason.');
+console.log(
+    '- Assign SemVer and the next unused iOS build number only after target scope is settled.'
+);
+console.log('- Then update releases.json, target-owned version files, and CHANGELOG.md.');
 
-async function readLatestChangelogVersion() {
-    const changelog = await readText('CHANGELOG.md');
-    if (/(^|\n)## Unreleased\s*$/m.test(changelog)) {
-        fail('CHANGELOG.md must not contain ## Unreleased');
-    }
-
-    const match = changelog.match(/^## v(\d+\.\d+\.\d+) - (\d{4}-\d{2}-\d{2})$/m);
-    if (!match) {
-        fail('could not find latest release heading in CHANGELOG.md');
-    }
-
-    return match[1];
-}
-
-async function detectReleaseBaseRef(version) {
-    const releaseCommit = await findSingleGitLine([
-        'log',
-        '--format=%H',
-        '--grep',
-        `^release: v${version}$`,
-        '-n',
-        '1',
-    ]);
-    if (releaseCommit) {
-        return releaseCommit;
-    }
-
-    const tag = await findSingleGitLine(['tag', '--list', `v${version}`]);
-    if (tag) {
-        return tag;
-    }
-
-    return null;
-}
-
-async function readCommits(baseRef, max) {
+async function readCommits({ before, after, files, max }) {
     const { stdout } = await runGit([
         'log',
         '--no-merges',
@@ -128,21 +73,14 @@ async function readCommits(baseRef, max) {
         '--format=%h%x09%ad%x09%s',
         '--max-count',
         `${max}`,
-        `${baseRef}..HEAD`,
+        `${before}..${after}`,
+        '--',
+        ...files,
     ]);
-
     return stdout
         .split('\n')
         .map((line) => line.trim())
-        .filter(Boolean)
-        .map((line) => {
-            const [hash, date, ...subjectParts] = line.split('\t');
-            return {
-                hash,
-                date,
-                subject: subjectParts.join('\t').trim(),
-            };
-        });
+        .filter((line) => line && !/\t(?:release: v|chore\(release\): prepare v)/u.test(line));
 }
 
 function readMaxCommits(args) {
@@ -150,53 +88,19 @@ function readMaxCommits(args) {
     if (!value) {
         return 200;
     }
-
     const parsed = Number.parseInt(value, 10);
-    if (!Number.isFinite(parsed) || parsed < 1 || parsed > 1000) {
-        fail('--max-commits must be an integer between 1 and 1000');
+    if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > 1000) {
+        throw new Error('--max-commits must be an integer between 1 and 1000');
     }
-
     return parsed;
 }
 
-function printContext({
-    targetVersion,
-    previousVersion,
-    baseRef,
-    commitCount,
-    commits,
-    releaseEntry,
-}) {
-    console.log('# Release Changelog Context');
-    console.log('');
-    console.log(`- Target version: ${targetVersion}`);
-    console.log(`- Previous release in changelog: ${previousVersion}`);
-    console.log(`- Commit range: ${baseRef}..HEAD`);
-    console.log(`- Commits in range (no merges): ${commitCount}`);
-    console.log('');
-    console.log('## Commit Subjects');
-    console.log('');
-
-    if (commits.length === 0) {
-        console.log('- No commits found in range.');
-        return;
-    }
-
-    for (const commit of commits) {
-        console.log(`- ${commit.hash} ${commit.date} ${commit.subject}`);
-    }
-
-    console.log('');
-    console.log('## Required Release Target Decision');
-    console.log('');
-    console.log('Edit the latest draft in `releases.json` and keep the ledger oldest-first:');
-    console.log('');
-    console.log(formatReleaseTargets(releaseEntry));
-    console.log('');
-    console.log('## AI Changelog Writing Guidance');
-    console.log('');
-    console.log('- Group commits by user-facing outcome, not commit order.');
-    console.log('- Ignore purely internal churn unless it affects behavior.');
-    console.log('- Prefer concise bullets in Added/Changed/Fixed.');
-    console.log('- Call out any breaking changes explicitly.');
+function printUsage() {
+    console.log(
+        [
+            'Usage: bun run release:collect-changelog-context [--candidate-ref <git-ref>] [--max-commits <N>]',
+            '',
+            'Run this before assigning versions or editing releases.json.',
+        ].join('\n')
+    );
 }

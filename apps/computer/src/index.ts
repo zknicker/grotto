@@ -334,10 +334,8 @@ async function main(args: string[]) {
         await finishRestart();
         await rm(stoppedPath(), { force: true });
         const targetAttachment = target ? await requiredAttachment(target) : null;
-        if (targetAttachment) {
-            if (await reportUnlinkedAttachment(targetAttachment)) {
-                return;
-            }
+        if (targetAttachment && (await reportUnlinkedAttachment(targetAttachment))) {
+            return;
         }
         await startAttachments(target);
         if (targetAttachment) {

@@ -25,6 +25,10 @@ extension GrottoShellView {
     func handleDrawerPan(_ pan: DrawerPan, drawerWidth: CGFloat) {
         switch pan {
         case .changed(let translation):
+            // A finger on the canvas is an interactive close whatever ended the
+            // last one, and it is the one path that can reopen the drawer
+            // without going through `setDrawer`.
+            if drawerClose != .interactive { drawerClose = .interactive }
             dragTranslation = translation
         case .ended(let translation, let velocity):
             let offset = DrawerInteraction.offset(
@@ -50,6 +54,11 @@ extension GrottoShellView {
     }
 
     func setDrawer(open: Bool) {
+        // Opening restores the veil. Suppression belongs to the one close a Chat
+        // selection starts, and `selectDestination` owns setting it; leaving it
+        // to be cleared here keeps a stale suppression from surviving into the
+        // next open.
+        if open { drawerClose = .interactive }
         withAnimation(.interpolatingSpring(duration: 0.38, bounce: 0.06)) {
             dragTranslation = nil
             drawerPresented = open

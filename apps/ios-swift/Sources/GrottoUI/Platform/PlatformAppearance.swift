@@ -120,6 +120,21 @@ public extension View {
     }
 }
 
+/// What is closing the sidebar drawer, which decides whether its veil is still
+/// painted while the canvas slides back.
+///
+/// The veil covers one Chat. An interactive close returns that same Chat, so the
+/// veil lifting off it is part of the close. A Chat selection replaces the screen
+/// under the veil in the frame the close begins, and a veil left to lift would
+/// dissolve over a Chat that was never behind it — read as a fade over the new
+/// Chat rather than as the canvas sliding back.
+enum GrottoDrawerClose {
+    /// A drag, a tap on the veil, or the header button: the Chat stays.
+    case interactive
+    /// A Chat selection: a different screen mounts as the close begins.
+    case chatSelection
+}
+
 /// The veil painted over the Chat canvas while the sidebar drawer is open.
 ///
 /// Light mode fades the canvas toward the background and reads its edge from the
@@ -133,5 +148,17 @@ enum GrottoDrawerVeil {
 
     static func opacity(for scheme: ColorScheme, progress: CGFloat) -> Double {
         Double(progress) * (scheme == .dark ? 0.11 : 0.55)
+    }
+
+    /// Whether the veil is drawn at all.
+    ///
+    /// Progress is a discrete state value that jumps to its target the moment the
+    /// drawer is told to close, so this answer flips at the head of the close, not
+    /// at its end. That is what makes it the switch between the two closes: inside
+    /// the closing spring it takes the veil out with the animated removal that
+    /// reads as the canvas lifting; outside any animation — where a Chat selection
+    /// commits — the same removal is a hard cut in the frame the new screen mounts.
+    static func isPainted(progress: CGFloat, close: GrottoDrawerClose) -> Bool {
+        progress > 0 && close == .interactive
     }
 }

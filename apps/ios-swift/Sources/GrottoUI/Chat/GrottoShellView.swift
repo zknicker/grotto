@@ -31,7 +31,7 @@ public struct GrottoShellView<SettingsContent: View>: View {
     private let mentionOptions: (ChatDestination) -> [MentionOptionPresentation]
     private let loadMentionOptions: (ChatDestination) async -> Void
 
-    @Binding private var selectedDestinationID: ChatDestination.ID?
+    @Binding var selectedDestinationID: ChatDestination.ID?
     @State var drawerPresented = false
     @State var settingsRequest: SettingsPresentationRequest?
     /// Settings queued behind a Chat sheet that has to dismiss first; the two
@@ -48,6 +48,9 @@ public struct GrottoShellView<SettingsContent: View>: View {
     @State var composerInteractions = ComposerInteractionStore()
     @State var scrollTarget: MessageScrollTarget?
     @State var dragTranslation: CGFloat?
+    /// What the current close is, for as long as one is running. Only the veil
+    /// reads it, and only a Chat selection ever sets anything else.
+    @State var drawerClose = GrottoDrawerClose.interactive
     @Environment(\.colorScheme) private var colorScheme
 
     public init(
@@ -195,7 +198,14 @@ public struct GrottoShellView<SettingsContent: View>: View {
                     }
                     .overlay {
                         let progress = drawerProgress(drawerWidth: drawerWidth)
-                        if progress > 0 {
+                        // The veil leaves by being removed, never by animating to
+                        // clear: progress is discrete, so it reads zero as soon as
+                        // the drawer is told to close. Removing it inside the
+                        // closing spring is the fade an interactive close wants;
+                        // removing it outside any animation, which is how a Chat
+                        // selection commits, is the hard cut that keeps the slide
+                        // the only transition.
+                        if GrottoDrawerVeil.isPainted(progress: progress, close: drawerClose) {
                             GrottoDrawerVeil.color(for: colorScheme)
                                 .opacity(GrottoDrawerVeil.opacity(for: colorScheme, progress: progress))
                                 .contentShape(.rect)
@@ -259,70 +269,11 @@ public struct GrottoShellView<SettingsContent: View>: View {
         }
     }
 
-    private var durableChats: [ChatPresentation] {
-        destinations.compactMap(\.durableChat)
-    }
-
-    private var selectedDestination: ChatDestination? {
-        destinations.first { $0.id == selectedDestinationID } ?? destinations.first
-    }
-
-    /// Adopts a requested durable Chat once the Server list carries it, while
-    /// implicit Agent destinations remain selectable without a Chat id. Also the
-    /// one place a destination is observed to have left, which is where its
-    /// composer state — draft and staged files alike — stops being worth keeping.
-    private func syncSelection(destinationIDs: [ChatDestination.ID]) {
-        dropCanvasState(outside: destinationIDs)
-
-        if let pendingID = pendingChatSelectionID,
-           let arrived = destinations.first(where: { $0.id == .chat(pendingID) }) {
-            pendingChatSelectionID = nil
-            selectDestination(arrived)
-            return
-        }
-
-        guard let selectedDestinationID, destinationIDs.contains(selectedDestinationID) else {
-            self.selectedDestinationID = destinationIDs.first
-            return
-        }
-    }
-
     /// Called from the details sheet's own body, so the activity stream
     /// invalidates that sheet rather than the shell behind it.
     private func agentActivity(for chat: ChatDestination) -> AgentActivityPresentation? {
         guard case .agentDirectMessage(let agent) = chat.kind else { return nil }
         return currentAgentActivity(agent.id)
-    }
-
-    private func selectDestination(_ destination: ChatDestination) {
-        if case .chat(let chatID) = destination.id, pendingChatSelectionID != chatID {
-            pendingChatSelectionID = nil
-        }
-        selectedDestinationID = destination.id
-        // The swap and the slide are two events, and they have to land in two
-        // frames. The canvas is keyed by destination, so this selection inserts
-        // a new Chat screen — and SwiftUI places a view inserted *inside* an
-        // animating transaction at that animation's destination, not at its
-        // in-flight geometry. Closing the drawer in the same turn therefore
-        // pinned the incoming Chat at the closed position while the canvas
-        // frame slid over it: a wipe across a stationary transcript rather than
-        // the Chat travelling with the drawer. Letting the selection commit on
-        // its own frame first means the spring animates a screen already there.
-        Task { @MainActor in setDrawer(open: false) }
-    }
-
-    /// The one path a sheet uses to reach a Chat, so every sheet dismisses and
-    /// selects in the same order.
-    func open(_ chat: ChatPresentation, revealing messageID: String? = nil) {
-        activeChatSheet = nil
-        scrollTarget = messageID.map { MessageScrollTarget(chatID: chat.id, messageID: $0) }
-        selectDestination(.durableChat(chat))
-    }
-
-    private func openSearchResult(_ result: MessageSearchResultPresentation) -> Bool {
-        guard let chat = durableChats.first(where: { $0.id == result.chatID }) else { return false }
-        open(chat, revealing: result.id)
-        return true
     }
 
 }

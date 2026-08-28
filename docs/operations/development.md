@@ -118,10 +118,11 @@ grotto-computer doctor
 grotto-computer logs 200
 ```
 
-`status` reads the stopped/running state for each attachment plus its recent disconnect count. It
-marks an attachment unstable after five disconnects in five minutes, using a bounded 100-event
-history inside that Server's private local partition. `doctor` checks private local files plus Server
-credential acceptance without printing secrets, and `logs` tails the resident service log.
+`status` reads the stopped/running state for each attachment. `doctor` checks private local files
+plus Server credential acceptance without printing secrets, and `logs` tails the resident service
+log. The Computer page keeps a Server-side system log of observed connections, disconnections, and
+state-changing management commands. It remains readable while the Computer is offline and surfaces
+a warning only when repeated recent disconnects indicate instability.
 
 For login and setup failures, start with `grotto-computer status`. An expired or
 abandoned device code is not resumed; rerun `setup /<server-slug>` for a new code.

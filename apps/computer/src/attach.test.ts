@@ -80,9 +80,12 @@ test('attach uses the saved login and stores only the Server-scoped credential',
         },
         port: 0,
         websocket: {
-            message(socket) {
+            message(socket, message) {
                 sockets.add(socket);
-                socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                const frame = JSON.parse(String(message)) as { type?: string };
+                if (frame.type === 'bootstrap') {
+                    socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                }
             },
         },
     });

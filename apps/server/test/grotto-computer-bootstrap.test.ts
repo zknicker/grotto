@@ -162,6 +162,14 @@ test('a compatible Computer reports its name through versioned inventory', async
         mode: 'ordinary',
         type: 'bootstrap-accepted',
     });
+    socket.send(JSON.stringify({ type: 'heartbeat-negotiate' }));
+    expect(await message(socket)).toEqual({
+        intervalMs: 10_000,
+        timeoutMs: 30_000,
+        type: 'heartbeat-configuration',
+    });
+    socket.send(JSON.stringify({ id: 0, type: 'heartbeat' }));
+    expect(await message(socket)).toEqual({ id: 0, type: 'heartbeat-ack' });
     socket.send(
         JSON.stringify({
             agents: [],

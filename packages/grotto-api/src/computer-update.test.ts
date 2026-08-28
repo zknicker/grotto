@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
     computerBootstrapHelloSchema,
+    computerHeartbeatConfigurationSchema,
     computerReleaseSigningPayload,
     signedComputerReleaseSchema,
 } from './computer-update.ts';
@@ -68,6 +69,23 @@ describe('Computer bootstrap protocol', () => {
                 protocolVersion: 5,
                 type: 'bootstrap',
                 update: progress,
+            }).success
+        ).toBe(false);
+    });
+
+    test('requires a heartbeat timeout to span at least two bounded intervals', () => {
+        expect(
+            computerHeartbeatConfigurationSchema.safeParse({
+                intervalMs: 10_000,
+                timeoutMs: 30_000,
+                type: 'heartbeat-configuration',
+            }).success
+        ).toBe(true);
+        expect(
+            computerHeartbeatConfigurationSchema.safeParse({
+                intervalMs: 10_000,
+                timeoutMs: 15_000,
+                type: 'heartbeat-configuration',
             }).success
         ).toBe(false);
     });

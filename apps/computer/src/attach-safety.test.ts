@@ -92,9 +92,12 @@ test('attach adopts an existing attachment instead of issuing a duplicate Comput
         },
         port: 0,
         websocket: {
-            message(socket) {
+            message(socket, message) {
                 sockets.add(socket);
-                socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                const frame = JSON.parse(String(message)) as { type?: string };
+                if (frame.type === 'bootstrap') {
+                    socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                }
             },
         },
     });

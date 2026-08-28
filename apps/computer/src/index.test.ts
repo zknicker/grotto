@@ -84,8 +84,11 @@ test('setup signs in, stores only a Server credential, and reruns by validation'
         port: 0,
         websocket: {
             message(socket, message) {
-                socketFrames.push(JSON.parse(String(message)));
-                socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                const frame = JSON.parse(String(message)) as { type?: string };
+                socketFrames.push(frame);
+                if (frame.type === 'bootstrap') {
+                    socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                }
             },
         },
     });
@@ -414,8 +417,11 @@ test('setup archives an unlinked attachment before connecting a recreated Server
         },
         port: 0,
         websocket: {
-            message(socket) {
-                socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+            message(socket, message) {
+                const frame = JSON.parse(String(message)) as { type?: string };
+                if (frame.type === 'bootstrap') {
+                    socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                }
             },
         },
     });
@@ -668,6 +674,116 @@ test('resident start reconnects an attachment after the Server closes it', async
         await rm(dataRoot, { force: true, recursive: true });
     }
 });
+
+test('resident start reconnects an attachment when Server heartbeats silently stop', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const reconnected = Promise.withResolvers<void>();
+    const sockets = new Set<ServerWebSocket<undefined>>();
+    let connections = 0;
+    let heartbeats = 0;
+    const peer = Bun.serve({
+        fetch(request, server) {
+            const pathname = new URL(request.url).pathname;
+            if (pathname === '/computer/validate') {
+                return Response.json({ valid: true });
+            }
+            if (pathname === '/computer/attachment' && server.upgrade(request)) {
+                return;
+            }
+            return new Response('missing', { status: 404 });
+        },
+        port: 0,
+        websocket: {
+            message(socket, message) {
+                sockets.add(socket);
+                const frame = JSON.parse(String(message)) as { id?: number; type?: string };
+                if (frame.type === 'bootstrap') {
+                    connections += 1;
+                    socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                    if (connections > 1) {
+                        reconnected.resolve();
+                    }
+                    return;
+                }
+                if (frame.type === 'heartbeat-negotiate') {
+                    if (connections === 1) {
+                        socket.send(
+                            JSON.stringify({
+                                intervalMs: 100,
+                                timeoutMs: 300,
+                                type: 'heartbeat-configuration',
+                            })
+                        );
+                    }
+                    return;
+                }
+                if (frame.type === 'heartbeat') {
+                    heartbeats += 1;
+                    if (heartbeats === 1) {
+                        socket.send(JSON.stringify({ id: frame.id, type: 'heartbeat-ack' }));
+                    }
+                }
+            },
+        },
+    });
+    const serverId = 'srv_test';
+    const attachmentRoot = join(dataRoot, 'servers', serverId);
+    await mkdir(attachmentRoot, { recursive: true });
+    await writeFile(
+        join(attachmentRoot, 'attachment.json'),
+        JSON.stringify({
+            computerId: 'cmp_1234567890123456',
+            credential: 'credential',
+            serverId,
+            serverOrigin: `http://127.0.0.1:${peer.port}`,
+            slug: 'hq',
+        })
+    );
+    const child = Bun.spawn(['bun', entrypoint, 'start'], {
+        env: {
+            ...process.env,
+            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
+            GROTTO_COMPUTER_RESIDENT: '1',
+            GROTTO_COMPUTER_USAGE_DISABLED: '1',
+        },
+        stderr: 'pipe',
+        stdout: 'pipe',
+    });
+    try {
+        await Promise.race([
+            reconnected.promise,
+            Bun.sleep(5000).then(async () => {
+                const marker = await readFile(
+                    join(attachmentRoot, 'attachment-daemon.pid'),
+                    'utf8'
+                ).catch(() => 'missing');
+                throw new Error(
+                    `Computer did not reconnect after Server heartbeats stopped. Attachment daemon: ${marker}`
+                );
+            }),
+        ]);
+        expect(heartbeats).toBeGreaterThan(1);
+        expect(connections).toBe(2);
+        const historyRoot = join(attachmentRoot, 'connection-history');
+        const history = await Promise.all(
+            (await readdir(historyRoot)).map(async (entry) =>
+                JSON.parse(await readFile(join(historyRoot, entry), 'utf8'))
+            )
+        );
+        expect(history).toContainEqual({
+            at: expect.any(String),
+            kind: 'disconnected',
+            reason: 'heartbeat-timeout',
+        });
+    } finally {
+        for (const socket of sockets) {
+            socket.close();
+        }
+        child.kill();
+        peer.stop(true);
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+}, 7000);
 
 test('the resident service keeps its state root outside executable code', () => {
     const plist = launchdPlist({

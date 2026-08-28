@@ -70,9 +70,12 @@ test('setup resumes an existing attachment without login or migration', async ()
         hostname: '127.0.0.1',
         port: await getFreePort(),
         websocket: {
-            message(socket) {
+            message(socket, message) {
                 sockets.add(socket);
-                socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                const frame = JSON.parse(String(message)) as { type?: string };
+                if (frame.type === 'bootstrap') {
+                    socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                }
             },
         },
     });
@@ -158,9 +161,12 @@ test('setup adds another Server without replacing the first attachment', async (
         hostname: '127.0.0.1',
         port: await getFreePort(),
         websocket: {
-            message(socket) {
+            message(socket, message) {
                 sockets.add(socket);
-                socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                const frame = JSON.parse(String(message)) as { type?: string };
+                if (frame.type === 'bootstrap') {
+                    socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                }
             },
         },
     });
@@ -252,9 +258,12 @@ test('setup retries a durable login acknowledgement after attachment persistence
         hostname: '127.0.0.1',
         port: await getFreePort(),
         websocket: {
-            message(socket) {
+            message(socket, message) {
                 sockets.add(socket);
-                socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                const frame = JSON.parse(String(message)) as { type?: string };
+                if (frame.type === 'bootstrap') {
+                    socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                }
             },
         },
     });

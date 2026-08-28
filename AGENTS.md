@@ -233,9 +233,10 @@ Grotto Server promotion remains a separate manual operation in
 
 ## Cursor Cloud specific instructions
 
-The Cloud Agent environment is repository-managed via `.cursor/environment.json` and
-`.cursor/install.sh`. The install step provisions Bun `1.3.5` and PostgreSQL 16, then runs
-`bun run setup:worktree` (frozen `bun install` + HeroUI Pro artifact download). The full stack
+The Cloud Agent environment is repository-managed via `.cursor/environment.json`,
+`.cursor/install.sh`, and `.cursor/start.sh`. The install step provisions Bun `1.3.5`
+and PostgreSQL 16, then runs `bun run setup:worktree` (frozen `bun install` + HeroUI Pro
+artifact download). `start.sh` seeds fleet agents on every boot. The full stack
 (`bun run dev`) auto-starts in the `dev-stack` terminal.
 
 - There are no per-repository Cursor secrets. Every value resolves from 1Password through the
@@ -244,8 +245,8 @@ The Cloud Agent environment is repository-managed via `.cursor/environment.json`
  install credentials are fetched during `install` by `bun run setup:worktree` under the install
  context switch; the Clerk credentials arrive as ordinary schema values when the stack starts.
  See [docs/operations/environment.md](docs/operations/environment.md).
-- `.cursor/install.sh` also seeds the shared fleet skill library into `.cursor/skills` (gitignored)
- from the private `zknicker/agents` repository, using the account-level Runtime Secret
+- `.cursor/start.sh` seeds the shared fleet skill library from the private
+ `zknicker/agents` repository on every boot, using the account-level Runtime Secret
  `CURSOR_CLOUD_AGENTS_GH_READ_TOKEN`. That credential is agent tooling, not part of Grotto's
  environment contract, so it lives in Cursor's own secret store and never touches the schema.
  Grotto's own product skills stay in the committed `.agents/skills`.

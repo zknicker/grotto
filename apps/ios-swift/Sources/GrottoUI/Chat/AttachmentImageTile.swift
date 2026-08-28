@@ -14,11 +14,16 @@ struct AttachmentImageTile: View {
     let onOpen: (MessageAttachmentPresentation) async throws -> URL
     let onFailure: () -> Void
 
-    /// Bumped when an async decode lands so `body` re-reads the cache.
-    @State private var loadedAttachmentID: String?
+    /// The landed decode, held as state `body` renders from. SwiftUI
+    /// invalidates a view only for state its body actually reads, so the
+    /// async landing must arrive through the rendered value itself — a
+    /// side-channel marker the body never reads leaves a finished decode
+    /// painted as the placeholder forever. The cache read below is the
+    /// recycled-view fast path, not the invalidation.
+    @State private var loaded: LoadedAttachmentThumbnail?
 
     var body: some View {
-        let thumbnail = Self.cachedThumbnail(for: attachment)
+        let thumbnail = loaded?.thumbnail(for: attachment.id) ?? Self.cachedThumbnail(for: attachment)
         let needsLoad = thumbnail == nil
         Group {
             if let thumbnail {
@@ -79,22 +84,22 @@ struct AttachmentImageTile: View {
     @MainActor
     private func loadThumbnail() async {
         if let localURL = attachment.localURL {
-            guard await LocalAttachmentImageCache.shared.load(url: localURL) != nil else {
+            guard await LocalAttachmentImageCache.shared.load(url: localURL) != nil,
+                  // Promotes the staged entry into AttachmentImageCache.
+                  let thumbnail = Self.cachedThumbnail(for: attachment)
+            else {
                 onFailure()
                 return
             }
-            // The next body pass promotes the staged entry into
-            // AttachmentImageCache via `cachedThumbnail`.
-            loadedAttachmentID = attachment.id
+            loaded = LoadedAttachmentThumbnail(attachmentID: attachment.id, thumbnail: thumbnail)
             return
         }
         do {
+            // The resolved file is owned by the caller's attachment cache and
+            // must survive this decode: Quick Look opens the same bytes, and
+            // the next cold launch draws this tile from them instead of
+            // downloading the attachment again.
             let url = try await onOpen(attachment)
-            // A fresh download lands in an isolated temp directory owned by
-            // this call; the decoded bitmap is cached, so the file itself is
-            // no longer needed once decoding finishes.
-            let downloadedDirectory = url.deletingLastPathComponent()
-            defer { try? FileManager.default.removeItem(at: downloadedDirectory) }
             guard
                 let bitmap = await AttachmentImageDecoder.decode(
                     at: url,
@@ -116,11 +121,22 @@ struct AttachmentImageTile: View {
                 for: attachment.id,
                 decodedPixelCost: bitmap.pixelCost
             )
-            loadedAttachmentID = attachment.id
+            loaded = LoadedAttachmentThumbnail(attachmentID: attachment.id, thumbnail: thumbnail)
         } catch is CancellationError {
             // The tile disappeared or the transfer was superseded; no error UI needed.
         } catch {
             onFailure()
         }
+    }
+}
+
+/// One landed decode pinned to the attachment it belongs to, so a recycled
+/// tile whose attachment changed cannot render the previous image.
+private struct LoadedAttachmentThumbnail {
+    let attachmentID: String
+    let thumbnail: AttachmentThumbnail
+
+    func thumbnail(for id: String) -> AttachmentThumbnail? {
+        attachmentID == id ? thumbnail : nil
     }
 }

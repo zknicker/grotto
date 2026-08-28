@@ -88,11 +88,16 @@ struct LocalAttachmentImage: View {
     let url: URL
 
     @State private var failedURL: URL?
-    /// Bumped when an async decode lands so `body` re-reads the cache.
-    @State private var loadedURL: URL?
+    /// The landed decode, held as state `body` renders from. SwiftUI
+    /// invalidates a view only for state its body actually reads, so the
+    /// async landing must arrive through the rendered value itself — writing
+    /// a side-channel marker the body never reads leaves a successful decode
+    /// painted as the placeholder forever. The cache read below is the
+    /// recycled-view fast path, not the invalidation.
+    @State private var loaded: LoadedLocalAttachmentImage?
 
     var body: some View {
-        let cached = LocalAttachmentImageCache.shared.entry(for: url)
+        let cached = loaded?.entry(for: url) ?? LocalAttachmentImageCache.shared.entry(for: url)
         let needsLoad = cached == nil && failedURL != url
         Group {
             if let cached {
@@ -108,11 +113,22 @@ struct LocalAttachmentImage: View {
         }
         .task(id: url) {
             guard needsLoad else { return }
-            if await LocalAttachmentImageCache.shared.load(url: url) == nil {
-                failedURL = url
+            if let entry = await LocalAttachmentImageCache.shared.load(url: url) {
+                loaded = LoadedLocalAttachmentImage(url: url, entry: entry)
             } else {
-                loadedURL = url
+                failedURL = url
             }
         }
+    }
+}
+
+/// One landed decode pinned to the URL it belongs to, so a reused view whose
+/// URL changed cannot render the previous file while the new one loads.
+private struct LoadedLocalAttachmentImage {
+    let url: URL
+    let entry: LocalAttachmentImageEntry
+
+    func entry(for url: URL) -> LocalAttachmentImageEntry? {
+        self.url == url ? entry : nil
     }
 }

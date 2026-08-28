@@ -29,5 +29,11 @@ execution facts and reports bounded state through typed protocol messages. Realt
 invalidate or update durable Server reads; clients recover after reconnect by refetching Server
 state.
 
+The attachment protocol negotiates heartbeats after bootstrap without changing the stable bootstrap
+frame. Computer closes a connection that misses the negotiated acknowledgement deadline and its
+resident supervisor reconnects; Server independently expires negotiated Computers that stop sending
+heartbeats. Heartbeats require an explicit post-bootstrap opt-in, so either Server or Computer can
+roll out first without changing the behavior of an older peer.
+
 Cross-boundary types use Grotto product nouns and narrow discriminated unions. Do not add aliases
 for the retired standalone Runtime or SDK surfaces.

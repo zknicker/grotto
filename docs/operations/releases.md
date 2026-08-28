@@ -12,11 +12,11 @@ Use the [Grotto release skill](../../.agents/skills/release-grotto/SKILL.md) for
 release procedure: target decisions, the release record, the release PR, workflow monitoring, and
 the operator handoff. This document keeps the durable target and promotion contract.
 
-## One release, four targets
+## One release, five targets
 
 Each release has one append-only `releases.json` record and one release PR. Merging that PR starts
-one `Release` workflow with a job per target. Every entry contains all four target keys: a published
-target carries its version, while an unchanged target is `null` and is skipped rather than rebuilt.
+one `Release` workflow. Every new entry contains all five target keys: a published target carries
+its version, while an unchanged target is `null` and is skipped rather than rebuilt.
 iOS publication carries both its version and build number.
 
 | Target | Publish when |
@@ -25,13 +25,20 @@ iOS publication carries both its version and build number.
 | `app` | Electron shell, preload bridge, native desktop behavior, or installed desktop artifact changes |
 | `ios` | Native iPhone code, metadata, entitlements, dependencies, or assets change |
 | `computer` | Computer execution, lifecycle, human CLI, updater, embedded managed CLI, bootstrap/ordinary protocol, or a required Computer dependency changes |
+| `agent` | Grotto-owned Agent instructions, actions, recipes, Harness behavior, or factory guidance changes |
 
 Server and web App artifacts share the main Grotto product version. The desktop App, iOS, and
 Computer targets retain their independent versioning rules. An iOS publication also records a new
 positive build number. A target that is unchanged keeps its latest published version; do not copy
 the release version into it.
 
-The `Release` workflow builds, signs, publishes, and records evidence for selected targets. When
+Grotto Agent has independent SemVer but no standalone artifact. Its behavior package is embedded in
+Server and Computer, so publishing Grotto Agent always publishes both targets. Server advertises
+the current version; Computer records it only after an Agent successfully completes a turn with
+that version. The App therefore distinguishes current, pending, and failed application.
+
+The `Release` workflow builds, signs, publishes, and records evidence for selected artifact targets.
+Grotto Agent publication is proven by the matching Server and Computer artifacts. When
 Server publishes, the same graph waits at the protected `production` Environment, promotes the
 exact artifact after approval, and verifies the public Server and hosted Grotto App.
 
@@ -104,7 +111,7 @@ The record and handoff distinguish these states:
 - failed, skipped, pending, and recovered work.
 
 The release skill sends one operator-facing handoff after the selected target jobs and any required
-Server promotion reach a terminal or explicitly pending state. It lists all four target
+Server promotion reach a terminal or explicitly pending state. It lists all five target
 states, names only actionable updates, links the PR/workflow/deployment evidence, and reports gaps
 instead of inferring success from changed files.
 

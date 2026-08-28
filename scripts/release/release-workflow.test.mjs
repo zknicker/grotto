@@ -33,10 +33,11 @@ test('summary and Apple lifecycle helpers expose outcomes and clean temporary fi
         writeReleaseSummary({
             summaryPath,
             verification: { message: 'verified release' },
-            targets: { computer: true, app: false, ios: false, server: true },
+            targets: { computer: true, agent: false, app: false, ios: false, server: true },
         });
         const summary = readFileSync(summaryPath, 'utf8');
         assert.match(summary, /\| Computer \| published \|/);
+        assert.match(summary, /\| Grotto Agent \| unchanged \|/);
         assert.match(summary, /\| App \| unchanged \|/);
         assert.match(summary, /Production Server deployed and publicly verified/);
 
@@ -85,7 +86,7 @@ test('summary and Apple lifecycle helpers expose outcomes and clean temporary fi
 });
 
 test('finalization rejects a skipped selected job', () => {
-    const targets = { computer: false, app: false, ios: false, server: true };
+    const targets = { computer: false, agent: false, app: false, ios: false, server: true };
     assert.doesNotThrow(() =>
         assertSelectedJobResults({
             targets,
@@ -109,7 +110,7 @@ test('finalization rejects a skipped selected job', () => {
 });
 
 test('Release workflow stays under the cap and preserves the operator graph', () => {
-    assert.ok(workflow.split('\n').length - 1 < 300);
+    assert.ok(workflow.split('\n').length - 1 < 310);
     assert.match(workflow, /^name: Release$/m);
     assert.match(workflow, /pull_request:[\s\S]*- releases\.json/);
     assert.match(
@@ -117,6 +118,14 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
         /push:[\s\S]*branches:[\s\S]*- main[\s\S]*paths:[\s\S]*- releases\.json/
     );
     assert.match(workflow, /node scripts\/release\/release-plan\.mjs/);
+    assert.match(
+        workflow,
+        /publish_agent: \$\{\{ steps\.release_plan\.outputs\.publish_agent \}\}/
+    );
+    assert.match(
+        workflow,
+        /agent_version: \$\{\{ steps\.release_plan\.outputs\.agent_version \}\}/
+    );
     assert.match(workflow, /scripts\/release\/setup-apple-material\.sh/);
     assert.match(workflow, /scripts\/release\/cleanup-apple-material\.sh/);
     assert.match(workflow, /scripts\/release\/verify-release\.mjs/);
@@ -145,6 +154,8 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     );
     assert.match(workflow, /promote_server:[\s\S]*if: >-\s+always\(\) &&/);
     assert.match(workflow, /RELEASE_JOB_RESULTS: \$\{\{ toJSON\(needs\) \}\}/);
+    assert.match(workflow, /AGENT_VERSION: \$\{\{ needs\.plan\.outputs\.agent_version \}\}/);
+    assert.match(workflow, /PUBLISH_AGENT: \$\{\{ needs\.plan\.outputs\.publish_agent \}\}/);
     assert.match(deployWorkflow, /workflow_call:/);
     assert.match(deployWorkflow, /environment:\s+name: production\s+url: https:\/\/grotto\.sh/);
     assert.match(deployWorkflow, /EXPECTED_SOURCE_REVISION: \$\{\{ inputs\.source_revision \}\}/);

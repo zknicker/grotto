@@ -246,6 +246,12 @@ function agent(): Agent {
         effectiveReportedAt: null,
         effectiveRuntimeId: null,
         factoryKind: 'ordinary',
+        grottoAgent: {
+            appliedAt: null,
+            appliedVersion: null,
+            currentVersion: '1.0.0',
+            status: 'pending',
+        },
         handle: 'fen',
         id: 'agent_owner',
         missingResources: [],

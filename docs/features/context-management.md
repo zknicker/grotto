@@ -36,6 +36,12 @@ model session. Per-turn message delivery is an inbox concern; see
   A bootstrap or turn failure keeps the previous receipt and session generation so a later delivery
   can retry. Only rejection of the stored native resume state enters Server-authorized session
   recovery; Computer never silently discards conversation context.
+- The independently released Grotto Agent version is the public receipt for this managed behavior,
+  including instructions, actions, recipes and Manual content, Harness bootstrap, and factory
+  guidance. Version drift uses the same next-turn refresh path. Computer marks the version current
+  only after a successful turn, preserves the previous applied version on failure, and reports the
+  pending/current/failed state to Server for the Agent profile. Exact fingerprints remain
+  Computer-local implementation evidence.
 - A fresh session starts only for initial creation, a runtime, model, or reasoning-effort switch,
   manual session reset, or one automatic recovery after the harness rejects a stored resume state.
 - An execution-configuration change never interrupts an active turn. The active turn finishes

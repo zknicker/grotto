@@ -147,6 +147,24 @@ test('setup signs in, stores only a Server credential, and reruns by validation'
             inventory: { name: expect.any(String) },
             type: 'report',
         });
+        const grottoAgentReportFrame = socketFrames.find(
+            (frame) =>
+                typeof frame === 'object' &&
+                frame !== null &&
+                'type' in frame &&
+                frame.type === 'grotto-agent-report'
+        );
+        expect(grottoAgentReportFrame).toMatchObject({
+            agents: [
+                {
+                    agentId: 'agt_effective',
+                    appliedAt: null,
+                    status: 'pending',
+                    version: null,
+                },
+            ],
+            type: 'grotto-agent-report',
+        });
 
         await writeFile(
             join(attachmentRoot, 'terminal-unlinked.json'),

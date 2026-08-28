@@ -25,11 +25,13 @@ jobs:
       plan: ${{ steps.release_plan.outputs.plan }}
       initial_ledger_migration: ${{ steps.release_plan.outputs.initial_ledger_migration }}
       publish_computer: ${{ steps.release_plan.outputs.publish_computer }}
+      publish_agent: ${{ steps.release_plan.outputs.publish_agent }}
       publish_app: ${{ steps.release_plan.outputs.publish_app }}
       publish_ios: ${{ steps.release_plan.outputs.publish_ios }}
       publish_server: ${{ steps.release_plan.outputs.publish_server }}
       release_version: ${{ steps.release_plan.outputs.release_version }}
       computer_version: ${{ steps.release_plan.outputs.computer_version }}
+      agent_version: ${{ steps.release_plan.outputs.agent_version }}
       ios_version: ${{ steps.release_plan.outputs.ios_version }}
       ios_build_number: ${{ steps.release_plan.outputs.ios_build_number }}
     steps:
@@ -270,6 +272,7 @@ jobs:
       needs.plan.outputs.initial_ledger_migration == 'false' &&
       (
         needs.plan.outputs.publish_computer == 'true' ||
+        needs.plan.outputs.publish_agent == 'true' ||
         needs.plan.outputs.publish_app == 'true' ||
         needs.plan.outputs.publish_ios == 'true' ||
         needs.plan.outputs.publish_server == 'true'
@@ -287,7 +290,9 @@ jobs:
           SOURCE_REVISION: ${{ github.sha }}
           RELEASE_VERSION: ${{ needs.plan.outputs.release_version }}
           COMPUTER_VERSION: ${{ needs.plan.outputs.computer_version }}
+          AGENT_VERSION: ${{ needs.plan.outputs.agent_version }}
           PUBLISH_COMPUTER: ${{ needs.plan.outputs.publish_computer }}
+          PUBLISH_AGENT: ${{ needs.plan.outputs.publish_agent }}
           PUBLISH_APP: ${{ needs.plan.outputs.publish_app }}
           PUBLISH_IOS: ${{ needs.plan.outputs.publish_ios }}
           PUBLISH_SERVER: ${{ needs.plan.outputs.publish_server }}

@@ -24,6 +24,9 @@ test('effective-state reports are derived from durable per-Agent sessions', asyn
         cumulativeTokenUsage: null,
         effectiveModel: { modelId: 'gpt-5.6-sol', runtimeId: 'codex' },
         generation: 1,
+        grottoAgentAppliedAt: '2026-08-28T12:00:00.000Z',
+        grottoAgentStatus: 'current',
+        grottoAgentVersion: '1.0.0',
         instructionFingerprint: 'instructions_current',
         resumeState: { threadId: 'thread-local' },
         runtimeSessionId: 'session-local',
@@ -33,12 +36,18 @@ test('effective-state reports are derived from durable per-Agent sessions', asyn
     expect(await readEffectiveAgentStates(root, 'srv_test')).toEqual([
         {
             agentId: 'agt_applied',
+            grottoAgentAppliedAt: '2026-08-28T12:00:00.000Z',
+            grottoAgentStatus: 'current',
+            grottoAgentVersion: '1.0.0',
             missingResources: [],
             modelId: 'gpt-5.6-sol',
             runtimeId: 'codex',
         },
         {
             agentId: 'agt_missing',
+            grottoAgentAppliedAt: null,
+            grottoAgentStatus: 'pending',
+            grottoAgentVersion: null,
             missingResources: ['session'],
             modelId: null,
             runtimeId: null,

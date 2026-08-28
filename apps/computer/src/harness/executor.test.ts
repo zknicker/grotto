@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { seedCoveWorkspace } from '@grotto/agent-workspace';
+import { grottoAgentVersion } from '@grotto/api';
 import { composeInboxNotice } from '../inbox-format.ts';
 import { acceptRunInbox, replacePendingInbox } from '../inbox-store.ts';
 import { readClaudePlanUsageState } from '../usage/claude-plan-usage-state.ts';
@@ -567,6 +568,15 @@ test('Restart resumes the same session and refreshes its current instructions on
 test('managed instruction drift reaches the next resumed turn once without rotating its session', async () => {
     const first = await runHarnessTurn(turnInput({ initialRole: 'Own the original lane.' }));
     const firstSession = await readSession();
+    await writeFile(
+        join(agentRoot, 'session.json'),
+        `${JSON.stringify({
+            ...firstSession,
+            grottoAgentAppliedAt: '2026-08-27T12:00:00.000Z',
+            grottoAgentStatus: 'current',
+            grottoAgentVersion: '0.9.0',
+        })}\n`
+    );
     streamUsageScale = 2;
     const updateActivity: Array<{ category: string; phase: string }> = [];
 
@@ -591,6 +601,9 @@ test('managed instruction drift reaches the next resumed turn once without rotat
     const updatedSession = await readSession();
     expect(updatedSession.generation).toBe(1);
     expect(updatedSession.runtimeSessionId).toBe('engine_session_1');
+    expect(updatedSession.grottoAgentStatus).toBe('current');
+    expect(updatedSession.grottoAgentVersion).toBe(grottoAgentVersion);
+    expect(updatedSession.grottoAgentAppliedAt).not.toBe('2026-08-27T12:00:00.000Z');
     expect(updatedSession.instructionFingerprint).not.toBe(firstSession.instructionFingerprint);
     expect(updateActivity).toEqual([
         { category: 'updating_instructions', phase: 'started' },
@@ -706,6 +719,11 @@ test('preserves edited Cove guidance and records a failed operator-visible refre
         phase: 'completed',
     });
     expect(streamedPrompts[0]).toContain('could not update');
+    expect(await readSession()).toMatchObject({
+        grottoAgentAppliedAt: null,
+        grottoAgentStatus: 'failed',
+        grottoAgentVersion: null,
+    });
 });
 
 test('retries Cove guidance consumption after a refreshed turn fails', async () => {
@@ -847,7 +865,11 @@ test('a stream failure records a failed instruction refresh and leaves its recei
     const staleSession = await readSession();
     await writeFile(
         join(agentRoot, 'session.json'),
-        `${JSON.stringify({ ...staleSession, instructionFingerprint: 'stale' })}\n`
+        `${JSON.stringify({
+            ...staleSession,
+            grottoAgentVersion: '0.9.0',
+            instructionFingerprint: 'stale',
+        })}\n`
     );
     streamFails = true;
     const activity: Array<{ category: string; phase: string }> = [];
@@ -857,6 +879,10 @@ test('a stream failure records a failed instruction refresh and leaves its recei
     ).rejects.toBeInstanceOf(HarnessTurnFailedError);
 
     expect((await readSession()).instructionFingerprint).toBe('stale');
+    expect(await readSession()).toMatchObject({
+        grottoAgentStatus: 'failed',
+        grottoAgentVersion: '0.9.0',
+    });
     expect(activity).toContainEqual({ category: 'updating_instructions', phase: 'started' });
     expect(activity).toContainEqual({ category: 'updating_instructions', phase: 'failed' });
     expect(activity).not.toContainEqual({

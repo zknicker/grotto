@@ -5,7 +5,7 @@ import {
     formatReleaseImpact,
     releaseImpactTargets,
 } from './release-impact.mjs';
-import { assertReleaseLedger, latestMainVersion } from './release-ledger.mjs';
+import { assertReleaseLedger, latestMainVersion, latestTargetVersion } from './release-ledger.mjs';
 import { readFlagValue, readJson, runGit } from './release-utils.mjs';
 
 const argv = process.argv.slice(2);
@@ -25,6 +25,9 @@ console.log('# Release preparation context');
 console.log('');
 console.log(`- Candidate: ${candidateRef}`);
 console.log(`- Latest Server version: ${latestMainVersion(ledger)}`);
+console.log(
+    `- Latest Grotto Agent version: ${latestTargetVersion(ledger, 'agent') ?? 'unversioned'}`
+);
 console.log('');
 console.log(formatReleaseImpact(impact));
 console.log('');

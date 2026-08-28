@@ -1,11 +1,15 @@
 import type { Dirent } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { type GrottoAgentStatus, grottoAgentVersion } from '@grotto/api';
 import { readAppliedAgentConfiguration } from './agent-configuration.ts';
 import { readAgentSessionState } from './harness/session-store.ts';
 
 export interface EffectiveAgentState {
     agentId: string;
+    grottoAgentAppliedAt: string | null;
+    grottoAgentStatus: GrottoAgentStatus;
+    grottoAgentVersion: string | null;
     missingResources: string[];
     modelId: string | null;
     runtimeId: string | null;
@@ -32,31 +36,52 @@ export async function readEffectiveAgentStates(
             .sort((left, right) => left.name.localeCompare(right.name))
             .map(async (entry): Promise<EffectiveAgentState> => {
                 const agentRoot = join(agentsRoot, entry.name);
-                const configuration = await readAppliedAgentConfiguration(agentRoot);
+                const [configuration, session] = await Promise.all([
+                    readAppliedAgentConfiguration(agentRoot),
+                    readAgentSessionState(agentRoot),
+                ]);
+                const versionState = effectiveGrottoAgentState(session);
                 if (configuration) {
                     return {
                         agentId: entry.name,
+                        ...versionState,
                         missingResources: configuration.missingResources,
                         modelId: configuration.modelId,
                         runtimeId: configuration.runtimeId,
                     };
                 }
-                const session = await readAgentSessionState(agentRoot);
                 return session
                     ? {
                           agentId: entry.name,
+                          ...versionState,
                           missingResources: [],
                           modelId: session.effectiveModel.modelId,
                           runtimeId: session.effectiveModel.runtimeId,
                       }
                     : {
                           agentId: entry.name,
+                          ...versionState,
                           missingResources: ['session'],
                           modelId: null,
                           runtimeId: null,
                       };
             })
     );
+}
+
+function effectiveGrottoAgentState(session: Awaited<ReturnType<typeof readAgentSessionState>>) {
+    const appliedVersion = session?.grottoAgentVersion ?? null;
+    const status: GrottoAgentStatus =
+        appliedVersion === grottoAgentVersion
+            ? 'current'
+            : session?.grottoAgentStatus === 'failed'
+              ? 'failed'
+              : 'pending';
+    return {
+        grottoAgentAppliedAt: session?.grottoAgentAppliedAt ?? null,
+        grottoAgentStatus: status,
+        grottoAgentVersion: appliedVersion,
+    };
 }
 
 function isNodeCode(error: unknown, code: string) {

@@ -111,9 +111,33 @@ test('direct shipping paths require their owning targets', async () => {
         listChangedFiles: async () => files,
     });
 
-    for (const target of ['server', 'app', 'ios', 'computer']) {
+    for (const target of ['server', 'app', 'ios', 'computer', 'agent']) {
         assert.equal(impact.targets[target].status, 'required');
     }
+});
+
+test('Agent actions and their Server implementation require a Grotto Agent release', async () => {
+    const impact = await calculateReleaseImpact({
+        ledger,
+        resolveTag: async (tag) =>
+            ({
+                'computer-v1.4.8': sha('c'),
+                'v1.8.24': sha('a'),
+                'v1.8.25': sha('b'),
+            })[tag] ?? null,
+        listChangedFiles: async () => [
+            'apps/computer/src/agent-cli.ts',
+            'apps/server/src/agent-api/action-routes.ts',
+            'apps/server/src/prepared-actions/prepare.ts',
+        ],
+    });
+
+    assert.equal(impact.targets.agent.status, 'required');
+    assert.deepEqual(impact.targets.agent.requiredFiles, [
+        'apps/computer/src/agent-cli.ts',
+        'apps/server/src/agent-api/action-routes.ts',
+        'apps/server/src/prepared-actions/prepare.ts',
+    ]);
 });
 
 test('legacy targets without tags use the last historical release commit, not the candidate', async () => {
@@ -158,5 +182,5 @@ test('legacy targets without tags use the last historical release commit, not th
 
     assert.equal(impact.targets.ios.baseline.tag, 'release:v1.8.25');
     assert.equal(impact.targets.ios.status, 'required');
-    assert.deepEqual([...new Set(resolvedVersions)], ['1.8.25']);
+    assert.deepEqual([...new Set(resolvedVersions)], ['1.8.25', '1.8.26']);
 });

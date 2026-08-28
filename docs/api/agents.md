@@ -17,6 +17,15 @@ runtime and model references came from the assigned Computer's reported inventor
 recorded while Computer is offline and are applied after reconnect; Computer reports degraded state
 instead of silently substituting another runtime or model.
 
+Each Agent projection includes `grottoAgent`: the release's `currentVersion`, the Computer-reported
+`appliedVersion` and `appliedAt`, and `status` (`pending`, `current`, or `failed`). Computer carries
+the applied version receipt in a separate additive report frame, so an older Server can safely
+ignore it and an older Computer simply leaves the new Server pending. Server derives **current**
+only from an exact version match, so a newer Server deployment cannot claim that an older Computer
+or an idle Agent has applied the release. A Computer reconnect clears the Server projection until
+that connection reports its durable receipt, preventing a rollback to an older Computer from
+leaving a stale Current label.
+
 When runtime, model, or reasoning effort changes during an active turn, Server preserves that turn's
 frozen configuration through settlement. It then rotates the Agent session and applies the complete
 new configuration before the next turn starts.

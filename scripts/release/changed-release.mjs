@@ -6,7 +6,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { assertReleaseLedger, isDraftRelease, releasePublishesTarget } from './release-ledger.mjs';
 import { runGit } from './release-utils.mjs';
 
-const detectorTargetNames = ['computer', 'app', 'ios', 'server'];
+const detectorTargetNames = ['computer', 'agent', 'app', 'ios', 'server'];
 
 export async function detectChangedRelease({ before, after, readLedger = readLedgerAtRef }) {
     assertSha(before, 'before');
@@ -43,6 +43,9 @@ export async function detectChangedRelease({ before, after, readLedger = readLed
     }
 
     const appended = afterLedger.at(-1);
+    if (!Object.hasOwn(appended.targets, 'agent')) {
+        throw new Error('new release ledger entries must include the Grotto Agent target');
+    }
     if (isDraftRelease(appended)) {
         return emptyPlan(false);
     }
@@ -63,6 +66,7 @@ export function emptyPlan(initialLedgerMigration) {
         initialLedgerMigration,
         targets: {
             computer: false,
+            agent: false,
             app: false,
             ios: false,
             server: false,

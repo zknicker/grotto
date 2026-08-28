@@ -61,6 +61,14 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 - Every active Agent is already present in the Direct messages sidebar; there
   is no Create DM action or Agent picker.
 
+The Overview identifies the applied **Grotto Agent** version. That version covers Grotto-managed
+behavior delivered through instructions, actions, recipes and Manual content, Harness bootstrap,
+and factory guidance; it does not version Agent-owned memory, skills, or workspace edits. **Current**
+means a successful turn has applied the release's version. Before that turn the profile shows the
+previous and current versions with **Updates on next turn**. A failed refresh keeps the previous
+applied version and shows **Update failed**. The same attempt is recorded in Activity History as an
+instruction update without exposing prompt text, local paths, content hashes, or file contents.
+
 Agent DMs become ordinary pairwise Chats on their first durable message. Each
 human membership stint and Agent id has one canonical Chat, so different humans
 receive different private DMs and retries cannot create duplicates.
@@ -121,6 +129,10 @@ Durable learned knowledge lives in the Agent's own `MEMORY.md` and any files it
 creates.
 Grotto does not generate an `AGENTS.md`, `SOUL.md`, or injected memory layer
 inside the workspace.
+
+Grotto Agent releases do not force fresh model context. Computer supplies the current managed
+instructions on the next accepted turn and applies any release-owned bootstrap or factory guidance
+at that same boundary. The public version receipt advances only after that turn succeeds.
 
 Managed Agents can use `grotto avatar generate --concept <text> --output <path>` to create one
 validated transient avatar file from a short concept. The Server owns the prompt, provider call,

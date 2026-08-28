@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdir, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { computerProtocolVersion } from '@grotto/api';
+import { computerProtocolVersion, grottoAgentVersion } from '@grotto/api';
 import { eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -460,6 +460,9 @@ function demoAgent(agent: {
         desiredRuntimeId: 'codex',
         description: agent.description,
         displayName: agent.displayName,
+        effectiveGrottoAgentAppliedAt: agent.reportedAt,
+        effectiveGrottoAgentStatus: 'current' as const,
+        effectiveGrottoAgentVersion: grottoAgentVersion,
         effectiveMissing: [],
         effectiveModelId: agent.modelId,
         effectiveReportedAt: agent.reportedAt,

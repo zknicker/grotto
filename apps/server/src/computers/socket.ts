@@ -18,6 +18,7 @@ import {
     computerProtocolVersion,
     computerUpdateProgressFrameSchema,
     coveApplyResultSchema,
+    grottoAgentReportFrameSchema,
     reminderScriptResultSchema,
     usageReportSchema,
 } from '@grotto/api';
@@ -30,6 +31,10 @@ import { recordCoveApplyResult, sendPendingCoveApplication } from '../onboarding
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { recordComputerAgentActivityWithStatus } from '../server-agents/agent-activity.ts';
 import { recordAgentEffectiveState } from '../server-agents/record-agent-effective-state.ts';
+import {
+    clearGrottoAgentState,
+    recordGrottoAgentState,
+} from '../server-agents/record-grotto-agent-state.ts';
 import { recordComputerUsage } from '../server-operations/computer-usage.ts';
 import type { ComputerConnections } from './connections.ts';
 import {
@@ -146,6 +151,7 @@ export function startComputerAttachmentSocket(
                             socket.close(4409, 'A Computer may have one attachment socket.');
                             return;
                         }
+                        await clearGrottoAgentState(db, computer.id);
                         computerId = computer.id;
                         attachedServerId = computer.serverId;
                         ordinary = hello.protocolVersion === computerProtocolVersion;
@@ -348,6 +354,13 @@ async function ingestReport(
             serverId,
             usage: usage.data.usage,
         });
+        emitServerUpdated({ scope: 'computer', serverId });
+        return;
+    }
+
+    const grottoAgentReport = grottoAgentReportFrameSchema.safeParse(frame);
+    if (grottoAgentReport.success) {
+        await recordGrottoAgentState(db, computerId, grottoAgentReport.data.agents);
         emitServerUpdated({ scope: 'computer', serverId });
         return;
     }

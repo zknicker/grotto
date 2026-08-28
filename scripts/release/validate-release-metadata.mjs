@@ -8,6 +8,7 @@ import { assertRequiredTargetsSelected, calculateReleaseImpact } from './release
 import {
     assertReleaseLedger,
     latestMainVersion,
+    latestTargetVersion,
     releasePublishesTarget,
     releaseTargetNames,
 } from './release-ledger.mjs';
@@ -20,6 +21,7 @@ const require = createRequire(import.meta.url);
 const expectedVersion = resolveExpectedVersion(process.argv.slice(2));
 
 const versionedFiles = {
+    agent: 'packages/grotto-api/grotto-agent.json',
     website: 'apps/website/package.json',
     electronBuilder: 'apps/website/electron-builder.config.cjs',
 };
@@ -28,6 +30,7 @@ const changelogPath = 'CHANGELOG.md';
 
 const main = async () => {
     const websitePackage = await readJson(versionedFiles.website);
+    const agentManifest = await readJson(versionedFiles.agent);
     const electronBuilderConfig = require(path.join(repoRoot, versionedFiles.electronBuilder));
 
     const releaseVersion = assertReleaseVersion(websitePackage.version);
@@ -81,6 +84,13 @@ const main = async () => {
             );
         }
         if (result.complete) {
+            const latestAgentVersion = latestTargetVersion(ledger, 'agent');
+            if (latestAgentVersion) {
+                assert(
+                    agentManifest.version === latestAgentVersion,
+                    'Grotto Agent manifest must match the latest published Agent target'
+                );
+            }
             const impact = await calculateReleaseImpact({ ledger });
             assertRequiredTargetsSelected({
                 impact,

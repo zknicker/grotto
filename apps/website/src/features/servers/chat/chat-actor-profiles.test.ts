@@ -19,6 +19,12 @@ test('live Agent profiles preserve canonical availability for transcript avatars
         effectiveReportedAt: '2026-08-14T12:00:00.000Z',
         effectiveRuntimeId: 'codex',
         factoryKind: 'ordinary',
+        grottoAgent: {
+            appliedAt: '2026-08-14T12:00:00.000Z',
+            appliedVersion: '1.0.0',
+            currentVersion: '1.0.0',
+            status: 'current',
+        },
         handle: 'blippy',
         id: 'agt_blippy',
         missingResources: [],

@@ -79,18 +79,43 @@ test('Computer reports are applied in socket order', async () => {
             type: 'report',
         })
     );
+    socket.send(
+        JSON.stringify({
+            agents: [
+                {
+                    agentId,
+                    appliedAt: '2026-08-28T16:00:00.000Z',
+                    status: 'current',
+                    version: '1.0.0',
+                },
+            ],
+            type: 'grotto-agent-report',
+        })
+    );
     await Bun.sleep(1000);
 
     const [row] = (await harness.sql`
-        select effective_missing, effective_model_id, effective_runtime_id
+        select
+            effective_grotto_agent_applied_at,
+            effective_grotto_agent_status,
+            effective_grotto_agent_version,
+            effective_missing,
+            effective_model_id,
+            effective_runtime_id
         from agents
         where id = ${agentId}
     `) as {
+        effective_grotto_agent_applied_at: Date;
+        effective_grotto_agent_status: string;
+        effective_grotto_agent_version: string;
         effective_missing: string[];
         effective_model_id: string | null;
         effective_runtime_id: string | null;
     }[];
     expect(row).toEqual({
+        effective_grotto_agent_applied_at: new Date('2026-08-28T16:00:00.000Z'),
+        effective_grotto_agent_status: 'current',
+        effective_grotto_agent_version: '1.0.0',
         effective_missing: [],
         effective_model_id: 'gpt-5.6-sol',
         effective_runtime_id: 'codex',

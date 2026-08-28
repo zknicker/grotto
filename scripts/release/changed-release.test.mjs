@@ -21,6 +21,7 @@ test('initial ledger migration publishes nothing', async () => {
         initialLedgerMigration: true,
         targets: {
             computer: false,
+            agent: false,
             app: false,
             ios: false,
             server: false,
@@ -37,6 +38,7 @@ test('one appended release returns its target publication plan', async () => {
             app: '1.8.24',
             ios: { version: '1.0.4', buildNumber: 5 },
             computer: '1.4.8',
+            agent: '1.0.0',
         },
     };
 
@@ -47,7 +49,7 @@ test('one appended release returns its target publication plan', async () => {
     });
 
     expect(JSON.stringify(plan)).toBe(
-        '{"initialLedgerMigration":false,"targets":{"computer":true,"app":true,"ios":true,"server":true}}'
+        '{"initialLedgerMigration":false,"targets":{"computer":true,"agent":true,"app":true,"ios":true,"server":true}}'
     );
 });
 
@@ -55,7 +57,7 @@ test('a Computer-only append plans only Computer', async () => {
     const appended = {
         version: null,
         date: '2026-08-27',
-        targets: { server: null, app: null, ios: null, computer: '1.4.8' },
+        targets: { server: null, app: null, ios: null, computer: '1.4.8', agent: null },
     };
     const plan = await detectChangedRelease({
         before: beforeSha,
@@ -65,6 +67,7 @@ test('a Computer-only append plans only Computer', async () => {
 
     expect(plan.targets).toEqual({
         computer: true,
+        agent: false,
         app: false,
         ios: false,
         server: false,
@@ -81,6 +84,23 @@ test('an appended draft does not publish undecided targets', async () => {
 
     expect(plan.initialLedgerMigration).toBe(false);
     expect(Object.values(plan.targets).every((target) => target === false)).toBe(true);
+});
+
+test('a newly appended entry cannot use the historical four-target shape', async () => {
+    const appended = {
+        version: '1.8.24',
+        date: '2026-08-27',
+        targets: { server: '1.8.24', app: null, ios: null, computer: null },
+    };
+
+    await expect(
+        detectChangedRelease({
+            before: beforeSha,
+            after: afterSha,
+            readLedger: async (ref) =>
+                ref === beforeSha ? [baseRelease] : [baseRelease, appended],
+        })
+    ).rejects.toThrow('new release ledger entries must include the Grotto Agent target');
 });
 
 test('history edits fail even when the entry count is unchanged', async () => {
@@ -102,12 +122,12 @@ test('multiple appended entries fail', async () => {
     const first = {
         version: '1.8.24',
         date: '2026-08-27',
-        targets: { server: '1.8.24', app: null, ios: null, computer: null },
+        targets: { server: '1.8.24', app: null, ios: null, computer: null, agent: null },
     };
     const second = {
         version: '1.8.25',
         date: '2026-08-28',
-        targets: { server: '1.8.25', app: null, ios: null, computer: null },
+        targets: { server: '1.8.25', app: null, ios: null, computer: null, agent: null },
     };
 
     await expect(

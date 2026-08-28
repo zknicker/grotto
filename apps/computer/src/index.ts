@@ -1700,9 +1700,15 @@ async function handleStartCommand(input: {
 }
 
 async function sendComputerReport(socket: WebSocket, serverId: string, computerName: string) {
+    const agents = await readEffectiveAgentStates(dataRoot, serverId);
     socket.send(
         JSON.stringify({
-            agents: await readEffectiveAgentStates(dataRoot, serverId),
+            agents: agents.map(({ agentId, missingResources, modelId, runtimeId }) => ({
+                agentId,
+                missingResources,
+                modelId,
+                runtimeId,
+            })),
             inventory: {
                 ...detectInventory(),
                 agentSkillImports: await listAgentSkillImportReports(dataRoot, serverId),
@@ -1711,6 +1717,19 @@ async function sendComputerReport(socket: WebSocket, serverId: string, computerN
                 name: computerName,
             },
             type: 'report',
+        })
+    );
+    socket.send(
+        JSON.stringify({
+            agents: agents.map(
+                ({ agentId, grottoAgentAppliedAt, grottoAgentStatus, grottoAgentVersion }) => ({
+                    agentId,
+                    appliedAt: grottoAgentAppliedAt,
+                    status: grottoAgentStatus,
+                    version: grottoAgentVersion,
+                })
+            ),
+            type: 'grotto-agent-report',
         })
     );
 }

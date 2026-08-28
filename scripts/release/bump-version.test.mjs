@@ -16,6 +16,7 @@ test('bumps every coordinated release file before returning success', async () =
     temporaryRoots.push(root);
     await mkdir(join(root, 'apps/website'), { recursive: true });
     await mkdir(join(root, 'apps/ios-swift/Grotto.xcodeproj'), { recursive: true });
+    await mkdir(join(root, 'packages/grotto-api'), { recursive: true });
     await mkdir(join(root, 'scripts/release'), { recursive: true });
     await Promise.all(
         ['bump-version.mjs', 'release-ledger.mjs', 'release-utils.mjs'].map((file) =>
@@ -35,6 +36,7 @@ test('bumps every coordinated release file before returning success', async () =
         'Debug { MARKETING_VERSION = 1.8.19; }\nRelease { MARKETING_VERSION = 1.8.19; }\n'
     );
     await writeFile(join(root, 'CHANGELOG.md'), '## v1.8.19 - 2026-08-19\n');
+    await writeFile(join(root, 'packages/grotto-api/grotto-agent.json'), '{"version":"1.0.0"}\n');
     const originalLedger = `${JSON.stringify(
         [
             {
@@ -49,7 +51,7 @@ test('bumps every coordinated release file before returning success', async () =
     await writeFile(join(root, 'releases.json'), originalLedger);
 
     const result = Bun.spawnSync(
-        ['node', join(root, 'scripts/release/bump-version.mjs'), 'patch'],
+        ['node', join(root, 'scripts/release/bump-version.mjs'), 'patch', '--agent', 'current'],
         {
             cwd: root,
             stderr: 'pipe',
@@ -73,6 +75,16 @@ test('bumps every coordinated release file before returning success', async () =
     expect(JSON.parse(updatedLedger).at(-1)).toEqual({
         version: '1.8.20',
         date: null,
-        targets: { server: '1.8.20', app: 'undecided', ios: 'undecided', computer: 'undecided' },
+        targets: {
+            server: '1.8.20',
+            app: 'undecided',
+            ios: 'undecided',
+            computer: 'undecided',
+            agent: '1.0.0',
+        },
     });
+    expect(
+        JSON.parse(await readFile(join(root, 'packages/grotto-api/grotto-agent.json'), 'utf8'))
+            .version
+    ).toBe('1.0.0');
 });

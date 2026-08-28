@@ -116,6 +116,9 @@ export async function deleteAgent(
         await tx
             .update(agentsTable)
             .set({
+                effectiveGrottoAgentAppliedAt: null,
+                effectiveGrottoAgentStatus: null,
+                effectiveGrottoAgentVersion: null,
                 effectiveMissing: null,
                 effectiveModelId: null,
                 effectiveReportedAt: null,

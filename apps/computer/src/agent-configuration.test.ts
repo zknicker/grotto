@@ -56,6 +56,9 @@ test('applies desired runtime and model without waiting for the first turn', asy
     expect(await readEffectiveAgentStates(dataRoot, 'srv_configuration')).toEqual([
         {
             agentId: 'agt_configurationxxx',
+            grottoAgentAppliedAt: null,
+            grottoAgentStatus: 'pending',
+            grottoAgentVersion: null,
             missingResources: [],
             modelId: 'gpt-5.6-sol',
             runtimeId: 'codex',
@@ -135,6 +138,9 @@ test('reports a missing desired model instead of substituting one', async () => 
     expect(await readEffectiveAgentStates(dataRoot, 'srv_configuration')).toEqual([
         {
             agentId: 'agt_missingmodelxxxx',
+            grottoAgentAppliedAt: null,
+            grottoAgentStatus: 'pending',
+            grottoAgentVersion: null,
             missingResources: ['model:missing-model'],
             modelId: null,
             runtimeId: 'codex',

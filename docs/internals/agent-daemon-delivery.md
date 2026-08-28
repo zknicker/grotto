@@ -182,6 +182,13 @@ conflict. The receipt advances only after the turn returns valid resume state. F
 and preserves the generation for retry. Only rejection of the stored native resume state is reported
 as resume rejection, so only Server-authorized recovery may advance the session generation.
 
+The release-owned Grotto Agent version groups those managed behavior inputs into one public SemVer.
+When it differs from the session receipt, the next accepted turn enters the same
+`updating_instructions` lifecycle even when the lower-level fingerprints are unchanged. Success
+stores the new version and application time; failure or a Cove factory-guidance conflict preserves
+the old version and reports failed. Computer includes that receipt in effective state so Server and
+the App can distinguish pending, current, and failed application.
+
 Reminders are canonical Server schedules anchored to an Agent and Chat
 target. When due, they enter the same delivery path as other work. Computer
 executes the resulting turn; it does not own an independent reminder
@@ -232,7 +239,7 @@ message and its composition id.
 | --- | --- |
 | One persistent session; pending delivery or cold `Start.`, then resume | `apps/computer/src/harness/executor.test.ts` |
 | Restart preserves generation and refreshes instructions exactly once | `apps/server/test/agent-delivery.test.ts`, `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/session-restart.test.ts` |
-| Instruction or bridge drift refreshes once in place and exposes the outcome safely | `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/bootstrap-refresh.test.ts`, `packages/grotto-api/src/agent-activity.test.ts` |
+| Instruction, bridge, or Grotto Agent version drift refreshes once in place and exposes the outcome safely | `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/bootstrap-refresh.test.ts`, `packages/grotto-api/src/agent-activity.test.ts` |
 | Known tools map through the semantic registry; unknown and MCP tools remain generic | `apps/computer/src/harness/executor.test.ts` |
 | Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
 | Session reset preserves workspace and skills; full reset restores the Agent-kind workspace and only factory-managed skills | `apps/computer/src/launch.test.ts` |

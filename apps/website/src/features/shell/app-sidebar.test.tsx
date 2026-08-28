@@ -219,6 +219,12 @@ function agent(overrides: Pick<Agent, 'availability' | 'displayName' | 'id'>): A
         effectiveReportedAt: '2026-07-29T12:00:00.000Z',
         effectiveRuntimeId: 'runtime_one',
         factoryKind: 'ordinary',
+        grottoAgent: {
+            appliedAt: '2026-07-29T12:00:00.000Z',
+            appliedVersion: '1.0.0',
+            currentVersion: '1.0.0',
+            status: 'current',
+        },
         handle: overrides.displayName.toLowerCase(),
         id: overrides.id,
         missingResources: [],

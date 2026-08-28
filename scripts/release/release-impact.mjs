@@ -5,7 +5,7 @@ import {
 } from './release-ledger.mjs';
 import { runGit } from './release-utils.mjs';
 
-export const releaseImpactTargets = ['server', 'app', 'ios', 'computer'];
+export const releaseImpactTargets = ['server', 'app', 'ios', 'computer', 'agent'];
 
 const requiredPrefixes = {
     server: [
@@ -31,6 +31,21 @@ const requiredPrefixes = {
         'packages/claude-usage/package.json',
         'packages/codex-usage/src/',
         'packages/codex-usage/package.json',
+    ],
+    agent: [
+        'apps/computer/src/agent-cli.ts',
+        'apps/computer/src/agent-cli/',
+        'apps/computer/src/harness/',
+        'apps/computer/src/inbox-format.ts',
+        'apps/server/src/agent-api/',
+        'apps/server/src/grotto-api/prepared-action/',
+        'apps/server/src/prepared-actions/',
+        'packages/agent-manual/src/',
+        'packages/agent-workspace/src/',
+        'packages/grotto-api/grotto-agent.json',
+        'packages/grotto-api/src/agent',
+        'packages/grotto-api/src/manual.ts',
+        'packages/grotto-api/src/prepared-actions.ts',
     ],
 };
 
@@ -58,6 +73,15 @@ const reviewPrefixes = {
         'apps/ios-swift/Grotto.xcodeproj/project.pbxproj',
     ],
     computer: ['packages/grotto-api/', 'bun.lock', 'package.json', 'patches/'],
+    agent: [
+        'apps/computer/package.json',
+        'packages/agent-manual/package.json',
+        'packages/agent-workspace/package.json',
+        'packages/grotto-api/package.json',
+        'bun.lock',
+        'package.json',
+        'patches/',
+    ],
 };
 
 export async function calculateReleaseImpact({
@@ -151,6 +175,20 @@ async function findReleaseBaseline({ ledger, target, resolveTag, resolveReleaseC
             }
         }
     }
+    if (target === 'agent') {
+        for (let index = ledger.length - 1; index >= 0; index -= 1) {
+            const entry = ledger[index];
+            if (!entry.version) {
+                continue;
+            }
+            const tag = `v${entry.version}`;
+            const sourceRevision =
+                (await resolveTag(tag)) ?? (await resolveReleaseCommit(entry.version));
+            if (sourceRevision) {
+                return { tag: `initial:${tag}`, sourceRevision };
+            }
+        }
+    }
     throw new Error(`could not resolve a recorded ${target} release source`);
 }
 
@@ -158,6 +196,9 @@ function targetTag(entry, target) {
     if (target === 'computer') {
         const version = releaseTargetVersion(entry, target);
         return version ? `computer-v${version}` : null;
+    }
+    if (target === 'agent') {
+        return entry.version ? `v${entry.version}` : null;
     }
     return entry.version ? `v${entry.version}` : null;
 }
@@ -231,7 +272,13 @@ function matchesPath(file, prefix) {
 }
 
 function targetLabel(target) {
-    return { server: 'Server', app: 'App', ios: 'iOS', computer: 'Computer' }[target];
+    return {
+        server: 'Server',
+        app: 'App',
+        ios: 'iOS',
+        computer: 'Computer',
+        agent: 'Grotto Agent',
+    }[target];
 }
 
 function statusLabel(status) {

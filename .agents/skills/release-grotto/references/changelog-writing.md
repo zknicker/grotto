@@ -23,8 +23,9 @@ Use SemVer as judgment, not commit-prefix transcription:
 - minor for a backwards-compatible capability;
 - patch for fixes and backwards-compatible improvements.
 
-Apply that judgment independently to Server/App, Computer, and iOS versions. Use the next unused
-iOS build number whenever iOS publishes.
+Apply that judgment independently to Server/App, Computer, iOS, and Grotto Agent versions. Use the
+next unused iOS build number whenever iOS publishes. When Grotto Agent publishes, name its version
+in the release entry alongside the observable behavior change.
 
 ## Write the entry
 

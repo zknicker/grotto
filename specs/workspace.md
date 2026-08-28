@@ -43,6 +43,10 @@ prior factory release. Missing or edited files are preserved as conflicts. Both 
 and conflicts appear in Agent Activity History. A successful refresh adds a one-turn private notice
 that tells the existing model session to re-read the two files; it does not rotate the session.
 
+Factory guidance participates in the public Grotto Agent version. A successful compatible refresh
+may advance that version; a missing or edited Cove file blocks the receipt from advancing and leaves
+the conflict visible as a failed update.
+
 There is no managed `NOTES.md`, `SOUL.md`, injected core-memory section,
 automatic extraction or dreaming pipeline, or separate Wiki primitive.
 Personality comes from the Server-owned Agent description. Durable learned

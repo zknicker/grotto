@@ -73,7 +73,7 @@ test('requires every release target key', () => {
     };
 
     expect(() => assertReleaseLedger([incomplete], { requireComplete: true })).toThrow(
-        'release ledger targets must contain exactly Server, App, iOS, and Computer'
+        'release ledger targets must contain exactly Server, App, iOS, Computer, and Grotto Agent'
     );
 });
 
@@ -97,4 +97,30 @@ test('appends one higher Server draft without rewriting history', () => {
     expect(() => appendReleaseDraft(ledger, '1.2.5')).toThrow(
         'latest release ledger entry is still a draft'
     );
+});
+
+test('Grotto Agent versions increase and publish through Server and Computer', () => {
+    const first = {
+        ...normalRelease,
+        targets: { ...normalRelease.targets, agent: '1.0.0' },
+    };
+    const second = {
+        version: '1.2.4',
+        date: '2026-08-02',
+        targets: {
+            server: '1.2.4',
+            app: null,
+            ios: null,
+            computer: '3.0.1',
+            agent: '1.0.1',
+        },
+    };
+
+    expect(assertReleaseLedger([first, second], { requireComplete: true }).complete).toBe(true);
+    expect(() =>
+        assertReleaseLedger([first, { ...second, targets: { ...second.targets, agent: '1.0.0' } }])
+    ).toThrow('Grotto Agent versions must be oldest-first');
+    expect(() =>
+        assertReleaseLedger([first, { ...second, targets: { ...second.targets, computer: null } }])
+    ).toThrow('Grotto Agent publication requires Server and Computer publication');
 });

@@ -10,7 +10,7 @@ import { projectLedgerValues, validateDetectorPlan, writeReleaseOutputs } from '
 const sourceRevision = 'a'.repeat(40);
 const plan = (targets = {}, initialLedgerMigration = false) => ({
     initialLedgerMigration,
-    targets: { computer: false, app: false, ios: false, server: false, ...targets },
+    targets: { computer: false, agent: false, app: false, ios: false, server: false, ...targets },
 });
 const ledger = (targets = {}) => [
     {
@@ -40,12 +40,13 @@ test('release plan helpers enforce the detector contract and project ledger valu
     }
     assert.deepEqual(
         projectLedgerValues({
-            ledger: ledger(),
-            plan: plan({ computer: true, app: true, ios: true, server: true }),
+            ledger: ledger({ agent: '1.0.0' }),
+            plan: plan({ computer: true, agent: true, app: true, ios: true, server: true }),
         }),
         {
             releaseVersion: '1.2.3',
             computerVersion: '2.3.4',
+            agentVersion: '1.0.0',
             iosVersion: '1.2.3',
             iosBuildNumber: '9',
         }
@@ -55,11 +56,18 @@ test('release plan helpers enforce the detector contract and project ledger valu
             ledger: ledger({ app: null, ios: null }),
             plan: plan({ computer: true }),
         }),
-        { releaseVersion: '', computerVersion: '2.3.4', iosVersion: '', iosBuildNumber: '' }
+        {
+            releaseVersion: '',
+            computerVersion: '2.3.4',
+            agentVersion: '',
+            iosVersion: '',
+            iosBuildNumber: '',
+        }
     );
     assert.deepEqual(projectLedgerValues({ ledger: [{ targets: {} }], plan: plan({}, true) }), {
         releaseVersion: '',
         computerVersion: '',
+        agentVersion: '',
         iosVersion: '',
         iosBuildNumber: '',
     });
@@ -95,6 +103,14 @@ test('release plan helpers enforce the detector contract and project ledger valu
         () => projectLedgerValues({ ledger: ledger(), plan: plan({ computer: true, app: true }) }),
         /Computer-only/
     );
+    assert.throws(
+        () =>
+            projectLedgerValues({
+                ledger: ledger({ agent: '1.0.0' }),
+                plan: plan({ agent: true, server: true }),
+            }),
+        /requires Server and Computer/
+    );
 });
 
 test('release plan output preserves raw detector JSON and projected outputs', () => {
@@ -103,13 +119,14 @@ test('release plan output preserves raw detector JSON and projected outputs', ()
         const outputPath = path.join(directory, 'output');
         const summaryPath = path.join(directory, 'summary');
         const rawPlan =
-            '{"initialLedgerMigration":false,"targets":{"computer":false,"app":false,"ios":false,"server":true}}\n';
+            '{"initialLedgerMigration":false,"targets":{"computer":false,"agent":false,"app":false,"ios":false,"server":true}}\n';
         writeReleaseOutputs({
             rawPlan,
             plan: plan({ server: true }),
             values: {
                 releaseVersion: '1.2.3',
                 computerVersion: '',
+                agentVersion: '',
                 iosVersion: '',
                 iosBuildNumber: '',
             },

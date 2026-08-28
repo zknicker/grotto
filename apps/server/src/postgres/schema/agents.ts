@@ -35,6 +35,13 @@ export const agentsTable = pgTable(
         desiredRuntimeId: text('desired_runtime_id'),
         description: text('description'),
         displayName: text('display_name').notNull(),
+        effectiveGrottoAgentAppliedAt: timestamp('effective_grotto_agent_applied_at', {
+            withTimezone: true,
+        }),
+        effectiveGrottoAgentStatus: text('effective_grotto_agent_status').$type<
+            'current' | 'failed' | 'pending'
+        >(),
+        effectiveGrottoAgentVersion: text('effective_grotto_agent_version'),
         effectiveMissing: bunJsonb('effective_missing').$type<string[]>(),
         effectiveModelId: text('effective_model_id'),
         effectiveReportedAt: timestamp('effective_reported_at', { withTimezone: true }),
@@ -74,6 +81,10 @@ export const agentsTable = pgTable(
             sql`${table.desiredReasoningEffort} in ('low', 'medium', 'high')`
         ),
         check('agents_factory_kind', sql`${table.factoryKind} in ('ordinary', 'cove')`),
+        check(
+            'agents_grotto_agent_status',
+            sql`${table.effectiveGrottoAgentStatus} is null or ${table.effectiveGrottoAgentStatus} in ('current', 'failed', 'pending')`
+        ),
         check('agents_positive_session_generation', sql`${table.sessionGeneration} > 0`),
         check('agents_session_reset_kind', sql`${table.sessionResetKind} in ('full', 'session')`),
         check(

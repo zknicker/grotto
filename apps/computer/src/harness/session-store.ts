@@ -14,6 +14,9 @@ export interface AgentSessionState {
     cumulativeTokenUsage: AgentSessionTokenUsage | null;
     effectiveModel: { modelId: string; runtimeId: string };
     generation: number;
+    grottoAgentAppliedAt: string | null;
+    grottoAgentStatus: 'current' | 'failed' | 'pending';
+    grottoAgentVersion: string | null;
     instructionFingerprint: string | null;
     resumeState: Record<string, unknown> | null;
     runtimeSessionId: string | null;
@@ -42,6 +45,9 @@ export async function readAgentSessionState(agentRoot: string): Promise<AgentSes
                 ...parsed,
                 bootstrapFingerprint: parseFingerprint(parsed.bootstrapFingerprint),
                 cumulativeTokenUsage: parseTokenUsage(parsed.cumulativeTokenUsage),
+                grottoAgentAppliedAt: parseTimestamp(parsed.grottoAgentAppliedAt),
+                grottoAgentStatus: parseGrottoAgentStatus(parsed.grottoAgentStatus),
+                grottoAgentVersion: parseSemver(parsed.grottoAgentVersion),
                 instructionFingerprint: parseFingerprint(parsed.instructionFingerprint),
             };
         }
@@ -83,6 +89,9 @@ export function resolveTurnSession(
             cumulativeTokenUsage: emptyTokenUsage(),
             effectiveModel: { modelId: assigned.modelId, runtimeId: assigned.runtimeId },
             generation: assigned.generation,
+            grottoAgentAppliedAt: null,
+            grottoAgentStatus: 'pending',
+            grottoAgentVersion: null,
             instructionFingerprint: null,
             resumeState: null,
             runtimeSessionId: null,
@@ -93,6 +102,18 @@ export function resolveTurnSession(
 
 function parseFingerprint(value: unknown): string | null {
     return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function parseGrottoAgentStatus(value: unknown): AgentSessionState['grottoAgentStatus'] {
+    return value === 'current' || value === 'failed' || value === 'pending' ? value : 'pending';
+}
+
+function parseSemver(value: unknown): string | null {
+    return typeof value === 'string' && /^\d+\.\d+\.\d+$/u.test(value) ? value : null;
+}
+
+function parseTimestamp(value: unknown): string | null {
+    return typeof value === 'string' && !Number.isNaN(Date.parse(value)) ? value : null;
 }
 
 function parseTokenUsage(value: unknown): AgentSessionTokenUsage | null {

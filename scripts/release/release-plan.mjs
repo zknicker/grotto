@@ -9,7 +9,7 @@ import {
     formatReleaseImpact,
 } from './release-impact.mjs';
 
-export const RELEASE_TARGETS = Object.freeze(['computer', 'app', 'ios', 'server']);
+export const RELEASE_TARGETS = Object.freeze(['computer', 'agent', 'app', 'ios', 'server']);
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const fullShaPattern = /^[0-9a-f]{40}$/u;
@@ -48,6 +48,7 @@ export function projectLedgerValues({ ledger, plan }) {
     const values = {
         releaseVersion: '',
         computerVersion: '',
+        agentVersion: '',
         iosVersion: '',
         iosBuildNumber: '',
     };
@@ -61,6 +62,12 @@ export function projectLedgerValues({ ledger, plan }) {
     }
     if (plan.targets.computer) {
         values.computerVersion = readSemver(latest.targets, ['computer'], 'targets.computer');
+    }
+    if (plan.targets.agent) {
+        values.agentVersion = readSemver(latest.targets, ['agent'], 'targets.agent');
+        if (!(plan.targets.server && plan.targets.computer)) {
+            throw new Error('Grotto Agent publication requires Server and Computer publication');
+        }
     }
     if (plan.targets.ios) {
         const ios = readPublished(readPath(latest.targets, ['ios']), 'targets.ios');
@@ -113,6 +120,7 @@ export function writeReleaseOutputs({ rawPlan, plan, values, impact, outputPath,
             ...RELEASE_TARGETS.map((target) => `publish_${target}=${plan.targets[target]}`),
             `release_version=${values.releaseVersion}`,
             `computer_version=${values.computerVersion}`,
+            `agent_version=${values.agentVersion}`,
             `ios_version=${values.iosVersion}`,
             `ios_build_number=${values.iosBuildNumber}`,
             '',

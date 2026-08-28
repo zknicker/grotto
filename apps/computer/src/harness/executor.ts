@@ -13,7 +13,7 @@ import { createGrokBuild } from '@ai-sdk/harness-grok-build';
 import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { inspectCoveFactoryGuidance, reconcileCoveFactoryGuidance } from '@grotto/agent-workspace';
-import type { AgentReasoningEffort } from '@grotto/api';
+import { type AgentReasoningEffort, grottoAgentVersion } from '@grotto/api';
 import { type ClaudeUsageSnapshot, normalizeClaudeUsageResponse } from '@grotto/claude-usage';
 import type { ComputerAgentActivityUpdate } from '../agent-activity.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
@@ -195,6 +195,8 @@ async function executeHarnessTurn(
     const agent = harnessAgentFactory(effectiveInput, { harness, instructions, skills });
     let live: HarnessAgentSession | undefined;
     let instructionUpdate: 'completed' | 'none' | 'started' = 'none';
+    const grottoAgentVersionDrift = session.grottoAgentVersion !== grottoAgentVersion;
+    let grottoAgentVersionCanApply = true;
     try {
         const sessionId = session.runtimeSessionId ?? `${input.agentId}-${session.generation}`;
         const resumeFrom =
@@ -218,6 +220,7 @@ async function executeHarnessTurn(
                 if (plan.kind === 'conflict') {
                     input.onActivity?.({ category: 'updating_instructions', phase: 'failed' });
                     instructionUpdate = 'none';
+                    grottoAgentVersionCanApply = false;
                     factoryGuidanceRefreshCanComplete = false;
                     factoryGuidanceNotice = coveGuidanceConflictNotice(plan.files);
                 } else {
@@ -231,6 +234,7 @@ async function executeHarnessTurn(
                     } else {
                         input.onActivity?.({ category: 'updating_instructions', phase: 'failed' });
                         instructionUpdate = 'none';
+                        grottoAgentVersionCanApply = false;
                         factoryGuidanceRefreshCanComplete = false;
                         factoryGuidanceNotice = coveGuidanceConflictNotice(
                             result.kind === 'conflict' ? result.files : plan.files
@@ -255,7 +259,10 @@ async function executeHarnessTurn(
         const refreshBootstrap = resumeFrom !== undefined && (restartRequested || bootstrapDrift);
         if (
             resumeFrom &&
-            (restartRequested || instructionDrift || bootstrapDrift) &&
+            (restartRequested ||
+                instructionDrift ||
+                bootstrapDrift ||
+                (grottoAgentVersionDrift && grottoAgentVersionCanApply)) &&
             instructionUpdate === 'none'
         ) {
             input.onActivity?.({ category: 'updating_instructions', phase: 'started' });
@@ -416,11 +423,20 @@ async function executeHarnessTurn(
             observation.tokenUsage,
             session.cumulativeTokenUsage
         );
+        const appliesGrottoAgentVersion = !grottoAgentVersionDrift || grottoAgentVersionCanApply;
         await writeAgentSessionState(input.agentRoot, {
             bootstrapFingerprint,
             cumulativeTokenUsage: normalizedUsage.cumulative,
             effectiveModel: { modelId: input.modelId, runtimeId: input.runtimeId },
             generation: session.generation,
+            grottoAgentAppliedAt:
+                grottoAgentVersionDrift && appliesGrottoAgentVersion
+                    ? new Date().toISOString()
+                    : session.grottoAgentAppliedAt,
+            grottoAgentStatus: appliesGrottoAgentVersion ? 'current' : 'failed',
+            grottoAgentVersion: appliesGrottoAgentVersion
+                ? grottoAgentVersion
+                : session.grottoAgentVersion,
             instructionFingerprint,
             resumeState: resumeState as Record<string, unknown>,
             runtimeSessionId: live.sessionId,
@@ -436,6 +452,12 @@ async function executeHarnessTurn(
     } catch (error) {
         if (instructionUpdate === 'started') {
             input.onActivity?.({ category: 'updating_instructions', phase: 'failed' });
+        }
+        if (grottoAgentVersionDrift) {
+            await writeAgentSessionState(input.agentRoot, {
+                ...session,
+                grottoAgentStatus: 'failed',
+            });
         }
         await live?.destroy().catch(() => undefined);
         if (error instanceof HarnessTurnFailedError) {

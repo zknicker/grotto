@@ -1,6 +1,6 @@
 ---
 name: release-grotto
-description: Prepare, merge, monitor, and hand off a Grotto release across the Server, App, iOS, and Computer targets. Use for release target decisions, append-only `releases.json` records, the single release PR, the post-merge `Release` workflow, production Server promotion, or release evidence.
+description: Prepare, merge, monitor, and hand off a Grotto release across the Server, App, iOS, Computer, and Grotto Agent targets. Use for release target decisions, append-only `releases.json` records, the single release PR, the post-merge `Release` workflow, production Server promotion, or release evidence.
 ---
 
 # Grotto release
@@ -12,7 +12,7 @@ deployment contracts remain in the routed docs and specs below; do not recreate 
 
 - One release has one append-only `releases.json` record, one release PR, and one `Release`
   workflow run after that PR merges.
-- The record uses exact `targets` keys: `server`, `app`, `ios`, and `computer`. A published target
+- The record uses exact `targets` keys: `server`, `app`, `ios`, `computer`, and `agent`. A published target
   carries its version; an unchanged target is `null`; iOS publication carries `{ version,
   buildNumber }`.
 - The `Release` workflow owns per-target build, signing, publication, and evidence jobs. It runs
@@ -59,6 +59,7 @@ target as `publish` when its shipped behavior or artifact changes:
 | `app` | Electron shell, preload bridge, native desktop behavior, or installed desktop artifact |
 | `ios` | Native iPhone code, metadata, entitlements, dependencies, or assets |
 | `computer` | Computer execution, lifecycle, human CLI, updater, embedded managed CLI, bootstrap/ordinary protocol, or required Computer dependency |
+| `agent` | Grotto-owned Agent instructions, actions, recipes, Harness behavior, or factory guidance; publishing it also requires Server and Computer |
 
 After reading the impact report, ask:
 
@@ -95,6 +96,8 @@ The new record contains only `version`, `date`, and `targets`:
   targets to `null`.
 - A published App matches the main version. Published iOS and Computer targets carry their
   independent versions; iOS also carries its next unused build number.
+- Grotto Agent carries independent SemVer from `packages/grotto-api/grotto-agent.json`; publish it
+  only with matching Server and Computer targets.
 - A release draft may use `date: null` and `"undecided"` target values only in the newest entry.
   Complete every decision and set the date before merge.
 
@@ -186,7 +189,7 @@ Use actual evidence, not the planned record or changed files alone:
 Released vX.Y.Z 🚀
 
 Required updates: <only actionable target updates, or none>
-Targets: Server <version/state>; App <version/state>; iOS <version/build/state>; Computer <version/state>
+Targets: Server <version/state>; App <version/state>; iOS <version/build/state>; Computer <version/state>; Grotto Agent <version/state>
 Production: <deployed and healthy | published, deployment pending | failed> at <full source SHA>
 What changed: <one to three user-facing sentences>
 Verification: <workflow, target, smoke, deployment, and public-health evidence>

@@ -2,6 +2,10 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { recordComputerInventory } from '../src/computers/service.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import { recordAgentEffectiveState } from '../src/server-agents/record-agent-effective-state.ts';
+import {
+    clearGrottoAgentState,
+    recordGrottoAgentState,
+} from '../src/server-agents/record-grotto-agent-state.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
 let harness: GrottoServerHarness;
@@ -89,22 +93,60 @@ test('Drizzle writes JSONB values as objects and arrays instead of JSON strings'
             runtimeId: 'codex',
         },
     ]);
+    await recordGrottoAgentState(connection.db, computerId, [
+        {
+            agentId,
+            appliedAt: '2026-08-28T16:00:00.000Z',
+            status: 'current',
+            version: '1.0.0',
+        },
+    ]);
 
     const [types] = await harness.sql<
         {
+            effective_grotto_agent_applied_at: Date;
+            effective_grotto_agent_status: string;
+            effective_grotto_agent_version: string;
             effective_missing: string;
             reported_inventory: string;
         }[]
     >`
         select
+            agents.effective_grotto_agent_applied_at,
+            agents.effective_grotto_agent_status,
+            agents.effective_grotto_agent_version,
             jsonb_typeof(agents.effective_missing) as effective_missing,
             jsonb_typeof(computers.reported_inventory) as reported_inventory
         from agents
         join computers on computers.id = agents.computer_id
         where agents.id = ${agentId}
     `;
-    expect(types).toEqual({
+    expect(types).toMatchObject({
+        effective_grotto_agent_status: 'current',
+        effective_grotto_agent_version: '1.0.0',
         effective_missing: 'array',
         reported_inventory: 'object',
+    });
+    expect(types?.effective_grotto_agent_applied_at.toISOString()).toBe('2026-08-28T16:00:00.000Z');
+
+    await clearGrottoAgentState(connection.db, computerId);
+    const [cleared] = await harness.sql<
+        {
+            effective_grotto_agent_applied_at: Date | null;
+            effective_grotto_agent_status: string | null;
+            effective_grotto_agent_version: string | null;
+        }[]
+    >`
+        select
+            effective_grotto_agent_applied_at,
+            effective_grotto_agent_status,
+            effective_grotto_agent_version
+        from agents
+        where id = ${agentId}
+    `;
+    expect(cleared).toEqual({
+        effective_grotto_agent_applied_at: null,
+        effective_grotto_agent_status: null,
+        effective_grotto_agent_version: null,
     });
 });

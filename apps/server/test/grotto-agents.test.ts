@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { grottoAgentVersion } from '@grotto/api';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
@@ -103,6 +104,12 @@ test('provisions an ordinary Agent without pre-creating an Owner DM', async () =
         desiredRuntimeId: 'codex',
         displayName: 'Scout',
         factoryKind: 'ordinary',
+        grottoAgent: {
+            appliedAt: null,
+            appliedVersion: null,
+            currentVersion: '1.0.0',
+            status: 'pending',
+        },
         handle: 'scout',
         status: 'pending',
     });
@@ -354,6 +361,34 @@ test('shows pending, then applied, then degraded as effective state is reported'
     `;
     let refreshed = await owner.trpc.agent.list.query({ serverId });
     expect(refreshed[0]?.status).toBe('applied');
+    expect(refreshed[0]?.grottoAgent.status).toBe('pending');
+
+    await harness.sql`
+        update agents
+        set effective_grotto_agent_applied_at = now(),
+            effective_grotto_agent_status = 'current',
+            effective_grotto_agent_version = ${grottoAgentVersion}
+        where id = ${agent.id}
+    `;
+    refreshed = await owner.trpc.agent.list.query({ serverId });
+    expect(refreshed[0]?.grottoAgent).toMatchObject({
+        appliedVersion: grottoAgentVersion,
+        currentVersion: grottoAgentVersion,
+        status: 'current',
+    });
+
+    await harness.sql`
+        update agents
+        set effective_grotto_agent_status = 'failed',
+            effective_grotto_agent_version = '0.9.0'
+        where id = ${agent.id}
+    `;
+    refreshed = await owner.trpc.agent.list.query({ serverId });
+    expect(refreshed[0]?.grottoAgent).toMatchObject({
+        appliedVersion: '0.9.0',
+        currentVersion: grottoAgentVersion,
+        status: 'failed',
+    });
 
     await harness.sql`
         update agents set effective_missing = ${['model:gpt-5.6-terra']}::jsonb

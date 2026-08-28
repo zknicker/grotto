@@ -35,7 +35,7 @@ export function writeReleaseSummary({ summaryPath, verification, targets }) {
     if (!(verification && typeof verification.message === 'string')) {
         throw new Error('release verification result is missing its message');
     }
-    const targetNames = ['computer', 'app', 'ios', 'server'];
+    const targetNames = ['computer', 'agent', 'app', 'ios', 'server'];
     assertRecord(targets, 'release target outcomes');
     const lines = [
         '## Coordinated release finalized',
@@ -72,7 +72,13 @@ function assertRecord(value, label) {
 }
 
 function capitalize(value) {
-    return value === 'ios' ? 'iOS' : value[0].toUpperCase() + value.slice(1);
+    if (value === 'ios') {
+        return 'iOS';
+    }
+    if (value === 'agent') {
+        return 'Grotto Agent';
+    }
+    return value[0].toUpperCase() + value.slice(1);
 }
 
 function requiredEnvironment(name) {
@@ -111,10 +117,14 @@ async function main() {
     const sourceRevision = requiredEnvironment('SOURCE_REVISION');
     const targets = {
         computer: booleanEnvironment('PUBLISH_COMPUTER'),
+        agent: booleanEnvironment('PUBLISH_AGENT'),
         app: booleanEnvironment('PUBLISH_APP'),
         ios: booleanEnvironment('PUBLISH_IOS'),
         server: booleanEnvironment('PUBLISH_SERVER'),
     };
+    if (targets.agent && !/^\d+\.\d+\.\d+$/u.test(requiredEnvironment('AGENT_VERSION'))) {
+        throw new Error('AGENT_VERSION must be exact SemVer when Grotto Agent publishes');
+    }
     let jobResults;
     try {
         jobResults = JSON.parse(requiredEnvironment('RELEASE_JOB_RESULTS'));

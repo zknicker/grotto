@@ -7,7 +7,7 @@ import { parse } from 'yaml';
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 const workflowPath = join(repoRoot, '.github/workflows/deploy-grotto-server.yml');
 
-test('promotes a published Grotto version only on an explicit dispatch', () => {
+test('promotes a published Grotto version through an explicit dispatch or protected release call', () => {
     const source = readFileSync(workflowPath, 'utf8');
     const workflow = parse(source) as {
         concurrency: { 'cancel-in-progress': boolean; group: string };
@@ -28,34 +28,41 @@ test('promotes a published Grotto version only on an explicit dispatch', () => {
             };
         };
         on: {
+            workflow_call: {
+                inputs: {
+                    mode: { required: boolean; type: string };
+                    source_revision: { required: boolean; type: string };
+                    version: { required: boolean; type: string };
+                };
+                secrets: {
+                    GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN: { required: boolean };
+                };
+            };
             workflow_dispatch: {
                 inputs: {
                     mode: { options: string[]; required: boolean; type: string };
+                    source_revision: { required: boolean; type: string };
                     version: { required: boolean; type: string };
                 };
             };
         };
     };
 
-    // Publishing a Release no longer deploys. A deploy resolves production
-    // credentials from 1Password and rewrites the Server's delivered
-    // environment, so it is an explicit act.
-    expect(workflow.on).toEqual({
-        workflow_dispatch: {
-            inputs: {
-                mode: {
-                    description: 'Production action',
-                    options: ['deploy', 'activate'],
-                    required: true,
-                    type: 'choice',
-                },
-                version: {
-                    description: 'Published Grotto version (vX.Y.Z)',
-                    required: true,
-                    type: 'string',
-                },
-            },
+    // Release may call the same protected production operation that remains
+    // available through an explicit manual dispatch.
+    expect(Object.keys(workflow.on)).toEqual(['workflow_call', 'workflow_dispatch']);
+    expect(workflow.on.workflow_call).toMatchObject({
+        inputs: {
+            mode: { required: true, type: 'string' },
+            source_revision: { required: true, type: 'string' },
+            version: { required: true, type: 'string' },
         },
+        secrets: { GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN: { required: true } },
+    });
+    expect(workflow.on.workflow_dispatch.inputs).toMatchObject({
+        mode: { options: ['deploy', 'activate'], required: true, type: 'choice' },
+        source_revision: { required: false, type: 'string' },
+        version: { required: true, type: 'string' },
     });
     expect(workflow.concurrency).toEqual({
         'cancel-in-progress': false,
@@ -174,9 +181,11 @@ test('promotes a published Grotto version only on an explicit dispatch', () => {
     expect(job.steps.find((step) => step.name === 'Verify installed release')?.if).toBe(
         "env.GROTTO_RELEASE_MODE == 'activate'"
     );
-    // Proving the delivered environment is the last thing the deploy does.
-    expect(job.steps.at(-1)?.name).toBe('Verify the delivered environment');
-    expect(job.steps.at(-1)?.run).toContain('verify-deployed-secrets.ts');
+    // The deploy proves both the delivered environment and public artifact.
+    expect(job.steps.at(-2)?.name).toBe('Verify the delivered environment');
+    expect(job.steps.at(-2)?.run).toContain('verify-deployed-secrets.ts');
+    expect(job.steps.at(-1)?.name).toBe('Prove public Server and hosted Grotto App');
+    expect(job.steps.at(-1)?.run).toContain('verify-hosted-grotto.mjs');
     // No notification step: it read two repository secrets that never existed,
     // so it could only ever have been a silent no-op.
     expect(source).not.toContain('deploy-notify');
@@ -189,9 +198,9 @@ test('documents version publication as the only production promotion', () => {
         'utf8'
     );
 
-    expect(releaseDocs).toContain('A push to `main` does not');
+    expect(releaseDocs).toContain('A push to `main` without a release record does not deploy');
     expect(releaseDocs).toContain('one atomic production artifact with one Server SemVer');
-    expect(releaseDocs).toContain('`activate`: verify and switch');
+    expect(releaseDocs).toContain('`activate` verifies and switches');
     expect(deployDocs).toContain('/Users/zknicker/srv/grotto');
     expect(deployDocs).toContain('never run `git clean`');
     expect(deployDocs).toContain('Grotto production `GROTTO_CLERK_SECRET_KEY`');

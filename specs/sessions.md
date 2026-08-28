@@ -79,6 +79,11 @@ detaches. Activity History records refresh outcomes without instruction text or 
 details. A bootstrap or turn failure keeps the previous fingerprints and generation for retry. Only
 rejection of stored native resume state uses Server-authorized recovery.
 
+Grotto Agent SemVer is the public release receipt layered over those exact fingerprints and managed
+factory inputs. A version change uses the same in-place, next-turn refresh path. It becomes current
+only after successful detach; failure preserves the prior applied version and is visible in the
+Agent profile and Activity History.
+
 Long-horizon continuity across resets comes from engine-native compaction
 and the agent's workspace MEMORY.md ([ADR 0014](../docs/adr/0014-cli-is-the-agents-only-output-channel.md)).
 

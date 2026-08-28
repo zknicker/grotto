@@ -1,6 +1,6 @@
 import { compareVersions, isSemver } from './release-utils.mjs';
 
-export const releaseTargetNames = ['server', 'app', 'ios', 'computer'];
+export const releaseTargetNames = ['server', 'app', 'ios', 'computer', 'agent'];
 export const undecidedReleaseTarget = 'undecided';
 
 const targetLabels = {
@@ -8,6 +8,7 @@ const targetLabels = {
     app: 'App',
     ios: 'iOS',
     computer: 'Computer',
+    agent: 'Grotto Agent',
 };
 
 export function assertReleaseLedger(value, options = {}) {
@@ -17,6 +18,7 @@ export function assertReleaseLedger(value, options = {}) {
 
     let previousDate = null;
     let previousVersion = null;
+    let previousAgentVersion = null;
 
     for (const [index, entry] of value.entries()) {
         const isLatest = index === value.length - 1;
@@ -39,6 +41,17 @@ export function assertReleaseLedger(value, options = {}) {
             }
             if (entry.version) {
                 previousVersion = entry.version;
+            }
+            const agentVersion = releaseTargetVersion(entry, 'agent');
+            if (
+                previousAgentVersion &&
+                agentVersion &&
+                compareVersions(agentVersion, previousAgentVersion) <= 0
+            ) {
+                throw new Error('Grotto Agent versions must be oldest-first');
+            }
+            if (agentVersion) {
+                previousAgentVersion = agentVersion;
             }
             previousDate = entry.date;
         }
@@ -75,6 +88,7 @@ export function createReleaseDraft(version) {
             app: undecidedReleaseTarget,
             ios: undecidedReleaseTarget,
             computer: undecidedReleaseTarget,
+            agent: undecidedReleaseTarget,
         },
     };
 }
@@ -102,6 +116,16 @@ export function latestMainVersion(value) {
         }
     }
 
+    return null;
+}
+
+export function latestTargetVersion(value, targetName) {
+    for (let index = value.length - 1; index >= 0; index -= 1) {
+        const version = releaseTargetVersion(value[index], targetName);
+        if (version) {
+            return version;
+        }
+    }
     return null;
 }
 
@@ -166,16 +190,21 @@ function assertTargets(targets, allowUndecided) {
         throw new Error('release ledger targets are invalid');
     }
 
-    if (
-        Object.keys(targets).length !== releaseTargetNames.length ||
-        !releaseTargetNames.every((targetName) => Object.hasOwn(targets, targetName))
-    ) {
+    const targetNames = Object.keys(targets);
+    const legacyTargetNames = releaseTargetNames.filter((targetName) => targetName !== 'agent');
+    const isCurrent =
+        targetNames.length === releaseTargetNames.length &&
+        releaseTargetNames.every((targetName) => Object.hasOwn(targets, targetName));
+    const isLegacy =
+        targetNames.length === legacyTargetNames.length &&
+        legacyTargetNames.every((targetName) => Object.hasOwn(targets, targetName));
+    if (!(isCurrent || isLegacy)) {
         throw new Error(
-            'release ledger targets must contain exactly Server, App, iOS, and Computer'
+            'release ledger targets must contain exactly Server, App, iOS, Computer, and Grotto Agent'
         );
     }
 
-    for (const targetName of releaseTargetNames) {
+    for (const targetName of isCurrent ? releaseTargetNames : legacyTargetNames) {
         const target = targets[targetName];
         if (target === null) {
             continue;
@@ -230,6 +259,12 @@ function assertCompleteRelease(entry) {
     }
     if (entry.targets.app !== null && entry.targets.app !== entry.version) {
         throw new Error('App release target must match the main release version');
+    }
+    if (
+        releasePublishesTarget(entry, 'agent') &&
+        !(releasePublishesTarget(entry, 'server') && releasePublishesTarget(entry, 'computer'))
+    ) {
+        throw new Error('Grotto Agent publication requires Server and Computer publication');
     }
 }
 

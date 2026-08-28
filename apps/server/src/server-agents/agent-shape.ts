@@ -1,4 +1,11 @@
-import type { Agent, AgentAvailability, AgentReasoningEffort, AgentStatus } from '@grotto/api';
+import {
+    type Agent,
+    type AgentAvailability,
+    type AgentReasoningEffort,
+    type AgentStatus,
+    type GrottoAgentStatus,
+    grottoAgentVersion,
+} from '@grotto/api';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
 export interface ConfiguredAgentRow {
@@ -15,6 +22,9 @@ export interface ConfiguredAgentRow {
     desiredRuntimeId: string | null;
     displayName: string;
     dmChatId: string | null;
+    effectiveGrottoAgentAppliedAt: Date | null;
+    effectiveGrottoAgentStatus: GrottoAgentStatus | null;
+    effectiveGrottoAgentVersion: string | null;
     effectiveMissing: string[] | null;
     effectiveModelId: string | null;
     effectiveReportedAt: Date | null;
@@ -86,6 +96,17 @@ export function toAgent(row: ConfiguredAgentRow): Agent {
         effectiveReportedAt: row.effectiveReportedAt?.toISOString() ?? null,
         effectiveRuntimeId: row.effectiveRuntimeId,
         factoryKind: row.factoryKind,
+        grottoAgent: {
+            appliedAt: row.effectiveGrottoAgentAppliedAt?.toISOString() ?? null,
+            appliedVersion: row.effectiveGrottoAgentVersion,
+            currentVersion: grottoAgentVersion,
+            status:
+                row.effectiveGrottoAgentVersion === grottoAgentVersion
+                    ? 'current'
+                    : row.effectiveGrottoAgentStatus === 'failed'
+                      ? 'failed'
+                      : 'pending',
+        },
         handle: row.handle,
         id: row.id,
         missingResources: row.effectiveMissing ?? [],

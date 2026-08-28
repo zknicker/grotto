@@ -19,6 +19,7 @@ import { AgentDanger } from './agent-danger.tsx';
 import { AgentIdentity } from './agent-identity.tsx';
 import { AgentRuntime } from './agent-runtime.tsx';
 import { AgentSession } from './agent-session.tsx';
+import { GrottoAgentVersion } from './grotto-agent-version.tsx';
 
 export function AgentOverview({
     agent,
@@ -101,6 +102,7 @@ export function AgentOverview({
                     />
                 </MemberProfileFacts>
             </AgentIdentity>
+            <GrottoAgentVersion state={agent.grottoAgent} />
             <AgentUsageOverview agent={agent} serverId={server.id} />
             <AgentRuntime
                 agent={agent}

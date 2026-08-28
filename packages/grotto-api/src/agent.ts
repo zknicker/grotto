@@ -119,6 +119,48 @@ export const agentStatusSchema = z.enum(['applied', 'degraded', 'pending']);
 
 export type AgentStatus = z.infer<typeof agentStatusSchema>;
 
+export const grottoAgentStatusSchema = z.enum(['current', 'failed', 'pending']);
+
+export type GrottoAgentStatus = z.infer<typeof grottoAgentStatusSchema>;
+
+export const grottoAgentStateSchema = z
+    .object({
+        appliedAt: timestampSchema.nullable(),
+        appliedVersion: z
+            .string()
+            .regex(/^\d+\.\d+\.\d+$/u)
+            .nullable(),
+        currentVersion: z.string().regex(/^\d+\.\d+\.\d+$/u),
+        status: grottoAgentStatusSchema,
+    })
+    .strict();
+
+export type GrottoAgentState = z.infer<typeof grottoAgentStateSchema>;
+
+export const grottoAgentAppliedStateSchema = z
+    .object({
+        agentId: idSchema,
+        appliedAt: timestampSchema.nullable(),
+        status: grottoAgentStatusSchema,
+        version: z
+            .string()
+            .regex(/^\d+\.\d+\.\d+$/u)
+            .nullable(),
+    })
+    .strict();
+
+export type GrottoAgentAppliedState = z.infer<typeof grottoAgentAppliedStateSchema>;
+
+/** Additive Computer frame kept separate from the legacy strict effective-state report. */
+export const grottoAgentReportFrameSchema = z
+    .object({
+        agents: z.array(grottoAgentAppliedStateSchema).max(500),
+        type: z.literal('grotto-agent-report'),
+    })
+    .strict();
+
+export type GrottoAgentReportFrame = z.infer<typeof grottoAgentReportFrameSchema>;
+
 export const agentAvailabilitySchema = z.enum(['error', 'idle', 'offline', 'stopped', 'working']);
 
 export type AgentAvailability = z.infer<typeof agentAvailabilitySchema>;
@@ -140,6 +182,7 @@ export const agentSchema = z
         effectiveReportedAt: timestampSchema.nullable(),
         effectiveRuntimeId: z.string().nullable(),
         factoryKind: z.enum(['cove', 'ordinary']),
+        grottoAgent: grottoAgentStateSchema,
         handle: z.string(),
         id: idSchema,
         missingResources: z.array(z.string()),

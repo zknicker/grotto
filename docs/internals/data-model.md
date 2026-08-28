@@ -29,6 +29,12 @@ does not ingest provider credentials, full prompts, execution transcripts, arbit
 or Agent workspace contents. Computer state is not a substitute for canonical Chat history, and App
 cache is never authoritative.
 
+The Agent row stores Computer's last applied Grotto Agent version, application timestamp, and
+pending/current/failed status. These fields are a product-facing release receipt, not the underlying
+instruction or bootstrap fingerprints. Server compares the receipt with its release-owned current
+version when projecting an Agent. Computer remains authoritative for whether a successful turn has
+actually applied that version.
+
 Semantic Agent activity is durable Server metadata. Detailed execution journals remain
 Computer-local and are read only through an authorized live relay.
 

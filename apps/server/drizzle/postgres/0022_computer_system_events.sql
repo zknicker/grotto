@@ -16,7 +16,7 @@ CREATE TABLE "computer_system_events" (
 );
 --> statement-breakpoint
 ALTER TABLE "computers" ADD COLUMN "connection_generation" text;--> statement-breakpoint
-ALTER TABLE "computers" ADD CONSTRAINT "computers_connection_generation_shape" CHECK ("computers"."connection_generation" IS NULL OR "computers"."connection_generation" ~ '^ccn_[A-Za-z0-9_-]{16}$');--> statement-breakpoint
 ALTER TABLE "computer_system_events" ADD CONSTRAINT "computer_system_events_server_id_servers_id_fk" FOREIGN KEY ("server_id") REFERENCES "public"."servers"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "computer_system_events" ADD CONSTRAINT "computer_system_events_computer_fk" FOREIGN KEY ("server_id","computer_id") REFERENCES "public"."computers"("server_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "computer_system_events_newest_idx" ON "computer_system_events" USING btree ("server_id","computer_id","occurred_at");
+CREATE INDEX "computer_system_events_newest_idx" ON "computer_system_events" USING btree ("server_id","computer_id","occurred_at");--> statement-breakpoint
+ALTER TABLE "computers" ADD CONSTRAINT "computers_connection_generation_shape" CHECK ("computers"."connection_generation" IS NULL OR "computers"."connection_generation" ~ '^ccn_[A-Za-z0-9_-]{16}$');

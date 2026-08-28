@@ -48,12 +48,9 @@ struct GlassChromeButton: View {
             glassButton
         } else {
             // Pre-26 `.regularMaterial` has neither an edge nor a lift of its
-            // own, so the fallback still draws both — and the plain button
-            // style below leaves the material static under a press.
+            // own, so the fallback still draws both — inside the button label,
+            // so the whole circle answers a press the way the glass one does.
             standardButton
-                .background(.regularMaterial, in: .circle)
-                .overlay(Circle().strokeBorder(rimColor, lineWidth: 1))
-                .shadow(color: shadowColor, radius: 8, x: 0, y: 2)
         }
     }
 
@@ -83,9 +80,12 @@ struct GlassChromeButton: View {
         Button(action: action) {
             glyphContent
                 .frame(width: Self.diameter, height: Self.diameter)
+                .background(.regularMaterial, in: .circle)
+                .overlay(Circle().strokeBorder(rimColor, lineWidth: 1))
+                .shadow(color: shadowColor, radius: 8, x: 0, y: 2)
                 .contentShape(.circle)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .foregroundStyle(GrottoPlatformColor.label)
         .frame(width: Self.diameter, height: Self.diameter)
         .fixedSize()

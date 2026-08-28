@@ -38,7 +38,7 @@ struct ComposerSourceMenu: View {
             .frame(minHeight: 66)
             .contentShape(.rect)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressableRow)
         .accessibilityFocused($focusedSource, equals: source)
     }
 

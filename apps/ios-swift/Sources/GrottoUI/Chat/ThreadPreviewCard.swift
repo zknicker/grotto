@@ -57,7 +57,7 @@ struct ThreadPreviewCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(GrottoPlatformColor.inputSurface, in: .rect(cornerRadius: 12))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressableRow(cornerRadius: 12))
         .accessibilityLabel(accessibilityLabel)
         .padding(.top, 5)
     }

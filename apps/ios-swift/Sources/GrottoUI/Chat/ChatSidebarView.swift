@@ -142,7 +142,7 @@ public struct ChatSidebarView: View {
             // the header's trailing chrome keeps its own margin.
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .foregroundStyle(GrottoPlatformColor.label)
         .accessibilityLabel("\(server.name) menu")
     }
@@ -170,7 +170,7 @@ public struct ChatSidebarView: View {
             .frame(height: 42)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressableRow)
     }
 
     private var channels: [ChatDestination] {
@@ -196,7 +196,7 @@ public struct ChatSidebarView: View {
                     GrottoIcon(.plus, size: 17, weight: Self.rowGlyphWeight)
                         .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .accessibilityLabel("New channel")
             }
         }
@@ -243,7 +243,9 @@ public struct ChatSidebarView: View {
             // tappable area is the glyph and the text rather than the row.
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        // The row's own selection fill is a capsule at this height, so the
+        // press highlight matches its curve instead of drawing square corners.
+        .buttonStyle(.pressableRow(cornerRadius: 21))
         .accessibilityLabel(chat.unreadCount > 0 ? "\(chat.title), unread" : chat.title)
     }
 

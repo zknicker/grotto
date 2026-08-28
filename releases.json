@@ -503,5 +503,15 @@
       "ios": null,
       "computer": null
     }
+  },
+  {
+    "version": "1.8.37",
+    "date": "2026-08-28",
+    "targets": {
+      "server": "1.8.37",
+      "app": null,
+      "ios": null,
+      "computer": null
+    }
   }
 ]

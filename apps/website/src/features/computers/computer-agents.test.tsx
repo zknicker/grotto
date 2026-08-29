@@ -55,7 +55,7 @@ test('Computer Agents keep the data grid shell when empty', () => {
     expect(html).toContain('No Agents assigned');
 });
 
-test('Computer Agents expose pending and failed version rollout per Agent', () => {
+test('Computer Agents collapse pending and failed receipts into out-of-date rows', () => {
     const html = renderToStaticMarkup(
         <ComputerAgentGrid
             onOpenAgent={() => undefined}
@@ -68,8 +68,8 @@ test('Computer Agents expose pending and failed version rollout per Agent', () =
                     model: 'GPT-5.6 Sol',
                     runtime: 'Codex',
                     version: {
-                        color: 'warning',
-                        detail: 'Updates on next turn',
+                        color: 'danger',
+                        detail: 'Out of date',
                         version: 'v1.0.2 → v1.1.0',
                     },
                 },
@@ -82,7 +82,7 @@ test('Computer Agents expose pending and failed version rollout per Agent', () =
                     runtime: 'Claude Code',
                     version: {
                         color: 'danger',
-                        detail: 'Update failed',
+                        detail: 'Out of date',
                         version: 'v1.0.2 → v1.1.0',
                     },
                 },
@@ -91,9 +91,7 @@ test('Computer Agents expose pending and failed version rollout per Agent', () =
         />
     );
 
-    expect(html).toContain('Updates on next turn');
-    expect(html).toContain('text-warning');
-    expect(html).toContain('Update failed');
+    expect(html.match(/Out of date/gu)).toHaveLength(2);
     expect(html).toContain('text-danger');
 });
 

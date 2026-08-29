@@ -1,7 +1,7 @@
 import type { GrottoAgentState } from '@grotto/api';
 
 export interface GrottoAgentVersionView {
-    color: 'accent' | 'danger' | 'warning';
+    color: 'accent' | 'danger';
     detail: string;
     version: string;
 }
@@ -18,7 +18,5 @@ export function grottoAgentVersionView(state: GrottoAgentState): GrottoAgentVers
     const version = state.appliedVersion
         ? `v${state.appliedVersion} → v${state.currentVersion}`
         : `Not applied → v${state.currentVersion}`;
-    return state.status === 'failed'
-        ? { color: 'danger', detail: 'Update failed', version }
-        : { color: 'warning', detail: 'Updates on next turn', version };
+    return { color: 'danger', detail: 'Out of date', version };
 }

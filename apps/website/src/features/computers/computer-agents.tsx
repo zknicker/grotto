@@ -199,8 +199,5 @@ function versionStatusClassName(color: ReturnType<typeof grottoAgentVersionView>
     if (color === 'danger') {
         return 'text-danger text-sm';
     }
-    if (color === 'warning') {
-        return 'text-warning text-sm';
-    }
     return 'text-success text-sm';
 }

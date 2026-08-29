@@ -12,7 +12,7 @@ test('presents the applied Grotto Agent version when current', () => {
     ).toEqual({ color: 'accent', detail: 'Up to date', version: 'v1.2.3' });
 });
 
-test('presents the version transition and failed update', () => {
+test('presents a stale version as out of date after a failed application', () => {
     expect(
         grottoAgentVersionView({
             appliedAt: '2026-08-27T12:00:00.000Z',
@@ -20,7 +20,7 @@ test('presents the version transition and failed update', () => {
             currentVersion: '1.2.3',
             status: 'failed',
         })
-    ).toEqual({ color: 'danger', detail: 'Update failed', version: 'v1.2.2 → v1.2.3' });
+    ).toEqual({ color: 'danger', detail: 'Out of date', version: 'v1.2.2 → v1.2.3' });
 });
 
 test('presents a first application as pending', () => {
@@ -32,8 +32,8 @@ test('presents a first application as pending', () => {
             status: 'pending',
         })
     ).toEqual({
-        color: 'warning',
-        detail: 'Updates on next turn',
+        color: 'danger',
+        detail: 'Out of date',
         version: 'Not applied → v1.2.3',
     });
 });
@@ -47,8 +47,8 @@ test('presents an existing version waiting for its next turn', () => {
             status: 'pending',
         })
     ).toEqual({
-        color: 'warning',
-        detail: 'Updates on next turn',
+        color: 'danger',
+        detail: 'Out of date',
         version: 'v1.2.2 → v1.2.3',
     });
 });
@@ -63,7 +63,7 @@ test('presents a failed first application without inventing an applied version',
         })
     ).toEqual({
         color: 'danger',
-        detail: 'Update failed',
+        detail: 'Out of date',
         version: 'Not applied → v1.2.3',
     });
 });

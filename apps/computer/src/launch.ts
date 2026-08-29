@@ -216,7 +216,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
 
     const runtimeCommand = runtimeCli[command.runtimeId];
     const runtimeExecutable = runtimeCommand ? resolveRuntimeExecutable(runtimeCommand) : null;
-    if (command.runtimeId !== 'fake' && !runtimeExecutable) {
+    if (command.runtimeId !== 'fake' && !runtimeExecutable && !options.harnessAgentFactory) {
         return reportTurn(options, {
             failureKind: 'configuration',
             messageCount: 0,

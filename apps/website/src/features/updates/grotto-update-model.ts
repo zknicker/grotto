@@ -197,22 +197,12 @@ function componentFacts(
 ): GrottoComponentFact[] {
     const computerTarget = input.release.components.computer;
     const desktopTarget = input.release.components.desktopApp;
-    const serverTarget = input.release.components.server;
     const agentTarget = input.release.components.agent;
     const computerCurrent = computerTarget !== null && computers.every(isCompleteUpdateStep);
-    return [
-        {
-            currentVersion: input.runningServerVersion,
-            label: 'Server',
-            status: serverTarget
-                ? input.runningServerVersion === serverTarget
-                    ? 'current'
-                    : 'managed'
-                : 'external',
-            targetVersion: serverTarget,
-        },
-        {
-            currentVersion: desktop?.currentVersion ?? null,
+    const facts: GrottoComponentFact[] = [];
+    if (input.desktop.kind === 'desktop') {
+        facts.push({
+            currentVersion: desktop?.currentVersion ?? input.desktop.currentVersion,
             label: 'Grotto App',
             status:
                 desktop && desktopTarget
@@ -221,7 +211,9 @@ function componentFacts(
                         : 'pending'
                     : 'external',
             targetVersion: desktopTarget,
-        },
+        });
+    }
+    facts.push(
         {
             currentVersion: commonComputerVersion(computers),
             label: 'Computer',
@@ -234,19 +226,12 @@ function componentFacts(
             status: agentTarget
                 ? input.runningAgentVersion === agentTarget
                     ? 'current'
-                    : 'managed'
+                    : 'pending'
                 : 'external',
             targetVersion: agentTarget,
-        },
-        {
-            currentVersion: null,
-            label: 'iOS',
-            status: 'external',
-            targetVersion: input.release.components.ios
-                ? `${input.release.components.ios.version} (${input.release.components.ios.buildNumber})`
-                : null,
-        },
-    ];
+        }
+    );
+    return facts;
 }
 
 function isVersionCurrent(installed: string | null, target: string) {

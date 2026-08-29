@@ -121,6 +121,7 @@ export async function deleteAgent(
                 effectiveGrottoAgentVersion: null,
                 effectiveMissing: null,
                 effectiveModelId: null,
+                effectiveReasoningEffort: null,
                 effectiveReportedAt: null,
                 effectiveRuntimeId: null,
                 retiredAt: new Date(),

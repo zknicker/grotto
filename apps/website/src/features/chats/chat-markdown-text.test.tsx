@@ -130,7 +130,7 @@ test('ChatMarkdownText keeps activated references in the animated inline path', 
     expect(markup).toContain('#product');
 });
 
-test('ChatMarkdownText keeps non-navigable references inert in both render paths', () => {
+test('ChatMarkdownText gives non-navigable references preview controls in both render paths', () => {
     const content = '[$design](skill://design)';
     const mentions = [
         {
@@ -160,8 +160,8 @@ test('ChatMarkdownText keeps non-navigable references inert in both render paths
         />
     );
 
-    expect(settledMarkup).not.toContain('<button');
-    expect(animatedMarkup).not.toContain('<button');
+    expect(settledMarkup).toContain('aria-label="Preview Design"');
+    expect(animatedMarkup).toContain('aria-label="Preview Design"');
     expect(settledMarkup).toContain('Design');
     expect(animatedMarkup).toContain('Design');
 });

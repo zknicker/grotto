@@ -41,6 +41,7 @@ test('effective-state reports are derived from durable per-Agent sessions', asyn
             grottoAgentVersion: '1.0.0',
             missingResources: [],
             modelId: 'gpt-5.6-sol',
+            reasoningEffort: null,
             runtimeId: 'codex',
         },
         {
@@ -50,6 +51,7 @@ test('effective-state reports are derived from durable per-Agent sessions', asyn
             grottoAgentVersion: null,
             missingResources: ['session'],
             modelId: null,
+            reasoningEffort: null,
             runtimeId: null,
         },
     ]);

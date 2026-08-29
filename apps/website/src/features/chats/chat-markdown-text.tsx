@@ -5,6 +5,7 @@ import { splitMentionText } from '../mentions/render-mention-text.tsx';
 import { renderInlineMarkdown } from './chat-inline-markdown-renderer.tsx';
 import type { ChatTextAnimationRange } from './chat-inline-text-animation.tsx';
 import { type ChatMarkdownHeadingBlock, parseChatMarkdownBlocks } from './chat-markdown-blocks.ts';
+import { useTranscriptRenderContextOptional } from './chat-transcript-render-context.tsx';
 
 export function ChatMarkdownText({
     animatedRanges = [],
@@ -17,13 +18,20 @@ export function ChatMarkdownText({
     mentions?: readonly Mention[];
     onReferenceActivate?: ReferenceActivation;
 }) {
+    const renderContext = useTranscriptRenderContextOptional();
+    const chatId = renderContext?.chatId;
+    const serverId = renderContext?.turnDetails?.serverId;
+
     if (animatedRanges.length === 0) {
         return (
             <ReferenceMarkdown
+                chatId={chatId}
                 className="chat-markdown text-base"
                 content={content}
                 mentions={mentions}
                 onReferenceActivate={onReferenceActivate}
+                previewReferences
+                serverId={serverId}
             />
         );
     }
@@ -36,9 +44,11 @@ export function ChatMarkdownText({
                 <ChatMarkdownHeading
                     animatedRanges={animatedRanges}
                     block={block}
+                    chatId={chatId}
                     key={`heading:${block.start}`}
                     mentions={mentions}
                     onReferenceActivate={onReferenceActivate}
+                    serverId={serverId}
                 />
             );
         }
@@ -54,10 +64,12 @@ export function ChatMarkdownText({
             >
                 {renderMarkdownInline({
                     animatedRanges,
+                    chatId,
                     content: block.text,
                     keyPrefix: `prose:${block.start}`,
                     mentions: sliceMentions(mentions, block.start, block.start + block.text.length),
                     onReferenceActivate,
+                    serverId,
                     sourceOffset: block.start,
                 })}
             </p>
@@ -67,17 +79,21 @@ export function ChatMarkdownText({
 
 function renderMarkdownInline({
     animatedRanges,
+    chatId,
     content,
     keyPrefix,
     mentions,
     onReferenceActivate,
+    serverId,
     sourceOffset,
 }: {
     animatedRanges: readonly ChatTextAnimationRange[];
+    chatId?: string;
     content: string;
     keyPrefix: string;
     mentions?: readonly Mention[];
     onReferenceActivate?: ReferenceActivation;
+    serverId?: string;
     sourceOffset: number;
 }) {
     if (!mentions || mentions.length === 0) {
@@ -91,12 +107,15 @@ function renderMarkdownInline({
         if (fragment.type === 'mention') {
             return (
                 <ReferenceChip
+                    chatId={chatId}
                     id={fragment.mention.id}
                     key={`mention:${fragment.mention.start}:${fragment.mention.end}`}
                     kind={fragment.mention.kind}
                     label={fragment.mention.label}
                     metadata={fragment.mention.metadata}
                     onActivate={onReferenceActivate}
+                    preview
+                    serverId={serverId}
                 />
             );
         }
@@ -116,20 +135,26 @@ function renderMarkdownInline({
 function ChatMarkdownHeading({
     animatedRanges,
     block,
+    chatId,
     mentions,
     onReferenceActivate,
+    serverId,
 }: {
     animatedRanges: readonly ChatTextAnimationRange[];
     block: ChatMarkdownHeadingBlock;
+    chatId?: string;
     mentions?: readonly Mention[];
     onReferenceActivate?: ReferenceActivation;
+    serverId?: string;
 }) {
     const content = renderMarkdownInline({
         animatedRanges,
+        chatId,
         content: block.text,
         keyPrefix: `heading:${block.start}`,
         mentions: sliceMentions(mentions, block.textStart, block.textStart + block.text.length),
         onReferenceActivate,
+        serverId,
         sourceOffset: block.textStart,
     });
 

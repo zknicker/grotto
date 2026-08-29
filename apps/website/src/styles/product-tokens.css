@@ -3,7 +3,8 @@
  *
  * Component appearance and standard UI roles come directly from HeroUI.
  * This file is limited to cross-feature product vocabularies: stable sender
- * differentiation and the task-label catalog.
+ * differentiation, rich-reference identity, reasoning intensity, and the
+ * task-label catalog.
  */
 
 @layer base {
@@ -51,6 +52,12 @@
         --runtime-pi-2: var(--color-emerald-400);
         --runtime-pi-3: var(--color-teal-300);
         --runtime-other-1: var(--color-stone-400);
+
+        --reasoning-low: var(--color-cyan-300);
+        --reasoning-medium: var(--color-violet-400);
+        --reasoning-high: var(--color-rose-400);
+
+        --skill-reference: var(--color-purple-400);
 
         --label-red-fg: var(--color-red-300);
         --label-red-bg: --alpha(var(--color-red-500) / 15%);
@@ -123,6 +130,12 @@
         --runtime-pi-3: var(--color-teal-600);
         --runtime-other-1: var(--color-stone-600);
 
+        --reasoning-low: var(--color-cyan-700);
+        --reasoning-medium: var(--color-violet-600);
+        --reasoning-high: var(--color-rose-600);
+
+        --skill-reference: var(--color-purple-700);
+
         --label-red-fg: var(--color-red-600);
         --label-red-bg: --alpha(var(--color-red-500) / 12%);
         --label-orange-fg: var(--color-orange-600);
@@ -149,4 +162,8 @@
     --color-background-hover: var(--background-hover);
     --color-nested-surface: var(--nested-surface);
     --color-nested-surface-hover: var(--nested-surface-hover);
+    --color-reasoning-high: var(--reasoning-high);
+    --color-reasoning-low: var(--reasoning-low);
+    --color-reasoning-medium: var(--reasoning-medium);
+    --color-skill-reference: var(--skill-reference);
 }

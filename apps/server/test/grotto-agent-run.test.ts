@@ -110,6 +110,7 @@ test('chat mention options expose the DM Agent, active humans, and reported skil
             insertText: 'agent-browser',
             kind: 'skill',
             label: 'agent-browser',
+            metadata: { description: 'Drive a browser.' },
         }),
     ]);
 });

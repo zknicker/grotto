@@ -355,6 +355,7 @@ test('shows pending, then applied, then degraded as effective state is reported'
         update agents
         set effective_runtime_id = desired_runtime_id,
             effective_model_id = desired_model_id,
+            effective_reasoning_effort = desired_reasoning_effort,
             effective_missing = null,
             effective_reported_at = now()
         where id = ${agent.id}

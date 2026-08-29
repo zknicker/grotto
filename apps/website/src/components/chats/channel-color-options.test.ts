@@ -39,7 +39,13 @@ describe('channel color options', () => {
     test('builds visible style vars for a selected preset', () => {
         expect(getChannelColorStyle('green')).toEqual(
             expect.objectContaining({
-                '--channel-color-bg-active-light': 'color-mix(in srgb, #16a34a 20%, transparent)',
+                '--channel-color-bg-active-dark': 'color-mix(in srgb, #4ade80 30%, transparent)',
+                '--channel-color-bg-active-light': 'color-mix(in srgb, #16a34a 28%, transparent)',
+                '--channel-color-bg-dark': 'color-mix(in srgb, #4ade80 22%, transparent)',
+                '--channel-color-bg-hover-dark': 'color-mix(in srgb, #4ade80 26%, transparent)',
+                '--channel-color-bg-hover-light': 'color-mix(in srgb, #16a34a 24%, transparent)',
+                '--channel-color-bg-light': 'color-mix(in srgb, #16a34a 20%, transparent)',
+                '--channel-color-bg-sidebar-light': 'color-mix(in srgb, #16a34a 17%, transparent)',
                 '--channel-color-dark': '#4ade80',
                 '--channel-color-light': '#16a34a',
             })

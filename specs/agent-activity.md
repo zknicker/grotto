@@ -173,6 +173,16 @@ Server; it is not Chat-scoped and never pulses.
 DM headers mirror global Agent status with concise text such as `Online`, `Working`, `Offline`,
 `Stopped`, or `Needs attention`. Channel headers do not aggregate Agent status.
 
+### Agent hover preview
+
+Hovering or focusing an Agent avatar in the Chat transcript or an Agent rich
+reference opens one shared HeroUI hover card. It shows the Agent identity and
+global availability, current effective runtime and model, reasoning effort,
+and the newest five durable activity events in one compact summary.
+The preview reads Server history and remains useful while Computer is offline;
+it never requests Computer-local execution evidence. Clicking the avatar or
+reference still opens the full Agent profile.
+
 ## Failure behavior
 
 - Server history remains readable while Computer is offline.

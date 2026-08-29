@@ -44,6 +44,7 @@ export const agentsTable = pgTable(
         effectiveGrottoAgentVersion: text('effective_grotto_agent_version'),
         effectiveMissing: bunJsonb('effective_missing').$type<string[]>(),
         effectiveModelId: text('effective_model_id'),
+        effectiveReasoningEffort: text('effective_reasoning_effort').$type<AgentReasoningEffort>(),
         effectiveReportedAt: timestamp('effective_reported_at', { withTimezone: true }),
         effectiveRuntimeId: text('effective_runtime_id'),
         factoryAppliedAt: timestamp('factory_applied_at', { withTimezone: true }),
@@ -79,6 +80,10 @@ export const agentsTable = pgTable(
         check(
             'agents_reasoning_effort',
             sql`${table.desiredReasoningEffort} in ('low', 'medium', 'high')`
+        ),
+        check(
+            'agents_effective_reasoning_effort',
+            sql`${table.effectiveReasoningEffort} is null or ${table.effectiveReasoningEffort} in ('low', 'medium', 'high')`
         ),
         check('agents_factory_kind', sql`${table.factoryKind} in ('ordinary', 'cove')`),
         check(

@@ -149,6 +149,7 @@ test('Computer reports are applied in socket order', async () => {
             effective_grotto_agent_version,
             effective_missing,
             effective_model_id,
+            effective_reasoning_effort,
             effective_runtime_id
         from agents
         where id = ${agentId}
@@ -158,6 +159,7 @@ test('Computer reports are applied in socket order', async () => {
         effective_grotto_agent_version: string;
         effective_missing: string[];
         effective_model_id: string | null;
+        effective_reasoning_effort: string | null;
         effective_runtime_id: string | null;
     }[];
     expect(row).toEqual({
@@ -166,6 +168,7 @@ test('Computer reports are applied in socket order', async () => {
         effective_grotto_agent_version: '1.0.0',
         effective_missing: [],
         effective_model_id: 'gpt-5.6-sol',
+        effective_reasoning_effort: null,
         effective_runtime_id: 'codex',
     });
     socket.close();

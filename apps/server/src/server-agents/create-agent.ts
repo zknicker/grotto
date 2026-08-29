@@ -122,6 +122,7 @@ export async function createAgentInTransaction(
             effectiveGrottoAgentVersion: null,
             effectiveMissing: null,
             effectiveModelId: null,
+            effectiveReasoningEffort: null,
             effectiveReportedAt: null,
             effectiveRuntimeId: null,
             factoryKind: 'ordinary',

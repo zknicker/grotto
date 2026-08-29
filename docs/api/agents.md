@@ -10,7 +10,8 @@ read_when:
 Server owns each Agent's identity, Server membership, Computer assignment, desired execution
 configuration (runtime, model, and reasoning effort), lifecycle state, Chat participation, and bounded turn summaries. Computer owns the
 Agent's workspace, skills, queue, session process, execution runtime, model access, and effective
-execution state.
+execution state. Each Computer report carries the applied runtime, model, and reasoning effort;
+Server keeps that effective snapshot separate from the operator's desired configuration.
 
 The App uses the Server `agent` tRPC router for Agent reads and mutations. Server validates that
 runtime and model references came from the assigned Computer's reported inventory. Changes can be

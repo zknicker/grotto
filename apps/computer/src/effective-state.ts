@@ -1,7 +1,7 @@
 import type { Dirent } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { type GrottoAgentStatus, grottoAgentVersion } from '@grotto/api';
+import { type AgentReasoningEffort, type GrottoAgentStatus, grottoAgentVersion } from '@grotto/api';
 import { readAppliedAgentConfiguration } from './agent-configuration.ts';
 import { readAgentSessionState } from './harness/session-store.ts';
 
@@ -12,6 +12,7 @@ export interface EffectiveAgentState {
     grottoAgentVersion: string | null;
     missingResources: string[];
     modelId: string | null;
+    reasoningEffort: AgentReasoningEffort | null;
     runtimeId: string | null;
 }
 
@@ -47,6 +48,7 @@ export async function readEffectiveAgentStates(
                         ...versionState,
                         missingResources: configuration.missingResources,
                         modelId: configuration.modelId,
+                        reasoningEffort: configuration.reasoningEffort,
                         runtimeId: configuration.runtimeId,
                     };
                 }
@@ -56,6 +58,7 @@ export async function readEffectiveAgentStates(
                           ...versionState,
                           missingResources: [],
                           modelId: session.effectiveModel.modelId,
+                          reasoningEffort: null,
                           runtimeId: session.effectiveModel.runtimeId,
                       }
                     : {
@@ -63,6 +66,7 @@ export async function readEffectiveAgentStates(
                           ...versionState,
                           missingResources: ['session'],
                           modelId: null,
+                          reasoningEffort: null,
                           runtimeId: null,
                       };
             })

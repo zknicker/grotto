@@ -83,12 +83,14 @@ export async function listMentionOptions(
                 ?.skills ?? [];
         for (const skill of skills) {
             if (!skillOptions.has(skill.name)) {
+                const description = skill.description.trim() || null;
                 skillOptions.set(skill.name, {
-                    description: skill.description || null,
+                    description,
                     id: formatSkillReferenceTarget(skill.name),
                     insertText: skill.name,
                     kind: 'skill',
                     label: skill.name,
+                    metadata: description ? { description } : undefined,
                     projection: 'skill-activation',
                     sourceLabel: 'Skills',
                 });

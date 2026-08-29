@@ -123,6 +123,7 @@ test('Drizzle writes JSONB values as objects and arrays instead of JSON strings'
             agentId,
             missingResources: ['runtime:codex'],
             modelId: 'gpt-5.6-sol',
+            reasoningEffort: 'high',
             runtimeId: 'codex',
         },
     ]);
@@ -141,6 +142,7 @@ test('Drizzle writes JSONB values as objects and arrays instead of JSON strings'
             effective_grotto_agent_status: string;
             effective_grotto_agent_version: string;
             effective_missing: string;
+            effective_reasoning_effort: string;
             reported_inventory: string;
         }[]
     >`
@@ -149,6 +151,7 @@ test('Drizzle writes JSONB values as objects and arrays instead of JSON strings'
             agents.effective_grotto_agent_status,
             agents.effective_grotto_agent_version,
             jsonb_typeof(agents.effective_missing) as effective_missing,
+            agents.effective_reasoning_effort,
             jsonb_typeof(computers.reported_inventory) as reported_inventory
         from agents
         join computers on computers.id = agents.computer_id
@@ -158,6 +161,7 @@ test('Drizzle writes JSONB values as objects and arrays instead of JSON strings'
         effective_grotto_agent_status: 'current',
         effective_grotto_agent_version: '1.0.0',
         effective_missing: 'array',
+        effective_reasoning_effort: 'high',
         reported_inventory: 'object',
     });
     expect(types?.effective_grotto_agent_applied_at.toISOString()).toBe('2026-08-28T16:00:00.000Z');

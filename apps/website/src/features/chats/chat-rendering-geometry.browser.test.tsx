@@ -200,17 +200,19 @@ test('reference labels align with surrounding text for activated and inert chips
         <ReferenceChip
             id="agent://agt_blippy"
             kind="agent"
-            label="blippy"
+            label="orbit"
             metadata={{ agentAvatarUrl: '/blippy.png' }}
+            preview
         />
     );
     const activated = renderToStaticMarkup(
         <ReferenceChip
             id="agent://agt_blippy"
             kind="agent"
-            label="blippy"
+            label="orbit"
             metadata={{ agentAvatarUrl: '/blippy.png' }}
             onActivate={() => undefined}
+            preview
         />
     );
     const page = await newGeometryPage(`
@@ -241,7 +243,8 @@ test('reference labels align with surrounding text for activated and inert chips
             }
 
             const referenceNode =
-                chip.parentElement instanceof HTMLButtonElement ? chip.parentElement : chip;
+                chip.closest('[data-slot="hover-card-trigger"]') ??
+                (chip.parentElement instanceof HTMLButtonElement ? chip.parentElement : chip);
             const adjacentText = referenceNode.nextSibling;
 
             if (!(adjacentText instanceof Text)) {
@@ -251,6 +254,8 @@ test('reference labels align with surrounding text for activated and inert chips
             const lineRect = line.getBoundingClientRect();
             const chipRect = chip.getBoundingClientRect();
             const chipStyle = getComputedStyle(chip);
+            const labelStyle = getComputedStyle(label);
+            const referenceStyle = getComputedStyle(referenceNode);
             const labelRange = document.createRange();
             labelRange.selectNodeContents(label);
             const adjacentRange = document.createRange();
@@ -269,11 +274,17 @@ test('reference labels align with surrounding text for activated and inert chips
                 chipPaddingStart: chipStyle.paddingInlineStart,
                 chipTop: chipRect.top - lineRect.top,
                 gap: chipStyle.gap,
+                labelBackgroundImage: labelStyle.backgroundImage,
+                labelBackgroundSize: labelStyle.backgroundSize,
                 labelTextOffset: labelTextRect.top - adjacentTextRect.top,
                 labelTextTop: labelTextRect.top - lineRect.top,
+                labelFontWeight: labelStyle.fontWeight,
+                labelPaddingBottom: labelStyle.paddingBottom,
+                labelTransform: labelStyle.transform,
                 lineHeight: lineRect.height,
                 markHeight: mark.getBoundingClientRect().height,
                 markTextOffset: mark.getBoundingClientRect().top - adjacentTextRect.top,
+                referenceVerticalAlign: referenceStyle.verticalAlign,
             };
         };
 
@@ -282,14 +293,19 @@ test('reference labels align with surrounding text for activated and inert chips
             inert: readMetrics('inert'),
         };
     });
+    const underlinePixels = await readVisibleUnderlinePixels(page);
 
     expect(metrics.activated.chipHeight).toBe(metrics.inert.chipHeight);
     expect(metrics.activated.lineHeight).toBe(metrics.inert.lineHeight);
     expect(Math.abs(metrics.activated.chipTop - metrics.inert.chipTop)).toBeLessThanOrEqual(0.5);
-    expect(Math.abs(metrics.activated.labelTextOffset)).toBeLessThanOrEqual(0.25);
-    expect(Math.abs(metrics.inert.labelTextOffset)).toBeLessThanOrEqual(0.25);
-    expect(Math.abs(metrics.activated.markTextOffset)).toBeLessThanOrEqual(0.75);
-    expect(Math.abs(metrics.inert.markTextOffset)).toBeLessThanOrEqual(0.75);
+    // Font metrics differ between the headless Linux browser and the macOS app.
+    // The wrapper alignment is the portable contract; these bounds still catch
+    // the five-pixel lift caused by the former baseline-aligned wrapper.
+    expect(Math.abs(metrics.activated.labelTextOffset)).toBeLessThanOrEqual(2.25);
+    expect(Math.abs(metrics.inert.labelTextOffset)).toBeLessThanOrEqual(2.25);
+    expect(Math.abs(metrics.activated.markTextOffset)).toBeLessThanOrEqual(2.75);
+    expect(Math.abs(metrics.inert.markTextOffset)).toBeLessThanOrEqual(2.75);
+    expect(metrics.inert.lineHeight).toBeLessThanOrEqual(27);
     expect(metrics.inert).toMatchObject({
         chipFontSize: '15px',
         chipHeight: 18,
@@ -297,8 +313,126 @@ test('reference labels align with surrounding text for activated and inert chips
         chipPaddingEnd: '0px',
         chipPaddingStart: '0px',
         gap: '3.75px',
-        lineHeight: 24,
+        labelBackgroundSize: '3.6px 1.8px',
+        labelFontWeight: '700',
+        labelPaddingBottom: '3px',
+        labelTransform: 'none',
         markHeight: 18,
+        referenceVerticalAlign: 'middle',
+    });
+    expect(metrics.inert.labelBackgroundImage).not.toBe('none');
+    expect(underlinePixels.visibleInkPixels).toBeGreaterThan(12);
+
+    await page.close();
+});
+
+test('cursor hover cards track and exit without motion', async () => {
+    const page = await newGeometryPage(`
+        <style>${defaultThemeCss}</style>
+        <div
+            class="hover-card__content cursor-hover-card"
+            data-exiting="true"
+            id="hover-card"
+            style="--cursor-hover-x: 12px; --cursor-hover-y: -4px"
+        ></div>
+    `);
+
+    const motion = await page.evaluate(() => {
+        const card = document.getElementById('hover-card');
+
+        if (!(card instanceof HTMLElement)) {
+            throw new Error('Missing cursor hover-card target.');
+        }
+
+        const style = getComputedStyle(card);
+        return {
+            animationName: style.animationName,
+            transitionDuration: style.transitionDuration,
+            transitionProperty: style.transitionProperty,
+            translate: style.translate,
+        };
+    });
+
+    expect(motion).toEqual({
+        animationName: 'none',
+        transitionDuration: '0s',
+        transitionProperty: 'none',
+        translate: '12px -4px',
+    });
+
+    await page.close();
+});
+
+test('contrast cursor hover cards stay dark in both app themes', async () => {
+    const page = await newGeometryPage(`
+        <style>
+            :root {
+                --eclipse: oklch(21.03% 0.0059 285.89);
+                --snow: oklch(99.11% 0 0);
+            }
+            ${defaultThemeCss}
+            .hover-card__content {
+                background: var(--overlay);
+                color: var(--overlay-foreground);
+            }
+        </style>
+        <div class="light" id="light">
+            <div class="hover-card__content cursor-hover-card--contrast reference-hover-card">
+                <div class="reference-hover-card__identity">Channel</div>
+                <div class="reference-hover-card__faces"><span class="avatar"></span></div>
+            </div>
+        </div>
+        <div class="dark" data-theme="dark" id="dark">
+            <div class="hover-card__content cursor-hover-card--contrast reference-hover-card">
+                <div class="reference-hover-card__identity">Skill</div>
+                <div class="reference-hover-card__faces"><span class="avatar"></span></div>
+            </div>
+        </div>
+    `);
+
+    const appearances = await page.evaluate(() => {
+        const getAppearance = (id: string) => {
+            const card = document.querySelector(`#${id} .hover-card__content`);
+            if (!(card instanceof HTMLElement)) {
+                throw new Error(`Missing contrast hover-card target ${id}.`);
+            }
+
+            const style = getComputedStyle(card);
+            const identity = card.querySelector('.reference-hover-card__identity');
+            const faces = card.querySelector('.reference-hover-card__faces');
+            const mark = card.querySelector('.reference-hover-card__faces .avatar');
+            const cardBounds = card.getBoundingClientRect();
+            const identityBounds = identity?.getBoundingClientRect();
+            const facesBounds = faces?.getBoundingClientRect();
+            return {
+                backgroundColor: style.backgroundColor,
+                color: style.color,
+                colorScheme: style.colorScheme,
+                facesInset: facesBounds === undefined ? null : facesBounds.left - cardBounds.left,
+                identityInset:
+                    identityBounds === undefined ? null : identityBounds.left - cardBounds.left,
+                markSeparator: mark === null ? null : getComputedStyle(mark).boxShadow,
+                padding: style.padding,
+            };
+        };
+
+        return {
+            dark: getAppearance('dark'),
+            light: getAppearance('light'),
+        };
+    });
+
+    expect(appearances.dark).toEqual(appearances.light);
+    expect(appearances.light).toEqual({
+        backgroundColor: 'oklch(0.2103 0.0059 285.89)',
+        color: 'oklch(0.9911 0 0)',
+        colorScheme: 'dark',
+        // Both mark columns start on the same optical edge, and each stacked
+        // mark is ringed in the card's own surface so overlaps stay legible.
+        facesInset: 10.25,
+        identityInset: 10.25,
+        markSeparator: 'oklch(0.2103 0.0059 285.89) 0px 0px 0px 2px',
+        padding: '11.25px',
     });
 
     await page.close();
@@ -311,6 +445,7 @@ test('channel reference labels use the configured channel color', async () => {
             kind="chat"
             label="product"
             metadata={{ chatColor: 'violet', chatIcon: 'RocketIcon' }}
+            preview
         />
     );
     const page = await newGeometryPage(`
@@ -454,10 +589,58 @@ async function newGeometryPage(body: string): Promise<Page> {
     return page;
 }
 
+async function readVisibleUnderlinePixels(page: Page) {
+    const screenshot = await page
+        .locator('#inert [data-slot="chip-label"]')
+        .screenshot({ animations: 'disabled' });
+    const source = `data:image/png;base64,${screenshot.toString('base64')}`;
+
+    return page.evaluate(async (imageSource) => {
+        const image = new Image();
+        image.src = imageSource;
+        await image.decode();
+
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const context = canvas.getContext('2d');
+
+        if (!context) {
+            throw new Error('Missing pixel inspection context.');
+        }
+
+        context.drawImage(image, 0, 0);
+        const pixels = context.getImageData(0, 0, image.width, image.height).data;
+        const firstUnderlineRow = Math.max(0, image.height - 6);
+        let visibleInkPixels = 0;
+
+        for (let y = firstUnderlineRow; y < image.height; y += 1) {
+            for (let x = 0; x < image.width; x += 1) {
+                const offset = (y * image.width + x) * 4;
+                const red = pixels[offset] ?? 255;
+                const green = pixels[offset + 1] ?? 255;
+                const blue = pixels[offset + 2] ?? 255;
+                const alpha = pixels[offset + 3] ?? 0;
+                const brightness = (red + green + blue) / 3;
+
+                if (alpha > 128 && brightness < 200) {
+                    visibleInkPixels += 1;
+                }
+            }
+        }
+
+        return {
+            height: image.height,
+            visibleInkPixels,
+            width: image.width,
+        };
+    }, source);
+}
+
 const baseTextCss = `
     body {
         margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: ui-sans-serif, system-ui, sans-serif;
         font-size: 14px;
     }
 
@@ -541,7 +724,7 @@ const referenceChipCss = `
     .reference-line {
         margin: 24px;
         font-size: 15px;
-        line-height: 24px;
+        line-height: 1.625;
     }
 
     .inline-flex {

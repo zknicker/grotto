@@ -61,6 +61,7 @@ test('applies desired runtime and model without waiting for the first turn', asy
             grottoAgentVersion: null,
             missingResources: [],
             modelId: 'gpt-5.6-sol',
+            reasoningEffort: 'high',
             runtimeId: 'codex',
         },
     ]);
@@ -143,6 +144,7 @@ test('reports a missing desired model instead of substituting one', async () => 
             grottoAgentVersion: null,
             missingResources: ['model:missing-model'],
             modelId: null,
+            reasoningEffort: 'medium',
             runtimeId: 'codex',
         },
     ]);

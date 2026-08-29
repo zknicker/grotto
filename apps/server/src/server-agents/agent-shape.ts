@@ -27,6 +27,7 @@ export interface ConfiguredAgentRow {
     effectiveGrottoAgentVersion: string | null;
     effectiveMissing: string[] | null;
     effectiveModelId: string | null;
+    effectiveReasoningEffort: AgentReasoningEffort | null;
     effectiveReportedAt: Date | null;
     effectiveRuntimeId: string | null;
     factoryKind: 'cove' | 'ordinary';
@@ -40,7 +41,7 @@ export interface ConfiguredAgentRow {
 /**
  * Desired state is pending until the Computer reports a matching effective
  * snapshot. A reported snapshot with missing local resources is degraded, and
- * Grotto never substitutes a different runtime or model to hide the gap.
+ * Grotto never substitutes a different execution configuration to hide the gap.
  */
 export function deriveAgentStatus(row: ConfiguredAgentRow): AgentStatus {
     if (!row.effectiveReportedAt) {
@@ -53,7 +54,8 @@ export function deriveAgentStatus(row: ConfiguredAgentRow): AgentStatus {
 
     const matches =
         row.effectiveRuntimeId === row.desiredRuntimeId &&
-        row.effectiveModelId === row.desiredModelId;
+        row.effectiveModelId === row.desiredModelId &&
+        row.effectiveReasoningEffort === row.desiredReasoningEffort;
 
     return matches ? 'applied' : 'pending';
 }
@@ -93,6 +95,7 @@ export function toAgent(row: ConfiguredAgentRow): Agent {
         displayName: row.displayName,
         dmChatId: row.dmChatId,
         effectiveModelId: row.effectiveModelId,
+        effectiveReasoningEffort: row.effectiveReasoningEffort,
         effectiveReportedAt: row.effectiveReportedAt?.toISOString() ?? null,
         effectiveRuntimeId: row.effectiveRuntimeId,
         factoryKind: row.factoryKind,

@@ -52,7 +52,10 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   memberships, Reminders, Tools for MCP access and Skills, and Workspace.
 - Member lists stay lightweight; Agent and human profile routes load one focused
   detail record so profile refreshes do not rebuild the directory.
-- Clicking an Agent avatar in Chat opens the same Agent profile context.
+- Clicking an Agent avatar in Chat opens the same Agent profile context. Hover
+  or keyboard focus previews the Agent's current availability, compact
+  runtime/model/reasoning configuration, and newest durable activity;
+  Agent reference chips use the same preview.
 - Profile edits identity and desired model/runtime configuration.
 - Skills are independent Agent-owned copies. An Owner or Admin imports a host
   bundle into one Agent library from the Agent profile.

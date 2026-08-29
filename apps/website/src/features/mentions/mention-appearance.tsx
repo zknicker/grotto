@@ -9,7 +9,6 @@ import {
     Image01Icon,
     MagicWand01Icon,
     PlugIcon,
-    SparklesIcon,
     UserIcon,
 } from '@hugeicons-pro/core-solid-rounded';
 import { Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
@@ -18,6 +17,7 @@ import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import { formatSkillName } from '../skills/skill-name-format.ts';
+import { AiSparklesIcon } from './ai-sparkles-icon.ts';
 import type { ReferenceKind } from './mention-types.ts';
 
 const mentionIconKeys = [
@@ -107,7 +107,7 @@ const mentionIconMap = {
     github: Github01Icon,
     image: Image01Icon,
     plugin: PlugIcon,
-    skill: SparklesIcon,
+    skill: AiSparklesIcon,
     unknown: MagicWand01Icon,
     user: UserIcon,
     website: Globe02Icon,
@@ -129,19 +129,22 @@ export function MentionAppearanceIcon({
     className,
     iconDataUrl,
     icon,
+    size = 'reference',
 }: {
     agentAvatar?: MentionAppearance['agentAvatar'];
     channelAppearance?: MentionAppearance['channelAppearance'];
     className?: string;
     iconDataUrl?: string;
     icon: MentionIconKey;
+    size?: 'preview' | 'reference';
 }) {
     if (agentAvatar) {
+        const avatarSize = size === 'preview' ? 44 : 18;
         return (
             <EntityAvatar
                 className={className}
                 name={agentAvatar.name}
-                size={18}
+                size={avatarSize}
                 src={agentAvatar.src}
             />
         );
@@ -153,7 +156,7 @@ export function MentionAppearanceIcon({
                 className={className}
                 color={channelAppearance.color}
                 icon={channelAppearance.icon}
-                size="reference"
+                size={size}
             />
         );
     }

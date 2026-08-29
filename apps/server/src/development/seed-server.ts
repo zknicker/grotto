@@ -465,6 +465,7 @@ function demoAgent(agent: {
         effectiveGrottoAgentVersion: grottoAgentVersion,
         effectiveMissing: [],
         effectiveModelId: agent.modelId,
+        effectiveReasoningEffort: 'medium' as const,
         effectiveReportedAt: agent.reportedAt,
         effectiveRuntimeId: 'codex',
         handle: agent.handle,

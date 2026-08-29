@@ -9,25 +9,34 @@ import {
 } from './mention-appearance.tsx';
 import { getMentionChipColor } from './mention-chip-color.ts';
 import type { ReferenceActivation, ReferenceKind } from './mention-types.ts';
+import { isPreviewReference, ReferenceHoverCard } from './reference-hover-card.tsx';
 
 export function ReferenceChip({
+    chatId,
     className,
     id,
     kind,
     label,
     metadata,
     onActivate,
+    preview = false,
+    serverId,
 }: {
+    chatId?: string;
     className?: string;
     id: string;
     kind: ReferenceKind;
     label: string;
     metadata?: Record<string, unknown>;
     onActivate?: ReferenceActivation;
+    preview?: boolean;
+    serverId?: string;
 }) {
     const appearance = getMentionAppearance({ id, kind, label, metadata });
     const displayLabel = getMentionDisplayLabel({ id, kind, label, metadata });
     const activationTarget = { id, kind, label, metadata };
+    const previewable = preview && isPreviewReference(kind, id);
+    const activatable = Boolean(onActivate && (kind === 'agent' || kind === 'chat'));
     const chipColor = getMentionChipColor(kind);
     const brandForeground = chipColor === 'default' ? appearance.brandColor : undefined;
     const channelColorStyle = appearance.channelAppearance
@@ -45,13 +54,14 @@ export function ReferenceChip({
             className={cn(
                 'reference-chip max-w-full whitespace-nowrap align-middle',
                 kind === 'chat' && 'reference-chip--channel',
+                kind === 'skill' && 'reference-chip--skill',
                 className
             )}
             color={chipColor}
             contentEditable={false}
             size="md"
             style={chipStyle}
-            title={displayLabel}
+            title={previewable ? undefined : displayLabel}
             variant="tertiary"
         >
             <MentionAppearanceIcon
@@ -59,27 +69,54 @@ export function ReferenceChip({
                 channelAppearance={appearance.channelAppearance}
                 className={cn(
                     'reference-chip__mark',
-                    appearance.agentAvatar ? undefined : 'size-[18px] shrink-0 opacity-90'
+                    appearance.agentAvatar
+                        ? undefined
+                        : cn(
+                              'shrink-0 opacity-90',
+                              kind === 'skill' ? 'size-[16px]' : 'size-[18px]'
+                          )
                 )}
                 icon={appearance.icon}
                 iconDataUrl={appearance.iconDataUrl}
             />
-            <Chip.Label className="min-w-0 truncate font-semibold">{displayLabel}</Chip.Label>
+            <Chip.Label className="min-w-0 truncate">{displayLabel}</Chip.Label>
         </Chip>
     );
 
-    if (!onActivate || (kind !== 'agent' && kind !== 'chat')) {
+    if (!(previewable || activatable)) {
         return chip;
     }
 
-    return (
+    const trigger = (
         <button
-            aria-label={`Open ${displayLabel}`}
-            className="inline-flex max-w-full cursor-(--cursor-interactive) rounded-lg align-middle outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            onClick={() => onActivate(activationTarget)}
+            aria-label={`${activatable ? 'Open' : 'Preview'} ${displayLabel}`}
+            className="reference-chip-trigger inline-flex max-w-full cursor-(--cursor-interactive) rounded-lg align-middle outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            onClick={
+                activatable
+                    ? () => {
+                          onActivate?.(activationTarget);
+                      }
+                    : undefined
+            }
             type="button"
         >
             {chip}
         </button>
+    );
+
+    return previewable ? (
+        <ReferenceHoverCard
+            appearance={appearance}
+            chatId={chatId}
+            displayLabel={displayLabel}
+            id={id}
+            kind={kind}
+            metadata={metadata}
+            serverId={serverId}
+        >
+            {trigger}
+        </ReferenceHoverCard>
+    ) : (
+        trigger
     );
 }

@@ -24,13 +24,13 @@ Chat record. PostgreSQL creates the canonical human membership-stint↔Agent Cha
 only in the same transaction as the first durable write. Materialized history
 stays id-bound after retirement while the implicit roster entry disappears.
 
-Server stores bounded turn summaries and effective-state reports needed for product presentation.
+Server stores bounded turn summaries and Computer-reported effective runtime, model, and reasoning
+effort needed for truthful product presentation.
 `computer_system_events` is the durable operational log for each Computer. Server records observed
 connections and disconnections; Computer reports a bounded, idempotent outbox of state-changing
-management commands. Server does not ingest
-provider credentials, full prompts, execution transcripts, arbitrary tool traces, or Agent
-workspace contents. Computer state is not a substitute for canonical Chat history, and App cache is
-never authoritative.
+management commands. Server does not ingest provider credentials, full prompts, execution
+transcripts, arbitrary tool traces, or Agent workspace contents. Computer state is not a substitute
+for canonical Chat history, and App cache is never authoritative.
 
 The Agent row stores Computer's last applied Grotto Agent version, application timestamp, and
 pending/current/failed status. These fields are a product-facing release receipt, not the underlying

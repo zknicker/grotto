@@ -80,12 +80,13 @@ export function getChannelColorStyle(
     const theme = getChannelColorTheme(color);
 
     return {
-        '--channel-color-bg-active-dark': colorMix(theme.darkValue, 24),
-        '--channel-color-bg-active-light': colorMix(theme.lightValue, 20),
-        '--channel-color-bg-dark': colorMix(theme.darkValue, 13),
-        '--channel-color-bg-hover-dark': colorMix(theme.darkValue, 20),
-        '--channel-color-bg-hover-light': colorMix(theme.lightValue, 16),
-        '--channel-color-bg-light': colorMix(theme.lightValue, 11),
+        '--channel-color-bg-active-dark': colorMix(theme.darkValue, 30),
+        '--channel-color-bg-active-light': colorMix(theme.lightValue, 28),
+        '--channel-color-bg-dark': colorMix(theme.darkValue, 22),
+        '--channel-color-bg-hover-dark': colorMix(theme.darkValue, 26),
+        '--channel-color-bg-hover-light': colorMix(theme.lightValue, 24),
+        '--channel-color-bg-light': colorMix(theme.lightValue, 20),
+        '--channel-color-bg-sidebar-light': colorMix(theme.lightValue, 17),
         '--channel-color-dark': theme.darkValue,
         '--channel-color-light': theme.lightValue,
     };

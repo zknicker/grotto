@@ -79,13 +79,16 @@ All surfaces render one shared reference chip component built on HeroUI
 kind registry owns icons, labels, colors, and fallbacks so new reference types
 do not add conditionals to chat renderers or introduce another chip primitive.
 References use the transparent tertiary shell, inherit the surrounding text's
-size, and carry an 18px identity mark plus a semibold label. Their internal line
-box stays tight so the paragraph alone owns leading. They add no outer padding;
-the message's ordinary spaces own paragraph rhythm, and one theme spacing step
-separates the identity mark from the label. The label is optically raised by
-`0.1em` to align its text with the surrounding paragraph baseline, and the
-fixed-size mark is raised by 1.5px. Agent labels use the accent (blue) foreground, Skill
-labels use warning (gold), and chat labels use the Channel's configured color.
+size, and carry an 18px identity mark—16px for the compact three-sparkle Skill
+mark—plus a bold label with a dotted underline in the reference's identity
+color. Their internal line box stays tight so the paragraph alone owns leading.
+They add no outer padding; the message's ordinary spaces own paragraph rhythm,
+and one theme spacing step separates the identity mark from the label. The
+fixed-size mark is optically raised by 1.5px. The label reserves underline space inside its own box so
+truncation cannot clip the treatment; its dot size and spacing scale with the
+surrounding type. Agent labels use the accent (blue) foreground, Skill
+labels use a dedicated purple identity color, and chat labels use the Channel's
+configured color.
 The reference shell has no background. A Channel identity mark retains the
 Channel's own colored box.
 Agent chips show the Agent's avatar; transcript surfaces resolve it live from
@@ -94,6 +97,21 @@ uses the live Agent display name, with the persisted Markdown label as fallback.
 embeds the same appearance in local option metadata at pick time because
 composer chips mount outside app providers. An Agent with no uploaded avatar
 shows its initials; unknown Agents fall back to the generic Agent icon.
+
+Agent, Chat, and Skill references in transcript/read surfaces are focusable
+preview controls; composer references remain inert editor nodes. Hover and focus
+use HeroUI Pro HoverCard rather than a text-only Tooltip. It opens and closes
+without a hover delay. Fine mouse pointers offset the card directly toward the
+pointer without replacing HeroUI's anchor, collision, portal, or focus lifecycle. Keyboard focus, touch input, and
+reduced motion retain ordinary anchored placement. Agent previews resolve the
+current Agent record and newest persisted activity lazily while open; Chat and
+Skill previews share one compact identity header — mark, title, and one muted
+`·` clause — and size to their content up to a shared maximum measure. A Chat
+preview's clause is its last activity, and its participant faces render below as
+a ringed overlapping stack; a Skill preview's clause is its kind, above its
+current description. The reference content
+strengthens slightly on hover and focus, deepening in the light theme and
+brightening in the dark theme.
 
 Settled transcript content renders through HeroUI Markdown. Typed Grotto links
 are projected into reference chips without changing the stored Markdown. Agent

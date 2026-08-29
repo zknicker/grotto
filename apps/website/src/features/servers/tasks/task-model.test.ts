@@ -243,6 +243,7 @@ function agent(): Agent {
         displayName: 'Fen',
         dmChatId: null,
         effectiveModelId: null,
+        effectiveReasoningEffort: null,
         effectiveReportedAt: null,
         effectiveRuntimeId: null,
         factoryKind: 'ordinary',

@@ -40,6 +40,7 @@ export async function queryAgents(
             effectiveGrottoAgentVersion: agentsTable.effectiveGrottoAgentVersion,
             effectiveMissing: agentsTable.effectiveMissing,
             effectiveModelId: agentsTable.effectiveModelId,
+            effectiveReasoningEffort: agentsTable.effectiveReasoningEffort,
             effectiveReportedAt: agentsTable.effectiveReportedAt,
             effectiveRuntimeId: agentsTable.effectiveRuntimeId,
             factoryKind: agentsTable.factoryKind,

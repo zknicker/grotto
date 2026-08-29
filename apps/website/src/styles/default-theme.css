@@ -464,21 +464,173 @@
     }
 
     .chip.reference-chip .chip__label {
-        padding: 0;
-        transform: translateY(-0.1em);
+        padding: 0 0 0.2em;
+        font-weight: 700;
+        background-image: radial-gradient(circle, currentColor 0.06em, transparent 0.07em);
+        background-position: left bottom;
+        background-repeat: repeat-x;
+        background-size: 0.24em 0.12em;
     }
 
     .chip.reference-chip .reference-chip__mark {
         transform: translateY(-1.5px);
     }
 
+    /*
+     * Hover strengthens a reference by moving it *away* from its ground: dark
+     * text sits on a light page, so light deepens and saturates; dark mode's
+     * light-on-dark brightens. One brightness(1.16) for both themes washed
+     * light-mode references out on the exact gesture meant to emphasize them.
+     */
+    .reference-chip-trigger:hover .chip.reference-chip,
+    .reference-chip-trigger:focus-visible .chip.reference-chip {
+        filter: brightness(0.94) saturate(1.2);
+    }
+
+    [data-theme='dark'] .reference-chip-trigger:hover .chip.reference-chip,
+    .dark .reference-chip-trigger:hover .chip.reference-chip,
+    [data-theme='dark'] .reference-chip-trigger:focus-visible .chip.reference-chip,
+    .dark .reference-chip-trigger:focus-visible .chip.reference-chip {
+        filter: brightness(1.16);
+    }
+
+    /*
+     * HeroUI keeps ownership of the hover card's anchor, portal, collision
+     * handling, and focus lifecycle. The individual translate property adds
+     * pointer-following motion without replacing React Aria's placement
+     * transform; cursor cards deliberately skip enter/exit animation.
+     */
+    .hover-card__content.cursor-hover-card {
+        translate: var(--cursor-hover-x, 0) var(--cursor-hover-y, 0);
+        transition: none;
+        will-change: translate;
+    }
+
+    .hover-card__content.cursor-hover-card[data-entering="true"],
+    .hover-card__content.cursor-hover-card[data-exiting="true"] {
+        animation: none;
+    }
+
+    /*
+     * Channel and Skill previews are deliberately dark reference surfaces in
+     * both app themes. Rebind the semantic colors at the adapter boundary so
+     * HeroUI content and nested Chips keep their stock styling and contrast.
+     */
+    .hover-card__content.cursor-hover-card--contrast {
+        color-scheme: dark;
+        --default: oklch(27.4% 0.006 286.033);
+        --default-foreground: var(--snow);
+        --foreground: var(--snow);
+        --muted: oklch(70.5% 0.015 286.067);
+        --overlay: var(--eclipse);
+        --overlay-foreground: var(--snow);
+        --skill-reference: var(--color-purple-400);
+    }
+
+    /*
+     * Compact reference previews use a tighter surface inset than Agent
+     * previews. Their mark columns — the identity row and the participant
+     * stack — hang one pixel into that inset to cancel the icon view box and
+     * line-box whitespace, so both start on the same optical edge; supporting
+     * copy keeps the true content edge.
+     */
+    .hover-card__content.reference-hover-card {
+        padding: calc(var(--spacing) * 3);
+    }
+
+    .reference-hover-card__identity {
+        position: relative;
+        inset-block-start: -1px;
+        inset-inline-start: -1px;
+    }
+
+    .reference-hover-card__faces {
+        margin-inline-start: -1px;
+    }
+
+    /*
+     * Overlapping identity marks need the surface between them or the stack
+     * smears into one shape. HeroUI composes an avatar group by ringing each
+     * mark in the surface behind it, which on this card is the overlay the
+     * contrast tone already rebinds.
+     */
+    .reference-hover-card__faces .avatar {
+        box-shadow: 0 0 0 2px var(--overlay);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .hover-card__content.cursor-hover-card {
+            translate: 0 0;
+        }
+    }
+
+    /*
+     * The Channel appearance contract: box, glyph, and label resolve the
+     * Channel palette per theme in one place. The always-dark reference
+     * preview rebinds semantic tokens without the `.dark` class, so the dark
+     * branch is keyed on that card too — Tailwind `dark:` variants at the
+     * component could never follow it, and left a configured Channel's
+     * light-theme ink on the card's near-black ground.
+     *
+     * A colorless Channel falls back to a translucent foreground wash, not
+     * `--default`: the sidebar row's hover and current fills *are*
+     * `--default`, and the chat turn's hover wash sits in the same band, so
+     * an opaque box built from it vanished into the exact states meant to
+     * emphasize the row. An alpha wash composites over whatever fill sits
+     * beneath and keeps its step in every state — the same mechanism the
+     * configured presets use. The glyph and label lean on foreground for the
+     * strength of a configured Channel's color; `--muted` read as a caption
+     * beside accent Agent and purple Skill references.
+     */
+    .channel-icon-box {
+        background-color: var(
+            --channel-color-bg-light,
+            color-mix(in srgb, var(--foreground) 16%, transparent)
+        );
+        color: var(--channel-color-light, color-mix(in srgb, var(--foreground) 86%, transparent));
+    }
+
+    [data-theme='dark'] .channel-icon-box,
+    .dark .channel-icon-box,
+    .cursor-hover-card--contrast .channel-icon-box {
+        background-color: var(
+            --channel-color-bg-dark,
+            color-mix(in srgb, var(--foreground) 18%, transparent)
+        );
+        color: var(--channel-color-dark, color-mix(in srgb, var(--foreground) 90%, transparent));
+    }
+
+    /*
+     * The sidebar mark is 24px rather than the reference mark's 18px, so the
+     * same fill carries more visual mass against the light theme's distinct
+     * sidebar ground. Give only that named variant a quieter light-mode step;
+     * its translucent wash still compounds cleanly over HeroUI's menu hover
+     * and current surfaces. Dark uses one ground across sidebar and content,
+     * so it keeps the shared Channel fill.
+     */
+    [data-theme='light'] .channel-icon-box--sidebar {
+        background-color: var(
+            --channel-color-bg-sidebar-light,
+            color-mix(in srgb, var(--foreground) 14%, transparent)
+        );
+    }
+
     .chip.reference-chip--channel {
-        --chip-fg: var(--channel-color-light, var(--muted));
+        --chip-fg: var(--channel-color-light, var(--foreground));
+    }
+
+    .chip.reference-chip--skill {
+        --chip-fg: var(--skill-reference);
+    }
+
+    /* The three-sparkle glyph carries extra empty space on its inline end. */
+    .chip.reference-chip--skill .reference-chip__mark {
+        margin-inline-end: calc(var(--spacing) * -0.5);
     }
 
     [data-theme="dark"] .chip.reference-chip--channel,
     .dark .chip.reference-chip--channel {
-        --chip-fg: var(--channel-color-dark, var(--muted));
+        --chip-fg: var(--channel-color-dark, var(--foreground));
     }
 
     /*

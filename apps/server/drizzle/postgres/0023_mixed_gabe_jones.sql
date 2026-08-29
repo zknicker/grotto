@@ -1,0 +1,2 @@
+ALTER TABLE "agents" ADD COLUMN "effective_reasoning_effort" text;--> statement-breakpoint
+ALTER TABLE "agents" ADD CONSTRAINT "agents_effective_reasoning_effort" CHECK ("agents"."effective_reasoning_effort" is null or "agents"."effective_reasoning_effort" in ('low', 'medium', 'high'));

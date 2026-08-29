@@ -216,6 +216,7 @@ function agent(overrides: Pick<Agent, 'availability' | 'displayName' | 'id'>): A
         displayName: overrides.displayName,
         dmChatId: null,
         effectiveModelId: 'model_one',
+        effectiveReasoningEffort: 'medium',
         effectiveReportedAt: '2026-07-29T12:00:00.000Z',
         effectiveRuntimeId: 'runtime_one',
         factoryKind: 'ordinary',

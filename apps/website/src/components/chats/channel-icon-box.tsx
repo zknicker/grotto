@@ -7,46 +7,30 @@ import { useChannelIconGlyph } from './channel-icon-catalog.ts';
 // Sidebar and topbar boxes match the 24px agent avatars beside them, right
 // down to the shape: an exact box pairs its own radius, so a channel stays as
 // round as the Agents beside it at every scale step. `inline` serves compact
-// text rows, `reference` serves rich inline references, and `modal` fills a
-// Modal.Icon slot so a dialog header can preview the channel itself.
+// text rows, `reference` serves rich inline references and compact hover-card
+// titles, and `modal` fills a Modal.Icon slot so a dialog header can preview
+// the channel itself. `preview` matches the Agent identity mark.
+//
+// Variants carry geometry plus the sidebar's named surface role. Box and glyph
+// colors resolve per theme on the `channel-icon-box` classes in
+// `styles/default-theme.css`, where the sidebar can soften its larger mark and
+// the always-dark reference preview can rebind it — Tailwind's `dark:` variant
+// cannot.
 const channelIconBoxVariants = {
-    inline: {
-        boxSize: 20,
-        boxClassName:
-            'bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
-        iconSize: 14,
-    },
-    modal: {
-        boxClassName:
-            'size-10 rounded-3xl bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
-        iconSize: 20,
-    },
-    reference: {
-        boxSize: 18,
-        boxClassName:
-            'bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
-        iconSize: 13,
-    },
-    sidebar: {
-        // Fixed, not size-6: the box must hold the 24px Agent avatars' scale
-        // rather than shrinking with the sidebar's spacing token.
-        boxSize: 24,
-        boxClassName:
-            'bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
-        iconSize: 16,
-    },
-    topbar: {
-        boxSize: 24,
-        boxClassName:
-            'bg-[var(--channel-color-bg-light,var(--default))] text-[var(--channel-color-light,var(--muted))] dark:bg-[var(--channel-color-bg-dark,var(--default))] dark:text-[var(--channel-color-dark,var(--muted))]',
-        iconSize: 16,
-    },
+    inline: { boxSize: 20, iconSize: 14 },
+    modal: { boxClassName: 'size-10 rounded-3xl', iconSize: 20 },
+    preview: { boxSize: 44, iconSize: 22 },
+    reference: { boxSize: 18, iconSize: 13 },
+    // Fixed, not size-6: the box must hold the 24px Agent avatars' scale
+    // rather than shrinking with the sidebar's spacing token.
+    sidebar: { boxClassName: 'channel-icon-box--sidebar', boxSize: 24, iconSize: 16 },
+    topbar: { boxSize: 24, iconSize: 16 },
 } as const;
 
 /**
  * A channel's icon in its colored box. `icon` names a curated hugeicons export
  * and `color` a palette preset id; either one null renders the default hash in
- * a muted box.
+ * a neutral foreground-tinted box.
  */
 export function ChannelIconBox({
     className,
@@ -79,8 +63,8 @@ export function ChannelIconBox({
         <span
             aria-hidden="true"
             className={cn(
-                'flex shrink-0 items-center justify-center',
-                variant.boxClassName,
+                'channel-icon-box flex shrink-0 items-center justify-center',
+                'boxClassName' in variant ? variant.boxClassName : undefined,
                 className
             )}
             style={{ ...boxStyle, ...getChannelColorStyle(color) }}

@@ -21,6 +21,7 @@ export async function recordAgentEffectiveState(
             .set({
                 effectiveMissing: state.missingResources,
                 effectiveModelId: state.modelId,
+                effectiveReasoningEffort: state.reasoningEffort,
                 effectiveReportedAt: reportedAt,
                 effectiveRuntimeId: state.runtimeId,
             })

@@ -13,6 +13,7 @@ import { writeClipboardText } from '../../lib/clipboard.ts';
 import { formatShortTime } from '../../lib/format.ts';
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
+import { AgentHoverCard } from '../members/agent-hover-card.tsx';
 import { ActionTooltip } from './chat-action-tooltip.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import { useStreamingTextRanges } from './chat-streaming-text-ranges.ts';
@@ -542,18 +543,14 @@ function AgentTurnPresentation({
                     !showIdentity && followsRuntimeNotice && 'mt-0'
                 )}
             >
-                {chatId && actorId && profilePaneChatId && !actorProfile?.deleted ? (
-                    <button
-                        aria-label={`Agent details: ${displayName}`}
-                        className="shrink-0 cursor-(--cursor-interactive) self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                        onClick={() => openAgentProfilePane(profilePaneChatId, actorId)}
-                        type="button"
-                    >
-                        <AgentTurnAvatar name={displayName} profile={actorProfile} />
-                    </button>
-                ) : (
-                    <AgentTurnAvatar name={displayName} profile={actorProfile} />
-                )}
+                <AgentTurnProfileAvatar
+                    actorId={actorId}
+                    chatId={chatId}
+                    displayName={displayName}
+                    profile={actorProfile}
+                    profilePaneChatId={profilePaneChatId}
+                    serverId={turnDetails?.serverId}
+                />
                 <ChatMessage.Body className={transcriptTurnGeometry.body}>
                     {showIdentity ? (
                         <TurnHeader
@@ -602,6 +599,46 @@ function AgentTurnPresentation({
                 ) : null}
             </ChatMessage.Assistant>
         </MessageContextActionsProvider>
+    );
+}
+
+function AgentTurnProfileAvatar({
+    actorId,
+    chatId,
+    displayName,
+    profile,
+    profilePaneChatId,
+    serverId,
+}: {
+    actorId: string | null;
+    chatId?: string;
+    displayName: string;
+    profile: TranscriptActorProfile | null;
+    profilePaneChatId?: string;
+    serverId?: string;
+}) {
+    const avatar = <AgentTurnAvatar name={displayName} profile={profile} />;
+    if (!(chatId && actorId && profilePaneChatId) || profile?.deleted) {
+        return avatar;
+    }
+
+    const trigger = (
+        <button
+            aria-label={`Agent details: ${displayName}`}
+            className="shrink-0 cursor-(--cursor-interactive) self-start rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            onClick={() => openAgentProfilePane(profilePaneChatId, actorId)}
+            type="button"
+        >
+            {avatar}
+        </button>
+    );
+
+    return serverId && profile?.kind === 'agent' ? (
+        <AgentHoverCard agentId={actorId} agentName={displayName} serverId={serverId}>
+            {trigger}
+        </AgentHoverCard>
+    ) : (
+        trigger
     );
 }
 

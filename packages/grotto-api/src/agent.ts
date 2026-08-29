@@ -111,9 +111,10 @@ export { agentReasoningEffortSchema } from './agent-execution.ts';
 
 /**
  * `pending` — no Computer-reported effective snapshot matches the desired
- * runtime/model yet. `applied` — the Computer reports the exact desired
- * runtime and model with nothing missing. `degraded` — the Computer reports
- * missing local resources; Grotto never substitutes another runtime or model.
+ * runtime, model, and reasoning effort yet. `applied` — the Computer reports
+ * the exact desired execution configuration with nothing missing. `degraded`
+ * — the Computer reports missing local resources; Grotto never substitutes a
+ * different execution configuration.
  */
 export const agentStatusSchema = z.enum(['applied', 'degraded', 'pending']);
 
@@ -179,6 +180,7 @@ export const agentSchema = z
         displayName: z.string(),
         dmChatId: idSchema.nullable(),
         effectiveModelId: z.string().nullable(),
+        effectiveReasoningEffort: agentReasoningEffortSchema.nullable(),
         effectiveReportedAt: timestampSchema.nullable(),
         effectiveRuntimeId: z.string().nullable(),
         factoryKind: z.enum(['cove', 'ordinary']),
@@ -470,15 +472,16 @@ export type AgentDeliveriesInput = z.infer<typeof agentDeliveriesInputSchema>;
 export const agentDeliveriesSchema = z.array(agentDeliveryRecordSchema);
 
 /**
- * One Agent's Computer-reported effective state. A null runtime or model means
- * the Computer could not resolve the desired resource; `missingResources`
- * names each missing runtime, model, skill, or connection.
+ * One Agent's Computer-reported effective state. A null execution field means
+ * the Computer cannot prove that applied value; `missingResources` names each
+ * missing runtime, model, skill, or connection.
  */
 export const agentEffectiveStateSchema = z
     .object({
         agentId: idSchema,
         missingResources: z.array(z.string().trim().min(1).max(200)).max(50).default([]),
         modelId: z.string().trim().min(1).max(128).nullable(),
+        reasoningEffort: agentReasoningEffortSchema.nullable().default(null),
         runtimeId: z.string().trim().min(1).max(64).nullable(),
     })
     .strict();

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ConfiguredAgentRow } from '../src/server-agents/agent-shape.ts';
-import { deriveAgentAvailability } from '../src/server-agents/agent-shape.ts';
+import { deriveAgentAvailability, deriveAgentStatus } from '../src/server-agents/agent-shape.ts';
 
 const base: ConfiguredAgentRow = {
     activeRunId: null,
@@ -12,13 +12,16 @@ const base: ConfiguredAgentRow = {
     createdByUserId: null,
     description: null,
     desiredModelId: 'gpt-5.6-sol',
+    desiredReasoningEffort: 'medium',
     desiredRuntimeId: 'codex',
     displayName: 'Cove',
     dmChatId: null,
     effectiveMissing: [],
     effectiveModelId: 'gpt-5.6-sol',
+    effectiveReasoningEffort: 'medium',
     effectiveReportedAt: new Date('2026-07-28T00:00:00Z'),
     effectiveRuntimeId: 'codex',
+    factoryKind: 'ordinary',
     handle: 'sage',
     id: 'agt_1234567890123456',
     role: 'member',
@@ -41,5 +44,16 @@ describe('Agent availability', () => {
         expect(deriveAgentAvailability({ ...base, stopped: true })).toBe('stopped');
         expect(deriveAgentAvailability({ ...base, consecutiveFailures: 1 })).toBe('error');
         expect(deriveAgentAvailability(base)).toBe('idle');
+    });
+});
+
+describe('Agent configuration status', () => {
+    test('stays pending while the applied reasoning effort differs from desired state', () => {
+        expect(
+            deriveAgentStatus({
+                ...base,
+                desiredReasoningEffort: 'high',
+            })
+        ).toBe('pending');
     });
 });

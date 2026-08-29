@@ -12,17 +12,28 @@ const markdownLinkPattern = /\[([^\]\n]+)\]\(([^)\n]+)\)/gu;
 type PreparedLink = { href: string; kind: 'resource' } | { kind: 'reference'; reference: Mention };
 
 interface ReferenceMarkdownProps {
+    chatId?: string;
     className?: string;
     content: string;
     mentions?: readonly Mention[];
     onReferenceActivate?: ReferenceActivation;
+    previewReferences?: boolean;
+    serverId?: string;
 }
 
 // A rendered message re-parses its whole markdown source on every render, and
 // a transcript re-renders far more often than its history changes. Callers
 // re-read mentions from the same text each time, so equality is by value.
 export const ReferenceMarkdown = React.memo(
-    ({ className, content, mentions, onReferenceActivate }: ReferenceMarkdownProps) => {
+    ({
+        className,
+        chatId,
+        content,
+        mentions,
+        onReferenceActivate,
+        previewReferences,
+        serverId,
+    }: ReferenceMarkdownProps) => {
         const prepared = prepareMarkdownReferences(content, mentions);
 
         return (
@@ -31,9 +42,12 @@ export const ReferenceMarkdown = React.memo(
                 components={{
                     a: ({ children, href }) => (
                         <ReferenceLink
+                            chatId={chatId}
                             href={href}
                             links={prepared.links}
                             onReferenceActivate={onReferenceActivate}
+                            previewReferences={previewReferences}
+                            serverId={serverId}
                         >
                             {children}
                         </ReferenceLink>
@@ -46,9 +60,12 @@ export const ReferenceMarkdown = React.memo(
     },
     (previous, next) =>
         previous.className === next.className &&
+        previous.chatId === next.chatId &&
         previous.content === next.content &&
         areMentionsEqual(previous.mentions, next.mentions) &&
-        previous.onReferenceActivate === next.onReferenceActivate
+        previous.onReferenceActivate === next.onReferenceActivate &&
+        previous.previewReferences === next.previewReferences &&
+        previous.serverId === next.serverId
 );
 
 ReferenceMarkdown.displayName = 'ReferenceMarkdown';
@@ -101,14 +118,20 @@ export function prepareMarkdownReferences(content: string, suppliedMentions?: re
 
 function ReferenceLink({
     children,
+    chatId,
     href,
     links,
     onReferenceActivate,
+    previewReferences,
+    serverId,
 }: {
     children: React.ReactNode;
+    chatId?: string;
     href?: string;
     links: ReadonlyMap<string, PreparedLink>;
     onReferenceActivate?: ReferenceActivation;
+    previewReferences?: boolean;
+    serverId?: string;
 }) {
     const prepared = href ? links.get(href) : undefined;
 
@@ -116,11 +139,14 @@ function ReferenceLink({
         const reference = prepared.reference;
         return (
             <ReferenceChip
+                chatId={chatId}
                 id={reference.id}
                 kind={reference.kind}
                 label={reference.label}
                 metadata={reference.metadata}
                 onActivate={onReferenceActivate}
+                preview={previewReferences}
+                serverId={serverId}
             />
         );
     }

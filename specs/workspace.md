@@ -27,21 +27,30 @@ The seed establishes only that minimal starting point and never overwrites an
 existing workspace. The Agent may add, rename, organize, and remove
 task-specific files as its work requires.
 
-Cove is the one distinct factory kind. Its fresh workspace inventory is exactly
-`MEMORY.md`, `onboarding_playbook.md`, `onboarding_knowledge_faq.md`, and
-`onboarding_objectives.md`. Objectives contain 12 separately authored short
-summaries linked to the 12 seeded-tier Manual topics; no full Manual card,
-query-tier summary, archetype note, `save-as-a-skill`, or `grotto-agent` skill
-is copied. Computer records the four-file manifest in the durable Cove
-application receipt and validates it before replaying success. Cove still gets
-the normal isolated skill library and release-owned `visuals` skill.
+Cove is the one distinct factory kind. Its fresh workspace inventory is exactly:
 
-After creation, `MEMORY.md` and `onboarding_objectives.md` are Cove-owned state and are never
-factory-refreshed. `onboarding_playbook.md` and `onboarding_knowledge_faq.md` are versioned factory
-guidance: before a Cove turn, Computer may replace them only when their bytes exactly match a known
-prior factory release. Missing or edited files are preserved as conflicts. Both successful refreshes
-and conflicts appear in Agent Activity History. A successful refresh adds a one-turn private notice
-that tells the existing model session to re-read the two files; it does not rotate the session.
+```text
+MEMORY.md
+notes/
+  onboarding_knowledge_faq.md
+  onboarding_objectives.md
+  onboarding_playbook.md
+```
+
+Objectives contain 12 separately authored short summaries linked to the 12 seeded-tier Manual
+topics. Grotto does not create `notes/recipes/` or copy any full Manual card, query-tier summary,
+archetype note, `save-as-a-skill`, or `grotto-agent` skill. Computer records the four-file manifest
+in the durable Cove application receipt and validates the complete directory inventory before
+replaying success. Cove still gets the normal isolated skill library and release-owned `visuals`
+skill.
+
+After creation, `MEMORY.md` and `notes/onboarding_objectives.md` are Cove-owned state and are never
+factory-refreshed. `notes/onboarding_playbook.md` and `notes/onboarding_knowledge_faq.md` are
+versioned factory guidance: before a Cove turn, Computer may replace them only when their bytes
+exactly match a known prior factory release. Missing or edited files are preserved as conflicts.
+Both successful refreshes and conflicts appear in Agent Activity History. A successful refresh adds
+a one-turn private notice that tells the existing model session to re-read the two files; it does
+not rotate the session.
 
 Factory guidance participates in the public Grotto Agent version. A successful compatible refresh
 may advance that version; a missing or edited Cove file blocks the receipt from advancing and leaves
@@ -70,8 +79,9 @@ The local root survives ordinary idle periods, Computer restarts, model or
 runtime changes, and session reset. Session reset creates fresh model context
 without erasing the workspace or skills. Full reset restores the workspace for
 the Agent's persisted factory kind: minimal `MEMORY.md` for an ordinary Agent,
-or the exact four-file Cove onboarding seed. It deletes all existing skills
-and restores only current factory-managed skills, presently `visuals`.
+or the exact four-file Cove onboarding seed under root `MEMORY.md` and `notes/`.
+It deletes all existing skills and restores only current factory-managed skills,
+presently `visuals`.
 Retirement removes the local execution host after Server retirement has
 completed.
 

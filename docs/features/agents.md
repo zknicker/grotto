@@ -154,8 +154,8 @@ single global model session spans all Chats and resumes across deliveries and
 Computer restarts. Session reset creates fresh model context while preserving
 the workspace and skills. Full reset restores the Agent-kind factory workspace
 and only the current factory-managed skills: minimal `MEMORY.md` for an
-ordinary Agent, or Cove's four-file onboarding workspace for Cove. Today the
-only factory-managed skill is `visuals`.
+ordinary Agent, or Cove's root `MEMORY.md` plus three onboarding files under
+`notes/`. Today the only factory-managed skill is `visuals`.
 
 See [Context management](context-management.md) and
 [Agent daemon and delivery](../internals/agent-daemon-delivery.md).

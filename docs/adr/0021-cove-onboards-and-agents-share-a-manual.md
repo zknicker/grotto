@@ -10,7 +10,8 @@ read_when:
 
 ## Status
 
-Accepted 2026-08-07. Supersedes ADR 0018 and the conflicting first-Agent and
+Accepted 2026-08-07 and amended 2026-08-29 to match Raft's current Cindy
+factory layout. Supersedes ADR 0018 and the conflicting first-Agent and
 onboarding-chat statements in ADR 0019. Existing Servers are not migrated.
 
 ## Context
@@ -68,13 +69,16 @@ explicitly declined suggestion.
 
 ### Only Cove receives onboarding workspace knowledge
 
-Cove's factory workspace contains:
+Cove's factory workspace contains a root `MEMORY.md` plus a `notes/` directory
+with:
 
-- a Cove-specific `MEMORY.md`;
-- the adapted onboarding playbook;
-- the adapted onboarding knowledge FAQ; and
-- the adapted onboarding objectives file, including concise summaries of the
-  applicable seeded-tier recipes.
+- `onboarding_playbook.md`;
+- `onboarding_knowledge_faq.md`; and
+- `onboarding_objectives.md`, including concise summaries of the applicable
+  seeded-tier recipes.
+
+This matches Raft's onboarding Agent factory layout. The workspace remains
+Agent-owned after creation; Grotto does not create a `notes/recipes/` directory.
 
 Raft's seeded tier has thirteen recipes. Grotto seeds twelve summaries because
 `login-with-raft` has no honest Grotto analogue. Each summary is a short

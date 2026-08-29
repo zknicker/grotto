@@ -12,6 +12,10 @@ the operator on 2026-07-20/21 and audited against the shipped Raft code (binary-
 daemon source, npm CLI bundle, help tree) — the wire layer, not just docs; this document is the
 program contract.
 
+The operator screenshot showing Cindy's `notes/recipes/` captures that research task: Cindy
+manually fetched all 33 cards on 2026-07-21. It is not Raft factory seed behavior. Cindy's factory
+workspace contains root `MEMORY.md` and the three onboarding documents under `notes/`.
+
 ## The load-bearing insight
 
 Raft's design reduces to one decision everything else follows from: **the CLI is the agent's
@@ -726,8 +730,8 @@ deployment, so intermediate brokenness is not a constraint.
   profile (absorbs the agent drawer and per-agent settings), per-conversation Chat|Tasks|Files
   tabs (U3), Activity inbox page (with WS4), Search page. Largely parallel to WS3–WS5; shares
   the same design language pass.
-- **WS8 — Onboarding Agent + seeded knowledge.** Cove's `MEMORY.md`, playbook, objectives, FAQ,
-  and 12 applicable seeded summaries are adapted from Cindy; the shared Manual holds 32 captured
-  Raft recipe cards after omitting `login-with-raft`. Product references such as `agent` and
-  `action-cards` stay outside the recipe corpus. The 7 archetype cards remain optional guidance
-  for team-shape discussions. Cindy's local factory files are the reference.
+- **WS8 — Onboarding Agent + seeded knowledge.** Cove's root `MEMORY.md`, three onboarding files
+  under `notes/`, and 12 applicable seeded summaries are adapted from Cindy; the shared Manual
+  holds 32 captured Raft recipe cards after omitting `login-with-raft`. Product references such as
+  `agent` and `action-cards` stay outside the recipe corpus. The 7 archetype cards remain optional
+  guidance for team-shape discussions. Cindy's local factory files are the reference.

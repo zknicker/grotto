@@ -216,7 +216,8 @@ It makes no provider calls.
 The browser cannot observe Computer-local files and must not pretend to.
 Pair that tracer with `packages/agent-workspace/src/starter-kit.test.ts` and
 `cove-starter-kit.test.ts` for the minimal ordinary workspace and exact Cove
-four-file/12-summary seed, `apps/computer/src/agent-configuration.test.ts` and
+four-file/12-summary seed under root `MEMORY.md` and `notes/`,
+`apps/computer/src/agent-configuration.test.ts` and
 `launch.test.ts` for durable application plus Agent-kind reset, and
 `apps/server/test/grotto-agent-manual.test.ts` for authenticated Manual overview,
 full-card access, and audit metadata.

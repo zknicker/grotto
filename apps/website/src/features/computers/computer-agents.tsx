@@ -7,6 +7,7 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
 import { availabilityBadgeColor } from '../members/agent-avatar.tsx';
+import { grottoAgentVersionView } from '../members/grotto-agent-version-model.ts';
 import { settingsAgentRoute } from '../servers/server-routes.ts';
 import { ComputerDataGridState } from './computer-data-grid-state.tsx';
 import { agentExecutionLabels, availabilityLabel } from './presentation.ts';
@@ -21,6 +22,7 @@ interface ComputerAgentRow {
     id: string;
     model: string;
     runtime: string;
+    version: ReturnType<typeof grottoAgentVersionView>;
 }
 
 type ComputerAgentGridState =
@@ -126,13 +128,13 @@ function computerAgentRows(
             id: agent.id,
             model: execution.model,
             runtime: execution.runtime,
+            version: grottoAgentVersionView(agent.grottoAgent),
         };
     });
 }
 
 const agentColumns: DataGridColumn<ComputerAgentRow>[] = [
     {
-        allowsSorting: true,
         cell: (item) => (
             <div className="flex min-w-0 items-center gap-3">
                 <EntityAvatar
@@ -167,6 +169,20 @@ const agentColumns: DataGridColumn<ComputerAgentRow>[] = [
         minWidth: 160,
     },
     {
+        allowsSorting: true,
+        cell: (item) => (
+            <div className="grid gap-0.5">
+                <span className="font-mono tabular-nums">{item.version.version}</span>
+                <span className={versionStatusClassName(item.version.color)}>
+                    {item.version.detail}
+                </span>
+            </div>
+        ),
+        header: 'Agent version',
+        id: 'version',
+        minWidth: 170,
+    },
+    {
         align: 'end',
         cell: (item) => (
             <Chip color={availabilityBadgeColor(item.availability)} size="lg" variant="soft">
@@ -178,3 +194,13 @@ const agentColumns: DataGridColumn<ComputerAgentRow>[] = [
         minWidth: 100,
     },
 ];
+
+function versionStatusClassName(color: ReturnType<typeof grottoAgentVersionView>['color']) {
+    if (color === 'danger') {
+        return 'text-danger text-sm';
+    }
+    if (color === 'warning') {
+        return 'text-warning text-sm';
+    }
+    return 'text-success text-sm';
+}

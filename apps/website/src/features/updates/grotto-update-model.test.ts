@@ -19,7 +19,6 @@ const currentInput: GrottoUpdateInput = {
         sourceRevision: 'a'.repeat(40),
         version: '1.9.0',
     },
-    runningAgentVersion: '1.1.0',
 };
 
 describe('Grotto update projection', () => {
@@ -37,7 +36,6 @@ describe('Grotto update projection', () => {
         ).toEqual([
             ['Grotto App', '1.8.40'],
             ['Computer', '1.4.9'],
-            ['Agent', '1.1.0'],
         ]);
     });
 
@@ -60,7 +58,6 @@ describe('Grotto update projection', () => {
             'Grotto App',
             'Computer · Office',
             "Computer · Zach's MacBook Pro",
-            'Agent',
         ]);
         expect(view).toMatchObject({ phase: 'available', primaryAction: { kind: 'start' } });
     });
@@ -160,7 +157,7 @@ describe('Grotto update projection', () => {
         const view = projectGrottoUpdate({ ...currentInput, desktop: { kind: 'web' } });
 
         expect(view.steps).toHaveLength(1);
-        expect(view.componentFacts.map((fact) => fact.label)).toEqual(['Computer', 'Agent']);
+        expect(view.componentFacts.map((fact) => fact.label)).toEqual(['Computer']);
     });
 
     test('never offers a downgrade and omits ledger targets that are absent', () => {

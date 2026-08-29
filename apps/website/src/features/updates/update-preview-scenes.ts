@@ -145,7 +145,6 @@ export const updatePreviewScenes: UpdatePreviewScene[] = [
             },
             version: '6.0.0',
         },
-        runningAgentVersion: '1.3.1',
         computers: [computer({ currentVersion: '2.4.7', phase: 'idle' })],
         desktop: { currentVersion: '3.2.1', kind: 'desktop', phase: 'current' },
     }),
@@ -168,7 +167,6 @@ function previewScene(
         computers: options.computers ?? [currentComputer],
         desktop: options.desktop ?? currentDesktop,
         release: options.release ?? release,
-        runningAgentVersion: options.runningAgentVersion ?? release.components.agent,
     };
     return {
         description: options.description,

@@ -64,10 +64,11 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 - Every active Agent is already present in the Direct messages sidebar; there
   is no Create DM action or Agent picker.
 
-The Overview identifies the applied **Grotto Agent** version. That version covers Grotto-managed
+The Agent table on each Computer makes per-Agent rollout drift visible, and the Overview identifies
+the same applied **Grotto Agent** version. That version covers Grotto-managed
 behavior delivered through instructions, actions, recipes and Manual content, Harness bootstrap,
 and factory guidance; it does not version Agent-owned memory, skills, or workspace edits. **Current**
-means a successful turn has applied the release's version. Before that turn the profile shows the
+means a successful turn has applied the release's version. Before that turn both surfaces show the
 previous and current versions with **Updates on next turn**. A failed refresh keeps the previous
 applied version and shows **Update failed**. The same attempt is recorded in Activity History as an
 instruction update without exposing prompt text, local paths, content hashes, or file contents.

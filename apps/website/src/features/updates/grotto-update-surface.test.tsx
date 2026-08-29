@@ -32,16 +32,6 @@ const currentView: GrottoUpdateView = {
             status: 'current',
             targetVersion: '1.4.9',
         },
-        {
-            currentVersion: '1.1.0',
-            detail: null,
-            id: 'agent',
-            kind: 'agent',
-            label: 'Agent',
-            remedy: null,
-            status: 'current',
-            targetVersion: '1.1.0',
-        },
     ],
     detail: 'Everything in this release is current.',
     headline: 'Grotto 1.9.0',
@@ -99,14 +89,12 @@ describe('Grotto update surfaces', () => {
         expect(html).toContain('Computer · Zach&#x27;s MacBook Pro');
         expect(html).toContain('Computer · Office');
         expect(html).not.toContain('>MacBook</dt>');
-        expect(html).toContain('Agent');
+        expect(html).not.toContain('>Agent</dt>');
         expect(html).not.toContain('Server');
         expect(html).not.toContain('iOS');
         expect(html).toContain('1.8.39 → 1.8.40 · update');
         expect(html.match(/1.4.8 → 1.4.9 · update/gu)).toHaveLength(2);
-        expect(html).toContain('1.1.0 · up to date');
         expect(html).toContain('text-danger');
-        expect(html).toContain('text-success');
         expect(html).not.toContain('Server');
     });
 
@@ -117,7 +105,6 @@ describe('Grotto update surfaces', () => {
 
         expect(html).toContain('1.8.40 · up to date');
         expect(html).toContain('1.4.9 · up to date');
-        expect(html).toContain('1.1.0 · up to date');
         expect(html).toContain('text-success');
     });
 

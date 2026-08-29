@@ -2,7 +2,6 @@ import { grottoReleaseDiscoverySchema } from '@grotto/api';
 import { useQuery } from '@tanstack/react-query';
 import * as React from 'react';
 import { useDesktopUpdate } from '../../hooks/desktop/use-desktop-update.ts';
-import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
@@ -51,7 +50,6 @@ export function useGrottoUpdate() {
 }
 
 function useGrottoUpdateState(serverId: string, canOperate: boolean) {
-    const agents = useAgents(serverId);
     const computers = useComputers(serverId, { enabled: canOperate });
     const offlineComputers = useOfflineComputers(computers.data ?? []);
     const desktop = useDesktopUpdate();
@@ -67,11 +65,10 @@ function useGrottoUpdateState(serverId: string, canOperate: boolean) {
     const [runResult, setRunResult] = React.useState<GrottoUpdateRunResult | null>(null);
     const [isRunning, setIsRunning] = React.useState(false);
     const activeRun = React.useRef<Promise<GrottoUpdateRunResult> | null>(null);
-    const observations = React.useRef({ agents: agents.data, computers: computers.data, desktop });
-    observations.current = { agents: agents.data, computers: computers.data, desktop };
+    const observations = React.useRef({ computers: computers.data, desktop });
+    observations.current = { computers: computers.data, desktop };
 
     const observedView = projectObservedUpdate({
-        agents: agents.data ?? [],
         computers: computers.data ?? [],
         desktop,
         discovery: release.data,
@@ -87,7 +84,6 @@ function useGrottoUpdateState(serverId: string, canOperate: boolean) {
         const selectedDiscovery = release.data;
         const readView = () =>
             projectObservedUpdate({
-                agents: observations.current.agents ?? [],
                 computers: observations.current.computers ?? [],
                 desktop: observations.current.desktop,
                 discovery: selectedDiscovery,
@@ -108,12 +104,8 @@ function useGrottoUpdateState(serverId: string, canOperate: boolean) {
                 for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
                     await wait(1000);
                     if (step.kind === 'computer') {
-                        const [computerResult, agentResult] = await Promise.all([
-                            computers.refetch(),
-                            agents.refetch(),
-                        ]);
+                        const computerResult = await computers.refetch();
                         observations.current.computers = computerResult.data;
-                        observations.current.agents = agentResult.data;
                     }
                     const next = readView().steps.find((candidate) => candidate.id === step.id);
                     if (!next || stepSignature(next) !== initial) {
@@ -146,11 +138,11 @@ function useGrottoUpdateState(serverId: string, canOperate: boolean) {
             .finally(async () => {
                 activeRun.current = null;
                 setIsRunning(false);
-                await Promise.all([agents.refetch(), computers.refetch()]);
+                await computers.refetch();
             });
         activeRun.current = task;
         return task;
-    }, [agents, computers, release.data, serverId, updateComputer]);
+    }, [computers, release.data, serverId, updateComputer]);
 
     return {
         canOperate,
@@ -164,31 +156,15 @@ function useGrottoUpdateState(serverId: string, canOperate: boolean) {
 }
 
 function projectObservedUpdate(input: {
-    agents: readonly import('@grotto/api').Agent[];
     computers: readonly ComputerUpdateComputer[];
     desktop: ReturnType<typeof useDesktopUpdate>;
     discovery: import('@grotto/api').GrottoReleaseDiscovery;
 }): GrottoUpdateView {
-    const observedComputers = input.computers.filter(
-        (computer) => computer.health !== 'offline' || computer.updatePhase === 'restarting'
-    );
-    const observedComputerIds = new Set(observedComputers.map((computer) => computer.id));
     return projectGrottoUpdate({
         computers: input.computers.map(projectComputer),
         desktop: projectDesktop(input.desktop),
         release: input.discovery.latest,
-        runningAgentVersion: commonAppliedAgentVersion(
-            input.agents.filter((agent) => observedComputerIds.has(agent.computerId))
-        ),
     });
-}
-
-function commonAppliedAgentVersion(agents: readonly import('@grotto/api').Agent[]) {
-    const versions = new Set(agents.map((agent) => agent.grottoAgent.appliedVersion));
-    if (versions.size === 0) {
-        return null;
-    }
-    return versions.size === 1 ? (agents[0]?.grottoAgent.appliedVersion ?? null) : 'Mixed';
 }
 
 function projectComputer(computer: ComputerUpdateComputer): GrottoUpdateComputer {

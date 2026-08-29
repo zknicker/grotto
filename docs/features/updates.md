@@ -3,7 +3,7 @@ summary: App-wide update opportunity and offline Computer attention behavior.
 read_when:
   - changing the sidebar updater, version breakdown, or update sequencing
   - changing how offline Computers appear outside Computer settings
-  - changing App, Computer, or Grotto Agent version presentation
+  - changing App or Computer version presentation
 ---
 
 # Updates and Computer attention
@@ -14,8 +14,10 @@ native updater state; each connected Computer contributes its own installed vers
 state. An offline Computer contributes neither because its last report may no longer describe the
 installed software.
 
-The anchored update tooltip lists the desktop App when present, observable Computers, and the
-relevant Grotto Agent version. One Computer is simply **Computer**; multiple Computers add their
+The anchored update tooltip lists the desktop App when present and observable Computers. Grotto
+Agent rollout is diagnostic rather than actionable here: each Agent's applied version and status
+appear in the Agent table on its Computer page and on its profile. One Computer is simply
+**Computer**; multiple Computers add their
 user-facing names only to disambiguate them, such as **Computer · Home**. Current rows are green;
 version drift, live progress, and failures remain attached to their own rows. A failure includes
 the safe reported detail and one concrete recovery suggestion. The compact button represents the

@@ -9,7 +9,7 @@ test('presents the applied Grotto Agent version when current', () => {
             currentVersion: '1.2.3',
             status: 'current',
         })
-    ).toEqual({ color: 'accent', detail: 'Current', version: 'v1.2.3' });
+    ).toEqual({ color: 'accent', detail: 'Up to date', version: 'v1.2.3' });
 });
 
 test('presents the version transition and failed update', () => {
@@ -31,7 +31,11 @@ test('presents a first application as pending', () => {
             currentVersion: '1.2.3',
             status: 'pending',
         })
-    ).toEqual({ color: 'warning', detail: 'Updates on next turn', version: 'v1.2.3' });
+    ).toEqual({
+        color: 'warning',
+        detail: 'Updates on next turn',
+        version: 'Not applied → v1.2.3',
+    });
 });
 
 test('presents an existing version waiting for its next turn', () => {
@@ -57,5 +61,9 @@ test('presents a failed first application without inventing an applied version',
             currentVersion: '1.2.3',
             status: 'failed',
         })
-    ).toEqual({ color: 'danger', detail: 'Update failed', version: 'v1.2.3' });
+    ).toEqual({
+        color: 'danger',
+        detail: 'Update failed',
+        version: 'Not applied → v1.2.3',
+    });
 });

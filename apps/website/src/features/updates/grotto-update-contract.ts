@@ -99,7 +99,7 @@ export interface GrottoComponentFact {
     currentVersion: string | null;
     detail: string | null;
     id: string;
-    kind: 'agent' | 'computer' | 'desktop-app';
+    kind: 'computer' | 'desktop-app';
     label: string;
     remedy: string | null;
     status: 'current' | 'external' | 'failed' | 'pending' | 'updating';
@@ -125,5 +125,4 @@ export interface GrottoUpdateInput {
     desktop: GrottoUpdateDesktop;
     observedAt?: number;
     release: GrottoReleaseSnapshot;
-    runningAgentVersion: string | null;
 }

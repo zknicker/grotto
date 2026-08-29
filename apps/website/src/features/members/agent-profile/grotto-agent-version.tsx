@@ -2,7 +2,7 @@ import type { GrottoAgentState } from '@grotto/api';
 import { Chip, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { SettingsFact } from '../../settings/layout/settings-text.tsx';
-import { grottoAgentVersionView } from './grotto-agent-version-model.ts';
+import { grottoAgentVersionView } from '../grotto-agent-version-model.ts';
 
 export function GrottoAgentVersion({ state }: { state: GrottoAgentState }) {
     const view = grottoAgentVersionView(state);

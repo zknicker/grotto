@@ -21,7 +21,6 @@ export function projectComponentFacts(
     desktop: DesktopUpdateStep | null
 ): GrottoComponentFact[] {
     const desktopTarget = input.release.components.desktopApp;
-    const agentTarget = input.release.components.agent;
     const facts: GrottoComponentFact[] = [];
     if (input.desktop.kind === 'desktop') {
         facts.push({
@@ -39,22 +38,6 @@ export function projectComponentFacts(
         });
     }
     facts.push(...computers.map(computerFact));
-    if (computers.length > 0 && input.runningAgentVersion !== null) {
-        facts.push({
-            currentVersion: input.runningAgentVersion,
-            detail: null,
-            id: 'agent',
-            kind: 'agent',
-            label: 'Agent',
-            remedy: null,
-            status: agentTarget
-                ? input.runningAgentVersion === agentTarget
-                    ? 'current'
-                    : 'pending'
-                : 'external',
-            targetVersion: agentTarget,
-        });
-    }
     return facts;
 }
 

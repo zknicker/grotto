@@ -121,6 +121,7 @@ export function ChannelAppearanceFields({
                 </Tooltip>
             </div>
             <ChannelIconGrid
+                color={appearance.color}
                 onSelect={selectIcon}
                 query={query}
                 selectedIcon={appearance.icon}

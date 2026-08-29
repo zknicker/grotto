@@ -615,6 +615,56 @@
         );
     }
 
+    /*
+     * The icon catalog is a preview of the Channel, not a contact sheet: every
+     * glyph carries the color the Channel would take, so choosing an icon
+     * shows the result rather than a wall of foreground ink. A thousand solid
+     * glyphs at full `--foreground` read as a printed page and are the reason
+     * the picker felt heavy in the light theme, so a colorless Channel falls
+     * back to a muted ink instead. Hover and the chosen cell take the color at
+     * full strength — the one step that has to separate from its neighbors.
+     *
+     * The rule keys off the grid container rather than each Button, so the
+     * cells stay stock HeroUI at the call site.
+     */
+    .channel-icon-swatches {
+        --channel-swatch: var(
+            --channel-color-light,
+            color-mix(in srgb, var(--foreground) 60%, transparent)
+        );
+        --channel-swatch-strong: var(--channel-color-light, var(--foreground));
+    }
+
+    [data-theme='dark'] .channel-icon-swatches,
+    .dark .channel-icon-swatches {
+        --channel-swatch: var(
+            --channel-color-dark,
+            color-mix(in srgb, var(--foreground) 66%, transparent)
+        );
+        --channel-swatch-strong: var(--channel-color-dark, var(--foreground));
+    }
+
+    .channel-icon-swatches .button--ghost {
+        color: var(--channel-swatch);
+    }
+
+    .channel-icon-swatches .button--ghost:hover,
+    .channel-icon-swatches .button--secondary {
+        color: var(--channel-swatch-strong);
+    }
+
+    /*
+     * Toasts hang below the shell's top band rather than over it. HeroUI insets
+     * its region from the viewport, which puts a top-anchored toast on the
+     * topbar's own controls; every column shares one band height, so clearing
+     * that band is the whole correction and it tracks the band on its own.
+     */
+    .toast-region--top-start,
+    .toast-region--top,
+    .toast-region--top-end {
+        top: calc(var(--app-shell-band-height) + var(--spacing) * 3);
+    }
+
     .chip.reference-chip--channel {
         --chip-fg: var(--channel-color-light, var(--foreground));
     }

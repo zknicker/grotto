@@ -34,7 +34,20 @@ createRoot(rootElement).render(
                     <DesktopEditContextMenuProvider>
                         <App />
                     </DesktopEditContextMenuProvider>
-                    <Toast.Provider placement="bottom end" />
+                    {/*
+                     * Top end, not bottom: the bottom of every column is an
+                     * input or a status row — the chat composer on the end
+                     * side, the sidebar's activity row on the start side — and
+                     * a toast is opaque and takes pointer events, so a
+                     * bottom-anchored one covered the composer and swallowed
+                     * clicks on it for its whole timeout. The top band is
+                     * chrome, and `toast-region` clears it in the theme layer.
+                     *
+                     * 360 rather than HeroUI's 460: Grotto's toasts are mostly
+                     * one-line confirmations, and the few that carry a
+                     * description still get a comfortable measure.
+                     */}
+                    <Toast.Provider placement="top end" width={360} />
                 </DevModeProvider>
             </ThemeProvider>
         </GrottoClerkProvider>

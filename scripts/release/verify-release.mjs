@@ -170,6 +170,10 @@ async function main() {
         throw new Error('RELEASE_JOB_RESULTS must be valid JSON');
     }
     assertSelectedJobResults({ results: jobResults, targets });
+    if (process.argv.includes('--preflight')) {
+        console.log('Selected release jobs succeeded.');
+        return;
+    }
     const releaseVersion = requiredEnvironment('RELEASE_VERSION');
     ensureProductRelease({ repository, sourceRevision, releaseVersion, runGh });
     const productVerification = await verifyProductRelease({

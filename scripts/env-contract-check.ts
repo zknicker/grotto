@@ -21,6 +21,7 @@ const repositoryRoot = process.cwd();
 const schemaPath = join(repositoryRoot, '.env.schema');
 const runServerPath = join(repositoryRoot, 'apps/server/operations/run-server');
 const deployWorkflowPath = join(repositoryRoot, '.github/workflows/deploy-grotto-server.yml');
+const releaseHostWorkflowPath = join(repositoryRoot, '.github/workflows/deploy-release-host.yml');
 const qualityWorkflowPath = join(repositoryRoot, '.github/workflows/quality.yml');
 const releaseWorkflowPath = join(repositoryRoot, '.github/workflows/release.yml');
 const releaseSetupActionPath = join(
@@ -73,6 +74,7 @@ const processContractNames = new Set([
 const externallyConsumedNames = new Map([
     ['AWS_ACCESS_KEY_ID', 'the aws CLI in scripts/release/publish-desktop.mjs'],
     ['AWS_SECRET_ACCESS_KEY', 'the aws CLI in scripts/release/publish-desktop.mjs'],
+    ['CLOUDFLARE_API_TOKEN', 'Wrangler in scripts/deploy-release-host.mjs'],
     ['CI_OP_TOKEN', 'varlock @initOp(id=development)'],
     ['CURSOR_CLOUD_AGENTS_DEVELOPMENT_OP_TOKEN', 'varlock @initOp(id=development)'],
     ['DEPLOY_AGENT_PRODUCTION_OP_TOKEN', 'varlock @initOp(id=production)'],
@@ -241,6 +243,7 @@ for (const match of runServer.matchAll(/^export ([A-Z][A-Z0-9_]*)=/gmu)) {
 //    account-level token never appears in GitHub Actions.
 const allowedWorkflowSecrets = new Map([
     [deployWorkflowPath, new Set(['GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN'])],
+    [releaseHostWorkflowPath, new Set(['GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN'])],
     [qualityWorkflowPath, new Set(['GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN'])],
     [
         releaseWorkflowPath,
@@ -248,7 +251,12 @@ const allowedWorkflowSecrets = new Map([
     ],
 ]);
 const workflowContents = new Map<string, string>();
-for (const workflowPath of [deployWorkflowPath, qualityWorkflowPath, releaseWorkflowPath]) {
+for (const workflowPath of [
+    deployWorkflowPath,
+    releaseHostWorkflowPath,
+    qualityWorkflowPath,
+    releaseWorkflowPath,
+]) {
     const workflow = readFileSync(workflowPath, 'utf8');
     workflowContents.set(workflowPath, workflow);
     for (const match of workflow.matchAll(/secrets\.([A-Z][A-Z0-9_]*)/gu)) {
@@ -267,6 +275,11 @@ const requiredWorkflowMappings: [string, string, string][] = [
         deployWorkflowPath,
         `DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${githubDeploySecret}`,
         'deploy bootstrap',
+    ],
+    [
+        releaseHostWorkflowPath,
+        `DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${githubDeploySecret}`,
+        'release-host deploy bootstrap',
     ],
     [qualityWorkflowPath, `CI_OP_TOKEN: ${githubDeploySecret}`, 'CI bootstrap'],
     [releaseWorkflowPath, `ci-op-token: ${githubDeploySecret}`, 'release dependency bootstrap'],

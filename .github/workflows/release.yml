@@ -274,25 +274,24 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+    env:
+      SOURCE_REVISION: ${{ github.sha }}
+      RELEASE_VERSION: ${{ needs.plan.outputs.release_version }}
+      SERVER_VERSION: ${{ needs.plan.outputs.server_version }}
+      APP_VERSION: ${{ needs.plan.outputs.app_version }}
+      COMPUTER_VERSION: ${{ needs.plan.outputs.computer_version }}
+      AGENT_VERSION: ${{ needs.plan.outputs.agent_version }}
+      PUBLISH_COMPUTER: ${{ needs.plan.outputs.publish_computer }}
+      PUBLISH_AGENT: ${{ needs.plan.outputs.publish_agent }}
+      PUBLISH_APP: ${{ needs.plan.outputs.publish_app }}
+      PUBLISH_IOS: ${{ needs.plan.outputs.publish_ios }}
+      PUBLISH_SERVER: ${{ needs.plan.outputs.publish_server }}
+      RELEASE_JOB_RESULTS: ${{ toJSON(needs) }}
     steps:
       - name: Check out release verification helpers
         uses: actions/checkout@v4
-      - name: Verify published release and record outcome
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SOURCE_REVISION: ${{ github.sha }}
-          RELEASE_VERSION: ${{ needs.plan.outputs.release_version }}
-          SERVER_VERSION: ${{ needs.plan.outputs.server_version }}
-          APP_VERSION: ${{ needs.plan.outputs.app_version }}
-          COMPUTER_VERSION: ${{ needs.plan.outputs.computer_version }}
-          AGENT_VERSION: ${{ needs.plan.outputs.agent_version }}
-          PUBLISH_COMPUTER: ${{ needs.plan.outputs.publish_computer }}
-          PUBLISH_AGENT: ${{ needs.plan.outputs.publish_agent }}
-          PUBLISH_APP: ${{ needs.plan.outputs.publish_app }}
-          PUBLISH_IOS: ${{ needs.plan.outputs.publish_ios }}
-          PUBLISH_SERVER: ${{ needs.plan.outputs.publish_server }}
-          RELEASE_JOB_RESULTS: ${{ toJSON(needs) }}
-        run: node scripts/release/verify-release.mjs
+      - name: Verify selected release jobs
+        run: node scripts/release/verify-release.mjs --preflight
       - name: Set up Bun for snapshot publication
         uses: oven-sh/setup-bun@v2
         with:
@@ -303,3 +302,7 @@ jobs:
         run: >-
           GROTTO_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal --
           node scripts/release/publish-grotto-snapshot.mjs
+      - name: Finalize release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release/verify-release.mjs

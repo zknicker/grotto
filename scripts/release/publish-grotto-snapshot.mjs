@@ -23,6 +23,29 @@ export async function publishGrottoSnapshotInOrder(operations, content) {
     }
 }
 
+export async function verifyPublicGrottoSnapshot(
+    readPublic,
+    content,
+    { attempts = 5, delay = () => new Promise((resolve) => setTimeout(resolve, 2000)) } = {}
+) {
+    let lastError;
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+            if ((await readPublic()) === content) {
+                return;
+            }
+        } catch (error) {
+            lastError = error;
+        }
+        if (attempt < attempts) {
+            await delay();
+        }
+    }
+    throw new Error('public Grotto release snapshot did not verify byte-for-byte', {
+        cause: lastError,
+    });
+}
+
 export function grottoSnapshotKeys(version) {
     if (!/^\d+\.\d+\.\d+$/u.test(version)) {
         throw new Error(`invalid Grotto release version ${version}`);
@@ -52,6 +75,10 @@ async function main() {
             readImmutable: async () => readS3Object(immutable),
             readLatest: async () => readS3Object(latest),
         },
+        content
+    );
+    await verifyPublicGrottoSnapshot(
+        () => readPublicSnapshot('https://releases.grotto.sh/grotto/latest.json'),
         content
     );
     console.log(`Published Grotto ${snapshot.version} release snapshot.`);
@@ -91,6 +118,17 @@ function readS3Object(uri) {
         return null;
     }
     throw new Error(`could not read ${uri}: ${result.stderr.trim()}`);
+}
+
+async function readPublicSnapshot(uri) {
+    const response = await fetch(uri, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) {
+        return null;
+    }
+    return response.text();
 }
 
 function requiredEnv(name) {

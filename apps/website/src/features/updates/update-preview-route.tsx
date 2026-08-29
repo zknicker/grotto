@@ -45,7 +45,15 @@ function UpdatePreview({ scene }: { scene: UpdatePreviewScene }) {
                     <p className="text-muted text-sm">{scene.description}</p>
                 </div>
                 <div className="mt-auto">
-                    <GrottoUpdateFooter key={scene.id} onAction={onAction} view={scene.view} />
+                    <GrottoUpdateFooter
+                        key={scene.id}
+                        offlineComputers={scene.offlineComputers}
+                        onAction={onAction}
+                        onOpenComputer={(computerId) =>
+                            record(`Would open Computer ${computerId}.`)
+                        }
+                        view={scene.view}
+                    />
                 </div>
             </aside>
             <div className="min-w-0 flex-1 overflow-y-auto">

@@ -7,6 +7,7 @@ import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import type { ComputerUpdateComputer } from '../computers/computer-update-card.tsx';
+import { computerLabel } from '../computers/presentation.ts';
 import type {
     GrottoUpdateComputer,
     GrottoUpdateDesktop,
@@ -17,6 +18,7 @@ import {
     createGrottoUpdateController,
     type GrottoUpdateRunResult,
 } from './grotto-update-reconciler.ts';
+import { useOfflineComputers } from './use-offline-computers.ts';
 
 const productionReleaseUrl = '/api/grotto-release';
 const fallbackDiscovery = {
@@ -28,13 +30,15 @@ const GrottoUpdateContext = React.createContext<ReturnType<typeof useGrottoUpdat
 );
 
 export function GrottoUpdateProvider({
+    canOperate,
     children,
     serverId,
 }: {
+    canOperate: boolean;
     children: React.ReactNode;
     serverId: string;
 }) {
-    const value = useGrottoUpdateState(serverId);
+    const value = useGrottoUpdateState(serverId, canOperate);
     return React.createElement(GrottoUpdateContext.Provider, { value }, children);
 }
 
@@ -46,9 +50,10 @@ export function useGrottoUpdate() {
     return update;
 }
 
-function useGrottoUpdateState(serverId: string) {
+function useGrottoUpdateState(serverId: string, canOperate: boolean) {
     const agents = useAgents(serverId);
-    const computers = useComputers(serverId);
+    const computers = useComputers(serverId, { enabled: canOperate });
+    const offlineComputers = useOfflineComputers(computers.data ?? []);
     const desktop = useDesktopUpdate();
     const updateComputer = grottoTrpc.computer.update.useMutation();
     const release = useQuery({
@@ -60,7 +65,6 @@ function useGrottoUpdateState(serverId: string) {
         staleTime: 60 * 1000,
     });
     const [runResult, setRunResult] = React.useState<GrottoUpdateRunResult | null>(null);
-    const [runError, setRunError] = React.useState<string | null>(null);
     const [isRunning, setIsRunning] = React.useState(false);
     const activeRun = React.useRef<Promise<GrottoUpdateRunResult> | null>(null);
     const observations = React.useRef({ agents: agents.data, computers: computers.data, desktop });
@@ -72,21 +76,13 @@ function useGrottoUpdateState(serverId: string) {
         desktop,
         discovery: release.data,
     });
-    const view: GrottoUpdateView = runError
-        ? {
-              ...observedView,
-              detail: runError,
-              headline: 'Update needs attention',
-              phase: 'failed',
-              primaryAction: { kind: 'retry', label: 'Try again' },
-          }
-        : observedView;
+    const view = applyRunFailures(observedView, runResult);
 
     const run = React.useCallback(() => {
         if (activeRun.current) {
             return activeRun.current;
         }
-        setRunError(null);
+        setRunResult(null);
         setIsRunning(true);
         const selectedDiscovery = release.data;
         const readView = () =>
@@ -105,7 +101,11 @@ function useGrottoUpdateState(serverId: string) {
             },
             waitForChange: async (step) => {
                 const initial = stepSignature(step);
-                for (let attempt = 0; attempt < 120; attempt += 1) {
+                const maximumAttempts =
+                    step.kind === 'computer' && step.phase === 'waiting-for-agents'
+                        ? Number.POSITIVE_INFINITY
+                        : 120;
+                for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
                     await wait(1000);
                     if (step.kind === 'computer') {
                         const [computerResult, agentResult] = await Promise.all([
@@ -130,8 +130,16 @@ function useGrottoUpdateState(serverId: string) {
                 return result;
             })
             .catch((error: unknown) => {
-                const result = { kind: 'failed', stepId: 'update-sequence' } as const;
-                setRunError(error instanceof Error ? error.message : 'Grotto could not update.');
+                const result = {
+                    failures: [
+                        {
+                            detail:
+                                error instanceof Error ? error.message : 'Grotto could not update.',
+                            stepId: 'update-sequence',
+                        },
+                    ],
+                    kind: 'failed',
+                } as const;
                 setRunResult(result);
                 return result;
             })
@@ -144,7 +152,15 @@ function useGrottoUpdateState(serverId: string) {
         return task;
     }, [agents, computers, release.data, serverId, updateComputer]);
 
-    return { isRunning, releaseError: release.error, run, runResult, view };
+    return {
+        canOperate,
+        isRunning,
+        offlineComputers,
+        releaseError: release.error,
+        run,
+        runResult,
+        view,
+    };
 }
 
 function projectObservedUpdate(input: {
@@ -153,31 +169,88 @@ function projectObservedUpdate(input: {
     desktop: ReturnType<typeof useDesktopUpdate>;
     discovery: import('@grotto/api').GrottoReleaseDiscovery;
 }): GrottoUpdateView {
+    const observedComputers = input.computers.filter(
+        (computer) => computer.health !== 'offline' || computer.updatePhase === 'restarting'
+    );
+    const observedComputerIds = new Set(observedComputers.map((computer) => computer.id));
     return projectGrottoUpdate({
         computers: input.computers.map(projectComputer),
         desktop: projectDesktop(input.desktop),
         release: input.discovery.latest,
-        runningAgentVersion: commonAppliedAgentVersion(input.agents),
+        runningAgentVersion: commonAppliedAgentVersion(
+            input.agents.filter((agent) => observedComputerIds.has(agent.computerId))
+        ),
     });
 }
 
 function commonAppliedAgentVersion(agents: readonly import('@grotto/api').Agent[]) {
     const versions = new Set(agents.map((agent) => agent.grottoAgent.appliedVersion));
-    return versions.size === 1 ? (agents[0]?.grottoAgent.appliedVersion ?? null) : null;
+    if (versions.size === 0) {
+        return null;
+    }
+    return versions.size === 1 ? (agents[0]?.grottoAgent.appliedVersion ?? null) : 'Mixed';
 }
 
 function projectComputer(computer: ComputerUpdateComputer): GrottoUpdateComputer {
     return {
         currentVersion: computer.productVersion,
         detail: computer.updateDetail,
+        failedPhase: computer.updateFailedPhase,
+        health: computer.health,
         id: computer.id,
-        phase: computer.health === 'offline' ? 'offline' : computer.updatePhase,
+        lastConnectedAt: computer.lastConnectedAt,
+        name: computerLabel(computer),
+        phase: computer.updatePhase,
         progress:
             computer.updateDownloadedBytes !== null &&
             computer.updateTotalBytes !== null &&
             computer.updateTotalBytes > 0
                 ? computer.updateDownloadedBytes / computer.updateTotalBytes
                 : null,
+        reportedTargetVersion: computer.updateTargetVersion,
+        updateUpdatedAt: computer.updateUpdatedAt,
+    };
+}
+
+function applyRunFailures(
+    view: GrottoUpdateView,
+    result: GrottoUpdateRunResult | null
+): GrottoUpdateView {
+    if (result?.kind !== 'failed') {
+        return view;
+    }
+    const failures = new Map(
+        result.failures.flatMap((failure) => {
+            if (failure.stepId === 'update-sequence') {
+                return [[failure.stepId, failure.detail] as const];
+            }
+            const fact = view.componentFacts.find((candidate) => candidate.id === failure.stepId);
+            return fact && fact.status !== 'current'
+                ? [[failure.stepId, failure.detail] as const]
+                : [];
+        })
+    );
+    if (failures.size === 0) {
+        return view;
+    }
+    const firstFailure = failures.values().next().value ?? 'Grotto could not update.';
+    return {
+        ...view,
+        componentFacts: view.componentFacts.map((fact) => {
+            const detail = failures.get(fact.id);
+            return detail
+                ? {
+                      ...fact,
+                      detail,
+                      remedy: fact.remedy ?? 'Try again. If the problem continues, open Settings.',
+                      status: 'failed' as const,
+                  }
+                : fact;
+        }),
+        detail: firstFailure,
+        headline: 'Update needs attention',
+        phase: 'failed',
+        primaryAction: { kind: 'retry', label: 'Try again' },
     };
 }
 

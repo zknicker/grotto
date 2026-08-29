@@ -122,7 +122,7 @@ export function ServerLayout() {
         slug
     );
     return (
-        <GrottoUpdateProvider serverId={server.data.id}>
+        <GrottoUpdateProvider canOperate={canOperate} serverId={server.data.id}>
             <SidePaneProvider>
                 <TopbarProvider>
                     <CommandMenuProvider>
@@ -154,7 +154,9 @@ export function ServerLayout() {
                                                                 serverId={server.data.id}
                                                                 slug={slug}
                                                             />
-                                                            <GrottoUpdateFooterContainer />
+                                                            <GrottoUpdateFooterContainer
+                                                                slug={slug}
+                                                            />
                                                         </div>
                                                     }
                                                     identity={

@@ -516,7 +516,8 @@
      * both app themes. Rebind the semantic colors at the adapter boundary so
      * HeroUI content and nested Chips keep their stock styling and contrast.
      */
-    .hover-card__content.cursor-hover-card--contrast {
+    .hover-card__content.cursor-hover-card--contrast,
+    .tooltip.grotto-status-tooltip--contrast {
         color-scheme: dark;
         --default: oklch(27.4% 0.006 286.033);
         --default-foreground: var(--snow);
@@ -525,6 +526,11 @@
         --overlay: var(--eclipse);
         --overlay-foreground: var(--snow);
         --skill-reference: var(--color-purple-400);
+    }
+
+    .button.grotto-offline-button {
+        background: var(--warning-soft);
+        color: var(--warning-soft-foreground);
     }
 
     /*

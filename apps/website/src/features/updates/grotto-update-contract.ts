@@ -1,6 +1,5 @@
 export type GrottoUpdatePhase =
     | 'available'
-    | 'blocked'
     | 'current'
     | 'failed'
     | 'restart-required'
@@ -26,7 +25,6 @@ export type GrottoUpdateComputerPhase =
     | 'failed'
     | 'idle'
     | 'installing'
-    | 'offline'
     | 'requested'
     | 'restarting'
     | 'verifying'
@@ -35,9 +33,15 @@ export type GrottoUpdateComputerPhase =
 export interface GrottoUpdateComputer {
     currentVersion: string | null;
     detail?: string | null;
+    failedPhase?: string | null;
+    health: 'degraded' | 'healthy' | 'offline' | 'update-required';
     id: string;
+    lastConnectedAt: string | null;
+    name: string;
     phase: GrottoUpdateComputerPhase;
     progress?: number | null;
+    reportedTargetVersion?: string | null;
+    updateUpdatedAt?: string | null;
 }
 
 export type GrottoUpdateDesktop =
@@ -63,6 +67,7 @@ export type GrottoUpdateStep = ComputerUpdateStep | DesktopUpdateStep;
 export interface ComputerUpdateStep {
     currentVersion: string | null;
     detail: string | null;
+    failedPhase: string | null;
     id: string;
     kind: 'computer';
     label: string;
@@ -92,8 +97,12 @@ export interface DesktopUpdateStep {
 
 export interface GrottoComponentFact {
     currentVersion: string | null;
-    label: 'Agent' | 'Computer' | 'Grotto App';
-    status: 'current' | 'external' | 'pending';
+    detail: string | null;
+    id: string;
+    kind: 'agent' | 'computer' | 'desktop-app';
+    label: string;
+    remedy: string | null;
+    status: 'current' | 'external' | 'failed' | 'pending' | 'updating';
     targetVersion: string | null;
 }
 
@@ -114,6 +123,7 @@ export interface GrottoUpdateView {
 export interface GrottoUpdateInput {
     computers: readonly GrottoUpdateComputer[];
     desktop: GrottoUpdateDesktop;
+    observedAt?: number;
     release: GrottoReleaseSnapshot;
     runningAgentVersion: string | null;
 }

@@ -1,16 +1,13 @@
 import { describe, expect, test } from 'bun:test';
-import type { GrottoUpdateInput } from './grotto-update-model.ts';
+import type { GrottoUpdateComputer, GrottoUpdateInput } from './grotto-update-model.ts';
 import { projectGrottoUpdate } from './grotto-update-model.ts';
+import { expectedComputerRestartMs } from './grotto-update-timing.ts';
 
+const observedAt = Date.parse('2026-08-29T16:00:00.000Z');
 const currentInput: GrottoUpdateInput = {
-    computers: [
-        {
-            currentVersion: '1.4.9',
-            id: 'cmp_studio',
-            phase: 'idle',
-        },
-    ],
+    computers: [computer({ currentVersion: '1.4.9', phase: 'idle' })],
     desktop: { currentVersion: '1.8.40', kind: 'desktop', phase: 'current' },
+    observedAt,
     release: {
         components: {
             agent: '1.1.0',
@@ -39,158 +36,136 @@ describe('Grotto update projection', () => {
             view.componentFacts.map(({ label, targetVersion }) => [label, targetVersion])
         ).toEqual([
             ['Grotto App', '1.8.40'],
-            ['Computer', '1.4.9'],
+            ['Studio', '1.4.9'],
             ['Agent', '1.1.0'],
         ]);
     });
 
-    test('orders multiple Computers deterministically before the desktop App', () => {
+    test('lists every observable Computer by name and orders them deterministically', () => {
         const view = projectGrottoUpdate({
             ...currentInput,
             computers: [
-                {
-                    currentVersion: '1.4.8',
-                    id: 'cmp_studio',
-                    phase: 'available',
-                },
-                {
-                    currentVersion: '1.4.8',
-                    id: 'cmp_macbook',
-                    phase: 'available',
-                },
+                computer({ id: 'cmp_studio', name: 'Studio' }),
+                computer({ id: 'cmp_macbook', name: 'MacBook' }),
             ],
             desktop: { currentVersion: '1.8.39', kind: 'desktop', phase: 'available' },
         });
 
-        expect(view.steps.map((step) => step.label)).toEqual([
-            'Computer',
-            'Computer',
+        expect(view.steps.map((step) => step.label)).toEqual(['MacBook', 'Studio', 'Grotto App']);
+        expect(view.componentFacts.map((fact) => fact.label)).toEqual([
             'Grotto App',
+            'MacBook',
+            'Studio',
+            'Agent',
         ]);
-        expect(view).toMatchObject({
-            detail: '3 updates are ready.',
-            phase: 'available',
-            primaryAction: { kind: 'start', label: 'Update' },
-        });
+        expect(view).toMatchObject({ phase: 'available', primaryAction: { kind: 'start' } });
     });
 
-    test('preserves active progress and waits for Computers before the App step', () => {
+    test('excludes an offline Computer because its installed version is unknown', () => {
         const view = projectGrottoUpdate({
             ...currentInput,
-            computers: [
-                {
-                    currentVersion: '1.4.8',
-                    id: 'cmp_studio',
-                    phase: 'downloading',
-                    progress: 0.42,
-                },
-            ],
+            computers: [computer({ health: 'offline' })],
             desktop: { currentVersion: '1.8.39', kind: 'desktop', phase: 'available' },
         });
 
-        expect(view).toMatchObject({
-            detail: 'Updating Computer.',
-            phase: 'updating',
-            primaryAction: null,
-        });
-        expect(view.steps).toMatchObject([
-            { kind: 'computer', phase: 'downloading', progress: 0.42 },
-            { kind: 'desktop-app', phase: 'available' },
-        ]);
+        expect(view.steps.map((step) => step.kind)).toEqual(['desktop-app']);
+        expect(view.componentFacts.map((fact) => fact.label)).toEqual(['Grotto App']);
+        expect(view.phase).toBe('available');
     });
 
-    test('blocks on an offline Computer without exposing its host identity', () => {
+    test('preserves an expected restart disconnect as active progress', () => {
         const view = projectGrottoUpdate({
             ...currentInput,
             computers: [
-                {
-                    currentVersion: '1.4.8',
-                    id: 'cmp_studio',
-                    phase: 'offline',
-                },
+                computer({
+                    health: 'offline',
+                    phase: 'restarting',
+                    updateUpdatedAt: new Date(observedAt - 5000).toISOString(),
+                }),
             ],
         });
 
-        expect(view).toMatchObject({
-            detail: 'Computer must reconnect to continue.',
-            phase: 'blocked',
-            primaryAction: { kind: 'retry' },
-        });
+        expect(view).toMatchObject({ phase: 'updating', primaryAction: null });
+        expect(view.steps[0]).toMatchObject({ label: 'Studio', phase: 'restarting' });
     });
 
-    test('reports a failed component before a blocked component', () => {
+    test('turns a timed-out restart into a named failure with recovery guidance', () => {
         const view = projectGrottoUpdate({
             ...currentInput,
             computers: [
-                {
-                    currentVersion: '1.4.8',
+                computer({
+                    health: 'offline',
+                    phase: 'restarting',
+                    updateUpdatedAt: new Date(
+                        observedAt - expectedComputerRestartMs - 1
+                    ).toISOString(),
+                }),
+            ],
+        });
+
+        expect(view).toMatchObject({ phase: 'failed', primaryAction: { kind: 'retry' } });
+        expect(view.componentFacts.find((fact) => fact.id === 'cmp_studio')).toMatchObject({
+            detail: 'This Computer did not reconnect after installing the update.',
+            label: 'Studio',
+            status: 'failed',
+        });
+    });
+
+    test('does not let an old completed target hide a newer release', () => {
+        const view = projectGrottoUpdate({
+            ...currentInput,
+            computers: [
+                computer({
+                    phase: 'complete',
+                    reportedTargetVersion: '1.4.8',
+                }),
+            ],
+        });
+
+        expect(view).toMatchObject({ phase: 'available', primaryAction: { kind: 'start' } });
+        expect(view.steps[0]).toMatchObject({ phase: 'available', targetVersion: '1.4.9' });
+    });
+
+    test('keeps active work ahead of restart and restart ahead of a settled failure', () => {
+        const active = projectGrottoUpdate({
+            ...currentInput,
+            computers: [computer({ phase: 'downloading' })],
+            desktop: { currentVersion: '1.8.39', kind: 'desktop', phase: 'ready' },
+        });
+        const settled = projectGrottoUpdate({
+            ...currentInput,
+            computers: [
+                computer({
                     detail: 'Signature verification failed.',
-                    id: 'cmp_macbook',
+                    failedPhase: 'verifying',
                     phase: 'failed',
-                },
-                {
-                    currentVersion: '1.4.8',
-                    id: 'cmp_studio',
-                    phase: 'offline',
-                },
+                    reportedTargetVersion: '1.4.9',
+                }),
             ],
-        });
-
-        expect(view).toMatchObject({
-            detail: 'Signature verification failed.',
-            phase: 'failed',
-            primaryAction: { kind: 'retry' },
-        });
-    });
-
-    test('turns a downloaded desktop update into an explicit restart action', () => {
-        const view = projectGrottoUpdate({
-            ...currentInput,
             desktop: { currentVersion: '1.8.39', kind: 'desktop', phase: 'ready' },
         });
 
-        expect(view).toMatchObject({
+        expect(active.phase).toBe('updating');
+        expect(settled).toMatchObject({
             phase: 'restart-required',
-            primaryAction: { kind: 'restart', label: 'Restart' },
+            primaryAction: { kind: 'restart' },
         });
     });
 
-    test('gives the web honest Computer actions without a desktop step', () => {
-        const view = projectGrottoUpdate({
-            ...currentInput,
-            computers: [
-                {
-                    currentVersion: '1.4.8',
-                    id: 'cmp_studio',
-                    phase: 'available',
-                },
-            ],
-            desktop: { kind: 'web' },
-        });
+    test('gives the web Computer actions without a desktop step', () => {
+        const view = projectGrottoUpdate({ ...currentInput, desktop: { kind: 'web' } });
 
         expect(view.steps).toHaveLength(1);
-        expect(view.steps[0]?.kind).toBe('computer');
-        expect(view.componentFacts.map((fact) => fact.label)).toEqual(['Computer', 'Agent']);
+        expect(view.componentFacts.map((fact) => fact.label)).toEqual(['Studio', 'Agent']);
     });
 
-    test('never offers a downgrade when an installed component is newer', () => {
-        const view = projectGrottoUpdate({
+    test('never offers a downgrade and omits ledger targets that are absent', () => {
+        const newer = projectGrottoUpdate({
             ...currentInput,
-            computers: [
-                {
-                    currentVersion: '9.0.0',
-                    id: 'cmp_studio',
-                    phase: 'idle',
-                },
-            ],
+            computers: [computer({ currentVersion: '9.0.0' })],
             desktop: { currentVersion: '9.0.0', kind: 'desktop', phase: 'idle' },
         });
-        expect(view.phase).toBe('current');
-        expect(view.steps.every((step) => step.phase === 'current')).toBe(true);
-    });
-
-    test('omits update steps for component versions absent from the release ledger', () => {
-        const view = projectGrottoUpdate({
+        const absent = projectGrottoUpdate({
             ...currentInput,
             release: {
                 ...currentInput.release,
@@ -201,9 +176,21 @@ describe('Grotto update projection', () => {
                 },
             },
         });
-        expect(view.steps).toEqual([]);
-        expect(view.componentFacts.find((fact) => fact.label === 'Computer')?.targetVersion).toBe(
-            null
-        );
+
+        expect(newer.steps.every((step) => step.phase === 'current')).toBe(true);
+        expect(absent.steps).toEqual([]);
     });
 });
+
+function computer(overrides: Partial<GrottoUpdateComputer> = {}): GrottoUpdateComputer {
+    return {
+        currentVersion: '1.4.8',
+        health: 'healthy',
+        id: 'cmp_studio',
+        lastConnectedAt: '2026-08-29T15:00:00.000Z',
+        name: 'Studio',
+        phase: 'available',
+        reportedTargetVersion: '1.4.9',
+        ...overrides,
+    };
+}

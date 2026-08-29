@@ -87,6 +87,17 @@ publishes one production Computer release stream; there are no release channels 
 and every normal update targets the latest release.
 _Avoid_: App update, automatic update, Agent runtime change, protocol fallback
 
+**Grotto update opportunity**:
+A currently observable App, Computer, or Agent release change that Grotto can act on now. Offline
+Computers are excluded because their installed state may have changed since their last report;
+reconnection may therefore reveal another update opportunity after an earlier update completes.
+_Avoid_: ecosystem compliance state, offline Computer, blocked update
+
+**Computer offline attention**:
+An attached Computer's unavailable connection state, presented independently from software updates.
+It directs an authorized operator to that Computer even when no update is known or required.
+_Avoid_: update failure, blocked update, stale version
+
 **Computer install root**:
 The disposable location containing the signed standalone Grotto Computer executable and its
 embedded managed Grotto CLI. The canonical executable is

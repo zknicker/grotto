@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
+import {
+    OfflineComputersTooltipContent,
+    UpdateTooltipContent,
+} from './grotto-status-tooltip-content.tsx';
 import { GrottoUpdateFooter } from './grotto-update-footer.tsx';
 import type { GrottoUpdateView } from './grotto-update-model.ts';
 import { GrottoVersionBreakdown } from './grotto-version-breakdown.tsx';
@@ -10,19 +14,31 @@ const currentView: GrottoUpdateView = {
     componentFacts: [
         {
             currentVersion: '1.8.40',
+            detail: null,
+            id: 'desktop-app',
+            kind: 'desktop-app',
             label: 'Grotto App',
+            remedy: null,
             status: 'current',
             targetVersion: '1.8.40',
         },
         {
             currentVersion: '1.4.9',
-            label: 'Computer',
+            detail: null,
+            id: 'cmp_studio',
+            kind: 'computer',
+            label: 'Studio',
+            remedy: null,
             status: 'current',
             targetVersion: '1.4.9',
         },
         {
             currentVersion: '1.1.0',
+            detail: null,
+            id: 'agent',
+            kind: 'agent',
             label: 'Agent',
+            remedy: null,
             status: 'current',
             targetVersion: '1.1.0',
         },
@@ -42,16 +58,34 @@ describe('Grotto update surfaces', () => {
         expect(html).toBe('');
     });
 
-    test('uses one compact update button whose hover card owns the detail', () => {
+    test('uses one compact update button with an anchored contrast tooltip', () => {
         const view = updatePreviewScenes.find((scene) => scene.id === 'multiple-updates')?.view;
         if (!view) {
             throw new Error('Missing multiple-updates preview.');
         }
         const html = renderToStaticMarkup(<GrottoUpdateFooter view={view} />);
+        const tooltip = renderToStaticMarkup(<UpdateTooltipContent view={view} />);
 
         expect(html).toContain('Update Grotto to 1.9.0');
-        expect(html).toContain('hover-card__trigger');
-        expect(html).not.toContain('Update available');
+        expect(html.match(/<button/gu)).toHaveLength(1);
+        expect(html).toContain('role="presentation" tabindex="-1"');
+        expect(html).not.toContain('cursor-hover-card');
+        expect(tooltip).toContain('Click to update');
+        expect(tooltip).not.toContain('Update available');
+    });
+
+    test('keeps a busy update control non-actionable without removing its tooltip trigger', () => {
+        const view = updatePreviewScenes.find((scene) => scene.id === 'computer-downloading')?.view;
+        if (!view) {
+            throw new Error('Missing computer-downloading preview.');
+        }
+        const html = renderToStaticMarkup(<GrottoUpdateFooter view={view} />);
+        const tooltip = renderToStaticMarkup(<UpdateTooltipContent view={view} />);
+
+        expect(html).toContain('aria-disabled="true"');
+        expect(html).toContain('role="presentation" tabindex="-1"');
+        expect(tooltip).toContain('Updating');
+        expect(tooltip).toContain('Studio');
     });
 
     test('renders only release surfaces with dense current and target versions', () => {
@@ -62,17 +96,17 @@ describe('Grotto update surfaces', () => {
         const html = renderToStaticMarkup(<GrottoVersionBreakdown facts={view.componentFacts} />);
 
         expect(html).toContain('Grotto App');
-        expect(html).toContain('Computer');
+        expect(html).toContain('MacBook');
+        expect(html).toContain('Studio');
         expect(html).toContain('Agent');
         expect(html).not.toContain('Server');
         expect(html).not.toContain('iOS');
         expect(html).toContain('1.8.39 → 1.8.40 · update');
-        expect(html).toContain('1.4.8 → 1.4.9 · update');
+        expect(html.match(/1.4.8 → 1.4.9 · update/gu)).toHaveLength(2);
         expect(html).toContain('1.1.0 · up to date');
         expect(html).toContain('text-danger');
         expect(html).toContain('text-success');
-        expect(html).not.toContain('MacBook');
-        expect(html).not.toContain('Studio Mac');
+        expect(html).not.toContain('Server');
     });
 
     test('marks manageable surfaces green when they are current', () => {
@@ -113,5 +147,24 @@ describe('Grotto update surfaces', () => {
             'desktop-failed',
             'independent-versions',
         ]);
+    });
+
+    test('renders offline Computers in a separate warning control', () => {
+        const scene = updatePreviewScenes.find((candidate) => candidate.id === 'computer-offline');
+        if (!scene) {
+            throw new Error('Missing computer-offline preview.');
+        }
+        const html = renderToStaticMarkup(
+            <GrottoUpdateFooter offlineComputers={scene.offlineComputers} view={scene.view} />
+        );
+        const tooltip = renderToStaticMarkup(
+            <OfflineComputersTooltipContent computers={scene.offlineComputers} />
+        );
+
+        expect(html).toContain('1 Computer is offline');
+        expect(tooltip).toContain('Computer offline');
+        expect(tooltip).toContain('Last connected:');
+        expect(tooltip).toContain('Studio');
+        expect(html).not.toContain('Download');
     });
 });

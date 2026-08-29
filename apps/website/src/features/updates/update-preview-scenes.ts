@@ -6,6 +6,7 @@ import type {
     GrottoUpdateView,
 } from './grotto-update-model.ts';
 import { projectGrottoUpdate } from './grotto-update-model.ts';
+import type { OfflineComputerNotice } from './use-offline-computers.ts';
 
 export const updatePreviewBasePath = '/prototype/updates';
 
@@ -13,6 +14,7 @@ export interface UpdatePreviewScene {
     description: string;
     group: 'Available' | 'Blocked' | 'Current' | 'Desktop' | 'In progress';
     id: string;
+    offlineComputers: readonly OfflineComputerNotice[];
     view: GrottoUpdateView;
 }
 
@@ -48,7 +50,10 @@ export const updatePreviewScenes: UpdatePreviewScene[] = [
         id: 'current-web',
     }),
     previewScene({
-        computers: [computer({ id: 'cmp_a' }), computer({ id: 'cmp_b' })],
+        computers: [
+            computer({ id: 'cmp_a', name: 'MacBook' }),
+            computer({ id: 'cmp_b', name: 'Studio' }),
+        ],
         description: 'Two Computers update before the local Grotto App.',
         desktop: { currentVersion: '1.8.39', kind: 'desktop', phase: 'available' },
         group: 'Available',
@@ -96,10 +101,17 @@ export const updatePreviewScenes: UpdatePreviewScene[] = [
         id: 'restart-required',
     }),
     previewScene({
-        computers: [computer({ detail: 'Reconnect this Computer to continue.', phase: 'offline' })],
-        description: 'An offline Computer blocks the sequence and is never skipped.',
+        computers: [computer({ health: 'offline', phase: 'idle' })],
+        description: 'An offline Computer has its own delayed connectivity notice.',
         group: 'Blocked',
         id: 'computer-offline',
+        offlineComputers: [
+            {
+                id: 'cmp_studio',
+                lastConnectedAt: '2026-08-29T15:00:00.000Z',
+                name: 'Studio',
+            },
+        ],
     }),
     previewScene({
         computers: [computer({ detail: 'Signature verification failed.', phase: 'failed' })],
@@ -148,7 +160,9 @@ export function findUpdatePreviewScene(sceneId: string) {
 }
 
 function previewScene(
-    options: Partial<GrottoUpdateInput> & Pick<UpdatePreviewScene, 'description' | 'group' | 'id'>
+    options: Partial<GrottoUpdateInput> &
+        Pick<UpdatePreviewScene, 'description' | 'group' | 'id'> &
+        Partial<Pick<UpdatePreviewScene, 'offlineComputers'>>
 ): UpdatePreviewScene {
     const input: GrottoUpdateInput = {
         computers: options.computers ?? [currentComputer],
@@ -160,6 +174,7 @@ function previewScene(
         description: options.description,
         group: options.group,
         id: options.id,
+        offlineComputers: options.offlineComputers ?? [],
         view: projectGrottoUpdate(input),
     };
 }
@@ -167,8 +182,12 @@ function previewScene(
 function computer(overrides: Partial<GrottoUpdateComputer>): GrottoUpdateComputer {
     return {
         currentVersion: '1.4.8',
+        health: 'healthy',
         id: 'cmp_studio',
+        lastConnectedAt: '2026-08-29T15:00:00.000Z',
+        name: 'Studio',
         phase: 'available',
+        reportedTargetVersion: '1.4.9',
         ...overrides,
     };
 }

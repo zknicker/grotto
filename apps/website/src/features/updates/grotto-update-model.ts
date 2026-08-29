@@ -1,7 +1,6 @@
 import type {
     ComputerUpdateStep,
     DesktopUpdateStep,
-    GrottoComponentFact,
     GrottoUpdateComputer,
     GrottoUpdateComputerPhase,
     GrottoUpdateDesktop,
@@ -10,6 +9,8 @@ import type {
     GrottoUpdateStep,
     GrottoUpdateView,
 } from './grotto-update-contract.ts';
+import { projectComponentFacts } from './grotto-update-facts.ts';
+import { expectedComputerRestartMs } from './grotto-update-timing.ts';
 
 export type {
     ComputerUpdateStep,
@@ -36,17 +37,20 @@ const activeComputerPhases = new Set<GrottoUpdateComputerPhase>([
 ]);
 
 export function projectGrottoUpdate(input: GrottoUpdateInput): GrottoUpdateView {
-    const computers = [...input.computers].sort(compareComputers);
+    const observedAt = input.observedAt ?? Date.now();
     const computerTarget = input.release.components.computer;
     const computerSteps = computerTarget
-        ? computers.map((computer) => projectComputerStep(computer, computerTarget))
+        ? input.computers
+              .map((computer) => projectComputerStep(computer, computerTarget, observedAt))
+              .filter((step): step is ComputerUpdateStep => step !== null)
+              .sort(compareComputerSteps)
         : [];
     const desktopStep = projectDesktopStep(input.desktop, input.release.components.desktopApp);
     const steps = desktopStep ? [...computerSteps, desktopStep] : computerSteps;
     const phase = aggregatePhase(steps);
 
     return {
-        componentFacts: componentFacts(input, computerSteps, desktopStep),
+        componentFacts: projectComponentFacts(input, computerSteps, desktopStep),
         detail: aggregateDetail(phase, steps),
         headline: aggregateHeadline(phase, input.release.version),
         phase,
@@ -68,20 +72,48 @@ export function isActiveUpdateStep(step: GrottoUpdateStep) {
 
 function projectComputerStep(
     computer: GrottoUpdateComputer,
-    targetVersion: string
-): ComputerUpdateStep {
+    targetVersion: string,
+    observedAt: number
+): ComputerUpdateStep | null {
+    const timedOutRestart =
+        computer.health === 'offline' &&
+        computer.phase === 'restarting' &&
+        elapsedSince(computer.updateUpdatedAt, observedAt) >= expectedComputerRestartMs;
+    if (computer.health === 'offline' && computer.phase !== 'restarting') {
+        return null;
+    }
+    const current = isVersionCurrent(computer.currentVersion, targetVersion);
+    const phase = timedOutRestart
+        ? 'failed'
+        : current
+          ? 'current'
+          : normalizeComputerPhase(computer, targetVersion);
     return {
         currentVersion: computer.currentVersion,
-        detail: computer.detail ?? null,
+        detail: timedOutRestart
+            ? 'This Computer did not reconnect after installing the update.'
+            : (computer.detail ?? null),
+        failedPhase: timedOutRestart ? 'restarting' : (computer.failedPhase ?? null),
         id: computer.id,
         kind: 'computer',
-        label: 'Computer',
-        phase: isVersionCurrent(computer.currentVersion, targetVersion)
-            ? 'current'
-            : computer.phase,
+        label: computer.name,
+        phase,
         progress: computer.progress ?? null,
         targetVersion,
     };
+}
+
+function normalizeComputerPhase(
+    computer: GrottoUpdateComputer,
+    targetVersion: string
+): ComputerUpdateStep['phase'] {
+    if (activeComputerPhases.has(computer.phase)) {
+        return computer.phase;
+    }
+    if (computer.phase === 'failed' && computer.reportedTargetVersion === targetVersion) {
+        return 'failed';
+    }
+    return 'available';
 }
 
 function projectDesktopStep(
@@ -116,17 +148,14 @@ function projectDesktopStep(
 }
 
 function aggregatePhase(steps: readonly GrottoUpdateStep[]): GrottoUpdatePhase {
-    if (steps.some((step) => step.phase === 'failed')) {
-        return 'failed';
-    }
-    if (steps.some((step) => step.phase === 'offline')) {
-        return 'blocked';
+    if (steps.some(isActiveUpdateStep)) {
+        return 'updating';
     }
     if (steps.some((step) => step.phase === 'restart-required')) {
         return 'restart-required';
     }
-    if (steps.some(isActiveUpdateStep)) {
-        return 'updating';
+    if (steps.some((step) => step.phase === 'failed')) {
+        return 'failed';
     }
     if (steps.some((step) => !isCompleteUpdateStep(step))) {
         return 'available';
@@ -144,7 +173,6 @@ function aggregateHeadline(phase: GrottoUpdatePhase, version: string) {
             return `Updating Grotto ${version}`;
         case 'restart-required':
             return 'Restart to finish';
-        case 'blocked':
         case 'failed':
             return 'Update needs attention';
     }
@@ -162,12 +190,6 @@ function aggregateDetail(phase: GrottoUpdatePhase, steps: readonly GrottoUpdateS
             return active ? `Updating ${active.label}.` : 'Update in progress.';
         case 'restart-required':
             return 'The Grotto App is ready to restart.';
-        case 'blocked': {
-            const blocked = steps.find((step) => step.phase === 'offline');
-            return blocked
-                ? `${blocked.label} must reconnect to continue.`
-                : 'Reconnect to continue.';
-        }
         case 'failed': {
             const failed = steps.find((step) => step.phase === 'failed');
             return (
@@ -184,54 +206,10 @@ function primaryAction(phase: GrottoUpdatePhase): GrottoUpdateView['primaryActio
     if (phase === 'restart-required') {
         return { kind: 'restart', label: 'Restart' };
     }
-    if (phase === 'blocked' || phase === 'failed') {
+    if (phase === 'failed') {
         return { kind: 'retry', label: 'Try again' };
     }
     return null;
-}
-
-function componentFacts(
-    input: GrottoUpdateInput,
-    computers: readonly ComputerUpdateStep[],
-    desktop: DesktopUpdateStep | null
-): GrottoComponentFact[] {
-    const computerTarget = input.release.components.computer;
-    const desktopTarget = input.release.components.desktopApp;
-    const agentTarget = input.release.components.agent;
-    const computerCurrent = computerTarget !== null && computers.every(isCompleteUpdateStep);
-    const facts: GrottoComponentFact[] = [];
-    if (input.desktop.kind === 'desktop') {
-        facts.push({
-            currentVersion: desktop?.currentVersion ?? input.desktop.currentVersion,
-            label: 'Grotto App',
-            status:
-                desktop && desktopTarget
-                    ? isCompleteUpdateStep(desktop)
-                        ? 'current'
-                        : 'pending'
-                    : 'external',
-            targetVersion: desktopTarget,
-        });
-    }
-    facts.push(
-        {
-            currentVersion: commonComputerVersion(computers),
-            label: 'Computer',
-            status: computerTarget ? (computerCurrent ? 'current' : 'pending') : 'external',
-            targetVersion: computerTarget,
-        },
-        {
-            currentVersion: input.runningAgentVersion,
-            label: 'Agent',
-            status: agentTarget
-                ? input.runningAgentVersion === agentTarget
-                    ? 'current'
-                    : 'pending'
-                : 'external',
-            targetVersion: agentTarget,
-        }
-    );
-    return facts;
 }
 
 function isVersionCurrent(installed: string | null, target: string) {
@@ -254,11 +232,13 @@ function parseSemver(version: string) {
     return match ? match.slice(1).map(Number) : [-1, -1, -1];
 }
 
-function commonComputerVersion(computers: readonly ComputerUpdateStep[]) {
-    const versions = new Set(computers.map((computer) => computer.currentVersion));
-    return versions.size === 1 ? (computers[0]?.currentVersion ?? null) : null;
+function elapsedSince(value: string | null | undefined, observedAt: number) {
+    if (!value) {
+        return Number.POSITIVE_INFINITY;
+    }
+    return observedAt - new Date(value).getTime();
 }
 
-function compareComputers(left: GrottoUpdateComputer, right: GrottoUpdateComputer) {
-    return left.id.localeCompare(right.id);
+function compareComputerSteps(left: ComputerUpdateStep, right: ComputerUpdateStep) {
+    return left.label.localeCompare(right.label) || left.id.localeCompare(right.id);
 }

@@ -366,6 +366,104 @@
     }
 
     /*
+     * A secondary navigation rail (the workspace file rail, the Skills
+     * browser) sits on the same ground as the primary sidebar — one token,
+     * so every sidebar-shaped surface tints together. Dark themes define no
+     * `--sidebar-surface`, so there it stays the page background, exactly
+     * like the primary sidebar does.
+     */
+    .sub-sidebar {
+        background-color: var(--sidebar-surface, var(--background));
+        /*
+         * Fields inside sub-sidebar chrome run at the interactive-pill tier
+         * (×3, the same step as the buttons beside them), so a search field
+         * and its neighboring pill button read as one control row. Scoped
+         * through the token — the sanctioned way to retune field rounding —
+         * never by restyling the field at a call site.
+         */
+        --field-radius: calc(var(--radius) * 3);
+    }
+
+    /*
+     * The app sidebar is user-resizable. HeroUI's Sidebar and its offcanvas
+     * wrapper each declare their own `--sidebar-width: 240px`, so an inherited
+     * override can never reach them; this rewires the component token to read
+     * the product token the shell sets on the AppLayout root, with the stock
+     * width as the fallback. While a drag is live the shell marks the layout
+     * `app-sidebar-resizing` so the sidebar's width transition does not fight
+     * the pointer.
+     */
+    .sidebar,
+    .sidebar__offcanvas-wrapper {
+        --sidebar-width: var(--app-sidebar-width, 240px);
+    }
+
+    .app-sidebar-resizing .sidebar,
+    .app-sidebar-resizing .sidebar__offcanvas-wrapper {
+        transition: none;
+    }
+
+    /*
+     * CodeBlock is built for snippet habitats — a fenced block in chat, a
+     * command card in a dialog — so its root is a card: secondary surface,
+     * shell radius, block margin. Hosted as the fill of a file-viewer pane
+     * (the workspace raw view), the pane itself is the surface, so inside a
+     * `.code-pane` the root sheds that chrome and the shiki region renders
+     * straight onto the pane's ground. Scoped to the structural class so
+     * every snippet habitat keeps the stock card.
+     */
+    .code-pane .code-block {
+        background-color: transparent;
+        border-radius: 0;
+        margin-block: 0;
+    }
+
+    /*
+     * HeroUI Pro's section surfaces ship at the ×2 items tier, one step
+     * squarer than every OSS shell (Card, Popover, Modal) they sit beside —
+     * an ItemCardGroup list box next to a Card read as two corner languages
+     * on one page. They are section shells in this product, so they take the
+     * same shell step Card does. Transparent groups draw no box and rows
+     * inside a group are radius 0, so only the surface variants are lifted.
+     */
+    .item-card-group--default,
+    .item-card-group--secondary,
+    .item-card-group--tertiary,
+    .item-card-group--outline,
+    .kpi-group,
+    .widget {
+        border-radius: min(32px, var(--radius-3xl));
+    }
+
+    /*
+     * The same drift one level down: ItemCard's icon slot is a 36px box that
+     * Pro pins at ×1, visibly squarer than the 32px avatars at ×2 it sits
+     * beside in the same lists. ×2.25 is the identity-mark curve
+     * (`identityMarkRadius`: ×(box/16)) evaluated for its 36px box.
+     */
+    .item-card__icon {
+        border-radius: calc(var(--radius) * 2.25);
+    }
+
+    /*
+     * And on FileTree rows: Pro ships `.file-tree__item` at ×1, while every
+     * interactive item row (sidebar menu items, list-box items) sits on the
+     * ×2 items tier — a file rail beside the app sidebar read as two corner
+     * languages. Selected-row radius merging still works: Pro merges via
+     * border-radius on the same element, which this override feeds.
+     */
+    .file-tree__item {
+        border-radius: calc(var(--radius) * 2);
+        /*
+         * Row height matching the app sidebar's rendered rows (~30px), so a
+         * file rail beside it keeps one vertical rhythm. The sidebar's own
+         * rule is `--spacing × 9`, but it runs under a scoped compact
+         * `--spacing`; ×8 at the page's density lands on the same height.
+         */
+        min-height: calc(var(--spacing) * 8);
+    }
+
+    /*
      * Settings type scale: page title, section heading, body. Three sizes, no
      * fourth.
      *

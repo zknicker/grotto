@@ -1,8 +1,5 @@
 import type { GeneratedAvatar } from '@grotto/api';
-import { Button } from '@heroui/react';
-import { AiMagicIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentAvatar } from '../../../hooks/members/use-agent-avatar.ts';
 import { useAgentAvatarGeneration } from '../../../hooks/members/use-agent-avatar-generation.ts';
 import {
@@ -10,20 +7,24 @@ import {
     type AvatarGenerationDialogProps,
 } from './agent-avatar-generation-dialog.tsx';
 
+/** The generation dialog alone; the opener owns `open` (the avatar menu). */
 export function AgentAvatarGenerator({
     agentId,
     name,
+    onOpenChange,
+    open,
     serverId,
 }: {
     agentId: string;
     name: string;
+    onOpenChange: (open: boolean) => void;
+    open: boolean;
     serverId: string;
 }) {
     const generation = useAgentAvatarGeneration(serverId, agentId);
     const setAvatar = useAgentAvatar(serverId, agentId);
     const [concept, setConcept] = React.useState('');
     const [conceptError, setConceptError] = React.useState<string | null>(null);
-    const [open, setOpen] = React.useState(false);
     const [preview, setPreview] = React.useState<GeneratedAvatar | null>(null);
     const generationRun = React.useRef(0);
     const busy = generation.isPending || setAvatar.isPending;
@@ -42,12 +43,12 @@ export function AgentAvatarGenerator({
             if (!nextOpen && busy) {
                 return;
             }
-            setOpen(nextOpen);
+            onOpenChange(nextOpen);
             if (!nextOpen) {
                 resetTransientState();
             }
         },
-        [busy, resetTransientState]
+        [busy, onOpenChange, resetTransientState]
     );
 
     const handleGenerate = React.useCallback(async () => {
@@ -114,18 +115,5 @@ export function AgentAvatarGenerator({
         preview,
     };
 
-    return (
-        <>
-            <Button
-                aria-label="Generate Agent avatar"
-                onPress={() => setOpen(true)}
-                size="sm"
-                variant="ghost"
-            >
-                <Icon aria-hidden="true" className="size-4" icon={AiMagicIcon} />
-                Generate avatar
-            </Button>
-            <AvatarGenerationDialog {...dialogProps} />
-        </>
-    );
+    return <AvatarGenerationDialog {...dialogProps} />;
 }

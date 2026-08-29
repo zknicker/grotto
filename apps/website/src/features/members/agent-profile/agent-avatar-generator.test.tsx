@@ -20,6 +20,7 @@ test('generation dialog requires a concept before previewing', () => {
         <AvatarGenerationFields
             concept=""
             error={null}
+            isGenerating={false}
             name="Scout"
             onConceptChange={noop}
             onGenerate={noop}
@@ -28,8 +29,10 @@ test('generation dialog requires a concept before previewing', () => {
     );
 
     expect(markup).toContain('Concept');
-    expect(markup).toContain('Your generated avatar preview will appear here.');
     expect(markup).toContain('maxLength="280"');
+    // No placeholder stage before generation — an empty box read as a drop
+    // zone it never was.
+    expect(markup).not.toContain('bg-surface-secondary');
 });
 
 test('generation dialog shows one preview and keeps save explicit', () => {
@@ -37,6 +40,7 @@ test('generation dialog shows one preview and keeps save explicit', () => {
         <AvatarGenerationFields
             concept="a fox mechanic"
             error={null}
+            isGenerating={false}
             name="Scout"
             onConceptChange={noop}
             onGenerate={noop}
@@ -53,6 +57,7 @@ test('generation dialog keeps the preview visible when retryable generation fail
         <AvatarGenerationFields
             concept="a fox mechanic"
             error="The image provider could not generate an avatar."
+            isGenerating={false}
             name="Scout"
             onConceptChange={noop}
             onGenerate={noop}
@@ -77,7 +82,7 @@ test('generation actions make Save explicit and expose retry/cancel states', () 
         />
     );
 
-    expect(markup).toContain('Try again');
-    expect(markup).toContain('Save avatar');
+    expect(markup).toContain('Try Again');
+    expect(markup).toContain('Save Avatar');
     expect(markup).toContain('Cancel');
 });

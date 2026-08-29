@@ -34,6 +34,18 @@ export function HumanIdentity({
 
     return (
         <MemberProfileHeader
+            action={
+                isSelf ? (
+                    <ProfileEdit
+                        description={member.description ?? ''}
+                        displayName={member.displayName ?? name}
+                        entityLabel="Your profile"
+                        isDisabled={updateProfile.isPending}
+                        namePlaceholder="Your name"
+                        onSave={(draft) => updateProfile.save(draft)}
+                    />
+                ) : null
+            }
             avatar={
                 isSelf ? (
                     <AvatarPicker
@@ -56,44 +68,8 @@ export function HumanIdentity({
                     <EntityAvatar name={name} size={64} src={member.avatarUrl} />
                 )
             }
-            description={member.description ?? 'No description yet.'}
-            descriptionAction={
-                isSelf ? (
-                    <ProfileEdit
-                        ariaLabel="Your description"
-                        isDisabled={updateProfile.isPending}
-                        maxLength={500}
-                        multiline
-                        onSave={(description) =>
-                            updateProfile.save({
-                                description,
-                                displayName: member.displayName ?? name,
-                            })
-                        }
-                        placeholder="No description yet."
-                        value={member.description ?? ''}
-                    />
-                ) : null
-            }
+            description={member.description}
             name={name}
-            nameAction={
-                isSelf ? (
-                    <ProfileEdit
-                        ariaLabel="Your display name"
-                        isDisabled={updateProfile.isPending}
-                        isRequired
-                        maxLength={80}
-                        onSave={(displayName) =>
-                            updateProfile.save({
-                                description: member.description ?? '',
-                                displayName,
-                            })
-                        }
-                        placeholder="Your name"
-                        value={member.displayName ?? ''}
-                    />
-                ) : null
-            }
             subtitle={
                 <>
                     {handle ?? member.userId}
@@ -108,7 +84,7 @@ export function HumanIdentity({
                     value={
                         <Chip
                             color={member.role === 'member' ? 'default' : 'accent'}
-                            variant="primary"
+                            variant="soft"
                         >
                             <Icon className="size-4 shrink-0" icon={ShieldUserIcon} />
                             <Chip.Label className="capitalize">{member.role}</Chip.Label>

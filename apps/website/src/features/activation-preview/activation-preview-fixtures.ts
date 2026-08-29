@@ -146,6 +146,7 @@ function previewServerDetail(slug: string): ServerDetail {
         throw new Error(`No Grotto server exists at /${slug}.`);
     }
     return {
+        avatarGenerationAvailable: false,
         channels: [],
         displayName: 'Grotto HQ',
         id: 'srv_preview_hq',

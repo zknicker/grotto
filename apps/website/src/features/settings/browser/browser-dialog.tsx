@@ -49,8 +49,8 @@ export function BrowserDialog({
                             line. A control laid out beside the heading replaces
                             that layout; controls belong in the body. */}
                         <Modal.Header>
-                            <Modal.Icon>
-                                <Icon icon={icon} />
+                            <Modal.Icon className="bg-default text-foreground">
+                                <Icon className="size-5" icon={icon} />
                             </Modal.Icon>
                             <Modal.Heading>
                                 {title}

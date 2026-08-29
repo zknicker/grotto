@@ -1,7 +1,8 @@
 import type { Agent, McpConnection } from '@grotto/api';
-import { Chip, Separator, Switch } from '@heroui/react';
-import { EmptyState, ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Separator, Switch } from '@heroui/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
+import { ConnectionGlyph } from '../../features/settings/mcp/connection-mark.tsx';
 import { useAgentGrant } from '../../hooks/members/use-agent-grant.ts';
 
 export function AgentTools({
@@ -21,24 +22,28 @@ export function AgentTools({
     return (
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header>
+                {/* "Connections", the same noun as the Settings section these
+                    rows come from — "Agent MCP Access" named the one concept
+                    two ways. */}
                 <ItemCardGroup.Title>
-                    Agent MCP Access
+                    Connections
                     <span className="ms-2 text-muted tabular-nums">{available.length}</span>
                 </ItemCardGroup.Title>
                 <ItemCardGroup.Description>
-                    Choose which Server-managed MCP connections this Agent can use.
+                    Choose which of this Server's MCP connections this Agent can use.
                 </ItemCardGroup.Description>
             </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
                 {available.length === 0 ? (
-                    <EmptyState size="sm">
-                        <EmptyState.Header>
-                            <EmptyState.Title>No connections available</EmptyState.Title>
-                            <EmptyState.Description>
-                                Connect an MCP server in Settings → Connections.
-                            </EmptyState.Description>
-                        </EmptyState.Header>
-                    </EmptyState>
+                    // The quiet single-row empty every sibling section uses,
+                    // not a centered EmptyState mid-list.
+                    <ItemCard>
+                        <ItemCard.Content>
+                            <ItemCard.Description>
+                                No connections yet. Connect an MCP server in Settings → Connections.
+                            </ItemCard.Description>
+                        </ItemCard.Content>
+                    </ItemCard>
                 ) : (
                     available.map((connection, index) => {
                         const checked = connection.grants.some(
@@ -47,18 +52,19 @@ export function AgentTools({
                         return (
                             <React.Fragment key={connection.id}>
                                 {index > 0 ? <Separator /> : null}
+                                {/* The Connections page's own row anatomy:
+                                    mark, name, a varying fact — the URL and
+                                    the "MCP" chip said the same thing on
+                                    every row, and both live in Settings. */}
                                 <ItemCard>
+                                    <ItemCard.Icon>
+                                        <ConnectionGlyph connection={connection} />
+                                    </ItemCard.Icon>
                                     <ItemCard.Content>
-                                        <ItemCard.Title>
-                                            <span className="flex min-w-0 items-center gap-2">
-                                                <span className="truncate">{connection.name}</span>
-                                                <Chip size="sm" variant="soft">
-                                                    MCP
-                                                </Chip>
-                                            </span>
-                                        </ItemCard.Title>
+                                        <ItemCard.Title>{connection.name}</ItemCard.Title>
                                         <ItemCard.Description>
-                                            {`${connection.tools.length} tools · ${connection.url}`}
+                                            {connection.tools.length}{' '}
+                                            {connection.tools.length === 1 ? 'tool' : 'tools'}
                                         </ItemCard.Description>
                                     </ItemCard.Content>
                                     <ItemCard.Action>

@@ -11,9 +11,13 @@ import { useLayoutContext } from '../../shell/use-layout-context.ts';
 export function SettingsLayout() {
     const layoutContext = useLayoutContext();
     const location = useLocation();
-    // Only the global Skills page is the full-bleed library browser. The
-    // agent Skills tab is a normal padded settings page (enablement toggles).
-    const isFullContentRoute = location.pathname === appRoutes.settingsSkills;
+    // Full-height browser surfaces own their internal scroll, so the frame
+    // must pass real height through instead of page-scrolling: the global
+    // Skills library, and an Agent's Workspace tab. Every other settings
+    // route is a normal padded scrolling page.
+    const isFullContentRoute =
+        location.pathname === appRoutes.settingsSkills ||
+        /\/settings\/members\/agents\/[^/]+\/workspace$/.test(location.pathname);
 
     return (
         <SettingsContentFrame isFullContentRoute={isFullContentRoute}>

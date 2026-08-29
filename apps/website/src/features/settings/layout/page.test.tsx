@@ -20,7 +20,7 @@ describe('SettingsLayout', () => {
         expect(markup).toContain('px-6');
         expect(markup).toContain('pt-8');
         expect(markup).toContain('gap-8');
-        expect(markup).toContain('max-w-3xl');
+        expect(markup).toContain('max-w-6xl');
     });
 });
 

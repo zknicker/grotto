@@ -12,34 +12,27 @@ import { cn } from '../../lib/utils.ts';
  * Doubling padding between a parent and its children is what drove page spacing
  * to 15px on one destination and 40px on another.
  *
+ * Every destination shares one max width — `max-w-6xl` (1152px). A 3xl
+ * default with per-page `wide` overrides made sibling pages (an Agent's
+ * overview beside its Computer's page) visibly different widths one click
+ * apart; 1152px reads as full width in ordinary windows, keeps wide tables
+ * (the seven-column usage DataGrid needs 800px+) uncropped, and only centers
+ * on genuinely large monitors. Do not reintroduce per-page width variants.
+ *
  * Chat is deliberately exempt: it is a full-height surface with its own scroll
  * and composer geometry, not a document column.
  */
-export function PageColumn({
-    className,
-    width = 'default',
-    ...props
-}: React.ComponentProps<'div'> & { width?: PageColumnWidth }) {
+export function PageColumn({ className, ...props }: React.ComponentProps<'div'>) {
     return (
         <div
             className={cn(
                 // px-6 is the content reading gutter — deeper than the shell
                 // band's px-3 chrome gutter; pt-8 gives the page header room
                 // to breathe.
-                'mx-auto flex w-full flex-col gap-8 px-6 pt-8 pb-16',
-                pageColumnWidthClassName[width],
+                'mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 pt-8 pb-16',
                 className
             )}
             {...props}
         />
     );
 }
-
-export type PageColumnWidth = 'default' | 'full' | 'wide';
-
-/** Width is a named variant, not a call-site `max-w-[…]` override. */
-const pageColumnWidthClassName = {
-    default: 'max-w-3xl',
-    full: 'max-w-none',
-    wide: 'max-w-7xl',
-} satisfies Record<PageColumnWidth, string>;

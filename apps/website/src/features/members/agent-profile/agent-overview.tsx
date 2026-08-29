@@ -13,8 +13,6 @@ import {
 import { serverComputersRoute } from '../../servers/server-routes.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { AgentUsageOverview } from '../../usage/agent-usage-overview.tsx';
-import { availabilityBadgeColor } from '../agent-avatar.tsx';
-import { MemberProfileFact, MemberProfileFacts } from '../member-profile-header.tsx';
 import { AgentDanger } from './agent-danger.tsx';
 import { AgentIdentity } from './agent-identity.tsx';
 import { AgentRuntime } from './agent-runtime.tsx';
@@ -38,69 +36,49 @@ export function AgentOverview({
         <PageColumn>
             <AgentIdentity
                 agent={agent}
-                canEdit={canEdit}
-                serverId={server.id}
-                status={
-                    <Chip
-                        className="capitalize"
-                        color={availabilityBadgeColor(agent.availability)}
-                        size="sm"
-                        variant="soft"
-                    >
-                        {agent.availability}
-                    </Chip>
-                }
-            >
-                <MemberProfileFacts>
-                    <MemberProfileFact
-                        label="Role"
-                        value={
-                            <Chip
-                                color={agent.role === 'member' ? 'default' : 'accent'}
-                                variant="primary"
+                badges={
+                    <>
+                        <Chip
+                            color={agent.role === 'member' ? 'default' : 'accent'}
+                            size="sm"
+                            variant="soft"
+                        >
+                            <Icon className="size-4 shrink-0" icon={ShieldUserIcon} />
+                            <Chip.Label className="capitalize">{agent.role}</Chip.Label>
+                        </Chip>
+                        {computer ? (
+                            <Link
+                                className="block min-w-0"
+                                to={`${serverComputersRoute(server.slug)}?computer=${encodeURIComponent(computer.id)}`}
                             >
-                                <Icon className="size-4 shrink-0" icon={ShieldUserIcon} />
-                                <Chip.Label className="capitalize">{agent.role}</Chip.Label>
-                            </Chip>
-                        }
-                    />
-                    <MemberProfileFact
-                        label="Computer"
-                        value={
-                            computer ? (
-                                <Link
-                                    className="block min-w-0"
-                                    to={`${serverComputersRoute(server.slug)}?computer=${encodeURIComponent(computer.id)}`}
+                                <Chip
+                                    className="max-w-full"
+                                    color={computerHealthColor(computer.health)}
+                                    size="sm"
+                                    variant="soft"
                                 >
-                                    <Chip
-                                        className="max-w-full"
-                                        color={computerHealthColor(computer.health)}
-                                        variant="soft"
-                                    >
-                                        <Icon
-                                            className="size-4 shrink-0 text-muted"
-                                            icon={ComputerIcon}
-                                        />
-                                        <Chip.Label className="min-w-0 truncate">
-                                            {computerLabel(computer)}
-                                            <span className="ms-2 font-normal text-muted">
-                                                {computerHealthLabel(computer.health)}
-                                            </span>
-                                        </Chip.Label>
-                                    </Chip>
-                                </Link>
-                            ) : (
-                                'Unavailable'
-                            )
-                        }
-                    />
-                    <MemberProfileFact
-                        className="tabular-nums"
-                        label="Created"
-                        value={formatDate(agent.createdAt)}
-                    />
-                </MemberProfileFacts>
-            </AgentIdentity>
+                                    <Icon
+                                        className="size-4 shrink-0 text-muted"
+                                        icon={ComputerIcon}
+                                    />
+                                    <Chip.Label className="min-w-0 truncate">
+                                        {computerLabel(computer)}
+                                        <span className="ms-2 font-normal text-muted">
+                                            {computerHealthLabel(computer.health)}
+                                        </span>
+                                    </Chip.Label>
+                                </Chip>
+                            </Link>
+                        ) : null}
+                    </>
+                }
+                canEdit={canEdit}
+                generationAvailable={server.avatarGenerationAvailable}
+                serverId={server.id}
+                trailing={
+                    <span className="tabular-nums">Created {formatDate(agent.createdAt)}</span>
+                }
+            />
             <AgentUsageOverview agent={agent} serverId={server.id} />
             <AgentRuntime
                 agent={agent}

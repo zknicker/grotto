@@ -5,14 +5,16 @@ import {
 import {
     Alert,
     Button,
-    Description,
     FieldError,
     Form,
     Input,
     Label,
     Modal,
+    Skeleton,
     TextField,
 } from '@heroui/react';
+import { AiMagicIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { Icon } from '../../../components/ui/icon.tsx';
 
 const avatarGenerationFormId = 'agent-avatar-generation-form';
 
@@ -55,10 +57,15 @@ export function AvatarGenerationDialog({
                     <Modal.Dialog>
                         <Modal.CloseTrigger />
                         <Modal.Header>
-                            <Modal.Heading>Generate avatar</Modal.Heading>
+                            {/* Modal.Icon carries no background of its own;
+                                the stock idiom pairs it with a soft fill. */}
+                            <Modal.Icon className="bg-accent-soft text-accent-soft-foreground">
+                                <Icon className="size-5" icon={AiMagicIcon} />
+                            </Modal.Icon>
+                            <Modal.Heading>Generate Avatar</Modal.Heading>
                             <p className="mt-1.5 text-muted text-sm leading-5">
-                                Describe a short concept for one preview. Agent name and description
-                                are not used.
+                                Describe a short concept for one preview. The Agent's name and
+                                description are not used.
                             </p>
                         </Modal.Header>
                         <Modal.Body>
@@ -66,6 +73,7 @@ export function AvatarGenerationDialog({
                                 concept={concept}
                                 conceptError={conceptError}
                                 error={error}
+                                isGenerating={isGenerating}
                                 name={name}
                                 onConceptChange={onConceptChange}
                                 onGenerate={onGenerate}
@@ -94,13 +102,21 @@ export function AvatarGenerationFields({
     concept,
     conceptError = null,
     error,
+    isGenerating,
     name,
     onConceptChange,
     onGenerate,
     preview,
 }: Pick<
     AvatarGenerationDialogProps,
-    'concept' | 'conceptError' | 'error' | 'name' | 'onConceptChange' | 'onGenerate' | 'preview'
+    | 'concept'
+    | 'conceptError'
+    | 'error'
+    | 'isGenerating'
+    | 'name'
+    | 'onConceptChange'
+    | 'onGenerate'
+    | 'preview'
 >) {
     return (
         <Form
@@ -125,27 +141,28 @@ export function AvatarGenerationFields({
                     maxLength={avatarGenerationConceptMaxLength}
                     placeholder="e.g. a moonlit fox cartographer"
                 />
-                <Description>
-                    Keep it short; up to {avatarGenerationConceptMaxLength} characters.
-                </Description>
                 {conceptError ? <FieldError>{conceptError}</FieldError> : null}
             </TextField>
-            {preview ? (
-                <div className="flex justify-center rounded-xl bg-surface-secondary p-4">
-                    <img
-                        alt={`${name} generated avatar preview`}
-                        className="size-40 rounded-xl"
-                        height={256}
-                        src={avatarPreviewSource(preview)}
-                        width={256}
-                    />
+            {/* The stage exists only once there is something to stage: an
+                empty placeholder box read as a drop zone it never was. */}
+            {isGenerating || preview ? (
+                <div className="flex h-56 items-center justify-center rounded-2xl bg-surface-secondary">
+                    {isGenerating ? (
+                        <Skeleton
+                            aria-label="Generating avatar preview"
+                            className="size-40 rounded-2xl"
+                        />
+                    ) : preview ? (
+                        <img
+                            alt={`${name} generated avatar preview`}
+                            className="size-40 rounded-2xl"
+                            height={256}
+                            src={avatarPreviewSource(preview)}
+                            width={256}
+                        />
+                    ) : null}
                 </div>
-            ) : (
-                <div className="rounded-xl border border-separator border-dashed p-6 text-center text-muted text-sm">
-                    Your generated avatar preview will appear here. Nothing changes until you save
-                    it.
-                </div>
-            )}
+            ) : null}
             {error ? (
                 <Alert role="alert" status="danger">
                     <Alert.Indicator />
@@ -175,23 +192,22 @@ export function AvatarGenerationActions({
             <Button isDisabled={busy} slot="close" type="button" variant="secondary">
                 Cancel
             </Button>
+            {/* Generate leads until a preview exists, then hands primary to
+                Save — no permanently disabled primary action. */}
             <Button
                 form={avatarGenerationFormId}
                 isDisabled={busy || concept.trim().length === 0}
                 isPending={isGenerating}
                 type="submit"
-                variant="secondary"
+                variant={preview ? 'secondary' : 'primary'}
             >
-                {error ? 'Try again' : preview ? 'Generate another' : 'Generate preview'}
+                {error ? 'Try Again' : preview ? 'Generate Another' : 'Generate Preview'}
             </Button>
-            <Button
-                isDisabled={!preview || busy}
-                isPending={isSaving}
-                onPress={onSave}
-                type="button"
-            >
-                Save avatar
-            </Button>
+            {preview ? (
+                <Button isDisabled={busy} isPending={isSaving} onPress={onSave} type="button">
+                    Save Avatar
+                </Button>
+            ) : null}
         </>
     );
 }

@@ -5,6 +5,7 @@ import { useSkillDelete } from '../../../hooks/members/use-skill-delete.ts';
 import { useSkillFile } from '../../../hooks/members/use-skill-file.ts';
 import { useSkillSave } from '../../../hooks/members/use-skill-save.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import { formatSkillName } from '../../skills/skill-name-format.ts';
 
 export function SkillDialog({
     agent,
@@ -47,10 +48,17 @@ export function SkillDialog({
                         <Modal.Dialog>
                             <Modal.CloseTrigger />
                             <Modal.Header>
-                                <Modal.Heading>{skill?.name ?? 'Agent Skill'}</Modal.Heading>
+                                <Modal.Heading>
+                                    {skill ? formatSkillName(skill.name) : 'Agent Skill'}
+                                </Modal.Heading>
                                 <p className="mt-1.5 text-muted text-sm leading-5">
                                     Edit this Agent’s independent SKILL.md copy. Other support files
                                     stay unchanged.
+                                    {/* The row keeps one clean line, so the update
+                                        date lives here with the rest of the detail. */}
+                                    {skill
+                                        ? ` Last updated ${formatUpdatedAt(skill.modifiedAt)}.`
+                                        : ''}
                                 </p>
                             </Modal.Header>
                             <Modal.Body>
@@ -167,4 +175,8 @@ export function SkillDialog({
 
 export function isSkillDirty(content: string, savedContent: string) {
     return content !== savedContent;
+}
+
+function formatUpdatedAt(value: Date | string) {
+    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value));
 }

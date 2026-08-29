@@ -1,5 +1,6 @@
 import { Breadcrumbs } from '@heroui/react';
 import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgent } from '../../../hooks/members/use-agent.ts';
 import { useMember } from '../../../hooks/members/use-member.ts';
@@ -57,30 +58,47 @@ export function SettingsBreadcrumb({
                 <Breadcrumbs.Item href={leaf ? sectionHref : undefined}>
                     {crumb.label}
                 </Breadcrumbs.Item>
-                {leaf ? <Breadcrumbs.Item>{leaf}</Breadcrumbs.Item> : null}
+                {leaf ? (
+                    <Breadcrumbs.Item>
+                        {/* The record's own mark beside its name — the crumb
+                            names a member, and members lead with their face
+                            everywhere else in the app. */}
+                        <span className="flex min-w-0 items-center gap-1.5">
+                            <EntityAvatar name={leaf.name} size={18} src={leaf.avatarUrl} />
+                            <span className="min-w-0 truncate">{leaf.name}</span>
+                        </span>
+                    </Breadcrumbs.Item>
+                ) : null}
             </Breadcrumbs>
         </div>
     );
 }
 
 /**
- * The record a Members sub-route is showing, named.
+ * The record a Members sub-route is showing: its name and identity mark.
  *
  * Read here rather than pushed up from the detail page: both queries are the
  * ones that page already runs, so React Query serves them from the same cache
  * entry and nothing has to plumb a name back through context.
  */
-function useLeafCrumb(pathname: string, serverId: string): string | undefined {
+function useLeafCrumb(
+    pathname: string,
+    serverId: string
+): { avatarUrl: string | null; name: string } | undefined {
     const agentId = matchMemberId(pathname, 'agents');
     const userId = matchMemberId(pathname, 'humans');
     const agent = useAgent(serverId, agentId);
     const member = useMember(serverId, userId);
 
     if (agentId) {
-        return agent.data?.displayName;
+        return agent.data
+            ? { avatarUrl: agent.data.avatarUrl, name: agent.data.displayName }
+            : undefined;
     }
     if (userId) {
-        return member.data ? humanDisplayName(member.data) : undefined;
+        return member.data
+            ? { avatarUrl: member.data.avatarUrl, name: humanDisplayName(member.data) }
+            : undefined;
     }
     return undefined;
 }

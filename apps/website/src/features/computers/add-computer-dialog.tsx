@@ -19,8 +19,8 @@ export function AddComputerDialog({
                     <Modal.Dialog>
                         <Modal.CloseTrigger />
                         <Modal.Header>
-                            <Modal.Icon>
-                                <Icon icon={ComputerIcon} />
+                            <Modal.Icon className="bg-default text-foreground">
+                                <Icon className="size-5" icon={ComputerIcon} />
                             </Modal.Icon>
                             <Modal.Heading>Add Computer</Modal.Heading>
                             <p className="mt-1.5 text-muted text-sm leading-5">

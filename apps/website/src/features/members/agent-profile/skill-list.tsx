@@ -3,6 +3,7 @@ import { Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import { PickerPopover } from '../../agents/picker-popover.tsx';
+import { SkillGlyph } from '../../skills/skill-glyph.tsx';
 import { formatSkillName } from '../../skills/skill-name-format.ts';
 
 /** Agent skill library: the Agent's own SKILL.md copies plus in-flight imports. */
@@ -30,7 +31,10 @@ export function SkillList({
     return (
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header className="flex items-center justify-between gap-3">
-                <ItemCardGroup.Title>Skills</ItemCardGroup.Title>
+                <ItemCardGroup.Title>
+                    Skills
+                    <span className="ms-2 text-muted tabular-nums">{skills.length}</span>
+                </ItemCardGroup.Title>
                 {canEdit ? (
                     <PickerPopover
                         emptyText="Every available skill is already added."
@@ -57,10 +61,13 @@ export function SkillList({
                         <React.Fragment key={skill.name}>
                             {index > 0 ? <Separator /> : null}
                             <ItemCard>
+                                <ItemCard.Icon>
+                                    <SkillGlyph name={skill.name} />
+                                </ItemCard.Icon>
                                 <ItemCard.Content>
-                                    {/* A description is a truncating single line
-                                        by design; a skill's is a paragraph, so it
-                                        wraps here rather than being cut. */}
+                                    {/* The pretty name everywhere a human reads it —
+                                        the Add picker already formats, so raw kebab
+                                        names here read as two different products. */}
                                     <ItemCard.Title>
                                         {canEdit ? (
                                             <button
@@ -68,21 +75,25 @@ export function SkillList({
                                                 onClick={() => onSelectSkill(skill)}
                                                 type="button"
                                             >
-                                                {skill.name}
+                                                {formatSkillName(skill.name)}
                                             </button>
                                         ) : (
-                                            skill.name
+                                            formatSkillName(skill.name)
                                         )}
                                     </ItemCard.Title>
-                                    <ItemCard.Description className="whitespace-normal">
+                                    {/* One truncating line, so every row keeps one
+                                        height — full descriptions wrapped to three
+                                        lines and made the list read as uneven
+                                        blocks; the whole text lives in the skill
+                                        dialog. `max-w-full` because the stock
+                                        description is `width:fit-content`, which a
+                                        long nowrap line grows past its column,
+                                        painting under the action instead of
+                                        ellipsizing. */}
+                                    <ItemCard.Description className="max-w-full">
                                         {skill.description}
                                     </ItemCard.Description>
                                 </ItemCard.Content>
-                                <ItemCard.Action>
-                                    <span className="text-muted text-sm">
-                                        Updated {formatDate(skill.modifiedAt)}
-                                    </span>
-                                </ItemCard.Action>
                             </ItemCard>
                         </React.Fragment>
                     ))
@@ -110,8 +121,4 @@ export function SkillList({
             })}
         </ItemCardGroup>
     );
-}
-
-function formatDate(value: Date | string) {
-    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value));
 }

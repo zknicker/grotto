@@ -21,9 +21,9 @@ export function AgentTools({ agent, server }: { agent: Agent; server: ServerDeta
             {connections.error && !connections.data ? (
                 <ItemCardGroup variant="transparent">
                     <ItemCardGroup.Header>
-                        <ItemCardGroup.Title>Agent MCP Access</ItemCardGroup.Title>
+                        <ItemCardGroup.Title>Connections</ItemCardGroup.Title>
                     </ItemCardGroup.Header>
-                    <p className="px-1 text-danger text-sm" role="alert">
+                    <p className="px-4 text-danger text-sm" role="alert">
                         {connections.error.message}
                     </p>
                 </ItemCardGroup>
@@ -36,7 +36,7 @@ export function AgentTools({ agent, server }: { agent: Agent; server: ServerDeta
             ) : (
                 <ItemCardGroup variant="transparent">
                     <ItemCardGroup.Header>
-                        <ItemCardGroup.Title>Agent MCP Access</ItemCardGroup.Title>
+                        <ItemCardGroup.Title>Connections</ItemCardGroup.Title>
                     </ItemCardGroup.Header>
                     <div aria-busy="true" className="min-h-24">
                         <span className="sr-only">Loading MCP connections</span>
@@ -48,7 +48,7 @@ export function AgentTools({ agent, server }: { agent: Agent; server: ServerDeta
                     <ItemCardGroup.Header>
                         <ItemCardGroup.Title>Skills</ItemCardGroup.Title>
                     </ItemCardGroup.Header>
-                    <p className="px-1 text-danger text-sm" role="alert">
+                    <p className="px-4 text-danger text-sm" role="alert">
                         {computers.error.message}
                     </p>
                 </ItemCardGroup>

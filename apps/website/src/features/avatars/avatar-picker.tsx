@@ -1,19 +1,31 @@
 import { avatarMediaTypes } from '@grotto/api/avatar';
-import { Button, Tooltip } from '@heroui/react';
-import { Camera01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Button, Description, Dropdown, Label, Tooltip } from '@heroui/react';
+import { AiMagicIcon, Camera01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import type { EntityAvatarProps } from '../../components/ui/entity-avatar.tsx';
-import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { EntityAvatar, identityMarkRadius } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { AvatarImage } from './resize-avatar-image.ts';
 import { readAvatarImage } from './resize-avatar-image.ts';
 
 export interface AvatarPickerProps {
+    /**
+     * When set, the generate item renders disabled with this explanation as
+     * its description (a disabled menu item cannot host a tooltip).
+     */
+    generateUnavailableReason?: string;
     isDisabled?: boolean;
     /** Noun the button and tooltip act on, e.g. `profile photo`. */
     label: string;
     name: string;
     onError?: (message: string | null) => void;
+    /**
+     * When present, the avatar opens a small menu (upload or generate)
+     * instead of jumping straight to the file dialog. Generation is an
+     * exceptional action — once an avatar exists it is rarely regenerated —
+     * so it lives behind the avatar itself rather than as standing chrome.
+     */
+    onGenerate?: () => void;
     onSelect: (image: AvatarImage) => Promise<void> | void;
     size?: EntityAvatarProps['size'];
     src: string | null;
@@ -25,10 +37,12 @@ export interface AvatarPickerProps {
  * a failure is presented.
  */
 export function AvatarPicker({
+    generateUnavailableReason,
     isDisabled,
     label,
     name,
     onError,
+    onGenerate,
     onSelect,
     size = 'md',
     src,
@@ -53,6 +67,35 @@ export function AvatarPicker({
         }
     };
 
+    // The ghost button's own box is forced around large marks, so its hover
+    // radius must be re-derived too: outer radius = the avatar's identity
+    // radius + the p-1 inset, or the hover wash rounds differently than the
+    // avatar inside it.
+    const forcesBox = typeof size === 'number' && size > 48;
+    const trigger = (
+        <Button
+            aria-label={action}
+            className={forcesBox ? 'h-auto w-auto p-1' : undefined}
+            isDisabled={isDisabled}
+            isIconOnly
+            onPress={onGenerate ? undefined : () => inputRef.current?.click()}
+            size="lg"
+            style={
+                forcesBox
+                    ? { borderRadius: `calc(${identityMarkRadius(size)} + var(--spacing))` }
+                    : undefined
+            }
+            variant="ghost"
+        >
+            <span className="relative">
+                <EntityAvatar name={name} size={size} src={src} />
+                <span className="absolute -right-1.5 -bottom-1.5 inline-flex size-6 items-center justify-center rounded-full bg-surface-secondary text-muted ring-2 ring-background">
+                    <Icon className="size-4" icon={Camera01Icon} strokeWidth={2} />
+                </span>
+            </span>
+        </Button>
+    );
+
     return (
         <>
             <input
@@ -64,27 +107,46 @@ export function AvatarPicker({
                 ref={inputRef}
                 type="file"
             />
-            <Tooltip delay={0}>
-                <Button
-                    aria-label={action}
-                    className={
-                        typeof size === 'number' && size > 48 ? 'h-auto w-auto p-1' : undefined
-                    }
-                    isDisabled={isDisabled}
-                    isIconOnly
-                    onPress={() => inputRef.current?.click()}
-                    size="lg"
-                    variant="ghost"
-                >
-                    <span className="relative">
-                        <EntityAvatar name={name} size={size} src={src} />
-                        <span className="absolute -right-2 -bottom-2 inline-flex size-5 items-center justify-center rounded-full bg-surface-secondary text-muted">
-                            <Icon className="size-3" icon={Camera01Icon} strokeWidth={2.25} />
-                        </span>
-                    </span>
-                </Button>
-                <Tooltip.Content placement="top">{action}</Tooltip.Content>
-            </Tooltip>
+            {onGenerate ? (
+                <Dropdown>
+                    {trigger}
+                    <Dropdown.Popover>
+                        <Dropdown.Menu
+                            onAction={(key) => {
+                                if (key === 'upload') {
+                                    inputRef.current?.click();
+                                }
+                                if (key === 'generate') {
+                                    onGenerate();
+                                }
+                            }}
+                        >
+                            <Dropdown.Item id="upload" textValue="Upload photo">
+                                <Icon aria-hidden="true" icon={Camera01Icon} size={16} />
+                                <Label>Upload photo</Label>
+                            </Dropdown.Item>
+                            <Dropdown.Item
+                                id="generate"
+                                isDisabled={Boolean(generateUnavailableReason)}
+                                textValue="Generate avatar"
+                            >
+                                <Icon aria-hidden="true" icon={AiMagicIcon} size={16} />
+                                <div className="flex min-w-0 flex-col">
+                                    <Label>Generate avatar</Label>
+                                    {generateUnavailableReason ? (
+                                        <Description>{generateUnavailableReason}</Description>
+                                    ) : null}
+                                </div>
+                            </Dropdown.Item>
+                        </Dropdown.Menu>
+                    </Dropdown.Popover>
+                </Dropdown>
+            ) : (
+                <Tooltip delay={0}>
+                    {trigger}
+                    <Tooltip.Content placement="top">{action}</Tooltip.Content>
+                </Tooltip>
+            )}
         </>
     );
 }

@@ -1,11 +1,9 @@
 import type { Agent } from '@grotto/api';
 import { Button, Chip, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Copy01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { Icon } from '../../../components/ui/icon.tsx';
+import { CopyButton } from '../../../components/copy-button.tsx';
 import { useAgentActivityHistory } from '../../../hooks/members/use-agent-activity-history.ts';
-import { writeClipboardText } from '../../../lib/clipboard.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { useGrottoServerConnectionState } from '../../../lib/grotto-server.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
@@ -30,17 +28,15 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header className="flex items-center justify-between gap-3">
                     <ItemCardGroup.Title>Activity History</ItemCardGroup.Title>
-                    <Button
-                        isDisabled={events.length === 0}
-                        onPress={() => {
-                            void writeClipboardText(diagnosticInfo);
-                        }}
-                        size="sm"
-                        variant="secondary"
-                    >
-                        <Icon aria-hidden="true" icon={Copy01Icon} />
-                        Copy Diagnostic Info
-                    </Button>
+                    {/* Icon-only, with the negative margin absorbing the
+                        button's box so this header stays the same height as
+                        the button-less headers on sibling tabs. */}
+                    <CopyButton
+                        className="-my-1.5"
+                        disabled={events.length === 0}
+                        label="Copy diagnostic info"
+                        value={diagnosticInfo}
+                    />
                 </ItemCardGroup.Header>
                 {activity.isPending ? (
                     <AgentLoading label="Loading activity history..." />

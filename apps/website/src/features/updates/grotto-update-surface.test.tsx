@@ -9,16 +9,22 @@ import { updatePreviewScenes } from './update-preview-scenes.ts';
 const currentView: GrottoUpdateView = {
     componentFacts: [
         {
-            currentVersion: '1.8.38',
-            label: 'Server',
-            status: 'current',
-            targetVersion: '1.8.38',
-        },
-        {
             currentVersion: '1.8.40',
             label: 'Grotto App',
             status: 'current',
             targetVersion: '1.8.40',
+        },
+        {
+            currentVersion: '1.4.9',
+            label: 'Computer',
+            status: 'current',
+            targetVersion: '1.4.9',
+        },
+        {
+            currentVersion: '1.1.0',
+            label: 'Agent',
+            status: 'current',
+            targetVersion: '1.1.0',
         },
     ],
     detail: 'Everything in this release is current.',
@@ -55,18 +61,29 @@ describe('Grotto update surfaces', () => {
         }
         const html = renderToStaticMarkup(<GrottoVersionBreakdown facts={view.componentFacts} />);
 
-        expect(html).toContain('Server');
         expect(html).toContain('Grotto App');
         expect(html).toContain('Computer');
         expect(html).toContain('Agent');
-        expect(html).toContain('iOS');
+        expect(html).not.toContain('Server');
+        expect(html).not.toContain('iOS');
         expect(html).toContain('1.8.39 → 1.8.40 · update');
         expect(html).toContain('1.4.8 → 1.4.9 · update');
-        expect(html).toContain('1.8.38 · up to date');
+        expect(html).toContain('1.1.0 · up to date');
         expect(html).toContain('text-danger');
         expect(html).toContain('text-success');
         expect(html).not.toContain('MacBook');
         expect(html).not.toContain('Studio Mac');
+    });
+
+    test('marks manageable surfaces green when they are current', () => {
+        const html = renderToStaticMarkup(
+            <GrottoVersionBreakdown facts={currentView.componentFacts} />
+        );
+
+        expect(html).toContain('1.8.40 · up to date');
+        expect(html).toContain('1.4.9 · up to date');
+        expect(html).toContain('1.1.0 · up to date');
+        expect(html).toContain('text-success');
     });
 
     test('prominently renders only the product version in Settings', () => {

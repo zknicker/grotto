@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.9.2 - 2026-08-29
+
+- The update hovercard now stays focused on the client update flow: Computer and its bundled Agent
+  on the web, plus Grotto App in the desktop client.
+- Computer's release-only Harness boundary test now runs on clean GitHub runners without requiring
+  a locally installed Codex CLI.
+
 ## v1.9.1 - 2026-08-29
 
 - Computer releases no longer fail intermittently when the full test suite exercises multiple

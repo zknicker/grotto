@@ -23,7 +23,6 @@ const currentInput: GrottoUpdateInput = {
         version: '1.9.0',
     },
     runningAgentVersion: '1.1.0',
-    runningServerVersion: '1.8.38',
 };
 
 describe('Grotto update projection', () => {
@@ -39,11 +38,9 @@ describe('Grotto update projection', () => {
         expect(
             view.componentFacts.map(({ label, targetVersion }) => [label, targetVersion])
         ).toEqual([
-            ['Server', '1.8.38'],
             ['Grotto App', '1.8.40'],
             ['Computer', '1.4.9'],
             ['Agent', '1.1.0'],
-            ['iOS', '1.0.5 (6)'],
         ]);
     });
 
@@ -173,9 +170,7 @@ describe('Grotto update projection', () => {
 
         expect(view.steps).toHaveLength(1);
         expect(view.steps[0]?.kind).toBe('computer');
-        expect(view.componentFacts.find((fact) => fact.label === 'Grotto App')).toMatchObject({
-            status: 'external',
-        });
+        expect(view.componentFacts.map((fact) => fact.label)).toEqual(['Computer', 'Agent']);
     });
 
     test('never offers a downgrade when an installed component is newer', () => {

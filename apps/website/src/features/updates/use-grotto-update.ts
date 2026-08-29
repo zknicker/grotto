@@ -158,7 +158,6 @@ function projectObservedUpdate(input: {
         desktop: projectDesktop(input.desktop),
         release: input.discovery.latest,
         runningAgentVersion: commonAppliedAgentVersion(input.agents),
-        runningServerVersion: input.discovery.running.server,
     });
 }
 

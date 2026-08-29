@@ -353,7 +353,7 @@ test('the launch injects Server-owned MCP tools into the real Harness boundary',
             }) as unknown as HarnessAgent['stream'],
         };
     };
-    await runAgentLaunch({
+    const turn = await runAgentLaunch({
         attachment,
         command: base,
         dataRoot,
@@ -361,6 +361,7 @@ test('the launch injects Server-owned MCP tools into the real Harness boundary',
         sendFrame: () => undefined,
         serverOrigin: `http://127.0.0.1:${state.server.port}`,
     });
+    expect(turn.status).toBe('completed');
     const [visibleName] = Object.keys(tools);
     expect(visibleName).toBe('mcp__server__echo');
     expect(invocationResult).toBe('server:granted');

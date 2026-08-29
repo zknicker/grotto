@@ -92,8 +92,8 @@ export interface DesktopUpdateStep {
 
 export interface GrottoComponentFact {
     currentVersion: string | null;
-    label: 'Agent' | 'Computer' | 'Grotto App' | 'iOS' | 'Server';
-    status: 'current' | 'external' | 'managed' | 'pending';
+    label: 'Agent' | 'Computer' | 'Grotto App';
+    status: 'current' | 'external' | 'pending';
     targetVersion: string | null;
 }
 
@@ -116,5 +116,4 @@ export interface GrottoUpdateInput {
     desktop: GrottoUpdateDesktop;
     release: GrottoReleaseSnapshot;
     runningAgentVersion: string | null;
-    runningServerVersion: string | null;
 }

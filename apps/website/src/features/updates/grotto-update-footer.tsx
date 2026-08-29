@@ -34,7 +34,7 @@ export function GrottoUpdateFooter({
         <section
             aria-label="Grotto status"
             aria-live="polite"
-            className="flex w-full items-center gap-2 px-2"
+            className="flex w-full items-center gap-2"
         >
             {view.phase === 'current' ? null : (
                 <UpdateTooltipButton isRunning={isRunning} onAction={onAction} view={view} />

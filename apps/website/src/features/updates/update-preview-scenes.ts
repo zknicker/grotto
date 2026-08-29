@@ -1,3 +1,4 @@
+import type { AgentActivityStripRow } from '../shell/sidebar-agent-activity-strip.tsx';
 import type {
     GrottoReleaseSnapshot,
     GrottoUpdateComputer,
@@ -11,8 +12,9 @@ import type { OfflineComputerNotice } from './use-offline-computers.ts';
 export const updatePreviewBasePath = '/prototype/updates';
 
 export interface UpdatePreviewScene {
+    agentActivityRows: readonly AgentActivityStripRow[];
     description: string;
-    group: 'Available' | 'Blocked' | 'Current' | 'Desktop' | 'In progress';
+    group: 'Available' | 'Blocked' | 'Current' | 'Desktop' | 'Footer' | 'In progress';
     id: string;
     offlineComputers: readonly OfflineComputerNotice[];
     view: GrottoUpdateView;
@@ -38,6 +40,35 @@ const currentDesktop: GrottoUpdateDesktop = {
 };
 
 export const updatePreviewScenes: UpdatePreviewScene[] = [
+    previewScene({
+        computers: [computer({})],
+        description: 'Only actionable Grotto updates appear in the sidebar footer.',
+        group: 'Footer',
+        id: 'footer-update-only',
+    }),
+    previewScene({
+        computers: [computer({})],
+        description: 'Updates and offline Computer attention remain separate actions.',
+        group: 'Footer',
+        id: 'footer-update-and-computer',
+        offlineComputers: [offlineComputer()],
+    }),
+    previewScene({
+        computers: [currentComputer],
+        description: 'Offline Computer attention can appear without an available update.',
+        desktop: currentDesktop,
+        group: 'Footer',
+        id: 'footer-computer-only',
+        offlineComputers: [offlineComputer()],
+    }),
+    previewScene({
+        agentActivityRows: previewActivityRows(),
+        computers: [computer({})],
+        description: 'Live Agent activity grows above both footer actions.',
+        group: 'Footer',
+        id: 'footer-all-active',
+        offlineComputers: [offlineComputer()],
+    }),
     previewScene({
         description: 'Every selected component matches Grotto 1.9.0.',
         group: 'Current',
@@ -161,7 +192,7 @@ export function findUpdatePreviewScene(sceneId: string) {
 function previewScene(
     options: Partial<GrottoUpdateInput> &
         Pick<UpdatePreviewScene, 'description' | 'group' | 'id'> &
-        Partial<Pick<UpdatePreviewScene, 'offlineComputers'>>
+        Partial<Pick<UpdatePreviewScene, 'agentActivityRows' | 'offlineComputers'>>
 ): UpdatePreviewScene {
     const input: GrottoUpdateInput = {
         computers: options.computers ?? [currentComputer],
@@ -169,11 +200,56 @@ function previewScene(
         release: options.release ?? release,
     };
     return {
+        agentActivityRows: options.agentActivityRows ?? [],
         description: options.description,
         group: options.group,
         id: options.id,
         offlineComputers: options.offlineComputers ?? [],
         view: projectGrottoUpdate(input),
+    };
+}
+
+function offlineComputer(): OfflineComputerNotice {
+    return {
+        id: 'cmp_offline',
+        lastConnectedAt: '2026-08-29T15:00:00.000Z',
+        name: "Zach's MacBook Pro",
+    };
+}
+
+function previewActivityRows(): AgentActivityStripRow[] {
+    return [
+        activityRow('agt_blippy', 'Blippy', 'thinking'),
+        activityRow('agt_tiny', 'Tiny', 'editing_files'),
+        activityRow('agt_cove', 'Cove', 'searching_web'),
+    ];
+}
+
+function activityRow(
+    agentId: string,
+    displayName: string,
+    category: AgentActivityStripRow['activity']['category']
+): AgentActivityStripRow {
+    return {
+        activity: {
+            agentId,
+            category,
+            id: `aev_${agentId}`,
+            occurredAt: '2026-08-29T15:00:00.000Z',
+            phase: 'started',
+            position: 1,
+            producer: 'server',
+            producerId: 'server',
+            producerSequence: 1,
+            runId: `run_${agentId}`,
+            serverId: 'srv_preview',
+        },
+        agent: {
+            avatarUrl: null,
+            displayName,
+            id: agentId,
+            kind: 'fallback',
+        },
     };
 }
 

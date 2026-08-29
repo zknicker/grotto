@@ -2,6 +2,10 @@ import { Description, Label, ListBox, Select, Surface } from '@heroui/react';
 import * as React from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { PageColumn } from '../shell/page-column.tsx';
+import {
+    AgentActivityStrip,
+    type AgentActivityStripRow,
+} from '../shell/sidebar-agent-activity-strip.tsx';
 import { GrottoUpdateFooter } from './grotto-update-footer.tsx';
 import type { GrottoUpdateView } from './grotto-update-model.ts';
 import { GrottoVersionSummary } from './grotto-version-summary.tsx';
@@ -36,6 +40,7 @@ function UpdatePreview({ scene }: { scene: UpdatePreviewScene }) {
         },
         [record, scene.view.version]
     );
+    const activityRows = useCyclingActivityRows(scene.agentActivityRows);
 
     return (
         <main className="flex min-h-dvh bg-background">
@@ -44,7 +49,8 @@ function UpdatePreview({ scene }: { scene: UpdatePreviewScene }) {
                     <p className="font-semibold text-foreground">Update preview</p>
                     <p className="text-muted text-sm">{scene.description}</p>
                 </div>
-                <div className="mt-auto">
+                <div className="mt-auto flex flex-col gap-2">
+                    <AgentActivityStrip hiddenCount={0} rows={activityRows} slug="preview" />
                     <GrottoUpdateFooter
                         key={scene.id}
                         offlineComputers={scene.offlineComputers}
@@ -86,6 +92,38 @@ function UpdatePreview({ scene }: { scene: UpdatePreviewScene }) {
             <ScenePicker scene={scene} />
         </main>
     );
+}
+
+const previewActivityCategories: AgentActivityStripRow['activity']['category'][] = [
+    'thinking',
+    'reading_files',
+    'editing_files',
+    'running_command',
+    'searching_web',
+    'sending_message',
+];
+
+function useCyclingActivityRows(rows: readonly AgentActivityStripRow[]) {
+    const [step, setStep] = React.useState(0);
+
+    React.useEffect(() => {
+        if (rows.length === 0) {
+            return;
+        }
+        const interval = window.setInterval(() => setStep((current) => current + 1), 1400);
+        return () => window.clearInterval(interval);
+    }, [rows.length]);
+
+    return rows.map((row, index) => ({
+        ...row,
+        activity: {
+            ...row.activity,
+            category:
+                previewActivityCategories[(step + index * 2) % previewActivityCategories.length] ??
+                row.activity.category,
+            position: step + 1,
+        },
+    }));
 }
 
 interface PreviewEvent {

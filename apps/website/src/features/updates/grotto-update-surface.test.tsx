@@ -122,6 +122,10 @@ describe('Grotto update surfaces', () => {
 
     test('keeps every requested debug state addressable by a stable scene id', () => {
         expect(updatePreviewScenes.map((scene) => scene.id)).toEqual([
+            'footer-update-only',
+            'footer-update-and-computer',
+            'footer-computer-only',
+            'footer-all-active',
             'current-desktop',
             'current-web',
             'multiple-updates',
@@ -135,6 +139,38 @@ describe('Grotto update surfaces', () => {
             'desktop-failed',
             'independent-versions',
         ]);
+    });
+
+    test('covers every sidebar footer composition with production-shaped fixtures', () => {
+        const footerScenes = updatePreviewScenes.filter((scene) => scene.group === 'Footer');
+
+        expect(
+            footerScenes.map((scene) => ({
+                activity: scene.agentActivityRows.length > 0,
+                offline: scene.offlineComputers.length > 0,
+                update: scene.view.phase !== 'current',
+            }))
+        ).toEqual([
+            { activity: false, offline: false, update: true },
+            { activity: false, offline: true, update: true },
+            { activity: false, offline: true, update: false },
+            { activity: true, offline: true, update: true },
+        ]);
+        expect(footerScenes[1]?.offlineComputers[0]?.name).toBe("Zach's MacBook Pro");
+    });
+
+    test('lets the HeroUI footer own the status control inset', () => {
+        const scene = updatePreviewScenes.find(
+            (candidate) => candidate.id === 'footer-update-only'
+        );
+        if (!scene) {
+            throw new Error('Missing footer-update-only preview.');
+        }
+
+        const html = renderToStaticMarkup(<GrottoUpdateFooter view={scene.view} />);
+
+        expect(html).toContain('class="flex w-full items-center gap-2"');
+        expect(html).not.toContain('items-center gap-2 px-2');
     });
 
     test('renders offline Computers in a separate warning control', () => {

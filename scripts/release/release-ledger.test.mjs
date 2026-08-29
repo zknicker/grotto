@@ -5,7 +5,7 @@ import {
     assertReleaseLedger,
     createReleaseDraft,
     formatReleaseTargets,
-    latestMainVersion,
+    latestProductVersion,
     releaseTargetBuildNumber,
     releaseTargetVersion,
 } from './release-ledger.mjs';
@@ -23,7 +23,7 @@ const normalRelease = {
 
 test('migrated ledger is oldest-first and keeps independent target versions', async () => {
     const ledger = JSON.parse(await readFile('releases.json', 'utf8'));
-    const websitePackage = JSON.parse(await readFile('apps/website/package.json', 'utf8'));
+    const product = JSON.parse(await readFile('packages/grotto-api/grotto-product.json', 'utf8'));
     const result = assertReleaseLedger(ledger, { requireComplete: true });
 
     expect(ledger.length).toBeGreaterThanOrEqual(34);
@@ -47,21 +47,37 @@ test('migrated ledger is oldest-first and keeps independent target versions', as
         targets: { ios: { version: '1.0.0', buildNumber: 1 } },
     });
     expect(result.latest).toBe(ledger.at(-1));
-    expect(latestMainVersion(ledger)).toBe(websitePackage.version);
+    expect(latestProductVersion(ledger)).toBe(product.version);
+    expect(ledger.filter((entry) => entry.version === null)).toHaveLength(2);
 });
 
-test('validates normal and Computer-only release entries', () => {
+test('allows historical versionless records but rejects a versionless latest release', () => {
+    const historical = {
+        version: null,
+        date: '2026-08-01',
+        targets: { server: null, app: null, ios: null, computer: '3.0.0' },
+    };
+
+    expect(
+        assertReleaseLedger([historical, normalRelease], { requireComplete: true }).complete
+    ).toBe(true);
+    expect(() =>
+        assertReleaseLedger([normalRelease, historical], { requireComplete: true })
+    ).toThrow('release ledger Grotto version must be SemVer');
+});
+
+test('validates component-only releases under monotonic public Grotto versions', () => {
     const ledger = [
         normalRelease,
         {
-            version: null,
+            version: '1.2.4',
             date: '2026-08-02',
             targets: { server: null, app: null, ios: null, computer: '3.0.1' },
         },
     ];
 
     expect(assertReleaseLedger(ledger, { requireComplete: true }).complete).toBe(true);
-    expect(latestMainVersion(ledger)).toBe('1.2.3');
+    expect(latestProductVersion(ledger)).toBe('1.2.4');
     expect(releaseTargetVersion(ledger[0], 'ios')).toBe('2.0.0');
     expect(releaseTargetBuildNumber(ledger[0])).toBe(7);
 });
@@ -88,7 +104,7 @@ test('allows undecided targets only in the latest draft', () => {
     expect(formatReleaseTargets(draft)).toContain('- App: Undecided');
 });
 
-test('appends one higher Server draft without rewriting history', () => {
+test('appends one higher Grotto draft without rewriting history', () => {
     const ledger = appendReleaseDraft([normalRelease], '1.2.4');
 
     expect(ledger).toHaveLength(2);

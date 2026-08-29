@@ -15,10 +15,11 @@ const serverOrigin = process.env.VITE_GROTTO_SERVER_ORIGIN ?? `http://localhost:
 // relative; only the dev proxy has to be pointed at the Server explicitly.
 const grottoServerOrigin = serverOrigin;
 
-// The App's product version is provenance the App sends to the hosted Server.
-// It has one source of truth: this package's version.
-const productVersion = JSON.parse(readFileSync(path.join(websiteRoot, 'package.json'), 'utf8'))
-    .version as string;
+const repositoryRoot = path.resolve(websiteRoot, '../..');
+const productVersion = readJson<{ version: string }>(
+    path.join(repositoryRoot, 'packages/grotto-api/grotto-product.json')
+).version;
+const releaseSnapshot = resolveReleaseSnapshot();
 
 export default defineConfig(({ command }) => ({
     base: command === 'build' && process.env.GROTTO_HOSTED_APP !== '1' ? './' : '/',
@@ -26,6 +27,7 @@ export default defineConfig(({ command }) => ({
         'import.meta.env.VITE_GROTTO_PRODUCT_VERSION': JSON.stringify(
             process.env.VITE_GROTTO_PRODUCT_VERSION ?? productVersion
         ),
+        'import.meta.env.VITE_GROTTO_RELEASE_SNAPSHOT': JSON.stringify(releaseSnapshot),
     },
     plugins: [rejectNodeBuiltins(), tailwindcss(), react()],
     resolve: {
@@ -38,6 +40,9 @@ export default defineConfig(({ command }) => ({
         strictPort: true,
         proxy: {
             '/api/avatars': {
+                target: grottoServerOrigin,
+            },
+            '/api/grotto-release': {
                 target: grottoServerOrigin,
             },
             '/api/prepared-action-media': {
@@ -56,3 +61,48 @@ export default defineConfig(({ command }) => ({
         },
     },
 }));
+
+function resolveReleaseSnapshot() {
+    const ledger = readJson<
+        Array<{
+            date: string;
+            targets: Record<string, null | string | { buildNumber: number; version: string }>;
+            version: string | null;
+        }>
+    >(path.join(repositoryRoot, 'releases.json'));
+    const latest = ledger.at(-1);
+    if (!latest) {
+        throw new Error('releases.json must contain a release');
+    }
+    if (!latest.version) {
+        throw new Error('latest releases.json entry must have a Grotto version');
+    }
+    const target = (name: string) => {
+        for (let index = ledger.length - 1; index >= 0; index -= 1) {
+            const value = ledger[index]?.targets[name];
+            if (value) {
+                return value;
+            }
+        }
+        return null;
+    };
+    const ios = target('ios');
+    return {
+        components: {
+            agent: target('agent'),
+            computer: target('computer'),
+            desktopApp: target('app'),
+            ios: typeof ios === 'object' ? ios : null,
+            server: target('server'),
+        },
+        date: latest.date,
+        schemaVersion: 1,
+        sourceRevision:
+            process.env.GROTTO_SOURCE_REVISION ?? '0000000000000000000000000000000000000000',
+        version: latest.version,
+    };
+}
+
+function readJson<T>(filePath: string): T {
+    return JSON.parse(readFileSync(filePath, 'utf8')) as T;
+}

@@ -1,22 +1,20 @@
 #!/usr/bin/env node
 
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { fail, readFlagValue, readText } from './release-utils.mjs';
 
-const argv = process.argv.slice(2);
-const version = readFlagValue(argv, '--version');
-
-if (argv.includes('--help') || argv.includes('-h')) {
-    printUsage();
-    process.exit(0);
-}
-
 const main = async () => {
+    const argv = process.argv.slice(2);
+    const version = readFlagValue(argv, '--version');
+    if (argv.includes('--help') || argv.includes('-h')) {
+        printUsage();
+        return;
+    }
     const changelog = await readText('CHANGELOG.md');
     const notes = extractReleaseNotes(changelog, version);
     process.stdout.write(`${notes}\n`);
 };
-
-await main();
 
 function printUsage() {
     console.log(
@@ -30,7 +28,7 @@ function printUsage() {
     );
 }
 
-function extractReleaseNotes(changelog, requestedVersion) {
+export function extractReleaseNotes(changelog, requestedVersion) {
     const headingPattern = /^## v(\d+\.\d+\.\d+) - \d{4}-\d{2}-\d{2}$/gm;
     const headings = Array.from(changelog.matchAll(headingPattern));
 
@@ -57,4 +55,8 @@ function extractReleaseNotes(changelog, requestedVersion) {
     }
 
     return notes;
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+    await main();
 }

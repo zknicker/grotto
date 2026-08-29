@@ -4,7 +4,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { verifyComputerOnlyRelease } from './computer-release-verifier.mjs';
-import { APP_RELEASE_ASSETS, verifyNormalRelease } from './github-release-verifier.mjs';
+import {
+    APP_RELEASE_ASSETS,
+    verifyNormalRelease,
+    verifyProductRelease,
+} from './github-release-verifier.mjs';
 import { projectLedgerValues, validateDetectorPlan, writeReleaseOutputs } from './release-plan.mjs';
 
 const sourceRevision = 'a'.repeat(40);
@@ -16,8 +20,8 @@ const ledger = (targets = {}) => [
     {
         version: '1.2.3',
         targets: {
-            server: 'publish',
-            app: 'publish',
+            server: '1.1.0',
+            app: '1.9.0',
             computer: '2.3.4',
             ios: { version: '1.2.3', buildNumber: 9 },
             ...targets,
@@ -45,6 +49,8 @@ test('release plan helpers enforce the detector contract and project ledger valu
         }),
         {
             releaseVersion: '1.2.3',
+            serverVersion: '1.1.0',
+            appVersion: '1.9.0',
             computerVersion: '2.3.4',
             agentVersion: '1.0.0',
             iosVersion: '1.2.3',
@@ -57,7 +63,9 @@ test('release plan helpers enforce the detector contract and project ledger valu
             plan: plan({ computer: true }),
         }),
         {
-            releaseVersion: '',
+            releaseVersion: '1.2.3',
+            serverVersion: '',
+            appVersion: '',
             computerVersion: '2.3.4',
             agentVersion: '',
             iosVersion: '',
@@ -66,6 +74,8 @@ test('release plan helpers enforce the detector contract and project ledger valu
     );
     assert.deepEqual(projectLedgerValues({ ledger: [{ targets: {} }], plan: plan({}, true) }), {
         releaseVersion: '',
+        serverVersion: '',
+        appVersion: '',
         computerVersion: '',
         agentVersion: '',
         iosVersion: '',
@@ -95,13 +105,9 @@ test('release plan helpers enforce the detector contract and project ledger valu
             }),
         /positive integer/
     );
-    assert.throws(
-        () => projectLedgerValues({ ledger: ledger(), plan: plan({ app: true }) }),
-        /requires a Server/
-    );
-    assert.throws(
-        () => projectLedgerValues({ ledger: ledger(), plan: plan({ computer: true, app: true }) }),
-        /Computer-only/
+    assert.equal(
+        projectLedgerValues({ ledger: ledger(), plan: plan({ app: true }) }).appVersion,
+        '1.9.0'
     );
     assert.throws(
         () =>
@@ -125,6 +131,8 @@ test('release plan output preserves raw detector JSON and projected outputs', ()
             plan: plan({ server: true }),
             values: {
                 releaseVersion: '1.2.3',
+                serverVersion: '1.1.0',
+                appVersion: '',
                 computerVersion: '',
                 agentVersion: '',
                 iosVersion: '',
@@ -139,6 +147,8 @@ test('release plan output preserves raw detector JSON and projected outputs', ()
         assert.match(output, /initial_ledger_migration=false/);
         assert.match(output, /publish_server=true/);
         assert.match(output, /release_version=1\.2\.3/);
+        assert.match(output, /server_version=1\.1\.0/);
+        assert.match(output, /app_version=/);
     } finally {
         rmSync(directory, { force: true, recursive: true });
     }
@@ -188,6 +198,13 @@ test('GitHub and Computer finalizers verify tags, assets, and descriptors', asyn
     });
     assert.equal(normal.mode, 'normal');
     assert.deepEqual(normal.requiredAssets, required);
+    const product = await verifyProductRelease({
+        repository: 'zknicker/grotto',
+        sourceRevision,
+        releaseVersion: '1.2.3',
+        ghApi: releaseApi({ ...release, assets: [] }),
+    });
+    assert.equal(product.mode, 'product');
     await assert.rejects(
         () =>
             verifyNormalRelease({

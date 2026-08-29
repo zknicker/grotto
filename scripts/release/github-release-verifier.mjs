@@ -36,26 +36,30 @@ export async function verifyNormalRelease({
     repository,
     sourceRevision,
     releaseVersion,
+    serverVersion = releaseVersion,
+    appVersion = releaseVersion,
     publishApp,
     ghApi,
 }) {
     requireGitSha(sourceRevision, 'release source revision');
     requireSemver(releaseVersion, 'release version');
+    requireSemver(serverVersion, 'Server version');
     if (typeof publishApp !== 'boolean') {
         throw new Error('publishApp must be boolean');
     }
     const tagName = `v${releaseVersion}`;
     await verifyTag({ repository, tagName, sourceRevision, ghApi });
     const release = await ghApi(`repos/${repository}/releases/tags/${tagName}`);
-    assertPublishedRelease(release, tagName);
+    assertPublishedRelease(release, tagName, { requireAssets: true });
 
     const requiredAssets = [
-        serverAssetName(releaseVersion, sourceRevision),
-        serverChecksumName(releaseVersion, sourceRevision),
+        serverAssetName(serverVersion, sourceRevision),
+        serverChecksumName(serverVersion, sourceRevision),
     ];
     if (publishApp) {
+        requireSemver(appVersion, 'App version');
         requiredAssets.push(
-            ...APP_RELEASE_ASSETS.map((name) => name.replace('{version}', releaseVersion))
+            ...APP_RELEASE_ASSETS.map((name) => name.replace('{version}', appVersion))
         );
     }
     for (const assetName of requiredAssets) {
@@ -68,6 +72,20 @@ export async function verifyNormalRelease({
             tagName +
             ', merged SHA, non-draft GitHub Release, and release assets',
         requiredAssets,
+        tagName,
+    };
+}
+
+export async function verifyProductRelease({ repository, sourceRevision, releaseVersion, ghApi }) {
+    requireGitSha(sourceRevision, 'release source revision');
+    requireSemver(releaseVersion, 'release version');
+    const tagName = `v${releaseVersion}`;
+    await verifyTag({ repository, tagName, sourceRevision, ghApi });
+    const release = await ghApi(`repos/${repository}/releases/tags/${tagName}`);
+    assertPublishedRelease(release, tagName, { requireAssets: false });
+    return {
+        mode: 'product',
+        message: `verified Grotto tag ${tagName}, merged SHA, and published GitHub Release`,
         tagName,
     };
 }
@@ -100,14 +118,14 @@ async function verifyTag({ repository, tagName, sourceRevision, ghApi }) {
     }
 }
 
-function assertPublishedRelease(release, tagName) {
+function assertPublishedRelease(release, tagName, { requireAssets }) {
     assertRecord(release, `GitHub Release ${tagName}`);
     if (
         release.draft !== false ||
         release.prerelease !== false ||
         release.published_at == null ||
         !Array.isArray(release.assets) ||
-        release.assets.length === 0
+        (requireAssets && release.assets.length === 0)
     ) {
         throw new Error(`GitHub Release ${tagName} is missing a published release or assets`);
     }

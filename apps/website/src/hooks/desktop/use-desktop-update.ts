@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import {
     type DesktopUpdateBridgeStatus,
+    type GrottoDesktopBridge,
     getDesktopBridge,
     isElectronDesktopApp,
 } from '../../lib/desktop-bridge.ts';
@@ -19,6 +20,7 @@ export type DesktopUpdateStatus =
 let currentStatus: DesktopUpdateStatus = isElectronDesktopApp()
     ? { phase: 'idle' }
     : { phase: 'unsupported' };
+let currentInstalledVersion: string | null = null;
 let monitorStarted = false;
 let activeTask: Promise<void> | null = null;
 
@@ -26,6 +28,10 @@ const listeners = new Set<() => void>();
 
 export function useDesktopUpdate() {
     const status = useSyncExternalStore(subscribeDesktopUpdate, getDesktopUpdateSnapshot);
+    const installedVersion = useSyncExternalStore(
+        subscribeDesktopUpdate,
+        getDesktopInstalledVersionSnapshot
+    );
 
     useEffect(() => {
         startDesktopUpdateMonitor();
@@ -41,6 +47,7 @@ export function useDesktopUpdate() {
 
     return {
         checkForUpdate,
+        installedVersion,
         status,
         updateAndRestart,
     };
@@ -59,6 +66,9 @@ function startDesktopUpdateMonitor() {
             reconcileDesktopUpdateStatus(currentStatus, fromBridgeStatus(status))
         );
     });
+    void readDesktopInstalledVersion(bridge).then(setDesktopInstalledVersion, () => {
+        setDesktopInstalledVersion(null);
+    });
     void checkForDesktopUpdate({ install: false });
 }
 
@@ -74,12 +84,37 @@ function getDesktopUpdateSnapshot() {
     return currentStatus;
 }
 
+function getDesktopInstalledVersionSnapshot() {
+    return currentInstalledVersion;
+}
+
 function setDesktopUpdateStatus(status: DesktopUpdateStatus) {
     currentStatus = status;
 
+    notifyDesktopUpdateListeners();
+}
+
+function setDesktopInstalledVersion(version: string | null) {
+    currentInstalledVersion = version;
+
+    notifyDesktopUpdateListeners();
+}
+
+function notifyDesktopUpdateListeners() {
     for (const listener of listeners) {
         listener();
     }
+}
+
+export async function readDesktopInstalledVersion(
+    bridge: Pick<GrottoDesktopBridge, 'getInfo'> | null
+) {
+    if (!bridge) {
+        return null;
+    }
+
+    const info = await bridge.getInfo();
+    return info.version;
 }
 
 async function checkForDesktopUpdate({ install }: { install: boolean }) {

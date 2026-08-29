@@ -47,6 +47,8 @@ export function projectLedgerValues({ ledger, plan }) {
 
     const values = {
         releaseVersion: '',
+        serverVersion: '',
+        appVersion: '',
         computerVersion: '',
         agentVersion: '',
         iosVersion: '',
@@ -56,9 +58,9 @@ export function projectLedgerValues({ ledger, plan }) {
         return values;
     }
 
+    values.releaseVersion = readSemver(latest, ['version'], 'version');
     if (plan.targets.server) {
-        values.releaseVersion = readSemver(latest, ['version'], 'version');
-        assertPublished(readPath(latest.targets, ['server']), 'targets.server');
+        values.serverVersion = readSemver(latest.targets, ['server'], 'targets.server');
     }
     if (plan.targets.computer) {
         values.computerVersion = readSemver(latest.targets, ['computer'], 'targets.computer');
@@ -79,18 +81,7 @@ export function projectLedgerValues({ ledger, plan }) {
         );
     }
     if (plan.targets.app) {
-        assertPublished(readPath(latest.targets, ['app']), 'targets.app');
-    }
-
-    const hasServerOrComputer = plan.targets.server || plan.targets.computer;
-    const hasAppOrIOS = plan.targets.app || plan.targets.ios;
-    if (!hasServerOrComputer && hasAppOrIOS) {
-        throw new Error(
-            'App/iOS publication requires a Server release or Computer-only publication for finalization'
-        );
-    }
-    if (!plan.targets.server && plan.targets.computer && hasAppOrIOS) {
-        throw new Error('Computer-only publication cannot include App or iOS targets');
+        values.appVersion = readSemver(latest.targets, ['app'], 'targets.app');
     }
     return values;
 }
@@ -119,6 +110,8 @@ export function writeReleaseOutputs({ rawPlan, plan, values, impact, outputPath,
             `initial_ledger_migration=${plan.initialLedgerMigration}`,
             ...RELEASE_TARGETS.map((target) => `publish_${target}=${plan.targets[target]}`),
             `release_version=${values.releaseVersion}`,
+            `server_version=${values.serverVersion}`,
+            `app_version=${values.appVersion}`,
             `computer_version=${values.computerVersion}`,
             `agent_version=${values.agentVersion}`,
             `ios_version=${values.iosVersion}`,
@@ -190,10 +183,6 @@ function assertRecord(value, label) {
     if (!(value && typeof value === 'object' && !Array.isArray(value))) {
         throw new Error(`${label} must be an object`);
     }
-}
-
-function assertPublished(value, label) {
-    readPublished(value, label);
 }
 
 function assertExactKeys(value, expected, label) {

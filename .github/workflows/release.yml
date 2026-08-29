@@ -1,7 +1,4 @@
 name: Release
-# Pull requests validate the ledger. A main push publishes selected targets;
-# Server publication then enters the production Environment approval gate.
-# Apple material resolves from Tooling only inside temporary release steps.
 on:
   pull_request:
     paths:
@@ -30,6 +27,8 @@ jobs:
       publish_ios: ${{ steps.release_plan.outputs.publish_ios }}
       publish_server: ${{ steps.release_plan.outputs.publish_server }}
       release_version: ${{ steps.release_plan.outputs.release_version }}
+      server_version: ${{ steps.release_plan.outputs.server_version }}
+      app_version: ${{ steps.release_plan.outputs.app_version }}
       computer_version: ${{ steps.release_plan.outputs.computer_version }}
       agent_version: ${{ steps.release_plan.outputs.agent_version }}
       ios_version: ${{ steps.release_plan.outputs.ios_version }}
@@ -54,7 +53,7 @@ jobs:
           fi
           node scripts/release/release-plan.mjs \
             --before "${BEFORE_SHA}" \
-            --after "${AFTER_SHA}"
+            --after "${AFTER_SHA}" && node scripts/release/validate-release-metadata.mjs --require-complete
   publish_computer:
     name: Publish Computer
     needs: plan
@@ -93,11 +92,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
         run: bun run computer:release "${COMPUTER_VERSION}"
-
       - name: Clean up Apple material
         if: ${{ always() }}
         run: bash scripts/release/cleanup-apple-material.sh
-
   publish_app:
     name: Publish App
     needs: plan
@@ -134,20 +131,18 @@ jobs:
         env:
           RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
         run: bun run publish:desktop
-
       - name: Upload App release bundle for Server
         uses: actions/upload-artifact@v4
         with:
           name: grotto-app-release-assets
           path: |
             apps/website/electron-dist/latest-mac.yml
-            apps/website/electron-dist/Grotto_${{ needs.plan.outputs.release_version }}_arm64.dmg
-            apps/website/electron-dist/Grotto_${{ needs.plan.outputs.release_version }}_arm64.zip
-            apps/website/electron-dist/Grotto_${{ needs.plan.outputs.release_version }}_arm64.dmg.blockmap
-            apps/website/electron-dist/Grotto_${{ needs.plan.outputs.release_version }}_arm64.zip.blockmap
+            apps/website/electron-dist/Grotto_${{ needs.plan.outputs.app_version }}_arm64.dmg
+            apps/website/electron-dist/Grotto_${{ needs.plan.outputs.app_version }}_arm64.zip
+            apps/website/electron-dist/Grotto_${{ needs.plan.outputs.app_version }}_arm64.dmg.blockmap
+            apps/website/electron-dist/Grotto_${{ needs.plan.outputs.app_version }}_arm64.zip.blockmap
           if-no-files-found: error
           retention-days: 1
-
       - name: Clean up Apple material
         if: ${{ always() }}
         run: bash scripts/release/cleanup-apple-material.sh
@@ -194,7 +189,6 @@ jobs:
           GROTTO_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal -- \
             env "APPLE_API_KEY_PATH=${APPLE_API_KEY_PATH}" \
               bun run ios:release "${IOS_VERSION}" --build-number "${IOS_BUILD_NUMBER}"
-
       - name: Clean up Apple material
         if: ${{ always() }}
         run: bash scripts/release/cleanup-apple-material.sh
@@ -250,12 +244,11 @@ jobs:
       contents: read
     uses: ./.github/workflows/deploy-grotto-server.yml
     with:
-      version: v${{ needs.plan.outputs.release_version }}
+      version: v${{ needs.plan.outputs.server_version }}
       mode: deploy
       source_revision: ${{ github.sha }}
     secrets:
       GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
-
   finalize_release:
     name: Finalize release
     needs:
@@ -280,7 +273,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Check out release verification helpers
         uses: actions/checkout@v4
@@ -289,6 +282,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SOURCE_REVISION: ${{ github.sha }}
           RELEASE_VERSION: ${{ needs.plan.outputs.release_version }}
+          SERVER_VERSION: ${{ needs.plan.outputs.server_version }}
+          APP_VERSION: ${{ needs.plan.outputs.app_version }}
           COMPUTER_VERSION: ${{ needs.plan.outputs.computer_version }}
           AGENT_VERSION: ${{ needs.plan.outputs.agent_version }}
           PUBLISH_COMPUTER: ${{ needs.plan.outputs.publish_computer }}
@@ -298,3 +293,13 @@ jobs:
           PUBLISH_SERVER: ${{ needs.plan.outputs.publish_server }}
           RELEASE_JOB_RESULTS: ${{ toJSON(needs) }}
         run: node scripts/release/verify-release.mjs
+      - name: Set up Bun for snapshot publication
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.5'
+      - name: Publish immutable and latest Grotto snapshots
+        env:
+          RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
+        run: >-
+          GROTTO_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal --
+          node scripts/release/publish-grotto-snapshot.mjs

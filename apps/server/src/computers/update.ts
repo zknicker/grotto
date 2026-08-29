@@ -51,14 +51,22 @@ export async function startComputerUpdate(input: {
     db: GrottoDatabase;
     manifestUrl: string;
     member: GrottoUser | null;
+    targetVersion?: string;
     serverId: string;
 }) {
     const computer = await requireComputerAdmin(input);
     await setChecking(input.db, computer.id);
     let failedPhase: ComputerUpdateProgress['failedPhase'] = 'checking';
     try {
-        const release = await fetchProductionRelease(input.manifestUrl);
+        const release = await fetchProductionRelease(
+            releaseManifestUrl(input.manifestUrl, input.targetVersion)
+        );
         assertCompatibleProductionRelease(release);
+        if (input.targetVersion && release.release.version !== input.targetVersion) {
+            throw new Error(
+                `Grotto Computer release ${release.release.version} does not match selected target ${input.targetVersion}.`
+            );
+        }
         if (!isNewer(release.release.version, computer.productVersion)) {
             await input.db
                 .update(computersTable)
@@ -93,6 +101,18 @@ export async function startComputerUpdate(input: {
         await recordFailure(input.db, computer.id, cause, failedPhase);
         throw cause;
     }
+}
+
+export function releaseManifestUrl(latestManifestUrl: string, releaseVersion?: string) {
+    if (!releaseVersion) {
+        return latestManifestUrl;
+    }
+    const latest = new URL(latestManifestUrl);
+    latest.pathname = latest.pathname.replace(
+        /\/latest\.json$/u,
+        `/${releaseVersion}/release.json`
+    );
+    return latest.toString();
 }
 
 async function requireComputerAdmin(input: {

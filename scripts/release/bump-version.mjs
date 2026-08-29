@@ -3,8 +3,7 @@
 import {
     appendReleaseDraft,
     assertReleaseLedger,
-    latestMainVersion,
-    latestTargetVersion,
+    latestProductVersion,
 } from './release-ledger.mjs';
 import {
     compareVersions,
@@ -13,14 +12,13 @@ import {
     parseVersion,
     readJson,
     readText,
-    updateJson,
     writeText,
 } from './release-utils.mjs';
+import { syncReleaseVersionMetadata } from './release-version-metadata.mjs';
 
 const changelogPath = 'CHANGELOG.md';
 
 const releaseType = process.argv[2];
-const agentReleaseType = readOption(process.argv.slice(3), '--agent');
 
 if (!releaseType || releaseType === '--help' || releaseType === '-h') {
     printUsage();
@@ -33,7 +31,7 @@ const main = async () => {
 
     if (latestChangelogVersion !== currentVersion) {
         fail(
-            `latest changelog version (${latestChangelogVersion}) must match current Server version (${currentVersion}) before bumping`
+            `latest changelog version (${latestChangelogVersion}) must match current Grotto version (${currentVersion}) before bumping`
         );
     }
 
@@ -50,49 +48,37 @@ const main = async () => {
     const ledger = await readJson('releases.json');
     try {
         assertReleaseLedger(ledger, { requireComplete: true });
-        if (latestMainVersion(ledger) !== currentVersion) {
+        if (latestProductVersion(ledger) !== currentVersion) {
             fail(
-                `latest release ledger Server version (${latestMainVersion(ledger)}) must match current Server version (${currentVersion}) before bumping`
+                `latest release ledger Grotto version (${latestProductVersion(ledger)}) must match current Grotto version (${currentVersion}) before bumping`
             );
         }
     } catch (error) {
         fail(error instanceof Error ? error.message : String(error));
     }
 
-    const agentTargetVersion =
-        agentReleaseType === undefined
-            ? undefined
-            : resolveAgentTargetVersion({
-                  currentAgentVersion: (await readJson('packages/grotto-api/grotto-agent.json'))
-                      .version,
-                  latestAgentVersion: latestTargetVersion(ledger, 'agent'),
-                  releaseType: agentReleaseType,
-              });
-    await updateVersionedFiles(targetVersion, agentTargetVersion);
-    await appendLedgerDraft(ledger, targetVersion, agentTargetVersion);
+    const nextLedger = await appendLedgerDraft(ledger, targetVersion);
+    await syncReleaseVersionMetadata(nextLedger);
 
-    printSummary({ agentTargetVersion, currentVersion, targetVersion });
+    printSummary({ currentVersion, targetVersion });
 };
 
 function printUsage() {
     console.log(
         [
-            'Usage: bun run release:bump <patch|minor|major|X.Y.Z> [--agent <current|unchanged|patch|minor|major|X.Y.Z>]',
+            'Usage: bun run release:bump <patch|minor|major|X.Y.Z>',
             '',
             'Examples:',
             '  bun run release:bump patch',
-            '  bun run release:bump 1.0.1 --agent patch',
+            '  bun run release:bump 2.0.0',
         ].join('\n')
     );
 }
 
-async function appendLedgerDraft(ledger, targetVersion, agentTargetVersion) {
+async function appendLedgerDraft(ledger, targetVersion) {
     let nextLedger;
     try {
         nextLedger = appendReleaseDraft(ledger, targetVersion);
-        if (agentTargetVersion !== undefined) {
-            nextLedger.at(-1).targets.agent = agentTargetVersion;
-        }
     } catch (error) {
         fail(error instanceof Error ? error.message : String(error));
     }
@@ -107,10 +93,11 @@ async function appendLedgerDraft(ledger, targetVersion, agentTargetVersion) {
         .map((line) => `  ${line}`)
         .join('\n');
     await writeText('releases.json', rawLedger.replace(closingBracket, `,\n${draft}\n]\n`));
+    return nextLedger;
 }
 
 async function readCurrentVersion() {
-    const version = await readWebsiteVersion();
+    const version = await readProductVersion();
     if (!isSemver(version)) {
         fail(`invalid current version: ${version}`);
     }
@@ -118,9 +105,9 @@ async function readCurrentVersion() {
     return version;
 }
 
-async function readWebsiteVersion() {
-    const packageJson = await readJson('apps/website/package.json');
-    return packageJson.version;
+async function readProductVersion() {
+    const product = await readJson('packages/grotto-api/grotto-product.json');
+    return product.version;
 }
 
 async function readLatestChangelogVersion() {
@@ -166,94 +153,14 @@ function bumpVersion(version, type) {
     return `${parsed.major + 1}.0.0`;
 }
 
-async function updateVersionedFiles(targetVersion, agentTargetVersion) {
-    await updateJson('apps/website/package.json', (packageJson) => {
-        packageJson.version = targetVersion;
-        return packageJson;
-    });
-    if (typeof agentTargetVersion === 'string') {
-        await updateJson('packages/grotto-api/grotto-agent.json', (manifest) => {
-            manifest.version = agentTargetVersion;
-            return manifest;
-        });
-    }
-    await updateIOSLocalDefaultVersion(targetVersion);
-}
-
-function resolveAgentTargetVersion({ currentAgentVersion, latestAgentVersion, releaseType }) {
-    if (releaseType === undefined) {
-        return undefined;
-    }
-    if (!isSemver(currentAgentVersion)) {
-        fail(`invalid current Grotto Agent version: ${currentAgentVersion}`);
-    }
-    if (releaseType === 'unchanged') {
-        return null;
-    }
-    if (releaseType === 'current') {
-        if (latestAgentVersion) {
-            fail('Grotto Agent current may be selected only for its initial versioned release');
-        }
-        return currentAgentVersion;
-    }
-    const target = resolveTargetVersion(currentAgentVersion, releaseType);
-    if (compareVersions(target, currentAgentVersion) <= 0) {
-        fail(`Grotto Agent target ${target} must be greater than current ${currentAgentVersion}`);
-    }
-    return target;
-}
-
-const iosProjectSpecPath = 'apps/ios-swift/project.yml';
-const iosGeneratedProjectPath = 'apps/ios-swift/Grotto.xcodeproj/project.pbxproj';
-
-async function updateIOSLocalDefaultVersion(targetVersion) {
-    const raw = await readText(iosProjectSpecPath);
-    const pattern = /(MARKETING_VERSION: )\d+\.\d+\.\d+/;
-    if (!pattern.test(raw)) {
-        fail(`could not find MARKETING_VERSION in ${iosProjectSpecPath}`);
-    }
-
-    const next = raw.replace(pattern, `$1${targetVersion}`);
-    if (next !== raw) {
-        await writeText(iosProjectSpecPath, next);
-    }
-
-    const generated = await readText(iosGeneratedProjectPath);
-    const generatedPattern = /(MARKETING_VERSION = )\d+\.\d+\.\d+(;)/gu;
-    if (!generated.match(generatedPattern)?.length) {
-        fail(`could not find MARKETING_VERSION in ${iosGeneratedProjectPath}`);
-    }
-    await writeText(
-        iosGeneratedProjectPath,
-        generated.replace(generatedPattern, `$1${targetVersion}$2`)
-    );
-}
-
-function readOption(args, name) {
-    const index = args.indexOf(name);
-    if (index === -1) {
-        return undefined;
-    }
-    const value = args[index + 1];
-    if (!value || value.startsWith('-')) {
-        fail(`${name} requires a value`);
-    }
-    return value;
-}
-
-function printSummary({ agentTargetVersion, currentVersion, targetVersion }) {
+function printSummary({ currentVersion, targetVersion }) {
     console.log(`Bumped release version ${currentVersion} -> ${targetVersion}`);
     console.log('Updated files:');
-    console.log('- apps/website/package.json');
-    console.log('- apps/ios-swift/project.yml (local-build MARKETING_VERSION default)');
-    console.log('- apps/ios-swift/Grotto.xcodeproj/project.pbxproj (generated project)');
-    if (typeof agentTargetVersion === 'string') {
-        console.log(`- packages/grotto-api/grotto-agent.json (Grotto Agent ${agentTargetVersion})`);
-    }
+    console.log('- packages/grotto-api/grotto-product.json');
     console.log('- releases.json (append the next release draft)');
     console.log('Next:');
-    console.log('- bun install --frozen-lockfile');
-    console.log('- apply the target decisions from the previously collected release context');
+    console.log('- apply every target version/build decision to the new releases.json entry');
+    console.log('- bun run release:sync-versions');
     console.log('- update CHANGELOG.md from that target-scoped evidence');
     console.log('- bun run release:check');
 }

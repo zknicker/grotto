@@ -7,11 +7,11 @@ import { fileURLToPath } from 'node:url';
 import { assertRequiredTargetsSelected, calculateReleaseImpact } from './release-impact.mjs';
 import {
     assertReleaseLedger,
-    latestMainVersion,
-    latestTargetVersion,
+    latestProductVersion,
     releasePublishesTarget,
     releaseTargetNames,
 } from './release-ledger.mjs';
+import { assertReleaseVersionMetadata } from './release-version-metadata.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,9 +19,11 @@ const repoRoot = path.resolve(__dirname, '..', '..');
 const require = createRequire(import.meta.url);
 
 const expectedVersion = resolveExpectedVersion(process.argv.slice(2));
+const requireComplete =
+    expectedVersion !== null || process.argv.slice(2).includes('--require-complete');
 
 const versionedFiles = {
-    agent: 'packages/grotto-api/grotto-agent.json',
+    product: 'packages/grotto-api/grotto-product.json',
     website: 'apps/website/package.json',
     electronBuilder: 'apps/website/electron-builder.config.cjs',
 };
@@ -29,11 +31,10 @@ const versionedFiles = {
 const changelogPath = 'CHANGELOG.md';
 
 const main = async () => {
-    const websitePackage = await readJson(versionedFiles.website);
-    const agentManifest = await readJson(versionedFiles.agent);
+    const product = await readJson(versionedFiles.product);
     const electronBuilderConfig = require(path.join(repoRoot, versionedFiles.electronBuilder));
 
-    const releaseVersion = assertReleaseVersion(websitePackage.version);
+    const releaseVersion = assertReleaseVersion(product.version);
 
     assert(
         electronBuilderConfig.appId === 'build.grotto.desktop',
@@ -53,7 +54,7 @@ const main = async () => {
 
     assert(
         latestRelease.version === releaseVersion,
-        'latest changelog version must match Server version'
+        'latest changelog version must match Grotto version'
     );
 
     if (expectedVersion) {
@@ -65,11 +66,12 @@ const main = async () => {
     try {
         const ledger = await readJson('releases.json');
         const result = assertReleaseLedger(ledger, {
-            requireComplete: Boolean(expectedVersion),
+            requireComplete,
         });
+        await assertReleaseVersionMetadata(ledger);
         assert(
-            latestMainVersion(ledger) === releaseVersion,
-            'latest release ledger Server version must match the website version'
+            latestProductVersion(ledger) === releaseVersion,
+            'latest release ledger Grotto version must match product metadata'
         );
         if (result.complete && result.latest.version !== null) {
             assert(
@@ -80,17 +82,10 @@ const main = async () => {
         if (expectedVersion) {
             assert(
                 result.latest.version === expectedVersion,
-                'latest release ledger entry must match the expected Server version'
+                'latest release ledger entry must match the expected Grotto version'
             );
         }
         if (result.complete) {
-            const latestAgentVersion = latestTargetVersion(ledger, 'agent');
-            if (latestAgentVersion) {
-                assert(
-                    agentManifest.version === latestAgentVersion,
-                    'Grotto Agent manifest must match the latest published Agent target'
-                );
-            }
             const impact = await calculateReleaseImpact({ ledger });
             assertRequiredTargetsSelected({
                 impact,

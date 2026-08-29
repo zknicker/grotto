@@ -35,10 +35,11 @@ Internal TestFlight does not require screenshots; a public submission does.
 
 ## Version and build identity
 
-The release record is the source of the published iOS marketing version and build number. The
-`MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` values baked into `project.yml` are local-build
-defaults only. The iOS target job passes the record's explicit values to `xcodebuild`, verifies the
-generated project is current, and never uses a CI run number as the build number.
+The release record is the source of the published iOS marketing version and build number. `bun run
+release:sync-versions` copies the latest published iOS identity into the `MARKETING_VERSION` and
+`CURRENT_PROJECT_VERSION` defaults in `project.yml` and its generated Xcode project. The iOS target
+job still passes the selected record's explicit values to `xcodebuild`, verifies the generated
+project is current, and never uses a CI run number as the build number.
 
 Every upload consumes its build number, including an upload that later fails processing or belongs
 to a release that stops. A replacement upload uses a new number and a new append-only release

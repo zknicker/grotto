@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.9.0 - 2026-08-28
+
+- Grotto now has one public version while the Server, App, Computer, iPhone app, and Grotto Agent
+  keep independent release identities underneath it.
+- Preferences shows the public Grotto version, while the compact sidebar updater shows each
+  component version and updates every Computer before downloading and restarting the desktop App.
+- Reference chips now open compact mouse-following previews for Agents, channels, and skills.
+- Computer pages retain a durable history of connection and lifecycle events for diagnosis.
+- Grotto for iPhone adds persistent avatar and attachment caching, interruptible attachment
+  transitions, visible Quick Look controls, and more responsive chat navigation.
+- Releases now publish a verified immutable product snapshot and finalize the public Grotto tag for
+  every supported mix of independently released components.
+
 ## v1.8.38 - 2026-08-28
 
 - Server release artifacts are now compiled and verified for the production Mac mini's Apple

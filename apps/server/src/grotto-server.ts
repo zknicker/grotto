@@ -30,6 +30,7 @@ async function start() {
         databaseUrl: env.GROTTO_DATABASE_URL,
         avatarImageProvider: createAvatarImageProvider(),
         openAiApiKey: env.GROTTO_OPENAI_API_KEY,
+        releaseIdentity: release,
         staticAppRoot: env.GROTTO_STATIC_APP_ROOT,
     });
 
@@ -40,6 +41,7 @@ async function start() {
     logStartupSection('Grotto Server');
     if (release) {
         logStartupDetail('🏷️', 'Product', release.productVersion);
+        logStartupDetail('📦', 'Server', release.serverVersion);
         logStartupDetail('🧭', 'Revision', release.sourceRevision);
         logStartupDetail('🔒', 'Digest', release.contentDigest);
     }

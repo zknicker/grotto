@@ -1,0 +1,46 @@
+import { expect, test } from 'bun:test';
+import { grottoReleaseSnapshotSchema } from './grotto-release.ts';
+
+const snapshot = {
+    components: {
+        agent: null,
+        computer: '1.4.9',
+        desktopApp: '1.8.22',
+        ios: { buildNumber: 6, version: '1.0.5' },
+        server: '1.8.38',
+    },
+    date: '2026-08-28',
+    schemaVersion: 1,
+    sourceRevision: 'a'.repeat(40),
+    version: '1.9.0',
+} as const;
+
+test('accepts a complete Grotto release snapshot with independently versioned components', () => {
+    expect(grottoReleaseSnapshotSchema.parse(snapshot)).toEqual(snapshot);
+});
+
+test('allows unavailable legacy component identities without weakening release identity', () => {
+    expect(
+        grottoReleaseSnapshotSchema.parse({
+            ...snapshot,
+            components: { ...snapshot.components, ios: null },
+        }).components.ios
+    ).toBeNull();
+    expect(() => grottoReleaseSnapshotSchema.parse({ ...snapshot, version: '1.9' })).toThrow();
+    expect(() =>
+        grottoReleaseSnapshotSchema.parse({ ...snapshot, sourceRevision: 'abc' })
+    ).toThrow();
+});
+
+test('rejects ambiguous or invalid component metadata', () => {
+    expect(() =>
+        grottoReleaseSnapshotSchema.parse({
+            ...snapshot,
+            components: {
+                ...snapshot.components,
+                ios: { buildNumber: 0, version: '1.0.5' },
+            },
+        })
+    ).toThrow();
+    expect(() => grottoReleaseSnapshotSchema.parse({ ...snapshot, extra: true })).toThrow();
+});

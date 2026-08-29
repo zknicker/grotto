@@ -40,6 +40,8 @@
     "release:collect-changelog-context": "node scripts/release/collect-changelog-context.mjs",
     "release:notes": "node scripts/release/extract-release-notes-from-changelog.mjs",
     "release:publish": "GROTTO_RESOLVE_RELEASE_TOKENS=true varlock run --include-internal -- node scripts/release/publish-release.mjs",
+    "release:publish-snapshot": "GROTTO_RESOLVE_RELEASE_TOKENS=true varlock run --include-internal -- node scripts/release/publish-grotto-snapshot.mjs",
+    "release:sync-versions": "node scripts/release/sync-release-versions.mjs",
     "setup:worktree": "node scripts/setup-worktree.mjs",
     "sync:browser-skill": "node scripts/sync-browser-skill.mjs",
     "test:agents": "bun scripts/agent-tests/cli.mjs",

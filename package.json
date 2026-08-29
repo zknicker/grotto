@@ -17,6 +17,7 @@
     "check:heavy": "bun run typecheck:licensed && bun run test:licensed && bun run test:app-unit && bun run test:server && bun run test:computer && bun run build",
     "computer:release": "GROTTO_RESOLVE_RELEASE_TOKENS=true varlock run --include-internal -- node scripts/release/publish-computer.mjs",
     "deploy:grotto-server": "bun scripts/deploy-grotto-server.ts",
+    "deploy:release-host": "node scripts/deploy-release-host.mjs",
     "desktop:build": "GROTTO_RESOLVE_RELEASE_TOKENS=true varlock run --include-internal -- bun run --filter @grotto/website desktop:build",
     "desktop:release": "GROTTO_RESOLVE_RELEASE_TOKENS=true varlock run --include-internal -- bun run --filter @grotto/website desktop:release",
     "dev": "varlock run -- node scripts/run-dev-stack.mjs web",

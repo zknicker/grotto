@@ -1,10 +1,12 @@
-const releaseOrigin = new URL(
-    'https://punchpress-electron-app-209596837609-us-east-1-an.s3.us-east-1.amazonaws.com/grotto/mac/'
+export const releaseOrigin = new URL(
+    'https://punchpress-electron-app-209596837609-us-east-1-an.s3.us-east-1.amazonaws.com/tavern/mac/'
 );
+
+const publicNamespaces = ['/computer/', '/grotto/'];
 
 export function handleReleaseRequest(request: Request): Response {
     const requested = new URL(request.url);
-    if (!requested.pathname.startsWith('/computer/')) {
+    if (!publicNamespaces.some((namespace) => requested.pathname.startsWith(namespace))) {
         return new Response('Not found.\n', {
             headers: { 'content-type': 'text/plain; charset=utf-8' },
             status: 404,

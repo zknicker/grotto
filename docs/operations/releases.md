@@ -44,7 +44,9 @@ published version through carry-forward resolution; do not copy the Grotto versi
 
 Release publication resolves the ledger entry into a canonical snapshot containing the public
 Grotto version and the effective Server, App, iOS, Computer, and Agent versions. Consumers use that
-snapshot to describe one Grotto release without pretending every component rebuilt.
+snapshot at `https://releases.grotto.sh/grotto/latest.json` to describe one Grotto release without
+pretending every component rebuilt. Finalization verifies that public snapshot byte-for-byte after
+publishing it; storage-only verification is not sufficient release evidence.
 
 Grotto Agent has independent SemVer but no standalone artifact. Its behavior package is embedded in
 Server and Computer, so publishing Grotto Agent always publishes both targets. Server advertises

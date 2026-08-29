@@ -177,6 +177,14 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(workflow, /path: apps\/website\/electron-dist/);
     assert.match(workflow, /Grotto_\$\{\{ needs\.plan\.outputs\.app_version \}\}_arm64\.dmg/);
     assert.match(workflow, /node scripts\/release\/publish-grotto-snapshot\.mjs/);
+    assert.ok(
+        workflow.indexOf('node scripts/release/verify-release.mjs --preflight') <
+            workflow.indexOf('node scripts/release/publish-grotto-snapshot.mjs')
+    );
+    assert.ok(
+        workflow.indexOf('node scripts/release/publish-grotto-snapshot.mjs') <
+            workflow.lastIndexOf('run: node scripts/release/verify-release.mjs')
+    );
     assert.doesNotMatch(workflow, /Grotto_\*_arm64/);
     assert.match(setupAppleSource, /base64 -D/);
     assert.match(publishIOSSource, /installIOSProvisioningProfile/);

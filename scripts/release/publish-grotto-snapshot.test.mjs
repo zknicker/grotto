@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { grottoSnapshotKeys, publishGrottoSnapshotInOrder } from './publish-grotto-snapshot.mjs';
+import {
+    grottoSnapshotKeys,
+    publishGrottoSnapshotInOrder,
+    verifyPublicGrottoSnapshot,
+} from './publish-grotto-snapshot.mjs';
 
 test('publishes and verifies the immutable snapshot before moving latest', async () => {
     const calls = [];
@@ -59,4 +63,39 @@ test('uses stable versioned and latest release keys', () => {
         immutable: 'grotto/1.9.0.json',
         latest: 'grotto/latest.json',
     });
+});
+
+test('retries until the public snapshot matches exactly', async () => {
+    const responses = [new Error('temporary network error'), 'stale', 'snapshot'];
+    let delays = 0;
+
+    await verifyPublicGrottoSnapshot(
+        () => {
+            const response = responses.shift();
+            if (response instanceof Error) {
+                throw response;
+            }
+            return response;
+        },
+        'snapshot',
+        {
+            attempts: 3,
+            delay: () => {
+                delays += 1;
+            },
+        }
+    );
+
+    assert.equal(delays, 2);
+});
+
+test('rejects a public snapshot that never matches', async () => {
+    await assert.rejects(
+        () =>
+            verifyPublicGrottoSnapshot(() => 'stale', 'snapshot', {
+                attempts: 2,
+                delay: () => undefined,
+            }),
+        /public Grotto release snapshot did not verify byte-for-byte/
+    );
 });

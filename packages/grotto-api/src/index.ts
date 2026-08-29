@@ -72,6 +72,7 @@ export * from './computer-system-events.ts';
 export * from './computer-update.ts';
 export * from './development-chat-demos.ts';
 export * from './grotto-agent-version.ts';
+export * from './grotto-release.ts';
 export * from './manual.ts';
 export * from './mcp.ts';
 export * from './membership.ts';

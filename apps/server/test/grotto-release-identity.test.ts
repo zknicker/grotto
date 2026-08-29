@@ -15,6 +15,7 @@ test('reads the exact product version, source revision, and artifact digest', ()
             contentDigest,
             productVersion: '1.4.0',
             releaseId: '1.4.0+git.0123456789ab',
+            serverVersion: '1.4.0',
             sourceRevision,
         })
     );
@@ -24,6 +25,7 @@ test('reads the exact product version, source revision, and artifact digest', ()
             contentDigest,
             productVersion: '1.4.0',
             releaseId: '1.4.0+git.0123456789ab',
+            serverVersion: '1.4.0',
             sourceRevision,
         });
     } finally {

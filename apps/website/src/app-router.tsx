@@ -55,6 +55,13 @@ export function createAppRouter() {
                                   'ActivationPreviewRoute'
                               ),
                           },
+                          {
+                              path: 'prototype/updates/:sceneId?',
+                              lazy: lazyRoute(
+                                  () => import('./features/updates/update-preview-route.tsx'),
+                                  'UpdatePreviewRoute'
+                              ),
+                          },
                       ]
                     : []),
                 {

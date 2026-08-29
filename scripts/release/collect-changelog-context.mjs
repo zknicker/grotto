@@ -5,7 +5,11 @@ import {
     formatReleaseImpact,
     releaseImpactTargets,
 } from './release-impact.mjs';
-import { assertReleaseLedger, latestMainVersion, latestTargetVersion } from './release-ledger.mjs';
+import {
+    assertReleaseLedger,
+    latestProductVersion,
+    latestTargetVersion,
+} from './release-ledger.mjs';
 import { readFlagValue, readJson, runGit } from './release-utils.mjs';
 
 const argv = process.argv.slice(2);
@@ -24,7 +28,8 @@ const impact = await calculateReleaseImpact({ ledger, candidateRef });
 console.log('# Release preparation context');
 console.log('');
 console.log(`- Candidate: ${candidateRef}`);
-console.log(`- Latest Server version: ${latestMainVersion(ledger)}`);
+console.log(`- Latest Grotto version: ${latestProductVersion(ledger)}`);
+console.log(`- Latest Server version: ${latestTargetVersion(ledger, 'server') ?? 'unversioned'}`);
 console.log(
     `- Latest Grotto Agent version: ${latestTargetVersion(ledger, 'agent') ?? 'unversioned'}`
 );
@@ -66,7 +71,7 @@ console.log('- Resolve each review target from the diff and record the reason.')
 console.log(
     '- Assign SemVer and the next unused iOS build number only after target scope is settled.'
 );
-console.log('- Then update releases.json, target-owned version files, and CHANGELOG.md.');
+console.log('- Then update releases.json, run release:sync-versions, and update CHANGELOG.md.');
 
 async function readCommits({ before, after, files, max }) {
     const { stdout } = await runGit([

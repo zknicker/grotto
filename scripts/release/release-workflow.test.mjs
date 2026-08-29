@@ -120,6 +120,10 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(workflow, /node scripts\/release\/release-plan\.mjs/);
     assert.match(
         workflow,
+        /node scripts\/release\/validate-release-metadata\.mjs --require-complete/
+    );
+    assert.match(
+        workflow,
         /publish_agent: \$\{\{ steps\.release_plan\.outputs\.publish_agent \}\}/
     );
     assert.match(
@@ -129,12 +133,14 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(workflow, /scripts\/release\/setup-apple-material\.sh/);
     assert.match(workflow, /scripts\/release\/cleanup-apple-material\.sh/);
     assert.match(workflow, /scripts\/release\/verify-release\.mjs/);
+    assert.match(workflow, /name: Finalize release[\s\S]*?contents: write/);
     for (const jobName of [
         'Publish Computer',
         'Publish App',
         'Upload iOS',
         'Publish Server',
         'Promote Server',
+        'Publish immutable and latest Grotto snapshots',
         'Finalize release',
     ]) {
         assert.match(workflow, new RegExp(`name: ${jobName}`));
@@ -150,7 +156,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(workflow, /run: bun run release:publish/);
     assert.match(
         workflow,
-        /promote_server:[\s\S]*needs: \[plan, publish_server\][\s\S]*uses: \.\/\.github\/workflows\/deploy-grotto-server\.yml[\s\S]*version: v\$\{\{ needs\.plan\.outputs\.release_version \}\}[\s\S]*source_revision: \$\{\{ github\.sha \}\}/
+        /promote_server:[\s\S]*needs: \[plan, publish_server\][\s\S]*uses: \.\/\.github\/workflows\/deploy-grotto-server\.yml[\s\S]*version: v\$\{\{ needs\.plan\.outputs\.server_version \}\}[\s\S]*source_revision: \$\{\{ github\.sha \}\}/
     );
     assert.match(workflow, /promote_server:[\s\S]*if: >-\s+always\(\) &&/);
     assert.match(workflow, /RELEASE_JOB_RESULTS: \$\{\{ toJSON\(needs\) \}\}/);
@@ -169,7 +175,8 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
             workflow.indexOf('run: bun run release:publish')
     );
     assert.match(workflow, /path: apps\/website\/electron-dist/);
-    assert.match(workflow, /Grotto_\$\{\{ needs\.plan\.outputs\.release_version \}\}_arm64\.dmg/);
+    assert.match(workflow, /Grotto_\$\{\{ needs\.plan\.outputs\.app_version \}\}_arm64\.dmg/);
+    assert.match(workflow, /node scripts\/release\/publish-grotto-snapshot\.mjs/);
     assert.doesNotMatch(workflow, /Grotto_\*_arm64/);
     assert.match(setupAppleSource, /base64 -D/);
     assert.match(publishIOSSource, /installIOSProvisioningProfile/);

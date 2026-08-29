@@ -13,14 +13,18 @@ export async function verifyGrottoRelease(releaseRoot: string, sourceRevision: s
     }
     await refuseSymlinks(releaseRoot);
 
-    const release = JSON.parse(
+    const stored = JSON.parse(
         await readFile(join(releaseRoot, 'release.json'), 'utf8')
-    ) as GrottoReleaseIdentity;
+    ) as GrottoReleaseIdentity & { serverVersion?: string };
+    const release = { ...stored, serverVersion: stored.serverVersion ?? stored.productVersion };
     if (
-        !/^\d+\.\d+\.\d+$/u.test(release.productVersion) ||
+        !(
+            /^\d+\.\d+\.\d+$/u.test(release.productVersion) &&
+            /^\d+\.\d+\.\d+$/u.test(release.serverVersion)
+        ) ||
         release.sourceRevision !== sourceRevision ||
         release.releaseId !==
-            `${release.productVersion}+git.${release.sourceRevision.slice(0, 12)}` ||
+            `${release.serverVersion}+git.${release.sourceRevision.slice(0, 12)}` ||
         !/^[0-9a-f]{64}$/u.test(release.contentDigest)
     ) {
         throw new Error('Grotto release identity is invalid.');

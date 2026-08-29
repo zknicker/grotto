@@ -24,6 +24,8 @@ import { createGrottoContextFactory } from './grotto-api/context.ts';
 import { grottoRouter } from './grotto-api/router.ts';
 import { startGrottoWebSocketServer } from './grotto-api/ws.ts';
 import { registerGrottoHealth } from './grotto-health.ts';
+import type { GrottoReleaseIdentity } from './grotto-release-identity.ts';
+import { registerGrottoReleaseRoute } from './grotto-release-route.ts';
 import { registerGrottoStaticApp } from './grotto-static-app.ts';
 import { createClerkSessions } from './identity/clerk-sessions.ts';
 import { type ClerkUsers, createClerkUsers } from './identity/clerk-users.ts';
@@ -68,6 +70,8 @@ export interface GrottoServerApplicationOptions {
     databaseUrl: string;
     /** Server-owned OpenAI key; omitted when avatar generation is unavailable. */
     openAiApiKey?: string;
+    /** Exact identity of the running release; absent for an ordinary development Server. */
+    releaseIdentity?: GrottoReleaseIdentity | null;
     /** Controlled time seam for deterministic reminder lifecycle tests. */
     reminderClock?: ReminderClock;
     /** Timer seam; production uses the process interval. */
@@ -165,6 +169,7 @@ export async function createGrottoServerApplication(
             mcpRuntime,
         });
         registerMcpOAuthCallback(app, mcpOAuthRelay);
+        registerGrottoReleaseRoute(app, { releaseIdentity: options.releaseIdentity });
 
         await app.register(fastifyTRPCPlugin, {
             prefix: '/trpc',

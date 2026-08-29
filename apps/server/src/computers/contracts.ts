@@ -58,7 +58,14 @@ export const approveComputerLoginSchema = computerLoginStatusSchema;
 export const denyComputerLoginSchema = computerLoginStatusSchema;
 
 export const computerUpdateInputSchema = z
-    .object({ computerId: computerIdSchema, serverId: serverIdSchema })
+    .object({
+        computerId: computerIdSchema,
+        targetVersion: z
+            .string()
+            .regex(/^\d+\.\d+\.\d+$/u)
+            .optional(),
+        serverId: serverIdSchema,
+    })
     .strict();
 
 export type ComputerHandshake = z.infer<typeof computerHandshakeSchema>;

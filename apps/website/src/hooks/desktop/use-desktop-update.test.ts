@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
     canCheckForDesktopUpdate,
     isPersistentUpdateStatus,
+    readDesktopInstalledVersion,
     reconcileDesktopUpdateStatus,
 } from './use-desktop-update.ts';
 
@@ -45,5 +46,18 @@ describe('desktop update status', () => {
         expect(canCheckForDesktopUpdate({ phase: 'available', version: '1.6.1' })).toBe(false);
         expect(canCheckForDesktopUpdate({ phase: 'ready', version: '1.6.1' })).toBe(false);
         expect(canCheckForDesktopUpdate({ phase: 'unsupported' })).toBe(false);
+    });
+
+    test('reads the installed shell version through the desktop bridge', async () => {
+        await expect(
+            readDesktopInstalledVersion({
+                getInfo: async () => ({
+                    isPackaged: true,
+                    platform: 'darwin',
+                    version: '1.8.40',
+                }),
+            })
+        ).resolves.toBe('1.8.40');
+        await expect(readDesktopInstalledVersion(null)).resolves.toBeNull();
     });
 });

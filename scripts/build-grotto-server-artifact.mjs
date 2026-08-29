@@ -21,10 +21,14 @@ const sourceRevision = process.env.GROTTO_SOURCE_REVISION?.trim() ?? '';
 if (!/^[0-9a-f]{40}$/.test(sourceRevision)) {
     throw new Error('GROTTO_SOURCE_REVISION must be a full lowercase Git commit SHA.');
 }
-const websitePackage = JSON.parse(
-    await fs.readFile(path.join(repoRoot, 'apps', 'website', 'package.json'), 'utf8')
+const product = JSON.parse(
+    await fs.readFile(path.join(repoRoot, 'packages', 'grotto-api', 'grotto-product.json'), 'utf8')
 );
-const releaseId = `${websitePackage.version}+git.${sourceRevision.slice(0, 12)}`;
+const serverVersion = process.env.GROTTO_SERVER_VERSION?.trim() ?? '';
+if (!/^\d+\.\d+\.\d+$/.test(serverVersion)) {
+    throw new Error('GROTTO_SERVER_VERSION must be exact SemVer.');
+}
+const releaseId = `${serverVersion}+git.${sourceRevision.slice(0, 12)}`;
 const artifactName = `grotto-server-${releaseId}-aarch64-apple-darwin.tar.gz`;
 const artifactPath = path.join(releaseRoot, artifactName);
 
@@ -108,8 +112,9 @@ await fs.writeFile(
     `${JSON.stringify(
         {
             contentDigest,
-            productVersion: websitePackage.version,
+            productVersion: product.version,
             releaseId,
+            serverVersion,
             sourceRevision,
         },
         null,

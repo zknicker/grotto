@@ -41,6 +41,8 @@ const main = async () => {
     assertNoTag(tagName);
     run('bun', ['run', 'release:check', '--', '--expect-version', version]);
     const release = await readPublishedRelease(version);
+    const serverVersion = releaseTargetVersion(release, 'server');
+    const appVersion = releaseTargetVersion(release, 'app');
     const computerRelease = await checkComputerReleasePrerequisite().catch((error) => {
         fail('compatible Grotto Computer must be published before Server', {
             message: error instanceof Error ? error.message : String(error),
@@ -59,7 +61,11 @@ const main = async () => {
     }
     const sourceRevision = readSourceRevision();
     run('bun', ['run', 'build:grotto-server-artifact'], {
-        env: { ...process.env, GROTTO_SOURCE_REVISION: sourceRevision },
+        env: {
+            ...process.env,
+            GROTTO_SERVER_VERSION: serverVersion,
+            GROTTO_SOURCE_REVISION: sourceRevision,
+        },
     });
 
     if (publishApp) {
@@ -68,9 +74,10 @@ const main = async () => {
 
     const notesPath = await writeReleaseNotes(version);
     const artifacts = await findReleaseArtifacts({
+        appVersion,
         includeDesktop: publishApp,
+        serverVersion,
         sourceRevision,
-        version,
     });
 
     createTag(tagName, sourceRevision);
@@ -93,8 +100,8 @@ function printUsage() {
 }
 
 async function readReleaseVersion() {
-    const packageJson = await readJson('apps/website/package.json');
-    return packageJson.version;
+    const product = await readJson('packages/grotto-api/grotto-product.json');
+    return product.version;
 }
 
 function assertVersion(version) {
@@ -132,10 +139,10 @@ async function readPublishedRelease(version) {
         const ledger = await readJson('releases.json');
         const result = assertReleaseLedger(ledger, { requireComplete: true });
         if (result.latest.version !== version) {
-            throw new Error(`latest release ledger entry is not Server ${version}`);
+            throw new Error(`latest release ledger entry is not Grotto ${version}`);
         }
         if (!releasePublishesTarget(result.latest, 'server')) {
-            throw new Error(`release ledger entry does not publish Server ${version}`);
+            throw new Error(`Grotto ${version} does not publish Server`);
         }
         return result.latest;
     } catch (error) {
@@ -172,14 +179,14 @@ function extractReleaseNotes(changelog, version) {
     return notes;
 }
 
-async function findReleaseArtifacts({ includeDesktop, sourceRevision, version }) {
+async function findReleaseArtifacts({ appVersion, includeDesktop, serverVersion, sourceRevision }) {
     const artifacts = [
-        ...(includeDesktop ? await findDesktopArtifacts(version) : []),
+        ...(includeDesktop ? await findDesktopArtifacts(appVersion) : []),
         ...(includeDesktop ? [path.join(bundleRoot, 'latest-mac.yml')] : []),
         ...(await findGrottoServerReleaseAssets({
             releaseRoot: serverReleaseRoot,
             sourceRevision,
-            version,
+            version: serverVersion,
         })),
     ];
 

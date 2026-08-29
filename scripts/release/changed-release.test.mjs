@@ -53,9 +53,9 @@ test('one appended release returns its target publication plan', async () => {
     );
 });
 
-test('a Computer-only append plans only Computer', async () => {
+test('a Computer-only component release still carries a public Grotto version', async () => {
     const appended = {
-        version: null,
+        version: '1.8.24',
         date: '2026-08-27',
         targets: { server: null, app: null, ios: null, computer: '1.4.8', agent: null },
     };

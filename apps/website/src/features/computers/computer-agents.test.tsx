@@ -16,6 +16,7 @@ test('Computer Agents render as a HeroUI Pro data grid', () => {
                     runtime: 'Codex',
                 },
             ]}
+            state={{ status: 'ready' }}
         />
     );
 
@@ -30,4 +31,45 @@ test('Computer Agents render as a HeroUI Pro data grid', () => {
     expect(html).toContain('GPT-5.6 Sol');
     expect(html).toContain('Online');
     expect(html).toContain('chip--lg');
+    expect(html).not.toContain('min-h-64');
+});
+
+test('Computer Agents keep the data grid shell when empty', () => {
+    const html = renderToStaticMarkup(
+        <ComputerAgentGrid onOpenAgent={() => undefined} rows={[]} state={{ status: 'ready' }} />
+    );
+
+    expect(html).toContain('data-slot="data-grid"');
+    expect(html).toContain('Agent');
+    expect(html).toContain('Runtime');
+    expect(html).toContain('Model');
+    expect(html).toContain('Status');
+    expect(html).toContain('data-slot="empty-state"');
+    expect(html).toContain('min-h-64');
+    expect(html).toContain('No Agents assigned');
+});
+
+test('Computer Agents show a loading state before first data', () => {
+    const html = renderToStaticMarkup(
+        <ComputerAgentGrid onOpenAgent={() => undefined} rows={[]} state={{ status: 'loading' }} />
+    );
+
+    expect(html).toContain('Loading Agents');
+    expect(html).toContain('min-h-64');
+    expect(html).not.toContain('No Agents assigned');
+});
+
+test('Computer Agents distinguish an unavailable directory from an empty one', () => {
+    const html = renderToStaticMarkup(
+        <ComputerAgentGrid
+            onOpenAgent={() => undefined}
+            rows={[]}
+            state={{ onRetry: () => undefined, status: 'unavailable' }}
+        />
+    );
+
+    expect(html).toContain('Agents unavailable');
+    expect(html).toContain('min-h-64');
+    expect(html).toContain('Try again');
+    expect(html).not.toContain('No Agents assigned');
 });

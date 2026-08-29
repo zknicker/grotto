@@ -1,17 +1,5 @@
 import type { ComputerSystemEvent } from '@grotto/api';
 
-export const disconnectWarningThreshold = 5;
-export const disconnectWarningWindowMs = 5 * 60_000;
-
-export function hasFrequentDisconnects(events: ComputerSystemEvent[], now = Date.now()) {
-    const cutoff = now - disconnectWarningWindowMs;
-    return (
-        events.filter(
-            (event) => event.type === 'disconnected' && Date.parse(event.occurredAt) >= cutoff
-        ).length >= disconnectWarningThreshold
-    );
-}
-
 export function systemEventLabel(event: ComputerSystemEvent) {
     switch (event.type) {
         case 'connected':

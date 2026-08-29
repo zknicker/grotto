@@ -1,5 +1,6 @@
 import { Chip } from '@heroui/react';
 import { DataGrid, type DataGridColumn, ItemCardGroup } from '@heroui-pro/react';
+import { InboxIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useNavigate } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
@@ -7,6 +8,7 @@ import { useComputers } from '../../hooks/servers/use-computers.ts';
 import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
 import { availabilityBadgeColor } from '../members/agent-avatar.tsx';
 import { settingsAgentRoute } from '../servers/server-routes.ts';
+import { ComputerDataGridState } from './computer-data-grid-state.tsx';
 import { agentExecutionLabels, availabilityLabel } from './presentation.ts';
 
 type Agent = GrottoOutputs['agent']['list'][number];
@@ -20,6 +22,10 @@ interface ComputerAgentRow {
     model: string;
     runtime: string;
 }
+
+type ComputerAgentGridState =
+    | { status: 'loading' | 'ready' }
+    | { onRetry: () => void; status: 'unavailable' };
 
 export function ComputerAgents({
     computerId,
@@ -41,6 +47,12 @@ export function ComputerAgents({
     }
 
     const rows = computerAgentRows(items, computer.reportedInventory);
+    const gridState: ComputerAgentGridState =
+        agents.data !== undefined
+            ? { status: 'ready' }
+            : agents.isError
+              ? { onRetry: () => void agents.refetch(), status: 'unavailable' }
+              : { status: 'loading' };
 
     return (
         <section>
@@ -53,18 +65,11 @@ export function ComputerAgents({
                         ) : null}
                     </ItemCardGroup.Title>
                 </ItemCardGroup.Header>
-                {!agents.data && agents.isPending ? (
-                    <div aria-busy="true" className="min-h-14">
-                        <span className="sr-only">Loading Agents on this Computer</span>
-                    </div>
-                ) : rows.length > 0 ? (
-                    <ComputerAgentGrid
-                        onOpenAgent={(agentId) => navigate(settingsAgentRoute(serverSlug, agentId))}
-                        rows={rows}
-                    />
-                ) : (
-                    <p className="text-muted text-sm">No Agents on this Computer.</p>
-                )}
+                <ComputerAgentGrid
+                    onOpenAgent={(agentId) => navigate(settingsAgentRoute(serverSlug, agentId))}
+                    rows={rows}
+                    state={gridState}
+                />
             </ItemCardGroup>
         </section>
     );
@@ -73,20 +78,39 @@ export function ComputerAgents({
 export function ComputerAgentGrid({
     onOpenAgent,
     rows,
+    state,
 }: {
     onOpenAgent: (agentId: string) => void;
     rows: ComputerAgentRow[];
+    state: ComputerAgentGridState;
 }) {
     return (
         <DataGrid
             aria-label="Agents on this Computer"
             columns={agentColumns}
-            contentClassName="min-w-160"
+            contentClassName={rows.length === 0 ? 'min-h-64 min-w-160' : 'min-w-160'}
             data={rows}
             getRowId={(item) => item.id}
             onRowAction={(key) => onOpenAgent(String(key))}
+            renderEmptyState={() => <ComputerAgentGridEmptyState state={state} />}
         />
     );
+}
+
+function ComputerAgentGridEmptyState({ state }: { state: ComputerAgentGridState }) {
+    if (state.status === 'loading') {
+        return <ComputerDataGridState label="Loading Agents" status="loading" />;
+    }
+    if (state.status === 'unavailable') {
+        return (
+            <ComputerDataGridState
+                label="Agents unavailable"
+                onRetry={state.onRetry}
+                status="unavailable"
+            />
+        );
+    }
+    return <ComputerDataGridState icon={InboxIcon} label="No Agents assigned" status="empty" />;
 }
 
 function computerAgentRows(

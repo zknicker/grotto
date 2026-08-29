@@ -118,7 +118,7 @@ export function ComputerDetail({
             </section>
 
             <ComputerAgents computerId={computerId} serverId={serverId} serverSlug={serverSlug} />
-            <ComputerSystemLog computerId={computerId} serverId={serverId} />
+            <ComputerSystemLog computerId={computerId} key={computerId} serverId={serverId} />
             <ComputerActions
                 computerId={computerId}
                 onRemove={onRemove}

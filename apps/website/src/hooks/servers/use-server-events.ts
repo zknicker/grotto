@@ -72,7 +72,10 @@ export function createServerUpdateHandler(
             invalidateServerDetail(utils, slug);
             void utils.computer.list.invalidate({ serverId });
             void (event.computerId
-                ? utils.computer.systemLog.invalidate({ computerId: event.computerId, serverId })
+                ? utils.computer.systemLog.invalidate(
+                      { computerId: event.computerId, serverId },
+                      { exact: false }
+                  )
                 : utils.computer.systemLog.invalidate(undefined, { exact: false }));
             void utils.agent.activeActivity.invalidate({ serverId });
             invalidateAgentDetail(utils, serverId, event.agentId);

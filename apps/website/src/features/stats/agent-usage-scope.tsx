@@ -1,7 +1,12 @@
-import { Description, Label, ListBox, Select } from '@heroui/react';
-import { EntityAvatar, type EntityAvatarProps } from '../../components/ui/entity-avatar.tsx';
+import { Label, ListBox, Select } from '@heroui/react';
+import { UserMultiple02Icon } from '@hugeicons-pro/core-stroke-rounded';
+import {
+    EntityAvatar,
+    type EntityAvatarProps,
+    identityMarkRadius,
+} from '../../components/ui/entity-avatar.tsx';
+import { Icon } from '../../components/ui/icon.tsx';
 import type { AgentUsage } from './token-usage-view.ts';
-import { formatTokens } from './usage-format.ts';
 
 const ALL_AGENTS = 'all';
 
@@ -15,15 +20,14 @@ const triggerMarkSize = 20;
  * three stacked rows of cards above the chart at ten. It was also doing two
  * jobs: choosing a scope, and comparing Agents. The comparison already lives
  * further down the same page in Token usage detail, broken down by Agent,
- * runtime and model, so this keeps only the choosing — at constant height, for
- * any number of Agents.
+ * runtime and model, so this keeps only the choosing — single-line rows with
+ * no totals, because Token usage detail already answers "who is burning
+ * tokens".
  *
- * The totals ride along as each option's description, so the dropdown still
- * answers "who is burning tokens" without a card per Agent.
- *
- * The list carries full-size marks; the trigger uses the rail-scale one, so the
- * control keeps its own field height instead of being pushed taller by an
- * avatar and towering over the range beside it.
+ * The trigger keeps the stacked-roster mark (rail scale, so the control keeps
+ * its own field height); the list swaps it for a members glyph in an
+ * avatar-sized box, because a three-avatar cluster beside single avatars reads
+ * as an inset row rather than a peer of the rows below it.
  */
 export function AgentUsageScopePicker({
     agents,
@@ -34,7 +38,6 @@ export function AgentUsageScopePicker({
     onSelect: (agentId: null | string) => void;
     selectedAgentId: null | string;
 }) {
-    const totalTokens = agents.reduce((sum, agent) => sum + agent.totalTokens, 0);
     const selected = agents.find((agent) => agent.agentId === selectedAgentId);
 
     return (
@@ -70,14 +73,8 @@ export function AgentUsageScopePicker({
             <Select.Popover>
                 <ListBox>
                     <ListBox.Item id={ALL_AGENTS} textValue="All Agents">
-                        <AllAgentsMark agents={agents} />
-                        <div className="flex min-w-0 flex-col">
-                            <Label>All Agents</Label>
-                            <Description>
-                                {formatTokens(totalTokens)} across {agents.length}{' '}
-                                {agents.length === 1 ? 'Agent' : 'Agents'}
-                            </Description>
-                        </div>
+                        <EveryAgentMark />
+                        <Label>All Agents</Label>
                         <ListBox.ItemIndicator />
                     </ListBox.Item>
                     {agents.map((agent) => (
@@ -91,12 +88,7 @@ export function AgentUsageScopePicker({
                                 size="sm"
                                 src={agent.agentAvatarUrl}
                             />
-                            <div className="flex min-w-0 flex-col">
-                                <Label>{agent.agentName}</Label>
-                                <Description>
-                                    {formatTokens(agent.totalTokens)} · @{agent.agentHandle}
-                                </Description>
-                            </div>
+                            <Label>{agent.agentName}</Label>
                             <ListBox.ItemIndicator />
                         </ListBox.Item>
                     ))}
@@ -109,10 +101,10 @@ export function AgentUsageScopePicker({
 /** The whole roster as one mark, so "everyone" reads as a face rather than a word. */
 function AllAgentsMark({
     agents,
-    size = 'sm',
+    size,
 }: {
     agents: AgentUsage[];
-    size?: EntityAvatarProps['size'];
+    size: EntityAvatarProps['size'];
 }) {
     return (
         <span className="flex shrink-0 -space-x-2">
@@ -125,6 +117,29 @@ function AllAgentsMark({
                     src={agent.agentAvatarUrl}
                 />
             ))}
+        </span>
+    );
+}
+
+/**
+ * "Everyone" for the option list: a members glyph in an avatar-sized box, on
+ * the same size and radius curve as the sm avatars beside it (the
+ * channel-icon-box idiom). The trigger's stacked roster reads wrong here — a
+ * cluster beside single avatars makes the row look inset instead of peer.
+ */
+function EveryAgentMark() {
+    const boxSize = 32;
+    return (
+        <span
+            aria-hidden="true"
+            className="flex shrink-0 items-center justify-center bg-[var(--default)] text-muted"
+            style={{
+                borderRadius: identityMarkRadius(boxSize),
+                height: boxSize,
+                width: boxSize,
+            }}
+        >
+            <Icon icon={UserMultiple02Icon} size={16} style={{ height: 16, width: 16 }} />
         </span>
     );
 }

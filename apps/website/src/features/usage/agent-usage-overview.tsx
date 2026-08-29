@@ -1,7 +1,8 @@
 import type { Agent } from '@grotto/api';
-import { Card, Skeleton } from '@heroui/react';
+import { Skeleton } from '@heroui/react';
 import { useUsage } from '../../hooks/servers/use-usage.ts';
 import { AgentTokenUsage } from '../stats/token-usage-module.tsx';
+import { UsageEmptyCard } from './usage-empty.tsx';
 
 export function AgentUsageOverview({ agent, serverId }: { agent: Agent; serverId: string }) {
     const usage = useUsage(serverId);
@@ -20,25 +21,14 @@ export function AgentUsageOverview({ agent, serverId }: { agent: Agent; serverId
         );
     }
     if (usage.error) {
-        return (
-            <Card>
-                <Card.Content>
-                    <p className="font-medium text-base">Usage unavailable</p>
-                    <p className="mt-1 text-muted text-sm">{usage.error.message}</p>
-                </Card.Content>
-            </Card>
-        );
+        return <UsageEmptyCard description={usage.error.message} title="Usage Unavailable" />;
     }
     if (usage.data) {
         return (
-            <Card>
-                <Card.Content>
-                    <p className="font-medium text-base">No usage yet</p>
-                    <p className="mt-1 text-muted text-sm">
-                        Usage will appear after this Agent completes a model turn.
-                    </p>
-                </Card.Content>
-            </Card>
+            <UsageEmptyCard
+                description="Usage will appear after this Agent completes a model turn."
+                title="No Usage Yet"
+            />
         );
     }
     return <Skeleton aria-label="Loading Agent usage" className="h-80 w-full rounded-2xl" />;

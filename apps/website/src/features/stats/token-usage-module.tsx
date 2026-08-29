@@ -1,55 +1,53 @@
 import type { TokenUsageOverview } from '@grotto/api';
 import { ToggleButton, ToggleButtonGroup, Toolbar } from '@heroui/react';
+import { ItemCardGroup } from '@heroui-pro/react';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
-import { AgentUsageScopePicker } from './agent-usage-scope.tsx';
 import { TokenConfigurationGrid } from './token-configuration-grid.tsx';
 import { TokenTotalKpis } from './token-total-kpis.tsx';
 import { TokenUsageChart } from './token-usage-chart.tsx';
 import {
     buildAgentTokenUsageView,
-    buildTokenUsageView,
     type TokenUsageAgentIdentity,
     type TokenUsageRange,
-    type TokenUsageScope,
     type TokenUsageView,
 } from './token-usage-view.ts';
 
 const ranges: TokenUsageRange[] = [7, 30, 90];
 
-export function AgentsTokenUsage({
+/**
+ * The dashboard body, general to specific: filters, range totals, the daily
+ * trend, then the per-configuration breakdown as its own titled section.
+ * Controls, totals, and chart share the tight grid-card gap so they read as
+ * one cluster rather than equally spaced islands. A fragment, so the hosting
+ * column's own rhythm separates cluster from breakdown.
+ *
+ * The filters sit on the cluster, not in the shell band: the band's 3rem
+ * chrome fits compact actions, and Select has no compact size, so a
+ * field-height control up there crowds the window edge instead of aligning
+ * with the cards it filters.
+ */
+export function TokenUsageDashboard({
+    controls,
     emptyMessage,
-    scope,
-    usage,
+    view,
 }: {
+    controls?: ReactNode;
     emptyMessage?: string;
-    scope?: TokenUsageScope;
-    usage: TokenUsageOverview;
+    view: TokenUsageView;
 }) {
-    const [days, setDays] = useState<TokenUsageRange>(30);
-    const [selectedAgentId, setSelectedAgentId] = useState<null | string>(null);
-    const view = useMemo(
-        () => buildTokenUsageView(usage, days, selectedAgentId, new Date(), scope),
-        [days, scope, selectedAgentId, usage]
-    );
-
     return (
-        <UsageDashboard
-            controls={
-                <>
-                    {view.agents.length > 0 ? (
-                        <AgentUsageScopePicker
-                            agents={view.agents}
-                            onSelect={setSelectedAgentId}
-                            selectedAgentId={view.selectedAgent?.agentId ?? null}
-                        />
-                    ) : null}
-                    <TokenUsageRangePicker days={days} onChange={setDays} />
-                </>
-            }
-            emptyMessage={emptyMessage}
-            view={view}
-        />
+        <>
+            <div className="grid gap-3">
+                {controls ? (
+                    <div className="flex flex-wrap items-center justify-end gap-3">
+                        <Toolbar aria-label="Usage filters">{controls}</Toolbar>
+                    </div>
+                ) : null}
+                <TokenUsageCluster emptyMessage={emptyMessage} view={view} />
+            </div>
+            <TokenConfigurationGrid rows={view.configurations} />
+        </>
     );
 }
 
@@ -64,49 +62,40 @@ export function AgentTokenUsage({
     const view = useMemo(() => buildAgentTokenUsageView(usage, days, agent), [agent, days, usage]);
 
     return (
-        <UsageDashboard
-            controls={<TokenUsageRangePicker days={days} onChange={setDays} />}
-            heading={
-                <div>
-                    <h2 className="font-semibold text-base">Usage</h2>
-                    <p className="text-muted text-sm">
-                        Token volume across this Agent's runtime and model configurations.
-                    </p>
-                </div>
-            }
-            view={view}
-        />
+        <>
+            <ItemCardGroup variant="transparent">
+                {/* Title and range picker share one line, no wrap: section
+                    titles here carry no descriptions, and the picker scopes
+                    this section so it rides the header even at narrow pane
+                    widths. */}
+                <ItemCardGroup.Header className="flex items-center justify-between gap-3">
+                    <ItemCardGroup.Title>Usage</ItemCardGroup.Title>
+                    <Toolbar aria-label="Usage filters">
+                        <TokenUsageRangePicker days={days} onChange={setDays} />
+                    </Toolbar>
+                </ItemCardGroup.Header>
+                {/* No KPI totals here: on a profile they were a third
+                    representation of what the trend and the per-configuration
+                    table already say. The server-wide Usage page keeps them —
+                    there they summarize many Agents at once. */}
+                <TokenUsageChart view={view} />
+            </ItemCardGroup>
+            <TokenConfigurationGrid rows={view.configurations} />
+        </>
     );
 }
 
-function UsageDashboard({
-    children,
-    controls,
+function TokenUsageCluster({
     emptyMessage,
-    heading,
     view,
 }: {
-    children?: ReactNode;
-    controls?: ReactNode;
     emptyMessage?: string;
-    heading?: ReactNode;
     view: TokenUsageView;
 }) {
     return (
-        <div className="grid gap-8">
-            {/* Scope and range sit with the cards they describe, on the column's
-                own edges — not in the shell band, where a page-level filter
-                right-aligns against window chrome instead of its content. */}
-            {heading || controls ? (
-                <div className="flex flex-wrap items-center justify-end gap-3">
-                    {heading ? <div className="me-auto">{heading}</div> : null}
-                    {controls ? <Toolbar aria-label="Usage filters">{controls}</Toolbar> : null}
-                </div>
-            ) : null}
-            {children}
-            <TokenUsageChart emptyMessage={emptyMessage} view={view} />
+        <div className="grid gap-3">
             <TokenTotalKpis totals={view.totals} />
-            <TokenConfigurationGrid rows={view.configurations} />
+            <TokenUsageChart emptyMessage={emptyMessage} view={view} />
         </div>
     );
 }

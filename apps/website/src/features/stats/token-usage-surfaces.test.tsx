@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { TokenConfigurationGrid } from './token-configuration-grid.tsx';
 import { TokenTotalKpis } from './token-total-kpis.tsx';
 import { TokenUsageChart } from './token-usage-chart.tsx';
-import { AgentsTokenUsage, AgentTokenUsage } from './token-usage-module.tsx';
+import { AgentTokenUsage, TokenUsageDashboard } from './token-usage-module.tsx';
 import type { TokenUsageView } from './token-usage-view.ts';
 
 const totals = {
@@ -40,19 +40,30 @@ test('Agent usage uses the HeroUI Pro dashboard primitives', () => {
     expect(html.match(/data-slot="kpi"/g)).toHaveLength(4);
 });
 
-test('Agents overview keeps its controls with the content column', () => {
+test('Usage dashboard keeps its filters on the content cluster', () => {
+    const view: TokenUsageView = {
+        agents: [],
+        chartConfigurations: [],
+        chartData: [],
+        configurations: [],
+        selectedAgent: null,
+        totals,
+    };
     const html = renderToStaticMarkup(
-        <AgentsTokenUsage usage={{ breakdown: [], days: 90, totals }} />
+        <TokenUsageDashboard controls={<button type="button">range</button>} view={view} />
     );
 
-    // Scope and range describe the cards, so they render inside the column
-    // rather than portalling into the shell band's window chrome.
-    expect(html).toContain('aria-label="Token usage range"');
-    expect(html).not.toContain('Usage by Agent');
-    expect(html).not.toContain('Choose an Agent');
+    // The shell band's 3rem chrome cannot host field-height controls, so the
+    // filters lead the cluster they act on — then general to specific:
+    // totals before the daily trend.
+    const toolbar = html.indexOf('aria-label="Usage filters"');
+    const kpis = html.indexOf('data-slot="kpi-group"');
+    expect(toolbar).toBeGreaterThan(-1);
+    expect(toolbar).toBeLessThan(kpis);
+    expect(kpis).toBeLessThan(html.indexOf('data-slot="widget"'));
 });
 
-test('Agent profile retains its local usage heading', () => {
+test('Agent profile retains its local usage heading and range', () => {
     const html = renderToStaticMarkup(
         <AgentTokenUsage
             agent={{
@@ -66,8 +77,17 @@ test('Agent profile retains its local usage heading', () => {
     );
 
     expect(html).toContain('>Usage<');
-    expect(html).toContain('Token volume across this Agent');
-    expect(html).toContain('runtime and model configurations.');
+    // Section titles carry no descriptions — the title and range picker share
+    // the header line.
+    expect(html).not.toContain('Token volume across this Agent');
+    // The range scopes this one section, so it rides the section header.
+    expect(html).toContain('aria-label="Usage filters"');
+    // No KPI totals on the profile — the chart and the configuration table
+    // already carry that data.
+    expect(html).not.toContain('data-slot="kpi-group"');
+    expect(html.indexOf('data-slot="item-card-group-header"')).toBeLessThan(
+        html.indexOf('data-slot="widget"')
+    );
 });
 
 test('Token chart follows the Widget chart composition', () => {

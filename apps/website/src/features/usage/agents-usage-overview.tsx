@@ -1,6 +1,6 @@
-import { Button, Card, Skeleton } from '@heroui/react';
+import { Button, Skeleton } from '@heroui/react';
 import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
@@ -10,7 +10,10 @@ import { computerLabel } from '../computers/presentation.ts';
 import { PageColumn } from '../shell/page-column.tsx';
 import { SectionHeader } from '../shell/section-header.tsx';
 import { PageTopbar } from '../shell/shell-topbar.tsx';
-import { AgentsTokenUsage } from '../stats/token-usage-module.tsx';
+import { AgentUsageScopePicker } from '../stats/agent-usage-scope.tsx';
+import { TokenUsageDashboard, TokenUsageRangePicker } from '../stats/token-usage-module.tsx';
+import { buildTokenUsageView, type TokenUsageRange } from '../stats/token-usage-view.ts';
+import { UsageEmptyCard } from './usage-empty.tsx';
 
 export function AgentsUsageOverview({ serverId }: { serverId: string }) {
     const usage = useUsage(serverId);
@@ -50,16 +53,28 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
     const isFilterPending =
         Boolean(requestedComputerId) &&
         ((!agents.data && agents.isPending) || (!computers.data && computers.isPending));
+    const [days, setDays] = useState<TokenUsageRange>(30);
+    const [selectedAgentId, setSelectedAgentId] = useState<null | string>(null);
+    const tokenUsage = usage.data?.tokenUsage;
+    const view = useMemo(
+        () =>
+            tokenUsage && !isFilterPending
+                ? buildTokenUsageView(tokenUsage, days, selectedAgentId, new Date(), scope)
+                : null,
+        [days, isFilterPending, scope, selectedAgentId, tokenUsage]
+    );
 
     return (
         <>
             {/* Reached from the Server menu rather than the rail, so the band
-                names the destination; its scope and range controls live with the
-                content column below. */}
+                names the destination. Scope and range stay in the column with
+                the cards they filter: the 3rem band fits compact chrome only
+                (Select has no compact size), and in the band they hug the
+                window edge instead of the content's own margins. */}
             <PageTopbar>
                 <SectionHeader title="Usage" />
             </PageTopbar>
-            <PageColumn width="wide">
+            <PageColumn>
                 {computerFilterLabel || runtimeId ? (
                     <ActiveUsageFilters
                         computerLabel={computerFilterLabel}
@@ -78,23 +93,34 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
                 ) : null}
                 {isFilterPending ? (
                     <TokenUsageSkeleton />
-                ) : usage.data?.tokenUsage ? (
-                    <AgentsTokenUsage
+                ) : view ? (
+                    <TokenUsageDashboard
+                        controls={
+                            <>
+                                {view.agents.length > 0 ? (
+                                    <AgentUsageScopePicker
+                                        agents={view.agents}
+                                        onSelect={setSelectedAgentId}
+                                        selectedAgentId={view.selectedAgent?.agentId ?? null}
+                                    />
+                                ) : null}
+                                <TokenUsageRangePicker days={days} onChange={setDays} />
+                            </>
+                        }
                         emptyMessage={
                             runtimeId === 'pi'
                                 ? 'Usage will appear after a Pi Agent completes a model turn.'
                                 : undefined
                         }
-                        scope={scope}
-                        usage={usage.data.tokenUsage}
+                        view={view}
                     />
                 ) : usage.data ? (
-                    <UsageMessage
+                    <UsageEmptyCard
                         description="Usage will appear after an Agent completes a model turn."
-                        title="No Agent usage yet"
+                        title="No Agent Usage Yet"
                     />
                 ) : usage.error ? (
-                    <UsageMessage description={usage.error.message} title="Usage unavailable" />
+                    <UsageEmptyCard description={usage.error.message} title="Usage Unavailable" />
                 ) : (
                     <TokenUsageSkeleton />
                 )}
@@ -152,16 +178,5 @@ function TokenUsageSkeleton() {
             <Skeleton className="h-32 w-full rounded-2xl" />
             <Skeleton className="h-96 w-full rounded-2xl" />
         </div>
-    );
-}
-
-function UsageMessage({ description, title }: { description: string; title: string }) {
-    return (
-        <Card>
-            <Card.Content className="py-10 text-center">
-                <p className="font-medium text-base">{title}</p>
-                <p className="mt-1 text-muted text-sm">{description}</p>
-            </Card.Content>
-        </Card>
     );
 }

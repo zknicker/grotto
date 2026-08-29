@@ -80,6 +80,7 @@ public struct ChatScreenView: View {
         GeometryReader { geometry in
             ZStack(alignment: .bottomLeading) {
                 timeline
+                    .openingEntrance(.timeline)
                     // The header floats over the transcript rather than capping it, so glass has
                     // live content to refract behind it. The shell ignores safe areas on this
                     // canvas, so the status-bar clearance that used to sit on the outer VStack
@@ -87,6 +88,7 @@ public struct ChatScreenView: View {
                     .safeAreaInset(edge: .top, spacing: 0) {
                         header
                             .padding(.top, contentInsets.top)
+                            .openingEntrance(.header)
                     }
                     // The composer floats over the transcript rather than capping it, so glass has
                     // live content to refract. The inset still reserves the same scroll clearance
@@ -104,6 +106,7 @@ public struct ChatScreenView: View {
                             onSend: onSend
                         )
                         .padding(.bottom, chatBottomInset)
+                        .openingEntrance(.composer)
                     }
 
                 // The portal measures against the container, which spans the whole screen and does

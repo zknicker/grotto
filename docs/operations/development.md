@@ -206,14 +206,6 @@ Mutations resolve against fixtures: approving the Computer login code plays the
 pending → approved → connected arc live; everything else fails with a clear
 preview message after showing its pending state.
 
-## Update Preview
-
-In development builds, `/prototype/updates` opens the real compact Grotto update button, its hover
-card, and the Settings version summary against deterministic release and device fixtures. The scene picker covers
-current, available, multi-Computer, active, blocked, failed, web-only, and restart states. Actions
-write their intended operation to the preview log and never contact a Computer or desktop updater.
-Production builds do not register this route.
-
 ## Shutdown
 
 From the terminal, stop the dev stack with `Ctrl+C` or `kill -TERM <dev-stack-pid>`.

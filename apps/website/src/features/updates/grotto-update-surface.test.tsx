@@ -5,41 +5,59 @@ import {
     UpdateTooltipContent,
 } from './grotto-status-tooltip-content.tsx';
 import { GrottoUpdateFooter } from './grotto-update-footer.tsx';
-import type { GrottoUpdateView } from './grotto-update-model.ts';
+import type {
+    GrottoReleaseSnapshot,
+    GrottoUpdateComputer,
+    GrottoUpdateDesktop,
+    GrottoUpdateInput,
+} from './grotto-update-model.ts';
+import { projectGrottoUpdate } from './grotto-update-model.ts';
 import { GrottoVersionBreakdown } from './grotto-version-breakdown.tsx';
 import { GrottoVersionSummary } from './grotto-version-summary.tsx';
-import { updatePreviewScenes } from './update-preview-scenes.ts';
+import type { OfflineComputerNotice } from './use-offline-computers.ts';
 
-const currentView: GrottoUpdateView = {
-    componentFacts: [
-        {
-            currentVersion: '1.8.40',
-            detail: null,
-            id: 'desktop-app',
-            kind: 'desktop-app',
-            label: 'Grotto App',
-            remedy: null,
-            status: 'current',
-            targetVersion: '1.8.40',
-        },
-        {
-            currentVersion: '1.4.9',
-            detail: null,
-            id: 'cmp_studio',
-            kind: 'computer',
-            label: 'Computer · Home',
-            remedy: null,
-            status: 'current',
-            targetVersion: '1.4.9',
-        },
-    ],
-    detail: 'Everything in this release is current.',
-    headline: 'Grotto 1.9.0',
-    phase: 'current',
-    primaryAction: null,
-    steps: [],
+const release: GrottoReleaseSnapshot = {
+    components: {
+        agent: '1.1.0',
+        computer: '1.4.9',
+        desktopApp: '1.8.40',
+        ios: { buildNumber: 6, version: '1.0.5' },
+        server: '1.8.38',
+    },
+    sourceRevision: 'a'.repeat(40),
     version: '1.9.0',
 };
+
+const currentDesktop: GrottoUpdateDesktop = {
+    currentVersion: '1.8.40',
+    kind: 'desktop',
+    phase: 'current',
+};
+
+const currentView = updateView({
+    computers: [computer({ currentVersion: '1.4.9', phase: 'idle' })],
+});
+const oneComputerUpdateView = updateView({ computers: [computer({})] });
+const multipleUpdatesView = updateView({
+    computers: [
+        computer({ id: 'cmp_home', name: "Zach's MacBook Pro" }),
+        computer({ id: 'cmp_office', name: 'Office' }),
+    ],
+    desktop: { currentVersion: '1.8.39', kind: 'desktop', phase: 'available' },
+});
+const downloadingView = updateView({
+    computers: [computer({ phase: 'downloading', progress: 0.42 })],
+});
+const restartRequiredView = updateView({
+    desktop: { currentVersion: '1.8.39', kind: 'desktop', phase: 'ready' },
+});
+const offlineComputers: OfflineComputerNotice[] = [
+    {
+        id: 'cmp_offline',
+        lastConnectedAt: '2026-08-29T15:00:00.000Z',
+        name: 'Home',
+    },
+];
 
 describe('Grotto update surfaces', () => {
     test('keeps the compact update control hidden when Grotto is current', () => {
@@ -49,12 +67,8 @@ describe('Grotto update surfaces', () => {
     });
 
     test('uses one compact update button with an anchored contrast tooltip', () => {
-        const view = updatePreviewScenes.find((scene) => scene.id === 'multiple-updates')?.view;
-        if (!view) {
-            throw new Error('Missing multiple-updates preview.');
-        }
-        const html = renderToStaticMarkup(<GrottoUpdateFooter view={view} />);
-        const tooltip = renderToStaticMarkup(<UpdateTooltipContent view={view} />);
+        const html = renderToStaticMarkup(<GrottoUpdateFooter view={multipleUpdatesView} />);
+        const tooltip = renderToStaticMarkup(<UpdateTooltipContent view={multipleUpdatesView} />);
 
         expect(html).toContain('Update Grotto to 1.9.0');
         expect(html.match(/<button/gu)).toHaveLength(1);
@@ -65,12 +79,7 @@ describe('Grotto update surfaces', () => {
     });
 
     test('shows only surfaces that still need attention and always names Computers', () => {
-        const view = updatePreviewScenes.find((scene) => scene.id === 'footer-update-only')?.view;
-        if (!view) {
-            throw new Error('Missing footer-update-only preview.');
-        }
-
-        const tooltip = renderToStaticMarkup(<UpdateTooltipContent view={view} />);
+        const tooltip = renderToStaticMarkup(<UpdateTooltipContent view={oneComputerUpdateView} />);
 
         expect(tooltip).toContain('Computer · Zach&#x27;s MacBook Pro');
         expect(tooltip).not.toContain('Grotto App');
@@ -78,12 +87,8 @@ describe('Grotto update surfaces', () => {
     });
 
     test('keeps a busy update control non-actionable without removing its tooltip trigger', () => {
-        const view = updatePreviewScenes.find((scene) => scene.id === 'computer-downloading')?.view;
-        if (!view) {
-            throw new Error('Missing computer-downloading preview.');
-        }
-        const html = renderToStaticMarkup(<GrottoUpdateFooter view={view} />);
-        const tooltip = renderToStaticMarkup(<UpdateTooltipContent view={view} />);
+        const html = renderToStaticMarkup(<GrottoUpdateFooter view={downloadingView} />);
+        const tooltip = renderToStaticMarkup(<UpdateTooltipContent view={downloadingView} />);
 
         expect(html).toContain('aria-disabled="true"');
         expect(html).toContain('role="presentation" tabindex="-1"');
@@ -92,11 +97,9 @@ describe('Grotto update surfaces', () => {
     });
 
     test('renders only release surfaces with dense current and target versions', () => {
-        const view = updatePreviewScenes.find((scene) => scene.id === 'multiple-updates')?.view;
-        if (!view) {
-            throw new Error('Missing multiple-updates preview.');
-        }
-        const html = renderToStaticMarkup(<GrottoVersionBreakdown facts={view.componentFacts} />);
+        const html = renderToStaticMarkup(
+            <GrottoVersionBreakdown facts={multipleUpdatesView.componentFacts} />
+        );
 
         expect(html).toContain('Grotto App');
         expect(html).toContain('Computer · Zach&#x27;s MacBook Pro');
@@ -122,83 +125,26 @@ describe('Grotto update surfaces', () => {
     });
 
     test('prominently renders only the product version in Settings', () => {
-        const view = updatePreviewScenes.find((scene) => scene.id === 'restart-required')?.view;
-        if (!view) {
-            throw new Error('Missing restart-required preview.');
-        }
-        const html = renderToStaticMarkup(<GrottoVersionSummary view={view} />);
+        const html = renderToStaticMarkup(<GrottoVersionSummary view={restartRequiredView} />);
 
         expect(html).toContain('Grotto 1.9.0');
         expect(html).toContain('Component updates are managed from the sidebar.');
         expect(html).not.toContain('Restart to finish');
     });
 
-    test('keeps every requested debug state addressable by a stable scene id', () => {
-        expect(updatePreviewScenes.map((scene) => scene.id)).toEqual([
-            'footer-update-only',
-            'footer-update-and-computer',
-            'footer-computer-only',
-            'footer-all-active',
-            'current-desktop',
-            'current-web',
-            'multiple-updates',
-            'computer-downloading',
-            'waiting-for-agents',
-            'computer-restarting',
-            'desktop-downloading',
-            'restart-required',
-            'computer-offline',
-            'computer-failed',
-            'desktop-failed',
-            'independent-versions',
-        ]);
-    });
-
-    test('covers every sidebar footer composition with production-shaped fixtures', () => {
-        const footerScenes = updatePreviewScenes.filter((scene) => scene.group === 'Footer');
-
-        expect(
-            footerScenes.map((scene) => ({
-                activity: scene.agentActivityRows.length > 0,
-                offline: scene.offlineComputers.length > 0,
-                update: scene.view.phase !== 'current',
-            }))
-        ).toEqual([
-            { activity: false, offline: false, update: true },
-            { activity: false, offline: true, update: true },
-            { activity: false, offline: true, update: false },
-            { activity: true, offline: true, update: true },
-        ]);
-        expect(footerScenes[1]?.offlineComputers[0]?.name).toBe('Office Mac');
-        expect(footerScenes[1]?.view.componentFacts).toContainEqual(
-            expect.objectContaining({ label: "Computer · Zach's MacBook Pro" })
-        );
-    });
-
     test('lets the HeroUI footer own the status control inset', () => {
-        const scene = updatePreviewScenes.find(
-            (candidate) => candidate.id === 'footer-update-only'
-        );
-        if (!scene) {
-            throw new Error('Missing footer-update-only preview.');
-        }
-
-        const html = renderToStaticMarkup(<GrottoUpdateFooter view={scene.view} />);
+        const html = renderToStaticMarkup(<GrottoUpdateFooter view={oneComputerUpdateView} />);
 
         expect(html).toContain('class="flex w-full items-center gap-2"');
         expect(html).not.toContain('items-center gap-2 px-2');
     });
 
     test('renders offline Computers in a separate warning control', () => {
-        const scene = updatePreviewScenes.find((candidate) => candidate.id === 'computer-offline');
-        if (!scene) {
-            throw new Error('Missing computer-offline preview.');
-        }
         const html = renderToStaticMarkup(
-            <GrottoUpdateFooter offlineComputers={scene.offlineComputers} view={scene.view} />
+            <GrottoUpdateFooter offlineComputers={offlineComputers} view={currentView} />
         );
         const tooltip = renderToStaticMarkup(
-            <OfflineComputersTooltipContent computers={scene.offlineComputers} />
+            <OfflineComputersTooltipContent computers={offlineComputers} />
         );
 
         expect(html).toContain('1 Computer is offline');
@@ -208,3 +154,24 @@ describe('Grotto update surfaces', () => {
         expect(html).not.toContain('Download');
     });
 });
+
+function updateView(overrides: Partial<GrottoUpdateInput> = {}) {
+    return projectGrottoUpdate({
+        computers: overrides.computers ?? [computer({ currentVersion: '1.4.9', phase: 'idle' })],
+        desktop: overrides.desktop ?? currentDesktop,
+        release: overrides.release ?? release,
+    });
+}
+
+function computer(overrides: Partial<GrottoUpdateComputer>): GrottoUpdateComputer {
+    return {
+        currentVersion: '1.4.8',
+        health: 'healthy',
+        id: 'cmp_home',
+        lastConnectedAt: '2026-08-29T15:00:00.000Z',
+        name: "Zach's MacBook Pro",
+        phase: 'available',
+        reportedTargetVersion: '1.4.9',
+        ...overrides,
+    };
+}

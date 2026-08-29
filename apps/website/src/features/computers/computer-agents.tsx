@@ -132,6 +132,7 @@ function computerAgentRows(
 
 const agentColumns: DataGridColumn<ComputerAgentRow>[] = [
     {
+        allowsSorting: true,
         cell: (item) => (
             <div className="flex min-w-0 items-center gap-3">
                 <EntityAvatar

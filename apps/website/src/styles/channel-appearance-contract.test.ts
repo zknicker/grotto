@@ -89,4 +89,23 @@ describe('channel appearance contract', () => {
         expect(brightness(lightHover)).toBeLessThan(1);
         expect(brightness(darkHover)).toBeGreaterThan(1);
     });
+
+    test('the icon catalog previews the configured palette per theme', () => {
+        const lightSwatch = ruleBlock('\n    .channel-icon-swatches {');
+        const darkSwatch = ruleBlock('.dark .channel-icon-swatches');
+        expect(lightSwatch).toMatch(/--channel-swatch: var\( ?--channel-color-light,/u);
+        expect(darkSwatch).toMatch(/--channel-swatch: var\( ?--channel-color-dark,/u);
+    });
+
+    test('a colorless catalog glyph is muted ink, never the full foreground', () => {
+        // A thousand solid glyphs at full `--foreground` is the wall of ink
+        // this fallback exists to avoid; the chosen cell keeps full strength.
+        const lightSwatch = ruleBlock('\n    .channel-icon-swatches {');
+        expect(lightSwatch).toMatch(
+            /--channel-swatch: var\( ?--channel-color-light, color-mix\(in srgb, var\(--foreground\) \d+%, transparent\) ?\)/u
+        );
+        expect(lightSwatch).toContain(
+            '--channel-swatch-strong: var(--channel-color-light, var(--foreground))'
+        );
+    });
 });

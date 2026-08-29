@@ -32,8 +32,10 @@ export function ResizablePaneRail({
             className={cn(
                 'absolute inset-y-0 z-20 hidden w-3 cursor-col-resize sm:flex',
                 side === 'right' ? '-right-1.5' : '-left-1.5',
+                // The hover line runs the rail's full height — no end fades.
+                // (A mask here once referenced --main-radius, a token this app
+                // never defines, leaving engine-dependent behavior.)
                 'before:pointer-events-none before:absolute before:inset-y-0 before:left-1/2 before:w-px before:-translate-x-1/2 before:bg-[var(--color-neutral-400)] before:opacity-0 before:transition-opacity before:duration-150 hover:before:opacity-100',
-                'before:[mask-image:linear-gradient(to_bottom,transparent_0,black_calc(var(--main-radius)+88px),black_calc(100%-var(--main-radius)-88px),transparent_100%)]',
                 className
             )}
             onClick={(event) => event.preventDefault()}
@@ -128,9 +130,18 @@ function getInitialPaneWidth(
         return defaultWidth;
     }
 
-    const saved = Number(window.localStorage.getItem(storageKey));
+    // A missing key must fall back to the default: Number(null) is 0, which
+    // is finite and would otherwise clamp every fresh profile to minWidth.
+    const stored = window.localStorage.getItem(storageKey);
+    if (stored === null) {
+        return defaultWidth;
+    }
 
-    return Number.isFinite(saved) ? clampPaneWidth(saved, minWidth, maxWidth) : defaultWidth;
+    const saved = Number(stored);
+
+    return Number.isFinite(saved) && saved > 0
+        ? clampPaneWidth(saved, minWidth, maxWidth)
+        : defaultWidth;
 }
 
 function clampPaneWidth(width: number, minWidth: number, maxWidth: number) {

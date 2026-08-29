@@ -41,7 +41,9 @@ import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
+import { useAppSidebarWidth } from '../../hooks/shell/use-app-sidebar-width.ts';
 import { useUnfocusableAppMain } from '../../hooks/shell/use-unfocusable-app-main.ts';
+import { cn } from '../../lib/utils.ts';
 import { preloadServerRoutes, preloadServerSection } from './server-route-modules.ts';
 import {
     resolveActiveSection,
@@ -134,10 +136,8 @@ export function ServerLayout() {
                             <div className="flex min-h-0 flex-1">
                                 <AgentLifecycleProvider serverId={server.data.id}>
                                     <AgentActivityProvider serverId={server.data.id}>
-                                        <AppLayout
-                                            className="h-full min-h-0 min-w-0 flex-1"
+                                        <ResizableAppLayout
                                             navigate={navigate}
-                                            scrollMode="content"
                                             sidebar={
                                                 <ShellSidebar
                                                     activePage={activeSidebarPage}
@@ -221,9 +221,6 @@ export function ServerLayout() {
                                                     </ShellSidebarPage>
                                                 </ShellSidebar>
                                             }
-                                            sidebarCollapsible="offcanvas"
-                                            sidebarOpen
-                                            toggleShortcut={false}
                                         >
                                             <ShellFrame>
                                                 <ShellTopbar />
@@ -233,7 +230,7 @@ export function ServerLayout() {
                                                 />
                                                 <Outlet context={{ server: server.data }} />
                                             </ShellFrame>
-                                        </AppLayout>
+                                        </ResizableAppLayout>
                                     </AgentActivityProvider>
                                 </AgentLifecycleProvider>
                             </div>
@@ -250,5 +247,44 @@ export function ServerLayout() {
                 </TopbarProvider>
             </SidePaneProvider>
         </GrottoUpdateProvider>
+    );
+}
+
+/**
+ * The one subscriber to the sidebar width store. Width updates arrive at
+ * pointermove rate during a drag, so the layout above must not subscribe:
+ * `sidebar` and `children` reach this wrapper as element references built by
+ * a parent that does not re-render, and React bails out of both subtrees on
+ * every drag frame. HeroUI's offcanvas wrapper declares its own
+ * `--sidebar-width`, so the resized width rides a product token set here on
+ * the AppLayout root; the theme layer wires the component token to read it.
+ */
+function ResizableAppLayout({
+    children,
+    navigate,
+    sidebar,
+}: {
+    children: React.ReactNode;
+    navigate: (path: string) => void;
+    sidebar: React.ReactNode;
+}) {
+    const sidebarWidth = useAppSidebarWidth();
+
+    return (
+        <AppLayout
+            className={cn(
+                'h-full min-h-0 min-w-0 flex-1',
+                sidebarWidth.resizing && 'app-sidebar-resizing'
+            )}
+            navigate={navigate}
+            scrollMode="content"
+            sidebar={sidebar}
+            sidebarCollapsible="offcanvas"
+            sidebarOpen
+            style={{ '--app-sidebar-width': `${sidebarWidth.width}px` } as React.CSSProperties}
+            toggleShortcut={false}
+        >
+            {children}
+        </AppLayout>
     );
 }

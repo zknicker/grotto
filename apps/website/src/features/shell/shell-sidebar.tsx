@@ -1,5 +1,10 @@
 import { Sidebar } from '@heroui-pro/react';
 import * as React from 'react';
+import { ResizablePaneRail } from '../../components/ui/resizable-pane-rail.tsx';
+import {
+    appSidebarWidthLimits,
+    useAppSidebarWidth,
+} from '../../hooks/shell/use-app-sidebar-width.ts';
 
 /**
  * HeroUI's compact-sidebar spacing, taken from the design system's own scale
@@ -35,6 +40,10 @@ export function ShellSidebar({
     /** Server identity row leading the sidebar on every page. */
     identity?: React.ReactNode;
 }) {
+    // The sidebar resizes like every pane: drag its trailing edge. The width
+    // lives in a shared store because the token must be set above HeroUI's
+    // offcanvas wrapper (see the AppLayout host), while the rail lives here.
+    const sidebarWidth = useAppSidebarWidth();
     let activePageContent: ShellSidebarPageProps | undefined;
     React.Children.forEach(children, (child) => {
         if (child === null) {
@@ -53,7 +62,19 @@ export function ShellSidebar({
     }
 
     return (
-        <Sidebar aria-label={activePageContent.ariaLabel}>
+        <Sidebar aria-label={activePageContent.ariaLabel} className="relative">
+            <ResizablePaneRail
+                aria-label="Resize sidebar"
+                maxWidth={appSidebarWidthLimits.max}
+                minWidth={appSidebarWidthLimits.min}
+                onResizeEnd={() => sidebarWidth.setResizing(false)}
+                onResizeStart={() => sidebarWidth.setResizing(true)}
+                onWidthChange={sidebarWidth.setWidth}
+                onWidthCommit={sidebarWidth.persistWidth}
+                side="right"
+                title="Resize sidebar"
+                width={sidebarWidth.width}
+            />
             {identity}
             {/* `contents` carries the scale to every navigation row without adding a box. */}
             <div

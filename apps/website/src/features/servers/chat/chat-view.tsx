@@ -71,6 +71,9 @@ export function ChatView({
               }
             : null
     );
+    // Below this, an open side pane takes over the content area. Deliberately
+    // low: squashing the chat beside an open pane beats hiding it, so takeover
+    // is reserved for genuinely narrow windows.
     const threadTakeover = useViewportBelow(1024);
     const messages = useChatMessages(chat.serverId, chat.id);
     const pendingMessages = usePendingChatMessages(chat.id, messages.data?.messages);

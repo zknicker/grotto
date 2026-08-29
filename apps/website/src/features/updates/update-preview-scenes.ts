@@ -51,7 +51,7 @@ export const updatePreviewScenes: UpdatePreviewScene[] = [
     }),
     previewScene({
         computers: [
-            computer({ id: 'cmp_a', name: 'Home' }),
+            computer({ id: 'cmp_a', name: "Zach's MacBook Pro" }),
             computer({ id: 'cmp_b', name: 'Office' }),
         ],
         description: 'Two Computers update before the local Grotto App.',

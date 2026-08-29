@@ -96,9 +96,9 @@ describe('Grotto update surfaces', () => {
         const html = renderToStaticMarkup(<GrottoVersionBreakdown facts={view.componentFacts} />);
 
         expect(html).toContain('Grotto App');
-        expect(html).toContain('Computer · Home');
+        expect(html).toContain('Computer · Zach&#x27;s MacBook Pro');
         expect(html).toContain('Computer · Office');
-        expect(html).not.toContain('MacBook');
+        expect(html).not.toContain('>MacBook</dt>');
         expect(html).toContain('Agent');
         expect(html).not.toContain('Server');
         expect(html).not.toContain('iOS');

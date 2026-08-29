@@ -45,21 +45,21 @@ describe('Grotto update projection', () => {
         const view = projectGrottoUpdate({
             ...currentInput,
             computers: [
-                computer({ id: 'cmp_home', name: 'Home' }),
+                computer({ id: 'cmp_home', name: "Zach's MacBook Pro" }),
                 computer({ id: 'cmp_office', name: 'Office' }),
             ],
             desktop: { currentVersion: '1.8.39', kind: 'desktop', phase: 'available' },
         });
 
         expect(view.steps.map((step) => step.label)).toEqual([
-            'Computer · Home',
             'Computer · Office',
+            "Computer · Zach's MacBook Pro",
             'Grotto App',
         ]);
         expect(view.componentFacts.map((fact) => fact.label)).toEqual([
             'Grotto App',
-            'Computer · Home',
             'Computer · Office',
+            "Computer · Zach's MacBook Pro",
             'Agent',
         ]);
         expect(view).toMatchObject({ phase: 'available', primaryAction: { kind: 'start' } });

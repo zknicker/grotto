@@ -6,7 +6,7 @@ import {
     type ComputerUpdateProgress,
     computerProtocolVersion,
 } from '@grotto/api';
-import { and, desc, eq, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -432,39 +432,66 @@ export async function listServerComputers(
 export async function listComputerSystemEvents(
     db: GrottoDatabase,
     member: GrottoUser | null,
-    input: { computerId: string; serverId: string }
+    input: { computerId: string; page: number; serverId: string }
 ) {
     const server = await requireServerMembership(db, member, input.serverId);
     if (server.role !== 'owner' && server.role !== 'admin') {
         throw new ComputerSetupDeniedError('Only a Server Owner or Admin can view Computer logs.');
     }
-    const events = await db
-        .select({
-            command: computerSystemEventsTable.command,
-            id: computerSystemEventsTable.id,
-            occurredAt: computerSystemEventsTable.occurredAt,
-            reason: computerSystemEventsTable.reason,
-            type: computerSystemEventsTable.type,
-        })
-        .from(computerSystemEventsTable)
-        .where(
-            and(
-                eq(computerSystemEventsTable.serverId, input.serverId),
-                eq(computerSystemEventsTable.computerId, input.computerId)
+    const pageSize = 6;
+    const eventScope = and(
+        eq(computerSystemEventsTable.serverId, input.serverId),
+        eq(computerSystemEventsTable.computerId, input.computerId)
+    );
+    const [[countRow], [disconnectCountRow], events] = await Promise.all([
+        db
+            .select({ total: sql<number>`count(*)::int` })
+            .from(computerSystemEventsTable)
+            .where(eventScope),
+        db
+            .select({ total: sql<number>`count(*)::int` })
+            .from(computerSystemEventsTable)
+            .where(
+                and(
+                    eventScope,
+                    eq(computerSystemEventsTable.type, 'disconnected'),
+                    gte(computerSystemEventsTable.occurredAt, new Date(Date.now() - 5 * 60_000))
+                )
+            ),
+        db
+            .select({
+                command: computerSystemEventsTable.command,
+                id: computerSystemEventsTable.id,
+                occurredAt: computerSystemEventsTable.occurredAt,
+                reason: computerSystemEventsTable.reason,
+                type: computerSystemEventsTable.type,
+            })
+            .from(computerSystemEventsTable)
+            .where(eventScope)
+            .orderBy(
+                desc(computerSystemEventsTable.occurredAt),
+                desc(computerSystemEventsTable.recordedAt),
+                desc(computerSystemEventsTable.id)
             )
-        )
-        .orderBy(desc(computerSystemEventsTable.occurredAt))
-        .limit(50);
-    return events.map((event): ComputerSystemEvent => {
-        const occurredAt = event.occurredAt.toISOString();
-        if (event.type === 'management-command' && event.command) {
-            return { command: event.command, id: event.id, occurredAt, type: event.type };
-        }
-        if (event.type === 'disconnected' && event.reason) {
-            return { id: event.id, occurredAt, reason: event.reason, type: event.type };
-        }
-        return { id: event.id, occurredAt, type: 'connected' };
-    });
+            .limit(pageSize)
+            .offset((input.page - 1) * pageSize),
+    ]);
+    return {
+        events: events.map((event): ComputerSystemEvent => {
+            const occurredAt = event.occurredAt.toISOString();
+            if (event.type === 'management-command' && event.command) {
+                return { command: event.command, id: event.id, occurredAt, type: event.type };
+            }
+            if (event.type === 'disconnected' && event.reason) {
+                return { id: event.id, occurredAt, reason: event.reason, type: event.type };
+            }
+            return { id: event.id, occurredAt, type: 'connected' };
+        }),
+        hasFrequentDisconnects: (disconnectCountRow?.total ?? 0) >= 5,
+        page: input.page,
+        pageSize,
+        total: countRow?.total ?? 0,
+    };
 }
 
 /** A Computer credential is deleted only after every assigned Agent is retired. */

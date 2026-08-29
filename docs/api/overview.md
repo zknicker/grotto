@@ -37,9 +37,10 @@ roll out first without changing the behavior of an older peer.
 
 After bootstrap, Computer sends its bounded management-event outbox in a separate system-event
 report. Server inserts those stable event ids idempotently and also records the connection events it
-observes itself. The App reads the latest events through the focused `computer.systemLog` query, so
-the log remains available while Computer is offline. Keeping the report separate lets older peers
-ignore the capability without rejecting the ordinary inventory report.
+observes itself. The App pages through the retained history with the focused
+`computer.systemLog` query, so the log remains available while Computer is offline and no page
+grows without bound. Keeping the report separate lets older peers ignore the capability without
+rejecting the ordinary inventory report.
 
 Cross-boundary types use Grotto product nouns and narrow discriminated unions. Do not add aliases
 for the retired standalone Runtime or SDK surfaces.

@@ -9,6 +9,7 @@ export const computerSystemLogProcedure = memberProcedure
         z
             .object({
                 computerId: z.string().regex(/^cmp_[A-Za-z0-9_-]{16}$/u),
+                page: z.number().int().min(1).max(167).default(1),
                 serverId: serverIdSchema,
             })
             .strict()

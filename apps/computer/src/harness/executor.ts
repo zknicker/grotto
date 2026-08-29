@@ -68,6 +68,8 @@ export interface HarnessTurnInput {
     /** Sandbox env: `grotto` on PATH, proxy/MCP identity, HOME. */
     env: Record<string, string>;
     factoryKind: 'cove' | 'ordinary';
+    /** Per-turn construction seam for boundary tests; production uses the default Harness Agent. */
+    harnessAgentFactory?: HarnessAgentFactory;
     homeDir: string;
     /** Home timezone for the Current Runtime Context section. */
     homeTimezone: string;
@@ -192,7 +194,11 @@ async function executeHarnessTurn(
               env: { ...input.env, GROTTO_CLAUDE_USAGE_REFRESH: '1' },
           }
         : input;
-    const agent = harnessAgentFactory(effectiveInput, { harness, instructions, skills });
+    const agent = (effectiveInput.harnessAgentFactory ?? harnessAgentFactory)(effectiveInput, {
+        harness,
+        instructions,
+        skills,
+    });
     let live: HarnessAgentSession | undefined;
     let instructionUpdate: 'completed' | 'none' | 'started' = 'none';
     const grottoAgentVersionDrift = session.grottoAgentVersion !== grottoAgentVersion;

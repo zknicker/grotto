@@ -10,7 +10,7 @@ import {
     parseAgentConfigureCommand,
 } from './agent-configuration.ts';
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
-import { setHarnessAgentFactoryForTesting } from './harness/executor.ts';
+import type { HarnessAgentFactory } from './harness/executor.ts';
 import {
     type AgentStartCommand,
     type Attachment,
@@ -313,7 +313,7 @@ test('the launch injects Server-owned MCP tools into the real Harness boundary',
     };
     let tools: ToolSet = {};
     let invocationResult: unknown;
-    const restore = setHarnessAgentFactoryForTesting((input) => {
+    const harnessAgentFactory: HarnessAgentFactory = (input) => {
         tools = input.tools;
         return {
             createSession: (async () => ({
@@ -352,21 +352,18 @@ test('the launch injects Server-owned MCP tools into the real Harness boundary',
                 };
             }) as unknown as HarnessAgent['stream'],
         };
+    };
+    await runAgentLaunch({
+        attachment,
+        command: base,
+        dataRoot,
+        harnessAgentFactory,
+        sendFrame: () => undefined,
+        serverOrigin: `http://127.0.0.1:${state.server.port}`,
     });
-    try {
-        await runAgentLaunch({
-            attachment,
-            command: base,
-            dataRoot,
-            sendFrame: () => undefined,
-            serverOrigin: `http://127.0.0.1:${state.server.port}`,
-        });
-        const [visibleName] = Object.keys(tools);
-        expect(visibleName).toBe('mcp__server__echo');
-        expect(invocationResult).toBe('server:granted');
-    } finally {
-        restore();
-    }
+    const [visibleName] = Object.keys(tools);
+    expect(visibleName).toBe('mcp__server__echo');
+    expect(invocationResult).toBe('server:granted');
 });
 
 test('session reset rotates harness context while preserving Agent-owned state', async () => {

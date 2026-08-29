@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.9.1 - 2026-08-29
+
+- Computer releases no longer fail intermittently when the full test suite exercises multiple
+  Harness boundaries in parallel.
+- Grotto for iPhone's camera capture flow now passes Xcode 26.3's strict concurrency checks,
+  restoring TestFlight builds.
+
 ## v1.9.0 - 2026-08-28
 
 - Grotto now has one public version while the Server, App, Computer, iPhone app, and Grotto Agent

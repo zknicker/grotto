@@ -2,9 +2,9 @@ import SwiftUI
 
 /// Grotto's character on its own — the blob silhouette with live, blinking
 /// eyes — for loading and identity moments where the full icon tile is too
-/// heavy. The blob takes the primary label color and the eyes are cut back to
-/// the surface behind it, so light mode reads as the dark character and dark
-/// mode reads as the icon's own white-blob look.
+/// heavy. He keeps his app-icon colors in every color scheme: the white blob
+/// with black, white-highlighted eyes, so he needs the icon's blue ground (or
+/// any dark surface) behind him; see `GrottoBrandColors.iconGradient`.
 ///
 /// Geometry mirrors the web mark (`apps/website/src/components/grotto-logo.tsx`):
 /// the `GrottoMark` blob viewBox with the eyes layer at
@@ -14,13 +14,7 @@ import SwiftUI
 public struct GrottoCharacterMark: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// The color behind the mark; the eyes are filled with it to read as
-    /// cutouts through the blob.
-    private let surface: Color
-
-    public init(surface: Color? = nil) {
-        self.surface = surface ?? GrottoPlatformColor.background
-    }
+    public init() {}
 
     public var body: some View {
         Group {
@@ -70,7 +64,8 @@ public struct GrottoCharacterMark: View {
                 Image("GrottoMark", bundle: .module)
                     .renderingMode(.template)
                     .resizable()
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(GrottoBrandColors.iconBlob)
+                    .opacity(GrottoBrandColors.iconBlobOpacity)
                     .frame(width: drawn.width, height: drawn.height)
                     .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
                 ForEach(Self.eyeCenters, id: \.x) { center in
@@ -88,10 +83,10 @@ public struct GrottoCharacterMark: View {
     private func eye(scale: CGFloat, eyeScale: CGFloat) -> some View {
         ZStack {
             Capsule()
-                .fill(surface)
+                .fill(GrottoBrandColors.iconEye)
                 .frame(width: Self.eyeSize.width * scale, height: Self.eyeSize.height * scale)
             Capsule()
-                .fill(.primary)
+                .fill(GrottoBrandColors.iconBlob)
                 .frame(
                     width: Self.highlightSize.width * scale,
                     height: Self.highlightSize.height * scale
@@ -140,5 +135,5 @@ private struct CharacterMotion {
     GrottoCharacterMark()
         .frame(width: 96)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(GrottoPlatformColor.background)
+        .background(GrottoBrandColors.iconGradient)
 }

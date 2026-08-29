@@ -1,13 +1,28 @@
 import SwiftUI
 
+/// The app icon's palette (`assets/mac-icon.icon` / `icon.json`), shared by
+/// every surface that draws the brand in icon-true colors regardless of the
+/// user's color scheme.
+public enum GrottoBrandColors {
+    /// Background gradient from `icon.json`'s `fill.linear-gradient`, converted
+    /// from Display P3 to `Color` values.
+    public static let iconTop = Color(.displayP3, red: 0.02540, green: 0.23240, blue: 0.65473)
+    public static let iconBottom = Color(.displayP3, red: 0.00831, green: 0.09829, blue: 0.28572)
+    /// The icon's blob and eye-highlight fill, and its `icon.json` opacity.
+    public static let iconBlob = Color.white
+    public static let iconBlobOpacity: Double = 0.97
+    /// The icon's eye fill.
+    public static let iconEye = Color.black
+
+    public static var iconGradient: LinearGradient {
+        LinearGradient(colors: [iconTop, iconBottom], startPoint: .top, endPoint: .bottom)
+    }
+}
+
 /// Grotto's brand mark — a rendering of the app icon (`assets/mac-icon.icon`):
 /// a rounded-square tile filled with the icon's deep-blue background gradient,
 /// with the blob silhouette layered on top in white, matching `icon.json`.
 public struct GrottoBrandMark: View {
-    /// Background gradient from `icon.json`'s `fill.linear-gradient`, converted
-    /// from Display P3 to `Color` values.
-    private static let topColor = Color(.displayP3, red: 0.02540, green: 0.23240, blue: 0.65473)
-    private static let bottomColor = Color(.displayP3, red: 0.00831, green: 0.09829, blue: 0.28572)
 
     /// iOS app-icon corner ratio (corner radius / side length).
     private static let cornerRatio: CGFloat = 0.2237
@@ -24,7 +39,6 @@ public struct GrottoBrandMark: View {
     private static let markScale: CGFloat = 1.13
     private static let markOffsetXRatio: CGFloat = 12.76023816672495 / 1024
     private static let markOffsetYRatio: CGFloat = -7.137749425136645 / 1024
-    private static let markOpacity: Double = 0.97
 
     public init() {}
 
@@ -33,20 +47,14 @@ public struct GrottoBrandMark: View {
             let side = min(proxy.size.width, proxy.size.height)
 
             RoundedRectangle(cornerRadius: side * Self.cornerRatio, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Self.topColor, Self.bottomColor],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
+                .fill(GrottoBrandColors.iconGradient)
                 .overlay(
                     Image("GrottoMark", bundle: .module)
                         .renderingMode(.template)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .foregroundStyle(.white)
-                        .opacity(Self.markOpacity)
+                        .foregroundStyle(GrottoBrandColors.iconBlob)
+                        .opacity(GrottoBrandColors.iconBlobOpacity)
                         .scaleEffect(Self.markBaseFraction * Self.markScale)
                         .offset(
                             x: side * Self.markOffsetXRatio,

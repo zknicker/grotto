@@ -9,7 +9,6 @@ public struct MessageTimelineView: View {
     private let hasOlderMessages: Bool
     private let isLoadingOlderMessages: Bool
     private let onLoadOlderMessages: (() async -> Bool)?
-    private let onTapTimeline: () -> Void
 
     @Binding private var scrollTargetMessageID: String?
     /// The bottom is held as a scroll *edge*, not as an offset onto the last row. An
@@ -34,7 +33,6 @@ public struct MessageTimelineView: View {
         hasOlderMessages: Bool = false,
         isLoadingOlderMessages: Bool = false,
         onLoadOlderMessages: (() async -> Bool)? = nil,
-        onTapTimeline: @escaping () -> Void = {},
         scrollTargetMessageID: Binding<String?> = .constant(nil)
     ) {
         _scrollTargetMessageID = scrollTargetMessageID
@@ -46,7 +44,6 @@ public struct MessageTimelineView: View {
         self.hasOlderMessages = hasOlderMessages
         self.isLoadingOlderMessages = isLoadingOlderMessages
         self.onLoadOlderMessages = onLoadOlderMessages
-        self.onTapTimeline = onTapTimeline
     }
 
     /// The ScrollView is this view's root so a caller's `safeAreaInset` lands on the scroll
@@ -89,9 +86,10 @@ public struct MessageTimelineView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
         }
+        // Dragging the transcript downward is the one gesture that puts the
+        // keyboard (and with it the expanded composer) away, matching the
+        // platform's interactive dismissal. Taps on the transcript stay inert.
         .scrollDismissesKeyboard(.interactively)
-        .contentShape(.rect)
-        .simultaneousGesture(TapGesture().onEnded { onTapTimeline() })
         .scrollPosition($scrollPosition)
         // A transcript shorter than the screen still sits on the composer.
         .defaultScrollAnchor(.bottom)

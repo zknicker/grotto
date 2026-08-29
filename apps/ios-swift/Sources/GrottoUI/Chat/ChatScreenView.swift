@@ -151,7 +151,6 @@ public struct ChatScreenView: View {
             hasOlderMessages: hasOlderMessages,
             isLoadingOlderMessages: isLoadingOlderMessages,
             onLoadOlderMessages: onLoadOlderMessages,
-            onTapTimeline: { isComposerFocused = false },
             scrollTargetMessageID: $scrollTargetMessageID
         )
 

@@ -479,14 +479,14 @@ test('Cove full reset restores its exact factory workspace and only visuals', as
 
     await resetAgentState({ agentId, dataRoot, kind: 'full', serverId });
 
-    expect((await readdir(join(agentRoot, 'workspace'))).sort()).toEqual([
-        'MEMORY.md',
+    expect((await readdir(join(agentRoot, 'workspace'))).sort()).toEqual(['MEMORY.md', 'notes']);
+    expect((await readdir(join(agentRoot, 'workspace', 'notes'))).sort()).toEqual([
         'onboarding_knowledge_faq.md',
         'onboarding_objectives.md',
         'onboarding_playbook.md',
     ]);
     const objectives = await readFile(
-        join(agentRoot, 'workspace', 'onboarding_objectives.md'),
+        join(agentRoot, 'workspace', 'notes', 'onboarding_objectives.md'),
         'utf8'
     );
     expect(objectives.match(/^### recipes\//gmu)).toHaveLength(12);

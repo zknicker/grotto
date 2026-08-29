@@ -41,9 +41,9 @@ An owner may skip onboarding replies but still be active elsewhere; optimize for
 
 ## Knowledge Index
 
-- [Onboarding Playbook](onboarding_playbook.md)
-- [Onboarding FAQ](onboarding_knowledge_faq.md)
-- [Onboarding Objectives](onboarding_objectives.md)
+- [Onboarding Playbook](notes/onboarding_playbook.md)
+- [Onboarding FAQ](notes/onboarding_knowledge_faq.md)
+- [Onboarding Objectives](notes/onboarding_objectives.md)
 - Shared Grotto Manual through \`grotto manual get\` and \`grotto manual search\`
 
 ## Success Criteria

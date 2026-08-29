@@ -27,7 +27,12 @@ test('seeds Cove exact inventory and 12 valid separately authored Manual summari
     const replayManifest = await seedCoveWorkspace(workspaceDir);
 
     expect(replayManifest).toBe(firstManifest);
-    expect((await fs.readdir(workspaceDir)).sort()).toEqual(coveWorkspaceFiles);
+    expect((await fs.readdir(workspaceDir)).sort()).toEqual(['MEMORY.md', 'notes']);
+    expect((await fs.readdir(path.join(workspaceDir, 'notes'))).sort()).toEqual([
+        'onboarding_knowledge_faq.md',
+        'onboarding_objectives.md',
+        'onboarding_playbook.md',
+    ]);
     expect(coveSeededSummaries.map(([id]) => id)).toEqual([
         'recipes/decision/one-or-many',
         'recipes/decision/stake-strictness',
@@ -70,10 +75,16 @@ test('preserves the Cindy factory guidance shape with only supported Grotto acti
     await seedCoveWorkspace(workspaceDir);
 
     const memory = await fs.readFile(path.join(workspaceDir, 'MEMORY.md'), 'utf8');
-    const playbook = await fs.readFile(path.join(workspaceDir, 'onboarding_playbook.md'), 'utf8');
-    const faq = await fs.readFile(path.join(workspaceDir, 'onboarding_knowledge_faq.md'), 'utf8');
+    const playbook = await fs.readFile(
+        path.join(workspaceDir, 'notes', 'onboarding_playbook.md'),
+        'utf8'
+    );
+    const faq = await fs.readFile(
+        path.join(workspaceDir, 'notes', 'onboarding_knowledge_faq.md'),
+        'utf8'
+    );
     const objectives = await fs.readFile(
-        path.join(workspaceDir, 'onboarding_objectives.md'),
+        path.join(workspaceDir, 'notes', 'onboarding_objectives.md'),
         'utf8'
     );
 
@@ -113,9 +124,9 @@ test('preserves the Cindy factory guidance shape with only supported Grotto acti
     );
 });
 
-test('refuses to acknowledge an extra or changed workspace', async () => {
+test('refuses to acknowledge an extra file nested inside the factory tree', async () => {
     await seedCoveWorkspace(workspaceDir);
-    await fs.writeFile(path.join(workspaceDir, 'recipe.md'), '# unsupported\n');
+    await fs.writeFile(path.join(workspaceDir, 'notes', 'recipe.md'), '# unsupported\n');
     await expect(validateCoveWorkspace(workspaceDir)).rejects.toThrow(/inventory/u);
 });
 
@@ -126,10 +137,14 @@ test('refuses a preexisting noncanonical Cove file instead of blessing its bytes
 });
 
 test('refreshes factory guidance without overwriting Cove-owned memory or objectives', async () => {
+    await fs.mkdir(path.join(workspaceDir, 'notes'));
     await fs.writeFile(path.join(workspaceDir, 'MEMORY.md'), '# Cove\n\nLearned context.\n');
-    await fs.writeFile(path.join(workspaceDir, 'onboarding_objectives.md'), 'owner progress\n');
-    await fs.writeFile(path.join(workspaceDir, 'onboarding_playbook.md'), legacyPlaybook);
-    await fs.writeFile(path.join(workspaceDir, 'onboarding_knowledge_faq.md'), legacyFaq);
+    await fs.writeFile(
+        path.join(workspaceDir, 'notes', 'onboarding_objectives.md'),
+        'owner progress\n'
+    );
+    await fs.writeFile(path.join(workspaceDir, 'notes', 'onboarding_playbook.md'), legacyPlaybook);
+    await fs.writeFile(path.join(workspaceDir, 'notes', 'onboarding_knowledge_faq.md'), legacyFaq);
     await fs.writeFile(path.join(workspaceDir, 'owner-note.md'), 'keep me\n');
 
     expect(await inspectCoveFactoryGuidance(workspaceDir)).toMatchObject({ kind: 'refresh' });
@@ -139,30 +154,34 @@ test('refreshes factory guidance without overwriting Cove-owned memory or object
     expect(await fs.readFile(path.join(workspaceDir, 'MEMORY.md'), 'utf8')).toContain(
         'Learned context.'
     );
-    expect(await fs.readFile(path.join(workspaceDir, 'onboarding_objectives.md'), 'utf8')).toBe(
-        'owner progress\n'
-    );
-    expect(await fs.readFile(path.join(workspaceDir, 'owner-note.md'), 'utf8')).toBe('keep me\n');
-    expect(await fs.readFile(path.join(workspaceDir, 'onboarding_playbook.md'), 'utf8')).toContain(
-        'post an **action card** rather than a copyable spec'
-    );
     expect(
-        await fs.readFile(path.join(workspaceDir, 'onboarding_knowledge_faq.md'), 'utf8')
+        await fs.readFile(path.join(workspaceDir, 'notes', 'onboarding_objectives.md'), 'utf8')
+    ).toBe('owner progress\n');
+    expect(await fs.readFile(path.join(workspaceDir, 'owner-note.md'), 'utf8')).toBe('keep me\n');
+    expect(
+        await fs.readFile(path.join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'utf8')
+    ).toContain('post an **action card** rather than a copyable spec');
+    expect(
+        await fs.readFile(path.join(workspaceDir, 'notes', 'onboarding_knowledge_faq.md'), 'utf8')
     ).toContain('prepare a native action card');
 });
 
 test('refuses to replace missing or Agent-edited factory guidance', async () => {
-    await fs.writeFile(path.join(workspaceDir, 'onboarding_playbook.md'), 'owner customization\n');
-
-    expect(await reconcileCoveFactoryGuidance(workspaceDir)).toEqual({
-        files: ['onboarding_knowledge_faq.md', 'onboarding_playbook.md'],
-        kind: 'conflict',
-    });
-    expect(await fs.readFile(path.join(workspaceDir, 'onboarding_playbook.md'), 'utf8')).toBe(
+    await fs.mkdir(path.join(workspaceDir, 'notes'));
+    await fs.writeFile(
+        path.join(workspaceDir, 'notes', 'onboarding_playbook.md'),
         'owner customization\n'
     );
+
+    expect(await reconcileCoveFactoryGuidance(workspaceDir)).toEqual({
+        files: ['notes/onboarding_knowledge_faq.md', 'notes/onboarding_playbook.md'],
+        kind: 'conflict',
+    });
+    expect(
+        await fs.readFile(path.join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'utf8')
+    ).toBe('owner customization\n');
     await expect(
-        fs.readFile(path.join(workspaceDir, 'onboarding_knowledge_faq.md'), 'utf8')
+        fs.readFile(path.join(workspaceDir, 'notes', 'onboarding_knowledge_faq.md'), 'utf8')
     ).rejects.toThrow();
 });
 

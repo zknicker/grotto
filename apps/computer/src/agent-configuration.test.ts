@@ -194,13 +194,13 @@ test('durably applies and replays the exact Cove factory workspace', async () =>
 
     const agentRoot = join(dataRoot, 'servers', input.serverId, 'agents', command.agentId);
     const workspace = join(agentRoot, 'workspace');
-    expect(await inventory(workspace)).toEqual([
-        'MEMORY.md',
+    expect(await inventory(workspace)).toEqual(['MEMORY.md', 'notes/']);
+    expect(await inventory(join(workspace, 'notes'))).toEqual([
         'onboarding_knowledge_faq.md',
         'onboarding_objectives.md',
         'onboarding_playbook.md',
     ]);
-    const objectives = await readFile(join(workspace, 'onboarding_objectives.md'), 'utf8');
+    const objectives = await readFile(join(workspace, 'notes', 'onboarding_objectives.md'), 'utf8');
     expect(objectives.match(/^### recipes\//gmu)).toHaveLength(12);
     expect(objectives).not.toMatch(/recipes\/archetype\//u);
     expect(objectives).not.toMatch(/save-as-a-skill|grotto-agent/u);

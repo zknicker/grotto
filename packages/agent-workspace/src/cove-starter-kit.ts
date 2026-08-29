@@ -58,21 +58,23 @@ export const coveSeededSummaries = [
 
 const coveFiles = {
     'MEMORY.md': coveMemory,
-    'onboarding_knowledge_faq.md': coveOnboardingFaq,
-    'onboarding_playbook.md': coveOnboardingPlaybook,
-    'onboarding_objectives.md': renderObjectives(),
+    'notes/onboarding_knowledge_faq.md': coveOnboardingFaq,
+    'notes/onboarding_playbook.md': coveOnboardingPlaybook,
+    'notes/onboarding_objectives.md': renderObjectives(),
 } as const;
 
 const coveFactoryGuidanceFiles = {
-    'onboarding_knowledge_faq.md': coveOnboardingFaq,
-    'onboarding_playbook.md': coveOnboardingPlaybook,
+    'notes/onboarding_knowledge_faq.md': coveOnboardingFaq,
+    'notes/onboarding_playbook.md': coveOnboardingPlaybook,
 } as const;
 
 const recognizedFactoryGuidanceHashes: Record<CoveFactoryGuidanceFile, readonly string[]> = {
-    'onboarding_knowledge_faq.md': [
+    'notes/onboarding_knowledge_faq.md': [
         '83778cfc1a8f9ee7b3e6674812d6a4b1b81f69a645cc374431cb5f5466ff6357',
     ],
-    'onboarding_playbook.md': ['623fa0c5f8d30ba38058cd8f6e844c27126f8696df5e7ff47ce84ccf0bbca316'],
+    'notes/onboarding_playbook.md': [
+        '623fa0c5f8d30ba38058cd8f6e844c27126f8696df5e7ff47ce84ccf0bbca316',
+    ],
 };
 
 export type CoveWorkspaceFile = keyof typeof coveFiles;
@@ -82,11 +84,13 @@ export type CoveFactoryGuidancePlan =
     | { kind: 'current' }
     | { kind: 'refresh'; files: CoveFactoryGuidanceFile[] };
 export const coveWorkspaceFiles = Object.keys(coveFiles).sort() as CoveWorkspaceFile[];
+const coveWorkspaceInventory = [...coveWorkspaceFiles, 'notes/'].sort();
 
 export async function seedCoveWorkspace(workspaceDir: string): Promise<string> {
     await fs.mkdir(workspaceDir, { recursive: true });
     for (const [name, content] of Object.entries(coveFiles)) {
         const destination = path.join(workspaceDir, name);
+        await fs.mkdir(path.dirname(destination), { recursive: true });
         await fs.writeFile(destination, content, { flag: 'wx' }).catch((error) => {
             if (!isExists(error)) {
                 throw error;
@@ -97,10 +101,8 @@ export async function seedCoveWorkspace(workspaceDir: string): Promise<string> {
 }
 
 export async function validateCoveWorkspace(workspaceDir: string): Promise<string> {
-    const entries = (await fs.readdir(workspaceDir, { withFileTypes: true }))
-        .map((entry) => `${entry.name}${entry.isDirectory() ? '/' : ''}`)
-        .sort();
-    if (JSON.stringify(entries) !== JSON.stringify(coveWorkspaceFiles)) {
+    const entries = await readWorkspaceInventory(workspaceDir);
+    if (JSON.stringify(entries) !== JSON.stringify(coveWorkspaceInventory)) {
         throw new Error(
             `Cove workspace inventory does not match the factory seed: ${entries.join(', ')}`
         );
@@ -116,6 +118,23 @@ export async function validateCoveWorkspace(workspaceDir: string): Promise<strin
         hash.update(actual);
     }
     return hash.digest('hex');
+}
+
+async function readWorkspaceInventory(
+    directory: string,
+    relativeDirectory = ''
+): Promise<string[]> {
+    const inventory: string[] = [];
+    for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
+        const relativePath = relativeDirectory ? `${relativeDirectory}/${entry.name}` : entry.name;
+        inventory.push(`${relativePath}${entry.isDirectory() ? '/' : ''}`);
+        if (entry.isDirectory()) {
+            inventory.push(
+                ...(await readWorkspaceInventory(path.join(directory, entry.name), relativePath))
+            );
+        }
+    }
+    return inventory.sort();
 }
 
 /**

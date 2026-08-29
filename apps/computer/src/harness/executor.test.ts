@@ -152,10 +152,14 @@ function fakeAgent(input: HarnessTurnInput): Pick<HarnessAgent, 'createSession' 
             streamedPrompts.push(options.prompt);
             if (input.factoryKind === 'cove') {
                 streamedCoveFaqs.push(
-                    await readOptionalText(join(input.workspaceDir, 'onboarding_knowledge_faq.md'))
+                    await readOptionalText(
+                        join(input.workspaceDir, 'notes', 'onboarding_knowledge_faq.md')
+                    )
                 );
                 streamedCovePlaybooks.push(
-                    await readOptionalText(join(input.workspaceDir, 'onboarding_playbook.md'))
+                    await readOptionalText(
+                        join(input.workspaceDir, 'notes', 'onboarding_playbook.md')
+                    )
                 );
             }
             return {
@@ -812,9 +816,9 @@ test('Cove guidance drift migrates a warm session once and is current when the r
     await runHarnessTurn(turnInput({ factoryKind: 'cove' }));
     const firstSession = await readSession();
     await writeFile(join(workspaceDir, 'MEMORY.md'), '# Cove\n\nLearned context.\n');
-    await writeFile(join(workspaceDir, 'onboarding_objectives.md'), 'owner progress\n');
-    await writeFile(join(workspaceDir, 'onboarding_playbook.md'), legacyCovePlaybook);
-    await writeFile(join(workspaceDir, 'onboarding_knowledge_faq.md'), legacyCoveFaq);
+    await writeFile(join(workspaceDir, 'notes', 'onboarding_objectives.md'), 'owner progress\n');
+    await writeFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), legacyCovePlaybook);
+    await writeFile(join(workspaceDir, 'notes', 'onboarding_knowledge_faq.md'), legacyCoveFaq);
     const updateActivity: Array<{ category: string; phase: string }> = [];
 
     await runHarnessTurn(
@@ -830,17 +834,17 @@ test('Cove guidance drift migrates a warm session once and is current when the r
     });
     expect((await readSession()).generation).toBe(1);
     expect(await readFile(join(workspaceDir, 'MEMORY.md'), 'utf8')).toContain('Learned context.');
-    expect(await readFile(join(workspaceDir, 'onboarding_objectives.md'), 'utf8')).toBe(
+    expect(await readFile(join(workspaceDir, 'notes', 'onboarding_objectives.md'), 'utf8')).toBe(
         'owner progress\n'
     );
-    expect(await readFile(join(workspaceDir, 'onboarding_playbook.md'), 'utf8')).toContain(
+    expect(await readFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'utf8')).toContain(
         'post an **action card** rather than a copyable spec'
     );
     expect(streamedCovePlaybooks[1]).toContain(
         'post an **action card** rather than a copyable spec'
     );
     expect(streamedCoveFaqs[1]).toContain('prepare a native action card');
-    expect(streamedPrompts[1]).toContain('re-read onboarding_playbook.md');
+    expect(streamedPrompts[1]).toContain('re-read notes/onboarding_playbook.md');
     expect(updateActivity).toEqual([
         { category: 'updating_instructions', phase: 'started' },
         { category: 'thinking', phase: 'started' },
@@ -862,7 +866,7 @@ test('Cove guidance drift migrates a warm session once and is current when the r
     );
 
     expect(createSessionCalls).toHaveLength(3);
-    expect(streamedPrompts[2]).not.toContain('re-read onboarding_playbook.md');
+    expect(streamedPrompts[2]).not.toContain('re-read notes/onboarding_playbook.md');
     expect(settledActivity).toEqual([
         { category: 'thinking', phase: 'started' },
         { category: 'thinking', phase: 'completed' },
@@ -875,8 +879,8 @@ test('an aborted warm Cove guidance refresh keeps its receipt and rereads on ret
     const workspaceDir = join(agentRoot, 'workspace');
     await seedCoveWorkspace(workspaceDir);
     await runHarnessTurn(turnInput({ factoryKind: 'cove' }));
-    await writeFile(join(workspaceDir, 'onboarding_playbook.md'), legacyCovePlaybook);
-    await writeFile(join(workspaceDir, 'onboarding_knowledge_faq.md'), legacyCoveFaq);
+    await writeFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), legacyCovePlaybook);
+    await writeFile(join(workspaceDir, 'notes', 'onboarding_knowledge_faq.md'), legacyCoveFaq);
     streamAborts = true;
     const abortedActivity: Array<{ category: string; phase: string }> = [];
 
@@ -894,7 +898,7 @@ test('an aborted warm Cove guidance refresh keeps its receipt and rereads on ret
         grottoAgentVersion,
         runtimeSessionId: 'engine_session_1',
     });
-    expect(streamedPrompts[1]).toContain('re-read onboarding_playbook.md');
+    expect(streamedPrompts[1]).toContain('re-read notes/onboarding_playbook.md');
     expect(abortedActivity).toEqual([
         { category: 'updating_instructions', phase: 'started' },
         { category: 'thinking', phase: 'started' },
@@ -918,7 +922,7 @@ test('an aborted warm Cove guidance refresh keeps its receipt and rereads on ret
         resumeFrom: abortedSession.resumeState,
         sessionId: 'engine_session_1',
     });
-    expect(streamedPrompts[2]).toContain('re-read onboarding_playbook.md');
+    expect(streamedPrompts[2]).toContain('re-read notes/onboarding_playbook.md');
     expect(retryActivity).toEqual([
         { category: 'updating_instructions', phase: 'started' },
         { category: 'thinking', phase: 'started' },
@@ -934,8 +938,8 @@ test('an aborted warm Cove guidance refresh keeps its receipt and rereads on ret
 
 test('preserves edited Cove guidance and records a failed operator-visible refresh', async () => {
     const workspaceDir = join(agentRoot, 'workspace');
-    await mkdir(workspaceDir, { recursive: true });
-    await writeFile(join(workspaceDir, 'onboarding_playbook.md'), 'owner customization\n');
+    await mkdir(join(workspaceDir, 'notes'), { recursive: true });
+    await writeFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'owner customization\n');
     const activity: Array<{ category: string; phase: string }> = [];
 
     await runHarnessTurn(
@@ -945,7 +949,7 @@ test('preserves edited Cove guidance and records a failed operator-visible refre
         })
     );
 
-    expect(await readFile(join(workspaceDir, 'onboarding_playbook.md'), 'utf8')).toBe(
+    expect(await readFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'utf8')).toBe(
         'owner customization\n'
     );
     expect(activity).toContainEqual({ category: 'updating_instructions', phase: 'started' });
@@ -964,9 +968,9 @@ test('preserves edited Cove guidance and records a failed operator-visible refre
 
 test('retries Cove guidance consumption after a refreshed turn fails', async () => {
     const workspaceDir = join(agentRoot, 'workspace');
-    await mkdir(workspaceDir, { recursive: true });
-    await writeFile(join(workspaceDir, 'onboarding_playbook.md'), legacyCovePlaybook);
-    await writeFile(join(workspaceDir, 'onboarding_knowledge_faq.md'), legacyCoveFaq);
+    await mkdir(join(workspaceDir, 'notes'), { recursive: true });
+    await writeFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), legacyCovePlaybook);
+    await writeFile(join(workspaceDir, 'notes', 'onboarding_knowledge_faq.md'), legacyCoveFaq);
     streamFails = true;
     const failedActivity: Array<{ category: string; phase: string }> = [];
 
@@ -983,7 +987,7 @@ test('retries Cove guidance consumption after a refreshed turn fails', async () 
         category: 'updating_instructions',
         phase: 'failed',
     });
-    expect(await readFile(join(workspaceDir, 'onboarding_playbook.md'), 'utf8')).toContain(
+    expect(await readFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'utf8')).toContain(
         'post an **action card** rather than a copyable spec'
     );
 
@@ -996,7 +1000,7 @@ test('retries Cove guidance consumption after a refreshed turn fails', async () 
         })
     );
 
-    expect(streamedPrompts[1]).toContain('re-read onboarding_playbook.md');
+    expect(streamedPrompts[1]).toContain('re-read notes/onboarding_playbook.md');
     expect(retryActivity).toContainEqual({
         category: 'updating_instructions',
         phase: 'completed',

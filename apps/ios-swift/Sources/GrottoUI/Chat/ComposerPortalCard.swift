@@ -10,7 +10,7 @@ struct ComposerPortalCard: View {
     let onShow: (ComposerOverlay) -> Void
     let onFiles: () -> Void
     let onAddPhotos: ([URL], CGRect?) -> Void
-    let onCapture: (Data) -> Void
+    let onCapture: @MainActor @Sendable (Data) -> Void
     let onEscape: () -> Void
 
     /// Whether the card is the floating glass menu (true) or an opaque media surface.

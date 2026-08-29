@@ -2,6 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { grottoAgentVersion } from '@grotto/api';
 import { readEffectiveAgentStates } from './effective-state.ts';
 import { writeAgentSessionState } from './harness/session-store.ts';
 
@@ -26,7 +27,7 @@ test('effective-state reports are derived from durable per-Agent sessions', asyn
         generation: 1,
         grottoAgentAppliedAt: '2026-08-28T12:00:00.000Z',
         grottoAgentStatus: 'current',
-        grottoAgentVersion: '1.0.0',
+        grottoAgentVersion,
         instructionFingerprint: 'instructions_current',
         resumeState: { threadId: 'thread-local' },
         runtimeSessionId: 'session-local',
@@ -38,7 +39,7 @@ test('effective-state reports are derived from durable per-Agent sessions', asyn
             agentId: 'agt_applied',
             grottoAgentAppliedAt: '2026-08-28T12:00:00.000Z',
             grottoAgentStatus: 'current',
-            grottoAgentVersion: '1.0.0',
+            grottoAgentVersion,
             missingResources: [],
             modelId: 'gpt-5.6-sol',
             reasoningEffort: null,

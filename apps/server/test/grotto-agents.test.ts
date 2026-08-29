@@ -107,7 +107,7 @@ test('provisions an ordinary Agent without pre-creating an Owner DM', async () =
         grottoAgent: {
             appliedAt: null,
             appliedVersion: null,
-            currentVersion: '1.0.0',
+            currentVersion: grottoAgentVersion,
             status: 'pending',
         },
         handle: 'scout',

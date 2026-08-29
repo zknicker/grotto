@@ -17,6 +17,7 @@ import { computerEntrypoint } from './build-identity.ts';
 import type { StoredNoticeReceipt } from './delivery.ts';
 import {
     AgentSessionResumeRejectedError,
+    type HarnessAgentFactory,
     HarnessTurnFailedError,
     type NoticeSinkRegistrar,
     runHarnessTurn,
@@ -167,6 +168,8 @@ export interface RunAgentLaunchOptions {
     attachment: Attachment;
     command: AgentStartCommand;
     dataRoot: string;
+    /** Per-launch construction seam for deterministic Harness boundary tests. */
+    harnessAgentFactory?: HarnessAgentFactory;
     /** Commits the Server ack immediately before the runtime accepts the prompt. */
     onRuntimeReady?(): Promise<void>;
     /** Reports a persisted busy notice that was injected after sink registration. */
@@ -324,6 +327,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
                       command,
                       dataRoot: options.dataRoot,
                       dirs,
+                      harnessAgentFactory: options.harnessAgentFactory,
                       onStoredNoticeDelivered: options.onStoredNoticeDelivered,
                       onActivity: sendActivity,
                       registerNoticeSink: options.registerNoticeSink,
@@ -742,6 +746,7 @@ async function runFakeRuntime(input: RuntimeExecutionInput): Promise<'completed'
 async function runRealRuntime(
     input: RuntimeExecutionInput & {
         agentRoot: string;
+        harnessAgentFactory?: HarnessAgentFactory;
         tools: import('@ai-sdk/provider-utils').ToolSet;
     }
 ): Promise<{
@@ -763,6 +768,7 @@ async function runRealRuntime(
             factoryKind: seed?.factoryKind ?? 'ordinary',
             homeDir: input.dirs.home,
             homeTimezone: command.homeTimezone ?? 'UTC',
+            harnessAgentFactory: input.harnessAgentFactory,
             initialRole: command.agentDescription ?? null,
             modelId: command.modelId,
             reasoningEffort:

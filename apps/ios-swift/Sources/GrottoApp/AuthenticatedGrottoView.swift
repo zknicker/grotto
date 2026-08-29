@@ -29,8 +29,7 @@ struct AuthenticatedGrottoView: View {
         Group {
             switch store.state {
             case .idle, .loading:
-                ProgressView("Opening Grotto…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                GrottoOpeningView()
             case .failed(let message):
                 ContentUnavailableView {
                     Label("Grotto is unavailable", systemImage: "wifi.exclamationmark")

@@ -42,8 +42,7 @@ private struct DevelopmentAuthBoundaryView: View {
         Group {
             switch state {
             case .loading:
-                ProgressView("Opening Grotto…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                GrottoOpeningView()
             case .authenticated:
                 AuthenticatedGrottoView(clerk: clerk)
             case let .failed(message):

@@ -7,6 +7,7 @@ import type { AvatarImageProvider, AvatarProviderRequest } from './types.ts';
  * stable PNG bytes and records request boundaries without recording concepts.
  */
 export class DeterministicAvatarImageProvider implements AvatarImageProvider {
+    readonly available = true;
     private requestCount = 0;
 
     constructor(

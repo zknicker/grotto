@@ -20,6 +20,7 @@ test('generates one normalized avatar with the exact prompt and no reference inp
     const requests: AvatarProviderRequest[] = [];
     const logs: AvatarGenerationLogEvent[] = [];
     const provider: AvatarImageProvider = {
+        available: true,
         generate: async (request) => {
             requests.push(request);
             return { bytes: png, mediaType: 'image/png' };
@@ -63,6 +64,7 @@ test('maps provider failures without logging provider details or releasing the e
     const logs: AvatarGenerationLogEvent[] = [];
     const service = new AvatarImageService(
         {
+            available: true,
             generate: async () => {
                 throw new Error(`provider failed for ${concept}`);
             },
@@ -91,6 +93,7 @@ test('allows two Server-wide generations, one per Agent, and releases capacity a
         secondStarted = resolve;
     });
     const provider: AvatarImageProvider = {
+        available: true,
         generate: async () => {
             calls += 1;
             if (calls === 1) {

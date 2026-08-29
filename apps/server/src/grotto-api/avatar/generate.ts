@@ -25,7 +25,10 @@ export const generateAvatarProcedure = avatarProcedure
         }
 
         if (cause instanceof AvatarGenerationUnavailableError) {
-            throw new TRPCError({ cause, code: 'PRECONDITION_FAILED', message: cause.message });
+            // Not the precondition code: that one is reserved for the protocol
+            // gate in trpc.ts, and the App treats it as "update required" — a
+            // full-screen takeover, not a dialog error.
+            throw new TRPCError({ cause, code: 'SERVICE_UNAVAILABLE', message: cause.message });
         }
 
         if (

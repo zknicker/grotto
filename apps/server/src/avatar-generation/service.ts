@@ -54,6 +54,11 @@ export class AvatarImageService {
         private readonly logger: AvatarGenerationLogger = defaultLogger
     ) {}
 
+    /** Whether generation can succeed at all on this Server. */
+    get available(): boolean {
+        return this.provider.available;
+    }
+
     async generate(input: AvatarGenerationInput): Promise<NormalizedAvatarImage> {
         const request = avatarGenerationRequestSchema.parse({ concept: input.concept });
         const requestId = `img_${randomUUID().replaceAll('-', '')}`;

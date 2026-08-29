@@ -37,7 +37,13 @@ export const createCoveProcedure = memberProcedure
                 throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
             }
             if (cause instanceof CoveSetupError) {
-                throw new TRPCError({ cause, code: 'PRECONDITION_FAILED', message: cause.message });
+                // Not the precondition code: reserved for the protocol gate
+                // in trpc.ts (the App's "update required" signal).
+                throw new TRPCError({
+                    cause,
+                    code: 'UNPROCESSABLE_CONTENT',
+                    message: cause.message,
+                });
             }
             throw cause;
         }

@@ -8,6 +8,12 @@ export interface AvatarProviderRequest {
 }
 
 export interface AvatarImageProvider {
+    /**
+     * Whether this provider can generate at all (e.g. an API key is
+     * configured). Surfaced to the App so it never offers generation a
+     * request would immediately refuse.
+     */
+    readonly available: boolean;
     generate(request: AvatarProviderRequest): Promise<{
         bytes: Uint8Array;
         mediaType: AvatarMediaType;

@@ -19,6 +19,10 @@ export class OpenAiAvatarImageProvider implements AvatarImageProvider {
         this.fetcher = options.fetcher ?? fetch;
     }
 
+    get available(): boolean {
+        return Boolean(this.options.apiKey);
+    }
+
     async generate(request: AvatarProviderRequest) {
         if (!this.options.apiKey) {
             throw new AvatarGenerationUnavailableError();

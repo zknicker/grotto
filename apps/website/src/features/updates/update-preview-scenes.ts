@@ -213,7 +213,7 @@ function offlineComputer(): OfflineComputerNotice {
     return {
         id: 'cmp_offline',
         lastConnectedAt: '2026-08-29T15:00:00.000Z',
-        name: "Zach's MacBook Pro",
+        name: 'Office Mac',
     };
 }
 
@@ -259,7 +259,7 @@ function computer(overrides: Partial<GrottoUpdateComputer>): GrottoUpdateCompute
         health: 'healthy',
         id: 'cmp_studio',
         lastConnectedAt: '2026-08-29T15:00:00.000Z',
-        name: 'Home',
+        name: "Zach's MacBook Pro",
         phase: 'available',
         reportedTargetVersion: '1.4.9',
         ...overrides,

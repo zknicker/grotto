@@ -14,13 +14,13 @@ native updater state; each connected Computer contributes its own installed vers
 state. An offline Computer contributes neither because its last report may no longer describe the
 installed software.
 
-The anchored update tooltip lists the desktop App when present and observable Computers. Grotto
-Agent receipts are internal diagnostics, not update targets. One Computer is simply **Computer**;
-multiple Computers add their
-user-facing names only to disambiguate them, such as **Computer · Home**. Current rows are green;
-version drift, live progress, and failures remain attached to their own rows. A failure includes
-the safe reported detail and one concrete recovery suggestion. The compact button represents the
-next useful action: download, live progress, App restart, or retry.
+The anchored update tooltip lists only surfaces that still need attention. A current App or
+Computer stays out of the tooltip. Every Computer row includes its user-facing name, such as
+**Computer · Home**, so simultaneous updates remain unambiguous. Grotto Agent receipts are internal
+diagnostics, not update targets. Version drift, live progress, and failures remain attached to
+their own rows. A failure includes the safe reported detail and one concrete recovery suggestion.
+The compact button represents the next useful action: download, live progress, App restart, or
+retry.
 
 One click starts every eligible Computer update and the App download concurrently. Each surface
 settles independently, so one Computer failure never cancels successful work elsewhere. An App

@@ -35,7 +35,7 @@ describe('Grotto update projection', () => {
             view.componentFacts.map(({ label, targetVersion }) => [label, targetVersion])
         ).toEqual([
             ['Grotto App', '1.8.40'],
-            ['Computer', '1.4.9'],
+            ['Computer · Home', '1.4.9'],
         ]);
     });
 
@@ -87,7 +87,7 @@ describe('Grotto update projection', () => {
         });
 
         expect(view).toMatchObject({ phase: 'updating', primaryAction: null });
-        expect(view.steps[0]).toMatchObject({ label: 'Computer', phase: 'restarting' });
+        expect(view.steps[0]).toMatchObject({ label: 'Computer · Home', phase: 'restarting' });
     });
 
     test('turns a timed-out restart into a named failure with recovery guidance', () => {
@@ -107,7 +107,7 @@ describe('Grotto update projection', () => {
         expect(view).toMatchObject({ phase: 'failed', primaryAction: { kind: 'retry' } });
         expect(view.componentFacts.find((fact) => fact.id === 'cmp_studio')).toMatchObject({
             detail: 'This Computer did not reconnect after installing the update.',
-            label: 'Computer',
+            label: 'Computer · Home',
             status: 'failed',
         });
     });
@@ -157,7 +157,7 @@ describe('Grotto update projection', () => {
         const view = projectGrottoUpdate({ ...currentInput, desktop: { kind: 'web' } });
 
         expect(view.steps).toHaveLength(1);
-        expect(view.componentFacts.map((fact) => fact.label)).toEqual(['Computer']);
+        expect(view.componentFacts.map((fact) => fact.label)).toEqual(['Computer · Home']);
     });
 
     test('never offers a downgrade and omits ledger targets that are absent', () => {

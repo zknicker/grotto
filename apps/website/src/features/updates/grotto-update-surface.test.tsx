@@ -27,7 +27,7 @@ const currentView: GrottoUpdateView = {
             detail: null,
             id: 'cmp_studio',
             kind: 'computer',
-            label: 'Computer',
+            label: 'Computer · Home',
             remedy: null,
             status: 'current',
             targetVersion: '1.4.9',
@@ -62,6 +62,19 @@ describe('Grotto update surfaces', () => {
         expect(html).not.toContain('cursor-hover-card');
         expect(tooltip).toContain('Click to update');
         expect(tooltip).not.toContain('Update available');
+    });
+
+    test('shows only surfaces that still need attention and always names Computers', () => {
+        const view = updatePreviewScenes.find((scene) => scene.id === 'footer-update-only')?.view;
+        if (!view) {
+            throw new Error('Missing footer-update-only preview.');
+        }
+
+        const tooltip = renderToStaticMarkup(<UpdateTooltipContent view={view} />);
+
+        expect(tooltip).toContain('Computer · Zach&#x27;s MacBook Pro');
+        expect(tooltip).not.toContain('Grotto App');
+        expect(tooltip).not.toContain('up to date');
     });
 
     test('keeps a busy update control non-actionable without removing its tooltip trigger', () => {
@@ -156,7 +169,10 @@ describe('Grotto update surfaces', () => {
             { activity: false, offline: true, update: false },
             { activity: true, offline: true, update: true },
         ]);
-        expect(footerScenes[1]?.offlineComputers[0]?.name).toBe("Zach's MacBook Pro");
+        expect(footerScenes[1]?.offlineComputers[0]?.name).toBe('Office Mac');
+        expect(footerScenes[1]?.view.componentFacts).toContainEqual(
+            expect.objectContaining({ label: "Computer · Zach's MacBook Pro" })
+        );
     });
 
     test('lets the HeroUI footer own the status control inset', () => {

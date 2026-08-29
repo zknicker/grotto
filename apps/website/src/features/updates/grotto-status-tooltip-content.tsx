@@ -4,11 +4,14 @@ import { GrottoVersionBreakdown } from './grotto-version-breakdown.tsx';
 import type { OfflineComputerNotice } from './use-offline-computers.ts';
 
 export function UpdateTooltipContent({ view }: { view: GrottoUpdateView }) {
-    const hasSurfaceFailure = view.componentFacts.some((fact) => fact.status === 'failed');
+    const visibleFacts = view.componentFacts.filter(
+        (fact) => fact.status !== 'current' && fact.status !== 'external'
+    );
+    const hasSurfaceFailure = visibleFacts.some((fact) => fact.status === 'failed');
     return (
         <div className="grid gap-2.5">
             <p className="text-foreground text-sm">{tooltipTitle(view)}</p>
-            <GrottoVersionBreakdown facts={view.componentFacts} />
+            {visibleFacts.length > 0 ? <GrottoVersionBreakdown facts={visibleFacts} /> : null}
             {view.phase === 'failed' && !hasSurfaceFailure ? (
                 <p className="grid gap-0.5 text-danger text-sm">
                     <span>{view.detail}</span>

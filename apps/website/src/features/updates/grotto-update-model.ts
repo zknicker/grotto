@@ -45,10 +45,7 @@ export function projectGrottoUpdate(input: GrottoUpdateInput): GrottoUpdateView 
               .filter((step): step is ComputerUpdateStep => step !== null)
         : [];
     const computerSteps = projectedComputerSteps
-        .map((step) => ({
-            ...step,
-            label: projectedComputerSteps.length === 1 ? 'Computer' : `Computer · ${step.label}`,
-        }))
+        .map((step) => ({ ...step, label: `Computer · ${step.label}` }))
         .sort(compareComputerSteps);
     const desktopStep = projectDesktopStep(input.desktop, input.release.components.desktopApp);
     const steps = desktopStep ? [...computerSteps, desktopStep] : computerSteps;

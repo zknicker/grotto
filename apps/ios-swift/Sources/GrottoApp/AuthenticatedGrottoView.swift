@@ -18,11 +18,22 @@ struct AuthenticatedGrottoView: View {
     /// a Control Center pull or app-switcher peek. Only the first is a stale
     /// cache, so the refresh waits for a phase run that actually backgrounded.
     @State private var hasBackgrounded = false
+    /// The opening entrance plays once, on the screen the initial load mounts;
+    /// after it settles, chat switches and reloads mount plainly.
+    @State private var openingEntranceFinished = false
     @AppStorage("appearancePreference") private var appearanceRawValue = AppearancePreference.system.rawValue
     @Environment(\.scenePhase) private var scenePhase
 
     init(clerk: Clerk) {
-        _store = State(initialValue: GrottoStore(clerk: clerk))
+        let store = GrottoStore(clerk: clerk)
+        let restored = UserDefaults.standard
+            .string(forKey: ChatDestination.ID.lastOpenDefaultsKey)
+            .flatMap(ChatDestination.ID.init(storageValue:))
+        if case .chat(let chatID) = restored {
+            store.preferredInitialChatID = chatID
+        }
+        _store = State(initialValue: store)
+        _selectedDestinationID = State(initialValue: restored)
     }
 
     var body: some View {
@@ -46,9 +57,26 @@ struct AuthenticatedGrottoView: View {
                 }
             case .loaded:
                 loadedContent
+                    .environment(\.opensWithEntrance, !openingEntranceFinished)
+                    .task {
+                        guard !openingEntranceFinished else { return }
+                        try? await Task.sleep(for: .seconds(1.2))
+                        openingEntranceFinished = true
+                    }
             }
         }
         .task { await store.start() }
+        .onChange(of: selectedDestinationID) { previous, current in
+            // The first selection lands from the shell's own sync; a change
+            // from one destination to another is the user navigating, and a
+            // screen mounted by navigation must not replay the entrance.
+            if previous != nil { openingEntranceFinished = true }
+            guard let current else { return }
+            UserDefaults.standard.set(
+                current.storageValue,
+                forKey: ChatDestination.ID.lastOpenDefaultsKey
+            )
+        }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .background:

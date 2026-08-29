@@ -64,6 +64,9 @@ final class GrottoStore {
     // Internal so the foreground refresh can live with the rest of the
     // realtime plumbing it drives.
     var foregroundRefreshInFlight = false
+    /// The Chat the App wants warm first — its restored last-open Chat — so
+    /// the initial page load readies the screen the user actually lands on.
+    var preferredInitialChatID: String?
     let clerk: Clerk
     let client: TRPCClient
     /// Downloaded attachment bytes are app cache state, like every other
@@ -140,8 +143,11 @@ final class GrottoStore {
         await reloadActiveActivity(serverID: serverID)
         await loadComputers(serverID: serverID)
 
-        if let firstChat = chats.first {
-            await loadMessages(chatID: firstChat.id)
+        let initialChatID = preferredInitialChatID
+            .flatMap { preferred in chats.first { $0.id == preferred }?.id }
+            ?? chats.first?.id
+        if let initialChatID {
+            await loadMessages(chatID: initialChatID)
         }
     }
 

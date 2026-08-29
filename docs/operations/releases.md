@@ -14,10 +14,20 @@ the operator handoff. This document keeps the durable target and promotion contr
 
 ## One release, five targets
 
-Each release has one append-only `releases.json` record and one release PR. Merging that PR starts
-one `Release` workflow. Every new entry contains all five target keys: a published target carries
-its version, while an unchanged target is `null` and is skipped rather than rebuilt.
-iOS publication carries both its version and build number.
+Each new release has one public Grotto SemVer, one append-only `releases.json` record, and one release
+PR. Merging that PR starts one `Release` workflow. The top-level `version` is the public product
+version even when only one component publishes. Every new entry contains all five target keys: a
+published target carries its independent artifact version, while an unchanged target is `null` and
+is skipped rather than rebuilt. iOS publication carries both its version and build number.
+Historical versionless Computer-only records remain unchanged; the non-null product-version contract
+starts with this unified release model.
+
+`releases.json` is the only version decision. After completing the newest entry, run `bun run
+release:sync-versions` to project the public version into the Grotto product manifest and each
+component version into its owned build metadata: the App and Computer packages, Grotto Agent
+manifest, iOS project defaults, and Bun workspace lock metadata. Do not assign versions by editing
+those files directly. `release:check` and the Release workflow reject drift between the record and
+the projected files.
 
 | Target | Publish when |
 | --- | --- |
@@ -27,10 +37,14 @@ iOS publication carries both its version and build number.
 | `computer` | Computer execution, lifecycle, human CLI, updater, embedded managed CLI, bootstrap/ordinary protocol, or a required Computer dependency changes |
 | `agent` | Grotto-owned Agent instructions, actions, recipes, Harness behavior, or factory guidance changes |
 
-Server and web App artifacts share the main Grotto product version. The desktop App, iOS, and
-Computer targets retain their independent versioning rules. An iOS publication also records a new
-positive build number. A target that is unchanged keeps its latest published version; do not copy
-the release version into it.
+The top-level Grotto version and all five component versions evolve independently. The hosted web
+App remains part of the Server artifact; `app` names the installed desktop artifact. An iOS
+publication also records a new positive build number. A target that is unchanged keeps its latest
+published version through carry-forward resolution; do not copy the Grotto version into it.
+
+Release publication resolves the ledger entry into a canonical snapshot containing the public
+Grotto version and the effective Server, App, iOS, Computer, and Agent versions. Consumers use that
+snapshot to describe one Grotto release without pretending every component rebuilt.
 
 Grotto Agent has independent SemVer but no standalone artifact. Its behavior package is embedded in
 Server and Computer, so publishing Grotto Agent always publishes both targets. Server advertises

@@ -12,6 +12,8 @@ deployment contracts remain in the routed docs and specs below; do not recreate 
 
 - One release has one append-only `releases.json` record, one release PR, and one `Release`
   workflow run after that PR merges.
+- Every new record has a non-null public Grotto SemVer at `version`, including component-only
+  releases. Historical versionless Computer-only records remain immutable.
 - The record uses exact `targets` keys: `server`, `app`, `ios`, `computer`, and `agent`. A published target
   carries its version; an unchanged target is `null`; iOS publication carries `{ version,
   buildNumber }`.
@@ -90,27 +92,29 @@ invent a competing ledger format.
 
 The new record contains only `version`, `date`, and `targets`:
 
-- A normal release uses the Server/App product version at `version`, publishes `server` at that
-  version, and sets every unchanged target to `null`.
-- A Computer-only release uses `version: null`, publishes only `computer`, and sets the other
-  targets to `null`.
-- A published App matches the main version. Published iOS and Computer targets carry their
-  independent versions; iOS also carries its next unused build number.
-- Grotto Agent carries independent SemVer from `packages/grotto-api/grotto-agent.json`; publish it
-  only with matching Server and Computer targets.
+- `version` is the next public Grotto SemVer. It is always non-null and increases for every release,
+  including a release that publishes only Computer, App, iOS, or another component.
+- Each published target carries its own next SemVer. Every unchanged target is `null`; its effective
+  version carries forward from the latest earlier publication.
+- Published iOS also carries its next unused build number.
+- Grotto Agent carries independent SemVer in the release record; publish it only with matching
+  Server and Computer targets.
 - A release draft may use `date: null` and `"undecided"` target values only in the newest entry.
   Complete every decision and set the date before merge.
 
 The ledger is the immutable publication decision, not a mutable run log. Keep workflow, deployment,
 and smoke evidence in GitHub and the final handoff; never edit an old entry to change an outcome.
 
-Apply the version decisions to `releases.json` and target-owned version metadata first. Then update
-the release changelog in the same PR. Before writing it, read
+Write every version and iOS build decision into the new `releases.json` entry, then run `bun run
+release:sync-versions`. The sync command projects that one decision into target-owned build metadata;
+never edit those files independently. Then update the release changelog in the same PR. Before
+writing it, read
 [Grotto changelog writing](references/changelog-writing.md). Draft from the target-scoped evidence,
 compare the draft with recent entries to avoid repeating an already shipped outcome, then run the
 guide's deslop pass over only the new entry. Keep operational evidence in the PR and final handoff.
-Run `release:check`; it rejects a required target recorded as unchanged. Then run the relevant local
-gates, `git diff --check`, and the documentation check before opening the PR.
+Run `release:check`; it rejects a required target recorded as unchanged or version metadata that
+does not match the ledger. Then run the relevant local gates, `git diff --check`, and the
+documentation check before opening the PR.
 
 Completion criterion: one new valid record describes every target and version/build input without
 changing historical entries, and its changelog entry describes shipped outcomes without internal

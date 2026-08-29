@@ -21,7 +21,6 @@ import {
 } from '../../features/servers/server-routes.ts';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { CommandMenuProvider } from '../../features/shell/command-menu-provider.tsx';
-import { DesktopUpdateFooter } from '../../features/shell/desktop-update-footer.tsx';
 import { CommandMenu } from '../../features/shell/server-command-menu.tsx';
 import { SettingsSidebar } from '../../features/shell/settings-sidebar.tsx';
 import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pane.tsx';
@@ -32,6 +31,8 @@ import {
     SidebarBackToChatRow,
     SidebarServerBand,
 } from '../../features/shell/sidebar-server-band.tsx';
+import { GrottoUpdateFooterContainer } from '../../features/updates/grotto-update-footer-container.tsx';
+import { GrottoUpdateProvider } from '../../features/updates/use-grotto-update.ts';
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { useDesktopDockBadge } from '../../hooks/desktop/use-desktop-dock-badge.ts';
 import { useDesktopMenuNavigation } from '../../hooks/desktop/use-desktop-menu-navigation.ts';
@@ -121,122 +122,131 @@ export function ServerLayout() {
         slug
     );
     return (
-        <SidePaneProvider>
-            <TopbarProvider>
-                <CommandMenuProvider>
-                    <AppShell className="w-full">
-                        <ChatEventListeners serverId={server.data.id} />
-                        <SyncHumanIdentity serverId={server.data.id} />
-                        <AppShellDragRegion />
-                        <CommandMenu server={server.data} />
-                        <div className="flex min-h-0 flex-1">
-                            <AgentLifecycleProvider serverId={server.data.id}>
-                                <AgentActivityProvider serverId={server.data.id}>
-                                    <AppLayout
-                                        className="h-full min-h-0 min-w-0 flex-1"
-                                        navigate={navigate}
-                                        scrollMode="content"
-                                        sidebar={
-                                            <ShellSidebar
-                                                activePage={activeSidebarPage}
-                                                back={
-                                                    activeSidebarPage === 'server' ? null : (
-                                                        <SidebarBackToChatRow
-                                                            route={chatSectionRoute}
+        <GrottoUpdateProvider serverId={server.data.id}>
+            <SidePaneProvider>
+                <TopbarProvider>
+                    <CommandMenuProvider>
+                        <AppShell className="w-full">
+                            <ChatEventListeners serverId={server.data.id} />
+                            <SyncHumanIdentity serverId={server.data.id} />
+                            <AppShellDragRegion />
+                            <CommandMenu server={server.data} />
+                            <div className="flex min-h-0 flex-1">
+                                <AgentLifecycleProvider serverId={server.data.id}>
+                                    <AgentActivityProvider serverId={server.data.id}>
+                                        <AppLayout
+                                            className="h-full min-h-0 min-w-0 flex-1"
+                                            navigate={navigate}
+                                            scrollMode="content"
+                                            sidebar={
+                                                <ShellSidebar
+                                                    activePage={activeSidebarPage}
+                                                    back={
+                                                        activeSidebarPage === 'server' ? null : (
+                                                            <SidebarBackToChatRow
+                                                                route={chatSectionRoute}
+                                                            />
+                                                        )
+                                                    }
+                                                    footer={
+                                                        <div className="flex w-full flex-col gap-2">
+                                                            <SidebarAgentActivityStrip
+                                                                serverId={server.data.id}
+                                                                slug={slug}
+                                                            />
+                                                            <GrottoUpdateFooterContainer />
+                                                        </div>
+                                                    }
+                                                    identity={
+                                                        <SidebarServerBand
+                                                            currentServer={server.data}
+                                                            onCreateServer={() =>
+                                                                setServerDialog('create')
+                                                            }
+                                                            onJoinServer={() =>
+                                                                setServerDialog('join')
+                                                            }
+                                                            onOpenArchived={() =>
+                                                                navigate(
+                                                                    serverArchivedChatsRoute(slug)
+                                                                )
+                                                            }
+                                                            onOpenMembers={() =>
+                                                                navigate(
+                                                                    serverSettingsSectionRoute(
+                                                                        slug,
+                                                                        'members'
+                                                                    )
+                                                                )
+                                                            }
+                                                            onOpenSettings={() =>
+                                                                navigate(serverSettingsRoute(slug))
+                                                            }
+                                                            onOpenUsage={() =>
+                                                                navigate(usageRoute(slug))
+                                                            }
+                                                            onPreloadSettings={() =>
+                                                                preloadServerSection('settings')
+                                                            }
+                                                            onSwitchServer={(serverSlug) =>
+                                                                navigate(serverRoute(serverSlug))
+                                                            }
+                                                            servers={serverChoices}
                                                         />
-                                                    )
-                                                }
-                                                footer={
-                                                    <div className="flex w-full flex-col gap-2">
-                                                        <SidebarAgentActivityStrip
+                                                    }
+                                                >
+                                                    <ShellSidebarPage
+                                                        ariaLabel="Server"
+                                                        value="server"
+                                                    >
+                                                        <AppSidebar
+                                                            currentServer={server.data}
+                                                            onPreloadSection={preloadServerSection}
+                                                            selectedAgentDmId={selectedAgentDmId}
+                                                            selectedChatId={selectedChatId}
+                                                        />
+                                                    </ShellSidebarPage>
+                                                    <ShellSidebarPage
+                                                        ariaLabel="Settings"
+                                                        value="settings"
+                                                    >
+                                                        <SettingsSidebar
+                                                            canOperate={canOperate}
+                                                            currentSection={settingsSection}
                                                             serverId={server.data.id}
                                                             slug={slug}
                                                         />
-                                                        <DesktopUpdateFooter />
-                                                    </div>
-                                                }
-                                                identity={
-                                                    <SidebarServerBand
-                                                        currentServer={server.data}
-                                                        onCreateServer={() =>
-                                                            setServerDialog('create')
-                                                        }
-                                                        onJoinServer={() => setServerDialog('join')}
-                                                        onOpenArchived={() =>
-                                                            navigate(serverArchivedChatsRoute(slug))
-                                                        }
-                                                        onOpenMembers={() =>
-                                                            navigate(
-                                                                serverSettingsSectionRoute(
-                                                                    slug,
-                                                                    'members'
-                                                                )
-                                                            )
-                                                        }
-                                                        onOpenSettings={() =>
-                                                            navigate(serverSettingsRoute(slug))
-                                                        }
-                                                        onOpenUsage={() =>
-                                                            navigate(usageRoute(slug))
-                                                        }
-                                                        onPreloadSettings={() =>
-                                                            preloadServerSection('settings')
-                                                        }
-                                                        onSwitchServer={(serverSlug) =>
-                                                            navigate(serverRoute(serverSlug))
-                                                        }
-                                                        servers={serverChoices}
-                                                    />
-                                                }
-                                            >
-                                                <ShellSidebarPage ariaLabel="Server" value="server">
-                                                    <AppSidebar
-                                                        currentServer={server.data}
-                                                        onPreloadSection={preloadServerSection}
-                                                        selectedAgentDmId={selectedAgentDmId}
-                                                        selectedChatId={selectedChatId}
-                                                    />
-                                                </ShellSidebarPage>
-                                                <ShellSidebarPage
-                                                    ariaLabel="Settings"
-                                                    value="settings"
-                                                >
-                                                    <SettingsSidebar
-                                                        canOperate={canOperate}
-                                                        currentSection={settingsSection}
-                                                        serverId={server.data.id}
-                                                        slug={slug}
-                                                    />
-                                                </ShellSidebarPage>
-                                            </ShellSidebar>
-                                        }
-                                        sidebarCollapsible="offcanvas"
-                                        sidebarOpen
-                                        toggleShortcut={false}
-                                    >
-                                        <ShellFrame>
-                                            <ShellTopbar />
-                                            <ConnectionNotice
-                                                serverError={Boolean(server.error)}
-                                                serverId={server.data.id}
-                                            />
-                                            <Outlet context={{ server: server.data }} />
-                                        </ShellFrame>
-                                    </AppLayout>
-                                </AgentActivityProvider>
-                            </AgentLifecycleProvider>
-                        </div>
-                        <CreateServerDialog
-                            isOpen={serverDialog === 'create'}
-                            onOpenChange={(isOpen) => setServerDialog(isOpen ? 'create' : null)}
-                        />
-                        <JoinServerDialog
-                            isOpen={serverDialog === 'join'}
-                            onOpenChange={(isOpen) => setServerDialog(isOpen ? 'join' : null)}
-                        />
-                    </AppShell>
-                </CommandMenuProvider>
-            </TopbarProvider>
-        </SidePaneProvider>
+                                                    </ShellSidebarPage>
+                                                </ShellSidebar>
+                                            }
+                                            sidebarCollapsible="offcanvas"
+                                            sidebarOpen
+                                            toggleShortcut={false}
+                                        >
+                                            <ShellFrame>
+                                                <ShellTopbar />
+                                                <ConnectionNotice
+                                                    serverError={Boolean(server.error)}
+                                                    serverId={server.data.id}
+                                                />
+                                                <Outlet context={{ server: server.data }} />
+                                            </ShellFrame>
+                                        </AppLayout>
+                                    </AgentActivityProvider>
+                                </AgentLifecycleProvider>
+                            </div>
+                            <CreateServerDialog
+                                isOpen={serverDialog === 'create'}
+                                onOpenChange={(isOpen) => setServerDialog(isOpen ? 'create' : null)}
+                            />
+                            <JoinServerDialog
+                                isOpen={serverDialog === 'join'}
+                                onOpenChange={(isOpen) => setServerDialog(isOpen ? 'join' : null)}
+                            />
+                        </AppShell>
+                    </CommandMenuProvider>
+                </TopbarProvider>
+            </SidePaneProvider>
+        </GrottoUpdateProvider>
     );
 }

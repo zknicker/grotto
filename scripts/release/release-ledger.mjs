@@ -22,7 +22,7 @@ export function assertReleaseLedger(value, options = {}) {
 
     for (const [index, entry] of value.entries()) {
         const isLatest = index === value.length - 1;
-        assertReleaseEntry(entry, { allowUndecided: true });
+        assertReleaseEntry(entry, { allowLegacyVersionless: !isLatest, allowUndecided: true });
 
         if (!isLatest && isDraftRelease(entry)) {
             throw new Error('only the latest release ledger entry may be a draft');
@@ -32,7 +32,7 @@ export function assertReleaseLedger(value, options = {}) {
             entry.version &&
             compareVersions(entry.version, previousVersion) <= 0
         ) {
-            throw new Error('release ledger Server versions must be oldest-first');
+            throw new Error('release ledger Grotto versions must be oldest-first');
         }
         if (!isDraftRelease(entry)) {
             assertCompleteRelease(entry);
@@ -84,7 +84,7 @@ export function createReleaseDraft(version) {
         version,
         date: null,
         targets: {
-            server: version,
+            server: undecidedReleaseTarget,
             app: undecidedReleaseTarget,
             ios: undecidedReleaseTarget,
             computer: undecidedReleaseTarget,
@@ -98,17 +98,17 @@ export function appendReleaseDraft(value, version) {
     if (!isSemver(version)) {
         throw new Error('release draft version must be SemVer');
     }
-    const previousVersion = latestMainVersion(value);
+    const previousVersion = latestProductVersion(value);
     if (previousVersion && compareVersions(version, previousVersion) <= 0) {
         throw new Error(
-            `release draft version ${version} must be greater than latest Server version ${previousVersion}`
+            `release draft version ${version} must be greater than latest Grotto version ${previousVersion}`
         );
     }
 
     return [...value, createReleaseDraft(version)];
 }
 
-export function latestMainVersion(value) {
+export function latestProductVersion(value) {
     for (let index = value.length - 1; index >= 0; index -= 1) {
         const version = value[index]?.version;
         if (version) {
@@ -174,10 +174,13 @@ export function formatReleaseTargets(entry) {
     ].join('\n');
 }
 
-function assertReleaseEntry(entry, { allowUndecided = false } = {}) {
+function assertReleaseEntry(
+    entry,
+    { allowLegacyVersionless = false, allowUndecided = false } = {}
+) {
     assertExactObject(entry, ['version', 'date', 'targets']);
-    if (entry.version !== null && !isSemver(entry.version)) {
-        throw new Error('release ledger version must be SemVer or null');
+    if (!(isSemver(entry.version) || (allowLegacyVersionless && entry.version === null))) {
+        throw new Error('release ledger Grotto version must be SemVer');
     }
     if (entry.date !== null && !/^\d{4}-\d{2}-\d{2}$/u.test(entry.date)) {
         throw new Error('release ledger date must be YYYY-MM-DD or null');
@@ -241,25 +244,6 @@ function assertCompleteRelease(entry) {
         throw new Error('complete release ledger entry must publish at least one target');
     }
 
-    if (entry.version === null) {
-        if (
-            publishedTargets.length !== 1 ||
-            publishedTargets[0] !== 'computer' ||
-            !releasePublishesTarget(entry, 'computer')
-        ) {
-            throw new Error(
-                'Computer-only release must leave Server, App, and iOS unchanged and publish Computer'
-            );
-        }
-        return;
-    }
-
-    if (entry.targets.server !== entry.version) {
-        throw new Error('normal release must publish Server at its main version');
-    }
-    if (entry.targets.app !== null && entry.targets.app !== entry.version) {
-        throw new Error('App release target must match the main release version');
-    }
     if (
         releasePublishesTarget(entry, 'agent') &&
         !(releasePublishesTarget(entry, 'server') && releasePublishesTarget(entry, 'computer'))

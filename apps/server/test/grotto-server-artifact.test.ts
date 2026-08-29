@@ -8,10 +8,17 @@ const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
 test('builds one versioned Apple Silicon Server artifact with App and operations assets', async () => {
     const sourceRevision = '0123456789abcdef0123456789abcdef01234567';
-    const websitePackage = JSON.parse(
-        readFileSync(join(repoRoot, 'apps/website/package.json'), 'utf8')
+    const product = JSON.parse(
+        readFileSync(join(repoRoot, 'packages/grotto-api/grotto-product.json'), 'utf8')
     ) as { version: string };
-    const releaseId = `${websitePackage.version}+git.${sourceRevision.slice(0, 12)}`;
+    const ledger = JSON.parse(readFileSync(join(repoRoot, 'releases.json'), 'utf8')) as Array<{
+        targets: { server: string | null };
+    }>;
+    const serverVersion = ledger.at(-1)?.targets.server;
+    if (!serverVersion) {
+        throw new Error('latest test release must publish Server');
+    }
+    const releaseId = `${serverVersion}+git.${sourceRevision.slice(0, 12)}`;
     const artifact = join(
         repoRoot,
         'apps/server/release',
@@ -23,6 +30,7 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
             cwd: repoRoot,
             env: {
                 ...process.env,
+                GROTTO_SERVER_VERSION: serverVersion,
                 GROTTO_SOURCE_REVISION: sourceRevision,
                 VITE_CLERK_PUBLISHABLE_KEY: 'pk_test_ZXhhbXBsZS5jb20k',
             },
@@ -120,12 +128,14 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
             contentDigest: string;
             productVersion: string;
             releaseId: string;
+            serverVersion: string;
             sourceRevision: string;
         };
         expect(release).toEqual({
             contentDigest: expect.stringMatching(/^[0-9a-f]{64}$/),
-            productVersion: websitePackage.version,
+            productVersion: product.version,
             releaseId,
+            serverVersion,
             sourceRevision,
         });
     } finally {

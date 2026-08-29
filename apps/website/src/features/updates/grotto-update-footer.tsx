@@ -78,7 +78,7 @@ function UpdateTooltipButton({
                 </Button>
             </Tooltip.Trigger>
             <Tooltip.Content
-                className="grotto-status-tooltip--contrast w-fit min-w-120 p-3"
+                className="grotto-status-tooltip--contrast w-fit max-w-md p-3"
                 offset={10}
                 placement="top start"
             >

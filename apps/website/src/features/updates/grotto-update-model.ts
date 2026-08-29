@@ -39,12 +39,17 @@ const activeComputerPhases = new Set<GrottoUpdateComputerPhase>([
 export function projectGrottoUpdate(input: GrottoUpdateInput): GrottoUpdateView {
     const observedAt = input.observedAt ?? Date.now();
     const computerTarget = input.release.components.computer;
-    const computerSteps = computerTarget
+    const projectedComputerSteps = computerTarget
         ? input.computers
               .map((computer) => projectComputerStep(computer, computerTarget, observedAt))
               .filter((step): step is ComputerUpdateStep => step !== null)
-              .sort(compareComputerSteps)
         : [];
+    const computerSteps = projectedComputerSteps
+        .map((step) => ({
+            ...step,
+            label: projectedComputerSteps.length === 1 ? 'Computer' : `Computer · ${step.label}`,
+        }))
+        .sort(compareComputerSteps);
     const desktopStep = projectDesktopStep(input.desktop, input.release.components.desktopApp);
     const steps = desktopStep ? [...computerSteps, desktopStep] : computerSteps;
     const phase = aggregatePhase(steps);

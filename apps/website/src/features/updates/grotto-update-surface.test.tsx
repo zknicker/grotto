@@ -27,7 +27,7 @@ const currentView: GrottoUpdateView = {
             detail: null,
             id: 'cmp_studio',
             kind: 'computer',
-            label: 'Studio',
+            label: 'Computer',
             remedy: null,
             status: 'current',
             targetVersion: '1.4.9',
@@ -85,7 +85,7 @@ describe('Grotto update surfaces', () => {
         expect(html).toContain('aria-disabled="true"');
         expect(html).toContain('role="presentation" tabindex="-1"');
         expect(tooltip).toContain('Updating');
-        expect(tooltip).toContain('Studio');
+        expect(tooltip).toContain('Computer');
     });
 
     test('renders only release surfaces with dense current and target versions', () => {
@@ -96,8 +96,9 @@ describe('Grotto update surfaces', () => {
         const html = renderToStaticMarkup(<GrottoVersionBreakdown facts={view.componentFacts} />);
 
         expect(html).toContain('Grotto App');
-        expect(html).toContain('MacBook');
-        expect(html).toContain('Studio');
+        expect(html).toContain('Computer · Home');
+        expect(html).toContain('Computer · Office');
+        expect(html).not.toContain('MacBook');
         expect(html).toContain('Agent');
         expect(html).not.toContain('Server');
         expect(html).not.toContain('iOS');
@@ -164,7 +165,7 @@ describe('Grotto update surfaces', () => {
         expect(html).toContain('1 Computer is offline');
         expect(tooltip).toContain('Computer offline');
         expect(tooltip).toContain('Last connected:');
-        expect(tooltip).toContain('Studio');
+        expect(tooltip).toContain('Home');
         expect(html).not.toContain('Download');
     });
 });

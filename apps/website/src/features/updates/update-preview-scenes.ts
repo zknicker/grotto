@@ -51,8 +51,8 @@ export const updatePreviewScenes: UpdatePreviewScene[] = [
     }),
     previewScene({
         computers: [
-            computer({ id: 'cmp_a', name: 'MacBook' }),
-            computer({ id: 'cmp_b', name: 'Studio' }),
+            computer({ id: 'cmp_a', name: 'Home' }),
+            computer({ id: 'cmp_b', name: 'Office' }),
         ],
         description: 'Two Computers update before the local Grotto App.',
         desktop: { currentVersion: '1.8.39', kind: 'desktop', phase: 'available' },
@@ -109,7 +109,7 @@ export const updatePreviewScenes: UpdatePreviewScene[] = [
             {
                 id: 'cmp_studio',
                 lastConnectedAt: '2026-08-29T15:00:00.000Z',
-                name: 'Studio',
+                name: 'Home',
             },
         ],
     }),
@@ -185,7 +185,7 @@ function computer(overrides: Partial<GrottoUpdateComputer>): GrottoUpdateCompute
         health: 'healthy',
         id: 'cmp_studio',
         lastConnectedAt: '2026-08-29T15:00:00.000Z',
-        name: 'Studio',
+        name: 'Home',
         phase: 'available',
         reportedTargetVersion: '1.4.9',
         ...overrides,

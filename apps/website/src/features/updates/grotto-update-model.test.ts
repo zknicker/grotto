@@ -36,7 +36,7 @@ describe('Grotto update projection', () => {
             view.componentFacts.map(({ label, targetVersion }) => [label, targetVersion])
         ).toEqual([
             ['Grotto App', '1.8.40'],
-            ['Studio', '1.4.9'],
+            ['Computer', '1.4.9'],
             ['Agent', '1.1.0'],
         ]);
     });
@@ -45,17 +45,21 @@ describe('Grotto update projection', () => {
         const view = projectGrottoUpdate({
             ...currentInput,
             computers: [
-                computer({ id: 'cmp_studio', name: 'Studio' }),
-                computer({ id: 'cmp_macbook', name: 'MacBook' }),
+                computer({ id: 'cmp_home', name: 'Home' }),
+                computer({ id: 'cmp_office', name: 'Office' }),
             ],
             desktop: { currentVersion: '1.8.39', kind: 'desktop', phase: 'available' },
         });
 
-        expect(view.steps.map((step) => step.label)).toEqual(['MacBook', 'Studio', 'Grotto App']);
+        expect(view.steps.map((step) => step.label)).toEqual([
+            'Computer · Home',
+            'Computer · Office',
+            'Grotto App',
+        ]);
         expect(view.componentFacts.map((fact) => fact.label)).toEqual([
             'Grotto App',
-            'MacBook',
-            'Studio',
+            'Computer · Home',
+            'Computer · Office',
             'Agent',
         ]);
         expect(view).toMatchObject({ phase: 'available', primaryAction: { kind: 'start' } });
@@ -86,7 +90,7 @@ describe('Grotto update projection', () => {
         });
 
         expect(view).toMatchObject({ phase: 'updating', primaryAction: null });
-        expect(view.steps[0]).toMatchObject({ label: 'Studio', phase: 'restarting' });
+        expect(view.steps[0]).toMatchObject({ label: 'Computer', phase: 'restarting' });
     });
 
     test('turns a timed-out restart into a named failure with recovery guidance', () => {
@@ -106,7 +110,7 @@ describe('Grotto update projection', () => {
         expect(view).toMatchObject({ phase: 'failed', primaryAction: { kind: 'retry' } });
         expect(view.componentFacts.find((fact) => fact.id === 'cmp_studio')).toMatchObject({
             detail: 'This Computer did not reconnect after installing the update.',
-            label: 'Studio',
+            label: 'Computer',
             status: 'failed',
         });
     });
@@ -156,7 +160,7 @@ describe('Grotto update projection', () => {
         const view = projectGrottoUpdate({ ...currentInput, desktop: { kind: 'web' } });
 
         expect(view.steps).toHaveLength(1);
-        expect(view.componentFacts.map((fact) => fact.label)).toEqual(['Studio', 'Agent']);
+        expect(view.componentFacts.map((fact) => fact.label)).toEqual(['Computer', 'Agent']);
     });
 
     test('never offers a downgrade and omits ledger targets that are absent', () => {
@@ -188,7 +192,7 @@ function computer(overrides: Partial<GrottoUpdateComputer> = {}): GrottoUpdateCo
         health: 'healthy',
         id: 'cmp_studio',
         lastConnectedAt: '2026-08-29T15:00:00.000Z',
-        name: 'Studio',
+        name: 'Home',
         phase: 'available',
         reportedTargetVersion: '1.4.9',
         ...overrides,

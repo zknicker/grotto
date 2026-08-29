@@ -15,9 +15,8 @@ state. An offline Computer contributes neither because its last report may no lo
 installed software.
 
 The anchored update tooltip lists the desktop App when present and observable Computers. Grotto
-Agent rollout is diagnostic rather than actionable here: each Agent's applied version and status
-appear in the Agent table on its Computer page and on its profile. One Computer is simply
-**Computer**; multiple Computers add their
+Agent receipts are internal diagnostics, not update targets. One Computer is simply **Computer**;
+multiple Computers add their
 user-facing names only to disambiguate them, such as **Computer · Home**. Current rows are green;
 version drift, live progress, and failures remain attached to their own rows. A failure includes
 the safe reported detail and one concrete recovery suggestion. The compact button represents the

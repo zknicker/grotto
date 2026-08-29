@@ -64,14 +64,13 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 - Every active Agent is already present in the Direct messages sidebar; there
   is no Create DM action or Agent picker.
 
-The Agent table on each Computer makes per-Agent rollout drift visible, and the Overview identifies
-the same applied **Grotto Agent** version. That version covers Grotto-managed
-behavior delivered through instructions, actions, recipes and Manual content, Harness bootstrap,
-and factory guidance; it does not version Agent-owned memory, skills, or workspace edits. **Up to
-date** means a successful turn has applied the release's version. Otherwise both surfaces show the
-applied and current versions as **Out of date**. Computer retains the more specific pending or
-failed receipt for diagnostics, and the same attempt is recorded in Activity History as an
-instruction update without exposing prompt text, local paths, content hashes, or file contents.
+Computer retains an internal per-Agent **Grotto Agent** version receipt for release evidence and
+diagnostics. That version covers Grotto-managed behavior delivered through instructions, actions,
+recipes and Manual content, Harness bootstrap, and factory guidance; it does not version
+Agent-owned memory, skills, or workspace edits. The ordinary App does not present the receipt as an
+update state because an Agent has no independent update action. Instruction refresh attempts remain
+available in Activity History without exposing prompt text, local paths, content hashes, or file
+contents.
 
 Agent DMs become ordinary pairwise Chats on their first durable message. Each
 human membership stint and Agent id has one canonical Chat, so different humans

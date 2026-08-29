@@ -1,52 +1,96 @@
 import { expect, test } from 'bun:test';
+import type { WorkspaceFileEntry } from '@grotto/api';
 import {
-    buildWorkspaceTreePaths,
-    filterWorkspaceTreePaths,
+    buildWorkspaceTree,
+    filterWorkspaceTree,
+    type WorkspaceTreeNode,
+    workspaceAncestorPaths,
 } from './chat-artifact-workspace-model.ts';
 
-test('buildWorkspaceTreePaths keeps root files when a child directory is loaded', () => {
-    const paths = buildWorkspaceTreePaths({
-        '': [
-            {
-                kind: 'directory',
-                mediaType: null,
-                name: 'out',
-                path: 'out',
-                sizeBytes: null,
-                updatedAt: null,
-            },
-            {
-                kind: 'file',
-                mediaType: 'text/markdown',
-                name: 'NOTES.md',
-                path: 'NOTES.md',
-                sizeBytes: 123,
-                updatedAt: '2026-06-25T00:00:00.000Z',
-            },
-        ],
-        out: [
-            {
-                kind: 'file',
-                mediaType: 'text/html',
-                name: 'preview.html',
-                path: 'out/preview.html',
-                sizeBytes: 456,
-                updatedAt: '2026-06-25T00:00:00.000Z',
-            },
-        ],
+function directory(path: string): WorkspaceFileEntry {
+    return {
+        kind: 'directory',
+        mediaType: null,
+        name: path.split('/').at(-1) ?? path,
+        path,
+        sizeBytes: null,
+        updatedAt: null,
+    };
+}
+
+function file(path: string): WorkspaceFileEntry {
+    return {
+        kind: 'file',
+        mediaType: 'text/markdown',
+        name: path.split('/').at(-1) ?? path,
+        path,
+        sizeBytes: 123,
+        updatedAt: '2026-06-25T00:00:00.000Z',
+    };
+}
+
+function paths(nodes: WorkspaceTreeNode[]): string[] {
+    return nodes.flatMap((node) => [node.id, ...paths(node.children ?? [])]);
+}
+
+test('buildWorkspaceTree nests a loaded directory under its root entry', () => {
+    const tree = buildWorkspaceTree({
+        '': [directory('out'), file('NOTES.md')],
+        out: [file('out/preview.html')],
     });
 
-    expect(paths).toContain('out/');
-    expect(paths).toContain('NOTES.md');
-    expect(paths).toContain('out/preview.html');
+    expect(paths(tree)).toEqual(['out', 'out/preview.html', 'NOTES.md']);
 });
 
-test('filterWorkspaceTreePaths keeps ancestors for matching files', () => {
-    const paths = ['out/', 'out/nested/', 'out/nested/preview.html', 'NOTES.md'];
+test('buildWorkspaceTree synthesizes ancestors for a directory loaded on its own', () => {
+    const tree = buildWorkspaceTree({ 'out/nested': [file('out/nested/preview.html')] });
 
-    expect(filterWorkspaceTreePaths(paths, 'preview')).toEqual([
-        'out/',
-        'out/nested/',
-        'out/nested/preview.html',
+    expect(paths(tree)).toEqual(['out', 'out/nested', 'out/nested/preview.html']);
+});
+
+test('buildWorkspaceTree keeps directories expandable before their listing arrives', () => {
+    const tree = buildWorkspaceTree({ '': [directory('out')] });
+
+    expect(tree[0]).toMatchObject({ children: [], kind: 'directory' });
+});
+
+test('buildWorkspaceTree sorts directories first, then names naturally', () => {
+    const tree = buildWorkspaceTree({
+        '': [file('b.md'), file('a10.md'), file('a2.md'), directory('zed')],
+    });
+
+    expect(paths(tree)).toEqual(['zed', 'a2.md', 'a10.md', 'b.md']);
+});
+
+test('filterWorkspaceTree keeps ancestors of a matching file', () => {
+    const tree = buildWorkspaceTree({
+        '': [directory('out'), file('NOTES.md')],
+        out: [file('out/preview.html'), file('out/other.txt')],
+    });
+
+    expect(paths(filterWorkspaceTree(tree, 'preview'))).toEqual(['out', 'out/preview.html']);
+});
+
+test('filterWorkspaceTree keeps a matching folder’s whole subtree', () => {
+    const tree = buildWorkspaceTree({
+        '': [directory('out'), file('NOTES.md')],
+        out: [file('out/preview.html'), file('out/other.txt')],
+    });
+
+    expect(paths(filterWorkspaceTree(tree, 'out'))).toEqual([
+        'out',
+        'out/other.txt',
+        'out/preview.html',
     ]);
+});
+
+test('filterWorkspaceTree returns the same tree for an empty query', () => {
+    const tree = buildWorkspaceTree({ '': [file('NOTES.md')] });
+
+    expect(filterWorkspaceTree(tree, '   ')).toBe(tree);
+});
+
+test('workspaceAncestorPaths lists every folder above a file, outermost first', () => {
+    expect(workspaceAncestorPaths('out/nested/preview.html')).toEqual(['out', 'out/nested']);
+    expect(workspaceAncestorPaths('NOTES.md')).toEqual([]);
 });

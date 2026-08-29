@@ -1,9 +1,27 @@
-import type { FileTreeSortEntry } from '@pierre/trees';
-import { FileTree as TreesFileTree, useFileTree } from '@pierre/trees/react';
+import type { Selection } from '@heroui/react';
+import { FileTree } from '@heroui-pro/react';
+import {
+    CubeIcon,
+    FileEmpty02Icon,
+    Folder01Icon,
+    FolderOpenIcon,
+} from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+import { Collection } from 'react-aria-components';
+import { Icon } from '../../components/ui/icon.tsx';
 import type { SkillTreeSubject } from './skill-tree-model.ts';
 
-type TreeHostStyle = React.CSSProperties & Record<`--${string}`, string>;
+/**
+ * One row of the Skills browser. `id` is the flat tree path the browser already
+ * speaks — folders keep their trailing slash so a skill folder and its
+ * `SKILL.md` never collide, and file ids match `subjectsByPath` exactly.
+ */
+interface SkillNode {
+    children?: SkillNode[];
+    id: string;
+    kind: 'file' | 'folder';
+    name: string;
+}
 
 export function SkillsFileTree({
     onSelect,
@@ -18,239 +36,168 @@ export function SkillsFileTree({
     selectedPath: null | string;
     subjectsByPath: Map<string, SkillTreeSubject>;
 }) {
+    const nodes = React.useMemo(() => buildSkillNodes(paths), [paths]);
+    const visibleNodes = React.useMemo(() => filterSkillNodes(nodes, query), [nodes, query]);
+    const folderPaths = React.useMemo(() => collectFolderPaths(visibleNodes), [visibleNodes]);
+    // Skills read as a flat list of open folders, so expansion is tracked by
+    // what the reader closed. A skill that arrives later is open on arrival
+    // instead of hiding its SKILL.md behind a chevron nobody knew to press.
+    const [collapsedPaths, setCollapsedPaths] = React.useState<ReadonlySet<string>>(
+        () => new Set()
+    );
+    const expandedKeys = React.useMemo(
+        () => new Set(folderPaths.filter((path) => !collapsedPaths.has(path))),
+        [collapsedPaths, folderPaths]
+    );
+    const selectedKeys = React.useMemo<Selection>(
+        () => new Set(selectedPath ? [selectedPath] : []),
+        [selectedPath]
+    );
     const skillFolderPaths = React.useMemo(
-        () => getSkillFolderPaths(subjectsByPath),
+        () => new Set([...subjectsByPath.keys()].map((path) => path.replace(/SKILL\.md$/u, ''))),
         [subjectsByPath]
     );
 
     return (
-        <SkillsFileTreeInner
-            key={skillFolderPaths.join('\n')}
-            onSelect={onSelect}
-            paths={paths}
-            query={query}
-            selectedPath={selectedPath}
-            skillFolderPaths={skillFolderPaths}
-            subjectsByPath={subjectsByPath}
-        />
+        <FileTree
+            aria-label="Skills"
+            className="h-full min-h-0 w-full flex-1"
+            expandedKeys={expandedKeys}
+            items={visibleNodes}
+            onExpandedChange={(keys) => {
+                const expanded = new Set([...keys].map(String));
+                setCollapsedPaths(new Set(folderPaths.filter((path) => !expanded.has(path))));
+            }}
+            onSelectionChange={(keys) => {
+                if (keys === 'all') {
+                    return;
+                }
+                const path = [...keys].map(String).at(0);
+                const subject = path ? subjectsByPath.get(path) : undefined;
+                if (subject) {
+                    onSelect(subject);
+                }
+            }}
+            renderEmptyState={() => 'No Skills'}
+            selectedKeys={selectedKeys}
+            // `replace`, not the default `toggle`: toggle selection puts a
+            // checkbox on every row, and this rail opens one skill at a time.
+            selectionBehavior="replace"
+            selectionMode="single"
+        >
+            {function renderSkillNode(node: SkillNode) {
+                const isFolder = node.kind === 'folder';
+                return (
+                    <FileTree.Item
+                        icon={isFolder ? folderIcon(skillFolderPaths.has(node.id)) : skillFileIcon}
+                        id={node.id}
+                        textValue={node.name}
+                        title={node.name}
+                    >
+                        {node.children && node.children.length > 0 ? (
+                            <Collection items={node.children}>{renderSkillNode}</Collection>
+                        ) : null}
+                    </FileTree.Item>
+                );
+            }}
+        </FileTree>
     );
 }
 
-function SkillsFileTreeInner({
-    onSelect,
-    paths,
-    query,
-    selectedPath,
-    skillFolderPaths,
-    subjectsByPath,
-}: {
-    onSelect: (subject: SkillTreeSubject) => void;
-    paths: string[];
-    query: string;
-    selectedPath: null | string;
-    skillFolderPaths: string[];
-    subjectsByPath: Map<string, SkillTreeSubject>;
-}) {
-    const callbacksRef = useLatestRef({
-        onSelect,
-        subjectsByPath,
-    });
-    const unsafeCSS = React.useMemo(() => buildTreeUnsafeCss(skillFolderPaths), [skillFolderPaths]);
-    const { model } = useFileTree({
-        density: 'compact',
-        fileTreeSearchMode: 'hide-non-matches',
-        flattenEmptyDirectories: false,
-        initialExpansion: 'open',
-        initialSearchQuery: query.trim() || null,
-        initialSelectedPaths: selectedPath ? [selectedPath] : [],
-        itemHeight: 28,
-        onSelectionChange(selectedPaths) {
-            const path = selectedPaths.find((candidate) =>
-                callbacksRef.current.subjectsByPath.has(candidate)
-            );
-            if (!path) {
-                return;
-            }
-            callbacksRef.current.onSelect(callbacksRef.current.subjectsByPath.get(path)!);
-        },
-        paths,
-        sort: compareFileTreeEntries,
-        unsafeCSS,
-    });
+function buildSkillNodes(paths: string[]): SkillNode[] {
+    const roots: SkillNode[] = [];
+    const nodesById = new Map<string, SkillNode>();
 
-    React.useEffect(() => {
-        model.resetPaths(paths);
-        syncTreeSelection(model, selectedPath);
-    }, [model, selectedPath, paths]);
+    const ensureFolder = (id: string): SkillNode | null => {
+        if (!id) {
+            return null;
+        }
+        const existing = nodesById.get(id);
+        if (existing) {
+            return existing;
+        }
+        const segments = id.slice(0, -1).split('/');
+        const parent = ensureFolder(
+            segments.length > 1 ? `${segments.slice(0, -1).join('/')}/` : ''
+        );
+        const node: SkillNode = { children: [], id, kind: 'folder', name: segments.at(-1) ?? id };
+        nodesById.set(id, node);
+        (parent?.children ?? roots).push(node);
+        return node;
+    };
 
-    React.useEffect(() => {
-        model.setSearch(query.trim() || null);
-    }, [model, query]);
-
-    if (paths.length === 0) {
-        return <div className="px-3 py-8 text-center text-muted text-sm">No Skills</div>;
+    for (const path of paths) {
+        if (path.endsWith('/')) {
+            ensureFolder(path);
+            continue;
+        }
+        if (nodesById.has(path)) {
+            continue;
+        }
+        const segments = path.split('/');
+        const parent = ensureFolder(
+            segments.length > 1 ? `${segments.slice(0, -1).join('/')}/` : ''
+        );
+        const node: SkillNode = { id: path, kind: 'file', name: segments.at(-1) ?? path };
+        nodesById.set(path, node);
+        (parent?.children ?? roots).push(node);
     }
 
-    return (
-        <TreesFileTree
-            className="h-full min-h-0 w-full flex-1 overflow-hidden py-1"
-            model={model}
-            style={treeHostStyle}
-        />
+    sortSkillNodes(roots);
+    return roots;
+}
+
+function filterSkillNodes(nodes: SkillNode[], query: string): SkillNode[] {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) {
+        return nodes;
+    }
+    const matched: SkillNode[] = [];
+    for (const node of nodes) {
+        if (node.id.toLowerCase().includes(normalizedQuery)) {
+            matched.push(node);
+            continue;
+        }
+        const children = node.children ? filterSkillNodes(node.children, query) : [];
+        if (children.length > 0) {
+            matched.push({ ...node, children });
+        }
+    }
+    return matched;
+}
+
+function collectFolderPaths(nodes: SkillNode[]): string[] {
+    return nodes.flatMap((node) =>
+        node.kind === 'folder' ? [node.id, ...collectFolderPaths(node.children ?? [])] : []
     );
 }
 
-function compareFileTreeEntries(left: FileTreeSortEntry, right: FileTreeSortEntry) {
-    if (left.isDirectory !== right.isDirectory) {
-        return left.isDirectory ? -1 : 1;
-    }
-    return left.basename.localeCompare(right.basename, undefined, {
-        numeric: true,
-        sensitivity: 'base',
+function sortSkillNodes(nodes: SkillNode[]) {
+    nodes.sort((left, right) => {
+        if (left.kind !== right.kind) {
+            return left.kind === 'folder' ? -1 : 1;
+        }
+        return left.name.localeCompare(right.name, undefined, {
+            numeric: true,
+            sensitivity: 'base',
+        });
     });
-}
-
-function syncTreeSelection(
-    model: ReturnType<typeof useFileTree>['model'],
-    selectedPath: null | string
-) {
-    if (!selectedPath) {
-        for (const currentPath of model.getSelectedPaths()) {
-            model.getItem(currentPath)?.deselect();
-        }
-        return;
-    }
-
-    for (const currentPath of model.getSelectedPaths()) {
-        if (currentPath !== selectedPath) {
-            model.getItem(currentPath)?.deselect();
+    for (const node of nodes) {
+        if (node.children) {
+            sortSkillNodes(node.children);
         }
     }
-    const item = model.getItem(selectedPath);
-    if (item) {
-        item.select();
-        model.scrollToPath(selectedPath, { focus: false, offset: 'nearest' });
+}
+
+/** A skill's own folder carries the skill mark; grouping folders stay folders. */
+function folderIcon(isSkill: boolean) {
+    if (isSkill) {
+        return skillIcon;
     }
+    return ({ isExpanded }: { isExpanded: boolean }) => (
+        <Icon icon={isExpanded ? FolderOpenIcon : Folder01Icon} />
+    );
 }
 
-function useLatestRef<T>(value: T) {
-    const ref = React.useRef(value);
-    ref.current = value;
-    return ref;
-}
-
-function getSkillFolderPaths(subjectsByPath: Map<string, SkillTreeSubject>) {
-    return [...subjectsByPath.keys()]
-        .map((path) => path.replace(/SKILL\.md$/u, ''))
-        .sort((left, right) => left.localeCompare(right));
-}
-
-function buildTreeUnsafeCss(skillFolderPaths: string[]) {
-    const skillIconSelectors = skillFolderPaths
-        .map(
-            (path) =>
-                `button[data-type='item'][data-item-path="${cssAttributeValue(path)}"] > [data-item-section='content']::before`
-        )
-        .join(',\n');
-
-    return `${treeUnsafeCss}
-
-${skillIconSelectors ? `${skillIconSelectors} {\n  --grotto-skill-tree-folder-icon: var(--grotto-skill-tree-cube-icon);\n}\n` : ''}`;
-}
-
-function cssAttributeValue(value: string) {
-    return value.replace(/\\/gu, '\\\\').replace(/"/gu, '\\"');
-}
-
-const folderIconMask = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M8 7H16.75C18.8567 7 19.91 7 20.6667 7.50559C20.9943 7.72447 21.2755 8.00572 21.4944 8.33329C22 9.08996 22 10.1433 22 12.25C22 15.7612 22 17.5167 21.1573 18.7779C20.7926 19.3238 20.3238 19.7926 19.7779 20.1573C18.5167 21 16.7612 21 13.25 21H12C7.28595 21 4.92893 21 3.46447 19.5355C2 18.0711 2 15.714 2 11V7.94427C2 6.1278 2 5.21956 2.38032 4.53806C2.65142 4.05227 3.05227 3.65142 3.53806 3.38032C4.21956 3 5.1278 3 6.94427 3C8.10802 3 8.6899 3 9.19926 3.19101C10.3622 3.62712 10.8418 4.68358 11.3666 5.73313L12 7' stroke='black' stroke-linecap='round' stroke-width='1.8'/%3E%3C/svg%3E")`;
-
-const cubeIconMask = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M2.79289 21.2071C3.08579 21.5 3.55719 21.5 4.5 21.5H14.5C15.4428 21.5 15.9142 21.5 16.2071 21.2071M2.79289 21.2071C2.5 20.9142 2.5 20.4428 2.5 19.5V9.5C2.5 8.55719 2.5 8.08579 2.79289 7.79289M2.79289 21.2071L8.79289 15.2071M16.2071 21.2071C16.5 20.9142 16.5 20.4428 16.5 19.5V9.5C16.5 8.55719 16.5 8.08579 16.2071 7.79289M16.2071 21.2071L21.2071 16.2071C21.5 15.9142 21.5 15.4428 21.5 14.5V4.5C21.5 3.55719 21.5 3.08579 21.2071 2.79289M16.2071 7.79289C15.9142 7.5 15.4428 7.5 14.5 7.5H4.5C3.55719 7.5 3.08579 7.5 2.79289 7.79289M16.2071 7.79289L21.2071 2.79289M2.79289 7.79289L7.79289 2.79289C8.08579 2.5 8.55719 2.5 9.5 2.5H19.5C20.4428 2.5 20.9142 2.5 21.2071 2.79289M8.79289 15.2071C9.08579 15.5 9.55719 15.5 10.5 15.5H14M8.79289 15.2071C8.5 14.9142 8.5 14.4428 8.5 13.5V10.5' stroke='black' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8'/%3E%3C/svg%3E")`;
-
-const treeUnsafeCss = `
-button[data-type='item'][data-item-type='folder'] {
-  --grotto-skill-tree-folder-icon: var(--grotto-skill-tree-folder-icon-default);
-}
-
-button[data-type='item'] {
-  --grotto-tree-row-bg: var(--trees-bg);
-  border-radius: 8px;
-}
-
-button[data-type='item']:hover {
-  --grotto-tree-row-bg: var(--trees-bg-muted);
-}
-
-button[data-type='item'][aria-selected='true'] {
-  --grotto-tree-row-bg: var(--trees-selected-bg);
-  /* Hairline outline, matching the nav rows' selected treatment. */
-  box-shadow: inset 0 0 0 1px var(--border);
-}
-
-/* Indent guides stop at the selected chip instead of striking through it. */
-button[data-type='item'][aria-selected='true'] [data-item-section='spacing-item'] {
-  border-left-color: transparent;
-}
-
-/* No lingering ring after pointer selection — the tree marks rows
-   data-item-focused on click and keeps it. Real keyboard focus
-   (:focus-visible) still draws the ring. */
-button[data-type='item'][data-item-focused='true']:not(:focus-visible)::before {
-  outline: none;
-}
-
-[data-file-tree-virtualized-scroll='true'] {
-  overflow-x: hidden;
-}
-
-button[data-type='item'][data-item-type='folder'] > [data-item-section='icon'] {
-  order: 3;
-  margin-left: auto;
-  color: var(--trees-fg-muted);
-}
-
-button[data-type='item'][data-item-type='folder'] > [data-item-section='content'] {
-  order: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-button[data-type='item'][data-item-type='folder'] > [data-item-section='content']::before {
-  content: '';
-  display: inline-block;
-  flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
-  background-color: var(--trees-fg-muted);
-  mask: var(--grotto-skill-tree-folder-icon) center / contain no-repeat;
-  -webkit-mask: var(--grotto-skill-tree-folder-icon) center / contain no-repeat;
-}
-
-button[data-type='item'][data-item-type='folder'] > [data-item-section='content'] > * {
-  min-width: 0;
-}
-`;
-
-const treeHostStyle: TreeHostStyle = {
-    '--grotto-skill-tree-cube-icon': cubeIconMask,
-    '--grotto-skill-tree-folder-icon-default': folderIconMask,
-    '--trees-bg-override': 'var(--surface)',
-    '--trees-bg-muted-override': 'var(--surface-secondary)',
-    '--trees-border-color-override': 'var(--separator)',
-    '--trees-border-radius-override': '8px',
-    '--trees-fg-muted-override': 'var(--muted)',
-    '--trees-fg-override': 'var(--foreground)',
-    '--trees-file-icon-color': 'var(--muted)',
-    '--trees-focus-ring-color-override': 'var(--focus)',
-    '--trees-selected-focused-border-color-override': 'var(--focus)',
-    '--trees-font-family-override': 'inherit',
-    '--trees-font-size-override': 'var(--text-sm)',
-    '--trees-indent-guide-bg-override': 'transparent',
-    '--trees-item-margin-x-override': '0px',
-    '--trees-item-padding-x-override': '8px',
-    '--trees-level-gap-override': '8px',
-    '--trees-padding-inline-override': '4px',
-    '--trees-scrollbar-gutter-override': '6px',
-    '--trees-selected-bg-override': 'var(--surface-secondary)',
-    '--trees-selected-fg-override': 'var(--foreground)',
-};
+const skillIcon = <Icon icon={CubeIcon} />;
+const skillFileIcon = <Icon icon={FileEmpty02Icon} />;

@@ -49,7 +49,7 @@ export function SkillsBrowser({ sources }: { sources: SkillSource[] }) {
             className="grid h-full min-h-0 flex-1 overflow-hidden bg-background"
             style={{ gridTemplateColumns: `${sidebarWidth.width}px minmax(0, 1fr)` }}
         >
-            <aside className="relative flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-separator border-e bg-surface">
+            <aside className="sub-sidebar relative flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-separator border-e">
                 <ResizablePaneRail
                     maxWidth={380}
                     minWidth={240}
@@ -58,21 +58,17 @@ export function SkillsBrowser({ sources }: { sources: SkillSource[] }) {
                     side="right"
                     width={sidebarWidth.width}
                 />
-                <header className="shrink-0 border-separator border-b px-3 pt-4 pb-3">
-                    <h2 className="truncate font-semibold text-base text-foreground">Skills</h2>
-                    <p className="mt-2 text-muted text-sm">Skills available on your Computers.</p>
-                </header>
-                <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden px-1 pt-2">
-                    <h3 className="px-2 pb-1 font-medium text-muted text-sm">Browse Skills</h3>
-                    <div className="flex min-h-0 flex-1 overflow-x-hidden">
-                        <SkillsFileTree
-                            onSelect={(subject) => setSelectedPath(subject.treePath)}
-                            paths={paths}
-                            query=""
-                            selectedPath={selectedPath}
-                            subjectsByPath={subjectsByPath}
-                        />
-                    </div>
+                {/* No rail header — the breadcrumb already says Skills, so
+                    the rail leads with the tree itself, matching the agent
+                    Workspace rail. */}
+                <div className="flex min-h-0 flex-1 overflow-x-hidden px-1 pt-2">
+                    <SkillsFileTree
+                        onSelect={(subject) => setSelectedPath(subject.treePath)}
+                        paths={paths}
+                        query=""
+                        selectedPath={selectedPath}
+                        subjectsByPath={subjectsByPath}
+                    />
                 </div>
             </aside>
             <section className="flex min-h-0 min-w-0 flex-col">

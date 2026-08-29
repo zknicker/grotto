@@ -111,8 +111,9 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   the page gutter, max width, and the rhythm between sections. It encodes
   HeroUI's page idiom (`mx-auto flex w-full flex-col gap-8` plus page padding)
   against the generated `--spacing` token, so a design-system change rescales
-  every page together. Pick width through the `width` variant
-  (`default`, `wide`, `full`) rather than a call-site `max-w-[…]` override.
+  every page together. Every destination shares its one `max-w-6xl` measure —
+  per-page width variants made sibling pages visibly different widths one
+  click apart; do not reintroduce them or a call-site `max-w-[…]` override.
 * Two shapes mean a HeroUI component is being replaced rather than composed:
   a layout element dropped straight into a compound header or footer, and a
   `className` that cancels a component's own padding or gap. Both typecheck and
@@ -176,6 +177,14 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   scoped to one section rides in that section's `ItemCardGroup.Header`; a
   control acting on one row lives in that row's `ItemCard.Action`.
   `SettingsPageHeader` carries identity only and takes no action slot.
+* Empty states have exactly three shapes, by surface. A full pane or
+  page-level empty/error is stock `EmptyState` with `Media variant="icon"`
+  (inside a `Card` when it stands in for a card the data would have filled —
+  `UsageEmptyCard`, the token grid). An empty *list* keeps its section header
+  and shows one quiet `ItemCard` row with a description ("No reminders
+  yet."). A transient surface (popover, drawer, menu) uses one muted inline
+  line. Never hand-roll an icon box or a centered paragraph stack — two
+  drifted copies of `EmptyState` have already been paid for and deleted.
 * Spacing has one owner per axis. HeroUI modules — `Widget`, `ItemCardGroup`,
   `Card`, `KPI` — already carry their own header and content padding, so drop
   them straight into the column instead of wrapping them in padded `<section>`

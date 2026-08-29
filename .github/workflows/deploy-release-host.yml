@@ -34,7 +34,7 @@ jobs:
         run: |
           curl --fail --location --show-error --silent --max-time 20 \
             https://releases.grotto.sh/computer/latest.json | \
-            jq --exit-status '.version and .sourceRevision' > /dev/null
+            jq --exit-status '.release.version and .release.sourceRevision' > /dev/null
           curl --fail --location --show-error --silent --max-time 20 \
             https://releases.grotto.sh/grotto/latest.json | \
             jq --exit-status '.version and .sourceRevision and .components.computer' > /dev/null

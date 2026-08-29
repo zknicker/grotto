@@ -13,6 +13,10 @@ const deployWorkflow = readFileSync(
     path.join(repositoryRoot, '.github/workflows/deploy-grotto-server.yml'),
     'utf8'
 );
+const releaseHostWorkflow = readFileSync(
+    path.join(repositoryRoot, '.github/workflows/deploy-release-host.yml'),
+    'utf8'
+);
 const environmentSchema = readFileSync(path.join(repositoryRoot, '.env.schema'), 'utf8');
 const dependencyAction = readFileSync(
     path.join(repositoryRoot, '.github/actions/setup-release-dependencies/action.yml'),
@@ -166,6 +170,8 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(deployWorkflow, /environment:\s+name: production\s+url: https:\/\/grotto\.sh/);
     assert.match(deployWorkflow, /EXPECTED_SOURCE_REVISION: \$\{\{ inputs\.source_revision \}\}/);
     assert.match(deployWorkflow, /bun scripts\/release\/verify-hosted-grotto\.mjs/);
+    assert.match(releaseHostWorkflow, /\.release\.version and \.release\.sourceRevision/);
+    assert.match(releaseHostWorkflow, /\.version and \.sourceRevision and \.components\.computer/);
     assert.ok(
         workflow.indexOf('actions/upload-artifact@v4') <
             workflow.indexOf('actions/download-artifact@v4')

@@ -141,8 +141,19 @@ that draw their own content instead of wearing glass — drawn circles, cards, l
 `PressableButtonStyle`: compact controls scale toward the finger and full-width rows highlight,
 because a row that shrinks reads as breakage. `.plain` on an interactive element is a defect, not a
 neutral default. The chat transcript passes under the chrome at both ends — beneath the composer's
-glass via a bottom safe-area inset, and beneath the `ChromeHeader` row via a top one, with the
-system's soft scroll-edge effect keeping iOS 26 chrome legible over moving content.
+glass via a bottom safe-area inset, and beneath the `ChromeHeader` row via a top safe-area *bar*,
+with the system's soft scroll-edge effect keeping iOS 26 chrome legible over moving content.
+
+The difference between an inset and a bar is the whole scrim. `scrollEdgeEffectStyle` only says
+what the edge should look like; iOS 26 paints it solely behind content a scroll view has been told
+is a bar, and `safeAreaInset` reserves the room without claiming it. Asking for `.soft` over a plain
+top inset therefore drew nothing at all: rows ran razor-sharp into the status bar and the glass
+header floated over raw text. `chromeBar` in `ChromeHeader.swift` is the one place that decides —
+`safeAreaBar` on iOS 26, the same inset below it, where there is no edge effect to earn. The
+composer keeps the plain inset on purpose: the clearance it reserves is the transcript's own scroll
+bound, so no sharp row ever reaches past it, and the rows that reach its glass are already being
+refracted. A pushed screen needs neither, because its system navigation bar is a bar already —
+that is why the Thread transcript has always faded under its own chrome.
 
 Every floating chrome control is one control. `GlassChromeButton` owns the 44-point circle, the
 22-point app icon, and the glass or material treatment, and `ChromeHeader` owns the 56-point

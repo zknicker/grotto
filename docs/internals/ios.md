@@ -367,18 +367,64 @@ the live Agent directory and `chat.createChannel`. These sheets receive narrow a
 Swift Chat and Thread composers use the system inline Photos picker and Files importer plus a focused
 AVFoundation camera surface on physical iPhones. Photos and Camera expand from the composer into one
 rounded, local attachment portal; they do not create routes or full-screen covers. The portal card is
-painted to the true screen bottom with corners that nest concentrically inside the display's, and the
-keyboard slides out and back *behind* it: while a portal is open, the Chat screen freezes the keyboard
+painted to the true screen bottom, and the keyboard slides out and back *behind* it: while a portal is
+open, the Chat screen freezes the keyboard
 bottom inset it lays out against (`ComposerPortalFreeze`), so the transcript and composer stay
 pixel-static for the portal's whole lifecycle and the keyboard is restored on close only if it was up
-when the portal opened. That portal returns along the same bottom-leading path into the attachment
+when the portal opened.
+
+The card overlaps the keyboard because it is drawn in a window of its own. The keyboard is not part of
+the app's window — iOS paints it in `UIRemoteKeyboardWindow`, above everything the app draws — so a
+portal layered inside the app window is cut off wherever the two meet, whatever its z-order. The
+screen still owns the state: `ComposerInteraction` stays the single source of truth and the screen
+registers itself with `ComposerPortalPresenter` on appear and resigns on disappear (Chat and Thread
+both host portals, never at once, and a leaving screen only clears a registration still its own).
+`ComposerPortalWindowController` mounts one `ComposerAttachmentPortal` from that registration in a
+full-screen overlay window whose level is overridden on the *getter*, because UIKit clamps an assigned
+`windowLevel` back below the keyboard's. That window is never made key — the text field's first
+responder, and so the keyboard itself, must stay with the app window — and it passes every touch
+straight through unless a portal is actually open (`ComposerPortalWindowRule`); a card that is only
+leaving, or a media card collapsing into its landing tile, hands taps back to the composer underneath.
+Because the portal now measures against the display rather than against the screen that opened it, the
+composer reports `composerSurfaceFrame` and `morphDestinationFrame` in `.global` — window coordinates,
+which the two windows share exactly, the app being portrait-only and full-screen.
+
+The media card is inset a uniform 12pt from the display on both sides and the floor
+(`ComposerPortalGeometry.nestingInset`), and from iOS 26 it asks for corners concentric with the
+display's own rather than naming a radius: `.rect(corners: .concentric, isUniform: true)`, uniform
+because the card's top corners are nowhere near the display's and a per-corner resolution squares them
+off. The inset has to be uniform for that to resolve to one radius. Pre-26 it falls back to
+`ComposerPortalGeometry.cornerRadius`, which is also the source menu's own radius: the menu floats
+mid-screen with no bezel relationship and keeps 30. The menu-to-media morph therefore steps its corner
+rather than interpolating it — two `Shape` types never interpolate — and the shape is erased through
+`AnyShape` so that stays one card whose corner changes while its frame morphs, not two cards
+cross-fading.
+
+The source menu that opens the portal is placed on the composer input it came
+from: its bottom edge centres the card on the input, never sinking below the composer's own bottom
+edge and never rising off the top of the screen (`ComposerPortalGeometry.sourceMenuBottomPadding`), so
+the card overlaps the composer rather than standing on it. It pops out of the plus button — a scale
+from the button's position in the card's unit space, no offset travel — and leaves flatter and faster
+than it arrives. The menu card is the one interactive glass surface in the portal; its rows carry
+plain fills, because glass cannot sample glass. A drag on the open menu carries it a few points toward
+the finger on UIScrollView's rubber-band curve and springs it back on release
+(`ComposerPortalRubberBand`), and Reduce Motion replaces the pop and the pull with a plain fade. That
+portal returns along the same bottom-leading path into the attachment
 preview area so source, selection, and staged result remain spatially continuous; that return flight
 is one interruptible spring that retargets as the landing tile settles, and the composer stays live
 beneath it — a new portal, a send, or a Chat switch mid-flight abandons the flight rather than
 waiting on it. The composer itself
 is a floating interactive glass surface — the system's press bloom, with no overlay of any kind on
 iOS 26 — and the transcript scrolls to the screen bottom and passes beneath it via a
-bottom safe-area inset rather than ending above an opaque band. Selected files stay in a composer-owned temporary directory
+bottom safe-area inset rather than ending above an opaque band. Opening the source menu also warms
+`ComposerPhotoLibrary`, the picker's session object: an already-authorized library fetches its most
+recent 400 image assets and starts caching thumbnails at the grid's cell size off the main actor, so
+the card's morph into the photo grid paints an already-filled grid rather than a blank one during the
+morph. Warming never itself requests authorization — an undecided or denied library still asks only
+when the user actually opens Photos — and the picker's own mount-time load reuses whatever warming
+already fetched. `PHImageManager`'s opportunistic delivery paints the fast, degraded decode first and
+upgrades each cell in place when the full-quality result lands, instead of holding a cell blank until
+the slower decode finishes. Selected files stay in a composer-owned temporary directory
 until the message succeeds, and imported security-scoped URLs are copied while access is active rather
 than retained or buffered into memory. Chat-canvas staging belongs to the Chat, not the screen: it
 survives a Chat switch and a push-over, and is discarded only by a successful send, by removing the

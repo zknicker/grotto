@@ -149,8 +149,21 @@ what the edge should look like; iOS 26 paints it solely behind content a scroll 
 is a bar, and `safeAreaInset` reserves the room without claiming it. Asking for `.soft` over a plain
 top inset therefore drew nothing at all: rows ran razor-sharp into the status bar and the glass
 header floated over raw text. `chromeBar` in `ChromeHeader.swift` is the one place that decides —
-`safeAreaBar` on iOS 26, the same inset below it, where there is no edge effect to earn. The
-composer keeps the plain inset on purpose: the clearance it reserves is the transcript's own scroll
+`safeAreaBar` on iOS 26, the same inset below it, where there is no edge effect to earn.
+
+How hard that scrim bites is a question of region, not of style. The effect has no strength knob:
+the public surface is `.automatic`, `.soft`, and `.hard`, and `.hard` is an opaque cap with a
+dividing line — it erases a passing row and slices the avatar flat rather than dissolving either.
+What the effect does have is reach, because iOS 26 ramps the dissolve across whatever bar region it
+was handed. So the bar carries `GrottoChrome.scrollEdgeRunway` below the chrome row, and the longer
+ramp is the whole difference between a row that stays readable under the header and one that is
+decisively gone by the time it gets there. The runway is tuned to the first row below the chrome:
+more of it starts softening that row too, which trades the dissolve for a taller cap. A
+product-owned gradient behind the chrome cannot do this job — it can only deepen the band the
+system already owns, never move the edge of it, and it has to be re-tuned for dark mode, where the
+system effect dissolves toward the real scroll backdrop for free.
+
+The composer keeps the plain inset on purpose: the clearance it reserves is the transcript's own scroll
 bound, so no sharp row ever reaches past it, and the rows that reach its glass are already being
 refracted. A pushed screen needs neither, because its system navigation bar is a bar already —
 that is why the Thread transcript has always faded under its own chrome.

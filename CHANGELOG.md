@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.11.0 - 2026-08-30
+
+- Grotto App shows live desktop update download progress in the sidebar and restores drag-and-drop
+  Channel reordering.
+- Grotto App extends each Chat row's hover background through the navigation pane edge.
+- Grotto for iPhone keeps the keyboard and composer stable while opening Photos or Camera, and
+  keeps photo-grid cells square without overlapping crops.
+
 ## v1.10.0 - 2026-08-30
 
 - Grotto App adds resizable navigation and artifact panes, clearer Agent profiles and usage

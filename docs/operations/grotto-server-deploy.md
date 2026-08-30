@@ -23,12 +23,13 @@ or deployment uses Vercel.
 The Server and web Grotto App are one `server` target. Merging the release PR
 starts one `Release` workflow; its Server job publishes the exact artifact and
 source identity needed for deployment. The graph then calls `Deploy Grotto
-Server` through the protected `production` Environment. Approval is explicit;
-after approval the reusable workflow resolves production credentials and
-rewrites the Server's delivered environment. Manual dispatch remains available
-for recovery and activation. GitHub's `production` Environment requires reviewer
-approval and accepts deployments only from `main`; verify those repository settings
-before merging a Server release.
+Server` automatically through the protected `production` Environment. The
+reusable workflow resolves production credentials and rewrites the Server's
+delivered environment. Manual dispatch remains available for recovery and
+activation. GitHub's `production` Environment has no required reviewers and
+accepts deployments only from `main`; reviewing and merging the release PR is
+the sole human release gate. Verify those repository settings before merging a
+Server release.
 
 Neither a push to `main` nor a completed target job alone is deployment evidence.
 

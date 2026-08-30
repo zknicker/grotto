@@ -55,8 +55,10 @@ that version. The App therefore distinguishes current, pending, and failed appli
 
 The `Release` workflow builds, signs, publishes, and records evidence for selected artifact targets.
 Grotto Agent publication is proven by the matching Server and Computer artifacts. When
-Server publishes, the same graph waits at the protected `production` Environment, promotes the
-exact artifact after approval, and verifies the public Server and hosted Grotto App.
+Server publishes, the same graph promotes the exact artifact through the protected `production`
+Environment and verifies the public Server and hosted Grotto App. Reviewing and merging the release
+PR is the release's only human authorization gate; selected target jobs run to completion without a
+second approval.
 
 ## Target impact
 
@@ -98,19 +100,21 @@ evidence; tester invitation and production App Store promotion are separate acti
 
 The Server and web Grotto App are one atomic production artifact with one Server SemVer.
 A push to `main` without a release record does not deploy. A selected Server release queues
-production promotion behind the `production` Environment approval. The deployment workflow also
-keeps its manual entry point: `deploy` downloads, verifies, installs, and activates a published
-artifact; `activate` verifies and switches to an already installed release.
+production promotion through the `production` Environment after the release PR merges. The
+deployment workflow also keeps its manual entry point for recovery: `deploy` downloads, verifies,
+installs, and activates a published artifact; `activate` verifies and switches to an already
+installed release.
 
 The selected `server` target publishes a deployable artifact, then calls the reusable `Deploy
-Grotto Server` workflow with the exact version and source identity. The production Environment is
-the explicit human promotion boundary; it requires reviewer approval and permits only `main`. The
-Release workflow cannot finalize while approval or deployment is pending.
+Grotto Server` workflow with the exact version and source identity. The production Environment
+isolates deployment credentials and permits only `main`; it has no required reviewers because the
+reviewed release PR is the human gate. The Release workflow cannot finalize until deployment
+finishes successfully.
 
 Read [Grotto Server deployment](grotto-server-deploy.md) for artifact verification, migrations,
 activation, health checks, and rollback. A release is production-ready only after the protected
-deployment succeeds and public health is healthy. Environment approval, a merged PR, or a green
-artifact job alone is not deployment evidence.
+deployment succeeds and public health is healthy. A merged PR, a published artifact, or a started
+deployment alone is not deployment evidence.
 
 The Server deployment path preserves the full source SHA and content digest as deployment identity.
 It runs the candidate migration program before activation; application rollback does not reverse a

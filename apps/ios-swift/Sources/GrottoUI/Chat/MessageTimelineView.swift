@@ -26,6 +26,10 @@ public struct MessageTimelineView: View {
     /// on the bottom: a drag and the fling after it travel past the end on
     /// purpose, and the scroll view already brings those back itself.
     @State private var isScrollIdle = true
+    /// Whether the latest scroll geometry left the viewport past the end of the
+    /// transcript. Held as state so the rescue below can wait out a layout
+    /// still in motion and re-check before it moves anything.
+    @State private var isPastContentEnd = false
 
     public init(
         messages: [MessagePresentation],
@@ -127,7 +131,21 @@ public struct MessageTimelineView: View {
                 visibleMaxY: geometry.visibleRect.maxY
             )
         } action: { _, isPastContentEnd in
+            self.isPastContentEnd = isPastContentEnd
+        }
+        // The rescue must not answer the geometry change that reported the
+        // strand: an app open lays the canvas out over several frames, and a
+        // bottom edge asserted mid-flight resolves against numbers still
+        // moving, strands again, and reports again — the transcript strobed
+        // blank at frame rate. A strand is only real once it survives a beat
+        // at rest; the one that matters (a cached Chat that nothing else will
+        // ever move) holds indefinitely, so waiting costs it nothing. Idleness
+        // is part of the key so a strand reported mid-touch re-arms the rescue
+        // when the scroll comes back to rest instead of being dropped.
+        .task(id: isPastContentEnd && isScrollIdle) {
             guard isPastContentEnd, isScrollIdle else { return }
+            try? await Task.sleep(for: .milliseconds(120))
+            guard !Task.isCancelled, isPastContentEnd, isScrollIdle else { return }
             var transaction = Transaction()
             transaction.disablesAnimations = true
             withTransaction(transaction) {

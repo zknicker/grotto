@@ -28,6 +28,9 @@ public struct ThreadDetailView: View {
     /// Whether the replies are at rest, for the same reason the Chat transcript
     /// tracks it: a drag and its fling travel past the end on purpose.
     @State private var isScrollIdle = true
+    /// Whether the latest geometry left the viewport past the last reply, held
+    /// as state so the rescue waits out a layout still in motion.
+    @State private var isPastRepliesEnd = false
     /// A Thread is one pushed screen rather than a keyed canvas, so its composer
     /// state is screen-owned: it survives anything presented over the Thread and
     /// goes away with the pop, unlike the Chat canvas, whose interactions the
@@ -204,7 +207,16 @@ public struct ThreadDetailView: View {
                             visibleMaxY: geometry.visibleRect.maxY
                         )
                     } action: { _, isPastContentEnd in
-                        guard isPastContentEnd, isScrollIdle else { return }
+                        isPastRepliesEnd = isPastContentEnd
+                    }
+                    // Deferred for the same reason as the Chat timeline's
+                    // rescue: an edge asserted mid-layout resolves against
+                    // moving numbers and strobes. A real strand holds at rest,
+                    // and idleness in the key re-arms one reported mid-touch.
+                    .task(id: isPastRepliesEnd && isScrollIdle) {
+                        guard isPastRepliesEnd, isScrollIdle else { return }
+                        try? await Task.sleep(for: .milliseconds(120))
+                        guard !Task.isCancelled, isPastRepliesEnd, isScrollIdle else { return }
                         var transaction = Transaction()
                         transaction.disablesAnimations = true
                         withTransaction(transaction) {

@@ -294,9 +294,14 @@ those itself, and only after the strand has held for a beat (~120ms). The wait i
 app open lays the canvas out over several frames, and a bottom edge re-asserted inside the geometry
 change that reported the strand resolves against numbers still moving, strands again, and reports
 again — the transcript strobed blank at frame rate. The strand that matters holds indefinitely, so
-deferring the rescue costs it nothing. The guard is what covers a Chat that was already loaded. Its last message never
-changes, so the tail scroll that rescues a first page never runs, and without the guard such a Chat
-came back from a switch blank and stayed blank until the reader dragged it.
+deferring the rescue costs it nothing. The rescue also retries at that same cadence (capped) while
+the strand holds, because one assertion is not enough on a device: it can land while the layout is
+still moving and leave the viewport stranded *continuously*, and a strand that never clears never
+changes the geometry-derived value, so nothing else would ever re-arm the rescue — a cached Chat
+revisited mid-session stayed blank that way. The guard is what covers a Chat that was already
+loaded. Its last message never changes, so the tail scroll that rescues a first page never runs, and
+without the guard such a Chat came back from a switch blank and stayed blank until the reader
+dragged it.
 
 An anchor message owns one recessed Thread ingress. On iPhone it shows the Server-projected reply and
 unread counts plus only the latest recent reply; this is a presentation reduction of the same Thread

@@ -215,12 +215,14 @@ public struct ThreadDetailView: View {
                     // and idleness in the key re-arms one reported mid-touch.
                     .task(id: isPastRepliesEnd && isScrollIdle) {
                         guard isPastRepliesEnd, isScrollIdle else { return }
-                        try? await Task.sleep(for: .milliseconds(120))
-                        guard !Task.isCancelled, isPastRepliesEnd, isScrollIdle else { return }
-                        var transaction = Transaction()
-                        transaction.disablesAnimations = true
-                        withTransaction(transaction) {
-                            scrollPosition.scrollTo(edge: .bottom)
+                        for _ in 0..<8 {
+                            try? await Task.sleep(for: .milliseconds(120))
+                            guard !Task.isCancelled, isPastRepliesEnd, isScrollIdle else { return }
+                            var transaction = Transaction()
+                            transaction.disablesAnimations = true
+                            withTransaction(transaction) {
+                                scrollPosition.scrollTo(edge: .bottom)
+                            }
                         }
                     }
                     .onChange(of: replies.last?.id) { previousLatestID, latestReplyID in

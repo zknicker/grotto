@@ -142,14 +142,24 @@ public struct MessageTimelineView: View {
         // ever move) holds indefinitely, so waiting costs it nothing. Idleness
         // is part of the key so a strand reported mid-touch re-arms the rescue
         // when the scroll comes back to rest instead of being dropped.
+        //
+        // The rescue retries while the strand holds, because one assertion is
+        // not enough on a device: it can land while the layout is still moving
+        // and leave the viewport stranded *continuously* — and a Bool that
+        // never transitions never calls the geometry action again, so nothing
+        // re-arms this task. Each retry waits the same beat, so the cadence
+        // cannot strobe, and the cap keeps a stale `true` from looping forever
+        // when the geometry has actually settled on the bottom.
         .task(id: isPastContentEnd && isScrollIdle) {
             guard isPastContentEnd, isScrollIdle else { return }
-            try? await Task.sleep(for: .milliseconds(120))
-            guard !Task.isCancelled, isPastContentEnd, isScrollIdle else { return }
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                scrollPosition.scrollTo(edge: .bottom)
+            for _ in 0..<8 {
+                try? await Task.sleep(for: .milliseconds(120))
+                guard !Task.isCancelled, isPastContentEnd, isScrollIdle else { return }
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    scrollPosition.scrollTo(edge: .bottom)
+                }
             }
         }
         .onChange(of: messages.last?.id) { previousMessageID, latestMessageID in

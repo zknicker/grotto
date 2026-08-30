@@ -45,6 +45,9 @@ enum MessageTimelineTailScroll: Equatable {
 
 enum MessageTimelineScrollPosition {
     private static let bottomTolerance: CGFloat = 80
+    /// Anything smaller than this is rounding between two layout passes, not a
+    /// viewport that has left its own content behind.
+    private static let overshootTolerance: CGFloat = 1
 
     static func isNearBottom(
         contentHeight: CGFloat,
@@ -56,5 +59,31 @@ enum MessageTimelineScrollPosition {
         }
 
         return visibleMaxY >= contentHeight - bottomTolerance
+    }
+
+    /// Whether the viewport is sitting past the end of the transcript, showing
+    /// the empty space below the last row.
+    ///
+    /// A reader cannot put it there: a scroll view clamps every gesture to its
+    /// own content and rubber-bands anything beyond it back. Only a layout can,
+    /// and a Chat's first one does — the bottom lands against a content height
+    /// the lazy rows have not settled into, they then measure shorter, and the
+    /// viewport is left over nothing. It is a resting state, not a transient:
+    /// a Chat that was already loaded never appends a message, so the tail
+    /// scroll that would otherwise rescue it never runs, and the transcript
+    /// stays blank until the reader drags it back.
+    ///
+    /// A transcript shorter than its container has no end to be past. It sits on
+    /// the composer because `defaultScrollAnchor(.bottom)` pads the top by
+    /// nearly a screen, which puts the viewport's trailing edge well below the
+    /// last row by design — so the height has to be checked before the edge is.
+    static func isPastContentEnd(
+        contentHeight: CGFloat,
+        containerHeight: CGFloat,
+        bottomInset: CGFloat,
+        visibleMaxY: CGFloat
+    ) -> Bool {
+        guard contentHeight > containerHeight else { return false }
+        return visibleMaxY > contentHeight + bottomInset + overshootTolerance
     }
 }

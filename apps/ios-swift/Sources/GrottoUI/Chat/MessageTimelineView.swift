@@ -14,12 +14,18 @@ public struct MessageTimelineView: View {
     /// The bottom is held as a scroll *edge*, not as an offset onto the last row. An
     /// offset has to resolve against a container height, and a Chat's first paint
     /// resolves before the canvas has one, which parked the transcript a full screen
-    /// past its own content. An edge stays pinned while the page lands and the rows
-    /// settle, and stops following the moment the reader scrolls away from it.
+    /// past its own content. An edge follows the bottom while the page lands and the
+    /// rows settle, and stops following the moment the reader scrolls away from it.
+    /// The scroll view is still what resolves that edge, though, so the guard below
+    /// covers the first layout, where it can resolve against numbers still moving.
     @State private var scrollPosition = ScrollPosition(edge: .bottom)
     @State private var preservedTopMessageID: String?
     @State private var highlightedMessageID: String?
     @State private var isNearBottom = true
+    /// Whether the transcript is at rest. Only a resting viewport is put back
+    /// on the bottom: a drag and the fling after it travel past the end on
+    /// purpose, and the scroll view already brings those back itself.
+    @State private var isScrollIdle = true
 
     public init(
         messages: [MessagePresentation],
@@ -102,6 +108,30 @@ public struct MessageTimelineView: View {
         } action: { _, nearBottom in
             withAnimation(.easeOut(duration: 0.18)) {
                 isNearBottom = nearBottom
+            }
+        }
+        .onScrollPhaseChange { _, phase in isScrollIdle = phase == .idle }
+        // The edge the transcript holds is resolved by the scroll view, and a
+        // Chat's first layout can resolve it against a content height its lazy
+        // rows have not settled into. When they settle shorter, the viewport is
+        // left past the end of the transcript — a state no reader can reach and
+        // none can be left in, so it is put back on the bottom here. Without
+        // this, a Chat whose page was already loaded had nothing that would
+        // ever move it: its last message never changes, so the tail scroll
+        // below never runs, and the transcript stayed blank until dragged.
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            MessageTimelineScrollPosition.isPastContentEnd(
+                contentHeight: geometry.contentSize.height,
+                containerHeight: geometry.containerSize.height,
+                bottomInset: geometry.contentInsets.bottom,
+                visibleMaxY: geometry.visibleRect.maxY
+            )
+        } action: { _, isPastContentEnd in
+            guard isPastContentEnd, isScrollIdle else { return }
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                scrollPosition.scrollTo(edge: .bottom)
             }
         }
         .onChange(of: messages.last?.id) { previousMessageID, latestMessageID in

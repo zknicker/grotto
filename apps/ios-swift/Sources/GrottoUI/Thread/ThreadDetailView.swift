@@ -25,6 +25,9 @@ public struct ThreadDetailView: View {
     @State private var scrollPosition = ScrollPosition(edge: .bottom)
     @State private var preservedTopReplyID: String?
     @State private var isNearBottom = true
+    /// Whether the replies are at rest, for the same reason the Chat transcript
+    /// tracks it: a drag and its fling travel past the end on purpose.
+    @State private var isScrollIdle = true
     /// A Thread is one pushed screen rather than a keyed canvas, so its composer
     /// state is screen-owned: it survives anything presented over the Thread and
     /// goes away with the pop, unlike the Chat canvas, whose interactions the
@@ -186,6 +189,28 @@ public struct ThreadDetailView: View {
                     } action: { _, nearBottom in
                         isNearBottom = nearBottom
                     }
+                    .onScrollPhaseChange { _, phase in isScrollIdle = phase == .idle }
+                    // A first layout can resolve the bottom against a content
+                    // height the lazy rows have not settled into and leave the
+                    // viewport past the last reply. Only a layout can reach that
+                    // state — a gesture is clamped to the content — and nothing
+                    // else here would leave it, so a resting viewport is put
+                    // back on the bottom.
+                    .onScrollGeometryChange(for: Bool.self) { geometry in
+                        ThreadReplyScrollPosition.isPastContentEnd(
+                            contentHeight: geometry.contentSize.height,
+                            containerHeight: geometry.containerSize.height,
+                            bottomInset: geometry.contentInsets.bottom,
+                            visibleMaxY: geometry.visibleRect.maxY
+                        )
+                    } action: { _, isPastContentEnd in
+                        guard isPastContentEnd, isScrollIdle else { return }
+                        var transaction = Transaction()
+                        transaction.disablesAnimations = true
+                        withTransaction(transaction) {
+                            scrollPosition.scrollTo(edge: .bottom)
+                        }
+                    }
                     .onChange(of: replies.last?.id) { previousLatestID, latestReplyID in
                         guard latestReplyID != nil else { return }
 
@@ -291,6 +316,7 @@ enum ThreadReplyReveal: Equatable {
 /// Mirror of the chat timeline's near-bottom rule, owned by the Thread surface.
 enum ThreadReplyScrollPosition {
     private static let bottomTolerance: CGFloat = 80
+    private static let overshootTolerance: CGFloat = 1
 
     static func isNearBottom(
         contentHeight: CGFloat,
@@ -301,6 +327,21 @@ enum ThreadReplyScrollPosition {
             return true
         }
         return visibleMaxY >= contentHeight - bottomTolerance
+    }
+
+    /// Mirror of `MessageTimelineScrollPosition.isPastContentEnd`, for the same
+    /// reason: a Thread opened onto replies that are already loaded never
+    /// appends one, so nothing else would move a viewport that a first layout
+    /// left past the end of them. Replies shorter than the container have no
+    /// end to be past — the bottom anchor pads their top by design.
+    static func isPastContentEnd(
+        contentHeight: CGFloat,
+        containerHeight: CGFloat,
+        bottomInset: CGFloat,
+        visibleMaxY: CGFloat
+    ) -> Bool {
+        guard contentHeight > containerHeight else { return false }
+        return visibleMaxY > contentHeight + bottomInset + overshootTolerance
     }
 }
 

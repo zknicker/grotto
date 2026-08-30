@@ -93,7 +93,29 @@ describe('Grotto update surfaces', () => {
         expect(html).toContain('aria-disabled="true"');
         expect(html).toContain('role="presentation" tabindex="-1"');
         expect(tooltip).toContain('Updating');
-        expect(tooltip).toContain('Computer');
+        expect(tooltip).toContain('Computer · Zach&#x27;s MacBook Pro');
+        expect(tooltip).toContain('Downloading Grotto Computer');
+        expect(tooltip).toContain('aria-valuenow="42"');
+    });
+
+    test('shows desktop App download progress in the update tooltip', () => {
+        const tooltip = renderToStaticMarkup(
+            <UpdateTooltipContent
+                view={updateView({
+                    desktop: {
+                        currentVersion: '1.8.39',
+                        kind: 'desktop',
+                        phase: 'downloading',
+                        progress: 0.65,
+                    },
+                })}
+            />
+        );
+
+        expect(tooltip).toContain('Grotto App');
+        expect(tooltip).toContain('Downloading Grotto App');
+        expect(tooltip).toContain('aria-valuenow="65"');
+        expect(tooltip).toContain('1.8.39 → 1.8.40');
     });
 
     test('renders only release surfaces with dense current and target versions', () => {

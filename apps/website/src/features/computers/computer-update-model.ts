@@ -52,3 +52,7 @@ export function computerUpdateView(input: {
             (input.health === 'offline' && input.phase !== 'restarting'),
     };
 }
+
+export function computerUpdatePhaseLabel(phase: ComputerUpdatePhase) {
+    return phaseLabels[phase];
+}

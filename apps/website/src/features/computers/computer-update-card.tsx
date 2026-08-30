@@ -1,6 +1,7 @@
-import { Button, Label, ProgressBar, Tooltip } from '@heroui/react';
+import { Button, Tooltip } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
 import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
+import { UpdateProgressBar } from '../updates/grotto-update-progress.tsx';
 import { computerUpdateView } from './computer-update-model.ts';
 
 export type ComputerUpdateComputer = GrottoOutputs['computer']['list'][number];
@@ -34,7 +35,7 @@ export function ComputerUpdateCard({
         targetVersion: computer.updateTargetVersion,
     });
     const isUpdateActive = activeUpdatePhases.has(computer.updatePhase);
-    const determinateValue = downloadPercentage(computer);
+    const downloadProgress = computerDownloadProgress(computer);
     const showCheck = view.canCheck || isChecking || computer.updatePhase === 'checking';
     const showUpdate = view.canUpdate || isStarting;
 
@@ -48,19 +49,7 @@ export function ComputerUpdateCard({
             </ItemCard.Content>
             <ItemCard.Action>
                 {isUpdateActive ? (
-                    <ProgressBar
-                        aria-label={view.label}
-                        className="w-64 max-w-full"
-                        isIndeterminate={determinateValue === null}
-                        size="sm"
-                        value={determinateValue ?? 0}
-                    >
-                        <Label>{view.label}</Label>
-                        {determinateValue === null ? null : <ProgressBar.Output />}
-                        <ProgressBar.Track>
-                            <ProgressBar.Fill />
-                        </ProgressBar.Track>
-                    </ProgressBar>
+                    <UpdateProgressBar label={view.label} progress={downloadProgress} />
                 ) : (
                     <div className="flex items-center gap-2">
                         {/* An unreachable Computer still shows its control, disabled
@@ -116,7 +105,7 @@ function updateButtonLabel(version: string | null) {
     return `Update to ${version.startsWith('v') ? version : `v${version}`}`;
 }
 
-function downloadPercentage(computer: ComputerUpdateComputer) {
+function computerDownloadProgress(computer: ComputerUpdateComputer) {
     if (
         computer.updatePhase !== 'downloading' ||
         computer.updateDownloadedBytes === null ||
@@ -125,5 +114,5 @@ function downloadPercentage(computer: ComputerUpdateComputer) {
     ) {
         return null;
     }
-    return (computer.updateDownloadedBytes / computer.updateTotalBytes) * 100;
+    return computer.updateDownloadedBytes / computer.updateTotalBytes;
 }

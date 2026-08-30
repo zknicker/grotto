@@ -8,8 +8,7 @@ final class MessageComposerLayoutTests: XCTestCase {
             MessageComposerView.shouldExpand(
                 isFocused: false,
                 hasAttachments: false,
-                isPreparingAttachment: false,
-                isPortalActive: false
+                isPreparingAttachment: false
             )
         )
     }
@@ -19,8 +18,7 @@ final class MessageComposerLayoutTests: XCTestCase {
             MessageComposerView.shouldExpand(
                 isFocused: true,
                 hasAttachments: false,
-                isPreparingAttachment: false,
-                isPortalActive: false
+                isPreparingAttachment: false
             )
         )
     }
@@ -30,27 +28,27 @@ final class MessageComposerLayoutTests: XCTestCase {
             MessageComposerView.shouldExpand(
                 isFocused: false,
                 hasAttachments: true,
-                isPreparingAttachment: false,
-                isPortalActive: false
+                isPreparingAttachment: false
             )
         )
         XCTAssertTrue(
             MessageComposerView.shouldExpand(
                 isFocused: false,
                 hasAttachments: false,
-                isPreparingAttachment: true,
-                isPortalActive: false
+                isPreparingAttachment: true
             )
         )
     }
 
-    func testOpenPortalKeepsTheBlurredComposerExpanded() {
-        XCTAssertTrue(
+    /// The plus button on a collapsed composer opens the source menu over the pill; the composer
+    /// expands only on direct focus or when an attachment lands, never for the portal itself —
+    /// `shouldExpand` deliberately takes no portal state at all.
+    func testAnOpenPortalAloneDoesNotExpandTheComposer() {
+        XCTAssertFalse(
             MessageComposerView.shouldExpand(
                 isFocused: false,
                 hasAttachments: false,
-                isPreparingAttachment: false,
-                isPortalActive: true
+                isPreparingAttachment: false
             )
         )
     }

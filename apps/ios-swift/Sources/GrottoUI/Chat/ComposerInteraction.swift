@@ -27,12 +27,6 @@ public final class ComposerInteraction {
     /// Holds the chat's bottom inset still while the portal owns the screen.
     var portalFreeze = ComposerPortalFreeze()
 
-    /// True from the moment the plus menu opens until the landed attachment has finished morphing
-    /// and the keyboard has settled back — the window in which nothing around the portal may move.
-    var isPortalActive: Bool {
-        overlay != nil || morphingAttachmentID != nil || portalFreeze.isEngaged
-    }
-
     private var preparationTask: Task<Void, Never>?
 
     public init() {}

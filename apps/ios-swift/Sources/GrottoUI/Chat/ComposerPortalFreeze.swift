@@ -3,10 +3,12 @@ import SwiftUI
 /// Latches the bottom inset the chat lays out against for as long as an attachment portal owns the
 /// screen.
 ///
-/// The portal card is painted all the way down to the true screen bottom, so the keyboard leaves
-/// and returns *behind* it. Nothing around the card may move while that happens, which means the
-/// inset the transcript and composer lay out against has to stop tracking the keyboard for the
-/// portal's whole lifecycle — from the plus menu opening until the landed photo has settled.
+/// The portal itself never dismisses the keyboard — the card draws in a window above it, so the
+/// keyboard just stays put behind the card. What can still pull the keyboard out mid-portal is a
+/// system surface (a Photos or Camera permission alert). Nothing around the card may move when
+/// that happens, which means the inset the transcript and composer lay out against has to stop
+/// tracking the keyboard for the portal's whole lifecycle — from the plus menu opening until the
+/// landed photo has settled.
 struct ComposerPortalFreeze: Equatable {
     private(set) var frozenBottomInset: CGFloat?
     /// Whether the text field owned the keyboard when the portal opened. The portal never summons a
@@ -93,9 +95,13 @@ private struct ComposerPortalFreezeModifier: ViewModifier {
                 if previous == nil, overlay != nil { engage() }
                 switch overlay {
                 case .photos, .camera:
-                    // The freeze is already engaged, so blurring cannot reflow anything.
-                    isTextFocused = false
+                    // The keyboard deliberately stays up behind the card — the portal window
+                    // draws above it, and blurring here is what made the background visibly
+                    // resettle around the portal.
+                    break
                 case .sources:
+                    // Recovers a keyboard a system surface (a permission alert) stole while a
+                    // media card was up; a keyboard that never left makes this a no-op.
                     if interaction.portalFreeze.restoresTextFocus { restoreTextFocusDeferred() }
                 case nil:
                     if previous != nil { close() }

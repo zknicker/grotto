@@ -327,22 +327,21 @@ public struct MessageComposerView: View {
         Self.shouldExpand(
             isFocused: isTextFocused || isReissuingFocus,
             hasAttachments: !interaction.attachments.isEmpty,
-            isPreparingAttachment: interaction.isPreparingAttachment,
-            isPortalActive: interaction.isPortalActive
+            isPreparingAttachment: interaction.isPreparingAttachment
         )
     }
 
     private var surfaceCornerRadius: CGFloat { isExpanded ? 28 : 24 }
 
-    /// An open portal blurs the text field, so focus alone would collapse the composer to the pill
-    /// underneath the card and pop it back on Add. The portal holds the expanded shell instead.
+    /// Deliberately blind to the portal: the plus button on a collapsed composer opens the source
+    /// menu over the pill without expanding it, and a portal opened from a focused composer keeps
+    /// its keyboard — so focus alone holds the expanded shell for the portal's whole lifecycle.
     static func shouldExpand(
         isFocused: Bool,
         hasAttachments: Bool,
-        isPreparingAttachment: Bool,
-        isPortalActive: Bool
+        isPreparingAttachment: Bool
     ) -> Bool {
-        isFocused || hasAttachments || isPreparingAttachment || isPortalActive
+        isFocused || hasAttachments || isPreparingAttachment
     }
 
     private func submit() {

@@ -60,7 +60,6 @@ struct ComposerInteractionTests {
         #expect(interaction.composerSurfaceFrame == nil)
         #expect(interaction.errorMessage == nil)
         #expect(!interaction.portalFreeze.isEngaged)
-        #expect(!interaction.isPortalActive)
         // A frozen inset from a screen that is gone must not lay the next one out.
         #expect(interaction.portalFreeze.bottomInset(live: 34) == 34)
 

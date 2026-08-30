@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.10.0 - 2026-08-30
+
+- Grotto App adds resizable navigation and artifact panes, clearer Agent profiles and usage
+  dashboards, stock workspace and skill browsers, and a faster full-emoji Channel icon picker.
+- Grotto App now separates actionable Computer and desktop updates, shows each Agent's applied
+  behavior version, and keeps avatar-generation failures out of the update flow.
+- Grotto for iPhone opens with the Grotto character, returns to the last-open Chat, keeps Chat and
+  Thread transcripts anchored reliably, and presents attachments above the keyboard with a
+  preloaded photo grid and a hardened camera path.
+- Grotto Computer reconnects Server attachments with bounded backoff instead of remaining offline
+  after transient socket failures.
+- Cove keeps its factory onboarding guidance under `notes/`, matching the shared workspace layout
+  without moving learned memory or onboarding progress.
+
 ## v1.9.2 - 2026-08-29
 
 - The update hovercard now stays focused on the client update flow: Computer and its bundled Agent

@@ -367,11 +367,15 @@ the live Agent directory and `chat.createChannel`. These sheets receive narrow a
 Swift Chat and Thread composers use the system inline Photos picker and Files importer plus a focused
 AVFoundation camera surface on physical iPhones. Photos and Camera expand from the composer into one
 rounded, local attachment portal; they do not create routes or full-screen covers. The portal card is
-painted to the true screen bottom, and the keyboard slides out and back *behind* it: while a portal is
-open, the Chat screen freezes the keyboard
-bottom inset it lays out against (`ComposerPortalFreeze`), so the transcript and composer stay
-pixel-static for the portal's whole lifecycle and the keyboard is restored on close only if it was up
-when the portal opened.
+painted to the true screen bottom and the keyboard simply stays up *behind* it — the portal never
+dismisses it, so nothing behind the card resettles while a portal is open. The portal also never
+changes the composer's shape: the plus button on a collapsed composer opens the source menu over the
+pill without expanding it, and the composer expands only on direct focus — the user's intent to type —
+or when an attachment lands in its strip. What can still pull the keyboard out mid-portal is a system
+surface, such as a first-run Photos or Camera permission alert; for that case the Chat screen freezes
+the keyboard bottom inset it lays out against (`ComposerPortalFreeze`), so the transcript and composer
+stay pixel-static for the portal's whole lifecycle and the keyboard is restored on close only if it
+was up when the portal opened.
 
 The card overlaps the keyboard because it is drawn in a window of its own. The keyboard is not part of
 the app's window — iOS paints it in `UIRemoteKeyboardWindow`, above everything the app draws — so a

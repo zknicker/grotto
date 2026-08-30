@@ -45,6 +45,14 @@ Generate the app project with:
 xcodegen generate --spec project.yml
 ```
 
+`Grotto.xcodeproj/project.pbxproj` is checked in and the iOS release lane fails
+when a fresh generation does not match it. XcodeGen derives its reference IDs
+from element names, so regeneration is byte-identical from any checkout or
+worktree and a diff always means a real `project.yml` change worth committing.
+Keep it that way: a target source outside this directory must set
+`createIntermediateGroups: false`, or XcodeGen synthesizes a navigator group
+named after the checkout directory and every ID under it churns per worktree.
+
 ## Generated resources
 
 `Sources/GrottoUI/Resources/channel-icons.json` carries the channel icon

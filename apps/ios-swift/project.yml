@@ -22,6 +22,11 @@ targets:
       - path: Sources/GrottoApp
       - path: ../../assets/mac-icon.icon
         buildPhase: resources
+        # The shared icon lives above this directory. Intermediate groups would
+        # climb past the project root and synthesize a navigator group named
+        # after the checkout directory, so XcodeGen's name-derived reference IDs
+        # would change per worktree and churn the checked-in project.
+        createIntermediateGroups: false
     dependencies:
       - package: GrottoIOS
         product: GrottoModels

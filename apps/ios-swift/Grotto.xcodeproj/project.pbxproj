@@ -7,10 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		01957AA7AC1537FB1A0217AE /* mac-icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 18AD969F813C627B3591C65A /* mac-icon.icon */; };
 		026D32C8C8DADD07AD9E0AA1 /* GrottoStoreComputers.swift in Sources */ = {isa = PBXBuildFile; fileRef = F206B3DCFC70B480F60D9707 /* GrottoStoreComputers.swift */; };
 		03178A520FDC48B213C4EFD9 /* GrottoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE522E48E390A40266F3E121 /* GrottoApp.swift */; };
 		0B2AF192564C9A99BFCF0000 /* GrottoStoreMentions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1790F57A8AF1227C840F5EC /* GrottoStoreMentions.swift */; };
+		1D4D4FEB3288CFD8662C7737 /* mac-icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = CBCBBDE5C8FA0316786F08C7 /* mac-icon.icon */; };
 		25E2A752F581943B2425A241 /* GrottoRuntimeConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAA68EF8CE92D160CACCADFF /* GrottoRuntimeConfiguration.swift */; };
 		2DBD64B83C2D5D4EB9106D30 /* ActivityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C7047E22D134A650DB4E129 /* ActivityPresentationAdapters.swift */; };
 		3725FA9F24A5F0D4C7FE69FE /* GrottoStoreTasks.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC1096F0180E21018179954 /* GrottoStoreTasks.swift */; };
@@ -40,7 +40,6 @@
 /* Begin PBXFileReference section */
 		03A04DCE31DAAAD3EC5D9A5C /* GrottoStoreMessageLoading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreMessageLoading.swift; sourceTree = "<group>"; };
 		18116DB8AC8E2CAC49832EEC /* GrottoStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStore.swift; sourceTree = "<group>"; };
-		18AD969F813C627B3591C65A /* mac-icon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = "mac-icon.icon"; sourceTree = "<group>"; };
 		2389AEB5150BEDF1546392DE /* GrottoStoreUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreUtilities.swift; sourceTree = "<group>"; };
 		2D0E18F6D70649FB81D169FB /* AuthenticatedGrottoSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticatedGrottoSupport.swift; sourceTree = "<group>"; };
 		2FEEDD6F107B57EA7A1266C6 /* GrottoStoreProfiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreProfiles.swift; sourceTree = "<group>"; };
@@ -56,6 +55,7 @@
 		BE522E48E390A40266F3E121 /* GrottoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoApp.swift; sourceTree = "<group>"; };
 		C2D4FCDDC729ABE889C6E7E3 /* ChatPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatPresentationAdapters.swift; sourceTree = "<group>"; };
 		C8F5FC9DF30C369C0E780880 /* GrottoStoreRealtime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoStoreRealtime.swift; sourceTree = "<group>"; };
+		CBCBBDE5C8FA0316786F08C7 /* mac-icon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = "mac-icon.icon"; sourceTree = "<group>"; };
 		D421FE0B04D7E39610A26989 /* UtilityPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UtilityPresentationAdapters.swift; sourceTree = "<group>"; };
 		DC829423BC5AEA279F12CEB8 /* PresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationAdapters.swift; sourceTree = "<group>"; };
 		EAA68EF8CE92D160CACCADFF /* GrottoRuntimeConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrottoRuntimeConfiguration.swift; sourceTree = "<group>"; };
@@ -105,13 +105,13 @@
 			name = Packages;
 			sourceTree = "<group>";
 		};
-		8DF6426568470CDE3A2CAC63 /* grotto */ = {
+		8E46557D6C79470431DAD66D /* assets */ = {
 			isa = PBXGroup;
 			children = (
-				B428541CFCCCF48AC2D705B4 /* assets */,
+				CBCBBDE5C8FA0316786F08C7 /* mac-icon.icon */,
 			);
-			name = grotto;
-			path = ../..;
+			name = assets;
+			path = ../../assets;
 			sourceTree = "<group>";
 		};
 		963C1861ACD17EEBD6F0388B /* GrottoApp */ = {
@@ -144,18 +144,10 @@
 			path = GrottoApp;
 			sourceTree = "<group>";
 		};
-		B428541CFCCCF48AC2D705B4 /* assets */ = {
-			isa = PBXGroup;
-			children = (
-				18AD969F813C627B3591C65A /* mac-icon.icon */,
-			);
-			path = assets;
-			sourceTree = "<group>";
-		};
 		C49C606CAC0586A6A8C74341 = {
 			isa = PBXGroup;
 			children = (
-				8DF6426568470CDE3A2CAC63 /* grotto */,
+				8E46557D6C79470431DAD66D /* assets */,
 				4AEEB10E677DB439F0F8B652 /* Packages */,
 				45AE1B3473A03896D4EC79F0 /* Sources */,
 				3FA632814D71972571CA9C4E /* Products */,
@@ -227,7 +219,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				01957AA7AC1537FB1A0217AE /* mac-icon.icon in Resources */,
+				1D4D4FEB3288CFD8662C7737 /* mac-icon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

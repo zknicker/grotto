@@ -256,6 +256,20 @@ back. An edge stays pinned while the page lands and the rows settle, and stops f
 the reader scrolls away from it. `defaultScrollAnchor(.bottom)` remains alongside it for the other
 job it does: aligning a transcript shorter than the screen onto the composer instead of the header.
 
+Holding the edge is not enough on its own, because the scroll view is what resolves it and a Chat's
+first layout resolves it against numbers that are still moving. Two of them move: the lazy rows
+report an estimated content height — tens of thousands of points before anything is measured — and
+`defaultScrollAnchor(.bottom)` inflates the *top* content inset by nearly a screen while the page is
+still empty, to sit those few points on the composer. Both collapse a frame or two later, and when
+they do the viewport is left over the empty space past the last row. No reader can reach that state,
+because a scroll view clamps every gesture to its own content, and none may be left in it, so the
+timeline puts it back: `MessageTimelineScrollPosition.isPastContentEnd` reads the overshoot off the
+scroll geometry and the bottom edge is re-asserted — but only while the transcript is at rest, since
+a drag and the fling after it travel past the end on purpose and the scroll view already returns
+those itself. The guard is what covers a Chat that was already loaded. Its last message never
+changes, so the tail scroll that rescues a first page never runs, and without the guard such a Chat
+came back from a switch blank and stayed blank until the reader dragged it.
+
 An anchor message owns one recessed Thread ingress. On iPhone it shows the Server-projected reply and
 unread counts plus only the latest recent reply; this is a presentation reduction of the same Thread
 summary used by the desktop App. A Task uses that same ingress with its number, status disc, and

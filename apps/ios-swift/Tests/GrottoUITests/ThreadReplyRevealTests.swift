@@ -79,4 +79,37 @@ struct ThreadReplyScrollPositionTests {
             )
         )
     }
+
+    @Test func restingAtTheBottomIsNotPastTheContent() {
+        #expect(
+            !ThreadReplyScrollPosition.isPastContentEnd(
+                contentHeight: 1_200,
+                containerHeight: 640,
+                bottomInset: 86,
+                visibleMaxY: 1_286
+            )
+        )
+    }
+
+    @Test func aShrunkContentHeightStrandsTheReplies() {
+        #expect(
+            ThreadReplyScrollPosition.isPastContentEnd(
+                contentHeight: 1_200,
+                containerHeight: 640,
+                bottomInset: 86,
+                visibleMaxY: 1_900
+            )
+        )
+    }
+
+    @Test func repliesShorterThanTheScreenAreNeverPastTheirContent() {
+        #expect(
+            !ThreadReplyScrollPosition.isPastContentEnd(
+                contentHeight: 120,
+                containerHeight: 640,
+                bottomInset: 86,
+                visibleMaxY: 726
+            )
+        )
+    }
 }

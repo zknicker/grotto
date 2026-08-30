@@ -117,7 +117,7 @@ test('ChatTranscript mutes deleted authors and labels their historical messages'
     assert.doesNotMatch(markup, /Agent details: Cove/);
 });
 
-test('ChatTranscript fills the detail lane full width', () => {
+test('ChatTranscript bleeds message rows to both detail lane edges', () => {
     const markup = renderTranscript([
         {
             actor: { id: 'tiny', kind: 'agent' },
@@ -140,6 +140,7 @@ test('ChatTranscript fills the detail lane full width', () => {
     ]);
 
     assert.match(markup, /relative min-h-full w-full/);
+    assert.match(markup, /w-\[calc\(100%\+var\(--spacing\)\*10\)\]/);
 });
 
 test('archived transcripts render agent names without mention actions', () => {

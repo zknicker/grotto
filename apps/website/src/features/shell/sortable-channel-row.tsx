@@ -82,7 +82,7 @@ export function SortableChannelRow({
             agent={agent}
             ariaDescribedBy={attributes['aria-describedby']}
             chat={chat}
-            className="sortable-channel-row"
+            className="no-drag sortable-channel-row"
             name={name}
             onChangeChannelColor={onChangeChannelColor}
             ref={setRowRef}

@@ -42,16 +42,11 @@ struct ComposerSourceMenu: View {
         .accessibilityFocused($focusedSource, equals: source)
     }
 
-    @ViewBuilder
+    /// A plain fill, never glass: the card the rows sit on is already a glass surface, and glass
+    /// cannot sample glass — a well nested inside it reads as a smudge rather than a shape.
     private func sourceIcon(_ icon: GrottoIconName) -> some View {
-        if #available(iOS 26, macOS 26, *) {
-            GrottoIcon(icon, size: 22, weight: 1.8)
-                .frame(width: 44, height: 44)
-                .glassEffect(.regular.interactive(), in: .circle)
-        } else {
-            GrottoIcon(icon, size: 22, weight: 1.8)
-                .frame(width: 44, height: 44)
-                .background(.primary.opacity(0.055), in: .circle)
-        }
+        GrottoIcon(icon, size: 22, weight: 1.8)
+            .frame(width: 44, height: 44)
+            .background(.primary.opacity(0.055), in: .circle)
     }
 }

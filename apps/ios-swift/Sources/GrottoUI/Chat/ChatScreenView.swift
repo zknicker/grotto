@@ -77,62 +77,53 @@ public struct ChatScreenView: View {
     }
 
     public var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .bottomLeading) {
-                timeline
-                    .openingEntrance(.timeline)
-                    // The header floats over the transcript rather than capping it, so glass has
-                    // live content to refract behind it. The shell ignores safe areas on this
-                    // canvas, so the status-bar clearance that used to sit on the outer VStack
-                    // moves onto the header itself, inside the bar. It is a `chromeBar` and not a
-                    // plain inset because the soft edge below only paints behind a declared bar.
-                    .chromeBar(edge: .top, spacing: 0) {
-                        header
-                            .padding(.top, contentInsets.top)
-                            .openingEntrance(.header)
-                    }
-                    // The composer floats over the transcript rather than capping it, so glass has
-                    // live content to refract. The inset still reserves the same scroll clearance
-                    // the old opaque band did. This end stays a plain inset: the clearance it
-                    // reserves is the transcript's own scroll bound, so a resting or dragged
-                    // transcript never puts a sharp row below the composer, and the only rows that
-                    // reach it are the ones its glass is already refracting.
-                    .safeAreaInset(edge: .bottom, spacing: 0) {
-                        MessageComposerView(
-                            text: $draft,
-                            interaction: composerInteraction,
-                            placeholder: "Message \(chat.kind.isChannel ? "#" : "")\(chat.title)",
-                            isConnected: isConnected,
-                            isTextFocused: $isComposerFocused,
-                            allowsAttachments: chat.durableChat != nil,
-                            mentionOptions: mentionOptions,
-                            transitionNamespace: composerTransitionNamespace,
-                            onSend: onSend
-                        )
-                        .padding(.bottom, chatBottomInset)
-                        .openingEntrance(.composer)
-                    }
-
-                // The portal measures against the container, which spans the whole screen and does
-                // not track the keyboard — so the card keeps its full height and its 8pt gap from
-                // the true screen bottom while the keyboard slides out from behind it.
-                ComposerAttachmentPortal(
-                    interaction: composerInteraction,
-                    availableSize: geometry.size,
-                    transitionNamespace: composerTransitionNamespace
-                )
-                .ignoresSafeArea(.keyboard)
-                .zIndex(20)
+        timeline
+            .openingEntrance(.timeline)
+            // The header floats over the transcript rather than capping it, so glass has
+            // live content to refract behind it. The shell ignores safe areas on this
+            // canvas, so the status-bar clearance that used to sit on the outer VStack
+            // moves onto the header itself, inside the bar. It is a `chromeBar` and not a
+            // plain inset because the soft edge below only paints behind a declared bar.
+            .chromeBar(edge: .top, spacing: 0) {
+                header
+                    .padding(.top, contentInsets.top)
+                    .openingEntrance(.header)
             }
-            .coordinateSpace(name: "composer-attachment-root")
+            // The composer floats over the transcript rather than capping it, so glass has
+            // live content to refract. The inset still reserves the same scroll clearance
+            // the old opaque band did. This end stays a plain inset: the clearance it
+            // reserves is the transcript's own scroll bound, so a resting or dragged
+            // transcript never puts a sharp row below the composer, and the only rows that
+            // reach it are the ones its glass is already refracting.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                MessageComposerView(
+                    text: $draft,
+                    interaction: composerInteraction,
+                    placeholder: "Message \(chat.kind.isChannel ? "#" : "")\(chat.title)",
+                    isConnected: isConnected,
+                    isTextFocused: $isComposerFocused,
+                    allowsAttachments: chat.durableChat != nil,
+                    mentionOptions: mentionOptions,
+                    transitionNamespace: composerTransitionNamespace,
+                    onSend: onSend
+                )
+                .padding(.bottom, chatBottomInset)
+                .openingEntrance(.composer)
+            }
+            // The portal is drawn in an overlay window above the keyboard, measured against the
+            // display rather than against this screen: the card keeps its full height and its gap
+            // from the true screen bottom while the keyboard slides out from behind it.
+            .composerAttachmentPortal(
+                interaction: composerInteraction,
+                transitionNamespace: composerTransitionNamespace
+            )
             .composerPortalFreeze(
                 interaction: composerInteraction,
                 isTextFocused: $isComposerFocused,
                 liveBottomInset: contentInsets.bottom
             )
-        }
-        .background(.background)
-        .task(id: chat.id) { await onLoadMentionOptions() }
+            .background(.background)
+            .task(id: chat.id) { await onLoadMentionOptions() }
     }
 
     /// The keyboard reaches this screen as a bottom safe-area inset from the shell. Freezing that

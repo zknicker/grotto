@@ -146,8 +146,8 @@ public struct MessageComposerView: View {
                 GeometryReader { geometry in
                     Color.clear
                         .onAppear { reportSurfaceFrame(geometry) }
-                        .onChange(of: geometry.frame(in: .named("composer-attachment-root"))) {
-                            _, _ in reportSurfaceFrame(geometry)
+                        .onChange(of: geometry.frame(in: .global)) { _, _ in
+                            reportSurfaceFrame(geometry)
                         }
                 }
             }
@@ -170,8 +170,11 @@ public struct MessageComposerView: View {
         !interaction.attachments.isEmpty || interaction.isPreparingAttachment
     }
 
+    /// Reported in `.global` — window coordinates — because the portal is drawn in a window of its
+    /// own above the keyboard. The app is portrait-only and full-screen, so both windows span the
+    /// same display and the two spaces are numerically identical.
     private func reportSurfaceFrame(_ geometry: GeometryProxy) {
-        interaction.composerSurfaceFrame = geometry.frame(in: .named("composer-attachment-root"))
+        interaction.composerSurfaceFrame = geometry.frame(in: .global)
     }
 
     private var composerContents: some View {
@@ -226,8 +229,9 @@ public struct MessageComposerView: View {
 
     private var attachmentButton: some View {
         Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                interaction.overlay = interaction.overlay == nil ? .sources : nil
+            let opens = interaction.overlay == nil
+            withAnimation(opens ? ComposerPortalMotion.open : ComposerPortalMotion.close) {
+                interaction.overlay = opens ? .sources : nil
             }
         } label: {
             GrottoIcon(.plus, size: 21, weight: 1.8)
@@ -275,8 +279,8 @@ public struct MessageComposerView: View {
                 GeometryReader { geometry in
                     Color.clear
                         .onAppear { reportDestinationFrame(geometry) }
-                        .onChange(of: geometry.frame(in: .named("composer-attachment-root"))) {
-                            _, _ in reportDestinationFrame(geometry)
+                        .onChange(of: geometry.frame(in: .global)) { _, _ in
+                            reportDestinationFrame(geometry)
                         }
                 }
             }
@@ -284,7 +288,7 @@ public struct MessageComposerView: View {
     }
 
     private func reportDestinationFrame(_ geometry: GeometryProxy) {
-        interaction.morphDestinationFrame = geometry.frame(in: .named("composer-attachment-root"))
+        interaction.morphDestinationFrame = geometry.frame(in: .global)
     }
 
     @ViewBuilder

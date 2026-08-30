@@ -35,7 +35,7 @@ final class ComposerAttachmentFlightTests: XCTestCase {
         let box = ComposerPortalGeometry(
             overlay: .photos,
             availableSize: CGSize(width: 400, height: 900),
-            composerTop: 700
+            composerFrame: CGRect(x: 12, y: 700, width: 376, height: 60)
         )
         let scale = box.collapseScale(landing: CGRect(x: 22, y: 600, width: 88, height: 88))
 
@@ -48,7 +48,7 @@ final class ComposerAttachmentFlightTests: XCTestCase {
         let box = ComposerPortalGeometry(
             overlay: .photos,
             availableSize: CGSize(width: 400, height: 900),
-            composerTop: 700
+            composerFrame: CGRect(x: 12, y: 700, width: 376, height: 60)
         )
 
         XCTAssertEqual(box.collapseScale(landing: nil).width, 1)
@@ -60,7 +60,7 @@ final class ComposerAttachmentFlightTests: XCTestCase {
         let box = ComposerPortalGeometry(
             overlay: .photos,
             availableSize: CGSize(width: 400, height: 900),
-            composerTop: 700
+            composerFrame: CGRect(x: 12, y: 700, width: 376, height: 60)
         )
         let offset = box.collapseOffset(landing: CGRect(x: 22, y: 600, width: 88, height: 88))
 
@@ -68,16 +68,21 @@ final class ComposerAttachmentFlightTests: XCTestCase {
         XCTAssertEqual(offset.height, 600 - box.origin.y)
     }
 
-    /// The media card sits on the container floor whatever the composer is doing.
-    func testMediaCardSitsOnTheContainerFloor() {
+    /// The media card sits on the display floor whatever the composer is doing, and it is inset
+    /// from the floor by exactly what it is inset from the sides — the nesting has to be uniform
+    /// for the concentric corners to resolve to one radius.
+    func testMediaCardNestsUniformlyInsideTheDisplay() {
         let box = ComposerPortalGeometry(
             overlay: .photos,
             availableSize: CGSize(width: 400, height: 900),
-            composerTop: 200
+            composerFrame: CGRect(x: 12, y: 200, width: 376, height: 60)
         )
 
-        XCTAssertEqual(box.bottomPadding, 8)
-        XCTAssertEqual(box.origin.y, 900 - 8 - box.height)
+        XCTAssertEqual(ComposerPortalGeometry.nestingInset, 12)
+        XCTAssertEqual(box.bottomPadding, 12)
+        XCTAssertEqual(box.origin.y, 900 - 12 - box.height)
+        XCTAssertEqual(box.origin.x, 12)
+        XCTAssertEqual(400 - (box.origin.x + box.width), 12)
     }
 
     func testCardIsGoneBeforeTheTravelEnds() {

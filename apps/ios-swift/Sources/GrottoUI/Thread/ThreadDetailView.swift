@@ -260,16 +260,13 @@ public struct ThreadDetailView: View {
                         )
                     }
                 }
-
-                ComposerAttachmentPortal(
-                    interaction: composerInteraction,
-                    availableSize: geometry.size,
-                    transitionNamespace: composerTransitionNamespace
-                )
-                .ignoresSafeArea(.keyboard)
-                .zIndex(20)
             }
-            .coordinateSpace(name: "composer-attachment-root")
+            // Same contract as the Chat screen: the portal draws in an overlay window above the
+            // keyboard, measured against the display rather than against this screen.
+            .composerAttachmentPortal(
+                interaction: composerInteraction,
+                transitionNamespace: composerTransitionNamespace
+            )
             .composerPortalFreeze(
                 interaction: composerInteraction,
                 isTextFocused: $isComposerFocused,

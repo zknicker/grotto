@@ -107,25 +107,100 @@ final class MessageComposerLayoutTests: XCTestCase {
         )
     }
 
-    func testSourceMenuSitsOnTheComposerTopEdge() {
+    /// A composer taller than the menu is the case where the centring rule itself decides: the
+    /// card's centre lands on the input's centre.
+    func testSourceMenuCentersOnTheComposerInput() {
+        let composer = CGRect(x: 12, y: 200, width: 376, height: 240)
         let padding = ComposerPortalGeometry.sourceMenuBottomPadding(
-            composerTop: 440,
+            composerFrame: composer,
             containerHeight: 540,
             menuHeight: 210
         )
 
-        XCTAssertEqual(padding, 108)
+        XCTAssertEqual(padding, 115)
+        XCTAssertEqual(540 - padding - (210 / 2), composer.midY)
+    }
+
+    /// Keyboard up: the centred card may rest one key row past the composer's bottom, the way the
+    /// reference's menu sits on the keys — the overlay window draws it above the keyboard.
+    func testSourceMenuSinksIntoTheKeyboard() {
+        let composer = CGRect(x: 12, y: 300, width: 376, height: 110)
+        let padding = ComposerPortalGeometry.sourceMenuBottomPadding(
+            composerFrame: composer,
+            containerHeight: 540,
+            menuHeight: 210
+        )
+
+        XCTAssertEqual(padding, 80)
+        XCTAssertEqual(540 - padding, composer.midY + 105)
+        XCTAssertGreaterThan(540 - padding, composer.maxY)
+    }
+
+    /// An ordinary composer is shorter than the menu, so with no keyboard holding the floor a
+    /// centred card would run off the screen; it stops on the composer's bottom edge instead.
+    func testSourceMenuNeverSinksBelowTheComposer() {
+        let composer = CGRect(x: 12, y: 440, width: 376, height: 60)
+        let padding = ComposerPortalGeometry.sourceMenuBottomPadding(
+            composerFrame: composer,
+            containerHeight: 540,
+            menuHeight: 210
+        )
+
+        XCTAssertEqual(padding, 40)
+        XCTAssertEqual(540 - padding, composer.maxY)
+    }
+
+    /// Keyboard down: the composer sits on the container floor and the card's bottom follows it
+    /// there rather than hanging off the bottom of the screen.
+    func testSourceMenuFollowsTheComposerToTheFloor() {
+        let composer = CGRect(x: 12, y: 460, width: 376, height: 64)
+        let padding = ComposerPortalGeometry.sourceMenuBottomPadding(
+            composerFrame: composer,
+            containerHeight: 540,
+            menuHeight: 210
+        )
+
+        XCTAssertEqual(padding, 16)
+        XCTAssertEqual(540 - padding, composer.maxY)
     }
 
     func testSourceMenuNeverLeavesTheTopOfTheScreen() {
         let padding = ComposerPortalGeometry.sourceMenuBottomPadding(
-            composerTop: 180,
+            composerFrame: CGRect(x: 12, y: 100, width: 376, height: 60),
             containerHeight: 540,
             menuHeight: 210
         )
 
-        XCTAssertEqual(padding, 322)
-        XCTAssertGreaterThanOrEqual(540 - padding - 210, 8)
+        XCTAssertEqual(padding, 318)
+        XCTAssertGreaterThanOrEqual(540 - padding - 210, ComposerPortalGeometry.nestingInset)
+    }
+
+    func testMenuPopsOutOfThePlusButton() {
+        let box = ComposerPortalGeometry(
+            overlay: .sources,
+            availableSize: CGSize(width: 400, height: 900),
+            composerFrame: CGRect(x: 12, y: 700, width: 376, height: 60)
+        )
+        let anchor = box.popAnchor
+
+        // The plus sits 28pt in from the composer's leading edge, 24pt up from its bottom.
+        XCTAssertEqual(anchor.x, (12 + 28 - box.origin.x) / box.width, accuracy: 0.0001)
+        XCTAssertEqual(anchor.y, (760 - 24 - box.origin.y) / box.height, accuracy: 0.0001)
+        // In the card's lower-leading region, where the button it came from actually is — the
+        // card sinks one key row past the plus with a keyboard up, so the anchor rides above
+        // the bottom edge rather than hugging the corner.
+        XCTAssertLessThan(anchor.x, 0.2)
+        XCTAssertGreaterThan(anchor.y, 0.5)
+    }
+
+    func testPopAnchorFallsBackToTheCardCornerWithoutAComposerFrame() {
+        let box = ComposerPortalGeometry(
+            overlay: .sources,
+            availableSize: CGSize(width: 400, height: 900),
+            composerFrame: nil
+        )
+
+        XCTAssertEqual(box.popAnchor, .bottomLeading)
     }
 
     func testLandingPhotoRevealsBeforeTheMorphEnds() {

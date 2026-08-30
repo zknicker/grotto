@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ComposerAttachmentPortal: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.displayScale) private var displayScale
     @Bindable var interaction: ComposerInteraction
     let availableSize: CGSize
     /// A screen that owns a transition namespace is one whose composer reports a landing frame, so
@@ -37,7 +38,7 @@ struct ComposerAttachmentPortal: View {
             if interaction.overlay != nil || flight != nil {
                 collapsingCard
                     // The collapse measures from this inset, so both come from the same number.
-                    .padding(.leading, ComposerPortalGeometry.leadingInset)
+                    .padding(.leading, ComposerPortalGeometry.nestingInset)
                     .padding(.bottom, geometry.bottomPadding)
                     .transition(reduceMotion ? .opacity : activePortalTransition)
             }
@@ -58,10 +59,14 @@ struct ComposerAttachmentPortal: View {
         }
     }
 
+    /// A pop, not a slide: the card grows out of the plus and leaves flatter than it arrived, so no
+    /// offset travel is involved on either edge.
     private var portalTransition: AnyTransition {
-        .scale(scale: 0.85, anchor: .bottomLeading)
-            .combined(with: .offset(x: 2, y: 10))
-            .combined(with: .opacity)
+        let anchor = geometry.popAnchor
+        return .asymmetric(
+            insertion: .scale(scale: 0.44, anchor: anchor).combined(with: .opacity),
+            removal: .scale(scale: 0.9, anchor: anchor).combined(with: .opacity)
+        )
     }
 
     private var activePortalTransition: AnyTransition {
@@ -94,6 +99,12 @@ struct ComposerAttachmentPortal: View {
         // the composer, so this is what keeps the composer live for the whole flight — nothing
         // else on the screen is gated, and the card is back the instant a new portal opens.
         .allowsHitTesting(flight == nil)
+        // Outside the collapse: the pull is the card answering a finger, and a card in flight is
+        // no longer under one, so a flight zeroes it rather than composing with it. The menu
+        // follows the finger; the media cards are full surfaces of their own and must not.
+        .composerPortalPull(
+            isEnabled: !reduceMotion && interaction.overlay == .sources && flight == nil
+        )
     }
 
     private func flyingPhoto(_ photo: ComposerAttachmentFlight.Photo) -> some View {
@@ -111,7 +122,7 @@ struct ComposerAttachmentPortal: View {
         ComposerPortalGeometry(
             overlay: displayedOverlay,
             availableSize: availableSize,
-            composerTop: interaction.composerSurfaceFrame?.minY
+            composerFrame: interaction.composerSurfaceFrame
         )
     }
 
@@ -121,11 +132,20 @@ struct ComposerAttachmentPortal: View {
 
     private func handleOverlayChange(_: ComposerOverlay?, _ overlay: ComposerOverlay?) {
         if let overlay {
-            // A portal opening mid-flight takes the card back before the collapse finishes.
+            // A portal opening mid-flight takes the card back before the collapse finishes; one
+            // opening after a finished flight must not inherit its end state, or the card mounts
+            // already collapsed into the old tile — present but invisible.
+            let hadFlight = flight != nil
             abandonFlight()
+            if !hadFlight {
+                withTransaction(Transaction(animation: nil)) { flightProgress = 0 }
+            }
             presentedOverlay = overlay
         } else if flight == nil {
             presentedOverlay = nil
+        }
+        if overlay == .sources {
+            warmPhotoLibrary()
         }
         Task { @MainActor in
             await Task.yield()
@@ -133,8 +153,23 @@ struct ComposerAttachmentPortal: View {
         }
     }
 
+    /// Warms the photo grid the instant the source menu opens, well before the user can tap
+    /// Photos, so the card morph into `ComposerPhotoPickerView` paints a filled grid instead of
+    /// gray. Never requests authorization itself — see `ComposerPhotoLibrary.warmIfAuthorized`.
+    private func warmPhotoLibrary() {
+        #if os(iOS)
+        let cardWidth = ComposerPortalGeometry(
+            overlay: .photos,
+            availableSize: availableSize,
+            composerFrame: interaction.composerSurfaceFrame
+        ).width
+        let cellSize = ComposerPhotoGridLayout.cellSize(cardWidth: cardWidth, displayScale: displayScale)
+        Task { await ComposerPhotoLibrary.shared.warmIfAuthorized(cellSize: cellSize) }
+        #endif
+    }
+
     private func close() {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+        withAnimation(ComposerPortalMotion.close) {
             presentedOverlay = nil
             interaction.overlay = nil
         }

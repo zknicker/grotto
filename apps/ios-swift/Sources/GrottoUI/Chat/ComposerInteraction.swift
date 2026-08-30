@@ -21,7 +21,8 @@ public final class ComposerInteraction {
     public private(set) var attachmentReadySequence = 0
     public private(set) var lastReadyAttachmentCount = 0
     var morphDestinationFrame: CGRect?
-    /// Composer shell rect in the `composer-attachment-root` space, so the portal can sit above it.
+    /// Composer shell rect in window coordinates, so the portal — which draws in a window of its
+    /// own above the keyboard — can sit above it.
     var composerSurfaceFrame: CGRect?
     /// Holds the chat's bottom inset still while the portal owns the screen.
     var portalFreeze = ComposerPortalFreeze()

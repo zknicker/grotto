@@ -4,6 +4,20 @@ enum GrottoChrome {
     /// Every chrome row is this tall, so a chrome button in the sidebar and one
     /// on the Chat canvas land on the same centerline.
     static let headerHeight: CGFloat = 56
+
+    /// Extra bar region below the chrome row, reserved purely as runway for the
+    /// system's scroll edge effect.
+    ///
+    /// The effect has no strength: the public surface is three named styles, and
+    /// `.hard` is an opaque cap with a dividing line rather than a deeper fade.
+    /// What it does have is reach — iOS 26 ramps the dissolve across the bar
+    /// region it was given, so a taller bar is a longer ramp. Over the chrome row
+    /// alone the ramp is barely a line tall and a passing row stays readable
+    /// under the header; this much runway takes that row down to roughly a
+    /// seventh of its contrast while leaving the first row below the chrome
+    /// fully crisp. More runway starts softening that row too, which is the
+    /// wrong trade — the point is a decisive dissolve, not a taller cap.
+    static let scrollEdgeRunway: CGFloat = 28
 }
 
 /// The shared app-chrome header row.
@@ -51,8 +65,13 @@ extension View {
     /// `scrollEdgeEffectStyle` had no region to soften: the transcript ran
     /// razor-sharp into the status bar and the glass header sat over raw text.
     /// `safeAreaBar` reserves the same room and marks it, which is what puts the
-    /// scrim back under the chrome. Pre-26 has no edge effect at all, so the
-    /// plain inset is the whole behavior there.
+    /// scrim back under the chrome.
+    ///
+    /// The bar is also deliberately taller than the chrome it carries, because
+    /// the region is what sets how far the dissolve ramps —
+    /// ``GrottoChrome/scrollEdgeRunway`` explains the trade. Pre-26 has no edge
+    /// effect at all, so it gets neither the bar nor the runway: there the plain
+    /// inset is the whole behavior and the extra room would only be dead space.
     @ViewBuilder
     func chromeBar<Content: View>(
         edge: VerticalEdge,
@@ -60,7 +79,9 @@ extension View {
         @ViewBuilder content: () -> Content
     ) -> some View {
         if #available(iOS 26, macOS 26, *) {
-            safeAreaBar(edge: edge, spacing: spacing, content: content)
+            safeAreaBar(edge: edge, spacing: spacing) {
+                content().padding(edge == .top ? .bottom : .top, GrottoChrome.scrollEdgeRunway)
+            }
         } else {
             safeAreaInset(edge: edge, spacing: spacing, content: content)
         }

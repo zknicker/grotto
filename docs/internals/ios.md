@@ -290,7 +290,11 @@ because a scroll view clamps every gesture to its own content, and none may be l
 timeline puts it back: `MessageTimelineScrollPosition.isPastContentEnd` reads the overshoot off the
 scroll geometry and the bottom edge is re-asserted — but only while the transcript is at rest, since
 a drag and the fling after it travel past the end on purpose and the scroll view already returns
-those itself. The guard is what covers a Chat that was already loaded. Its last message never
+those itself, and only after the strand has held for a beat (~120ms). The wait is load-bearing: an
+app open lays the canvas out over several frames, and a bottom edge re-asserted inside the geometry
+change that reported the strand resolves against numbers still moving, strands again, and reports
+again — the transcript strobed blank at frame rate. The strand that matters holds indefinitely, so
+deferring the rescue costs it nothing. The guard is what covers a Chat that was already loaded. Its last message never
 changes, so the tail scroll that rescues a first page never runs, and without the guard such a Chat
 came back from a switch blank and stayed blank until the reader dragged it.
 

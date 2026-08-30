@@ -43,6 +43,30 @@ struct ChromeHeader<Leading: View, Center: View, Trailing: View>: View {
     }
 }
 
+extension View {
+    /// Attaches floating chrome to a scrolling view's edge as a *bar*.
+    ///
+    /// iOS 26 paints its scroll edge effect only behind content the scroll view
+    /// knows is a bar. `safeAreaInset` reserves the room without claiming it, so
+    /// `scrollEdgeEffectStyle` had no region to soften: the transcript ran
+    /// razor-sharp into the status bar and the glass header sat over raw text.
+    /// `safeAreaBar` reserves the same room and marks it, which is what puts the
+    /// scrim back under the chrome. Pre-26 has no edge effect at all, so the
+    /// plain inset is the whole behavior there.
+    @ViewBuilder
+    func chromeBar<Content: View>(
+        edge: VerticalEdge,
+        spacing: CGFloat? = nil,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        if #available(iOS 26, macOS 26, *) {
+            safeAreaBar(edge: edge, spacing: spacing, content: content)
+        } else {
+            safeAreaInset(edge: edge, spacing: spacing, content: content)
+        }
+    }
+}
+
 extension ChromeHeader where Center == EmptyView {
     init(
         inset: CGFloat = 16,

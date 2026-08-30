@@ -84,15 +84,19 @@ public struct ChatScreenView: View {
                     // The header floats over the transcript rather than capping it, so glass has
                     // live content to refract behind it. The shell ignores safe areas on this
                     // canvas, so the status-bar clearance that used to sit on the outer VStack
-                    // moves onto the header itself, inside the inset.
-                    .safeAreaInset(edge: .top, spacing: 0) {
+                    // moves onto the header itself, inside the bar. It is a `chromeBar` and not a
+                    // plain inset because the soft edge below only paints behind a declared bar.
+                    .chromeBar(edge: .top, spacing: 0) {
                         header
                             .padding(.top, contentInsets.top)
                             .openingEntrance(.header)
                     }
                     // The composer floats over the transcript rather than capping it, so glass has
                     // live content to refract. The inset still reserves the same scroll clearance
-                    // the old opaque band did.
+                    // the old opaque band did. This end stays a plain inset: the clearance it
+                    // reserves is the transcript's own scroll bound, so a resting or dragged
+                    // transcript never puts a sharp row below the composer, and the only rows that
+                    // reach it are the ones its glass is already refracting.
                     .safeAreaInset(edge: .bottom, spacing: 0) {
                         MessageComposerView(
                             text: $draft,
@@ -139,8 +143,10 @@ public struct ChatScreenView: View {
         composerInteraction.portalFreeze.bottomInset(live: contentInsets.bottom)
     }
 
-    /// A caller's `safeAreaInset` lands on `MessageTimelineView`'s own `ScrollView` root, so the
-    /// transcript scrolls beneath both the header and the composer instead of clipping under them.
+    /// A caller's safe-area attachment lands on `MessageTimelineView`'s own `ScrollView` root, so
+    /// the transcript scrolls beneath both the header and the composer instead of clipping under
+    /// them. The style set here is only half the effect: it says what the soft edge should look
+    /// like, while `chromeBar` in `body` is what gives it a region to paint.
     private var timeline: some View {
         let content = MessageTimelineView(
             messages: messages,

@@ -8,6 +8,7 @@ struct ComposerPhotoPickerView: View {
     let onCancel: () -> Void
     let onAdd: ([URL], CGRect?) -> Void
 
+    @Environment(\.displayScale) private var displayScale
     @State private var assets: [PHAsset] = []
     @State private var selectedIDs: [String] = []
     @State private var authorizationDenied = false
@@ -18,34 +19,37 @@ struct ComposerPhotoPickerView: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 3)
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Group {
-                if authorizationDenied {
-                    ContentUnavailableView(
-                        "Photos access is off",
-                        systemImage: "photo.badge.exclamationmark",
-                        description: Text("Allow photo access in Settings to attach a photo.")
-                    )
-                } else {
-                    photoGrid
+        GeometryReader { proxy in
+            let cellSize = ComposerPhotoGridLayout.cellSize(cardWidth: proxy.size.width, displayScale: displayScale)
+            ZStack(alignment: .bottom) {
+                Group {
+                    if authorizationDenied {
+                        ContentUnavailableView(
+                            "Photos access is off",
+                            systemImage: "photo.badge.exclamationmark",
+                            description: Text("Allow photo access in Settings to attach a photo.")
+                        )
+                    } else {
+                        photoGrid(cellSize: cellSize)
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                pickerFooter
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            pickerFooter
+            .task { await loadAssets(cellSize: cellSize) }
         }
         .background(.black)
         .coordinateSpace(name: "composer-photo-picker")
         .onPreferenceChange(PhotoAssetFramePreferenceKey.self) { assetFrames = $0 }
-        .task { await loadAssets() }
         .sensoryFeedback(.selection, trigger: selectionFeedback)
     }
 
-    private var photoGrid: some View {
+    private func photoGrid(cellSize: CGSize) -> some View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 2) {
                 ForEach(assets, id: \.localIdentifier) { asset in
                     Button { toggle(asset) } label: {
-                        PhotoAssetThumbnail(asset: asset)
+                        PhotoAssetThumbnail(asset: asset, targetSize: cellSize)
                             .aspectRatio(1, contentMode: .fill)
                             .clipped()
                             .background {
@@ -137,18 +141,13 @@ struct ComposerPhotoPickerView: View {
         .animation(.smooth(duration: 0.22), value: selectedIDs.count)
     }
 
-    private func loadAssets() async {
-        let status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
-        guard status == .authorized || status == .limited else {
+    private func loadAssets(cellSize: CGSize) async {
+        switch await ComposerPhotoLibrary.shared.loadForPicker(cellSize: cellSize) {
+        case .assets(let loaded):
+            assets = loaded
+        case .denied:
             authorizationDenied = true
-            return
         }
-        let options = PHFetchOptions()
-        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-        let result = PHAsset.fetchAssets(with: .image, options: options)
-        var fetched: [PHAsset] = []
-        result.enumerateObjects { asset, _, _ in fetched.append(asset) }
-        assets = fetched
     }
 
     private func toggle(_ asset: PHAsset) {
@@ -194,69 +193,50 @@ private struct PhotoAssetFramePreferenceKey: PreferenceKey {
     }
 }
 
+/// Paints the fast/degraded decode immediately and upgrades in place when the full-quality result
+/// lands, instead of holding a blank cell for the whole request. `targetSize` arrives already
+/// computed by the grid, so no per-cell `GeometryReader` stands between the tap and the request.
 private struct PhotoAssetThumbnail: View {
     let asset: PHAsset
+    let targetSize: CGSize
+
     @State private var image: UIImage?
+    @State private var isFinal = false
+    @State private var requestID: PHImageRequestID?
 
     var body: some View {
-        GeometryReader { geometry in
-            Group {
-                if let renderedImage = image ?? PhotoThumbnailCache.image(for: asset.localIdentifier) {
-                    Image(uiImage: renderedImage).resizable().scaledToFill()
-                }
-                else { Color.white.opacity(0.08) }
-            }
-            .task(id: Int(geometry.size.width)) {
-                guard image == nil else { return }
-                let scale = UIScreen.main.scale
-                image = await PhotoThumbnailLoader.image(
-                    for: asset,
-                    size: CGSize(width: geometry.size.width * scale, height: geometry.size.width * scale)
-                )
+        Group {
+            if let image {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                Color.white.opacity(0.08)
             }
         }
-    }
-}
-
-@MainActor
-private enum PhotoThumbnailLoader {
-    static func image(for asset: PHAsset, size: CGSize) async -> UIImage? {
-        if let cached = PhotoThumbnailCache.image(for: asset.localIdentifier) {
-            return cached
+        .task(id: asset.localIdentifier) {
+            await requestThumbnail()
         }
-        return await withCheckedContinuation { continuation in
-            let options = PHImageRequestOptions()
-            options.deliveryMode = .opportunistic
-            options.resizeMode = .fast
-            var resumed = false
-            PHCachingImageManager.default().requestImage(
-                for: asset,
-                targetSize: size,
-                contentMode: .aspectFill,
-                options: options
-            ) { image, info in
-                let degraded = (info?[PHImageResultIsDegradedKey] as? Bool) == true
-                guard !degraded, !resumed else { return }
-                resumed = true
-                if let image {
-                    PhotoThumbnailCache.store(image, for: asset.localIdentifier)
-                }
-                continuation.resume(returning: image)
-            }
+        .onDisappear(perform: cancelOutstandingRequest)
+    }
+
+    private func requestThumbnail() async {
+        if let cached = ComposerPhotoLibrary.shared.cachedThumbnail(for: asset.localIdentifier) {
+            image = cached
+            isFinal = true
+            return
+        }
+        requestID = ComposerPhotoLibrary.shared.requestThumbnail(
+            for: asset,
+            targetSize: targetSize
+        ) { newImage, final in
+            guard !isFinal else { return }
+            if let newImage { image = newImage }
+            isFinal = final
         }
     }
-}
 
-@MainActor
-private enum PhotoThumbnailCache {
-    private static let cache = NSCache<NSString, UIImage>()
-
-    static func image(for identifier: String) -> UIImage? {
-        cache.object(forKey: identifier as NSString)
-    }
-
-    static func store(_ image: UIImage, for identifier: String) {
-        cache.setObject(image, forKey: identifier as NSString)
+    private func cancelOutstandingRequest() {
+        guard let requestID, !isFinal else { return }
+        ComposerPhotoLibrary.shared.cancelThumbnailRequest(requestID)
     }
 }
 

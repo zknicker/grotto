@@ -1,7 +1,7 @@
 name: Deploy Grotto Server
 
-# Release calls this workflow through the protected production Environment.
-# Manual dispatch remains available for explicit deployment and activation.
+# After the release PR merges, Release calls this workflow automatically through
+# the production Environment. Manual dispatch remains available for recovery.
 on:
   workflow_call:
     inputs:

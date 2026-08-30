@@ -10,20 +10,25 @@ struct CameraCaptureView: View {
     @State private var captureRequest = 0
     @State private var cameraPosition: AVCaptureDevice.Position = .back
     @State private var errorMessage: String?
+    // nil = not yet resolved, so body must not branch on camera availability.
+    @State private var hasCamera: Bool?
+    // Keeps AVCaptureVideoPreviewLayer's mount out of the card's morph transaction.
+    @State private var isPreviewMounted = false
 
     var body: some View {
         ZStack {
             Color.black
 
-            if AVCaptureDevice.default(for: .video) == nil {
+            if hasCamera == false {
                 unavailableCamera
-            } else {
+            } else if hasCamera == true, isPreviewMounted {
                 CameraPreview(
                     captureRequest: $captureRequest,
                     position: $cameraPosition,
                     onCapture: onCapture,
                     onError: { errorMessage = $0.localizedDescription }
                 )
+                .transition(.opacity)
             }
 
             VStack {
@@ -31,12 +36,28 @@ struct CameraCaptureView: View {
                 cameraControls
             }
         }
-        .alert("Camera unavailable", isPresented: .constant(errorMessage != nil)) {
+        .animation(.easeOut(duration: 0.2), value: isPreviewMounted)
+        .task {
+            // Resolved once, off body — AVCaptureDevice.default(for:) synchronously touches the capture stack.
+            hasCamera = AVCaptureDevice.default(for: .video) != nil
+            // One runloop turn lands the mount after the card's morph transaction commits. No timers/sleeps.
+            await Task.yield()
+            isPreviewMounted = true
+        }
+        .alert("Camera unavailable", isPresented: errorAlertBinding) {
             Button("OK") { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "The camera could not start.")
         }
-        .preferredColorScheme(.dark)
+        // The card is black regardless of the app's scheme, so the frosted controls resolve dark.
+        .environment(\.colorScheme, .dark)
+    }
+
+    // .constant(errorMessage != nil) can never be dismissed by the alert; this real binding lets "OK" clear it.
+    private var errorAlertBinding: Binding<Bool> {
+        Binding(get: { errorMessage != nil }, set: { isPresented in
+            if !isPresented { errorMessage = nil }
+        })
     }
 
     private var unavailableCamera: some View {
@@ -72,7 +93,7 @@ struct CameraCaptureView: View {
                     .overlay { Circle().fill(.white).padding(6) }
             }
             .buttonStyle(.plain)
-            .disabled(AVCaptureDevice.default(for: .video) == nil)
+            .disabled(hasCamera != true)
             .accessibilityLabel("Take photo")
             Spacer()
             Menu {
@@ -90,13 +111,12 @@ struct CameraCaptureView: View {
                     .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
             }
             .buttonStyle(.plain)
-            .disabled(AVCaptureDevice.default(for: .video) == nil)
+            .disabled(hasCamera != true)
             .accessibilityLabel("Camera options")
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 16)
     }
-
 }
 
 private struct CameraPreview: UIViewRepresentable {
@@ -146,9 +166,15 @@ private struct CameraPreview: UIViewRepresentable {
 
         @MainActor
         func connect(to preview: PreviewView, position: AVCaptureDevice.Position) {
+            // layerClass guarantees this cast on every real UIView instantiation; only bail
+            // instead of trapping so a platform surprise degrades to an error, not a crash.
+            guard let previewLayer = preview.previewLayer else {
+                Task { await report(CameraCaptureError.unavailable) }
+                return
+            }
             self.preview = preview
-            preview.previewLayer.videoGravity = .resizeAspectFill
-            preview.previewLayer.session = session
+            previewLayer.videoGravity = .resizeAspectFill
+            previewLayer.session = session
             configure(position: position)
         }
 
@@ -193,17 +219,25 @@ private struct CameraPreview: UIViewRepresentable {
             else { throw CameraCaptureError.unavailable }
 
             session.beginConfiguration()
-            defer { session.commitConfiguration() }
-            session.inputs.forEach(session.removeInput)
-            let input = try AVCaptureDeviceInput(device: camera)
-            guard session.canAddInput(input) else { throw CameraCaptureError.configurationFailed }
-            session.addInput(input)
-            if session.outputs.isEmpty {
-                guard session.canAddOutput(photoOutput) else { throw CameraCaptureError.configurationFailed }
-                session.addOutput(photoOutput)
+            do {
+                session.inputs.forEach(session.removeInput)
+                let input = try AVCaptureDeviceInput(device: camera)
+                guard session.canAddInput(input) else { throw CameraCaptureError.configurationFailed }
+                session.addInput(input)
+                if session.outputs.isEmpty {
+                    guard session.canAddOutput(photoOutput) else { throw CameraCaptureError.configurationFailed }
+                    session.addOutput(photoOutput)
+                }
+                session.sessionPreset = .photo
+            } catch {
+                // Commit before propagating — an open configuration block must not outlive this call.
+                session.commitConfiguration()
+                throw error
             }
-            session.sessionPreset = .photo
+            session.commitConfiguration()
             self.position = camera.position
+            // Must follow commitConfiguration — starting inside the open configuration block
+            // (the old `defer { commitConfiguration() }` placement) is undefined.
             if !session.isRunning { session.startRunning() }
         }
 
@@ -239,7 +273,8 @@ private struct CameraPreview: UIViewRepresentable {
 
 private final class PreviewView: UIView {
     override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
-    var previewLayer: AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
+    // layerClass guarantees this in practice, but it stays a cast, not a proof — never force it.
+    var previewLayer: AVCaptureVideoPreviewLayer? { layer as? AVCaptureVideoPreviewLayer }
 }
 
 private enum CameraCaptureError: LocalizedError {

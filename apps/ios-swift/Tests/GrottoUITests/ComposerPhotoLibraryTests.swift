@@ -28,6 +28,24 @@ struct ComposerPhotoLibraryTests {
         #expect(size == CGSize(width: 101, height: 101))
     }
 
+    /// The grid frames every cell to exactly this edge; an unframed `scaledToFill` thumbnail
+    /// once sized cells by the photo's native pixels and blew the grid up to full-resolution
+    /// crops. Point and pixel sizes must stay two views of the same arithmetic.
+    @Test func cellPointSizeIsThePointEdgeBehindThePixelTarget() {
+        let points = ComposerPhotoGridLayout.cellPointSize(cardWidth: 304)
+
+        #expect(points == 100)
+        #expect(
+            ComposerPhotoGridLayout.cellSize(cardWidth: 304, displayScale: 2)
+                == CGSize(width: points * 2, height: points * 2)
+        )
+    }
+
+    @Test func cellPointSizeIsZeroForANonPositiveCardWidth() {
+        #expect(ComposerPhotoGridLayout.cellPointSize(cardWidth: 0) == 0)
+        #expect(ComposerPhotoGridLayout.cellPointSize(cardWidth: -10) == 0)
+    }
+
     @Test func cellSizeIsZeroForANonPositiveCardWidthOrScale() {
         #expect(ComposerPhotoGridLayout.cellSize(cardWidth: 0, displayScale: 2) == .zero)
         #expect(ComposerPhotoGridLayout.cellSize(cardWidth: -10, displayScale: 2) == .zero)

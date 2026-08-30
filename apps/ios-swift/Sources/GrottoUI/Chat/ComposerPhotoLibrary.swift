@@ -12,11 +12,18 @@ enum ComposerPhotoGridLayout {
     static let columnCount = 3
     static let interItemSpacing: CGFloat = 2
 
-    static func cellSize(cardWidth: CGFloat, displayScale: CGFloat) -> CGSize {
-        guard cardWidth > 0, displayScale > 0 else { return .zero }
+    /// The square cell's edge in points. The grid must frame each cell to exactly this — a
+    /// `scaledToFill` thumbnail otherwise reports its photo's native size as the cell's ideal
+    /// height, and the grid explodes to full-resolution cells.
+    static func cellPointSize(cardWidth: CGFloat) -> CGFloat {
+        guard cardWidth > 0 else { return 0 }
         let spacing = interItemSpacing * CGFloat(columnCount - 1)
-        let points = max(0, (cardWidth - spacing) / CGFloat(columnCount))
-        let pixels = (points * displayScale).rounded(.up)
+        return max(0, (cardWidth - spacing) / CGFloat(columnCount))
+    }
+
+    static func cellSize(cardWidth: CGFloat, displayScale: CGFloat) -> CGSize {
+        guard displayScale > 0 else { return .zero }
+        let pixels = (cellPointSize(cardWidth: cardWidth) * displayScale).rounded(.up)
         return CGSize(width: pixels, height: pixels)
     }
 }

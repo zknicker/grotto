@@ -30,7 +30,10 @@ struct ComposerPhotoPickerView: View {
                             description: Text("Allow photo access in Settings to attach a photo.")
                         )
                     } else {
-                        photoGrid(cellSize: cellSize)
+                        photoGrid(
+                            cellSize: cellSize,
+                            cellPointSize: ComposerPhotoGridLayout.cellPointSize(cardWidth: proxy.size.width)
+                        )
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -44,14 +47,20 @@ struct ComposerPhotoPickerView: View {
         .sensoryFeedback(.selection, trigger: selectionFeedback)
     }
 
-    private func photoGrid(cellSize: CGSize) -> some View {
+    private func photoGrid(cellSize: CGSize, cellPointSize: CGFloat) -> some View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 2) {
                 ForEach(assets, id: \.localIdentifier) { asset in
                     Button { toggle(asset) } label: {
+                        // The explicit square frame is load-bearing: without it, the
+                        // `scaledToFill` thumbnail sizes the cell by the photo's native pixels
+                        // and the grid renders full-resolution crops.
                         PhotoAssetThumbnail(asset: asset, targetSize: cellSize)
-                            .aspectRatio(1, contentMode: .fill)
+                            .frame(width: cellPointSize, height: cellPointSize)
                             .clipped()
+                            // `.clipped()` clips drawing, not hit-testing — without this, a
+                            // landscape photo's overflow steals taps from neighboring cells.
+                            .contentShape(.rect)
                             .background {
                                 GeometryReader { geometry in
                                     Color.clear.preference(
@@ -82,6 +91,9 @@ struct ComposerPhotoPickerView: View {
             }
         }
         .scrollIndicators(.hidden)
+        // The keyboard deliberately stays up behind the portal; a drag in the grid must not
+        // dismiss it.
+        .scrollDismissesKeyboard(.never)
         .contentMargins(.bottom, 76, for: .scrollContent)
     }
 

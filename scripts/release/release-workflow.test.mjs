@@ -153,7 +153,8 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
         assert.match(workflow, new RegExp(`name: ${jobName}`));
     }
     assert.equal((workflow.match(/runs-on: macos-15$/gm) ?? []).length, 1);
-    assert.equal((workflow.match(/runs-on: xcode-27$/gm) ?? []).length, 2);
+    assert.equal((workflow.match(/runs-on: macos-26$/gm) ?? []).length, 1);
+    assert.equal((workflow.match(/runs-on: xcode-27$/gm) ?? []).length, 1);
     assert.match(workflow, /name: Publish Computer[\s\S]*?GH_TOKEN: \$\{\{ github\.token \}\}/);
     assert.match(workflow, /bun run computer:release "\$\{COMPUTER_VERSION\}"/);
     assert.match(
@@ -162,7 +163,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     );
     assert.match(
         workflow,
-        /name: Upload iOS[\s\S]*?runs-on: xcode-27[\s\S]*?bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
+        /name: Upload iOS[\s\S]*?runs-on: macos-26[\s\S]*?DEVELOPER_DIR: \/Applications\/Xcode_26\.6\.app\/Contents\/Developer[\s\S]*?bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
     );
     assert.doesNotMatch(workflow, /Xcode_26\.3/u);
     assert.match(workflow, /bun run publish:desktop/);

@@ -51,7 +51,7 @@ describe('requireCompiledIcon', () => {
         const directory = makeTemporaryDirectory();
 
         expect(() => requireCompiledIcon(path.join(directory, 'missing.icns'))).toThrow(
-            'actool emitted no ICNS file; Xcode 26.3 or newer is required'
+            'actool emitted no ICNS file; Xcode 27 or newer is required'
         );
     });
 });

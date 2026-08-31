@@ -103,7 +103,7 @@ jobs:
       github.event_name == 'push' &&
       needs.plan.outputs.initial_ledger_migration == 'false' &&
       needs.plan.outputs.publish_app == 'true'
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 60
     permissions:
       contents: read
@@ -130,7 +130,7 @@ jobs:
       - name: Publish App
         env:
           RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
-        run: DEVELOPER_DIR=/Applications/Xcode_26.3.app/Contents/Developer bun run publish:desktop
+        run: bun run publish:desktop
       - name: Upload App release bundle for Server
         uses: actions/upload-artifact@v4
         with:
@@ -154,7 +154,7 @@ jobs:
       github.event_name == 'push' &&
       needs.plan.outputs.initial_ledger_migration == 'false' &&
       needs.plan.outputs.publish_ios == 'true'
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 60
     permissions:
       contents: read
@@ -181,7 +181,6 @@ jobs:
             bash scripts/release/setup-apple-material.sh ios
       - name: Upload iOS
         env:
-          DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
           IOS_VERSION: ${{ needs.plan.outputs.ios_version }}
           IOS_BUILD_NUMBER: ${{ needs.plan.outputs.ios_build_number }}
           RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}

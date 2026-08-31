@@ -69,10 +69,12 @@ Environment and verifies the public Server and hosted Grotto App. Reviewing and 
 PR is the release's only human authorization gate; selected target jobs run to completion without a
 second approval.
 
-The installed App icon source is `assets/mac-icon.icon`. App and iOS release jobs use GitHub's
-`xcode-27` image because Xcode 26.3 accepts the Icon Composer source but fails to produce the complete
-native outputs: desktop gets no ICNS file and iOS archive compilation fails. Desktop icon compilation
-fails explicitly when the ICNS output is missing; do not check in a second generated representation.
+The installed App icon source is `assets/mac-icon.icon`. The App release job uses GitHub's
+`xcode-27` image because Xcode 26.3 accepts the Icon Composer source but emits no ICNS file. The iOS
+release job uses the stable Xcode 26.6 toolchain on `macos-26`: Xcode 26.3 fails to compile the current
+Icon Composer source, while App Store Connect rejects archives built by the preview Xcode 27 image.
+Desktop icon compilation fails explicitly when the ICNS output is missing; do not check in a second
+generated representation.
 
 ## Target impact
 

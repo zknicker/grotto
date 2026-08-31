@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.12.3 - 2026-08-31
+
+- Grotto App and Grotto for iPhone ship the new translucent, iridescent ghost icon.
+
 ## v1.12.2 - 2026-08-31
 
 - Grotto App and Grotto for iPhone ship the new translucent, iridescent ghost icon.

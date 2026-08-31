@@ -154,10 +154,11 @@ jobs:
       github.event_name == 'push' &&
       needs.plan.outputs.initial_ledger_migration == 'false' &&
       needs.plan.outputs.publish_ios == 'true'
-    runs-on: xcode-27
+    runs-on: macos-26
     timeout-minutes: 60
     permissions:
       contents: read
+    env: { DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer }
     steps:
       - name: Check out release source
         uses: actions/checkout@v4

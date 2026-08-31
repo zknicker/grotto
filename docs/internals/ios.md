@@ -422,8 +422,14 @@ from: its bottom edge centres the card on the input, never sinking below the com
 edge and never rising off the top of the screen (`ComposerPortalGeometry.sourceMenuBottomPadding`), so
 the card overlaps the composer rather than standing on it. It pops out of the plus button — a scale
 from the button's position in the card's unit space, no offset travel — and leaves flatter and faster
-than it arrives. The menu card is the one interactive glass surface in the portal; its rows carry
-plain fills, because glass cannot sample glass. A drag on the open menu carries it a few points toward
+than it arrives. The card wears the portal's one interactive glass surface for the card's whole
+life, never per overlay: mounting or unmounting glass at the menu-to-media flip left the plate
+fading on the system's own schedule, a second stretched outline lingering over the arriving media
+card. Instead the menu rows and a black media backdrop crossfade *inside* the one glass as its
+content, the media views draw over it, and the plate's shape simply morphs with the frame — a
+single outline at every frame is what makes the menu read as transforming into the media card, and
+the glass rim doubles as the media card's border. The rows carry plain fills, because glass cannot
+sample glass. A drag on the open menu carries it a few points toward
 the finger on UIScrollView's rubber-band curve and springs it back on release
 (`ComposerPortalRubberBand`), and Reduce Motion replaces the pop and the pull with a plain fade. That
 portal returns along the same bottom-leading path into the attachment

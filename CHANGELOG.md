@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.11.6 - 2026-08-31
+
+- Cove's clearer navigator avatar is now included in the hosted Grotto experience.
+
 ## v1.11.5 - 2026-08-31
 
 - Cove's clearer navigator avatar is now included in the hosted Grotto experience.

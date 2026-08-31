@@ -654,5 +654,16 @@
       "computer": null,
       "agent": null
     }
+  },
+  {
+    "version": "1.11.6",
+    "date": "2026-08-31",
+    "targets": {
+      "server": "1.11.5",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
   }
 ]

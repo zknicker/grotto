@@ -244,7 +244,8 @@ jobs:
       contents: read
     uses: ./.github/workflows/deploy-grotto-server.yml
     with:
-      version: v${{ needs.plan.outputs.server_version }}
+      version: v${{ needs.plan.outputs.release_version }}
+      server_version: ${{ needs.plan.outputs.server_version }}
       mode: deploy
       source_revision: ${{ github.sha }}
     secrets:

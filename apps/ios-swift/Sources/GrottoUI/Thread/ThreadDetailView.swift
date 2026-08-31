@@ -19,18 +19,7 @@ public struct ThreadDetailView: View {
     private let onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
 
     @State private var draft = ""
-    /// The bottom is held as a scroll *edge* for the reason the Chat transcript holds
-    /// it that way: an offset onto the last row resolves against a container height the
-    /// first paint may not have yet. See `MessageTimelineView`.
-    @State private var scrollPosition = ScrollPosition(edge: .bottom)
-    @State private var preservedTopReplyID: String?
-    @State private var isNearBottom = true
-    /// Whether the replies are at rest, for the same reason the Chat transcript
-    /// tracks it: a drag and its fling travel past the end on purpose.
-    @State private var isScrollIdle = true
-    /// Whether the latest geometry left the viewport past the last reply, held
-    /// as state so the rescue waits out a layout still in motion.
-    @State private var isPastRepliesEnd = false
+    @State private var isNearNewest = true
     /// A Thread is one pushed screen rather than a keyed canvas, so its composer
     /// state is screen-owned: it survives anything presented over the Thread and
     /// goes away with the pop, unlike the Chat canvas, whose interactions the
@@ -105,157 +94,11 @@ public struct ThreadDetailView: View {
     }
 
     public var body: some View {
-        let replies = replyProvider()
+        let items = transcriptItems(replies: replyProvider())
 
         GeometryReader { geometry in
             ZStack(alignment: .bottomLeading) {
-                VStack(spacing: 0) {
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 0) {
-                            if hasOlderReplies, let onLoadOlderReplies {
-                                Button {
-                                    preservedTopReplyID = replies.first?.id
-                                    Task { @MainActor in
-                                        if !(await onLoadOlderReplies()) {
-                                            preservedTopReplyID = nil
-                                        }
-                                    }
-                                } label: {
-                                    Group {
-                                        if isLoadingOlderReplies {
-                                            ProgressView()
-                                        } else {
-                                            Label("Load older replies", systemImage: "chevron.up")
-                                        }
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
-                                .disabled(isLoadingOlderReplies)
-                                .padding(.bottom, 8)
-                            }
-
-                            ThreadMessageRow(
-                                message: anchor,
-                                emphasized: true,
-                                onOpenAttachment: onOpenAttachment,
-                                canManagePreparedActions: canManagePreparedActions,
-                                onReviewPreparedCreateAgent: onReviewPreparedCreateAgent
-                            )
-                                .padding(.bottom, replies.isEmpty ? 0 : 2)
-
-                            if let task = anchor.task {
-                                ThreadTaskMetadataView(task: task)
-                                    .padding(.top, 12)
-                                    .padding(.bottom, replies.isEmpty ? 0 : 2)
-                            }
-
-                            ForEach(replies) { message in
-                                ThreadMessageRow(
-                                    message: message,
-                                    onOpenAttachment: onOpenAttachment,
-                                    canManagePreparedActions: canManagePreparedActions,
-                                    onReviewPreparedCreateAgent: onReviewPreparedCreateAgent
-                                )
-                                    .id(message.id)
-                                    .padding(.top, 10)
-                            }
-
-                            if pending {
-                                HStack(spacing: 7) {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                    Text("Sending")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                .padding(.leading, 46)
-                                .padding(.top, 12)
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 14)
-                    }
-                    .scrollDismissesKeyboard(.interactively)
-                    .contentShape(.rect)
-                    .simultaneousGesture(TapGesture().onEnded { isComposerFocused = false })
-                    .scrollPosition($scrollPosition)
-                    // A thread shorter than the screen still sits on the composer.
-                    .defaultScrollAnchor(.bottom)
-                    .onScrollGeometryChange(for: Bool.self) { geometry in
-                        ThreadReplyScrollPosition.isNearBottom(
-                            contentHeight: geometry.contentSize.height,
-                            containerHeight: geometry.containerSize.height,
-                            visibleMaxY: geometry.visibleRect.maxY
-                        )
-                    } action: { _, nearBottom in
-                        isNearBottom = nearBottom
-                    }
-                    .onScrollPhaseChange { _, phase in isScrollIdle = phase == .idle }
-                    // A first layout can resolve the bottom against a content
-                    // height the lazy rows have not settled into and leave the
-                    // viewport past the last reply. Only a layout can reach that
-                    // state — a gesture is clamped to the content — and nothing
-                    // else here would leave it, so a resting viewport is put
-                    // back on the bottom.
-                    .onScrollGeometryChange(for: Bool.self) { geometry in
-                        ThreadReplyScrollPosition.isPastContentEnd(
-                            contentHeight: geometry.contentSize.height,
-                            containerHeight: geometry.containerSize.height,
-                            bottomInset: geometry.contentInsets.bottom,
-                            visibleMaxY: geometry.visibleRect.maxY
-                        )
-                    } action: { _, isPastContentEnd in
-                        isPastRepliesEnd = isPastContentEnd
-                    }
-                    // Deferred for the same reason as the Chat timeline's
-                    // rescue: an edge asserted mid-layout resolves against
-                    // moving numbers and strobes. A real strand holds at rest,
-                    // and idleness in the key re-arms one reported mid-touch.
-                    .task(id: isPastRepliesEnd && isScrollIdle) {
-                        guard isPastRepliesEnd, isScrollIdle else { return }
-                        for _ in 0..<8 {
-                            try? await Task.sleep(for: .milliseconds(120))
-                            guard !Task.isCancelled, isPastRepliesEnd, isScrollIdle else { return }
-                            var transaction = Transaction()
-                            transaction.disablesAnimations = true
-                            withTransaction(transaction) {
-                                scrollPosition.scrollTo(edge: .bottom)
-                            }
-                        }
-                    }
-                    .onChange(of: replies.last?.id) { previousLatestID, latestReplyID in
-                        guard latestReplyID != nil else { return }
-
-                        switch ThreadReplyReveal.onLatestReplyChange(
-                            previousLatestID: previousLatestID,
-                            isNearBottom: isNearBottom,
-                            latestIsPending: replies.last?.isPending == true
-                        ) {
-                        case .settle:
-                            var transaction = Transaction()
-                            transaction.disablesAnimations = true
-                            withTransaction(transaction) {
-                                scrollPosition.scrollTo(edge: .bottom)
-                            }
-                        case .animate:
-                            withAnimation(.easeOut(duration: 0.2)) {
-                                scrollPosition.scrollTo(edge: .bottom)
-                            }
-                        case .stay:
-                            break
-                        }
-                    }
-                    .onChange(of: replies.count) { _, _ in
-                        guard let preservedTopReplyID else { return }
-                        self.preservedTopReplyID = nil
-                        var transaction = Transaction()
-                        transaction.disablesAnimations = true
-                        withTransaction(transaction) {
-                            scrollPosition.scrollTo(id: preservedTopReplyID, anchor: .top)
-                        }
-                    }
+                transcript(items: items)
                     // Same shape as the chat screen: replies run under the floating glass
                     // composer and the inset reserves their clearance.
                     .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -273,7 +116,6 @@ public struct ThreadDetailView: View {
                             }
                         )
                     }
-                }
             }
             // Same contract as the Chat screen: the portal draws in an overlay window above the
             // keyboard, measured against the display rather than against this screen.
@@ -292,6 +134,147 @@ public struct ThreadDetailView: View {
         .grottoInlineNavigationTitle()
     }
 
+    /// The replies sit on the same flipped-table substrate as the Chat
+    /// timeline, so the bottom anchor, keyboard rides, and history prepends
+    /// are structural here too. The anchor and its task metadata are simply
+    /// the transcript's oldest items.
+    private func transcript(items: [ThreadTranscriptItem]) -> some View {
+        GeometryReader { proxy in
+            TranscriptListView(
+                items: items,
+                topInset: proxy.safeAreaInsets.top,
+                bottomInset: proxy.safeAreaInsets.bottom,
+                showsAccessory: hasOlderReplies && onLoadOlderReplies != nil,
+                onAppend: { items, isNearNewest in
+                    // A first page reaches the substrate as a reset that lands
+                    // already settled, so an append always has a predecessor;
+                    // the sentinel only says "not the first page".
+                    switch ThreadReplyReveal.onLatestReplyChange(
+                        previousLatestID: items.first?.id,
+                        isNearBottom: isNearNewest,
+                        latestIsPending: items.last?.isPending == true
+                    ) {
+                    case .settle: .snapToNewest
+                    case .animate: .animateToNewest
+                    case .stay: .stay
+                    }
+                },
+                reveal: nil,
+                isNearNewest: $isNearNewest,
+                onContentTap: { isComposerFocused = false },
+                row: { item in
+                    threadRow(item)
+                },
+                accessory: {
+                    loadOlderAccessory
+                }
+            )
+            .ignoresSafeArea()
+            // Same soft top edge as the Chat timeline, under the navigation
+            // bar instead of the chat header.
+            .transcriptTopDissolve(safeAreaTop: proxy.safeAreaInsets.top)
+        }
+    }
+
+    private func transcriptItems(replies: [MessagePresentation]) -> [ThreadTranscriptItem] {
+        var items: [ThreadTranscriptItem] = [.anchor(anchor, hasReplies: !replies.isEmpty)]
+        if let task = anchor.task {
+            items.append(.taskMetadata(task, hasReplies: !replies.isEmpty))
+        }
+        items.append(contentsOf: replies.map(ThreadTranscriptItem.reply))
+        if pending {
+            items.append(.pendingSend)
+        }
+        return items
+    }
+
+    @ViewBuilder
+    private func threadRow(_ item: ThreadTranscriptItem) -> some View {
+        switch item {
+        case .anchor(let message, let hasReplies):
+            ThreadMessageRow(
+                message: message,
+                emphasized: true,
+                onOpenAttachment: onOpenAttachment,
+                canManagePreparedActions: canManagePreparedActions,
+                onReviewPreparedCreateAgent: onReviewPreparedCreateAgent
+            )
+            .padding(.bottom, hasReplies ? 2 : 0)
+        case .taskMetadata(let task, let hasReplies):
+            ThreadTaskMetadataView(task: task)
+                .padding(.top, 12)
+                .padding(.bottom, hasReplies ? 2 : 0)
+        case .reply(let message):
+            ThreadMessageRow(
+                message: message,
+                onOpenAttachment: onOpenAttachment,
+                canManagePreparedActions: canManagePreparedActions,
+                onReviewPreparedCreateAgent: onReviewPreparedCreateAgent
+            )
+            .padding(.top, 10)
+        case .pendingSend:
+            HStack(spacing: 7) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Sending")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.leading, 46)
+            .padding(.top, 12)
+        }
+    }
+
+    @ViewBuilder
+    private var loadOlderAccessory: some View {
+        if let onLoadOlderReplies {
+            Button {
+                Task { @MainActor in _ = await onLoadOlderReplies() }
+            } label: {
+                Group {
+                    if isLoadingOlderReplies {
+                        ProgressView()
+                    } else {
+                        Label("Load older replies", systemImage: "chevron.up")
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(isLoadingOlderReplies)
+            .padding(.bottom, 8)
+        }
+    }
+
+}
+
+/// One row of the Thread transcript. A Thread's page is more than replies —
+/// the anchor message, its task metadata, and a pending send all occupy
+/// chronological positions — so the substrate sees them as items with stable
+/// ids rather than as decoration around a reply list.
+private enum ThreadTranscriptItem: Identifiable, Equatable {
+    case anchor(MessagePresentation, hasReplies: Bool)
+    case taskMetadata(TaskPresentation, hasReplies: Bool)
+    case reply(MessagePresentation)
+    case pendingSend
+
+    var id: String {
+        switch self {
+        case .anchor(let message, _): "thread-anchor-\(message.id)"
+        case .taskMetadata: "thread-task-metadata"
+        case .reply(let message): message.id
+        case .pendingSend: "thread-pending-send"
+        }
+    }
+
+    var isPending: Bool {
+        switch self {
+        case .pendingSend: true
+        case .reply(let message): message.isPending
+        case .anchor, .taskMetadata: false
+        }
+    }
 }
 
 /// Decides how the thread transcript responds when its latest reply changes.
@@ -321,38 +304,6 @@ enum ThreadReplyReveal: Equatable {
             return .animate
         }
         return .stay
-    }
-}
-
-/// Mirror of the chat timeline's near-bottom rule, owned by the Thread surface.
-enum ThreadReplyScrollPosition {
-    private static let bottomTolerance: CGFloat = 80
-    private static let overshootTolerance: CGFloat = 1
-
-    static func isNearBottom(
-        contentHeight: CGFloat,
-        containerHeight: CGFloat,
-        visibleMaxY: CGFloat
-    ) -> Bool {
-        if contentHeight <= containerHeight + 1 {
-            return true
-        }
-        return visibleMaxY >= contentHeight - bottomTolerance
-    }
-
-    /// Mirror of `MessageTimelineScrollPosition.isPastContentEnd`, for the same
-    /// reason: a Thread opened onto replies that are already loaded never
-    /// appends one, so nothing else would move a viewport that a first layout
-    /// left past the end of them. Replies shorter than the container have no
-    /// end to be past — the bottom anchor pads their top by design.
-    static func isPastContentEnd(
-        contentHeight: CGFloat,
-        containerHeight: CGFloat,
-        bottomInset: CGFloat,
-        visibleMaxY: CGFloat
-    ) -> Bool {
-        guard contentHeight > containerHeight else { return false }
-        return visibleMaxY > contentHeight + bottomInset + overshootTolerance
     }
 }
 

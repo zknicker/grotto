@@ -77,8 +77,10 @@ public struct ChatScreenView: View {
     }
 
     public var body: some View {
+        // The timeline's opening settle runs inside its own table (see
+        // `TranscriptListView.animatesEntrance`); the header and composer
+        // stay on the SwiftUI modifier.
         timeline
-            .openingEntrance(.timeline)
             // The header floats over the transcript rather than capping it, so glass has
             // live content to refract behind it. The shell ignores safe areas on this
             // canvas, so the status-bar clearance that used to sit on the outer VStack
@@ -140,12 +142,12 @@ public struct ChatScreenView: View {
         composerInteraction.portalFreeze.bottomInset(live: contentInsets.bottom)
     }
 
-    /// A caller's safe-area attachment lands on `MessageTimelineView`'s own `ScrollView` root, so
-    /// the transcript scrolls beneath both the header and the composer instead of clipping under
-    /// them. The style set here is only half the effect: it says what the soft edge should look
-    /// like, while `chromeBar` in `body` is what gives it a region to paint.
+    /// A caller's safe-area attachment lands on the timeline's transcript root, so the
+    /// transcript scrolls beneath both the header and the composer instead of clipping under
+    /// them. The soft top edge is set by the transcript's own table (see
+    /// `TranscriptListView`); `chromeBar` in `body` is what gives it a region to paint.
     private var timeline: some View {
-        let content = MessageTimelineView(
+        MessageTimelineView(
             messages: messages,
             onOpenThread: onOpenThread,
             onOpenAttachment: onOpenAttachment,
@@ -156,14 +158,6 @@ public struct ChatScreenView: View {
             onLoadOlderMessages: onLoadOlderMessages,
             scrollTargetMessageID: $scrollTargetMessageID
         )
-
-        return Group {
-            if #available(iOS 26, macOS 26, *) {
-                content.scrollEdgeEffectStyle(.soft, for: .top)
-            } else {
-                content
-            }
-        }
     }
 
     private var header: some View {

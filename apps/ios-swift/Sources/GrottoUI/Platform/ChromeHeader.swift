@@ -88,6 +88,38 @@ extension View {
     }
 }
 
+extension View {
+    /// The transcript's soft top edge: rows dissolve as they pass under the
+    /// chrome, the way the system scroll edge effect painted for a SwiftUI
+    /// scroll view. The system effect computes its region from safe areas the
+    /// flipped transcript table does not have, so the dissolve is a mask —
+    /// same ramp shape as the iOS 26 soft edge, on every iOS version. Rows
+    /// are crisp below the bar, at roughly a seventh of their contrast behind
+    /// the chrome row, and gone by the status bar.
+    ///
+    /// `safeAreaTop` is the full reserved top region: status bar, chrome row,
+    /// and runway.
+    func transcriptTopDissolve(safeAreaTop: CGFloat) -> some View {
+        mask {
+            VStack(spacing: 0) {
+                LinearGradient(
+                    stops: [
+                        .init(color: .black.opacity(0), location: 0),
+                        .init(color: .black.opacity(0.05), location: 0.4),
+                        .init(color: .black.opacity(0.15), location: 0.8),
+                        .init(color: .black, location: 1),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: safeAreaTop)
+                Color.black
+            }
+            .ignoresSafeArea()
+        }
+    }
+}
+
 extension ChromeHeader where Center == EmptyView {
     init(
         inset: CGFloat = 16,

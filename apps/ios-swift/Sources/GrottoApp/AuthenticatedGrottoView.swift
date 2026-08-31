@@ -101,6 +101,10 @@ struct AuthenticatedGrottoView: View {
                     destinations: store.chatDestinations,
                     selectedDestinationID: $selectedDestinationID,
                     messagesForDestination: { store.messagePresentations(chatID: $0.pendingKey) },
+                    isMessageHistoryLoaded: { destination in
+                        guard let chat = destination.durableChat else { return true }
+                        return store.hasLoadedMessageHistory(chatID: chat.id)
+                    },
                     isConnected: store.isConnected,
                     settingsContent: { initialPath in
                         if let settingsData = store.settingsData {

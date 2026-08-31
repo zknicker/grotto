@@ -37,6 +37,10 @@ extension GrottoStore {
         messagesByChatID[chatID]?.nextBeforeSequence != nil
     }
 
+    func hasLoadedMessageHistory(chatID: String) -> Bool {
+        messagesByChatID[chatID] != nil
+    }
+
     func isLoadingOlderMessages(chatID: String) -> Bool {
         olderMessageLoadsInFlight.contains(chatID)
     }

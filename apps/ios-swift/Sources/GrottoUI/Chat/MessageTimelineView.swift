@@ -2,6 +2,8 @@ import SwiftUI
 
 public struct MessageTimelineView: View {
     private let messages: [MessagePresentation]
+    private let isMessageHistoryLoaded: Bool
+    private let emptyStateDescription: String
     private let onOpenThread: (MessagePresentation) -> Void
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     private let canManagePreparedActions: Bool
@@ -18,9 +20,12 @@ public struct MessageTimelineView: View {
     /// `TranscriptListView.animatesEntrance`), so the flag is read here rather
     /// than through the `openingEntrance` modifier.
     @Environment(\.opensWithEntrance) private var opensWithEntrance
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     public init(
         messages: [MessagePresentation],
+        isMessageHistoryLoaded: Bool = true,
+        emptyStateDescription: String = "Send a message to start the conversation.",
         onOpenThread: @escaping (MessagePresentation) -> Void,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
@@ -35,6 +40,8 @@ public struct MessageTimelineView: View {
     ) {
         _scrollTargetMessageID = scrollTargetMessageID
         self.messages = messages
+        self.isMessageHistoryLoaded = isMessageHistoryLoaded
+        self.emptyStateDescription = emptyStateDescription
         self.onOpenThread = onOpenThread
         self.onOpenAttachment = onOpenAttachment
         self.canManagePreparedActions = canManagePreparedActions
@@ -55,47 +62,62 @@ public struct MessageTimelineView: View {
     public var body: some View {
         let indexByID = messageIndexByID
         return GeometryReader { proxy in
-            TranscriptListView(
-                items: messages,
-                topInset: proxy.safeAreaInsets.top,
-                bottomInset: proxy.safeAreaInsets.bottom,
-                showsAccessory: hasOlderMessages && onLoadOlderMessages != nil,
-                onAppend: { items, isNearNewest in
-                    switch MessageTimelineTailScroll.decide(
-                        hadMessages: true,
-                        isNearBottom: isNearNewest,
-                        isLatestPending: items.last?.isPending == true
-                    ) {
-                    case .ignore: .stay
-                    case .snap: .snapToNewest
-                    case .animate: .animateToNewest
+            if messages.isEmpty && isMessageHistoryLoaded {
+                ContentUnavailableView(
+                    "No messages yet",
+                    systemImage: "bubble.left",
+                    description: Text(emptyStateDescription)
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, proxy.safeAreaInsets.top)
+                .padding(
+                    .bottom,
+                    dynamicTypeSize.isAccessibilitySize ? 0 : proxy.size.height * 0.175
+                )
+                .ignoresSafeArea()
+            } else {
+                TranscriptListView(
+                    items: messages,
+                    topInset: proxy.safeAreaInsets.top,
+                    bottomInset: proxy.safeAreaInsets.bottom,
+                    showsAccessory: hasOlderMessages && onLoadOlderMessages != nil,
+                    onAppend: { items, isNearNewest in
+                        switch MessageTimelineTailScroll.decide(
+                            hadMessages: true,
+                            isNearBottom: isNearNewest,
+                            isLatestPending: items.last?.isPending == true
+                        ) {
+                        case .ignore: .stay
+                        case .snap: .snapToNewest
+                        case .animate: .animateToNewest
+                        }
+                    },
+                    reveal: reveal,
+                    isNearNewest: $isNearNewest,
+                    animatesEntrance: opensWithEntrance,
+                    menuActions: { message in
+                        guard !message.isPending else { return [] }
+                        return [
+                            TranscriptMenuAction(
+                                title: message.thread == nil ? "Reply in thread" : "Open thread",
+                                systemImage: "bubble.left.and.bubble.right",
+                                handler: { onOpenThread(message) }
+                            )
+                        ]
+                    },
+                    row: { message in
+                        timelineRow(message, indexByID: indexByID)
+                    },
+                    accessory: {
+                        loadOlderAccessory
                     }
-                },
-                reveal: reveal,
-                isNearNewest: $isNearNewest,
-                animatesEntrance: opensWithEntrance,
-                menuActions: { message in
-                    guard !message.isPending else { return [] }
-                    return [
-                        TranscriptMenuAction(
-                            title: message.thread == nil ? "Reply in thread" : "Open thread",
-                            systemImage: "bubble.left.and.bubble.right",
-                            handler: { onOpenThread(message) }
-                        )
-                    ]
-                },
-                row: { message in
-                    timelineRow(message, indexByID: indexByID)
-                },
-                accessory: {
-                    loadOlderAccessory
-                }
-            )
-            .ignoresSafeArea()
-            // The bottom edge stays hard on purpose: the composer's clearance
-            // is the transcript's scroll bound, and its glass refracts the
-            // rows that reach it.
-            .transcriptTopDissolve(safeAreaTop: proxy.safeAreaInsets.top)
+                )
+                .ignoresSafeArea()
+                // The bottom edge stays hard on purpose: the composer's clearance
+                // is the transcript's scroll bound, and its glass refracts the
+                // rows that reach it.
+                .transcriptTopDissolve(safeAreaTop: proxy.safeAreaInsets.top)
+            }
         }
         // The scroll clearance the composer reserves arrives as this view's bottom safe
         // area, so the button rides above the glass instead of under it.
@@ -277,4 +299,12 @@ public struct MessageTimelineView: View {
 
 #Preview {
     MessageTimelineView(messages: ChatFixtures.messages, onOpenThread: { _ in })
+}
+
+#Preview("Empty") {
+    MessageTimelineView(
+        messages: [],
+        emptyStateDescription: "Start the conversation in #product.",
+        onOpenThread: { _ in }
+    )
 }

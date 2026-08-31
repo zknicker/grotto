@@ -5,6 +5,7 @@ public struct GrottoShellView<SettingsContent: View>: View {
     private let server: ServerPresentation
     let destinations: [ChatDestination]
     private let messagesForDestination: (ChatDestination) -> [MessagePresentation]
+    private let isMessageHistoryLoaded: (ChatDestination) -> Bool
     private let isConnected: Bool
     private let settingsContent: ([SettingsRoute]) -> SettingsContent
     let onOpenTasks: () -> Void
@@ -58,6 +59,7 @@ public struct GrottoShellView<SettingsContent: View>: View {
         destinations: [ChatDestination],
         selectedDestinationID: Binding<ChatDestination.ID?> = .constant(nil),
         messagesForDestination: @escaping (ChatDestination) -> [MessagePresentation],
+        isMessageHistoryLoaded: @escaping (ChatDestination) -> Bool = { _ in true },
         isConnected: Bool,
         @ViewBuilder settingsContent: @escaping ([SettingsRoute]) -> SettingsContent,
         onOpenTasks: @escaping () -> Void = {},
@@ -89,6 +91,7 @@ public struct GrottoShellView<SettingsContent: View>: View {
         self.server = server
         self.destinations = destinations
         self.messagesForDestination = messagesForDestination
+        self.isMessageHistoryLoaded = isMessageHistoryLoaded
         self.isConnected = isConnected
         self.settingsContent = settingsContent
         self.onOpenTasks = onOpenTasks
@@ -159,6 +162,7 @@ public struct GrottoShellView<SettingsContent: View>: View {
                         ChatScreenView(
                             chat: selectedDestination,
                             messages: messagesForDestination(selectedDestination),
+                            isMessageHistoryLoaded: isMessageHistoryLoaded(selectedDestination),
                             draft: draftBinding(for: selectedDestination),
                             composerInteraction: composerInteraction(for: selectedDestination),
                             isConnected: isConnected,

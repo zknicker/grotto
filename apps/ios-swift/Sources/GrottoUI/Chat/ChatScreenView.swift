@@ -3,6 +3,7 @@ import SwiftUI
 public struct ChatScreenView: View {
     private let chat: ChatDestination
     private let messages: [MessagePresentation]
+    private let isMessageHistoryLoaded: Bool
     private let isConnected: Bool
     private let onOpenSidebar: () -> Void
     private let onOpenChatDetails: () -> Void
@@ -32,6 +33,7 @@ public struct ChatScreenView: View {
     public init(
         chat: ChatDestination,
         messages: [MessagePresentation],
+        isMessageHistoryLoaded: Bool = true,
         draft: Binding<String>,
         composerInteraction: ComposerInteraction,
         isConnected: Bool,
@@ -59,6 +61,7 @@ public struct ChatScreenView: View {
         self.composerInteraction = composerInteraction
         self.chat = chat
         self.messages = messages
+        self.isMessageHistoryLoaded = isMessageHistoryLoaded
         self.isConnected = isConnected
         self.onOpenSidebar = onOpenSidebar
         self.onOpenChatDetails = onOpenChatDetails
@@ -149,6 +152,8 @@ public struct ChatScreenView: View {
     private var timeline: some View {
         MessageTimelineView(
             messages: messages,
+            isMessageHistoryLoaded: isMessageHistoryLoaded,
+            emptyStateDescription: emptyStateDescription,
             onOpenThread: onOpenThread,
             onOpenAttachment: onOpenAttachment,
             canManagePreparedActions: canManagePreparedActions,
@@ -158,6 +163,14 @@ public struct ChatScreenView: View {
             onLoadOlderMessages: onLoadOlderMessages,
             scrollTargetMessageID: $scrollTargetMessageID
         )
+    }
+
+    private var emptyStateDescription: String {
+        if chat.kind.isChannel {
+            "Start the conversation in #\(chat.title)."
+        } else {
+            "Send the first message to \(chat.title)."
+        }
     }
 
     private var header: some View {
@@ -207,6 +220,24 @@ private extension ChatKind {
     ChatScreenView(
         chat: .durableChat(ChatFixtures.chats[1]),
         messages: ChatFixtures.messages,
+        draft: $draft,
+        composerInteraction: composerInteraction,
+        isConnected: true,
+        onOpenSidebar: {},
+        onOpenChatDetails: {},
+        onOpenSearch: {},
+        onOpenThread: { _ in },
+        onSend: { _, _ in true }
+    )
+}
+
+#Preview("Empty Chat") {
+    @Previewable @State var draft = ""
+    @Previewable @State var composerInteraction = ComposerInteraction()
+
+    ChatScreenView(
+        chat: .durableChat(ChatFixtures.chats[1]),
+        messages: [],
         draft: $draft,
         composerInteraction: composerInteraction,
         isConnected: true,

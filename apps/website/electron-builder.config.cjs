@@ -2,18 +2,11 @@
 
 const { existsSync } = require('node:fs');
 const path = require('node:path');
+const { assetCatalogPath, macAppIconConfiguration } = require('./electron/mac-app-icon-config.cjs');
 const { desktopRuntimeDependencies } = require('./electron/runtime-dependencies.cjs');
 
 const releaseBaseUrl = process.env.GROTTO_RELEASE_BASE_URL?.replace(/\/+$/u, '');
-const assetCatalogPath = 'electron/generated-icons/Assets.car';
-const extraResources = existsSync(path.join(__dirname, assetCatalogPath))
-    ? [
-          {
-              from: assetCatalogPath,
-              to: 'Assets.car',
-          },
-      ]
-    : [];
+const macAppIcon = macAppIconConfiguration(existsSync(path.join(__dirname, assetCatalogPath)));
 
 module.exports = {
     appId: 'build.grotto.desktop',
@@ -43,7 +36,7 @@ module.exports = {
         '!node_modules/**',
         `node_modules/{${desktopRuntimeDependencies.join(',')}}/**`,
     ],
-    extraResources,
+    extraResources: macAppIcon.extraResources,
     mac: {
         // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder artifact macros are literal strings.
         artifactName: '${productName}_${version}_${arch}.${ext}',
@@ -51,10 +44,7 @@ module.exports = {
         darkModeSupport: true,
         entitlements: 'electron/Entitlements.plist',
         entitlementsInherit: 'electron/Entitlements.plist',
-        extendInfo: {
-            CFBundleIconName: 'AppIcon',
-            LSMultipleInstancesProhibited: true,
-        },
+        extendInfo: macAppIcon.extendInfo,
         gatekeeperAssess: false,
         hardenedRuntime: true,
         icon: 'electron/icons/AppIcon.icns',

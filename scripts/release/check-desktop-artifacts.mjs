@@ -19,9 +19,19 @@ const main = async () => {
     const zipPath = await findSingleFile(bundleRoot, (entry) => entry === `${artifactPrefix}.zip`);
     const latestYamlPath = path.join(bundleRoot, 'latest-mac.yml');
     const sidecarPath = path.join(appPath, 'Contents', 'Resources', 'bin', 'grotto-server');
+    const packagedIconPath = path.join(appPath, 'Contents', 'Resources', 'icon.icns');
+    const buildIconPath = path.join(
+        repoRoot,
+        'apps',
+        'website',
+        'electron',
+        'icons',
+        'AppIcon.icns'
+    );
 
     await assertDirectory(appPath, 'Grotto.app');
     await assertDoesNotExist(sidecarPath, 'retired grotto-server sidecar');
+    await assertMatchingFiles(packagedIconPath, buildIconPath, 'packaged app icon');
     await assertFileHasContent(dmgPath, path.basename(dmgPath));
     await assertFileHasContent(zipPath, path.basename(zipPath));
 
@@ -88,6 +98,13 @@ async function assertFileHasContent(filePath, label) {
 async function assertDoesNotExist(filePath, label) {
     if (await exists(filePath)) {
         fail(`${label} must not be packaged`);
+    }
+}
+
+async function assertMatchingFiles(actualPath, expectedPath, label) {
+    const [actual, expected] = await Promise.all([readFile(actualPath), readFile(expectedPath)]);
+    if (!actual.equals(expected)) {
+        fail(`${label} must match the generated release icon`);
     }
 }
 

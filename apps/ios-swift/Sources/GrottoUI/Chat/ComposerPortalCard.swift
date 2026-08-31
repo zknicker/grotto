@@ -24,37 +24,48 @@ struct ComposerPortalCard: View {
         // remove one card and insert another, degrading the morph to a crossfade — and so would
         // mounting or unmounting the glass at the menu-to-media flip: a leaving glass plate fades
         // on the system's own schedule, not the content transition's, so it lingered as a second
-        // stretched outline over the arriving media card. The glass therefore lives on the card
-        // itself for the card's whole life. The menu rows and the media backdrop crossfade
-        // *inside* it as glass content, the media views draw over it as an overlay, and the one
-        // plate's shape simply morphs with the frame — a single outline at every frame is what
-        // makes the menu read as transforming into the media card.
+        // stretched outline over the arriving media card. The glass therefore stays mounted for
+        // the card's whole life — an empty glass host while media shows — and only the menu rows
+        // are ever its content. Everything media-related lives OUTSIDE the `GlassEffectContainer`
+        // as an ordinary ZStack sibling: on device (not in Simulator, which renders glass flat)
+        // the container composites its glass layer above plain views inside it, so a media
+        // overlay inside the container rendered as a blank black card under the plate. The black
+        // backdrop and media views crossfade above the container, clipped to the same morphing
+        // shape, so there is still a single outline at every frame.
         if #available(iOS 26, macOS 26, *) {
-            GlassEffectContainer(spacing: 12) {
+            ZStack {
+                GlassEffectContainer(spacing: 12) {
+                    ZStack {
+                        menuContent
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .animation(Self.contentAnimation, value: overlay)
+                    .clipShape(cardShape)
+                    // Interactive glass belongs at the one shape a finger actually touches:
+                    // glass cannot sample glass, so a second interactive layer inside the rows
+                    // only muddies them.
+                    .glassEffect(.regular.interactive(), in: cardShape)
+                }
                 ZStack {
                     if !isSourceMenu {
-                        // The media backdrop fades in inside the glass, darkening the plate into
-                        // the media card while the frame grows.
+                        // The media backdrop fades in over the plate, darkening the card into
+                        // the media surface while the frame grows.
                         Color.black.transition(.opacity)
                     }
-                    menuContent
+                    mediaContent
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .animation(Self.contentAnimation, value: overlay)
                 .clipShape(cardShape)
-                // Interactive glass belongs at the one shape a finger actually touches: glass
-                // cannot sample glass, so a second interactive layer inside the rows only muddies
-                // them. The rim this draws is also the media card's border — no separate stroke.
-                .glassEffect(.regular.interactive(), in: cardShape)
-                .overlay {
-                    mediaContent
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .animation(Self.contentAnimation, value: overlay)
-                        .clipShape(cardShape)
-                }
-                .shadow(color: .black.opacity(isSourceMenu ? 0 : 0.28), radius: 24, y: 10)
-                .accessibilityAction(.escape, onEscape)
             }
+            .overlay {
+                cardShape
+                    .stroke(.white.opacity(0.12), lineWidth: 0.5)
+                    .opacity(isSourceMenu ? 0 : 1)
+                    .allowsHitTesting(false)
+            }
+            .shadow(color: .black.opacity(isSourceMenu ? 0 : 0.28), radius: 24, y: 10)
+            .accessibilityAction(.escape, onEscape)
             .accessibilityAddTraits(.isModal)
         } else {
             ZStack {

@@ -45,8 +45,9 @@ The self-hosted `Deploy Grotto Server` workflow:
 5. verifies the existing private PostgreSQL service without mutating it
 6. in `deploy` mode, downloads and checksum-verifies those two assets, extracts
    only the compiled deploy operation, and uses it to verify and install the
-   immutable full-SHA release; `activate` verifies the installed release and
-   skips asset download and installation
+   immutable full-SHA release; both modes then use the unprivileged deployer to
+   verify the installed release's contents and product/Server identities, while
+   `activate` skips asset download and installation
 7. renders `config/server.env` from the workflow revision's `.env.schema` under
    `varlock run`, mode `0600` plus one ACL entry granting `_grotto_server` read,
    after proving the released Server reads exactly the names that contract
@@ -55,9 +56,11 @@ The self-hosted `Deploy Grotto Server` workflow:
 8. runs the candidate's migration program under `varlock run`, with the
    migration credential resolved from 1Password, and records the exact
    successful migrations in the job summary
-9. switches `current`, bootstraps the exact root-owned Server plist when its
-   label is not loaded, otherwise restarts only `com.grotto.server`, and proves
-   local health
+9. asks the narrow root-owned activation helper to switch `current`, bootstrap
+   the exact root-owned Server plist when its label is not loaded, otherwise
+   restart only `com.grotto.server`, and prove local health; the helper accepts
+   only a contained full-SHA release directory and does not reinterpret release
+   metadata or component versions
 10. reads the delivered environment back names-only and fails on a name outside
     the delivered set, or on a production-required name of that set arriving
     missing or empty
@@ -65,12 +68,14 @@ The self-hosted `Deploy Grotto Server` workflow:
 12. rolls back to the exact previous SHA on failure; a failed first activation
     boots out the label it introduced before removing `current`
 
-`productVersion` is the website version. `sourceRevision` is the full immutable
-tag commit SHA. The release id is
-`<productVersion>+git.<first-12-sourceRevision>`, while the installation
+`productVersion` is the website version, `serverVersion` is the independently
+versioned Server artifact, and `sourceRevision` is the full immutable tag
+commit SHA. The release id is
+`<serverVersion>+git.<first-12-sourceRevision>`, while the installation
 directory is `releases/<full-sourceRevision>`. `release.json`, the artifact
-checksum, startup logs, and activation output carry the product version, full
-revision, and content digest. Public `/healthz` does not.
+checksum, deploy verification, and startup logs carry the product and Server
+versions, full revision, and content digest. The narrow activation output carries
+only the activated revision, and public `/healthz` carries no release identity.
 
 The `Release` workflow builds the Server artifact once; the non-secret
 `VITE_CLERK_PUBLISHABLE_KEY` it inlines is a public literal in `.env.schema`.
@@ -148,9 +153,13 @@ The only privileged executable is
 `/usr/local/libexec/grotto/activate-grotto-server`. `/usr/local`,
 `/usr/local/libexec`, `/usr/local/libexec/grotto`, and the executable are
 root-owned and not group- or world-writable. The helper refuses to run from any
-other path or with insecure ownership. This does not create another application
-root: checkout, releases, configuration, data, and logs remain under
-`/Users/zknicker/srv/grotto`.
+other path or with insecure ownership. It accepts one full source SHA, proves
+that its activation target is a real directory at the exact contained release
+path, switches `current`, controls the system service, checks local health, and
+rolls back on failure. Artifact identity, versions, checksums, installation,
+configuration, and migrations remain the unprivileged deployer's responsibility.
+This does not create another application root: checkout, releases,
+configuration, data, and logs remain under `/Users/zknicker/srv/grotto`.
 
 PostgreSQL is the only Grotto container. The canonical definition is the
 repository's `apps/server/compose.yml`; the deploy job verifies the running
@@ -319,8 +328,9 @@ secret source, and rollback release before changing the host.
     it names only that exact executable; the helper enforces the full-SHA
     argument contract. This is the runner's only NOPASSWD command. Install
     reviewed launchd plists separately; ordinary release workflows never update
-    these privileged assets. Reinstall the helper through this operator gate
-    only when its activation or validation contract changes.
+    these privileged assets. The helper owns only the contained path switch,
+    system-service restart, health check, and rollback. Reinstall it through
+    this operator gate only when that narrow activation contract changes.
 11. Manually dispatch the exact published Grotto `vX.Y.Z`, its Server artifact `X.Y.Z`, and the
     release source SHA in `deploy` mode. This seeds
     the first immutable release through the same download, verification,

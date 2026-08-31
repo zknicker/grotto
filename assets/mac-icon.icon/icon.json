@@ -4,81 +4,125 @@
   ],
   "fill" : {
     "linear-gradient" : [
-      "display-p3:0.02540,0.23240,0.65473,1.00000",
-      "display-p3:0.00831,0.09829,0.28572,1.00000"
+      "display-p3:0.11125,0.11071,0.11180,1.00000",
+      "display-p3:0.07147,0.07147,0.07147,1.00000"
     ]
   },
   "groups" : [
     {
-      "blend-mode" : "normal",
       "blur-material" : null,
       "layers" : [
         {
-          "glass" : false,
-          "image-name" : "Untitled Project - New Group.svg",
-          "name" : "Untitled Project - New Group",
+          "glass" : true,
+          "image-name" : "Untitled Project - New Group (1).png",
+          "name" : "Untitled Project - New Group (1)",
           "position" : {
-            "scale" : 1.29,
+            "scale" : 0.52,
             "translation-in-points" : [
-              0,
-              -21
+              83.10000000000002,
+              -101.92000000000002
             ]
           }
         },
         {
-          "blend-mode" : "normal",
-          "fill-specializations" : [
-            {
-              "value" : {
-                "solid" : "display-p3:0.99902,0.99902,0.99902,1.00000"
-              }
-            },
-            {
-              "appearance" : "dark",
-              "value" : {
-                "solid" : "display-p3:0.99902,0.99902,0.99902,1.00000"
-              }
-            }
-          ],
-          "glass" : true,
-          "image-name" : "Untitled Project - Vector.svg",
-          "name" : "Untitled Project - Vector",
-          "opacity" : 0.97,
+          "hidden" : true,
+          "image-name" : "Untitled Project - New Group.png",
+          "name" : "Untitled Project - New Group",
           "position" : {
-            "scale" : 1.13,
+            "scale" : 0.42,
             "translation-in-points" : [
-              12.76023816672495,
-              -7.137749425136645
+              99,
+              -150
             ]
           }
         }
       ],
-      "lighting" : "individual",
       "refractivity" : {
-        "depth" : 0,
-        "enabled" : true,
-        "strength" : 1
+        "depth" : 0.968828125,
+        "enabled" : false,
+        "strength" : 0.4397265625
       },
       "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
+        "kind" : "none",
+        "opacity" : 0.88
       },
-      "specular" : true,
       "translucency-specializations" : [
         {
           "value" : {
             "enabled" : true,
-            "value" : 0.66
+            "value" : 0.39
           }
         },
         {
-          "appearance" : "dark",
+          "appearance" : "tinted",
           "value" : {
-            "enabled" : true,
-            "value" : 0.59
+            "enabled" : false,
+            "value" : 0.39
           }
         }
       ]
+    },
+    {
+      "blur-material" : null,
+      "layers" : [
+        {
+          "glass" : false,
+          "hidden" : false,
+          "image-name" : "Untitled Project - ChatGPT Image Aug 30, 2026, 05_33_26 PM.png",
+          "name" : "Untitled Project - ChatGPT Image Aug 30, 2026, 05_33_26 PM",
+          "position" : {
+            "scale" : 0.46,
+            "translation-in-points" : [
+              9,
+              20
+            ]
+          }
+        }
+      ],
+      "refractivity" : {
+        "depth" : 0.09015625,
+        "enabled" : true,
+        "strength" : 1
+      },
+      "shadow" : {
+        "kind" : "none",
+        "opacity" : 0
+      },
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0.2
+      }
+    },
+    {
+      "blur-material" : 0.5,
+      "layers" : [
+        {
+          "hidden" : false,
+          "image-name" : "Untitled Project - ChatGPT Image Aug 30, 2026, 05_33_26 PM (1).png",
+          "name" : "Untitled Project - ChatGPT Image Aug 30, 2026, 05_33_26 PM (1)",
+          "position" : {
+            "scale" : 0.48,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "refractivity" : {
+        "depth" : 0,
+        "enabled" : true,
+        "strength" : 0.5
+      },
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 1.1
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0
+      }
     }
   ],
   "supported-platforms" : {

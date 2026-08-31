@@ -108,6 +108,12 @@ public struct ChatScreenView: View {
                     onSend: onSend
                 )
                 .padding(.bottom, chatBottomInset)
+                // The shell ignores the keyboard safe area, so this manual inset is the only
+                // keyboard response the canvas has — and it arrives as plain data through a
+                // GeometryReader, outside the keyboard's own animation transaction. Without
+                // this, the transcript and composer teleport to the keyboard-up layout while
+                // the keyboard is still sliding in below them.
+                .animation(ComposerKeyboardMotion.travel, value: chatBottomInset)
                 .openingEntrance(.composer)
             }
             // The portal is drawn in an overlay window above the keyboard, measured against the

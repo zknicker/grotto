@@ -1,5 +1,13 @@
 import SwiftUI
 
+/// The spring UIKit drives the keyboard with. The Chat canvas ignores the keyboard safe area and
+/// re-applies the inset by hand, so any layout that follows the keyboard has to run this same
+/// curve or it detaches from the keyboard's motion — these constants are the community-documented
+/// match for the system keyboard animation, stable across iOS releases.
+enum ComposerKeyboardMotion {
+    static let travel: Animation = .interpolatingSpring(mass: 3, stiffness: 1000, damping: 500)
+}
+
 /// How the attachment portal's menu enters, leaves, and answers a finger on it.
 enum ComposerPortalMotion {
     /// The menu pops out of the plus the way a context menu pops out of its control.

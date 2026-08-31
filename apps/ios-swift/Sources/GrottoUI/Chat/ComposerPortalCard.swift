@@ -16,46 +16,65 @@ struct ComposerPortalCard: View {
     /// Whether the card is the floating glass menu (true) or an opaque media surface.
     private var isSourceMenu: Bool { overlay == .sources }
 
+    /// How the card's contents crossfade while the frame morphs between overlays.
+    private static let contentAnimation: Animation = .smooth(duration: 0.22)
+
     var body: some View {
-        // One card, one identity, every overlay. `if #available` never flips at runtime, but a
-        // branch on the overlay would: the menu-to-media switch then removes one card and inserts
-        // another, and the morph the frame change should carry degrades to a crossfade. So the
-        // card stays neutral — clip, an opaque fill that swaps in for media, a stroke — and the
-        // glass belongs to the menu *content*, which already swaps under the morphing frame.
-        // Content inside a glass effect is what the container composites in its glass layer;
-        // glass as a sibling background instead draws that layer over the card's plain content
-        // and frosts the row labels out of existence.
+        // One card, one identity, one *surface*, every overlay. A branch on the overlay would
+        // remove one card and insert another, degrading the morph to a crossfade — and so would
+        // mounting or unmounting the glass at the menu-to-media flip: a leaving glass plate fades
+        // on the system's own schedule, not the content transition's, so it lingered as a second
+        // stretched outline over the arriving media card. The glass therefore lives on the card
+        // itself for the card's whole life. The menu rows and the media backdrop crossfade
+        // *inside* it as glass content, the media views draw over it as an overlay, and the one
+        // plate's shape simply morphs with the frame — a single outline at every frame is what
+        // makes the menu read as transforming into the media card.
         if #available(iOS 26, macOS 26, *) {
             GlassEffectContainer(spacing: 12) {
-                contents
-                    .clipShape(cardShape)
-                    .background {
-                        if !isSourceMenu {
-                            cardShape
-                                .fill(.black)
-                                .shadow(color: .black.opacity(0.28), radius: 24, y: 10)
-                        }
+                ZStack {
+                    if !isSourceMenu {
+                        // The media backdrop fades in inside the glass, darkening the plate into
+                        // the media card while the frame grows.
+                        Color.black.transition(.opacity)
                     }
-                    .overlay {
-                        cardShape
-                            .stroke(.white.opacity(0.12), lineWidth: 0.5)
-                            .opacity(isSourceMenu ? 0 : 1)
-                    }
+                    menuContent
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .animation(Self.contentAnimation, value: overlay)
+                .clipShape(cardShape)
+                // Interactive glass belongs at the one shape a finger actually touches: glass
+                // cannot sample glass, so a second interactive layer inside the rows only muddies
+                // them. The rim this draws is also the media card's border — no separate stroke.
+                .glassEffect(.regular.interactive(), in: cardShape)
+                .overlay {
+                    mediaContent
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .animation(Self.contentAnimation, value: overlay)
+                        .clipShape(cardShape)
+                }
+                .shadow(color: .black.opacity(isSourceMenu ? 0 : 0.28), radius: 24, y: 10)
+                .accessibilityAction(.escape, onEscape)
             }
             .accessibilityAddTraits(.isModal)
         } else {
-            contents
-                .background(fallbackBackground)
-                .clipShape(cardShape)
-                .overlay {
-                    cardShape.stroke(.white.opacity(0.12), lineWidth: 0.5)
-                }
-                .shadow(color: .black.opacity(0.28), radius: 24, y: 10)
-                .accessibilityAddTraits(.isModal)
+            ZStack {
+                menuContent
+                mediaContent
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .animation(Self.contentAnimation, value: overlay)
+            .accessibilityAction(.escape, onEscape)
+            .background(fallbackBackground)
+            .clipShape(cardShape)
+            .overlay {
+                cardShape.stroke(.white.opacity(0.12), lineWidth: 0.5)
+            }
+            .shadow(color: .black.opacity(0.28), radius: 24, y: 10)
+            .accessibilityAddTraits(.isModal)
         }
     }
 
-    /// The card's one shape — clip, fill, and stroke all take it, so they cannot drift apart.
+    /// The card's one shape — clip, glass, and fallback stroke all take it, so they cannot drift.
     ///
     /// Always a plain rounded rectangle, never a concentric shape: SwiftUI resolves `.concentric`
     /// against settled layout, not against each frame of an animation, so a concentric media card
@@ -67,12 +86,23 @@ struct ComposerPortalCard: View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
     }
 
-    private var contents: some View {
+    @ViewBuilder
+    private var menuContent: some View {
+        if overlay == .sources {
+            ComposerSourceMenu(
+                focusedSource: $focusedSource,
+                onCamera: { onShow(.camera) },
+                onPhotos: { onShow(.photos) },
+                onFiles: onFiles
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .transition(contentTransition)
+        }
+    }
+
+    @ViewBuilder
+    private var mediaContent: some View {
         ZStack {
-            if overlay == .sources {
-                sourceMenu
-                    .transition(contentTransition)
-            }
             if overlay == .photos {
                 #if os(iOS)
                 ComposerPhotoPickerView(
@@ -91,30 +121,6 @@ struct ComposerPortalCard: View {
                 ContentUnavailableView("Camera unavailable", systemImage: "camera")
                 #endif
             }
-        }
-        .animation(.smooth(duration: 0.22), value: overlay)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .accessibilityAction(.escape, onEscape)
-    }
-
-    /// The menu wears the card-sized glass itself, so its rows render inside the effect's
-    /// vibrancy context and leave with the content fade while the card's frame morphs on. The
-    /// interactive glass belongs here, at the one shape a finger actually touches: glass cannot
-    /// sample glass, so a second interactive layer inside the rows only muddies them.
-    @ViewBuilder
-    private var sourceMenu: some View {
-        let menu = ComposerSourceMenu(
-            focusedSource: $focusedSource,
-            onCamera: { onShow(.camera) },
-            onPhotos: { onShow(.photos) },
-            onFiles: onFiles
-        )
-        if #available(iOS 26, macOS 26, *) {
-            menu
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: cornerRadius))
-        } else {
-            menu
         }
     }
 

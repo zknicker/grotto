@@ -48,7 +48,15 @@ record or attempt according to the release record contract.
 ## Target publication and promotion
 
 When `ios` is `publish`, the single `Release` workflow runs the iOS target job after the release PR
-merges. The job signs, archives, and uploads the exact version/build pair. Automatic signing uses
+merges. A preview-Xcode job first compiles the canonical `.icon` and verifies that its compiled
+catalog still contains the authored light, dark, tinted, specular, and refractive icon stacks. The
+stable-Xcode job downloads that ephemeral artifact, excludes the source `.icon` from older
+`actool`, and installs the catalog during the archive before signing. The canonical Info.plist
+owns the matching icon metadata so Xcode's later plist processing cannot erase it.
+The artifact is a compiled form of the canonical source, not a flattened fallback, and is retained
+for one day only.
+
+The stable job signs, archives, and uploads the exact version/build pair. Automatic signing uses
 Apple Development for the archive. CI then downloads the one active **Grotto CI App Store** profile,
 exports the archive with that profile and Apple Distribution, and uploads the resulting IPA with
 Apple's `altool`. This avoids cloud-signing mutation permissions and requires no local Mac or

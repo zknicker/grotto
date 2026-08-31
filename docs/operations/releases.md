@@ -70,11 +70,13 @@ PR is the release's only human authorization gate; selected target jobs run to c
 second approval.
 
 The installed App icon source is `assets/mac-icon.icon`. The App release job uses GitHub's
-`xcode-27` image because Xcode 26.3 accepts the Icon Composer source but emits no ICNS file. The iOS
-release job uses the stable Xcode 26.6 toolchain on `macos-26`: Xcode 26.3 fails to compile the current
-Icon Composer source, while App Store Connect rejects archives built by the preview Xcode 27 image.
-Desktop icon compilation fails explicitly when the ICNS output is missing; do not check in a second
-generated representation.
+`xcode-27` image because older Xcode versions cannot compile the current Icon Composer 2 source.
+For iOS, a narrow `xcode-27` job compiles that source into the full icon stack and rejects output
+that lacks light, dark, tinted, specular, refractive, or 1024px renditions. The stable Xcode 26.6
+job then archives the app without recompiling the `.icon`, installs the verified catalog before
+code signing, exports, and uploads it. This split is required while App Store Connect rejects an
+archive built entirely by preview Xcode 27. Keep the `.icon` canonical; do not flatten it, remove
+Icon Composer 2 effects, or check in a generated representation.
 
 ## Target impact
 

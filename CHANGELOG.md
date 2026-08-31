@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.12.0 - 2026-08-31
+
+- Grotto for iPhone keeps Chat and Thread transcripts settled on the newest message without blank
+  or strobing viewports, and moves the Chat canvas continuously with the keyboard.
+- Grotto for iPhone keeps attachment-card corners rounded throughout the menu-to-media expansion.
+- Grotto App uses the current ghost mark in installed macOS metadata and across hosted Grotto
+  surfaces, and shows each component's progress during coordinated updates.
+- Server promotion verifies installed artifacts without granting release-management privileges to
+  the running Server process.
+
 ## v1.11.7 - 2026-08-31
 
 - Cove's clearer navigator avatar is now live in the hosted Grotto experience.

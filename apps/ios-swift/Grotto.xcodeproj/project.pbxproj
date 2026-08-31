@@ -269,7 +269,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "mac-icon";
 				CODE_SIGN_ENTITLEMENTS = Config/Grotto.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
@@ -277,7 +277,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.3;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = build.grotto.ios;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -354,7 +354,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "mac-icon";
 				CODE_SIGN_ENTITLEMENTS = Config/Grotto.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
@@ -362,7 +362,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.3;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = build.grotto.ios;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;

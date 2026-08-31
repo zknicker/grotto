@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.11.7 - 2026-08-31
+
+- Cove's clearer navigator avatar is now live in the hosted Grotto experience.
+- Server promotion now preserves the distinct Grotto product and Server artifact identities.
+
 ## v1.11.6 - 2026-08-31
 
 - Cove's clearer navigator avatar is now included in the hosted Grotto experience.

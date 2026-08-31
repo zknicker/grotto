@@ -1,8 +1,19 @@
 'use strict';
 
+const { existsSync } = require('node:fs');
+const path = require('node:path');
 const { desktopRuntimeDependencies } = require('./electron/runtime-dependencies.cjs');
 
 const releaseBaseUrl = process.env.GROTTO_RELEASE_BASE_URL?.replace(/\/+$/u, '');
+const assetCatalogPath = 'electron/generated-icons/Assets.car';
+const extraResources = existsSync(path.join(__dirname, assetCatalogPath))
+    ? [
+          {
+              from: assetCatalogPath,
+              to: 'Assets.car',
+          },
+      ]
+    : [];
 
 module.exports = {
     appId: 'build.grotto.desktop',
@@ -32,12 +43,7 @@ module.exports = {
         '!node_modules/**',
         `node_modules/{${desktopRuntimeDependencies.join(',')}}/**`,
     ],
-    extraResources: [
-        {
-            from: 'electron/generated-icons/Assets.car',
-            to: 'Assets.car',
-        },
-    ],
+    extraResources,
     mac: {
         // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder artifact macros are literal strings.
         artifactName: '${productName}_${version}_${arch}.${ext}',

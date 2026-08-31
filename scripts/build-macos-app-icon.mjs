@@ -3,6 +3,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { syncOptionalAssetCatalog } from './lib/macos-app-icon.mjs';
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(currentDirectory, '..');
@@ -55,10 +56,10 @@ try {
         { stdio: 'pipe' }
     );
 
-    cpSync(
-        path.join(outputDirectory, 'Assets.car'),
-        path.join(generatedIconsDirectory, 'Assets.car')
-    );
+    const copiedAssetCatalog = syncOptionalAssetCatalog({
+        destinationPath: path.join(generatedIconsDirectory, 'Assets.car'),
+        sourcePath: path.join(outputDirectory, 'Assets.car'),
+    });
     cpSync(compiledIconPath, path.join(iconsDirectory, 'AppIcon.icns'));
     cpSync(compiledIconPath, path.join(iconsDirectory, 'icon.icns'));
     execFileSync(
@@ -74,7 +75,9 @@ try {
         { stdio: 'pipe' }
     );
 
-    console.log('[grotto] macOS app icon compiled from assets/mac-icon.icon');
+    console.log(
+        `[grotto] macOS app icon compiled from assets/mac-icon.icon (${copiedAssetCatalog ? 'Assets.car + ICNS' : 'ICNS'})`
+    );
 } finally {
     rmSync(path.dirname(stagedIconPath), { recursive: true, force: true });
     rmSync(outputDirectory, { recursive: true, force: true });

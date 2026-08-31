@@ -29,6 +29,9 @@ const publishIOSSource = readFileSync(
     path.join(repositoryRoot, 'scripts/release/publish-ios.mjs'),
     'utf8'
 );
+const websitePackage = JSON.parse(
+    readFileSync(path.join(repositoryRoot, 'apps/website/package.json'), 'utf8')
+);
 
 test('summary and Apple lifecycle helpers expose outcomes and clean temporary files', () => {
     const directory = mkdtempSync(path.join(tmpdir(), 'grotto-release-test-'));
@@ -157,6 +160,10 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
         /name: Upload iOS[\s\S]*?DEVELOPER_DIR: \/Applications\/Xcode_26\.3\.app\/Contents\/Developer[\s\S]*?bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
     );
     assert.match(workflow, /run: bun run publish:desktop/);
+    assert.ok(
+        websitePackage.scripts['desktop:publish'].indexOf('check-desktop-artifacts.mjs') <
+            websitePackage.scripts['desktop:publish'].indexOf('publish-desktop.mjs')
+    );
     assert.match(workflow, /run: bun run release:publish/);
     assert.match(
         workflow,

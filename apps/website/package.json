@@ -15,7 +15,7 @@
     "desktop:build:unsigned": "bun run build:desktop:icons && node ../../scripts/release/build-desktop-unsigned.mjs",
     "desktop:build:app": "bun run build:desktop:icons && bun x electron-builder --config electron-builder.config.cjs --mac dir",
     "desktop:build:release": "bun run build:desktop:icons && node ../../scripts/release/build-desktop-release.mjs",
-    "desktop:publish": "bun run desktop:build:release && node ../../scripts/release/publish-desktop.mjs",
+    "desktop:publish": "bun run desktop:build:release && node ../../scripts/release/check-desktop-artifacts.mjs && node ../../scripts/release/publish-desktop.mjs",
     "desktop:release": "bun run desktop:build:app && node ../../scripts/install-grotto-app.mjs",
     "desktop:dev": "node ../../scripts/run-dev-stack.mjs desktop",
     "desktop:dev:launch": "node ../../scripts/run-desktop-dev.mjs",

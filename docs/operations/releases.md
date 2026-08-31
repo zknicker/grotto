@@ -69,10 +69,10 @@ Environment and verifies the public Server and hosted Grotto App. Reviewing and 
 PR is the release's only human authorization gate; selected target jobs run to completion without a
 second approval.
 
-The desktop App icon source is `assets/mac-icon.icon`. Desktop release packaging pins Xcode 26.3 or
-newer because older `actool` versions can accept an Icon Composer source without emitting the
-required ICNS output. Icon compilation fails explicitly when that output is missing; do not check in
-a second generated icon representation.
+The installed App icon source is `assets/mac-icon.icon`. App and iOS release jobs use GitHub's
+`xcode-27` image because Xcode 26.3 accepts the Icon Composer source but fails to produce the complete
+native outputs: desktop gets no ICNS file and iOS archive compilation fails. Desktop icon compilation
+fails explicitly when the ICNS output is missing; do not check in a second generated representation.
 
 ## Target impact
 

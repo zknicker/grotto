@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { syncOptionalAssetCatalog } from './macos-app-icon.mjs';
+import { selectCompiledIcon, syncOptionalAssetCatalog } from './macos-app-icon.mjs';
 
 const temporaryDirectories = [];
 
@@ -35,6 +35,45 @@ describe('syncOptionalAssetCatalog', () => {
 
         expect(syncOptionalAssetCatalog({ destinationPath, sourcePath })).toBe(true);
         expect(readFileSync(destinationPath, 'utf8')).toBe('compiled');
+    });
+});
+
+describe('selectCompiledIcon', () => {
+    test('uses the checked-in fallback when actool emits no ICNS file', () => {
+        const directory = makeTemporaryDirectory();
+        const fallbackIconPath = path.join(directory, 'fallback.icns');
+        writeFileSync(fallbackIconPath, 'fallback');
+
+        expect(
+            selectCompiledIcon({
+                compiledIconPath: path.join(directory, 'missing.icns'),
+                fallbackIconPath,
+            })
+        ).toEqual({ kind: 'fallback', path: fallbackIconPath });
+    });
+
+    test('prefers actool output when the installed Xcode supports Icon Composer sources', () => {
+        const directory = makeTemporaryDirectory();
+        const compiledIconPath = path.join(directory, 'compiled.icns');
+        const fallbackIconPath = path.join(directory, 'fallback.icns');
+        writeFileSync(compiledIconPath, 'compiled');
+        writeFileSync(fallbackIconPath, 'fallback');
+
+        expect(selectCompiledIcon({ compiledIconPath, fallbackIconPath })).toEqual({
+            kind: 'compiled',
+            path: compiledIconPath,
+        });
+    });
+
+    test('fails explicitly when neither icon representation exists', () => {
+        const directory = makeTemporaryDirectory();
+
+        expect(() =>
+            selectCompiledIcon({
+                compiledIconPath: path.join(directory, 'missing.icns'),
+                fallbackIconPath: path.join(directory, 'missing-fallback.icns'),
+            })
+        ).toThrow('actool emitted no ICNS file and the checked-in fallback is missing');
     });
 });
 

@@ -60,6 +60,12 @@ Environment and verifies the public Server and hosted Grotto App. Reviewing and 
 PR is the release's only human authorization gate; selected target jobs run to completion without a
 second approval.
 
+The desktop App icon source is `assets/mac-icon.icon`. Release runners whose Xcode predates Icon
+Composer use the matching `assets/mac-icon-fallback.icns` instead. After changing the source on an
+Xcode version that can compile it, run `node scripts/build-macos-app-icon.mjs --update-fallback` and
+commit both assets. Ordinary icon builds prefer current Xcode output and use the fallback only when
+that output is unavailable.
+
 ## Target impact
 
 Release preparation starts with `bun run release:collect-changelog-context`, before versions or the

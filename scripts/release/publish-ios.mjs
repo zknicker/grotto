@@ -4,7 +4,12 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-
+import {
+    releaseState,
+    waitForIOSBuildStatus,
+    writeIOSBuildStatusErrorSummary,
+    writeIOSBuildStatusSummary,
+} from './ios-build-status.mjs';
 import { installIOSProvisioningProfile } from './ios-provisioning-profile.mjs';
 import {
     appStoreConnectAuthenticationArgs,
@@ -90,7 +95,26 @@ async function main(input) {
     run('xcrun', appStoreConnectUploadArgs(ipaPath));
 
     console.log(`Uploaded iOS ${input.version} (${input.buildNumber}) to App Store Connect`);
-    console.log('Wait for Apple processing, then add the build to the internal TestFlight group.');
+    try {
+        const build = await waitForIOSBuildStatus({
+            buildNumber: input.buildNumber,
+            timeoutMs: 300_000,
+            version: input.version,
+        });
+        const state = releaseState(build.processingState);
+        writeIOSBuildStatusSummary(build);
+        console.log(
+            `App Store Connect reports iOS ${input.version} (${input.buildNumber}) ${state}`
+        );
+        if (state === 'failed') {
+            fail(`Apple processing ended ${build.processingState}`);
+        }
+    } catch (error) {
+        writeIOSBuildStatusErrorSummary();
+        console.warn(
+            `App Store processing evidence unavailable: ${error instanceof Error ? error.message : String(error)}`
+        );
+    }
 }
 
 function assertProvisioningProfileReadable(profilePath) {

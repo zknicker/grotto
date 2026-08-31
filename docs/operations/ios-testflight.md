@@ -52,17 +52,24 @@ merges. The job signs, archives, and uploads the exact version/build pair. Autom
 Apple Development for the archive. CI then downloads the one active **Grotto CI App Store** profile,
 exports the archive with that profile and Apple Distribution, and uploads the resulting IPA with
 Apple's `altool`. This avoids cloud-signing mutation permissions and requires no local Mac or
-TestFlight browser login. The job does not invite testers or submit the app for public App Review.
+TestFlight browser login. After upload, the job polls Apple's read-only build API for up to five
+minutes and writes the exact observed processing state to its summary. The job does not invite
+testers, change TestFlight groups, or submit the app for public App Review.
 
-After Apple finishes processing:
+If the read-only status probe is temporarily unavailable after upload, do not rerun the upload job:
+the build number is already consumed. Retry only `bun run ios:status <version> --build-number
+<number>` through the approved Tooling environment and record the resulting evidence.
 
-1. Resolve any build warning or export-compliance prompt. Ordinary HTTPS use is declared
-   non-exempt encryption.
-2. Add the processed build to **Grotto Internal** and provide **What to Test** notes.
-3. Install it through TestFlight on a real iPhone and smoke sign-in, Server discovery, Chat send
-   and realtime receive, photo attachment, Thread reply, and foreground recovery.
-4. Record the processed build, tester distribution, and device evidence in the release record and
-   operator handoff.
+The **Grotto Internal** group automatically distributes new processed builds. Routine internal
+releases therefore require no per-build group assignment or **What to Test** edit. `VALID` proves
+that Apple processed the uploaded build; it does not prove tester distribution, and the Developer
+API key intentionally cannot mutate or inspect beta-group membership.
+
+Manual operator action is exceptional. Request it only when Apple reports failed processing or an
+export-compliance warning, or when a processed build is observed not to auto-distribute. A real
+iPhone smoke of sign-in, Server discovery, Chat send and realtime receive, photo attachment, Thread
+reply, and foreground recovery is useful release verification, but absence of that optional proof
+does not turn a routine internal release into an operator blocker.
 
 TestFlight builds expire after 90 days. Never reuse a build number.
 

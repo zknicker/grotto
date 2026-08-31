@@ -107,8 +107,10 @@ final-Server sequence. Each distinct checkpoint follows the one-PR/one-workflow 
 the sequence and rollback order are not replaced by ordinary target selection.
 
 Use [iOS TestFlight](ios-testflight.md) for App Store Connect setup, build-number continuity,
-processing, internal distribution, and real-device smoke. A processed TestFlight build is published
-evidence; tester invitation and production App Store promotion are separate actions.
+processing, automatic internal distribution, and real-device smoke. The release workflow records
+the exact Apple processing state. A processed TestFlight build is published evidence; internal
+distribution is automatic, while tester invitation and production App Store promotion are separate
+actions.
 
 ## Production Server promotion
 

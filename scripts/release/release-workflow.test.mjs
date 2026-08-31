@@ -211,6 +211,8 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(setupAppleSource, /base64 -D/);
     assert.match(publishIOSSource, /installIOSProvisioningProfile/);
     assert.match(publishIOSSource, /appStoreConnectUploadArgs/);
+    assert.match(publishIOSSource, /waitForIOSBuildStatus/);
+    assert.match(publishIOSSource, /writeIOSBuildStatusSummary/);
     for (const identity of [
         'Apple Development',
         'Apple Distribution',

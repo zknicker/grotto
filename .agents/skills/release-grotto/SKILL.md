@@ -205,9 +205,16 @@ evidence.
 
 ## 6. Write one release handoff
 
-After target jobs and any required Server promotion finish, send one operator-facing message. A
-terminal workflow may still require a `pending operator` handoff while iOS processing, internal
-distribution, or device verification remains outstanding.
+After target jobs and any required Server promotion finish, send one operator-facing message. For
+iOS, use the exact state emitted by the `Upload iOS` job's App Store status probe. `VALID` means
+`processed`, not `distributed`. The **Grotto Internal** group automatically distributes processed
+builds, so missing beta-group or device evidence alone is not an operator action and must not make
+the release `pending operator`. Request manual action only for failed processing, an explicit
+compliance warning, or an observed automatic-distribution failure.
+
+If the status probe reports unavailable evidence or only `processing`, retry the read-only query as
+`agent-varlock --tooling -- bun run ios:status <version> --build-number <number>`. Never rerun the
+upload job to obtain status evidence; every upload consumes its build number.
 Use actual evidence, not the planned record or changed files alone:
 
 ```text
@@ -227,7 +234,8 @@ Links: <PR, Release run, target artifacts, and deploy run>
 
 List only actionable updates in `Required updates`, naming the exact version and action. Still list
 all five targets with their actual published/deployed state. For iOS, use only the exact furthest
-proven state above; never call it `released` before the required state is evidenced. Distinguish
+proven state above; never infer beta-group membership from `VALID`. Do not copy a generic TestFlight
+checklist into `Required updates`. Distinguish
 `published` from `deployed`, name failed or missing proof, and describe destructive data work and
 recoverability.
 

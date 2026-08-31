@@ -122,6 +122,23 @@ test('direct shipping paths require their owning targets', async () => {
     }
 });
 
+test('shared Icon Composer source requires both installed App targets', async () => {
+    const impact = await calculateReleaseImpact({
+        ledger,
+        resolveTag: async (tag) =>
+            ({
+                'computer-v1.4.8': sha('c'),
+                'v1.8.24': sha('a'),
+                'v1.8.25': sha('b'),
+            })[tag] ?? null,
+        listChangedFiles: async () => ['assets/mac-icon.icon/icon.json'],
+    });
+
+    assert.equal(impact.targets.app.status, 'required');
+    assert.equal(impact.targets.ios.status, 'required');
+    assert.equal(impact.targets.server.status, 'unchanged');
+});
+
 test('Agent actions and their Server implementation require a Grotto Agent release', async () => {
     const impact = await calculateReleaseImpact({
         ledger,

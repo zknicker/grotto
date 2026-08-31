@@ -386,6 +386,16 @@ the keyboard bottom inset it lays out against (`ComposerPortalFreeze`), so the t
 stay pixel-static for the portal's whole lifecycle and the keyboard is restored on close only if it
 was up when the portal opened.
 
+The Chat canvas answers the keyboard by hand, and hand-applied insets must run the keyboard's own
+curve. The shell ignores the keyboard safe area and re-applies the height as a bottom padding read
+from a `GeometryReader` — plain data that never inherits the keyboard's animation transaction, so
+without an explicit animation the transcript and composer teleported to the keyboard-up layout
+while the keyboard was still sliding in beneath them. `ComposerKeyboardMotion.travel` is the spring
+UIKit drives the keyboard with, and the canvas animates its manual inset on it
+(`ChatScreenView`), which is what keeps the composer riding the keyboard's top edge through the
+rise and the interactive dismissal. A pushed screen such as Thread keeps the system bar and native
+keyboard avoidance, and needs none of this.
+
 The card overlaps the keyboard because it is drawn in a window of its own. The keyboard is not part of
 the app's window — iOS paints it in `UIRemoteKeyboardWindow`, above everything the app draws — so a
 portal layered inside the app window is cut off wherever the two meet, whatever its z-order. The
@@ -403,15 +413,16 @@ composer reports `composerSurfaceFrame` and `morphDestinationFrame` in `.global`
 which the two windows share exactly, the app being portrait-only and full-screen.
 
 The media card is inset a uniform 12pt from the display on both sides and the floor
-(`ComposerPortalGeometry.nestingInset`), and from iOS 26 it asks for corners concentric with the
-display's own rather than naming a radius: `.rect(corners: .concentric, isUniform: true)`, uniform
-because the card's top corners are nowhere near the display's and a per-corner resolution squares them
-off. The inset has to be uniform for that to resolve to one radius. Pre-26 it falls back to
-`ComposerPortalGeometry.cornerRadius`, which is also the source menu's own radius: the menu floats
-mid-screen with no bezel relationship and keeps 30. The menu-to-media morph therefore steps its corner
-rather than interpolating it — two `Shape` types never interpolate — and the shape is erased through
-`AnyShape` so that stays one card whose corner changes while its frame morphs, not two cards
-cross-fading.
+(`ComposerPortalGeometry.nestingInset`), and rounds its corners with a fixed *number*
+(`ComposerPortalGeometry.mediaCornerRadius`, an approximation of the display's rounding minus the
+inset) — never with a concentric *shape*. SwiftUI resolves `.concentric` against settled layout,
+not against each frame of an animation, so a card clipped with it kept a square corner for the
+whole menu-to-media morph and only rounded once its frame arrived; and the resolved concentric
+value cannot be read back as a number on iOS 26 (a UIKit `containerConcentric` probe leaves
+`layer.cornerRadius` at 0, and `GeometryProxy.concentricCornerRadii` arrives only in iOS 27). The
+card therefore clips with one continuous rounded rectangle at every overlay: the source menu keeps
+30 (it floats mid-screen with no bezel relationship), and the menu-to-media morph interpolates the
+radius alongside the frame, so the corner travels with the card instead of arriving after it.
 
 The source menu that opens the portal is placed on the composer input it came
 from: its bottom edge centres the card on the input, never sinking below the composer's own bottom

@@ -10,6 +10,7 @@ import {
     writeIOSBuildStatusErrorSummary,
     writeIOSBuildStatusSummary,
 } from './ios-build-status.mjs';
+import { assertInstalledIOSIcon, assertIOSIconArtifact } from './ios-icon-artifact.mjs';
 import { installIOSProvisioningProfile } from './ios-provisioning-profile.mjs';
 import {
     appStoreConnectAuthenticationArgs,
@@ -52,6 +53,11 @@ async function main(input) {
     }
 
     const authentication = appStoreConnectAuthenticationArgs();
+    const iconArtifactDirectory = process.env.GROTTO_PRECOMPILED_IOS_ICON_DIR;
+    if (!iconArtifactDirectory) {
+        fail('GROTTO_PRECOMPILED_IOS_ICON_DIR is required for an iOS release');
+    }
+    assertIOSIconArtifact(iconArtifactDirectory);
     const provisioningProfile = await installIOSProvisioningProfile();
     const outputRoot = mkdtempSync(path.join(tmpdir(), 'grotto-ios-release-'));
     const archivePath = path.join(outputRoot, 'Grotto.xcarchive');
@@ -81,7 +87,14 @@ async function main(input) {
         `DEVELOPMENT_TEAM=${teamId}`,
         `MARKETING_VERSION=${input.version}`,
         `CURRENT_PROJECT_VERSION=${input.buildNumber}`,
+        'ENABLE_USER_SCRIPT_SANDBOXING=NO',
+        'EXCLUDED_SOURCE_FILE_NAMES=mac-icon.icon',
+        `GROTTO_PRECOMPILED_IOS_ICON_DIR=${iconArtifactDirectory}`,
     ]);
+    assertInstalledIOSIcon({
+        appDirectory: path.join(archivePath, 'Products', 'Applications', 'Grotto.app'),
+        artifactDirectory: iconArtifactDirectory,
+    });
     run('xcodebuild', [
         '-exportArchive',
         '-archivePath',
@@ -92,6 +105,11 @@ async function main(input) {
         exportOptionsPath,
     ]);
     const ipaPath = findExportedIPA(exportPath);
+    assertExportedIOSIcon({
+        artifactDirectory: iconArtifactDirectory,
+        ipaPath,
+        outputRoot,
+    });
     run('xcrun', appStoreConnectUploadArgs(ipaPath));
 
     console.log(`Uploaded iOS ${input.version} (${input.buildNumber}) to App Store Connect`);
@@ -133,6 +151,20 @@ function findExportedIPA(exportPath) {
         fail(`expected exactly one exported IPA, found ${ipaFiles.length}`);
     }
     return path.join(exportPath, ipaFiles[0]);
+}
+
+function assertExportedIOSIcon({ artifactDirectory, ipaPath, outputRoot }) {
+    const extractionRoot = mkdtempSync(path.join(outputRoot, 'ipa-'));
+    run('unzip', ['-q', ipaPath, '-d', extractionRoot]);
+    const payloadDirectory = path.join(extractionRoot, 'Payload');
+    const apps = readdirSync(payloadDirectory).filter((file) => file.endsWith('.app'));
+    if (apps.length !== 1) {
+        fail(`expected exactly one app in the exported IPA, found ${apps.length}`);
+    }
+    assertInstalledIOSIcon({
+        appDirectory: path.join(payloadDirectory, apps[0]),
+        artifactDirectory,
+    });
 }
 
 function parseArgs() {

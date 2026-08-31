@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.12.4 - 2026-08-31
+
+- Grotto for iPhone ships the authored layered Liquid Glass icon and shows a clear empty state in
+  new Chats.
+- Grotto for iPhone keeps the attachment menu-to-media transition on one continuous glass surface.
+
 ## v1.12.3 - 2026-08-31
 
 - Grotto App and Grotto for iPhone ship the new translucent, iridescent ghost icon.

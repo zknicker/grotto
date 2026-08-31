@@ -146,11 +146,35 @@ jobs:
       - name: Clean up Apple material
         if: ${{ always() }}
         run: bash scripts/release/cleanup-apple-material.sh
-  upload_ios:
-    name: Upload iOS
+  prepare_ios_icon:
+    name: Prepare iOS icon
     needs: plan
     if: >-
+      needs.plan.result == 'success' && github.event_name == 'push' &&
+      needs.plan.outputs.initial_ledger_migration == 'false' &&
+      needs.plan.outputs.publish_ios == 'true'
+    runs-on: xcode-27
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+      - name: Compile and verify full-fidelity iOS icon
+        run: node scripts/release/prepare-ios-icon.mjs build/ios-icon
+      - name: Upload compiled iOS icon
+        uses: actions/upload-artifact@v4
+        with:
+          name: grotto-ios-icon
+          path: build/ios-icon
+          if-no-files-found: error
+          retention-days: 1
+  upload_ios:
+    name: Upload iOS
+    needs: [plan, prepare_ios_icon]
+    if: >-
       needs.plan.result == 'success' &&
+      needs.prepare_ios_icon.result == 'success' &&
       github.event_name == 'push' &&
       needs.plan.outputs.initial_ledger_migration == 'false' &&
       needs.plan.outputs.publish_ios == 'true'
@@ -158,12 +182,19 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: read
-    env: { DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer }
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      GROTTO_PRECOMPILED_IOS_ICON_DIR: ${{ github.workspace }}/build/ios-icon
     steps:
       - name: Check out release source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Download compiled iOS icon
+        uses: actions/download-artifact@v4
+        with:
+          name: grotto-ios-icon
+          path: build/ios-icon
       - name: Set up release dependencies
         uses: ./.github/actions/setup-release-dependencies
         with:

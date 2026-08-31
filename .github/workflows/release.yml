@@ -146,43 +146,11 @@ jobs:
       - name: Clean up Apple material
         if: ${{ always() }}
         run: bash scripts/release/cleanup-apple-material.sh
-  prepare_ios_icon:
-    name: Prepare iOS icon
-    needs: plan
-    if: >-
-      needs.plan.result == 'success' && github.event_name == 'push' &&
-      needs.plan.outputs.initial_ledger_migration == 'false' &&
-      needs.plan.outputs.publish_ios == 'true'
-    runs-on: [self-hosted, macOS, ARM64, grotto-xcode27]
-    timeout-minutes: 15
-    permissions:
-      contents: read
-    env:
-      DEVELOPER_DIR: /Users/zknicker/Applications/Xcode-27.0.0-Beta.5.app/Contents/Developer
-    steps:
-      - name: Check out release source
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - name: Set up pinned Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 26.5.0
-      - name: Compile and verify full-fidelity iOS icon
-        run: node scripts/release/prepare-ios-icon.mjs build/ios-icon
-      - name: Upload compiled iOS icon
-        uses: actions/upload-artifact@v4
-        with:
-          name: grotto-ios-icon
-          path: build/ios-icon
-          if-no-files-found: error
-          retention-days: 1
   upload_ios:
     name: Upload iOS
-    needs: [plan, prepare_ios_icon]
+    needs: plan
     if: >-
       needs.plan.result == 'success' &&
-      needs.prepare_ios_icon.result == 'success' &&
       github.event_name == 'push' &&
       needs.plan.outputs.initial_ledger_migration == 'false' &&
       needs.plan.outputs.publish_ios == 'true'
@@ -192,17 +160,12 @@ jobs:
       contents: read
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
-      GROTTO_PRECOMPILED_IOS_ICON_DIR: ${{ github.workspace }}/build/ios-icon
+      GROTTO_PRECOMPILED_IOS_ICON_DIR: ${{ github.workspace }}/assets/ios-icon
     steps:
       - name: Check out release source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Download compiled iOS icon
-        uses: actions/download-artifact@v4
-        with:
-          name: grotto-ios-icon
-          path: build/ios-icon
       - name: Set up release dependencies
         uses: ./.github/actions/setup-release-dependencies
         with:

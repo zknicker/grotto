@@ -5,7 +5,14 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { assertInstalledIOSIcon, assertIOSIconRenditions } from './ios-icon-artifact.mjs';
+import {
+    assertInstalledIOSIcon,
+    assertIOSIconArtifact,
+    assertIOSIconRenditions,
+    iosIconArtifactDirectory,
+    requiredIOSIconXcodeBuild,
+    writeIOSIconArtifactManifest,
+} from './ios-icon-artifact.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -47,6 +54,10 @@ test('rejects a flattened icon without the authored glass stack', () => {
     );
 });
 
+test('committed icon artifact matches its canonical source and manifest', () => {
+    assert.doesNotThrow(() => assertIOSIconArtifact(iosIconArtifactDirectory));
+});
+
 test('installs the compiled catalog before signing', () => {
     const root = mkdtempSync(path.join(tmpdir(), 'grotto-ios-icon-install-'));
     const artifact = path.join(root, 'artifact');
@@ -61,6 +72,7 @@ test('installs the compiled catalog before signing', () => {
         path.join(artifact, 'assetcatalog_generated_info.plist'),
         '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleIcons</key><dict><key>CFBundlePrimaryIcon</key><dict><key>CFBundleIconName</key><string>mac-icon</string></dict></dict></dict></plist>'
     );
+    writeIOSIconArtifactManifest(artifact, requiredIOSIconXcodeBuild);
     writeFileSync(
         path.join(app, 'Info.plist'),
         '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleName</key><string>Grotto</string><key>CFBundleIcons</key><dict><key>CFBundlePrimaryIcon</key><dict><key>CFBundleIconName</key><string>mac-icon</string></dict></dict></dict></plist>'

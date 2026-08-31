@@ -148,7 +148,6 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     for (const jobName of [
         'Publish Computer',
         'Publish App',
-        'Prepare iOS icon',
         'Upload iOS',
         'Publish Server',
         'Promote Server',
@@ -168,15 +167,17 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     );
     assert.match(
         workflow,
-        /name: Prepare iOS icon[\s\S]*?runs-on: \[self-hosted, macOS, ARM64, grotto-xcode27\][\s\S]*?DEVELOPER_DIR: \/Users\/zknicker\/Applications\/Xcode-27\.0\.0-Beta\.5\.app\/Contents\/Developer[\s\S]*?persist-credentials: false[\s\S]*?node-version: 26\.5\.0[\s\S]*?node scripts\/release\/prepare-ios-icon\.mjs build\/ios-icon[\s\S]*?name: Upload iOS[\s\S]*?needs: \[plan, prepare_ios_icon\][\s\S]*?runs-on: macos-26[\s\S]*?DEVELOPER_DIR: \/Applications\/Xcode_26\.6\.app\/Contents\/Developer[\s\S]*?GROTTO_PRECOMPILED_IOS_ICON_DIR:[\s\S]*?bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
+        /name: Upload iOS[\s\S]*?needs: plan[\s\S]*?runs-on: macos-26[\s\S]*?DEVELOPER_DIR: \/Applications\/Xcode_26\.6\.app\/Contents\/Developer[\s\S]*?GROTTO_PRECOMPILED_IOS_ICON_DIR: \$\{\{ github\.workspace \}\}\/assets\/ios-icon[\s\S]*?bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
     );
-    assert.match(prepareIOSIconSource, /requiredXcodeBuild = '27A5237l'/);
+    assert.match(prepareIOSIconSource, /requiredIOSIconXcodeBuild/);
+    assert.doesNotMatch(workflow, /grotto-xcode27|prepare_ios_icon|grotto-ios-icon/);
     assert.match(publishIOSSource, /EXCLUDED_SOURCE_FILE_NAMES=mac-icon\.icon/);
     assert.match(
         publishIOSSource,
         /const ipaPath = findExportedIPA\(exportPath\);[\s\S]*?assertExportedIOSIcon\([\s\S]*?run\('xcrun', appStoreConnectUploadArgs\(ipaPath\)\)/
     );
     assert.match(publishIOSSource, /GROTTO_PRECOMPILED_IOS_ICON_DIR/);
+    assert.match(publishIOSSource, /inspectIOSIconArtifact\(iconArtifactDirectory\)/);
     assert.doesNotMatch(workflow, /Xcode_26\.3/u);
     assert.match(workflow, /bun run publish:desktop/);
     assert.ok(

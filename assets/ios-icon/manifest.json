@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "xcodeBuild": "27A5237l",
+  "compilation": {
+    "appIcon": "mac-icon",
+    "minimumDeploymentTarget": "18.0",
+    "platform": "iphoneos",
+    "targetDevice": "iphone"
+  },
+  "sourceSha256": "3cd1feaaffd73ca9409574258bcbb8583030cca12389c138a93d791f094edd73",
+  "files": {
+    "Assets.car": "4d1f7b9eae5f9b2091bc37deaedba4d2bbf831e3d9144e84a77aed04b2d162b2",
+    "assetcatalog_generated_info.plist": "7c3481276e5d05be982a7a7fa484b89690339920b4d3d0d2b31396b3d49335dc",
+    "mac-icon60x60@2x.png": "28fac1a6bde3e0930395cc133ff13b6bfec93a4db6310492d3d2edbbcec47077",
+    "mac-icon76x76@2x~ipad.png": "b550699148125bd0110756f713c2437f651d69d3e3760872bee1fc72ca3b6190"
+  }
+}

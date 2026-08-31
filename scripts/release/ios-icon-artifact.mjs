@@ -1,12 +1,25 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { repoRoot } from './release-utils.mjs';
+
+export const iosIconArtifactDirectory = path.join(repoRoot, 'assets', 'ios-icon');
+export const iosIconSourceDirectory = path.join(repoRoot, 'assets', 'mac-icon.icon');
+export const requiredIOSIconXcodeBuild = '27A5237l';
+export const iosIconCompilationOptions = {
+    appIcon: 'mac-icon',
+    minimumDeploymentTarget: '18.0',
+    platform: 'iphoneos',
+    targetDevice: 'iphone',
+};
 export const iosIconArtifactFiles = [
     'Assets.car',
     'assetcatalog_generated_info.plist',
     'mac-icon60x60@2x.png',
     'mac-icon76x76@2x~ipad.png',
 ];
+export const iosIconArtifactManifestFile = 'manifest.json';
 
 export function assertIOSIconArtifact(directory) {
     for (const file of iosIconArtifactFiles) {
@@ -14,6 +27,48 @@ export function assertIOSIconArtifact(directory) {
             throw new Error(`compiled iOS icon artifact is missing ${file}`);
         }
     }
+
+    const manifestPath = path.join(directory, iosIconArtifactManifestFile);
+    if (!existsSync(manifestPath)) {
+        throw new Error(`compiled iOS icon artifact is missing ${iosIconArtifactManifestFile}`);
+    }
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    if (manifest.schemaVersion !== 1) {
+        throw new Error('compiled iOS icon artifact has an unsupported manifest schema');
+    }
+    if (manifest.xcodeBuild !== requiredIOSIconXcodeBuild) {
+        throw new Error(
+            `compiled iOS icon artifact requires Xcode build ${requiredIOSIconXcodeBuild}`
+        );
+    }
+    if (JSON.stringify(manifest.compilation) !== JSON.stringify(iosIconCompilationOptions)) {
+        throw new Error('compiled iOS icon artifact does not match the current actool recipe');
+    }
+    if (manifest.sourceSha256 !== hashDirectory(iosIconSourceDirectory)) {
+        throw new Error('compiled iOS icon artifact does not match assets/mac-icon.icon');
+    }
+    for (const file of iosIconArtifactFiles) {
+        if (manifest.files?.[file] !== hashFile(path.join(directory, file))) {
+            throw new Error(`compiled iOS icon artifact checksum failed for ${file}`);
+        }
+    }
+}
+
+export function writeIOSIconArtifactManifest(directory, xcodeBuild) {
+    const manifest = {
+        schemaVersion: 1,
+        xcodeBuild,
+        compilation: iosIconCompilationOptions,
+        sourceSha256: hashDirectory(iosIconSourceDirectory),
+        files: Object.fromEntries(
+            iosIconArtifactFiles.map((file) => [file, hashFile(path.join(directory, file))])
+        ),
+    };
+    writeFileSync(
+        path.join(directory, iosIconArtifactManifestFile),
+        `${JSON.stringify(manifest, null, 2)}\n`,
+        'utf8'
+    );
 }
 
 export function inspectIOSIconArtifact(directory) {
@@ -94,4 +149,33 @@ export function assertIOSIconRenditions(renditions) {
             throw new Error(`compiled iOS icon is missing its ${appearance} 1024px rendition`);
         }
     }
+}
+
+function hashDirectory(directory) {
+    const hash = createHash('sha256');
+    for (const file of listFiles(directory)) {
+        hash.update(file);
+        hash.update('\0');
+        hash.update(readFileSync(path.join(directory, file)));
+        hash.update('\0');
+    }
+    return hash.digest('hex');
+}
+
+function hashFile(file) {
+    return createHash('sha256').update(readFileSync(file)).digest('hex');
+}
+
+function listFiles(directory, relativeDirectory = '') {
+    const entries = readdirSync(path.join(directory, relativeDirectory), { withFileTypes: true });
+    const files = [];
+    for (const entry of entries) {
+        const relativePath = path.join(relativeDirectory, entry.name);
+        if (entry.isDirectory()) {
+            files.push(...listFiles(directory, relativePath));
+        } else if (entry.isFile()) {
+            files.push(relativePath.split(path.sep).join('/'));
+        }
+    }
+    return files.sort();
 }

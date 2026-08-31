@@ -10,7 +10,7 @@ import {
     writeIOSBuildStatusErrorSummary,
     writeIOSBuildStatusSummary,
 } from './ios-build-status.mjs';
-import { assertInstalledIOSIcon, assertIOSIconArtifact } from './ios-icon-artifact.mjs';
+import { assertInstalledIOSIcon, inspectIOSIconArtifact } from './ios-icon-artifact.mjs';
 import { installIOSProvisioningProfile } from './ios-provisioning-profile.mjs';
 import {
     appStoreConnectAuthenticationArgs,
@@ -57,7 +57,7 @@ async function main(input) {
     if (!iconArtifactDirectory) {
         fail('GROTTO_PRECOMPILED_IOS_ICON_DIR is required for an iOS release');
     }
-    assertIOSIconArtifact(iconArtifactDirectory);
+    inspectIOSIconArtifact(iconArtifactDirectory);
     const provisioningProfile = await installIOSProvisioningProfile();
     const outputRoot = mkdtempSync(path.join(tmpdir(), 'grotto-ios-release-'));
     const archivePath = path.join(outputRoot, 'Grotto.xcarchive');

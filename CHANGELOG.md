@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.11.3 - 2026-08-31
+
+- Cove's clearer navigator avatar is now included in the hosted Grotto experience.
+- Grotto App packages the new glossy ghost icon across supported macOS build toolchains.
+
 ## v1.11.2 - 2026-08-31
 
 - Cove's navigator avatar is clearer at compact sizes, with a larger compass that stays visible

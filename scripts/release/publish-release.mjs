@@ -68,10 +68,6 @@ const main = async () => {
         },
     });
 
-    if (publishApp) {
-        run('bun', ['run', 'release:check-desktop-artifacts']);
-    }
-
     const notesPath = await writeReleaseNotes(version);
     const artifacts = await findReleaseArtifacts({
         appVersion,

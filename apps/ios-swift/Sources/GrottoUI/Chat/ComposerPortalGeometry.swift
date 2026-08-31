@@ -26,11 +26,17 @@ struct ComposerPortalGeometry {
 
     private var isSourceMenu: Bool { overlay == .sources }
 
-    /// The radius the card animates on. From iOS 26 the media card resolves its own corners against
-    /// the display instead (`ComposerPortalCard.cardShape`), so this is the source menu's radius and
-    /// the pre-26 media fallback — an approximation of one display's rounding minus the inset, which
-    /// is exactly the guesswork concentricity removes.
-    var cornerRadius: CGFloat { isSourceMenu ? 30 : 44 }
+    /// The media card's radius: an approximation of the display's rounding minus `nestingInset`.
+    /// A number, not a concentric *shape*, on purpose — SwiftUI resolves `.concentric` against
+    /// settled layout rather than each animated frame, which left the corner square for the whole
+    /// menu-to-media morph, and iOS 26 offers no public way to read the resolved concentric value
+    /// back (a UIKit `containerConcentric` probe reports `layer.cornerRadius` 0; the direct
+    /// `GeometryProxy.concentricCornerRadii` arrives in iOS 27).
+    static let mediaCornerRadius: CGFloat = 44
+
+    /// The radius the card animates on: the menu-to-media morph interpolates this alongside the
+    /// frame, so the corner travels with the card instead of arriving after it.
+    var cornerRadius: CGFloat { isSourceMenu ? 30 : Self.mediaCornerRadius }
 
     var width: CGFloat {
         isSourceMenu

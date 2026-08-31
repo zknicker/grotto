@@ -57,22 +57,14 @@ struct ComposerPortalCard: View {
 
     /// The card's one shape — clip, fill, and stroke all take it, so they cannot drift apart.
     ///
-    /// The media card is inset a uniform 12pt from the display, so from iOS 26 it asks the system
-    /// for corners concentric with the display's own rather than naming a radius: the number is the
-    /// bezel's minus the inset, and it differs on every iPhone. `isUniform` is what makes that one
-    /// radius rather than four — the card's top corners are nowhere near the display's, and a
-    /// non-uniform resolution squares them off.
-    ///
-    /// The source menu floats mid-screen with no bezel relationship and keeps its own radius, so
-    /// the shape does change type across the menu-to-media morph and the corner arrives rather than
-    /// travels. `AnyShape` is what keeps that a value change instead of an identity change: one card
-    /// whose corner steps while its frame morphs, not two cards cross-fading. Two `Shape` types
-    /// never interpolate — erasing them does not fix that, it only stops it costing the morph.
-    private var cardShape: AnyShape {
-        if !isSourceMenu, #available(iOS 26, macOS 26, *) {
-            return AnyShape(.rect(corners: .concentric, isUniform: true))
-        }
-        return AnyShape(.rect(cornerRadius: cornerRadius))
+    /// Always a plain rounded rectangle, never a concentric shape: SwiftUI resolves `.concentric`
+    /// against settled layout, not against each frame of an animation, so a concentric media card
+    /// kept a square corner for the whole menu-to-media morph and only rounded once its frame
+    /// arrived. The concentricity itself is preserved as a number — the caller's `cornerRadius`
+    /// carries the resolved concentric value for media overlays — and one shape type means the
+    /// morph interpolates the radius alongside the frame, so the corner travels with the card.
+    private var cardShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
     }
 
     private var contents: some View {

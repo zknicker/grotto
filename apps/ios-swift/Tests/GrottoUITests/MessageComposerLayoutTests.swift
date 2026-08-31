@@ -173,6 +173,19 @@ final class MessageComposerLayoutTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(540 - padding - 210, ComposerPortalGeometry.nestingInset)
     }
 
+    /// The card clips with one rounded rectangle whose radius the morph interpolates: the menu's
+    /// fixed 30, and the media card's resolved concentric value. A concentric *shape* is banned
+    /// here — it resolves against settled layout and left the corner square mid-morph.
+    func testCardCornerTravelsBetweenMenuAndMediaRadii() {
+        let size = CGSize(width: 400, height: 900)
+        let menu = ComposerPortalGeometry(overlay: .sources, availableSize: size, composerFrame: nil)
+        let media = ComposerPortalGeometry(overlay: .photos, availableSize: size, composerFrame: nil)
+
+        XCTAssertEqual(menu.cornerRadius, 30)
+        XCTAssertEqual(media.cornerRadius, ComposerPortalGeometry.mediaCornerRadius)
+        XCTAssertGreaterThan(media.cornerRadius, menu.cornerRadius)
+    }
+
     func testMenuPopsOutOfThePlusButton() {
         let box = ComposerPortalGeometry(
             overlay: .sources,

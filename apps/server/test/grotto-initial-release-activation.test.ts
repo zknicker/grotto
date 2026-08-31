@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readlinkSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -177,20 +176,14 @@ function makeRelease(root: string, sourceRevision: string, content: string) {
     const releaseRoot = join(root, 'releases', sourceRevision);
     mkdirSync(join(releaseRoot, 'bin'), { recursive: true });
     writeFileSync(join(releaseRoot, 'bin/grotto-server'), content);
-    const checksums = `${sha256(content)}  ./bin/grotto-server\n`;
-    writeFileSync(join(releaseRoot, 'release-files.sha256'), checksums);
     writeFileSync(
         join(releaseRoot, 'release.json'),
         `${JSON.stringify({
-            contentDigest: sha256(checksums),
-            productVersion: '1.6.2',
-            releaseId: `1.6.2+git.${sourceRevision.slice(0, 12)}`,
+            productVersion: '2.0.0',
+            releaseId: `1.0.0+git.${sourceRevision.slice(0, 12)}`,
+            serverVersion: '1.0.0',
             sourceRevision,
         })}\n`
     );
     return releaseRoot;
-}
-
-function sha256(value: string) {
-    return createHash('sha256').update(value).digest('hex');
 }

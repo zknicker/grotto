@@ -226,9 +226,11 @@ jobs:
             "${GROTTO_SOURCE_REVISION}"
 
       - name: Verify installed release
-        if: env.GROTTO_RELEASE_MODE == 'activate'
         run: |
-          test -d "${GROTTO_DEPLOY_ROOT}/releases/${GROTTO_SOURCE_REVISION}"
+          bun scripts/verify-grotto-server-release.ts \
+            "${GROTTO_DEPLOY_ROOT}/releases/${GROTTO_SOURCE_REVISION}" \
+            "${GROTTO_RELEASE_VERSION}" \
+            "${GROTTO_SOURCE_REVISION}"
 
       # The delivered runtime copy. Rendered from .env.schema every deploy, so
       # a renamed or removed value can never survive in production, and mode

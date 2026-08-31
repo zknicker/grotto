@@ -14,8 +14,8 @@ test('reads the exact product version, source revision, and artifact digest', ()
         JSON.stringify({
             contentDigest,
             productVersion: '1.4.0',
-            releaseId: '1.4.0+git.0123456789ab',
-            serverVersion: '1.4.0',
+            releaseId: '1.3.0+git.0123456789ab',
+            serverVersion: '1.3.0',
             sourceRevision,
         })
     );
@@ -24,8 +24,8 @@ test('reads the exact product version, source revision, and artifact digest', ()
         expect(readGrottoReleaseIdentity(path)).toEqual({
             contentDigest,
             productVersion: '1.4.0',
-            releaseId: '1.4.0+git.0123456789ab',
-            serverVersion: '1.4.0',
+            releaseId: '1.3.0+git.0123456789ab',
+            serverVersion: '1.3.0',
             sourceRevision,
         });
     } finally {

@@ -96,7 +96,7 @@ test('promotes a published Grotto version through an explicit dispatch or protec
     expect(deployCommands).toContain('./bin/grotto-server-deploy');
     expect(deployCommands).toContain('/bin/grotto-server-deploy');
     expect(verifyCommands).not.toContain('/releases/assets/');
-    expect(verifyCommands).not.toContain('grotto-server-');
+    expect(verifyCommands).toContain('verify-grotto-server-release.ts');
     const installedReleasePath = [
         '$',
         '{GROTTO_DEPLOY_ROOT}/releases/',
@@ -148,7 +148,10 @@ test('promotes a published Grotto version through an explicit dispatch or protec
     );
     expect([...workflowSecrets]).toEqual(['GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN']);
 
-    // Render, then migrate, then activate.
+    // Verify, render, migrate, then activate.
+    expect(commands.indexOf('verify-grotto-server-release')).toBeLessThan(
+        commands.indexOf('render-server-env')
+    );
     expect(commands.indexOf('render-server-env')).toBeLessThan(
         commands.indexOf('/bin/grotto-server-migrate')
     );
@@ -178,9 +181,7 @@ test('promotes a published Grotto version through an explicit dispatch or protec
     expect(job.steps.find((step) => step.name === 'Deploy downloaded release')?.if).toBe(
         "env.GROTTO_RELEASE_MODE == 'deploy'"
     );
-    expect(job.steps.find((step) => step.name === 'Verify installed release')?.if).toBe(
-        "env.GROTTO_RELEASE_MODE == 'activate'"
-    );
+    expect(job.steps.find((step) => step.name === 'Verify installed release')?.if).toBeUndefined();
     // The deploy proves both the delivered environment and public artifact.
     expect(job.steps.at(-2)?.name).toBe('Verify the delivered environment');
     expect(job.steps.at(-2)?.run).toContain('verify-deployed-secrets.ts');

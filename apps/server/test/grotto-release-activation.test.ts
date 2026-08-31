@@ -1,14 +1,5 @@
 import { expect, test } from 'bun:test';
-import { createHash } from 'node:crypto';
-import {
-    mkdirSync,
-    mkdtempSync,
-    readlinkSync,
-    rmSync,
-    symlinkSync,
-    unlinkSync,
-    writeFileSync,
-} from 'node:fs';
+import { mkdirSync, mkdtempSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -20,7 +11,7 @@ import {
 const previousRevision = '1111111111111111111111111111111111111111';
 const nextRevision = '2222222222222222222222222222222222222222';
 
-test('atomically activates one verified release and restarts only the Server', async () => {
+test('atomically activates an independently versioned release and restarts only the Server', async () => {
     const root = mkdtempSync(join(tmpdir(), 'grotto-activation-'));
     const previous = makeRelease(root, previousRevision, 'previous');
     const next = makeRelease(root, nextRevision, 'next');
@@ -82,12 +73,11 @@ test('restores and restarts the previous release when local health fails', async
     }
 });
 
-test('refuses activation when the current release cannot be verified', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'grotto-corrupt-current-'));
+test('refuses activation when the candidate is not a real release directory', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'grotto-invalid-candidate-'));
     const previous = makeRelease(root, previousRevision, 'previous');
-    makeRelease(root, nextRevision, 'next');
     symlinkSync(previous, join(root, 'current'));
-    unlinkSync(join(previous, 'bin/grotto-server'));
+    writeFileSync(join(root, 'releases', nextRevision), 'not a directory');
     let restarts = 0;
 
     try {
@@ -106,7 +96,7 @@ test('refuses activation when the current release cannot be verified', async () 
                 },
                 stopServer: () => undefined,
             })
-        ).rejects.toThrow();
+        ).rejects.toThrow('real release directory');
 
         expect(readlinkSync(join(root, 'current'))).toBe(previous);
         expect(restarts).toBe(0);
@@ -178,20 +168,14 @@ function makeRelease(root: string, sourceRevision: string, content: string) {
     const releaseRoot = join(root, 'releases', sourceRevision);
     mkdirSync(join(releaseRoot, 'bin'), { recursive: true });
     writeFileSync(join(releaseRoot, 'bin/grotto-server'), content);
-    const checksums = `${sha256(content)}  ./bin/grotto-server\n`;
-    writeFileSync(join(releaseRoot, 'release-files.sha256'), checksums);
     writeFileSync(
         join(releaseRoot, 'release.json'),
         `${JSON.stringify({
-            contentDigest: sha256(checksums),
-            productVersion: '1.6.2',
-            releaseId: `1.6.2+git.${sourceRevision.slice(0, 12)}`,
+            productVersion: '2.0.0',
+            releaseId: `1.0.0+git.${sourceRevision.slice(0, 12)}`,
+            serverVersion: '1.0.0',
             sourceRevision,
         })}\n`
     );
     return releaseRoot;
-}
-
-function sha256(value: string) {
-    return createHash('sha256').update(value).digest('hex');
 }

@@ -2,7 +2,6 @@
 
 import { lstat, readlink, realpath, rename, rm, symlink } from 'node:fs/promises';
 import { basename, isAbsolute, join, resolve } from 'node:path';
-import { assertGrottoRevision, verifyGrottoRelease } from './grotto-release-verification.ts';
 
 const productionRoot = '/Users/zknicker/srv/grotto';
 const privilegedActivationHelper = '/usr/local/libexec/grotto/activate-grotto-server';
@@ -12,6 +11,7 @@ const serverHealthUrl = 'http://127.0.0.1:18791/healthz';
 const fileTypeMask = 0o17_0000;
 const directoryType = 0o04_0000;
 const regularFileType = 0o10_0000;
+const revisionPattern = /^[0-9a-f]{40}$/u;
 
 interface ActivateGrottoReleaseInput {
     deployRoot: string;
@@ -40,10 +40,10 @@ interface ProductionServerActivation {
 type RunLaunchctl = (args: string[]) => LaunchctlResult;
 
 export async function activateGrottoRelease(input: ActivateGrottoReleaseInput) {
-    assertGrottoRevision(input.sourceRevision);
+    assertActivationRevision(input.sourceRevision);
     const deployRoot = resolve(input.deployRoot);
     const releaseRoot = join(deployRoot, 'releases', input.sourceRevision);
-    const release = await verifyContainedRelease(deployRoot, releaseRoot, input.sourceRevision);
+    await assertContainedRelease(deployRoot, releaseRoot, input.sourceRevision);
     const currentPath = join(deployRoot, 'current');
     const previousRelease = await readCurrentRelease(deployRoot, currentPath);
 
@@ -85,7 +85,7 @@ export async function activateGrottoRelease(input: ActivateGrottoReleaseInput) {
         throw new Error('Grotto Server activation failed and rolled back.', { cause: error });
     }
 
-    return release;
+    return input.sourceRevision;
 }
 
 async function readCurrentRelease(deployRoot: string, currentPath: string) {
@@ -102,8 +102,8 @@ async function readCurrentRelease(deployRoot: string, currentPath: string) {
         throw new Error('Current Grotto release must use an absolute release path.');
     }
     const sourceRevision = basename(target);
-    assertGrottoRevision(sourceRevision);
-    await verifyContainedRelease(deployRoot, target, sourceRevision);
+    assertActivationRevision(sourceRevision);
+    await assertContainedRelease(deployRoot, target, sourceRevision);
     return target;
 }
 
@@ -114,17 +114,24 @@ async function switchCurrentRelease(deployRoot: string, currentPath: string, rel
     await rename(nextPath, currentPath);
 }
 
-async function verifyContainedRelease(
+async function assertContainedRelease(
     deployRoot: string,
     releaseRoot: string,
     sourceRevision: string
 ) {
+    const expectedReleaseRoot = join(deployRoot, 'releases', sourceRevision);
+    if (releaseRoot !== expectedReleaseRoot) {
+        throw new Error('Grotto release resolves outside the production release root.');
+    }
+    const releaseStat = await lstat(releaseRoot);
+    if (!releaseStat.isDirectory() || releaseStat.isSymbolicLink()) {
+        throw new Error('Grotto activation target must be a real release directory.');
+    }
     const canonicalDeployRoot = await realpath(deployRoot);
     const canonicalReleaseRoot = await realpath(releaseRoot);
     if (canonicalReleaseRoot !== join(canonicalDeployRoot, 'releases', sourceRevision)) {
         throw new Error('Grotto release resolves outside the production release root.');
     }
-    return verifyGrottoRelease(releaseRoot, sourceRevision);
 }
 
 async function restartProductionServer() {
@@ -249,6 +256,12 @@ function parseServerPid(output: string) {
     return output.match(/^\s*pid = (\d+)$/mu)?.[1] ?? null;
 }
 
+function assertActivationRevision(value: string) {
+    if (!revisionPattern.test(value)) {
+        throw new Error('Grotto activation requires a full lowercase Git SHA.');
+    }
+}
+
 async function fetchProductionServerHealth() {
     try {
         const response = await fetch(serverHealthUrl, {
@@ -281,7 +294,7 @@ async function main() {
         throw new Error('Usage: activate-grotto-server FULL_GIT_SHA');
     }
 
-    const release = await activateGrottoRelease({
+    const activatedRevision = await activateGrottoRelease({
         deployRoot: productionRoot,
         restartServer: restartProductionServer,
         serverHealthy: waitForRestartedServerHealth,
@@ -289,9 +302,7 @@ async function main() {
         startServer: startProductionServer,
         stopServer: stopProductionServer,
     });
-    console.log(
-        `Activated Grotto Server ${release.releaseId} (${release.sourceRevision}, ${release.contentDigest}).`
-    );
+    console.log(`Activated Grotto Server release ${activatedRevision}.`);
 }
 
 if (import.meta.main) {

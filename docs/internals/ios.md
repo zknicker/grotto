@@ -141,32 +141,26 @@ that draw their own content instead of wearing glass — drawn circles, cards, l
 `PressableButtonStyle`: compact controls scale toward the finger and full-width rows highlight,
 because a row that shrinks reads as breakage. `.plain` on an interactive element is a defect, not a
 neutral default. The chat transcript passes under the chrome at both ends — beneath the composer's
-glass via a bottom safe-area inset, and beneath the `ChromeHeader` row via a top safe-area *bar*,
-with the system's soft scroll-edge effect keeping iOS 26 chrome legible over moving content.
+glass via a bottom safe-area inset, and beneath the `ChromeHeader` row via a top safe-area *bar* —
+and dissolves toward the top so iOS 26 chrome stays legible over moving content.
 
-The difference between an inset and a bar is the whole scrim. `scrollEdgeEffectStyle` only says
-what the edge should look like; iOS 26 paints it solely behind content a scroll view has been told
-is a bar, and `safeAreaInset` reserves the room without claiming it. Asking for `.soft` over a plain
-top inset therefore drew nothing at all: rows ran razor-sharp into the status bar and the glass
-header floated over raw text. `chromeBar` in `ChromeHeader.swift` is the one place that decides —
-`safeAreaBar` on iOS 26, the same inset below it, where there is no edge effect to earn.
+That dissolve is product-owned: `transcriptTopDissolve` in `ChromeHeader.swift` masks the
+transcript's rows out across the reserved top region, at roughly a seventh of their contrast behind
+the chrome row and gone by the status bar. The system's `scrollEdgeEffectStyle` cannot do this job
+for the transcript, because the transcript is not a SwiftUI scroll view: `TranscriptListView` wraps
+a flipped `UITableView`, and the system effect derives its paint region from safe areas the flipped
+table does not carry — enabling it washed the entire viewport, so the list hides both UIKit edge
+effects explicitly. A mask keeps the one property the system effect was prized for: it dissolves
+rows to transparency over the real backdrop, so dark mode needs no re-tuning. The ramp still runs
+across `GrottoChrome.scrollEdgeRunway` below the chrome row — the runway is tuned so the first row
+below the chrome stays fully crisp. `chromeBar` remains the one place that decides bar-versus-inset
+for the chrome itself (`safeAreaBar` on iOS 26, a plain inset before it) and other scrolling
+surfaces still earn the system effect through it.
 
-How hard that scrim bites is a question of region, not of style. The effect has no strength knob:
-the public surface is `.automatic`, `.soft`, and `.hard`, and `.hard` is an opaque cap with a
-dividing line — it erases a passing row and slices the avatar flat rather than dissolving either.
-What the effect does have is reach, because iOS 26 ramps the dissolve across whatever bar region it
-was handed. So the bar carries `GrottoChrome.scrollEdgeRunway` below the chrome row, and the longer
-ramp is the whole difference between a row that stays readable under the header and one that is
-decisively gone by the time it gets there. The runway is tuned to the first row below the chrome:
-more of it starts softening that row too, which trades the dissolve for a taller cap. A
-product-owned gradient behind the chrome cannot do this job — it can only deepen the band the
-system already owns, never move the edge of it, and it has to be re-tuned for dark mode, where the
-system effect dissolves toward the real scroll backdrop for free.
-
-The composer keeps the plain inset on purpose: the clearance it reserves is the transcript's own scroll
-bound, so no sharp row ever reaches past it, and the rows that reach its glass are already being
-refracted. A pushed screen needs neither, because its system navigation bar is a bar already —
-that is why the Thread transcript has always faded under its own chrome.
+The composer keeps the plain inset and a hard edge on purpose: the clearance it reserves is the
+transcript's own scroll bound, so no sharp row ever reaches past it, and the rows that reach its
+glass are already being refracted. The Thread transcript wears the same mask under its system
+navigation bar.
 
 Every floating chrome control is one control. `GlassChromeButton` owns the 44-point circle, the
 22-point app icon, and the glass or material treatment, and `ChromeHeader` owns the 56-point
@@ -272,36 +266,35 @@ shell per destination and reaches the screen as a binding or by reference; a rem
 presentation state (an open portal, a frozen keyboard inset, an error notice). A page arriving for a Chat that was showing nothing is that Chat's first paint and settles
 at the bottom without animation; only genuine appends animate.
 
-Both transcripts — the Chat timeline and a Thread's replies — hold the bottom as a scroll *edge*,
-through `ScrollPosition(edge: .bottom)`, and never as an offset onto the last row. An offset has to
-resolve against a container height, and a Chat's first paint asks for one before the canvas has that
-height, which parked the transcript a full screen past its own content until the reader dragged it
-back. An edge stays pinned while the page lands and the rows settle, and stops following the moment
-the reader scrolls away from it. `defaultScrollAnchor(.bottom)` remains alongside it for the other
-job it does: aligning a transcript shorter than the screen onto the composer instead of the header.
+Both transcripts — the Chat timeline and a Thread's replies — sit on `TranscriptListView`, the
+flipped-table substrate in `GrottoUI/Platform`: a `UITableView` scaled by `-1` vertically, each
+cell's `contentView` scaled back, data reversed so the newest item is row zero. This is the
+mechanism production chat clients use instead of SwiftUI's scroll-position primitives, and it was
+adopted after those primitives lost three device regressions in a row. SwiftUI's
+`defaultScrollAnchor(.bottom)` + `ScrollPosition(edge:)` resolve the bottom against numbers that
+are still moving on a first layout — `LazyVStack`'s estimated content height and the anchor's
+inflated top inset — and every corrective assertion re-enters the same moving layout: the
+transcript stranded blank until dragged, strobed at frame rate while a rescue fought the
+estimation, and stranded again when the rescue was deferred and retried. Inversion removes the
+contract those heuristics were compensating for: the resting state is the scroll view's own clamped
+origin (`contentOffset == -contentInset.top`), so a stranded viewport is unrepresentable, a first
+page lands settled with no assertion, measurement error is pushed to the far (visually top) end
+where it is invisible, history prepends grow the table beyond the viewport without moving it, and a
+transcript shorter than the screen sits on the composer because rows stack from the table's origin.
+A growing bottom inset — the composer expanding, the keyboard rising — lifts a resting viewport
+with the newest message still visible, which is the keyboard behavior the product wants, for free.
 
-Holding the edge is not enough on its own, because the scroll view is what resolves it and a Chat's
-first layout resolves it against numbers that are still moving. Two of them move: the lazy rows
-report an estimated content height — tens of thousands of points before anything is measured — and
-`defaultScrollAnchor(.bottom)` inflates the *top* content inset by nearly a screen while the page is
-still empty, to sit those few points on the composer. Both collapse a frame or two later, and when
-they do the viewport is left over the empty space past the last row. No reader can reach that state,
-because a scroll view clamps every gesture to its own content, and none may be left in it, so the
-timeline puts it back: `MessageTimelineScrollPosition.isPastContentEnd` reads the overshoot off the
-scroll geometry and the bottom edge is re-asserted — but only while the transcript is at rest, since
-a drag and the fling after it travel past the end on purpose and the scroll view already returns
-those itself, and only after the strand has held for a beat (~120ms). The wait is load-bearing: an
-app open lays the canvas out over several frames, and a bottom edge re-asserted inside the geometry
-change that reported the strand resolves against numbers still moving, strands again, and reports
-again — the transcript strobed blank at frame rate. The strand that matters holds indefinitely, so
-deferring the rescue costs it nothing. The rescue also retries at that same cadence (capped) while
-the strand holds, because one assertion is not enough on a device: it can land while the layout is
-still moving and leave the viewport stranded *continuously*, and a strand that never clears never
-changes the geometry-derived value, so nothing else would ever re-arm the rescue — a cached Chat
-revisited mid-session stayed blank that way. The guard is what covers a Chat that was already
-loaded. Its last message never changes, so the tail scroll that rescues a first page never runs, and
-without the guard such a Chat came back from a switch blank and stayed blank until the reader
-dragged it.
+What remains above the substrate is intent, not position management. `TranscriptListUpdate`
+classifies each snapshot change exactly (refresh, append, prepend, reset — pinned in
+`TranscriptListUpdateTests`), `MessageTimelineTailScroll` / `ThreadReplyReveal` still decide what an
+append may do to the viewport, and reveals arrive as one-shot `TranscriptReveal` tokens. The flip
+has known UIKit seams, all owned inside `TranscriptListView`: the system scroll edge effects are
+hidden (they compute their region from safe areas the flipped table lacks and wash the viewport —
+the dissolve is `transcriptTopDissolve`), the opening entrance runs as a UIKit animation because a
+SwiftUI opacity animation over a platform view can freeze mid-flight, hosting-configuration cells
+carry `minSize` zero so continuation rows keep their tight rhythm, and long-press menus are the
+table delegate's, with an upright `layer.render` snapshot as the lifted preview, because a
+context-menu lift of a flipped cell renders upside down.
 
 An anchor message owns one recessed Thread ingress. On iPhone it shows the Server-projected reply and
 unread counts plus only the latest recent reply; this is a presentation reduction of the same Thread

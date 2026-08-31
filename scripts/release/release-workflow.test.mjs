@@ -117,7 +117,7 @@ test('finalization rejects a skipped selected job', () => {
 });
 
 test('Release workflow stays under the cap and preserves the operator graph', () => {
-    assert.ok(workflow.split('\n').length - 1 < 310);
+    assert.ok(workflow.split('\n').length - 1 < 350);
     assert.match(workflow, /^name: Release$/m);
     assert.match(workflow, /pull_request:[\s\S]*- releases\.json/);
     assert.match(
@@ -144,6 +144,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     for (const jobName of [
         'Publish Computer',
         'Publish App',
+        'Prepare iOS icon',
         'Upload iOS',
         'Publish Server',
         'Promote Server',
@@ -154,7 +155,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     }
     assert.equal((workflow.match(/runs-on: macos-15$/gm) ?? []).length, 1);
     assert.equal((workflow.match(/runs-on: macos-26$/gm) ?? []).length, 1);
-    assert.equal((workflow.match(/runs-on: xcode-27$/gm) ?? []).length, 1);
+    assert.equal((workflow.match(/runs-on: xcode-27$/gm) ?? []).length, 2);
     assert.match(workflow, /name: Publish Computer[\s\S]*?GH_TOKEN: \$\{\{ github\.token \}\}/);
     assert.match(workflow, /bun run computer:release "\$\{COMPUTER_VERSION\}"/);
     assert.match(
@@ -163,8 +164,14 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     );
     assert.match(
         workflow,
-        /name: Upload iOS[\s\S]*?runs-on: macos-26[\s\S]*?DEVELOPER_DIR: \/Applications\/Xcode_26\.6\.app\/Contents\/Developer[\s\S]*?bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
+        /name: Prepare iOS icon[\s\S]*?runs-on: xcode-27[\s\S]*?node scripts\/release\/prepare-ios-icon\.mjs build\/ios-icon[\s\S]*?name: Upload iOS[\s\S]*?needs: \[plan, prepare_ios_icon\][\s\S]*?runs-on: macos-26[\s\S]*?DEVELOPER_DIR: \/Applications\/Xcode_26\.6\.app\/Contents\/Developer[\s\S]*?GROTTO_PRECOMPILED_IOS_ICON_DIR:[\s\S]*?bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
     );
+    assert.match(publishIOSSource, /EXCLUDED_SOURCE_FILE_NAMES=mac-icon\.icon/);
+    assert.match(
+        publishIOSSource,
+        /const ipaPath = findExportedIPA\(exportPath\);[\s\S]*?assertExportedIOSIcon\([\s\S]*?run\('xcrun', appStoreConnectUploadArgs\(ipaPath\)\)/
+    );
+    assert.match(publishIOSSource, /GROTTO_PRECOMPILED_IOS_ICON_DIR/);
     assert.doesNotMatch(workflow, /Xcode_26\.3/u);
     assert.match(workflow, /bun run publish:desktop/);
     assert.ok(

@@ -44,8 +44,8 @@ targets:
         # via explicit xcodebuild args from `bun run ios:release`; see
         # docs/operations/ios-testflight.md. Both values mirror the latest
         # published iOS target in releases.json via release:sync-versions.
-        CURRENT_PROJECT_VERSION: "17"
-        MARKETING_VERSION: 1.3.3
+        CURRENT_PROJECT_VERSION: "18"
+        MARKETING_VERSION: 1.3.4
         SWIFT_VERSION: "6.0"
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         TARGETED_DEVICE_FAMILY: "1"
@@ -56,6 +56,16 @@ targets:
         CFBundleDisplayName: Grotto
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleIcons:
+          CFBundlePrimaryIcon:
+            CFBundleIconFiles:
+              - mac-icon60x60
+            CFBundleIconName: mac-icon
+        "CFBundleIcons~ipad":
+          CFBundlePrimaryIcon:
+            CFBundleIconFiles:
+              - mac-icon60x60
+              - mac-icon76x76
         CFBundleURLTypes:
           - CFBundleTypeRole: Editor
             CFBundleURLSchemes:
@@ -73,6 +83,10 @@ targets:
       properties:
         com.apple.developer.associated-domains:
           - webcredentials:clerk.grotto.sh
+    postBuildScripts:
+      - name: Install precompiled iOS icon
+        path: scripts/install-precompiled-icon.sh
+        basedOnDependencyAnalysis: false
 
 schemes:
   Grotto:

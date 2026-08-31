@@ -71,13 +71,17 @@ second approval.
 
 The installed App icon source is `assets/mac-icon.icon`. The App release job uses GitHub's
 `xcode-27` image because older Xcode versions cannot compile the current Icon Composer 2 source.
-For iOS, the dedicated `grotto-xcode27` runner compiles that source with the exact Xcode build
-pinned in the workflow, then rejects output that lacks light, dark, tinted, specular, refractive,
-or 1024px renditions. The stable Xcode 26.6 job archives the app without recompiling the `.icon`,
-installs the verified catalog before code signing, exports, and uploads it. This split is required
-while App Store Connect rejects an archive built entirely by preview Xcode 27 and GitHub's preview
-image can lag behind known-good Icon Composer builds. Keep the `.icon` canonical; do not flatten
-it, remove Icon Composer 2 effects, or check in a generated representation.
+The iOS app commits the full-fidelity compiled catalog under `assets/ios-icon`. Its manifest binds
+the catalog to the canonical `.icon` source, exact Xcode build, and output checksums. When the icon
+source changes, regenerate the catalog with `bun run ios:prepare-icon` under the Xcode build named
+in the manifest and commit both changes. Routine releases do not compile it again.
+
+The stable Xcode 26.6 job validates the committed artifact, rejects catalogs that lack light, dark,
+tinted, specular, refractive, or 1024px renditions, then archives without recompiling the `.icon`.
+It installs the verified catalog before code signing and confirms that archive and export preserve
+its exact bytes. This split is required while App Store Connect rejects archives built entirely by
+preview Xcode 27. Keep the `.icon` canonical and do not flatten or remove its Icon Composer 2
+effects.
 
 ## Target impact
 

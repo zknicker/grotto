@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.11.1 - 2026-08-30
+
+- Grotto for iPhone retries Chat and Thread transcript recovery while a stranded viewport remains
+  at rest, keeping the latest messages visible through slow layout changes.
+
 ## v1.11.0 - 2026-08-30
 
 - Grotto App shows live desktop update download progress in the sidebar and restores drag-and-drop

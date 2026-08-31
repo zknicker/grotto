@@ -1,6 +1,7 @@
 {
   "features" : [
-    "refractivity"
+    "refractivity",
+    "specular-location"
   ],
   "fill" : {
     "linear-gradient" : [
@@ -11,9 +12,11 @@
   "groups" : [
     {
       "blur-material" : null,
+      "hidden" : false,
       "layers" : [
         {
           "glass" : true,
+          "hidden" : false,
           "image-name" : "Untitled Project - New Group (1).png",
           "name" : "Untitled Project - New Group (1)",
           "position" : {
@@ -46,6 +49,12 @@
         "kind" : "none",
         "opacity" : 0.88
       },
+      "specular-specializations" : [
+        {
+          "appearance" : "tinted",
+          "value" : "inside"
+        }
+      ],
       "translucency-specializations" : [
         {
           "value" : {
@@ -63,11 +72,41 @@
       ]
     },
     {
-      "blur-material" : null,
+      "blend-mode-specializations" : [
+        {
+          "value" : "lighten"
+        },
+        {
+          "appearance" : "tinted",
+          "value" : "normal"
+        }
+      ],
+      "blur-material-specializations" : [
+        {
+          "value" : null
+        },
+        {
+          "appearance" : "tinted",
+          "value" : 1
+        }
+      ],
       "layers" : [
         {
           "glass" : false,
           "hidden" : false,
+          "image-name" : "ChatGPT Image Aug 31, 2026, 12_34_29 PM.png",
+          "name" : "ChatGPT Image Aug 31, 2026, 12_34_29 PM",
+          "position" : {
+            "scale" : 0.8,
+            "translation-in-points" : [
+              -15,
+              -2
+            ]
+          }
+        },
+        {
+          "glass" : false,
+          "hidden" : true,
           "image-name" : "Untitled Project - ChatGPT Image Aug 30, 2026, 05_33_26 PM.png",
           "name" : "Untitled Project - ChatGPT Image Aug 30, 2026, 05_33_26 PM",
           "position" : {
@@ -79,6 +118,7 @@
           }
         }
       ],
+      "lighting" : "combined",
       "refractivity" : {
         "depth" : 0.09015625,
         "enabled" : true,
@@ -86,18 +126,47 @@
       },
       "shadow" : {
         "kind" : "none",
-        "opacity" : 0
+        "opacity" : 0.62
       },
+      "specular-specializations" : [
+        {
+          "value" : "inside"
+        },
+        {
+          "appearance" : "tinted",
+          "value" : true
+        }
+      ],
       "translucency" : {
         "enabled" : false,
-        "value" : 0.2
+        "value" : 0
       }
     },
     {
       "blur-material" : 0.5,
       "layers" : [
         {
-          "hidden" : false,
+          "hidden-specializations" : [
+            {
+              "value" : false
+            },
+            {
+              "appearance" : "tinted",
+              "value" : false
+            }
+          ],
+          "image-name" : "ChatGPT Image Aug 31, 2026, 12_34_26 PM.png",
+          "name" : "ChatGPT Image Aug 31, 2026, 12_34_26 PM",
+          "position" : {
+            "scale" : 0.8,
+            "translation-in-points" : [
+              -17,
+              0
+            ]
+          }
+        },
+        {
+          "hidden" : true,
           "image-name" : "Untitled Project - ChatGPT Image Aug 30, 2026, 05_33_26 PM (1).png",
           "name" : "Untitled Project - ChatGPT Image Aug 30, 2026, 05_33_26 PM (1)",
           "position" : {

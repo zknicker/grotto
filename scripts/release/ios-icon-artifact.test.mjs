@@ -47,9 +47,7 @@ test('rejects a flattened icon without the authored glass stack', () => {
     );
 });
 
-test('installs the compiled catalog before signing', {
-    skip: process.platform !== 'darwin',
-}, () => {
+test('installs the compiled catalog before signing', () => {
     const root = mkdtempSync(path.join(tmpdir(), 'grotto-ios-icon-install-'));
     const artifact = path.join(root, 'artifact');
     const product = path.join(root, 'product');
@@ -83,7 +81,9 @@ test('installs the compiled catalog before signing', {
     );
     assert.equal(result.status, 0, result.stderr);
     assert.equal(readFileSync(path.join(app, 'Assets.car'), 'utf8'), 'Assets.car');
-    assert.doesNotThrow(() =>
-        assertInstalledIOSIcon({ appDirectory: app, artifactDirectory: artifact })
-    );
+    if (process.platform === 'darwin') {
+        assert.doesNotThrow(() =>
+            assertInstalledIOSIcon({ appDirectory: app, artifactDirectory: artifact })
+        );
+    }
 });

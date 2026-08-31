@@ -20,7 +20,9 @@ Computer stays out of the tooltip. Every Computer row includes its user-facing n
 diagnostics, not update targets. Version drift, live progress, and failures remain attached to
 their own rows. A failure includes the safe reported detail and one concrete recovery suggestion.
 The compact button represents the next useful action: download, live progress, App restart, or
-retry.
+retry. During an update it stays visually solid but ignores presses. Its donut divides the circle
+equally among the updates in the active batch, and each segment fills with that component's
+reported progress.
 
 One click starts every eligible Computer update and the App download concurrently. Each surface
 settles independently, so one Computer failure never cancels successful work elsewhere. An App

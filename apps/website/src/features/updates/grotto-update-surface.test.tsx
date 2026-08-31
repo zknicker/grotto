@@ -4,6 +4,7 @@ import {
     OfflineComputersTooltipContent,
     UpdateTooltipContent,
 } from './grotto-status-tooltip-content.tsx';
+import { updateDonutSegments } from './grotto-update-donut.tsx';
 import { GrottoUpdateFooter } from './grotto-update-footer.tsx';
 import type {
     GrottoReleaseSnapshot,
@@ -91,11 +92,35 @@ describe('Grotto update surfaces', () => {
         const tooltip = renderToStaticMarkup(<UpdateTooltipContent view={downloadingView} />);
 
         expect(html).toContain('aria-disabled="true"');
+        expect(html).toContain('data-pending="true"');
+        expect(html).toContain('grotto-update-button');
         expect(html).toContain('role="presentation" tabindex="-1"');
         expect(tooltip).toContain('Updating');
         expect(tooltip).toContain('Computer · Zach&#x27;s MacBook Pro');
         expect(tooltip).toContain('Downloading Grotto Computer');
         expect(tooltip).toContain('aria-valuenow="42"');
+    });
+
+    test('splits the update donut equally between active updates', () => {
+        const view = updateView({
+            computers: [computer({ phase: 'downloading', progress: 0.5 })],
+            desktop: {
+                currentVersion: '1.8.39',
+                kind: 'desktop',
+                phase: 'downloading',
+                progress: 0.25,
+            },
+        });
+        const segments = updateDonutSegments(view.steps);
+        const html = renderToStaticMarkup(<GrottoUpdateFooter view={view} />);
+
+        expect(segments).toEqual([
+            { fill: 0.25, id: 'cmp_home', offset: 0, progress: 0.5 },
+            { fill: 0.125, id: 'desktop-app', offset: 0.5, progress: 0.25 },
+        ]);
+        expect(html).toContain('aria-label="Updating Grotto"');
+        expect(html).toContain('aria-valuenow="38"');
+        expect(html.match(/stroke-dasharray=/gu)).toHaveLength(2);
     });
 
     test('shows desktop App download progress in the update tooltip', () => {

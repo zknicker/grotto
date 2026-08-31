@@ -641,6 +641,11 @@
         color: var(--warning-soft-foreground);
     }
 
+    /* Pending blocks presses, but update progress remains primary-status chrome. */
+    .button.grotto-update-button[data-pending="true"] {
+        opacity: 1;
+    }
+
     /*
      * Compact reference previews use a tighter surface inset than Agent
      * previews. Their mark columns — the identity row and the participant

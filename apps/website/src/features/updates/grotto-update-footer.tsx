@@ -1,16 +1,19 @@
-import { Button, ProgressCircle, Tooltip } from '@heroui/react';
+import { Button, Tooltip } from '@heroui/react';
 import {
     Alert01Icon,
     ComputerIcon,
     Download04Icon,
     ReloadIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
+import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import {
     OfflineComputersTooltipContent,
     UpdateTooltipContent,
 } from './grotto-status-tooltip-content.tsx';
+import { GrottoUpdateDonut } from './grotto-update-donut.tsx';
 import type { GrottoUpdateView } from './grotto-update-model.ts';
+import { isCompleteUpdateStep } from './grotto-update-model.ts';
 import type { OfflineComputerNotice } from './use-offline-computers.ts';
 
 export function GrottoUpdateFooter({
@@ -59,22 +62,31 @@ function UpdateTooltipButton({
     view: GrottoUpdateView;
 }) {
     const inactive = isRunning || view.phase === 'updating';
+    const batchStepIds = React.useRef<readonly string[]>([]);
+    const progressSteps =
+        batchStepIds.current.length === 0
+            ? view.steps.filter((step) => !isCompleteUpdateStep(step))
+            : view.steps.filter((step) => batchStepIds.current.includes(step.id));
     return (
         <Tooltip closeDelay={0} delay={0}>
             <Tooltip.Trigger role="presentation" tabIndex={-1}>
                 <Button
-                    aria-disabled={inactive}
                     aria-label={buttonLabel(view)}
+                    className="grotto-update-button"
                     isIconOnly
+                    isPending={inactive}
                     onPress={() => {
                         if (!inactive && view.primaryAction) {
+                            batchStepIds.current = view.steps
+                                .filter((step) => !isCompleteUpdateStep(step))
+                                .map((step) => step.id);
                             onAction?.(view.primaryAction);
                         }
                     }}
                     size="sm"
                     variant={view.phase === 'failed' ? 'danger-soft' : 'primary'}
                 >
-                    <FooterMark view={view} />
+                    <FooterMark progressSteps={progressSteps} view={view} />
                 </Button>
             </Tooltip.Trigger>
             <Tooltip.Content
@@ -126,17 +138,16 @@ function OfflineComputersButton({
     );
 }
 
-function FooterMark({ view }: { view: GrottoUpdateView }) {
+function FooterMark({
+    progressSteps,
+    view,
+}: {
+    progressSteps: GrottoUpdateView['steps'];
+    view: GrottoUpdateView;
+}) {
     switch (view.phase) {
         case 'updating':
-            return (
-                <ProgressCircle aria-label="Updating" isIndeterminate size="sm">
-                    <ProgressCircle.Track>
-                        <ProgressCircle.TrackCircle className="stroke-current opacity-30" />
-                        <ProgressCircle.FillCircle className="stroke-current" />
-                    </ProgressCircle.Track>
-                </ProgressCircle>
-            );
+            return <GrottoUpdateDonut steps={progressSteps} />;
         case 'available':
             return <Icon aria-hidden="true" icon={Download04Icon} />;
         case 'restart-required':

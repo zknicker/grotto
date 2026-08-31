@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.11.2 - 2026-08-31
+
+- Cove's navigator avatar is clearer at compact sizes, with a larger compass that stays visible
+  beside presence indicators.
+- Grotto App and Grotto for iPhone use the new glossy ghost app icon.
+
 ## v1.11.1 - 2026-08-30
 
 - Grotto for iPhone retries Chat and Thread transcript recovery while a stranded viewport remains

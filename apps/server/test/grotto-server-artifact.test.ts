@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { resolveReleaseSnapshot } from '../../../scripts/release/release-snapshot.mjs';
+
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
 test('builds one versioned Apple Silicon Server artifact with App and operations assets', async () => {
@@ -11,12 +13,10 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     const product = JSON.parse(
         readFileSync(join(repoRoot, 'packages/grotto-api/grotto-product.json'), 'utf8')
     ) as { version: string };
-    const ledger = JSON.parse(readFileSync(join(repoRoot, 'releases.json'), 'utf8')) as Array<{
-        targets: { server: string | null };
-    }>;
-    const serverVersion = ledger.at(-1)?.targets.server;
+    const ledger = JSON.parse(readFileSync(join(repoRoot, 'releases.json'), 'utf8'));
+    const serverVersion = resolveReleaseSnapshot(ledger, { sourceRevision }).components.server;
     if (!serverVersion) {
-        throw new Error('latest test release must publish Server');
+        throw new Error('release ledger must contain a Server version');
     }
     const releaseId = `${serverVersion}+git.${sourceRevision.slice(0, 12)}`;
     const artifact = join(

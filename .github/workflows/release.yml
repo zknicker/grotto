@@ -153,13 +153,21 @@ jobs:
       needs.plan.result == 'success' && github.event_name == 'push' &&
       needs.plan.outputs.initial_ledger_migration == 'false' &&
       needs.plan.outputs.publish_ios == 'true'
-    runs-on: xcode-27
+    runs-on: [self-hosted, macOS, ARM64, grotto-xcode27]
     timeout-minutes: 15
     permissions:
       contents: read
+    env:
+      DEVELOPER_DIR: /Users/zknicker/Applications/Xcode-27.0.0-Beta.5.app/Contents/Developer
     steps:
       - name: Check out release source
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26.5.0
       - name: Compile and verify full-fidelity iOS icon
         run: node scripts/release/prepare-ios-icon.mjs build/ios-icon
       - name: Upload compiled iOS icon

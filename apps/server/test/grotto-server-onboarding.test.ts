@@ -490,9 +490,9 @@ test('creates and applies one immutable Cove through a replayable Computer opera
         factory_kind: 'cove',
         handle: 'cove',
         role: 'admin',
-        sha256: '395de4789528bcb9f184bdae6330dd12ae9319d0ee8082d70d7188c39de4439c',
+        sha256: '73edd5cb230228272dafa65ce2aa1481bf4911afa9e3ca577ebf28d2e247509e',
     });
-    expect(Buffer.from(agentRow?.bytes as Uint8Array).byteLength).toBe(772_285);
+    expect(Buffer.from(agentRow?.bytes as Uint8Array).byteLength).toBe(1_459_587);
 
     const [participant] = await harness.sql`
         select agent_id from channel_agent_participants

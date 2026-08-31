@@ -425,11 +425,14 @@ from the button's position in the card's unit space, no offset travel — and le
 than it arrives. The card wears the portal's one interactive glass surface for the card's whole
 life, never per overlay: mounting or unmounting glass at the menu-to-media flip left the plate
 fading on the system's own schedule, a second stretched outline lingering over the arriving media
-card. Instead the menu rows and a black media backdrop crossfade *inside* the one glass as its
-content, the media views draw over it, and the plate's shape simply morphs with the frame — a
-single outline at every frame is what makes the menu read as transforming into the media card, and
-the glass rim doubles as the media card's border. The rows carry plain fills, because glass cannot
-sample glass. A drag on the open menu carries it a few points toward
+card. Only the menu rows are ever glass *content*, and everything media-related — the black
+backdrop and the media views — crossfades in a plain sibling layer outside the
+`GlassEffectContainer`, clipped to the same morphing shape. On device the container composites its
+glass layer above plain views inside it, so media content placed inside the container rendered as
+a blank black card under the plate; the Simulator renders glass flat and never shows this class of
+bug, so glass layering changes are device-verified, never sim-verified. A single outline at every
+frame is what makes the menu read as transforming into the media card. The rows carry plain fills,
+because glass cannot sample glass. A drag on the open menu carries it a few points toward
 the finger on UIScrollView's rubber-band curve and springs it back on release
 (`ComposerPortalRubberBand`), and Reduce Motion replaces the pop and the pull with a plain fade. That
 portal returns along the same bottom-leading path into the attachment

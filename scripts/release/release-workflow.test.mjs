@@ -167,7 +167,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(workflow, /run: bun run release:publish/);
     assert.match(
         workflow,
-        /promote_server:[\s\S]*needs: \[plan, publish_server\][\s\S]*uses: \.\/\.github\/workflows\/deploy-grotto-server\.yml[\s\S]*version: v\$\{\{ needs\.plan\.outputs\.server_version \}\}[\s\S]*source_revision: \$\{\{ github\.sha \}\}/
+        /promote_server:[\s\S]*needs: \[plan, publish_server\][\s\S]*uses: \.\/\.github\/workflows\/deploy-grotto-server\.yml[\s\S]*version: v\$\{\{ needs\.plan\.outputs\.release_version \}\}[\s\S]*server_version: \$\{\{ needs\.plan\.outputs\.server_version \}\}[\s\S]*source_revision: \$\{\{ github\.sha \}\}/
     );
     assert.match(workflow, /promote_server:[\s\S]*if: >-\s+always\(\) &&/);
     assert.match(workflow, /RELEASE_JOB_RESULTS: \$\{\{ toJSON\(needs\) \}\}/);
@@ -176,6 +176,11 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(deployWorkflow, /workflow_call:/);
     assert.match(deployWorkflow, /environment:\s+name: production\s+url: https:\/\/grotto\.sh/);
     assert.match(deployWorkflow, /EXPECTED_SOURCE_REVISION: \$\{\{ inputs\.source_revision \}\}/);
+    assert.match(deployWorkflow, /REQUESTED_SERVER_VERSION: \$\{\{ inputs\.server_version \}\}/);
+    assert.match(
+        deployWorkflow,
+        /release_id="\$\{GROTTO_SERVER_VERSION\}\+git\.\$\{GROTTO_SOURCE_REVISION:0:12\}"/
+    );
     assert.match(deployWorkflow, /bun scripts\/release\/verify-hosted-grotto\.mjs/);
     assert.match(releaseHostWorkflow, /\.release\.version and \.release\.sourceRevision/);
     assert.match(releaseHostWorkflow, /\.version and \.sourceRevision and \.components\.computer/);

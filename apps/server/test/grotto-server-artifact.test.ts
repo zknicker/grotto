@@ -64,7 +64,7 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     expect(paths).toContain('./bin/activate-grotto-server');
     expect(paths).toContain('./release-files.sha256');
     expect(paths).toContain('./release.json');
-    expect(paths).toContain('./share/grotto-server/app/favicon.svg');
+    expect(paths).toContain('./share/grotto-server/app/grotto-app-icon.png');
     expect(paths).toContain('./share/grotto-server/app/index.html');
     expect(paths).toContain('./share/grotto-server/app/privacy.html');
     expect(paths).toContain('./share/grotto-server/migrations/0000_baseline.sql');

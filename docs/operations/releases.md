@@ -69,11 +69,10 @@ Environment and verifies the public Server and hosted Grotto App. Reviewing and 
 PR is the release's only human authorization gate; selected target jobs run to completion without a
 second approval.
 
-The desktop App icon source is `assets/mac-icon.icon`. Release runners whose Xcode predates Icon
-Composer use the matching `assets/mac-icon-fallback.icns` instead. After changing the source on an
-Xcode version that can compile it, run `node scripts/build-macos-app-icon.mjs --update-fallback` and
-commit both assets. Ordinary icon builds prefer current Xcode output and use the fallback only when
-that output is unavailable.
+The desktop App icon source is `assets/mac-icon.icon`. Desktop release packaging pins Xcode 26.3 or
+newer because older `actool` versions can accept an Icon Composer source without emitting the
+required ICNS output. Icon compilation fails explicitly when that output is missing; do not check in
+a second generated icon representation.
 
 ## Target impact
 

@@ -157,9 +157,13 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(workflow, /bun run computer:release "\$\{COMPUTER_VERSION\}"/);
     assert.match(
         workflow,
+        /name: Publish App[\s\S]*?run: DEVELOPER_DIR=\/Applications\/Xcode_26\.3\.app\/Contents\/Developer bun run publish:desktop/
+    );
+    assert.match(
+        workflow,
         /name: Upload iOS[\s\S]*?DEVELOPER_DIR: \/Applications\/Xcode_26\.3\.app\/Contents\/Developer[\s\S]*?bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
     );
-    assert.match(workflow, /run: bun run publish:desktop/);
+    assert.match(workflow, /bun run publish:desktop/);
     assert.ok(
         websitePackage.scripts['desktop:publish'].indexOf('check-desktop-artifacts.mjs') <
             websitePackage.scripts['desktop:publish'].indexOf('publish-desktop.mjs')

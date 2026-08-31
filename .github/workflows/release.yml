@@ -130,7 +130,7 @@ jobs:
       - name: Publish App
         env:
           RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
-        run: bun run publish:desktop
+        run: DEVELOPER_DIR=/Applications/Xcode_26.3.app/Contents/Developer bun run publish:desktop
       - name: Upload App release bundle for Server
         uses: actions/upload-artifact@v4
         with:

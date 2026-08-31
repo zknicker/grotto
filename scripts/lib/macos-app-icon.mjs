@@ -1,14 +1,11 @@
 import { cpSync, existsSync, rmSync } from 'node:fs';
 
-export function selectCompiledIcon({ compiledIconPath, fallbackIconPath }) {
-    if (existsSync(compiledIconPath)) {
-        return { kind: 'compiled', path: compiledIconPath };
+export function requireCompiledIcon(compiledIconPath) {
+    if (!existsSync(compiledIconPath)) {
+        throw new Error(
+            'actool emitted no ICNS file; Xcode 26.3 or newer is required to compile Icon Composer sources'
+        );
     }
-    if (existsSync(fallbackIconPath)) {
-        return { kind: 'fallback', path: fallbackIconPath };
-    }
-
-    throw new Error('actool emitted no ICNS file and the checked-in fallback is missing');
 }
 
 export function syncOptionalAssetCatalog({ destinationPath, sourcePath }) {

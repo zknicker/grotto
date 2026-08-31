@@ -1,17 +1,12 @@
 /* Grotto mark motion only; artwork colors live in the SVG. */
 
-.grotto-logo__figure,
-.grotto-logo__eye {
+.grotto-logo__figure {
     transform-box: fill-box;
     transform-origin: center;
 }
 
 .grotto-logo--animated .grotto-logo__figure {
     animation: grotto-logo-float 5.6s ease-in-out infinite;
-}
-
-.grotto-logo--animated .grotto-logo__eye {
-    animation: grotto-logo-blink 5.6s ease-in-out infinite;
 }
 
 @keyframes grotto-logo-float {
@@ -25,32 +20,8 @@
     }
 }
 
-@keyframes grotto-logo-blink {
-    0%,
-    3%,
-    54%,
-    60%,
-    100% {
-        transform: scaleY(1);
-    }
-
-    1.5% {
-        transform: scaleY(0.08);
-    }
-
-    55.5%,
-    58.5% {
-        transform: scaleY(0.08);
-    }
-
-    57% {
-        transform: scaleY(0.55);
-    }
-}
-
 @media (prefers-reduced-motion: reduce) {
-    .grotto-logo--animated .grotto-logo__figure,
-    .grotto-logo--animated .grotto-logo__eye {
+    .grotto-logo--animated .grotto-logo__figure {
         animation: none;
     }
 }

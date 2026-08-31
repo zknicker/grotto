@@ -35,13 +35,13 @@ Neither a push to `main` nor a completed target job alone is deployment evidence
 
 The self-hosted `Deploy Grotto Server` workflow:
 
-1. accepts the Release workflow's exact published `vX.Y.Z` and source SHA, or a manual exact
-   version with mode `deploy` or `activate`
+1. accepts the Release workflow's exact published Grotto `vX.Y.Z`, Server artifact `X.Y.Z`, and
+   source SHA, or those same exact values from a manual `deploy` or `activate`
 2. rejects drafts, prereleases, lightweight tags, branches, and arbitrary SHAs
 3. resolves the annotated tag to a full commit SHA through the authenticated
    GitHub API
-4. in `deploy` mode, requires the exact Server archive and sidecar whose
-   version and short SHA match that release
+4. in `deploy` mode, requires the exact Server archive and sidecar whose Server version and short
+   SHA match that Grotto release
 5. verifies the existing private PostgreSQL service without mutating it
 6. in `deploy` mode, downloads and checksum-verifies those two assets, extracts
    only the compiled deploy operation, and uses it to verify and install the
@@ -321,7 +321,8 @@ secret source, and rollback release before changing the host.
     reviewed launchd plists separately; ordinary release workflows never update
     these privileged assets. Reinstall the helper through this operator gate
     only when its activation or validation contract changes.
-11. Manually dispatch the exact published `vX.Y.Z` in `deploy` mode. This seeds
+11. Manually dispatch the exact published Grotto `vX.Y.Z`, its Server artifact `X.Y.Z`, and the
+    release source SHA in `deploy` mode. This seeds
     the first immutable release through the same download, verification,
     install, helper-owned Server bootstrap, health, and rollback path used by
     later published releases.

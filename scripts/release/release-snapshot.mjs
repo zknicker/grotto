@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from 'node:util';
+
 import {
     assertReleaseLedger,
     latestProductVersion,
@@ -5,8 +7,12 @@ import {
     releasePublishesTarget,
     releaseTargetBuildNumber,
 } from './release-ledger.mjs';
+import { isSemver } from './release-utils.mjs';
 
 const fullShaPattern = /^[0-9a-f]{40}$/u;
+const datePattern = /^\d{4}-\d{2}-\d{2}$/u;
+const snapshotKeys = ['components', 'date', 'schemaVersion', 'sourceRevision', 'version'];
+const componentKeys = ['agent', 'computer', 'desktopApp', 'ios', 'server'];
 
 export function resolveReleaseSnapshot(ledger, { sourceRevision }) {
     const { latest } = assertReleaseLedger(ledger, { requireComplete: true });
@@ -29,6 +35,63 @@ export function resolveReleaseSnapshot(ledger, { sourceRevision }) {
     };
 }
 
+export function resolveExpectedPublicGrottoRelease(ledger, { version, sourceRevision }) {
+    if (!isSemver(version)) {
+        throw new Error('expected public Grotto version must be X.Y.Z');
+    }
+
+    const snapshot = resolveReleaseSnapshot(ledger, { sourceRevision });
+    if (snapshot.version !== version) {
+        throw new Error(
+            `expected public Grotto version ${version} does not match latest release ${snapshot.version}`
+        );
+    }
+    return snapshot;
+}
+
+export function grottoSnapshotKeys(version) {
+    if (!isSemver(version)) {
+        throw new Error(`invalid Grotto release version ${version}`);
+    }
+    return {
+        immutable: `grotto/${version}.json`,
+        latest: 'grotto/latest.json',
+    };
+}
+
+export function parsePublicGrottoSnapshot(value, endpoint = 'public Grotto release snapshot') {
+    assertExactObject(value, snapshotKeys, endpoint);
+    if (!isSemver(value.version)) {
+        throw new Error(`${endpoint} version must be X.Y.Z`);
+    }
+    if (!(typeof value.date === 'string' && isIsoDate(value.date))) {
+        throw new Error(`${endpoint} date must be YYYY-MM-DD`);
+    }
+    if (value.schemaVersion !== 1) {
+        throw new Error(`${endpoint} schemaVersion must be 1`);
+    }
+    if (!(typeof value.sourceRevision === 'string' && fullShaPattern.test(value.sourceRevision))) {
+        throw new Error(`${endpoint} sourceRevision must be a full lowercase Git SHA`);
+    }
+
+    assertComponents(value.components, endpoint);
+    return value;
+}
+
+export function assertPublicGrottoSnapshot(
+    actual,
+    expected,
+    endpoint = 'public Grotto release snapshot'
+) {
+    const parsed = parsePublicGrottoSnapshot(actual, endpoint);
+    if (!isDeepStrictEqual(parsed, expected)) {
+        throw new Error(
+            `${endpoint} does not match expected Grotto ${expected.version} release ` +
+                `at source ${expected.sourceRevision}`
+        );
+    }
+}
+
 function latestIOSVersion(ledger) {
     for (let index = ledger.length - 1; index >= 0; index -= 1) {
         if (!releasePublishesTarget(ledger[index], 'ios')) {
@@ -40,4 +103,53 @@ function latestIOSVersion(ledger) {
         };
     }
     return null;
+}
+
+function assertComponents(value, endpoint) {
+    assertExactObject(value, componentKeys, `${endpoint} components`);
+    for (const component of componentKeys) {
+        const version = value[component];
+        if (component === 'ios') {
+            if (version === null) {
+                continue;
+            }
+            assertExactObject(version, ['buildNumber', 'version'], `${endpoint} iOS component`);
+            if (!isSemver(version.version)) {
+                throw new Error(`${endpoint} iOS component version must be X.Y.Z`);
+            }
+            if (!Number.isSafeInteger(version.buildNumber) || version.buildNumber <= 0) {
+                throw new Error(`${endpoint} iOS component buildNumber must be a positive integer`);
+            }
+            continue;
+        }
+        if (version !== null && !isSemver(version)) {
+            throw new Error(`${endpoint} ${component} component must be X.Y.Z or null`);
+        }
+    }
+}
+
+function isIsoDate(value) {
+    if (!datePattern.test(value)) {
+        return false;
+    }
+    const [year, month, day] = value.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return (
+        date.getUTCFullYear() === year &&
+        date.getUTCMonth() === month - 1 &&
+        date.getUTCDate() === day
+    );
+}
+
+function assertExactObject(value, expectedKeys, label) {
+    if (!(value && typeof value === 'object' && !Array.isArray(value))) {
+        throw new Error(`${label} must be an object`);
+    }
+    const actualKeys = Object.keys(value);
+    if (
+        actualKeys.length !== expectedKeys.length ||
+        expectedKeys.some((key) => !Object.hasOwn(value, key))
+    ) {
+        throw new Error(`${label} has unexpected fields`);
+    }
 }

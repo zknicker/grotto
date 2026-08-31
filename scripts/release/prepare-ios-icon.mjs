@@ -10,11 +10,18 @@ import { fail, repoRoot } from './release-utils.mjs';
 const outputDirectory = path.resolve(process.argv[2] ?? 'build/ios-icon');
 const stagedDirectory = mkdtempSync(path.join(tmpdir(), 'grotto-ios-icon-'));
 const stagedIcon = path.join(stagedDirectory, 'mac-icon.icon');
+const requiredXcodeBuild = '27A5237l';
 
 mkdirSync(outputDirectory, { recursive: true });
 cpSync(path.join(repoRoot, 'assets', 'mac-icon.icon'), stagedIcon, { recursive: true });
 
-run('xcodebuild', ['-version']);
+const xcodeVersion = run('xcodebuild', ['-version'], { captureOutput: true });
+if (!xcodeVersion.includes(`Build version ${requiredXcodeBuild}`)) {
+    fail(`iOS icon compilation requires Xcode build ${requiredXcodeBuild}`, {
+        xcodeVersion: xcodeVersion.trim(),
+    });
+}
+console.log(xcodeVersion.trim());
 run('xcrun', [
     'actool',
     stagedIcon,
@@ -34,9 +41,18 @@ run('xcrun', [
 inspectIOSIconArtifact(outputDirectory);
 console.log(`Prepared full-fidelity iOS icon artifact at ${outputDirectory}`);
 
-function run(command, args) {
-    const result = spawnSync(command, args, { cwd: repoRoot, env: process.env, stdio: 'inherit' });
+function run(command, args, { captureOutput = false } = {}) {
+    const result = spawnSync(command, args, {
+        cwd: repoRoot,
+        encoding: captureOutput ? 'utf8' : undefined,
+        env: process.env,
+        stdio: captureOutput ? 'pipe' : 'inherit',
+    });
     if (result.status !== 0) {
-        fail(`${command} failed while preparing the iOS icon`, { status: result.status });
+        fail(`${command} failed while preparing the iOS icon`, {
+            status: result.status,
+            stderr: result.stderr?.trim(),
+        });
     }
+    return result.stdout ?? '';
 }

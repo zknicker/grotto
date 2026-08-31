@@ -29,6 +29,10 @@ const publishIOSSource = readFileSync(
     path.join(repositoryRoot, 'scripts/release/publish-ios.mjs'),
     'utf8'
 );
+const prepareIOSIconSource = readFileSync(
+    path.join(repositoryRoot, 'scripts/release/prepare-ios-icon.mjs'),
+    'utf8'
+);
 const websitePackage = JSON.parse(
     readFileSync(path.join(repositoryRoot, 'apps/website/package.json'), 'utf8')
 );
@@ -155,7 +159,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     }
     assert.equal((workflow.match(/runs-on: macos-15$/gm) ?? []).length, 1);
     assert.equal((workflow.match(/runs-on: macos-26$/gm) ?? []).length, 1);
-    assert.equal((workflow.match(/runs-on: xcode-27$/gm) ?? []).length, 2);
+    assert.equal((workflow.match(/runs-on: xcode-27$/gm) ?? []).length, 1);
     assert.match(workflow, /name: Publish Computer[\s\S]*?GH_TOKEN: \$\{\{ github\.token \}\}/);
     assert.match(workflow, /bun run computer:release "\$\{COMPUTER_VERSION\}"/);
     assert.match(
@@ -164,8 +168,9 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     );
     assert.match(
         workflow,
-        /name: Prepare iOS icon[\s\S]*?runs-on: xcode-27[\s\S]*?node scripts\/release\/prepare-ios-icon\.mjs build\/ios-icon[\s\S]*?name: Upload iOS[\s\S]*?needs: \[plan, prepare_ios_icon\][\s\S]*?runs-on: macos-26[\s\S]*?DEVELOPER_DIR: \/Applications\/Xcode_26\.6\.app\/Contents\/Developer[\s\S]*?GROTTO_PRECOMPILED_IOS_ICON_DIR:[\s\S]*?bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
+        /name: Prepare iOS icon[\s\S]*?runs-on: \[self-hosted, macOS, ARM64, grotto-xcode27\][\s\S]*?DEVELOPER_DIR: \/Users\/zknicker\/Applications\/Xcode-27\.0\.0-Beta\.5\.app\/Contents\/Developer[\s\S]*?persist-credentials: false[\s\S]*?node-version: 26\.5\.0[\s\S]*?node scripts\/release\/prepare-ios-icon\.mjs build\/ios-icon[\s\S]*?name: Upload iOS[\s\S]*?needs: \[plan, prepare_ios_icon\][\s\S]*?runs-on: macos-26[\s\S]*?DEVELOPER_DIR: \/Applications\/Xcode_26\.6\.app\/Contents\/Developer[\s\S]*?GROTTO_PRECOMPILED_IOS_ICON_DIR:[\s\S]*?bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
     );
+    assert.match(prepareIOSIconSource, /requiredXcodeBuild = '27A5237l'/);
     assert.match(publishIOSSource, /EXCLUDED_SOURCE_FILE_NAMES=mac-icon\.icon/);
     assert.match(
         publishIOSSource,

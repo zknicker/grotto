@@ -274,7 +274,7 @@ async function seedActionChat(): Promise<ActionSeed> {
 function agentRow(id: string, serverId: string, handle: string) {
     return {
         displayName: handle,
-        handle: `${handle}-${id.slice(-4).toLowerCase()}`,
+        handle,
         homeTimezone: 'UTC',
         id,
         role: 'member' as const,

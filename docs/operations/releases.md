@@ -45,8 +45,17 @@ published version through carry-forward resolution; do not copy the Grotto versi
 Release publication resolves the ledger entry into a canonical snapshot containing the public
 Grotto version and the effective Server, App, iOS, Computer, and Agent versions. Consumers use that
 snapshot at `https://releases.grotto.sh/grotto/latest.json` to describe one Grotto release without
-pretending every component rebuilt. Finalization verifies that public snapshot byte-for-byte after
-publishing it; storage-only verification is not sufficient release evidence.
+pretending every component rebuilt. Finalization verifies both the immutable versioned snapshot and
+the promoted `latest` snapshot through the public host; storage-only verification is not sufficient
+release evidence.
+
+Operators can repeat that read-only public check with
+`bun run release:verify-snapshot -- --version X.Y.Z --source-revision <full sha>`. The command
+resolves one canonical snapshot from `releases.json`, follows redirects, disables caches, and checks
+both public endpoints with bounded pair retries. Exit status `0` means both final responses were
+2xx and both parsed JSON payloads exactly match the expected version, date, schema, source revision,
+and effective component versions. A non-zero status identifies the immutable or latest endpoint
+when a request, redirect result, payload shape, or exact value check fails.
 
 Grotto Agent has independent SemVer but no standalone artifact. Its behavior package is embedded in
 Server and Computer, so publishing Grotto Agent always publishes both targets. Server advertises

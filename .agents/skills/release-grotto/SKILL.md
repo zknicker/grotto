@@ -21,8 +21,10 @@ deployment contracts remain in the routed docs and specs below; do not recreate 
   selected target jobs and reports every unselected target as unchanged.
 - Release publication makes artifacts available. When Server publishes, the Release graph enters
   the protected `production` Environment and calls `Deploy Grotto Server` automatically. The
-  reviewed release PR is the only human authorization gate. Do not call a release production-ready
-  until deployment and public checks succeed.
+  release PR is the only human authorization boundary: merge requires either a non-author GitHub
+  `APPROVED` review or, when agent and operator share a GitHub identity, explicit operator
+  authorization bound to the exact PR number and current head SHA. Do not call a release
+  production-ready until deployment and public checks succeed.
 - Never put credentials, tokens, or private key material in the record, PR, changelog, or handoff.
 
 The skill owns decision prompts, record preparation, PR/merge flow, monitoring, and handoff. Read
@@ -117,6 +119,11 @@ Run `release:check`; it rejects a required target recorded as unchanged or versi
 does not match the ledger. Then run the relevant local gates, `git diff --check`, and the
 documentation check before opening the PR.
 
+A focused rerun after a failed full gate is diagnostic only. Require a clean full `bun run check`
+before opening or merging; preserve the original failure in PR evidence and classify it as a
+product regression, environment/transient failure, or baseline/unrelated failure alongside any
+focused result. A passing focused rerun does not erase or relabel the original full-gate failure.
+
 Completion criterion: one new valid record describes every target and version/build input without
 changing historical entries, and its changelog entry describes shipped outcomes without internal
 churn or filler.
@@ -137,9 +144,16 @@ permits only the `main` branch. Stop before merge if the branch restriction is m
 reviewer gate is configured. The Environment scopes production credentials; the reviewed release
 PR authorizes the whole post-merge graph.
 
+Before merging, obtain either a GitHub `APPROVED` review from someone other than the PR author, or,
+when agent and operator share a GitHub identity, explicit operator authorization naming the exact
+PR number and current head SHA. Generic chat assent is not approval. Immediately before the merge,
+re-read the PR head SHA, state, approvals, and required checks; if the head changed or the approval
+does not bind that head, stop and reacquire authorization.
+
 Do not create one PR per target, publish from the PR branch, push a release tag by hand, or merge
 around a failing check. Use the repository's normal `gh`/GitHub workflow and approval policy. Merge
-only after the PR is approved and all required checks are green.
+only after the freshly re-read PR is mergeable, the authorization gate is satisfied, and all required
+checks are green.
 
 Completion criterion: the single release PR is merged, and its merge commit SHA is recorded for
 workflow correlation.
@@ -158,8 +172,9 @@ Check the result in this order:
    each unchanged target was skipped and not silently rebuilt.
 3. For Computer, verify the immutable artifact, signature, digest, source revision, protocol, public
    descriptor, and production pointer according to the Computer spec.
-4. For iOS, wait for Apple processing, resolve export compliance, add the exact build to the internal
-   TestFlight group, and complete the real-device smoke from the iOS doc.
+4. For iOS, record the furthest proven state exactly as `uploaded`, `processing`, `processed`,
+   `distributed to internal testers`, or `device-verified`; link evidence for each transition and
+   follow the iOS doc for the required actions. Workflow success alone does not make iOS released.
 5. For App, retain the signed/notarized artifact and updater evidence required by the App contract.
 6. For Server, confirm the artifact is published and deployable. Publication alone is not production
    deployment.
@@ -190,14 +205,18 @@ evidence.
 
 ## 6. Write one release handoff
 
-After target jobs and any required Server promotion finish, send one operator-facing message.
+After target jobs and any required Server promotion finish, send one operator-facing message. A
+terminal workflow may still require a `pending operator` handoff while iOS processing, internal
+distribution, or device verification remains outstanding.
 Use actual evidence, not the planned record or changed files alone:
 
 ```text
-Released vX.Y.Z 🚀
+Grotto release vX.Y.Z 🚀
+
+Status: <released | pending operator | failed>
 
 Required updates: <only actionable target updates, or none>
-Targets: Server <version/state>; App <version/state>; iOS <version/build/state>; Computer <version/state>; Grotto Agent <version/state>
+Targets: Server <version/state>; App <version/state>; iOS <version/build/furthest proven state>; Computer <version/state>; Grotto Agent <version/state>
 Production: <deployed and healthy | published, deployment pending | failed> at <full source SHA>
 What changed: <one to three user-facing sentences>
 Verification: <workflow, target, smoke, deployment, and public-health evidence>
@@ -207,8 +226,10 @@ Links: <PR, Release run, target artifacts, and deploy run>
 ```
 
 List only actionable updates in `Required updates`, naming the exact version and action. Still list
-all four targets with their actual published/deployed state. Distinguish `published` from `deployed`,
-name failed or missing proof, and describe destructive data work and recoverability.
+all five targets with their actual published/deployed state. For iOS, use only the exact furthest
+proven state above; never call it `released` before the required state is evidenced. Distinguish
+`published` from `deployed`, name failed or missing proof, and describe destructive data work and
+recoverability.
 
 Completion criterion: one concise handoff matches the release decision and terminal evidence and
 links every material claim.

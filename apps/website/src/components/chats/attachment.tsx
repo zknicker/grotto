@@ -3,10 +3,8 @@ import * as React from 'react';
 import { cn } from '../../lib/utils.ts';
 
 /**
- * Chat-owned attachment row. Pro `ChatAttachment` is a square composer tile
- * (preview + remove) with no room for a filename, a metadata line, or a
- * download affordance, so rendered message attachments keep this row layout
- * on HeroUI semantic tokens instead.
+ * Chat-owned file row for attachments without a media preview. Hosted images
+ * use Pro `ChatAttachment`; file references keep this metadata-first layout.
  */
 function Attachment({
     className,

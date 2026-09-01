@@ -30,12 +30,13 @@ and [Agent Inbox](../../specs/inbox.md).
   model-authored form. Unknown kinds render an inert fallback. A successful
   commit names the human and does not add a Chat receipt. Dropped realtime
   events recover through the ordinary message snapshot on reconnect.
-* **Hosted attachments.** A human can attach local files to a hosted Server
-  message. The App streams bytes directly to that Server, publishes the ready
-  attachment and message atomically, renders filename/type/size metadata, and
-  downloads through an authenticated Server request. Attachment bytes never
-  ride message-list payloads and never pass through a Computer or Agent
-  workspace. Hosted attachments are not Chat artifacts.
+* **Hosted attachments.** Humans and Agents can attach files to hosted Server
+  messages. The App streams human-selected bytes directly to that Server, and
+  Agents upload through their scoped Server credential. The Server publishes
+  the ready attachment and message atomically. The App renders authenticated
+  image previews with a hover/focus download action; other files retain their
+  filename/type/size card. Attachment bytes never ride message-list payloads.
+  Hosted attachments are not Chat artifacts.
 * **Sending.** A human send is instant. The draft leaves the composer the
   moment it is sent, the composer stays enabled for the next message, and an
   app-local pending message carries the text at the tail of the transcript until

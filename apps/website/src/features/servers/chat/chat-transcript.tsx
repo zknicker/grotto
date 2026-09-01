@@ -179,6 +179,7 @@ export function useChatTranscript({
                             serverId: sourceMessage.serverId,
                         })
                     }
+                    serverId={sourceMessage.serverId}
                 />
             ) : null;
         },

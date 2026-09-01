@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.12.8 - 2026-09-01
+
+- Grotto Agent 1.1.1 restores model-native image generation and lets Cove request avatars from
+  Grotto Server, so Agent creation no longer depends on an API key in the App or Computer.
+- Grotto Computer 1.6.1 reuses one machine-wide Harness bridge cache across Agents instead of
+  downloading a separate copy for each Agent.
+
 ## v1.12.7 - 2026-08-31
 
 - Grotto App and Grotto for iPhone use the refined translucent ghost icon. Grotto for iPhone also

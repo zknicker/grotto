@@ -301,10 +301,6 @@ where Item.ID == String {
 
     private func configure(cell: UITableViewCell, at indexPath: IndexPath) {
         guard let view else { return }
-        // The counter-flip lives on the UIKit contentView, not inside the
-        // hosted SwiftUI: the hosting view's own layer then renders upright,
-        // so a context-menu interaction snapshots a readable preview.
-        cell.contentView.transform = CGAffineTransform(scaleX: 1, y: -1)
         if indexPath.row >= items.count {
             cell.contentConfiguration = UIHostingConfiguration {
                 view.accessory()
@@ -312,15 +308,24 @@ where Item.ID == String {
             .margins(.vertical, 0)
             .margins(.horizontal, 16)
             .minSize(width: 0, height: 0)
-            return
+        } else {
+            let item = items[items.count - 1 - indexPath.row]
+            cell.contentConfiguration = UIHostingConfiguration {
+                view.row(item)
+            }
+            .margins(.vertical, 0)
+            .margins(.horizontal, 16)
+            .minSize(width: 0, height: 0)
         }
-        let item = items[items.count - 1 - indexPath.row]
-        cell.contentConfiguration = UIHostingConfiguration {
-            view.row(item)
-        }
-        .margins(.vertical, 0)
-        .margins(.horizontal, 16)
-        .minSize(width: 0, height: 0)
+        // The counter-flip lives on the UIKit contentView, not inside the
+        // hosted SwiftUI: the hosting view's own layer then renders upright,
+        // so a context-menu interaction snapshots a readable preview. It is
+        // applied *after* the configuration, because assigning one that the
+        // cell cannot reuse — a brand-new cell, or a swap between the row and
+        // accessory configurations — replaces `contentView` with a fresh one,
+        // and a flip set beforehand would ride away on the discarded view,
+        // leaving that row mirrored inside the flipped table.
+        cell.contentView.transform = CGAffineTransform(scaleX: 1, y: -1)
     }
 
     // MARK: Context menus

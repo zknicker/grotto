@@ -28,7 +28,7 @@ import {
     createComputerActivityRegistry,
 } from './activity-projector.ts';
 import { fingerprintHarnessBootstrap, refreshHarnessBootstrap } from './bootstrap-refresh.ts';
-import { bridgeStoreDirForAgentsRoot, withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
+import { bridgeStoreDirForHost, withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
 import {
     type ComputerExecutionJournal,
     createComputerExecutionJournal,
@@ -180,7 +180,7 @@ async function executeHarnessTurn(
         input.modelId,
         input.reasoningEffort,
         input.webAccess !== null,
-        bridgeStoreDir(input)
+        bridgeStoreDir()
     );
     const bootstrapFingerprint = await fingerprintHarnessBootstrap({
         abortSignal: input.signal,
@@ -899,13 +899,12 @@ function authProfileFor(runtimeId: string) {
  * the sandbox HOME), so no credential is injected here.
  */
 /**
- * One content-addressed pnpm store per Computer server tree, shared by every
- * Agent's bridge bootstrap: the runtime's platform binary downloads once
- * (pre-warmed at attach), and Agents hard-link from the store instead of
- * hitting the network.
+ * One machine-wide content-addressed pnpm store, shared by development and
+ * production Computers. Agent state stays isolated; only immutable package
+ * artifacts cross those boundaries.
  */
-function bridgeStoreDir(input: HarnessTurnInput) {
-    return bridgeStoreDirForAgentsRoot(dirname(dirname(input.workspaceDir)));
+function bridgeStoreDir() {
+    return bridgeStoreDirForHost();
 }
 
 function createHarnessForRuntime(

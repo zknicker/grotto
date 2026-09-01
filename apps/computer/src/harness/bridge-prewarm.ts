@@ -5,7 +5,11 @@
 
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { bridgeStoreDirForAgentsRoot, readBridgePrewarmPlans } from './bridge-bootstrap.ts';
+import {
+    type BridgeHarnessId,
+    bridgeStoreDirForHost,
+    readBridgePrewarmPlans,
+} from './bridge-bootstrap.ts';
 
 type RunCommand = (command: string, cwd: string) => Promise<number>;
 
@@ -17,15 +21,18 @@ type RunCommand = (command: string, cwd: string) => Promise<number>;
  */
 export async function prewarmBridgeStores({
     agentsRoot,
+    harnessIds,
     log = (line: string) => console.error(line),
     run = runShellCommand,
+    storeDir = bridgeStoreDirForHost(),
 }: {
     agentsRoot: string;
+    harnessIds?: readonly BridgeHarnessId[];
     log?: (line: string) => void;
     run?: RunCommand;
+    storeDir?: string;
 }): Promise<void> {
-    const storeDir = bridgeStoreDirForAgentsRoot(agentsRoot);
-    for (const plan of await readBridgePrewarmPlans()) {
+    for (const plan of await readBridgePrewarmPlans(harnessIds)) {
         const directory = join(agentsRoot, '.harness-bridge-prewarm', plan.harnessId);
         try {
             await mkdir(directory, { mode: 0o700, recursive: true });

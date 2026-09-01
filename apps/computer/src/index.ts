@@ -402,6 +402,10 @@ async function main(args: string[]) {
                     prewarmed = true;
                     void prewarmBridgeStores({
                         agentsRoot: join(dataRoot, 'servers', attachment.serverId, 'agents'),
+                        // Fresh development Servers seed only Codex Agents. Other
+                        // runtimes warm on demand instead of adding hundreds of
+                        // megabytes to every disposable dev stack.
+                        ...(process.env.GROTTO_DEV_STACK === '1' ? { harnessIds: ['codex'] } : {}),
                     });
                 }
                 return connect(attachment);

@@ -15,9 +15,10 @@ describe('bridge store pre-warm', () => {
         await rm(agentsRoot, { force: true, recursive: true });
     });
 
-    test('runs every bridge install against the one shared store', async () => {
+    test('runs every bridge install against the machine-wide shared store', async () => {
         const runs: Array<{ command: string; cwd: string }> = [];
         const lines: string[] = [];
+        const storeDir = join(agentsRoot, 'machine-cache', 'harness-bridge-store');
         await prewarmBridgeStores({
             agentsRoot,
             log: (line) => lines.push(line),
@@ -25,13 +26,12 @@ describe('bridge store pre-warm', () => {
                 runs.push({ command, cwd });
                 return Promise.resolve(0);
             },
+            storeDir,
         });
 
         expect(runs.length).toBeGreaterThanOrEqual(2);
         for (const run of runs) {
-            expect(run.command).toContain(
-                `--store-dir "${join(agentsRoot, '.harness-bridge-store')}"`
-            );
+            expect(run.command).toContain(`--store-dir "${storeDir}"`);
             // The shared store must never be wiped by a verify retry.
             expect(run.command).not.toContain('.pnpm-store &&');
         }
@@ -44,6 +44,22 @@ describe('bridge store pre-warm', () => {
         );
         expect(manifest).toContain('"@openai/codex-sdk"');
         expect(lines.filter((line) => line.includes('store warm'))).toHaveLength(runs.length);
+    });
+
+    test('can warm only the runtimes needed by a development Server', async () => {
+        const runs: Array<{ command: string; cwd: string }> = [];
+        await prewarmBridgeStores({
+            agentsRoot,
+            harnessIds: ['codex'],
+            run: (command, cwd) => {
+                runs.push({ command, cwd });
+                return Promise.resolve(0);
+            },
+            storeDir: join(agentsRoot, 'machine-cache', 'harness-bridge-store'),
+        });
+
+        expect(runs).toHaveLength(1);
+        expect(runs[0]?.cwd).toEndWith('/codex');
     });
 
     test('a failed warm logs and never throws — first bootstraps just fetch', async () => {

@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
+import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { HarnessV1, HarnessV1Bootstrap } from '@ai-sdk/harness';
@@ -22,8 +23,10 @@ import codexBridge from '../../node_modules/@ai-sdk/harness-codex/dist/bridge/in
 };
 
 const require = createRequire(import.meta.url);
+const bridgePnpmVersion = '10.32.1';
 
-type BridgeHarnessId = 'claude-code' | 'codex';
+export type BridgeHarnessId = 'claude-code' | 'codex';
+const bridgeHarnessIds: readonly BridgeHarnessId[] = ['claude-code', 'codex'];
 
 const bridgeSpecs = {
     'claude-code': {
@@ -71,7 +74,8 @@ const embeddedBridgeAssets: Record<BridgeHarnessId, Readonly<Record<string, stri
  * The proven Runtime bridge bootstrap, now owned and shipped by Computer.
  * `storeDir` points every Agent's install at one shared, content-addressed
  * pnpm store (pnpm serializes concurrent store access itself) so the runtime's
- * platform binary is fetched once per Computer instead of once per Agent.
+ * platform binary is fetched once per physical machine instead of once per
+ * Computer or Agent.
  */
 export function withComputerBridgeBootstrap<T extends HarnessV1>(
     harness: T,
@@ -89,9 +93,9 @@ export function withComputerBridgeBootstrap<T extends HarnessV1>(
     };
 }
 
-/** The one shared store location per server tree; executor and pre-warm must agree. */
-export function bridgeStoreDirForAgentsRoot(agentsRoot: string) {
-    return join(agentsRoot, '.harness-bridge-store');
+/** Installed bridge packages are machine software, not Server-scoped Agent state. */
+export function bridgeStoreDirForHost(homeDirectory = homedir()) {
+    return join(homeDirectory, '.grotto', 'cache', 'harness-bridge-store');
 }
 
 /**
@@ -100,7 +104,9 @@ export function bridgeStoreDirForAgentsRoot(agentsRoot: string) {
  * install the per-Agent bootstrap will later run (which then hard-links from
  * the warm store instead of fetching).
  */
-export async function readBridgePrewarmPlans(): Promise<
+export async function readBridgePrewarmPlans(
+    harnessIds: readonly BridgeHarnessId[] = bridgeHarnessIds
+): Promise<
     Array<{
         command: (storeDir: string) => string;
         files: Array<{ content: string; name: string }>;
@@ -108,7 +114,7 @@ export async function readBridgePrewarmPlans(): Promise<
     }>
 > {
     return await Promise.all(
-        (Object.keys(bridgeSpecs) as BridgeHarnessId[]).map(async (harnessId) => {
+        harnessIds.map(async (harnessId) => {
             const spec = bridgeSpecs[harnessId];
             return {
                 command: (storeDir: string) =>
@@ -141,9 +147,7 @@ export async function readBridgePrewarmPlans(): Promise<
 /** Release/doctor gate: embedded bridge files land where each adapter launches them. */
 export async function validateComputerBridgeAssets(): Promise<void> {
     await Promise.all(
-        (Object.keys(bridgeSpecs) as BridgeHarnessId[]).map((harnessId) =>
-            readBridgeBootstrap(harnessId, bridgeSpecs[harnessId])
-        )
+        bridgeHarnessIds.map((harnessId) => readBridgeBootstrap(harnessId, bridgeSpecs[harnessId]))
     );
     const grokBuildBootstrap = await createGrokBuild().getBootstrap?.();
     const grokBuildDescriptor = grokBuildBootstrap?.files?.find(
@@ -171,7 +175,7 @@ export async function validateComputerBridgeAssets(): Promise<void> {
 }
 
 function installCommand(storeDir?: string) {
-    return `CI=true pnpm install --frozen-lockfile --store-dir ${storeDir ? `"${storeDir}"` : '.pnpm-store'}`;
+    return `CI=true corepack pnpm@${bridgePnpmVersion} install --frozen-lockfile --store-dir ${storeDir ? `"${storeDir}"` : '.pnpm-store'}`;
 }
 
 /**

@@ -2,7 +2,11 @@ import { expect, test } from 'bun:test';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
 import { createCodex } from '@ai-sdk/harness-codex';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
-import { validateComputerBridgeAssets, withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
+import {
+    bridgeStoreDirForHost,
+    validateComputerBridgeAssets,
+    withComputerBridgeBootstrap,
+} from './bridge-bootstrap.ts';
 
 for (const bridge of [
     {
@@ -39,7 +43,8 @@ for (const bridge of [
             path: `${bridge.bootstrapDir}/grotto-computer-owner`,
         });
         expect(bootstrap.commands?.[0]).toEqual({
-            command: 'CI=true pnpm install --frozen-lockfile --store-dir .pnpm-store',
+            command:
+                'CI=true corepack pnpm@10.32.1 install --frozen-lockfile --store-dir .pnpm-store',
         });
         // The post-install verify gates the bootstrap: a lost optional
         // platform binary exits pnpm 0, so without this gate the completion
@@ -49,7 +54,7 @@ for (const bridge of [
         expect(bootstrap.commands).toHaveLength(2);
         expect(verify).toContain(bridge.verifyFragment);
         expect(verify).toContain(
-            '|| (rm -rf node_modules .pnpm-store && CI=true pnpm install --frozen-lockfile --store-dir .pnpm-store && ('
+            '|| (rm -rf node_modules .pnpm-store && CI=true corepack pnpm@10.32.1 install --frozen-lockfile --store-dir .pnpm-store && ('
         );
         expect(
             bootstrap.files?.find((file) => file.path.endsWith('/bridge.mjs'))?.content
@@ -71,6 +76,12 @@ test('a shared store directory rides every install and is never wiped on retry',
     // retry may only wipe this bootstrap's own node_modules.
     expect(verify).toContain('rm -rf node_modules &&');
     expect(verify).not.toContain('.pnpm-store &&');
+});
+
+test('bridge packages share one cache across development and production Computers', () => {
+    expect(bridgeStoreDirForHost('/Users/example')).toBe(
+        '/Users/example/.grotto/cache/harness-bridge-store'
+    );
 });
 
 test('Computer embeds every packaged harness bridge asset', async () => {

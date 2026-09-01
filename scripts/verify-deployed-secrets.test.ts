@@ -22,6 +22,7 @@ const productionFixture: NodeJS.ProcessEnv = {
     GROTTO_APP_ORIGIN: 'https://grotto.example',
     GROTTO_CLERK_SECRET_KEY: 'sk_live_fixture',
     GROTTO_DATABASE_URL: 'postgres://grotto_runtime:fixture@127.0.0.1:5432/grotto',
+    GROTTO_OPENAI_API_KEY: 'sk_live_avatar_fixture',
     GROTTO_SERVER_PORT: '18791',
 };
 
@@ -99,6 +100,7 @@ describe('the delivered-environment guard, against a rendered fixture', () => {
 
         expect(demanded).toContain('GROTTO_CLERK_SECRET_KEY');
         expect(demanded).toContain('GROTTO_DATABASE_URL');
+        expect(demanded).toContain('GROTTO_OPENAI_API_KEY');
         expect(demanded).not.toContain('GROTTO_DATABASE_MIGRATION_URL');
         expect(demanded).not.toContain('GROTTO_POSTGRES_ADMIN_PASSWORD');
     });

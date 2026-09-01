@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.12.7 - 2026-08-31
+
+- Grotto App and Grotto for iPhone use the refined translucent ghost icon. Grotto for iPhone also
+  shows the photo grid and camera instead of a blank black card on physical devices.
+- iOS release verification preserves authored Xcode 27 icon effects across GitHub runner Xcode
+  versions.
+
 ## v1.12.6 - 2026-08-31
 
 - Grotto App and Grotto for iPhone use the refined translucent ghost icon.

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.12.9 - 2026-09-01
+
+- Grotto shows existing and new image attachments as authenticated Chat thumbnails with a
+  hover/focus download action; other files retain their metadata card.
+
 ## v1.12.8 - 2026-09-01
 
 - Grotto Agent 1.1.1 restores model-native image generation and lets Cove request avatars from

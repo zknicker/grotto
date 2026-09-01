@@ -69,7 +69,7 @@
     },
     "apps/website": {
       "name": "@grotto/website",
-      "version": "1.8.31",
+      "version": "1.8.32",
       "dependencies": {
         "@clerk/clerk-js": "^5.125.5",
         "@clerk/clerk-react": "^5.61.3",

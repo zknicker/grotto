@@ -21,10 +21,11 @@ deployment contracts remain in the routed docs and specs below; do not recreate 
   selected target jobs and reports every unselected target as unchanged.
 - Release publication makes artifacts available. When Server publishes, the Release graph enters
   the protected `production` Environment and calls `Deploy Grotto Server` automatically. The
-  release PR is the only human authorization boundary: merge requires either a non-author GitHub
-  `APPROVED` review or, when agent and operator share a GitHub identity, explicit operator
-  authorization bound to the exact PR number and current head SHA. Do not call a release
-  production-ready until deployment and public checks succeed.
+  release PR is the only human authorization boundary. An explicit operator request to perform,
+  ship, or own a release end to end authorizes creating and merging that release PR once its
+  required checks pass; do not ask for a second PR- or SHA-specific confirmation. A non-author
+  GitHub `APPROVED` review is also sufficient. Do not call a release production-ready until
+  deployment and public checks succeed.
 - Never put credentials, tokens, or private key material in the record, PR, changelog, or handoff.
 
 The skill owns decision prompts, record preparation, PR/merge flow, monitoring, and handoff. Read
@@ -144,16 +145,21 @@ permits only the `main` branch. Stop before merge if the branch restriction is m
 reviewer gate is configured. The Environment scopes production credentials; the reviewed release
 PR authorizes the whole post-merge graph.
 
-Before merging, obtain either a GitHub `APPROVED` review from someone other than the PR author, or,
-when agent and operator share a GitHub identity, explicit operator authorization naming the exact
-PR number and current head SHA. Generic chat assent is not approval. Immediately before the merge,
-re-read the PR head SHA, state, approvals, and required checks; if the head changed or the approval
-does not bind that head, stop and reacquire authorization.
+Before merging, require either a GitHub `APPROVED` review from someone other than the PR author or
+an explicit operator request to perform, ship, or own the release end to end. Operator
+authorization is durable for that release across rebases and in-scope fixes: do not ask the
+operator to paste a generated PR number or SHA. Reacquire direction only when the selected targets
+or versions materially expand beyond the authorized release, a required check would be bypassed,
+or completion needs an external mutation outside the release contract.
+
+Immediately before the merge, re-read the PR head SHA, state, approvals, and required checks. A
+changed head invalidates stale technical evidence, not durable operator intent; rerun the required
+checks and proceed when they pass.
 
 Do not create one PR per target, publish from the PR branch, push a release tag by hand, or merge
 around a failing check. Use the repository's normal `gh`/GitHub workflow and approval policy. Merge
-only after the freshly re-read PR is mergeable, the authorization gate is satisfied, and all required
-checks are green.
+only after the freshly re-read PR is mergeable, the authorization gate is satisfied, and all
+required checks are green.
 
 Completion criterion: the single release PR is merged, and its merge commit SHA is recorded for
 workflow correlation.

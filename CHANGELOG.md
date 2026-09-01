@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.12.6 - 2026-08-31
+
+- Grotto App and Grotto for iPhone use the refined translucent ghost icon.
+- Grotto for iPhone shows the photo grid and camera instead of a blank black card on physical
+  devices while preserving the menu-to-media glass transition.
+
 ## v1.12.5 - 2026-08-31
 
 - Grotto App and Grotto for iPhone ship the authored translucent, refractive ghost icon.

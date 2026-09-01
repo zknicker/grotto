@@ -54,10 +54,12 @@ artifact drift fails the release tests. Regenerate it with `bun run ios:prepare-
 icon source changes.
 
 The stable-Xcode job verifies that the catalog contains the authored light, dark, tinted, specular,
-refractive, and 1024px renditions. It excludes the source `.icon` from older `actool` and installs
-the committed catalog during the archive before signing. The canonical Info.plist owns the matching
-icon metadata so Xcode's later plist processing cannot erase it. The artifact remains a compiled
-form of the canonical source, not a flattened fallback.
+and 1024px renditions, and that its checksum-bound Icon Composer source keeps an active refractive
+layer. Stable `assetutil` releases do not all expose preview refraction metadata with the same
+schema, so the source/artifact binding carries that part of the proof. The job excludes the source
+`.icon` from older `actool` and installs the committed catalog during the archive before signing.
+The canonical Info.plist owns the matching icon metadata so Xcode's later plist processing cannot
+erase it. The artifact remains a compiled form of the canonical source, not a flattened fallback.
 
 The stable job signs, archives, and uploads the exact version/build pair. Automatic signing uses
 Apple Development for the archive. CI then downloads the one active **Grotto CI App Store** profile,

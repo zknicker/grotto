@@ -77,7 +77,8 @@ source changes, regenerate the catalog with `bun run ios:prepare-icon` under the
 in the manifest and commit both changes. Routine releases do not compile it again.
 
 The stable Xcode 26.6 job validates the committed artifact, rejects catalogs that lack light, dark,
-tinted, specular, refractive, or 1024px renditions, then archives without recompiling the `.icon`.
+tinted, specular, or 1024px renditions, verifies that the checksum-bound Icon Composer source keeps
+an active refractive layer, then archives without recompiling the `.icon`.
 It installs the verified catalog before code signing and confirms that archive and export preserve
 its exact bytes. This split is required while App Store Connect rejects archives built entirely by
 preview Xcode 27. Keep the `.icon` canonical and do not flatten or remove its Icon Composer 2

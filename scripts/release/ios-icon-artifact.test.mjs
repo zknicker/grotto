@@ -9,6 +9,7 @@ import {
     assertInstalledIOSIcon,
     assertIOSIconArtifact,
     assertIOSIconRenditions,
+    assertIOSIconSourceEffects,
     iosIconArtifactDirectory,
     requiredIOSIconXcodeBuild,
     writeIOSIconArtifactManifest,
@@ -16,12 +17,12 @@ import {
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
-test('accepts an icon stack with light, dark, tinted, specular, and refractive renditions', () => {
+test('accepts an icon stack when stable Xcode omits preview refraction metadata', () => {
     const stacks = ['UIAppearanceLight', 'UIAppearanceDark', 'ISAppearanceTintable'].map(
         (Appearance) => ({
             Appearance,
             AssetType: 'IconImageStack',
-            Layers: [{ LayerHasSpecular: true, LayerRefractionStrength: 0.5 }],
+            Layers: [{ LayerHasSpecular: true }],
             Name: 'mac-icon',
         })
     );
@@ -36,6 +37,23 @@ test('accepts an icon stack with light, dark, tinted, specular, and refractive r
         })
     );
     assert.doesNotThrow(() => assertIOSIconRenditions([...stacks, ...icons]));
+});
+
+test('requires active refractivity in the canonical Icon Composer source', () => {
+    assert.doesNotThrow(() =>
+        assertIOSIconSourceEffects({
+            features: ['refractivity'],
+            groups: [{ refractivity: { enabled: true, strength: 0.5 } }],
+        })
+    );
+    assert.throws(
+        () =>
+            assertIOSIconSourceEffects({
+                features: ['refractivity'],
+                groups: [{ refractivity: { enabled: false, strength: 0.5 } }],
+            }),
+        /no active refractive layer/
+    );
 });
 
 test('rejects a flattened icon without the authored glass stack', () => {

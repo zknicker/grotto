@@ -73,6 +73,9 @@ export function writeIOSIconArtifactManifest(directory, xcodeBuild) {
 
 export function inspectIOSIconArtifact(directory) {
     assertIOSIconArtifact(directory);
+    assertIOSIconSourceEffects(
+        JSON.parse(readFileSync(path.join(iosIconSourceDirectory, 'icon.json'), 'utf8'))
+    );
     const result = spawnSync('xcrun', ['assetutil', '--info', path.join(directory, 'Assets.car')], {
         encoding: 'utf8',
     });
@@ -129,9 +132,6 @@ export function assertIOSIconRenditions(renditions) {
     if (!layers.some((layer) => layer.LayerHasSpecular === true)) {
         throw new Error('compiled iOS icon lost its specular layers');
     }
-    if (!layers.some((layer) => Number(layer.LayerRefractionStrength) > 0)) {
-        throw new Error('compiled iOS icon lost its refractive layers');
-    }
 
     const marketingIcons = renditions.filter(
         (rendition) =>
@@ -148,6 +148,20 @@ export function assertIOSIconRenditions(renditions) {
         if (!marketingAppearances.has(appearance)) {
             throw new Error(`compiled iOS icon is missing its ${appearance} 1024px rendition`);
         }
+    }
+}
+
+export function assertIOSIconSourceEffects(icon) {
+    if (!(Array.isArray(icon?.features) && icon.features.includes('refractivity'))) {
+        throw new Error('canonical iOS icon source does not enable refractivity');
+    }
+    if (
+        !icon.groups?.some(
+            (group) =>
+                group.refractivity?.enabled === true && Number(group.refractivity.strength) > 0
+        )
+    ) {
+        throw new Error('canonical iOS icon source has no active refractive layer');
     }
 }
 

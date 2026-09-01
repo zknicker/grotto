@@ -66,6 +66,8 @@ test('seeds Cove exact inventory and 12 valid separately authored Manual summari
     expect(corpus.join('\n')).toContain(
         'Only ask one blocking question first if the answer is required'
     );
+    expect(corpus.join('\n')).toContain('AVATAR_PROVIDER_UNAVAILABLE');
+    expect(corpus.join('\n')).toContain('do not send the owner to Settings');
     expect(corpus.join('\n')).toMatch(
         /real-work[\s\S]*starter-team[\s\S]*workstream-chats[\s\S]*effective-collaboration/u
     );

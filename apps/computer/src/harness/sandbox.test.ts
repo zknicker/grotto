@@ -57,6 +57,86 @@ test('provider credentials remain references to host-native auth, never copies',
     );
 });
 
+test('restores native Codex image generation without changing other Codex config', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'grotto-sandbox-codex-imagegen-'));
+    roots.push(root);
+    const hostHomeDir = join(root, 'host');
+    const homeDir = join(root, 'agent-home');
+    const codexHome = join(homeDir, '.codex');
+    await mkdir(join(hostHomeDir, '.codex'), { recursive: true });
+    await mkdir(codexHome, { recursive: true });
+    await writeFile(join(hostHomeDir, '.codex', 'auth.json'), '{"token":"codex"}');
+    await writeFile(
+        join(codexHome, 'config.toml'),
+        [
+            'model = "gpt-5.6"',
+            '',
+            '',
+            '',
+            '# grotto-managed: image generation routes through the image tool',
+            '[features]',
+            'image_generation = false',
+            '',
+            '[[skills.config]]',
+            `path = ${JSON.stringify(join(codexHome, 'skills', '.system', 'imagegen', 'SKILL.md'))}`,
+            'enabled = false',
+            '',
+            '[notice]',
+            'hide_rate_limit_model_nudge = true',
+            '',
+        ].join('\n')
+    );
+
+    const provider = createLocalTrustedSandboxProvider({
+        authProfiles: ['codex'],
+        homeDir,
+        hostHomeDir,
+        rootDir: join(root, 'workspace'),
+    });
+    const firstSession = await provider.createSession?.();
+    await firstSession?.destroy?.();
+    const restored = await readFile(join(codexHome, 'config.toml'), 'utf8');
+
+    expect(restored).toBe(
+        [
+            'model = "gpt-5.6"',
+            '',
+            '',
+            '',
+            '[notice]',
+            'hide_rate_limit_model_nudge = true',
+            '',
+        ].join('\n')
+    );
+
+    const secondSession = await provider.createSession?.();
+    await secondSession?.destroy?.();
+    expect(await readFile(join(codexHome, 'config.toml'), 'utf8')).toBe(restored);
+});
+
+test('preserves an explicit Codex image-generation preference not owned by Grotto', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'grotto-sandbox-codex-config-'));
+    roots.push(root);
+    const hostHomeDir = join(root, 'host');
+    const homeDir = join(root, 'agent-home');
+    const codexHome = join(homeDir, '.codex');
+    await mkdir(join(hostHomeDir, '.codex'), { recursive: true });
+    await mkdir(codexHome, { recursive: true });
+    await writeFile(join(hostHomeDir, '.codex', 'auth.json'), '{"token":"codex"}');
+    const explicitConfig = '[features]\nimage_generation = false\n';
+    await writeFile(join(codexHome, 'config.toml'), explicitConfig);
+
+    const session = await createLocalTrustedSandboxProvider({
+        authProfiles: ['codex'],
+        homeDir,
+        hostHomeDir,
+        rootDir: join(root, 'workspace'),
+    }).createSession?.();
+    await session?.destroy?.();
+
+    expect(await readFile(join(codexHome, 'config.toml'), 'utf8')).toBe(explicitConfig);
+});
+
 test('sandbox file operations reject another Agent root', async () => {
     const root = await mkdtemp(join(tmpdir(), 'grotto-sandbox-boundary-'));
     roots.push(root);

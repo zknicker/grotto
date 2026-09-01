@@ -46,6 +46,11 @@ Profile generation uses the same required concept and service. A human may previ
 directly from the Agent profile. Applied images become ordinary editable avatars, and manual upload
 or initials remain available.
 
+Execution-runtime-native image generation is an independent Agent capability. Computer does not
+disable it, and native image work does not replace or bypass the Server-owned avatar API. The avatar
+provider credential remains confined to Grotto Server and is never distributed to Grotto App,
+Computer, or an Agent workspace.
+
 ## Consequences
 
 - Prepared actions are native Server state rendered by Grotto App, not Widgets or visual fences.

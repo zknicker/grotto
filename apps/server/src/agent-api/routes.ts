@@ -145,8 +145,8 @@ export function registerAgentApiRoutes(
                     'AVATAR_PROVIDER_UNAVAILABLE',
                     'Avatar generation is not configured on this Server.',
                     {
-                        nextAction: 'Ask a Server operator to configure avatar generation.',
-                        retryable: true,
+                        nextAction:
+                            'Tell the user avatar generation is unavailable on this Server; there is no App setting to change. The Grotto deployment operator must provision it before this action can be prepared.',
                     }
                 );
             }

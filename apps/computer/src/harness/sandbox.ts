@@ -265,7 +265,7 @@ async function referenceAuthProfiles(input: {
             source: path.join(input.hostHomeDir, '.codex', 'auth.json'),
             target: path.join(codexHome, 'auth.json'),
         });
-        await ensureCodexHomeConfig(codexHome);
+        await restoreCodexNativeImageGeneration(codexHome);
     }
     if (input.authProfiles.includes('claude-code')) {
         await linkIfExists({
@@ -291,33 +291,35 @@ async function referenceAuthProfiles(input: {
     }
 }
 
-const codexManagedMarker = '# grotto-managed: image generation routes through the image tool';
+const legacyCodexImageGenerationMarker =
+    '# grotto-managed: image generation routes through the image tool';
+const legacyCodexImageGenerationBlock = new RegExp(
+    `${escapeRegExp(legacyCodexImageGenerationMarker)}\\n` +
+        '\\[features\\]\\n' +
+        'image_generation = false\\n\\n' +
+        '\\[\\[skills\\.config\\]\\]\\n' +
+        'path = [^\\n]+\\n' +
+        'enabled = false(?:\\n{1,2}|$)',
+    'u'
+);
 
 /**
- * Grotto owns this CODEX_HOME, so Codex's built-in image_gen tool and bundled
- * imagegen skill (which save under CODEX_HOME, invisible to workspace browsing)
- * are switched off. Ported from Runtime's `codex-home-config.ts`.
+ * Earlier releases disabled Codex's native image generation in every managed
+ * Agent home. Remove only that release-owned block; explicit operator or Agent
+ * config remains untouched, and Codex's stable native default takes effect.
  */
-async function ensureCodexHomeConfig(codexHome: string) {
+async function restoreCodexNativeImageGeneration(codexHome: string) {
     const configPath = path.join(codexHome, 'config.toml');
     const existing = await readConfig(configPath);
-    if (existing?.includes(codexManagedMarker)) {
+    if (!existing?.includes(legacyCodexImageGenerationMarker)) {
         return;
     }
-    const skillPath = path.join(codexHome, 'skills', '.system', 'imagegen', 'SKILL.md');
-    const managedBlock = [
-        codexManagedMarker,
-        '[features]',
-        'image_generation = false',
-        '',
-        '[[skills.config]]',
-        `path = ${JSON.stringify(skillPath)}`,
-        'enabled = false',
-        '',
-    ].join('\n');
-    const content = existing ? `${existing.trimEnd()}\n\n${managedBlock}` : managedBlock;
-    await fs.mkdir(codexHome, { recursive: true });
-    await fs.writeFile(configPath, content, 'utf8');
+    const restored = existing.replace(legacyCodexImageGenerationBlock, '');
+    await fs.writeFile(configPath, restored.trimEnd() ? `${restored.trimEnd()}\n` : '', 'utf8');
+}
+
+function escapeRegExp(value: string) {
+    return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
 async function readConfig(configPath: string) {

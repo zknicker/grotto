@@ -4,6 +4,7 @@ import type {
     AvatarImageProvider,
     AvatarProviderRequest,
 } from '../src/avatar-generation/service.ts';
+import { AvatarGenerationUnavailableError } from '../src/avatar-generation/service.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
@@ -12,7 +13,7 @@ let owner: GrottoClient;
 let agentId: string;
 let chatId: string;
 let serverId: string;
-let providerMode: 'fail' | 'success' = 'success';
+let providerMode: 'fail' | 'success' | 'unavailable' = 'success';
 const requests: AvatarProviderRequest[] = [];
 const logs: AvatarGenerationLogEvent[] = [];
 
@@ -30,6 +31,9 @@ const provider: AvatarImageProvider = {
         requests.push(request);
         if (providerMode === 'fail') {
             throw new Error('provider detail must not cross the API');
+        }
+        if (providerMode === 'unavailable') {
+            throw new AvatarGenerationUnavailableError();
         }
         return { bytes: png, mediaType: 'image/png' };
     },
@@ -126,6 +130,19 @@ test('maps provider failure to a safe retryable API error', async () => {
         retryable: true,
     });
     expect(response.body.message).not.toContain('provider detail');
+    providerMode = 'success';
+});
+
+test('does not invent an App setting when the Server provider is unavailable', async () => {
+    providerMode = 'unavailable';
+    const runner = await mintRunner('avatar_unavailable');
+    const response = await generate(runner.runnerToken, { concept: 'a copper owl' });
+
+    expect(response.status).toBe(503);
+    expect(response.body).toMatchObject({ code: 'AVATAR_PROVIDER_UNAVAILABLE' });
+    expect(response.body.retryable).toBeUndefined();
+    expect(response.body.nextAction).toContain('there is no App setting to change');
+    expect(response.body.nextAction).not.toMatch(/configure.*model/iu);
     providerMode = 'success';
 });
 

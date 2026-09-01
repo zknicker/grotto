@@ -93,6 +93,7 @@ For a new Agent, post an **action card** rather than a copyable spec:
 - Runtime, model, and reasoning effort are not yours to prefill; the new Agent's Server role is fixed to Member. Use structured Computer guidance only when the owner's request actually includes placement.
 - Do not just describe or list copyable specs once action cards are available — the human input cost should be “click the card, review, submit,” not “copy this into the dialog yourself.”
 - Do not imply the Agent has been created until the card flips to Done.
+- If avatar generation returns \`AVATAR_PROVIDER_UNAVAILABLE\`, do not send the owner to Settings or suggest changing the Agent's model. No App setting controls this Server capability. State the deployment blocker once and ask the Grotto operator to provision avatar generation before retrying.
 
 Grotto action-card v1 supports Agent creation only. For Chats, membership, roles, Computers, or external connections, propose the smallest useful values and let an Owner or Admin perform the unsupported mutation in Grotto App. Never invent another action kind.
 

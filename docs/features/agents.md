@@ -133,6 +133,10 @@ creates.
 Grotto does not generate an `AGENTS.md`, `SOUL.md`, or injected memory layer
 inside the workspace.
 
+Computer does not suppress image-generation capabilities native to an Agent's selected execution
+runtime. Availability follows that runtime and model; it is separate from Grotto's avatar service
+and is not controlled by an App setting.
+
 Grotto Agent releases do not force fresh model context. Computer supplies the current managed
 instructions on the next accepted turn and applies any release-owned bootstrap or factory guidance
 at that same boundary. The public version receipt advances only after that turn succeeds.
@@ -141,6 +145,10 @@ Managed Agents can use `grotto avatar generate --concept <text> --output <path>`
 validated transient avatar file from a short concept. The Server owns the prompt, provider call,
 normalization, validation, and concurrency limits; the Computer writes the result only to the
 requested local path. This command does not assign or persist an Agent avatar.
+Production Servers require this deployment capability because an `agent:create` card cannot be
+prepared without avatar bytes. It is not configured through Grotto App or by changing the calling
+Agent's runtime or model. The provider credential is held only by Grotto Server; it is never sent to
+Grotto App, Computer, or the Agent workspace.
 
 Owners and Admins can also choose **Generate avatar** on an ordinary Agent's profile. The profile
 requires a short concept, previews one transient result, and only applies it after an explicit Save;

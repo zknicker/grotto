@@ -41,6 +41,7 @@ the access boundary.
 | `Clerk - Grotto` | `Development`, `Production` | Grotto's own Clerk tenancy — backend key, publishable key, issuer |
 | `Dev Sign-In User - Grotto` | `Development` | the Clerk user the local auto sign-in signs in as |
 | `Google MCP OAuth - Grotto` | `Development` | OAuth client for the Google Calendar MCP connection |
+| `OpenAI API - Grotto` | `Production` | Server-owned transient Agent avatar generation |
 | `Postgres - Grotto` | `Production` | runtime URL, migration URL, container admin password |
 | `HugeIcons Pro - Merchbase` | `Development` | shared licensed registry key (adopted, not copied) |
 | `HeroUI Pro CICD - Merchbase` | `Development` | shared licensed artifact token (adopted, not copied) |
@@ -52,11 +53,12 @@ Local release operators read `Tooling` through desktop authorization. The
 GitHub Release workflow uses a separate read-only service identity scoped to
 that vault; no deploy, Quality, Cursor, or product runtime identity can read it.
 
-Transient avatar generation uses the optional `GROTTO_OPENAI_API_KEY`. The
-schema deliberately leaves it undefined until the operator provisions the
-credential for the intended lifecycle; without it, the Server reports the
-avatar provider as unavailable. Test fixtures never need this key and never
-call the provider.
+Transient avatar generation uses `GROTTO_OPENAI_API_KEY`. Production requires a
+dedicated `OpenAI API - Grotto` credential because Agent creation cards require
+generated avatar bytes; the deploy contract fails before promotion when it is
+missing. Development may leave generation unavailable. There is no App setting
+for this Server deployment capability. Test fixtures never need the key and
+never call the provider.
 
 The opt-in Cove Agent E2E scenario can set `GROTTO_AGENT_E2E_AVATAR_FIXTURE=1`,
 an absolute `GROTTO_AGENT_E2E_AVATAR_FIXTURE_PATH`, and an absolute

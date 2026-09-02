@@ -264,6 +264,7 @@ test('release context skips development-only runtime and App values', () => {
         'GROTTO_DEV_CLERK_SIGN_IN_USER_ID',
         'GROTTO_GOOGLE_OAUTH_CLIENT_ID',
         'GROTTO_GOOGLE_OAUTH_CLIENT_SECRET',
+        'GROTTO_OPENAI_API_KEY',
     ]) {
         const declaration = environmentSchema
             .split('\n')
@@ -275,6 +276,11 @@ test('release context skips development-only runtime and App values', () => {
             `${name} must skip Development resolution during releases`
         );
     }
+    assert.match(
+        environmentSchema,
+        /GROTTO_OPENAI_API_KEY=.+op\(development, "op:\/\/Development\/OpenAI API - Grotto\/credential"\)/,
+        'development avatar generation must resolve its own lifecycle credential'
+    );
     const autoSignIn = environmentSchema
         .split('\n')
         .find((line) => line.startsWith('VITE_DEV_CLERK_AUTO_SIGN_IN='));

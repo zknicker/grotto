@@ -1,7 +1,40 @@
 import { expect, test } from 'bun:test';
 import type { AgentCreatePreparedAction, PreparedAction } from '@grotto/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { PreparedActionCard } from './prepared-action-card.tsx';
+import { resolveAgentCreateCardVisibility } from './agent-create-action-card.tsx';
+import { PreparedActionCard, preparedActionMessageText } from './prepared-action-card.tsx';
+
+/**
+ * The card is composed from named parts, so the structural assertions are
+ * about which part holds what: the chip inside the status slot, itself
+ * inside the title slot right after the name, the controls in their own row
+ * at the bottom. A part with no content is omitted, so `hasSlot` reads false
+ * rather than matching an empty element.
+ */
+function hasSlot(markup: string, slot: string): boolean {
+    return markup.includes(`data-slot="${slot}"`);
+}
+
+/** The markup of one slot's own element, so "contains" means "is inside it". */
+function slotHtml(markup: string, slot: string): string {
+    const attribute = markup.indexOf(`data-slot="${slot}"`);
+    if (attribute < 0) {
+        throw new Error(`no data-slot="${slot}" in markup`);
+    }
+    const start = markup.lastIndexOf('<div', attribute);
+    let depth = 0;
+    for (let index = start; index < markup.length; index++) {
+        if (markup.startsWith('<div', index)) {
+            depth++;
+        } else if (markup.startsWith('</div>', index)) {
+            depth--;
+            if (depth === 0) {
+                return markup.slice(start, index + '</div>'.length);
+            }
+        }
+    }
+    throw new Error(`unbalanced markup for data-slot="${slot}"`);
+}
 
 const pendingAction: AgentCreatePreparedAction = {
     chatId: 'cht_product',
@@ -31,39 +64,157 @@ const pendingAction: AgentCreatePreparedAction = {
     supersededByActionId: null,
 };
 
-test('renders the native pending Agent proposal and exact avatar media', () => {
+const executedAction: AgentCreatePreparedAction = {
+    ...pendingAction,
+    executedAt: '2026-08-25T12:01:00.000Z',
+    executedByUserId: 'usr_owner',
+    result: {
+        agentId: 'agt_orbit',
+        avatarUrl: '/api/avatars/agt_orbit',
+        computerId: 'cmp_local',
+        description: 'Keeps the release tidy.',
+        displayName: 'Orbit',
+        handle: 'orbit',
+        modelId: 'gpt-5-codex',
+        reasoningEffort: 'medium',
+        role: 'member',
+        runtimeId: 'codex',
+    },
+    status: 'executed',
+};
+
+const supersededAction: AgentCreatePreparedAction = {
+    ...pendingAction,
+    status: 'superseded',
+    supersededAt: '2026-08-25T12:01:00.000Z',
+    supersededByActionId: 'act_fedcba0987654321',
+};
+
+test('a pending proposal without manage rights names the Agent and offers no control', () => {
+    const markup = renderToStaticMarkup(<PreparedActionCard action={pendingAction} />);
+
+    expect(markup).toContain('data-action-kind="agent:create"');
+    expect(markup).toContain('data-action-status="pending"');
+    expect(markup).toContain('Orbit');
+    // Kind first, then the kind's own detail, in the description under the
+    // title, the same anatomy the attachment row and the artifact card read.
+    expect(slotHtml(markup, 'description')).toContain('Agent proposal · Keeps the release tidy.');
+    // The Create Agent modal owns the committed and human-owned fields.
+    expect(markup).not.toContain('Runs on');
+    expect(markup).not.toContain('Desk Mac');
+    expect(markup).not.toContain('Member');
+    // The proposer's note is the message above the card, never a quote in it.
+    expect(markup).not.toContain('Start with release notes and small fixes.');
+    // A pending card asks by existing; it carries no status chip in the
+    // title, so there's no "Created" text at all.
+    expect(markup).not.toContain('Needs you');
+    expect(markup).not.toContain('Created');
+    // Nothing to press without manage rights, so no bottom row either.
+    expect(markup).not.toContain('<button');
+    expect(hasSlot(markup, 'actions')).toBe(false);
+    // A chat object, not a thread preview: bordered card at a capped measure,
+    // never a full-width nested surface.
+    expect(markup).toContain('border-separator');
+    expect(markup).toContain('max-w-[36rem]');
+    expect(markup).not.toContain('bg-nested-surface');
+});
+
+test('lets a current admin create the Agent with a real button, and the card carries no chip', () => {
     const markup = renderToStaticMarkup(
-        <PreparedActionCard
-            action={pendingAction}
-            proposer={{ avatarUrl: '/api/avatars/agt_builder', displayName: 'Builder' }}
-        />
+        <PreparedActionCard action={pendingAction} canManage serverId="srv_1234567890abcdef" />
     );
 
-    expect(markup).toContain('Agent creation proposal');
-    expect(markup).toContain('Prepared by Builder');
-    expect(markup).toContain('Pending review');
-    expect(markup).toContain('Orbit');
-    expect(markup).toContain('Keeps the release tidy.');
-    expect(markup).toContain('Desk Mac (suggested)');
+    expect(markup).toContain('data-action-status="pending"');
+    expect(markup).not.toContain('Needs you');
+    expect(markup).not.toContain('Created');
+    // The control lives in the card's own bottom row, not beside the title.
+    expect(slotHtml(markup, 'actions')).toContain('Create Agent');
+    expect(slotHtml(markup, 'actions')).toContain('<button');
+    expect(slotHtml(markup, 'header')).not.toContain('<button');
+});
+
+test('a created card names the committing human, shows Created, and offers the new Agent', () => {
+    const markup = renderToStaticMarkup(
+        <PreparedActionCard action={executedAction} executedByDisplayName="Owner" />
+    );
+
+    expect(markup).toContain('data-action-status="executed"');
+    expect(slotHtml(markup, 'description')).toContain('Agent proposal · Keeps the release tidy.');
+    // The receipt sits inside the bottom row, at its right end, after the
+    // buttons — not its own meta row.
+    expect(slotHtml(markup, 'actions')).toContain('data-slot="receipt"');
+    expect(slotHtml(markup, 'actions')).toContain('Created by Owner');
+    expect(hasSlot(markup, 'meta')).toBe(false);
+    // The chip sits inside the status slot, itself inside the title slot
+    // right after the name; the control sits in the bottom row.
+    expect(slotHtml(markup, 'title')).toContain('Orbit');
+    expect(slotHtml(markup, 'title')).toContain('data-slot="status"');
+    expect(slotHtml(markup, 'title')).toContain('Created');
+    expect(slotHtml(markup, 'actions')).toContain('Open');
+    expect(slotHtml(markup, 'actions')).toContain('<button');
+    expect(slotHtml(markup, 'header')).not.toContain('<button');
+    // Execution values belong to the Agent profile, not to a transcript row.
+    expect(markup).not.toContain('Model');
+    expect(markup).not.toContain('gpt-5-codex');
+    expect(markup).not.toContain('Desk Mac');
+});
+
+test('a superseded proposal renders no card at all', () => {
+    const markup = renderToStaticMarkup(
+        <PreparedActionCard action={supersededAction} canManage serverId="srv_1234567890abcdef" />
+    );
+
+    expect(markup).not.toContain('<article');
     expect(markup).not.toContain('<button');
 });
 
-test('renders superseded status without making the card interactive', () => {
-    const action: AgentCreatePreparedAction = {
-        ...pendingAction,
-        status: 'superseded',
-        supersededAt: '2026-08-25T12:01:00.000Z',
-        supersededByActionId: 'act_fedcba0987654321',
-    };
-    const markup = renderToStaticMarkup(
-        <PreparedActionCard
-            action={action}
-            proposer={{ avatarUrl: null, displayName: 'Builder' }}
-        />
-    );
+test('a card that goes superseded live animates out; one already superseded never appears', () => {
+    // Pending, unaffected by any of this: stays live.
+    expect(
+        resolveAgentCreateCardVisibility({ hidden: false, status: 'pending', wasVisible: true })
+    ).toBe('live');
+    // Was on screen, just went superseded: collapse it out.
+    expect(
+        resolveAgentCreateCardVisibility({ hidden: false, status: 'superseded', wasVisible: true })
+    ).toBe('exiting');
+    // Arrived already superseded: never shown, never animated.
+    expect(
+        resolveAgentCreateCardVisibility({ hidden: false, status: 'superseded', wasVisible: false })
+    ).toBe('hidden');
+    // The collapse finished (`onExited` fired, e.g. from a `transitionend` on
+    // the exit wrapper or its fallback timer): gone for good regardless of
+    // how `wasVisible` reads.
+    expect(
+        resolveAgentCreateCardVisibility({ hidden: true, status: 'superseded', wasVisible: true })
+    ).toBe('hidden');
+});
 
-    expect(markup).toContain('Superseded');
-    expect(markup).not.toContain('<button');
+test('the anchor message reads as the proposer’s note when the Server body is empty', () => {
+    expect(preparedActionMessageText({ content: '', preparedAction: pendingAction })).toBe(
+        'Start with release notes and small fixes.'
+    );
+    expect(
+        preparedActionMessageText({ content: 'Here is Orbit.', preparedAction: pendingAction })
+    ).toBe('Here is Orbit.');
+    expect(
+        preparedActionMessageText({
+            content: '',
+            preparedAction: {
+                ...pendingAction,
+                proposal: { ...pendingAction.proposal, draftHint: null },
+            },
+        })
+    ).toBe('');
+    expect(
+        preparedActionMessageText({
+            content: '',
+            preparedAction: {
+                ...supersededAction,
+                proposal: { ...supersededAction.proposal, draftHint: null },
+            },
+        })
+    ).toBe('Earlier proposal, replaced.');
+    expect(preparedActionMessageText({ content: 'Plain message.' })).toBe('Plain message.');
 });
 
 test('unknown action kinds are inert fallback cards', () => {
@@ -72,48 +223,17 @@ test('unknown action kinds are inert fallback cards', () => {
         kind: 'channel:create',
         proposal: { name: 'General' },
     } as unknown as PreparedAction;
-    const markup = renderToStaticMarkup(
-        <PreparedActionCard
-            action={action}
-            proposer={{ avatarUrl: null, displayName: 'Builder' }}
-        />
-    );
+    const markup = renderToStaticMarkup(<PreparedActionCard action={action} />);
 
-    expect(markup).toContain('Unsupported action');
-    expect(markup).toContain('not available in this version of Grotto');
+    expect(markup).toContain('Unsupported action · Not available in this version of Grotto');
+    expect(markup).toContain('data-action-kind="channel:create"');
     expect(markup).not.toContain('<button');
-});
-
-test('lets a current admin open the ordinary create modal from a pending card', () => {
-    const markup = renderToStaticMarkup(
-        <PreparedActionCard
-            action={pendingAction}
-            canManage
-            proposer={{ avatarUrl: null, displayName: 'Builder' }}
-            serverId="srv_1234567890abcdef"
-        />
+    // Nothing to report and nothing to press: the title holds only the
+    // truncated kind text, no chip beside it, and the actions row is left
+    // out entirely.
+    expect(slotHtml(markup, 'title')).toContain(
+        '<span class="min-w-0 truncate">channel:create</span>'
     );
-
-    expect(markup).toContain('Create Agent');
-    expect(markup).toContain('data-action-status="pending"');
-});
-
-test('shows the committing human on a completed card without a Chat receipt', () => {
-    const markup = renderToStaticMarkup(
-        <PreparedActionCard
-            action={{
-                ...pendingAction,
-                executedAt: '2026-08-25T12:01:00.000Z',
-                executedByUserId: 'usr_owner',
-                status: 'executed',
-            }}
-            executedByDisplayName="Owner"
-            proposer={{ avatarUrl: null, displayName: 'Builder' }}
-        />
-    );
-
-    expect(markup).toContain('Done');
-    expect(markup).toContain('Committed by <span');
-    expect(markup).toContain('Owner');
-    expect(markup).not.toContain('receipt');
+    expect(slotHtml(markup, 'title')).not.toContain('data-slot="chip"');
+    expect(hasSlot(markup, 'actions')).toBe(false);
 });

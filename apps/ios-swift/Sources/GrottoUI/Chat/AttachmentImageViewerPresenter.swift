@@ -92,7 +92,7 @@ struct AttachmentImageViewerPresenter: UIViewControllerRepresentable {
             // Asked for again at dismissal, so a reader who swiped to another
             // image collapses into *that* image's tile. A tile that scrolled
             // away answers nil and UIKit falls back to a fade.
-            host.preferredTransition = .zoom { [weak session] _ in
+            host.preferredTransition = .zoom(options: zoomOptions()) { [weak session] _ in
                 session?.sourceView()
             }
             host.onDismiss = { [weak self] in
@@ -102,6 +102,22 @@ struct AttachmentImageViewerPresenter: UIViewControllerRepresentable {
             }
             viewer = host
             present(host, animated: true)
+        }
+
+        /// The transition's ground.
+        ///
+        /// For the whole open the card is a layer clipped to the display's
+        /// corner curve, and UIKit paints the still-lit Chat behind it. The default dim is translucent, so wherever the card's
+        /// corner fell short of the display's own — a wedge a couple of points
+        /// wide along the bottom edge and low on both sides — the Chat showed
+        /// through as a grey hairline until the transition ended and the clip
+        /// came off. The viewer is a dark room, so the content behind it is
+        /// dimmed to the same black its pages sit on and the gap can only ever
+        /// show the viewer's own backdrop.
+        private func zoomOptions() -> UIViewController.Transition.ZoomOptions {
+            let options = UIViewController.Transition.ZoomOptions()
+            options.dimmingColor = .black
+            return options
         }
 
         private func decodePixelSize() -> CGFloat {

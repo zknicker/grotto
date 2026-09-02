@@ -10,7 +10,10 @@ read_when:
 
 ## Status
 
-Accepted 2026-08-25.
+Accepted 2026-08-25. Amended by ADR 0025: Agent creation proposals now use a concrete typed Message
+body with meaningful immutable content; the generic prepared-action and empty-anchor model is
+retired. The avatar-generation and human-commit decisions below remain intact; their original
+terminology is retained as historical context.
 
 ## Decision
 

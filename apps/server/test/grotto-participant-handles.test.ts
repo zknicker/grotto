@@ -214,6 +214,24 @@ test('human autocomplete addresses the immutable user id while exposing handle s
     );
 });
 
+test('channel autocomplete offers visible channels with chat-reference metadata', async () => {
+    const options = await owner.trpc.chat.mentionOptions.query({
+        chatId: dmChatId,
+        serverId,
+    });
+
+    const channelOption = options.options.find((option) => option.label === 'all');
+    expect(channelOption).toMatchObject({
+        insertText: '#all',
+        kind: 'chat',
+        label: 'all',
+        projection: 'chat-reference',
+        sourceLabel: 'Channels',
+    });
+    expect(channelOption?.metadata).toHaveProperty('chatColor');
+    expect(channelOption?.metadata).toHaveProperty('chatIcon');
+});
+
 test('releases a human handle on departure while historical authorship stays id-bound', async () => {
     await harness.sql`
         update server_memberships

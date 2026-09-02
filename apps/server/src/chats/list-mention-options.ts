@@ -16,6 +16,7 @@ import { listServerMembers } from '../servers/list-members.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { requireChatAccess } from './chat-access.ts';
+import { listChannelMentionOptions } from './list-channel-mention-options.ts';
 
 export async function listMentionOptions(
     db: GrottoDatabase,
@@ -116,7 +117,11 @@ export async function listMentionOptions(
         };
     });
 
-    return { options: [...agentOptions, ...humanOptions, ...skillOptions.values()] };
+    const channelOptions = await listChannelMentionOptions(db, member, input.serverId);
+
+    return {
+        options: [...agentOptions, ...humanOptions, ...channelOptions, ...skillOptions.values()],
+    };
 }
 
 async function listImplicitDmAgentIds(

@@ -18,11 +18,16 @@ export const mentionOptionSchema = z
         description: z.string().nullable(),
         id: z.string().min(1),
         insertText: z.string().min(1),
-        kind: z.enum(['agent', 'skill', 'user']),
+        kind: z.enum(['agent', 'chat', 'skill', 'user']),
         label: z.string().min(1),
         metadata: z.record(z.string(), z.unknown()).optional(),
-        projection: z.enum(['agent-reference', 'skill-activation', 'user-reference']),
-        sourceLabel: z.enum(['Agents', 'Humans', 'Skills']),
+        projection: z.enum([
+            'agent-reference',
+            'chat-reference',
+            'skill-activation',
+            'user-reference',
+        ]),
+        sourceLabel: z.enum(['Agents', 'Channels', 'Humans', 'Skills']),
     })
     .strict();
 

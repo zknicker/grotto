@@ -41,14 +41,39 @@ struct AttachmentQuickLook: UIViewControllerRepresentable {
             let preview = QLPreviewController()
             preview.dataSource = self
             preview.delegate = self
+            // Presented bare, iOS 26 opens an image straight into the
+            // immersive state: no title, no close control until a content
+            // tap. Inside a navigation controller the preview opens with its
+            // bar, and a content tap still toggles immersion, as in Files.
+            // Quick Look supplies title, share, and markup for that bar but
+            // no way out, so the close control is ours.
+            preview.navigationItem.rightBarButtonItem = UIBarButtonItem(
+                systemItem: .close,
+                primaryAction: UIAction { [weak self] _ in self?.close() }
+            )
+            let container = UINavigationController(rootViewController: preview)
+            container.modalPresentationStyle = .fullScreen
             // Presenting inside a SwiftUI update pass races the hosting
             // hierarchy; the next runloop turn is the earliest safe moment.
             DispatchQueue.main.async { [weak self] in
                 guard let self, self.currentURL != nil, self.presentedViewController == nil else {
                     return
                 }
-                self.present(preview, animated: true)
+                self.present(container, animated: true)
             }
+        }
+
+        private func close() {
+            presentedViewController?.dismiss(animated: true)
+            didDismiss()
+        }
+
+        /// Runs once per preview whichever way it ends — the close control or
+        /// Quick Look's own dismissal — so the binding is cleared exactly once.
+        fileprivate func didDismiss() {
+            guard currentURL != nil else { return }
+            currentURL = nil
+            onDismiss?()
         }
     }
 }
@@ -65,8 +90,7 @@ extension AttachmentQuickLook.PresenterController: @MainActor QLPreviewControlle
 
 extension AttachmentQuickLook.PresenterController: @MainActor QLPreviewControllerDelegate {
     func previewControllerDidDismiss(_ controller: QLPreviewController) {
-        currentURL = nil
-        onDismiss?()
+        didDismiss()
     }
 }
 #endif

@@ -447,11 +447,12 @@ carry `minSize` zero so continuation rows keep their tight rhythm, and long-pres
 table delegate's, with an upright `layer.render` snapshot as the lifted preview, because a
 context-menu lift of a flipped cell renders upside down.
 
-An anchor message owns one recessed Thread ingress. On iPhone it shows the Server-projected reply and
-unread counts plus only the latest recent reply; this is a presentation reduction of the same Thread
-summary used by the desktop App. A Task uses that same ingress with its number, status disc, and
-assignee, including before its first reply. The anchor message remains the task title and is never
-duplicated inside the ingress.
+An anchor message owns one recessed Thread ingress, and it mirrors the desktop App's block: the
+Server-projected reply and unread counts as a header, then every recent reply the Server sent as its
+own row, uncapped by the client. A plain Thread reads those counts on the leading edge with only the
+chevron pinned trailing. A Task uses that same ingress with its number, status disc, and assignee
+leading and the counts trailing, including before its first reply. The anchor message remains the
+task title and is never duplicated inside the ingress.
 
 Tasks are Server work, not a settings screen. The sidebar opens the Task list as a push on the root
 navigation stack, and opening a Task row pushes its Thread on top of that list, so Back walks Thread
@@ -648,7 +649,12 @@ when the directory no longer carries them.
 
 Native composers query `chat.mentionOptions` against either that durable Chat or the implicit Agent-DM
 target. `@` offers Agents and humans and `#` offers channels; selecting one writes the shared
-`agent://`, `user://`, or `chat://` markdown reference into the draft. Chat and Thread rows parse that
+`agent://`, `user://`, or `chat://` markdown reference into the draft. The iPhone picker is a card
+standing on the composer input — the composer's own glass and horizontal inset, its resting corner,
+and rows grouped under a muted header naming the kind (Agents, then Humans, then Channels) so no row
+has to caption itself. The first row carries a soft highlight, the list caps at four and a half rows
+and dissolves its bottom edge over the cut row, and the whole card springs up out of the composer
+edge on arrival and fades quickly on the way out (opacity only under Reduce Motion). Chat and Thread rows parse that
 markdown into chips and resolve live identity by immutable id — an Agent or human by avatar and current
 name, a channel by its `ChannelIconBox` glyph and configured color from the Chat list — falling back to
 the persisted label when the target is unresolvable. Chip and picker labels carry no `@` or `#`: the mark

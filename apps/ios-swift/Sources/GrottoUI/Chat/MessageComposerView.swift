@@ -113,6 +113,17 @@ public struct MessageComposerView: View {
             MessageComposerMentionPicker(text: $text, options: mentionOptions)
             composerSurface
         }
+        // Keyed on the card's presence, never on its contents: filtering reflows the rows without
+        // replaying the entrance, and the stack still animates the height the card takes so the
+        // input rides up rather than jumping.
+        .animation(
+            isMentionPickerActive ? MentionPickerMotion.arrive : MentionPickerMotion.leave,
+            value: isMentionPickerActive
+        )
+    }
+
+    private var isMentionPickerActive: Bool {
+        MessageComposerMentionPicker.isActive(text: text, options: mentionOptions)
     }
 
     private var composerSurface: some View {
@@ -331,7 +342,11 @@ public struct MessageComposerView: View {
         )
     }
 
-    private var surfaceCornerRadius: CGFloat { isExpanded ? 28 : 24 }
+    private var surfaceCornerRadius: CGFloat {
+        isExpanded
+            ? ComposerSurfaceMetrics.expandedCornerRadius
+            : ComposerSurfaceMetrics.restingCornerRadius
+    }
 
     /// Deliberately blind to the portal: the plus button on a collapsed composer opens the source
     /// menu over the pill without expanding it, and a portal opened from a focused composer keeps

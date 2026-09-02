@@ -9,6 +9,16 @@ import SwiftUI
 ///
 /// The pre-26 fallback has no self-generated rim in either scheme, so a single hairline in the
 /// label colour carries the shell's silhouette there. It is fallback-only.
+/// The corners the composer's glass family is cut with.
+///
+/// The input rounds harder as it expands. Anything else standing on the composer — the mention card
+/// — takes the resting corner, one step inside the shell it rises from, so the two read as a pair
+/// rather than as one shape repeated.
+enum ComposerSurfaceMetrics {
+    static let restingCornerRadius: CGFloat = 24
+    static let expandedCornerRadius: CGFloat = 28
+}
+
 struct ComposerGlassSurface: ViewModifier {
     let cornerRadius: CGFloat
 

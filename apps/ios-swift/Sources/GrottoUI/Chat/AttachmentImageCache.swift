@@ -4,14 +4,26 @@ import ImageIO
 import SwiftUI
 
 /// A decoded, downsampled attachment image ready for display.
+///
+/// It carries the bitmap as well as the SwiftUI `Image` drawn from it: the
+/// viewer zooms this picture inside a `UIImageView`, whose layer contents have
+/// to be the decode itself for the GPU to resample it sharply.
 struct AttachmentThumbnail {
+    let bitmap: CGImage
     let image: Image
     let size: CGSize
     /// Classified once, here, from the bytes this decode already had in hand,
     /// so the viewer's first frame carries the right ground instead of opening
     /// on black and stepping to a checkerboard once its own decode lands.
     /// A staged local file has no viewer page, so it keeps the default.
-    var backdrop: AttachmentImageBackdrop = .opaque
+    let backdrop: AttachmentImageBackdrop
+
+    init(bitmap: CGImage, size: CGSize, backdrop: AttachmentImageBackdrop = .opaque) {
+        self.bitmap = bitmap
+        image = Image(decorative: bitmap, scale: 1, orientation: .up)
+        self.size = size
+        self.backdrop = backdrop
+    }
 }
 
 /// An immutable decoded bitmap handed across executors. `CGImage` is

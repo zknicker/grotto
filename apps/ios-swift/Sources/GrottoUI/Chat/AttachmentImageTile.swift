@@ -72,7 +72,7 @@ struct AttachmentImageTile: View {
         if let localURL = attachment.localURL {
             guard let entry = LocalAttachmentImageCache.shared.entry(for: localURL) else { return nil }
             let thumbnail = AttachmentThumbnail(
-                image: entry.image,
+                bitmap: entry.bitmap,
                 size: AttachmentImageTileSize.fitted(
                     pixelWidth: entry.pixelWidth,
                     pixelHeight: entry.pixelHeight
@@ -129,7 +129,7 @@ struct AttachmentImageTile: View {
             // only place these pixels are already in hand.
             let backdrop = await AttachmentImageBackdrop.classified(bitmap)
             let thumbnail = AttachmentThumbnail(
-                image: Image(decorative: bitmap.cgImage, scale: 1, orientation: .up),
+                bitmap: bitmap.cgImage,
                 size: AttachmentImageTileSize.fitted(
                     pixelWidth: bitmap.cgImage.width,
                     pixelHeight: bitmap.cgImage.height

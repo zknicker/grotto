@@ -1,13 +1,12 @@
 import Foundation
 @testable import GrottoUI
-import SwiftUI
 import Testing
 
 @MainActor
 struct AttachmentImageCacheTests {
     @Test func storesAndReturnsAThumbnailByAttachmentID() {
         let cache = AttachmentImageCache()
-        let thumbnail = AttachmentThumbnail(image: Image(systemName: "photo"), size: .init(width: 240, height: 180))
+        let thumbnail = AttachmentThumbnail(bitmap: AttachmentBitmapFixture.bitmap(), size: .init(width: 240, height: 180))
 
         cache.store(thumbnail, for: "attachment-1", decodedPixelCost: 4)
 
@@ -19,7 +18,7 @@ struct AttachmentImageCacheTests {
     /// adoptable under the fresh Server attachment id via filename + size.
     @Test func adoptsAStagedThumbnailUnderTheServerAttachmentID() {
         let cache = AttachmentImageCache()
-        let thumbnail = AttachmentThumbnail(image: Image(systemName: "photo"), size: .init(width: 180, height: 180))
+        let thumbnail = AttachmentThumbnail(bitmap: AttachmentBitmapFixture.bitmap(), size: .init(width: 180, height: 180))
         cache.store(
             thumbnail,
             for: "pending-attachment",
@@ -35,7 +34,7 @@ struct AttachmentImageCacheTests {
 
     @Test func refusesToAdoptWhenFilenameOrSizeDiffers() {
         let cache = AttachmentImageCache()
-        let thumbnail = AttachmentThumbnail(image: Image(systemName: "photo"), size: .init(width: 180, height: 180))
+        let thumbnail = AttachmentThumbnail(bitmap: AttachmentBitmapFixture.bitmap(), size: .init(width: 180, height: 180))
         cache.store(
             thumbnail,
             for: "pending-attachment",

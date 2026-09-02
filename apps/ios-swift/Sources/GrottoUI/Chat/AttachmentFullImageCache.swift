@@ -5,10 +5,21 @@ import UIKit
 #endif
 
 /// One full-resolution attachment decode, with the ground it belongs on.
+///
+/// The bitmap travels beside the SwiftUI `Image`: the viewer's page zooms it in
+/// a `UIImageView`, which needs the decode itself as its layer contents.
 struct AttachmentFullImage {
+    let bitmap: CGImage
     let image: Image
     let backdrop: AttachmentImageBackdrop
     let pixelCost: Int
+
+    init(bitmap: CGImage, backdrop: AttachmentImageBackdrop, pixelCost: Int) {
+        self.bitmap = bitmap
+        image = Image(decorative: bitmap, scale: 1, orientation: .up)
+        self.backdrop = backdrop
+        self.pixelCost = pixelCost
+    }
 }
 
 /// In-memory cache of full-resolution viewer decodes, a sibling of

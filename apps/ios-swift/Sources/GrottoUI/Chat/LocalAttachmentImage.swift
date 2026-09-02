@@ -2,10 +2,21 @@ import Foundation
 import SwiftUI
 
 /// A staged local image decoded once, downsampled, and ready to render.
+///
+/// The bitmap travels with the SwiftUI `Image` because a staged photo becomes a
+/// sent attachment's thumbnail, and that thumbnail is what the viewer zooms.
 struct LocalAttachmentImageEntry {
+    let bitmap: CGImage
     let image: Image
     let pixelWidth: Int
     let pixelHeight: Int
+
+    init(bitmap: CGImage) {
+        self.bitmap = bitmap
+        image = Image(decorative: bitmap, scale: 1, orientation: .up)
+        pixelWidth = bitmap.width
+        pixelHeight = bitmap.height
+    }
 }
 
 /// Process-wide cache of decoded staged-file images keyed by file URL.
@@ -67,11 +78,7 @@ final class LocalAttachmentImageCache {
     }
 
     private func store(_ bitmap: DecodedAttachmentBitmap, for key: String) {
-        let entry = LocalAttachmentImageEntry(
-            image: Image(decorative: bitmap.cgImage, scale: 1, orientation: .up),
-            pixelWidth: bitmap.cgImage.width,
-            pixelHeight: bitmap.cgImage.height
-        )
+        let entry = LocalAttachmentImageEntry(bitmap: bitmap.cgImage)
         cache.setObject(EntryBox(entry: entry), forKey: key as NSString, cost: bitmap.pixelCost)
     }
 

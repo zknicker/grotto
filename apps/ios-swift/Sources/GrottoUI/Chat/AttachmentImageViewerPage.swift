@@ -1,7 +1,7 @@
 #if os(iOS)
 import SwiftUI
 
-/// One image in the viewer, full-bleed on its own ground.
+/// One image in the viewer, full-bleed on its own ground and zoomable.
 ///
 /// The page paints the tile's bitmap — already decoded, already in memory,
 /// already on screen behind the transition — on its first frame, then replaces
@@ -10,6 +10,8 @@ import SwiftUI
 /// than a crossfade: dissolving one over the other would double-composite every
 /// partly transparent pixel and make the artwork visibly denser through the
 /// blend, which is the one thing a transparency grid exists to show honestly.
+/// It is also a swap inside a live scroll view, so it keeps whatever zoom and
+/// position the reader had reached.
 struct AttachmentImageViewerPage: View {
     let attachment: MessageAttachmentPresentation
     let session: AttachmentImageViewerSession
@@ -19,12 +21,13 @@ struct AttachmentImageViewerPage: View {
     var body: some View {
         let full = loaded?.image(for: attachment.id) ?? session.fullImage(for: attachment)
         let thumbnail = session.thumbnail(for: attachment)
+        let bitmap = full?.bitmap ?? thumbnail?.bitmap
         ZStack {
             backdrop(full?.backdrop ?? thumbnail?.backdrop ?? .opaque)
-            if let full {
-                full.image.resizable().scaledToFit()
-            } else if let thumbnail {
-                thumbnail.image.resizable().scaledToFit()
+            if let bitmap {
+                AttachmentImageZoomView(bitmap: bitmap) { zoomed in
+                    session.setZoomed(zoomed, for: attachment.id)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -38,6 +41,11 @@ struct AttachmentImageViewerPage: View {
             let resolved = await session.load(attachment)
             guard !Task.isCancelled, let resolved else { return }
             loaded = LoadedFullImage(attachmentID: attachment.id, image: resolved)
+        }
+        .onDisappear {
+            // A page torn down mid-zoom must not leave the transition's
+            // dismissal switched off for the pages that outlive it.
+            session.setZoomed(false, for: attachment.id)
         }
     }
 

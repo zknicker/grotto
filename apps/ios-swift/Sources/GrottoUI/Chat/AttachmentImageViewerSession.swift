@@ -21,6 +21,7 @@ final class AttachmentImageViewerSession {
     @ObservationIgnored private let decodePixelSize: CGFloat
     @ObservationIgnored private var fileURLs: [String: URL] = [:]
     @ObservationIgnored private var inFlight: Set<String> = []
+    @ObservationIgnored private var zoom = AttachmentImageZoomClaim()
 
     init(
         pages: [MessageAttachmentPresentation],
@@ -45,6 +46,19 @@ final class AttachmentImageViewerSession {
     func sourceView() -> UIView? {
         guard let current else { return nil }
         return tiles.view(for: current.id)
+    }
+
+    /// Whether the page on screen is zoomed past its fit.
+    ///
+    /// The transition asks this before starting an interactive dismissal: a pan
+    /// on a zoomed image is a pan across the image, and a card that flew away
+    /// under it would be the viewer taking the reader's gesture. Deliberately
+    /// outside observation — the zoom scroll view writes it during layout, and
+    /// nothing renders from it.
+    var isZoomed: Bool { zoom.isZoomed }
+
+    func setZoomed(_ zoomed: Bool, for attachmentID: String) {
+        zoom.set(zoomed, for: attachmentID)
     }
 
     /// What the share sheet is handed. Usually already resolved by the page's
@@ -77,7 +91,7 @@ final class AttachmentImageViewerSession {
             ) else { return nil }
             let backdrop = await AttachmentImageBackdrop.classified(bitmap)
             let full = AttachmentFullImage(
-                image: Image(decorative: bitmap.cgImage, scale: 1, orientation: .up),
+                bitmap: bitmap.cgImage,
                 backdrop: backdrop,
                 pixelCost: bitmap.pixelCost
             )

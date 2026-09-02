@@ -94,7 +94,7 @@ struct AttachmentFullImageCacheTests {
         backdrop: AttachmentImageBackdrop = .opaque
     ) -> AttachmentFullImage {
         AttachmentFullImage(
-            image: Image(systemName: "photo"),
+            bitmap: AttachmentBitmapFixture.bitmap(),
             backdrop: backdrop,
             pixelCost: cost
         )

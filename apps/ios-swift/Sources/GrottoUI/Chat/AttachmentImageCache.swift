@@ -7,6 +7,11 @@ import SwiftUI
 struct AttachmentThumbnail {
     let image: Image
     let size: CGSize
+    /// Classified once, here, from the bytes this decode already had in hand,
+    /// so the viewer's first frame carries the right ground instead of opening
+    /// on black and stepping to a checkerboard once its own decode lands.
+    /// A staged local file has no viewer page, so it keeps the default.
+    var backdrop: AttachmentImageBackdrop = .opaque
 }
 
 /// An immutable decoded bitmap handed across executors. `CGImage` is

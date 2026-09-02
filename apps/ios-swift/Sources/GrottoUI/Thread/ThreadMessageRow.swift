@@ -7,6 +7,8 @@ struct ThreadMessageRow: View {
         guard let localURL = attachment.localURL else { throw CancellationError() }
         return localURL
     }
+    var preview: Binding<AttachmentPreview?> = .constant(nil)
+    var tiles: AttachmentImageTileRegistry?
     var canManagePreparedActions = false
     var onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void = { _ in }
 
@@ -42,6 +44,8 @@ struct ThreadMessageRow: View {
                     MessageAttachmentGroup(
                         attachments: message.attachments,
                         isPending: message.isPending,
+                        preview: preview,
+                        tiles: tiles,
                         onOpen: onOpenAttachment
                     )
                 }

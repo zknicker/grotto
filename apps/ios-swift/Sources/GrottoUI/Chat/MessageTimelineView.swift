@@ -13,6 +13,11 @@ public struct MessageTimelineView: View {
     private let onLoadOlderMessages: (() async -> Bool)?
 
     @Binding private var scrollTargetMessageID: String?
+    /// Attachment presentation is the screen's, not the row's: rows are hosted
+    /// in table cells with no view controller of their own, and the image
+    /// viewer's transition has to outlive the cell it grew out of.
+    @State private var attachmentPreview: AttachmentPreview?
+    @State private var attachmentTiles = AttachmentImageTileRegistry()
     @State private var highlightedMessageID: String?
     @State private var isNearNewest = true
     @State private var reveal: TranscriptReveal?
@@ -134,6 +139,12 @@ public struct MessageTimelineView: View {
             }
         }
         .animation(.easeOut(duration: 0.18), value: isNearNewest)
+        .attachmentPreview(
+            $attachmentPreview,
+            images: AttachmentImagePages.pages(in: messages),
+            tiles: attachmentTiles,
+            onOpen: onOpenAttachment
+        )
         .onChange(of: scrollTargetMessageID, initial: true) { _, _ in
             revealScrollTarget()
         }
@@ -245,6 +256,8 @@ public struct MessageTimelineView: View {
                     MessageAttachmentGroup(
                         attachments: message.attachments,
                         isPending: message.isPending,
+                        preview: $attachmentPreview,
+                        tiles: attachmentTiles,
                         onOpen: onOpenAttachment
                     )
                     .padding(.top, content.isEmpty ? 0 : 3)

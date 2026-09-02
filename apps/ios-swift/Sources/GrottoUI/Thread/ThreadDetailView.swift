@@ -20,6 +20,10 @@ public struct ThreadDetailView: View {
 
     @State private var draft = ""
     @State private var isNearNewest = true
+    /// Same ownership rule as the Chat timeline: the screen presents, the rows
+    /// only ask.
+    @State private var attachmentPreview: AttachmentPreview?
+    @State private var attachmentTiles = AttachmentImageTileRegistry()
     /// A Thread is one pushed screen rather than a keyed canvas, so its composer
     /// state is screen-owned: it survives anything presented over the Thread and
     /// goes away with the pop, unlike the Chat canvas, whose interactions the
@@ -94,7 +98,8 @@ public struct ThreadDetailView: View {
     }
 
     public var body: some View {
-        let items = transcriptItems(replies: replyProvider())
+        let replies = replyProvider()
+        let items = transcriptItems(replies: replies)
 
         GeometryReader { geometry in
             ZStack(alignment: .bottomLeading) {
@@ -130,6 +135,12 @@ public struct ThreadDetailView: View {
             )
         }
         .background(.background)
+        .attachmentPreview(
+            $attachmentPreview,
+            images: AttachmentImagePages.pages(in: [anchor] + replies),
+            tiles: attachmentTiles,
+            onOpen: onOpenAttachment
+        )
         .navigationTitle("Thread")
         .grottoInlineNavigationTitle()
     }
@@ -196,6 +207,8 @@ public struct ThreadDetailView: View {
                 message: message,
                 emphasized: true,
                 onOpenAttachment: onOpenAttachment,
+                preview: $attachmentPreview,
+                tiles: attachmentTiles,
                 canManagePreparedActions: canManagePreparedActions,
                 onReviewPreparedCreateAgent: onReviewPreparedCreateAgent
             )
@@ -208,6 +221,8 @@ public struct ThreadDetailView: View {
             ThreadMessageRow(
                 message: message,
                 onOpenAttachment: onOpenAttachment,
+                preview: $attachmentPreview,
+                tiles: attachmentTiles,
                 canManagePreparedActions: canManagePreparedActions,
                 onReviewPreparedCreateAgent: onReviewPreparedCreateAgent
             )

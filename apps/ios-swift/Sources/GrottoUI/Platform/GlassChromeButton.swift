@@ -9,6 +9,10 @@ struct GlassChromeButton: View {
     enum Glyph {
         case icon(GrottoIconName)
         case sidebar
+        /// An SF Symbol, for the few controls where the system owns the
+        /// grammar and the app icon set carries no equivalent — the share
+        /// action's arrow-out-of-tray being the one people read as "share".
+        case system(String)
     }
 
     static let diameter: CGFloat = 44
@@ -99,6 +103,9 @@ struct GlassChromeButton: View {
             GrottoIcon(name, size: Self.iconGlyphSize, weight: Self.iconGlyphWeight)
         case .sidebar:
             SidebarMenuGlyph()
+        case .system(let name):
+            Image(systemName: name)
+                .font(.system(size: Self.iconGlyphSize - 3, weight: .semibold))
         }
     }
 }

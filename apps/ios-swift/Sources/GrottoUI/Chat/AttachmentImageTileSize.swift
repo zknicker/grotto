@@ -12,6 +12,9 @@ enum AttachmentImageTileSize {
     static let tileHeight: CGFloat = 180
     static let minWidth: CGFloat = 96
     static let placeholderSize = CGSize(width: maxDimension, height: tileHeight)
+    /// The tile's clip. The viewer's zoom source anchor wears the same radius,
+    /// so the card's corners start exactly where the tile's end.
+    static let cornerRadius: CGFloat = 14
 
     static func fitted(
         pixelWidth: Int,

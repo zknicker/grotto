@@ -1,63 +1,52 @@
 import SwiftUI
 
-public struct MessageAttachmentGroup: View {
+/// A message's attachments, as inline image tiles and file rows.
+///
+/// The row opens nothing itself. It writes what it wants opened into the
+/// screen's `AttachmentPreview` binding, because the cell it is hosted in has
+/// no view controller to present from and the image viewer's transition has to
+/// outlive that cell.
+struct MessageAttachmentGroup: View {
     private let attachments: [MessageAttachmentPresentation]
     private let isPending: Bool
     private let onOpen: (MessageAttachmentPresentation) async throws -> URL
+    private let tiles: AttachmentImageTileRegistry?
 
-    @State private var previewURL: URL?
+    @Binding private var preview: AttachmentPreview?
     @State private var loadingAttachmentID: String?
-    @State private var errorMessage: String?
     @State private var imageTileFailedIDs: Set<String> = []
 
-    public init(
+    init(
         attachments: [MessageAttachmentPresentation],
         isPending: Bool = false,
+        preview: Binding<AttachmentPreview?> = .constant(nil),
+        tiles: AttachmentImageTileRegistry? = nil,
         onOpen: @escaping (MessageAttachmentPresentation) async throws -> URL
     ) {
         self.attachments = attachments
         self.isPending = isPending
+        _preview = preview
+        self.tiles = tiles
         self.onOpen = onOpen
     }
 
-    public var body: some View {
-        attachmentRows
-        #if os(iOS)
-            .background { AttachmentQuickLook(url: $previewURL) }
-        #endif
-            .alert("Couldn’t open attachment", isPresented: errorPresented) {
-                Button("OK", role: .cancel) { errorMessage = nil }
-            } message: {
-                Text(errorMessage ?? "Try again.")
-            }
-    }
-
-    private var attachmentRows: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             ForEach(attachments) { attachment in
-                if showsImageTile(attachment) {
-                    Button {
-                        open(attachment)
-                    } label: {
+                Button {
+                    open(attachment)
+                } label: {
+                    if showsImageTile(attachment) {
                         imageTile(attachment)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isPending || loadingAttachmentID != nil)
-                    .accessibilityLabel(
-                        isPending ? "Uploading \(attachment.filename)" : "Preview \(attachment.filename)"
-                    )
-                } else {
-                    Button {
-                        open(attachment)
-                    } label: {
+                    } else {
                         attachmentRow(attachment)
                     }
-                    .buttonStyle(.plain)
-                    .disabled(isPending || loadingAttachmentID != nil)
-                    .accessibilityLabel(
-                        isPending ? "Uploading \(attachment.filename)" : "Preview \(attachment.filename)"
-                    )
                 }
+                .buttonStyle(.plain)
+                .disabled(isPending || loadingAttachmentID != nil)
+                .accessibilityLabel(
+                    isPending ? "Uploading \(attachment.filename)" : "Preview \(attachment.filename)"
+                )
             }
         }
     }
@@ -76,17 +65,9 @@ public struct MessageAttachmentGroup: View {
         AttachmentImageTile(
             attachment: attachment,
             onOpen: onOpen,
-            onFailure: { imageTileFailedIDs.insert(attachment.id) }
+            onFailure: { imageTileFailedIDs.insert(attachment.id) },
+            tiles: isPending ? nil : tiles
         )
-        .overlay(alignment: .bottomTrailing) {
-            if loadingAttachmentID == attachment.id {
-                ProgressView()
-                    .controlSize(.small)
-                    .padding(6)
-                    .background(.thinMaterial, in: .circle)
-                    .padding(6)
-            }
-        }
     }
 
     private func attachmentRow(_ attachment: MessageAttachmentPresentation) -> some View {
@@ -130,18 +111,25 @@ public struct MessageAttachmentGroup: View {
         }
     }
 
-    /// `onOpen` resolves a staged file or a cached one. Either way the URL is
-    /// owned by the caller's cache and outlives this preview, so dismissal
+    /// An image tile opens on the frame of the tap: the viewer paints the
+    /// bitmap this tile already decoded and resolves the file itself, so there
+    /// is nothing to wait for. A file row still has to reach its bytes before
+    /// Quick Look has anything to show. Either way the resolved URL is owned by
+    /// the caller's attachment cache and outlives the preview, so dismissal
     /// deletes nothing.
     private func open(_ attachment: MessageAttachmentPresentation) {
+        if showsImageTile(attachment) {
+            preview = .image(attachmentID: attachment.id)
+            return
+        }
         loadingAttachmentID = attachment.id
         Task {
             do {
-                previewURL = try await onOpen(attachment)
+                preview = .file(try await onOpen(attachment))
             } catch is CancellationError {
                 // A dismissed preview or canceled transfer needs no error UI.
             } catch {
-                errorMessage = error.localizedDescription
+                preview = .failure(error.localizedDescription)
             }
             loadingAttachmentID = nil
         }
@@ -162,12 +150,5 @@ public struct MessageAttachmentGroup: View {
         if attachment.mediaType.hasPrefix("audio/") { return .voice }
         if attachment.isImage { return .image }
         return .document
-    }
-
-    private var errorPresented: Binding<Bool> {
-        Binding(
-            get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
-        )
     }
 }

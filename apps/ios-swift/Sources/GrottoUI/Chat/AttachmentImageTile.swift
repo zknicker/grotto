@@ -13,6 +13,10 @@ struct AttachmentImageTile: View {
     let attachment: MessageAttachmentPresentation
     let onOpen: (MessageAttachmentPresentation) async throws -> URL
     let onFailure: () -> Void
+    /// Where this tile publishes its UIView so the screen's image viewer can
+    /// grow out of it and fall back into it. Nil for a pending upload, which
+    /// has no viewer page.
+    var tiles: AttachmentImageTileRegistry?
 
     /// The landed decode, held as state `body` renders from. SwiftUI
     /// invalidates a view only for state its body actually reads, so the
@@ -40,11 +44,22 @@ struct AttachmentImageTile: View {
                     )
             }
         }
-        .clipShape(.rect(cornerRadius: 14))
+        .clipShape(.rect(cornerRadius: AttachmentImageTileSize.cornerRadius))
+        .overlay { zoomAnchor }
         .task(id: attachment.id) {
             guard needsLoad else { return }
             await loadThumbnail()
         }
+    }
+
+    @ViewBuilder
+    private var zoomAnchor: some View {
+        #if os(iOS)
+        if let tiles {
+            AttachmentImageTileAnchor(attachmentID: attachment.id, registry: tiles)
+                .allowsHitTesting(false)
+        }
+        #endif
     }
 
     /// Resolves a renderable thumbnail without leaving the main actor: the
@@ -109,12 +124,17 @@ struct AttachmentImageTile: View {
                 onFailure()
                 return
             }
+            // Classified off the main actor, beside the decode, because the
+            // viewer needs the answer on the frame it opens and the tile is the
+            // only place these pixels are already in hand.
+            let backdrop = await AttachmentImageBackdrop.classified(bitmap)
             let thumbnail = AttachmentThumbnail(
                 image: Image(decorative: bitmap.cgImage, scale: 1, orientation: .up),
                 size: AttachmentImageTileSize.fitted(
                     pixelWidth: bitmap.cgImage.width,
                     pixelHeight: bitmap.cgImage.height
-                )
+                ),
+                backdrop: backdrop
             )
             AttachmentImageCache.shared.store(
                 thumbnail,

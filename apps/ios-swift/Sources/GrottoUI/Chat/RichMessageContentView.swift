@@ -20,13 +20,25 @@ struct RichMessageContentView: View {
     }
 }
 
-/// One reference chip. Every kind wears the same capsule; only the identity
-/// mark and the label's ink differ — a channel carries its own glyph box and
-/// its configured color, an Agent or human carries an avatar.
+/// One reference chip. Every kind wears the same box; only the identity mark
+/// and the label's ink differ — a channel carries its own glyph box and its
+/// configured color, an Agent or human carries an avatar.
+///
+/// The box is sized by its content, so its insets and its corner are derived
+/// from the height that content produces rather than guessed: the mark sits the
+/// same distance from the leading edge as it does from the top and bottom, and
+/// the corner follows the same `box / 3` curve `ChannelIconBox` gives the mark,
+/// which keeps the two corners concentric at any Dynamic Type size.
 private struct RichReferenceChip: View {
     let reference: RichReferencePresentation
 
     @Environment(\.colorScheme) private var colorScheme
+    @ScaledMetric(relativeTo: .callout) private var estimatedContentHeight: CGFloat = 21
+    @State private var measuredContentHeight: CGFloat?
+
+    private static let markSize: CGFloat = 16
+    private static let verticalInset: CGFloat = 3
+    private static let trailingInset: CGFloat = 8
 
     var body: some View {
         HStack(spacing: 4) {
@@ -36,9 +48,13 @@ private struct RichReferenceChip: View {
                 .foregroundStyle(labelTint)
                 .lineLimit(1)
         }
-        .padding(.horizontal, 7)
-        .padding(.vertical, 2)
-        .background(.quaternary, in: .capsule)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+            measuredContentHeight = height
+        }
+        .padding(.vertical, Self.verticalInset)
+        .padding(.leading, markInset)
+        .padding(.trailing, Self.trailingInset)
+        .background(ground, in: .rect(cornerRadius: cornerRadius, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(kindLabel) reference, \(reference.label)")
     }
@@ -47,14 +63,36 @@ private struct RichReferenceChip: View {
     private var mark: some View {
         switch reference.kind {
         case .channel:
-            ChannelIconBox(appearance: appearance, size: 16)
+            ChannelIconBox(appearance: appearance, size: Self.markSize)
         case .agent, .human:
-            AvatarView(name: reference.label, url: reference.avatarURL, size: 16)
+            AvatarView(name: reference.label, url: reference.avatarURL, size: Self.markSize)
         }
     }
 
     private var appearance: ChannelAppearance {
         reference.channelAppearance ?? .default
+    }
+
+    /// A translucent wash of the foreground, never an opaque grey, so the chip
+    /// composites over whatever it sits on. Light stays under the neutral
+    /// `ChannelIconBox` fill so the chip reads quieter than its own mark.
+    private var ground: Color {
+        Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.055)
+    }
+
+    private var chipHeight: CGFloat {
+        (measuredContentHeight ?? max(Self.markSize, estimatedContentHeight))
+            + Self.verticalInset * 2
+    }
+
+    /// The mark's distance from the top and bottom edges, reused as its
+    /// distance from the leading edge.
+    private var markInset: CGFloat {
+        max(Self.verticalInset, (chipHeight - Self.markSize) / 2)
+    }
+
+    private var cornerRadius: CGFloat {
+        chipHeight / 3
     }
 
     /// A channel reads in its own configured color. A channel with no preset,

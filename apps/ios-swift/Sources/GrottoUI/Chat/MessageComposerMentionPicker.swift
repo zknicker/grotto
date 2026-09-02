@@ -14,7 +14,7 @@ struct MessageComposerMentionPicker: View {
                         HStack(spacing: 10) {
                             mark(for: option)
                             VStack(alignment: .leading, spacing: 1) {
-                                Text(option.insertText)
+                                Text(ReferenceLabel.display(option.label, kind: option.kind))
                                     .font(.subheadline.weight(.medium))
                                     .foregroundStyle(.primary)
                                 if let detail = option.detail {

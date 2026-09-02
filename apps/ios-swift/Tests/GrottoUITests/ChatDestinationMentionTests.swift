@@ -102,7 +102,7 @@ import Testing
             return RichReferencePresentation(
                 id: id,
                 kind: .channel,
-                label: "#product",
+                label: ReferenceLabel.display("product", kind: .channel),
                 avatarURL: nil,
                 channelAppearance: ChannelAppearance(icon: "RocketIcon", color: "violet")
             )
@@ -111,21 +111,42 @@ import Testing
         #expect(segments.contains(.reference(.init(
             id: "cht_product",
             kind: .channel,
-            label: "#product",
+            label: "Product",
             avatarURL: nil,
             channelAppearance: ChannelAppearance(icon: "RocketIcon", color: "violet")
         ))))
     }
 
-    @Test func richParserKeepsThePersistedLabelForAnUnresolvedChannel() {
-        let segments = RichMessageParser.parse("Ask in [#product](chat://cht_gone).") { _, _, _ in nil }
+    @Test func richParserReadsThePersistedLabelWithoutItsSigilForAnUnresolvedTarget() {
+        let segments = RichMessageParser.parse(
+            "Ask in [#onboarding-owner](chat://cht_gone) or ask [@Blippy](agent://agt_gone)."
+        ) { _, _, _ in nil }
 
         #expect(segments.contains(.reference(.init(
             id: "cht_gone",
             kind: .channel,
-            label: "#product",
+            label: "Onboarding Owner",
             avatarURL: nil
         ))))
+        #expect(segments.contains(.reference(.init(
+            id: "agt_gone",
+            kind: .agent,
+            label: "Blippy",
+            avatarURL: nil
+        ))))
+    }
+
+    @Test func channelTitlesReadTheStoredSlugAsWords() {
+        #expect(ReferenceLabel.channelTitle("onboarding-owner") == "Onboarding Owner")
+        #expect(ReferenceLabel.channelTitle("product") == "Product")
+        #expect(ReferenceLabel.channelTitle("Product") == "Product")
+        #expect(ReferenceLabel.channelTitle("#GTM-notes") == "GTM Notes")
+    }
+
+    @Test func displayLabelsDropTheSigilAndTitleChannelsOnly() {
+        #expect(ReferenceLabel.display("@Ada Lovelace", kind: .human) == "Ada Lovelace")
+        #expect(ReferenceLabel.display("Blippy", kind: .agent) == "Blippy")
+        #expect(ReferenceLabel.display("#onboarding-owner", kind: .channel) == "Onboarding Owner")
     }
 
     @Test func richParserResolvesAgentAndHumanReferencesByImmutableID() {

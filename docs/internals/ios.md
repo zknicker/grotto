@@ -651,7 +651,10 @@ target. `@` offers Agents and humans and `#` offers channels; selecting one writ
 `agent://`, `user://`, or `chat://` markdown reference into the draft. Chat and Thread rows parse that
 markdown into chips and resolve live identity by immutable id — an Agent or human by avatar and current
 name, a channel by its `ChannelIconBox` glyph and configured color from the Chat list — falling back to
-the persisted label when the target is unresolvable. Human references remain visual and do not create
+the persisted label when the target is unresolvable. Chip and picker labels carry no `@` or `#`: the mark
+already says what the reference is, so `ReferenceLabel` strips the sigil from resolved and fallback labels
+alike and reads a channel's stored slug as a title, `onboarding-owner` as `Onboarding Owner`. The inserted
+markdown and the reference target are untouched. Human references remain visual and do not create
 attention or notification behavior.
 
 The open native Chat and Thread surfaces acknowledge the latest loaded message sequence through

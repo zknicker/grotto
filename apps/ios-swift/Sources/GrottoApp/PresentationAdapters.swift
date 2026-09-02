@@ -159,16 +159,16 @@ extension GrottoStore {
                 return RichReferencePresentation(
                     id: id,
                     kind: .agent,
-                    label: "@\(agent.displayName)",
+                    label: ReferenceLabel.display(agent.displayName, kind: .agent),
                     avatarURL: resolvedAvatarURL(agent.avatarURL)
                 )
             case .human:
                 guard let member = membersByID[id] else { return nil }
-                let name = member.displayName ?? member.handle ?? fallback.trimmingCharacters(in: CharacterSet(charactersIn: "@"))
+                let name = member.displayName ?? member.handle ?? fallback
                 return RichReferencePresentation(
                     id: id,
                     kind: .human,
-                    label: "@\(name)",
+                    label: ReferenceLabel.display(name, kind: .human),
                     avatarURL: resolvedAvatarURL(member.avatarURL)
                 )
             case .channel:
@@ -176,7 +176,7 @@ extension GrottoStore {
                 return RichReferencePresentation(
                     id: id,
                     kind: .channel,
-                    label: "#\(name)",
+                    label: ReferenceLabel.display(name, kind: .channel),
                     avatarURL: nil,
                     channelAppearance: ChannelAppearance(icon: chat.icon, color: chat.color)
                 )

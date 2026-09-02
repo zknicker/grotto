@@ -5,7 +5,8 @@ import Foundation
 /// The persisted link is the source of truth: `[@Cove](agent://agt_cove)`,
 /// `[@Ada](user://usr_ada)`, `[#product](chat://cht_product)`. `resolve`
 /// supplies the live identity, and the persisted label remains the fallback for
-/// a target the app cannot currently resolve.
+/// a target the app cannot currently resolve — read, like a resolved one,
+/// through `ReferenceLabel`, so an unresolved chip wears no sigil either.
 public enum RichMessageParser {
     // Compiled once: this parser runs per message inside hot view bodies, and
     // per-call NSRegularExpression construction dominated its cost.
@@ -41,7 +42,7 @@ public enum RichMessageParser {
                         ?? RichReferencePresentation(
                             id: id,
                             kind: kind,
-                            label: fallback,
+                            label: ReferenceLabel.display(fallback, kind: kind),
                             avatarURL: nil
                         )
                 )

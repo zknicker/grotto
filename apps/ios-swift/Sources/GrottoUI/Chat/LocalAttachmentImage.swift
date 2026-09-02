@@ -8,14 +8,21 @@ import SwiftUI
 struct LocalAttachmentImageEntry {
     let bitmap: CGImage
     let image: Image
+    /// The staged file's own pixel size, not the downsampled decode's, so a
+    /// pending tile sizes itself against the picture the person picked.
     let pixelWidth: Int
     let pixelHeight: Int
+    /// Classified beside the decode, off the main actor, so a pending upload's
+    /// transparency grid is there on the tile's first frame — and so the sent
+    /// row that adopts this bitmap inherits the answer with it.
+    let backdrop: AttachmentImageBackdrop
 
-    init(bitmap: CGImage) {
-        self.bitmap = bitmap
-        image = Image(decorative: bitmap, scale: 1, orientation: .up)
-        pixelWidth = bitmap.width
-        pixelHeight = bitmap.height
+    init(bitmap: DecodedAttachmentBitmap, backdrop: AttachmentImageBackdrop) {
+        self.bitmap = bitmap.cgImage
+        image = Image(decorative: bitmap.cgImage, scale: 1, orientation: .up)
+        pixelWidth = bitmap.sourcePixelWidth
+        pixelHeight = bitmap.sourcePixelHeight
+        self.backdrop = backdrop
     }
 }
 
@@ -68,7 +75,8 @@ final class LocalAttachmentImageCache {
                         maxPixelSize: Self.maxPixelSize
                     )
                 else { return }
-                self?.store(bitmap, for: key)
+                let backdrop = await AttachmentImageBackdrop.classified(bitmap)
+                self?.store(bitmap, backdrop: backdrop, for: key)
             }
             loads[key] = task
         }
@@ -77,8 +85,12 @@ final class LocalAttachmentImageCache {
         return entry(for: url)
     }
 
-    private func store(_ bitmap: DecodedAttachmentBitmap, for key: String) {
-        let entry = LocalAttachmentImageEntry(bitmap: bitmap.cgImage)
+    private func store(
+        _ bitmap: DecodedAttachmentBitmap,
+        backdrop: AttachmentImageBackdrop,
+        for key: String
+    ) {
+        let entry = LocalAttachmentImageEntry(bitmap: bitmap, backdrop: backdrop)
         cache.setObject(EntryBox(entry: entry), forKey: key as NSString, cost: bitmap.pixelCost)
     }
 

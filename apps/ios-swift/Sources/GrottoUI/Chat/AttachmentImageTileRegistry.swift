@@ -28,8 +28,29 @@ final class AttachmentImageTileRegistry {
             return nil
         }
         // A cell that left the window is off screen; the transition has nothing
-        // to travel to and the system's fade is the honest answer.
-        return view.window == nil ? nil : view
+        // to travel to and the system's fade is the honest answer. So is a
+        // strip square scrolled out of its row: it is still in the window, just
+        // clipped away, and a card growing out of a place nobody can see is
+        // worse than no card growing at all.
+        guard view.window != nil, Self.isVisible(view) else { return nil }
+        return view
+    }
+
+    /// Whether any of the view is actually on screen, judged against every
+    /// ancestor that clips — the strip's scroll view, the transcript's table,
+    /// and the window itself.
+    private static func isVisible(_ view: UIView) -> Bool {
+        var visible = view.bounds
+        var current = view
+        while let parent = current.superview {
+            visible = current.convert(visible, to: parent)
+            if parent.clipsToBounds || parent is UIScrollView || parent is UIWindow {
+                visible = visible.intersection(parent.bounds)
+                if visible.isNull || visible.isEmpty { return false }
+            }
+            current = parent
+        }
+        return true
     }
 
     fileprivate func register(_ view: UIView, for attachmentID: String) {

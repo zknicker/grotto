@@ -2,36 +2,47 @@
 import SwiftUI
 import UIKit
 
-/// The full-bleed transparency grid behind a viewer page.
+/// The transparency grid an image with real transparency sits on.
 ///
-/// It runs edge to edge rather than only under the image: the grid is the
-/// viewer's ground for a transparent image, and a grid that stopped at the
-/// image's box would read as a second, floating card.
+/// In the viewer it runs edge to edge rather than only under the image: the
+/// grid is the viewer's ground there, and a grid that stopped at the image's
+/// box would read as a second, floating card. In the transcript it does the
+/// opposite job — it fills the tile's rounded rect, so a transparent PNG reads
+/// as an object on a surface instead of floating loose on the Chat — and it
+/// takes a finer grid, because the viewer's 12pt squares inside a 96pt
+/// thumbnail would be four squares of wallpaper rather than a texture.
 ///
-/// Drawn as one tiled pattern image rather than thousands of shapes. The page
-/// travels under a finger during dismissal, so this repaints continuously —
-/// a tiled `UIImage` is one draw call whatever the screen size, where a
+/// Drawn as one tiled pattern image rather than thousands of shapes. A viewer
+/// page travels under a finger during dismissal, so this repaints continuously
+/// — a tiled `UIImage` is one draw call whatever the screen size, where a
 /// per-square canvas is several thousand.
 struct AttachmentImageCheckerboard: View {
     let tone: AttachmentCheckerboardTone
+    var square: CGFloat = AttachmentImageCheckerboard.square
 
     static let square: CGFloat = 12
+    static let thumbnailSquare: CGFloat = 6
 
     var body: some View {
-        Image(uiImage: AttachmentCheckerboardPattern.image(for: tone))
+        Image(uiImage: AttachmentCheckerboardPattern.image(for: tone, square: square))
             .resizable(resizingMode: .tile)
             .accessibilityHidden(true)
     }
 }
 
-/// The two-by-two pattern tile, rendered once per tone and per screen scale.
+/// The two-by-two pattern tile, rendered once per tone, grid, and screen scale.
 @MainActor
 private enum AttachmentCheckerboardPattern {
-    private static var cache: [AttachmentCheckerboardTone: UIImage] = [:]
+    private struct Key: Hashable {
+        let tone: AttachmentCheckerboardTone
+        let square: CGFloat
+    }
 
-    static func image(for tone: AttachmentCheckerboardTone) -> UIImage {
-        if let cached = cache[tone] { return cached }
-        let side = AttachmentImageCheckerboard.square
+    private static var cache: [Key: UIImage] = [:]
+
+    static func image(for tone: AttachmentCheckerboardTone, square side: CGFloat) -> UIImage {
+        let key = Key(tone: tone, square: side)
+        if let cached = cache[key] { return cached }
         let format = UIGraphicsImageRendererFormat.preferred()
         format.opaque = true
         let renderer = UIGraphicsImageRenderer(
@@ -46,7 +57,7 @@ private enum AttachmentCheckerboardPattern {
             context.fill(CGRect(x: side, y: 0, width: side, height: side))
             context.fill(CGRect(x: 0, y: side, width: side, height: side))
         }
-        cache[tone] = image
+        cache[key] = image
         return image
     }
 

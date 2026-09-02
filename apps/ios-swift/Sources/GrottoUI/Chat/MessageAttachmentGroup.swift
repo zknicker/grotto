@@ -30,42 +30,70 @@ struct MessageAttachmentGroup: View {
         self.onOpen = onOpen
     }
 
+    private var layout: MessageAttachmentLayout.Resolved {
+        MessageAttachmentLayout.resolve(
+            attachments: attachments,
+            isPending: isPending,
+            failedImageIDs: imageTileFailedIDs
+        )
+    }
+
     var body: some View {
+        let layout = layout
         VStack(alignment: .leading, spacing: 6) {
-            ForEach(attachments) { attachment in
-                Button {
-                    open(attachment)
-                } label: {
-                    if showsImageTile(attachment) {
-                        imageTile(attachment)
-                    } else {
-                        attachmentRow(attachment)
-                    }
+            switch layout.style {
+            case .hero:
+                if let image = layout.images.first {
+                    attachmentButton(image) { imageTile(image, box: .hero) }
                 }
-                .buttonStyle(.plain)
-                .disabled(isPending || loadingAttachmentID != nil)
-                .accessibilityLabel(
-                    isPending ? "Uploading \(attachment.filename)" : "Preview \(attachment.filename)"
+            case .strip:
+                MessageImageStrip(
+                    attachments: layout.images,
+                    isPending: isPending,
+                    // A file row resolving its bytes owns the preview binding
+                    // until it lands, so the strip stops taking taps with it.
+                    isDisabled: isPending || loadingAttachmentID != nil,
+                    onOpen: onOpen,
+                    onFailure: { imageTileFailedIDs.insert($0.id) },
+                    onTap: { open($0) },
+                    tiles: isPending ? nil : tiles
                 )
+            }
+            ForEach(layout.files) { attachment in
+                attachmentButton(attachment) { attachmentRow(attachment) }
             }
         }
     }
 
-    /// Image attachments render as inline media tiles — including pending
-    /// uploads, which decode from their staged local file so the row occupies
-    /// its final box from the first frame instead of morphing file row →
-    /// placeholder → photo. Everything else keeps the file row.
-    private func showsImageTile(_ attachment: MessageAttachmentPresentation) -> Bool {
-        attachment.isImage
-            && (!isPending || attachment.localURL != nil)
-            && !imageTileFailedIDs.contains(attachment.id)
+    private func attachmentButton(
+        _ attachment: MessageAttachmentPresentation,
+        @ViewBuilder label: () -> some View
+    ) -> some View {
+        Button {
+            open(attachment)
+        } label: {
+            label()
+        }
+        .buttonStyle(.plain)
+        .disabled(isPending || loadingAttachmentID != nil)
+        .accessibilityLabel(
+            isPending ? "Uploading \(attachment.filename)" : "Preview \(attachment.filename)"
+        )
     }
 
-    private func imageTile(_ attachment: MessageAttachmentPresentation) -> some View {
+    /// Image attachments render as pictures — including pending uploads, which
+    /// decode from their staged local file so the row occupies its final box
+    /// from the first frame instead of morphing file row → placeholder →
+    /// photo. Everything else keeps the file row.
+    private func imageTile(
+        _ attachment: MessageAttachmentPresentation,
+        box: AttachmentImageTileBox
+    ) -> some View {
         AttachmentImageTile(
             attachment: attachment,
             onOpen: onOpen,
             onFailure: { imageTileFailedIDs.insert(attachment.id) },
+            box: box,
             tiles: isPending ? nil : tiles
         )
     }
@@ -118,7 +146,7 @@ struct MessageAttachmentGroup: View {
     /// the caller's attachment cache and outlives the preview, so dismissal
     /// deletes nothing.
     private func open(_ attachment: MessageAttachmentPresentation) {
-        if showsImageTile(attachment) {
+        if layout.images.contains(where: { $0.id == attachment.id }) {
             preview = .image(attachmentID: attachment.id)
             return
         }

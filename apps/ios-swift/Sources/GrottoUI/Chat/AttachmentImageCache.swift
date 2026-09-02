@@ -29,8 +29,22 @@ struct AttachmentThumbnail {
 /// An immutable decoded bitmap handed across executors. `CGImage` is
 /// immutable; the wrapper exists only because the SDK does not declare it
 /// `Sendable`.
+///
+/// The source's own pixel size travels beside the decode because every decode
+/// here is downsampled to a display budget: a tile that sized itself from the
+/// bitmap would read a 4032-pixel photograph as 480 pixels and shrink its box
+/// to fit a picture that is not small at all. Only the source dimensions can
+/// answer "is this image smaller than the box we would give it".
 struct DecodedAttachmentBitmap: @unchecked Sendable {
     let cgImage: CGImage
+    let sourcePixelWidth: Int
+    let sourcePixelHeight: Int
+
+    init(cgImage: CGImage, sourcePixelWidth: Int? = nil, sourcePixelHeight: Int? = nil) {
+        self.cgImage = cgImage
+        self.sourcePixelWidth = sourcePixelWidth ?? cgImage.width
+        self.sourcePixelHeight = sourcePixelHeight ?? cgImage.height
+    }
 
     var pixelCost: Int { cgImage.width * cgImage.height * 4 }
 }
@@ -50,7 +64,28 @@ enum AttachmentImageDecoder {
         guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
             return nil
         }
-        return DecodedAttachmentBitmap(cgImage: cgImage)
+        let sourceSize = sourcePixelSize(of: source)
+        return DecodedAttachmentBitmap(
+            cgImage: cgImage,
+            sourcePixelWidth: sourceSize?.width,
+            sourcePixelHeight: sourceSize?.height
+        )
+    }
+
+    /// Read from the container's metadata rather than by decoding, so it costs
+    /// nothing. The thumbnail is created with the EXIF transform applied, so a
+    /// rotated source reports its dimensions the way the bitmap wears them.
+    private static func sourcePixelSize(
+        of source: CGImageSource
+    ) -> (width: Int, height: Int)? {
+        guard
+            let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+            let width = properties[kCGImagePropertyPixelWidth] as? Int,
+            let height = properties[kCGImagePropertyPixelHeight] as? Int
+        else { return nil }
+        let orientation = properties[kCGImagePropertyOrientation] as? Int ?? 1
+        let isQuarterTurned = (5...8).contains(orientation)
+        return isQuarterTurned ? (width: height, height: width) : (width: width, height: height)
     }
 }
 

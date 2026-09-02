@@ -1,5 +1,22 @@
 import SwiftUI
 
+/// The box an inline image draws in: a message's single image gets the hero
+/// tile sized from the picture, and two or more share the strip's uniform
+/// squares.
+enum AttachmentImageTileBox: Equatable {
+    case hero
+    case square(CGFloat)
+
+    func size(for thumbnail: AttachmentThumbnail?) -> CGSize {
+        switch self {
+        case .hero:
+            thumbnail?.size ?? AttachmentImageTileSize.placeholderSize
+        case .square(let side):
+            CGSize(width: side, height: side)
+        }
+    }
+}
+
 /// Renders an image attachment as an inline media tile instead of a file row.
 ///
 /// Sent attachments download through the authenticated `onOpen` closure (the
@@ -13,6 +30,7 @@ struct AttachmentImageTile: View {
     let attachment: MessageAttachmentPresentation
     let onOpen: (MessageAttachmentPresentation) async throws -> URL
     let onFailure: () -> Void
+    var box: AttachmentImageTileBox = .hero
     /// Where this tile publishes its UIView so the screen's image viewer can
     /// grow out of it and fall back into it. Nil for a pending upload, which
     /// has no viewer page.
@@ -25,31 +43,49 @@ struct AttachmentImageTile: View {
     /// painted as the placeholder forever. The cache read below is the
     /// recycled-view fast path, not the invalidation.
     @State private var loaded: LoadedAttachmentThumbnail?
+    /// The hero box is the image's native point size, so the tile has to know
+    /// how many pixels a point is worth.
+    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
-        let thumbnail = loaded?.thumbnail(for: attachment.id) ?? Self.cachedThumbnail(for: attachment)
+        let thumbnail = loaded?.thumbnail(for: attachment.id)
+            ?? Self.cachedThumbnail(for: attachment, scale: displayScale)
         let needsLoad = thumbnail == nil
-        Group {
+        let size = box.size(for: thumbnail)
+        ZStack {
+            // The grid arrives with the bitmap and never on its own: the
+            // classification is stored beside the decode, so a recycled tile
+            // reads both synchronously and a first decode brings both at once.
+            // There is no frame on which a transparent image is painted
+            // without its ground.
             if let thumbnail {
+                checkerboard(thumbnail.backdrop)
                 thumbnail.image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(width: thumbnail.size.width, height: thumbnail.size.height)
             } else {
-                Rectangle()
-                    .fill(.quaternary)
-                    .frame(
-                        width: AttachmentImageTileSize.placeholderSize.width,
-                        height: AttachmentImageTileSize.placeholderSize.height
-                    )
+                Rectangle().fill(.quaternary)
             }
         }
+        .frame(width: size.width, height: size.height)
         .clipShape(.rect(cornerRadius: AttachmentImageTileSize.cornerRadius))
         .overlay { zoomAnchor }
         .task(id: attachment.id) {
             guard needsLoad else { return }
             await loadThumbnail()
         }
+    }
+
+    @ViewBuilder
+    private func checkerboard(_ backdrop: AttachmentImageBackdrop) -> some View {
+        #if os(iOS)
+        if case .checkerboard(let tone) = backdrop {
+            AttachmentImageCheckerboard(
+                tone: tone,
+                square: AttachmentImageCheckerboard.thumbnailSquare
+            )
+        }
+        #endif
     }
 
     @ViewBuilder
@@ -67,7 +103,10 @@ struct AttachmentImageTile: View {
     /// attachments, then the staged-content bridge that lets a just-sent
     /// attachment reuse the bitmap its pending row already decoded.
     @MainActor
-    static func cachedThumbnail(for attachment: MessageAttachmentPresentation) -> AttachmentThumbnail? {
+    static func cachedThumbnail(
+        for attachment: MessageAttachmentPresentation,
+        scale: CGFloat
+    ) -> AttachmentThumbnail? {
         if let hit = AttachmentImageCache.shared.thumbnail(for: attachment.id) { return hit }
         if let localURL = attachment.localURL {
             guard let entry = LocalAttachmentImageCache.shared.entry(for: localURL) else { return nil }
@@ -75,13 +114,18 @@ struct AttachmentImageTile: View {
                 bitmap: entry.bitmap,
                 size: AttachmentImageTileSize.fitted(
                     pixelWidth: entry.pixelWidth,
-                    pixelHeight: entry.pixelHeight
-                )
+                    pixelHeight: entry.pixelHeight,
+                    scale: scale
+                ),
+                backdrop: entry.backdrop
             )
             AttachmentImageCache.shared.store(
                 thumbnail,
                 for: attachment.id,
-                decodedPixelCost: entry.pixelWidth * entry.pixelHeight * 4,
+                // The staged entry reports the file's own pixel size, which the
+                // box is measured against; what the cache holds is the
+                // downsampled decode, and that is what its budget counts.
+                decodedPixelCost: entry.bitmap.width * entry.bitmap.height * 4,
                 stagedContentKey: AttachmentImageCache.stagedContentKey(
                     filename: attachment.filename,
                     sizeBytes: attachment.sizeBytes
@@ -101,7 +145,7 @@ struct AttachmentImageTile: View {
         if let localURL = attachment.localURL {
             guard await LocalAttachmentImageCache.shared.load(url: localURL) != nil,
                   // Promotes the staged entry into AttachmentImageCache.
-                  let thumbnail = Self.cachedThumbnail(for: attachment)
+                  let thumbnail = Self.cachedThumbnail(for: attachment, scale: displayScale)
             else {
                 onFailure()
                 return
@@ -118,21 +162,23 @@ struct AttachmentImageTile: View {
             guard
                 let bitmap = await AttachmentImageDecoder.decode(
                     at: url,
-                    maxPixelSize: AttachmentImageTileSize.maxDimension * 2
+                    maxPixelSize: AttachmentImageTileSize.maxWidth * 2
                 )
             else {
                 onFailure()
                 return
             }
             // Classified off the main actor, beside the decode, because the
-            // viewer needs the answer on the frame it opens and the tile is the
-            // only place these pixels are already in hand.
+            // viewer needs the answer on the frame it opens, the tile needs it
+            // on the frame it paints, and this is the only place these pixels
+            // are already in hand.
             let backdrop = await AttachmentImageBackdrop.classified(bitmap)
             let thumbnail = AttachmentThumbnail(
                 bitmap: bitmap.cgImage,
                 size: AttachmentImageTileSize.fitted(
-                    pixelWidth: bitmap.cgImage.width,
-                    pixelHeight: bitmap.cgImage.height
+                    pixelWidth: bitmap.sourcePixelWidth,
+                    pixelHeight: bitmap.sourcePixelHeight,
+                    scale: displayScale
                 ),
                 backdrop: backdrop
             )

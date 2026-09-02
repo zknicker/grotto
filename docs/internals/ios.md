@@ -121,12 +121,41 @@ An async decode that lands
 after first paint must arrive through `@State` the body actually reads — SwiftUI invalidates a view
 only for state its body reads, so bumping a side-channel marker leaves a finished decode painted as
 the placeholder forever. `AvatarView`, `AttachmentImageTile`, and `LocalAttachmentImage` all render
-from such landed state, with the shared cache as the recycled-view fast path. Tiles are fixed-height
-(`AttachmentImageTileSize.tileHeight`) with aspect-tracking width, so a landing decode never changes
-a row's height. Pending uploads render through the same tile from their staged local file — decoded
-once into `LocalAttachmentImageCache`, which also serves the composer strip and the attachment
-morph — and the retired pending row's replacement adopts the identical bitmap by filename and byte
-size, so a send never reflows. Non-image attachments keep the file row.
+from such landed state, with the shared cache as the recycled-view fast path.
+
+How many images a message carries decides its shape (`MessageAttachmentLayout`). One image is the
+subject and takes the hero tile. Two or more are a set, and a set reads as one horizontal strip of
+uniform fill-cropped squares (`MessageImageStrip`) rather than a stack of heroes that would eat the
+screen. The square follows the message column — about three across it with the strip's 6pt gap,
+bounded at both ends (`AttachmentImageStripSize`) — and anything past three scrolls sideways inside
+a row that is never more than one square tall. Non-image attachments keep their file rows, below the
+pictures. The strip is safe inside the transcript for the same structural reason the viewer's zoom is
+safe inside its pager: with `scrollBounceBehavior(.basedOnSize)` a strip that fits does not bounce, so
+its pan never begins and the table's vertical drag and long-press menu see an untouched hierarchy. The
+cell's content view is flipped on Y, which leaves horizontal direction, momentum, and hit-testing
+exactly as they are.
+
+The hero tile is the picture at its own size. `AttachmentImageTileSize.fitted` takes the image's
+native point size — source pixels ÷ the display's scale — fits it inside 240x180 and never enlarges
+it past that, then floors each side at 96pt so a tiny icon keeps a comfortable tap target; the bitmap
+fill-crops wherever a floor or the width cap changed the aspect, which is also what keeps a panorama a
+readable band instead of a 24pt sliver. Native size has to be measured against the source, not the
+bitmap: every decode here is downsampled to a display budget, so `DecodedAttachmentBitmap` carries the
+source's pixel size beside the decode, and a 4032-pixel photograph is not mistaken for a 480-pixel
+one. A Server attachment record carries no pixel size, so a downloaded image's box is only knowable
+with its bitmap: the tile reserves the largest box until then, and an image smaller than it settles to
+its own box once, on its first decode. A staged local file has no such gap — it is decoded before its
+row lays out — so pending uploads render through the same tile and strip from `LocalAttachmentImageCache`,
+which also serves the composer strip and the attachment morph, and the retired pending row's
+replacement adopts the identical bitmap by filename and byte size, so a send never reflows.
+
+Transparent images sit on the transparency grid in the transcript too, inside the tile's rounded rect
+rather than full-bleed, at a finer 6pt square (`AttachmentImageCheckerboard.thumbnailSquare`) because
+the viewer's 12pt grid inside a 96pt thumbnail is wallpaper rather than texture. The tone rule is the
+viewer's, from the same `AttachmentImageBackdrop` classification. That classification is stored beside
+the decode in `AttachmentImageCache`, so the grid arrives with the bitmap and never on its own: a
+recycled tile reads both synchronously and a first decode brings both at once, and there is no frame
+on which a transparent image is painted without its ground.
 
 Tapping an image opens the attachment viewer, presented by the screen rather than the row.
 Transcript rows are hosted in `UIHostingConfiguration` cells, which own no view controller, so a row
@@ -139,7 +168,10 @@ transition needs a live `UIView` for its source, which SwiftUI's `matchedTransit
 reach across a hosting configuration, so each tile publishes an inert anchor into a screen-owned
 `AttachmentImageTileRegistry` keyed by attachment id and wearing the tile's own corner radius. The
 registry is asked again at dismissal, so a viewer paged to another image collapses into *that*
-image's tile; a tile that scrolled away answers nil and takes the system's fade.
+image's tile — a strip square exactly as a hero tile. A tile that scrolled away answers nil and takes
+the system's fade, and so does a strip square scrolled out of its own row: it is still in the window,
+just clipped, and the registry judges visibility against every ancestor that clips rather than against
+the window alone, because a card growing out of a place nobody can see is worse than no card growing.
 
 The transition's ground is the viewer's ground. For the whole open — including the interruptible
 settle that runs on for about a second after the card looks full-screen — the card is a layer

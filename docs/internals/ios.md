@@ -141,6 +141,16 @@ reach across a hosting configuration, so each tile publishes an inert anchor int
 registry is asked again at dismissal, so a viewer paged to another image collapses into *that*
 image's tile; a tile that scrolled away answers nil and takes the system's fade.
 
+The transition's ground is the viewer's ground. For the whole open — including the interruptible
+settle that runs on for about a second after the card looks full-screen — the card is a layer
+clipped to the display's corner curve, and UIKit paints the still-lit Chat behind it. The default
+dim is translucent, so wherever the card's corner fell short of the display's own, a wedge a couple
+of points wide low on both sides and along the bottom edge, the Chat leaked through as a grey
+hairline that vanished only when the transition ended and the clip came off. The viewer is a dark
+room, so `UIViewController.Transition.ZoomOptions.dimmingColor` is opaque black: the gap can only
+ever show the viewer's own backdrop. Nothing is delayed or hidden to achieve it, and the Chat is
+still visible behind the growing card for the first part of the open.
+
 The viewer opens on the frame of the tap, with no download step: the tile has already cached the
 bytes and a decoded bitmap, so the first page paints `AttachmentImageCache`'s thumbnail
 synchronously and replaces it with a full-resolution decode — sized to the display's longest side in
@@ -155,6 +165,41 @@ transparency sits on a full-bleed checkerboard whose tone is chosen against the 
 luminance, so light artwork gets the deep grid and dark artwork the pale one. Chrome is a close
 control and a share control over a scrim, and nothing else. Quick Look now serves only non-image
 attachments.
+
+Each page zooms. The zoomed view is a `UIImageView` inside a per-page `UIScrollView`
+(`AttachmentImageZoomView`) rather than hosted SwiftUI, because a scroll view zooms by transforming
+its zoomed view's layer: an image view's layer *is* the decode, so the GPU resamples the bitmap and
+the picture stays sharp, where a hosting view rasterizes once at fit and every zoom past that
+magnifies the rasterization. `AttachmentThumbnail`, `AttachmentFullImage`, and
+`LocalAttachmentImageEntry` therefore carry the `CGImage` beside the SwiftUI `Image` drawn from it.
+The full decode replaces the tile's bitmap inside the live scroll view and the reader's zoom and
+position survive it: the two are the same picture, and the fitted box is compared with a
+point of tolerance (`AttachmentImageZoom.needsRelayout`) so the rounding difference between a
+480-pixel thumbnail and a display-sized decode does not reset the page. `AttachmentImageZoom` owns
+the arithmetic — the fitted box, the ceiling (always 3x, more for a panorama that a 3x cap would
+still leave a sliver, hard-capped at 8x), the double-tap target (fill, never below 2x, never past
+the ceiling) and the rect that keeps the tapped point under the finger. Reduce Motion keeps the
+zoom and drops the travel to it.
+
+Gesture arbitration is explicit, and it is two rules rather than a pile of recognizer delegates. The
+zoom transition installs `_UIContentSwipeDismissGestureRecognizer`,
+`_UIParallaxTransitionPanGestureRecognizer` and `_UITransformGestureRecognizer` directly on the
+presented hosting view. First, at fit the page's scroll view has content exactly its own bounds and
+does not bounce, so its pan refuses to begin: the transition's drag-to-dismiss and the pager's swipe
+see an untouched hierarchy and behave exactly as they did before zoom existed. Zoomed, it bounces
+and its pan wins. Second, `UIViewController.Transition.ZoomOptions.interactiveDismissShouldBegin`
+returns false while any page is zoomed, which is the transition's own door — a drag across a zoomed
+image and a pinch back toward fit are the reader's gestures, not a dismissal, and the scroll view
+never has to out-argue UIKit's recognizers to keep them. The close control is unaffected because it
+dismisses programmatically. The session owns one `AttachmentImageZoomClaim` so a neighbouring page
+laying out at fit cannot clear the zoom of the page in hand.
+
+What that buys, in the reader's terms: at fit a pinch out zooms and a pinch in still dismisses
+through the transition, because the scroll view is already at its minimum and only rubber-bands
+while UIKit's pinch dismissal runs. Zoomed, pans scroll the image with rubber-banding and nothing
+dismisses; a pinch back past fit returns to fit rather than dismissing. Paging is Photos': a
+horizontal pan scrolls the zoomed image, and only once it is against its edge does a further swipe
+page to the next image, which arrives at fit with dismissal live again.
 
 The app deploys to iOS 18 and progressively adopts iOS 26 Liquid Glass for functional
 chrome. System navigation and sheet controls inherit the platform treatment; custom menu, search,

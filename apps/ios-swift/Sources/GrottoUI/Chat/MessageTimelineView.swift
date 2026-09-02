@@ -8,6 +8,8 @@ public struct MessageTimelineView: View {
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     private let canManagePreparedActions: Bool
     private let onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
+    private let onShowPreparedActionDetails: (PreparedCreateAgentActionPresentation) -> Void
+    private let onOpenAgent: (String) -> Void
     private let hasOlderMessages: Bool
     private let isLoadingOlderMessages: Bool
     private let onLoadOlderMessages: (() async -> Bool)?
@@ -38,6 +40,8 @@ public struct MessageTimelineView: View {
         },
         canManagePreparedActions: Bool = false,
         onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
+        onShowPreparedActionDetails: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
+        onOpenAgent: @escaping (String) -> Void = { _ in },
         hasOlderMessages: Bool = false,
         isLoadingOlderMessages: Bool = false,
         onLoadOlderMessages: (() async -> Bool)? = nil,
@@ -51,6 +55,8 @@ public struct MessageTimelineView: View {
         self.onOpenAttachment = onOpenAttachment
         self.canManagePreparedActions = canManagePreparedActions
         self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
+        self.onShowPreparedActionDetails = onShowPreparedActionDetails
+        self.onOpenAgent = onOpenAgent
         self.hasOlderMessages = hasOlderMessages
         self.isLoadingOlderMessages = isLoadingOlderMessages
         self.onLoadOlderMessages = onLoadOlderMessages
@@ -267,8 +273,17 @@ public struct MessageTimelineView: View {
                     PreparedActionCardView(
                         action: preparedAction,
                         canManage: canManagePreparedActions,
-                        onReviewCreateAgent: onReviewPreparedCreateAgent
+                        onReviewCreateAgent: onReviewPreparedCreateAgent,
+                        onShowDetails: onShowPreparedActionDetails,
+                        onOpenAgent: onOpenAgent
                     )
+                    // The card's collapse and its memory of having been live
+                    // are per-action state, and transcript rows are hosted in
+                    // recycled cells reconfigured in place. Keying on the
+                    // action retires that state with the action it belongs to,
+                    // so a collapsed card cannot blank the next message's live
+                    // one.
+                    .id(preparedAction.id)
                     .padding(.top, content.isEmpty ? 0 : 6)
                 }
 

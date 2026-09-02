@@ -11,6 +11,8 @@ struct ThreadMessageRow: View {
     var tiles: AttachmentImageTileRegistry?
     var canManagePreparedActions = false
     var onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void = { _ in }
+    var onShowPreparedActionDetails: (PreparedCreateAgentActionPresentation) -> Void = { _ in }
+    var onOpenAgent: (String) -> Void = { _ in }
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -54,8 +56,17 @@ struct ThreadMessageRow: View {
                     PreparedActionCardView(
                         action: preparedAction,
                         canManage: canManagePreparedActions,
-                        onReviewCreateAgent: onReviewPreparedCreateAgent
+                        onReviewCreateAgent: onReviewPreparedCreateAgent,
+                        onShowDetails: onShowPreparedActionDetails,
+                        onOpenAgent: onOpenAgent
                     )
+                    // The card's collapse and its memory of having been live
+                    // are per-action state, and transcript rows are hosted in
+                    // recycled cells reconfigured in place. Keying on the
+                    // action retires that state with the action it belongs to,
+                    // so a collapsed card cannot blank the next message's live
+                    // one.
+                    .id(preparedAction.id)
                     .padding(.top, content.isEmpty ? 0 : 6)
                 }
 

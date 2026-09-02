@@ -110,16 +110,42 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         preparedAction: PreparedActionPresentation? = nil,
         richSegments: [RichMessageSegment]? = nil
     ) {
+        // The Server stores an empty body for a prepared-action anchor, so the
+        // proposal's note to the human is what that message said. Substituting
+        // it here keeps the surfaces that render a message body — the Chat
+        // transcript and a Thread's anchor — on the same text.
+        let body = Self.body(content: content, preparedAction: preparedAction)
         self.id = id
         self.author = author
-        self.content = content
+        self.content = body
         self.createdAt = createdAt
         self.attachments = attachments
         self.thread = thread
         self.task = task
         self.isPending = isPending
         self.preparedAction = preparedAction
-        self.richSegments = richSegments ?? RichMessageParser.parse(content) { _, _, _ in nil }
+        // Segments handed in were parsed from whatever body the caller resolved,
+        // so they are trusted when they describe this one; a substitution made
+        // here has none and falls back to a parse with no identity to resolve.
+        // An adapter that can resolve mentions calls `body(content:)` itself
+        // and hands both in, so a note that mentions an Agent renders like any
+        // other body.
+        self.richSegments = body == content
+            ? richSegments ?? RichMessageParser.parse(body) { _, _, _ in nil }
+            : RichMessageParser.parse(body) { _, _, _ in nil }
+    }
+
+    /// What the row actually says. An empty Server body on a prepared-action
+    /// anchor stands in for the proposal's note; a superseded proposal, which
+    /// leaves no card behind, falls back to a short replacement line so its row
+    /// is not blank.
+    public static func body(
+        content: String,
+        preparedAction: PreparedActionPresentation?
+    ) -> String {
+        content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? preparedAction?.messageText ?? content
+            : content
     }
 }
 

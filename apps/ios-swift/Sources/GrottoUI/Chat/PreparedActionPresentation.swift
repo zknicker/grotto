@@ -1,13 +1,22 @@
 import Foundation
 import GrottoModels
 
+/// One Agent-creation proposal as the transcript draws it.
+///
+/// Identity is the created Agent's once it exists and the proposal's until then,
+/// resolved by the adapter that reads the Server record — the card renders what
+/// it is handed rather than deciding which of the two to believe.
 public struct PreparedCreateAgentActionPresentation: Identifiable, Hashable, Sendable {
     public let avatarURL: URL?
     public let chatID: String
     public let computerDetail: String?
+    /// The Agent this proposal created, and the profile its `Open` button
+    /// reaches. Absent until the action is executed.
+    public let createdAgentID: String?
     public let createdAt: Date
     public let description: String?
     public let draftHint: String?
+    public let executedAt: Date?
     public let executedByDisplayName: String?
     public let id: String
     public let name: String
@@ -19,9 +28,11 @@ public struct PreparedCreateAgentActionPresentation: Identifiable, Hashable, Sen
         avatarURL: URL?,
         chatID: String,
         computerDetail: String?,
+        createdAgentID: String? = nil,
         createdAt: Date,
         description: String?,
         draftHint: String?,
+        executedAt: Date? = nil,
         executedByDisplayName: String?,
         id: String,
         name: String,
@@ -32,9 +43,11 @@ public struct PreparedCreateAgentActionPresentation: Identifiable, Hashable, Sen
         self.avatarURL = avatarURL
         self.chatID = chatID
         self.computerDetail = computerDetail
+        self.createdAgentID = createdAgentID
         self.createdAt = createdAt
         self.description = description
         self.draftHint = draftHint
+        self.executedAt = executedAt
         self.executedByDisplayName = executedByDisplayName
         self.id = id
         self.name = name
@@ -67,6 +80,38 @@ public enum PreparedActionPresentation: Identifiable, Hashable, Sendable {
         case let .createAgent(action): action.id
         case let .unsupported(action): action.id
         }
+    }
+
+    public var status: PreparedActionStatus {
+        switch self {
+        case let .createAgent(action): action.status
+        case let .unsupported(action): action.status
+        }
+    }
+
+    /// Whether a superseded action leaves the transcript.
+    ///
+    /// Only an `agent.create` proposal is replaced by a newer one, and its row
+    /// keeps the proposal's note, so the card can collapse out and leave text
+    /// behind. An unsupported kind has no successor and its row says nothing
+    /// else, so it stays drawn at any status rather than collapsing to nothing.
+    public var leavesWhenSuperseded: Bool {
+        switch self {
+        case .createAgent: true
+        case .unsupported: false
+        }
+    }
+
+    /// What the anchor message actually said.
+    ///
+    /// The Server stores an empty body for a prepared-action anchor, so the
+    /// proposal's note to the human is the message text. A superseded proposal
+    /// leaves no card behind, so its row falls back to a short note rather than
+    /// going bodiless.
+    public var messageText: String {
+        guard case let .createAgent(action) = self else { return "" }
+        if let draftHint = action.draftHint, !draftHint.isEmpty { return draftHint }
+        return action.status == .superseded ? "Earlier proposal, replaced." : ""
     }
 }
 

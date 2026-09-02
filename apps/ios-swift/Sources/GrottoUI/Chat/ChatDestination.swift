@@ -73,6 +73,20 @@ public enum ChatDestination: Identifiable, Hashable, Sendable {
     }
 }
 
+public extension Collection<ChatDestination> {
+    /// The Chat with one Agent, which is where the phone shows an Agent
+    /// profile: a Chat's details sheet pushes the profile of the Agent it is a
+    /// Chat with. Every Agent the Server reports carries a destination —
+    /// durable, receipt-backed, or implicit — so a miss means the Agent is gone
+    /// and the caller has nowhere to go.
+    func agentDestination(agentID: String) -> ChatDestination? {
+        first { destination in
+            guard case .agentDirectMessage(let agent) = destination.kind else { return false }
+            return agent.id == agentID
+        }
+    }
+}
+
 /// The last-open Chat survives launches as a defaults string, so the app opens
 /// into the conversation the user left rather than the top of the Chat list.
 /// A stored id the Server list no longer carries falls back to the first Chat

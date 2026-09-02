@@ -78,16 +78,25 @@ extension GrottoStore {
                         latestReply: nil
                     )
                 }
+            let preparedAction = message.preparedAction.map(preparedActionPresentation)
+            // A prepared-action anchor's body is the proposal's note, and it is
+            // written with the same mention markdown as any other message. The
+            // substitution is resolved here so the note goes through the parser
+            // that knows the Server's Agents and members.
+            let body = MessagePresentation.body(
+                content: message.content,
+                preparedAction: preparedAction
+            )
             return MessagePresentation(
                 id: message.id,
                 author: author,
-                content: message.content,
+                content: body,
                 createdAt: message.createdAt,
                 attachments: message.attachments.map(attachmentPresentation),
                 thread: thread,
                 task: message.task.map(taskPresentation),
-                preparedAction: message.preparedAction.map(preparedActionPresentation),
-                richSegments: richMessageSegments(message.content)
+                preparedAction: preparedAction,
+                richSegments: richMessageSegments(body)
             )
         }
     }
@@ -167,17 +176,27 @@ extension GrottoStore {
             case let .required(computerID, _): computerID
             case .suggested, .none: nil
             }
+            // An executed action names a real Agent, so the card shows the
+            // Agent that exists rather than the proposal it came from; a
+            // pending one has only the proposal.
+            let result = action.result
             return .createAgent(
                 PreparedCreateAgentActionPresentation(
-                    avatarURL: resolvedAvatarURL(action.proposal.avatar.url),
+                    avatarURL: resolvedAvatarURL(result?.avatarURL ?? action.proposal.avatar.url),
                     chatID: action.chatID,
                     computerDetail: computerDetail,
+                    createdAgentID: result?.agentID,
                     createdAt: action.createdAt,
-                    description: action.proposal.description,
+                    // One subject, not two: once the Agent exists it is the
+                    // one being described, so a description cleared at
+                    // creation stays cleared rather than falling back to the
+                    // proposal's forever.
+                    description: result.map(\.description) ?? action.proposal.description,
                     draftHint: action.proposal.draftHint,
+                    executedAt: action.executedAt,
                     executedByDisplayName: committer?.displayName ?? committer?.email,
                     id: action.id,
-                    name: action.proposal.name,
+                    name: result?.displayName ?? action.proposal.name,
                     proposedComputerID: guidance?.computerID,
                     requiredComputerID: requiredComputerID,
                     status: action.status

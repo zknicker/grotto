@@ -1,130 +1,178 @@
 import GrottoModels
 import SwiftUI
 
+/// One prepared action under the Agent's note, drawn as its own block.
+///
+/// The Agent's note is the message body above this card, so the card never
+/// repeats it: it carries the proposed Agent's face and name, the first two
+/// lines of what that Agent would be, and the one thing the human can do about
+/// it. A pending proposal is the ask, so it shows no status and no receipt; an
+/// executed one names the created Agent and who committed it. A superseded
+/// `agent.create` proposal leaves no card at all; an unsupported kind keeps its
+/// card whatever its status, because the row has nothing else to say.
+///
+/// The card is a summary and the rest is one tap away: pressing it anywhere
+/// outside the controls opens the proposal's detail sheet.
 struct PreparedActionCardView: View {
     let action: PreparedActionPresentation
     let canManage: Bool
     let onReviewCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
+    /// Opens the whole proposal on its own sheet. A host that presents no
+    /// detail surface leaves the card inert, as it was before it had one.
+    var onShowDetails: (PreparedCreateAgentActionPresentation) -> Void = { _ in }
+    /// Opens the created Agent's Chat, which is where the phone shows an Agent
+    /// profile. A host with no Agent route leaves the default in place.
+    var onOpenAgent: (String) -> Void = { _ in }
+
+    /// The last shape this action had while it was still live, so the collapse
+    /// takes real content out rather than the empty superseded render. Its
+    /// presence is also the memory of ever having been on screen: a proposal
+    /// that arrives already superseded never captures one, and so never
+    /// animates.
+    @State private var lastLive: PreparedActionPresentation?
+    @State private var hidden = false
 
     var body: some View {
+        Group {
+            switch visibility {
+            case .hidden:
+                EmptyView()
+            case .live:
+                card(action)
+            case .exiting:
+                ActionCardExitView(onExited: { hidden = true }) {
+                    card(lastLive ?? action)
+                }
+            }
+        }
+        .onAppear { captureLive() }
+        .onChange(of: action) { _, _ in captureLive() }
+    }
+
+    private var visibility: ActionCardVisibility {
+        ActionCardVisibility.resolve(
+            hidden: hidden,
+            superseded: action.status == .superseded && action.leavesWhenSuperseded,
+            wasVisible: lastLive != nil
+        )
+    }
+
+    private func captureLive() {
+        guard action.status != .superseded || !action.leavesWhenSuperseded else { return }
+        lastLive = action
+    }
+
+    @ViewBuilder
+    private func card(_ action: PreparedActionPresentation) -> some View {
         switch action {
         case let .createAgent(action):
             createAgentCard(action)
         case let .unsupported(action):
-            cardShell(
-                title: "Unsupported action",
-                createdAt: action.createdAt,
-                status: action.status
-            ) {
-                Text("This action is not available in this version of Grotto.")
-                    .foregroundStyle(.secondary)
-            }
+            unsupportedCard(action)
         }
     }
 
     private func createAgentCard(_ action: PreparedCreateAgentActionPresentation) -> some View {
-        cardShell(
-            title: "Agent creation proposal",
-            createdAt: action.createdAt,
-            status: action.status
+        ActionCardView(
+            title: action.name,
+            description: action.description,
+            status: action.status == .executed ? .created : nil,
+            actions: createAgentActions(action),
+            receipt: action.receipt,
+            accessibilityIdentifier: cardIdentifier(action.status),
+            accessibilityLabel: action.accessibilityLabel,
+            tap: ActionCardTap(
+                accessibilityIdentifier: "prepared-action-card-details",
+                accessibilityLabel: action.detailsAccessibilityLabel,
+                handler: { onShowDetails(action) }
+            )
         ) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 12) {
-                    AvatarView(name: action.name, url: action.avatarURL, size: 64)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("New Agent")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .textCase(.uppercase)
-                        Text(action.name).font(.headline)
-                        if let description = action.description, !description.isEmpty {
-                            Text(description).font(.subheadline).foregroundStyle(.secondary)
-                        }
-                    }
-                }
-
-                if let computerDetail = action.computerDetail {
-                    detailRow("Computer", value: computerDetail)
-                }
-                if let draftHint = action.draftHint, !draftHint.isEmpty {
-                    detailRow("Draft note", value: draftHint)
-                }
-                if action.status == .executed, let committer = action.executedByDisplayName {
-                    Text("Committed by \(committer)")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                if action.status == .pending, canManage {
-                    Button("Create Agent") { onReviewCreateAgent(action) }
-                        .buttonStyle(.borderedProminent)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .accessibilityIdentifier("prepared-action-create-agent")
-                } else if action.status == .pending {
-                    Text("Only a Server Owner or Admin can commit this Agent.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            AvatarView(
+                name: action.name,
+                url: action.avatarURL,
+                size: ActionCardMetrics.markSize
+            )
         }
     }
 
-    private func cardShell<Content: View>(
-        title: String,
-        createdAt: Date,
-        status: PreparedActionStatus,
-        @ViewBuilder content: () -> Content
+    /// A pending proposal is work the human owes; a created Agent is a place to
+    /// go. A viewer who cannot commit, or a proposal with neither, gets no
+    /// bottom row at all. The detail sheet resolves the same one action, so the
+    /// card and the sheet it opens never offer different things.
+    private func createAgentActions(
+        _ action: PreparedCreateAgentActionPresentation
+    ) -> [ActionCardAction] {
+        switch PreparedActionDetail.resolve(action, canManage: canManage).action {
+        case let .openAgent(agentID):
+            return [
+                ActionCardAction(
+                    id: "open",
+                    title: "Open",
+                    accessibilityIdentifier: "prepared-action-open-agent"
+                ) {
+                    onOpenAgent(agentID)
+                }
+            ]
+        case .createAgent:
+            return [
+                ActionCardAction(
+                    id: "create-agent",
+                    title: "Create Agent",
+                    prominence: .prominent,
+                    accessibilityIdentifier: "prepared-action-create-agent"
+                ) {
+                    onReviewCreateAgent(action)
+                }
+            ]
+        case .none:
+            return []
+        }
+    }
+
+    private func unsupportedCard(
+        _ action: UnsupportedPreparedActionPresentation
     ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.subheadline.weight(.semibold))
-                    Text(createdAt, format: .dateTime.hour().minute())
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 8)
-                Text(status.label)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(status.tint)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 5)
-                    .background(status.tint.opacity(0.12), in: .capsule)
-            }
-            Divider()
-            content()
+        ActionCardView(
+            title: action.kind,
+            description: "Unsupported action · Not available in this version of Grotto",
+            accessibilityIdentifier: cardIdentifier(action.status),
+            accessibilityLabel: "Unsupported action \(action.kind)"
+        ) {
+            ActionCardGlyphMark(icon: .alert)
         }
-        .padding(14)
-        .background(GrottoPlatformColor.groupedSurface, in: .rect(cornerRadius: 16))
-        .overlay {
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.secondary.opacity(0.16), lineWidth: 1)
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("prepared-action-card-\(status.rawValue)")
     }
 
-    private func detailRow(_ label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.subheadline)
-        }
+    private func cardIdentifier(_ status: PreparedActionStatus) -> String {
+        "prepared-action-card-\(status.rawValue)"
     }
 }
 
-private extension PreparedActionStatus {
-    var label: String {
-        switch self {
-        case .pending: "Pending review"
-        case .executed: "Done"
-        case .superseded: "Superseded"
-        }
+private extension PreparedCreateAgentActionPresentation {
+    var accessibilityLabel: String {
+        status == .executed
+            ? "Agent proposal for \(name) · Created"
+            : "Agent proposal for \(name)"
     }
 
-    var tint: Color {
-        switch self {
-        case .pending: .orange
-        case .executed: .green
-        case .superseded: .secondary
-        }
+    /// What pressing the card itself does, named as the destination rather than
+    /// the surface: the card is a summary and this is the way to the rest.
+    var detailsAccessibilityLabel: String {
+        "Agent proposal for \(name), \(status.rawValue). Show details"
     }
+}
+
+#Preview {
+    VStack(alignment: .leading, spacing: 16) {
+        PreparedActionCardView(
+            action: .createAgent(ChatFixtures.pendingAgentProposal),
+            canManage: true,
+            onReviewCreateAgent: { _ in }
+        )
+        PreparedActionCardView(
+            action: .createAgent(ChatFixtures.executedAgentProposal),
+            canManage: true,
+            onReviewCreateAgent: { _ in }
+        )
+    }
+    .padding(20)
 }

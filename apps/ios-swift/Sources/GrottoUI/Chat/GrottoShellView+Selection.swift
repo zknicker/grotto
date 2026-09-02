@@ -63,6 +63,17 @@ extension GrottoShellView {
         Task { @MainActor in setDrawer(open: false) }
     }
 
+    /// Opens one Agent's Chat, which is where the phone shows an Agent profile:
+    /// the Chat's details sheet pushes the profile of the Agent it is a Chat
+    /// with. Every Agent carries a destination — durable, receipt-backed, or
+    /// implicit — so this resolves for any Agent the Server still reports, and
+    /// stands down for one it no longer does.
+    func openAgent(_ agentID: String) {
+        guard let destination = destinations.agentDestination(agentID: agentID) else { return }
+        activeChatSheet = nil
+        selectDestination(destination)
+    }
+
     /// The one path a sheet uses to reach a Chat, so every sheet dismisses and
     /// selects in the same order.
     func open(_ chat: ChatPresentation, revealing messageID: String? = nil) {

@@ -94,4 +94,36 @@ public enum ChatFixtures {
             )
         ),
     ]
+
+    public static let pendingAgentProposal = PreparedCreateAgentActionPresentation(
+        avatarURL: nil,
+        chatID: "product",
+        computerDetail: "Mac mini (suggested)",
+        createdAt: .now.addingTimeInterval(-120),
+        description: "Release manager. Watches CI and prepares releases.json.",
+        draftHint: "Runtime and model are yours to pick.",
+        executedByDisplayName: nil,
+        id: "action-pending",
+        name: "Orbit",
+        proposedComputerID: "computer_1",
+        requiredComputerID: nil,
+        status: .pending
+    )
+
+    public static let executedAgentProposal = PreparedCreateAgentActionPresentation(
+        avatarURL: nil,
+        chatID: "product",
+        computerDetail: "Mac mini (suggested)",
+        createdAgentID: "agent-marlow",
+        createdAt: .now.addingTimeInterval(-600),
+        description: "Docs steward. Keeps the manual honest.",
+        draftHint: "Give Marlow read access to #product first.",
+        executedAt: .now.addingTimeInterval(-540),
+        executedByDisplayName: "Zach Knickerbocker",
+        id: "action-executed",
+        name: "Marlow",
+        proposedComputerID: "computer_1",
+        requiredComputerID: nil,
+        status: .executed
+    )
 }

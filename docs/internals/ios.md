@@ -233,6 +233,52 @@ dismisses; a pinch back past fit returns to fit rather than dismissing. Paging i
 horizontal pan scrolls the zoomed image, and only once it is against its edge does a further swipe
 page to the next image, which arrives at fit with dismissal live again.
 
+A prepared action reaches the transcript as two things, not one. The Server posts an empty body for
+the anchor message, so the proposal's note to the human *is* that message's text:
+`MessagePresentation.body(content:preparedAction:)` substitutes it whenever the Server body is
+blank, which keeps the surfaces that render a message body — the Chat transcript and a Thread's
+anchor — on one text. A superseded proposal, which leaves no card behind, falls back to a short
+replacement line so its row is not blank; a pending proposal with no note is carried by its card
+alone. The adapter resolves that substitution itself and parses the result with the mention resolver
+every other body gets, so an `@mention` inside a proposal's note renders as a chip rather than raw
+markdown. The card itself then mounts as its own block beneath that text, the way the Thread preview
+does. `ActionCardView` is the shell every kind composes — mark, title with an optional status
+capsule, description, and a bottom row of real controls with the finished action's receipt at its
+right — and a part with nothing to say is omitted rather than drawn empty. Where the web keeps the
+receipt on the button row, the phone's narrower column drops it to its own line through
+`ViewThatFits` rather than truncating away the time.
+
+The card is a summary, not the record. Its description is the Agent's own, given two wrapped lines
+and a tail ellipsis, and pressing the card anywhere outside its controls opens
+`PreparedActionDetailView` — the whole proposal on a sheet, at the phone's usual grouped-list
+detents. The sheet grows rather than the card: a card that expanded in place would push the
+transcript around under the finger, and every other detail on this phone is already a sheet. The
+card's reading band — the mark, the title, the description, and the padding around them, including
+the gap below — is itself one `Button`, so the only part of the card that is not that target is the
+row of controls that has its own. Two shapes were tried and rejected: a button drawn in the card's
+`.background` is never hit-tested (the card swallowed every tap in Simulator while its own controls
+answered normally), and one button wrapping the whole card folds `Create Agent` and `Open` into its
+label, where they stop being separate elements to VoiceOver. `PreparedActionDetail` resolves the one
+action a proposal offers — create, open, or none — and both the card's bottom row and the sheet's
+footer read it, so the two surfaces cannot disagree.
+Choosing `Create Agent` on the sheet dismisses it and presents `PreparedAgentCreateSheet` from that
+dismissal, because two sheets on one host are mutually exclusive; this is the order Chat details
+already uses to reach Settings.
+
+A superseded `agent.create` proposal shows no card at all: `ActionCardVisibility` decides between
+live, collapsing out, and gone, so a card on screen when its proposal is superseded collapses over
+200ms (instantly under Reduce Motion) and one that arrives already superseded never renders. Only
+that kind leaves — `leavesWhenSuperseded` is false for an unsupported kind, whose row carries no
+note of its own and would otherwise collapse to nothing. That collapse is per-action state living
+in a recycled cell, so both call sites key the card on the action id and the exit's timer is
+cancelled on disappear; without either, a collapsed card's latch blanks the next message's live one.
+`Open` on an executed card leads to the created Agent's own Chat, which is where the phone shows an
+Agent profile — its details sheet pushes the profile of the Agent it is a Chat with — and stands
+down when the Server no longer reports that Agent. Transcript rows are hosted in
+`UIHostingConfiguration` cells, which do not inherit the enclosing SwiftUI hierarchy's custom
+environment values, so row-level actions travel as explicit closures through `MessageTimelineView`
+and `ThreadMessageRow`, never through `@Environment`.
+
 The app deploys to iOS 18 and progressively adopts iOS 26 Liquid Glass for functional
 chrome. System navigation and sheet controls inherit the platform treatment; custom menu, search,
 and composer controls use native glass only on iOS 26 and retain an opaque semantic fallback on older
@@ -450,10 +496,12 @@ Prepared actions stay inside that same canonical message pipeline. `GrottoModels
 Server's prepared-action projection on each message, and native Chat and Thread timelines render its
 pending, committed, superseded, or unsupported lifecycle state. A pending `agent.create` action opens
 an editable SwiftUI review sheet whose Computer, runtime, model, and reasoning choices come from the
-Store's existing Server snapshots. Confirming the sheet calls `preparedAction.commit`; the client does
+Store's existing Server snapshots, reached from either the card or its detail sheet. Confirming the sheet calls `preparedAction.commit`; the client does
 not create an Agent locally. A `prepared-action.updated` event refetches the affected loaded message
 page, and an executed action also refreshes the Agent directory, so the action card itself becomes the
-committed receipt and the new Agent appears from Server state. Suggested Computers remain editable;
+committed receipt and the new Agent appears from Server state. The card's subject is the created
+Agent once one exists and the proposal until then — one record or the other, never a field-by-field
+merge, so a description cleared while creating the Agent stays cleared. Suggested Computers remain editable;
 a required Computer stays locked to the proposal and blocks creation while its inventory is unavailable.
 
 Utility navigation stays on the same Server contracts and Store cache. One search surface serves the

@@ -16,6 +16,8 @@ public struct ThreadDetailView: View {
     private let onLoadOlderReplies: (() async -> Bool)?
     private let canManagePreparedActions: Bool
     private let onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
+    private let onShowPreparedActionDetails: (PreparedCreateAgentActionPresentation) -> Void
+    private let onOpenAgent: (String) -> Void
 
     @State private var draft = ""
     @State private var isNearNewest = true
@@ -45,7 +47,9 @@ public struct ThreadDetailView: View {
         isLoadingOlderReplies: Bool = false,
         onLoadOlderReplies: (() async -> Bool)? = nil,
         canManagePreparedActions: Bool = false,
-        onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in }
+        onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
+        onShowPreparedActionDetails: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
+        onOpenAgent: @escaping (String) -> Void = { _ in }
     ) {
         self.anchor = anchor
         self.replyProvider = { replies }
@@ -58,6 +62,8 @@ public struct ThreadDetailView: View {
         self.onLoadOlderReplies = onLoadOlderReplies
         self.canManagePreparedActions = canManagePreparedActions
         self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
+        self.onShowPreparedActionDetails = onShowPreparedActionDetails
+        self.onOpenAgent = onOpenAgent
     }
 
     /// Resolves replies while this view's body is being evaluated so an
@@ -77,7 +83,9 @@ public struct ThreadDetailView: View {
         isLoadingOlderReplies: Bool = false,
         onLoadOlderReplies: (() async -> Bool)? = nil,
         canManagePreparedActions: Bool = false,
-        onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in }
+        onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
+        onShowPreparedActionDetails: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
+        onOpenAgent: @escaping (String) -> Void = { _ in }
     ) {
         self.anchor = anchor
         self.replyProvider = replies
@@ -90,6 +98,8 @@ public struct ThreadDetailView: View {
         self.onLoadOlderReplies = onLoadOlderReplies
         self.canManagePreparedActions = canManagePreparedActions
         self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
+        self.onShowPreparedActionDetails = onShowPreparedActionDetails
+        self.onOpenAgent = onOpenAgent
     }
 
     public var body: some View {
@@ -204,7 +214,9 @@ public struct ThreadDetailView: View {
                 preview: $attachmentPreview,
                 tiles: attachmentTiles,
                 canManagePreparedActions: canManagePreparedActions,
-                onReviewPreparedCreateAgent: onReviewPreparedCreateAgent
+                onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
+                onShowPreparedActionDetails: onShowPreparedActionDetails,
+                onOpenAgent: onOpenAgent
             )
             .padding(.bottom, hasReplies ? 2 : 0)
         case .taskMetadata(let task, let hasReplies):
@@ -218,7 +230,9 @@ public struct ThreadDetailView: View {
                 preview: $attachmentPreview,
                 tiles: attachmentTiles,
                 canManagePreparedActions: canManagePreparedActions,
-                onReviewPreparedCreateAgent: onReviewPreparedCreateAgent
+                onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
+                onShowPreparedActionDetails: onShowPreparedActionDetails,
+                onOpenAgent: onOpenAgent
             )
             .padding(.top, 10)
         case .pendingSend:

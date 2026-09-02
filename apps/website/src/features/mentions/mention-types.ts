@@ -10,7 +10,7 @@ export type MentionKind =
     | 'user';
 export type ReferenceKind = MentionKind | 'website';
 export type MentionOptionKind = MentionKind;
-export type MentionTrigger = '@' | '$';
+export type MentionTrigger = '@' | '$' | '#';
 export type MentionProjection =
     | 'agent-reference'
     | 'capability-reference'

@@ -315,9 +315,15 @@ export function useMentionComposerController({
         handleTextChange,
         hasQuery: Boolean(activeQuery),
         isPathSearchActive:
-            trigger !== '@' && trigger !== '$' && mentionOptionsState.isPathSearchActive,
+            trigger !== '@' &&
+            trigger !== '$' &&
+            trigger !== '#' &&
+            mentionOptionsState.isPathSearchActive,
         isPathSearchLoading:
-            trigger !== '@' && trigger !== '$' && mentionOptionsState.isPathSearchLoading,
+            trigger !== '@' &&
+            trigger !== '$' &&
+            trigger !== '#' &&
+            mentionOptionsState.isPathSearchLoading,
         onActiveQueryChange: handleActiveQueryChange,
         options: visibleMentionOptions,
         prefetchMentionOptions,

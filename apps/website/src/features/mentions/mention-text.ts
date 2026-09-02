@@ -9,16 +9,16 @@ export function getActiveMentionQuery(
     }
 
     const beforeCaret = content.slice(0, caretIndex);
-    // `@` addresses agents; `$` references skills. Both trigger at
-    // start-of-input or after whitespace.
-    const mentionMatch = /(?:^|\s)([@$])([^\s@$]*)$/u.exec(beforeCaret);
+    // `@` addresses agents; `$` references skills; `#` references channels.
+    // All three trigger at start-of-input or after whitespace.
+    const mentionMatch = /(?:^|\s)([@$#])([^\s@$#]*)$/u.exec(beforeCaret);
 
     if (mentionMatch?.index !== undefined) {
-        const trigger = mentionMatch[1] === '$' ? '$' : '@';
+        const trigger = mentionMatch[1] === '$' || mentionMatch[1] === '#' ? mentionMatch[1] : '@';
         return {
             end: caretIndex,
             query: mentionMatch[2] ?? '',
-            start: mentionMatch.index + (/^[@$]/u.test(mentionMatch[0]) ? 0 : 1),
+            start: mentionMatch.index + (/^[@$#]/u.test(mentionMatch[0]) ? 0 : 1),
             trigger,
         };
     }
@@ -186,6 +186,10 @@ function formatMentionLabel(mention: Mention) {
         mention.kind === 'user'
     ) {
         return mention.label.startsWith('@') ? mention.label : `@${mention.label}`;
+    }
+
+    if (mention.kind === 'chat') {
+        return mention.label.startsWith('#') ? mention.label : `#${mention.label}`;
     }
 
     return mention.label;

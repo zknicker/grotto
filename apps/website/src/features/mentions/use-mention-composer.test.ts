@@ -11,7 +11,7 @@ describe('selectVisibleOptions', () => {
         expect(
             selectVisibleOptions({
                 activeQuery: createQuery('@'),
-                mentionOptions: [agentOption, humanOption, skillOption, appOption],
+                mentionOptions: [agentOption, humanOption, skillOption, appOption, chatOption],
             })
         ).toEqual([agentOption, humanOption]);
     });
@@ -23,6 +23,15 @@ describe('selectVisibleOptions', () => {
                 mentionOptions: [agentOption, skillOption, appOption],
             })
         ).toEqual([skillOption]);
+    });
+
+    it('uses # only for channel mentions', () => {
+        expect(
+            selectVisibleOptions({
+                activeQuery: createQuery('#'),
+                mentionOptions: [agentOption, humanOption, skillOption, appOption, chatOption],
+            })
+        ).toEqual([chatOption]);
     });
 });
 
@@ -156,7 +165,7 @@ function plannerMention(): Mention {
     };
 }
 
-function createQuery(trigger: '@' | '$'): ActiveMentionQuery {
+function createQuery(trigger: '@' | '$' | '#'): ActiveMentionQuery {
     return {
         end: 1,
         query: '',
@@ -199,4 +208,15 @@ const appOption: MentionOption = {
     kind: 'app',
     label: 'Finder',
     projection: 'capability-reference',
+};
+
+const chatOption: MentionOption = {
+    description: 'Channel',
+    id: 'chat://cht_product',
+    insertText: '#product',
+    kind: 'chat',
+    label: 'product',
+    metadata: { chatColor: null, chatIcon: null },
+    projection: 'chat-reference',
+    sourceLabel: 'Channels',
 };

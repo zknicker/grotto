@@ -42,6 +42,19 @@ describe('mention text helpers', () => {
         });
     });
 
+    it('finds the active # query as a channels-only trigger', () => {
+        expect(getActiveMentionQuery('go to #prod', 11)).toEqual({
+            end: 11,
+            query: 'prod',
+            start: 6,
+            trigger: '#',
+        });
+    });
+
+    it('never treats a markdown heading as a # query', () => {
+        expect(getActiveMentionQuery('# ', 2)).toBeNull();
+    });
+
     it('never treats leading or mid-message slashes as a trigger', () => {
         expect(getActiveMentionQuery('/mod', 4)).toBeNull();
         expect(getActiveMentionQuery('see /mod', 8)).toBeNull();
@@ -258,6 +271,22 @@ describe('mention text helpers', () => {
                 },
             ],
         });
+    });
+
+    it('compiles a selected channel with a # prefix and immutable chat target', () => {
+        expect(
+            compileMentionSubmission('go to #product', [
+                {
+                    end: 14,
+                    id: 'chat://cht_product',
+                    kind: 'chat',
+                    label: 'product',
+                    projection: 'chat-reference',
+                    start: 6,
+                    text: '#product',
+                },
+            ]).content
+        ).toBe('go to [#product](chat://cht_product)');
     });
 
     it('compiles app, plugin, file, and directory mentions with spec markdown', () => {

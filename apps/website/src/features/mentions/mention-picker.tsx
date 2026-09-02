@@ -236,6 +236,10 @@ function getGroupLabel(option: MentionOption) {
         return 'Humans';
     }
 
+    if (option.kind === 'chat') {
+        return 'Channels';
+    }
+
     if (option.kind === 'app') {
         return 'Mac apps';
     }

@@ -45,6 +45,9 @@ leading sigil is presentation syntax.
   by linked Agent mentions in the current draft. If the draft has no linked
   Agent mentions, skill options are scoped to the current chat or DM's Agent
   participants.
+- `#` after start-of-input or whitespace opens channel references for channels
+  the member can see in the current Server. Selection serializes the channel
+  name as `[#name](chat://<chat-id>)`.
 - `/` at the very start of the composer opens commands. Commands are not rich
   references.
 

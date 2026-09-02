@@ -1,11 +1,17 @@
 import * as React from 'react';
-import {
-    ResizablePaneRail,
-    useResizablePaneWidth,
-} from '../../components/ui/resizable-pane-rail.tsx';
+import { useResizablePaneWidth } from '../../components/ui/resizable-pane-rail.tsx';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
-import { cn } from '../../lib/utils.ts';
+import { WorkspaceBrowserRail } from './chat-artifact-workspace-browser-rail.tsx';
+import {
+    useWorkspaceArtifact,
+    WorkspaceArtifactControls,
+    WorkspaceArtifactInlineControls,
+} from './chat-artifact-workspace-file.tsx';
+import {
+    WorkspaceBrowserFrame,
+    WorkspaceBrowserPreview,
+} from './chat-artifact-workspace-layout.tsx';
 import {
     buildWorkspaceTree,
     filterWorkspaceTree,
@@ -16,19 +22,11 @@ import {
     workspaceAncestorPaths,
     workspaceRootTreePath,
 } from './chat-artifact-workspace-model.ts';
-import {
-    WorkspaceArtifactContent,
-    WorkspaceArtifactEmpty,
-} from './chat-artifact-workspace-preview.tsx';
-import { WorkspaceToolbar } from './chat-artifact-workspace-toolbar.tsx';
-import { WorkspaceFileTree } from './chat-artifact-workspace-tree.tsx';
+import { WorkspaceArtifactEmpty } from './chat-artifact-workspace-preview.tsx';
+import { WorkspacePageToolbar } from './chat-artifact-workspace-toolbar.tsx';
 
-/**
- * HeroUI Sidebar's own default width. The `sidebar` rail variant matches it
- * exactly so a file rail and the app sidebar read as the same kind of chrome.
- * (Sidebar scopes `--sidebar-width: 240px` to itself, so the value is
- * restated here rather than read from a var another component owns.)
- */
+// HeroUI Sidebar scopes its 240px width internally; repeat it here so the two
+// navigation columns align without sharing a surface.
 const sidebarRailWidth = 240;
 
 export function WorkspaceBrowserContent({
@@ -43,9 +41,8 @@ export function WorkspaceBrowserContent({
 }: {
     agentId: string;
     initialDirectoryPath?: string;
-    /** `sidebar` renders the rail as page chrome: the primary sidebar's own
-        ground and fixed width, no drag handle. The chat panel's default
-        `panel` stays flush with the panel's ground and resizable. */
+    /** `sidebar` renders the rail as fixed-width page navigation with no drag
+        handle. Both variants stay flush with the content ground. */
     railVariant?: 'panel' | 'sidebar';
     sidebarStorageKey?: string;
     /** Controlled open file — when provided, the host owns it (e.g. via the URL) so it
@@ -71,6 +68,15 @@ export function WorkspaceBrowserContent({
     );
     const [query, setQuery] = React.useState('');
     const [includeHidden, setIncludeHidden] = React.useState(false);
+    const selectedTarget = selectedPath
+        ? ({ kind: 'workspaceFile', path: selectedPath } as const)
+        : null;
+    const artifact = useWorkspaceArtifact({
+        agentId,
+        includeHidden,
+        serverId,
+        target: selectedTarget,
+    });
     const [expandedPaths, setExpandedPaths] =
         React.useState<ReadonlySet<string>>(initialWorkspaceExpansion);
     const [loadedEntriesByDirectory, setLoadedEntriesByDirectory] =
@@ -193,104 +199,76 @@ export function WorkspaceBrowserContent({
         );
     }
 
-    const selectedTarget = selectedPath
-        ? ({ kind: 'workspaceFile', path: selectedPath } as const)
-        : null;
     const treeAtStart = treeSide === 'start';
+    const isSidebarRail = railVariant === 'sidebar';
+    const fileViewControls = <WorkspaceArtifactControls artifact={artifact} />;
 
     const preview = (
-        <section className="h-full min-h-0 min-w-0 overflow-hidden">
-            {selectedTarget ? (
-                <WorkspaceArtifactContent
-                    agentId={agentId}
-                    includeHidden={includeHidden}
-                    serverId={serverId}
-                    target={selectedTarget}
-                />
-            ) : (
-                <WorkspaceArtifactEmpty
-                    detail={
-                        directoryLoadError ??
-                        'Select a Markdown, HTML, image, or text file from the workspace sidebar.'
-                    }
-                    title="No file selected"
-                />
-            )}
-        </section>
+        <WorkspaceBrowserPreview
+            agentId={agentId}
+            artifact={artifact}
+            controls={
+                isSidebarRail ? null : <WorkspaceArtifactInlineControls artifact={artifact} />
+            }
+            directoryLoadError={directoryLoadError}
+            selectedPath={selectedPath}
+        />
     );
 
-    const isSidebarRail = railVariant === 'sidebar';
     const railWidth = isSidebarRail ? sidebarRailWidth : fileSidebarWidth.width;
+    const changeHiddenFiles = (value: boolean) => {
+        setIncludeHidden(value);
+        setLoadedEntriesByDirectory({});
+        setExpandedPaths(initialWorkspaceExpansion);
+        setDirectoryLoadError(null);
+    };
     const fileRail = (
-        // No box of its own: the rail is one pane of the host's surface, and a
-        // separator is the whole boundary between it and the preview. The
-        // sidebar variant wears the primary sidebar's ground and fixed width;
-        // the panel variant stays flush and resizable.
-        <aside
-            className={cn(
-                'relative flex h-full min-h-0 flex-col overflow-x-hidden border-separator',
-                treeAtStart ? 'border-e' : 'border-s',
-                isSidebarRail ? 'sub-sidebar' : null
-            )}
-        >
-            {isSidebarRail ? null : (
-                <ResizablePaneRail
-                    maxWidth={440}
-                    minWidth={220}
-                    onWidthChange={fileSidebarWidth.setWidth}
-                    onWidthCommit={fileSidebarWidth.persistWidth}
-                    side={treeAtStart ? 'right' : 'left'}
-                    width={fileSidebarWidth.width}
-                />
-            )}
-            <WorkspaceToolbar
-                includeHidden={includeHidden}
-                onIncludeHiddenChange={(value) => {
-                    setIncludeHidden(value);
-                    setLoadedEntriesByDirectory({});
-                    setExpandedPaths(initialWorkspaceExpansion);
-                    setDirectoryLoadError(null);
-                }}
-                onQueryChange={setQuery}
-                query={query}
-            />
-            <div className="flex min-h-0 flex-1 overflow-hidden px-1 pb-2">
-                <WorkspaceFileTree
-                    expandedPaths={expandedPaths}
-                    hasQuery={query.trim().length > 0}
-                    nodes={visibleNodes}
-                    onExpandedChange={(paths) => {
-                        for (const path of paths) {
-                            // The synthetic root is not a real directory —
-                            // nothing to fetch when it toggles.
-                            if (path !== workspaceRootTreePath && !expandedPaths.has(path)) {
-                                void loadDirectory(path);
-                            }
-                        }
-                        setExpandedPaths(paths);
-                    }}
-                    onSelectDirectory={(path) => {
-                        setExpandedPaths((current) => withWorkspacePaths(current, [path]));
+        <WorkspaceBrowserRail
+            expandedPaths={expandedPaths}
+            includeHidden={includeHidden}
+            isPageRail={isSidebarRail}
+            nodes={visibleNodes}
+            onExpandedChange={(paths) => {
+                for (const path of paths) {
+                    if (path !== workspaceRootTreePath && !expandedPaths.has(path)) {
                         void loadDirectory(path);
-                    }}
-                    onSelectFile={setSelectedPath}
-                    selectedPath={selectedPath}
-                />
-            </div>
-        </aside>
+                    }
+                }
+                setExpandedPaths(paths);
+            }}
+            onIncludeHiddenChange={changeHiddenFiles}
+            onQueryChange={setQuery}
+            onSelectDirectory={(path) => {
+                setExpandedPaths((current) => withWorkspacePaths(current, [path]));
+                void loadDirectory(path);
+            }}
+            onSelectFile={setSelectedPath}
+            onWidthChange={fileSidebarWidth.setWidth}
+            onWidthCommit={fileSidebarWidth.persistWidth}
+            query={query}
+            selectedPath={selectedPath}
+            treeAtStart={treeAtStart}
+            width={fileSidebarWidth.width}
+        />
     );
 
     return (
-        <div
-            className="grid h-full min-h-0 overflow-hidden bg-background"
-            style={{
-                gridTemplateColumns: treeAtStart
-                    ? `${railWidth}px minmax(0, 1fr)`
-                    : `minmax(0, 1fr) ${railWidth}px`,
-            }}
-        >
-            {treeAtStart ? fileRail : preview}
-            {treeAtStart ? preview : fileRail}
-        </div>
+        <WorkspaceBrowserFrame
+            fileRail={fileRail}
+            pageToolbar={
+                isSidebarRail ? (
+                    <WorkspacePageToolbar
+                        includeHidden={includeHidden}
+                        onIncludeHiddenChange={changeHiddenFiles}
+                        selectedPath={selectedPath}
+                    >
+                        {fileViewControls}
+                    </WorkspacePageToolbar>
+                ) : null
+            }
+            preview={preview}
+            railWidth={railWidth}
+            treeAtStart={treeAtStart}
+        />
     );
 }

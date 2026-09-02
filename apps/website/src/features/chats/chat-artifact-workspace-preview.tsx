@@ -1,36 +1,28 @@
-import { ToggleButton } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
 import { CodeBlock } from '@heroui-pro/react/code-block';
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import { useMemo, useState } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { agentHtmlSandbox } from '../../agent-html/sandbox.ts';
 import { agentHtmlTokenCss, injectHostTokenStyle } from '../../agent-html/tokens.ts';
-import { CopyButton } from '../../components/copy-button.tsx';
 import { SelectionQuoteContainer } from '../../components/quote/selection-quote.tsx';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
-import { queryPolicy } from '../../lib/query-policy.ts';
+import { isWorkspaceSourceFile, type WorkspaceArtifact } from './chat-artifact-workspace-file.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import { formatGrottoResourceLink, type GrottoResourceTarget } from './grotto-resource-link.ts';
 
 export function WorkspaceArtifactContent({
     agentId,
-    includeHidden = false,
-    serverId,
+    artifact,
+    controls,
     target,
 }: {
     agentId: string;
-    includeHidden?: boolean;
-    serverId: string;
+    artifact: WorkspaceArtifact;
+    controls?: ReactNode;
     target: Extract<GrottoResourceTarget, { kind: 'workspaceFile' }>;
 }) {
-    const serverFileQuery = grottoTrpc.agent.workspaceFile.useQuery(
-        { agentId, includeHidden, path: target.path, serverId },
-        { ...queryPolicy.computerSnapshot, enabled: agentId.length > 0 }
-    );
-    const fileQuery = serverFileQuery;
-    const [rawPath, setRawPath] = useState<string | null>(null);
+    const { fileQuery, raw } = artifact;
 
     if (!agentId) {
         return (
@@ -55,12 +47,7 @@ export function WorkspaceArtifactContent({
     }
 
     const file = fileQuery.data;
-    const markdown = file.mediaType === 'text/markdown' || /\.(?:md|mdx)$/iu.test(target.path);
-    const raw = rawPath === target.path;
-    // Files whose source renders through the code view (markdown included —
-    // its Raw mode is that view). Images and HTML previews are not source.
-    const sourceFile =
-        !(file.binary || file.mediaType.startsWith('image/')) && file.mediaType !== 'text/html';
+    const sourceFile = isWorkspaceSourceFile(file);
 
     if (file.binary && !file.mediaType.startsWith('image/')) {
         return (
@@ -73,26 +60,7 @@ export function WorkspaceArtifactContent({
 
     return (
         <div className="flex h-full min-h-0 flex-col">
-            {/* Same vertical padding and control step as the rail's toolbar
-                row, so the controls sit on one line with the search field
-                and filter button beside it — but the shell band's `px-3`
-                trailing inset, so the edge gap matches the tab strip
-                directly above. One ToggleButton, not a two-button pair — Raw
-                is a mode, and the tab bar above is already a row of segmented
-                choices. */}
-            {sourceFile ? (
-                <div className="flex shrink-0 items-center justify-end gap-1 py-2 ps-2 pe-3">
-                    <CopyButton label="Copy file contents" value={file.content} />
-                    {markdown ? (
-                        <ToggleButton
-                            isSelected={raw}
-                            onChange={(selected) => setRawPath(selected ? target.path : null)}
-                        >
-                            Raw
-                        </ToggleButton>
-                    ) : null}
-                </div>
-            ) : null}
+            {controls}
             {file.truncated ? (
                 <div className="shrink-0 border-separator border-b bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
                     Preview truncated. This file is {formatWorkspaceFileBytes(file.sizeBytes)}.

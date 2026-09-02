@@ -112,7 +112,6 @@ export function resolveWorkspaceAvailability({
 }
 
 export function AgentWorkspace({ agent, server }: { agent: Agent; server: ServerDetail }) {
-    const [selectedPath, setSelectedPath] = React.useState<string | null>(null);
     const canView = server.role !== 'member';
     const computers = useComputers(server.id, { enabled: canView });
     const availability = resolveWorkspaceAvailability({
@@ -142,16 +141,14 @@ export function AgentWorkspace({ agent, server }: { agent: Agent; server: Server
     }
 
     return (
-        // Full-bleed: the file rail is chrome — a sub-sidebar at the primary
-        // sidebar's own width and ground, leading with search — not content
-        // boxed inside a page column.
+        // Full-bleed: the file rail sits at the primary sidebar's width while
+        // sharing the workspace content ground rather than forming another
+        // block of app-sidebar chrome.
         <WorkspaceBrowserContent
             agentId={agent.id}
-            onSelectPath={setSelectedPath}
             railVariant="sidebar"
-            selectedPath={selectedPath}
             serverId={server.id}
-            treeSide="start"
+            treeSide="end"
         />
     );
 }

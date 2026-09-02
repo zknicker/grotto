@@ -1,19 +1,42 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, test, vi } from 'vitest';
-import { WorkspaceToolbar } from './chat-artifact-workspace-toolbar.tsx';
+import {
+    WorkspacePageRailSearch,
+    WorkspacePageToolbar,
+    WorkspaceRailToolbar,
+} from './chat-artifact-workspace-toolbar.tsx';
 
-describe('WorkspaceToolbar', () => {
-    test('is search plus one filter menu, with the active filter visible on the trigger', () => {
-        const hiddenOff = renderToStaticMarkup(
-            <WorkspaceToolbar
+describe('workspace toolbars', () => {
+    test('the page toolbar groups file controls with the path', () => {
+        const markup = renderToStaticMarkup(
+            <WorkspacePageToolbar
                 includeHidden={false}
                 onIncludeHiddenChange={vi.fn()}
-                onQueryChange={vi.fn()}
-                query=""
-            />
+                selectedPath="notes/plan.md"
+            >
+                <span>File view controls</span>
+            </WorkspacePageToolbar>
         );
-        const hiddenOn = renderToStaticMarkup(
-            <WorkspaceToolbar
+
+        expect(markup).toContain('aria-label="Workspace tools"');
+        expect(markup).toContain('border-y');
+        expect(markup).not.toContain('aria-label="Back"');
+        expect(markup).not.toContain('aria-label="Forward"');
+        expect(markup).toContain('notes/plan.md');
+        expect(markup).toContain('File view controls');
+        expect(markup).not.toContain('aria-label="Search files"');
+        expect(markup).toContain('aria-label="Filter files"');
+        expect(markup).toContain('aria-label="File options"');
+        expect(markup).not.toContain('Refresh workspace');
+        expect(markup.indexOf('notes/plan.md')).toBeLessThan(markup.indexOf('File view controls'));
+        expect(markup.indexOf('File view controls')).toBeLessThan(
+            markup.indexOf('aria-label="Filter files"')
+        );
+    });
+
+    test('the panel rail keeps its compact search and filter controls', () => {
+        const markup = renderToStaticMarkup(
+            <WorkspaceRailToolbar
                 includeHidden
                 onIncludeHiddenChange={vi.fn()}
                 onQueryChange={vi.fn()}
@@ -21,13 +44,17 @@ describe('WorkspaceToolbar', () => {
             />
         );
 
-        expect(hiddenOff).toContain('aria-label="Filter files"');
-        // No refresh chrome: server events and stale-on-mount refetching own
-        // freshness, so the toolbar offers exactly one action.
-        expect(hiddenOff).not.toContain('Refresh workspace');
-        // A real button treatment beside the filled search field, filtered
-        // or not — the docs' PR File Review idiom.
-        expect(hiddenOff).toContain('button--secondary');
-        expect(hiddenOn).toContain('button--secondary');
+        expect(markup).toContain('aria-label="Search files"');
+        expect(markup).toContain('aria-label="Filter files"');
+        expect(markup).not.toContain('aria-label="Back"');
+    });
+
+    test('the page file rail owns search', () => {
+        const markup = renderToStaticMarkup(
+            <WorkspacePageRailSearch onQueryChange={vi.fn()} query="" />
+        );
+
+        expect(markup).toContain('aria-label="Search files"');
+        expect(markup).not.toContain('aria-label="Filter files"');
     });
 });

@@ -3,6 +3,7 @@ import { mkdir, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { computerProtocolVersion, grottoAgentVersion } from '@grotto/api';
 import { eq } from 'drizzle-orm';
+import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -25,6 +26,7 @@ import { listAccessibleServers } from '../servers/accessible-servers.ts';
 import type { ServerSummary } from '../servers/contracts.ts';
 import { ensureUserByClerkId } from '../users/grotto-user.ts';
 import { demoTokenUsage } from './demo-token-usage.ts';
+import { ensureDevelopmentChatAttachment } from './seed-chat-attachment.ts';
 import { ensureDevelopmentCove } from './seed-cove.ts';
 import { insertSeedAvatars } from './seed-demo-avatars.ts';
 
@@ -47,6 +49,7 @@ export async function seedDevelopmentServer(
     db: GrottoDatabase,
     clerkUserId: string,
     options: {
+        attachmentRoot?: AttachmentRoot;
         computerDataRoot?: string;
         serverOrigin?: string;
     } = {}
@@ -56,6 +59,9 @@ export async function seedDevelopmentServer(
     if (existing[0]) {
         await ensureDevelopmentCove(db, { serverId: existing[0].id, userId: user.id });
         await ensureDevelopmentComputerAttachment(db, existing[0], options);
+        if (options.attachmentRoot) {
+            await ensureDevelopmentChatAttachment(db, options.attachmentRoot, existing[0].id);
+        }
         return existing[0];
     }
 
@@ -333,6 +339,9 @@ export async function seedDevelopmentServer(
     });
     await ensureDevelopmentCove(db, { serverId: seeded.id, userId: user.id });
     await ensureDevelopmentComputerAttachment(db, seeded, options);
+    if (options.attachmentRoot) {
+        await ensureDevelopmentChatAttachment(db, options.attachmentRoot, seeded.id);
+    }
     return seeded;
 }
 

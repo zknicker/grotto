@@ -11,6 +11,9 @@ import { Icon } from '../ui/icon.tsx';
 
 interface ImageLightboxProps {
     dataUrl: string;
+    download:
+        | { filename: string; kind: 'link' }
+        | { disabled: boolean; kind: 'action'; onDownload: () => void };
     filename: string;
     height?: number | null;
     onOpenChange: (open: boolean) => void;
@@ -26,6 +29,7 @@ interface ImageLightboxProps {
  */
 export function ImageLightbox({
     dataUrl,
+    download,
     filename,
     height,
     onOpenChange,
@@ -33,16 +37,32 @@ export function ImageLightbox({
     width,
 }: ImageLightboxProps) {
     const [zoom, setZoom] = React.useState(1);
-    const renderWidth = width ?? 960;
-    const renderHeight = height ?? 540;
+    const [intrinsicSize, setIntrinsicSize] = React.useState<{
+        height: number;
+        width: number;
+    } | null>(null);
+    const renderWidth = width ?? intrinsicSize?.width;
+    const renderHeight = height ?? intrinsicSize?.height;
     const isFitZoom = zoom === 1;
     const zoomPercent = `${Math.round(zoom * 100)}%`;
+    const scaledHeight = renderHeight ? Math.round(renderHeight * zoom) : undefined;
+    const scaledWidth = renderWidth ? Math.round(renderWidth * zoom) : undefined;
 
     React.useEffect(() => {
         if (open) {
             setZoom(1);
         }
     }, [open]);
+
+    React.useEffect(() => {
+        const image = new Image();
+        const updateIntrinsicSize = () => {
+            setIntrinsicSize({ height: image.naturalHeight, width: image.naturalWidth });
+        };
+        image.addEventListener('load', updateIntrinsicSize);
+        image.src = dataUrl;
+        return () => image.removeEventListener('load', updateIntrinsicSize);
+    }, [dataUrl]);
 
     return (
         <ModalOverlay
@@ -57,15 +77,11 @@ export function ImageLightbox({
                     className="flex min-h-dvh flex-col text-white outline-none"
                 >
                     <div className="pointer-events-none absolute top-4 right-4 z-20 flex items-center gap-3">
-                        <a
-                            aria-label={`Download ${filename}`}
-                            className={imageViewerActionButtonClassName}
-                            download={filename}
-                            href={dataUrl}
-                        >
-                            <Icon icon={Download01Icon} size={24} strokeWidth={2} />
-                            <span className="sr-only">Download {filename}</span>
-                        </a>
+                        <ImageLightboxDownload
+                            dataUrl={dataUrl}
+                            download={download}
+                            filename={filename}
+                        />
                         <button
                             aria-label="Close image viewer"
                             className={imageViewerActionButtonClassName}
@@ -93,9 +109,9 @@ export function ImageLightbox({
                                     'relative z-10 cursor-default rounded-md object-contain shadow-2xl shadow-black/55',
                                     isFitZoom ? 'max-h-full max-w-full' : 'max-w-none'
                                 )}
-                                height={isFitZoom ? renderHeight : Math.round(renderHeight * zoom)}
+                                height={scaledHeight}
                                 src={dataUrl}
-                                width={isFitZoom ? renderWidth : Math.round(renderWidth * zoom)}
+                                width={scaledWidth}
                             />
                         </div>
                     </div>
@@ -111,8 +127,42 @@ export function ImageLightbox({
     );
 }
 
+function ImageLightboxDownload({
+    dataUrl,
+    download,
+    filename,
+}: Pick<ImageLightboxProps, 'dataUrl' | 'download' | 'filename'>) {
+    const content = (
+        <>
+            <Icon icon={Download01Icon} size={24} strokeWidth={2} />
+            <span className="sr-only">Download {filename}</span>
+        </>
+    );
+
+    return download.kind === 'link' ? (
+        <a
+            aria-label={`Download ${filename}`}
+            className={imageViewerActionButtonClassName}
+            download={download.filename}
+            href={dataUrl}
+        >
+            {content}
+        </a>
+    ) : (
+        <button
+            aria-label={`Download ${filename}`}
+            className={imageViewerActionButtonClassName}
+            disabled={download.disabled}
+            onClick={download.onDownload}
+            type="button"
+        >
+            {content}
+        </button>
+    );
+}
+
 const imageViewerActionButtonClassName =
-    'pointer-events-auto inline-flex size-11 items-center justify-center rounded-full bg-white text-neutral-950 shadow-black/20 shadow-lg hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70';
+    'pointer-events-auto inline-flex size-11 items-center justify-center rounded-full bg-white text-neutral-950 shadow-black/20 shadow-lg hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:cursor-default disabled:opacity-40';
 
 function ImageZoomControls({
     onZoomIn,

@@ -34,8 +34,10 @@ and [Agent Inbox](../../specs/inbox.md).
   messages. The App streams human-selected bytes directly to that Server, and
   Agents upload through their scoped Server credential. The Server publishes
   the ready attachment and message atomically. The App renders authenticated
-  image previews with a hover/focus download action; other files retain their
-  filename/type/size card. Attachment bytes never ride message-list payloads.
+  compact image previews that open into a full image viewer. Download lives in
+  the viewer and the image context menu. Attachments follow the message text; other files retain
+  their filename/type/size card.
+  Attachment bytes never ride message-list payloads.
   Hosted attachments are not Chat artifacts.
 * **Sending.** A human send is instant. The draft leaves the composer the
   moment it is sent, the composer stays enabled for the next message, and an

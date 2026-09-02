@@ -37,7 +37,7 @@ export function TranscriptMessageBlock({
     return (
         <motion.div
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className={cn('flex min-w-0 flex-col gap-2', className)}
+            className={cn('flex min-w-0 flex-col gap-1', className)}
             data-from={from}
             initial={animateEnter ? { opacity: 0, scale: 0.96, y: 8 } : false}
             style={{
@@ -47,12 +47,12 @@ export function TranscriptMessageBlock({
             transition={transition ?? springs.moderate}
             {...props}
         >
+            {hasBody ? <ChatMessage.Content>{children}</ChatMessage.Content> : null}
             {hasAttachments ? (
                 <ChatMessage.Media>
                     <AttachmentGroup>{attachments}</AttachmentGroup>
                 </ChatMessage.Media>
             ) : null}
-            {hasBody ? <ChatMessage.Content>{children}</ChatMessage.Content> : null}
         </motion.div>
     );
 }

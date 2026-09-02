@@ -1,17 +1,18 @@
 import type { AttachmentMetadata } from '@grotto/api';
-import { Tooltip } from '@heroui/react';
-import { ChatAttachment } from '@heroui-pro/react';
+import { Label } from '@heroui/react';
+import { ChatAttachment, ContextMenu } from '@heroui-pro/react';
 import { Attachment01Icon, Download04Icon } from '@hugeicons-pro/core-stroke-rounded';
+import * as React from 'react';
 import {
     Attachment,
     AttachmentAction,
     AttachmentActions,
     AttachmentContent,
     AttachmentDescription,
-    AttachmentGroup,
     AttachmentMedia,
     AttachmentTitle,
 } from '../../../components/chats/attachment.tsx';
+import { ImageLightbox } from '../../../components/chats/image-lightbox.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAttachmentPreview } from '../../../hooks/servers/use-attachment-preview.ts';
 
@@ -28,27 +29,23 @@ export function MessageAttachments({
     onDownload: (attachment: AttachmentMetadata) => void;
     serverId: string;
 }) {
-    return (
-        <AttachmentGroup>
-            {attachments.map((attachment) =>
-                isPreviewableImage(attachment) ? (
-                    <HostedImageAttachment
-                        attachment={attachment}
-                        disabled={disabled}
-                        key={attachment.id}
-                        onDownload={onDownload}
-                        serverId={serverId}
-                    />
-                ) : (
-                    <HostedFileAttachment
-                        attachment={attachment}
-                        disabled={disabled}
-                        key={attachment.id}
-                        onDownload={onDownload}
-                    />
-                )
-            )}
-        </AttachmentGroup>
+    return attachments.map((attachment) =>
+        isPreviewableImage(attachment) ? (
+            <HostedImageAttachment
+                attachment={attachment}
+                disabled={disabled}
+                key={attachment.id}
+                onDownload={onDownload}
+                serverId={serverId}
+            />
+        ) : (
+            <HostedFileAttachment
+                attachment={attachment}
+                disabled={disabled}
+                key={attachment.id}
+                onDownload={onDownload}
+            />
+        )
     );
 }
 
@@ -63,6 +60,7 @@ function HostedImageAttachment({
     onDownload: (attachment: AttachmentMetadata) => void;
     serverId: string;
 }) {
+    const [lightboxOpen, setLightboxOpen] = React.useState(false);
     const preview = useAttachmentPreview({ attachmentId: attachment.id, serverId });
 
     if (preview.failed) {
@@ -75,30 +73,59 @@ function HostedImageAttachment({
         );
     }
 
+    const previewUrl = preview.url;
+
     return (
-        <ChatAttachment
-            className="group/hosted-image"
-            mediaType="image"
-            mimeType={attachment.mediaType}
-            name={attachment.filename}
-            size={attachment.sizeBytes}
-            src={preview.url ?? emptyImagePreview}
-        >
-            <ChatAttachment.Preview />
-            <ChatAttachment.Name />
-            <Tooltip>
-                <AttachmentAction
-                    aria-label={`Download ${attachment.filename}`}
-                    className="absolute end-1.5 top-1.5 z-20 opacity-70 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within/hosted-image:opacity-100 [@media(hover:hover)]:group-hover/hosted-image:opacity-100"
-                    isDisabled={disabled}
-                    onPress={() => onDownload(attachment)}
-                    variant="secondary"
-                >
-                    <Icon className="size-3.5" icon={Download04Icon} />
-                </AttachmentAction>
-                <Tooltip.Content>Download</Tooltip.Content>
-            </Tooltip>
-        </ChatAttachment>
+        <>
+            <ContextMenu isDisabled={!previewUrl}>
+                <ContextMenu.Trigger className="flex-none snap-start">
+                    <button
+                        aria-label={`Open ${attachment.filename}`}
+                        className="chat-attachment-trigger block cursor-zoom-in rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-default"
+                        disabled={!previewUrl}
+                        onClick={() => setLightboxOpen(true)}
+                        type="button"
+                    >
+                        <ChatAttachment
+                            className="chat-attachment--transcript-image"
+                            mediaType="image"
+                            mimeType={attachment.mediaType}
+                            name={attachment.filename}
+                            size={attachment.sizeBytes}
+                            src={previewUrl ?? emptyImagePreview}
+                        >
+                            <ChatAttachment.Preview />
+                            <ChatAttachment.Name />
+                        </ChatAttachment>
+                    </button>
+                </ContextMenu.Trigger>
+                <ContextMenu.Popover>
+                    <ContextMenu.Menu onAction={() => onDownload(attachment)}>
+                        <ContextMenu.Item
+                            id="save-image-as"
+                            isDisabled={disabled}
+                            textValue="Save Image As"
+                        >
+                            <Icon className="size-4 text-muted" icon={Download04Icon} />
+                            <Label>Save Image As…</Label>
+                        </ContextMenu.Item>
+                    </ContextMenu.Menu>
+                </ContextMenu.Popover>
+            </ContextMenu>
+            {previewUrl ? (
+                <ImageLightbox
+                    dataUrl={previewUrl}
+                    download={{
+                        disabled,
+                        kind: 'action',
+                        onDownload: () => onDownload(attachment),
+                    }}
+                    filename={attachment.filename}
+                    onOpenChange={setLightboxOpen}
+                    open={lightboxOpen}
+                />
+            ) : null}
+        </>
     );
 }
 

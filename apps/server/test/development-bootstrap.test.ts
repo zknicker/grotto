@@ -1,13 +1,16 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { seedDevelopmentServer } from '../src/development/seed-server.ts';
 import { readPendingCoveCommand } from '../src/onboarding/create-cove.ts';
 import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import {
     agentsTable,
+    attachmentsTable,
     avatarsTable,
     chatMessagesTable,
     chatsTable,
@@ -37,7 +40,12 @@ afterAll(async () => {
 
 test('creates one idempotent Server-owned demo workspace', async () => {
     const computerDataRoot = await mkdtemp(join(tmpdir(), 'grotto-dev-computer-'));
-    const options = { computerDataRoot, serverOrigin: 'http://127.0.0.1:43210' };
+    const attachmentRoot = await openAttachmentRoot(join(computerDataRoot, 'attachments'));
+    const options = {
+        attachmentRoot,
+        computerDataRoot,
+        serverOrigin: 'http://127.0.0.1:43210',
+    };
     const first = await seedDevelopmentServer(connection.db, 'clerk_dev', options);
     const second = await seedDevelopmentServer(connection.db, 'clerk_dev', options);
 
@@ -57,12 +65,32 @@ test('creates one idempotent Server-owned demo workspace', async () => {
             serverId: first.id,
         },
     ]);
-    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(13);
+    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(14);
+    const [seededAttachment] = await connection.db.select().from(attachmentsTable);
+    expect(seededAttachment).toMatchObject({
+        byteSize: 163_552,
+        filename: 'cove-avatar-experiment.png',
+        mediaType: 'image/png',
+        messagePosition: 0,
+        serverId: first.id,
+        sha256: 'f7a623712e1befb23972019a63df7f3fb5c7e890779031ccc29160fa88442d94',
+        state: 'ready',
+    });
+    if (!seededAttachment) {
+        throw new Error('Expected the development image attachment to exist.');
+    }
+    const attachmentFile = await attachmentRoot.openObject(first.id, seededAttachment.id);
+    const attachmentBytes = await attachmentFile.readFile();
+    await attachmentFile.close();
+    expect(attachmentBytes.byteLength).toBe(163_552);
+    expect(createHash('sha256').update(attachmentBytes).digest('hex')).toBe(
+        seededAttachment.sha256
+    );
     const [computer] = await connection.db.select().from(computersTable);
-    const attachment = JSON.parse(
+    const computerAttachment = JSON.parse(
         await readFile(join(computerDataRoot, 'servers', first.id, 'attachment.json'), 'utf8')
     ) as { computerId: string; serverOrigin: string };
-    expect(attachment).toMatchObject({
+    expect(computerAttachment).toMatchObject({
         computerId: computer?.id,
         serverOrigin: 'http://127.0.0.1:43210',
     });

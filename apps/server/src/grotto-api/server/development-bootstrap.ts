@@ -7,7 +7,9 @@ export const developmentBootstrapProcedure = serverProcedure.mutation(async ({ c
     if (process.env.GROTTO_DEV_STACK !== '1') {
         throw new TRPCError({ code: 'NOT_FOUND' });
     }
-    const server = await seedDevelopmentServer(ctx.grottoDb, ctx.clerkUserId);
+    const server = await seedDevelopmentServer(ctx.grottoDb, ctx.clerkUserId, {
+        attachmentRoot: ctx.attachmentRoot,
+    });
     await sendPendingDevelopmentCoveApplication(ctx.grottoDb, ctx.computerConnections, server.id);
     return server;
 });

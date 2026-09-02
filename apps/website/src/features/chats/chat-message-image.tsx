@@ -32,6 +32,7 @@ export function ChatMessageImage({ attachment }: { attachment: ChatMessageImageA
             </button>
             <ImageLightbox
                 dataUrl={dataUrl}
+                download={{ filename: attachment.filename, kind: 'link' }}
                 filename={attachment.filename}
                 height={attachment.height}
                 onOpenChange={setOpen}

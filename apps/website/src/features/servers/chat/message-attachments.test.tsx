@@ -9,7 +9,7 @@ const imageAttachment = {
     sizeBytes: 159_700,
 };
 
-test('hosted image attachments render as media thumbnails with a download action', () => {
+test('hosted image attachments render as media thumbnails that open the image', () => {
     const markup = renderToStaticMarkup(
         <MessageAttachments
             attachments={[imageAttachment]}
@@ -20,8 +20,11 @@ test('hosted image attachments render as media thumbnails with a download action
     );
 
     expect(markup).toContain('data-variant="media"');
+    expect(markup).toContain('chat-attachment--transcript-image');
     expect(markup).toContain('alt="orbit.png"');
-    expect(markup).toContain('aria-label="Download orbit.png"');
+    expect(markup).toContain('aria-label="Open orbit.png"');
+    expect(markup).not.toContain('aria-label="Download orbit.png"');
+    expect(markup).not.toContain('data-slot="attachment-group"');
 });
 
 test('non-image attachments keep the file-card presentation', () => {

@@ -542,6 +542,21 @@
     }
 
     /*
+     * Composer attachments stay compact at HeroUI's stock size-16. An image
+     * published into the transcript is message content, so give that named
+     * variant a larger 75px preview while keeping ChatAttachment's crop intact.
+     */
+    .chat-attachment-trigger,
+    .chat-attachment.chat-attachment--transcript-image {
+        width: min(100%, calc(var(--spacing) * 20));
+    }
+
+    .chat-attachment.chat-attachment--transcript-image {
+        height: auto;
+        aspect-ratio: 1;
+    }
+
+    /*
      * A section heading outranks the rows beneath it. Stock puts
      * `.item-card-group__title` at `text-sm`/600 directly above
      * `.item-card__title` at `text-sm`/500 — a weight apart and nothing else,

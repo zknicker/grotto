@@ -294,6 +294,45 @@ final class GrottoModelsTests: XCTestCase {
         XCTAssertNil(plain.icon)
     }
 
+    func testDecodesChannelMentionOption() throws {
+        let json = """
+        {
+          "description": "Channel",
+          "id": "chat://cht_product",
+          "insertText": "#product",
+          "kind": "chat",
+          "label": "product",
+          "metadata": { "chatColor": "violet", "chatIcon": "RocketIcon" },
+          "projection": "chat-reference",
+          "sourceLabel": "Channels"
+        }
+        """
+
+        let option = try GrottoJSON.decoder().decode(MentionOption.self, from: Data(json.utf8))
+
+        XCTAssertEqual(option.kind, .chat)
+        XCTAssertEqual(option.id, "chat://cht_product")
+        XCTAssertEqual(option.insertText, "#product")
+        XCTAssertEqual(option.metadata?.chatColor, "violet")
+        XCTAssertEqual(option.metadata?.chatIcon, "RocketIcon")
+        XCTAssertNil(option.metadata?.userHandle)
+
+        // A human option carries different metadata keys and no appearance.
+        let human = try GrottoJSON.decoder().decode(
+            MentionOption.self,
+            from: Data(json
+                .replacingOccurrences(of: "\"kind\": \"chat\"", with: "\"kind\": \"user\"")
+                .replacingOccurrences(
+                    of: "{ \"chatColor\": \"violet\", \"chatIcon\": \"RocketIcon\" }",
+                    with: "{ \"userHandle\": \"ada\", \"userAvatarUrl\": null }"
+                ).utf8)
+        )
+
+        XCTAssertEqual(human.kind, .user)
+        XCTAssertEqual(human.metadata?.userHandle, "ada")
+        XCTAssertNil(human.metadata?.chatIcon)
+    }
+
     private func message(id: String, sequence: Int, content: String) throws -> ChatMessage {
         let json = """
         {

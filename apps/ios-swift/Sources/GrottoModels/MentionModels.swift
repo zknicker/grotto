@@ -2,15 +2,22 @@ import Foundation
 
 public enum MentionOptionKind: String, Codable, Sendable {
     case agent
+    case chat
     case skill
     case user
 }
 
 public struct MentionOptionMetadata: Codable, Sendable, Equatable {
+    /// A chat option's channel appearance preset id, for example `violet`.
+    public let chatColor: String?
+    /// A chat option's channel glyph, a curated hugeicons export name.
+    public let chatIcon: String?
     public let userAvatarURL: String?
     public let userHandle: String?
 
     enum CodingKeys: String, CodingKey {
+        case chatColor
+        case chatIcon
         case userAvatarURL = "userAvatarUrl"
         case userHandle
     }

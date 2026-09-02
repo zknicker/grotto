@@ -38,7 +38,8 @@ extension GrottoStore {
 
     private func mentionPresentation(_ option: MentionOption) -> MentionOptionPresentation? {
         let kind: MentionPresentationKind
-        let avatarURL: URL?
+        var avatarURL: URL?
+        var channelAppearance: ChannelAppearance?
         switch option.kind {
         case .agent:
             kind = .agent
@@ -46,6 +47,12 @@ extension GrottoStore {
             avatarURL = agentID
                 .flatMap { agentsByID[$0]?.avatarURL }
                 .flatMap(resolvedAvatarURL)
+        case .chat:
+            kind = .channel
+            channelAppearance = ChannelAppearance(
+                icon: option.metadata?.chatIcon,
+                color: option.metadata?.chatColor
+            )
         case .user:
             kind = .human
             avatarURL = resolvedAvatarURL(option.metadata?.userAvatarURL)
@@ -58,7 +65,8 @@ extension GrottoStore {
             label: option.label,
             detail: option.description,
             kind: kind,
-            avatarURL: avatarURL
+            avatarURL: avatarURL,
+            channelAppearance: channelAppearance
         )
     }
 

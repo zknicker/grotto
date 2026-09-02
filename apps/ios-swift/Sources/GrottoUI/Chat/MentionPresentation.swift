@@ -2,6 +2,7 @@ import Foundation
 
 public enum MentionPresentationKind: Hashable, Sendable {
     case agent
+    case channel
     case human
 }
 
@@ -12,6 +13,8 @@ public struct MentionOptionPresentation: Identifiable, Hashable, Sendable {
     public let detail: String?
     public let kind: MentionPresentationKind
     public let avatarURL: URL?
+    /// A channel option's live appearance. Nil for every other kind.
+    public let channelAppearance: ChannelAppearance?
 
     public init(
         id: String,
@@ -19,7 +22,8 @@ public struct MentionOptionPresentation: Identifiable, Hashable, Sendable {
         label: String,
         detail: String?,
         kind: MentionPresentationKind,
-        avatarURL: URL?
+        avatarURL: URL?,
+        channelAppearance: ChannelAppearance? = nil
     ) {
         self.id = id
         self.insertText = insertText
@@ -27,22 +31,33 @@ public struct MentionOptionPresentation: Identifiable, Hashable, Sendable {
         self.detail = detail
         self.kind = kind
         self.avatarURL = avatarURL
+        self.channelAppearance = channelAppearance
     }
 }
 
+/// The autocomplete the composer is currently offering. `@` addresses Agents
+/// and humans; `#` addresses channels. Both triggers read the same way: the
+/// last one that opens a word, and everything typed after it.
 public struct ComposerMentionQuery: Equatable, Sendable {
+    public let trigger: Character
     public let range: Range<String.Index>
     public let value: String
 
     public static func active(in text: String) -> ComposerMentionQuery? {
-        guard let at = text.lastIndex(of: "@"),
-              at == text.startIndex || text[text.index(before: at)].isWhitespace else {
-            return nil
+        var index = text.endIndex
+        while index > text.startIndex {
+            index = text.index(before: index)
+            let trigger = text[index]
+            guard trigger == "@" || trigger == "#" else { continue }
+            // A sigil inside a word — `issue#3` — is text, not a query.
+            guard index == text.startIndex || text[text.index(before: index)].isWhitespace else {
+                continue
+            }
+            let value = String(text[text.index(after: index)...])
+            guard !value.contains(where: \.isNewline), value.count <= 80 else { return nil }
+            return ComposerMentionQuery(trigger: trigger, range: index..<text.endIndex, value: value)
         }
-        let valueStart = text.index(after: at)
-        let value = String(text[valueStart...])
-        guard !value.contains(where: \.isNewline), value.count <= 80 else { return nil }
-        return ComposerMentionQuery(range: at..<text.endIndex, value: value)
+        return nil
     }
 
     public func inserting(_ option: MentionOptionPresentation, into text: String) -> String {
@@ -63,61 +78,21 @@ public struct RichReferencePresentation: Hashable, Sendable {
     public let kind: MentionPresentationKind
     public let label: String
     public let avatarURL: URL?
+    /// A channel reference's live appearance. Nil for every other kind, and
+    /// nil for a channel the app cannot currently resolve.
+    public let channelAppearance: ChannelAppearance?
 
-    public init(id: String, kind: MentionPresentationKind, label: String, avatarURL: URL?) {
+    public init(
+        id: String,
+        kind: MentionPresentationKind,
+        label: String,
+        avatarURL: URL?,
+        channelAppearance: ChannelAppearance? = nil
+    ) {
         self.id = id
         self.kind = kind
         self.label = label
         self.avatarURL = avatarURL
-    }
-}
-
-public enum RichMessageParser {
-    // Compiled once: this parser runs per message inside hot view bodies, and
-    // per-call NSRegularExpression construction dominated its cost.
-    private static let referenceExpression = try? NSRegularExpression(
-        pattern: #"\[([^\]]+)\]\((agent|user)://([^\)]+)\)"#
-    )
-
-    public static func parse(
-        _ content: String,
-        resolve: (MentionPresentationKind, String, String) -> RichReferencePresentation?
-    ) -> [RichMessageSegment] {
-        guard let expression = referenceExpression else {
-            return [.text(content)]
-        }
-        let range = NSRange(content.startIndex..., in: content)
-        var cursor = content.startIndex
-        var segments: [RichMessageSegment] = []
-
-        for match in expression.matches(in: content, range: range) {
-            guard let fullRange = Range(match.range(at: 0), in: content),
-                  let labelRange = Range(match.range(at: 1), in: content),
-                  let kindRange = Range(match.range(at: 2), in: content),
-                  let idRange = Range(match.range(at: 3), in: content) else { continue }
-            if cursor < fullRange.lowerBound {
-                segments.append(.text(String(content[cursor..<fullRange.lowerBound])))
-            }
-            let kind: MentionPresentationKind = content[kindRange] == "agent" ? .agent : .human
-            let id = String(content[idRange]).removingPercentEncoding ?? String(content[idRange])
-            let fallback = String(content[labelRange])
-            segments.append(
-                .reference(
-                    resolve(kind, id, fallback)
-                        ?? RichReferencePresentation(
-                            id: id,
-                            kind: kind,
-                            label: fallback,
-                            avatarURL: nil
-                        )
-                )
-            )
-            cursor = fullRange.upperBound
-        }
-
-        if cursor < content.endIndex {
-            segments.append(.text(String(content[cursor...])))
-        }
-        return segments.isEmpty ? [.text(content)] : segments
+        self.channelAppearance = channelAppearance
     }
 }

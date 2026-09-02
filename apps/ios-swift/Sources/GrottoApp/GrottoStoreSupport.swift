@@ -154,6 +154,7 @@ struct PendingChatMessage: Identifiable, Equatable, Sendable {
 /// Server state" in `GrottoStore`, which are the only way that state changes.
 struct ChatProjectionCaches {
     var agentsByID: [String: AgentSummary]?
+    var chatsByID: [String: ChatSummary]?
     var membersByID: [String: MemberSummary]?
     var messagePresentationsByChatID: [String: [MessagePresentation]] = [:]
     var chatDestinations: [ChatDestination]?
@@ -163,6 +164,7 @@ struct ChatProjectionCaches {
     mutating func retireDirectoryProjections() {
         agentsByID = nil
         membersByID = nil
+        chatsByID = nil
         messagePresentationsByChatID.removeAll()
         chatDestinations = nil
     }
@@ -172,9 +174,13 @@ struct ChatProjectionCaches {
         messagePresentationsByChatID.removeAll()
     }
 
-    /// The Chat list and its receipt-backed Agent DMs reach the sidebar alone.
+    /// The Chat list and its receipt-backed Agent DMs reach the sidebar — and,
+    /// through channel references, the name and appearance a transcript chip
+    /// draws.
     mutating func retireChatListProjection() {
         chatDestinations = nil
+        chatsByID = nil
+        messagePresentationsByChatID.removeAll()
     }
 }
 

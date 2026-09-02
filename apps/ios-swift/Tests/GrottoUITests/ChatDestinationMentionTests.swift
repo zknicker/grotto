@@ -68,6 +68,66 @@ import Testing
         #expect(query.inserting(option, into: text) == "Ask [@Ada Lovelace](user://usr_ada) ")
     }
 
+    @Test func composerQueryReadsTheTriggerThatOpensTheWord() throws {
+        let channelQuery = try #require(ComposerMentionQuery.active(in: "see #pro"))
+        #expect(channelQuery.trigger == "#")
+        #expect(channelQuery.value == "pro")
+
+        let mentionQuery = try #require(ComposerMentionQuery.active(in: "see @ad"))
+        #expect(mentionQuery.trigger == "@")
+        #expect(mentionQuery.value == "ad")
+
+        #expect(ComposerMentionQuery.active(in: "issue#3") == nil)
+    }
+
+    @Test func channelSelectionSerializesSharedMarkdownSyntax() throws {
+        let text = "Ask #pro"
+        let query = try #require(ComposerMentionQuery.active(in: text))
+        let option = MentionOptionPresentation(
+            id: "chat://cht_product",
+            insertText: "#product",
+            label: "product",
+            detail: "Channel",
+            kind: .channel,
+            avatarURL: nil,
+            channelAppearance: ChannelAppearance(icon: "RocketIcon", color: "violet")
+        )
+
+        #expect(query.inserting(option, into: text) == "Ask [#product](chat://cht_product) ")
+    }
+
+    @Test func richParserResolvesChannelReferencesByImmutableChatID() {
+        let segments = RichMessageParser.parse("Ask in [#product](chat://cht_product).") { kind, id, _ in
+            guard kind == .channel else { return nil }
+            return RichReferencePresentation(
+                id: id,
+                kind: .channel,
+                label: "#product",
+                avatarURL: nil,
+                channelAppearance: ChannelAppearance(icon: "RocketIcon", color: "violet")
+            )
+        }
+
+        #expect(segments.contains(.reference(.init(
+            id: "cht_product",
+            kind: .channel,
+            label: "#product",
+            avatarURL: nil,
+            channelAppearance: ChannelAppearance(icon: "RocketIcon", color: "violet")
+        ))))
+    }
+
+    @Test func richParserKeepsThePersistedLabelForAnUnresolvedChannel() {
+        let segments = RichMessageParser.parse("Ask in [#product](chat://cht_gone).") { _, _, _ in nil }
+
+        #expect(segments.contains(.reference(.init(
+            id: "cht_gone",
+            kind: .channel,
+            label: "#product",
+            avatarURL: nil
+        ))))
+    }
+
     @Test func richParserResolvesAgentAndHumanReferencesByImmutableID() {
         let segments = RichMessageParser.parse(
             "Ask [@Cove](agent://agt_cove) and [@Ada](user://usr_ada)."
@@ -77,6 +137,22 @@ import Testing
 
         #expect(segments.contains(.reference(.init(id: "agt_cove", kind: .agent, label: "agt_cove", avatarURL: nil))))
         #expect(segments.contains(.reference(.init(id: "usr_ada", kind: .human, label: "usr_ada", avatarURL: nil))))
+    }
+
+    @Test func oneLinePreviewShowsReferenceLabelsInsteadOfTheirTargets() {
+        let preview = RichMessageParser.oneLinePreview(
+            "Ask [@Blippy](agent://agt_blippy) and [@Ada](user://usr_ada)\nabout the [#product](chat://cht_product) review"
+        )
+
+        #expect(preview == "Ask @Blippy and @Ada about the #product review")
+    }
+
+    @Test func oneLinePreviewCollapsesAWebLinkToItsText() {
+        let preview = RichMessageParser.oneLinePreview(
+            "See  [the release notes](https://grotto.dev/releases) now"
+        )
+
+        #expect(preview == "See the release notes now")
     }
 }
 

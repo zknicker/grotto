@@ -35,11 +35,12 @@ struct ThreadMessageRow: View {
 
                 let content = message.content.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !content.isEmpty {
-                    Text(content)
-                        .font(emphasized ? .body : .subheadline)
-                        .foregroundStyle(.primary)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    RichMessageContentView(
+                        segments: message.richSegments,
+                        font: emphasized ? .body : .subheadline
+                    )
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 if !message.attachments.isEmpty {

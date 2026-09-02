@@ -19,6 +19,9 @@ extension GrottoStore {
         _ = lifecycleAvailability.count
         _ = agentsByID
         _ = membersByID
+        // Channel references resolve their label and appearance from the Chat
+        // list, so a renamed or recolored channel has to reach a drawn row.
+        _ = chatsByID
     }
 
     /// The Agent directory as an index. `GrottoStore` rebuilds it with the
@@ -29,6 +32,16 @@ extension GrottoStore {
         if let cached = projections.agentsByID { return cached }
         let index = Dictionary(list.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         projections.agentsByID = index
+        return index
+    }
+
+    /// The Chat list as an index, resolving a `chat://` reference's live name
+    /// and appearance without scanning every Chat per row.
+    var chatsByID: [String: ChatSummary] {
+        let list = chats
+        if let cached = projections.chatsByID { return cached }
+        let index = Dictionary(list.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        projections.chatsByID = index
         return index
     }
 
@@ -157,6 +170,15 @@ extension GrottoStore {
                     kind: .human,
                     label: "@\(name)",
                     avatarURL: resolvedAvatarURL(member.avatarURL)
+                )
+            case .channel:
+                guard let chat = chatsByID[id], let name = chat.name else { return nil }
+                return RichReferencePresentation(
+                    id: id,
+                    kind: .channel,
+                    label: "#\(name)",
+                    avatarURL: nil,
+                    channelAppearance: ChannelAppearance(icon: chat.icon, color: chat.color)
                 )
             }
         }

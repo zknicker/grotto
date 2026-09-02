@@ -12,7 +12,7 @@ struct MessageComposerMentionPicker: View {
                         text = query.inserting(option, into: text)
                     } label: {
                         HStack(spacing: 10) {
-                            AvatarView(name: option.label, url: option.avatarURL, size: 28)
+                            mark(for: option)
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(option.insertText)
                                     .font(.subheadline.weight(.medium))
@@ -25,7 +25,7 @@ struct MessageComposerMentionPicker: View {
                                 }
                             }
                             Spacer(minLength: 0)
-                            Text(option.kind == .agent ? "Agent" : "Human")
+                            Text(kindLabel(option.kind))
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
@@ -42,14 +42,42 @@ struct MessageComposerMentionPicker: View {
         }
     }
 
+    @ViewBuilder
+    private func mark(for option: MentionOptionPresentation) -> some View {
+        switch option.kind {
+        case .channel:
+            ChannelIconBox(appearance: option.channelAppearance ?? .default, size: 28)
+        case .agent, .human:
+            AvatarView(name: option.label, url: option.avatarURL, size: 28)
+        }
+    }
+
+    private func kindLabel(_ kind: MentionPresentationKind) -> String {
+        switch kind {
+        case .agent: "Agent"
+        case .channel: "Channel"
+        case .human: "Human"
+        }
+    }
+
+    /// The trigger chooses the roster: `@` addresses Agents and humans, `#`
+    /// addresses channels. The typed term then filters within it.
     private func visibleOptions(_ query: ComposerMentionQuery) -> [MentionOptionPresentation] {
+        let triggered = options.filter { matches(kind: $0.kind, trigger: query.trigger) }
         let term = query.value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !term.isEmpty else { return options }
-        return options.filter {
+        guard !term.isEmpty else { return triggered }
+        return triggered.filter {
             [$0.label, $0.insertText, $0.detail ?? ""]
                 .joined(separator: " ")
                 .lowercased()
                 .contains(term)
+        }
+    }
+
+    private func matches(kind: MentionPresentationKind, trigger: Character) -> Bool {
+        switch kind {
+        case .channel: trigger == "#"
+        case .agent, .human: trigger == "@"
         }
     }
 }

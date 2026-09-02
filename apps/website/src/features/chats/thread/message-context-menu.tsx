@@ -11,6 +11,7 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
 import { cn } from '../../../lib/utils.ts';
 import {
+    getMessageCopyText,
     type TranscriptMessageRow,
     useTranscriptRenderContextOptional,
 } from '../chat-transcript-render-context.tsx';
@@ -34,7 +35,7 @@ export function MessageContextMenu({
 
     const onAction = (key: React.Key) => {
         if (key === 'copy') {
-            writeClipboardText(row.message.content)
+            writeClipboardText(getMessageCopyText(context, row.message))
                 .then(() => toast.success('Message copied'))
                 .catch(() => toast.danger('Could not copy the message'));
             return;

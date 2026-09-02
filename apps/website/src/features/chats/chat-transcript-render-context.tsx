@@ -15,6 +15,19 @@ export function getTranscriptMessageThread(
     return 'thread' in row ? (row.thread ?? null) : null;
 }
 
+/**
+ * Resolves the text a message's Copy action should place on the clipboard,
+ * via the render context's optional `messageCopyText`, falling back to the
+ * message's own content when the context is missing the override (or missing
+ * entirely).
+ */
+export function getMessageCopyText(
+    context: TranscriptRenderContextValue | null | undefined,
+    message: TranscriptMessage
+): string {
+    return context?.messageCopyText?.(message) ?? message.content;
+}
+
 export interface TranscriptRenderContextValue {
     canRequestMention: boolean;
     chatId?: string;
@@ -24,6 +37,14 @@ export interface TranscriptRenderContextValue {
     defaultOpenWorkGroups: boolean;
     flashMessageId: string | null;
     hiddenCount: number;
+    /**
+     * The text a message's Copy action writes to the clipboard. Absent by
+     * default, in which case `getMessageCopyText` falls back to the raw
+     * `message.content` — correct for an ordinary message, but not for a
+     * prepared-action anchor, whose Server-stored content is empty because
+     * `renderMessageBlock` renders its real body instead.
+     */
+    messageCopyText?: (message: TranscriptMessage) => string;
     onActorClick?: (actor: TranscriptActor) => void;
     onOpenThread: (row: TranscriptMessageRow) => void;
     /**
@@ -34,6 +55,13 @@ export interface TranscriptRenderContextValue {
     onUnfollowThread: (threadChatId: string) => void;
     profilePaneChatId?: string;
     renderMessageAttachments?: (message: TranscriptMessage) => React.ReactNode;
+    /**
+     * A surface-owned block that belongs to one message but is not its body —
+     * a prepared-action card today. It mounts under the message and its
+     * attachments, beside the thread preview, so the transcript layer never
+     * learns what any one block is.
+     */
+    renderMessageBlock?: (message: TranscriptMessage) => React.ReactNode;
     renderMessageContent?: (message: TranscriptMessage) => React.ReactNode;
     /** Runs whose final reply is present anywhere in the transcript. */
     repliedRunIds: ReadonlySet<string>;

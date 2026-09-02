@@ -11,6 +11,10 @@ import type {
     TranscriptRenderContextValue,
 } from '../../chats/chat-transcript-render-context.tsx';
 import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
+import {
+    PreparedActionCard,
+    preparedActionMessageText,
+} from '../../chats/prepared-action-card.tsx';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { useResolveActorProfile } from './chat-actor-profiles.ts';
 import { applyLocalReactions, useLocalChatReactions } from './chat-local-reactions.ts';
@@ -215,6 +219,7 @@ export function useChatTranscript({
                     serverId,
                 },
                 hiddenCount: 0,
+                messageCopyText: preparedActionMessageText,
                 onActorClick: onStartDm
                     ? (actor) => {
                           if (actor?.kind === 'participant') {
@@ -227,17 +232,28 @@ export function useChatTranscript({
                 onUnfollowThread: () => undefined,
                 profilePaneChatId: chatId,
                 renderMessageAttachments,
+                renderMessageBlock: (message) =>
+                    message.preparedAction ? (
+                        <PreparedActionCard
+                            action={message.preparedAction}
+                            agents={agentList}
+                            canManage={canManage}
+                            executedByDisplayName={
+                                message.preparedAction.executedByUserId
+                                    ? humans.name(message.preparedAction.executedByUserId)
+                                    : undefined
+                            }
+                            serverId={serverId}
+                        />
+                    ) : null,
                 renderMessageContent: (message) => (
                     <ServerChatMessageContent
-                        agentList={agentList}
                         agentsById={agentsById}
-                        canManage={canManage}
                         chatsById={chatsById}
                         humans={humans}
                         message={message}
                         onOpenArtifact={onOpenArtifact}
                         onReferenceActivate={onReferenceActivate}
-                        serverId={serverId}
                     />
                 ),
                 repliedRunIds: new Set<string>(),

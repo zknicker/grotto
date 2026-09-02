@@ -45,6 +45,7 @@ function EmbeddedThreadMessageSurface({
     const taskAssigneeProfile = resolveTaskAssigneeProfile(row.message.task, context);
     const flashing = context?.flashMessageId === row.message.id;
     const openThread = () => context?.onOpenThread(row);
+    const messageBlock = context?.renderMessageBlock?.(row.message) ?? null;
     const taskAssigneeLabel =
         taskAssigneeProfile?.name ??
         (row.message.task ? messageTaskAssigneeLabel(row.message.task) : null);
@@ -69,6 +70,7 @@ function EmbeddedThreadMessageSurface({
                 ) : null}
                 <MessageReactionPills row={row} />
             </div>
+            {messageBlock}
             {canOpenThread ? (
                 <ThreadPreviewBlock
                     headerLeading={

@@ -3,7 +3,7 @@ import type { useHumanDirectory } from '../../../hooks/servers/use-human-directo
 import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
-import { PreparedActionCard } from '../../chats/prepared-action-card.tsx';
+import { preparedActionMessageText } from '../../chats/prepared-action-card.tsx';
 import {
     applyAgentMentionAppearance,
     applyChatMentionAppearance,
@@ -16,50 +16,33 @@ import { ArtifactMessage } from './artifact-message.tsx';
 type HumanDirectory = ReturnType<typeof useHumanDirectory>;
 
 export function ServerChatMessageContent({
-    agentList,
     agentsById,
-    canManage,
     chatsById,
     humans,
     message,
     onOpenArtifact,
     onReferenceActivate,
-    serverId,
 }: {
-    agentList: readonly Agent[];
     agentsById: ReadonlyMap<string, Agent>;
-    canManage: boolean;
     chatsById: ReadonlyMap<string, Chat>;
     humans: HumanDirectory;
     message: TranscriptMessage;
     onOpenArtifact: (target: GrottoResourceTarget) => void;
     onReferenceActivate?: ReferenceActivation;
-    serverId: string;
 }) {
-    if (message.preparedAction) {
-        const proposer = message.grottoAgentId ? agentsById.get(message.grottoAgentId) : undefined;
-        return (
-            <PreparedActionCard
-                action={message.preparedAction}
-                agents={agentList}
-                canManage={canManage}
-                executedByDisplayName={
-                    message.preparedAction.executedByUserId
-                        ? humans.name(message.preparedAction.executedByUserId)
-                        : undefined
-                }
-                proposer={{
-                    avatarUrl: proposer?.avatarUrl ?? null,
-                    displayName: message.sender,
-                }}
-                serverId={serverId}
-            />
-        );
+    // The prepared-action card is its own transcript block below this row.
+    // Here the anchor renders like any other agent message.
+    const content = preparedActionMessageText(message);
+
+    // The Server stores an empty anchor body; with no note either, the card
+    // below is the whole row.
+    if (message.preparedAction && !content) {
+        return null;
     }
 
     const mentions = applyHumanMentionAppearance(
         applyChatMentionAppearance(
-            applyAgentMentionAppearance(readMentionsFromMarkdown(message.content), (agentId) => {
+            applyAgentMentionAppearance(readMentionsFromMarkdown(content), (agentId) => {
                 const agent = agentId ? agentsById.get(agentId) : undefined;
                 return {
                     avatarUrl: agent?.avatarUrl ?? null,
@@ -81,14 +64,14 @@ export function ServerChatMessageContent({
     return message.grottoAgentId ? (
         <ArtifactMessage
             agentId={message.grottoAgentId}
-            content={message.content}
+            content={content}
             mentions={mentions}
             onOpenArtifact={onOpenArtifact}
             onReferenceActivate={onReferenceActivate}
         />
     ) : (
         <ChatMarkdownText
-            content={message.content}
+            content={content}
             mentions={mentions}
             onReferenceActivate={onReferenceActivate}
         />

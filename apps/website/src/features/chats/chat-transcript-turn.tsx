@@ -50,6 +50,7 @@ import {
     isStreamingPostMessageRow,
 } from './chat-transcript-model.ts';
 import {
+    getMessageCopyText,
     useTranscriptRenderContext,
     useTranscriptRenderContextOptional,
 } from './chat-transcript-render-context.tsx';
@@ -247,7 +248,9 @@ function UserTurnPresentation({
                         {context?.onToggleReaction ? (
                             <Separator className="h-4 self-center" orientation="vertical" />
                         ) : null}
-                        <TranscriptMessageActions value={lastMessageRow.message.content} />
+                        <TranscriptMessageActions
+                            value={getMessageCopyText(context, lastMessageRow.message)}
+                        />
                         <ThreadMessageActions
                             className={turnActionClassName}
                             row={lastMessageRow}
@@ -472,6 +475,7 @@ function AgentTurnPresentation({
     const lastMessageRow = getLastMessageRow(items);
     const lastMessage = lastMessageRow?.message ?? null;
     const turnCompletedAt = lastMessage?.timestamp ?? null;
+    const context = useTranscriptRenderContext();
     const {
         canRequestMention,
         composerId,
@@ -479,7 +483,7 @@ function AgentTurnPresentation({
         onToggleReaction,
         profilePaneChatId,
         repliedRunIds,
-    } = useTranscriptRenderContext();
+    } = context;
     const segments = groupAgentItems(items);
     const visibleSegments = filterPaneSegments(segments, repliedRunIds);
     const turnStopped =
@@ -502,7 +506,7 @@ function AgentTurnPresentation({
                 <Separator className="h-4 self-center" orientation="vertical" />
             ) : null}
             {lastMessage ? (
-                <TranscriptMessageActions value={lastMessage.content} />
+                <TranscriptMessageActions value={getMessageCopyText(context, lastMessage)} />
             ) : copyValue ? (
                 <TranscriptMessageActions disabled value={copyValue} />
             ) : null}

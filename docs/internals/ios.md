@@ -128,6 +128,34 @@ once into `LocalAttachmentImageCache`, which also serves the composer strip and 
 morph — and the retired pending row's replacement adopts the identical bitmap by filename and byte
 size, so a send never reflows. Non-image attachments keep the file row.
 
+Tapping an image opens the attachment viewer, presented by the screen rather than the row.
+Transcript rows are hosted in `UIHostingConfiguration` cells, which own no view controller, so a row
+writes an `AttachmentPreview` request into a screen-owned binding and `MessageTimelineView` and
+`ThreadDetailView` present from there. The card's motion is UIKit's zoom transition
+(`preferredTransition = .zoom`): it grows out of the tapped tile, follows a finger anywhere over the
+still-visible Chat as a rounding, shrinking card, and springs back or falls into its tile on
+release — interruptible, retargetable, and Reduce Motion aware because UIKit drives it. That
+transition needs a live `UIView` for its source, which SwiftUI's `matchedTransitionSource` cannot
+reach across a hosting configuration, so each tile publishes an inert anchor into a screen-owned
+`AttachmentImageTileRegistry` keyed by attachment id and wearing the tile's own corner radius. The
+registry is asked again at dismissal, so a viewer paged to another image collapses into *that*
+image's tile; a tile that scrolled away answers nil and takes the system's fade.
+
+The viewer opens on the frame of the tap, with no download step: the tile has already cached the
+bytes and a decoded bitmap, so the first page paints `AttachmentImageCache`'s thumbnail
+synchronously and replaces it with a full-resolution decode — sized to the display's longest side in
+pixels — when that lands, held in the bounded LRU `AttachmentFullImageCache` and prefetched for the
+adjacent pages. The replacement is a straight swap, not a crossfade: the two are the same picture,
+and dissolving one over the other double-composites every partly transparent pixel. Pages are every
+image the screen's transcript holds in transcript order, excluding pending messages, and horizontal
+paging moves between them. Each page carries its own ground, decided by `AttachmentImageBackdrop`
+from a downsampled scan of the pixels rather than from an alpha channel's presence — encoders emit
+unused alpha channels routinely. An image with no visible transparency sits on black; one with
+transparency sits on a full-bleed checkerboard whose tone is chosen against the artwork's own mean
+luminance, so light artwork gets the deep grid and dark artwork the pale one. Chrome is a close
+control and a share control over a scrim, and nothing else. Quick Look now serves only non-image
+attachments.
+
 The app deploys to iOS 18 and progressively adopts iOS 26 Liquid Glass for functional
 chrome. System navigation and sheet controls inherit the platform treatment; custom menu, search,
 and composer controls use native glass only on iOS 26 and retain an opaque semantic fallback on older
@@ -460,8 +488,9 @@ through the existing `attachment.reserve` procedure, uploads bytes through the a
 attachment route, then associates the returned attachment ids through `chat.send`; no native-only
 attachment record exists. Pending rows show the selected files while upload is unresolved, failures
 restore the exact text and files for retry, and successful Server attachments render identically in
-main timelines and Thread replies. Opening an attachment downloads it to a temporary file and presents
-the native Quick Look surface. The client enforces the Server's 50 MiB limit before reservation.
+main timelines and Thread replies. Opening an image attachment opens the attachment viewer described
+above; every other kind resolves its cached file and presents the native Quick Look surface. The
+client enforces the Server's 50 MiB limit before reservation.
 
 ## Ownership
 

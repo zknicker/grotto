@@ -127,7 +127,9 @@ function ThreadPreviewReply({
                     DELETED
                 </Chip>
             ) : null}
-            <span className="min-w-0 flex-1 truncate text-muted">{oneLine(reply.content)}</span>
+            <span className="min-w-0 flex-1 truncate text-muted">
+                {threadPreviewLine(reply.content)}
+            </span>
             <span className={cn('shrink-0 text-muted text-xs tabular-nums')}>
                 {formatRelativeTime(reply.createdAt, now)}
             </span>
@@ -143,7 +145,17 @@ function replyLabel(replyCount: number) {
     return `${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}`;
 }
 
-/** Preview rows are one line; newlines and code fences would break the rhythm. */
-function oneLine(content: string) {
-    return content.replace(/\s+/gu, ' ').trim();
+/**
+ * Preview rows are one line: a rich reference or link reads as its label
+ * (`#product`, `@Blippy`) rather than its Markdown target, and newlines or
+ * code fences would break the rhythm.
+ */
+export function threadPreviewLine(content: string) {
+    return content
+        .replace(markdownLinkPattern, (_match, label: string) => label)
+        .replace(/\s+/gu, ' ')
+        .trim();
 }
+
+/** Mirrors the link grammar `parseGrottoRichReferences` reads references from. */
+const markdownLinkPattern = /\[([^\]\n]+)\]\((?:[^)\n]+)\)/gu;

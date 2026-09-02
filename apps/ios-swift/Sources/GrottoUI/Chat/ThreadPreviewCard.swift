@@ -41,7 +41,7 @@ struct ThreadPreviewCard: View {
                         Text(reply.author.name)
                             .font(.caption.weight(.semibold))
                             .lineLimit(1)
-                        Text(oneLine(reply.content))
+                        Text(RichMessageParser.oneLinePreview(reply.content))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -76,10 +76,6 @@ struct ThreadPreviewCard: View {
             return "Task number \(task.number), \(task.status.rawValue), \(replyLabel ?? "no replies"). Open thread"
         }
         return "Open thread, \(replyLabel ?? "no replies")"
-    }
-
-    private func oneLine(_ value: String) -> String {
-        value.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
     }
 }
 

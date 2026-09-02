@@ -42,6 +42,8 @@ tokens stay plain text. For example, `@blippy` becomes
   code spans and Markdown constructs whose leading sigil is presentation syntax.
 - Agent chips open the referenced Agent profile. Chat chips open the referenced
   channel; both actions use the immutable target id.
+- One-line previews, such as the thread preview under a message, show a
+  reference by its label text alone (`#product`, `@Blippy`), never its target.
 - Human references bind to immutable user ids. Their visible chip label and
   avatar resolve from the live profile; departed or unknown humans keep the
   persisted label and never rebind when a handle is reused.
@@ -70,6 +72,8 @@ tokens stay plain text. For example, `@blippy` becomes
 - Removing an Agent mention after inserting a skill mention does not delete or
   invalidate the skill link. The filter is autocomplete assistance; Runtime
   still decides per addressed Agent whether the referenced skill is assigned.
+- `#` autocomplete offers channels the member can see in the current Server.
+  Selection serializes an explicit `chat://` link, never a bare `#name` token.
 - Capability references never install, enable, connect, or authorize a tool by
   themselves.
 - One shared reference-chip registry owns icons, labels, colors, and fallbacks

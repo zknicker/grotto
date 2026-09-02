@@ -33,13 +33,25 @@ export function CreateAgentDialog({
         [create.createAgent, serverId]
     );
 
+    // The dialog stays mounted across opens, so a failed submit's error would
+    // otherwise survive close and reappear stale the next time it opens.
+    const handleOpenChange = React.useCallback(
+        (next: boolean) => {
+            if (!next) {
+                create.reset();
+            }
+            onOpenChange(next);
+        },
+        [create.reset, onOpenChange]
+    );
+
     return (
         <AgentCreationDialog
             agents={agents}
             error={create.error}
             isPending={create.isPending}
             onCreated={onCreated}
-            onOpenChange={onOpenChange}
+            onOpenChange={handleOpenChange}
             onSubmit={submit}
             open={open}
             serverId={serverId}

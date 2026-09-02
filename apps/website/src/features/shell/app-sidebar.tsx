@@ -8,7 +8,8 @@ import { useCreateServerChannel } from '../../hooks/servers/use-create-server-ch
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
 import type { ChannelAgentOption } from '../chats/channel-agent-picker.tsx';
 import { ChannelCreateDialog } from '../chats/channel-create-dialog.tsx';
-import { serverChatRoute } from '../servers/server-routes.ts';
+import { CreateAgentDialog } from '../members/create-agent-dialog.tsx';
+import { serverAgentDmRoute, serverChatRoute } from '../servers/server-routes.ts';
 import { ChatNavigation } from './chat-navigation.tsx';
 
 /** Contextual sidebar for the server: channels and DMs. */
@@ -29,7 +30,9 @@ export function AppSidebar({
     const createChannel = useCreateServerChannel();
     const updateChannel = useChannelUpdate();
     const [creatingChannel, setCreatingChannel] = React.useState(false);
+    const [creatingAgent, setCreatingAgent] = React.useState(false);
     const slug = currentServer.slug;
+    const canManage = currentServer.role === 'owner' || currentServer.role === 'admin';
     const agentItems = agents.data ?? [];
     const chatItems = chats.data ?? [];
     const channelAgents: ChannelAgentOption[] = agentItems.map((agent) => ({
@@ -62,12 +65,23 @@ export function AppSidebar({
                             toast.danger('Channel update failed', { description: error.message })
                         );
                 }}
+                onCreateAgent={canManage ? () => setCreatingAgent(true) : undefined}
                 onCreateChannel={openCreateChannel}
                 onPreloadSection={onPreloadSection}
                 selectedAgentDmId={selectedAgentDmId}
                 selectedChatId={selectedChatId}
                 serverId={currentServer.id}
                 slug={slug}
+            />
+            <CreateAgentDialog
+                agents={agentItems}
+                onCreated={(agentId) => {
+                    setCreatingAgent(false);
+                    navigate(serverAgentDmRoute(slug, agentId));
+                }}
+                onOpenChange={setCreatingAgent}
+                open={creatingAgent}
+                serverId={currentServer.id}
             />
             <ChannelCreateDialog
                 agents={channelAgents}

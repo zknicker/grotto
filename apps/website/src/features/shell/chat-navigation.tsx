@@ -21,6 +21,7 @@ export function ChatNavigation({
     agents,
     chats,
     onChangeChannelColor,
+    onCreateAgent,
     onCreateChannel,
     onPreloadSection,
     selectedAgentDmId,
@@ -31,6 +32,7 @@ export function ChatNavigation({
     agents: Agent[];
     chats: Chat[];
     onChangeChannelColor?: (chat: Chat, color: string) => void;
+    onCreateAgent?: () => void;
     onCreateChannel: () => void;
     onPreloadSection: (section: 'search' | 'tasks') => void;
     selectedAgentDmId?: string;
@@ -121,7 +123,22 @@ export function ChatNavigation({
                     slug={slug}
                 />
             </ChatGroup>
-            <ChatGroup label="Direct messages">
+            <ChatGroup
+                action={
+                    onCreateAgent ? (
+                        <Button
+                            aria-label="New agent"
+                            isIconOnly
+                            onPress={onCreateAgent}
+                            size="sm"
+                            variant="ghost"
+                        >
+                            <Icon aria-hidden="true" icon={Plus} size={sidebarActionIconSize} />
+                        </Button>
+                    ) : undefined
+                }
+                label="Direct messages"
+            >
                 <Sidebar.Menu aria-label="Direct messages">
                     {agentDirectMessages.map(({ agent, chat }) =>
                         chat ? (

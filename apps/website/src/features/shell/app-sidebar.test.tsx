@@ -34,6 +34,59 @@ test('hides a retired Agent DM from active navigation', () => {
     expect(markup).not.toContain('Retired');
 });
 
+test('hides the New agent action when no handler is given', () => {
+    const markup = renderToStaticMarkup(
+        <MemoryRouter>
+            <CommandMenuProvider>
+                <Sidebar.Provider>
+                    <ShellSidebar activePage="server">
+                        <ShellSidebarPage ariaLabel="Server" value="server">
+                            <ChatNavigation
+                                agents={[]}
+                                chats={[]}
+                                onCreateChannel={() => undefined}
+                                onPreloadSection={() => undefined}
+                                selectedChatId={undefined}
+                                serverId="server_one"
+                                slug="grotto"
+                            />
+                        </ShellSidebarPage>
+                    </ShellSidebar>
+                </Sidebar.Provider>
+            </CommandMenuProvider>
+        </MemoryRouter>
+    );
+
+    expect(markup).not.toContain('aria-label="New agent"');
+});
+
+test('shows the New agent action on Direct messages for a manager', () => {
+    const markup = renderToStaticMarkup(
+        <MemoryRouter>
+            <CommandMenuProvider>
+                <Sidebar.Provider>
+                    <ShellSidebar activePage="server">
+                        <ShellSidebarPage ariaLabel="Server" value="server">
+                            <ChatNavigation
+                                agents={[]}
+                                chats={[]}
+                                onCreateAgent={() => undefined}
+                                onCreateChannel={() => undefined}
+                                onPreloadSection={() => undefined}
+                                selectedChatId={undefined}
+                                serverId="server_one"
+                                slug="grotto"
+                            />
+                        </ShellSidebarPage>
+                    </ShellSidebar>
+                </Sidebar.Provider>
+            </CommandMenuProvider>
+        </MemoryRouter>
+    );
+
+    expect(markup).toContain('aria-label="New agent"');
+});
+
 test('renders each DM from its own Agent availability', () => {
     const blippy = agent({
         availability: 'working',

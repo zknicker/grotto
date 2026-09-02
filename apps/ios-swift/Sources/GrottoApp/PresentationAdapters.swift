@@ -88,7 +88,7 @@ extension GrottoStore {
                         threadChatID: task.threadChatID,
                         replyCount: 0,
                         unreadCount: 0,
-                        latestReply: nil
+                        recentReplies: []
                     )
                 }
             let preparedAction = message.preparedAction.map(preparedActionPresentation)
@@ -252,23 +252,9 @@ extension GrottoStore {
     }
 
     private func threadPresentation(_ thread: ThreadSummary) -> ThreadPreviewPresentation {
-        ThreadPreviewPresentation(
-            threadChatID: thread.threadChatID,
-            replyCount: thread.replyCount,
-            unreadCount: thread.unreadCount,
-            latestReply: thread.recentReplies.last.flatMap { reply in
-                guard let author = actorPresentation(
-                    agentID: reply.authorAgentID,
-                    userID: reply.authorUserID
-                ) else { return nil }
-                return ThreadReplyPresentation(
-                    id: reply.id,
-                    author: author,
-                    content: reply.content,
-                    createdAt: reply.createdAt
-                )
-            }
-        )
+        ThreadPreviewProjection.presentation(for: thread) { reply in
+            actorPresentation(agentID: reply.authorAgentID, userID: reply.authorUserID)
+        }
     }
 
     private func taskPresentation(_ task: MessageTask) -> TaskPresentation {

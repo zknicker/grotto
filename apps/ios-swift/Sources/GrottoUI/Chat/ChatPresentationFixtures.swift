@@ -47,18 +47,42 @@ public enum ChatFixtures {
             createdAt: .now.addingTimeInterval(-120),
             thread: ThreadPreviewPresentation(
                 threadChatID: "thread-message-2",
-                replyCount: 2,
+                replyCount: 3,
                 unreadCount: 1,
-                latestReply: ThreadReplyPresentation(
-                    id: "reply-2",
-                    author: MessageAuthorPresentation(
-                        id: "zach",
-                        name: "Zach Knickerbocker",
-                        avatarURL: nil
+                recentReplies: [
+                    ThreadReplyPresentation(
+                        id: "reply-2a",
+                        author: MessageAuthorPresentation(
+                            id: cove.id,
+                            name: cove.name,
+                            avatarURL: cove.avatarURL,
+                            presence: cove.presence
+                        ),
+                        content: "Pulling the anchor summary into the preview now.",
+                        createdAt: .now.addingTimeInterval(-110)
                     ),
-                    content: "Let’s use one compact preview and keep the full conversation in the thread.",
-                    createdAt: .now.addingTimeInterval(-75)
-                )
+                    ThreadReplyPresentation(
+                        id: "reply-2b",
+                        author: MessageAuthorPresentation(
+                            id: "zach",
+                            name: "Zach Knickerbocker",
+                            avatarURL: nil
+                        ),
+                        content: "Let’s use one compact preview and keep the full conversation in the thread.",
+                        createdAt: .now.addingTimeInterval(-75)
+                    ),
+                    ThreadReplyPresentation(
+                        id: "reply-2c",
+                        author: MessageAuthorPresentation(
+                            id: cove.id,
+                            name: cove.name,
+                            avatarURL: cove.avatarURL,
+                            presence: cove.presence
+                        ),
+                        content: "Agreed — the rows read as the thread without opening it.",
+                        createdAt: .now.addingTimeInterval(-40)
+                    ),
+                ]
             )
         ),
         MessagePresentation(
@@ -70,17 +94,19 @@ public enum ChatFixtures {
                 threadChatID: "thread-message-3",
                 replyCount: 3,
                 unreadCount: 0,
-                latestReply: ThreadReplyPresentation(
-                    id: "reply-3",
-                    author: MessageAuthorPresentation(
-                        id: cove.id,
-                        name: cove.name,
-                        avatarURL: cove.avatarURL,
-                        presence: cove.presence
+                recentReplies: [
+                    ThreadReplyPresentation(
+                        id: "reply-3",
+                        author: MessageAuthorPresentation(
+                            id: cove.id,
+                            name: cove.name,
+                            avatarURL: cove.avatarURL,
+                            presence: cove.presence
+                        ),
+                        content: "The Server contract is already carrying the task and reply data we need.",
+                        createdAt: .now.addingTimeInterval(-25)
                     ),
-                    content: "The Server contract is already carrying the task and reply data we need.",
-                    createdAt: .now.addingTimeInterval(-25)
-                )
+                ]
             ),
             task: TaskPresentation(
                 number: 42,

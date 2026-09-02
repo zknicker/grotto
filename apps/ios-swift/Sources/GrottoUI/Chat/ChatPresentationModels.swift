@@ -211,18 +211,19 @@ public struct ThreadPreviewPresentation: Hashable, Sendable {
     public let threadChatID: String
     public let replyCount: Int
     public let unreadCount: Int
-    public let latestReply: ThreadReplyPresentation?
+    /// The Server's own recent replies, oldest first and already capped by it.
+    public let recentReplies: [ThreadReplyPresentation]
 
     public init(
         threadChatID: String,
         replyCount: Int,
         unreadCount: Int,
-        latestReply: ThreadReplyPresentation?
+        recentReplies: [ThreadReplyPresentation]
     ) {
         self.threadChatID = threadChatID
         self.replyCount = replyCount
         self.unreadCount = unreadCount
-        self.latestReply = latestReply
+        self.recentReplies = recentReplies
     }
 }
 

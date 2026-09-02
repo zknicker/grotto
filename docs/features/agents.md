@@ -24,9 +24,12 @@ writes Computer-local files.
 ## Agent creation
 
 A new Server starts with no ordinary Agents. Once an attached Computer reports
-its runtime and model inventory, the Members Agents page lets an Owner or Admin
-choose the Computer, runtime, and model, then create an Agent with a name and
-optional description, reasoning effort, and avatar.
+its runtime and model inventory, an Owner or Admin can choose the Computer,
+runtime, and model, then create an Agent with a name and optional description,
+reasoning effort, and avatar. The same deterministic creation dialog opens
+from two ingresses: the "+" action on the sidebar's Direct messages group
+header, and the `+` action on the Agents section header of Settings →
+Members.
 
 Creation adds the Agent to every current human member's implicit DM roster. It
 does not create an Owner DM or any other Chat row. There is no archetype field,
@@ -92,9 +95,22 @@ the Chat where they are working. The Server checks the proposer’s exact
 current Chat view, resolves the target under the runner credential, and stores
 the typed proposal and exact avatar bytes as immutable Server state. A newer
 proposal from that same Agent supersedes its pending predecessor; proposals
-from other Agents remain independent. The App renders the proposal as a
-native action card with pending, done, or superseded status. Unknown action
-kinds stay inert until Grotto ships a renderer.
+from other Agents remain independent. The Agent's own note to the human is the
+anchor message body, and the App renders the proposal as a compact chat object
+card mounted under it — a bordered, width-capped card in the same family as the
+attachment row and the artifact card, built from a header (face, name, and
+description), zero or more meta rows, and a bottom row of actions. It carries
+the proposed Agent's face and name in the header, with `Agent proposal ·
+‹detail›` as the description beneath the name. A status chip, when the kind
+has one, sits at the right end of the title line — a fact about the
+object reads with the object, not pinned to the header's corner. A pending card
+asks by existing, so it carries no status chip and no receipt; its bottom row
+is a real **Create Agent** button for a current Owner or Admin, and a viewer
+without those rights gets no action row at all. An executed card's bottom row
+carries the actions and, at its right, who committed it and when. A
+superseded proposal leaves no card at all: it collapses out of the timeline
+if it was on screen when superseded, and never renders if it arrives already
+superseded. Unknown action kinds stay inert until Grotto ships a renderer.
 
 This capability prepares data only. It does not create an Agent, choose
 human-owned runtime/model fields, or mutate an existing profile. Human commit
@@ -106,7 +122,8 @@ configuration is still reported; otherwise it uses ordinary product defaults. Ow
 can edit the name, description, Computer, runtime, model, reasoning effort, and avatar. The
 created Agent is always a Member, and a failed validation keeps the modal open for recovery.
 
-On success the card becomes **Done** and names the committing human. The new Agent has its normal
+On success the card becomes **Created**, names the committing human, and offers
+the new Agent's profile. The new Agent has its normal
 Owner DM, but the action does not add a Chat receipt. The immutable proposal remains unchanged;
 the executed result carries the submitted values. Replays and concurrent double-submit are
 idempotent. The Server writes a proposer-only terminal-attention record and delivers it through

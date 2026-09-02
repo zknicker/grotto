@@ -22,13 +22,26 @@ and [Agent Inbox](../../specs/inbox.md).
 * **Native action cards.** A managed Agent can prepare a typed `agent:create`
   proposal with `grotto action prepare`. The Server posts an empty canonical
   Agent anchor and projects its immutable proposal and exact avatar media
-  through `preparedAction`. A current Owner or Admin can open the ordinary
-  Create Agent modal from a pending card, edit the human-owned fields, and
-  commit one Member Agent after current Computer inventory validation. The
-  App renders the native card and its pending, done, or superseded state; it
-  never treats the proposal as a Widget, visual fence, artifact, or
-  model-authored form. Unknown kinds render an inert fallback. A successful
-  commit names the human and does not add a Chat receipt. Dropped realtime
+  through `preparedAction`. The proposal's note to the human renders as that
+  message's body, and the card mounts as its own block beneath it — a bordered,
+  width-capped chat object card in the same family as the attachment row and the
+  artifact card, built from a header (face, name, and description), zero or
+  more meta rows, and a bottom row of actions. It carries the proposed Agent's
+  face and name in the header, the kind and detail as the description beneath
+  the name, and one action beneath; a status chip, when the kind has one, sits
+  at the right end of the title line rather than pinned to the header's
+  corner. An executed card's bottom row carries the actions and, at its right,
+  who committed it and when. A current Owner or Admin can open the ordinary
+  Create Agent modal from a pending card with a **Create Agent** button, edit
+  the human-owned fields, and commit one Member Agent after current Computer
+  inventory validation. A superseded proposal leaves the timeline entirely: a
+  card on screen when its proposal is superseded animates out instead of
+  popping away, and a proposal that arrives already superseded never renders
+  one; the Agent's note above it still reads as history. The App renders the
+  native card and its pending or done state; it never treats the proposal as a
+  Widget, visual fence, artifact, or model-authored form. Unknown kinds render
+  an inert fallback. A successful commit names the human and does not add a
+  Chat receipt. Dropped realtime
   events recover through the ordinary message snapshot on reconnect.
 * **Hosted attachments.** Humans and Agents can attach files to hosted Server
   messages. The App streams human-selected bytes directly to that Server, and

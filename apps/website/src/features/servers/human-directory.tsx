@@ -1,35 +1,44 @@
+import type { Agent } from '@grotto/api';
 import type { ServerMember, ServerMemberDirectory } from '@grotto/api/membership';
 import { canManageServerInvitations } from '@grotto/api/membership';
-import { Separator } from '@heroui/react';
+import { Button } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Icon } from '../../components/ui/icon.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useMembershipActions } from '../../hooks/servers/use-membership-actions.ts';
-import { useServerInvitations } from '../../hooks/servers/use-server-invitations.ts';
+import { CreateAgentDialog } from '../members/create-agent-dialog.tsx';
 import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx';
 import { PageColumn } from '../shell/page-column.tsx';
 import { ServerAgentList } from './server-agent-list.tsx';
-import { InviteMemberForm, ServerInvitationList } from './server-invitations.tsx';
+import { ServerInvitationsSection } from './server-invitations.tsx';
 import { memberChangeDescription, type ServerMemberRowAction } from './server-member-actions.ts';
 import {
     type PendingMemberChange,
     ServerMemberConfirmDialog,
 } from './server-member-confirm-dialog.tsx';
 import { ServerMemberList } from './server-member-list.tsx';
+import { settingsAgentRoute } from './server-routes.ts';
 
 export function HumanDirectory({
+    canManage,
     directory,
     serverId,
     serverSlug,
 }: {
+    canManage: boolean;
     directory: ServerMemberDirectory | undefined;
     serverId: string;
     serverSlug: string;
 }) {
+    const navigate = useNavigate();
     const canInvite = directory ? canManageServerInvitations(directory.viewerRole) : false;
-    const invitations = useServerInvitations(serverId, canInvite);
     const commands = useMembershipActions(serverId);
+    const agents = useAgents(serverId);
     const [pending, setPending] = React.useState<PendingMemberChange | null>(null);
+    const [creatingAgent, setCreatingAgent] = React.useState(false);
 
     if (!directory) {
         return (
@@ -57,7 +66,12 @@ export function HumanDirectory({
                     description="The people on this Server, their roles, and open invitations."
                     title="Members"
                 />
-                <AgentsSection serverId={serverId} serverSlug={serverSlug} />
+                <AgentsSection
+                    agents={agents.data}
+                    canManage={canManage}
+                    onCreateAgent={() => setCreatingAgent(true)}
+                    serverSlug={serverSlug}
+                />
                 <ItemCardGroup variant="transparent">
                     <ItemCardGroup.Header>
                         <ItemCardGroup.Title>
@@ -78,35 +92,7 @@ export function HumanDirectory({
                         <p className="px-4 text-danger text-sm">{commandError}</p>
                     ) : null}
                 </ItemCardGroup>
-                {canInvite ? (
-                    <ItemCardGroup variant="transparent">
-                        <ItemCardGroup.Header>
-                            <ItemCardGroup.Title>Invitations</ItemCardGroup.Title>
-                        </ItemCardGroup.Header>
-                        <ItemCardGroup className="overflow-hidden">
-                            <ItemCard>
-                                <ItemCard.Content>
-                                    <InviteMemberForm serverId={serverId} />
-                                </ItemCard.Content>
-                            </ItemCard>
-                            <Separator />
-                            {!invitations.data && invitations.isPending ? (
-                                <div aria-busy="true" className="min-h-20">
-                                    <span className="sr-only">Loading invitations</span>
-                                </div>
-                            ) : invitations.error ? (
-                                <p className="px-4 py-3.5 text-danger text-sm" role="alert">
-                                    {invitations.error.message}
-                                </p>
-                            ) : (
-                                <ServerInvitationList
-                                    invitations={invitations.data ?? []}
-                                    serverId={serverId}
-                                />
-                            )}
-                        </ItemCardGroup>
-                    </ItemCardGroup>
-                ) : null}
+                {canInvite ? <ServerInvitationsSection serverId={serverId} /> : null}
             </PageColumn>
             <ServerMemberConfirmDialog
                 onOpenChange={(open) => {
@@ -117,6 +103,16 @@ export function HumanDirectory({
                 pending={pending}
                 slug={serverSlug}
             />
+            <CreateAgentDialog
+                agents={agents.data ?? []}
+                onCreated={(agentId) => {
+                    setCreatingAgent(false);
+                    navigate(settingsAgentRoute(serverSlug, agentId));
+                }}
+                onOpenChange={setCreatingAgent}
+                open={creatingAgent}
+                serverId={serverId}
+            />
         </>
     );
 }
@@ -126,11 +122,20 @@ export function HumanDirectory({
  * their membership lives on the agent record. Blank while loading — the app
  * shows no skeletons on synced surfaces.
  */
-function AgentsSection({ serverId, serverSlug }: { serverId: string; serverSlug: string }) {
-    const agents = useAgents(serverId);
-    const items = agents.data ?? [];
+function AgentsSection({
+    agents,
+    canManage,
+    onCreateAgent,
+    serverSlug,
+}: {
+    agents: Agent[] | undefined;
+    canManage: boolean;
+    onCreateAgent: () => void;
+    serverSlug: string;
+}) {
+    const items = agents ?? [];
 
-    if (!agents.data) {
+    if (!agents) {
         return (
             <div aria-busy="true" className="min-h-24">
                 <span className="sr-only">Loading Agents</span>
@@ -140,11 +145,22 @@ function AgentsSection({ serverId, serverSlug }: { serverId: string; serverSlug:
 
     return (
         <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header>
+            <ItemCardGroup.Header className="flex flex-wrap items-center justify-between gap-3">
                 <ItemCardGroup.Title>
                     Agents
                     <span className="ms-2 text-muted tabular-nums">{items.length}</span>
                 </ItemCardGroup.Title>
+                {canManage ? (
+                    <Button
+                        aria-label="Create agent"
+                        isIconOnly
+                        onPress={onCreateAgent}
+                        size="sm"
+                        variant="ghost"
+                    >
+                        <Icon aria-hidden="true" icon={PlusSignIcon} size={16} />
+                    </Button>
+                ) : null}
             </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
                 {items.length === 0 ? (

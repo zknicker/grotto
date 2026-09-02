@@ -182,7 +182,10 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   (inside a `Card` when it stands in for a card the data would have filled —
   `UsageEmptyCard`, the token grid). An empty *list* keeps its section header
   and shows one quiet `ItemCard` row with a description ("No reminders
-  yet."). A transient surface (popover, drawer, menu) uses one muted inline
+  yet.") — unless that header already says the same thing, in which case the
+  section is its header alone and no list box is drawn at all (Members →
+  Invitations, whose header carries both the count and the way to add one). A
+  transient surface (popover, drawer, menu) uses one muted inline
   line. Never hand-roll an icon box or a centered paragraph stack — two
   drifted copies of `EmptyState` have already been paid for and deleted.
 * Spacing has one owner per axis. HeroUI modules — `Widget`, `ItemCardGroup`,

@@ -70,12 +70,18 @@ export function SettingsSectionRoute() {
 
 function MembersSection({ server }: { server: ServerSummary }) {
     const directory = useMembers(server.id);
+    const canManage = server.role === 'owner' || server.role === 'admin';
 
     if (directory.error && !directory.data) {
         return <p className="m-auto text-danger text-sm">Couldn’t load humans.</p>;
     }
     return (
-        <HumanDirectory directory={directory.data} serverId={server.id} serverSlug={server.slug} />
+        <HumanDirectory
+            canManage={canManage}
+            directory={directory.data}
+            serverId={server.id}
+            serverSlug={server.slug}
+        />
     );
 }
 

@@ -31,14 +31,15 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     await expect(leaveButton).toBeDisabled();
     await expect(leaveButton.locator('..')).toHaveAttribute('title', /last Owner/iu);
 
-    await page.getByLabel('Invite by email').fill(peerEmail);
+    await page.getByRole('button', { name: 'Invite by email' }).click();
+    await page.getByLabel('Email', { exact: true }).fill(peerEmail);
     await page.getByRole('button', { name: 'Invite', exact: true }).click();
 
     const inviteLink = page.locator('code', { hasText: '/invite/' });
     await expect(inviteLink).toBeVisible();
     const invitePath = new URL((await inviteLink.innerText()).trim()).pathname;
     const invitationRow = page.locator('[data-invitation-id]').filter({ hasText: peerEmail });
-    await expect(invitationRow).toContainText('pending');
+    await expect(invitationRow).toContainText('Pending');
 
     // The invited human accepts in their own browser context.
     const peerContext = await browser.newContext();
@@ -126,5 +127,5 @@ test('a human outside the Server cannot reach its member management', async ({ p
     await page.goto(`/s/${slug}/members`);
 
     await expect(page.getByText('Server unavailable')).toBeVisible();
-    await expect(page.getByLabel('Invite by email')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Invite by email' })).toHaveCount(0);
 });

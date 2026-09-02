@@ -1,75 +1,60 @@
-import type { ServerInvitation } from '@grotto/api/membership';
-import { Button, Chip, Input, Label, Separator, TextField } from '@heroui/react';
-import * as React from 'react';
-import { CopyButton } from '../../components/copy-button.tsx';
-import { useServerInvitationCommands } from '../../hooks/servers/use-server-invitations.ts';
-import { invitationLink } from './server-routes.ts';
+import type { ServerInvitation, ServerInvitationStatus } from '@grotto/api/membership';
+import { Button, Chip, Separator } from '@heroui/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Fragment } from 'react';
+import {
+    useServerInvitationCommands,
+    useServerInvitations,
+} from '../../hooks/servers/use-server-invitations.ts';
+import { formatRelativeTime } from '../../lib/format.ts';
+import { InvitePopover } from './invite-popover.tsx';
 
 /**
- * Issuing an invitation and handing over its link. Grotto sends no email: the
- * Server discloses the raw token once, here, and the Owner or Admin passes it
- * on however they choose. Losing it means revoking and reissuing.
+ * Invitations on this Server, as a sibling of the Agents and Humans sections.
+ *
+ * The count is of live invitations only — a section header answers "how many
+ * people are still expected", not "how many rows are below". Issuing lives
+ * behind the header's `+`, because it acts on the section rather than on the
+ * page; revoking lives on the row it acts on.
+ *
+ * With nothing issued the section is its header alone. The header already
+ * carries the count and the way to add one, so an empty row beneath it would
+ * only restate a zero that is already on screen.
  */
-export function InviteMemberForm({ serverId }: { serverId: string }) {
-    const [email, setEmail] = React.useState('');
-    const { create } = useServerInvitationCommands();
-    const issued = create.data;
+export function ServerInvitationsSection({ serverId }: { serverId: string }) {
+    const invitations = useServerInvitations(serverId, true);
+    const items = sortInvitations(invitations.data ?? []);
+    const pending = items.filter((invitation) => invitation.status === 'pending').length;
 
     return (
-        <form
-            className="flex flex-col gap-3"
-            onSubmit={(event) => {
-                event.preventDefault();
-                create.mutate({ email, serverId }, { onSuccess: () => setEmail('') });
-            }}
-        >
-            <div className="flex flex-col gap-2">
-                <div className="flex items-end gap-2">
-                    <TextField
-                        fullWidth
-                        isInvalid={Boolean(create.error)}
-                        onChange={setEmail}
-                        type="email"
-                        value={email}
-                    >
-                        <Label htmlFor="invite-email">Invite by Email</Label>
-                        <Input
-                            autoComplete="off"
-                            id="invite-email"
-                            placeholder="human@example.com"
-                        />
-                    </TextField>
-                    <Button
-                        isDisabled={create.isPending || email.trim().length === 0}
-                        type="submit"
-                    >
-                        Invite
-                    </Button>
+        <ItemCardGroup variant="transparent">
+            <ItemCardGroup.Header className="flex items-center justify-between gap-3">
+                <ItemCardGroup.Title>
+                    Invitations
+                    {invitations.data ? (
+                        <span className="ms-2 text-muted tabular-nums">{pending}</span>
+                    ) : null}
+                </ItemCardGroup.Title>
+                <InvitePopover serverId={serverId} />
+            </ItemCardGroup.Header>
+            {/* Blank while loading: this surface shows no skeletons. */}
+            {!invitations.data && invitations.isPending ? (
+                <div aria-busy="true" className="min-h-20">
+                    <span className="sr-only">Loading invitations</span>
                 </div>
-                <p className="text-muted text-sm">
-                    They must accept while signed in to Clerk with this exact verified address.
+            ) : invitations.error && !invitations.data ? (
+                <p className="px-4 text-danger text-sm" role="alert">
+                    {invitations.error.message}
                 </p>
-            </div>
-            {create.error ? <p className="text-danger text-sm">{create.error.message}</p> : null}
-            {issued ? (
-                <div className="card-shell flex flex-col gap-2 border border-border p-3">
-                    <p className="text-foreground text-sm">
-                        Send this link to {issued.invitation.email}. It is shown once.
-                    </p>
-                    <div className="flex items-center gap-2">
-                        <code className="min-w-0 flex-1 truncate text-muted text-xs">
-                            {invitationLink(issued.token)}
-                        </code>
-                        <CopyButton value={invitationLink(issued.token)} />
-                    </div>
-                </div>
+            ) : items.length > 0 ? (
+                <InvitationList invitations={items} serverId={serverId} />
             ) : null}
-        </form>
+        </ItemCardGroup>
     );
 }
 
-/** Invitations issued on this Server, with revocation for the live ones. */
-export function ServerInvitationList({
+/** One row per invitation, with revocation on the live ones. */
+function InvitationList({
     invitations,
     serverId,
 }: {
@@ -78,45 +63,74 @@ export function ServerInvitationList({
 }) {
     const { revoke } = useServerInvitationCommands();
 
-    if (invitations.length === 0) {
-        return <p className="px-5 py-3.5 text-muted text-sm">No invitations yet.</p>;
-    }
-
     return (
-        <>
+        <ItemCardGroup className="overflow-hidden">
             {invitations.map((invitation, index) => (
-                <React.Fragment key={invitation.id}>
+                <Fragment key={invitation.id}>
                     {index > 0 ? <Separator /> : null}
-                    <div
-                        className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5"
-                        data-invitation-id={invitation.id}
-                    >
-                        <div className="flex min-w-0 items-baseline gap-2">
-                            <span className="truncate text-foreground text-sm">
-                                {invitation.email}
-                            </span>
+                    <ItemCard data-invitation-id={invitation.id}>
+                        <ItemCard.Content>
+                            <ItemCard.Title>{invitation.email}</ItemCard.Title>
+                            <ItemCard.Description>
+                                {`Invited ${formatRelativeTime(invitation.createdAt)} · expires ${expiryDate(invitation.expiresAt)}`}
+                            </ItemCard.Description>
+                        </ItemCard.Content>
+                        <ItemCard.Action className="flex items-center gap-2">
                             <Chip
+                                color={invitationStatus[invitation.status].color}
                                 size="sm"
-                                variant={invitation.status === 'pending' ? 'secondary' : 'soft'}
+                                variant="soft"
                             >
-                                <Chip.Label className="capitalize">{invitation.status}</Chip.Label>
+                                <Chip.Label>{invitationStatus[invitation.status].label}</Chip.Label>
                             </Chip>
-                        </div>
-                        {invitation.status === 'pending' ? (
-                            <Button
-                                isDisabled={revoke.isPending}
-                                onPress={() =>
-                                    revoke.mutate({ invitationId: invitation.id, serverId })
-                                }
-                                size="sm"
-                                variant="danger-soft"
-                            >
-                                Revoke
-                            </Button>
-                        ) : null}
-                    </div>
-                </React.Fragment>
+                            {invitation.status === 'pending' ? (
+                                <Button
+                                    isDisabled={revoke.isPending}
+                                    onPress={() =>
+                                        revoke.mutate({ invitationId: invitation.id, serverId })
+                                    }
+                                    size="sm"
+                                    variant="danger-soft"
+                                >
+                                    Revoke
+                                </Button>
+                            ) : null}
+                        </ItemCard.Action>
+                    </ItemCard>
+                </Fragment>
             ))}
-        </>
+        </ItemCardGroup>
     );
+}
+
+/**
+ * Only `pending` is a live state, so it is the only one that earns a color;
+ * the terminal three are history and read as neutral.
+ */
+const invitationStatus: Record<
+    ServerInvitationStatus,
+    { color: 'default' | 'success' | 'warning'; label: string }
+> = {
+    accepted: { color: 'success', label: 'Accepted' },
+    expired: { color: 'default', label: 'Expired' },
+    pending: { color: 'warning', label: 'Pending' },
+    revoked: { color: 'default', label: 'Revoked' },
+};
+
+/** Live invitations first, then newest first — the ones still awaiting a person. */
+export function sortInvitations(invitations: ServerInvitation[]): ServerInvitation[] {
+    return [...invitations].sort((left, right) => {
+        const livePending = Number(right.status === 'pending') - Number(left.status === 'pending');
+
+        if (livePending !== 0) {
+            return livePending;
+        }
+
+        return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+    });
+}
+
+/** The app's date rendering, for a deadline that is days rather than minutes away. */
+function expiryDate(value: string) {
+    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value));
 }

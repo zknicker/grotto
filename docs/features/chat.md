@@ -27,8 +27,9 @@ and [Agent Inbox](../../specs/inbox.md).
   width-capped chat object card in the same family as the attachment row and the
   artifact card, built from a header (face, name, and description), zero or
   more meta rows, and a bottom row of actions. It carries the proposed Agent's
-  face and name in the header, the kind and detail as the description beneath
-  the name, and one action beneath; a status chip, when the kind has one, sits
+  face and name in the header, the proposal's own description beneath the name
+  (omitted when the proposal has none), and one action beneath; a status chip,
+  when the kind has one, sits
   at the right end of the title line rather than pinned to the header's
   corner. An executed card's bottom row carries the actions and, at its right,
   who committed it and when. A current Owner or Admin can open the ordinary

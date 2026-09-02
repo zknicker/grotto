@@ -100,8 +100,9 @@ anchor message body, and the App renders the proposal as a compact chat object
 card mounted under it — a bordered, width-capped card in the same family as the
 attachment row and the artifact card, built from a header (face, name, and
 description), zero or more meta rows, and a bottom row of actions. It carries
-the proposed Agent's face and name in the header, with `Agent proposal ·
-‹detail›` as the description beneath the name. A status chip, when the kind
+the proposed Agent's face and name in the header, with the proposal's own
+description beneath the name — omitted entirely when the proposal has none,
+rather than falling back to a bare label. A status chip, when the kind
 has one, sits at the right end of the title line — a fact about the
 object reads with the object, not pinned to the header's corner. A pending card
 asks by existing, so it carries no status chip and no receipt; its bottom row

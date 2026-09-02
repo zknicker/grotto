@@ -96,9 +96,10 @@ test('a pending proposal without manage rights names the Agent and offers no con
     expect(markup).toContain('data-action-kind="agent:create"');
     expect(markup).toContain('data-action-status="pending"');
     expect(markup).toContain('Orbit');
-    // Kind first, then the kind's own detail, in the description under the
-    // title, the same anatomy the attachment row and the artifact card read.
-    expect(slotHtml(markup, 'description')).toContain('Agent proposal · Keeps the release tidy.');
+    // The description under the title is the proposal's own text, not
+    // prefixed with the kind — the reader already knows it's a proposal.
+    expect(slotHtml(markup, 'description')).toContain('Keeps the release tidy.');
+    expect(slotHtml(markup, 'description')).not.toContain('Agent proposal');
     // The Create Agent modal owns the committed and human-owned fields.
     expect(markup).not.toContain('Runs on');
     expect(markup).not.toContain('Desk Mac');
@@ -117,6 +118,16 @@ test('a pending proposal without manage rights names the Agent and offers no con
     expect(markup).toContain('border-separator');
     expect(markup).toContain('max-w-[36rem]');
     expect(markup).not.toContain('bg-nested-surface');
+});
+
+test('a proposal with no description omits the description part rather than a bare label', () => {
+    const markup = renderToStaticMarkup(
+        <PreparedActionCard
+            action={{ ...pendingAction, proposal: { ...pendingAction.proposal, description: '' } }}
+        />
+    );
+
+    expect(hasSlot(markup, 'description')).toBe(false);
 });
 
 test('lets a current admin create the Agent with a real button, and the card carries no chip', () => {
@@ -139,7 +150,8 @@ test('a created card names the committing human, shows Created, and offers the n
     );
 
     expect(markup).toContain('data-action-status="executed"');
-    expect(slotHtml(markup, 'description')).toContain('Agent proposal · Keeps the release tidy.');
+    expect(slotHtml(markup, 'description')).toContain('Keeps the release tidy.');
+    expect(slotHtml(markup, 'description')).not.toContain('Agent proposal');
     // The receipt sits inside the bottom row, at its right end, after the
     // buttons — not its own meta row.
     expect(slotHtml(markup, 'actions')).toContain('data-slot="receipt"');

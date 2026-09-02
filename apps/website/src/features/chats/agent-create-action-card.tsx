@@ -8,8 +8,6 @@ import { formatShortTime } from '../../lib/format.ts';
 import { ActionCardExit } from './action-card-exit.tsx';
 import { PreparedAgentCreateDialog } from './prepared-agent-create-dialog.tsx';
 
-const AGENT_PROPOSAL_KIND = 'Agent proposal';
-
 /**
  * The proposed Agent's face, name, and (once created) a `Chip` in
  * `ActionCard.Status` at the right end of the title row. A pending card is
@@ -60,9 +58,7 @@ export function AgentCreateActionCard({
     const name = result?.displayName ?? proposal.name;
     const avatarUrl = result?.avatarUrl ?? proposal.avatar.url;
     const subject = result ?? proposal;
-    const description = subject.description
-        ? `${AGENT_PROPOSAL_KIND} · ${subject.description}`
-        : AGENT_PROPOSAL_KIND;
+    const description = subject.description;
     const receipt =
         result && executedByDisplayName
             ? `Created by ${executedByDisplayName} · ${formatShortTime(action.executedAt)}`
@@ -95,7 +91,9 @@ export function AgentCreateActionCard({
                             </ActionCard.Status>
                         ) : null}
                     </ActionCard.Title>
-                    <ActionCard.Description>{description}</ActionCard.Description>
+                    {description ? (
+                        <ActionCard.Description>{description}</ActionCard.Description>
+                    ) : null}
                 </ActionCard.Content>
             </ActionCard.Header>
             {actions ? (

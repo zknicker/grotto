@@ -303,17 +303,14 @@ struct AuthenticatedGrottoView: View {
                 return store.messagePresentations(chatID: chatID)
             },
             isConnected: store.isConnected,
-            allowsAttachments: resolvedThreadChatID(for: thread) != nil,
             onSend: { content, attachments in
-                let attachmentChatID = resolvedThreadChatID(for: thread)
                 guard let resolvedThreadChatID = await store.sendThreadReply(
                     content,
                     to: thread.parentChatID,
                     anchorMessageID: thread.anchor.id,
                     pendingChatID: thread.threadChatID
                         ?? store.pendingThreadChatID(anchorMessageID: thread.anchor.id),
-                    attachments: attachments,
-                    attachmentChatID: attachmentChatID
+                    attachments: attachments
                 ) else { return false }
 
                 // Server is authoritative for the child Chat id. Usually this

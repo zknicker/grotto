@@ -486,7 +486,11 @@ tile, or by the destination leaving the Server list. A Thread composer is screen
 Thread abandons its staged files to the temporary directory. Sending reserves each file
 through the existing `attachment.reserve` procedure, uploads bytes through the authenticated raw
 attachment route, then associates the returned attachment ids through `chat.send`; no native-only
-attachment record exists. Pending rows show the selected files while upload is unresolved, failures
+attachment record exists. A file is reserved in the Chat its composer is anchored in, which for a
+Thread reply is the parent Chat — a first reply has no Thread chat id yet, and Server re-homes the
+attachment to the Thread the reply lands in. A Thread with no replies therefore accepts an attachment
+on its first reply, exactly as the web composer does. Pending rows show the selected files while
+upload is unresolved, failures
 restore the exact text and files for retry, and successful Server attachments render identically in
 main timelines and Thread replies. Opening an image attachment opens the attachment viewer described
 above; every other kind resolves its cached file and presents the native Quick Look surface. The

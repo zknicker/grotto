@@ -11,7 +11,6 @@ public struct ThreadDetailView: View {
     private let isConnected: Bool
     private let onSend: (String, [ComposerAttachment]) async -> Bool
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
-    private let allowsAttachments: Bool
     private let hasOlderReplies: Bool
     private let isLoadingOlderReplies: Bool
     private let onLoadOlderReplies: (() async -> Bool)?
@@ -37,7 +36,6 @@ public struct ThreadDetailView: View {
         replies: [MessagePresentation],
         pending: Bool = false,
         isConnected: Bool = true,
-        allowsAttachments: Bool = true,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
@@ -55,7 +53,6 @@ public struct ThreadDetailView: View {
         self.isConnected = isConnected
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
-        self.allowsAttachments = allowsAttachments
         self.hasOlderReplies = hasOlderReplies
         self.isLoadingOlderReplies = isLoadingOlderReplies
         self.onLoadOlderReplies = onLoadOlderReplies
@@ -71,7 +68,6 @@ public struct ThreadDetailView: View {
         replies: @escaping () -> [MessagePresentation],
         pending: Bool = false,
         isConnected: Bool = true,
-        allowsAttachments: Bool = true,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
@@ -89,7 +85,6 @@ public struct ThreadDetailView: View {
         self.isConnected = isConnected
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
-        self.allowsAttachments = allowsAttachments
         self.hasOlderReplies = hasOlderReplies
         self.isLoadingOlderReplies = isLoadingOlderReplies
         self.onLoadOlderReplies = onLoadOlderReplies
@@ -113,7 +108,6 @@ public struct ThreadDetailView: View {
                             placeholder: "Reply in thread",
                             isConnected: isConnected,
                             isTextFocused: $isComposerFocused,
-                            allowsAttachments: allowsAttachments,
                             transitionNamespace: composerTransitionNamespace,
                             onSend: { content, attachments in
                                 guard !pending else { return false }

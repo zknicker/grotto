@@ -84,16 +84,14 @@ extension GrottoStore {
         to chatID: String,
         attachments: [ComposerAttachment] = [],
         threadAnchorMessageID: String? = nil,
-        pendingChatID: String? = nil,
-        attachmentChatID: String? = nil
+        pendingChatID: String? = nil
     ) async -> Bool {
         await sendReceipt(
             content,
             to: chatID,
             attachments: attachments,
             threadAnchorMessageID: threadAnchorMessageID,
-            pendingChatID: pendingChatID,
-            attachmentChatID: attachmentChatID
+            pendingChatID: pendingChatID
         ) != nil
     }
 
@@ -107,16 +105,14 @@ extension GrottoStore {
         to parentChatID: String,
         anchorMessageID: String,
         pendingChatID: String? = nil,
-        attachments: [ComposerAttachment] = [],
-        attachmentChatID: String? = nil
+        attachments: [ComposerAttachment] = []
     ) async -> String? {
         let receipt = await sendReceipt(
             content,
             to: parentChatID,
             attachments: attachments,
             threadAnchorMessageID: anchorMessageID,
-            pendingChatID: pendingChatID,
-            attachmentChatID: attachmentChatID
+            pendingChatID: pendingChatID
         )
         return receipt?.threadChatID
     }
@@ -126,17 +122,11 @@ extension GrottoStore {
         to chatID: String,
         attachments: [ComposerAttachment],
         threadAnchorMessageID: String?,
-        pendingChatID: String?,
-        attachmentChatID: String?
+        pendingChatID: String?
     ) async -> SendReceipt? {
         guard let serverID = activeServer?.id else { return nil }
         let content = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !content.isEmpty || !attachments.isEmpty else { return nil }
-        let uploadChatID = attachmentChatID ?? chatID
-        if !attachments.isEmpty, threadAnchorMessageID != nil, attachmentChatID == nil {
-            sendError = "Send one reply before attaching a file to a new Thread."
-            return nil
-        }
 
         let nonce = UUID().uuidString.lowercased()
         let pendingChatID = pendingChatID ?? chatID
@@ -152,10 +142,14 @@ extension GrottoStore {
         sendError = nil
 
         do {
+            // Attachments are reserved in the Chat the composer is anchored in,
+            // which for a Thread reply is the parent Chat — a first reply has no
+            // Thread chat id yet. Server re-homes them to the Thread the reply
+            // lands in, exactly as it does for the web composer.
             let uploadedAttachments = try await uploadAttachments(
                 attachments,
                 serverID: serverID,
-                chatID: uploadChatID
+                chatID: chatID
             )
             let receipt: SendReceipt = try await client.mutation(
                 "chat.send",

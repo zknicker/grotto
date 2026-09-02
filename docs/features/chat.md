@@ -49,7 +49,10 @@ and [Agent Inbox](../../specs/inbox.md).
   the ready attachment and message atomically. The App renders authenticated
   compact image previews that open into a full image viewer. Download lives in
   the viewer and the image context menu. Attachments follow the message text; other files retain
-  their filename/type/size card.
+  their filename/type/size card. A Thread reply stages its attachments in the
+  parent Chat, because a first reply has no Thread yet; the Server accepts a
+  parent-staged attachment on a Thread reply and re-homes it to the Thread the
+  reply lands in.
   Attachment bytes never ride message-list payloads.
   Hosted attachments are not Chat artifacts.
 * **Sending.** A human send is instant. The draft leaves the composer the

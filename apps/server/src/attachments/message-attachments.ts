@@ -17,19 +17,30 @@ export class AttachmentAssociationError extends Error {
 export async function requireMessageAttachments(
     db: AttachmentReader,
     member: GrottoUser,
-    input: { attachmentIds: string[]; chatId: string; serverId: string }
+    input: {
+        attachmentIds: string[];
+        chatId: string;
+        /**
+         * A Thread reply's composer is anchored in the parent Chat and stages
+         * its attachments there, because a first reply has no Thread chat id
+         * until it lands. Association re-homes them to the Thread.
+         */
+        parentChatId?: string;
+        serverId: string;
+    }
 ) {
     if (input.attachmentIds.length === 0) {
         return [];
     }
 
+    const stagedChatIds = input.parentChatId ? [input.chatId, input.parentChatId] : [input.chatId];
     const rows = await db
         .select()
         .from(attachmentsTable)
         .where(
             and(
                 eq(attachmentsTable.serverId, input.serverId),
-                eq(attachmentsTable.chatId, input.chatId),
+                inArray(attachmentsTable.chatId, stagedChatIds),
                 inArray(attachmentsTable.id, input.attachmentIds)
             )
         );
@@ -91,13 +102,13 @@ export async function associateMessageAttachments(
     db: AttachmentWriter,
     attachments: (typeof attachmentsTable.$inferSelect)[],
     messageId: string,
-    chatId?: string
+    chatId: string
 ) {
     for (const [position, attachment] of attachments.entries()) {
         const [associated] = await db
             .update(attachmentsTable)
             .set({
-                chatId: attachment.chatId ?? chatId,
+                chatId,
                 messageId,
                 messagePosition: position,
                 updatedAt: new Date(),

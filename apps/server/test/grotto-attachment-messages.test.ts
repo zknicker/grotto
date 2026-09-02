@@ -95,6 +95,46 @@ test('one ready attachment can win only one concurrent message association', asy
     expect(attempts.filter((attempt) => attempt.status === 'rejected')).toHaveLength(1);
 });
 
+test('a Thread reply carries an attachment staged in its parent Chat', async () => {
+    const anchor = await client.trpc.chat.send.mutate({
+        chatId,
+        content: 'Anchor',
+        nonce: 'thread-attachment-anchor',
+        serverId,
+    });
+    // The composer stages in the parent Chat because a first reply has no
+    // Thread chat id yet.
+    const attachment = await readyAttachment('thread-reply', 'reply.txt', 'text/plain', 'reply');
+
+    const reply = await client.trpc.chat.send.mutate({
+        attachmentIds: [attachment.id],
+        chatId,
+        content: 'Reply with a file',
+        nonce: 'thread-attachment-reply',
+        serverId,
+        thread: { anchorMessageId: anchor.message.id },
+    });
+
+    const threadChatId = `cht_thr_${anchor.message.id.slice('msg_'.length)}`;
+    expect(reply).toMatchObject({
+        message: { attachments: [attachment], chatId: threadChatId },
+        threadChatId,
+    });
+    await expect(
+        client.trpc.chat.messages.query({ chatId: threadChatId, serverId })
+    ).resolves.toMatchObject({
+        messages: [{ attachments: [attachment], id: reply.message.id }],
+    });
+
+    // The attachment is re-homed to the Thread it landed in, so its download
+    // authorization follows the message rather than the staging Chat.
+    const attachmentId = String(attachment.id);
+    const [row] = (await harness.sql`
+        select chat_id from attachments where id = ${attachmentId}
+    `) as { chat_id: string }[];
+    expect(row.chat_id).toBe(threadChatId);
+});
+
 test('association rejects pending, foreign-Server, and already-associated ids', async () => {
     const pending = await client.trpc.attachment.reserve.mutate({
         chatId,

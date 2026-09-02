@@ -162,6 +162,7 @@ export async function sendChatMessage(
         const attachments = await requireMessageAttachments(tx, member, {
             attachmentIds: input.attachmentIds,
             chatId: writeChatId,
+            ...(thread ? { parentChatId: thread.parentChatId } : {}),
             serverId: input.serverId,
         });
         const [updatedChat] = await tx
@@ -190,7 +191,7 @@ export async function sendChatMessage(
             })
             .returning();
 
-        await associateMessageAttachments(tx, attachments, message.id);
+        await associateMessageAttachments(tx, attachments, message.id, writeChatId);
         if (thread) {
             await tx
                 .insert(threadFollowsTable)

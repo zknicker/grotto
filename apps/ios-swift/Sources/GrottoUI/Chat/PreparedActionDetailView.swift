@@ -114,19 +114,25 @@ public struct PreparedActionDetailView: View {
     }
 
     /// The card's one control, kept on the sheet so reading the proposal and
-    /// acting on it are the same visit. It is a bar rather than a list row: the
-    /// action stays reachable at either detent without scrolling to find it.
+    /// acting on it are the same visit. Like the app's composer over the
+    /// timeline (`ComposerGlassSurface`, floated by `ChatScreenView`), it
+    /// simply floats over the scrolling content at either detent — no
+    /// hairline, no distinct background section, just the button and the
+    /// list passing beneath it. The deployment target here is iOS 18, below
+    /// the glass-effect minimum the composer itself only reaches behind an
+    /// `#available(iOS 26, *)` check, so this control stays the plain
+    /// fallback rather than reimplementing that split for one button.
     @ViewBuilder
     private func footer(_ detail: PreparedActionDetail) -> some View {
         switch detail.action {
         case .createAgent:
-            footerBar {
+            footerButton {
                 Button { onCreateAgent(action) } label: { footerLabel("Create Agent") }
                     .buttonStyle(.borderedProminent)
                     .accessibilityIdentifier("prepared-action-detail-create-agent")
             }
         case let .openAgent(agentID):
-            footerBar {
+            footerButton {
                 Button {
                     dismiss()
                     onOpenAgent(agentID)
@@ -145,17 +151,11 @@ public struct PreparedActionDetailView: View {
         Text(title).frame(maxWidth: .infinity)
     }
 
-    private func footerBar(@ViewBuilder content: () -> some View) -> some View {
+    private func footerButton(@ViewBuilder content: () -> some View) -> some View {
         content()
             .controlSize(.large)
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(.bar)
-            // The list scrolls under the bar, so the bar needs the hairline a
-            // toolbar would draw for itself — without it the material and a
-            // white list row are the same colour and the last row reads as cut
-            // off rather than as content passing beneath.
-            .overlay(alignment: .top) { Divider() }
     }
 }
 

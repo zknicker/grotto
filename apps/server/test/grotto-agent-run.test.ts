@@ -87,7 +87,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('chat mention options expose the DM Agent, active humans, and reported skills', async () => {
+test('chat mention options expose the DM Agent, active humans, visible channels, and skills', async () => {
     const result = await owner.trpc.chat.mentionOptions.query({
         agentIds: [agentId],
         chatId: dmChatId,
@@ -104,6 +104,16 @@ test('chat mention options expose the DM Agent, active humans, and reported skil
             id: expect.stringMatching(/^user:\/\/usr_/u),
             kind: 'user',
             label: 'Ada',
+        }),
+        expect.objectContaining({
+            id: expect.stringMatching(/^chat:\/\/cht_/u),
+            kind: 'chat',
+            label: 'all',
+        }),
+        expect.objectContaining({
+            id: expect.stringMatching(/^chat:\/\/cht_/u),
+            kind: 'chat',
+            label: 'onboarding-owner',
         }),
         expect.objectContaining({
             id: 'skill://agent-browser',

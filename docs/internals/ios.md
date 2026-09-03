@@ -99,6 +99,13 @@ it converts hugeicons' SVG elements into path data, and `SVGPathData` parses tha
 main actor and caches each glyph's parsed `Path` on first use. Until it lands — and for any name the
 catalog does not carry — the box renders the hash, so the glyph never changes size or position.
 
+A stored body's edge whitespace is never layout. `MessagePresentation.body(content:preparedAction:)`
+is the single presentation boundary that decides what a row says, and it trims leading and trailing
+whitespace and newlines there, so both the row's `content` and its `richSegments` derive from the
+same trimmed body — an Agent reply ending in a newline no longer pays a blank text line of gap
+before the next row or before its thread card. The persisted Markdown is untouched, and interior
+blank lines stay exactly as written.
+
 Image attachments render inline as media tiles rather than file rows: the timeline downloads
 through the same authenticated attachment route Quick Look uses, decodes a downsampled ImageIO
 thumbnail off the main actor, and keeps the result in an in-memory `AttachmentImageCache` keyed by

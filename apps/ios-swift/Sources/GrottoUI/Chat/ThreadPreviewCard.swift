@@ -25,7 +25,10 @@ struct ThreadPreviewCard: View {
         }
         .buttonStyle(.pressableRow(cornerRadius: 12))
         .accessibilityLabel(accessibilityLabel)
-        .padding(.top, 5)
+        // A card attached under a message body takes the same step the
+        // prepared-action card takes. The message's own attachments sit closer,
+        // at 3pt, because they are the message rather than about it.
+        .padding(.top, 6)
     }
 
     /// A task leads with its own summary and sends the count to the trailing

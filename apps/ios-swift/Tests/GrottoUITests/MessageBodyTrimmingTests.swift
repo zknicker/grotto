@@ -1,0 +1,114 @@
+import Foundation
+@testable import GrottoUI
+import SwiftUI
+import Testing
+
+/// A stored body's edge whitespace is never layout. Agent replies routinely end
+/// in a newline, and a `Text` that keeps it paints a blank line under the
+/// message — an extra text line of gap before the next row and before the
+/// thread card. The presentation boundary trims it once; the stored Markdown is
+/// untouched.
+struct MessageBodyTrimmingTests {
+    @Test func trimsEdgeWhitespaceFromTheBodyAndItsSegments() {
+        let message = presentation(content: "  Ready when you are.\n\n")
+
+        #expect(message.content == "Ready when you are.")
+        #expect(message.richSegments == [.text("Ready when you are.")])
+    }
+
+    @Test func keepsInteriorParagraphBreaks() {
+        let message = presentation(content: "First paragraph.\n\nSecond paragraph.\n")
+
+        #expect(message.content == "First paragraph.\n\nSecond paragraph.")
+    }
+
+    /// The caller that can resolve identities derives the body itself and hands
+    /// both in. Trimming must not break that trust check, or a mention loses its
+    /// avatar and reverts to the persisted fallback label.
+    @Test func keepsResolvedSegmentsWhenTrimmingChangesTheBody() {
+        let stored = "Handing this to [@Cove](agent://agt_cove)\n\n"
+        let body = MessagePresentation.body(content: stored, preparedAction: nil)
+        let resolved = RichMessageParser.parse(body) { kind, id, _ in
+            RichReferencePresentation(
+                id: id,
+                kind: kind,
+                label: "Cove",
+                avatarURL: URL(string: "https://example.test/cove.png")
+            )
+        }
+
+        let message = presentation(content: body, richSegments: resolved)
+
+        #expect(message.content == "Handing this to [@Cove](agent://agt_cove)")
+        guard case let .reference(reference) = message.richSegments.last else {
+            Issue.record("expected a trailing resolved reference")
+            return
+        }
+        #expect(reference.label == "Cove")
+        #expect(reference.avatarURL != nil)
+    }
+
+    @Test func substitutesThePreparedActionNoteForAWhitespaceOnlyBody() {
+        let message = presentation(
+            content: " \n\n",
+            preparedAction: preparedAction(draftHint: "Meet Tiny.\n")
+        )
+
+        #expect(message.content == "Meet Tiny.")
+        #expect(message.richSegments == [.text("Meet Tiny.")])
+    }
+
+    /// The regression itself, measured rather than reasoned about: the rendered
+    /// body of "Hello" and of "Hello\n\n" occupy the same height.
+    @MainActor
+    @Test func rendersTheSameHeightWithAndWithoutTrailingNewlines() {
+        let plain = renderedBodyHeight(presentation(content: "Hello"))
+        let padded = renderedBodyHeight(presentation(content: "Hello\n\n"))
+
+        #expect(plain != nil)
+        #expect(plain == padded)
+    }
+
+    @MainActor
+    private func renderedBodyHeight(_ message: MessagePresentation) -> Int? {
+        let renderer = ImageRenderer(
+            content: RichMessageContentView(segments: message.richSegments)
+                .frame(width: 280, alignment: .leading)
+        )
+        return renderer.cgImage?.height
+    }
+
+    private func presentation(
+        content: String,
+        preparedAction: PreparedActionPresentation? = nil,
+        richSegments: [RichMessageSegment]? = nil
+    ) -> MessagePresentation {
+        MessagePresentation(
+            id: "message_1",
+            author: MessageAuthorPresentation(id: "agt_cove", name: "Cove", avatarURL: nil),
+            content: content,
+            createdAt: Date(timeIntervalSince1970: 0),
+            preparedAction: preparedAction,
+            richSegments: richSegments
+        )
+    }
+
+    private func preparedAction(draftHint: String) -> PreparedActionPresentation {
+        .createAgent(
+            PreparedCreateAgentActionPresentation(
+                avatarURL: nil,
+                chatID: "cht_1",
+                computerDetail: nil,
+                createdAt: Date(timeIntervalSince1970: 0),
+                description: nil,
+                draftHint: draftHint,
+                executedByDisplayName: nil,
+                id: "prepared_1",
+                name: "Tiny",
+                proposedComputerID: nil,
+                requiredComputerID: nil,
+                status: .pending
+            )
+        )
+    }
+}

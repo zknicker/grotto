@@ -33,8 +33,7 @@ struct ThreadMessageRow: View {
                         .foregroundStyle(.secondary)
                 }
 
-                let content = message.content.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !content.isEmpty {
+                if !message.content.isEmpty {
                     RichMessageContentView(
                         segments: message.richSegments,
                         font: emphasized ? .body : .subheadline
@@ -68,7 +67,7 @@ struct ThreadMessageRow: View {
                     // so a collapsed card cannot blank the next message's live
                     // one.
                     .id(preparedAction.id)
-                    .padding(.top, content.isEmpty ? 0 : 6)
+                    .padding(.top, message.content.isEmpty ? 0 : 6)
                 }
 
                 if message.isPending {

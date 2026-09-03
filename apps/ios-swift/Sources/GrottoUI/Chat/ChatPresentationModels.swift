@@ -139,13 +139,19 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     /// anchor stands in for the proposal's note; a superseded proposal, which
     /// leaves no card behind, falls back to a short replacement line so its row
     /// is not blank.
+    ///
+    /// Edge whitespace is never layout. An Agent's reply routinely ends in a
+    /// newline, and a `Text` that keeps it paints a blank line under the body —
+    /// a whole text line of phantom gap before the next row and before the
+    /// thread card. Trimming here is presentation only; the stored Markdown is
+    /// untouched, and interior blank lines stay as they were written.
     public static func body(
         content: String,
         preparedAction: PreparedActionPresentation?
     ) -> String {
-        content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? preparedAction?.messageText ?? content
-            : content
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.isEmpty else { return trimmed }
+        return (preparedAction?.messageText ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

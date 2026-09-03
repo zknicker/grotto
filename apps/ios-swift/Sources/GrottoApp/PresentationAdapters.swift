@@ -130,14 +130,18 @@ extension GrottoStore {
                 nonce: message.nonce,
                 durableNonces: durableNonces
             ) else { return nil }
+            // An optimistic row goes through the same body resolution as a
+            // durable one, so its mentions survive the trust check even when
+            // trimming changes the string the composer staged.
+            let body = MessagePresentation.body(content: message.content, preparedAction: nil)
             return MessagePresentation(
                 id: message.id,
                 author: viewer,
-                content: message.content,
+                content: body,
                 createdAt: message.createdAt,
                 attachments: message.attachments.map(\.presentation),
                 isPending: true,
-                richSegments: richMessageSegments(message.content)
+                richSegments: richMessageSegments(body)
             )
         }
     }

@@ -252,8 +252,7 @@ public struct MessageTimelineView: View {
                     }
                 }
 
-                let content = message.content.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !content.isEmpty {
+                if !message.content.isEmpty {
                     RichMessageContentView(segments: message.richSegments)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -266,7 +265,7 @@ public struct MessageTimelineView: View {
                         tiles: attachmentTiles,
                         onOpen: onOpenAttachment
                     )
-                    .padding(.top, content.isEmpty ? 0 : 3)
+                    .padding(.top, message.content.isEmpty ? 0 : 3)
                 }
 
                 if let preparedAction = message.preparedAction {
@@ -284,7 +283,7 @@ public struct MessageTimelineView: View {
                     // so a collapsed card cannot blank the next message's live
                     // one.
                     .id(preparedAction.id)
-                    .padding(.top, content.isEmpty ? 0 : 6)
+                    .padding(.top, message.content.isEmpty ? 0 : 6)
                 }
 
                 if message.isPending {

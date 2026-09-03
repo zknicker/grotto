@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.13.0 - 2026-09-03
+
+- Grotto adds channel autocomplete and channel reference chips to Chat composers, and keeps their
+  readable labels in Thread previews.
+- Grotto restores direct Agent creation, presents Agent proposals as compact action cards, and
+  makes pending invitations easier to create, inspect, and revoke.
+- Grotto accepts attachments on the first reply in a Thread and gives image attachments clearer
+  previews and download controls.
+- Grotto for iPhone adds zoomable image viewing, compact multi-image strips, visible file-preview
+  controls, richer Thread previews, and a sectioned mention picker that stays above the keyboard.
+
 ## v1.12.9 - 2026-09-01
 
 - Grotto shows existing and new image attachments as authenticated Chat thumbnails with a

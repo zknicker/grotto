@@ -101,12 +101,40 @@ export async function seedDevelopmentServer(
             .update(usersTable)
             .set({ avatarId: avatarIds.owner })
             .where(eq(usersTable.id, user.id));
+        // Two tasks in different states, one per assignee kind. The channel's
+        // task counter starts past them, or the first real `task.promote` in a
+        // seeded workspace collides with a seeded number.
+        const demoTasks = [
+            {
+                assigneeAgentId: blippyId,
+                chatId: channelId,
+                createdByUserId: user.id,
+                messageId: shipTaskMessageId,
+                number: 1,
+                origin: 'composed' as const,
+                priority: 'high' as const,
+                serverId,
+                status: 'in_progress' as const,
+            },
+            {
+                assigneeUserId: user.id,
+                chatId: channelId,
+                createdByAgentId: tinyId,
+                messageId: auditTaskMessageId,
+                number: 2,
+                origin: 'converted' as const,
+                priority: 'medium' as const,
+                serverId,
+                status: 'todo' as const,
+            },
+        ];
         await tx.insert(chatsTable).values({
             id: channelId,
             isAll: true,
             kind: 'channel',
             lastActivityAt: now,
             lastMessageSequence: 6,
+            lastTaskNumber: Math.max(...demoTasks.map((task) => task.number)),
             name: 'all',
             serverId,
         });
@@ -288,30 +316,7 @@ export async function seedDevelopmentServer(
         ]);
 
         // Two tasks in different states, one per assignee kind.
-        await tx.insert(messageTasksTable).values([
-            {
-                assigneeAgentId: blippyId,
-                chatId: channelId,
-                createdByUserId: user.id,
-                messageId: shipTaskMessageId,
-                number: 1,
-                origin: 'composed',
-                priority: 'high',
-                serverId,
-                status: 'in_progress',
-            },
-            {
-                assigneeUserId: user.id,
-                chatId: channelId,
-                createdByAgentId: tinyId,
-                messageId: auditTaskMessageId,
-                number: 2,
-                origin: 'converted',
-                priority: 'medium',
-                serverId,
-                status: 'todo',
-            },
-        ]);
+        await tx.insert(messageTasksTable).values(demoTasks);
 
         // One Server-managed MCP connection so the Agent Connections surface
         // has something to grant.

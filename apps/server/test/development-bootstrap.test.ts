@@ -145,8 +145,14 @@ test('seeds a demo workspace an operator can actually look at', async () => {
         tasks.every((task) => threadIds.has(`cht_thr_${task.messageId.replace(/^msg_/u, '')}`))
     ).toBe(true);
 
-    // Two tasks covering both assignee kinds and two statuses.
+    // Two tasks covering both assignee kinds and two statuses. The channel's
+    // counter is past both, so promoting a message in the seeded `#all` does
+    // not collide with a seeded task number.
     expect(tasks).toHaveLength(2);
+    const [allChannel] = (await connection.db.select().from(chatsTable)).filter(
+        (chat) => chat.isAll
+    );
+    expect(allChannel?.lastTaskNumber).toBe(Math.max(...tasks.map((task) => task.number)));
     expect(tasks.map((task) => task.status).sort()).toEqual(['in_progress', 'todo']);
     expect(tasks.some((task) => task.assigneeAgentId !== null)).toBe(true);
     expect(tasks.some((task) => task.assigneeUserId !== null)).toBe(true);

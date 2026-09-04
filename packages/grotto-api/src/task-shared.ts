@@ -47,3 +47,9 @@ export const messageTaskSchema = z
 
 export type MessageTask = z.infer<typeof messageTaskSchema>;
 export type TaskLabel = z.infer<typeof taskLabelSchema>;
+
+/**
+ * An `in_review` task whose thread has been quiet this long is closed as stale
+ * by Server. Closing is reversible; a human can reopen it.
+ */
+export const TASK_IN_REVIEW_STALE_DAYS = 7;

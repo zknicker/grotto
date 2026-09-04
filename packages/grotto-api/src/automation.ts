@@ -30,6 +30,30 @@ export const messageCauseStatusSchema = z.enum([
  * Reminder firing, and this mark is its provenance. Every field the header mark
  * and its hover card need rides the message itself.
  */
+/**
+ * What the automation looks like right now, read live from its record. Null
+ * once the Trigger or Reminder (or its fire) has been archived; the mark then
+ * renders from the snapshot the message carries.
+ */
+export const messageCauseLiveSchema = z
+    .object({
+        /** Fires recorded for that automation, this one included. */
+        fireCount: z.number().int().positive(),
+        /** The Trigger's standing instruction, or the Reminder's script, snipped. */
+        instruction: z.string().min(1).max(automationSnippetMaxChars).nullable(),
+        lastFiredAt: timestampSchema.nullable(),
+        status: messageCauseStatusSchema,
+    })
+    .strict();
+
+export type MessageCauseLive = z.infer<typeof messageCauseLiveSchema>;
+
+/**
+ * A message's provenance. `title`, `summary`, `firedAt`, and `ownerAgentId`
+ * are snapshotted onto the message when the cause is recorded, so the mark
+ * outlives the automation. `live` is the automation as it stands today, or
+ * null when it has been archived.
+ */
 export const messageCauseSchema = z
     .object({
         /**
@@ -40,16 +64,13 @@ export const messageCauseSchema = z
         attribution: messageCauseAttributionSchema,
         /** The Trigger or Reminder id. */
         automationId: idSchema,
-        /** Fires recorded for that automation, this one included. */
-        fireCount: z.number().int().positive(),
+        /** When the answered fire happened. */
+        firedAt: timestampSchema,
         /** The exact fire the Agent answered. */
         fireId: idSchema,
-        /** The Trigger's standing instruction, or the Reminder's script, snipped. */
-        instruction: z.string().min(1).max(automationSnippetMaxChars).nullable(),
         kind: messageCauseKindSchema,
-        lastFiredAt: timestampSchema.nullable(),
+        live: messageCauseLiveSchema.nullable(),
         ownerAgentId: idSchema,
-        status: messageCauseStatusSchema,
         /** A Reminder's cadence ("Every Monday at 09:00") or a Trigger's kind label ("Webhook"). */
         summary: z.string().min(1),
         title: z.string().min(1),
@@ -78,9 +99,9 @@ export const automationFireContextSchema = z
         cause: messageCauseSchema,
         contentType: z.string().nullable(),
         firedAt: timestampSchema,
-        /** This fire's position in the automation's history, 1-based. */
-        fireOrdinal: z.number().int().positive(),
-        fireTotal: z.number().int().positive(),
+        /** This fire's position in the automation's history, 1-based. Null once archived. */
+        fireOrdinal: z.number().int().positive().nullable(),
+        fireTotal: z.number().int().positive().nullable(),
         nextFireAt: timestampSchema.nullable(),
         payload: z.string().max(automationPayloadExcerptMaxChars).nullable(),
         payloadBytes: z.number().int().nonnegative().nullable(),

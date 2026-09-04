@@ -25,6 +25,13 @@ export const reminderSchema = z
 
 export type Reminder = z.infer<typeof reminderSchema>;
 
+/**
+ * Reminder fires are history, not schedule. Server deletes a fire this many
+ * days after it happened, and deletes fired one-shot and canceled reminders
+ * this many days after they settled.
+ */
+export const REMINDER_HISTORY_RETENTION_DAYS = 30;
+
 export const reminderListInputSchema = z
     .object({
         agentId: idSchema.optional(),
@@ -52,6 +59,46 @@ export const reminderFireSchema = z
     .strict();
 
 export const reminderRunsSchema = z.array(reminderFireSchema);
+
+export const reminderHistoryInputSchema = z
+    .object({
+        agentId: idSchema,
+        limit: z.number().int().min(1).max(500).default(200),
+        serverId: idSchema,
+    })
+    .strict();
+
+/**
+ * One execution of a reminder, as shown in the Agent profile's History drawer.
+ * Recurring reminders contribute one entry per fire. Entries live for
+ * `REMINDER_HISTORY_RETENTION_DAYS` and then Server deletes them.
+ */
+export const reminderHistoryEntrySchema = z
+    .object({
+        /** The Agent's marked answer to this fire, when it has posted one. */
+        answer: z.object({ chatId: idSchema, messageId: idSchema }).strict().nullable(),
+        fireId: idSchema,
+        firedAt: timestampSchema,
+        reminderId: idSchema,
+        /** The reminder's cadence at read time; null for a one-shot. */
+        repeat: z.string().min(1).nullable(),
+        scheduledFor: timestampSchema,
+        /** Null when the reminder carried no script. */
+        script: z
+            .object({
+                exitCode: z.number().int().nullable(),
+                timedOut: z.boolean(),
+            })
+            .strict()
+            .nullable(),
+        title: z.string().min(1).max(300),
+    })
+    .strict();
+
+export type ReminderHistoryEntry = z.infer<typeof reminderHistoryEntrySchema>;
+
+/** Newest fire first. */
+export const reminderHistorySchema = z.array(reminderHistoryEntrySchema);
 
 export const reminderCancelInputSchema = z
     .object({

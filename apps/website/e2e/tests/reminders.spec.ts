@@ -26,9 +26,11 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({ page }) =>
     await page.goto('/s/reminders/members');
     await page.getByRole('link', { name: 'Cove' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Cove' })).toBeVisible();
-    await page.getByRole('radio', { name: 'Reminders' }).click();
+    await page.getByRole('radio', { name: 'Automations' }).click();
     await expect(page.getByText('Local watchdog', { exact: true })).toBeVisible();
     await expect(page.getByText(/daily@09:00/u)).toBeVisible();
+    // Reminders and Triggers share the Automations tab, each as its own section.
+    await expect(page.getByText(/No triggers yet\./u)).toBeVisible();
 
     runPsql(
         session.databaseUrl,
@@ -39,8 +41,8 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({ page }) =>
            )`
     );
     await page.reload();
-    await page.getByRole('radio', { name: 'Reminders' }).click();
-    await expect(page.getByText('No Reminders Yet', { exact: true })).toBeVisible();
+    await page.getByRole('radio', { name: 'Automations' }).click();
+    await expect(page.getByText(/No reminders yet\./u)).toBeVisible();
     await expect(page.getByText('Local watchdog', { exact: true })).toHaveCount(0);
 });
 
@@ -63,10 +65,14 @@ function seedReminderState(input: {
          insert into channel_agent_participants (server_id, chat_id, agent_id)
          values ('${input.serverId}', '${input.chatId}', 'agt_e2e_reminder');
          insert into chat_messages (
-           id, server_id, chat_id, sequence, system_author, content, nonce, created_at
+           id, server_id, chat_id, sequence, author_user_id, content, nonce, created_at
          ) values (
            'msg_e2e_reminder_anchor', '${input.serverId}', '${input.chatId}', 1,
-           'reminder', 'Reminder anchor', 'e2e-reminder-anchor',
+           (
+             select user_id from server_memberships
+             where server_id = '${input.serverId}' and role = 'owner'
+           ),
+           'Watch the deploy for me.', 'e2e-reminder-anchor',
            '2026-07-26T12:00:00.000Z'
          );
          update chats set last_message_sequence = 1

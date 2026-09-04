@@ -15,6 +15,7 @@ import {
     PreparedActionCard,
     preparedActionMessageText,
 } from '../../chats/prepared-action-card.tsx';
+import { deriveSessionMarks } from '../../chats/session/session-mark-model.ts';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { useResolveActorProfile } from './chat-actor-profiles.ts';
 import { applyLocalReactions, useLocalChatReactions } from './chat-local-reactions.ts';
@@ -37,6 +38,8 @@ const emptyPendingMessages: readonly PendingChatMessage[] = [];
 
 interface ChatTranscriptInput {
     canManage?: boolean;
+    /** Hides the header automation mark when a context card already states it. */
+    causeMarkHidden?: boolean;
     chatId: string;
     messages: readonly ChatMessage[] | undefined;
     onOpenArtifact: (target: GrottoResourceTarget) => void;
@@ -95,6 +98,7 @@ export function ChatTranscript({
  */
 export function useChatTranscript({
     canManage = false,
+    causeMarkHidden,
     chatId,
     messages,
     onOpenArtifact,
@@ -136,6 +140,20 @@ export function useChatTranscript({
     const agentsById = React.useMemo(
         () => new Map(agentList.map((agent) => [agent.id, agent])),
         [agentList]
+    );
+    // Derived across the whole loaded page, not per row: whether a message
+    // opened a new session is a difference from that Agent's previous message,
+    // which no single row can see.
+    const sessionMarks = React.useMemo(
+        () =>
+            deriveSessionMarks(
+                messageList.map((message) => ({
+                    agentId: message.author.kind === 'agent' ? message.author.agentId : null,
+                    id: message.id,
+                    sessionGeneration: message.sessionGeneration,
+                }))
+            ),
+        [messageList]
     );
     const chatsById = React.useMemo(
         () => new Map((chats.data ?? []).map((chat) => [chat.id, chat])),
@@ -256,8 +274,10 @@ export function useChatTranscript({
                         onReferenceActivate={onReferenceActivate}
                     />
                 ),
+                causeMarkHidden,
                 repliedRunIds: new Set<string>(),
                 resolveActorProfile,
+                sessionMarks,
                 shouldAnimateItemEnter: () => false,
                 taskChipHidden,
                 threadActionsEnabled: Boolean(onOpenThread),
@@ -266,6 +286,7 @@ export function useChatTranscript({
             agentList,
             agentsById,
             canManage,
+            causeMarkHidden,
             chatId,
             chatsById,
             handleOpenThread,
@@ -278,6 +299,7 @@ export function useChatTranscript({
             renderMessageAttachments,
             resolveActorProfile,
             serverId,
+            sessionMarks,
             taskChipHidden,
             turnDetailsAccess,
         ]

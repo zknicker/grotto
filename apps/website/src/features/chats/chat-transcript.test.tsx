@@ -23,7 +23,7 @@ import {
 import { ChatTurnItems } from './chat-turn-drawer.tsx';
 import { withLocalTimelineMessageMetadata } from './local-timeline-message.ts';
 import { ToolStep } from './tool-steps/registry.tsx';
-import type { TranscriptActiveReply } from './transcript-contract.ts';
+import type { TranscriptActiveReply, TranscriptMessageRow } from './transcript-contract.ts';
 
 test('ChatTranscript renders hover time and copy action without session or usage badges', () => {
     const markup = renderTranscript([
@@ -1971,6 +1971,121 @@ function narrationMessageRow(id: string, content: string, timestampMs: number): 
             sourceSessionId: null,
             sourceSessionKey: 'agent:tiny:session-1',
             timestamp: new Date(timestampMs).toISOString(),
+        },
+    };
+}
+
+test('ChatTranscript marks a message an automation provoked, in the header beside the name', () => {
+    const markup = renderTranscript([causedRow()], causedOverrides());
+
+    assert.match(markup, /Deploy finished/);
+    assert.match(markup, /text-trigger-mark/);
+    // The bio yields the header slot to the mark: why an Agent spoke outranks
+    // what it is generally for.
+    assert.doesNotMatch(markup, /Keeps the plan tight/);
+});
+
+test('ChatTranscript leaves an ordinary message unmarked and keeps the bio', () => {
+    const row = causedRow();
+    const markup = renderTranscript(
+        [{ ...row, message: { ...row.message, cause: null } }],
+        causedOverrides()
+    );
+
+    assert.doesNotMatch(markup, /Deploy finished/);
+    assert.doesNotMatch(markup, /text-trigger-mark/);
+    assert.match(markup, /Keeps the plan tight/);
+});
+
+test('ChatTranscript marks a message an Agent wrote after starting a new session', () => {
+    const markup = renderTranscript([causedRow()], {
+        ...causedOverrides(),
+        sessionMarks: new Map([['message-caused', { agentId: 'blippy', generation: 5 }]]),
+        turnDetails: { access: 'summary', serverId: 'srv_1' },
+    });
+
+    assert.match(markup, /New session/);
+    assert.match(markup, /text-session-mark/);
+});
+
+test('ChatTranscript orders the session mark after the cause mark when both apply', () => {
+    const markup = renderTranscript([causedRow()], {
+        ...causedOverrides(),
+        sessionMarks: new Map([['message-caused', { agentId: 'blippy', generation: 5 }]]),
+        turnDetails: { access: 'summary', serverId: 'srv_1' },
+    });
+
+    // Why the Agent spoke comes before what it had already forgotten.
+    assert.ok(
+        markup.indexOf('message-cause-mark') < markup.indexOf('message-session-mark'),
+        'the cause mark should render before the session mark'
+    );
+});
+
+test('ChatTranscript leaves a turn no rule marked without a session mark', () => {
+    const markup = renderTranscript([causedRow()], {
+        ...causedOverrides(),
+        sessionMarks: new Map(),
+        turnDetails: { access: 'summary', serverId: 'srv_1' },
+    });
+
+    assert.doesNotMatch(markup, /text-session-mark/);
+});
+
+test('ChatTranscript drops the mark where a context card already states it', () => {
+    const markup = renderTranscript([causedRow()], {
+        ...causedOverrides(),
+        causeMarkHidden: true,
+    });
+
+    assert.doesNotMatch(markup, /text-trigger-mark/);
+});
+
+function causedOverrides(): Partial<TranscriptRenderContextValue> {
+    return {
+        resolveActorProfile: () => ({
+            availability: { kind: 'none' },
+            avatarUrl: null,
+            bio: 'Keeps the plan tight and surfaces decisions early.',
+            deleted: false,
+            id: 'blippy',
+            isSelf: false,
+            kind: 'agent',
+            name: 'Blippy',
+        }),
+    };
+}
+
+function causedRow(): TranscriptMessageRow {
+    return {
+        actor: { id: 'blippy', kind: 'agent' },
+        connectsToNext: false,
+        connectsToPrevious: false,
+        id: 'message-caused',
+        isFirstInGroup: true,
+        kind: 'message',
+        message: {
+            cause: {
+                attribution: 'explicit',
+                automationId: 'trg_deploy',
+                fireCount: 12,
+                fireId: 'trf_12',
+                instruction: null,
+                kind: 'trigger',
+                lastFiredAt: '2026-09-03T11:56:00.000Z',
+                ownerAgentId: 'blippy',
+                status: 'armed',
+                summary: 'Webhook',
+                title: 'Deploy finished',
+            },
+            content: 'Production is green again after 2m 41s.',
+            grottoAgentId: 'blippy',
+            id: 'message-caused',
+            sender: 'Blippy',
+            senderType: 'agent',
+            sourceSessionId: null,
+            sourceSessionKey: 'hosted:blippy',
+            timestamp: '2026-09-03T12:00:00.000Z',
         },
     };
 }

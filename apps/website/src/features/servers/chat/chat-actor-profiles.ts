@@ -95,7 +95,7 @@ function useHistoricalActorProfiles(messages: readonly ChatMessage[], humans: Hu
         for (const message of messages) {
             const author = message.author;
 
-            if (author.kind === 'system' || !author.profile) {
+            if (!author.profile) {
                 continue;
             }
 

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { TranscriptMessage } from './chat-transcript-message.tsx';
 import type { ConversationMessageLayout, TranscriptActor } from './chat-transcript-model.ts';
+import type { SessionMark } from './session/session-mark-model.ts';
 import type {
     TranscriptActorProfile,
     TranscriptMessageRow,
@@ -30,6 +31,13 @@ export function getMessageCopyText(
 
 export interface TranscriptRenderContextValue {
     canRequestMention: boolean;
+    /**
+     * Suppresses the header's automation mark. A Thread opened on a caused
+     * message states the automation, its status, and the fire in the context
+     * card above the anchor, so repeating the mark on the anchor's own header
+     * says the same thing twice.
+     */
+    causeMarkHidden?: boolean;
     chatId?: string;
     composerId?: string;
     conversationLayout: ConversationMessageLayout;
@@ -66,6 +74,12 @@ export interface TranscriptRenderContextValue {
     /** Runs whose final reply is present anywhere in the transcript. */
     repliedRunIds: ReadonlySet<string>;
     resolveActorProfile?: (actor: TranscriptActor) => TranscriptActorProfile | null;
+    /**
+     * Messages that opened a new Agent session, by message id. Derived across
+     * the whole loaded transcript rather than per row, because the rule is a
+     * difference between one Agent message and that Agent's previous one.
+     */
+    sessionMarks?: ReadonlyMap<string, SessionMark>;
     /**
      * Whether an item mounting now lands at the live edge and should animate
      * in. False for everything present at first render and for older history

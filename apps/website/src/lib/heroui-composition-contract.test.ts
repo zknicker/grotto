@@ -31,7 +31,15 @@ const spacingOverrideAllowlist: Record<string, string> = {
 };
 
 /** Components whose spacing is part of the design system, not a suggestion. */
-const spacingOwners = ['Card', 'ItemCard', 'ItemCardGroup', 'Modal', 'Drawer', 'AlertDialog'];
+const spacingOwners = [
+    'Card',
+    'ItemCard',
+    'ItemCardGroup',
+    'Modal',
+    'Drawer',
+    'Sheet',
+    'AlertDialog',
+];
 
 const cancelledSpacing = ['p-0', 'px-0', 'py-0', 'pt-0', 'pb-0', 'ps-0', 'pe-0', 'gap-0', 'm-0'];
 

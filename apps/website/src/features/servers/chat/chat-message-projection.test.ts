@@ -90,6 +90,7 @@ function message(id: string, content: string): ChatMessage {
         runId: null,
         sequence: Number(id.slice(-1)),
         serverId: 'srv_1',
+        sessionGeneration: null,
         task: null,
     };
 }

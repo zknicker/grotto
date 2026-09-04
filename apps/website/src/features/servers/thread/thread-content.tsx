@@ -6,6 +6,7 @@ import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts
 import { useMembers } from '../../../hooks/servers/use-members.ts';
 import { useThreadFollow } from '../../../hooks/servers/use-thread-follow.ts';
 import { useThreadMessages } from '../../../hooks/servers/use-thread-messages.ts';
+import { AutomationFireContextCard } from '../../chats/automation/automation-fire-context-card.tsx';
 import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
 import { TranscriptRenderProvider } from '../../chats/chat-transcript-render-context.tsx';
 import { TranscriptEntryView } from '../../chats/chat-transcript-turn.tsx';
@@ -84,6 +85,8 @@ export function ThreadContent({
     const threadMessages = React.useMemo(() => [anchor, ...replies], [anchor, replies]);
     const { renderContext, rows } = useChatTranscript({
         canManage,
+        // The context card above the anchor already names the automation.
+        causeMarkHidden: Boolean(anchor.cause),
         chatId: threadChatId ?? chat.id,
         messages: threadMessages,
         onOpenArtifact,
@@ -140,6 +143,15 @@ export function ThreadContent({
                 {/* px-5 matches the main chat viewport gutter so the
                             rows' full-width hover bleed stays contained. */}
                 <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                    {/*
+                     * Why the anchor was sent, above the anchor itself. A fire
+                     * writes no transcript row, so this card is where the
+                     * payload, the fire's place in the automation's history,
+                     * and the automation's own state are read.
+                     */}
+                    {anchor.cause ? (
+                        <AutomationFireContextCard messageId={anchor.id} serverId={chat.serverId} />
+                    ) : null}
                     {anchor.task ? (
                         <TaskThreadMetadata
                             chat={chat}

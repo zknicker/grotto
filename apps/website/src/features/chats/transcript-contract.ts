@@ -1,4 +1,4 @@
-import type { AgentAvailability, PreparedAction, TaskLabel } from '@grotto/api';
+import type { AgentAvailability, MessageCause, PreparedAction, TaskLabel } from '@grotto/api';
 import type { MessageTask } from '../tasks/message-task-chip.tsx';
 
 export type TranscriptActor =
@@ -83,6 +83,11 @@ export interface TranscriptMessageReaction {
 export interface TranscriptMessage {
     actor?: TranscriptActor | null;
     attachments?: TranscriptAttachment[];
+    /**
+     * The automation fire this message answers. A fire writes no transcript
+     * row of its own, so this is what the header mark renders from.
+     */
+    cause?: MessageCause | null;
     content: string;
     grottoAgentId?: string | null;
     id: string;

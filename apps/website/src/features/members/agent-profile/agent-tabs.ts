@@ -1,4 +1,4 @@
-export const agentTabs = ['overview', 'activity', 'reminders', 'tools', 'workspace'] as const;
+export const agentTabs = ['overview', 'activity', 'automations', 'tools', 'workspace'] as const;
 
 export type AgentTab = (typeof agentTabs)[number];
 

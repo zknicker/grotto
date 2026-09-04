@@ -278,6 +278,7 @@ function item(): TaskListItem {
             runId: null,
             sequence: 1,
             serverId: 'server_one',
+            sessionGeneration: null,
         },
         task: {
             assigneeAgentId: null,

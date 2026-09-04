@@ -10,8 +10,8 @@ import { SectionBar, shellBandIconSize } from '../../shell/section-header.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import {
     AgentActivity,
+    AgentAutomations,
     AgentOverview,
-    AgentReminders,
     AgentTools,
     AgentWorkspace,
 } from './agent-content.tsx';
@@ -22,11 +22,23 @@ import { isAgentTab } from './agent-tabs.ts';
  * Text only. The icons were sized from `--spacing` by Segment's own CSS, so
  * they tracked whatever density the strip ran at rather than the label beside
  * them — and five words need no glyphs to tell them apart.
+ *
+ * Five is the budget, not a coincidence. This strip also renders inside the
+ * chat-side profile pane, where at the pane's default width it has roughly
+ * 537px beside its Close button. Five labels measured 422px; a sixth measured
+ * 503px and pushed Close 8px past the pane's edge — so a new profile surface
+ * joins an existing tab rather than adding a word. Reminders and Triggers
+ * share `automations` for exactly that reason (see `AgentAutomations`).
+ *
+ * That 422px predates this tab's rename from "Wakes": "Automations" is six
+ * characters wider, so the row now sits above 422px with correspondingly less
+ * headroom against the pane's 537px. The budget is still five words, but a
+ * future label change here deserves a fresh measurement rather than this one.
  */
 const tabOptions = [
     { label: 'Overview', value: 'overview' },
     { label: 'Activity', value: 'activity' },
-    { label: 'Reminders', value: 'reminders' },
+    { label: 'Automations', value: 'automations' },
     { label: 'Tools', value: 'tools' },
     { label: 'Workspace', value: 'workspace' },
 ] as const;
@@ -189,8 +201,8 @@ function AgentTabContent({
             return <AgentOverview agent={agent} onDeleted={onDeleted} server={server} />;
         case 'activity':
             return <AgentActivity agent={agent} server={server} />;
-        case 'reminders':
-            return <AgentReminders agent={agent} server={server} />;
+        case 'automations':
+            return <AgentAutomations agent={agent} server={server} />;
         case 'tools':
             return <AgentTools agent={agent} server={server} />;
         case 'workspace':

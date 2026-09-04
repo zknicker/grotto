@@ -141,20 +141,6 @@ test('projects a prepared action alongside its empty Chat anchor', () => {
     expect(row?.kind === 'message' ? row.message.preparedAction : null).toBe(action);
 });
 
-test('keeps private task assignment receipts out of the App transcript', () => {
-    const taskReceipt: ChatMessage = {
-        ...message('message_assignment_receipt', 2),
-        author: { kind: 'system', system: 'task' },
-        content: '📌 Assigned @scout to task #3 "Audit the release notes."',
-        sequence: 2,
-    };
-
-    const rows = projectChatMessages([message('message_task', 1), taskReceipt], []);
-
-    expect(rows).toHaveLength(1);
-    expect(rows[0]?.kind === 'message' ? rows[0].id : null).toBe('message_task');
-});
-
 function message(id: string, sequence: number): ChatMessage {
     return {
         attachments: [],
@@ -167,5 +153,6 @@ function message(id: string, sequence: number): ChatMessage {
         runId: null,
         sequence,
         serverId: 'server_one',
+        sessionGeneration: null,
     };
 }

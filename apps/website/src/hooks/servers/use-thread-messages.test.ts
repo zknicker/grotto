@@ -23,5 +23,6 @@ function message(id: string, sequence: number): ChatMessage {
         runId: null,
         sequence,
         serverId: 'srv_one',
+        sessionGeneration: null,
     };
 }

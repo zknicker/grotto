@@ -59,6 +59,32 @@
 
         --skill-reference: var(--color-purple-400);
 
+        /*
+         * Automation provenance. A fire writes nothing to the transcript, so
+         * the mark on the Agent's own message is the only thing that says why
+         * it spoke — and the two automations have to be told apart at a glance
+         * at 11px, beside a name and a timestamp. Neither reads as a status:
+         * `warning` and `danger` would make every triggered message look like
+         * something went wrong. So they are their own vocabulary — a charged
+         * yellow for a Trigger, a rosy red for a Reminder — tuned to sit at the
+         * same weight as the muted header text they share a line with.
+         */
+        --trigger-mark: oklch(0.86 0.16 92);
+        --reminder-mark: oklch(0.76 0.15 14);
+
+        /*
+         * The third mark on that same header line: the Agent started a new
+         * session before it wrote this. Not an automation, so it takes a third
+         * hue rather than borrowing one — a cool blue, which is what "the
+         * machine restarted" reads as beside a charged yellow and a rosy red.
+         * Pushed to the indigo side of blue on purpose: at 240 it landed on
+         * top of `--accent` (oklch 0.62 0.195 254), and in light the mark and
+         * the accent link inside its own hover card read as the same colour,
+         * so a mark that is not interactive looked exactly like the one thing
+         * in the card that is. 276 keeps the blue and drops the collision.
+         */
+        --session-mark: oklch(0.79 0.11 276);
+
         --label-red-fg: var(--color-red-300);
         --label-red-bg: --alpha(var(--color-red-500) / 15%);
         --label-orange-fg: var(--color-orange-300);
@@ -136,6 +162,13 @@
 
         --skill-reference: var(--color-purple-700);
 
+        /* The same three hues carried down the ramp: light needs the darker,
+         * denser end to hold against a near-white page at the header line's
+         * weight. */
+        --trigger-mark: oklch(0.66 0.15 88);
+        --reminder-mark: oklch(0.6 0.17 12);
+        --session-mark: oklch(0.52 0.15 278);
+
         --label-red-fg: var(--color-red-600);
         --label-red-bg: --alpha(var(--color-red-500) / 12%);
         --label-orange-fg: var(--color-orange-600);
@@ -165,5 +198,8 @@
     --color-reasoning-high: var(--reasoning-high);
     --color-reasoning-low: var(--reasoning-low);
     --color-reasoning-medium: var(--reasoning-medium);
+    --color-reminder-mark: var(--reminder-mark);
+    --color-session-mark: var(--session-mark);
     --color-skill-reference: var(--skill-reference);
+    --color-trigger-mark: var(--trigger-mark);
 }

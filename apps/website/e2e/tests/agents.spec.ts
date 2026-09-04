@@ -45,7 +45,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
 
     // The current hosted profile owns the same lifecycle and configuration
     // contracts the retired local profile exposed.
-    for (const section of ['Overview', 'Activity', 'Reminders', 'Workspace']) {
+    for (const section of ['Overview', 'Activity', 'Automations', 'Workspace']) {
         await expect(page.getByRole('radio', { name: section })).toBeVisible();
     }
     const restart = page.getByRole('button', { name: 'Restart', exact: true });

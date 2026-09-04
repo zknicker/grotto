@@ -1,82 +1,36 @@
 import type { Agent } from '@grotto/api';
-import { Separator } from '@heroui/react';
-import { EmptyState, ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { EmptyState } from '@heroui-pro/react';
 import { ComputerIcon, Folder01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { useAgentReminders } from '../../../hooks/members/use-agent-reminders.ts';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { WorkspaceBrowserContent } from '../../chats/chat-artifact-workspace-content.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
-import { AgentLoading } from './agent-loading.tsx';
 import { AgentOverview } from './agent-overview.tsx';
+import { AgentReminders } from './agent-reminders.tsx';
+import { AgentTriggers } from './agent-triggers.tsx';
 
 export { AgentActivity } from './agent-activity.tsx';
 export { AgentOverview };
 export { AgentTools } from './agent-tools.tsx';
 
-export function AgentReminders({ agent, server }: { agent: Agent; server: ServerDetail }) {
-    const canView = server.role !== 'member';
-    const reminders = useAgentReminders(server.id, agent.id, canView);
-    const rows = reminders.data ?? [];
-    if (canView && reminders.isPending) {
-        return (
-            <PageColumn>
-                <AgentLoading label="Loading reminders" />
-            </PageColumn>
-        );
-    }
-
-    // The section keeps its header even when empty, so every profile tab
-    // shares one anatomy instead of this one collapsing to a floating
-    // full-page empty state.
+/**
+ * Both of an Agent's standing automations on one tab: Reminders answer "at this
+ * time", Triggers answer "when this outside thing happens". They share a tab
+ * because the profile's Segment strip is a five-word budget — measured, a sixth
+ * label overflows the strip inside the chat-side profile pane and pushes its
+ * Close button past the pane edge. See `agent-profile.tsx`.
+ *
+ * Each section owns its own query, so a slow one never blanks the other.
+ */
+export function AgentAutomations({ agent, server }: { agent: Agent; server: ServerDetail }) {
     return (
         <PageColumn>
-            <ItemCardGroup variant="transparent">
-                <ItemCardGroup.Header>
-                    <ItemCardGroup.Title>
-                        Reminders
-                        <span className="ms-2 text-muted tabular-nums">{rows.length}</span>
-                    </ItemCardGroup.Title>
-                </ItemCardGroup.Header>
-                <ItemCardGroup className="overflow-hidden">
-                    {rows.length === 0 ? (
-                        <ItemCard>
-                            <ItemCard.Content>
-                                <ItemCard.Description>
-                                    No reminders yet. Just tell {agent.displayName} what to remember
-                                    and when.
-                                </ItemCard.Description>
-                            </ItemCard.Content>
-                        </ItemCard>
-                    ) : (
-                        rows.map((reminder, index) => (
-                            <React.Fragment key={reminder.id}>
-                                {index > 0 ? <Separator /> : null}
-                                <ItemCard>
-                                    <ItemCard.Content>
-                                        <ItemCard.Title>{reminder.title}</ItemCard.Title>
-                                        <ItemCard.Description className="tabular-nums">
-                                            {formatReminderFireAt(reminder.fireAt)}
-                                            {reminder.repeat ? ` · ${reminder.repeat}` : ''}
-                                        </ItemCard.Description>
-                                    </ItemCard.Content>
-                                </ItemCard>
-                            </React.Fragment>
-                        ))
-                    )}
-                </ItemCardGroup>
-            </ItemCardGroup>
+            <AgentReminders agent={agent} server={server} />
+            <AgentTriggers agent={agent} server={server} />
         </PageColumn>
     );
-}
-
-function formatReminderFireAt(value: Date | string) {
-    return new Intl.DateTimeFormat(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-    }).format(new Date(value));
 }
 
 export type WorkspaceAvailability = 'available' | 'computer-offline' | 'loading' | 'restricted';

@@ -41,11 +41,9 @@ export function projectChatMessages(
     const threadsByAnchor = new Map(threads.map((thread) => [thread.anchorMessageId, thread]));
     const directories = chatMessageDirectories(agents, humans);
 
-    return messages
-        .filter((message) => message.author.kind !== 'system' || message.author.system !== 'task')
-        .map((message) =>
-            projectChatMessage(message, threadsByAnchor.get(message.id) ?? null, directories)
-        );
+    return messages.map((message) =>
+        projectChatMessage(message, threadsByAnchor.get(message.id) ?? null, directories)
+    );
 }
 
 export function projectChatMessage(
@@ -54,12 +52,7 @@ export function projectChatMessage(
     directories: ChatMessageDirectories
 ): ProjectedChatMessageRow {
     const actor = messageActor(message);
-    const senderType =
-        message.author.kind === 'agent'
-            ? ('agent' as const)
-            : message.author.kind === 'human'
-              ? ('user' as const)
-              : ('system' as const);
+    const senderType = message.author.kind === 'agent' ? ('agent' as const) : ('user' as const);
     const agentId = message.author.kind === 'agent' ? message.author.agentId : null;
 
     return {
@@ -78,16 +71,13 @@ export function projectChatMessage(
                 sizeBytes: attachment.sizeBytes,
                 type: 'file' as const,
             })),
+            ...(message.cause ? { cause: message.cause } : {}),
             content: message.content,
             id: message.id,
             sender:
-                message.author.kind === 'human'
-                    ? (message.author.profile?.displayName ?? message.author.userId)
-                    : message.author.kind === 'agent'
-                      ? (message.author.profile?.displayName ?? message.author.agentId)
-                      : message.author.system === 'reminder'
-                        ? 'Reminder'
-                        : 'Grotto',
+                message.author.kind === 'agent'
+                    ? (message.author.profile?.displayName ?? message.author.agentId)
+                    : (message.author.profile?.displayName ?? message.author.userId),
             senderType,
             sourceSessionId: null,
             sourceSessionKey: `hosted:${agentId ?? message.author.kind}`,
@@ -146,11 +136,7 @@ function taskAssignee(
 }
 
 function messageActor(message: ChatMessage): TranscriptActor {
-    if (message.author.kind === 'agent') {
-        return { id: message.author.agentId, kind: 'agent' };
-    }
-    if (message.author.kind === 'human') {
-        return { id: message.author.userId, kind: 'participant' };
-    }
-    return null;
+    return message.author.kind === 'agent'
+        ? { id: message.author.agentId, kind: 'agent' }
+        : { id: message.author.userId, kind: 'participant' };
 }

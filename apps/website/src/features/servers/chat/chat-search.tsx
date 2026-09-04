@@ -262,9 +262,6 @@ export function messageAuthor(message: ChatSearchResult): {
     name: string;
 } {
     const author = message.author;
-    if (author.kind === 'system') {
-        return { avatarUrl: null, name: 'System' };
-    }
 
     return {
         avatarUrl: author.profile?.avatarUrl ?? null,

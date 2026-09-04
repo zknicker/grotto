@@ -19,12 +19,19 @@ export function CursorHoverCard({
     content,
     onOpenChange,
     tone = 'default',
+    triggerClassName,
 }: {
     children: React.ReactNode;
     className?: string;
     content: React.ReactNode;
     onOpenChange?: (open: boolean) => void;
     tone?: 'contrast' | 'default';
+    /**
+     * Layout for the trigger wrapper itself. The wrapper is a real box in its
+     * parent's layout, so a trigger inside a flex row needs `min-w-0` on it —
+     * the class cannot reach from inside `children`.
+     */
+    triggerClassName?: string;
 }) {
     const reduceMotion = useReducedMotion();
     const contentRef = React.useRef<HTMLElement>(null);
@@ -100,7 +107,7 @@ export function CursorHoverCard({
     return (
         <HoverCard closeDelay={0} onOpenChange={handleOpenChange} openDelay={0}>
             <HoverCard.Trigger
-                className="align-middle"
+                className={cn('align-middle', triggerClassName)}
                 onFocus={resetOffset}
                 onPointerMove={handlePointerMove}
                 ref={triggerRef}

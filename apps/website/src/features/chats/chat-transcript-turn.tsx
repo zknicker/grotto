@@ -1,3 +1,4 @@
+import type { MessageCause } from '@grotto/api';
 import { splitVisualFences } from '@grotto/api/widgets/visual';
 import { Chip, Separator } from '@heroui/react';
 import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
@@ -14,6 +15,7 @@ import { formatShortTime } from '../../lib/format.ts';
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { AgentHoverCard } from '../members/agent-hover-card.tsx';
+import { MessageCauseMark } from './automation/message-cause-mark.tsx';
 import { ActionTooltip } from './chat-action-tooltip.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import { useStreamingTextRanges } from './chat-streaming-text-ranges.ts';
@@ -60,6 +62,8 @@ import { transcriptTurnGeometry } from './chat-transcript-turn-geometry.ts';
 import { AgentWidget } from './legacy-widget-row.tsx';
 import { isLocalTimelineMessageMetadata } from './local-timeline-message.ts';
 import { ServerTurnDetailsDrawer } from './server-turn-details-drawer.tsx';
+import { MessageSessionMark } from './session/message-session-mark.tsx';
+import type { SessionMark } from './session/session-mark-model.ts';
 import { MessageContextActionsProvider } from './thread/message-context-actions.tsx';
 import { MessageReactionActions } from './thread/message-reactions.tsx';
 import { ThreadMessageActions, ThreadMessageSurface } from './thread/thread-message-surface.tsx';
@@ -332,19 +336,23 @@ const turnHeaderBioMaxChars = 165;
 
 function TurnHeader({
     bio,
+    cause,
     composerId,
     deleted = false,
     displayName,
     mentionAgentId,
     onClick,
+    sessionMark,
     timestamp,
 }: {
     bio?: string | null;
+    cause?: MessageCause | null;
     composerId?: string;
     deleted?: boolean;
     displayName: string;
     mentionAgentId?: string;
     onClick?: () => void;
+    sessionMark?: TurnSessionMark | null;
     timestamp: string | null;
 }) {
     return (
@@ -391,7 +399,23 @@ function TurnHeader({
                     DELETED
                 </Chip>
             ) : null}
-            {bio ? (
+            {/*
+             * The marks take the slot the bio would have used. Both are the
+             * quiet middle of the header line, and a name, a blurb, a mark and
+             * a time is one fact too many for it — when an Agent spoke because
+             * something fired, or spoke having just started over, that outranks
+             * what it is generally for. Cause first when both apply: why it
+             * spoke comes before what it had already forgotten.
+             */}
+            {cause ? <MessageCauseMark cause={cause} /> : null}
+            {sessionMark ? (
+                <MessageSessionMark
+                    agentId={sessionMark.agentId}
+                    generation={sessionMark.generation}
+                    serverId={sessionMark.serverId}
+                />
+            ) : null}
+            {!(cause || sessionMark) && bio ? (
                 <span className="min-w-0 truncate text-muted text-xs leading-5">
                     {bio.length > turnHeaderBioMaxChars
                         ? `${bio.slice(0, turnHeaderBioMaxChars).trimEnd()}…`
@@ -478,11 +502,13 @@ function AgentTurnPresentation({
     const context = useTranscriptRenderContext();
     const {
         canRequestMention,
+        causeMarkHidden,
         composerId,
         turnDetails,
         onToggleReaction,
         profilePaneChatId,
         repliedRunIds,
+        sessionMarks,
     } = context;
     const segments = groupAgentItems(items);
     const visibleSegments = filterPaneSegments(segments, repliedRunIds);
@@ -559,6 +585,7 @@ function AgentTurnPresentation({
                     {showIdentity ? (
                         <TurnHeader
                             bio={actorProfile?.bio}
+                            cause={causeMarkHidden ? null : getTurnCause(items)}
                             composerId={composerId}
                             deleted={actorProfile?.deleted}
                             displayName={displayName}
@@ -566,6 +593,11 @@ function AgentTurnPresentation({
                                 actorId,
                                 actorProfile?.kind,
                                 canRequestMention && Boolean(composerId) && !actorProfile?.deleted
+                            )}
+                            sessionMark={getTurnSessionMark(
+                                items,
+                                sessionMarks,
+                                turnDetails?.serverId
                             )}
                             timestamp={entry.timestamp}
                         />
@@ -1217,6 +1249,55 @@ function TranscriptMessageActions({
             />
         </ActionTooltip>
     );
+}
+
+/**
+ * One fire, one message — so a turn provoked by an automation carries exactly
+ * one caused message, and its cause is the turn's. Scans forward so that if a
+ * turn ever did hold two, the header names the one that opened it.
+ */
+function getTurnCause(items: TranscriptItem[]): MessageCause | null {
+    for (const item of items) {
+        if (item.kind === 'row' && item.row.kind === 'message' && item.row.message.cause) {
+            return item.row.message.cause;
+        }
+    }
+
+    return null;
+}
+
+interface TurnSessionMark extends SessionMark {
+    serverId: string;
+}
+
+/**
+ * The turn's own restart, if the transcript-wide rule marked one of its
+ * messages. A turn runs inside one session, so the first marked message in it
+ * is the turn's — and without a Server to read the rotation against there is
+ * nothing to hover, so the mark stays off.
+ */
+function getTurnSessionMark(
+    items: TranscriptItem[],
+    sessionMarks: ReadonlyMap<string, SessionMark> | undefined,
+    serverId: string | undefined
+): TurnSessionMark | null {
+    if (!(sessionMarks && serverId)) {
+        return null;
+    }
+
+    for (const item of items) {
+        if (item.kind !== 'row' || item.row.kind !== 'message') {
+            continue;
+        }
+
+        const mark = sessionMarks.get(item.row.message.id);
+
+        if (mark) {
+            return { ...mark, serverId };
+        }
+    }
+
+    return null;
 }
 
 function getLastMessageRow(items: TranscriptItem[]) {

@@ -186,8 +186,11 @@ Agent, and, for a Trigger fire, that the Trigger still exists; a failure is
 message's own transaction. A send without `cause` is an ordinary message.
 
 Every message the Server returns carries an optional `cause`
-(`packages/grotto-api/src/chat.ts`), joined onto the message so a client renders
-provenance from the message alone:
+(`packages/grotto-api/src/chat.ts`), read from the message's own provenance row
+so a client renders the mark from the message alone. The mark's own fields are
+snapshotted when the cause is recorded and outlive the automation; `live` is the
+automation as it stands now, and is null once the automation or the answered
+fire is gone:
 
 ```ts
 cause?: {
@@ -195,23 +198,29 @@ cause?: {
   automationId: string;
   ownerAgentId: string;   // the owning Agent, for "Manage in Automations"
   fireId: string;
+  firedAt: string;        // when the answered fire happened
   title: string;
-  status: string;
-  lastFiredAt: string | null;
-  fireCount: number;
-  summary: string;          // a reminder's cadence, or a Trigger's kind label
-  instruction: string | null; // bounded snippet
+  summary: string;        // a reminder's cadence, or a Trigger's kind label
+  attribution: 'explicit' | 'inferred';
+  live: {
+    status: string;
+    lastFiredAt: string | null;
+    fireCount: number;
+    instruction: string | null; // bounded snippet
+  } | null;               // null once the automation or the fire is archived
 }
 ```
 
 `automation.fireContext({ serverId, messageId })` returns the Thread context for
 one caused message. It is authorized by access to the message rather than by
-operator role, and answers `NOT_FOUND` when the message has no cause. It returns
-the `cause` fields plus, for a Trigger, the `payload` bounded to 8,192
-characters, `payloadBytes`, `contentType`, `firedAt`, and the fire's ordinal
-among that Trigger's fires; for a reminder, `repeat`, `nextFireAt`,
-`anchorMessageId`, and a bounded `anchorExcerpt`. The operator-only
-`trigger.runs` is unchanged.
+operator role, and answers `NOT_FOUND` only when the message has no cause at
+all. It returns the `cause` fields plus, for a Trigger, the `payload` bounded to
+8,192 characters, `payloadBytes`, `contentType`, `firedAt`, and the fire's
+ordinal among that Trigger's fires; for a reminder, `repeat`, `nextFireAt`,
+`anchorMessageId`, and a bounded `anchorExcerpt`. For an archived cause it
+answers from the snapshot instead: `cause.live`, `fireOrdinal`, `fireTotal`, and
+every kind-specific field read null, and `anchorChatId` and `firedAt` still
+stand. The operator-only `trigger.runs` is unchanged.
 
 Product logic lives in `apps/server/src/triggers/`. The public route is
 `trigger-route.ts` there, the Agent routes are

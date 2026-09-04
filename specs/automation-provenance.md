@@ -60,21 +60,30 @@ the message itself so a client renders provenance without a second read:
 | --- | --- |
 | `kind` | `trigger` or `reminder` |
 | `automationId` | The Trigger or reminder the fire belongs to |
-| `ownerAgentId` | The Agent that owns the automation; the App's "Manage in Automations" link |
+| `ownerAgentId` | The Agent that owned the automation when it fired; the App's "Manage in Automations" link |
 | `fireId` | The fire this message answers |
-| `title` | The automation's title |
-| `status` | Its current status (`armed`/`disabled`, or the reminder's state) |
-| `lastFiredAt` | When it last fired, or null |
-| `fireCount` | How many times it has fired |
-| `summary` | The reminder's cadence string, or the Trigger's kind label |
-| `instruction` | A bounded snippet of the Trigger's instruction or the reminder's script, or null |
+| `firedAt` | When that fire happened |
+| `title` | The automation's title as it read then |
+| `summary` | The reminder's cadence string, or the Trigger's kind label, as it read then |
 | `attribution` | `explicit` when the Agent sent `--cause`, `inferred` when the Server derived it |
+| `live` | The automation as it stands now, or null once it or the fire is archived |
+
+`live`, when present, carries `status` (`armed`/`disabled`, or the reminder's
+state), `lastFiredAt`, `fireCount`, and `instruction`, a bounded snippet of the
+Trigger's instruction or the reminder's script.
+
+**The mark outlives the automation.** Every field above `live` is snapshotted
+onto `message_causes` when the cause is recorded, and the automation and fire ids
+are kept with no foreign key behind them, so deleting a Trigger or reminder, or
+sweeping a fire past its retention window, archives the mark rather than removing
+it. The message keeps saying what woke the Agent; `live` reads null, and the App
+says the automation has been archived instead of offering the live rows and the
+way into Automations. Only deleting the message deletes the cause.
 
 `message_causes` holds one row per caused message: the `kind`, the automation and
-fire ids for that kind, and the `attribution`. A message has at most one cause. Deleting
-the message deletes the cause. Deleting the automation deletes the cause and
-leaves the message, so an Agent's answer outlives the automation that provoked
-it and simply stops showing a mark.
+fire ids for that kind, the `attribution`, and the snapshot — `title`, `summary`,
+`fired_at`, `owner_agent_id`, and `anchor_chat_id`. A message has at most one
+cause.
 
 Clients that do not know the field ignore it; the iPhone app decodes it as
 optional and a missing or unknown shape never fails a message page.
@@ -83,9 +92,9 @@ optional and a missing or unknown shape never fails a message page.
 
 `automation.fireContext({ serverId, messageId })` returns the fire context for
 one caused message. It is authorized by access to that message — anyone who can
-read the message can read why it was sent — and answers `NOT_FOUND` when the
-message has no cause. The operator-only `trigger.runs` is unchanged and stays
-operator-only.
+read the message can read why it was sent — and answers `NOT_FOUND` only when the
+message has no cause at all. The operator-only `trigger.runs` is unchanged and
+stays operator-only.
 
 It returns the cause fields above plus, by kind:
 
@@ -93,6 +102,10 @@ It returns the cause fields above plus, by kind:
   `contentType`, `firedAt`, and the fire's ordinal among that Trigger's fires.
 - **Reminder** — `repeat`, `nextFireAt`, `anchorMessageId`, and `anchorExcerpt`,
   a bounded excerpt of the anchoring message.
+
+An archived cause still answers. `anchorChatId` and `firedAt` come from the
+snapshot, `cause.live`, `fireOrdinal`, and `fireTotal` are null, and every
+kind-specific field above is null, because the fire row that held it is gone.
 
 ## Surfaces
 

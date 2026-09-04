@@ -21,13 +21,20 @@ and [Agent Inbox](../../specs/inbox.md).
   nothing turn-shaped. See [chat-timeline](../../specs/chat-timeline.md).
 * **Why an Agent said something.** Anything an Agent was told privately stays
   out of the conversation and shows up as a mark on the message it explains: a
-  task chip when the message is an assigned task, a lightning or clock **fire
-  mark** when a Trigger or reminder woke the Agent, and a **session mark** on the
+  **task mark** when the message was promoted to a task, a lightning or clock
+  **fire mark** when a Trigger or reminder woke the Agent, and a **session mark** on the
   first thing the Agent says in a chat after its session was reset. Hovering a
   mark previews the automation or the reset — what it was, when, and where to
   manage it — and a fire's Thread carries a context card with the payload or the
   anchoring note. A fire, an assignment, or a reset the Agent never speaks about
-  leaves the conversation untouched. See
+  leaves the conversation untouched. **A fire mark outlives its automation.**
+  Title, glyph, and summary are snapshotted onto the message, so a message whose
+  Trigger, reminder, or fire has since been archived still says what woke the
+  Agent. Its hover card and context card then state only what the message
+  remembers — what fired, its cadence or kind, and when — plus one line saying
+  the trigger or reminder has been archived, and drop the live facts (status,
+  fire count, last fire, standing instruction, payload, anchoring note) and the
+  way out to a record that is no longer there. See
   [automation provenance](../../specs/automation-provenance.md) and
   [sessions](../../specs/sessions.md#generation-in-the-transcript).
 * **Native action cards.** A managed Agent can prepare a typed `agent:create`

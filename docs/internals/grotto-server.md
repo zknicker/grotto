@@ -110,7 +110,7 @@ PostgreSQL owns the hosted collaboration tables
 | `agent_turns` | Compact per-run turn summary reported by a Computer after a launch settles |
 | `agent_session_rotations` | One row per Agent session rotation: the generation it started, when, and why |
 | `chat_messages` | Immutable human and Agent messages ordered by per-Chat sequence and nonce, stamped with the sending run's `session_generation`; there is no `system_author`, and every row is readable by every human who can read the Chat |
-| `message_causes` | The automation fire one message answers and whether that attribution was explicit or inferred, at most one per message |
+| `message_causes` | The automation fire one message answers, whether that attribution was explicit or inferred, and the snapshot the mark keeps for good — title, summary, fire time, owning Agent, anchor Chat — at most one per message |
 | `prepared_actions` / `prepared_action_media` | Immutable Agent-prepared action proposals, lifecycle/supersession state, and exact action-owned avatar bytes |
 | `chat_reads` | One monotonic reader high-water mark per Chat |
 | `chat_events` | Durable message/read/task/reminder-change events ordered by PostgreSQL cursor |
@@ -118,7 +118,7 @@ PostgreSQL owns the hosted collaboration tables
 | `message_tasks` | Lifecycle metadata keyed directly to one canonical hosted message |
 | `task_labels` / `message_task_labels` | Small Server task-label catalog and task links |
 | `reminders` / `reminder_commands` | Author-owned schedules and idempotent optimistic commands with original result snapshots |
-| `reminder_fires` | One durable row per logical scheduled fire; a fire writes no Chat message and the table has no receipt column |
+| `reminder_fires` | One durable row per logical scheduled fire, recording in `has_script` whether that wake ran a script; a fire writes no Chat message and the table has no receipt column |
 | `triggers` | Agent-owned inbound webhook wakes with hashed secrets, anchored to a Chat and, for an Agent-created one, to the asking message |
 | `trigger_fires` | One durable row per accepted inbound request, payload bounded; a fire writes no Chat message and the table has no receipt column |
 | `reminder_agent_attention` | One unacknowledged fire snapshot for the owning Agent |
@@ -320,6 +320,53 @@ Shutdown stops new ticks and awaits any in-flight tick before closing
 PostgreSQL. Pending attention remains durable across Server and Computer
 shutdown. Ordinary attention clears after a completed Agent turn sees it;
 script attention clears after the matching Computer result settles.
+
+## Retention and lifecycle sweeps
+
+Two hourly sweeps run beside the delivery retry sweep, each once on boot and on
+its own interval, each idempotent, and neither on the request path.
+
+**Reminder history retention** (`REMINDER_HISTORY_RETENTION_DAYS`, 30) expires
+two things on two clocks. Reminders go first: every row whose status is `fired`
+or `canceled` and whose `updated_at` — the moment the fire transaction or the
+cancellation settled it — is older than the window. The reminder row is the
+parent of its whole record, so one delete takes `reminder_fires`,
+`reminder_commands`, `reminder_agent_attention`, and the `reminder.changed`
+events with it. A recurring reminder stays `scheduled` between fires and is
+never swept.
+
+Fires then expire independently, on their own `fired_at`, for any reminder at
+all. History is the log of executions (`reminder.history`), so one fire is one
+entry with its own lifetime: a recurring reminder keeps its row and its recent
+wakes while its old ones drop away. `reminder_agent_attention` cascades from
+`reminder_fires` as well as from `reminders`, so deleting a fire takes its
+queued attention with it without touching the reminder. Nothing else reads an
+old fire — the scheduler only ever advances `fire_at` forward, so a deleted slot
+is never refired.
+
+Neither delete touches a fire whose wake is still queued: a
+`reminder_agent_attention` row for a fire keeps that fire, and keeps the
+reminder that owns it, however old either is. A fire counts as complete only
+once the Agent has handled it, and the Agent seeing the wake drops the attention
+row and lets the next pass take the fire.
+
+Provenance outlives all of it. `message_causes` snapshots what the mark says —
+title, summary, fire time, owning Agent, anchor Chat — when the cause is
+recorded, and its automation and fire ids carry no foreign key, so nothing the
+sweep deletes removes a mark (ADR 0026). A swept reminder or fire leaves the
+Agent's answer marked and archived: the mark still names what woke the Agent,
+`cause.live` reads null, and `automation.fireContext` answers from the snapshot
+with null counters instead of faulting. `reminder.runs` still answers
+`NOT_FOUND` for the gone reminder.
+
+**Stale `in_review` task close** (`TASK_IN_REVIEW_STALE_DAYS`, 7) closes each
+`in_review` task whose own row has not changed and whose Thread — the one
+anchored on the task message — has taken no new message inside the window. Each
+close is its own transaction taking the Server row and the task row, re-checking
+staleness under the lock, bumping the version, and emitting `task.updated`, so
+App caches invalidate exactly as they do for an operator's change. Neither
+`message_tasks` nor the task events carry an actor or a reason, so the close
+records no author; reopening is the ordinary update path.
 
 ## Attachment storage and recovery
 

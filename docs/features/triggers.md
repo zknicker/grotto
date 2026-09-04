@@ -54,7 +54,9 @@ Opening a Trigger from the Automations tab shows its detail:
 - **Fire history** lists what has arrived, newest first, with the time, payload
   size, and idempotency key.
 - **Delete** removes the Trigger and its history. Messages the Agent already
-  sent stay in their conversation; they simply stop showing the Trigger's mark.
+  sent stay in their conversation and keep their lightning mark — the Trigger's
+  title and kind are snapshotted onto the message — but their hover card and
+  context card lose everything that was read live.
 
 Each row shows who created it — a person's handle, or the owning Agent.
 
@@ -84,6 +86,12 @@ Each row shows who created it — a person's handle, or the owning Agent.
   card, whose expandable block holds the payload itself with its size and content
   type. The mark and its hover preview work the same for every automation — see
   [Chat](chat.md#in-the-box).
+- **An archived Trigger keeps its mark.** Once the Trigger or the fire itself is
+  gone — deleted, or swept after 30 days — the mark still names what woke the
+  Agent, and both provenance surfaces state the snapshot (title, kind, fire
+  time) plus "This trigger has been archived." The status chip, the fire's place
+  in the history, the payload block, and the link into Automations go with the
+  record rather than pointing at something that is not there.
 - **Bounded input.** A body is at most 64 KiB of storable text — valid UTF-8 with
   no NUL byte — under any content type, and may be empty. Anything else answers
   `415`. The Server stores the body verbatim and never interprets, filters, or

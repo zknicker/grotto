@@ -100,8 +100,11 @@ provenance. `specs/automation-provenance.md` owns that contract; the
 reminder-specific facts are:
 
 - The `cause` a reminder-caused message carries reports `kind` `reminder`, the
-  reminder id and fire id, the title, its state, the last fired time, the fire
-  count, and its cadence string as the summary.
+  reminder id and fire id, and the snapshot taken when the fire was answered:
+  the title, its cadence string as the summary, the fire time, and the owning
+  Agent. Its `live` half — state, last fired time, fire count, script snippet —
+  is null once the reminder or that fire has been swept, and the mark reads
+  archived rather than disappearing.
 - `automation.fireContext` adds, for a reminder, `repeat`, `nextFireAt`,
   `anchorMessageId`, and a bounded excerpt of the anchoring message, which is
   what the Thread context card shows in place of a Trigger's payload block.
@@ -115,6 +118,18 @@ reminder-specific facts are:
   contents stay redacted. Because a fire writes nothing to a Chat, that run
   history is the only place every fire is observable, including the ones the
   Agent had nothing to say about.
+- History is the log of executions, read by `reminder.history` under the same
+  authorization: one entry per fire, newest first, so a recurring reminder
+  appears once per wake. Each entry carries the reminder's current title and
+  cadence, the fire's scheduled slot and fired time, the script outcome when
+  that fire ran a script, and the Agent's answering message with its Chat when
+  one exists. A fire records for itself whether it ran a script, so a later
+  script edit never relabels it, and a fire answered more than once stays one
+  entry naming its earliest answer.
+- Reminder history expires after `REMINDER_HISTORY_RETENTION_DAYS`. A fire is
+  deleted that long after `fired_at` whatever its reminder is doing, and a
+  `fired` one-shot or a `canceled` reminder is deleted that long after it
+  settled, taking the rest of its record with it.
 - Agent reminder verbs are exposed through the Computer-injected `grotto`
   CLI. Computer reconnect recovery, local script execution, and attention
   acknowledgment are part of the end-to-end contract.

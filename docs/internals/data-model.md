@@ -75,9 +75,10 @@ A fire writes no Chat message (ADR 0026). `message_causes` is the provenance rec
 row per message an Agent sent because a fire woke it, naming the kind (`trigger_fire` or
 `reminder_fire`), the automation and fire that caused it, and an `attribution` checked against
 `explicit` (the Agent sent `--cause`) or `inferred` (the Server derived it from a sole-fire run,
-per `specs/inbox.md`). A message carries at most one cause. Deleting the message deletes its cause;
-deleting the automation deletes the cause and leaves the message, so an Agent's answer outlives the
-automation that provoked it. The Server writes the row in the same transaction as the message and
+per `specs/inbox.md`). Alongside those it snapshots what the mark says — title, summary, fire time,
+owning Agent, and anchor Chat — so the mark outlives the automation: the automation and fire ids
+carry no foreign key, and deleting a Trigger or reminder archives the mark instead of removing it.
+A message carries at most one cause, and only deleting the message deletes it. The Server writes the row in the same transaction as the message and
 only after validating that the fire belongs to an automation the sending Agent owns.
 
 Every `chat_messages` row is authored by a human or an Agent and readable by every human who can

@@ -111,9 +111,17 @@ the hover card, and the Thread context card all read from.
 - Proposing a new Server-authored Chat message is proposing a new author for the
   conversation, which the schema now refuses.
 - `message_causes` is the provenance table: one row per caused message, naming
-  the kind, the automation, the fire, and whether the attribution was `explicit`
-  or `inferred`. A message keeps at most one cause. Deleting the automation
-  deletes the provenance and leaves the message; deleting the message deletes
+  the kind, the automation, the fire, whether the attribution was `explicit` or
+  `inferred`, and the snapshot the mark keeps — title, summary, fire time,
+  owning Agent, and anchor Chat. A message keeps at most one cause.
+- **A provenance mark outlives its automation.** The snapshot is taken from the
+  live records when the cause is recorded, and the automation and fire ids carry
+  no foreign key, so deleting a Trigger or Reminder, or sweeping a fire, archives
+  the mark instead of removing it: the message still says what woke the Agent,
+  and only the live half of the mark — status, counters, standing instruction,
+  payload, anchoring note, and the way into Automations — goes. Clients read that
+  as `cause.live = null`, and `automation.fireContext` answers from the snapshot
+  with null counters rather than `NOT_FOUND`. Only deleting the message deletes
   the cause.
 - `--cause` is validated, not trusted: the fire must exist in this Server and
   belong to an automation the sending Agent owns, or the send is refused.

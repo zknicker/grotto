@@ -53,10 +53,12 @@ the owning Agent is always the one woken.
   Deleting a Trigger cascades to its fires. There is no `receipt_message_id`
   column; the one that existed was dropped with the receipts it named.
 - `message_causes` is the provenance table shared with reminders: one row per
-  caused message, naming the `kind` (`trigger_fire` or `reminder_fire`) and the
-  automation and fire it names. A message has at most one cause. Deleting the
-  message deletes its cause; deleting the Trigger deletes the cause and leaves
-  the message, so an answer outlives the automation that provoked it.
+  caused message, naming the `kind` (`trigger_fire` or `reminder_fire`), the
+  automation and fire it names, and the snapshot the mark keeps — title,
+  summary, fire time, owning Agent, and anchor Chat. A message has at most one
+  cause. Only deleting the message deletes its cause: deleting the Trigger
+  archives the mark, which keeps naming what woke the Agent with its live half
+  read as null.
 - `chat_messages` has no `system_author` at all. The creation-receipt rows
   written with it were deleted by migration along with the column, and the
   anchors that pointed at them were nulled (ADR 0026).
@@ -279,9 +281,10 @@ and leaves the kind, anchor, owner, and secret untouched.
 is bumped by every mutation and by every fire, and no mutation accepts an
 expected version.
 
-`trigger.delete` cascades to the Trigger's fires and to the provenance rows
-naming them, and retires the queued pending work those fires created. The
-Agent's own messages stay in canonical history and simply stop showing a mark.
+`trigger.delete` cascades to the Trigger's fires and retires the queued pending
+work those fires created. Provenance is not part of that cascade: the Agent's own
+messages stay in canonical history and keep their mark, now archived — it still
+names the Trigger that woke the Agent and drops only the live half.
 
 ### Test fires
 
@@ -313,9 +316,9 @@ Trigger for real.
   only in the create and rotate response that mints it, once. Because a fire
   writes nothing to a Chat, this history is the only place every fire is
   observable, including the ones the Agent had nothing to say about.
-- A disabled Trigger keeps its fire history. Deleting one removes its fires and
-  the provenance rows naming them; the Agent's own messages stay in the
-  transcript.
+- A disabled Trigger keeps its fire history. Deleting one removes its fires; the
+  Agent's own messages stay in the transcript and keep their mark, which reads
+  archived from the snapshot the message carries.
 
 ## Not built
 

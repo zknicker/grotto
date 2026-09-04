@@ -10,6 +10,7 @@ import {
     UserCircleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import {
+    inboxRoute,
     serverArchivedChatsRoute,
     serverChatRoute,
     serverComputersRoute,
@@ -75,6 +76,12 @@ function buildNavigationGroup(context: CommandContext, currentChat: Chat | null)
                 ? serverChatRoute(context.serverSlug, currentChat.id)
                 : serverRoute(context.serverSlug),
             title: 'Chat',
+        },
+        {
+            icon: getRouteTabIcon('inbox'),
+            id: 'inbox',
+            route: inboxRoute(context.serverSlug),
+            title: 'Inbox',
         },
         {
             icon: getRouteTabIcon('tasks'),

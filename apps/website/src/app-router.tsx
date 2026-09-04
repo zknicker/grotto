@@ -126,6 +126,13 @@ export function createAppRouter() {
                                                     ),
                                                 },
                                                 {
+                                                    path: 'inbox',
+                                                    lazy: lazyRoute(
+                                                        serverRouteModules.inbox,
+                                                        'InboxPage'
+                                                    ),
+                                                },
+                                                {
                                                     path: 'tasks',
                                                     lazy: lazyRoute(
                                                         serverRouteModules.tasks,

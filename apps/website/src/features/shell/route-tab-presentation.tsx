@@ -3,6 +3,7 @@ import {
     Activity03Icon,
     Chat01Icon,
     CheckListIcon,
+    InboxIcon,
     Search01Icon,
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
@@ -37,6 +38,8 @@ export function getRouteTabIcon(tab: RouteTab): IconSvgElement {
     switch (tab) {
         case 'tasks':
             return CheckListIcon;
+        case 'inbox':
+            return InboxIcon;
         case 'search':
             return Search01Icon;
         case 'chat':

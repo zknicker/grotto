@@ -9,7 +9,7 @@ import { loadChannelIconCatalog } from '../../components/chats/channel-icon-cata
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
-import { serverAgentDmRoute, tasksRoute } from '../servers/server-routes.ts';
+import { inboxRoute, serverAgentDmRoute, tasksRoute } from '../servers/server-routes.ts';
 import { ChatNavigationRow, chatNavigationName } from './chat-navigation-row.tsx';
 import { useCommandMenu } from './command-menu-provider.tsx';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
@@ -34,7 +34,7 @@ export function ChatNavigation({
     onChangeChannelColor?: (chat: Chat, color: string) => void;
     onCreateAgent?: () => void;
     onCreateChannel: () => void;
-    onPreloadSection: (section: 'search' | 'tasks') => void;
+    onPreloadSection: (section: 'inbox' | 'search' | 'tasks') => void;
     selectedAgentDmId?: string;
     selectedChatId: string | undefined;
     serverId: string;
@@ -60,7 +60,7 @@ export function ChatNavigation({
     return (
         <ShellSidebarPageContent>
             <Sidebar.Group>
-                {/* One menu so Search and Tasks share the row pitch exactly.
+                {/* One menu so Search, Inbox, and Tasks share the row pitch exactly.
                     Search opens the command palette rather than navigating,
                     so it is an action item that names its own shortcut. */}
                 <Sidebar.Menu
@@ -81,6 +81,20 @@ export function ChatNavigation({
                         </Sidebar.MenuIcon>
                         <Sidebar.MenuItemContent>
                             <Sidebar.MenuLabel>Search</Sidebar.MenuLabel>
+                        </Sidebar.MenuItemContent>
+                    </Sidebar.MenuItem>
+                    <Sidebar.MenuItem
+                        href={inboxRoute(slug)}
+                        id="inbox"
+                        isCurrent={location.pathname.startsWith(inboxRoute(slug))}
+                        onHoverStart={() => onPreloadSection('inbox')}
+                        textValue="Inbox"
+                    >
+                        <Sidebar.MenuIcon>
+                            <RouteTabIcon size={16} tab="inbox" />
+                        </Sidebar.MenuIcon>
+                        <Sidebar.MenuItemContent>
+                            <Sidebar.MenuLabel>Inbox</Sidebar.MenuLabel>
                         </Sidebar.MenuItemContent>
                     </Sidebar.MenuItem>
                     <Sidebar.MenuItem

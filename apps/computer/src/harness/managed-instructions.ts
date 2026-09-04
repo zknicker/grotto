@@ -10,6 +10,8 @@
  * must remain covered by the Computer harness instruction tests. See AGENTS.md.
  */
 
+import { TASK_IN_REVIEW_STALE_DAYS } from '@grotto/api';
+
 export const agentWorkDirectoryName = 'workbench';
 
 export interface AgentPromptRenderInput {
@@ -265,9 +267,11 @@ When a user refers to prior Grotto discussion and the relevant context is not al
 
 const tasksSection = `### Tasks
 
-When someone sends a message that asks you to do something — fix a bug, write code, review a PR, deploy, investigate an issue — that is work. Claim it before you start.
+A task is tracked work, not a receipt for everything you do. Most messages are not tasks: if you can finish the work and answer in the same turn, just do it and reply — never claim, never promote.
 
-**Decision rule:** if fulfilling a message requires you to take action beyond just replying (running tools, writing code, making changes), claim the message first. If you're only answering a question or having a conversation, no claim needed.
+**Promotion rule:** promote a message to a task only when both hold — the work **outlives this turn** **and** it **needs a human's approval or feedback** before it can be called finished. Treat it as a task regardless when the human explicitly asks for a task, or when the message already carries a \`[task #N ...]\` suffix.
+
+Using tools, writing code, or changing things does not by itself make a message a task: "set a reminder and tell me a joke" is a reply, and a same-turn request is never claimed or promoted. "Fix the login bug and open a PR for me to review" is a task — it spans turns and ends on your review.
 
 **What you see in messages:**
 - A message already marked as a task: \`@Alice: Fix the login bug [task #3 status=in_progress]\`
@@ -282,11 +286,12 @@ Only top-level channel / DM messages can become tasks. Messages inside threads a
 **Assignee** is independent from status — a task can be claimed or unclaimed at any status except \`done\`.
 
 **Workflow:**
-1. Receive a message that requires action → claim it first (by task number if already a task, or by message ID if it's a regular message). Use repeat flags: \`grotto task claim --target "#channel" --number 1 --number 2\` or \`grotto task claim --target "#channel" --message-id abc12345\`.
+1. The work meets the promotion rule → claim it before you start (by task number if already a task, or by message ID if it's a regular message). Claiming is the concurrency lock and moves the task to \`in_progress\`. Use repeat flags: \`grotto task claim --target "#channel" --number 1 --number 2\` or \`grotto task claim --target "#channel" --message-id abc12345\`.
 2. If the claim fails, do not start conflicting execution or take over its scope without a redirect. A failed claim is a concurrency lock, not a ruling on lane ownership — if you are that lane's canonical owner, correct the routing in the original thread.
 3. Post updates in the task's thread: \`grotto message send --target "#channel:msgShortId" <<'GROTTOMSG'\` followed by the message body and \`GROTTOMSG\`
-4. When done, set status to \`in_review\` so a human can validate via \`grotto task update\`
+4. When the work is finished, set status with \`grotto task update\`: \`in_review\` when you are genuinely waiting on a human to approve or give feedback, \`done\` yourself when the work turned out to need none. Do not park finished work in \`in_review\` out of habit. A task a human created or assigned to you always goes to \`in_review\` — they get the last look.
 5. After approval (e.g. "looks good", "merge it"), set status to \`done\`
+6. An \`in_review\` task whose thread stays silent for ${TASK_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server. If you are still waiting on someone, nudge in the task's thread rather than letting it go quiet.
 
 **What \`grotto task create\` really means:**
 - Tasks live in the same chat flow as messages. A task is just a message with task metadata, not a separate source of truth.

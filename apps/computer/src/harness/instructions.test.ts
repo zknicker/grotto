@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { TASK_IN_REVIEW_STALE_DAYS } from '@grotto/api';
 import { composeAgentInstructions } from './instructions.ts';
 
 // The smallest guard on the ported system prompt: every real Computer Agent must
@@ -185,4 +186,59 @@ test('fingerprint is stable per composed text', () => {
     const a = composeAgentInstructions(facts);
     const b = composeAgentInstructions(facts);
     expect(a.fingerprint).toBe(b.fingerprint);
+});
+
+// Promotion is narrow on purpose: a one-turn conversational request that
+// happens to call a tool used to become a task that sat in `in_progress`
+// forever. A message becomes a task only when the work outlives the turn AND
+// needs a human before it can be called finished.
+test('promotes only multi-turn work that needs a human, and self-closes the rest', () => {
+    const { instructions } = composeAgentInstructions(facts);
+
+    // Positive: both conditions are required, plus the explicit-ask escape hatch.
+    expect(instructions).toContain(
+        'promote a message to a task only when both hold — the work **outlives this turn** **and** it'
+    );
+    expect(instructions).toContain(
+        "**needs a human's approval or feedback** before it can be called finished"
+    );
+    expect(instructions).toContain(
+        'Treat it as a task regardless when the human explicitly asks for a task, or when the message already carries a `[task #N ...]` suffix.'
+    );
+
+    // Negative: a same-turn reply is never promoted, and tool use alone is not
+    // the trigger — the retired broad "requires action" rule must stay gone.
+    expect(instructions).toContain(
+        'if you can finish the work and answer in the same turn, just do it and reply — never claim, never promote'
+    );
+    expect(instructions).toContain('a same-turn request is never claimed or promoted');
+    expect(instructions).toContain(
+        'Using tools, writing code, or changing things does not by itself make a message a task:'
+    );
+    expect(instructions).not.toContain(
+        'if fulfilling a message requires you to take action beyond just replying'
+    );
+    expect(instructions).not.toContain('Receive a message that requires action → claim it first');
+
+    // Claim-before-work remains the concurrency lock for real tasks.
+    expect(instructions).toContain(
+        'Claiming is the concurrency lock and moves the task to `in_progress`'
+    );
+
+    // Self-done: finished work that needed no feedback does not park in `in_review`,
+    // while a human-created or human-assigned task keeps its review handoff.
+    expect(instructions).toContain('`done` yourself when the work turned out to need none');
+    expect(instructions).toContain('Do not park finished work in `in_review` out of habit.');
+    expect(instructions).toContain(
+        'A task a human created or assigned to you always goes to `in_review`'
+    );
+
+    // A quiet `in_review` task is closed as stale by the Server, so waiting
+    // Agents nudge the thread instead of going silent.
+    expect(instructions).toContain(
+        `An \`in_review\` task whose thread stays silent for ${TASK_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server.`
+    );
+    expect(instructions).toContain(
+        "If you are still waiting on someone, nudge in the task's thread rather than letting it go quiet."
+    );
 });

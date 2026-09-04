@@ -143,7 +143,15 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // turn when busy — instead of implying a pull spends ~168 more, taking it to
     // 36,976. That leaves almost no headroom on purpose: the next
     // prompt-teaching change needs its own review, not a bump.
-    expect(prompt.length).toBeLessThanOrEqual(37_000);
+    //
+    // Reviewed bump to 38,000: the task promotion rule was rewritten because the
+    // old broad "requires action → claim it" rule turned one-turn conversational
+    // requests into tasks that sat in `in_progress` forever. Naming both
+    // promotion conditions, the same-turn counter-example, the self-`done`
+    // close-out, and the stale `in_review` window costs ~900 chars, and every
+    // one of those sentences fixes a live production failure. Headroom is again
+    // deliberately thin.
+    expect(prompt.length).toBeLessThanOrEqual(38_000);
 });
 
 test('teaches automation provenance: silent fires, envelopes, and top-level fire answers', () => {

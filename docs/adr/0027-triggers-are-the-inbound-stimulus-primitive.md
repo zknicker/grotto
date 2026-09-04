@@ -6,7 +6,7 @@ read_when:
   - changing how Server bounds, stores, and relays untrusted third-party payloads
 ---
 
-# ADR 0025: Triggers Are the Inbound Stimulus Primitive
+# ADR 0027: Triggers Are the Inbound Stimulus Primitive
 
 ## Status
 

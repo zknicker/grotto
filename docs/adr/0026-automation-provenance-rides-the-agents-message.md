@@ -17,7 +17,7 @@ decision this one grew out of.
 
 Supersedes the visible-receipt clauses of ADR 0016: the reminder remains the
 scheduling primitive and everything else in that decision stands, but a fire no
-longer appends a system message. Amends ADR 0025 the same way for Trigger fires
+longer appends a system message. Amends ADR 0027 the same way for Trigger fires
 and removes the Trigger creation receipt. Amends ADR 0015: the direct task
 assignment receipt is no longer a Chat message. Amends ADR 0011: a session
 rotation is a durable record and a stamp on the Agent's messages, not a receipt

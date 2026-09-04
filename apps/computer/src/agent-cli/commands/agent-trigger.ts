@@ -12,7 +12,7 @@ import {
 
 export * from './agent-trigger-actions.ts';
 
-// Family 9 — Triggers (ADR 0025). Agent-owned inbound webhooks anchored to a
+// Family 9 — Triggers (ADR 0027). Agent-owned inbound webhooks anchored to a
 // message: an outside system POSTs to a private URL and the Agent wakes. Never
 // scheduled — time-based follow-up work stays with reminders.
 

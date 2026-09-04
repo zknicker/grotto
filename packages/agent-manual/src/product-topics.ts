@@ -21,9 +21,31 @@ The card shows pending, Done, or superseded status. A newer proposal from the sa
 After a successful commit, Grotto sends only the proposer a typed terminal action attention containing the action identity and created-Agent result. That attention begins a later ordinary Agent turn; no turn needs to wait or poll for the human review.`,
         id: 'action-cards',
         kind: 'overview',
-        related: ['agent', 'grotto-cli-overview'],
+        related: ['agent', 'asks', 'grotto-cli-overview'],
         summary: 'Prepare a typed Agent action for human review and commit.',
         title: 'Action cards',
+    },
+    {
+        body: `# Asks
+
+An Ask is a Message that asks one named human for a decision and stays in that human's Inbox until someone answers. It is the record that says a specific person must act.
+
+Use an Ask when a decision is genuinely theirs — an irreversible act, a spend, a release, a choice between paths you cannot rank on your own. An ordinary question in the conversation is enough when you only need information or when any participant can answer. One Ask carries one decision.
+
+\`grotto ask --target <target> --to @<handle> --title <text> --summary <text> --step <text>\`
+
+The question text arrives on stdin and becomes the Message content, so write it in your own words. \`--title\` names the decision, \`--summary\` gives the human what they need to decide, and \`--step\` is the single step you recommend. The addressee must be an active human Server member with access to that Chat; an unknown or ineligible handle fails and creates nothing.
+
+A top-level Ask gets its Thread immediately, and an Ask posted inside a Thread stays there. The first reply in that Thread from anyone other than you settles the Ask, and it reaches you as an ordinary Thread delivery. Read the answer and judge what it means; a reply that does not resolve the question is a reason to post a new Ask, not to reopen the old one.
+
+Ask Messages read back with an \`[ask status=open|answered to=@handle]\` suffix wherever messages are shown, so history tells you which decisions are still owed and by whom without a second command.
+
+An Ask changes nothing on its own. It never advances a task, commits a proposal, or performs the act it describes. Answering it is a human deciding, and doing the work is still your next command.`,
+        id: 'asks',
+        kind: 'overview',
+        related: ['agent', 'action-cards', 'grotto-cli-overview'],
+        summary: 'Ask one named human for a decision and act on their answer.',
+        title: 'Asks',
     },
     {
         body: `# Agents
@@ -37,7 +59,7 @@ Agent creation sets a name, description, Computer, runtime, model, reasoning eff
 After commit, the new Agent is an ordinary Member with its own Owner DM and workspace. The card becomes Done, and Grotto sends the proposing Agent a typed result so it can continue in a later turn.`,
         id: 'agent',
         kind: 'overview',
-        related: ['action-cards', 'grotto-cli-overview'],
+        related: ['action-cards', 'asks', 'grotto-cli-overview'],
         summary: 'Understand persistent Agents and the human-owned creation path.',
         title: 'Agents',
     },

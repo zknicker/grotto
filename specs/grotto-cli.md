@@ -146,7 +146,16 @@ Rules:
   is already a thread. (Populated from WS3 on; absent before.)
 - Suffixes, in order: attachments
   (`[2 attachments: a.png (id:att_…), … — use grotto attachment view to download]`, WS5),
-  task (`[task #N status=… assignee=…]`, WS5).
+  task (`[task #N status=… assignee=…]`, WS5), ask (`[ask status=open|answered to=@handle]`).
+- The turn-drain envelope carries the same work facts compressed inside the
+  bracket instead of as trailing suffixes, in the same order:
+  `task=#N:status:assignee` (`unassigned` when nobody owns it), then
+  `ask=open|answered[:@handle]` (the addressee is omitted when the Ask has
+  none), then `mentioned=true`. Suffix and marker grammars share one
+  formatting owner (`apps/computer/src/inbox-format.ts`).
+- Every message also carries `body_kind` (`text | ask`) on the wire, with the Ask's
+  own facts under `ask` (`id`, `status`, `addressee_handle`, `title`,
+  `recommended_step`) so a reader can act without a second call.
 
 ## 5. Output and error contract (AX law)
 
@@ -324,6 +333,7 @@ per family:
 | profile | `show update` | WS5 (landed) | Agent-facing `show [@handle]`, `update --description` (≤500 chars); human display names and handles are edited in App Settings |
 | reminder | `schedule list snooze update cancel log` | WS5 (landed) | D4 model: `schedule --title (--delay-seconds \| --fire-at) [--repeat] --message-id [--script]`; message anchors only |
 | trigger | `create list show enable disable rotate delete log` | ADR 0025 (landed) | Inbound webhook wakes: `create --title --message-id [--instruction] [--kind webhook]`; `--kind` defaults to `webhook` and any other value is `INVALID_ARG` naming the supported kinds; `list`/`show` print the kind with the status; message anchors only and never a schedule; `create` and `rotate` print the bearer secret once with a ready `curl` line; mutations are not idempotent |
+| ask | one verb, no subcommand | Asks (landed) | `ask --target <target> --to @<handle> --title <text> --summary <text> --step <text>`, question body on stdin; one named human's decision ([Asks](asks.md)) |
 | action | `prepare` | PRD-260 (landed) | `prepare --target <target> --avatar-file <path>` with one strict `agent:create` JSON action on stdin; stores a native pending card only |
 | skill | `list view create patch write-file` | WS5 (landed) | Replaces `skills_*` tools; hash-guarded patch/write-file, stdin bodies |
 | manual | `get <topic>`, `search <keywords>` | PRD-187 (landed) | Authenticated, read-only Server-hosted topics; `--intent`/`--reason`; optional `--scope recipes` |
@@ -358,6 +368,9 @@ GET  /api/agent/events             (message check drain — WS4)
 GET  /api/agent/inbox              (inbox check — WS4)
 POST /api/agent/actions/prepare    { action, avatar, nonce, target }
                                    → { action, chatId, idempotent, messageId, sequence, target }
+POST /api/agent/asks               { addresseeHandle, content, nonce, recommendedStep,
+                                     summary, target, title }
+                                   → { ask, chatId, idempotent, messageId, sequence, target }
 ```
 
 - Sends are idempotent by `nonce` (existing message dedupe rules).

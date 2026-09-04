@@ -260,6 +260,6 @@ function escapeXml(value: string): string {
     return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
-function isThreadTarget(target: string): boolean {
+export function isThreadTarget(target: string): boolean {
     return /^#[^:]+:[^:]+$/u.test(target) || /^dm:@[^:]+:[^:]+$/u.test(target);
 }

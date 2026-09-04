@@ -1,4 +1,4 @@
-import type { AgentInboxItem } from './launch.ts';
+import type { AgentInboxAsk, AgentInboxItem } from './launch.ts';
 
 const deliveryTrailer = [
     'Respond as appropriate. Complete all your work before stopping.',
@@ -74,9 +74,10 @@ function formatEnvelope(item: AgentInboxItem, homeTimezone: string): string {
     const task = item.task
         ? ` task=#${item.task.number}:${item.task.status}:${taskAssignee(item)}`
         : '';
+    const ask = item.ask ? formatAskMarker(item.ask) : '';
     const mention = item.mentioned ? ' mentioned=true' : '';
     const envelope =
-        `[target=${item.target} msg=${shortInboxId(item.id)} time=${formatLocalTime(item.createdAt, homeTimezone)} type=${item.senderType}${task}${mention}] ` +
+        `[target=${item.target} msg=${shortInboxId(item.id)} time=${formatLocalTime(item.createdAt, homeTimezone)} type=${item.senderType}${task}${ask}${mention}] ` +
         `${sender}: ${item.content}`;
     return item.threadFollowReactivated
         ? `${formatThreadFollowRestoration(item.target)}\n${envelope}`
@@ -93,6 +94,34 @@ function formatActionAttention(item: AgentInboxItem): string {
         `The committed action completed. createdAgentId=${attention.createdAgentId}`,
         `executedResult=${JSON.stringify(attention.executedResult)}`,
     ].join('\n');
+}
+
+/**
+ * One owner of Ask presentation. The delivery envelope, the drain envelope, and
+ * the busy notice read the same status and addressee; only the grammar differs.
+ */
+export function formatAskSuffix(ask: AgentInboxAsk): string {
+    return ` [ask status=${ask.status}${askAddressee(ask)}]`;
+}
+
+/** The notice tag: content-free, and shaped like the `task #N` tag beside it. */
+export function formatAskTag(ask: AgentInboxAsk): string {
+    return `ask ${ask.status}${askAddressee(ask)}`;
+}
+
+/** The drain marker: compressed like the `task=#N:status:assignee` marker beside it. */
+export function formatAskMarker(ask: AgentInboxAsk): string {
+    const handle = askHandle(ask);
+    return ` ask=${ask.status}${handle ? `:${handle}` : ''}`;
+}
+
+function askAddressee(ask: AgentInboxAsk): string {
+    const handle = askHandle(ask);
+    return handle ? ` to=${handle}` : '';
+}
+
+function askHandle(ask: AgentInboxAsk): string | null {
+    return ask.addresseeHandle ? `@${ask.addresseeHandle}` : null;
 }
 
 export function formatThreadFollowRestoration(target: string): string {
@@ -130,6 +159,7 @@ function noticeTag(target: string, items: AgentInboxItem[]): string {
     const tags = [
         target.startsWith('dm:') ? 'dm' : target.includes(':') ? 'thread' : null,
         latest?.task ? `task #${latest.task.number}` : null,
+        latest?.ask ? formatAskTag(latest.ask) : null,
         items.some((item) => item.actionAttention) ? 'action attention' : null,
         items.some((item) => item.mentioned) ? 'you were mentioned' : null,
     ].filter(Boolean);

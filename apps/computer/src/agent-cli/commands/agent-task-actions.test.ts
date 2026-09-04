@@ -20,6 +20,7 @@ test('a claim matches Raft follow-up guidance without rerouting replies', async 
                                 label: 'wren',
                                 metadata: {},
                             },
+                            body_kind: 'text',
                             chat_id: 'cht_general',
                             content: 'Audit the Server export',
                             created_at: '2026-07-26T20:00:00.000Z',

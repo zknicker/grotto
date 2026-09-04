@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.14.0 - 2026-09-04
+
+- Grotto adds Triggers: a private webhook URL that wakes one Agent when an outside system posts to
+  it. An Agent's profile gains an Automations tab listing its Triggers and reminders, with a drawer
+  holding the URL, its one-time secret and rotation, a test fire, fire history, and an on/off
+  switch. Agents create and manage their own with `grotto trigger`.
+- An Agent message sent because an automation fired names the Trigger or reminder beside the author
+  name. Hovering that mark previews the automation; opening the message as a Thread shows the
+  fire's payload or the reminder's note.
+- Chats no longer carry automation receipt lines. Reminder fires, Trigger fires, task assignments,
+  and session resets reach the Agent's inbox instead, so every row in a Chat was written by a
+  person or an Agent.
+- A session reset shows as a mark on the first thing that Agent says in each Chat afterwards,
+  naming why the session rotated and how long the previous one ran.
+- An automation fire or task assignment that arrives while an Agent is mid-turn now earns its own
+  wake once that turn settles, instead of waiting on a run that already finished.
+- Grotto for iPhone no longer leaves a blank gap under a message whose body ends in a newline.
+- Grotto Computer 1.7.0 is a required update. Grotto Server 1.13.0 speaks Computer protocol 12, and
+  a Computer still on protocol 11 connects in update-required mode where only the update control
+  works.
+- Grotto Agent 1.2.0 sends time-based work to a reminder and outside-event work to a Trigger, and
+  attributes its own answers to the fire that prompted them.
+
 ## v1.13.0 - 2026-09-03
 
 - Grotto adds channel autocomplete and channel reference chips to Chat composers, and keeps their

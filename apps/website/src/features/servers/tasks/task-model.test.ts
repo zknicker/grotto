@@ -22,6 +22,18 @@ test('projects a task from its canonical message', () => {
     expect(task.threadSummary.replyCount).toBe(3);
 });
 
+test('a task title reads references by label, not by target', () => {
+    const task = toTaskItem(
+        item({
+            content:
+                'Ask [@Blippy](agent://agt_blippy) to fix\nthe avatar upload in [#product](chat://cht_one)',
+        }),
+        humans
+    );
+
+    expect(task.title).toBe('Ask @Blippy to fix the avatar upload in #product');
+});
+
 test('filters tasks by lifecycle without a second content store', () => {
     const todo = toTaskItem(item(), humans);
     const done = {
@@ -229,6 +241,13 @@ test('identifies a DM task by its peer', () => {
     ).toBe('DM · Human r_peer');
 });
 
+test('a task in an Agent DM reads as a DM without inventing a human peer', () => {
+    expect(
+        toTaskItem({ ...item(), chatKind: 'dm', chatName: null, chatPeerUserId: null }, humans)
+            .chatLabel
+    ).toBe('DM');
+});
+
 function agent(): Agent {
     return {
         availability: 'idle',
@@ -262,7 +281,7 @@ function agent(): Agent {
     };
 }
 
-function item(): TaskListItem {
+function item(overrides: { content?: string } = {}): TaskListItem {
     return {
         chatKind: 'channel',
         chatName: 'all',
@@ -270,8 +289,9 @@ function item(): TaskListItem {
         message: {
             attachments: [],
             author: { kind: 'human', userId: 'user_one' },
+            body: { kind: 'text' },
             chatId: 'chat_one',
-            content: 'Ship the Server board',
+            content: overrides.content ?? 'Ship the Server board',
             createdAt: '2026-07-26T12:00:00.000Z',
             id: 'message_one',
             nonce: 'nonce_one',

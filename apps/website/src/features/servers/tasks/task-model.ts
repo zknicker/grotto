@@ -1,4 +1,5 @@
 import type { Agent, Chat, ChatMessage, TaskLabel, TaskListItem } from '@grotto/api';
+import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import type { TaskPriority, TaskStatus } from '../../tasks/task-presentation.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
@@ -13,6 +14,7 @@ export interface TaskItem {
     chatLabel: string;
     claimedAt: string | null;
     createdAt: string;
+    createdByUserId: string | null;
     id: string;
     labels: TaskLabel[];
     message: ChatMessage;
@@ -21,6 +23,7 @@ export interface TaskItem {
     status: TaskStatus;
     threadChatId: string;
     threadSummary: TaskListItem['threadSummary'];
+    /** The canonical message as one line; the Thread renders the message itself. */
     title: string;
     updatedAt: string;
     version: number;
@@ -100,12 +103,10 @@ export function toTaskItem(
         assigneeLabel: taskAssigneeName(item.task, agents, humans),
         assigneeUserId: item.task.assigneeUserId,
         chatId: item.task.chatId,
-        chatLabel:
-            item.chatKind === 'channel'
-                ? `#${item.chatName ?? 'channel'}`
-                : `DM · ${humans.name(item.chatPeerUserId)}`,
+        chatLabel: taskChatLabel(item, humans),
         claimedAt: item.task.claimedAt,
         createdAt: item.task.createdAt,
+        createdByUserId: item.task.createdByUserId,
         id: item.message.id,
         labels: item.task.labels,
         message: item.message,
@@ -114,10 +115,22 @@ export function toTaskItem(
         status: item.task.status,
         threadChatId: item.task.threadChatId,
         threadSummary: item.threadSummary,
-        title: item.message.content,
+        title: messagePreviewLine(item.message.content),
         updatedAt: item.task.updatedAt,
         version: item.task.version,
     };
+}
+
+/**
+ * Where the task lives. An Agent DM has no human peer to name, so it reads as
+ * `DM` rather than claiming a peer that is not there — the same label the
+ * Inbox Ask row uses.
+ */
+function taskChatLabel(item: TaskListItem, humans: HumanDirectory): string {
+    if (item.chatKind === 'channel') {
+        return `#${item.chatName ?? 'channel'}`;
+    }
+    return item.chatPeerUserId ? `DM · ${humans.name(item.chatPeerUserId)}` : 'DM';
 }
 
 export interface TaskFilterInput {

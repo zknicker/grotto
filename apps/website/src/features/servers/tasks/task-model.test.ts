@@ -4,6 +4,8 @@ import { humanDirectory } from '../human-identity.ts';
 import {
     filterTasks,
     groupTasks,
+    groupTasksForList,
+    resolveTaskView,
     taskChatOptions,
     taskClaimAction,
     toTaskItem,
@@ -36,6 +38,19 @@ test('filters tasks by lifecycle without a second content store', () => {
     expect(filterTasks([todo, done], { view: 'all' })).toEqual([todo, done]);
 });
 
+test('lets an explicit status outrank the resting active view', () => {
+    const todo = toTaskItem(item(), humans);
+    const done = { ...todo, id: 'message_two', number: 2, status: 'done' as const };
+    const closed = { ...todo, id: 'message_three', number: 3, status: 'closed' as const };
+
+    expect(filterTasks([todo, done, closed], { status: 'done', view: 'active' })).toEqual([done]);
+    expect(filterTasks([todo, done, closed], { status: 'closed', view: 'active' })).toEqual([
+        closed,
+    ]);
+    expect(filterTasks([todo, done, closed], { status: 'todo', view: 'active' })).toEqual([todo]);
+    expect(filterTasks([todo, done, closed], { status: null, view: 'active' })).toEqual([todo]);
+});
+
 test('filters tasks by label id', () => {
     const labeled = {
         ...toTaskItem(item(), humans),
@@ -58,6 +73,26 @@ test('groups every lifecycle column in stable order', () => {
         'closed',
     ]);
     expect(groups[0]?.tasks).toHaveLength(1);
+});
+
+test('rests on the active view so finished work stays out of the default page', () => {
+    expect(resolveTaskView(null)).toBe('active');
+    expect(resolveTaskView('all')).toBe('all');
+    expect(resolveTaskView('unassigned')).toBe('unassigned');
+});
+
+test('leads the list with the tasks waiting on a person', () => {
+    const groups = groupTasksForList([toTaskItem(item(), humans)]);
+
+    expect(groups.map((group) => group.status)).toEqual([
+        'in_review',
+        'todo',
+        'in_progress',
+        'done',
+        'closed',
+    ]);
+    expect(groups[0]?.title).toBe('Needs your review');
+    expect(groups[1]?.title).toBe('Todo');
 });
 
 test('orders each status group by priority, urgent first and unset last', () => {

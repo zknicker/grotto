@@ -7,6 +7,7 @@ import {
     fireContextPayloadLabel,
     fireContextPayloadLanguage,
     formatUpcomingTime,
+    messageCauseArchivedNote,
     messageCauseAttributionNote,
     messageCauseHoverRows,
 } from './automation-presentation.ts';
@@ -38,7 +39,12 @@ test('a Reminder previews its cadence instead of a fire count', () => {
 });
 
 test('an automation that has never fired says so rather than showing a date', () => {
-    expect(messageCauseHoverRows({ ...triggerCause(), lastFiredAt: null }, now)).toContainEqual({
+    const cause: MessageCause = {
+        ...triggerCause(),
+        live: { fireCount: 12, instruction: null, lastFiredAt: null, status: 'armed' },
+    };
+
+    expect(messageCauseHoverRows(cause, now)).toContainEqual({
         label: 'Last fired',
         value: 'Never',
     });
@@ -96,6 +102,45 @@ test('a fire within the week reads by weekday and falls back to a date past it',
     expect(formatUpcomingTime('2026-10-07T13:00:00.000Z', now)).toMatch(/^Oct \d+/u);
 });
 
+test('an archived automation previews its snapshot and drops the live rows', () => {
+    expect(messageCauseHoverRows(archivedTriggerCause(), now)).toEqual([
+        { label: 'Kind', value: 'Webhook' },
+        { label: 'Fired', value: '4m ago' },
+    ]);
+    expect(messageCauseHoverRows(archivedReminderCause(), now)).toEqual([
+        { label: 'Cadence', value: 'Every Monday at 09:00' },
+        { label: 'Fired', value: '7d ago' },
+    ]);
+});
+
+test('only an archived automation says so, and it says which kind', () => {
+    expect(messageCauseArchivedNote(triggerCause())).toBeNull();
+    expect(messageCauseArchivedNote(reminderCause())).toBeNull();
+    expect(messageCauseArchivedNote(archivedTriggerCause())).toBe(
+        'This trigger has been archived.'
+    );
+    expect(messageCauseArchivedNote(archivedReminderCause())).toBe(
+        'This reminder has been archived.'
+    );
+});
+
+test('an archived fire states what fired and when, and nothing it no longer knows', () => {
+    expect(fireContextMetaParts(archivedTriggerContext(), now)).toEqual([
+        { value: 'Webhook' },
+        { prefix: 'Fired', value: '4m ago' },
+    ]);
+    expect(fireContextMetaParts(archivedReminderContext(), now)).toEqual([
+        { value: 'Every Monday at 09:00' },
+        { prefix: 'Fired', value: '7d ago' },
+    ]);
+});
+
+test('a live Trigger fire whose own fire row expired drops its place in the history', () => {
+    expect(
+        fireContextMetaParts({ ...triggerContext(), fireOrdinal: null, fireTotal: null }, now)
+    ).toEqual([{ value: 'Webhook' }, { prefix: 'Fired', value: '4m ago' }]);
+});
+
 test('only an inferred cause explains itself', () => {
     expect(messageCauseAttributionNote(triggerCause())).toBeNull();
     expect(messageCauseAttributionNote({ ...triggerCause(), attribution: 'inferred' })).toContain(
@@ -107,13 +152,16 @@ function triggerCause(): MessageCause {
     return {
         attribution: 'explicit',
         automationId: 'trg_deploy',
-        fireCount: 12,
+        firedAt: '2026-09-03T11:56:00.000Z',
         fireId: 'trf_12',
-        instruction: 'Summarize the deploy in this DM; flag failures.',
         kind: 'trigger',
-        lastFiredAt: '2026-09-03T11:56:00.000Z',
+        live: {
+            fireCount: 12,
+            instruction: 'Summarize the deploy in this DM; flag failures.',
+            lastFiredAt: '2026-09-03T11:56:00.000Z',
+            status: 'armed',
+        },
         ownerAgentId: 'agt_blippy',
-        status: 'armed',
         summary: 'Webhook',
         title: 'Deploy finished',
     };
@@ -123,13 +171,16 @@ function reminderCause(): MessageCause {
     return {
         attribution: 'explicit',
         automationId: 'rem_review',
-        fireCount: 6,
+        firedAt: '2026-08-27T13:00:00.000Z',
         fireId: 'rmf_6',
-        instruction: null,
         kind: 'reminder',
-        lastFiredAt: '2026-08-27T13:00:00.000Z',
+        live: {
+            fireCount: 6,
+            instruction: null,
+            lastFiredAt: '2026-08-27T13:00:00.000Z',
+            status: 'scheduled',
+        },
         ownerAgentId: 'agt_blippy',
-        status: 'scheduled',
         summary: 'Every Monday at 09:00',
         title: 'Weekly self-review',
     };
@@ -168,5 +219,38 @@ function reminderContext(): AutomationFireContext {
         payloadBytes: null,
         payloadTruncated: false,
         repeat: 'Every Monday at 09:00',
+    };
+}
+
+function archivedTriggerCause(): MessageCause {
+    return { ...triggerCause(), live: null };
+}
+
+function archivedReminderCause(): MessageCause {
+    return { ...reminderCause(), live: null };
+}
+
+/** Archived: every kind-specific field the Server read live is null with it. */
+function archivedTriggerContext(): AutomationFireContext {
+    return {
+        ...triggerContext(),
+        cause: archivedTriggerCause(),
+        contentType: null,
+        fireOrdinal: null,
+        fireTotal: null,
+        payload: null,
+        payloadBytes: null,
+    };
+}
+
+function archivedReminderContext(): AutomationFireContext {
+    return {
+        ...reminderContext(),
+        anchorExcerpt: null,
+        cause: archivedReminderCause(),
+        fireOrdinal: null,
+        fireTotal: null,
+        nextFireAt: null,
+        repeat: null,
     };
 }

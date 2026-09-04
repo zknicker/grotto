@@ -2041,6 +2041,50 @@ test('ChatTranscript drops the mark where a context card already states it', () 
     assert.doesNotMatch(markup, /text-trigger-mark/);
 });
 
+test('ChatTranscript gives every promoted message in a run its own task mark', () => {
+    // A turn's header speaks for one task, so a promoted message must open a
+    // turn of its own. Let two consecutive promotions merge and the second
+    // task loses its mark while the first header speaks for both.
+    const markup = renderTranscript([
+        promotedRow('message-1', 'Ship the board', 1),
+        promotedRow('message-2', 'Write the docs', 2),
+    ]);
+
+    assert.match(markup, /Task #1/);
+    assert.match(markup, /Task #2/);
+});
+
+function promotedRow(id: string, content: string, number: number): TranscriptMessageRow {
+    return {
+        actor: null,
+        connectsToNext: false,
+        connectsToPrevious: false,
+        id,
+        isFirstInGroup: true,
+        kind: 'message',
+        message: {
+            content,
+            id,
+            sender: 'You',
+            senderType: 'user',
+            sourceSessionId: null,
+            sourceSessionKey: 'session-1',
+            task: {
+                assignee: null,
+                claimed_at: null,
+                created_at: '2026-09-03T12:00:00.000Z',
+                labels: [],
+                number,
+                origin: 'composed',
+                priority: 'none',
+                status: 'todo',
+                updated_at: '2026-09-03T12:00:00.000Z',
+            },
+            timestamp: '2026-09-03T12:00:00.000Z',
+        },
+    };
+}
+
 function causedOverrides(): Partial<TranscriptRenderContextValue> {
     return {
         resolveActorProfile: () => ({
@@ -2068,13 +2112,16 @@ function causedRow(): TranscriptMessageRow {
             cause: {
                 attribution: 'explicit',
                 automationId: 'trg_deploy',
-                fireCount: 12,
+                firedAt: '2026-09-03T11:56:00.000Z',
                 fireId: 'trf_12',
-                instruction: null,
                 kind: 'trigger',
-                lastFiredAt: '2026-09-03T11:56:00.000Z',
+                live: {
+                    fireCount: 12,
+                    instruction: null,
+                    lastFiredAt: '2026-09-03T11:56:00.000Z',
+                    status: 'armed',
+                },
                 ownerAgentId: 'blippy',
-                status: 'armed',
                 summary: 'Webhook',
                 title: 'Deploy finished',
             },

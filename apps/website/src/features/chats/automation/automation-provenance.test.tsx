@@ -70,6 +70,56 @@ test('a Reminder context card carries its anchoring note and no payload', () => 
     expect(markup).toContain('/s/dev/settings/members/agents/agt_blippy/automations');
 });
 
+test('an archived automation keeps its mark exactly as a live one has it', () => {
+    const archived = render(<MessageCauseMark cause={archivedReminderCause()} />);
+
+    expect(archived).toBe(render(<MessageCauseMark cause={reminderCause()} />));
+    expect(archived).toContain('Weekly self-review');
+    expect(archived).toContain('text-reminder-mark');
+});
+
+test('an archived hover card states the snapshot and says the record is gone', () => {
+    const markup = render(<MessageCauseHoverContent cause={archivedTriggerCause()} />);
+
+    expect(markup).toContain('Deploy finished');
+    expect(markup).toContain('Webhook');
+    expect(markup).toContain('This trigger has been archived.');
+    // The live rows, the standing instruction, and the way out to a record
+    // that no longer exists all go with it.
+    expect(markup).not.toContain('Armed');
+    expect(markup).not.toContain('Last fired');
+    expect(markup).not.toContain('Fires');
+    expect(markup).not.toContain('Summarize the deploy in this DM; flag failures.');
+    expect(markup).not.toContain('Manage in Automations');
+});
+
+test('an archived hover card names the kind that was archived', () => {
+    expect(render(<MessageCauseHoverContent cause={archivedReminderCause()} />)).toContain(
+        'This reminder has been archived.'
+    );
+});
+
+test('an archived context card drops the status, the payload, and the way out', () => {
+    const markup = render(<AutomationFireContextCardView context={archivedTriggerContext()} />);
+
+    expect(markup).toContain('Deploy finished');
+    expect(markup).toContain('Webhook');
+    expect(markup).toContain('This trigger has been archived.');
+    expect(markup).not.toContain('Armed');
+    expect(markup).not.toContain('of 12');
+    expect(markup).not.toContain('Payload');
+    expect(markup).not.toContain('Manage in Automations');
+});
+
+test('an archived Reminder context card keeps its cadence and loses its anchor note', () => {
+    const markup = render(<AutomationFireContextCardView context={archivedReminderContext()} />);
+
+    expect(markup).toContain('Every Monday at 09:00');
+    expect(markup).toContain('This reminder has been archived.');
+    expect(markup).not.toContain('Anchored on:');
+    expect(markup).not.toContain('Scheduled');
+});
+
 /** Rendered where the transcript lives, so the manage link resolves a real slug. */
 function render(element: React.ReactElement) {
     return renderToStaticMarkup(
@@ -85,13 +135,16 @@ function triggerCause(): MessageCause {
     return {
         attribution: 'explicit',
         automationId: 'trg_deploy',
-        fireCount: 12,
+        firedAt: relativeMinutesAgo(4),
         fireId: 'trf_12',
-        instruction: 'Summarize the deploy in this DM; flag failures.',
         kind: 'trigger',
-        lastFiredAt: relativeMinutesAgo(4),
+        live: {
+            fireCount: 12,
+            instruction: 'Summarize the deploy in this DM; flag failures.',
+            lastFiredAt: relativeMinutesAgo(4),
+            status: 'armed',
+        },
         ownerAgentId: 'agt_blippy',
-        status: 'armed',
         summary: 'Webhook',
         title: 'Deploy finished',
     };
@@ -101,13 +154,16 @@ function reminderCause(): MessageCause {
     return {
         attribution: 'explicit',
         automationId: 'rem_review',
-        fireCount: 6,
+        firedAt: '2026-08-27T13:00:00.000Z',
         fireId: 'rmf_6',
-        instruction: null,
         kind: 'reminder',
-        lastFiredAt: '2026-08-27T13:00:00.000Z',
+        live: {
+            fireCount: 6,
+            instruction: null,
+            lastFiredAt: '2026-08-27T13:00:00.000Z',
+            status: 'scheduled',
+        },
         ownerAgentId: 'agt_blippy',
-        status: 'scheduled',
         summary: 'Every Monday at 09:00',
         title: 'Weekly self-review',
     };
@@ -151,4 +207,37 @@ function reminderContext(): AutomationFireContext {
 
 function relativeMinutesAgo(minutes: number) {
     return new Date(Date.now() - minutes * 60_000).toISOString();
+}
+
+function archivedTriggerCause(): MessageCause {
+    return { ...triggerCause(), live: null };
+}
+
+function archivedReminderCause(): MessageCause {
+    return { ...reminderCause(), live: null };
+}
+
+/** Archived: the Server nulls every kind-specific field with the record. */
+function archivedTriggerContext(): AutomationFireContext {
+    return {
+        ...triggerContext(),
+        cause: archivedTriggerCause(),
+        contentType: null,
+        fireOrdinal: null,
+        fireTotal: null,
+        payload: null,
+        payloadBytes: null,
+    };
+}
+
+function archivedReminderContext(): AutomationFireContext {
+    return {
+        ...reminderContext(),
+        anchorExcerpt: null,
+        cause: archivedReminderCause(),
+        fireOrdinal: null,
+        fireTotal: null,
+        nextFireAt: null,
+        repeat: null,
+    };
 }

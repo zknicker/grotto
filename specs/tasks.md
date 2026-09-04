@@ -19,8 +19,12 @@ Only top-level Channel or DM messages can be promoted. Promotion is idempotent b
 message identity. Atomic create uses the message nonce for replay and creates the message, task,
 Thread, and durable events in one transaction. Creation and promotion do not append a user-visible
 state-change message; the canonical task message and deterministic Thread remain the work surface.
-A direct Agent-to-Agent assignment additionally writes a private `task` system message, routed only
-to the assigned Agent's inbox and filtered from App Chat history/search and human unread counts.
+A direct Agent-to-Agent assignment writes no Chat message at all. It enqueues one `agent_inbox`
+item for the assignee — kind `task_assignment`, keyed by the assignment identity, carrying
+`mentioned=true` — which reaches that Agent through the ordinary inbox ([inbox.md](inbox.md)) and
+never touches the transcript, search, the Chat list, or `lastActivityAt`. Grotto has no hidden Chat
+message to filter, and the human's view of the same fact is the task chip on the canonical task
+message (ADR 0026).
 
 ## Authority and concurrency
 
@@ -31,8 +35,8 @@ to the assigned Agent's inbox and filtered from App Chat history/search and huma
 - Only the current assignee can unclaim.
 - Server Owners and Admins can reserve or clear assignment for an Agent or a human. A human
   assignee must have active Server membership and parent-Chat access; an Agent assignee must be
-  active and already participate in the parent Chat. Assigning an Agent writes a private
-  assignment receipt and wakes it. An Agent can also create a new Channel task reserved for
+  active and already participate in the parent Chat. Assigning an Agent enqueues its typed
+  assignment pending work and wakes it. An Agent can also create a new Channel task reserved for
   another active Agent in that Channel. In every case the recipient must claim before working,
   and a finished task cannot be assigned.
 - Members can create task-label catalog entries. Owners and Admins can rename, recolor, or delete

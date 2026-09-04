@@ -69,13 +69,15 @@ so `docs:list` routes future agents correctly.
 
 ## API And Events
 
-- Server tRPC features live in `apps/server/src/api/<feature>/`.
+- Server tRPC features live in `apps/server/src/grotto-api/<feature>/`.
 - Each feature exposes a `router.ts` plus one file per procedure when the feature has multiple
   procedures.
 - Keep API procedures thin: validate input, call product logic, and return a narrow result.
 - Put business logic under product nouns. Keep external-system code behind adapters.
-- Define server-to-client invalidation events in `apps/server/src/api/invalidation-events.ts`.
-- Prefer named domain subscriptions such as `chat.onTurnStarted` or `agent.onUpdate` over generic
+- Define server-to-client event contracts in `packages/grotto-api`: durable event types in
+  `src/chat.ts` (`ServerDurableEvent`) and Server-scoped update events in `src/server-events.ts`
+  (`serverUpdatedEventSchema`).
+- Prefer named domain subscriptions such as `chat.onEvent` or `agent.onActivity` over generic
   event buckets.
 - App event hooks should own their tRPC subscription and the exact React Query invalidation or cache
   update.

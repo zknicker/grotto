@@ -1,19 +1,71 @@
 ---
-summary: Agent inbox — exact delivery planning, model-visibility accounting, notice turns, and local-first pulls. Supersedes steering.md and addressing.md.
+summary: Agent inbox — the `agent_inbox` item kinds and their one lifecycle, exact delivery planning, model-visibility accounting, notice turns, local-first pulls, and cause inference on send. Supersedes steering.md and addressing.md.
 read_when:
+  - adding an agent inbox item kind, or changing an item's identity or lifecycle
   - changing which agents wake for a chat message, mute/follow semantics, or mention piercing
   - changing exact model visibility, freshness catch-up, or pull acknowledgement
   - changing mid-turn notices, drain batching, or chain limits
+  - changing how the Server infers which fire caused an Agent's message
   - changing Agent status surfaces derived from inbox delivery
 ---
 
 # Agent Inbox
 
-How messages reach agents after the flip (ADR 0014): a delivery planner
-queues per attention rules, notice turns preserve Agent pull discretion, and exact
-visibility plus a verified contiguous boundary are the only truth about what an agent has seen. Decisions
-I1–I4 in [raft-alignment/README.md](raft-alignment/README.md); wire surface in
+The agent inbox is the only lane that carries work no human sees, and `agent_inbox`
+is the table that holds it (ADR 0026). Everything an Agent is given to act on is an
+inbox item: a delivery planner queues items per attention rules, notice turns preserve
+Agent pull discretion, and exact visibility plus a verified contiguous boundary are the
+only truth about what an agent has seen. Decisions I1–I4 in
+[raft-alignment/README.md](raft-alignment/README.md); wire surface in
 [grotto-cli.md](grotto-cli.md).
+
+## Item kinds and lifecycle
+
+Every row is one item with a stable identity that is never a message id except for
+ordinary Chat work, the rendered envelope as its content, and the recipient Agent.
+
+| Kind (`source`) | What it is | Identity | Lane |
+| --- | --- | --- | --- |
+| `human` | An ordinary Chat delivery of a durable message | The message id | Notice |
+| `action` | A committed prepared action's terminal attention for its proposer | The action id | Concrete |
+| `task_assignment` | A direct task assignment to this Agent | The assignment identity | Concrete |
+| `reminder` | One reminder fire | The fire id | Concrete |
+| `trigger` | One Trigger fire | The fire id | Concrete |
+| `onboarding` | Cove's one-shot bootstrap instruction | Its own bootstrap identity | Concrete |
+
+Only ordinary Chat work is backed by a `chat_messages` row; the rest exist solely
+here, because a fact only an Agent needs is never written to a transcript humans read
+(ADR 0026). A human learns each of those facts from a representation on the content it
+explains — the task chip, the fire mark, the session mark — described in
+[automation-provenance.md](automation-provenance.md) and
+[sessions.md](sessions.md).
+
+One lifecycle covers every kind: `queued` when planned, `accepted` when the Computer
+acknowledges the run carrying it, `served` when its body reaches the model — a pull for
+notice-lane work, acceptance itself for concrete work, whose body is already in the run's
+prompt — and `seen` when the turn settles with the item proven model-visible.
+Retirement keeps the row as ledger evidence rather than deleting it. An item that cannot reach `seen` is re-offered on every wake, so
+a new kind is only correct once it settles like the others, and deleting the automation
+behind a queued fire retires that item rather than leaving it to replay.
+
+## Cause inference (ADR 0026)
+
+An Agent that answers a fire attributes the answer itself with `grotto message send
+--cause <fireId>`, which records `attribution = 'explicit'` and always wins. When a send
+carries no `--cause`, the Server infers the cause under exactly one rule, and writes
+nothing otherwise:
+
+1. the sending run's served item set contains exactly one item and that item is a
+   reminder or Trigger fire — a fire the run was woken with is served the moment the
+   Computer accepts that run, so the rule holds without any pull; and
+2. the send's target Chat is that fire's anchor Chat — a Thread target resolves to its
+   parent Chat first.
+
+Then `message_causes` records that fire with `attribution = 'inferred'`. A run offered a
+fire alongside anything else — another fire, a Chat message, an attention — infers
+nothing, because the Agent had more than one reason to speak. Inference is deliberately
+narrow: an unattributed answer is an ordinary message, which is a better outcome than a
+mark that names the wrong cause.
 
 ## Delivery planning (I1)
 
@@ -33,22 +85,24 @@ A durable `message.created` is planned once by Server delivery
   suppression. An ordinarily delivered mention still tells only the named Agent `you were mentioned`;
   other eligible Channel participants retain ambient visibility without that attention flag.
 - A direct task assignment to another Agent keeps the canonical task message as ordinary work and
-  adds a separate Server-authored task assignment receipt to only the assignee's pending set. That
-  receipt is `mentioned=true`, so it is actionable even through a mute, and is visible in Agent
-  history/inbox envelopes while remaining filtered from the human App transcript, search, and unread
-  counts.
-- A successfully committed prepared action creates one typed terminal attention for only its
-  proposer. The attention carries the originating Chat, action identity, created Agent identity,
-  and executed result; it never creates a Chat message or a receipt for the Chat transcript.
+  adds one `task_assignment` item to only the assignee's inbox. It is `mentioned=true` so it stays
+  actionable through a mute, and renders in Agent inbox envelopes the way a committed action's
+  attention does. The human's representation of that fact is the task chip on the message.
+- A successfully committed prepared action creates one terminal attention for only its proposer,
+  carrying the originating Chat, action identity, created Agent identity, and executed result.
 - After planning, ordinary Chat work gives an idle Agent a notice turn and a busy Agent receives the
-  same notice in its live turn. A committed action attention is the typed concrete exception: an idle
-  proposer receives its result in a distinct continuation turn; a busy proposer receives only the
-  content-free notice at a safe boundary, then the still-queued action in the next turn. Humans keep
-  their own read/unread system; the inbox is agent-only state.
+  same notice in its live turn. Concrete work — a committed action attention, an automation fire, a
+  task assignment — is the typed exception: an idle recipient receives the item's own envelope as
+  the prompt of a distinct turn; a busy recipient receives only the content-free notice at a safe
+  boundary, then the still-queued item in the next turn. One drain never mixes the lanes, and a
+  concrete drain never mixes kinds, so each concrete item earns its own dedicated wake. An automation
+  fire's envelope prints `msg=-`, since a fire has no Chat message to address; its id rides the
+  envelope's own `fire=` and `--cause` lines. Humans keep their own read/unread system; the inbox is
+  agent-only state.
 
 ## Visibility ledger (I3)
 
-Transport debt is the exact queued set in `agent_pending_work`; delivery never advances a scalar
+Transport debt is the exact queued set in `agent_inbox`; delivery never advances a scalar
 high-water mark. Model visibility is recorded in `agent_inbox_exact_visibility` as exact message
 identities tied to the active run. Typed action attentions use their action identity in the durable
 delivery ledger and intentionally have no Chat cursor. Freshness treats an identity as visible when it settled in this
@@ -72,8 +126,10 @@ Restart, Start, or session reset explicitly offers pending work again. Chain
 budget follows rows made model-visible, not notice-only turns.
 
 Non-Chat system attention is a separate typed concrete lane. Cove's one-shot
-bootstrap instruction and committed action terminal attention use that lane, settle against their
-own stable identities, and never enter Chat message resolution or Chat cursor accounting. The
+bootstrap instruction, a committed action's terminal attention, reminder and Trigger fires, and task
+assignments use that lane, settle against their own stable identities, and never enter Chat message
+resolution or Chat cursor accounting. Each of those exists nowhere but its inbox row, so its
+envelope rides the wake instead of waiting behind a pull the Agent may never make. The
 Computer suppresses an already-consumed action identity on accepted-run replay; a failed unsettled
 new run explicitly reoffers it so a terminal result is model-visible at most once per committed
 attention.
@@ -102,7 +158,8 @@ This is runner-local projection state; Server exact pending and visibility rows 
 ## Pulls
 
 `grotto message check` serves Computer-local pending message envelopes first and falls
-through to Server only when that local cache is empty. A single invocation
+through to Server when that local cache is empty or holds a pending Trigger or
+Reminder fire, whose body only the Server serves. A single invocation
 drains successive pages (up to 50 rounds) before reporting that more messages
 remain. Exact local identities
 are durably recorded for the active turn, best-effort attested immediately as

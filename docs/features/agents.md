@@ -52,13 +52,17 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 
 - Members lists Agents and Humans. Its Agents Overview compares usage across Agents. Selecting an
   Agent opens Overview with scoped usage and execution configuration, Activity with Chat
-  memberships, Reminders, Tools for MCP access and Skills, and Workspace.
+  memberships, Automations for Reminders and Triggers, Tools for MCP access and Skills, and
+  Workspace.
 - Member lists stay lightweight; Agent and human profile routes load one focused
   detail record so profile refreshes do not rebuild the directory.
 - Clicking an Agent avatar in Chat opens the same Agent profile context. Hover
   or keyboard focus previews the Agent's current availability, compact
   runtime/model/reasoning configuration, and newest durable activity;
   Agent reference chips use the same preview.
+- Activity and Automations are what the marks on an Agent's messages link to: a
+  fire mark opens the automation, a session mark opens Activity. See
+  [Chat](chat.md#in-the-box) for the marks themselves.
 - Profile edits identity and desired model/runtime configuration.
 - Skills are independent Agent-owned copies. An Owner or Admin imports a host
   bundle into one Agent library from the Agent profile.

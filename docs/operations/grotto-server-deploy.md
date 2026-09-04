@@ -18,6 +18,13 @@ port, managed database, object store in the request path, or Cloudflare compute
 for the apex. Vercel remains the domain registrar only; no production request
 or deployment uses Vercel.
 
+The Server has no configured public origin. It derives the public
+[Trigger](../api/triggers.md) URL it hands an Agent from `x-forwarded-host` or
+`host` and `x-forwarded-proto` or the connection protocol, so any ingress in
+front of the Server must forward the externally reachable host and scheme.
+Cloudflare's Tunnel does. An ingress that does not would make Agents publish an
+address outside callers cannot reach.
+
 ## Release artifact
 
 The Server and web Grotto App are one `server` target. Merging the release PR

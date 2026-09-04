@@ -273,6 +273,27 @@ Flow for `message send --target <t>`:
 in a tmpdir. We hold them server-side because the server is the record (I3),
 agent shells are ephemeral, and grotto.sh must survive machine hops.
 
+### 6a. Sending with a cause
+
+`message send --cause <fireId>` names the automation fire the message answers.
+The flag is optional and accepted on every send mode, a `--send-draft` release
+included, so a held message still names its cause when it finally commits. The
+fire id is the one the wake envelope's final `reply with:` line printed.
+
+The Server validates it before committing: the fire must exist in this Server,
+its automation must be owned by the sending Agent, and a Trigger fire's Trigger
+must still exist. Any of those failing is `INVALID_ARG` naming the reason, which
+the CLI renders verbatim per §5. On success the provenance row is written in the
+message's own transaction, so a message is never durable without the cause it
+claimed. A send without `--cause` is an ordinary message, except in the one narrow
+case the Server infers the cause itself — the fire was the only thing offered to
+that run and the message landed in its anchor Chat (`specs/inbox.md`). The flag
+is how an Agent is certain; inference is not something to rely on.
+
+Reminder and Trigger fire ids carry different prefixes, so the flag needs no
+companion `--kind`. Each fire an Agent acts on gets its own message; answers to
+different fires never share a Thread. See `specs/automation-provenance.md`.
+
 **Composition is not a CLI handoff (ADR 0023).** The CLI sends no composition identity, and durable
 messages need no provisional-row reconciliation. Grotto does not infer Chat-scoped typing from
 inbox work or partial `message send` arguments.
@@ -284,7 +305,7 @@ per family:
 
 | Family | Verbs | Lands | v1 behavior |
 | --- | --- | --- | --- |
-| message | `send` | WS1 | Attested send per §6 |
+| message | `send` | WS1 | Attested send per §6; `--cause <fireId>` names the automation fire this message answers (§6a) |
 | | `read` | WS1 | History with `--before/--after/--around <idOrSeq>`, `--limit` |
 | | `search` | WS1 | `--query --target --sender --sort relevance\|recent --before --after --limit --offset` |
 | | `resolve <id>` | WS1 | One canonical message by short or full id |
@@ -302,6 +323,7 @@ per family:
 | attachment | `upload view` | WS5 (landed) | `upload --path [--mime-type]` returns an id; the send carries it via `--attachment-id` (divergence: no `--target` on upload, see §10) |
 | profile | `show update` | WS5 (landed) | Agent-facing `show [@handle]`, `update --description` (≤500 chars); human display names and handles are edited in App Settings |
 | reminder | `schedule list snooze update cancel log` | WS5 (landed) | D4 model: `schedule --title (--delay-seconds \| --fire-at) [--repeat] --message-id [--script]`; message anchors only |
+| trigger | `create list show enable disable rotate delete log` | ADR 0025 (landed) | Inbound webhook wakes: `create --title --message-id [--instruction] [--kind webhook]`; `--kind` defaults to `webhook` and any other value is `INVALID_ARG` naming the supported kinds; `list`/`show` print the kind with the status; message anchors only and never a schedule; `create` and `rotate` print the bearer secret once with a ready `curl` line; mutations are not idempotent |
 | action | `prepare` | PRD-260 (landed) | `prepare --target <target> --avatar-file <path>` with one strict `agent:create` JSON action on stdin; stores a native pending card only |
 | skill | `list view create patch write-file` | WS5 (landed) | Replaces `skills_*` tools; hash-guarded patch/write-file, stdin bodies |
 | manual | `get <topic>`, `search <keywords>` | PRD-187 (landed) | Authenticated, read-only Server-hosted topics; `--intent`/`--reason`; optional `--scope recipes` |
@@ -318,7 +340,7 @@ it unchanged.
 
 ```http
 POST /api/agent/messages/send      { target, content, attachmentIds?, sendDraft?,
-                                     continueAnyway?, nonce? }
+                                     continueAnyway?, nonce?, cause? }
                                    → { state: "sent", message,
                                        recentUnread: [{ target, message }] }
                                    | { state: "held", newMessageCount, shownMessages[],
@@ -381,6 +403,7 @@ All approved by operator ruling W1 (program contract, 2026-07-21).
 | `GROTTOMSG` delimiter | Naming parity with `RAFTMSG` (current npm), ours. |
 | Chat typing outside message sends | Grotto does not infer typing from Agent work; the CLI has no composition id. |
 | `attachment upload` takes no `--target` (Raft's does) | Upload is decoupled from posting; the message send carries `--attachment-id`, so an upload never implies a visible post (WS5). |
+| Reminder and Trigger fires post no receipt in chat, and the Agent answers with `grotto message send --cause <fireId>` | Not a divergence: Raft delivers a fire as a transient `msg=-` notice and a typed app inbox item, not a durable chat row, and the receipt sentence in its prompt was never corroborated. The divergence is `--cause`, which Raft has no equivalent of: a Grotto answer names the exact fire it answers, and that provenance feeds the header mark, hover card, and Thread context card (ADR 0026). |
 | `reminder schedule` has no `--channel` anchor variant | The prompt teaches message anchors explicitly (anchorless reminders lose their context); Raft's `--channel` flag semantics are unverified in the wire layer (WS5). |
 | `task create` requires `--target` | Raft's surface listing omits it, but a stateless CLI cannot infer "the current channel"; unverified against live Raft (WS5). |
 | `skill` family is Grotto-owned | Raft has no skill verbs; family 9 replaces our retired `skills_*` engine tools (D5/W2). |

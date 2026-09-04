@@ -66,8 +66,7 @@ Sessions never rotate because of age or idleness. A new session starts only on:
      restores the persisted Agent kind's factory workspace and current
      factory-managed skills: minimal memory for an ordinary Agent, Cove's exact
      onboarding seed for Cove, and only `visuals` today.
-   Session reset and Full reset rotate the agent token and land a system receipt
-   in the agent's built-in DM. Restart does neither.
+   Session reset and Full reset rotate the agent token. Restart does not.
 
 Managed instruction, Cove factory-guidance, or Harness bootstrap drift does not rotate the session.
 The AI SDK Harness supplies current composed instructions on every accepted turn. Bootstrap drift or
@@ -87,6 +86,30 @@ Agent profile and Activity History.
 
 Long-horizon continuity across resets comes from engine-native compaction
 and the agent's workspace MEMORY.md ([ADR 0014](../docs/adr/0014-cli-is-the-agents-only-output-channel.md)).
+
+## Generation in the transcript
+
+Every rotation is durable. `agents.session_generation` is the current generation,
+and one `agent_session_rotations` row records each rotation: the Agent, the
+generation it started, when it started, and why — a runtime or model switch,
+resume recovery, a session reset, or a full reset. Consecutive rows bound the
+generation between them, which is how long the previous session lasted.
+
+The Server stamps the sending run's generation on every Agent message
+(`ChatMessage.sessionGeneration`, null for a human). A rotation writes nothing to
+any Chat (ADR 0026); the transcript learns about it from the stamp it already
+carries.
+
+The App derives the **session mark** from that stamp alone: in one Chat's
+transcript, an Agent message carries the mark when its `sessionGeneration`
+differs from that Agent's previous message in the same Chat. So the mark lands on
+the first thing an Agent says in a Chat after a reset, once per Chat per
+generation, and never on a rotation the Agent never spoke after. It renders in the
+message header in the session color, after a fire mark when a message carries both
+([automation-provenance.md](automation-provenance.md)). Hovering it reads the
+rotation record — "New session", when, why, and how long the previous session ran
+— through `agent.sessionInfo({ serverId, agentId, generation })`, and links to the
+Agent's Activity tab, which holds the full history behind the mark.
 
 ## Knowledge and discretion
 

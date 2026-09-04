@@ -165,11 +165,16 @@ Hosted durable event kinds are `message.created`, `prepared-action.updated`,
 `task.created`, `task.updated`, and `task.label.updated`, plus `reminder.changed`.
 
 Reminder scheduling, update, snooze, cancel, and fire append
-`reminder.changed` to the same per-Server cursor. A fire appends
-`message.created` first in the same transaction, so the canonical receipt is
-durable before its reminder invalidation. `reminder.changes` walks only those
-events after a cursor; `reminder.onEvent` is live-only. Owner/Admin authority
-is checked for catch-up, subscription start, and every live delivery.
+`reminder.changed` to the same per-Server cursor. `reminder.changes` walks only
+those events after a cursor; `reminder.onEvent` is live-only. Owner/Admin
+authority is checked for catch-up, subscription start, and every live delivery.
+
+A fire appends no `message.created`, because it writes no Chat message
+(ADR 0026); the same is true of a Trigger fire, which appends no durable event at
+all. `message.created` for an automation arrives later and only if the owning
+Agent answers, as the ordinary event for the Agent's own message. That message
+carries its `cause` inline, so the mark and hover card render from the message
+the Chat lane already delivered, with no extra read.
 
 The Reminders hook owns this subscription and its exact list/run
 invalidations. On start or reconnect it merges durable catch-up with live
@@ -225,7 +230,8 @@ resource.
 
 * Hosted `chat_events.cursor` is monotonic and commit-ordered within one Server.
 * Hosted message order is the transactional positive per-Chat sequence.
-* A fire's `message.created` cursor precedes its `reminder.changed` cursor.
+* A reminder fire appends only `reminder.changed`; the Agent's answer, when it
+  comes, is an ordinary later `message.created`.
 * Message timeline order is `chat_messages.sequence`, not event cursor.
 * Event cursor order records mutation order for inspection.
 * Sequence order tells clients how to render chat history.

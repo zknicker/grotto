@@ -15,6 +15,13 @@ Accepted. Supersedes the session-ownership decision of
 [ADR 0007](0007-chat-participants-own-agent-sessions.md); that ADR's
 chat/participant/turn-evidence contracts remain in force.
 
+Amended by [ADR 0026](0026-automation-provenance-rides-the-agents-message.md): a
+rotation no longer lands a Server-authored receipt in the Agent's DMs. It is a
+durable rotation record plus a `session_generation` stamp on the Agent's
+messages, from which the App derives the per-Chat session mark
+([specs/sessions.md](../../specs/sessions.md#generation-in-the-transcript)).
+Everything else below stands.
+
 ## Context
 
 ADR 0007 made the agent's chat participant row (the Agent seat) the owner of

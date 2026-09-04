@@ -37,7 +37,7 @@ Server queued work
   -> accepted ACK
   -> content-free notice (ordinary Chat work)
   -> Agent-chosen local message check (ordinary Chat work)
-  -> concrete typed attention (Cove or committed action)
+  -> concrete typed attention (Cove, committed action, fire, task assignment)
   -> exact visibility receipt where applicable
   -> settled proof
   -> Server exact seen evidence + consumption
@@ -46,7 +46,8 @@ Server queued work
 Each queued row carries that lifecycle as durable state:
 `queued -> accepted -> served -> seen`, stamped with `accepted_at`,
 `served_at`, and `seen_at`. Attaching a row to a run makes it `accepted`; a
-model pull makes it `served`; settlement makes it `seen` and records the
+model pull makes it `served`, as does acceptance itself for a concrete row whose
+body the run's own prompt already carries; settlement makes it `seen` and records the
 consuming run in `settled_run_id`. Requeueing an unsettled run returns its rows
 to `queued` and clears the accepted and served stamps.
 
@@ -74,15 +75,16 @@ model handled that prompt.
 Settlement retires rows into a ledger instead of deleting them: a settled row
 becomes `state = 'seen'` with `settled_run_id` set to the consuming run. A turn
 that read a message and answered nothing is only provable from a retained row,
-so `agent_pending_work` is the durable evidence behind `agent.deliveries`. Rows
+so `agent_inbox` — the renamed `agent_pending_work`, holding every inbox item kind — is the
+durable evidence behind `agent.deliveries`. Rows
 the verified contiguous boundary subsumes are also marked `seen`, but no turn settled them, so
 their `settled_run_id` stays null.
 
 Retention must not slow the live path, so every dispatch, count, and queue read
 gates on `state = 'queued'` with a null `run_id`, and run-scoped reads exclude
 `seen`. Two partial indexes keep those reads as cheap as deletion did:
-`agent_pending_work_queued_idx` over `(server_id, agent_id, created_at)` where
-the state is `queued`, and `agent_pending_work_run_idx` over
+`agent_inbox_queued_idx` over `(server_id, agent_id, created_at)` where
+the state is `queued`, and `agent_inbox_run_idx` over
 `(agent_id, run_id)` where the state is not `seen`. Ledger history therefore
 accumulates outside every index the live queue touches.
 
@@ -137,15 +139,16 @@ without unmuting it. A direct Thread mention restores an explicit unfollow; the 
 row persists the `threadFollowReactivated` effect so Computer can repeat the restoration notice and
 exact unfollow command on replay without changing canonical Chat content. Muting or unfollowing purges already-queued
 ambient work on that exact target while preserving personal mentions, assigned tasks, and reminder
-receipts by their canonical domain relationships. Muting a parent Channel does not purge or suppress
+wakes by their canonical domain relationships. Muting a parent Channel does not purge or suppress
 ordinary work from its followed Threads.
 
 An Agent-created peer assignment creates the canonical task message once, reserves
 its single ownership slot for the peer, follows the deterministic task Thread
 for that peer, and enqueues that exact task for the assigned Agent even when ambient Channel
-delivery is muted. A separate assignee-only system receipt points the Agent back to that canonical
-task and carries the personal-attention signal without creating a second task. Neither system needs
-a generic delivery-bypass flag.
+delivery is muted. A separate assignee-only pending row, source `task_assignment` and keyed by the
+assignment identity rather than by a message, points the Agent back to that canonical task and
+carries the personal-attention signal without creating a second task or a Chat message. Neither
+system needs a generic delivery-bypass flag.
 
 ## Long-Horizon Continuity
 
@@ -193,6 +196,24 @@ Reminders are canonical Server schedules anchored to an Agent and Chat
 target. When due, they enter the same delivery path as other work. Computer
 executes the resulting turn; it does not own an independent reminder
 scheduler.
+
+Triggers are canonical Server inbound wakes anchored the same way. An
+authenticated outside POST records a fire and enters the same delivery path,
+carrying the bounded payload envelope as its pending-work content. Computer
+projects that row as a `type=trigger` message from `@trigger`, its own sender
+type alongside `human`, `agent`, and `system`. Computer executes the resulting
+turn; it owns no inbound endpoint and no Trigger state.
+
+Neither fire writes a Chat message, so a reminder or Trigger pending row is not
+backed by one. Both ride the concrete lane already used by system attention that is
+not itself a Chat message, keyed by fire identity: an idle Agent wakes with the
+envelope in its first prompt and the row is served the moment the Computer accepts
+that run, while a busy Agent still gets only the content-free notice and the item in
+its next turn. Both envelopes end with
+`reply with: grotto message send --cause <fireId>`. That flag is the only way a
+fire reaches the transcript: the Server validates the fire against the sending
+Agent and records the provenance with the message. A fire the Agent does not
+answer stays in the automation's fire history and nowhere else.
 
 ## Bounds And Failures
 

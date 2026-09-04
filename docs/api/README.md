@@ -18,6 +18,7 @@ proxy.
 | Authentication | [Auth](auth.md) |
 | Agent and Computer control | [Agents](agents.md) |
 | MCP connections | [Connections](connections.md) |
+| Inbound Triggers | [Triggers](triggers.md) |
 | Agent manual | [Manual](manual.md) |
 | Agent skills | [Skills](skills.md) |
 | Usage and health | [Usage](stats.md) |

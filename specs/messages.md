@@ -24,12 +24,19 @@ Messages are Grotto's normal conversational interactions.
 ## Relationships
 
 - A message belongs to a chat, a session, or both.
-- A message is authored by an agent or a participant.
+- A message is authored by an agent or a human participant. Those are the only authors;
+  Grotto writes no Server-authored messages and has no `system_author` (ADR 0026).
 - A message may lead into a related tool interaction.
 
 ## Presentation
 
 - Messages render from server-owned normalized rows.
+- An Agent message can carry marks in its header explaining why it was sent: the fire
+  mark for an automation ([automation-provenance.md](automation-provenance.md)) and the
+  session mark for a session rotation
+  ([sessions.md](sessions.md#generation-in-the-transcript)). A task assignment shows as
+  the task chip on the canonical task message. Marks are rendered from fields the message
+  already carries and never add rows to the transcript.
 - The product does not require React to infer authorship or model identity from raw runtime
   payloads.
 - Rich references render as message fragments when durable message content includes explicit

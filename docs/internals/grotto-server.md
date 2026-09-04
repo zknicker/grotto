@@ -106,9 +106,11 @@ PostgreSQL owns the hosted collaboration tables
 | `channel_participants` | One human's participation in one Channel |
 | `thread_follows` | Per-human Thread attention; never membership |
 | `agents` / `channel_agent_participants` | Hosted Agent identity and uploaded avatar (`avatar_id`), immutable Computer assignment, Server-owned desired runtime/model, the Computer-reported effective snapshot, and Channel access for reminder authorship |
-| `agent_delivery` / `agent_pending_work` | One-row-per-Agent Stop flag and single in-flight run (the per-Agent serialization boundary), and the durable pending inbox drained into runs |
+| `agent_delivery` / `agent_inbox` | One-row-per-Agent Stop flag and single in-flight run (the per-Agent serialization boundary), and the agent inbox drained into runs — the only agent-only lane, including the items with no backing message: action attentions, automation fires, and task assignments |
 | `agent_turns` | Compact per-run turn summary reported by a Computer after a launch settles |
-| `chat_messages` | Immutable human or reminder-system messages ordered by per-Chat sequence and nonce |
+| `agent_session_rotations` | One row per Agent session rotation: the generation it started, when, and why |
+| `chat_messages` | Immutable human and Agent messages ordered by per-Chat sequence and nonce, stamped with the sending run's `session_generation`; there is no `system_author`, and every row is readable by every human who can read the Chat |
+| `message_causes` | The automation fire one message answers and whether that attribution was explicit or inferred, at most one per message |
 | `prepared_actions` / `prepared_action_media` | Immutable Agent-prepared action proposals, lifecycle/supersession state, and exact action-owned avatar bytes |
 | `chat_reads` | One monotonic reader high-water mark per Chat |
 | `chat_events` | Durable message/read/task/reminder-change events ordered by PostgreSQL cursor |
@@ -116,7 +118,9 @@ PostgreSQL owns the hosted collaboration tables
 | `message_tasks` | Lifecycle metadata keyed directly to one canonical hosted message |
 | `task_labels` / `message_task_labels` | Small Server task-label catalog and task links |
 | `reminders` / `reminder_commands` | Author-owned schedules and idempotent optimistic commands with original result snapshots |
-| `reminder_fires` | One durable row per logical scheduled fire |
+| `reminder_fires` | One durable row per logical scheduled fire; a fire writes no Chat message and the table has no receipt column |
+| `triggers` | Agent-owned inbound webhook wakes with hashed secrets, anchored to a Chat and, for an Agent-created one, to the asking message |
+| `trigger_fires` | One durable row per accepted inbound request, payload bounded; a fire writes no Chat message and the table has no receipt column |
 | `reminder_agent_attention` | One unacknowledged fire snapshot for the owning Agent |
 
 Every relationship and every authorization check uses the opaque Server id. The
@@ -236,7 +240,7 @@ bootstrap/migration login can change the schema.
 The Server owns Agent delivery durably (`apps/server/src/agent-delivery/`), so
 work survives socket loss, a Server or Computer restart, a busy turn, and a
 persistent human Stop without losing or duplicating model-visible work. A human
-DM message enqueues one `agent_pending_work` row **inside the same transaction
+DM message enqueues one `agent_inbox` item **inside the same transaction
 that commits the message**, so a committed message can never leave its wake
 unqueued; the send never dispatches a turn itself, and the wire nudge afterwards
 is fire-and-forget — the send's response never waits on it — because the retry
@@ -294,20 +298,22 @@ the Stop flag, whether a turn is running, and the queued count.
 The hosted process starts one concrete reminder scheduler after PostgreSQL
 bootstrap. It performs an immediate recovery tick, then checks every 15
 seconds. PostgreSQL row locks with `SKIP LOCKED` serialize concurrent ticks,
-and a unique logical-fire key prevents duplicate receipts after response loss
+and a unique logical-fire key prevents duplicate fires after response loss
 or restart. One overdue slot fires and recurring cadence advances from the
 current time; missed slots never burst. A row-local fire failure is redacted,
 skipped for the rest of that tick, retried later, and does not block other due
 reminders.
 
-A fire transaction appends the visible reminder system message, fire log,
-pending Agent attention, reminder state, and durable events atomically. The
+A fire transaction writes the fire log, pending Agent attention, the Agent's
+pending work, reminder state, and the `reminder.changed` event atomically. It
+appends no Chat message (ADR 0026), so the transcript gains a row only if the
+owning Agent answers, as its own message carrying that fire as its cause. The
 Server performs no network, model, process, shell, workspace, or script work in
 that transaction. Script text is opaque, size-bounded delivery data. The
 assigned Computer executes it once in the Agent workspace with a timeout and a
 restart-durable result marker. Empty success stays quiet; output or failure is
-recorded on the fire, appended as a reminder-authored message, and delivered to
-the Agent. Offline script attention is resent on Computer reconnect.
+recorded on the fire and delivered to the Agent on the wake envelope. Offline
+script attention is resent on Computer reconnect.
 
 `/healthz` reports only the scheduler's redacted state and safe timestamps.
 Shutdown stops new ticks and awaits any in-flight tick before closing

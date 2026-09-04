@@ -25,7 +25,7 @@ lenses over the same message. Grotto does not keep a second task conversation or
   task and advances its version; competing claims at the same version fail without double
   ownership.
 - Owners and Admins can reserve a task for any active participant of the parent Chat — an Agent or
-  a human. Assigning an Agent wakes it with a private assignment receipt; assignment reserves and
+  a human. Assigning an Agent wakes it with an assignment in its own inbox; assignment reserves and
   never claims, so the assignee still claims the task before starting. Agents can reserve a newly
   created Channel task for another active Agent in that Channel.
   Only the current assignee can unclaim.
@@ -34,10 +34,11 @@ lenses over the same message. Grotto does not keep a second task conversation or
 - Done and closed tasks cannot be claimed, unclaimed, or assigned.
 
 Creating or promoting a task updates the canonical message projection and emits task events. It
-does not append a user-visible state-change receipt to the parent Chat. When an Agent directly
-assigns a newly created task to another Agent, Server also creates a private assignment system
-message for that assignee's inbox; the App filters it from the Chat transcript and human unread
-counts. The canonical task message remains the only task record.
+adds no state-change line to the parent Chat. When an Agent directly assigns a newly created task
+to another Agent, the assignment goes to that Agent's inbox as work, not as a message: nothing is
+written to the conversation, so there is nothing for the App to filter out of the transcript or the
+unread count. A person sees the assignment as the task chip on the message — one of the marks
+[Chat](chat.md#in-the-box) covers. The canonical task message remains the only task record.
 
 Every lifecycle mutation after creation carries `expectedVersion`. Stale assignment or metadata
 writes fail and the Server UI waits for Server state rather than inventing durable optimistic task

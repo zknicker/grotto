@@ -9,18 +9,24 @@ rows at all.
 
 ## Product Expectations
 
-- A chat reads like a conversation between participants. Humans and agents
-  contribute messages; Server-authored system receipts such as session resets render as quiet
-  centered lines; private task assignment receipts are Agent-inbox messages and never appear in
-  the App timeline.
+- A chat reads like a conversation between participants, and nothing else. Every row is
+  authored by a human or by an Agent — there are no Server-authored rows and no
+  `system_author` — and every row is readable by every human who can read the Chat. A task
+  assignment, an automation fire, and a session rotation are agent inbox items or durable
+  records, never timeline rows (ADR 0026).
+- What a human needs to know about those facts rides the message they explain, as a header
+  mark: the task chip for an assignment, the fire mark for an automation
+  ([automation-provenance.md](automation-provenance.md)), and the session mark for a
+  rotation ([sessions.md](sessions.md#generation-in-the-transcript)). Marks are attached to
+  a message; they are never units of their own.
 - An agent message is an explicit send, immutable once committed. There are
   no edits, no streamed replacements, no silent-turn placeholders.
 
 ## Timeline Contract
 
 - The chat timeline projection (`chat.log.list`) returns conversation units
-  only: participant messages (user/assistant/system roles) with their
-  attachments, thread anchors (reply counts), and date boundaries.
+  only: human and Agent messages with their attachments, thread anchors
+  (reply counts), and date boundaries.
 - Execution rows — tool calls, reasoning, narration, turn lifecycle —
   never appear. There are no work groups, no streaming message states, no
   per-turn response rows.

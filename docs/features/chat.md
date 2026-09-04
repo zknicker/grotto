@@ -15,10 +15,21 @@ and [Agent Inbox](../../specs/inbox.md).
 
 ## In the box
 
-* **Durable messages.** User, assistant, and Server-authored system rows are stable history.
-  The timeline carries conversation units only — messages, artifacts,
-  notices, thread anchors — and nothing turn-shaped. See
-  [chat-timeline](../../specs/chat-timeline.md).
+* **Durable messages.** Every row is authored by a person or an Agent — Grotto
+  writes none of its own — and stays as history. The timeline carries
+  conversation units only — messages, artifacts, notices, thread anchors — and
+  nothing turn-shaped. See [chat-timeline](../../specs/chat-timeline.md).
+* **Why an Agent said something.** Anything an Agent was told privately stays
+  out of the conversation and shows up as a mark on the message it explains: a
+  task chip when the message is an assigned task, a lightning or clock **fire
+  mark** when a Trigger or reminder woke the Agent, and a **session mark** on the
+  first thing the Agent says in a chat after its session was reset. Hovering a
+  mark previews the automation or the reset — what it was, when, and where to
+  manage it — and a fire's Thread carries a context card with the payload or the
+  anchoring note. A fire, an assignment, or a reset the Agent never speaks about
+  leaves the conversation untouched. See
+  [automation provenance](../../specs/automation-provenance.md) and
+  [sessions](../../specs/sessions.md#generation-in-the-transcript).
 * **Native action cards.** A managed Agent can prepare a typed `agent:create`
   proposal with `grotto action prepare`. The Server posts an empty canonical
   Agent anchor and projects its immutable proposal and exact avatar media
@@ -145,9 +156,8 @@ and [Agent Inbox](../../specs/inbox.md).
   and thread panes share one visible slot and width per chat; the latest
   opener wins without clearing another pane's state. Clicking the transcript name
   inserts an Agent mention, while the DM topbar name remains inert. Session
-  resets stay agent-wide in Agent settings (specs/sessions.md); their durable
-  new-session notice attaches to the agent's next turn as a header-action
-  hover affordance instead of rendering standalone. Execution evidence (turn
+  resets stay agent-wide in Agent settings (specs/sessions.md) and reach a chat
+  only as the session mark described above. Execution evidence (turn
   status and Activity History) lives on the profile. An Agent message's Turn Details drawer may
   show its Server summary and, for Owners/Admins with an online Computer, relay the detailed local
   execution journal — see [Agent Activity](../../specs/agent-activity.md).

@@ -1,7 +1,7 @@
 ---
 summary: Decision to model tasks as chat messages promoted with task metadata, with claim-before-work as the concurrency lock and board/priority/labels as lenses.
 read_when:
-  - changing task storage, numbering, claiming, statuses, receipts, or the task CLI
+  - changing task storage, numbering, claiming, statuses, assignment delivery, or the task CLI
   - changing the Tasks views, task creation, task chips, or Convert to Task
   - considering a separate work tracker, dispatch queue, or task scheduling
 ---
@@ -13,6 +13,14 @@ read_when:
 Accepted (2026-07-22, WS5 of the Raft-alignment program; decision D8 in
 `specs/raft-alignment/README.md`, ruled 2026-07-20/21). Supersedes the retired
 pre-flip tracker (tasks/epics/T-numbers/dispatch).
+
+Amended 2026-09-04 by ADR 0026 in one respect: the private assignment receipt
+this decision describes as a Server-authored system message is no longer a Chat
+message. It is an `agent_inbox` item in the assignee's inbox, keyed by the
+assignment identity and still carrying the personal mention that pierces a mute;
+the human's view of the assignment is the task chip on the canonical message.
+Everything else below stands, and the filters that used to hide the receipt from
+the App transcript, search, Chat list, and unread counts are gone with it.
 
 ## Decision
 

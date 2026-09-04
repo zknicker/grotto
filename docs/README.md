@@ -25,6 +25,7 @@ Computer owns machine-local Agent execution.
 - **Tools and skills.** Computer owns Agent-local tools and skills. Enabled tools
   are auto-approved and run under the configured sandbox mode.
 - **Reminders.** Server schedules durable reminders; Computer wakes Agents to execute work.
+- **Triggers.** Server accepts secret-authenticated inbound requests and wakes the owning Agent with the payload.
 - **Widgets.** Server stores response activity for chart, table, and calendar
   Widgets, artifacts, and other rendered assistant output.
 

@@ -6,22 +6,32 @@ reminder is an author-owned, persistent, observable, snoozable, updatable, and
 cancelable wake anchored to a message in a Channel, Thread, or the owning
 Agent's DM.
 
+A fire writes nothing to the Chat transcript. The owning Agent's own message is
+the transcript row, and it carries the fire as its cause (ADR 0026,
+`specs/automation-provenance.md`). A reminder writes no Chat message at any
+point in its life — not at schedule, not at fire, not when a script produces
+output — because Grotto has no Chat message a human cannot read, and none of
+those is one a human asked for.
+
 ## Hosted model
 
-- The Grotto Server stores reminders, idempotent commands, fire logs, visible
-  system receipts, durable change events, and pending Agent attention in
-  PostgreSQL. Every relationship carries `server_id`; composite foreign keys
-  keep the Agent, anchor Chat, anchor message, receipt, fire, and attention in
-  one Server.
+- The Grotto Server stores reminders, idempotent commands, fire logs, message
+  provenance, durable change events, and pending Agent attention in PostgreSQL.
+  Every relationship carries `server_id`; composite foreign keys keep the Agent,
+  anchor Chat, anchor message, caused message, fire, and attention in one Server.
+  No table carries a receipt message column: `schedule_receipt_message_id` on
+  `reminders`, `receipt_message_id` on `reminder_fires` and
+  `reminder_agent_attention` were dropped with the receipts they named, and
+  `chat_messages.system_author` went with them entirely (ADR 0026).
 - The narrow hosted `agents` and `channel_agent_participants` rows provide only
   reminder authorship and Chat authorization. Agent creation,
   configuration, Computer assignment, execution, and transport are separate
   work.
 - Each `reminder_agent_attention` row is one durable, unacknowledged fire
-  snapshot. Ordinary attention is removed after a turn that saw the receipt
-  completes, or after the turn durably sends output before failing during
-  cleanup. Script attention is removed only after the
-  assigned Computer returns that fire's idempotent execution result.
+  snapshot keyed to the fire itself, never to a message. Ordinary attention is
+  removed after a turn that saw that fire completes, or after the turn durably
+  sends output before failing during cleanup. Script attention is removed only after the assigned
+  Computer returns that fire's idempotent execution result.
 - Fresh schema only. Existing Runtime reminder history is not imported or
   adopted, and there is no compatibility path.
 
@@ -39,8 +49,8 @@ Agent's DM.
   cancel. Ordinary Members and cross-Server callers cannot.
 - Losing anchor access or retiring an Agent cancels each still-scheduled
   reminder when the scheduler next considers it due. That cancellation removes
-  the reminder's unacknowledged attention snapshots; historical fire rows and
-  visible receipts remain.
+  the reminder's unacknowledged attention snapshots; historical fire rows
+  remain.
 - Commands carry an idempotency key and expected version. A repeated identical
   command returns its original result; reused input conflicts. PostgreSQL row
   locks serialize mutation/fire races. Every reminder write locks its Server
@@ -53,16 +63,20 @@ The single-node hosted scheduler checks every 15 seconds and once immediately
 at startup. A logical fire is unique by reminder and scheduled time. In one
 transaction it:
 
-1. appends `🔔 Reminder: <title>` with the explicit reminder system author in
-   the anchored Channel, Thread, or owning-Agent DM;
-2. records the fire;
-3. queues the owning Agent's attention snapshot;
+1. records the fire;
+2. queues the owning Agent's attention snapshot;
+3. enqueues the Agent's pending work carrying the wake envelope;
 4. advances or completes the reminder; and
-5. appends commit-ordered `message.created` and `reminder.changed` events.
+5. appends the `reminder.changed` event.
 
-This transaction happens while the Agent's Computer may be offline. Every
-fire, including a script reminder, has the visible receipt and attention
-snapshot.
+Nothing is written to the anchored Chat, so a fire appends no `message.created`.
+This transaction happens while the Agent's Computer may be offline. Every fire,
+including a script reminder, records itself and queues attention.
+
+The envelope the Agent pulls names the reminder, the fire, and the next
+occurrence, and ends with the line
+`reply with: grotto message send --cause <fireId>`. Bounded script output rides
+that same envelope.
 
 An optional script is opaque UTF-8 delivery data limited to 16,384 bytes.
 The Server stores and snapshots it but never interprets or executes it. When the
@@ -74,14 +88,33 @@ The Computer executes the script once in the owning Agent's workspace with that
 Agent's isolated `HOME`, a 60-second timeout, and bounded stdout/stderr. A
 restart-durable result marker makes redelivery idempotent. An empty successful
 result is recorded without waking the model. Output, timeout, or non-zero exit
-appends one canonical reminder system message and wakes the owning Agent. The
-fire log stores the bounded output, exit code, and timeout state.
+wakes the owning Agent with that output bounded into the wake envelope; no Chat
+message is written. The fire log stores the bounded output, exit code, and
+timeout state.
+
+## Provenance
+
+A fire is invisible until the Agent answers it. When it does, it sends with
+`grotto message send --cause <fireId>` and the Server records that message's
+provenance. `specs/automation-provenance.md` owns that contract; the
+reminder-specific facts are:
+
+- The `cause` a reminder-caused message carries reports `kind` `reminder`, the
+  reminder id and fire id, the title, its state, the last fired time, the fire
+  count, and its cadence string as the summary.
+- `automation.fireContext` adds, for a reminder, `repeat`, `nextFireAt`,
+  `anchorMessageId`, and a bounded excerpt of the anchoring message, which is
+  what the Thread context card shows in place of a Trigger's payload block.
+- Each fire the Agent acts on is its own message. Answers to different fires of
+  one recurring reminder never share a Thread.
 
 ## Surfaces and lifecycle
 
 - An Agent profile shows that Agent's reminders to Owners and Admins through a
   focused `reminder.list` read. There is no Server-wide Reminders route. Script
-  contents stay redacted.
+  contents stay redacted. Because a fire writes nothing to a Chat, that run
+  history is the only place every fire is observable, including the ones the
+  Agent had nothing to say about.
 - Agent reminder verbs are exposed through the Computer-injected `grotto`
   CLI. Computer reconnect recovery, local script execution, and attention
   acknowledgment are part of the end-to-end contract.

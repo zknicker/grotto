@@ -20,6 +20,7 @@ implementation ownership, and runtime details live under
 | Clarifications | [Clarifications](clarifications.md) |
 | Tasks | [Tasks](tasks.md) |
 | Reminders | [Reminders](reminders.md) |
+| Triggers | [Triggers](triggers.md) |
 | Skills and Tools | [Skills and Tools](skills.md) |
 | Connections | [Connections](connections.md) |
 | Usage | [Usage](usage.md) |

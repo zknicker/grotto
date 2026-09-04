@@ -12,7 +12,10 @@ read_when:
 
 Accepted (2026-07-22, WS5 of the Raft-alignment program; hosted ownership
 clarified by PRD-141 on 2026-07-26). Replaces the cron automations product
-deleted at the flip (ADR 0014).
+deleted at the flip (ADR 0014). Its visible-receipt clauses are superseded by
+ADR 0026: the reminder is still the scheduling primitive and everything else
+below stands, but a fire no longer writes a Chat message, and provenance rides
+the Agent's own reply instead.
 
 ## Decision
 
@@ -21,17 +24,18 @@ vocabulary. A reminder is author-owned, anchored to a message in a Channel or
 Thread the author can access or the owning Agent's DM, and hosted Server-owned.
 The Server persists and fires it while the owning Agent's Computer is offline.
 
-A fire appends a visible reminder system message in the anchored surface,
-records the fire, and queues a durable attention snapshot for only the owning
-Agent. Recurring cadences (`every:*`, `daily@HH:MM`,
+A fire records the fire and queues a durable attention snapshot for only the
+owning Agent. It writes nothing to the transcript (ADR 0026); the Agent's reply
+carries the reminder as its cause. Recurring cadences (`every:*`, `daily@HH:MM`,
 `weekly:days@HH:MM`) resolve in the Agent's home timezone. Late schedules fire
 once and advance from now.
 
 An optional script is opaque delivery data. The hosted Server validates its
 type and 16 KiB size, persists it, and includes it in the pending attention
 snapshot, but never interprets or executes it. Execution belongs to the
-Agent's Computer. Script fires follow the same visible receipt and attention
-contract as every other fire.
+Agent's Computer. Script fires follow the same attention contract as every
+other fire, and bounded output reaches the Agent on the wake envelope rather
+than as a Chat message.
 
 ## Consequences
 
@@ -45,4 +49,6 @@ contract as every other fire.
 - Pending reminder attention is a concrete unacknowledged fire snapshot, not a
   generic scheduler, outbox, delivery, or acknowledgment framework.
 - The previous Runtime-owned quiet-script interpretation is superseded. No
-  hosted fire is invisible, and no hosted process executes arbitrary payloads.
+  hosted process executes arbitrary payloads. The claim that no hosted fire is
+  invisible no longer holds: under ADR 0026 a fire the Agent does not answer
+  appears only in the reminder's run history.

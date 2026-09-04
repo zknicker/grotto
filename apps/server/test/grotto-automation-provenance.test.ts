@@ -151,21 +151,32 @@ test('records the cause of the Agent answer and reads it back on the message', a
     expect(sent.status).toBe(200);
     const messageId = sent.body.message?.id ?? '';
     const [row] = (await harness.sql`
-        select attribution, kind, trigger_id, trigger_fire_id, reminder_id, reminder_fire_id
+        select anchor_chat_id, attribution, kind, owner_agent_id, summary, title,
+               trigger_id, trigger_fire_id, reminder_id, reminder_fire_id
         from message_causes where message_id = ${messageId}
     `) as Array<{
+        anchor_chat_id: string;
         attribution: string;
         kind: string;
+        owner_agent_id: string;
         reminder_fire_id: string | null;
         reminder_id: string | null;
+        summary: string;
+        title: string;
         trigger_fire_id: string;
         trigger_id: string;
     }>;
+    // The mark's facts are snapshotted onto the row, not read back through the
+    // Trigger, so the mark survives the Trigger (ADR 0026).
     expect(row).toEqual({
+        anchor_chat_id: channelId,
         attribution: 'explicit',
         kind: 'trigger_fire',
+        owner_agent_id: agentId,
         reminder_fire_id: null,
         reminder_id: null,
+        summary: 'Webhook',
+        title: 'Deploy finished',
         trigger_fire_id: fireId,
         trigger_id: triggerId,
     });
@@ -178,13 +189,16 @@ test('records the cause of the Agent answer and reads it back on the message', a
     expect(transcript.messages.find((message) => message.id === messageId)?.cause).toEqual({
         attribution: 'explicit',
         automationId: triggerId,
-        fireCount: 1,
+        firedAt: expect.any(String),
         fireId,
-        instruction: null,
         kind: 'trigger',
-        lastFiredAt: expect.any(String),
+        live: {
+            fireCount: 1,
+            instruction: null,
+            lastFiredAt: expect.any(String),
+            status: 'armed',
+        },
         ownerAgentId: agentId,
-        status: 'armed',
         summary: 'Webhook',
         title: 'Deploy finished',
     });
@@ -204,6 +218,61 @@ test('records the cause of the Agent answer and reads it back on the message', a
         repeat: null,
     });
     expect(context.cause.fireId).toBe(fireId);
+});
+
+test('keeps the mark after the Trigger is deleted, reading archived', async () => {
+    const created = await agentRequest('POST', '/api/agent/triggers', {
+        instruction: 'Say the queue drained.',
+        messageId: anchorMessageId,
+        title: 'Retired watcher',
+    });
+    const triggerId = created.body.trigger?.id ?? '';
+    const fireId = await fireTrigger(triggerId, created.body.secret ?? '', 'drained');
+    const sent = await agentRequest('POST', '/api/agent/messages/send', {
+        cause: fireId,
+        content: 'The queue drained.',
+        nonce: `provenance-archived-${fireId}`,
+        target: '#all',
+    });
+    const messageId = sent.body.message?.id ?? '';
+
+    await harness.sql`delete from triggers where id = ${triggerId}`;
+
+    // The provenance row stays behind the deleted Trigger and still says what
+    // provoked the message; only the live half of the mark goes.
+    const transcript = await owner.trpc.chat.messages.query({
+        chatId: channelId,
+        limit: 50,
+        serverId,
+    });
+    expect(transcript.messages.find((message) => message.id === messageId)?.cause).toEqual({
+        attribution: 'explicit',
+        automationId: triggerId,
+        firedAt: expect.any(String),
+        fireId,
+        kind: 'trigger',
+        live: null,
+        ownerAgentId: agentId,
+        summary: 'Webhook',
+        title: 'Retired watcher',
+    });
+
+    // The context card falls back to the snapshot instead of answering NOT_FOUND.
+    const context = await owner.trpc.automation.fireContext.query({ messageId, serverId });
+    expect(context).toMatchObject({
+        anchorChatId: channelId,
+        anchorExcerpt: null,
+        anchorMessageId: null,
+        contentType: null,
+        fireOrdinal: null,
+        fireTotal: null,
+        nextFireAt: null,
+        payload: null,
+        payloadBytes: null,
+        payloadTruncated: false,
+        repeat: null,
+    });
+    expect(context.cause.live).toBeNull();
 });
 
 test('refuses a cause the sending Agent does not own', async () => {
@@ -310,10 +379,11 @@ test('answers the fire context for a Reminder-caused message and refuses the res
     });
     expect(context.cause).toMatchObject({
         automationId: scheduled.reminder.id,
+        firedAt: '2026-07-26T14:00:00.000Z',
         fireId: fire.id,
         kind: 'reminder',
+        live: { fireCount: 1, instruction: null, status: 'scheduled' },
         ownerAgentId: agentId,
-        status: 'scheduled',
         summary: 'Every day at 09:00',
         title: 'Check the deploy',
     });

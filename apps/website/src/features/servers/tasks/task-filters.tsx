@@ -51,13 +51,12 @@ export interface TaskFilterField {
 
 /**
  * `view` predates the field filters below and still answers one question they
- * cannot: "everything not finished", which is not a single status. Its
- * per-assignee option is gone — Assignee owns that now — but the URL value
- * still resolves so existing links keep working.
+ * cannot: "everything, finished work included", which is not a single status.
+ * The page rests on `active`, so `All` is the option here. Its per-assignee
+ * option is gone — Assignee owns that now — but the URL value still resolves
+ * so existing links keep working.
  */
-const viewOptions: Array<{ label: string; value: TaskView }> = [
-    { label: 'Active', value: 'active' },
-];
+const viewOptions: Array<{ label: string; value: TaskView }> = [{ label: 'All', value: 'all' }];
 
 /**
  * The dimensions the Tasks page can be narrowed by, each carrying its own
@@ -153,7 +152,7 @@ export function useTaskFilterFields(): TaskFilterField[] {
         },
         {
             applied:
-                filters.view === 'all'
+                filters.view === 'active'
                     ? null
                     : {
                           id: filters.view,
@@ -162,7 +161,7 @@ export function useTaskFilterFields(): TaskFilterField[] {
                               filters.view,
                       },
             apply: (optionId) => setView(optionId as TaskView),
-            clear: () => setView('all'),
+            clear: () => setView('active'),
             icon: CheckListIcon,
             id: 'view',
             label: 'Show',

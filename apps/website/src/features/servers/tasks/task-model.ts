@@ -1,5 +1,9 @@
 import type { Agent, Chat, ChatMessage, TaskLabel, TaskListItem } from '@grotto/api';
-import type { TaskPriority, TaskStatus } from '../../tasks/task-presentation.ts';
+import {
+    type TaskPriority,
+    type TaskStatus,
+    taskStatusLabels,
+} from '../../tasks/task-presentation.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
 export type TaskView = 'all' | 'active' | 'unassigned';
@@ -28,8 +32,13 @@ export interface TaskItem {
 
 export const taskStatuses: TaskStatus[] = ['todo', 'in_progress', 'in_review', 'done', 'closed'];
 
+/**
+ * `active` is the resting view: finished work is history, and a page that
+ * opens on every task Grotto has ever closed buries the ones still moving.
+ * `all` is a deliberate widening, so it is the value that rides the URL.
+ */
 export function resolveTaskView(value: string | null): TaskView {
-    return value === 'active' || value === 'unassigned' ? value : 'all';
+    return value === 'all' || value === 'unassigned' ? value : 'active';
 }
 
 export function taskClaimAction(
@@ -131,7 +140,15 @@ export interface TaskFilterInput {
 
 export function filterTasks(tasks: TaskItem[], input: TaskFilterInput) {
     return tasks.filter((task) => {
-        if (input.view === 'active' && (task.status === 'done' || task.status === 'closed')) {
+        // `active` is a standing guess about which statuses matter; an
+        // explicit Status is the reader answering that same question
+        // outright, so it wins. Without this, asking for Done on the resting
+        // view returns nothing and the page never says why.
+        if (
+            input.view === 'active' &&
+            !input.status &&
+            (task.status === 'done' || task.status === 'closed')
+        ) {
             return false;
         }
         if (
@@ -176,8 +193,31 @@ const priorityRank: Record<TaskPriority, number> = {
     urgent: 0,
 };
 
+/** Board columns read as a pipeline, so they keep lifecycle order. */
 export function groupTasks(tasks: TaskItem[]) {
-    return taskStatuses.map((status) => ({
+    return groupTasksBy(tasks, taskStatuses);
+}
+
+/**
+ * The List's groups. `in_review` leads and says so in words: a task waiting on
+ * a person is the only kind the reader can finish by looking at it, so the
+ * review queue is what the page opens on.
+ */
+export function groupTasksForList(tasks: TaskItem[]) {
+    return groupTasksBy(tasks, taskListStatuses).map((group) => ({
+        ...group,
+        title: taskListGroupTitles[group.status] ?? taskStatusLabels[group.status],
+    }));
+}
+
+const taskListStatuses: TaskStatus[] = ['in_review', 'todo', 'in_progress', 'done', 'closed'];
+
+const taskListGroupTitles: Partial<Record<TaskStatus, string>> = {
+    in_review: 'Needs your review',
+};
+
+function groupTasksBy(tasks: TaskItem[], statuses: TaskStatus[]) {
+    return statuses.map((status) => ({
         status,
         tasks: tasks
             .filter((task) => task.status === status)

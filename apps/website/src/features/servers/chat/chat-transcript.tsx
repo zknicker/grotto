@@ -48,8 +48,8 @@ interface ChatTranscriptInput {
     onStartDm?: (userId: string) => void;
     pendingMessages?: readonly PendingChatMessage[];
     serverId: string;
-    /** Hides per-message task chips when a metadata panel already states them. */
-    taskChipHidden?: boolean;
+    /** Hides the header task mark when a metadata panel already states it. */
+    taskMarkHidden?: boolean;
     threads?: readonly ThreadSummary[];
     turnDetailsAccess?: 'journal' | 'summary';
     viewerUserId?: string;
@@ -107,7 +107,7 @@ export function useChatTranscript({
     onStartDm,
     pendingMessages = emptyPendingMessages,
     serverId,
-    taskChipHidden,
+    taskMarkHidden,
     threads = emptyChatThreads,
     turnDetailsAccess = 'summary',
     viewerUserId,
@@ -279,7 +279,7 @@ export function useChatTranscript({
                 resolveActorProfile,
                 sessionMarks,
                 shouldAnimateItemEnter: () => false,
-                taskChipHidden,
+                taskMarkHidden,
                 threadActionsEnabled: Boolean(onOpenThread),
             }) satisfies TranscriptRenderContextValue,
         [
@@ -300,7 +300,7 @@ export function useChatTranscript({
             resolveActorProfile,
             serverId,
             sessionMarks,
-            taskChipHidden,
+            taskMarkHidden,
             turnDetailsAccess,
         ]
     );

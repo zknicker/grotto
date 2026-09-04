@@ -12,6 +12,7 @@ import {
     fireContextMetaParts,
     fireContextPayloadLabel,
     fireContextPayloadLanguage,
+    messageCauseArchivedNote,
 } from './automation-presentation.ts';
 
 /**
@@ -24,6 +25,10 @@ import {
  *
  * Nothing renders until the read resolves. A card that flashed an empty shell
  * above the anchor would move the message the reader came for.
+ *
+ * Once the automation is archived every live-side fact — its status, its place
+ * in the history, the payload, the anchoring note — is gone with the record,
+ * and the card states the fire the message snapshotted plus one line saying so.
  */
 export function AutomationFireContextCard({
     messageId,
@@ -45,9 +50,11 @@ export function AutomationFireContextCard({
 export function AutomationFireContextCardView({ context }: { context: AutomationFireContext }) {
     const now = useRelativeNow();
     const cause = context.cause;
-    const status = automationStatusChip(cause.status);
+    const live = cause.live;
+    const status = live ? automationStatusChip(live.status) : null;
     const payloadLabel = fireContextPayloadLabel(context);
     const anchorNote = fireContextAnchorNote(context);
+    const archivedNote = messageCauseArchivedNote(cause);
 
     return (
         <section
@@ -60,12 +67,15 @@ export function AutomationFireContextCardView({ context }: { context: Automation
                     <span className="min-w-0 flex-1 truncate font-semibold text-foreground text-sm">
                         {cause.title}
                     </span>
-                    <Chip color={status.color} size="sm" variant="soft">
-                        {status.label}
-                    </Chip>
+                    {status ? (
+                        <Chip color={status.color} size="sm" variant="soft">
+                            {status.label}
+                        </Chip>
+                    ) : null}
                 </div>
-                {/* Indented past the glyph box so the facts hang under the title. */}
-                <p className="m-0 flex flex-wrap gap-1.5 pl-[calc(24px+var(--spacing)*2.5)] text-muted text-xs leading-4">
+                <p
+                    className={`m-0 flex flex-wrap gap-1.5 text-muted text-xs leading-4 ${factIndent}`}
+                >
                     {fireContextMetaParts(context, now).map((part, index) => (
                         <MetaPart
                             index={index}
@@ -74,24 +84,36 @@ export function AutomationFireContextCardView({ context }: { context: Automation
                         />
                     ))}
                 </p>
-            </div>
-            <div className="flex flex-col gap-2 border-separator border-t px-2.5 py-2">
-                {payloadLabel && context.payload ? (
-                    <PayloadDisclosure
-                        code={context.payload}
-                        contentType={context.contentType}
-                        label={payloadLabel}
-                        truncated={context.payloadTruncated}
-                    />
+                {archivedNote ? (
+                    <p className={`m-0 text-muted text-xs leading-4 ${factIndent}`}>
+                        {archivedNote}
+                    </p>
                 ) : null}
-                {anchorNote ? (
-                    <p className="m-0 text-muted text-xs leading-snug">{anchorNote}</p>
-                ) : null}
-                <ManageInAutomationsLink agentId={cause.ownerAgentId} />
             </div>
+            {/* An archived automation has nothing below the line: no payload,
+                no anchoring note, and no page left to open. */}
+            {live ? (
+                <div className="flex flex-col gap-2 border-separator border-t px-2.5 py-2">
+                    {payloadLabel && context.payload ? (
+                        <PayloadDisclosure
+                            code={context.payload}
+                            contentType={context.contentType}
+                            label={payloadLabel}
+                            truncated={context.payloadTruncated}
+                        />
+                    ) : null}
+                    {anchorNote ? (
+                        <p className="m-0 text-muted text-xs leading-snug">{anchorNote}</p>
+                    ) : null}
+                    <ManageInAutomationsLink agentId={cause.ownerAgentId} />
+                </div>
+            ) : null}
         </section>
     );
 }
+
+/** Hangs a fact line under the title, past the glyph box and the gap after it. */
+const factIndent = 'pl-[calc(24px+var(--spacing)*2.5)]';
 
 function MetaPart({ index, part }: { index: number; part: AutomationMetaPart }) {
     return (

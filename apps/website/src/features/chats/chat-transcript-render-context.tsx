@@ -87,11 +87,12 @@ export interface TranscriptRenderContextValue {
      */
     shouldAnimateItemEnter: (key: string, timestampMs: number | null) => boolean;
     /**
-     * Suppresses the per-message task chip. The task dialog states the task's
-     * number, status, and assignee in its metadata panel, so the anchor's chip
-     * would repeat all three.
+     * Suppresses the header's task mark. A Thread opened on a task states its
+     * number in the header and its status, assignee, and creator in the
+     * metadata panel above the anchor, so the anchor's own mark would repeat
+     * all of it.
      */
-    taskChipHidden?: boolean;
+    taskMarkHidden?: boolean;
     threadActionsEnabled: boolean;
     turnDetails?: {
         access: 'journal' | 'summary';

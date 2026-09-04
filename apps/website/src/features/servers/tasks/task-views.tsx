@@ -10,7 +10,7 @@ import { TaskPriorityIcon } from '../../tasks/task-priority-icon.tsx';
 import { TaskStatusDisc } from '../../tasks/task-status-disc.tsx';
 import { TaskActions } from './task-actions.tsx';
 import { TaskContextMenu } from './task-context-menu.tsx';
-import { groupTasks, type TaskItem } from './task-model.ts';
+import { groupTasks, groupTasksForList, type TaskItem } from './task-model.ts';
 
 interface TaskViewProps {
     onOpenTask: (task: TaskItem) => void;
@@ -66,7 +66,7 @@ export function TaskBoard({ onOpenTask, tasks }: TaskViewProps) {
  */
 export function TaskList({ onOpenTask, tasks }: TaskViewProps) {
     const groups = React.useMemo(
-        () => groupTasks(tasks).filter((group) => group.tasks.length > 0),
+        () => groupTasksForList(tasks).filter((group) => group.tasks.length > 0),
         [tasks]
     );
 
@@ -78,6 +78,7 @@ export function TaskList({ onOpenTask, tasks }: TaskViewProps) {
                     onOpen={onOpenTask}
                     status={group.status}
                     tasks={group.tasks}
+                    title={group.title}
                 />
             ))}
         </div>
@@ -88,10 +89,12 @@ function TaskListGroup({
     onOpen,
     status,
     tasks,
+    title,
 }: {
     onOpen: (task: TaskItem) => void;
     status: TaskItem['status'];
     tasks: TaskItem[];
+    title: string;
 }) {
     const [open, setOpen] = React.useState(true);
 
@@ -113,9 +116,7 @@ function TaskListGroup({
                         style={{ transform: open ? 'rotate(90deg)' : 'none' }}
                     />
                     <TaskStatusDisc className="size-4" status={status} />
-                    <span className="font-semibold text-foreground text-sm">
-                        {taskStatusLabels[status]}
-                    </span>
+                    <span className="font-semibold text-foreground text-sm">{title}</span>
                     <span className="text-muted text-xs tabular-nums">{tasks.length}</span>
                 </button>
             </div>

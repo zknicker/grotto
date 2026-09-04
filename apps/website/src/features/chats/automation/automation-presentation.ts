@@ -1,4 +1,4 @@
-import type { AutomationFireContext, MessageCause } from '@grotto/api';
+import type { AutomationFireContext, MessageCause, MessageCauseLive } from '@grotto/api';
 import { formatRelativeTime, formatTimestamp } from '../../../lib/format.ts';
 import { formatTriggerPayloadSize } from '../../members/agent-profile/agent-trigger-model.ts';
 
@@ -21,7 +21,7 @@ export const automationMarkColor = {
  * and `scheduled` carry colour — the inert states stay neutral rather than
  * borrowing `danger` and reading as breakage.
  */
-export function automationStatusChip(status: MessageCause['status']): {
+export function automationStatusChip(status: MessageCauseLive['status']): {
     color: 'accent' | 'default' | 'success';
     label: string;
 } {
@@ -48,27 +48,49 @@ export interface AutomationHoverRow {
  * The hover card's labelled rows, built from the message alone — the cause
  * rides every message the Server hands a client, so previewing an automation
  * costs no second read.
+ *
+ * Once the automation is archived there is no live record to read, so the rows
+ * fall back to what the message snapshotted: what it was, and the fire this
+ * message answered. Standing in that fire for "Last fired" keeps the card to
+ * one representation of each fact rather than showing a stale live row.
  */
 export function messageCauseHoverRows(cause: MessageCause, now = Date.now()): AutomationHoverRow[] {
+    const summary = {
+        label: cause.kind === 'reminder' ? 'Cadence' : 'Kind',
+        value: cause.summary,
+    };
+
+    if (!cause.live) {
+        return [summary, { label: 'Fired', value: formatRelativeTime(cause.firedAt, now) }];
+    }
+
+    const status = { label: 'Status', value: automationStatusChip(cause.live.status).label };
     const lastFired = {
         label: 'Last fired',
-        value: cause.lastFiredAt ? formatRelativeTime(cause.lastFiredAt, now) : 'Never',
+        value: cause.live.lastFiredAt ? formatRelativeTime(cause.live.lastFiredAt, now) : 'Never',
     };
 
     if (cause.kind === 'reminder') {
-        return [
-            { label: 'Cadence', value: cause.summary },
-            { label: 'Status', value: automationStatusChip(cause.status).label },
-            lastFired,
-        ];
+        return [summary, status, lastFired];
     }
 
-    return [
-        { label: 'Kind', value: cause.summary },
-        { label: 'Status', value: automationStatusChip(cause.status).label },
-        lastFired,
-        { label: 'Fires', value: String(cause.fireCount) },
-    ];
+    return [summary, status, lastFired, { label: 'Fires', value: String(cause.live.fireCount) }];
+}
+
+/**
+ * Says the automation itself is gone. The Server keeps a fired one-shot
+ * reminder and an old fire for 30 days, so a mark outlives its record; the
+ * provenance surfaces still answer "why did this arrive" from the snapshot and
+ * this line explains why they say no more than that.
+ */
+export function messageCauseArchivedNote(cause: MessageCause): string | null {
+    if (cause.live) {
+        return null;
+    }
+
+    return cause.kind === 'reminder'
+        ? 'This reminder has been archived.'
+        : 'This trigger has been archived.';
 }
 
 /**
@@ -103,6 +125,17 @@ export function fireContextMetaParts(
     context: AutomationFireContext,
     now = Date.now()
 ): AutomationMetaPart[] {
+    const fired: AutomationMetaPart = {
+        prefix: 'Fired',
+        value: formatRelativeTime(context.firedAt, now),
+    };
+
+    // Archived: the cadence and the history are gone with the record, so the
+    // card states the two things the message still remembers.
+    if (!context.cause.live) {
+        return [{ value: context.cause.summary }, fired];
+    }
+
     if (context.cause.kind === 'reminder') {
         const parts: AutomationMetaPart[] = [{ value: context.repeat ?? context.cause.summary }];
         if (context.nextFireAt) {
@@ -111,15 +144,15 @@ export function fireContextMetaParts(
         return parts;
     }
 
-    return [
-        { value: context.cause.summary },
-        { prefix: 'Fired', value: formatRelativeTime(context.firedAt, now) },
-        {
+    const parts: AutomationMetaPart[] = [{ value: context.cause.summary }, fired];
+    if (context.fireOrdinal !== null && context.fireTotal !== null) {
+        parts.push({
             prefix: 'fire',
             suffix: `of ${context.fireTotal}`,
             value: String(context.fireOrdinal),
-        },
-    ];
+        });
+    }
+    return parts;
 }
 
 /**

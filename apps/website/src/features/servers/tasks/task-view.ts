@@ -97,7 +97,7 @@ export function useTaskView() {
             setSearchParams(
                 (params) => {
                     const next = new URLSearchParams(params);
-                    if (view === 'all') {
+                    if (view === 'active') {
                         next.delete('view');
                     } else {
                         next.set('view', view);

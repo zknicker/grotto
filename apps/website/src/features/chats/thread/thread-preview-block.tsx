@@ -1,6 +1,5 @@
 import { Chip } from '@heroui/react';
 import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import type * as React from 'react';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -16,55 +15,36 @@ import {
 /**
  * A Thread as it reads from its anchor: a reply count and the last few
  * replies with their faces, so the conversation is legible without opening
- * the panel. A plain Thread with no replies shows nothing; a task keeps the
- * same work-surface header even before its first reply.
+ * the panel. A Thread with no replies shows nothing at all — a task says what
+ * it is with its header mark, so an empty card would only add noise.
  */
-export function ThreadPreviewBlock({
-    headerLeading,
-    isHeaderLeadingInteractive = false,
-    row,
-}: {
-    headerLeading?: React.ReactNode;
-    isHeaderLeadingInteractive?: boolean;
-    row: TranscriptMessageRow;
-}) {
+export function ThreadPreviewBlock({ row }: { row: TranscriptMessageRow }) {
     const context = useTranscriptRenderContextOptional();
     const now = useRelativeNow();
     const thread = getTranscriptMessageThread(row);
 
-    if (!context || (!headerLeading && (!thread || thread.replyCount === 0))) {
+    if (!(context && thread) || thread.replyCount === 0) {
         return null;
     }
 
-    const replies = thread?.recentReplies ?? [];
-    const replyCount = thread?.replyCount ?? 0;
-    const label = replyLabel(replyCount);
+    const replies = thread.recentReplies ?? [];
+    const label = replyLabel(thread.replyCount);
 
     return (
         <div className="group/thread card-shell relative mt-1.5 flex w-full min-w-0 flex-col gap-1 bg-nested-surface px-2.5 py-2 shadow-(--nested-surface-ring) hover:bg-nested-surface-hover">
             <button
-                aria-label={replyCount > 0 ? `Open thread, ${label}` : 'Open task thread'}
+                aria-label={`Open thread, ${label}`}
                 className="card-shell absolute inset-0 cursor-[var(--cursor-interactive)] outline-none focus-visible:ring-2 focus-visible:ring-focus"
                 onClick={() => context.onOpenThread(row)}
                 type="button"
             />
-            <div className="pointer-events-none relative flex min-w-0 items-center justify-between gap-2 text-xs">
-                {headerLeading ? (
-                    <div
-                        className={cn(
-                            'relative z-10 min-w-0',
-                            isHeaderLeadingInteractive && 'pointer-events-auto'
-                        )}
-                    >
-                        {headerLeading}
-                    </div>
-                ) : null}
+            <div className="pointer-events-none relative flex min-w-0 items-center justify-end gap-2 text-xs">
                 <span className="flex shrink-0 items-center gap-1 font-semibold text-muted text-xs group-hover/thread:text-foreground">
                     {label}
-                    {(thread?.unreadCount ?? 0) > 0 ? (
+                    {thread.unreadCount > 0 ? (
                         <>
                             <span aria-hidden>·</span>
-                            <span className="text-accent">{thread?.unreadCount} new</span>
+                            <span className="text-accent">{thread.unreadCount} new</span>
                         </>
                     ) : null}
                     <Icon aria-hidden className="size-3" icon={ArrowRight01Icon} />

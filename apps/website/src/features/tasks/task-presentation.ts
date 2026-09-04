@@ -44,3 +44,32 @@ export const taskPriorityLabels: Record<TaskPriority, string> = {
 export function formatTaskNumber(task: { number: number }) {
     return `#${task.number}`;
 }
+
+/**
+ * A task as the transcript reads it: the identity the header mark renders and
+ * the Tasks views index by. The lifecycle-rich record lives on the Server.
+ */
+export interface MessageTask {
+    assignee: {
+        handle: string | null;
+        id: string;
+        kind?: 'agent' | 'human';
+    } | null;
+    number: number;
+    status: TaskStatus;
+}
+
+/**
+ * The assignee as a label, without guessing. A handle-less Agent has no honest
+ * short name here, so the caller falls back to a resolved profile or shows
+ * nothing rather than printing an opaque id.
+ */
+export function messageTaskAssigneeLabel(task: MessageTask) {
+    if (!task.assignee) {
+        return null;
+    }
+    if (task.assignee.handle) {
+        return `@${task.assignee.handle}`;
+    }
+    return task.assignee.kind === 'human' ? `Human ${task.assignee.id.slice(-6)}` : null;
+}

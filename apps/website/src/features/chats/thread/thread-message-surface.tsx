@@ -3,13 +3,6 @@ import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { cn } from '../../../lib/utils.ts';
-import {
-    type MessageTask,
-    type MessageTaskAssigneeProfile,
-    MessageTaskChip,
-    messageTaskAssigneeLabel,
-} from '../../tasks/message-task-chip.tsx';
-import { formatTaskNumber, taskStatusLabels } from '../../tasks/task-presentation.ts';
 import { ActionTooltip } from '../chat-action-tooltip.tsx';
 import {
     type TranscriptMessageRow,
@@ -20,6 +13,11 @@ import { MessageReactionPills } from './message-reactions.tsx';
 import { isThreadAnchorRow } from './thread-anchor.ts';
 import { ThreadPreviewBlock } from './thread-preview-block.tsx';
 
+/**
+ * One message's Thread surroundings: its reactions, any surface-owned block,
+ * and the Thread preview once the Thread has replies. The message's own task
+ * identity is a header mark, not a block down here.
+ */
 export function ThreadMessageSurface({
     children,
     row,
@@ -27,102 +25,21 @@ export function ThreadMessageSurface({
     children: React.ReactNode;
     row: TranscriptMessageRow;
 }) {
-    return <EmbeddedThreadMessageSurface row={row}>{children}</EmbeddedThreadMessageSurface>;
-}
-
-function EmbeddedThreadMessageSurface({
-    children,
-    row,
-}: {
-    children: React.ReactNode;
-    row: TranscriptMessageRow;
-}) {
     const context = useTranscriptRenderContextOptional();
-    const durable = isThreadAnchorRow(row);
-    const canOpenThread = Boolean(context?.threadActionsEnabled && durable);
-    const taskLivesInPreview = Boolean(row.message.task && canOpenThread);
-    const taskChipHidden = Boolean(context?.taskChipHidden);
-    const taskAssigneeProfile = resolveTaskAssigneeProfile(row.message.task, context);
+    const canOpenThread = Boolean(context?.threadActionsEnabled && isThreadAnchorRow(row));
     const flashing = context?.flashMessageId === row.message.id;
-    const openThread = () => context?.onOpenThread(row);
     const messageBlock = context?.renderMessageBlock?.(row.message) ?? null;
-    const taskAssigneeLabel =
-        taskAssigneeProfile?.name ??
-        (row.message.task ? messageTaskAssigneeLabel(row.message.task) : null);
 
     return (
         <MessageContextMenu className={cn(flashing && 'chat-thread-flash')} row={row}>
             {children}
             <div className="flex flex-wrap items-center gap-1.5">
-                {row.message.task && !(taskLivesInPreview || taskChipHidden) ? (
-                    canOpenThread ? (
-                        <ThreadTaskChipButton
-                            ariaLabel={`Task ${formatTaskNumber(row.message.task)} — ${taskStatusLabels[row.message.task.status]}${taskAssigneeLabel ? `, ${taskAssigneeLabel}` : ''}. Open thread`}
-                            onOpenThread={openThread}
-                            task={row.message.task}
-                        />
-                    ) : (
-                        <MessageTaskChip
-                            assigneeProfile={taskAssigneeProfile}
-                            task={row.message.task}
-                        />
-                    )
-                ) : null}
                 <MessageReactionPills row={row} />
             </div>
             {messageBlock}
-            {canOpenThread ? (
-                <ThreadPreviewBlock
-                    headerLeading={
-                        row.message.task && taskLivesInPreview && !taskChipHidden ? (
-                            <MessageTaskChip
-                                assigneeProfile={taskAssigneeProfile}
-                                task={row.message.task}
-                            />
-                        ) : undefined
-                    }
-                    row={row}
-                />
-            ) : null}
+            {canOpenThread ? <ThreadPreviewBlock row={row} /> : null}
         </MessageContextMenu>
     );
-}
-
-export function ThreadTaskChipButton({
-    ariaLabel,
-    onOpenThread,
-    task,
-}: {
-    ariaLabel: string;
-    onOpenThread: () => void;
-    task: MessageTask;
-}) {
-    return (
-        <button
-            aria-label={ariaLabel}
-            className="inline-flex cursor-[var(--cursor-interactive)] rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            onClick={onOpenThread}
-            type="button"
-        >
-            <MessageTaskChip task={task} />
-        </button>
-    );
-}
-
-function resolveTaskAssigneeProfile(
-    task: MessageTask | null | undefined,
-    context: ReturnType<typeof useTranscriptRenderContextOptional>
-): MessageTaskAssigneeProfile | null {
-    if (!(task?.assignee?.kind && context?.resolveActorProfile)) {
-        return null;
-    }
-
-    const profile = context.resolveActorProfile({
-        id: task.assignee.id,
-        kind: task.assignee.kind === 'agent' ? 'agent' : 'participant',
-    });
-
-    return profile ? { avatarUrl: profile.avatarUrl, name: profile.name } : null;
 }
 
 /**

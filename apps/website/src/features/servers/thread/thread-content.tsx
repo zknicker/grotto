@@ -76,6 +76,9 @@ export function ThreadContent({
     const humans = useHumanDirectory(chat.serverId);
     const viewerUserId = useMembers(chat.serverId).data?.viewerUserId;
     const titles = threadTitles(chat, anchor.id, humans);
+    // A task Thread is the task's work surface, so its header names the task
+    // rather than the chat it hangs in — the metadata panel names the chat.
+    const taskThreadTitle = anchor.task ? `Task #${anchor.task.number}` : null;
     // Replies show as pending rows the instant they are sent, under a key the
     // anchor owns, so the very first reply — which has no Thread chat id until
     // its receipt lands — is carried the same way every later one is.
@@ -93,8 +96,8 @@ export function ThreadContent({
         onReferenceActivate,
         pendingMessages: pendingReplies,
         serverId: chat.serverId,
-        // The metadata panel above the anchor already states the task.
-        taskChipHidden: Boolean(anchor.task),
+        // The header names the task and the metadata panel below states it.
+        taskMarkHidden: Boolean(anchor.task),
         turnDetailsAccess,
         viewerUserId,
     });
@@ -122,7 +125,7 @@ export function ThreadContent({
             <ThreadPanelHeader
                 followed={summary?.followed ?? true}
                 followPending={follow.isPending}
-                header={headerTitle ?? titles.header}
+                header={headerTitle ?? taskThreadTitle ?? titles.header}
                 onBack={onClose}
                 onClose={onClose}
                 onFollowChange={(next) => {

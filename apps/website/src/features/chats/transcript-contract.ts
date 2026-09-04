@@ -1,5 +1,5 @@
 import type { AgentAvailability, MessageCause, PreparedAction, TaskLabel } from '@grotto/api';
-import type { MessageTask } from '../tasks/message-task-chip.tsx';
+import type { MessageTask } from '../tasks/task-presentation.ts';
 
 export type TranscriptActor =
     | { id: string; kind: 'agent' }

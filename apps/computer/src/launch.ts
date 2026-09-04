@@ -7,6 +7,7 @@ import {
     seedCoveWorkspace,
     seedFactoryManagedSkills,
 } from '@grotto/agent-workspace';
+import { cloudAgentWorkAttentionSchema } from '@grotto/api';
 import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 import {
     readAgentSeedConfiguration,
@@ -64,6 +65,7 @@ export interface AgentInboxItem {
     actionAttention?: AgentActionAttention;
     ask?: AgentInboxAsk;
     chatId: string;
+    cloudAgentWork?: AgentCloudAgentWorkAttention;
     content: string;
     createdAt: string;
     id: string;
@@ -89,6 +91,20 @@ export interface AgentInboxItem {
 export interface AgentInboxAsk {
     addresseeHandle: string | null;
     status: 'answered' | 'open';
+}
+
+/** A settled Cloud Agent Run's terminal attention for the delegating Agent. */
+export interface AgentCloudAgentWorkAttention {
+    branches: { branch: string; pullRequestUrl: string | null; repository: string }[];
+    errorCode: string | null;
+    provider: 'cursor';
+    providerUrl: string | null;
+    repository: string;
+    runId: string;
+    status: 'cancelled' | 'completed' | 'expired' | 'failed' | 'queued' | 'running';
+    summary: string | null;
+    title: string;
+    workId: string;
 }
 
 export interface AgentActionAttention {
@@ -596,22 +612,44 @@ function parseInbox(value: unknown): AgentInboxItem[] | null {
         if (item.actionAttention !== undefined && !actionAttention) {
             return null;
         }
+        const cloudAgentWork = parseCloudAgentWorkAttention(item.cloudAgentWork);
+        if (item.cloudAgentWork !== undefined && !cloudAgentWork) {
+            return null;
+        }
+        if (actionAttention && cloudAgentWork) {
+            return null;
+        }
         if (
             actionAttention
                 ? item.sequence !== 0 ||
                   item.id !== actionAttention.actionId ||
                   item.chatId !== actionAttention.chatId ||
                   item.senderType !== 'system'
-                : item.sequence === 0
+                : cloudAgentWork
+                  ? item.sequence !== 0 ||
+                    item.id !== cloudAgentWork.runId ||
+                    item.senderType !== 'system'
+                  : item.sequence === 0
         ) {
             return null;
         }
         inbox.push({
             ...item,
             ...(actionAttention ? { actionAttention } : {}),
+            ...(cloudAgentWork ? { cloudAgentWork } : {}),
         } as unknown as AgentInboxItem);
     }
     return inbox;
+}
+
+function parseCloudAgentWorkAttention(
+    value: unknown
+): AgentCloudAgentWorkAttention | undefined | null {
+    if (value === undefined) {
+        return undefined;
+    }
+    const parsed = cloudAgentWorkAttentionSchema.safeParse(value);
+    return parsed.success ? parsed.data : null;
 }
 
 function parseActionAttention(value: unknown): AgentActionAttention | undefined | null {

@@ -1,4 +1,4 @@
-import type { AgentInboxAsk, AgentInboxItem } from './launch.ts';
+import type { AgentCloudAgentWorkAttention, AgentInboxAsk, AgentInboxItem } from './launch.ts';
 
 const deliveryTrailer = [
     'Respond as appropriate. Complete all your work before stopping.',
@@ -27,7 +27,7 @@ export function composeInboxNotice(
     if (items.length === 0) {
         return null;
     }
-    const hasActionAttention = items.some((item) => item.actionAttention);
+    const hasAttention = items.some(isAttention);
     const targets = new Map<string, AgentInboxItem[]>();
     for (const item of items) {
         const rows = targets.get(item.target) ?? [];
@@ -43,7 +43,7 @@ export function composeInboxNotice(
         }
         return [
             target,
-            `  pending: ${ordered.length} ${plural(ordered.length, ordered.some((item) => item.actionAttention) ? 'work item' : 'message')}`,
+            `  pending: ${ordered.length} ${plural(ordered.length, ordered.some(isAttention) ? 'work item' : 'message')}`,
             ` · first msg=${shortInboxId(first.id)}`,
             ` · latest sender @${latest.senderHandle}`,
             ` · latest msg=${shortInboxId(latest.id)}`,
@@ -52,7 +52,7 @@ export function composeInboxNotice(
     });
     return [
         '[Grotto inbox notice:',
-        hasActionAttention
+        hasAttention
             ? `Inbox update: ${totalPending} pending ${plural(totalPending, 'work item')} total; ${targets.size} changed ${plural(targets.size, 'target')}`
             : `Inbox update: ${totalPending} unread ${plural(totalPending, 'message')} total; ${targets.size} changed ${plural(targets.size, 'target')}`,
         ...lines,
@@ -67,6 +67,9 @@ function plural(count: number, singular: string): string {
 function formatEnvelope(item: AgentInboxItem, homeTimezone: string): string {
     if (item.actionAttention) {
         return formatActionAttention(item);
+    }
+    if (item.cloudAgentWork) {
+        return formatCloudAgentWorkAttention(item.cloudAgentWork, item.target);
     }
     const sender = item.senderDescription
         ? `@${item.senderHandle} — ${item.senderDescription}`
@@ -93,6 +96,26 @@ function formatActionAttention(item: AgentInboxItem): string {
         `[Grotto action attention kind=${attention.kind} action=${attention.actionId} target=${item.target}]`,
         `The committed action completed. createdAgentId=${attention.createdAgentId}`,
         `executedResult=${JSON.stringify(attention.executedResult)}`,
+    ].join('\n');
+}
+
+/**
+ * The settled Run an Agent delegated, with everything it needs to inspect the
+ * result and decide what to post. Results are ordinary Messages; nothing here
+ * reaches a human until the Agent writes one.
+ */
+function formatCloudAgentWorkAttention(work: AgentCloudAgentWorkAttention, target: string): string {
+    const branches = work.branches.map(
+        (branch) =>
+            `${branch.repository}:${branch.branch}${branch.pullRequestUrl ? ` pr=${branch.pullRequestUrl}` : ''}`
+    );
+    return [
+        `[Grotto cloud agent attention status=${work.status} work=${work.workId} run=${work.runId} target=${target}]`,
+        `${work.title} — ${work.repository} (${work.provider})`,
+        `summary=${work.summary ?? '-'}`,
+        `errorCode=${work.errorCode ?? '-'}`,
+        `branches=${branches.length > 0 ? branches.join(', ') : '-'}`,
+        `url=${work.providerUrl ?? '-'}`,
     ].join('\n');
 }
 
@@ -161,20 +184,21 @@ function noticeTag(target: string, items: AgentInboxItem[]): string {
         latest?.task ? `task #${latest.task.number}` : null,
         latest?.ask ? formatAskTag(latest.ask) : null,
         items.some((item) => item.actionAttention) ? 'action attention' : null,
+        items.some((item) => item.cloudAgentWork) ? 'cloud agent result' : null,
         items.some((item) => item.mentioned) ? 'you were mentioned' : null,
     ].filter(Boolean);
     return tags.length > 0 ? ` · ${tags.join(' · ')}` : '';
 }
 
 /**
- * An automation fire id: a Trigger fire (`trf_…`) or a Reminder fire (`rmf_…`).
- * A fire writes no Chat message, so its id addresses nothing the Agent can
- * read, thread on, react to, or hand to `--message-id`. The fire's own
- * `fire=<id>` line and its `--cause <fireId>` reply line carry the id that does
- * work.
+ * An id that addresses no Chat message: a Trigger fire (`trf_…`), a Reminder
+ * fire (`rmf_…`), or a Cloud Agent Run (`car_…`). None of them can be read,
+ * threaded on, reacted to, or handed to `--message-id`. Each carries the id
+ * that does work on its own envelope line instead — a fire's `fire=<id>` and
+ * `--cause <fireId>`, a Run's `work=` and `run=`.
  */
-function isAutomationFireId(id: string): boolean {
-    return /^(?:rmf|trf)_/u.test(id);
+function isBodilessInboxId(id: string): boolean {
+    return /^(?:car|rmf|trf)_/u.test(id);
 }
 
 /**
@@ -186,12 +210,17 @@ function isAutomationFireId(id: string): boolean {
  * rather than an id the Agent would spend a failed command on.
  */
 export function shortInboxId(id: string): string {
-    if (isAutomationFireId(id)) {
+    if (isBodilessInboxId(id)) {
         return '-';
     }
     const assignment = /^task-assign:(?<messageId>[^:]+):/u.exec(id);
     const subject = assignment?.groups?.messageId ?? id;
     return subject.replace(/^[a-z]+_/u, '').slice(0, 8) || '-';
+}
+
+/** A bodiless typed attention: work to act on, not a message to read. */
+function isAttention(item: AgentInboxItem): boolean {
+    return Boolean(item.actionAttention ?? item.cloudAgentWork);
 }
 
 function compareItems(left: AgentInboxItem, right: AgentInboxItem): number {

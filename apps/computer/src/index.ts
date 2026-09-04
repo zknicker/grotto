@@ -45,6 +45,15 @@ import {
 import { printComputerHeader, printComputerHelpPage } from './cli/chrome.ts';
 import { findComputerCommandHelp, resolveComputerHelpRequest } from './cli/help.ts';
 import { cliColorsEnabled, createCliRenderer, stdoutRenderer } from './cli/render.ts';
+import {
+    parseCloudAgentCancelCommand,
+    parseCloudAgentReconcileCommand,
+} from './cloud-agents/frames.ts';
+import {
+    applyCloudAgentCancel,
+    reconcileCloudAgentWork,
+    setCloudAgentReporter,
+} from './cloud-agents/work-runner.ts';
 import { readComputerName } from './computer-name.ts';
 import {
     decideStart,
@@ -86,7 +95,7 @@ import {
     reofferPendingMessages,
     replacePendingInbox,
 } from './inbox-store.ts';
-import { detectInventory } from './inventory.ts';
+import { detectFullInventory, detectInventory } from './inventory.ts';
 import {
     type AgentStartCommand,
     type AgentTurnFrame,
@@ -1133,6 +1142,7 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
     // Server disconnect from a Server that was never reachable.
     return await new Promise<AttachmentConnectionOutcome>((resolve) => {
         socket.addEventListener('close', () => {
+            setCloudAgentReporter(attachment.serverId, null);
             clearInterval(progressTimer);
             heartbeat?.dispose();
             if (usageTimer) {
@@ -1181,6 +1191,18 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
             if (bootstrap) {
                 socket.send(JSON.stringify({ type: 'heartbeat-negotiate' }));
                 if (bootstrap.mode === 'ordinary') {
+                    // Provider-hosted work outlives this socket, so observations
+                    // ride it back up as soon as the ordinary protocol is live.
+                    setCloudAgentReporter(attachment.serverId, (observation) => {
+                        if (socket.readyState === WebSocket.OPEN) {
+                            socket.send(
+                                JSON.stringify({
+                                    observation,
+                                    type: 'cloud-agent-observation',
+                                })
+                            );
+                        }
+                    });
                     const initialReport = Promise.resolve().then(async () => {
                         await Promise.all([
                             sendComputerReport(socket, attachment.serverId, computerName),
@@ -1223,6 +1245,24 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                 }).catch((error) => {
                     console.error(error instanceof Error ? error.message : error);
                 });
+                return;
+            }
+            const cloudAgentCancel = parseCloudAgentCancelCommand(frame);
+            if (cloudAgentCancel) {
+                void trackWriter(
+                    applyCloudAgentCancel(attachment.serverId, cloudAgentCancel).catch(
+                        reportStateError
+                    )
+                );
+                return;
+            }
+            const cloudAgentReconcile = parseCloudAgentReconcileCommand(frame);
+            if (cloudAgentReconcile) {
+                void trackWriter(
+                    reconcileCloudAgentWork(attachment.serverId, cloudAgentReconcile.work).catch(
+                        reportStateError
+                    )
+                );
                 return;
             }
             const stop = parseStopCommand(frame);
@@ -1706,7 +1746,7 @@ async function sendComputerReport(socket: WebSocket, serverId: string, computerN
                 runtimeId,
             })),
             inventory: {
-                ...detectInventory(),
+                ...(await detectFullInventory()),
                 agentSkillImports: await listAgentSkillImportReports(dataRoot, serverId),
                 agentSkills: await listAgentSkillReports(dataRoot, serverId),
                 importableSkills: await listImportableSkills(),

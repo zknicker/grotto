@@ -51,8 +51,35 @@ const messageTaskSchema = z.object({
     updated_at: z.string(),
 });
 
+const messageCloudAgentWorkSchema = z.object({
+    activity: z.string().nullable(),
+    id: z.string(),
+    latest_run: z
+        .object({
+            branches: z.array(
+                z.object({
+                    branch: z.string(),
+                    pull_request_url: z.string().nullable(),
+                    repository: z.string(),
+                })
+            ),
+            error_code: z.string().nullable(),
+            run_id: z.string(),
+            status: z.enum(['queued', 'running', 'completed', 'failed', 'cancelled', 'expired']),
+            summary: z.string().nullable(),
+        })
+        .nullable(),
+    provider: z.literal('cursor'),
+    provider_url: z.string().nullable(),
+    repository: z.string(),
+    starting_ref: z.string().nullable(),
+    status: z.enum(['queued', 'running', 'completed', 'failed', 'cancelled', 'expired']),
+    title: z.string(),
+});
+
 export const agentMessageSchema = z.object({
     ask: messageAskSchema.nullable().optional(),
+    cloud_agent_work: messageCloudAgentWorkSchema.nullable().optional(),
     attachments: z.array(jsonObjectSchema),
     author: z.object({
         id: z.string().min(1),
@@ -60,7 +87,7 @@ export const agentMessageSchema = z.object({
         label: z.string().nullable(),
         metadata: jsonObjectSchema,
     }),
-    body_kind: z.enum(['text', 'ask']),
+    body_kind: z.enum(['text', 'ask', 'cloud-agent-work']),
     chat_id: z.string().min(1),
     content: z.string(),
     created_at: z.string().min(1),

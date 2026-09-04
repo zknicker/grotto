@@ -14,6 +14,7 @@ implementation ownership, and runtime details live under
 | Feature | Doc |
 | --- | --- |
 | Chat | [Chat](chat.md) |
+| Inbox | [Inbox](inbox.md) |
 | Agents | [Agents](agents.md) |
 | Context management | [Context management](context-management.md) |
 | Rich references | [Rich references](rich-references.md) |

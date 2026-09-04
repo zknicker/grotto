@@ -1,7 +1,7 @@
 ---
 summary: Provider-hosted Cloud Agents as Agent-delegated work carried by durable Messages and executed through Computer-local provider access.
 read_when:
-  - adding or changing Cloud Agent tools, providers, lifecycle, cards, outputs, or completion delivery
+  - adding or changing Cloud Agent tools, providers, lifecycle, cards, results, or completion delivery
   - changing Cursor runtime discovery, Cursor Cloud Agent authentication, or Cursor usage reporting
   - changing typed Message bodies, Agent creation proposals, or record-backed Message rendering
   - deciding whether delegated work belongs to a Grotto Agent, Harness subagent, Task, or provider-hosted Cloud Agent
@@ -34,9 +34,9 @@ facts and compatibility risks, not unresolved product decisions.
 - **One work conversation.** A top-level work Message receives a child Thread immediately. Work
   launched inside an existing Thread stays in that Thread because Threads do not nest. Replying to
   the Message is the human steering and discussion surface; the card has no separate reply model.
-- **One updating presentation.** Grotto App renders the Message's Cloud Agent work body as one card.
-  The card updates from queued or running into a terminal report without creating automatic
-  progress or completion Messages.
+- **One updating presentation.** Grotto App renders the Message's Cloud Agent work body as one
+  Thread surface header. It updates from queued or running into a terminal report without creating
+  automatic progress or completion Messages.
 - **Inbox completion.** Every terminal provider run creates at most one durable inbox attention for
   the delegating Agent. Completion does not keep the launch turn open. The resumed Agent owns any
   follow-up and may post an ordinary Message when it has useful judgment to add.
@@ -50,6 +50,12 @@ facts and compatibility risks, not unresolved product decisions.
 Cloud Agent work is task-like but is not a Grotto Task. It has no assignee, claim, priority, label,
 or board lifecycle, and a structured work Message cannot be promoted to a Task.
 
+**Delegation from a Task.** A human creates or promotes a Task, an Agent claims it, and the Agent
+delegates inside the Task Thread. The work Message is a reply in that Thread. The Task keeps the
+human lifecycle: the Agent advances it — to `in_review` when a pull request exists, to `done` when
+that pull request merges — through the ordinary versioned task mutation. A work Message is never
+itself promoted to a Task.
+
 ## Messages and cards
 
 A Message is the only Chat transcript item. Every Message has stable identity, authorship,
@@ -60,7 +66,8 @@ content; it never replaces the Message's authored meaning.
 type MessageBody =
     | { kind: 'text' }
     | { kind: 'agent-creation-proposal'; proposal: AgentCreationProposal }
-    | { kind: 'cloud-agent-work'; work: CloudAgentWork };
+    | { kind: 'cloud-agent-work'; work: CloudAgentWork }
+    | { kind: 'ask'; ask: Ask };
 
 type Message = {
     id: string;
@@ -75,6 +82,8 @@ type Message = {
 };
 ```
 
+An `ask` body carries one human decision request; see [Asks](asks.md).
+
 Body kinds name concrete Grotto product acts, not generic mechanisms, rendered entities, or
 providers. Grotto has no generic `prepared-action`, `cards[]`, or arbitrary JSON-block body. Agent
 creation uses `agent-creation-proposal`; delegated hosted work uses `cloud-agent-work`; Cursor is a
@@ -83,7 +92,21 @@ to author a pull-request Message independently.
 
 A card is presentation, not a durable noun. It owns no id, placement, lifecycle, authorization, or
 data. Grotto App renders a card from the Message and the Server-owned record projected through its
-typed body. Older clients and unknown body kinds render `content` instead.
+typed body.
+
+Grotto App renders Cloud Agent work as the header of the Message's recessed Thread surface, the same
+surface a Task uses: provider glyph and name, title, a status disc with elapsed or total duration,
+and the reply count. One optional line shows `activity` while the work runs, and the latest Run
+summary or error once the work is terminal. The surface opens the Thread. Open in Cursor and Cancel
+live in the surface's overflow menu. The Thread pane header, like the Task metadata header, shows
+provider, repository, starting ref, status, run history with each Run's evidence, and the Cancel
+control. Inside a Task Thread the work Message is a reply and renders the same header without reply
+previews of its own.
+
+Only the trailing status carries lifecycle color. A running work whose `updatedAt` is older than ten
+minutes shows a last-update note rather than gating on Computer connection state. iOS mirrors this
+presentation in its Thread preview card. Older clients and unknown body kinds render the Message
+`content` and the ordinary Thread preview.
 
 Server has one Message reader that projects authors, attachments, Tasks, and typed bodies for every
 consumer: Chat history, Threads, search, send receipts, Agent delivery, web, and iOS. Clients do not
@@ -96,10 +119,11 @@ no per-kind schema version, and readers do not retain historical variants indefi
 
 - Checked-in PostgreSQL migrations rewrite obsolete stored representations before new code depends
   on them. A failed canonical migration blocks activation rather than hiding history.
-- Expand/contract deploys may retain an old wire field for one explicitly named, separately
-  released client cycle. The compatibility path has a removal release and is then deleted.
-- Unknown body kinds degrade through immutable Message `content`. This supports older clients and
-  rollback; it is not a historical payload reader.
+- Grotto has no production users yet. The Message canonicalization ships as one breaking release
+  with a fresh production database; there is no expand/contract window, transitional wire field,
+  or staged client cutover.
+- Unknown body kinds degrade through immutable Message `content`. This supports a client that has
+  not yet learned a kind; it is not a historical payload reader.
 - Raw provider evidence may retain the provider's own revision at the Computer adapter. Provider
   revisions never enter the Message domain.
 
@@ -111,10 +135,10 @@ The prerequisite Message migration:
 3. Backfills Agent-creation Message rows to `agent-creation-proposal` and replaces historical empty
    content with a deterministic description derived from the immutable proposal. New proposal and
    Cloud Agent tools require Agent-authored Message content.
-4. Introduces the exhaustive `Message.body` contract and one Server Message reader. The old
-   top-level proposal field survives only for the bounded iOS cutover.
-5. Moves web and iOS to the body union, then removes the transitional field and every client-side
-   empty-content or copy fallback.
+4. Introduces the exhaustive `Message.body` contract and one Server Message reader, and deletes
+   the old top-level proposal field in the same change.
+5. Moves web and iOS to the body union and removes every client-side empty-content or copy
+   fallback.
 
 Cloud Agent work lands only after this pipeline is canonical so it cannot copy the empty-anchor
 pattern.
@@ -133,25 +157,57 @@ type CloudAgentWork = {
     computerId: string;
     provider: 'cursor';
     providerAgentId: string | null;
-    latestRunId: string | null;
+    providerUrl: string | null;
     title: string;
     repository: string;
     startingRef: string | null;
     status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'expired';
-    summary: string | null;
-    providerUrl: string | null;
+    startedAt: string | null;
+    terminalAt: string | null;
+    cancelRequestedAt: string | null;
+    cancelRequestedBy: { kind: 'agent' | 'user'; id: string } | null;
+    activity: { summary: string; at: string } | null;
+    runs: CloudAgentRun[];
     createdAt: string;
     updatedAt: string;
+};
+
+type CloudAgentRun = {
+    runId: string;
+    status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'expired';
+    rawStatus: string | null;
+    startedAt: string | null;
     terminalAt: string | null;
+    summary: string | null;
+    errorCode: string | null;
+    branches: { repository: string; branch: string; pullRequestUrl: string | null }[];
+    usage: { inputTokens: number; outputTokens: number; costUsd: number | null } | null;
 };
 ```
 
 One work may contain several provider Runs. A follow-up, correction, or retry adds a Run to the
-same work, reactivates the same card, and preserves earlier Run outcomes for inspection. A
+same work, reactivates the same surface, and preserves earlier Run outcomes for inspection. A
 substantively separate assignment creates a new Message and Cloud Agent work record. Cursor permits
 only one active Run per provider Agent; an `agent_busy` response leaves the current Run unchanged.
 A cancelled Run cannot resume, so continuing after cancellation creates another Run in the same
-work and retains the cancelled Run's partial output.
+work and retains the cancelled Run's partial evidence. `runs` is ordered newest first and stays
+bounded; the work keeps recent Runs for inspection rather than an unbounded execution history.
+
+`activity` is one bounded line of at most 120 characters. Computer may update it from provider
+events no more than every few seconds. It is the work's current state in a sentence, never a
+transcript, and it yields to the latest Run summary once the work settles.
+
+`branches` and `pullRequestUrl` are Cursor's own terminal Run report, retained as evidence for the
+Thread pane header. They are not a Grotto product relation: Grotto stores no branch or pull-request
+entity, and a reported pull-request URL claims no ownership of GitHub lifecycle.
+
+A cancel request records `cancelRequestedAt` and `cancelRequestedBy`, and the presentation reads as
+cancelling until the Run settles. Inside Grotto every hop is push: Computer reports
+observations over the attachment protocol, Server emits the durable event, and the App refetches
+the Message. Only the provider edge pulls. Computer subscribes to Cursor's per-Run event stream
+while a Run is active and treats polling as reconciliation: a Run read every 5 seconds only while
+no stream is attached, backed off to 60 seconds after a provider failure, one full Run read on
+reconnect or restart, and nothing further once the Run is terminal.
 
 The physical relationship is one-to-one: the work's `message_id` is unique and references the
 Message. Creation is one Server transaction. `chat_messages.body_kind` and the related record must
@@ -159,38 +215,37 @@ agree; a missing or duplicate record is a mapping failure, never an empty card.
 
 The Server record stores provider-safe identifiers and bounded state only. Provider prompts,
 credentials, raw transcripts, tool traces, and hosted workspace files remain on Computer or with
-the provider. Safe Server observations are Agent and Run ids, normalized and raw terminal status,
-bounded result or error summary and error code, duration, per-Run token/cost usage when present,
-provider URL, and reported Git branches and pull-request URLs. Streamed thinking, tool arguments,
-shell output, and interaction deltas are execution evidence, not collaboration state.
+the provider. Safe Server observations are the provider Agent id and Run ids, normalized and raw
+terminal status, bounded result or error summary and error code, timestamps and duration, per-Run
+token and cost usage when present, the provider URL, and the Git branches and pull-request URLs
+Cursor reports. Streamed thinking, tool arguments, shell output, and interaction deltas are
+execution evidence, not collaboration state.
 
 Lifecycle changes emit a durable `cloud-agent-work.updated` event carrying the Message and work
 identities. Events notify; refetching the Message recovers. The delegating Agent may cancel through
-`CloudAgent`; human Owners and Admins may cancel through the card. Other Chat participants request
-cancellation in the Thread. Reply and follow-up work use the work Thread rather than card-local
-conversation controls.
+`CloudAgent`; human Owners and Admins may cancel through the Thread surface's overflow menu or the
+Thread pane header. Other Chat participants request cancellation in the Thread. Reply and follow-up
+work use the work Thread rather than surface-local conversation controls.
 
-## Outputs and pull requests
+## Results are ordinary Messages
 
-Cloud Agent work may produce zero or more outputs. Outputs are feature-owned typed relations, not
-Message bodies and not a product-wide output framework. V1 records only the branches and pull
-requests Cursor reports.
+Cloud Agent work is a lifecycle record. It has no outputs relation. When a Run settles, the
+delegating Agent receives the inbox attention with that Run's summary and evidence, inspects the
+work, and posts what it learned as ordinary Thread replies: text, a pull-request reference,
+attachments such as screenshots, or an artifact. Grotto adds no output framework and no automatic
+result Message.
 
-```ts
-type CloudAgentWorkOutput =
-    | { kind: 'git-branch'; repository: string; branch: string; observedRunId: string }
-    | { kind: 'github-pull-request'; reference: PullRequestReference; observedRunId: string };
-```
+A pull request is a rich reference (see [Rich References](../docs/features/rich-references.md) and
+[Rich References](mentions.md)). Anyone can paste one and any Agent can post one, so it stands on
+its own outside Cloud Agent work. A Server-owned GitHub connection in Settings → Connections
+resolves each pull-request reference into a cached snapshot — title, state, additions, deletions,
+and files changed — that the compact and card-like renderings show. Without a connection the
+reference renders from its URL alone. Cursor never supplies these facts; the public Cloud Agents
+API reports no diff statistics.
 
-A pull request has identity independent of Cloud Agent work because it may also originate from a
-human, local Agent, pasted URL, GitHub event, or routine. The produced-by relation records
-provenance; it does not make the work record the owner of GitHub lifecycle.
-
-The terminal work card renders produced pull requests as report rows. A pull-request URL in an
-ordinary Message uses the same presentation grammar: compact when inline and card-like when it
-stands alone. V1 stores the canonical URL and the bounded snapshot Cursor observed; it adds no
-Server-global pull-request table or live GitHub state until a second writer or GitHub connection
-creates a real need.
+The Thread preview under the work Message shows the latest replies, so a lone pull-request reference
+reply surfaces the pull request in the parent Chat without new storage. V1 hoists no pull-request
+reference onto the work header; that is a later read if the preview line proves insufficient.
 
 ## Cursor readiness and authentication
 
@@ -219,9 +274,9 @@ separate from runtime harnesses; each Computer reports and onboards its own read
 
 | Layer | Owns |
 | --- | --- |
-| Grotto Server | Messages, Cloud Agent work records and outputs, authorization, lifecycle projection, durable events, and inbox completion |
+| Grotto Server | Messages, Cloud Agent work records, authorization, lifecycle projection, durable events, and inbox completion |
 | Grotto Computer | Provider discovery, SDK credential access, launch, reconciliation, cancellation, and detailed provider evidence |
-| Grotto App | Message and card presentation, Thread discussion, progress and terminal outcomes, output actions, and Computer capability status |
+| Grotto App | Message and card presentation, Thread discussion, progress and terminal outcomes, and Computer capability status |
 | Cursor | Hosted Agent and Run lifecycle, repository checkout, workspace, transcript, branches, pull requests, artifacts, and billed usage |
 | GitHub | Pull-request identity and lifecycle |
 
@@ -267,18 +322,31 @@ administrative integration and is outside this Computer capability.
 - No provider selector until a second implementation creates a real choice.
 - No GitHub-owned PR state, checks, reviews, or merge actions in v1.
 - No automatic completion Message; the delegating Agent decides whether the result deserves one.
+- No outputs relation, output table, or produced-by provenance; results are ordinary Messages and
+  references.
+- No pull-request facts sourced from Cursor; title, state, and diff statistics come only from the
+  Server GitHub connection through the pull-request reference.
+- No per-launch human approval card. Launch approval, when a Server wants it, is an Ask
+  ([Asks](asks.md)), not a card.
 
 ## Implementation sequence
 
-1. Canonicalize Messages and rename Agent creation proposals.
-2. Add Cursor runtime discovery and AI SDK harness support.
-3. Add Cursor Cloud Agent readiness, SDK bootstrap guidance, and truthful usage reporting.
-4. Add the `CloudAgent` tool, Computer adapter, durable Cloud Agent work record, work Message, and
+1. Canonicalize Messages: add `body_kind`, the exhaustive `Message.body` contract, and the single
+   Server Message reader. Cloud Agent work blocks on this step. This landed with
+   [Asks](asks.md): `body_kind` defaults to `text`, the shipped union is `text | ask`, and
+   `toChatMessage` projects the typed record for every consumer that returns a Message.
+2. Rename Agent creation proposals away from the legacy generic action terminology. The proposal
+   still rides the separate top-level `preparedAction` field; the rename folds
+   `agent-creation-proposal` into the same body union and drops that field. This runs after step 1
+   and may share a migration with step 5.
+3. Add Cursor runtime discovery and AI SDK harness support.
+4. Add Cursor Cloud Agent readiness, SDK bootstrap guidance, and truthful usage reporting.
+5. Add the `CloudAgent` tool, Computer adapter, durable Cloud Agent work record, work Message, and
    eager Thread.
-5. Add lifecycle reporting, reconnect reconciliation, cancellation, durable events, and inbox
+6. Add lifecycle reporting, reconnect reconciliation, cancellation, durable events, and inbox
    completion.
-6. Add web and iOS work-card presentation plus produced pull-request rows.
-7. Run deterministic Server, API, Computer, App, and iOS coverage, then one opt-in live Cursor
+7. Add the web and iOS Thread-surface header and the Thread pane header for Cloud Agent work.
+8. Run deterministic Server, API, Computer, App, and iOS coverage, then one opt-in live Cursor
    lifecycle smoke.
 
 ## Provider contract notes

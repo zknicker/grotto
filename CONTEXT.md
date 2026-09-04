@@ -226,6 +226,24 @@ The Grotto App presentation of a Message body or recognized reference. A card ha
 identity, placement, lifecycle, or authorization of its own.
 _Avoid_: card record, Chat entry, Widget, artifact
 
+**Ask**:
+An Agent-authored Message that asks one named human for a decision and stays open in that human's
+Inbox until someone replies in its Thread. An Ask carries a title, a summary, and a recommended
+step, changes no other record, and is answered by an ordinary Message rather than a control.
+_Avoid_: approval card, prompt, escalation, poll, Agent creation proposal
+
+**Inbox**:
+The Grotto App page below Search where one human sees open Asks and other work waiting on them,
+Agent and Cloud Agent work running now, and unread Chats and followed Threads. It is a lens over
+existing records with no state, read state, or lifecycle of its own.
+_Avoid_: Agent inbox, notification center, activity feed, task list
+
+**Agent inbox**:
+The durable Server-owned delivery ledger of pending work for one Agent, with exact model
+visibility, notice turns, and Agent-discretion pulls. It is agent-only state and never renders as
+a human surface.
+_Avoid_: Inbox, notification, Chat unread, message queue
+
 **Agent creation proposal**:
 An immutable Server-owned proposal that an Agent carries in a Message for an authorized human to
 review and commit. A correction creates a new proposal that supersedes the earlier pending one;
@@ -247,7 +265,8 @@ _Avoid_: avatar repository, automatic profile update, Agent-created identity
 
 **Cloud Agent work**:
 Durable provider-hosted work delegated by a Grotto Agent and carried by one Agent-authored Message.
-The work owns one or more provider Runs, its mutable lifecycle, and outputs; the delegating Agent
+The work owns one or more provider Runs and its mutable lifecycle; results reach the Thread as
+ordinary Messages, references, attachments, and artifacts composed by the delegating Agent, which
 owns follow-up after terminal completion reaches its inbox.
 _Avoid_: Harness subagent, Grotto Task, named teammate, Cursor Message
 

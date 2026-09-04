@@ -70,7 +70,7 @@ export interface AgentInboxItem {
     message?: Record<string, unknown>;
     senderDescription?: string;
     senderHandle: string;
-    senderType: 'agent' | 'human' | 'system';
+    senderType: 'agent' | 'human' | 'system' | 'trigger';
     sequence: number;
     target: string;
     task?: {
@@ -577,7 +577,7 @@ function parseInbox(value: unknown): AgentInboxItem[] | null {
                 (item.message === undefined || isRecord(item.message)) &&
                 (item.threadFollowReactivated === undefined ||
                     typeof item.threadFollowReactivated === 'boolean') &&
-                ['agent', 'human', 'system'].includes(item.senderType as string)
+                ['agent', 'human', 'system', 'trigger'].includes(item.senderType as string)
             ) ||
             typeof item.sequence !== 'number' ||
             !Number.isInteger(item.sequence) ||

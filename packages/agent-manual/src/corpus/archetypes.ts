@@ -193,7 +193,12 @@ Two production patrols on this server (backend perf, 6h cadence; frontend anomal
         class: 'archetype',
         industries: ['universal (engineering-origin, works for inbox/social/data watch)'],
         prereqs: ['reminders', 'access to the watched surface (logs/metrics/UI)'],
-        related: ['decision/one-or-many', 'pattern/evidence-handoff', 'technique/reminder-cron'],
+        related: [
+            'decision/one-or-many',
+            'pattern/evidence-handoff',
+            'technique/reminder-cron',
+            'technique/trigger-webhook',
+        ],
         slug: 'patrol',
         summary:
             'Keep standing attention on one domain, package evidence, and route fixes without owning them.',

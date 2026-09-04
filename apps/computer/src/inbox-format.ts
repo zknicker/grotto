@@ -44,9 +44,9 @@ export function composeInboxNotice(
         return [
             target,
             `  pending: ${ordered.length} ${plural(ordered.length, ordered.some((item) => item.actionAttention) ? 'work item' : 'message')}`,
-            ` · first msg=${shortId(first.id)}`,
+            ` · first msg=${shortInboxId(first.id)}`,
             ` · latest sender @${latest.senderHandle}`,
-            ` · latest msg=${shortId(latest.id)}`,
+            ` · latest msg=${shortInboxId(latest.id)}`,
             noticeTag(target, ordered),
         ].join('');
     });
@@ -76,7 +76,7 @@ function formatEnvelope(item: AgentInboxItem, homeTimezone: string): string {
         : '';
     const mention = item.mentioned ? ' mentioned=true' : '';
     const envelope =
-        `[target=${item.target} msg=${shortId(item.id)} time=${formatLocalTime(item.createdAt, homeTimezone)} type=${item.senderType}${task}${mention}] ` +
+        `[target=${item.target} msg=${shortInboxId(item.id)} time=${formatLocalTime(item.createdAt, homeTimezone)} type=${item.senderType}${task}${mention}] ` +
         `${sender}: ${item.content}`;
     return item.threadFollowReactivated
         ? `${formatThreadFollowRestoration(item.target)}\n${envelope}`
@@ -136,8 +136,32 @@ function noticeTag(target: string, items: AgentInboxItem[]): string {
     return tags.length > 0 ? ` · ${tags.join(' · ')}` : '';
 }
 
-function shortId(id: string): string {
-    return id.replace(/^[a-z]+_/u, '').slice(0, 8) || '-';
+/**
+ * An automation fire id: a Trigger fire (`trf_…`) or a Reminder fire (`rmf_…`).
+ * A fire writes no Chat message, so its id addresses nothing the Agent can
+ * read, thread on, react to, or hand to `--message-id`. The fire's own
+ * `fire=<id>` line and its `--cause <fireId>` reply line carry the id that does
+ * work.
+ */
+function isAutomationFireId(id: string): boolean {
+    return /^(?:rmf|trf)_/u.test(id);
+}
+
+/**
+ * The `msg=` short id every inbox surface prints, for messages and for the
+ * bodiless items alike. A compound assignment key
+ * (`task-assign:<messageId>:<version>`) shortens to the task message it hands
+ * over, which is the id the Agent can actually address — reading it, threading
+ * on it, or reacting to it. A fire has no such message, so it prints `-`
+ * rather than an id the Agent would spend a failed command on.
+ */
+export function shortInboxId(id: string): string {
+    if (isAutomationFireId(id)) {
+        return '-';
+    }
+    const assignment = /^task-assign:(?<messageId>[^:]+):/u.exec(id);
+    const subject = assignment?.groups?.messageId ?? id;
+    return subject.replace(/^[a-z]+_/u, '').slice(0, 8) || '-';
 }
 
 function compareItems(left: AgentInboxItem, right: AgentInboxItem): number {

@@ -42,7 +42,10 @@ export async function acceptRunInbox(
         const root = inboxRoot(location);
         await mkdir(join(root, 'runs'), { mode: 0o700, recursive: true });
         await writeJsonAtomic(join(root, 'runs', `${runId}.json`), modelItems);
-        await consumeVisibleMessagesLocked(location, items);
+        await consumeVisibleIdsLocked(
+            location,
+            items.map((item) => item.id)
+        );
         return modelItems;
     });
 }
@@ -128,12 +131,42 @@ export async function consumeVisibleMessages(
     location: AgentInboxLocation,
     messages: Iterable<VisibleMessageIdentity>
 ): Promise<void> {
-    const visible = [...messages];
-    if (visible.length === 0) {
+    const visibleIds = [...messages].map((message) => message.id);
+    if (visibleIds.length === 0) {
         return;
     }
     await withInboxWrite(location, async () => {
-        await consumeVisibleMessagesLocked(location, visible);
+        await consumeVisibleIdsLocked(location, visibleIds);
+    });
+}
+
+/**
+ * A bodiless inbox item mirrored into the local inbox: a Trigger or Reminder
+ * fire, or a task assignment, which speaks as `@grotto`. None has a backing
+ * Chat message, so the Server alone can serve it and mark it served, and its
+ * key must never enter message-visibility attestation. An action attention also
+ * speaks as `@grotto` but carries its own payload, so the message/attention
+ * guard keeps it out.
+ */
+export function isAutomationInboxItem(item: AgentInboxItem): boolean {
+    return (
+        !(item.actionAttention || item.message) &&
+        (item.senderHandle === 'trigger' ||
+            item.senderHandle === 'reminder' ||
+            item.senderHandle === 'grotto')
+    );
+}
+
+/** Retires bodiless items the Server just served on `/api/agent/events` from the mirror. */
+export async function consumeServedAutomations(
+    location: AgentInboxLocation,
+    fireIds: string[]
+): Promise<void> {
+    if (fireIds.length === 0) {
+        return;
+    }
+    await withInboxWrite(location, async () => {
+        await consumeVisibleIdsLocked(location, fireIds);
     });
 }
 
@@ -245,12 +278,12 @@ async function readPendingState(location: AgentInboxLocation): Promise<PendingIn
     throw new Error('Invalid local Agent inbox state.');
 }
 
-async function consumeVisibleMessagesLocked(
+async function consumeVisibleIdsLocked(
     location: AgentInboxLocation,
-    visible: VisibleMessageIdentity[]
+    visible: string[]
 ): Promise<void> {
     const state = await readPendingState(location);
-    const visibleIds = new Set(visible.map((message) => message.id));
+    const visibleIds = new Set(visible);
     const remaining = state.items.filter((item) => !visibleIds.has(item.id));
     const consumed = state.items.length - remaining.length;
     const existingConsumed = new Set(state.consumedMessageIds);

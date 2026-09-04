@@ -1,5 +1,5 @@
-import { formatThreadFollowRestoration } from '../inbox-format.ts';
-import type { AgentCliMessage } from './agent-api-schemas.ts';
+import { formatThreadFollowRestoration, shortInboxId } from '../inbox-format.ts';
+import type { AgentCliAutomationEvent, AgentCliMessage } from './agent-api-schemas.ts';
 import { AgentCliError } from './agent-error.ts';
 
 export function formatLocalTime(timestamp: string): string {
@@ -50,6 +50,23 @@ export function formatDeliveryEnvelope(
     return threadFollowReactivated
         ? `${formatThreadFollowRestoration(target)}\n${envelope}`
         : envelope;
+}
+
+/**
+ * A bodiless inbox item served on `grotto message check`: a Trigger or Reminder
+ * fire, or a task assignment. None of them has a Chat message, so the item's own
+ * identity fills the envelope: `msg=` is its short id, `type=` is `trigger` or
+ * `system`, and the sender is `@trigger`, `@reminder`, or `@grotto` — the exact
+ * header the launch drain prints for the same item.
+ */
+export function formatAutomationEnvelope(event: AgentCliAutomationEvent): string {
+    const attributes = [
+        `target=${event.target}`,
+        `msg=${shortInboxId(event.id)}`,
+        `time=${formatLocalTime(event.createdAt)}`,
+        `type=${event.senderType}`,
+    ];
+    return `[${attributes.join(' ')}] @${event.senderHandle}: ${event.content}`;
 }
 
 export function attachmentSuffix(message: AgentCliMessage): string {

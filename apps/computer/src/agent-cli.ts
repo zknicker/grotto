@@ -11,6 +11,7 @@ import { REMINDER_SUBCOMMANDS } from './agent-cli/commands/agent-reminder.ts';
 import { SKILL_SUBCOMMANDS } from './agent-cli/commands/agent-skill.ts';
 import { TASK_SUBCOMMANDS } from './agent-cli/commands/agent-task.ts';
 import { THREAD_SUBCOMMANDS } from './agent-cli/commands/agent-thread.ts';
+import { TRIGGER_SUBCOMMANDS } from './agent-cli/commands/agent-trigger.ts';
 import { UsageError } from './agent-cli/parse.ts';
 import { dispatchSubcommand, type SubCommand } from './agent-cli/subcommand.ts';
 import { errorBlock } from './agent-cli/ui.ts';
@@ -29,6 +30,7 @@ const commandGroups = {
     skill: SKILL_SUBCOMMANDS,
     task: TASK_SUBCOMMANDS,
     thread: THREAD_SUBCOMMANDS,
+    trigger: TRIGGER_SUBCOMMANDS,
 } satisfies Record<string, SubCommand[]>;
 
 /**

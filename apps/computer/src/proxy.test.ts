@@ -523,6 +523,219 @@ test('does not count a send rejected before an upstream connection', async () =>
     }
 });
 
+test('forwards a bodyless mutation with neither a body nor a content-type', async () => {
+    const forwarded: Array<{ body: string; contentType: string | null; method: string }> = [];
+    const upstream = Bun.serve({
+        async fetch(request) {
+            forwarded.push({
+                body: await request.text(),
+                contentType: request.headers.get('content-type'),
+                method: request.method,
+            });
+            return Response.json({ ok: true });
+        },
+        hostname: '127.0.0.1',
+        port: 0,
+    });
+    servers.push(upstream);
+    const proxy = startLoopbackProxy({
+        proxyToken: 'local-token',
+        runnerToken: 'runner-token',
+        serverOrigin: `http://127.0.0.1:${upstream.port}`,
+    });
+    try {
+        const headers = { authorization: 'Bearer local-token' };
+        await fetch(`${proxy.url}/api/agent/triggers/trg_one/disable`, {
+            headers,
+            method: 'POST',
+        });
+        await fetch(`${proxy.url}/api/agent/triggers/trg_one`, { headers, method: 'DELETE' });
+        await fetch(`${proxy.url}/api/agent/triggers`, {
+            body: '{"title":"Deploy finished"}',
+            headers: { ...headers, 'content-type': 'application/json' },
+            method: 'POST',
+        });
+        expect(forwarded).toEqual([
+            { body: '', contentType: null, method: 'POST' },
+            { body: '', contentType: null, method: 'DELETE' },
+            {
+                body: '{"title":"Deploy finished"}',
+                contentType: 'application/json',
+                method: 'POST',
+            },
+        ]);
+    } finally {
+        proxy.close();
+    }
+});
+
+test('a pending fire routes the whole pull upstream and never attests its fire id', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-automation-'));
+    const location = { agentId: 'agt_fire', dataRoot, serverId: 'srv_fire' };
+    const fire = automationInboxItem('trf_41c2d8e9');
+    const cached = inboxItem('msg_cached', 2);
+    cached.message = agentMessage(cached);
+    await replacePendingInbox(location, [fire, cached]);
+    const attested: string[][] = [];
+    const upstream = Bun.serve({
+        async fetch(request) {
+            const pathname = new URL(request.url).pathname;
+            if (pathname === '/api/agent/events/visible') {
+                const body = (await request.json()) as { messages: Array<{ id: string }> };
+                attested.push(body.messages.map((entry) => entry.id));
+                return Response.json({ accepted: body.messages.map((entry) => entry.id) });
+            }
+            return Response.json({
+                automations: [
+                    {
+                        content: fire.content,
+                        createdAt: fire.createdAt,
+                        id: fire.id,
+                        senderHandle: 'trigger',
+                        senderType: 'trigger',
+                        target: fire.target,
+                    },
+                ],
+                messages: [{ message: agentMessage(cached), target: cached.target }],
+                more: false,
+            });
+        },
+        hostname: '127.0.0.1',
+        port: 0,
+    });
+    servers.push(upstream);
+    const proxy = startLoopbackProxy({
+        ...location,
+        proxyToken: 'local-token',
+        runnerToken: 'runner-token',
+        runId: 'run_fire',
+        serverOrigin: `http://127.0.0.1:${upstream.port}`,
+    });
+    try {
+        const response = await fetch(`${proxy.url}/api/agent/events`, {
+            headers: { authorization: 'Bearer local-token' },
+        });
+        expect(response.status).toBe(200);
+        expect(await response.json()).toMatchObject({
+            automations: [{ id: 'trf_41c2d8e9', senderType: 'trigger' }],
+        });
+        expect(attested).toEqual([['msg_cached']]);
+        expect(await readPendingInbox(location)).toEqual([]);
+        expect(await readRunVisibleMessages(location, 'run_fire')).toEqual([
+            { chatId: cached.chatId, id: cached.id, sequence: cached.sequence },
+        ]);
+    } finally {
+        proxy.close();
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+test('the local-first pull answers with the automations array the Agent CLI expects', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-shape-'));
+    const location = { agentId: 'agt_shape', dataRoot, serverId: 'srv_shape' };
+    const cached = inboxItem('msg_shape', 1);
+    cached.message = agentMessage(cached);
+    await replacePendingInbox(location, [cached]);
+    const proxy = startLoopbackProxy({
+        ...location,
+        proxyToken: 'local-token',
+        runnerToken: 'runner-token',
+        runId: 'run_shape',
+        serverOrigin: 'http://127.0.0.1:1',
+    });
+    try {
+        const response = await fetch(`${proxy.url}/api/agent/events`, {
+            headers: { authorization: 'Bearer local-token' },
+        });
+        expect(await response.json()).toMatchObject({ automations: [], more: false });
+    } finally {
+        proxy.close();
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+test('a pending task assignment routes the whole pull upstream like a fire', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-assignment-'));
+    const location = { agentId: 'agt_assign', dataRoot, serverId: 'srv_assign' };
+    const assignment: AgentInboxItem = {
+        chatId: 'cht_proxy',
+        content: '[Grotto task assignment task=#7 target=#general assignedBy=@operator] Ship it',
+        createdAt: new Date(Date.UTC(2026, 7, 4, 0, 0, 1)).toISOString(),
+        id: 'task-assign:msg_1a2b3c4d5e6f:3',
+        mentioned: true,
+        senderHandle: 'grotto',
+        senderType: 'system',
+        sequence: 1,
+        target: '#general',
+    };
+    const cached = inboxItem('msg_cached', 2);
+    cached.message = agentMessage(cached);
+    await replacePendingInbox(location, [assignment, cached]);
+    const attested: string[][] = [];
+    const upstream = Bun.serve({
+        async fetch(request) {
+            const pathname = new URL(request.url).pathname;
+            if (pathname === '/api/agent/events/visible') {
+                const body = (await request.json()) as { messages: Array<{ id: string }> };
+                attested.push(body.messages.map((entry) => entry.id));
+                return Response.json({ accepted: body.messages.map((entry) => entry.id) });
+            }
+            return Response.json({
+                automations: [
+                    {
+                        content: assignment.content,
+                        createdAt: assignment.createdAt,
+                        id: assignment.id,
+                        senderHandle: 'grotto',
+                        senderType: 'system',
+                        target: assignment.target,
+                    },
+                ],
+                messages: [{ message: agentMessage(cached), target: cached.target }],
+                more: false,
+            });
+        },
+        hostname: '127.0.0.1',
+        port: 0,
+    });
+    servers.push(upstream);
+    const proxy = startLoopbackProxy({
+        ...location,
+        proxyToken: 'local-token',
+        runnerToken: 'runner-token',
+        runId: 'run_assign',
+        serverOrigin: `http://127.0.0.1:${upstream.port}`,
+    });
+    try {
+        const response = await fetch(`${proxy.url}/api/agent/events`, {
+            headers: { authorization: 'Bearer local-token' },
+        });
+        expect(response.status).toBe(200);
+        expect(await response.json()).toMatchObject({
+            automations: [{ id: assignment.id, senderHandle: 'grotto', senderType: 'system' }],
+        });
+        // The assignment key never enters message-visibility attestation.
+        expect(attested).toEqual([['msg_cached']]);
+        expect(await readPendingInbox(location)).toEqual([]);
+    } finally {
+        proxy.close();
+        await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+function automationInboxItem(id: string): AgentInboxItem {
+    return {
+        chatId: 'cht_proxy',
+        content: `\u26a1 Trigger: Sentry alerts\nfire=${id}`,
+        createdAt: new Date(Date.UTC(2026, 7, 4, 0, 0, 1)).toISOString(),
+        id,
+        senderHandle: 'trigger',
+        senderType: 'trigger',
+        sequence: 1,
+        target: '#general',
+    };
+}
+
 async function listen(server: NetServer): Promise<number> {
     await new Promise<void>((resolve, reject) => {
         server.once('error', reject);

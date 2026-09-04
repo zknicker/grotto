@@ -5,7 +5,9 @@ import { join } from 'node:path';
 import { noticePath, writePendingNotice } from './delivery.ts';
 import {
     acceptRunInbox,
+    consumeServedAutomations,
     consumeVisibleMessages,
+    isAutomationInboxItem,
     prepareRunReplay,
     readPendingInbox,
     readRunVisibleMessages,
@@ -198,6 +200,78 @@ test('does not hold the inbox lock while live notice delivery waits', async () =
         access(noticePath(dataRoot, { agentId: location().agentId, serverId: location().serverId }))
     ).rejects.toMatchObject({ code: 'ENOENT' });
 });
+
+test('retires a served fire from the mirror and its busy notice', async () => {
+    const fire = automationItem('trf_41c2d8e9', 'trigger', 'trigger');
+    const message = item('msg_after', '#general', 2);
+    await replacePendingInbox(location(), [fire, message]);
+    expect(await readPendingInbox(location())).toEqual([fire, message]);
+
+    await consumeServedAutomations(location(), [fire.id]);
+
+    expect(await readPendingInbox(location())).toEqual([message]);
+    // The retired fire never returns, even when the Server re-mirrors it.
+    await replacePendingInbox(location(), [fire, message], 2);
+    expect(await readPendingInbox(location())).toEqual([message]);
+});
+
+test('names bodiless frames apart from ordinary and typed system inbox rows', () => {
+    expect(isAutomationInboxItem(automationItem('trf_41c2d8e9', 'trigger', 'trigger'))).toBe(true);
+    expect(isAutomationInboxItem(automationItem('rmf_9a8b7c6d', 'reminder', 'system'))).toBe(true);
+    // A task assignment speaks as @grotto and has no Chat message either.
+    expect(
+        isAutomationInboxItem(automationItem('task-assign:msg_1a2b3c4d:3', 'grotto', 'system'))
+    ).toBe(true);
+    expect(isAutomationInboxItem(item('msg_plain', '#general', 1))).toBe(false);
+    // An action attention also speaks as @grotto, but carries its own payload
+    // and settles on the ordinary visibility path.
+    expect(
+        isAutomationInboxItem({
+            ...automationItem('act_committed', 'grotto', 'system'),
+            actionAttention: {
+                actionId: 'act_committed',
+                chatId: 'cht_inbox',
+                createdAgentId: 'agt_creator',
+                executedResult: {
+                    agentId: 'agt_new',
+                    avatarUrl: null,
+                    chatId: 'cht_inbox',
+                    computerId: 'cmp_one',
+                    description: null,
+                    displayName: 'Scout',
+                    handle: 'scout',
+                    modelId: 'model',
+                    reasoningEffort: 'medium',
+                    role: 'member',
+                    runtimeId: 'runtime',
+                },
+                kind: 'agent:create',
+            },
+        })
+    ).toBe(false);
+    expect(
+        isAutomationInboxItem({
+            ...automationItem('cap_greeting', 'onboarding', 'system'),
+        })
+    ).toBe(false);
+});
+
+function automationItem(
+    id: string,
+    senderHandle: string,
+    senderType: AgentInboxItem['senderType']
+): AgentInboxItem {
+    return {
+        chatId: 'cht_inbox',
+        content: `fire ${id}`,
+        createdAt: new Date(Date.UTC(2026, 6, 27, 0, 0, 1)).toISOString(),
+        id,
+        senderHandle,
+        senderType,
+        sequence: 1,
+        target: '#general',
+    };
+}
 
 function item(id: string, target: string, sequence: number): AgentInboxItem {
     return {

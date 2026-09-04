@@ -20,7 +20,9 @@ import {
 import { classifyGrottoProxyBoundary } from './harness/activity-projector.ts';
 import {
     type AgentInboxLocation,
+    consumeServedAutomations,
     consumeVisibleMessages,
+    isAutomationInboxItem,
     readPendingInboxState,
     recordRunVisibleMessages,
     type VisibleMessageIdentity,
@@ -178,10 +180,14 @@ async function handleAuthorizedProxyRequest(
             await recordRunVisibleMessages(location, activeRunId, local.identities);
             await awaitBestEffortAttestation(input.serverOrigin, runnerToken, local.identities);
             await consumeVisibleMessages(location, local.identities);
-            return Response.json({ messages: local.messages, more: local.more });
+            return Response.json({ automations: [], messages: local.messages, more: local.more });
         }
     }
     const body = await request.text();
+    // A bodyless POST or DELETE must reach the Server with neither body nor
+    // content-type. Labelling an empty body as JSON makes Fastify reject the
+    // request with FST_ERR_CTP_EMPTY_JSON_BODY before it ever authenticates.
+    const forwardsBody = body.length > 0 && request.method !== 'GET' && request.method !== 'HEAD';
     const upstreamUrl = new URL(url.pathname, input.serverOrigin);
     upstreamUrl.search = url.search;
     const isMessageSend = url.pathname === '/api/agent/messages/send';
@@ -189,10 +195,14 @@ async function handleAuthorizedProxyRequest(
     let upstream: Response;
     try {
         upstream = await fetch(upstreamUrl, {
-            body: request.method === 'GET' ? undefined : body,
+            ...(forwardsBody ? { body } : {}),
             headers: {
                 authorization: `Bearer ${runnerToken}`,
-                'content-type': request.headers.get('content-type') ?? 'application/json',
+                ...(forwardsBody
+                    ? {
+                          'content-type': request.headers.get('content-type') ?? 'application/json',
+                      }
+                    : {}),
             },
             method: request.method,
         });
@@ -214,6 +224,17 @@ async function handleAuthorizedProxyRequest(
     const visibleMessageIds = upstream.ok
         ? extractVisibleMessageIds(url.pathname, responseBody)
         : [];
+    if (location && upstream.ok && url.pathname === '/api/agent/events') {
+        // The Server marked these bodiless rows served as it returned them. They
+        // carry no Chat identity, so they never enter visibility attestation —
+        // `resolveAgentMessage` would reject a fire or assignment key and fail
+        // the whole receipt. A failed mirror write only leaves a stale busy
+        // notice that the next Server snapshot corrects; failing the response
+        // would lose the item.
+        await consumeServedAutomations(location, extractServedAutomationIds(responseBody)).catch(
+            () => undefined
+        );
+    }
     if (location && visibleMessageIds.length > 0) {
         try {
             const activeRunId = state.getRunId();
@@ -257,6 +278,13 @@ async function handleAuthorizedProxyRequest(
 
 async function localAgentEvents(location: AgentInboxLocation) {
     const pending = await readPendingInboxState(location);
+    // A pending fire or task assignment has no cached body and only the Server
+    // can retire it. Let the whole pull go upstream so those items and messages
+    // arrive in one ordered response instead of being split across a local page
+    // and a Server page.
+    if (pending.items.some(isAutomationInboxItem)) {
+        return null;
+    }
     const visible = pending.items
         .map((item) => {
             const message = agentMessageSchema.safeParse(item.message);
@@ -321,6 +349,17 @@ function agentInboxLocation(input: {
     return input.agentId && input.dataRoot && input.serverId
         ? { agentId: input.agentId, dataRoot: input.dataRoot, serverId: input.serverId }
         : null;
+}
+
+function extractServedAutomationIds(responseBody: string): string[] {
+    let body: unknown;
+    try {
+        body = JSON.parse(responseBody);
+    } catch {
+        return [];
+    }
+    const parsed = agentMessageCheckResponseSchema.safeParse(body);
+    return parsed.success ? parsed.data.automations.map((event) => event.id) : [];
 }
 
 function extractVisibleMessageIds(

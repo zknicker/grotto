@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { seedCoveWorkspace } from '@grotto/agent-workspace';
 import { grottoAgentVersion } from '@grotto/api';
-import { composeInboxNotice } from '../inbox-format.ts';
+import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
 import { acceptRunInbox, replacePendingInbox } from '../inbox-store.ts';
 import { readClaudePlanUsageState } from '../usage/claude-plan-usage-state.ts';
 import { readComputerExecutionJournal } from './execution-journal.ts';
@@ -473,6 +473,52 @@ test('projects a concrete action attention into the first prompt by action ident
     expect(streamedPrompts[0]).toContain('act_create_agent');
     expect(streamedPrompts[0]).toContain('agt_created');
     expect(streamedPrompts[0]).toContain('"handle":"scout"');
+});
+
+test('projects a concrete fire and a task assignment into the first prompt', async () => {
+    const fire = {
+        chatId: 'cht_origin',
+        content: [
+            '🔔 Reminder: Check the deploy',
+            'fire=rmf_9a8b7c6d',
+            'reply with: grotto message send --cause rmf_9a8b7c6d',
+        ].join('\n'),
+        createdAt: '2026-07-27T00:00:00.000Z',
+        id: 'rmf_9a8b7c6d',
+        senderHandle: 'reminder',
+        senderType: 'system' as const,
+        sequence: 1,
+        target: '#general',
+    };
+    await runHarnessTurn(turnInput({ inbox: [fire], inboxDelivery: 'concrete' }));
+
+    // The wake itself carries the envelope, and it is the same envelope the
+    // drain composes for a pulled item. A fire has no Chat message, so `msg=`
+    // is `-` and the fire id rides the `fire=`/`--cause` lines instead.
+    expect(streamedPrompts[0]).toContain(composeInboxDrain([fire], 'UTC'));
+    expect(streamedPrompts[0]).toContain(
+        '[target=#general msg=- time=2026-07-27 00:00:00 type=system] @reminder: 🔔 Reminder: Check the deploy'
+    );
+    expect(streamedPrompts[0]).toContain('reply with: grotto message send --cause rmf_9a8b7c6d');
+
+    streamedPrompts = [];
+    const assignment = {
+        chatId: 'cht_origin',
+        content:
+            '[Grotto task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes',
+        createdAt: '2026-07-27T00:00:00.000Z',
+        id: 'task-assign:msg_1a2b3c4d5e6f:3',
+        mentioned: true,
+        senderHandle: 'grotto',
+        senderType: 'system' as const,
+        sequence: 1,
+        target: '#general',
+    };
+    await runHarnessTurn(turnInput({ inbox: [assignment], inboxDelivery: 'concrete' }));
+
+    expect(streamedPrompts[0]).toContain(
+        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 type=system mentioned=true] @grotto: [Grotto task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes'
+    );
 });
 
 test('cold-starts ordinary Chat work with a content-free notice in the same task', async () => {

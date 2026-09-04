@@ -1,5 +1,6 @@
 import {
     agentActionPrepareReceiptSchema,
+    agentAutomationEventSchema,
     avatarGenerationResponseSchema,
     type GrottoAgentMessage,
     type GrottoAgentSendResponse,
@@ -102,6 +103,12 @@ export const agentSendResponseSchema: z.ZodType<GrottoAgentSendResponse> = z.dis
 );
 
 export const agentMessageCheckResponseSchema = z.object({
+    /**
+     * Bodiless inbox items served on the same pull: Trigger and Reminder fires,
+     * and task assignments. None writes a Chat message, so they ride their own
+     * array and carry their own envelope bodies.
+     */
+    automations: z.array(agentAutomationEventSchema).default([]),
     messages: z.array(
         z.object({
             message: agentMessageSchema,
@@ -111,6 +118,8 @@ export const agentMessageCheckResponseSchema = z.object({
     ),
     more: z.boolean(),
 });
+
+export type AgentCliAutomationEvent = z.infer<typeof agentAutomationEventSchema>;
 
 export const agentInboxCheckResponseSchema = z.object({
     rows: z.array(

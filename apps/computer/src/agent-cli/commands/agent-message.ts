@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import {
-    type AgentCliMessage,
     agentHistoryResponseSchema,
     agentMessageCheckResponseSchema,
     agentReactionResponseSchema,
@@ -9,7 +8,12 @@ import {
     resolvedAgentMessageSchema,
 } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
-import { formatDeliveryEnvelope, formatHistoryLine, shortMessageId } from '../agent-format.ts';
+import {
+    formatAutomationEnvelope,
+    formatDeliveryEnvelope,
+    formatHistoryLine,
+    shortMessageId,
+} from '../agent-format.ts';
 import { renderHistory, renderSendResponse } from '../agent-render.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { readAgentStdin } from '../stdin.ts';
@@ -37,7 +41,11 @@ interface MessageDeps {
 export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
     {
         allowExtraPositionals: true,
-        examples: [HEREDOC_RECIPE, 'grotto message send --send-draft --target "#general"'],
+        examples: [
+            HEREDOC_RECIPE,
+            'grotto message send --send-draft --target "#general"',
+            'grotto message send --target "#general" --cause trf_41c2d8e9 <<\'GROTTOMSG\'\nPayment webhook failed twice.\nGROTTOMSG',
+        ],
         flags: [
             {
                 name: '--target',
@@ -49,6 +57,11 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
                 valueName: '<id>',
                 description: 'Attach an uploaded file (repeatable)',
             },
+            {
+                name: '--cause',
+                valueName: '<fireId>',
+                description: 'Record the trigger or reminder fire this message answers',
+            },
             { name: '--send-draft', description: 'Send the saved draft unchanged' },
             { name: '--anyway', description: 'Send a repeatedly held draft despite new activity' },
             { name: '--content', description: 'Unsupported; message bodies use stdin' },
@@ -57,7 +70,7 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runSend(args, defaultDeps()),
         summary: 'Send a message body read only from stdin',
-        usage: 'grotto message send --target <t> [--attachment-id <id> ...] [--send-draft] [--anyway]',
+        usage: 'grotto message send --target <t> [--attachment-id <id> ...] [--cause <fireId>] [--send-draft] [--anyway]',
     },
     {
         examples: [
@@ -131,34 +144,59 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
     },
 ];
 
+/** One drained envelope, kept with the identity that orders it against the rest. */
+interface CheckedEnvelope {
+    createdAt: string;
+    id: string;
+    line: string;
+}
+
 export async function runCheck(deps: MessageDeps): Promise<number> {
-    const messages: Array<{
-        message: AgentCliMessage;
-        target: string;
-        threadFollowReactivated?: boolean;
-    }> = [];
+    const envelopes: CheckedEnvelope[] = [];
     let more = false;
     for (let round = 0; round < MAX_MESSAGE_CHECK_ROUNDS; round += 1) {
         const response = await deps.client.request(
             '/api/agent/events',
             agentMessageCheckResponseSchema
         );
-        messages.push(...response.messages);
+        for (const row of response.messages) {
+            envelopes.push({
+                createdAt: row.message.created_at,
+                id: row.message.id,
+                line: formatDeliveryEnvelope(row.target, row.message, row.threadFollowReactivated),
+            });
+        }
+        // A fire or a task assignment has no Chat message but is still an inbox
+        // item: it must drain and page exactly like one.
+        for (const event of response.automations) {
+            envelopes.push({
+                createdAt: event.createdAt,
+                id: event.id,
+                line: formatAutomationEnvelope(event),
+            });
+        }
         more = response.more;
         if (!more) {
             break;
         }
     }
-    const lines = messages.map((row) =>
-        formatDeliveryEnvelope(row.target, row.message, row.threadFollowReactivated)
-    );
+    envelopes.sort(byCreatedAtThenId);
     const trailer = more
         ? 'More messages are pending — run grotto message check again.'
-        : messages.length === 0
+        : envelopes.length === 0
           ? 'No new messages.'
           : 'No more new messages.';
-    deps.write(`${[...lines, trailer].join('\n')}\n`);
+    deps.write(`${[...envelopes.map((envelope) => envelope.line), trailer].join('\n')}\n`);
     return 0;
+}
+
+function byCreatedAtThenId(left: CheckedEnvelope, right: CheckedEnvelope): number {
+    const leftTime = Date.parse(left.createdAt);
+    const rightTime = Date.parse(right.createdAt);
+    if (Number.isNaN(leftTime) || Number.isNaN(rightTime) || leftTime === rightTime) {
+        return left.id.localeCompare(right.id);
+    }
+    return leftTime - rightTime;
 }
 
 export async function runSend(args: ParsedArgs, deps: MessageDeps): Promise<number> {
@@ -176,6 +214,7 @@ export async function runSend(args: ParsedArgs, deps: MessageDeps): Promise<numb
     const sendDraft = Boolean(args.flags['--send-draft']);
     const continueAnyway = Boolean(args.flags['--anyway']);
     const attachmentIds = valuesFor(args, '--attachment-id');
+    const cause = optionalCause(args);
     if (continueAnyway && !sendDraft) {
         throw new AgentCliError(
             'SEND_DRAFT_ANYWAY_REQUIRES_SEND_DRAFT',
@@ -207,6 +246,7 @@ export async function runSend(args: ParsedArgs, deps: MessageDeps): Promise<numb
         {
             body: {
                 ...(attachmentIds.length > 0 ? { attachmentIds } : {}),
+                ...(cause ? { cause } : {}),
                 ...(deps.compositionId ? { compositionId: deps.compositionId } : {}),
                 ...(sendDraft ? {} : { content: stdin }),
                 ...(continueAnyway ? { continueAnyway: true } : {}),
@@ -273,6 +313,23 @@ export async function runReact(args: ParsedArgs, deps: MessageDeps): Promise<num
         `${remove ? 'Removed' : 'Reacted'} ${emoji} ${remove ? 'from' : 'to'} msg ${shortMessageId(response.message.id)}.\n`
     );
     return 0;
+}
+
+/**
+ * `--cause` names the trigger or reminder fire this message answers. Only its
+ * presence and non-emptiness are checked here; the Server owns fire existence,
+ * ownership, and kind, and its INVALID_ARG message passes straight through.
+ */
+function optionalCause(args: ParsedArgs): string | undefined {
+    const raw = args.values['--cause'];
+    if (raw === undefined) {
+        return undefined;
+    }
+    const cause = raw.trim();
+    if (!cause) {
+        throw new AgentCliError('INVALID_ARG', '--cause requires a fire id.');
+    }
+    return cause;
 }
 
 function heredocError(code: string, message: string): AgentCliError {

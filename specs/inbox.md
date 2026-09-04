@@ -31,6 +31,7 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | --- | --- | --- | --- |
 | `human` | An ordinary Chat delivery of a durable message | The message id | Notice |
 | `action` | A committed prepared action's terminal attention for its proposer | The action id | Concrete |
+| `cloud_agent_work` | One settled Cloud Agent Run's terminal attention for the Agent that delegated it | The Run id | Concrete |
 | `task_assignment` | A direct task assignment to this Agent | The assignment identity | Concrete |
 | `reminder` | One reminder fire | The fire id | Concrete |
 | `trigger` | One Trigger fire | The fire id | Concrete |
@@ -93,6 +94,11 @@ A durable `message.created` is planned once by Server delivery
   attention does. The human's representation of that fact is the task chip on the message.
 - A successfully committed prepared action creates one terminal attention for only its proposer,
   carrying the originating Chat, action identity, created Agent identity, and executed result.
+- A settled Cloud Agent Run creates one terminal attention for only the Agent that delegated it,
+  keyed by the Run id and carrying the work's title, repository, provider URL, and the Run's status,
+  summary, error code, and reported branches ([Cloud Agents](cloud-agents.md)). It settles like the
+  other concrete kinds; the result the human sees is whatever ordinary Message the woken Agent
+  decides to post.
 - After planning, ordinary Chat work gives an idle Agent a notice turn and a busy Agent receives the
   same notice in its live turn. Concrete work — a committed action attention, an automation fire, a
   task assignment — is the typed exception: an idle recipient receives the item's own envelope as
@@ -129,8 +135,8 @@ Restart, Start, or session reset explicitly offers pending work again. Chain
 budget follows rows made model-visible, not notice-only turns.
 
 Non-Chat system attention is a separate typed concrete lane. Cove's one-shot
-bootstrap instruction, a committed action's terminal attention, reminder and Trigger fires, and task
-assignments use that lane, settle against their own stable identities, and never enter Chat message
+bootstrap instruction, a committed action's terminal attention, a settled Cloud Agent Run's terminal
+attention, reminder and Trigger fires, and task assignments use that lane, settle against their own stable identities, and never enter Chat message
 resolution or Chat cursor accounting. Each of those exists nowhere but its inbox row, so its
 envelope rides the wake instead of waiting behind a pull the Agent may never make. The
 Computer suppresses an already-consumed action identity on accepted-run replay; a failed unsettled

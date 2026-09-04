@@ -150,10 +150,56 @@ record. `ask.listOpen({ serverId })` is the human read for the Inbox, and it car
 conversation the answer is addressed to plus the Thread anchor a reply hangs off, so an Ask posted
 inside a Thread is answerable from the Inbox like any other.
 
-Every Agent-facing Message states its `body_kind` (`text | ask`), and an Ask Message carries
-`ask: { id, status, addressee_handle, title, recommended_step }` beside it. The Agent CLI appends
-`[ask status=open|answered to=@handle]` to that Message's history line and delivery envelope, after
-the task suffix ([Grotto CLI](../../specs/grotto-cli.md#4-envelopes-and-message-lines)).
+Every Agent-facing Message states its `body_kind` (`text | ask | cloud-agent-work`), and an Ask
+Message carries `ask: { id, status, addressee_handle, title, recommended_step }` beside it. The
+Agent CLI appends `[ask status=open|answered to=@handle]` to that Message's history line and
+delivery envelope, after the task suffix
+([Grotto CLI](../../specs/grotto-cli.md#4-envelopes-and-message-lines)).
+
+### Cloud Agent work
+
+A managed Agent delegates bounded repository work to a provider-hosted agent with
+`grotto cloud-agent start`:
+
+```sh
+grotto cloud-agent start --target "#product" --repo grotto/grotto --ref main \
+  --title "Fix the flaky delivery test" \
+  --say "Handing the flaky delivery test to a cloud agent." <<'GROTTOMSG'
+Reproduce the failure, fix it, and open a pull request.
+GROTTOMSG
+```
+
+This command runs on the Computer rather than upstream. The Computer checks
+`CloudAgentProvider.readiness()` first, so an unavailable capability fails with
+`CLOUD_AGENT_UNAVAILABLE` before Server records anything, and it keeps the stdin instructions
+local: they reach the provider and never Server.
+
+`POST /api/agent/cloud-agents` takes `{ content, nonce, provider, repository, startingRef, target,
+title }` and returns `{ chatId, idempotent, messageId, runId, sequence, target, work }`. `content`
+is the Agent's own words and becomes the Message content; `title` is at most 120 characters and
+`repository` reads as `owner/name`. One transaction writes the Message with
+`body_kind = 'cloud-agent-work'`, the `cloud_agent_work` row, its first `cloud_agent_runs` row in
+`queued`, the deterministic child Thread when the work is top-level, ordinary delivery planning,
+and both the `message.created` and `cloud-agent-work.updated` events. It is idempotent by
+`(Chat, nonce)`; the same nonce with different values returns
+`CLOUD_AGENT_IDEMPOTENCY_CONFLICT`. The Computer then calls `provider.start()`; a provider that
+refuses settles that same recorded work as `failed` with an error code and returns
+`CLOUD_AGENT_LAUNCH_FAILED` rather than erasing the attempt.
+
+`POST /api/agent/cloud-agents/cancel` takes `{ workId }` and is authorized to the delegating Agent
+alone; `cloudAgentWork.cancel({ serverId, workId })` is the Owner/Admin equivalent. Both record
+`cancelRequestedAt` and `cancelRequestedBy` and send a `cloud-agent-cancel` frame to the assigned
+Computer. Cancelling settled work returns `CLOUD_AGENT_WORK_SETTLED`.
+
+Computer reports lifecycle over the attachment socket as a `cloud-agent-observation` frame carrying
+`{ workId, runId, status, observedAt }` plus optional provider ids and URL, raw status, bounded
+`activity` and `summary`, error code, reported branches, and usage. Server applies it idempotently:
+a duplicate, out-of-order, or post-terminal observation changes nothing. A Run that settles here
+settles its work and creates exactly one `agent_inbox` attention for the delegating Agent, keyed by
+the Run id. On reconnect Server pushes one `cloud-agent-reconcile` frame listing every non-terminal
+work that Computer still owns, with any cancel recorded while it was offline; Computer reads each
+Run from the provider and reports what it finds. `cloudAgentWork.listActive({ serverId })` is the
+human read behind the Inbox.
 
 `preparedAction.commit` is the human follow-up mutation. It is Server-scoped and accepts the
 prepared action id plus the submitted display name, description, handle, Computer, runtime,

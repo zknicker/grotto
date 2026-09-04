@@ -21,15 +21,19 @@ facts and compatibility risks, not unresolved product decisions.
 
 ## Product contract
 
-- **One Agent tool.** Every supported execution runtime may call `CloudAgent`; the caller does not
-  need to be a Cursor-backed Agent.
+- **Two Agent CLI verbs.** `grotto cloud-agent start` and `grotto cloud-agent cancel` are the Agent
+  surface, not a harness tool, because the Agent CLI is an Agent's only output channel
+  (ADR 0014). Every supported execution runtime may call them; the caller does not need to be a
+  Cursor-backed Agent. `start` takes `--target`, `--repo`, an optional `--ref`, `--title`, and
+  `--say` — the Agent's own words, which become the Message content — with the provider
+  instructions on stdin.
 - **Provider-neutral capability.** Cursor is the only initial implementation, so an Agent does not
   pass a provider on every call. Computer configuration chooses the default if a second provider
   arrives; an explicit selector is added only when per-execution choice becomes useful.
 - **Agent-held repository context.** The Agent supplies the repository, starting ref, title,
   instructions, and any other provider input it knows. Grotto adds no repository registry.
 - **One durable Message.** Launch posts one Agent-authored Message in the initiating Chat. Its
-  immutable `content` is the Agent's response to the request, supplied in the same `CloudAgent`
+  immutable `content` is the Agent's response to the request, supplied as `--say` in the same
   invocation that starts the work. Its typed body is `cloud-agent-work`.
 - **One work conversation.** A top-level work Message receives a child Thread immediately. Work
   launched inside an existing Thread stays in that Thread because Threads do not nest. Replying to
@@ -174,6 +178,7 @@ type CloudAgentWork = {
 
 type CloudAgentRun = {
     runId: string;
+    providerRunId: string | null;
     status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'expired';
     rawStatus: string | null;
     startedAt: string | null;
@@ -190,8 +195,9 @@ same work, reactivates the same surface, and preserves earlier Run outcomes for 
 substantively separate assignment creates a new Message and Cloud Agent work record. Cursor permits
 only one active Run per provider Agent; an `agent_busy` response leaves the current Run unchanged.
 A cancelled Run cannot resume, so continuing after cancellation creates another Run in the same
-work and retains the cancelled Run's partial evidence. `runs` is ordered newest first and stays
-bounded; the work keeps recent Runs for inspection rather than an unbounded execution history.
+work and retains the cancelled Run's partial evidence. `runs` is ordered newest first and is bounded
+at twenty; the work keeps recent Runs for inspection rather than an unbounded execution history.
+Follow-up Runs are not implemented yet: creation writes the first Run and nothing adds a second.
 
 `activity` is one bounded line of at most 120 characters. Computer may update it from provider
 events no more than every few seconds. It is the work's current state in a sentence, never a
@@ -204,7 +210,9 @@ entity, and a reported pull-request URL claims no ownership of GitHub lifecycle.
 A cancel request records `cancelRequestedAt` and `cancelRequestedBy`, and the presentation reads as
 cancelling until the Run settles. Inside Grotto every hop is push: Computer reports
 observations over the attachment protocol, Server emits the durable event, and the App refetches
-the Message. Only the provider edge pulls. Computer subscribes to Cursor's per-Run event stream
+the Message. Reconnect follows the same direction — Server pushes one `cloud-agent-reconcile` frame
+naming every non-terminal work that Computer still owns, along with any cancel recorded while it
+was offline, rather than adding a Computer-authenticated read. Only the provider edge pulls. Computer subscribes to Cursor's per-Run event stream
 while a Run is active and treats polling as reconciliation: a Run read every 5 seconds only while
 no stream is attached, backed off to 60 seconds after a provider failure, one full Run read on
 reconnect or restart, and nothing further once the Run is terminal.
@@ -223,8 +231,8 @@ execution evidence, not collaboration state.
 
 Lifecycle changes emit a durable `cloud-agent-work.updated` event carrying the Message and work
 identities. Events notify; refetching the Message recovers. The delegating Agent may cancel through
-`CloudAgent`; human Owners and Admins may cancel through the Thread surface's overflow menu or the
-Thread pane header. Other Chat participants request cancellation in the Thread. Reply and follow-up
+`grotto cloud-agent cancel`; human Owners and Admins may cancel through
+`cloudAgentWork.cancel`, reached from the Thread surface's overflow menu or the Thread pane header. Other Chat participants request cancellation in the Thread. Reply and follow-up
 work use the work Thread rather than surface-local conversation controls.
 
 ## Results are ordinary Messages
@@ -275,10 +283,23 @@ separate from runtime harnesses; each Computer reports and onboards its own read
 | Layer | Owns |
 | --- | --- |
 | Grotto Server | Messages, Cloud Agent work records, authorization, lifecycle projection, durable events, and inbox completion |
-| Grotto Computer | Provider discovery, SDK credential access, launch, reconciliation, cancellation, and detailed provider evidence |
+| Grotto Computer | Provider discovery, SDK credential access, launch, reconciliation, cancellation, and detailed provider evidence, all behind the `CloudAgentProvider` boundary in `apps/computer/src/cloud-agents/` |
 | Grotto App | Message and card presentation, Thread discussion, progress and terminal outcomes, and Computer capability status |
 | Cursor | Hosted Agent and Run lifecycle, repository checkout, workspace, transcript, branches, pull requests, artifacts, and billed usage |
 | GitHub | Pull-request identity and lifecycle |
+
+## The provider boundary
+
+`CloudAgentProvider` is the whole provider surface: `readiness()`, `start()`, `read()`,
+`subscribe()`, and `cancel()`. Everything above it — the Agent CLI, the Server record, the durable
+events, the inbox attention — is provider-neutral, and everything below it, including credentials,
+prompts, and raw status mapping, belongs to the adapter. An in-memory fake with scripted transitions
+covers the whole path without a provider account.
+
+`grotto cloud-agent start` runs on the Computer rather than upstream: it checks readiness before
+Server records anything, so an unavailable capability creates no Message, and it keeps the stdin
+instructions local. Once Server has accepted the launch the work exists, so a provider refusal is
+reported as a failed observation against that same work.
 
 ## Cursor implementation
 
@@ -341,12 +362,16 @@ administrative integration and is outside this Computer capability.
    and may share a migration with step 5.
 3. Add Cursor runtime discovery and AI SDK harness support.
 4. Add Cursor Cloud Agent readiness, SDK bootstrap guidance, and truthful usage reporting.
-5. Add the `CloudAgent` tool, Computer adapter, durable Cloud Agent work record, work Message, and
-   eager Thread.
-6. Add lifecycle reporting, reconnect reconciliation, cancellation, durable events, and inbox
-   completion.
-7. Add the web and iOS Thread-surface header and the Thread pane header for Cloud Agent work.
-8. Run deterministic Server, API, Computer, App, and iOS coverage, then one opt-in live Cursor
+5. **Landed.** The `grotto cloud-agent` verbs, the `CloudAgentProvider` boundary with an in-memory
+   fake, the durable work and Run records, the work Message, and the eager Thread.
+6. **Landed.** Lifecycle reporting, reconnect reconciliation, cancellation by Agent and by
+   Owner/Admin, `cloud-agent-work.updated`, and the terminal inbox attention. Computer protocol 14.
+7. Add the Cursor adapter behind `CloudAgentProvider`, its readiness detection, and the Computer
+   settings connect flow. Until it lands, readiness reports `provider-unavailable` and a launch
+   fails before creating a Message.
+8. Add the web and iOS Thread-surface header, the Thread pane header, and the Inbox "Happening now"
+   section over `cloudAgentWork.listActive`.
+9. Run deterministic Server, API, Computer, App, and iOS coverage, then one opt-in live Cursor
    lifecycle smoke.
 
 ## Provider contract notes

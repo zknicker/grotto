@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -26,14 +26,21 @@ import {
     readComputerReleasePublicKey,
 } from './computer-release-keys.mjs';
 import {
+    completePublishedComputerRelease,
     promoteInstaller,
     promoteLatest,
     publishImmutableObjects,
     readProductionComputerRelease,
     recoverImmutableComputerArtifact,
+    recoverPublishedComputerRelease,
     verifyPublicDescriptor,
     verifyPublicObjects,
 } from './computer-release-publication.mjs';
+import {
+    assertComputerReleaseTagAbsent,
+    ensureComputerGithubRelease,
+    ensureComputerReleaseTag,
+} from './computer-release-tags.mjs';
 import { assertReleaseLedger, releaseTargetVersion } from './release-ledger.mjs';
 import { fail, isSemver, readJson, repoRoot } from './release-utils.mjs';
 
@@ -71,15 +78,41 @@ async function main() {
         ? (configuredSigningIdentity() ?? 'Developer ID Application: Grotto (DRYRUN0000)')
         : requiredSigningIdentity();
     assertSource(sourceRevision);
+    const s3Root = dryRun ? null : requiredEnv('GROTTO_RELEASE_S3_URI').replace(/\/+$/u, '');
     if (!dryRun) {
-        await assertPublishState(version, releasePublicKey);
+        await assertPublishState(version);
         requirePublishingEnvironment();
+        const production = await readProductionComputerRelease(
+            `${releaseBaseUrl}/latest.json`,
+            releasePublicKey
+        );
+        const published = await recoverPublishedComputerRelease({
+            appleSigningIdentity,
+            appleTeamId,
+            production,
+            s3Root,
+            sourceRevision,
+            version,
+        });
+        if (published) {
+            await completePublishedComputerRelease({
+                ...published,
+                installerPath: await renderInstaller({ appleSigningIdentity, appleTeamId }),
+                sourceRevision,
+                version,
+            });
+            console.log(
+                `Computer ${version} was already published; completed computer-v${version}.`
+            );
+            return;
+        }
+        assertPublishableComputerVersion(version, production);
+        assertComputerReleaseTagAbsent(version);
         run('bun', ['run', 'release:check']);
     }
     run('bun', ['run', '--filter', '@grotto/api', 'typecheck']);
     run('bun', ['run', '--filter', '@grotto/computer', 'test']);
     run('bun', ['run', '--filter', '@grotto/computer', 'typecheck']);
-    const s3Root = dryRun ? null : requiredEnv('GROTTO_RELEASE_S3_URI').replace(/\/+$/u, '');
     const recoveredArtifactPath = dryRun
         ? null
         : await recoverImmutableComputerArtifact({
@@ -149,23 +182,12 @@ async function main() {
             ),
     });
     await promoteInstaller(installerPath, { releaseBaseUrl, s3Root });
-    const tag = `computer-v${version}`;
-    run('git', ['tag', '-a', tag, '-m', tag]);
-    run('git', ['push', 'origin', tag]);
-    run('gh', [
-        'release',
-        'create',
-        tag,
-        built.artifactPath,
-        descriptorPath,
-        installerPath,
-        notarizationArchive,
-        '--title',
-        tag,
-        '--notes',
-        `Signed Grotto Computer ${version} (protocol ${computerProtocolVersion}, ${sourceRevision}).`,
-    ]);
-    console.log(`Published and verified ${tag}.`);
+    ensureComputerReleaseTag(version, sourceRevision);
+    ensureComputerGithubRelease(version, {
+        assets: [built.artifactPath, descriptorPath, installerPath, notarizationArchive],
+        sourceRevision,
+    });
+    console.log(`Published and verified computer-v${version}.`);
 }
 
 async function renderInstaller(input) {
@@ -181,7 +203,17 @@ async function renderInstaller(input) {
     return installerPath;
 }
 
-async function assertPublishState(releaseVersion, releasePublicKey) {
+function assertPublishableComputerVersion(releaseVersion, production) {
+    if (production) {
+        assertNewerComputerVersion(releaseVersion, production.release.version);
+        return;
+    }
+    if (remoteComputerTags().length > 0) {
+        fail('production Computer descriptor is missing after an earlier Computer release');
+    }
+}
+
+async function assertPublishState(releaseVersion) {
     if (git('status', '--porcelain').trim()) {
         fail('Computer publishing requires a clean worktree');
     }
@@ -198,29 +230,6 @@ async function assertPublishState(releaseVersion, releasePublicKey) {
         }
     } catch (error) {
         fail(error instanceof Error ? error.message : String(error));
-    }
-    const current = await readProductionComputerRelease(
-        `${releaseBaseUrl}/latest.json`,
-        releasePublicKey
-    );
-    if (current) {
-        assertNewerComputerVersion(releaseVersion, current.release.version);
-    } else if (remoteComputerTags().length > 0) {
-        fail('production Computer descriptor is missing after an earlier Computer release');
-    }
-    const tag = `computer-v${releaseVersion}`;
-    if (
-        spawnSync('git', ['rev-parse', '--verify', `refs/tags/${tag}`], { stdio: 'ignore' })
-            .status === 0
-    ) {
-        fail(`tag ${tag} already exists locally`);
-    }
-    if (
-        spawnSync('git', ['ls-remote', '--exit-code', 'origin', `refs/tags/${tag}`], {
-            stdio: 'ignore',
-        }).status === 0
-    ) {
-        fail(`tag ${tag} already exists on origin`);
     }
 }
 

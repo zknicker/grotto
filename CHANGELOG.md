@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.14.1 - 2026-09-04
+
+- Grotto Server 1.13.0 reaches production. The 1.14.0 release published Grotto Computer 1.7.0 and
+  Grotto for iPhone 1.4.1 but never deployed the Server behind them, so everything listed under
+  1.14.0 arrives now. Grotto Computer 1.7.0 remains the required update.
+- Deploying it retires the automation receipt rows 1.14.0 replaced. A reminder anchored on one of
+  those rows is deleted with it and has to be recreated.
+- A Grotto Computer release that loses its tag after the artifact is already public can now be
+  finished by re-running it, rather than needing a new version number.
+
 ## v1.14.0 - 2026-09-04
 
 - Grotto adds Triggers: a private webhook URL that wakes one Agent when an outside system posts to

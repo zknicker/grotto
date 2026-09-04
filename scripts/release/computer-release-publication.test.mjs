@@ -1,8 +1,12 @@
 import { expect, test } from 'bun:test';
 import { generateKeyPairSync } from 'node:crypto';
-import { createSignedComputerRelease } from './computer-release-contract.mjs';
+import {
+    assertNewerComputerVersion,
+    createSignedComputerRelease,
+} from './computer-release-contract.mjs';
 import {
     assertImmutableObjectAbsent,
+    computerReleaseIsAlreadyPublished,
     ensureImmutableObject,
     immutableObjectExists,
     readProductionComputerRelease,
@@ -91,4 +95,66 @@ test('production release reads verify continuity and allow only an initial 404',
             async () => new Response(null, { status: 404 })
         )
     ).resolves.toBeNull();
+});
+
+test('a re-run completes only the exact artifact already promoted to production', () => {
+    const production = {
+        release: {
+            artifactUrl:
+                'https://releases.grotto.sh/computer/1.7.0/grotto-computer-aarch64-apple-darwin',
+            protocolVersion: 12,
+            sha256: 'c'.repeat(64),
+            sourceRevision: 'd'.repeat(40),
+            version: '1.7.0',
+        },
+    };
+    const candidate = {
+        sha256: 'c'.repeat(64),
+        sourceRevision: 'd'.repeat(40),
+        version: '1.7.0',
+    };
+
+    expect(computerReleaseIsAlreadyPublished(production, candidate)).toBe(true);
+    expect(computerReleaseIsAlreadyPublished(null, candidate)).toBe(false);
+    expect(
+        computerReleaseIsAlreadyPublished(production, { ...candidate, sha256: 'e'.repeat(64) })
+    ).toBe(false);
+    expect(
+        computerReleaseIsAlreadyPublished(production, {
+            ...candidate,
+            sourceRevision: 'f'.repeat(40),
+        })
+    ).toBe(false);
+    expect(computerReleaseIsAlreadyPublished(production, { ...candidate, version: '1.6.1' })).toBe(
+        false
+    );
+});
+
+test('a candidate that is not the published artifact still meets the newer-version guard', () => {
+    const production = {
+        release: {
+            artifactUrl:
+                'https://releases.grotto.sh/computer/1.7.0/grotto-computer-aarch64-apple-darwin',
+            protocolVersion: 12,
+            sha256: 'c'.repeat(64),
+            sourceRevision: 'd'.repeat(40),
+            version: '1.7.0',
+        },
+    };
+
+    // Same version rebuilt from a different source revision is not the published artifact.
+    expect(
+        computerReleaseIsAlreadyPublished(production, {
+            sha256: 'e'.repeat(64),
+            sourceRevision: 'f'.repeat(40),
+            version: '1.7.0',
+        })
+    ).toBe(false);
+    expect(() => assertNewerComputerVersion('1.7.0', production.release.version)).toThrow(
+        'is not newer than production 1.7.0'
+    );
+    expect(() => assertNewerComputerVersion('1.6.1', production.release.version)).toThrow(
+        'is not newer than production 1.7.0'
+    );
+    expect(() => assertNewerComputerVersion('1.7.1', production.release.version)).not.toThrow();
 });

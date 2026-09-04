@@ -80,8 +80,12 @@ The publisher must:
 12. Push the annotated Computer tag and create the matching GitHub Release with the executable
     and descriptor.
 
-Failure before step 10 leaves the current production pointer unchanged. The publisher never
-builds from a branch name, mutable remote ref, or dirty worktree.
+Failure before step 10 leaves the current production pointer unchanged. Failure after it leaves a
+promoted artifact with an unfinished step 12, so the publisher is resumable: when the production
+descriptor already names the candidate's exact version, source revision, and digest, it recovers
+that artifact, skips steps 3 through 11, and only ensures the annotated tag and GitHub Release
+exist. Every other candidate still has to be newer than production and still requires an unused
+tag. The publisher never builds from a branch name, mutable remote ref, or dirty worktree.
 
 Before every Grotto release, the release record requires an explicit target decision:
 

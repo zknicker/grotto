@@ -208,8 +208,8 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         await expect(coveRow).toBeVisible();
         await coveRow.click();
         await expect(page.getByRole('heading', { level: 1, name: 'Cove' })).toBeVisible();
-        await expect(page.getByText('@cove', { exact: true })).toBeVisible();
-        await expect(page.getByText('Onboarding Assistant', { exact: true })).toBeVisible();
+        // The profile reads the handle and the description on one line.
+        await expect(page.getByText('@cove · Onboarding Assistant', { exact: true })).toBeVisible();
         await expect(page.getByText('admin', { exact: true })).toBeVisible();
 
         const restartFramePromise = socketMessage(reconnected, 'agent-restart');
@@ -243,11 +243,17 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         expect(avatarUrl).toMatch(/\/api\/avatars\/avt_[a-z0-9]{16}$/u);
         const avatarResponse = await page.request.get(String(avatarUrl));
         expect(avatarResponse.ok()).toBe(true);
+        // Hash the committed asset rather than a pinned digest: a refreshed
+        // Cove avatar is a normal change, and this still proves the Server
+        // serves those exact release-owned bytes.
+        const coveAvatarBytes = await readFile(
+            fileURLToPath(new URL('../../public/prototypes/cove-avatar.png', import.meta.url))
+        );
         expect(
             createHash('sha256')
                 .update(await avatarResponse.body())
                 .digest('hex')
-        ).toBe('c4940cf58f438175d5c781e513471f70865eaa803301013f7526e557ada29391');
+        ).toBe(createHash('sha256').update(coveAvatarBytes).digest('hex'));
 
         reconnected.send(
             JSON.stringify({

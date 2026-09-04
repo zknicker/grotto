@@ -84,7 +84,9 @@ test('an Owner updates one Computer from Settings through isolated progress', as
         total: 10 * 1024 * 1024,
     });
     await expect(page.getByText('Downloading Grotto Computer', { exact: true })).toBeVisible();
-    await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+    await expect(
+        page.getByRole('progressbar', { name: 'Downloading Grotto Computer' })
+    ).toHaveAttribute('aria-valuenow', '50');
     await reportProgress(computer, 'verifying', 'Verifying signature and integrity.');
     await expect(
         page.getByText('Verifying signature and integrity', { exact: true })

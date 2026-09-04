@@ -6,7 +6,13 @@ import { computerProtocolVersion } from '@grotto/api';
 import { bootstrapGrottoDatabase } from '../../server/src/postgres/bootstrap.ts';
 import { startClerkTestIssuer } from '../../server/test/clerk-test-issuer.ts';
 import { startPostgresCluster } from '../../server/test/postgres-cluster.ts';
-import { clerkSessionFile, e2eClerkUserId, e2ePeerClerkUserId } from './support/clerk-session.ts';
+import {
+    clerkSessionFile,
+    e2eClerkUserId,
+    e2eHumanEmail,
+    e2ePeerClerkUserId,
+    e2ePeerEmail,
+} from './support/clerk-session.ts';
 
 /**
  * Starts the hosted Grotto Server for e2e: a throwaway PostgreSQL cluster and a
@@ -48,9 +54,6 @@ await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
 
 // The invitation boundary asks Clerk which of a human's addresses are verified.
 // The local issuer answers that too, so e2e drives the real acceptance path.
-const e2eHumanEmail = 'e2e-human@grotto.test';
-const e2ePeerEmail = 'e2e-peer@grotto.test';
-
 clerk.setVerifiedEmails(e2eClerkUserId, [e2eHumanEmail]);
 clerk.setVerifiedEmails(e2ePeerClerkUserId, [e2ePeerEmail]);
 

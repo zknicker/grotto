@@ -5,6 +5,15 @@ import type { Page } from '@playwright/test';
 export const e2eClerkUserId = 'user_e2e_human';
 export const e2ePeerClerkUserId = 'user_e2e_peer';
 
+/**
+ * The identity the e2e humans carry. Production learns the name and address
+ * from Clerk through `member.syncIdentity`; clerk-js never loads in e2e, so
+ * the harness reports them on that same procedure (see `seedHumanIdentity`).
+ */
+export const e2eHumanEmail = 'e2e-human@grotto.test';
+export const e2ePeerEmail = 'e2e-peer@grotto.test';
+export const e2eHumanName = 'Ada Lovelace';
+
 export function clerkSessionFile(runId = process.env.GROTTO_E2E_RUN_ID ?? 'default') {
     return fileURLToPath(
         new URL(`../../../../.context/e2e/clerk-session-${runId}.json`, import.meta.url)

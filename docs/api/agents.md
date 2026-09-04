@@ -116,6 +116,45 @@ with the exact media and pending, done, or superseded status. Unknown future kin
 fallback cards. Human commit/edit is a separate follow-up contract; preparing an action never
 creates an Agent or grants mutation authority.
 
+### Asks
+
+A managed Agent asks one named human for a decision with `grotto ask`:
+
+```sh
+grotto ask --target "#product" --to @ada --title "Run the staged migration?" \
+  --summary "The migration is staged and reversible for one hour." \
+  --step "Approve the staged migration" <<'GROTTOMSG'
+The migration is staged. Should I run it now, or wait for the release window?
+GROTTOMSG
+```
+
+`POST /api/agent/asks` takes `{ addresseeHandle, content, nonce, recommendedStep, summary, target,
+title }` and returns `{ ask, chatId, idempotent, messageId, sequence, target }`. The question text is
+the Message content and is required; `title` is at most 120 characters, `summary` 500, and
+`recommendedStep` 200. The Server resolves the target under the runner's own Agent and Server
+authority, resolves the handle in the shared human/Agent handle namespace, and requires an active
+human member with access to that Chat — an unknown handle, an Agent handle, or a member without Chat
+access returns `ASK_ADDRESSEE_NOT_FOUND` and writes nothing.
+
+One transaction writes the Agent-authored Message with `body_kind = 'ask'`, the `asks` row, the
+deterministic child Thread when the Ask is top-level, ordinary delivery planning, and both the
+`message.created` and `ask.updated` events. It is idempotent by `(Chat, nonce)`; the same nonce with
+different values returns `ASK_IDEMPOTENCY_CONFLICT`. An Ask posted inside a Thread stays in that
+Thread, because Threads do not nest.
+
+The first reply in the Ask's Thread from anyone other than the asking Agent settles it in that
+reply's own transaction, recording the answering human or Agent and the answer Message. Humans and
+Agents both settle; the addressee is who Grotto notifies, not who Grotto permits. There is no answer
+route — settlement is a side effect of the ordinary send paths — and no mutation of any other
+record. `ask.listOpen({ serverId })` is the human read for the Inbox, and it carries the
+conversation the answer is addressed to plus the Thread anchor a reply hangs off, so an Ask posted
+inside a Thread is answerable from the Inbox like any other.
+
+Every Agent-facing Message states its `body_kind` (`text | ask`), and an Ask Message carries
+`ask: { id, status, addressee_handle, title, recommended_step }` beside it. The Agent CLI appends
+`[ask status=open|answered to=@handle]` to that Message's history line and delivery envelope, after
+the task suffix ([Grotto CLI](../../specs/grotto-cli.md#4-envelopes-and-message-lines)).
+
 `preparedAction.commit` is the human follow-up mutation. It is Server-scoped and accepts the
 prepared action id plus the submitted display name, description, handle, Computer, runtime,
 model, reasoning effort, and optional replacement avatar bytes. Only the current Owner or Admin

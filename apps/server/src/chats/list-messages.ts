@@ -14,6 +14,7 @@ import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { requireChatAccess } from './chat-access.ts';
+import { readMessageBodies } from './message-bodies.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
 
 export async function listChatMessages(
@@ -75,21 +76,27 @@ export async function listChatMessages(
     const hasOlderMessages = newestFirst.length > input.limit;
     const messageRows = newestFirst.slice(0, input.limit).reverse();
     const messageIds = messageRows.map((message) => message.id);
-    const [attachmentsByMessageId, taskByMessageId, actionByMessageId, causeByMessageId] =
-        await Promise.all([
-            readMessageAttachments(db, input.serverId, messageIds),
-            listMessageTaskMap(db, input.serverId, messageIds),
-            readPreparedActionsForMessages(db, input.serverId, messageIds),
-            readMessageCauses(db, input.serverId, messageIds),
-        ]);
+    const [
+        attachmentsByMessageId,
+        taskByMessageId,
+        actionByMessageId,
+        causeByMessageId,
+        bodyByMessageId,
+    ] = await Promise.all([
+        readMessageAttachments(db, input.serverId, messageIds),
+        listMessageTaskMap(db, input.serverId, messageIds),
+        readPreparedActionsForMessages(db, input.serverId, messageIds),
+        readMessageCauses(db, input.serverId, messageIds),
+        readMessageBodies(db, input.serverId, messageIds),
+    ]);
     const messages = messageRows.map((message) => ({
-        ...toChatMessage(
-            message,
-            attachmentsByMessageId.get(message.id) ?? [],
-            readStoredAuthorProfile(message),
-            actionByMessageId.get(message.id),
-            causeByMessageId.get(message.id)
-        ),
+        ...toChatMessage(message, {
+            attachments: attachmentsByMessageId.get(message.id) ?? [],
+            authorProfile: readStoredAuthorProfile(message),
+            body: bodyByMessageId.get(message.id),
+            cause: causeByMessageId.get(message.id),
+            preparedAction: actionByMessageId.get(message.id),
+        }),
         task: taskByMessageId.get(message.id) ?? null,
     }));
 

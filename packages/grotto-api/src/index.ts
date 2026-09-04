@@ -43,6 +43,7 @@ export type GrottoListMessagesResponse = GrottoApiSchema<'ListMessagesResponse'>
 export type GrottoListResponsesResponse = GrottoApiSchema<'ListResponsesResponse'>;
 export type GrottoMarkReadRequest = GrottoApiSchema<'MarkReadRequest'>;
 export type GrottoMessageReaction = GrottoApiSchema<'MessageReaction'>;
+export type GrottoMessageAsk = GrottoApiSchema<'MessageAsk'>;
 export type GrottoMessageTask = GrottoApiSchema<'MessageTask'>;
 export type GrottoTaskActor = GrottoApiSchema<'TaskActor'>;
 export type GrottoTaskLabel = GrottoApiSchema<'TaskLabel'>;
@@ -63,6 +64,8 @@ export * from './agent-execution.ts';
 export * from './agent-prepared-actions.ts';
 export * from './agent-runner.ts';
 export * from './app-protocol.ts';
+export * from './ask.ts';
+export * from './ask-shared.ts';
 export * from './attachments.ts';
 export * from './automation.ts';
 export * from './avatar.ts';

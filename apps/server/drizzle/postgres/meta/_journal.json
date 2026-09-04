@@ -204,6 +204,13 @@
       "when": 1788536084333,
       "tag": "0028_agent_inbox",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1788554187906,
+      "tag": "0029_message_bodies_and_asks",
+      "breakpoints": true
     }
   ]
 }

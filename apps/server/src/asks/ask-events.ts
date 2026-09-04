@@ -1,35 +1,41 @@
 import type { ServerDurableEvent } from '@grotto/api';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
-import type { DurableEventChat } from '../chats/message-created-event.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable } from '../postgres/schema.ts';
 
-export async function insertPreparedActionEvent(
-    db: GrottoDatabase,
+export interface AskEventChat {
+    kind: 'channel' | 'dm' | 'thread';
+    parentChatId: string | null;
+}
+
+/**
+ * The durable notification for one Ask lifecycle change. Clients refetch the
+ * Message and the open-Ask list; the event itself carries only identities.
+ */
+export async function insertAskEvent(
+    db: Pick<GrottoDatabase, 'insert' | 'update'>,
     input: {
-        actionId: string;
-        chat: DurableEventChat;
+        askId: string;
+        chat: AskEventChat;
         chatId: string;
         messageId: string;
         sequence: number;
         serverId: string;
-        status: 'pending' | 'superseded' | 'executed';
     }
 ): Promise<ServerDurableEvent> {
     const cursor = await allocateEventCursor(db, input.serverId);
     const [event] = await db
         .insert(chatEventsTable)
         .values({
-            actionId: input.actionId,
-            actionStatus: input.status,
+            askId: input.askId,
             chatId: input.chatId,
             cursor,
             id: createOpaqueId('evt'),
             messageId: input.messageId,
             sequence: input.sequence,
             serverId: input.serverId,
-            type: 'prepared-action.updated',
+            type: 'ask.updated',
         })
         .returning({
             createdAt: chatEventsTable.createdAt,
@@ -37,10 +43,10 @@ export async function insertPreparedActionEvent(
             id: chatEventsTable.id,
         });
     if (!event) {
-        throw new Error('Failed to record the prepared action event.');
+        throw new Error('Failed to record the Ask event.');
     }
     return {
-        actionId: input.actionId,
+        askId: input.askId,
         chatId: input.chatId,
         createdAt: event.createdAt.toISOString(),
         cursor: event.cursor.toString(),
@@ -49,7 +55,6 @@ export async function insertPreparedActionEvent(
         parentChatId: input.chat.kind === 'thread' ? input.chat.parentChatId : null,
         sequence: input.sequence,
         serverId: input.serverId,
-        status: input.status,
-        type: 'prepared-action.updated',
+        type: 'ask.updated',
     };
 }

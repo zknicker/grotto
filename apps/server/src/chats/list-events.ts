@@ -20,6 +20,7 @@ export async function listChatEvents(
 
     const rows = await db
         .select({
+            askId: chatEventsTable.askId,
             chatAction: chatEventsTable.chatAction,
             chatId: chatEventsTable.chatId,
             createdAt: chatEventsTable.createdAt,
@@ -60,6 +61,7 @@ export async function listChatEvents(
                             // Participant-gated like live delivery; the operator-scoped
                             // reminder lane (reminder.changes) owns cross-chat replay.
                             eq(chatEventsTable.type, 'reminder.changed'),
+                            eq(chatEventsTable.type, 'ask.updated'),
                             eq(chatEventsTable.type, 'message.created'),
                             eq(chatEventsTable.type, 'prepared-action.updated'),
                             eq(chatEventsTable.type, 'task.created'),
@@ -107,6 +109,18 @@ export async function listChatEvents(
                 parentChatId: null,
                 sequence: 0 as const,
                 type: 'chat.lifecycle' as const,
+            };
+        }
+
+        if (event.type === 'ask.updated') {
+            return {
+                ...common,
+                askId: event.askId as string,
+                chatId: event.chatId as string,
+                messageId: event.messageId as string,
+                parentChatId: event.parentChatId,
+                sequence: event.sequence,
+                type: 'ask.updated' as const,
             };
         }
 

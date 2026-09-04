@@ -1,35 +1,40 @@
 import type { ServerDurableEvent } from '@grotto/api';
-import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
-import type { DurableEventChat } from '../chats/message-created-event.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable } from '../postgres/schema.ts';
+import { allocateEventCursor } from './allocate-event-cursor.ts';
 
-export async function insertPreparedActionEvent(
-    db: GrottoDatabase,
+/** The Chat a durable event names, and the parent it reports for a Thread. */
+export interface DurableEventChat {
+    kind: 'channel' | 'dm' | 'thread';
+    parentChatId: string | null;
+}
+
+export async function insertMessageCreatedEvent(
+    db: Pick<GrottoDatabase, 'insert' | 'update'>,
     input: {
-        actionId: string;
         chat: DurableEventChat;
-        chatId: string;
-        messageId: string;
-        sequence: number;
+        message: {
+            chatId: string;
+            id: string;
+            sequence: number;
+            serverId: string;
+            createdAt: Date;
+        };
         serverId: string;
-        status: 'pending' | 'superseded' | 'executed';
     }
 ): Promise<ServerDurableEvent> {
     const cursor = await allocateEventCursor(db, input.serverId);
     const [event] = await db
         .insert(chatEventsTable)
         .values({
-            actionId: input.actionId,
-            actionStatus: input.status,
-            chatId: input.chatId,
+            chatId: input.message.chatId,
             cursor,
             id: createOpaqueId('evt'),
-            messageId: input.messageId,
-            sequence: input.sequence,
+            messageId: input.message.id,
+            sequence: input.message.sequence,
             serverId: input.serverId,
-            type: 'prepared-action.updated',
+            type: 'message.created',
         })
         .returning({
             createdAt: chatEventsTable.createdAt,
@@ -37,19 +42,17 @@ export async function insertPreparedActionEvent(
             id: chatEventsTable.id,
         });
     if (!event) {
-        throw new Error('Failed to record the prepared action event.');
+        throw new Error('Failed to record the Chat message event.');
     }
     return {
-        actionId: input.actionId,
-        chatId: input.chatId,
+        chatId: input.message.chatId,
         createdAt: event.createdAt.toISOString(),
         cursor: event.cursor.toString(),
         id: event.id,
-        messageId: input.messageId,
+        messageId: input.message.id,
         parentChatId: input.chat.kind === 'thread' ? input.chat.parentChatId : null,
-        sequence: input.sequence,
+        sequence: input.message.sequence,
         serverId: input.serverId,
-        status: input.status,
-        type: 'prepared-action.updated',
+        type: 'message.created',
     };
 }

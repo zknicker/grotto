@@ -9,8 +9,8 @@ export const sendChatMessageProcedure = chatProcedure
     .mutation(async ({ ctx, input }) => {
         const result = await sendChatMessage(ctx.grottoDb, ctx.member, input, ctx.agentDelivery);
 
-        if (result.event) {
-            emitDurableChatEvent({ audienceUserId: null, event: result.event });
+        for (const event of result.events) {
+            emitDurableChatEvent({ audienceUserId: null, event });
         }
         // The inbox item was enqueued atomically with the message commit; this
         // is only the best-effort wire nudge, so the send never waits on it. If

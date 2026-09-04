@@ -23,6 +23,7 @@ import {
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { registerAgentActionRoutes } from './action-routes.ts';
+import { registerAgentAskRoutes } from './ask-routes.ts';
 import { registerAgentAttachmentRoutes } from './attachment-routes.ts';
 import { changeAgentChannelMute, unfollowAgentThread } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
@@ -90,6 +91,10 @@ export function registerAgentApiRoutes(
 ) {
     registerAgentAttachmentRoutes(app, { db: options.db, root: options.attachmentRoot });
     registerAgentActionRoutes(app, {
+        agentDelivery: options.agentDelivery,
+        db: options.db,
+    });
+    registerAgentAskRoutes(app, {
         agentDelivery: options.agentDelivery,
         db: options.db,
     });
@@ -476,8 +481,8 @@ export function registerAgentApiRoutes(
                 runId: runner.runId,
                 serverId: runner.serverId,
             });
-            if (result.event) {
-                emitDurableChatEvent({ audienceUserId: null, event: result.event });
+            for (const event of result.events) {
+                emitDurableChatEvent({ audienceUserId: null, event });
             }
             await Promise.all(
                 result.wakes.map((wake) =>

@@ -10,6 +10,7 @@ import { resolveAgentTarget } from '../agent-api/resolve-target.ts';
 import { readAgentSessionGeneration } from '../agent-delivery/cursors.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
+import { insertMessageCreatedEvent } from '../chats/message-created-event.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -21,7 +22,7 @@ import {
     preparedActionsTable,
 } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { insertMessageCreatedEvent, insertPreparedActionEvent } from './events.ts';
+import { insertPreparedActionEvent } from './events.ts';
 import { assertFreshAgentView } from './freshness.ts';
 import { assertIdempotentProposal, readActionByNonce } from './idempotency.ts';
 import { readPreparedAction } from './read.ts';

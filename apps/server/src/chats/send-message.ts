@@ -2,6 +2,7 @@ import type { ChatMessageReceipt, ChatSendInput, ServerDurableEvent } from '@gro
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
+import { settleAskForReply } from '../asks/settle-ask.ts';
 import {
     associateMessageAttachments,
     attachmentMetadata,
@@ -41,7 +42,7 @@ export class DirectThreadSendError extends Error {
 }
 
 export interface SendChatMessageResult {
-    event: ServerDurableEvent | null;
+    events: ServerDurableEvent[];
     receipt: ChatMessageReceipt;
     /** Agents whose durable pending inbox this send enqueued. */
     wakes: Array<{ agentId: string; serverId: string }>;
@@ -100,6 +101,7 @@ export async function sendChatMessage(
             .select({
                 authorAgentId: chatMessagesTable.authorAgentId,
                 authorUserId: chatMessagesTable.authorUserId,
+                bodyKind: chatMessagesTable.bodyKind,
                 chatId: chatMessagesTable.chatId,
                 content: chatMessagesTable.content,
                 createdAt: chatMessagesTable.createdAt,
@@ -146,11 +148,11 @@ export async function sendChatMessage(
             }
 
             return {
-                event: null,
+                events: [],
                 receipt: {
                     eventCursor: existing.eventCursor.toString(),
                     idempotent: true,
-                    message: toChatMessage(existing, existingAttachments),
+                    message: toChatMessage(existing, { attachments: existingAttachments }),
                     threadChatId: thread?.id ?? null,
                 },
                 wakes: [],
@@ -234,6 +236,20 @@ export async function sendChatMessage(
                 id: chatEventsTable.id,
             });
 
+        // A reply into an Ask's Thread settles that Ask in this same
+        // transaction. The asking Agent's own reply never settles it.
+        const settledAsk =
+            'chatId' in input && input.thread && thread
+                ? await settleAskForReply(tx, {
+                      anchorMessageId: input.thread.anchorMessageId,
+                      answeredBy: { id: member.id, kind: 'user' },
+                      answerMessageId: message.id,
+                      replySequence: message.sequence,
+                      serverId: input.serverId,
+                      threadChatId: thread.id,
+                  })
+                : null;
+
         // Plan every Agent recipient under its Server-owned attention state in
         // this same transaction. The wire nudge remains separately recoverable.
         const recipients = await planAgentMessageRecipients(tx, {
@@ -257,21 +273,25 @@ export async function sendChatMessage(
         }
 
         return {
-            event: {
-                chatId: message.chatId,
-                createdAt: event.createdAt.toISOString(),
-                cursor: event.cursor.toString(),
-                id: event.id,
-                messageId: message.id,
-                parentChatId: thread?.parentChatId ?? null,
-                sequence: message.sequence,
-                serverId: message.serverId,
-                type: 'message.created',
-            },
+            events: [
+                {
+                    chatId: message.chatId,
+                    createdAt: event.createdAt.toISOString(),
+                    cursor: event.cursor.toString(),
+                    id: event.id,
+                    messageId: message.id,
+                    parentChatId: thread?.parentChatId ?? null,
+                    sequence: message.sequence,
+                    serverId: message.serverId,
+                    type: 'message.created',
+                },
+                ...(settledAsk ? [settledAsk] : []),
+            ],
             receipt: {
                 eventCursor: event.cursor.toString(),
                 idempotent: false,
-                message: toChatMessage(message, attachmentMetadata(attachments)),
+                // A human send never creates a typed body; this Message is text.
+                message: toChatMessage(message, { attachments: attachmentMetadata(attachments) }),
                 threadChatId: thread?.id ?? null,
             },
             wakes: recipients.map(({ agentId }) => ({ agentId, serverId: input.serverId })),

@@ -1,9 +1,17 @@
-import type { AttachmentMetadata, ChatMessage, MessageCause, PreparedAction } from '@grotto/api';
+import type {
+    AttachmentMetadata,
+    ChatMessage,
+    MessageBody,
+    MessageBodyKind,
+    MessageCause,
+    PreparedAction,
+} from '@grotto/api';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
 interface StoredChatMessage {
     authorAgentId: string | null;
     authorUserId: string | null;
+    bodyKind: MessageBodyKind;
     chatId: string;
     content: string;
     createdAt: Date;
@@ -57,16 +65,26 @@ export function readStoredAuthorProfile(
     return undefined;
 }
 
+/** Everything the one Message reader joins onto a stored Message row. */
+export interface StoredChatMessageRelations {
+    attachments?: AttachmentMetadata[];
+    authorProfile?: StoredChatMessageAuthorProfile;
+    /** The typed body projected from its Server record; text needs none. */
+    body?: MessageBody;
+    /** Why an Agent wrote this: the Trigger or Reminder fire it answered. */
+    cause?: MessageCause;
+    preparedAction?: PreparedAction;
+}
+
 export function toChatMessage(
     message: StoredChatMessage,
-    attachments: AttachmentMetadata[] = [],
-    authorProfile?: StoredChatMessageAuthorProfile,
-    preparedAction?: PreparedAction,
-    cause?: MessageCause
+    related: StoredChatMessageRelations = {}
 ): ChatMessage {
+    const { attachments = [], authorProfile, body, cause, preparedAction } = related;
     return {
         attachments,
         author: readAuthor(message, authorProfile),
+        body: readBody(message, body),
         ...(cause ? { cause } : {}),
         chatId: message.chatId,
         content: message.content,
@@ -79,6 +97,20 @@ export function toChatMessage(
         sessionGeneration: message.sessionGeneration,
         ...(preparedAction ? { preparedAction } : {}),
     };
+}
+
+/**
+ * A stored body kind and its projected record must agree. A missing record is a
+ * failed mapping, never a Message silently downgraded to text.
+ */
+function readBody(message: StoredChatMessage, body: MessageBody | undefined): MessageBody {
+    if (message.bodyKind === 'text') {
+        return { kind: 'text' };
+    }
+    if (body?.kind !== message.bodyKind) {
+        throw new Error(`Message ${message.id} has no ${message.bodyKind} record to project.`);
+    }
+    return body;
 }
 
 function readAuthor(

@@ -8,11 +8,30 @@ import {
     triggerFiresTable,
     triggersTable,
 } from '../postgres/schema.ts';
+import { reminderCadenceSummary, triggerKindSummary } from './automation-summary.ts';
+
+/**
+ * The facts the provenance mark keeps once the automation is gone, read from
+ * the live records at the moment the cause is recorded.
+ */
+interface MessageCauseSnapshot {
+    anchorChatId: string;
+    firedAt: Date;
+    ownerAgentId: string;
+    summary: string;
+    title: string;
+}
 
 /** One resolved, owner-checked fire, ready to record against a message. */
-export type ResolvedMessageCause =
-    | { fireId: string; kind: 'reminder_fire'; reminderId: string }
-    | { fireId: string; kind: 'trigger_fire'; triggerId: string };
+export type ResolvedMessageCause = MessageCauseSnapshot &
+    (
+        | { fireId: string; kind: 'reminder_fire'; reminderId: string }
+        | {
+              fireId: string;
+              kind: 'trigger_fire';
+              triggerId: string;
+          }
+    );
 
 /** That fire plus how the Server learned the Agent was answering it. */
 export interface AttributedMessageCause {
@@ -33,6 +52,9 @@ export class MessageCauseError extends Error {
  * carry their own prefix, so the kind is decided before any lookup. The sending
  * Agent must own the automation: provenance is a claim about who was woken, and
  * one Agent may not attribute its message to another's Trigger or Reminder.
+ *
+ * The same read collects the snapshot the mark keeps for good, so the title and
+ * cadence a reader sees are the ones that were true when the fire happened.
  */
 export async function resolveMessageCause(
     db: GrottoDatabase,
@@ -40,7 +62,14 @@ export async function resolveMessageCause(
 ): Promise<ResolvedMessageCause> {
     if (input.cause.startsWith('trf_')) {
         const [row] = await db
-            .select({ ownerAgentId: triggersTable.ownerAgentId, triggerId: triggersTable.id })
+            .select({
+                anchorChatId: triggersTable.anchorChatId,
+                firedAt: triggerFiresTable.receivedAt,
+                kind: triggersTable.kind,
+                ownerAgentId: triggersTable.ownerAgentId,
+                title: triggersTable.title,
+                triggerId: triggersTable.id,
+            })
             .from(triggerFiresTable)
             .innerJoin(
                 triggersTable,
@@ -64,11 +93,27 @@ export async function resolveMessageCause(
                 `Trigger fire ${input.cause} belongs to another Agent's Trigger.`
             );
         }
-        return { fireId: input.cause, kind: 'trigger_fire', triggerId: row.triggerId };
+        return {
+            anchorChatId: row.anchorChatId,
+            firedAt: row.firedAt,
+            fireId: input.cause,
+            kind: 'trigger_fire',
+            ownerAgentId: row.ownerAgentId,
+            summary: triggerKindSummary(row.kind),
+            title: row.title,
+            triggerId: row.triggerId,
+        };
     }
     if (input.cause.startsWith('rmf_')) {
         const [row] = await db
-            .select({ ownerAgentId: remindersTable.ownerAgentId, reminderId: remindersTable.id })
+            .select({
+                anchorChatId: remindersTable.anchorChatId,
+                firedAt: reminderFiresTable.firedAt,
+                ownerAgentId: remindersTable.ownerAgentId,
+                reminderId: remindersTable.id,
+                repeat: remindersTable.repeat,
+                title: remindersTable.title,
+            })
             .from(reminderFiresTable)
             .innerJoin(
                 remindersTable,
@@ -92,7 +137,16 @@ export async function resolveMessageCause(
                 `Reminder fire ${input.cause} belongs to another Agent's Reminder.`
             );
         }
-        return { fireId: input.cause, kind: 'reminder_fire', reminderId: row.reminderId };
+        return {
+            anchorChatId: row.anchorChatId,
+            firedAt: row.firedAt,
+            fireId: input.cause,
+            kind: 'reminder_fire',
+            ownerAgentId: row.ownerAgentId,
+            reminderId: row.reminderId,
+            summary: reminderCadenceSummary(row.repeat),
+            title: row.title,
+        };
     }
     throw new MessageCauseError(
         `${input.cause} is not a Trigger or Reminder fire id; use the fire id from the wake envelope.`
@@ -108,25 +162,31 @@ export async function insertMessageCause(
         serverId: string;
     }
 ): Promise<void> {
+    const snapshot = {
+        anchorChatId: input.cause.anchorChatId,
+        attribution: input.attribution,
+        firedAt: input.cause.firedAt,
+        messageId: input.messageId,
+        ownerAgentId: input.cause.ownerAgentId,
+        serverId: input.serverId,
+        summary: input.cause.summary,
+        title: input.cause.title,
+    };
     await db
         .insert(messageCausesTable)
         .values(
             input.cause.kind === 'trigger_fire'
                 ? {
-                      attribution: input.attribution,
+                      ...snapshot,
                       kind: 'trigger_fire' as const,
-                      messageId: input.messageId,
-                      serverId: input.serverId,
                       triggerFireId: input.cause.fireId,
                       triggerId: input.cause.triggerId,
                   }
                 : {
-                      attribution: input.attribution,
+                      ...snapshot,
                       kind: 'reminder_fire' as const,
-                      messageId: input.messageId,
                       reminderFireId: input.cause.fireId,
                       reminderId: input.cause.reminderId,
-                      serverId: input.serverId,
                   }
         )
         .onConflictDoNothing();

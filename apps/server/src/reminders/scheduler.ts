@@ -167,6 +167,9 @@ async function fireNextDueReminder(
             const attentionId = createOpaqueId('rma');
             await tx.insert(reminderFiresTable).values({
                 firedAt: now,
+                // The fire records whether this wake ran a script. Editing the
+                // reminder later changes the next wake, never this one.
+                hasScript: reminder.script !== null,
                 id: fireId,
                 reminderId: reminder.id,
                 scheduledFor: reminder.fireAt,

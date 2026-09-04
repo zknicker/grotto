@@ -1,18 +1,21 @@
-import { automationSnippetMaxChars, type MessageCause } from '@grotto/api';
-import { and, count, eq, inArray } from 'drizzle-orm';
+import { automationSnippetMaxChars, type MessageCause, type MessageCauseLive } from '@grotto/api';
+import { and, count, eq, inArray, max } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     messageCausesTable,
     reminderFiresTable,
     remindersTable,
+    triggerFiresTable,
     triggersTable,
 } from '../postgres/schema.ts';
-import { reminderCadenceSummary, triggerKindSummary } from './automation-summary.ts';
 
 /**
  * The provenance mark for each message that has one. The App renders the header
  * mark and its hover card from the message alone, so everything the mark needs
- * — title, status, cadence, counters, instruction snippet — is read here.
+ * rides the message: title, cadence or kind label, fire time, and owning Agent
+ * come from the snapshot the cause carries, which is why a mark survives its
+ * automation. `live` is the automation as it stands today — status, counters,
+ * instruction — and is null once the automation or the answered fire is gone.
  */
 export async function readMessageCauses(
     db: GrottoDatabase,
@@ -22,125 +25,148 @@ export async function readMessageCauses(
     if (messageIds.length === 0) {
         return new Map();
     }
+    const snapshot = {
+        attribution: messageCausesTable.attribution,
+        firedAt: messageCausesTable.firedAt,
+        messageId: messageCausesTable.messageId,
+        ownerAgentId: messageCausesTable.ownerAgentId,
+        summary: messageCausesTable.summary,
+        title: messageCausesTable.title,
+    };
+    const scope = and(
+        eq(messageCausesTable.serverId, serverId),
+        inArray(messageCausesTable.messageId, messageIds)
+    );
     const [triggerRows, reminderRows] = await Promise.all([
         db
             .select({
-                attribution: messageCausesTable.attribution,
+                ...snapshot,
+                automationId: messageCausesTable.triggerId,
                 fireCount: triggersTable.fireCount,
                 fireId: messageCausesTable.triggerFireId,
-                id: triggersTable.id,
+                firePresent: triggerFiresTable.id,
                 instruction: triggersTable.instruction,
-                kind: triggersTable.kind,
                 lastFiredAt: triggersTable.lastFiredAt,
-                messageId: messageCausesTable.messageId,
-                ownerAgentId: triggersTable.ownerAgentId,
                 status: triggersTable.status,
-                title: triggersTable.title,
             })
             .from(messageCausesTable)
-            .innerJoin(
+            .leftJoin(
                 triggersTable,
                 and(
                     eq(triggersTable.serverId, messageCausesTable.serverId),
                     eq(triggersTable.id, messageCausesTable.triggerId)
                 )
             )
-            .where(
+            .leftJoin(
+                triggerFiresTable,
                 and(
-                    eq(messageCausesTable.serverId, serverId),
-                    inArray(messageCausesTable.messageId, messageIds)
+                    eq(triggerFiresTable.serverId, messageCausesTable.serverId),
+                    eq(triggerFiresTable.id, messageCausesTable.triggerFireId)
                 )
-            ),
+            )
+            .where(and(scope, eq(messageCausesTable.kind, 'trigger_fire'))),
         db
             .select({
-                attribution: messageCausesTable.attribution,
+                ...snapshot,
+                automationId: messageCausesTable.reminderId,
                 fireId: messageCausesTable.reminderFireId,
-                id: remindersTable.id,
-                lastFiredAt: reminderFiresTable.firedAt,
-                messageId: messageCausesTable.messageId,
-                ownerAgentId: remindersTable.ownerAgentId,
-                repeat: remindersTable.repeat,
+                firePresent: reminderFiresTable.id,
+                reminderId: remindersTable.id,
                 script: remindersTable.script,
                 status: remindersTable.status,
-                title: remindersTable.title,
             })
             .from(messageCausesTable)
-            .innerJoin(
+            .leftJoin(
                 remindersTable,
                 and(
                     eq(remindersTable.serverId, messageCausesTable.serverId),
                     eq(remindersTable.id, messageCausesTable.reminderId)
                 )
             )
-            .innerJoin(
+            .leftJoin(
                 reminderFiresTable,
                 and(
                     eq(reminderFiresTable.serverId, messageCausesTable.serverId),
                     eq(reminderFiresTable.id, messageCausesTable.reminderFireId)
                 )
             )
-            .where(
-                and(
-                    eq(messageCausesTable.serverId, serverId),
-                    inArray(messageCausesTable.messageId, messageIds)
-                )
-            ),
+            .where(and(scope, eq(messageCausesTable.kind, 'reminder_fire'))),
     ]);
-    const fireCounts = await countReminderFires(
+    const fireStats = await readReminderFireStats(
         db,
         serverId,
-        reminderRows.map((row) => row.id)
+        reminderRows.map((row) => row.reminderId).filter((id): id is string => id !== null)
     );
     const causes = new Map<string, MessageCause>();
     for (const row of triggerRows) {
-        if (!row.fireId) {
+        if (!(row.automationId && row.fireId)) {
             continue;
         }
+        const live: MessageCauseLive | null =
+            row.firePresent && row.status
+                ? {
+                      fireCount: Math.max(row.fireCount ?? 1, 1),
+                      instruction: snippet(row.instruction),
+                      lastFiredAt: row.lastFiredAt?.toISOString() ?? null,
+                      status: row.status,
+                  }
+                : null;
         causes.set(row.messageId, {
             attribution: row.attribution,
-            automationId: row.id,
-            fireCount: Math.max(row.fireCount, 1),
+            automationId: row.automationId,
+            firedAt: row.firedAt.toISOString(),
             fireId: row.fireId,
-            instruction: snippet(row.instruction),
             kind: 'trigger',
-            lastFiredAt: row.lastFiredAt?.toISOString() ?? null,
+            live,
             ownerAgentId: row.ownerAgentId,
-            status: row.status,
-            summary: triggerKindSummary(row.kind),
+            summary: row.summary,
             title: row.title,
         });
     }
     for (const row of reminderRows) {
-        if (!row.fireId) {
+        if (!(row.automationId && row.fireId)) {
             continue;
         }
+        const stats = row.reminderId ? fireStats.get(row.reminderId) : undefined;
+        const live: MessageCauseLive | null =
+            row.firePresent && row.status
+                ? {
+                      fireCount: Math.max(stats?.fireCount ?? 1, 1),
+                      instruction: snippet(row.script),
+                      lastFiredAt: stats?.lastFiredAt?.toISOString() ?? null,
+                      status: row.status,
+                  }
+                : null;
         causes.set(row.messageId, {
             attribution: row.attribution,
-            automationId: row.id,
-            fireCount: Math.max(fireCounts.get(row.id) ?? 1, 1),
+            automationId: row.automationId,
+            firedAt: row.firedAt.toISOString(),
             fireId: row.fireId,
-            instruction: snippet(row.script),
             kind: 'reminder',
-            lastFiredAt: row.lastFiredAt.toISOString(),
+            live,
             ownerAgentId: row.ownerAgentId,
-            status: row.status,
-            summary: reminderCadenceSummary(row.repeat),
+            summary: row.summary,
             title: row.title,
         });
     }
     return causes;
 }
 
-export async function countReminderFires(
+/** How often each reminder has fired and when it last did, for the live half of a mark. */
+async function readReminderFireStats(
     db: GrottoDatabase,
     serverId: string,
     reminderIds: string[]
-): Promise<Map<string, number>> {
+): Promise<Map<string, { fireCount: number; lastFiredAt: Date | null }>> {
     if (reminderIds.length === 0) {
         return new Map();
     }
     const rows = await db
-        .select({ reminderId: reminderFiresTable.reminderId, total: count() })
+        .select({
+            lastFiredAt: max(reminderFiresTable.firedAt),
+            reminderId: reminderFiresTable.reminderId,
+            total: count(),
+        })
         .from(reminderFiresTable)
         .where(
             and(
@@ -149,7 +175,12 @@ export async function countReminderFires(
             )
         )
         .groupBy(reminderFiresTable.reminderId);
-    return new Map(rows.map((row) => [row.reminderId, row.total]));
+    return new Map(
+        rows.map((row) => [
+            row.reminderId,
+            { fireCount: row.total, lastFiredAt: row.lastFiredAt ?? null },
+        ])
+    );
 }
 
 function snippet(value: string | null): string | null {

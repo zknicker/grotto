@@ -37,6 +37,18 @@ export class ReminderOperatorAccessDeniedError extends Error {
     }
 }
 
+/**
+ * The reminder is gone from this Server. Retention deletes settled reminders,
+ * so an Agent profile or a bookmarked run history can outlive its row; that is
+ * a narrow not-found, never a Server fault.
+ */
+export class ReminderNotFoundError extends Error {
+    constructor() {
+        super('The reminder does not exist in this Server.');
+        this.name = 'ReminderNotFoundError';
+    }
+}
+
 export async function requireReminderOperator(
     db: Pick<GrottoDatabase, 'select'>,
     member: GrottoUser | null,
@@ -214,7 +226,7 @@ export async function cancelOperatorReminder(
             .limit(1)
             .for('update');
         if (!reminder) {
-            throw new Error('The reminder does not exist in this Server.');
+            throw new ReminderNotFoundError();
         }
         if (reminder.version !== input.expectedVersion) {
             throw new ReminderVersionConflictError(reminder.version);
@@ -281,6 +293,6 @@ async function requireReminderInServer(
         .where(and(eq(remindersTable.serverId, serverId), eq(remindersTable.id, reminderId)))
         .limit(1);
     if (!reminder) {
-        throw new Error('The reminder does not exist in this Server.');
+        throw new ReminderNotFoundError();
     }
 }

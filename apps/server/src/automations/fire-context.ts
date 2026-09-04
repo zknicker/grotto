@@ -13,7 +13,6 @@ import {
     reminderFiresTable,
     remindersTable,
     triggerFiresTable,
-    triggersTable,
 } from '../postgres/schema.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { readMessageCauses } from './message-cause-read.ts';
@@ -29,6 +28,11 @@ export class AutomationFireContextNotFoundError extends Error {
  * The Thread pane's context card for one caused message: the same provenance
  * the header mark shows, plus the fire's own detail. Authorization is ordinary
  * Chat access — anyone who can read the message can see why it was written.
+ *
+ * A message with a cause always has a context. Once the automation or its fire
+ * has been archived the card falls back to the snapshot the cause carries: the
+ * mark's own fields stand, and every counter and kind-specific detail the fire
+ * row held reads null.
  */
 export async function readAutomationFireContext(
     db: GrottoDatabase,
@@ -36,7 +40,10 @@ export async function readAutomationFireContext(
     input: { messageId: string; serverId: string }
 ): Promise<AutomationFireContext> {
     const [message] = await db
-        .select({ chatId: chatMessagesTable.chatId })
+        .select({
+            anchorChatId: messageCausesTable.anchorChatId,
+            chatId: chatMessagesTable.chatId,
+        })
         .from(chatMessagesTable)
         .innerJoin(
             messageCausesTable,
@@ -62,38 +69,56 @@ export async function readAutomationFireContext(
     if (!cause) {
         throw new AutomationFireContextNotFoundError();
     }
+    // A pre-snapshot cause has no anchor of its own; the answer's own Chat is
+    // the closest true thing we know about where the automation spoke.
+    const anchorChatId = message.anchorChatId ?? message.chatId;
+    if (!cause.live) {
+        return archivedFireContext(cause, anchorChatId);
+    }
     return cause.kind === 'trigger'
-        ? await triggerFireContext(db, input.serverId, cause)
-        : await reminderFireContext(db, input.serverId, cause);
+        ? await triggerFireContext(db, input.serverId, cause, anchorChatId)
+        : await reminderFireContext(db, input.serverId, cause, anchorChatId);
+}
+
+/** The context of a caused message whose automation or fire row is gone. */
+function archivedFireContext(cause: MessageCause, anchorChatId: string): AutomationFireContext {
+    return {
+        anchorChatId,
+        anchorExcerpt: null,
+        anchorMessageId: null,
+        cause,
+        contentType: null,
+        firedAt: cause.firedAt,
+        fireOrdinal: null,
+        fireTotal: null,
+        nextFireAt: null,
+        payload: null,
+        payloadBytes: null,
+        payloadTruncated: false,
+        repeat: null,
+    };
 }
 
 async function triggerFireContext(
     db: GrottoDatabase,
     serverId: string,
-    cause: MessageCause
+    cause: MessageCause,
+    anchorChatId: string
 ): Promise<AutomationFireContext> {
     const [fire] = await db
         .select({
-            anchorChatId: triggersTable.anchorChatId,
             contentType: triggerFiresTable.contentType,
             payload: triggerFiresTable.payload,
             payloadBytes: triggerFiresTable.payloadBytes,
             receivedAt: triggerFiresTable.receivedAt,
         })
         .from(triggerFiresTable)
-        .innerJoin(
-            triggersTable,
-            and(
-                eq(triggersTable.serverId, triggerFiresTable.serverId),
-                eq(triggersTable.id, triggerFiresTable.triggerId)
-            )
-        )
         .where(
             and(eq(triggerFiresTable.serverId, serverId), eq(triggerFiresTable.id, cause.fireId))
         )
         .limit(1);
     if (!fire) {
-        throw new AutomationFireContextNotFoundError();
+        return archivedFireContext(cause, anchorChatId);
     }
     const [ordinal] = await db
         .select({ total: count() })
@@ -116,15 +141,15 @@ async function triggerFireContext(
         );
     const payload = fire.payload.slice(0, automationPayloadExcerptMaxChars);
     return {
-        anchorChatId: fire.anchorChatId,
+        anchorChatId,
         anchorExcerpt: null,
         anchorMessageId: null,
         cause,
         contentType: fire.contentType,
-        firedAt: fire.receivedAt.toISOString(),
+        firedAt: cause.firedAt,
         fireOrdinal: Math.max(ordinal?.total ?? 1, 1),
         // Stored fires are pruned; the Trigger's own counter is the honest total.
-        fireTotal: Math.max(cause.fireCount, stored?.total ?? 1, 1),
+        fireTotal: Math.max(cause.live?.fireCount ?? 1, stored?.total ?? 1, 1),
         nextFireAt: null,
         payload,
         payloadBytes: fire.payloadBytes,
@@ -136,11 +161,11 @@ async function triggerFireContext(
 async function reminderFireContext(
     db: GrottoDatabase,
     serverId: string,
-    cause: MessageCause
+    cause: MessageCause,
+    anchorChatId: string
 ): Promise<AutomationFireContext> {
     const [fire] = await db
         .select({
-            anchorChatId: remindersTable.anchorChatId,
             anchorContent: chatMessagesTable.content,
             anchorMessageId: remindersTable.anchorMessageId,
             fireAt: remindersTable.fireAt,
@@ -168,7 +193,7 @@ async function reminderFireContext(
         )
         .limit(1);
     if (!fire) {
-        throw new AutomationFireContextNotFoundError();
+        return archivedFireContext(cause, anchorChatId);
     }
     const [ordinal] = await db
         .select({ total: count() })
@@ -181,16 +206,16 @@ async function reminderFireContext(
             )
         );
     return {
-        anchorChatId: fire.anchorChatId,
+        anchorChatId,
         anchorExcerpt: fire.anchorContent
             ? fire.anchorContent.trim().slice(0, automationSnippetMaxChars)
             : null,
         anchorMessageId: fire.anchorMessageId,
         cause,
         contentType: null,
-        firedAt: fire.firedAt.toISOString(),
+        firedAt: cause.firedAt,
         fireOrdinal: Math.max(ordinal?.total ?? 1, 1),
-        fireTotal: Math.max(cause.fireCount, 1),
+        fireTotal: Math.max(cause.live?.fireCount ?? 1, 1),
         nextFireAt: fire.status === 'scheduled' ? fire.fireAt.toISOString() : null,
         payload: null,
         payloadBytes: null,

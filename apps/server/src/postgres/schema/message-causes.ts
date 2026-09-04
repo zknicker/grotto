@@ -1,9 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { chatMessagesTable } from './chat-messages.ts';
-import { reminderFiresTable, remindersTable } from './reminders.ts';
 import { serversTable } from './servers.ts';
-import { triggerFiresTable, triggersTable } from './triggers.ts';
 
 /**
  * Why an Agent wrote one message. A Trigger or Reminder fire writes nothing to
@@ -11,13 +9,19 @@ import { triggerFiresTable, triggersTable } from './triggers.ts';
  * trace of the fire and this row is its provenance: one message answers at most
  * one fire, and every fire the Agent acts on gets its own message.
  *
- * Deleting the message removes the cause. Deleting the automation removes the
- * cause too — the CHECK cannot hold with a null half, so provenance disappears
- * with the automation while the message itself stays in the transcript.
+ * The mark outlives the automation. `title`, `summary`, `fired_at`,
+ * `owner_agent_id`, and `anchor_chat_id` are snapshotted from the live records
+ * when the cause is recorded, so a swept fire or a deleted Trigger leaves the
+ * message still saying what provoked it. The automation and fire ids are kept
+ * for good and carry no foreign key: they name history, and a reader learns the
+ * automation is archived by finding no row behind them rather than by losing
+ * the ids. Only deleting the message deletes the cause.
  */
 export const messageCausesTable = pgTable(
     'message_causes',
     {
+        /** Where the automation's fires land, snapshotted; null only for a pre-snapshot row. */
+        anchorChatId: text('anchor_chat_id'),
         /**
          * `explicit` when the Agent named the fire with `--cause`; `inferred`
          * when the fire was the only item its run was offered and the answer
@@ -25,13 +29,21 @@ export const messageCausesTable = pgTable(
          */
         attribution: text('attribution').notNull().$type<'explicit' | 'inferred'>(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        /** When the answered fire happened, snapshotted from the fire row. */
+        firedAt: timestamp('fired_at', { withTimezone: true }).notNull(),
         kind: text('kind').notNull().$type<'reminder_fire' | 'trigger_fire'>(),
         messageId: text('message_id').primaryKey(),
+        /** The Agent that owned the automation when it fired. */
+        ownerAgentId: text('owner_agent_id').notNull(),
         reminderFireId: text('reminder_fire_id'),
         reminderId: text('reminder_id'),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
+        /** The Reminder's cadence line or the Trigger's kind label, as it read when it fired. */
+        summary: text('summary').notNull(),
+        /** The automation's title as it read when it fired. */
+        title: text('title').notNull(),
         triggerFireId: text('trigger_fire_id'),
         triggerId: text('trigger_id'),
     },
@@ -42,26 +54,6 @@ export const messageCausesTable = pgTable(
             columns: [table.serverId, table.messageId],
             foreignColumns: [chatMessagesTable.serverId, chatMessagesTable.id],
             name: 'message_causes_message_fk',
-        }).onDelete('cascade'),
-        foreignKey({
-            columns: [table.serverId, table.triggerId],
-            foreignColumns: [triggersTable.serverId, triggersTable.id],
-            name: 'message_causes_trigger_fk',
-        }).onDelete('cascade'),
-        foreignKey({
-            columns: [table.serverId, table.triggerFireId],
-            foreignColumns: [triggerFiresTable.serverId, triggerFiresTable.id],
-            name: 'message_causes_trigger_fire_fk',
-        }).onDelete('cascade'),
-        foreignKey({
-            columns: [table.serverId, table.reminderId],
-            foreignColumns: [remindersTable.serverId, remindersTable.id],
-            name: 'message_causes_reminder_fk',
-        }).onDelete('cascade'),
-        foreignKey({
-            columns: [table.serverId, table.reminderFireId],
-            foreignColumns: [reminderFiresTable.serverId, reminderFiresTable.id],
-            name: 'message_causes_reminder_fire_fk',
         }).onDelete('cascade'),
         check('message_causes_attribution', sql`${table.attribution} in ('explicit', 'inferred')`),
         check('message_causes_kind', sql`${table.kind} in ('reminder_fire', 'trigger_fire')`),

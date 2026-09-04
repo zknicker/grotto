@@ -111,6 +111,12 @@ export const reminderFiresTable = pgTable(
     'reminder_fires',
     {
         firedAt: timestamp('fired_at', { withTimezone: true }).notNull(),
+        /**
+         * Whether the reminder ran a script when it woke. A reminder gains or
+         * loses its script over its life, so the fire has to carry its own
+         * answer; reading `reminders.script` later relabels settled history.
+         */
+        hasScript: boolean('has_script').notNull().default(false),
         id: text('id').primaryKey(),
         scriptExitCode: integer('script_exit_code'),
         scriptOutput: text('script_output'),

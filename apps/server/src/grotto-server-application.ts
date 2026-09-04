@@ -14,6 +14,7 @@ import {
     OpenAiAvatarImageProvider,
 } from './avatar-generation/index.ts';
 import { registerAvatarRoutes } from './avatars/avatar-routes.ts';
+import type { SweepTimers } from './boot-sweep.ts';
 import { purgeDeletedChannels } from './chats/channel-lifecycle.ts';
 import { ComputerConnections } from './computers/connections.ts';
 import { registerComputerRoutes } from './computers/routes.ts';
@@ -38,11 +39,13 @@ import {
     type ReminderScheduler,
     type ReminderSchedulerTimers,
 } from './reminders/reminder-scheduler.ts';
+import { startReminderRetentionSweep } from './reminders/retention-sweep.ts';
 import { tickReminders } from './reminders/scheduler.ts';
 import { registerMcpOAuthCallback } from './server-mcp/oauth-callback-route.ts';
 import { McpOAuthRelay } from './server-mcp/oauth-relay.ts';
 import { McpRuntime } from './server-mcp/runtime.ts';
 import { purgeDeletedServers } from './servers/delete-server.ts';
+import { startStaleTaskSweep } from './tasks/close-stale-tasks.ts';
 import { TriggerRateLimiter } from './triggers/trigger-rate-limit.ts';
 import { registerTriggerRoutes } from './triggers/trigger-route.ts';
 
@@ -74,12 +77,14 @@ export interface GrottoServerApplicationOptions {
     openAiApiKey?: string;
     /** Exact identity of the running release; absent for an ordinary development Server. */
     releaseIdentity?: GrottoReleaseIdentity | null;
-    /** Controlled time seam for deterministic reminder lifecycle tests. */
+    /** Controlled time seam for deterministic reminder and sweep lifecycle tests. */
     reminderClock?: ReminderClock;
     /** Timer seam; production uses the process interval. */
     reminderSchedulerTimers?: ReminderSchedulerTimers;
     /** Built Grotto App assets. Omit only when another process serves the App in development. */
     staticAppRoot?: string;
+    /** Interval seam for the boot sweeps; tests pass inert timers. */
+    sweepTimers?: SweepTimers;
 }
 
 export interface GrottoServerApplication {
@@ -204,6 +209,12 @@ export async function createGrottoServerApplication(
         );
         const deliveryRetrySweep = startDeliveryRetrySweep(agentDelivery);
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
+        const reminderRetentionSweep = startReminderRetentionSweep(
+            grotto.db,
+            reminderClock,
+            options.sweepTimers
+        );
+        const staleTaskSweep = startStaleTaskSweep(grotto.db, reminderClock, options.sweepTimers);
         reminderScheduler = createReminderScheduler({
             clock: reminderClock,
             tick: () => tickReminders(grotto.db, reminderClock, agentDelivery),
@@ -231,9 +242,17 @@ export async function createGrottoServerApplication(
                 webSocketServer.broadcastReconnectNotification();
                 webSocketServer.close();
                 deliveryRetrySweep.close();
+                // Both sweeps stop their schedule on the call and settle their
+                // in-flight write before the pool goes; awaiting later keeps
+                // the socket teardown ahead of the wait.
+                const sweepsClosed = Promise.all([
+                    reminderRetentionSweep.close(),
+                    staleTaskSweep.close(),
+                ]);
                 computerSocket.close();
                 startedApp.server.closeAllConnections();
                 await reminderScheduler?.close();
+                await sweepsClosed;
                 await mcpRuntime.close();
                 await startedApp.close();
                 await grotto.close();

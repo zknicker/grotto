@@ -66,6 +66,8 @@ export * from './agent-runner.ts';
 export * from './app-protocol.ts';
 export * from './ask.ts';
 export * from './ask-shared.ts';
+export * from './cloud-agent.ts';
+export * from './cloud-agent-shared.ts';
 export * from './attachments.ts';
 export * from './automation.ts';
 export * from './avatar.ts';

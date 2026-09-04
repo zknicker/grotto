@@ -176,6 +176,7 @@ export async function createGrottoServerApplication(
             agentDelivery,
             avatarImageService,
             attachmentRoot,
+            computers: computerConnections,
             db: grotto.db,
             mcpRuntime,
         });

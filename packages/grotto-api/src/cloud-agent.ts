@@ -52,9 +52,7 @@ export type AgentCloudAgentReceipt = z.infer<typeof agentCloudAgentReceiptSchema
 /** `grotto cloud-agent cancel` — the delegating Agent's cancellation request. */
 export const agentCloudAgentCancelInputSchema = z.object({ workId: idSchema }).strict();
 
-export const agentCloudAgentCancelReceiptSchema = z
-    .object({ work: cloudAgentWorkSchema })
-    .strict();
+export const agentCloudAgentCancelReceiptSchema = z.object({ work: cloudAgentWorkSchema }).strict();
 
 export type AgentCloudAgentCancelReceipt = z.infer<typeof agentCloudAgentCancelReceiptSchema>;
 

@@ -2,6 +2,7 @@ import type { GrottoAgentMessage, MessageBodyKind } from '@grotto/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { readAsksForMessages } from '../asks/ask-shape.ts';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
+import { readCloudAgentWorkForMessages } from '../cloud-agents/cloud-agent-shape.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -51,6 +52,7 @@ export async function toAgentMessages(
     const tasksByMessage = await listMessageTaskMap(db, serverId, messageIds);
     const preparedActionsByMessage = await readPreparedActionsForMessages(db, serverId, messageIds);
     const asksByMessage = await readAsksForMessages(db, serverId, messageIds);
+    const cloudAgentWorkByMessage = await readCloudAgentWorkForMessages(db, serverId, messageIds);
     const agentIds = [
         ...new Set(
             rows
@@ -109,6 +111,7 @@ export async function toAgentMessages(
         const label = agent?.displayName ?? human?.displayName ?? 'Human';
         const task = tasksByMessage.get(row.id);
         const ask = asksByMessage.get(row.id);
+        const cloudAgentWork = cloudAgentWorkByMessage.get(row.id);
         const taskAssigneeAgent = task?.assigneeAgentId
             ? agentById.get(task.assigneeAgentId)
             : undefined;
@@ -148,6 +151,33 @@ export async function toAgentMessages(
                           recommended_step: ask.recommendedStep,
                           status: ask.status,
                           title: ask.title,
+                      },
+                  }
+                : {}),
+            ...(cloudAgentWork
+                ? {
+                      cloud_agent_work: {
+                          activity: cloudAgentWork.activity?.summary ?? null,
+                          id: cloudAgentWork.id,
+                          latest_run: cloudAgentWork.runs[0]
+                              ? {
+                                    branches: cloudAgentWork.runs[0].branches.map((branch) => ({
+                                        branch: branch.branch,
+                                        pull_request_url: branch.pullRequestUrl,
+                                        repository: branch.repository,
+                                    })),
+                                    error_code: cloudAgentWork.runs[0].errorCode,
+                                    run_id: cloudAgentWork.runs[0].runId,
+                                    status: cloudAgentWork.runs[0].status,
+                                    summary: cloudAgentWork.runs[0].summary,
+                                }
+                              : null,
+                          provider: cloudAgentWork.provider,
+                          provider_url: cloudAgentWork.providerUrl,
+                          repository: cloudAgentWork.repository,
+                          starting_ref: cloudAgentWork.startingRef,
+                          status: cloudAgentWork.status,
+                          title: cloudAgentWork.title,
                       },
                   }
                 : {}),

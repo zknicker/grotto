@@ -4,10 +4,11 @@ import type {
     AgentCommand,
     AgentInboxItem,
     AgentTurnSummary,
+    CloudAgentWorkAttention,
     ReminderScriptCommand,
     ReminderScriptResult,
 } from '@grotto/api';
-import { agentActionAttentionSchema } from '@grotto/api';
+import { agentActionAttentionSchema, cloudAgentWorkAttentionSchema } from '@grotto/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
     messageSelection,
@@ -22,6 +23,8 @@ import {
     agentMessageDraftsTable,
     agentsTable,
     chatMessagesTable,
+    cloudAgentRunsTable,
+    cloudAgentWorkTable,
 } from '../postgres/schema.ts';
 import {
     listReminderScriptCommands,
@@ -1379,6 +1382,16 @@ async function buildInboxItems(
             : [];
     const apiMessages = serverId ? await toAgentMessages(db, serverId, messageRows) : [];
     const apiMessageById = new Map(apiMessages.map((message) => [message.id, message]));
+    const cloudAgentWorkByRun =
+        serverId && rows.some((row) => row.source === 'cloud_agent_work')
+            ? await readCloudAgentWorkAttentions(
+                  db,
+                  serverId,
+                  rows
+                      .filter((row) => row.source === 'cloud_agent_work')
+                      .map((row) => row.dedupeKey)
+              )
+            : new Map();
     const actionIds = rows.filter((row) => row.source === 'action').map((row) => row.dedupeKey);
     const actionRows =
         serverId && actionIds.length > 0
@@ -1431,6 +1444,12 @@ async function buildInboxItems(
         if (row.source === 'action' && !actionAttention) {
             throw new Error(`Action attention ${row.dedupeKey} is missing.`);
         }
+        const cloudAgentWork =
+            row.source === 'cloud_agent_work' ? cloudAgentWorkByRun.get(row.dedupeKey) : undefined;
+        if (row.source === 'cloud_agent_work' && !cloudAgentWork) {
+            throw new Error(`Cloud Agent attention ${row.dedupeKey} is missing.`);
+        }
+        const attention = actionAttention ?? cloudAgentWork;
         if (actionAttention && actionAttention.chatId !== row.chatId) {
             throw new Error(`Action attention ${row.dedupeKey} targets the wrong Chat.`);
         }
@@ -1439,7 +1458,7 @@ async function buildInboxItems(
             ? row.source.slice('agent:'.length)
             : null;
         const apiMessage = apiMessageById.get(row.dedupeKey);
-        const senderHandle = actionAttention
+        const senderHandle = attention
             ? 'grotto'
             : row.source === 'human'
               ? (apiMessage?.sender.handle ?? humanHandleFromDmTarget(target))
@@ -1449,10 +1468,11 @@ async function buildInboxItems(
         }
         return {
             chatId: row.chatId,
-            content: actionAttention ? '' : row.content,
+            content: attention ? '' : row.content,
             createdAt: row.createdAt.toISOString(),
             id: row.dedupeKey,
             ...(actionAttention ? { actionAttention } : {}),
+            ...(cloudAgentWork ? { cloudAgentWork } : {}),
             ...(apiMessage?.ask
                 ? {
                       ask: {
@@ -1468,7 +1488,7 @@ async function buildInboxItems(
                 ? { senderDescription: apiMessage.sender.description }
                 : {}),
             senderHandle,
-            senderType: actionAttention
+            senderType: attention
                 ? ('system' as const)
                 : row.source === 'human'
                   ? ('human' as const)
@@ -1477,7 +1497,7 @@ async function buildInboxItems(
                     : agentHandle
                       ? ('agent' as const)
                       : ('system' as const),
-            sequence: actionAttention ? 0 : (sequenceByMessageId.get(row.dedupeKey) ?? 1),
+            sequence: attention ? 0 : (sequenceByMessageId.get(row.dedupeKey) ?? 1),
             ...(taskByMessage.get(row.dedupeKey) ? { task: taskByMessage.get(row.dedupeKey) } : {}),
             target,
         };
@@ -1487,6 +1507,43 @@ async function buildInboxItems(
 /** Server-authored typed work speaks as Grotto, not as its internal source. */
 function typedSenderHandle(source: string): string {
     return source === 'task_assignment' ? 'grotto' : source;
+}
+
+/**
+ * The terminal attention one settled Cloud Agent Run hands its delegating
+ * Agent: the outcome it needs to inspect the work and post results as ordinary
+ * Messages, keyed by the Run id the inbox row already carries.
+ */
+async function readCloudAgentWorkAttentions(
+    db: GrottoDatabase,
+    serverId: string,
+    runIds: string[]
+): Promise<Map<string, CloudAgentWorkAttention>> {
+    const rows = await db
+        .select({
+            branches: cloudAgentRunsTable.branches,
+            errorCode: cloudAgentRunsTable.errorCode,
+            provider: cloudAgentWorkTable.provider,
+            providerUrl: cloudAgentWorkTable.providerUrl,
+            repository: cloudAgentWorkTable.repository,
+            runId: cloudAgentRunsTable.id,
+            status: cloudAgentRunsTable.status,
+            summary: cloudAgentRunsTable.summary,
+            title: cloudAgentWorkTable.title,
+            workId: cloudAgentWorkTable.id,
+        })
+        .from(cloudAgentRunsTable)
+        .innerJoin(
+            cloudAgentWorkTable,
+            and(
+                eq(cloudAgentWorkTable.serverId, cloudAgentRunsTable.serverId),
+                eq(cloudAgentWorkTable.id, cloudAgentRunsTable.workId)
+            )
+        )
+        .where(
+            and(eq(cloudAgentRunsTable.serverId, serverId), inArray(cloudAgentRunsTable.id, runIds))
+        );
+    return new Map(rows.map((row) => [row.runId, cloudAgentWorkAttentionSchema.parse(row)]));
 }
 
 function humanHandleFromDmTarget(target: string): string | null {

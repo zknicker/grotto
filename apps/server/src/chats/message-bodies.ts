@@ -1,5 +1,6 @@
 import type { MessageBody } from '@grotto/api';
 import { readAsksForMessages } from '../asks/ask-shape.ts';
+import { readCloudAgentWorkForMessages } from '../cloud-agents/cloud-agent-shape.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 
 /**
@@ -12,6 +13,17 @@ export async function readMessageBodies(
     serverId: string,
     messageIds: string[]
 ): Promise<Map<string, MessageBody>> {
-    const asks = await readAsksForMessages(db, serverId, messageIds);
-    return new Map([...asks].map(([messageId, ask]) => [messageId, { ask, kind: 'ask' } as const]));
+    const [asks, cloudAgentWork] = await Promise.all([
+        readAsksForMessages(db, serverId, messageIds),
+        readCloudAgentWorkForMessages(db, serverId, messageIds),
+    ]);
+    return new Map<string, MessageBody>([
+        ...[...asks].map(
+            ([messageId, ask]) => [messageId, { ask, kind: 'ask' }] as [string, MessageBody]
+        ),
+        ...[...cloudAgentWork].map(
+            ([messageId, work]) =>
+                [messageId, { kind: 'cloud-agent-work', work }] as [string, MessageBody]
+        ),
+    ]);
 }

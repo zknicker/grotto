@@ -67,7 +67,7 @@ test('a Message body projects Cloud Agent work beside text and ask', () => {
         kind: 'cloud-agent-work',
         work: { id: 'caw_1234567890abcdef' },
     });
-    expect(formatCloudAgentWorkSuffix(work)).toBe(
+    expect(formatCloudAgentWorkSuffix(cloudAgentWorkSchema.parse(work))).toBe(
         ' [cloud-agent-work status=running title=Fix the flaky delivery test]'
     );
 });

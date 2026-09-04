@@ -11,6 +11,7 @@ import {
     agentTurnSummarySchema,
     agentWorkspaceResultSchema,
     browserResultSchema,
+    cloudAgentObservationFrameSchema,
     computerBootstrapHelloSchema,
     computerHeartbeatNegotiationSchema,
     computerHeartbeatSchema,
@@ -27,6 +28,9 @@ import { WebSocketServer } from 'ws';
 import { z } from 'zod';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { emitDurableChatEvent } from '../chats/durable-events.ts';
+import { applyCloudAgentObservation } from '../cloud-agents/apply-cloud-agent-observation.ts';
+import { listComputerCloudAgentWork } from '../cloud-agents/list-computer-cloud-agent-work.ts';
 import { emitServerUpdated } from '../grotto-api/server-events.ts';
 import { recordCoveApplyResult, sendPendingCoveApplication } from '../onboarding/create-cove.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -189,6 +193,9 @@ export function startComputerAttachmentSocket(
                         // Idempotent reconnect: resend unacknowledged deliveries and drain
                         // any pending inbox for this Computer's Agents.
                         void delivery.onComputerReconnect(computer.id).catch(() => undefined);
+                        void sendCloudAgentReconcile(db, connections, computer).catch(
+                            () => undefined
+                        );
                     } catch {
                         socket.close(4403, 'Computer credential was rejected.');
                     }
@@ -235,6 +242,26 @@ export function startComputerAttachmentSocket(
     };
 }
 
+/**
+ * Provider-hosted work outlives a socket, so every reconnect hands the Computer
+ * the work it still owns. The Computer reads each Run from the provider and
+ * reports an observation, which also applies any cancel recorded while it was
+ * offline.
+ */
+async function sendCloudAgentReconcile(
+    db: GrottoDatabase,
+    connections: ComputerConnections,
+    computer: { id: string; serverId: string }
+) {
+    const work = await listComputerCloudAgentWork(db, {
+        computerId: computer.id,
+        serverId: computer.serverId,
+    });
+    if (work.length > 0) {
+        connections.send(computer.id, { type: 'cloud-agent-reconcile', work });
+    }
+}
+
 function parseComputerHeartbeat(raw: string) {
     try {
         const parsed = computerHeartbeatSchema.safeParse(JSON.parse(raw));
@@ -278,6 +305,24 @@ async function ingestReport(
         return;
     }
     if (!ordinary) {
+        return;
+    }
+
+    const cloudAgentObservation = cloudAgentObservationFrameSchema.safeParse(frame);
+    if (cloudAgentObservation.success) {
+        const applied = await applyCloudAgentObservation(
+            db,
+            { computerId, observation: cloudAgentObservation.data.observation, serverId },
+            delivery
+        );
+        if (applied) {
+            emitDurableChatEvent({ audienceUserId: null, event: applied.event });
+            if (applied.wake) {
+                await delivery
+                    .dispatchAgent(applied.wake.agentId, applied.wake.serverId)
+                    .catch(() => undefined);
+            }
+        }
         return;
     }
 

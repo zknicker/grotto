@@ -13,6 +13,7 @@ import {
 import { asksTable } from './asks.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { chatsTable } from './chats.ts';
+import { cloudAgentWorkTable } from './cloud-agents.ts';
 import { preparedActionsTable } from './prepared-actions.ts';
 import { remindersTable } from './reminders.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
@@ -22,6 +23,7 @@ export const chatEventsTable = pgTable(
     {
         askId: text('ask_id'),
         chatId: text('chat_id'),
+        cloudAgentWorkId: text('cloud_agent_work_id'),
         chatAction: text('chat_action').$type<
             'archived' | 'created' | 'deleted' | 'unarchived' | 'updated'
         >(),
@@ -45,6 +47,7 @@ export const chatEventsTable = pgTable(
             .$type<
                 | 'ask.updated'
                 | 'chat.read'
+                | 'cloud-agent-work.updated'
                 | 'chat.lifecycle'
                 | 'message.created'
                 | 'prepared-action.updated'
@@ -74,6 +77,11 @@ export const chatEventsTable = pgTable(
             name: 'chat_events_ask_fk',
         }).onDelete('cascade'),
         foreignKey({
+            columns: [table.serverId, table.cloudAgentWorkId],
+            foreignColumns: [cloudAgentWorkTable.serverId, cloudAgentWorkTable.id],
+            name: 'chat_events_cloud_agent_work_fk',
+        }).onDelete('cascade'),
+        foreignKey({
             columns: [table.serverId, table.reminderId],
             foreignColumns: [remindersTable.serverId, remindersTable.id],
             name: 'chat_events_reminder_fk',
@@ -98,6 +106,7 @@ export const chatEventsTable = pgTable(
             sql`(
                 (${table.type} = 'ask.updated'
                     AND ${table.askId} IS NOT NULL
+                    AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.chatId} IS NOT NULL
                     AND ${table.messageId} IS NOT NULL
                     AND ${table.actionId} IS NULL
@@ -106,6 +115,19 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
+                    AND ${table.sequence} > 0)
+                OR
+                (${table.type} = 'cloud-agent-work.updated'
+                    AND ${table.cloudAgentWorkId} IS NOT NULL
+                    AND ${table.chatId} IS NOT NULL
+                    AND ${table.messageId} IS NOT NULL
+                    AND ${table.actionId} IS NULL
+                    AND ${table.actionStatus} IS NULL
+                    AND ${table.labelId} IS NULL
+                    AND ${table.readerUserId} IS NULL
+                    AND ${table.reminderId} IS NULL
+                    AND ${table.reminderAction} IS NULL
+                    AND ${table.askId} IS NULL
                     AND ${table.sequence} > 0)
                 OR
                 (${table.type} = 'message.created'
@@ -118,6 +140,7 @@ export const chatEventsTable = pgTable(
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
                     AND ${table.askId} IS NULL
+                    AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} > 0)
                 OR
                 (${table.type} = 'prepared-action.updated'
@@ -130,6 +153,7 @@ export const chatEventsTable = pgTable(
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
                     AND ${table.askId} IS NULL
+                    AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} > 0)
                 OR
                 (${table.type} = 'chat.lifecycle'
@@ -146,6 +170,7 @@ export const chatEventsTable = pgTable(
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
                     AND ${table.askId} IS NULL
+                    AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} = 0)
                 OR
                 (${table.type} IN ('task.created', 'task.updated')
@@ -158,6 +183,7 @@ export const chatEventsTable = pgTable(
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
                     AND ${table.askId} IS NULL
+                    AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} > 0)
                 OR
                 (${table.type} = 'chat.read'
@@ -170,6 +196,7 @@ export const chatEventsTable = pgTable(
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
                     AND ${table.askId} IS NULL
+                    AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} >= 0)
                 OR
                 (${table.type} = 'thread.follow.updated'
@@ -182,6 +209,7 @@ export const chatEventsTable = pgTable(
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
                     AND ${table.askId} IS NULL
+                    AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} >= 0)
                 OR
                 (${table.type} = 'reminder.changed'
@@ -196,6 +224,7 @@ export const chatEventsTable = pgTable(
                         'scheduled', 'updated', 'snoozed', 'canceled', 'fired'
                     )
                     AND ${table.askId} IS NULL
+                    AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} >= 0)
                 OR
                 (${table.type} = 'task.label.updated'
@@ -208,6 +237,7 @@ export const chatEventsTable = pgTable(
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
                     AND ${table.askId} IS NULL
+                    AND ${table.cloudAgentWorkId} IS NULL
                     AND ${table.sequence} = 0)
             )`
         ),

@@ -88,11 +88,18 @@ export async function startCloudAgentWork(input: {
     }
     const receipt = agentCloudAgentReceiptSchema.parse(payload);
     const ref: CloudAgentRunRef = {
-        providerAgentId: null,
-        providerRunId: null,
+        providerAgentId: receipt.work.providerAgentId,
+        providerRunId: receipt.work.runs[0]?.providerRunId ?? null,
         runId: receipt.runId,
         workId: receipt.work.id,
     };
+    // A replayed nonce returns the work Server already recorded. Launching
+    // again would strand a second provider agent against a Run that is already
+    // running or settled, so reconcile that Run instead.
+    if (receipt.idempotent) {
+        await reconcileRun(input.serverId, ref);
+        return receipt;
+    }
 
     try {
         const launch = await provider.start({
@@ -152,28 +159,45 @@ export async function reconcileCloudAgentWork(
     serverId: string,
     entries: CloudAgentReconcileEntry[]
 ): Promise<void> {
-    const provider = cloudAgentProvider();
     for (const entry of entries) {
-        const ref: CloudAgentRunRef = {
-            providerAgentId: entry.providerAgentId,
-            providerRunId: entry.providerRunId,
-            runId: entry.runId,
-            workId: entry.workId,
-        };
-        try {
-            if (entry.cancelRequested) {
-                await provider.cancel(ref);
-            }
-            report(serverId, ref, await provider.read(ref));
-            watchRun(serverId, ref);
-        } catch (cause) {
-            report(serverId, ref, {
-                errorCode: 'provider-unreadable',
-                observedAt: new Date().toISOString(),
-                status: 'failed',
-                summary: cause instanceof Error ? cause.message : String(cause),
-            });
+        await reconcileRun(
+            serverId,
+            {
+                providerAgentId: entry.providerAgentId,
+                providerRunId: entry.providerRunId,
+                runId: entry.runId,
+                workId: entry.workId,
+            },
+            entry.cancelRequested
+        );
+    }
+}
+
+/**
+ * Reads one Run from the provider and reports what it finds. A provider that
+ * cannot be reached reports nothing: the work stays non-terminal with a stale
+ * `updatedAt`, which the presentation already accounts for, and the next
+ * reconnect tries again. Settling live provider work on a transient read
+ * failure would be a lie.
+ */
+async function reconcileRun(
+    serverId: string,
+    ref: CloudAgentRunRef,
+    cancelRequested = false
+): Promise<void> {
+    const provider = cloudAgentProvider();
+    try {
+        if (cancelRequested) {
+            await provider.cancel(ref);
         }
+        report(serverId, ref, await provider.read(ref));
+        watchRun(serverId, ref);
+    } catch (error) {
+        console.error(
+            `Cloud Agent run ${ref.runId} could not be read: ${
+                error instanceof Error ? error.message : String(error)
+            }`
+        );
     }
 }
 

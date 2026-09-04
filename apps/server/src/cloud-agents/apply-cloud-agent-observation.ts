@@ -45,9 +45,9 @@ export async function applyCloudAgentObservation(
                 computerId: cloudAgentWorkTable.computerId,
                 messageId: cloudAgentWorkTable.messageId,
                 observedAt: cloudAgentRunsTable.observedAt,
-                runStatus: cloudAgentRunsTable.status,
-                startedAt: cloudAgentWorkTable.startedAt,
+                runStartedAt: cloudAgentRunsTable.startedAt,
                 terminalAt: cloudAgentRunsTable.terminalAt,
+                workStartedAt: cloudAgentWorkTable.startedAt,
             })
             .from(cloudAgentRunsTable)
             .innerJoin(
@@ -83,7 +83,7 @@ export async function applyCloudAgentObservation(
                 observedAt,
                 ...(observation.providerRunId ? { providerRunId: observation.providerRunId } : {}),
                 ...(observation.rawStatus ? { rawStatus: observation.rawStatus } : {}),
-                ...(startedAt && !row.startedAt ? { startedAt } : {}),
+                ...(startedAt && !row.runStartedAt ? { startedAt } : {}),
                 status: observation.status,
                 ...(observation.summary ? { summary: observation.summary } : {}),
                 terminalAt: settling ? observedAt : null,
@@ -109,7 +109,7 @@ export async function applyCloudAgentObservation(
                     ? { providerAgentId: observation.providerAgentId }
                     : {}),
                 ...(observation.providerUrl ? { providerUrl: observation.providerUrl } : {}),
-                ...(startedAt && !row.startedAt ? { startedAt } : {}),
+                ...(startedAt && !row.workStartedAt ? { startedAt } : {}),
                 status: observation.status,
                 terminalAt: settling ? observedAt : null,
                 updatedAt: observedAt,

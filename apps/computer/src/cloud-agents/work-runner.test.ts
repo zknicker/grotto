@@ -264,7 +264,7 @@ test('reconnect reconciliation reads every non-terminal Run and applies pending 
     });
 });
 
-test('a provider that cannot be read reports a failure rather than going silent', async () => {
+test('a provider that cannot be read leaves the work alone for the next reconnect', async () => {
     const provider = install(createFakeCloudAgentProvider());
     provider.read = () => Promise.reject(new Error('The provider is unreachable.'));
     const observations = collect();
@@ -281,9 +281,23 @@ test('a provider that cannot be read reports a failure rather than going silent'
         },
     ]);
 
-    expect(observations[0]).toMatchObject({
-        errorCode: 'provider-unreadable',
-        status: 'failed',
-        workId,
+    // Settling live provider work on a transient read failure would be a lie.
+    expect(observations).toHaveLength(0);
+});
+
+test('a replayed nonce reconciles the recorded Run instead of launching a second one', async () => {
+    const provider = install(createFakeCloudAgentProvider());
+    stubServer({ ...receipt, idempotent: true });
+    const observations = collect();
+
+    const result = await startCloudAgentWork({
+        request,
+        runnerToken: 'grtr_x',
+        serverId,
+        serverOrigin,
     });
+
+    expect(result.idempotent).toBe(true);
+    expect(provider.launches).toHaveLength(0);
+    expect(observations[0]).toMatchObject({ runId, workId });
 });

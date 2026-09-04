@@ -1391,7 +1391,7 @@ async function buildInboxItems(
                       .filter((row) => row.source === 'cloud_agent_work')
                       .map((row) => row.dedupeKey)
               )
-            : new Map();
+            : new Map<string, CloudAgentWorkAttention>();
     const actionIds = rows.filter((row) => row.source === 'action').map((row) => row.dedupeKey);
     const actionRows =
         serverId && actionIds.length > 0

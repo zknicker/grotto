@@ -191,11 +191,17 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
  * pairing screen, neither of which a signed-in reader can reach on purpose.
  */
 function AccountSection() {
-    const signOut = useSignOut();
-
+    // The gate has to come before the hook: `useSignOut` reads Clerk context,
+    // and a keyless build (dev, e2e) mounts no ClerkProvider for it to read.
     if (!isClerkEnabled) {
         return null;
     }
+
+    return <SignOutSection />;
+}
+
+function SignOutSection() {
+    const signOut = useSignOut();
 
     return (
         <ItemCardGroup variant="transparent">

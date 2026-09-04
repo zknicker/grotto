@@ -243,6 +243,86 @@ final class GrottoModelsTests: XCTestCase {
         XCTAssertEqual(author, .system(.task))
     }
 
+    func testDecodesTriggerSystemAuthor() throws {
+        let json = """
+        {"kind":"system","system":"trigger"}
+        """
+
+        let author = try GrottoJSON.decoder().decode(ChatAuthor.self, from: Data(json.utf8))
+
+        XCTAssertEqual(author, .system(.trigger))
+    }
+
+    func testDecodesUnknownSystemAuthorInsteadOfFailingThePage() throws {
+        let json = """
+        {"kind":"system","system":"future-system-author"}
+        """
+
+        let author = try GrottoJSON.decoder().decode(ChatAuthor.self, from: Data(json.utf8))
+
+        XCTAssertEqual(author, .system(.unknown("future-system-author")))
+        XCTAssertEqual(author.kind, .system)
+    }
+
+    func testDecodesAnAgentMessageSessionGeneration() throws {
+        let message = try GrottoJSON.decoder().decode(
+            ChatMessage.self,
+            from: Data(
+                """
+                {"attachments":[],"author":{"agentId":"agent_1","kind":"agent"},"chatId":"chat_1","content":"On it.","createdAt":"2026-08-15T14:00:02Z","id":"message_2","nonce":"nonce_2","runId":"run_1","sequence":2,"serverId":"server_1","sessionGeneration":4}
+                """.utf8
+            )
+        )
+
+        XCTAssertEqual(message.sessionGeneration, 4)
+    }
+
+    /// A human message carries a null generation, and a Server that predates
+    /// the field omits the key. Neither may cost the reader the row.
+    func testDecodesAMessageWithoutASessionGeneration() throws {
+        let explicitNull = try GrottoJSON.decoder().decode(
+            ChatMessage.self,
+            from: Data(
+                """
+                {"attachments":[],"author":{"kind":"human","userId":"user_1"},"chatId":"chat_1","content":"Please review this.","createdAt":"2026-08-15T14:00:00Z","id":"message_1","nonce":"nonce_1","runId":null,"sequence":1,"serverId":"server_1","sessionGeneration":null}
+                """.utf8
+            )
+        )
+        XCTAssertNil(explicitNull.sessionGeneration)
+
+        let absentKey = try GrottoJSON.decoder().decode(
+            ChatMessage.self,
+            from: Data(
+                """
+                {"attachments":[],"author":{"kind":"human","userId":"user_1"},"chatId":"chat_1","content":"Please review this.","createdAt":"2026-08-15T14:00:00Z","id":"message_1","nonce":"nonce_1","runId":null,"sequence":1,"serverId":"server_1"}
+                """.utf8
+            )
+        )
+        XCTAssertNil(absentKey.sessionGeneration)
+        XCTAssertEqual(absentKey.content, "Please review this.")
+    }
+
+    /// The Server no longer writes a system author, so an ordinary page is all
+    /// human and Agent rows. Nothing in the transcript may require one.
+    func testDecodesAnAgentMessagePageWithNoSystemRows() throws {
+        let json = """
+        {
+          "messages": [
+            {"attachments":[],"author":{"kind":"human","userId":"user_1"},"chatId":"chat_1","content":"Please review this.","createdAt":"2026-08-15T14:00:00Z","id":"message_1","nonce":"nonce_1","runId":null,"sequence":1,"serverId":"server_1","sessionGeneration":null},
+            {"attachments":[],"author":{"agentId":"agent_1","kind":"agent"},"chatId":"chat_1","content":"Reviewed.","createdAt":"2026-08-15T14:00:02Z","id":"message_2","nonce":"nonce_2","runId":"run_1","sequence":2,"serverId":"server_1","sessionGeneration":7}
+          ],
+          "nextBeforeSequence": null,
+          "threads": []
+        }
+        """
+
+        let page = try GrottoJSON.decoder().decode(ChatMessagePage.self, from: Data(json.utf8))
+
+        XCTAssertEqual(page.messages.map(\.author.kind), [.human, .agent])
+        XCTAssertFalse(page.messages.contains { $0.author.kind == .system })
+        XCTAssertEqual(page.messages.map(\.sessionGeneration), [nil, 7])
+    }
+
     func testFixturesUseTheProductionDecoder() {
         XCTAssertEqual(GrottoPreviewFixtures.server.slug, "grotto")
         XCTAssertEqual(GrottoPreviewFixtures.agents.first?.displayName, "Cove")

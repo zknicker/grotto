@@ -80,14 +80,45 @@ public struct ChatAuthorProfile: Codable, Sendable, Equatable {
 public enum ChatAuthor: Codable, Sendable, Equatable {
     case agent(agentID: String, profile: ChatAuthorProfile?)
     case human(profile: ChatAuthorProfile?, userID: String)
+    /// Retired on the Server: every message it writes now carries a `human` or
+    /// `agent` author. The case survives only so historical pages still decode,
+    /// and nothing may require a transcript to contain one.
     case system(SystemAuthor)
 
-    public enum SystemAuthor: String, Codable, Sendable {
+    /// Server-defined system author values. Decoding is tolerant of any value
+    /// this build does not yet know about: an `unknown` case preserves the raw
+    /// wire string instead of failing the whole message page, since new system
+    /// authors ship on the Server independent of client releases.
+    public enum SystemAuthor: Codable, Sendable, Equatable {
         case reminder
         case session
         // Production history can still contain retired task receipts. The UI filters
         // system-authored rows, but decoding must preserve access to the chat page.
         case task
+        case trigger
+        case unknown(String)
+
+        public init(from decoder: Decoder) throws {
+            let raw = try decoder.singleValueContainer().decode(String.self)
+            switch raw {
+            case "reminder": self = .reminder
+            case "session": self = .session
+            case "task": self = .task
+            case "trigger": self = .trigger
+            default: self = .unknown(raw)
+            }
+        }
+
+        public func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            switch self {
+            case .reminder: try container.encode("reminder")
+            case .session: try container.encode("session")
+            case .task: try container.encode("task")
+            case .trigger: try container.encode("trigger")
+            case .unknown(let raw): try container.encode(raw)
+            }
+        }
     }
 
     public var kind: Kind {
@@ -157,6 +188,9 @@ public enum ChatAuthor: Codable, Sendable, Equatable {
 public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
     public let attachments: [AttachmentMetadata]
     public let author: ChatAuthor
+    /// The automation fire that produced this message, when the Server
+    /// reported one. Decoded tolerantly in `ChatMessageCause.swift`.
+    public let cause: ChatMessageCause?
     public let chatID: String
     public let content: String
     public let createdAt: Date
@@ -166,11 +200,16 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
     public let runID: String?
     public let sequence: Int
     public let serverID: String
+    /// The Agent session generation that produced this message. Null on human
+    /// messages, and absent from Servers that predate the field, so it decodes
+    /// tolerantly and no reader may require it.
+    public let sessionGeneration: Int?
     public let task: MessageTask?
 
     enum CodingKeys: String, CodingKey {
         case attachments
         case author
+        case cause
         case chatID = "chatId"
         case content
         case createdAt
@@ -180,6 +219,7 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
         case runID = "runId"
         case sequence
         case serverID = "serverId"
+        case sessionGeneration
         case task
     }
 }

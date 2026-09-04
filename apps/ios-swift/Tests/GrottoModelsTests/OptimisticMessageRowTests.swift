@@ -50,6 +50,7 @@ final class OptimisticMessageRowTests: XCTestCase {
         ChatMessage(
             attachments: [],
             author: .human(profile: nil, userID: "user-1"),
+            cause: nil,
             chatID: "chat-1",
             content: "hello",
             createdAt: Date(timeIntervalSince1970: 0),
@@ -59,6 +60,7 @@ final class OptimisticMessageRowTests: XCTestCase {
             runID: nil,
             sequence: 1,
             serverID: "server-1",
+            sessionGeneration: nil,
             task: nil
         )
     }

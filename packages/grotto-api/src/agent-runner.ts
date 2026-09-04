@@ -38,7 +38,7 @@ export const agentInboxItemSchema = z
         mentioned: z.boolean().optional(),
         senderDescription: z.string().trim().max(500).optional(),
         senderHandle: z.string().trim().min(1).max(128),
-        senderType: z.enum(['agent', 'human', 'system']),
+        senderType: z.enum(['agent', 'human', 'system', 'trigger']),
         /** Chat sequence, or zero for a typed attention with no Chat cursor. */
         sequence: z.number().int().nonnegative(),
         task: messageTaskSchema.optional(),
@@ -722,6 +722,8 @@ export type RunnerRevokeRequest = z.infer<typeof runnerRevokeRequestSchema>;
 export const agentSendInputSchema = z
     .object({
         attachmentIds: z.array(idSchema).max(20).default([]),
+        /** The Trigger or Reminder fire this message answers, recorded as provenance. */
+        cause: z.string().trim().min(1).max(200).optional(),
         compositionId: z.string().trim().min(1).max(200).optional(),
         content: z.string().max(32_000).optional(),
         continueAnyway: z.boolean().default(false),

@@ -702,6 +702,130 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/triggers/{trigger_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deliver one outside event to an agent-owned trigger.
+         * @description Authenticated by the trigger's own bearer secret, not a Grotto session. The body is stored and relayed verbatim, up to 65536 UTF-8 bytes; the Server never parses it. An unknown trigger and a wrong secret both answer 401 so the route never confirms that a trigger exists.
+         */
+        post: operations["fireTrigger"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/triggers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List triggers owned by the calling agent. */
+        get: operations["listAgentTriggers"];
+        put?: never;
+        /** Create a trigger anchored to a writable message. */
+        post: operations["createAgentTrigger"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/triggers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one owned trigger. */
+        get: operations["readAgentTrigger"];
+        put?: never;
+        post?: never;
+        /** Delete one owned trigger and its fire history. */
+        delete: operations["deleteAgentTrigger"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/triggers/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop an owned trigger from accepting deliveries. */
+        post: operations["disableAgentTrigger"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/triggers/{id}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Arm an owned trigger again. */
+        post: operations["enableAgentTrigger"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/triggers/{id}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace an owned trigger's bearer secret. */
+        post: operations["rotateAgentTriggerSecret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/triggers/{id}/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read fire history, or one fire with its stored payload. */
+        get: operations["readAgentTriggerLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agent/attachments/upload": {
         parameters: {
             query?: never;
@@ -968,6 +1092,7 @@ export interface components {
             continueAnyway?: boolean;
             compositionId?: string;
             nonce?: string;
+            cause?: string;
         };
         AgentActionPrepareRequest: {
             action: components["schemas"]["ActionCardAction"];
@@ -1251,6 +1376,93 @@ export interface components {
             number: number;
             status: components["schemas"]["AgentTaskStatus"];
             target: string;
+        };
+        /** @enum {string} */
+        TriggerKind: "webhook";
+        Trigger: {
+            anchorChatId: string;
+            anchorMessageId: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            createdByHandle: string | null;
+            createdByUserId: string | null;
+            /** Format: date-time */
+            disabledAt: string | null;
+            fireCount: number;
+            id: string;
+            instruction: string | null;
+            kind: components["schemas"]["TriggerKind"];
+            /** Format: date-time */
+            lastFiredAt: string | null;
+            ownerAgentId: string;
+            ownerHandle: string;
+            /** @enum {string} */
+            status: "armed" | "disabled";
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            url: string;
+            version: number;
+        };
+        AgentTrigger: components["schemas"]["Trigger"] & {
+            anchorTarget: string;
+        };
+        TriggerFire: {
+            contentType: string | null;
+            dedupeKey: string | null;
+            id: string;
+            payloadBytes: number;
+            /** Format: date-time */
+            receivedAt: string;
+            triggerId: string;
+        };
+        TriggerFireDetail: components["schemas"]["TriggerFire"] & {
+            payload: string;
+        };
+        TriggerFireAccepted: {
+            /** @enum {boolean} */
+            duplicate?: true;
+            fireId: string;
+            triggerId: string;
+            /** @enum {string} */
+            type: "trigger_fire";
+        };
+        TriggerFireError: {
+            /** @enum {string} */
+            code: "invalid_idempotency_key" | "payload_too_large" | "rate_limited" | "trigger_disabled" | "trigger_unavailable" | "unauthorized" | "unsupported_media_type";
+        };
+        AgentTriggerCreateRequest: {
+            /** @description Standing instruction, at most 4096 UTF-8 bytes. */
+            instruction?: string;
+            kind?: components["schemas"]["TriggerKind"];
+            messageId: string;
+            title: string;
+        };
+        AgentTriggerSingleResponse: {
+            trigger: components["schemas"]["AgentTrigger"];
+        };
+        AgentTriggerListResponse: {
+            triggers: components["schemas"]["AgentTrigger"][];
+        };
+        AgentTriggerSecretResponse: {
+            curl: string;
+            secret: string;
+            trigger: components["schemas"]["AgentTrigger"];
+            url: string;
+        };
+        AgentTriggerDeleteResponse: {
+            /** @enum {boolean} */
+            deleted: true;
+            id: string;
+        };
+        AgentTriggerLogResponse: {
+            /** @enum {string} */
+            kind: "fires";
+            fires: components["schemas"]["TriggerFire"][];
+        } | {
+            /** @enum {string} */
+            kind: "fire";
+            fire: components["schemas"]["TriggerFireDetail"];
         };
         AgentReminder: {
             anchorTarget: string;
@@ -1848,6 +2060,7 @@ export interface components {
     parameters: {
         AgentTarget: string;
         ChatId: components["schemas"]["ChatId"];
+        TriggerId: string;
         RunId: components["schemas"]["RunId"];
         Cursor: string;
         Limit: number;
@@ -3013,6 +3226,239 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentReminderSingleResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    fireTrigger: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                trigger_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "*/*": string;
+            };
+        };
+        responses: {
+            /** @description The Idempotency-Key matched an existing fire. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriggerFireAccepted"];
+                };
+            };
+            /** @description The fire was recorded and the owning Agent was woken. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriggerFireAccepted"];
+                };
+            };
+            /** @description The delivery was refused. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriggerFireError"];
+                };
+            };
+        };
+    };
+    listAgentTriggers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owned triggers. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTriggerListResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    createAgentTrigger: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentTriggerCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description The created trigger and its one readable secret. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTriggerSecretResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    readAgentTrigger: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["TriggerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The owned trigger. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTriggerSingleResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    deleteAgentTrigger: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["TriggerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The trigger was deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTriggerDeleteResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    disableAgentTrigger: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["TriggerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The disabled trigger. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTriggerSingleResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    enableAgentTrigger: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["TriggerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The armed trigger. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTriggerSingleResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    rotateAgentTriggerSecret: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["TriggerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The trigger and its new, once-readable secret. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTriggerSecretResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    readAgentTriggerLog: {
+        parameters: {
+            query?: {
+                fire?: string;
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["TriggerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Trigger fires. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTriggerLogResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

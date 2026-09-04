@@ -55,7 +55,6 @@ describe('reminder contracts', () => {
                 {
                     firedAt: '2026-07-26T14:00:00.000Z',
                     id: 'rmf_one',
-                    receiptMessageId: 'msg_receipt',
                     reminderId: 'rem_one',
                     scheduledFor: '2026-07-26T13:00:00.000Z',
                 },

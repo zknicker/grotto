@@ -1002,6 +1002,181 @@ paths:
                 $ref: '#/components/schemas/AgentReminderSingleResponse'
         default:
           $ref: '#/components/responses/AgentError'
+  /api/triggers/{trigger_id}:
+    post:
+      operationId: fireTrigger
+      tags: [Triggers]
+      summary: Deliver one outside event to an agent-owned trigger.
+      description: >-
+        Authenticated by the trigger's own bearer secret, not a Grotto session.
+        The body is stored and relayed verbatim, up to 65536 UTF-8 bytes; the
+        Server never parses it. An unknown trigger and a wrong secret both answer
+        401 so the route never confirms that a trigger exists.
+      security: []
+      parameters:
+        - name: trigger_id
+          in: path
+          required: true
+          schema: { type: string, minLength: 1 }
+        - name: Idempotency-Key
+          in: header
+          schema: { type: string, minLength: 1, maxLength: 200 }
+      requestBody:
+        required: false
+        content:
+          '*/*':
+            schema: { type: string }
+      responses:
+        '202':
+          description: The fire was recorded and the owning Agent was woken.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriggerFireAccepted'
+        '200':
+          description: The Idempotency-Key matched an existing fire.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriggerFireAccepted'
+        default:
+          description: The delivery was refused.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriggerFireError'
+  /api/agent/triggers:
+    get:
+      operationId: listAgentTriggers
+      tags: [Agent CLI]
+      summary: List triggers owned by the calling agent.
+      responses:
+        '200':
+          description: Owned triggers.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTriggerListResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
+    post:
+      operationId: createAgentTrigger
+      tags: [Agent CLI]
+      summary: Create a trigger anchored to a writable message.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentTriggerCreateRequest'
+      responses:
+        '200':
+          description: The created trigger and its one readable secret.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTriggerSecretResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
+  /api/agent/triggers/{id}:
+    get:
+      operationId: readAgentTrigger
+      tags: [Agent CLI]
+      summary: Read one owned trigger.
+      parameters:
+        - $ref: '#/components/parameters/TriggerId'
+      responses:
+        '200':
+          description: The owned trigger.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTriggerSingleResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
+    delete:
+      operationId: deleteAgentTrigger
+      tags: [Agent CLI]
+      summary: Delete one owned trigger and its fire history.
+      parameters:
+        - $ref: '#/components/parameters/TriggerId'
+      responses:
+        '200':
+          description: The trigger was deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTriggerDeleteResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
+  /api/agent/triggers/{id}/disable:
+    post:
+      operationId: disableAgentTrigger
+      tags: [Agent CLI]
+      summary: Stop an owned trigger from accepting deliveries.
+      parameters:
+        - $ref: '#/components/parameters/TriggerId'
+      responses:
+        '200':
+          description: The disabled trigger.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTriggerSingleResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
+  /api/agent/triggers/{id}/enable:
+    post:
+      operationId: enableAgentTrigger
+      tags: [Agent CLI]
+      summary: Arm an owned trigger again.
+      parameters:
+        - $ref: '#/components/parameters/TriggerId'
+      responses:
+        '200':
+          description: The armed trigger.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTriggerSingleResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
+  /api/agent/triggers/{id}/rotate:
+    post:
+      operationId: rotateAgentTriggerSecret
+      tags: [Agent CLI]
+      summary: Replace an owned trigger's bearer secret.
+      parameters:
+        - $ref: '#/components/parameters/TriggerId'
+      responses:
+        '200':
+          description: The trigger and its new, once-readable secret.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTriggerSecretResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
+  /api/agent/triggers/{id}/log:
+    get:
+      operationId: readAgentTriggerLog
+      tags: [Agent CLI]
+      summary: Read fire history, or one fire with its stored payload.
+      parameters:
+        - $ref: '#/components/parameters/TriggerId'
+        - name: fire
+          in: query
+          schema: { type: string, minLength: 1 }
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Trigger fires.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTriggerLogResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
   /api/agent/attachments/upload:
     post:
       operationId: uploadAgentAttachment
@@ -1279,6 +1454,13 @@ components:
       required: true
       schema:
         $ref: '#/components/schemas/ChatId'
+    TriggerId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
     RunId:
       name: run_id
       in: path
@@ -1403,6 +1585,9 @@ components:
         continueAnyway: { type: boolean }
         compositionId: { type: string, minLength: 1 }
         nonce: { type: string, minLength: 1 }
+        # The Trigger or Reminder fire this message answers, recorded as
+        # message provenance. Optional: a send without it is ordinary.
+        cause: { type: string, minLength: 1, maxLength: 200 }
     AgentActionPrepareRequest:
       type: object
       additionalProperties: false
@@ -1866,6 +2051,142 @@ components:
         status:
           $ref: '#/components/schemas/AgentTaskStatus'
         target: { type: string, minLength: 1 }
+    TriggerKind:
+      type: string
+      enum: [webhook]
+    Trigger:
+      type: object
+      additionalProperties: false
+      required: [anchorChatId, anchorMessageId, createdAt, createdByHandle, createdByUserId, disabledAt, fireCount, id, instruction, kind, lastFiredAt, ownerAgentId, ownerHandle, status, title, updatedAt, url, version]
+      properties:
+        anchorChatId: { type: string }
+        anchorMessageId: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+        createdByHandle: { type: [string, 'null'] }
+        createdByUserId: { type: [string, 'null'] }
+        disabledAt: { type: [string, 'null'], format: date-time }
+        fireCount: { type: integer, minimum: 0 }
+        id: { type: string }
+        instruction: { type: [string, 'null'] }
+        kind:
+          $ref: '#/components/schemas/TriggerKind'
+        lastFiredAt: { type: [string, 'null'], format: date-time }
+        ownerAgentId: { type: string }
+        ownerHandle: { type: string }
+        status: { type: string, enum: [armed, disabled] }
+        title: { type: string, maxLength: 200 }
+        updatedAt: { type: string, format: date-time }
+        url: { type: string }
+        version: { type: integer, minimum: 1 }
+    AgentTrigger:
+      allOf:
+        - $ref: '#/components/schemas/Trigger'
+        - type: object
+          required: [anchorTarget]
+          properties:
+            anchorTarget: { type: string }
+    TriggerFire:
+      type: object
+      additionalProperties: false
+      required: [contentType, dedupeKey, id, payloadBytes, receivedAt, triggerId]
+      properties:
+        contentType: { type: [string, 'null'] }
+        dedupeKey: { type: [string, 'null'] }
+        id: { type: string }
+        payloadBytes: { type: integer, minimum: 0 }
+        receivedAt: { type: string, format: date-time }
+        triggerId: { type: string }
+    TriggerFireDetail:
+      allOf:
+        - $ref: '#/components/schemas/TriggerFire'
+        - type: object
+          required: [payload]
+          properties:
+            payload: { type: string }
+    TriggerFireAccepted:
+      type: object
+      additionalProperties: false
+      required: [fireId, triggerId, type]
+      properties:
+        duplicate: { type: boolean, enum: [true] }
+        fireId: { type: string }
+        triggerId: { type: string }
+        type: { type: string, enum: [trigger_fire] }
+    TriggerFireError:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code:
+          type: string
+          enum: [invalid_idempotency_key, payload_too_large, rate_limited, trigger_disabled, trigger_unavailable, unauthorized, unsupported_media_type]
+    AgentTriggerCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [messageId, title]
+      properties:
+        instruction:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: Standing instruction, at most 4096 UTF-8 bytes.
+        kind:
+          $ref: '#/components/schemas/TriggerKind'
+        messageId: { type: string, minLength: 1 }
+        title: { type: string, minLength: 1, maxLength: 200 }
+    AgentTriggerSingleResponse:
+      type: object
+      additionalProperties: false
+      required: [trigger]
+      properties:
+        trigger:
+          $ref: '#/components/schemas/AgentTrigger'
+    AgentTriggerListResponse:
+      type: object
+      additionalProperties: false
+      required: [triggers]
+      properties:
+        triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentTrigger'
+    AgentTriggerSecretResponse:
+      type: object
+      additionalProperties: false
+      required: [curl, secret, trigger, url]
+      properties:
+        curl: { type: string }
+        secret: { type: string }
+        trigger:
+          $ref: '#/components/schemas/AgentTrigger'
+        url: { type: string }
+    AgentTriggerDeleteResponse:
+      type: object
+      additionalProperties: false
+      required: [deleted, id]
+      properties:
+        deleted: { type: boolean, enum: [true] }
+        id: { type: string }
+    AgentTriggerLogResponse:
+      discriminator:
+        propertyName: kind
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [fires, kind]
+          properties:
+            kind: { type: string, enum: [fires] }
+            fires:
+              type: array
+              items:
+                $ref: '#/components/schemas/TriggerFire'
+        - type: object
+          additionalProperties: false
+          required: [fire, kind]
+          properties:
+            kind: { type: string, enum: [fire] }
+            fire:
+              $ref: '#/components/schemas/TriggerFireDetail'
     AgentReminder:
       type: object
       additionalProperties: false

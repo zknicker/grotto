@@ -437,6 +437,38 @@ export type AgentTurnsInput = z.infer<typeof agentTurnsInputSchema>;
 
 export const agentTurnsSchema = z.array(agentTurnSchema);
 
+/** Why an Agent's session was rotated; the App names the reason on the mark. */
+export const agentSessionRotationReasonSchema = z.enum([
+    'configuration',
+    'full',
+    'recovery',
+    'session',
+]);
+
+export type AgentSessionRotationReason = z.infer<typeof agentSessionRotationReasonSchema>;
+
+export const agentSessionRotationInputSchema = agentDetailInputSchema.extend({
+    generation: z.number().int().positive(),
+});
+
+export type AgentSessionRotationInput = z.infer<typeof agentSessionRotationInputSchema>;
+
+/**
+ * One session rotation, read by the session mark's hover card. Messages carry
+ * the generation that wrote them; this is the durable record of the moment that
+ * generation began. `previousDurationMs` is null for the first known rotation.
+ */
+export const agentSessionRotationSchema = z
+    .object({
+        generation: z.number().int().positive(),
+        previousDurationMs: z.number().int().nonnegative().nullable(),
+        reason: agentSessionRotationReasonSchema,
+        rotatedAt: timestampSchema,
+    })
+    .strict();
+
+export type AgentSessionRotation = z.infer<typeof agentSessionRotationSchema>;
+
 /**
  * One durable delivery of one unit of work to one Agent. `seen` rows are
  * retained after settlement with the `turnId` that consumed them, so an

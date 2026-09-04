@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { attachmentMetadataSchema } from './attachments.ts';
+import { messageCauseSchema } from './automation.ts';
 import { preparedActionSchema, preparedActionStatusSchema } from './prepared-actions.ts';
 import { messageTaskSchema } from './task-shared.ts';
 
@@ -37,24 +38,29 @@ export const chatMessageAuthorSchema = z.discriminatedUnion('kind', [
             userId: idSchema,
         })
         .strict(),
-    z
-        .object({ kind: z.literal('system'), system: z.enum(['reminder', 'session', 'task']) })
-        .strict(),
 ]);
 
 export const chatMessageSchema = z
     .object({
         attachments: z.array(attachmentMetadataSchema).default([]),
         author: chatMessageAuthorSchema,
+        /** Why an Agent wrote this: the Trigger or Reminder fire it answered. */
+        cause: messageCauseSchema.optional(),
         chatId: idSchema,
         content: z.string().max(32_000),
         createdAt: timestampSchema,
         id: idSchema,
         nonce: z.string().trim().min(1).max(128),
         preparedAction: preparedActionSchema.optional(),
-        /** The real Server-assigned Agent run; human/system messages are null. */
+        /** The real Server-assigned Agent run; human messages are null. */
         runId: idSchema.nullable(),
         sequence: z.number().int().positive(),
+        /**
+         * The Agent session that wrote this message. A change from the same
+         * Agent's previous message in the Chat is what draws the session mark;
+         * human messages carry null.
+         */
+        sessionGeneration: z.number().int().positive().nullable().default(null),
         serverId: idSchema,
         task: messageTaskSchema.nullable().optional(),
     })

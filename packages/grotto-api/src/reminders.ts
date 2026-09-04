@@ -46,7 +46,6 @@ export const reminderFireSchema = z
     .object({
         firedAt: timestampSchema,
         id: idSchema,
-        receiptMessageId: idSchema,
         reminderId: idSchema,
         scheduledFor: timestampSchema,
     })

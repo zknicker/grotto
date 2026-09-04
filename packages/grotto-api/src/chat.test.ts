@@ -138,21 +138,55 @@ test('Server message history can preserve a deleted author profile', () => {
     });
 });
 
-test('Server message contracts preserve private task assignment system messages', () => {
-    expect(
+test('Server message contracts admit only human and Agent authors', () => {
+    // Every durable Chat message has a human or an Agent author. Agent-only
+    // deliveries ride the typed agent inbox, never a Chat row.
+    expect(() =>
         chatMessageSchema.parse({
             attachments: [],
-            author: { kind: 'system', system: 'task' },
+            author: { kind: 'system', system: 'session' },
             chatId: 'cht_all',
-            content: '📌 Assigned @scout to task #3.',
+            content: 'Session reset.',
             createdAt: '2026-07-26T12:00:00.000Z',
-            id: 'msg_task_receipt',
-            nonce: 'task-receipt',
+            id: 'msg_session_notice',
+            nonce: 'session-notice',
             runId: null,
             sequence: 2,
             serverId: 'srv_main',
         })
-    ).toMatchObject({ author: { kind: 'system', system: 'task' } });
+    ).toThrow();
+});
+
+test('an Agent message carries the session that wrote it', () => {
+    const message = chatMessageSchema.parse({
+        attachments: [],
+        author: { agentId: 'agt_cove', kind: 'agent' },
+        chatId: 'cht_all',
+        content: 'Back with a fresh session.',
+        createdAt: '2026-07-26T12:00:00.000Z',
+        id: 'msg_after_reset',
+        nonce: 'after-reset',
+        runId: 'run_1',
+        sequence: 4,
+        serverId: 'srv_main',
+        sessionGeneration: 3,
+    });
+    expect(message.sessionGeneration).toBe(3);
+    // A human message says nothing about sessions.
+    expect(
+        chatMessageSchema.parse({
+            attachments: [],
+            author: { kind: 'human', userId: 'usr_1' },
+            chatId: 'cht_all',
+            content: 'Thanks.',
+            createdAt: '2026-07-26T12:00:01.000Z',
+            id: 'msg_human',
+            nonce: 'human-1',
+            runId: null,
+            sequence: 5,
+            serverId: 'srv_main',
+        }).sessionGeneration
+    ).toBeNull();
 });
 
 test('Chat sends allow attachment-only messages but reject empty messages', () => {

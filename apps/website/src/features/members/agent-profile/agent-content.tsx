@@ -1,7 +1,6 @@
 import type { Agent } from '@grotto/api';
 import { EmptyState } from '@heroui-pro/react';
 import { ComputerIcon, Folder01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';

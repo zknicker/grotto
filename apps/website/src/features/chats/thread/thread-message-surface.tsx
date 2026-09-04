@@ -3,6 +3,7 @@ import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { cn } from '../../../lib/utils.ts';
+import { TranscriptAskMarker } from '../../asks/transcript-ask-marker.tsx';
 import {
     type MessageTask,
     type MessageTaskAssigneeProfile,
@@ -41,6 +42,10 @@ function EmbeddedThreadMessageSurface({
     const durable = isThreadAnchorRow(row);
     const canOpenThread = Boolean(context?.threadActionsEnabled && durable);
     const taskLivesInPreview = Boolean(row.message.task && canOpenThread);
+    // An Ask and a Task never share a Message, so the recessed surface's
+    // leading slot belongs to whichever one this Message carries.
+    const askMarker = row.message.ask ? <TranscriptAskMarker ask={row.message.ask} /> : null;
+    const askLivesInPreview = Boolean(askMarker && canOpenThread);
     const taskChipHidden = Boolean(context?.taskChipHidden);
     const taskAssigneeProfile = resolveTaskAssigneeProfile(row.message.task, context);
     const flashing = context?.flashMessageId === row.message.id;
@@ -54,6 +59,7 @@ function EmbeddedThreadMessageSurface({
         <MessageContextMenu className={cn(flashing && 'chat-thread-flash')} row={row}>
             {children}
             <div className="flex flex-wrap items-center gap-1.5">
+                {askMarker && !askLivesInPreview ? askMarker : null}
                 {row.message.task && !(taskLivesInPreview || taskChipHidden) ? (
                     canOpenThread ? (
                         <ThreadTaskChipButton
@@ -74,7 +80,9 @@ function EmbeddedThreadMessageSurface({
             {canOpenThread ? (
                 <ThreadPreviewBlock
                     headerLeading={
-                        row.message.task && taskLivesInPreview && !taskChipHidden ? (
+                        askLivesInPreview ? (
+                            askMarker
+                        ) : row.message.task && taskLivesInPreview && !taskChipHidden ? (
                             <MessageTaskChip
                                 assigneeProfile={taskAssigneeProfile}
                                 task={row.message.task}

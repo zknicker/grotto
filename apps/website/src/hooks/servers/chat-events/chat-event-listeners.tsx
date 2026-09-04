@@ -1,3 +1,4 @@
+import { useAskEvents } from './use-ask-events.ts';
 import { ChatEventStreamProvider } from './use-chat-event-stream.tsx';
 import { useChatLifecycleEvents } from './use-chat-lifecycle-events.ts';
 import { useChatReadEvents } from './use-chat-read-events.ts';
@@ -22,6 +23,7 @@ export function ChatEventListeners({ serverId }: { serverId: string | undefined 
 function ChatEventInvalidations() {
     useMessageCreatedEvents();
     usePreparedActionEvents();
+    useAskEvents();
     useChatReadEvents();
     useChatLifecycleEvents();
     useThreadFollowEvents();

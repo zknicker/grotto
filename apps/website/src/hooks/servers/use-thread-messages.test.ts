@@ -15,6 +15,7 @@ function message(id: string, sequence: number): ChatMessage {
     return {
         attachments: [],
         author: { kind: 'human', userId: 'usr_author' },
+        body: { kind: 'text' },
         chatId: 'cht_thread',
         content: id,
         createdAt: '2026-07-26T12:00:00.000Z',

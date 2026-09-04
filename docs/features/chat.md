@@ -55,6 +55,12 @@ and [Agent Inbox](../../specs/inbox.md).
   an inert fallback. A successful commit names the human and does not add a
   Chat receipt. Dropped realtime
   events recover through the ordinary message snapshot on reconnect.
+* **Ask markers.** A Message carrying an [Ask](../../specs/asks.md) reads as an
+  ordinary Message with a compact marker on its recessed Thread surface, in the
+  same grammar as the task chip: the Ask glyph, `Ask`, the addressee's face and
+  name, and a trailing status — an accent open disc, or a filled success disc
+  with `Answered by <name>` — beside the ordinary reply count. Inside a Thread
+  the marker renders on the reply itself, without a count.
 * **Hosted attachments.** Humans and Agents can attach files to hosted Server
   messages. The App streams human-selected bytes directly to that Server, and
   Agents upload through their scoped Server credential. The Server publishes

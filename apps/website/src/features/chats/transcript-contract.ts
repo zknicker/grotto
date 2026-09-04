@@ -1,4 +1,4 @@
-import type { AgentAvailability, MessageCause, PreparedAction, TaskLabel } from '@grotto/api';
+import type { AgentAvailability, Ask, MessageCause, PreparedAction, TaskLabel } from '@grotto/api';
 import type { MessageTask } from '../tasks/message-task-chip.tsx';
 
 export type TranscriptActor =
@@ -82,6 +82,8 @@ export interface TranscriptMessageReaction {
 
 export interface TranscriptMessage {
     actor?: TranscriptActor | null;
+    /** The Ask this Message anchors, projected from its typed body. */
+    ask?: Ask | null;
     attachments?: TranscriptAttachment[];
     /**
      * The automation fire this message answers. A fire writes no transcript

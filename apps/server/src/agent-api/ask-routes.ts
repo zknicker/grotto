@@ -2,11 +2,8 @@ import { agentAskInputSchema } from '@grotto/api';
 import type { FastifyInstance } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { createAsk } from '../asks/create-ask.ts';
-import {
-    AskAgentNotFoundError,
-    AskConflictError,
-    InvalidAskAddresseeError,
-} from '../asks/errors.ts';
+import { AskConflictError, InvalidAskAddresseeError } from '../asks/errors.ts';
+import { AgentAuthorNotFoundError } from '../chats/agent-authored-message.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -60,7 +57,7 @@ export function registerAgentAskRoutes(
                     nextAction: 'Run grotto server info --humans to see who can be addressed.',
                 });
             }
-            if (cause instanceof AskAgentNotFoundError) {
+            if (cause instanceof AgentAuthorNotFoundError) {
                 return sendAgentApiError(reply, 404, 'ASK_FAILED', cause.message);
             }
             if (cause instanceof AgentTargetError) {

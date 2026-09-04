@@ -107,14 +107,17 @@ test('a direct mention restores an explicit Thread unfollow', async () => {
         update chats set last_message_sequence = 2
         where server_id = ${server.id} and id = ${threadChatId}
     `;
+    const [{ id: peerUserId }] = (await harness.sql`
+        select id from users where clerk_user_id = 'user_thread_peer'
+    `) as { id: string }[];
     await harness.sql`
         insert into chat_messages (
-            id, server_id, chat_id, author_user_id, system_author,
+            id, server_id, chat_id, author_user_id,
             content, nonce, sequence, created_at
         )
         values (
-            'msg_system_thread_attention', ${server.id}, ${threadChatId}, null, 'reminder',
-            'System reminder reply', 'system-thread-attention', 2, now()
+            'msg_peer_thread_attention', ${server.id}, ${threadChatId}, ${peerUserId},
+            'A peer replied in this thread', 'peer-thread-attention', 2, now()
         )
     `;
     await expect(owner.trpc.chat.list.query({ serverId: server.id })).resolves.toMatchObject([

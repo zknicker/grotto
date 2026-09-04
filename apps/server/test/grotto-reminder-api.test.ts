@@ -91,10 +91,16 @@ describe('reminder operator API', () => {
                 event.type === 'reminder.changed' && event.reminderId === reminder.reminder.id
         );
         expect(reminderEvents.map((event) => event.action)).toEqual(['scheduled', 'fired']);
-        for (const event of reminderEvents) {
-            const index = durableEvents.findIndex((candidate) => candidate.id === event.id);
-            expect(durableEvents[index - 1]?.type).toBe('message.created');
-        }
+        // Neither scheduling nor firing writes a Chat message any more, so no
+        // `message.created` rides alongside a `reminder.changed`.
+        const firstReminderIndex = durableEvents.findIndex(
+            (event) => event.id === reminderEvents[0]?.id
+        );
+        expect(
+            durableEvents
+                .slice(firstReminderIndex)
+                .filter((event) => event.type === 'message.created')
+        ).toEqual([]);
         await expect(member.trpc.reminder.list.query({ serverId })).rejects.toThrow(
             /Owner or Admin/i
         );

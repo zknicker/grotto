@@ -303,20 +303,33 @@ test('saves desired config from last inventory while the Computer is offline, im
         session_generation: 2,
         session_reset_kind: 'session',
     });
-    const receipts = await harness.sql`
-        select content, system_author
-        from chat_messages
-        where author_agent_id is null
-          and system_author = 'session'
-          and chat_id = ${agent.dmChatId}
+    // The rotation is a durable Agent fact, not a Chat message.
+    const rotations = await harness.sql`
+        select generation, reason from agent_session_rotations where agent_id = ${agent.id}
     `;
-    expect(receipts).toEqual([
-        {
-            content:
-                'Started a fresh session with the newly selected runtime and model. The workspace and MEMORY.md are intact.',
-            system_author: 'session',
-        },
-    ]);
+    expect(rotations).toEqual([{ generation: 2, reason: 'configuration' }]);
+    const dmMessages = await harness.sql`
+        select id from chat_messages where chat_id = ${agent.dmChatId}
+    `;
+    expect(dmMessages).toEqual([]);
+
+    // The session mark's hover card reads that fact back.
+    await expect(
+        owner.trpc.agent.sessionRotation.query({ agentId: agent.id, generation: 2, serverId })
+    ).resolves.toMatchObject({
+        generation: 2,
+        previousDurationMs: expect.any(Number),
+        reason: 'configuration',
+        rotatedAt: expect.any(String),
+    });
+    // The Agent's first session never rotated into being.
+    await expect(
+        owner.trpc.agent.sessionRotation.query({ agentId: agent.id, generation: 1, serverId })
+    ).rejects.toThrow(/no session rotation/i);
+    // Any Server member reads it; the card is part of the transcript.
+    await expect(
+        member.trpc.agent.sessionRotation.query({ agentId: agent.id, generation: 2, serverId })
+    ).resolves.toMatchObject({ generation: 2, reason: 'configuration' });
 
     await owner.trpc.agent.configure.mutate({
         agentId: agent.id,
@@ -330,13 +343,11 @@ test('saves desired config from last inventory while the Computer is offline, im
         where id = ${agent.id}
     `;
     expect(unchanged?.session_generation).toBe(2);
-    const [receiptCount] = await harness.sql`
+    const [rotationCount] = await harness.sql`
         select count(*)::int as count
-        from chat_messages
-        where system_author = 'session'
-          and chat_id = ${agent.dmChatId}
+        from agent_session_rotations where agent_id = ${agent.id}
     `;
-    expect(receiptCount?.count).toBe(1);
+    expect(rotationCount?.count).toBe(1);
 
     await expect(
         owner.trpc.agent.configure.mutate({
@@ -598,7 +609,7 @@ test('hides a retired Agent DM, preserves its transcript, and rejects new sends'
         select agent_id from agent_delivery where agent_id = ${created.agent.id}
     `;
     const pending = await harness.sql`
-        select id from agent_pending_work where agent_id = ${created.agent.id}
+        select id from agent_inbox where agent_id = ${created.agent.id}
     `;
     expect(delivery).toEqual([]);
     expect(pending).toEqual([]);

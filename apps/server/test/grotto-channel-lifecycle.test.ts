@@ -233,7 +233,7 @@ async function createChannel(name: string) {
 
 async function pendingWorkCount(chatId: string) {
     const [row] = (await harness.sql`
-        select count(*)::int as count from agent_pending_work
+        select count(*)::int as count from agent_inbox
         where server_id = ${serverId} and chat_id = ${chatId} and run_id is null
     `) as Array<{ count: number }>;
     return row.count;

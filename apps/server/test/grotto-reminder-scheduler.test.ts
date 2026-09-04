@@ -10,6 +10,7 @@ import { createGrottoServerApplication } from '../src/grotto-server-application.
 import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import {
+    agentInboxTable,
     agentsTable,
     channelAgentParticipantsTable,
     chatMessagesTable,
@@ -253,6 +254,21 @@ describe('reminder scheduler lifecycle', () => {
             scriptOutput: 'changed',
             scriptTimedOut: false,
         });
+        // Script output rides the wake envelope; it is never a Chat message.
+        expect(
+            (await connection.db.select().from(chatMessagesTable)).map((message) => message.id)
+        ).toEqual(['msg_scheduler_anchor']);
+        const [queued] = await connection.db.select().from(agentInboxTable);
+        expect(queued).toMatchObject({ dedupeKey: fire?.id, source: 'reminder' });
+        expect(queued?.content).toBe(
+            [
+                '🔔 Reminder: Recover me',
+                `fire=${fire?.id}`,
+                '🔔 Reminder script output:',
+                '  changed',
+                `reply with: grotto message send --cause ${fire?.id}`,
+            ].join('\n')
+        );
     });
 
     test('replays one offline script fire on reconnect and settles it exactly once', async () => {
@@ -341,17 +357,29 @@ describe('reminder scheduler lifecycle', () => {
         if (!start || start.type !== 'start') {
             throw new Error('Ordinary reminder did not start the Agent.');
         }
-        expect(start.inbox).toEqual([
-            expect.objectContaining({
-                content: '🔔 Reminder: Recover me',
-                senderType: 'system',
-                target: '#all',
-            }),
-        ]);
+        // The fire rides the concrete lane, so its envelope is the prompt the
+        // Agent wakes with rather than a notice it has to pull.
+        expect(start.inboxDelivery).toBe('concrete');
+        const [item] = start.inbox ?? [];
+        const fireId = item?.id ?? '';
+        const envelope = item?.content ?? '';
+        expect(fireId).toMatch(/^rmf_/u);
+        expect(item).toMatchObject({
+            senderHandle: 'reminder',
+            senderType: 'system',
+            target: '#all',
+        });
+        expect(envelope).toBe(
+            [
+                '🔔 Reminder: Recover me',
+                `fire=${fireId}`,
+                `reply with: grotto message send --cause ${fireId}`,
+            ].join('\n')
+        );
 
         await delivery.onAck({ agentId: start.agentId, runId: start.runId });
-        // A start frame only notices the Agent about the fire. The turn sees the
-        // receipt by pulling it, and that pull is what the settle consumes.
+        // Acceptance is the serve: the run already carries the envelope, so a
+        // pull has nothing left to hand over.
         const pulled = await pullAgentEvents(connection.db, {
             agentId: start.agentId,
             capabilities: [],
@@ -361,9 +389,8 @@ describe('reminder scheduler lifecycle', () => {
             runnerId: 'arc_scheduler',
             serverId: 'srv_scheduler',
         });
-        expect(pulled.messages.map((row) => row.message.content)).toEqual([
-            '🔔 Reminder: Recover me',
-        ]);
+        expect(pulled.messages).toEqual([]);
+        expect(pulled.automations).toEqual([]);
         await delivery.onTurnSettled('cmp_ssssssssssssssss', {
             agentId: start.agentId,
             endedAt: '2026-07-26T14:00:02.000Z',
@@ -426,22 +453,22 @@ async function seedOverdueReminder(grotto: GrottoConnection) {
         name: 'all',
         serverId,
     });
-    await grotto.db.insert(chatMessagesTable).values({
-        chatId,
-        content: 'Anchor',
-        createdAt: new Date('2026-07-26T12:00:00.000Z'),
-        id: anchorMessageId,
-        nonce: 'anchor',
-        sequence: 1,
-        serverId,
-        systemAuthor: 'reminder',
-    });
     await grotto.db.insert(agentsTable).values({
         displayName: 'Cove',
         handle: 'scheduler-cove',
         homeTimezone: 'America/New_York',
         id: agentId,
         role: 'member',
+        serverId,
+    });
+    await grotto.db.insert(chatMessagesTable).values({
+        authorAgentId: agentId,
+        chatId,
+        content: 'Anchor',
+        createdAt: new Date('2026-07-26T12:00:00.000Z'),
+        id: anchorMessageId,
+        nonce: 'anchor',
+        sequence: 1,
         serverId,
     });
     await grotto.db.insert(channelAgentParticipantsTable).values({

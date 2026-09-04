@@ -192,12 +192,12 @@ async function insertDelivery(
     const createdAt = new Date(Date.UTC(2026, 0, index)).toISOString();
     const seenAt = delivery.state === 'seen' ? new Date(Date.UTC(2026, 0, index, 2)) : null;
     await harness.sql`
-        insert into agent_pending_work (
+        insert into agent_inbox (
             id, server_id, agent_id, chat_id, content, dedupe_key, created_at,
             state, settled_run_id, seen_at, run_id
         )
         values (
-            ${`apw_observability00${index}`},
+            ${`inb_observability00${index}`},
             ${serverId},
             ${agentId},
             ${chatId},

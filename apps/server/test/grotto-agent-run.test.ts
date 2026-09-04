@@ -162,13 +162,15 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
     lifecycleController.abort();
 
     const rows = (await harness.sql`
-        select author_agent_id, author_user_id, content, run_id from chat_messages
+        select author_agent_id, author_user_id, content, run_id, session_generation
+        from chat_messages
         where server_id = ${serverId} and chat_id = ${dmChatId} and nonce = 'agent_nonce_1'
     `) as {
         author_agent_id: string;
         author_user_id: string | null;
         content: string;
         run_id: string | null;
+        session_generation: number | null;
     }[];
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
@@ -176,6 +178,9 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
         author_user_id: null,
         content: 'Hello from the Agent.',
         run_id: 'run_send_1',
+        // The sending session is stamped on the message; the App draws the
+        // session mark where this value changes.
+        session_generation: 1,
     });
 
     // A redriven send with the same nonce and content is idempotent, not a dup.
@@ -198,6 +203,7 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
     expect(agentMessage).toMatchObject({
         author: { agentId, kind: 'agent' },
         runId: 'run_send_1',
+        sessionGeneration: 1,
     });
 });
 
@@ -283,7 +289,7 @@ test('Agent message references persist as stable Agent and Chat links', async ()
     expect(rows).toEqual([{ content: expectedContent }]);
 
     const pending = (await harness.sql`
-        select agent_id, content from agent_pending_work
+        select agent_id, content from agent_inbox
         where server_id = ${serverId} and dedupe_key = ${sent.body.message?.id ?? ''}
         order by agent_id
     `) as { agent_id: string; content: string }[];
@@ -467,7 +473,7 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
     });
     const [pending] = (await harness.sql`
         select agent_id, chat_id, thread_follow_reactivated
-        from agent_pending_work
+        from agent_inbox
         where server_id = ${serverId} and dedupe_key = ${humanReply.message.id}
     `) as Array<{ agent_id: string; chat_id: string; thread_follow_reactivated: boolean }>;
     expect(pending).toEqual({
@@ -560,7 +566,7 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
         thread: { anchorMessageId: created.task.messageId },
     });
     const [suppressedCount] = (await harness.sql`
-        select count(*)::int as count from agent_pending_work
+        select count(*)::int as count from agent_inbox
         where server_id = ${serverId}
           and agent_id = ${agentId}
           and dedupe_key = ${suppressed.message.id}
@@ -577,7 +583,7 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
     const restoredState = (await harness.sql`
         select follow.followed, pending.thread_follow_reactivated
         from agent_thread_follows follow
-        join agent_pending_work pending
+        join agent_inbox pending
           on pending.server_id = follow.server_id
          and pending.agent_id = follow.agent_id
         where follow.server_id = ${serverId}
@@ -595,7 +601,7 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
         restored.message.id
     );
     await harness.sql`
-        update agent_pending_work
+        update agent_inbox
         set run_id = 'run_dm_thread_target_1', served_at = now(), state = 'served'
         where server_id = ${serverId}
           and agent_id = ${agentId}
@@ -615,7 +621,7 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
         thread: { anchorMessageId: created.task.messageId },
     });
     const alreadyFollowedPending = (await harness.sql`
-        select mentioned, thread_follow_reactivated from agent_pending_work
+        select mentioned, thread_follow_reactivated from agent_inbox
         where server_id = ${serverId}
           and agent_id = ${agentId}
           and dedupe_key = ${alreadyFollowed.message.id}
@@ -638,7 +644,7 @@ test('As Task enters the Agent inbox with canonical unassigned task metadata', a
         status: 'todo',
     });
     const pending = (await harness.sql`
-        select dedupe_key from agent_pending_work
+        select dedupe_key from agent_inbox
         where server_id = ${serverId}
           and agent_id = ${agentId}
           and dedupe_key = ${created.task.messageId}
@@ -678,7 +684,7 @@ test('ordinary Channel delivery preserves per-recipient direct attention', async
 
     const pending = (await harness.sql`
         select agent_id, content, mentioned
-        from agent_pending_work
+        from agent_inbox
         where server_id = ${serverId} and dedupe_key = ${sent.message.id}
         order by agent_id
     `) as Array<{
@@ -723,7 +729,7 @@ test('ordinary Channel delivery preserves per-recipient direct attention', async
     });
     const richPending = (await harness.sql`
         select agent_id, mentioned
-        from agent_pending_work
+        from agent_inbox
         where server_id = ${serverId} and dedupe_key = ${richMention.message.id}
         order by agent_id
     `) as Array<{ agent_id: string; mentioned: boolean }>;
@@ -762,7 +768,7 @@ test('mute and explicit unfollow purge ordinary work while preserving exact ment
     });
     expect(muted).toMatchObject({ body: { target: '#attention-contract' }, status: 200 });
     const purged = (await harness.sql`
-        select count(*)::int as n from agent_pending_work
+        select count(*)::int as n from agent_inbox
         where agent_id = ${agentId} and dedupe_key = ${ordinary.message.id}
     `) as Array<{ n: number }>;
     expect(purged[0]?.n).toBe(0);
@@ -780,7 +786,7 @@ test('mute and explicit unfollow purge ordinary work while preserving exact ment
         serverId,
     });
     const mutePending = (await harness.sql`
-        select dedupe_key, mentioned from agent_pending_work
+        select dedupe_key, mentioned from agent_inbox
         where agent_id = ${agentId}
           and chat_id = ${channelId}
           and dedupe_key in (${mentioned.message.id}, (
@@ -816,7 +822,7 @@ test('mute and explicit unfollow purge ordinary work while preserving exact ment
         status: 200,
     });
     const threadPurged = (await harness.sql`
-        select count(*)::int as n from agent_pending_work
+        select count(*)::int as n from agent_inbox
         where agent_id = ${agentId} and dedupe_key = ${threadOrdinary.message.id}
     `) as Array<{ n: number }>;
     expect(threadPurged[0]?.n).toBe(0);
@@ -835,7 +841,7 @@ test('mute and explicit unfollow purge ordinary work while preserving exact ment
           and thread_chat_id = ${task.task.threadChatId}
     `) as Array<{ followed: boolean }>;
     const threadPending = (await harness.sql`
-        select mentioned, thread_follow_reactivated from agent_pending_work
+        select mentioned, thread_follow_reactivated from agent_inbox
         where agent_id = ${agentId} and dedupe_key = ${threadMention.message.id}
     `) as Array<{ mentioned: boolean; thread_follow_reactivated: boolean }>;
     expect(explicit).toEqual([{ followed: true }]);
@@ -849,7 +855,7 @@ test('mute and explicit unfollow purge ordinary work while preserving exact ment
         thread: { anchorMessageId: task.task.messageId },
     });
     const ordinaryPending = (await harness.sql`
-        select mentioned, thread_follow_reactivated from agent_pending_work
+        select mentioned, thread_follow_reactivated from agent_inbox
         where agent_id = ${agentId} and dedupe_key = ${ordinaryAfterMention.message.id}
     `) as Array<{ mentioned: boolean; thread_follow_reactivated: boolean }>;
     expect(ordinaryPending).toEqual([{ mentioned: false, thread_follow_reactivated: false }]);
@@ -895,7 +901,7 @@ test('a followed Thread stays active when its parent Channel is muted', async ()
 
     const pending = (await harness.sql`
         select dedupe_key
-        from agent_pending_work
+        from agent_inbox
         where server_id = ${serverId}
           and agent_id = ${agentId}
           and dedupe_key in (${beforeMute.message.id}, ${afterMute.message.id})
@@ -909,7 +915,7 @@ test('a followed Thread stays active when its parent Channel is muted', async ()
     await agentPost(minted.runnerToken, '/api/agent/threads/unfollow', { target });
     const afterUnfollow = (await harness.sql`
         select count(*)::int as n
-        from agent_pending_work
+        from agent_inbox
         where server_id = ${serverId}
           and agent_id = ${agentId}
           and dedupe_key in (${beforeMute.message.id}, ${afterMute.message.id})
@@ -1881,23 +1887,19 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
     expect(rows).toEqual([{ count: 1 }]);
     const pending = (await harness.sql`
         select agent_id, dedupe_key, mentioned, source
-        from agent_pending_work
+        from agent_inbox
         where server_id = ${serverId}
           and chat_id = ${channelId}
         order by created_at, id
     `) as Array<{ agent_id: string; dedupe_key: string; mentioned: boolean; source: string }>;
-    const receipt = (await harness.sql`
-        select content, id, sequence, system_author
-        from chat_messages
-        where server_id = ${serverId}
-          and chat_id = ${channelId}
-          and nonce = ${`task-assignment:${messageId}`}
-    `) as Array<{ content: string; id: string; sequence: number; system_author: string }>;
-    expect(receipt).toHaveLength(1);
-    expect(receipt[0]).toMatchObject({
-        content: '📌 Assigned @scout to task #1 "Scout the release notes."',
-        system_author: 'task',
-    });
+    // The handoff writes no Chat message: everything in `chat_messages` is
+    // human-readable, so the assignment rides a typed inbox item instead.
+    const authorless = (await harness.sql`
+        select id from chat_messages
+        where server_id = ${serverId} and chat_id = ${channelId}
+          and author_user_id is null and author_agent_id is null
+    `) as Array<{ id: string }>;
+    expect(authorless).toEqual([]);
     expect(pending).toEqual(
         expect.arrayContaining([
             {
@@ -1908,9 +1910,9 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
             },
             {
                 agent_id: peer.agent.id,
-                dedupe_key: receipt[0]?.id,
+                dedupe_key: `task-assign:${messageId}:1`,
                 mentioned: true,
-                source: 'system',
+                source: 'task_assignment',
             },
         ])
     );
@@ -1937,6 +1939,13 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
     });
     expect(eventsResponse.status).toBe(200);
     const events = (await eventsResponse.json()) as {
+        automations: Array<{
+            content: string;
+            id: string;
+            senderHandle: string;
+            senderType: string;
+            target: string;
+        }>;
         messages: Array<{
             message: {
                 author: { kind: string };
@@ -1968,13 +1977,16 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
             senderHandle: 'sage',
             senderType: 'agent',
         },
+    ]);
+    expect(events.automations).toEqual([
         {
-            authorKind: 'system',
-            content: '📌 Assigned @scout to task #1 "Scout the release notes."',
-            id: receipt[0]?.id,
-            role: 'system',
-            senderHandle: 'system',
+            content:
+                '[Grotto task assignment task=#1 target=#task-delegation assignedBy=@sage] Scout the release notes.',
+            createdAt: expect.any(String),
+            id: `task-assign:${messageId}:1`,
+            senderHandle: 'grotto',
             senderType: 'system',
+            target: '#task-delegation',
         },
     ]);
     const follows = (await harness.sql`
@@ -2275,7 +2287,7 @@ test('a human DM send enqueues durable pending work atomically with the message'
     // The Agent's Computer is offline in this harness, so nothing reaches the
     // wire — but a committed human message must still leave durable pending work.
     const before = (await harness.sql`
-        select count(*)::int as n from agent_pending_work
+        select count(*)::int as n from agent_inbox
         where server_id = ${serverId} and agent_id = ${agentId}
     `) as { n: number }[];
 
@@ -2287,12 +2299,12 @@ test('a human DM send enqueues durable pending work atomically with the message'
     });
 
     const after = (await harness.sql`
-        select content from agent_pending_work
+        select content from agent_inbox
         where server_id = ${serverId} and agent_id = ${agentId}
         order by created_at desc limit 1
     `) as { content: string }[];
     const count = (await harness.sql`
-        select count(*)::int as n from agent_pending_work
+        select count(*)::int as n from agent_inbox
         where server_id = ${serverId} and agent_id = ${agentId}
     `) as { n: number }[];
     expect(count[0]?.n).toBe((before[0]?.n ?? 0) + 1);

@@ -61,7 +61,7 @@ afterAll(async () => {
 });
 
 describe('reminders', () => {
-    test('schedules an author-owned reminder once and posts its visible receipt', async () => {
+    test('schedules an author-owned reminder once and posts no receipt', async () => {
         const fireAt = new Date('2026-07-27T14:00:00.000Z');
         const input = {
             anchorChatId: chatId,
@@ -102,18 +102,17 @@ describe('reminders', () => {
             }),
         ]);
 
+        // Scheduling writes nothing to the transcript; the Automations tab and
+        // the `reminder.changed` event carry the new Reminder.
         const transcript = await owner.trpc.chat.messages.query({
             chatId,
             limit: 20,
             serverId,
         });
-        await expect(owner.trpc.chat.list.query({ serverId })).resolves.toContainEqual(
-            expect.objectContaining({ id: chatId, unreadCount: 1 })
+        expect(transcript.messages.at(-1)?.id).toBe(anchorMessageId);
+        expect(transcript.messages.filter((message) => message.author.kind === 'system')).toEqual(
+            []
         );
-        expect(transcript.messages.at(-1)).toMatchObject({
-            author: { kind: 'system', system: 'reminder' },
-            content: expect.stringContaining('scheduled a reminder'),
-        });
     });
 
     test('replays the original schedule result after time and later mutations', async () => {
@@ -197,7 +196,7 @@ describe('reminders', () => {
         ).rejects.toThrow('valid IANA timezone');
     });
 
-    test('anchors receipts and fires directly in an authorized Thread', async () => {
+    test('anchors a reminder directly in an authorized Thread and writes no receipt', async () => {
         const reply = await owner.trpc.chat.send.mutate({
             chatId,
             content: 'Thread reminder anchor',
@@ -232,16 +231,8 @@ describe('reminders', () => {
             anchorChatId: reply.message.chatId,
             anchorMessageId: reply.message.id,
         });
-        expect(transcript.messages.slice(-2)).toEqual([
-            expect.objectContaining({
-                author: { kind: 'system', system: 'reminder' },
-                content: expect.stringContaining('scheduled a reminder'),
-            }),
-            expect.objectContaining({
-                author: { kind: 'system', system: 'reminder' },
-                content: '🔔 Reminder: Reply in the Thread',
-            }),
-        ]);
+        // Neither the schedule nor the fire appends a row to the Thread.
+        expect(transcript.messages.map((message) => message.id)).toEqual([reply.message.id]);
     });
 
     test('fires once atomically, advances recurrence from now, and never executes scripts', async () => {
@@ -292,7 +283,6 @@ describe('reminders', () => {
             id: expect.any(String),
             kind: 'reminder_script',
             queuedAt: fireClock.now().toISOString(),
-            receiptMessageId: expect.any(String),
             reminderId: scheduled.reminder.id,
             script,
         });
@@ -319,10 +309,7 @@ describe('reminders', () => {
             limit: 20,
             serverId,
         });
-        expect(transcript.messages.at(-1)).toMatchObject({
-            author: { kind: 'system', system: 'reminder' },
-            content: '🔔 Reminder: Run local watchdog',
-        });
+        expect(transcript.messages.at(-1)?.id).toBe(anchorMessageId);
     });
 
     test('makes cancellation idempotent and terminal before concurrent ticks', async () => {

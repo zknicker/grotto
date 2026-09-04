@@ -142,7 +142,7 @@ test('commits one prepared Agent atomically and replays the stored result', asyn
     expect(await countAgents()).toBe(2);
     expect(await countAgentDms(committed.agent.id)).toBe(0);
     expect(await countAgentDeliveryRows(committed.agent.id)).toBe(0);
-    expect(await countPendingWork(committed.agent.id)).toBe(0);
+    expect(await countInboxItems(committed.agent.id)).toBe(0);
     expect(await countAgentTurns(committed.agent.id)).toBe(0);
     expect(await readCopiedAvatar(committed.agent.id)).toEqual(Array.from(png));
     expect(await countActionEvents(action.id, 'executed')).toBe(1);
@@ -325,10 +325,10 @@ async function countAgentDeliveryRows(agentId: string) {
     return rows[0]?.count ?? 0;
 }
 
-async function countPendingWork(agentId: string) {
+async function countInboxItems(agentId: string) {
     const rows = (await harness.sql`
         select count(*)::int as count
-        from agent_pending_work
+        from agent_inbox
         where agent_id = ${agentId}
     `) as { count: number }[];
     return rows[0]?.count ?? 0;

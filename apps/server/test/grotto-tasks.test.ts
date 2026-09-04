@@ -82,25 +82,29 @@ test('promotes one canonical Server message into its deterministic Thread work s
     );
 });
 
-test('does not promote a system message into human work', async () => {
+test('does not promote a Thread reply into human work', async () => {
     const server = await owner.trpc.server.create.mutate({
-        displayName: 'Untaskable System Message',
-        slug: 'untaskable-system-message',
+        displayName: 'Untaskable Thread Reply',
+        slug: 'untaskable-thread-reply',
     });
     const chatId = server.channels[0].id;
-    await harness.sql`
-        insert into chat_messages (
-            id, server_id, chat_id, sequence, nonce, content, system_author
-        )
-        values (
-            'msg_system_untaskable', ${server.id}, ${chatId}, 1,
-            'system_untaskable', 'Reminder fired.', 'reminder'
-        )
-    `;
+    const anchor = await owner.trpc.chat.send.mutate({
+        chatId,
+        content: 'Anchor for the reply',
+        nonce: 'untaskable-thread-anchor',
+        serverId: server.id,
+    });
+    const reply = await owner.trpc.chat.send.mutate({
+        chatId,
+        content: 'A reply is not a task',
+        nonce: 'untaskable-thread-reply',
+        serverId: server.id,
+        thread: { anchorMessageId: anchor.message.id },
+    });
 
     await expect(
         owner.trpc.task.promote.mutate({
-            messageId: 'msg_system_untaskable',
+            messageId: reply.message.id,
             serverId: server.id,
         })
     ).rejects.toThrow(/human or Agent messages.*top-level Channel or DM/i);
@@ -872,12 +876,15 @@ async function addTaskPeer(serverId: string, chatId: string) {
     return { client, userId };
 }
 
-test('assigns a task to an Agent, wakes it, and keeps the receipt out of the App', async () => {
+test('assigns a task to an Agent, wakes it with typed work, and writes no message', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Task Agent Assignment',
         slug: 'task-agent-assignment',
     });
     const chatId = server.channels[0].id;
+    await harness.sql`
+        update server_memberships set handle = 'task-owner' where server_id = ${server.id}
+    `;
     const agent = await addTaskAgent(server.id, chatId);
     const created = await owner.trpc.task.create.mutate({
         chatId,
@@ -908,19 +915,31 @@ test('assigns a task to an Agent, wakes it, and keeps the receipt out of the App
     `) as { followed: boolean }[];
     expect([...follows].map((row) => row.followed)).toEqual([true]);
 
-    // A private receipt wakes the assignee. It sits alongside the canonical task
+    // The handoff is typed pending work keyed by the assignment identity, not a
+    // hidden Chat message. It wakes the assignee alongside the canonical task
     // message the Agent already received as a Channel participant.
     const deliveries = (await harness.sql`
-        select mentioned, source from agent_pending_work
+        select content, dedupe_key, mentioned, source from agent_inbox
         where server_id = ${server.id} and agent_id = ${agent.agentId}
-    `) as { mentioned: boolean; source: string }[];
-    expect([...deliveries].filter((row) => row.source === 'system' && row.mentioned)).toHaveLength(
-        1
-    );
+    `) as { content: string; dedupe_key: string; mentioned: boolean; source: string }[];
+    expect([...deliveries].filter((row) => row.source === 'task_assignment')).toEqual([
+        {
+            content: `[Grotto task assignment task=#${assigned.task.number} target=#all assignedBy=@task-owner] Hand this to an Agent`,
+            dedupe_key: `task-assign:${created.task.messageId}:${assigned.task.version}`,
+            mentioned: true,
+            source: 'task_assignment',
+        },
+    ]);
 
-    // ...and never appears in the human transcript.
+    // Nothing reached the transcript: every Chat row has a readable author.
+    const authorless = (await harness.sql`
+        select id from chat_messages
+        where server_id = ${server.id}
+          and author_user_id is null and author_agent_id is null
+    `) as { id: string }[];
+    expect(authorless).toEqual([]);
     const history = await owner.trpc.chat.messages.query({ chatId, serverId: server.id });
-    expect(history.messages.some((message) => message.content.includes('📌 Assigned'))).toBe(false);
+    expect(history.messages.map((message) => message.content)).toEqual(['Hand this to an Agent']);
 });
 
 test('rejects assigning an Agent that does not belong to the parent Chat', async () => {

@@ -387,7 +387,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
             type: 'turn',
         })
     );
-    await waitForPendingWork(first.agent.id, 1);
+    await waitForInboxItems(first.agent.id, 1);
     expect((await owner.trpc.server.bySlug.query({ slug: created.slug })).onboarding.phase).toBe(
         'complete'
     );
@@ -442,7 +442,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
             type: 'turn',
         })
     );
-    await waitForPendingWork(first.agent.id, 0);
+    await waitForInboxItems(first.agent.id, 0);
     const [cursorRows] = await harness.sql`
         select count(*)::int as count from agent_inbox_cursors
         where server_id = ${created.id} and agent_id = ${first.agent.id}
@@ -471,7 +471,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
     await waitForFrame(settledReplayFrames, 'agent-configure');
     await Bun.sleep(50);
     expect(settledReplayFrames.some((frame) => frame.type === 'start')).toBe(false);
-    expect(await countPendingWork(first.agent.id)).toBe(0);
+    expect(await countInboxItems(first.agent.id)).toBe(0);
 
     const [agentRow] = await harness.sql`
         select a.handle, a.display_name, a.description, a.role, a.computer_id,
@@ -687,10 +687,10 @@ async function waitForFrameCount(frames: Record<string, unknown>[], type: string
 }
 
 /** Work still awaiting a turn. Settled `seen` rows are retained turn evidence. */
-async function countPendingWork(agentId: string) {
+async function countInboxItems(agentId: string) {
     const [row] = await harness.sql`
         select count(*)::int as count
-        from agent_pending_work
+        from agent_inbox
         where agent_id = ${agentId} and state <> 'seen'
     `;
     return Number(row?.count ?? 0);
@@ -728,12 +728,12 @@ async function sendAgentMessage(
     return (await response.json()) as Record<string, unknown>;
 }
 
-async function waitForPendingWork(agentId: string, expected: number) {
+async function waitForInboxItems(agentId: string, expected: number) {
     const deadline = Date.now() + 3000;
-    let count = await countPendingWork(agentId);
+    let count = await countInboxItems(agentId);
     while (Date.now() < deadline && count !== expected) {
         await Bun.sleep(10);
-        count = await countPendingWork(agentId);
+        count = await countInboxItems(agentId);
     }
     expect(count).toBe(expected);
 }

@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
-import { insertSystemMessage } from '../src/chats/insert-system-message.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import { chatEventsTable, chatMessagesTable } from '../src/postgres/schema.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
@@ -68,12 +67,12 @@ test('durable cursors catch up messages sent while realtime is disconnected', as
     });
 });
 
-test('a Thread system message persists and returns its parent Chat in the event', async () => {
-    const anchor = await send('thread system anchor', 'thread-system-anchor');
+test('a Thread reply persists and returns its parent Chat in the event', async () => {
+    const anchor = await send('thread event anchor', 'thread-event-anchor');
     const reply = await owner.trpc.chat.send.mutate({
         chatId,
-        content: 'thread system setup',
-        nonce: 'thread-system-reply',
+        content: 'thread event setup',
+        nonce: 'thread-event-reply',
         serverId,
         thread: { anchorMessageId: anchor.message.id },
     });
@@ -83,38 +82,35 @@ test('a Thread system message persists and returns its parent Chat in the event'
         throw new Error('Expected the Thread reply to return a child Chat id.');
     }
 
-    const event = await insertSystemMessage(connection.db, {
-        chatId: threadChatId,
-        content: 'Thread system message',
-        nonce: 'thread-system-message',
+    const second = await owner.trpc.chat.send.mutate({
+        chatId,
+        content: 'thread event follow-up',
+        nonce: 'thread-event-follow-up',
         serverId,
-        systemAuthor: 'session',
+        thread: { anchorMessageId: anchor.message.id },
     });
-    expect(event).toMatchObject({
-        chatId: threadChatId,
-        parentChatId: chatId,
-        serverId,
-        type: 'message.created',
-    });
-    expect(event.messageId).toMatch(/^msg_/u);
     const [message] = await connection.db
         .select({
             chatId: chatMessagesTable.chatId,
             content: chatMessagesTable.content,
             nonce: chatMessagesTable.nonce,
             sequence: chatMessagesTable.sequence,
-            systemAuthor: chatMessagesTable.systemAuthor,
+            sessionGeneration: chatMessagesTable.sessionGeneration,
         })
         .from(chatMessagesTable)
         .where(
-            and(eq(chatMessagesTable.serverId, serverId), eq(chatMessagesTable.id, event.messageId))
+            and(
+                eq(chatMessagesTable.serverId, serverId),
+                eq(chatMessagesTable.id, second.message.id)
+            )
         );
     expect(message).toEqual({
         chatId: threadChatId,
-        content: 'Thread system message',
-        nonce: 'thread-system-message',
+        content: 'thread event follow-up',
+        nonce: 'thread-event-follow-up',
         sequence: 2,
-        systemAuthor: 'session',
+        // A human message belongs to no Agent session.
+        sessionGeneration: null,
     });
 
     const [storedEvent] = await connection.db
@@ -125,19 +121,30 @@ test('a Thread system message persists and returns its parent Chat in the event'
             type: chatEventsTable.type,
         })
         .from(chatEventsTable)
-        .where(and(eq(chatEventsTable.serverId, serverId), eq(chatEventsTable.id, event.id)));
+        .where(
+            and(
+                eq(chatEventsTable.serverId, serverId),
+                eq(chatEventsTable.messageId, second.message.id)
+            )
+        );
     expect(storedEvent).toEqual({
         chatId: threadChatId,
-        messageId: event.messageId,
+        messageId: second.message.id,
         sequence: 2,
         type: 'message.created',
     });
 
     const recovered = await owner.trpc.chat.events.query({
-        afterCursor: (BigInt(event.cursor) - 1n).toString(),
+        afterCursor: (BigInt(second.eventCursor) - 1n).toString(),
         serverId,
     });
-    expect(recovered).toContainEqual(event);
+    expect(recovered).toContainEqual(
+        expect.objectContaining({
+            chatId: threadChatId,
+            messageId: second.message.id,
+            parentChatId: chatId,
+        })
+    );
 });
 
 test('event delivery skips an inaccessible Chat without terminating the Server feed', async () => {

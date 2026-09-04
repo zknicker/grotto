@@ -157,7 +157,7 @@ Every socket starts with bootstrap protocol version 1. The authenticated
 progress, so it remains safe across Computer-first rollout and Server rollback.
 The versioned ordinary inventory report carries the Computer's human-readable
 machine name, which the Server retains for offline presentation. The Server admits
-ordinary reports, delivery, and control only when the ordinary protocol is version 12.
+ordinary reports, delivery, and control only when the ordinary protocol is version 13.
 An incompatible Computer stays connected
 as `update-required`: signed update control remains available, while inventory,
 Agent delivery, and MCP control fail closed. A Computer that cannot send the

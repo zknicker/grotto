@@ -14,6 +14,7 @@ import {
     requireAgentAnchor,
     toReminder,
 } from './reminder-model.ts';
+import { retireQueuedReminderFires } from './retire-fires.ts';
 
 export interface ReminderCommandInput {
     commandId: string;
@@ -92,6 +93,7 @@ export async function cancelReminder(
         if (!updated) {
             throw new Error('Failed to cancel the reminder.');
         }
+        await retireQueuedReminderFires(tx, input.serverId, input.reminderId);
         await tx.insert(reminderCommandsTable).values({
             action: 'cancel',
             actorId: agentId,

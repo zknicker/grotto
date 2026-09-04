@@ -43,6 +43,8 @@ import { registerMcpOAuthCallback } from './server-mcp/oauth-callback-route.ts';
 import { McpOAuthRelay } from './server-mcp/oauth-relay.ts';
 import { McpRuntime } from './server-mcp/runtime.ts';
 import { purgeDeletedServers } from './servers/delete-server.ts';
+import { TriggerRateLimiter } from './triggers/trigger-rate-limit.ts';
+import { registerTriggerRoutes } from './triggers/trigger-route.ts';
 
 /**
  * The Grotto Server. It serves only the Grotto Server contract over
@@ -120,6 +122,9 @@ export async function createGrottoServerApplication(
             options.avatarGenerationLogger
         );
         const mcpRuntime = new McpRuntime(grotto.db);
+        // One inbound budget per trigger, shared by the public route and the
+        // operator's test fire: a test costs exactly what a real delivery does.
+        const triggerRateLimiter = new TriggerRateLimiter();
         const mcpOAuthRelay = new McpOAuthRelay(grotto.db, mcpRuntime);
         const createContext = createGrottoContextFactory({
             agentDelivery,
@@ -139,6 +144,7 @@ export async function createGrottoServerApplication(
             grottoDb: grotto.db,
             mcpOAuthRelay,
             mcpRuntime,
+            triggerRateLimiter,
         });
         const isAllowedOrigin = (origin: string | undefined) =>
             isAllowedAppOrigin(origin, options.appOrigin);
@@ -169,6 +175,11 @@ export async function createGrottoServerApplication(
             mcpRuntime,
         });
         registerMcpOAuthCallback(app, mcpOAuthRelay);
+        await registerTriggerRoutes(app, {
+            db: grotto.db,
+            delivery: agentDelivery,
+            limiter: triggerRateLimiter,
+        });
         registerGrottoReleaseRoute(app, { releaseIdentity: options.releaseIdentity });
 
         await app.register(fastifyTRPCPlugin, {

@@ -3,7 +3,7 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     agentInboxCursorsTable,
     agentInboxExactVisibilityTable,
-    agentPendingWorkTable,
+    agentInboxTable,
     agentsTable,
     chatMessagesTable,
     reminderAgentAttentionTable,
@@ -117,24 +117,44 @@ export async function advanceSeenForRun(
     input: { agentId: string; runId: string; serverId: string }
 ) {
     const generation = await readAgentSessionGeneration(db, input.agentId);
-    const rows = await db
-        .select({ chatId: agentPendingWorkTable.chatId, messageId: chatMessagesTable.id })
-        .from(agentPendingWorkTable)
-        .innerJoin(
-            chatMessagesTable,
-            and(
-                eq(chatMessagesTable.serverId, agentPendingWorkTable.serverId),
-                eq(chatMessagesTable.id, agentPendingWorkTable.dedupeKey)
-            )
-        )
+    const served = await db
+        .select({
+            chatId: agentInboxTable.chatId,
+            dedupeKey: agentInboxTable.dedupeKey,
+        })
+        .from(agentInboxTable)
         .where(
             and(
-                eq(agentPendingWorkTable.serverId, input.serverId),
-                eq(agentPendingWorkTable.agentId, input.agentId),
-                eq(agentPendingWorkTable.runId, input.runId),
-                ne(agentPendingWorkTable.state, 'seen')
+                eq(agentInboxTable.serverId, input.serverId),
+                eq(agentInboxTable.agentId, input.agentId),
+                eq(agentInboxTable.runId, input.runId),
+                ne(agentInboxTable.state, 'seen')
             )
         );
+    const backingMessages =
+        served.length > 0
+            ? await db
+                  .select({ id: chatMessagesTable.id })
+                  .from(chatMessagesTable)
+                  .where(
+                      and(
+                          eq(chatMessagesTable.serverId, input.serverId),
+                          inArray(
+                              chatMessagesTable.id,
+                              served.map((row) => row.dedupeKey)
+                          )
+                      )
+                  )
+            : [];
+    const backedIds = new Set(backingMessages.map((message) => message.id));
+    const rows = served
+        .filter((row) => backedIds.has(row.dedupeKey))
+        .map((row) => ({ chatId: row.chatId, messageId: row.dedupeKey }));
+    // A Reminder fire writes no receipt, so its pending row is keyed by the fire
+    // id. Serving that row is what acknowledges the attention.
+    const fireIds = served
+        .filter((row) => !backedIds.has(row.dedupeKey))
+        .map((row) => row.dedupeKey);
     await recordExactMessagesServed(db, {
         ...input,
         messages: rows.map((row) => ({ chatId: row.chatId, id: row.messageId })),
@@ -150,15 +170,14 @@ export async function advanceSeenForRun(
                 eq(agentInboxExactVisibilityTable.servedRunId, input.runId)
             )
         );
-    const messageIds = rows.map((row) => row.messageId);
-    if (messageIds.length > 0) {
+    if (fireIds.length > 0) {
         await db
             .delete(reminderAgentAttentionTable)
             .where(
                 and(
                     eq(reminderAgentAttentionTable.serverId, input.serverId),
                     eq(reminderAgentAttentionTable.agentId, input.agentId),
-                    inArray(reminderAgentAttentionTable.receiptMessageId, messageIds)
+                    inArray(reminderAgentAttentionTable.fireId, fireIds)
                 )
             );
     }
@@ -171,7 +190,7 @@ export async function markCursorSubsumedSeen(
 ) {
     const generation = await readAgentSessionGeneration(db, input.agentId);
     await db.execute(sql`
-        update agent_pending_work pending
+        update agent_inbox pending
         set state = 'seen', seen_at = now()
         from chat_messages message, agent_inbox_cursors cursor
         where pending.server_id = ${input.serverId}

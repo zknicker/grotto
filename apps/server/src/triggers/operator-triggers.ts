@@ -1,0 +1,136 @@
+import type { Trigger, TriggerFire, TriggerStatus } from '@grotto/api';
+import { and, asc, eq, isNull } from 'drizzle-orm';
+import type { GrottoDatabase } from '../postgres/connection.ts';
+import { serverMembershipsTable, triggersTable } from '../postgres/schema.ts';
+import { requireServerMembership } from '../servers/server-access.ts';
+import type { GrottoUser } from '../users/grotto-user.ts';
+import { TriggerAccessDeniedError, type TriggerClock } from './trigger-model.ts';
+import { listTriggerFires, readTrigger, triggerRows, viewTrigger } from './trigger-queries.ts';
+import {
+    deleteTriggerRow,
+    rotateTriggerSecretRow,
+    setTriggerStatusRow,
+    updateTriggerRow,
+} from './trigger-writes.ts';
+
+/**
+ * The operator surface behind the Agent profile. Triggers are operator state:
+ * only a Server Owner or Admin may read or change them, and the row work is the
+ * same core the Agent path uses.
+ */
+
+export interface OperatorTriggerInput {
+    origin: string;
+    serverId: string;
+    triggerId: string;
+}
+
+/** Triggers are operator state: only a Server Owner or Admin may read or change them. */
+export async function requireTriggerOperator(
+    db: Pick<GrottoDatabase, 'select'>,
+    member: GrottoUser | null,
+    serverId: string
+) {
+    const server = await requireServerMembership(db, member, serverId);
+    if (!member || (server.role !== 'owner' && server.role !== 'admin')) {
+        throw new TriggerAccessDeniedError();
+    }
+    return member;
+}
+
+/** The operator's own Server handle, used to name who sent a test fire. */
+export async function readOperatorHandle(
+    db: Pick<GrottoDatabase, 'select'>,
+    input: { serverId: string; userId: string }
+): Promise<string | null> {
+    const [membership] = await db
+        .select({ handle: serverMembershipsTable.handle })
+        .from(serverMembershipsTable)
+        .where(
+            and(
+                eq(serverMembershipsTable.serverId, input.serverId),
+                eq(serverMembershipsTable.userId, input.userId),
+                isNull(serverMembershipsTable.revokedAt)
+            )
+        )
+        .limit(1);
+    return membership?.handle ?? null;
+}
+
+export async function listOperatorTriggers(
+    db: GrottoDatabase,
+    member: GrottoUser | null,
+    input: { agentId?: string; origin: string; serverId: string; status?: TriggerStatus }
+): Promise<Trigger[]> {
+    await requireTriggerOperator(db, member, input.serverId);
+    const rows = await triggerRows(db)
+        .where(
+            and(
+                eq(triggersTable.serverId, input.serverId),
+                input.agentId ? eq(triggersTable.ownerAgentId, input.agentId) : undefined,
+                input.status ? eq(triggersTable.status, input.status) : undefined
+            )
+        )
+        .orderBy(asc(triggersTable.createdAt), asc(triggersTable.id));
+    return rows.map((row) => viewTrigger(row, input.origin));
+}
+
+export async function listOperatorTriggerRuns(
+    db: GrottoDatabase,
+    member: GrottoUser | null,
+    input: OperatorTriggerInput
+): Promise<TriggerFire[]> {
+    await requireTriggerOperator(db, member, input.serverId);
+    await readTrigger(db, input);
+    return await listTriggerFires(db, {
+        limit: 100,
+        serverId: input.serverId,
+        triggerId: input.triggerId,
+    });
+}
+
+/** The App's arm/disable switch. Setting the status it already has is a no-op. */
+export async function setOperatorTriggerStatus(
+    db: GrottoDatabase,
+    member: GrottoUser | null,
+    input: OperatorTriggerInput & { status: TriggerStatus },
+    clock: TriggerClock
+): Promise<{ trigger: Trigger }> {
+    return {
+        trigger: await setTriggerStatusRow(db, input, operatorCheck(member, input), clock),
+    };
+}
+
+/** Edits the title and standing instruction. The anchor and kind never move. */
+export async function updateOperatorTrigger(
+    db: GrottoDatabase,
+    member: GrottoUser | null,
+    input: OperatorTriggerInput & { instruction?: string | null; title?: string },
+    clock: TriggerClock
+): Promise<{ trigger: Trigger }> {
+    return { trigger: await updateTriggerRow(db, input, operatorCheck(member, input), clock) };
+}
+
+/** Mints a replacement secret. The response is the only place it is readable. */
+export async function rotateOperatorTriggerSecret(
+    db: GrottoDatabase,
+    member: GrottoUser | null,
+    input: OperatorTriggerInput,
+    clock: TriggerClock
+): Promise<{ secret: string; trigger: Trigger }> {
+    return await rotateTriggerSecretRow(db, input, operatorCheck(member, input), clock);
+}
+
+/** Deletes the trigger and cascades its fire history. Chat receipts remain. */
+export async function deleteOperatorTrigger(
+    db: GrottoDatabase,
+    member: GrottoUser | null,
+    input: OperatorTriggerInput
+): Promise<{ deleted: true; id: string }> {
+    await deleteTriggerRow(db, input, operatorCheck(member, input));
+    return { deleted: true, id: input.triggerId };
+}
+
+function operatorCheck(member: GrottoUser | null, input: { serverId: string }) {
+    return async (tx: GrottoDatabase) => await requireTriggerOperator(tx, member, input.serverId);
+}

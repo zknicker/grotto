@@ -15,6 +15,7 @@ import {
     readMessageAttachments,
     requireAgentMessageAttachments,
 } from '../attachments/message-attachments.ts';
+import { type AttributedMessageCause, insertMessageCause } from '../automations/message-cause.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
@@ -30,6 +31,11 @@ const maxAgentMessageContentLength = 32_000;
 export interface SendAgentMessageInput {
     agentId: string;
     attachmentIds: string[];
+    /**
+     * The Trigger or Reminder fire this message answers, already owner-checked,
+     * with how the Server learned it.
+     */
+    cause?: AttributedMessageCause;
     chatId: string;
     content: string;
     nonce: string;
@@ -70,6 +76,7 @@ export async function sendAgentMessage(
                 description: agentsTable.description,
                 displayName: agentsTable.displayName,
                 handle: agentsTable.handle,
+                sessionGeneration: agentsTable.sessionGeneration,
             })
             .from(agentsTable)
             .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
@@ -190,9 +197,18 @@ export async function sendAgentMessage(
                 runId: input.runId,
                 sequence: updatedChat.sequence,
                 serverId: input.serverId,
+                sessionGeneration: agent.sessionGeneration,
             })
             .returning();
         await associateMessageAttachments(tx, attachments, message.id, input.chatId);
+        if (input.cause) {
+            await insertMessageCause(tx, {
+                attribution: input.cause.attribution,
+                cause: input.cause.fire,
+                messageId: message.id,
+                serverId: input.serverId,
+            });
+        }
 
         const [writtenChat] = await tx
             .select({ kind: chatsTable.kind, parentChatId: chatsTable.parentChatId })

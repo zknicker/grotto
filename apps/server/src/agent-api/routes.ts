@@ -4,6 +4,8 @@ import * as z from 'zod';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import { publishAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
+import { inferMessageCause } from '../automations/infer-message-cause.ts';
+import { MessageCauseError, resolveMessageCause } from '../automations/message-cause.ts';
 import {
     AvatarGenerationBusyError,
     AvatarGenerationProviderError,
@@ -40,6 +42,7 @@ import { registerAgentReminderRoutes } from './reminder-routes.ts';
 import { AgentTargetError, resolveAgentSendTarget } from './resolve-target.ts';
 import { AgentSendModeError, clearAgentDraft, prepareAgentSend } from './send-hold.ts';
 import { registerAgentTaskRoutes } from './task-routes.ts';
+import { registerAgentTriggerRoutes } from './trigger-routes.ts';
 
 const historyQuerySchema = z.object({
     after: z.string().min(1).optional(),
@@ -99,6 +102,7 @@ export function registerAgentApiRoutes(
         agentDelivery: options.agentDelivery,
         db: options.db,
     });
+    registerAgentTriggerRoutes(app, options.db);
 
     app.post('/api/agent/avatar/generate', async (request, reply) => {
         const runner = await authorizeAgentRunner(options.db, request);
@@ -413,6 +417,20 @@ export function registerAgentApiRoutes(
             const committed = await options.db.transaction(async (tx) => {
                 await lockServerRow(tx, runner.serverId);
                 const chatId = await resolveAgentSendTarget(tx, runner, input.target);
+                // Provenance is resolved before the hold check so an unknown or
+                // borrowed fire id is refused outright, never held. Without an
+                // explicit `--cause`, a sole served fire answered in its anchor
+                // Chat is inferred instead.
+                const cause = input.cause
+                    ? {
+                          attribution: 'explicit' as const,
+                          fire: await resolveMessageCause(tx, {
+                              agentId: runner.agentId,
+                              cause: input.cause,
+                              serverId: runner.serverId,
+                          }),
+                      }
+                    : await inferMessageCause(tx, { ...runner, chatId });
                 const prepared = await prepareAgentSend(tx, runner, chatId, input);
                 if (prepared.kind === 'held') {
                     return { kind: 'held' as const, response: prepared.response };
@@ -422,6 +440,7 @@ export function registerAgentApiRoutes(
                     {
                         agentId: runner.agentId,
                         attachmentIds: prepared.outgoing.attachmentIds,
+                        ...(cause ? { cause } : {}),
                         chatId,
                         content: prepared.outgoing.content,
                         nonce: input.nonce,
@@ -469,7 +488,10 @@ export function registerAgentApiRoutes(
             );
             return { message: result.message, recentUnread: [], state: 'sent' as const };
         } catch (cause) {
-            if (cause instanceof AgentMessageContentTooLongError) {
+            if (
+                cause instanceof AgentMessageContentTooLongError ||
+                cause instanceof MessageCauseError
+            ) {
                 return sendAgentApiError(reply, 400, 'INVALID_ARG', cause.message);
             }
             if (cause instanceof AgentSendConflictError) {

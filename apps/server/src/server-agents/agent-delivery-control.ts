@@ -1,6 +1,6 @@
 import type { AgentDeliveryControlInput, AgentDeliveryState } from '@grotto/api';
 import { and, eq, isNull } from 'drizzle-orm';
-import { countQueuedPending, readDeliveryState } from '../agent-delivery/store.ts';
+import { countQueuedInboxItems, readDeliveryState } from '../agent-delivery/store.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -47,7 +47,7 @@ export async function readAgentDeliveryState(
     await requireAgent(db, input);
     const [state, pending] = await Promise.all([
         readDeliveryState(db, input.agentId),
-        countQueuedPending(db, input.agentId),
+        countQueuedInboxItems(db, input.agentId),
     ]);
     return {
         agentId: input.agentId,

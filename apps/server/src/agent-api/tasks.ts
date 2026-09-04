@@ -1,10 +1,10 @@
 import type { AgentActivityEvent, ServerDurableEvent } from '@grotto/api';
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { readAgentSessionGeneration } from '../agent-delivery/cursors.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
-import { insertSystemMessage } from '../chats/insert-system-message.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -20,7 +20,7 @@ import {
 } from '../postgres/schema.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { taskAssignmentReceiptContent } from '../tasks/task-assignment-receipt.ts';
+import { taskAssignmentEnvelope, taskAssignmentKey } from '../tasks/task-assignment-envelope.ts';
 import { insertTaskEvent } from '../tasks/task-events.ts';
 import { agentOwnsTask, taskHasOtherOwnerForAgent } from '../tasks/task-ownership.ts';
 import { ensureThreadRecord } from '../threads/ensure-thread.ts';
@@ -104,6 +104,7 @@ export async function createAgentTasks(
         if (replay) {
             return { activities: [], events: [], tasks: replay, wakes: [] };
         }
+        const sessionGeneration = await readAgentSessionGeneration(tx, runner.agentId);
         const created: Awaited<ReturnType<typeof taskRow>>[] = [];
         const activities: AgentActivityEvent[] = [];
         const events: ServerDurableEvent[] = [];
@@ -145,6 +146,7 @@ export async function createAgentTasks(
                     runId: runner.runId,
                     sequence: numberedChat.messageSequence,
                     serverId: runner.serverId,
+                    sessionGeneration,
                 })
                 .returning(messageSelection);
             const completedActivity = await appendServerAgentActivity(tx, {
@@ -175,30 +177,17 @@ export async function createAgentTasks(
                 message.id,
                 assigneeAgentId ?? runner.agentId
             );
-            let assignmentReceipt: {
-                content: string;
-                event: Extract<ServerDurableEvent, { type: 'message.created' }>;
-            } | null = null;
-            if (assigneeAgentId && assigneeAgentId !== runner.agentId) {
-                const content = taskAssignmentReceiptContent({
-                    assigneeHandle: await agentHandle(tx, {
-                        agentId: assigneeAgentId,
-                        serverId: runner.serverId,
-                    }),
-                    number: numberedChat.taskNumber,
-                    title: title.trim(),
-                });
-                assignmentReceipt = {
-                    content,
-                    event: await insertSystemMessage(tx, {
-                        chatId,
-                        content,
-                        nonce: `task-assignment:${message.id}`,
-                        serverId: runner.serverId,
-                        systemAuthor: 'task',
-                    }),
-                };
-            }
+            // The handoff is a private Agent delivery: a typed inbox item keyed
+            // by the assignment identity, never a hidden Chat message.
+            const assignmentEnvelope =
+                assigneeAgentId && assigneeAgentId !== runner.agentId
+                    ? taskAssignmentEnvelope({
+                          assignedByHandle: await agentHandle(tx, runner),
+                          number: numberedChat.taskNumber,
+                          target: await targetForChat(tx, runner.serverId, chatId),
+                          title: title.trim(),
+                      })
+                    : null;
             const recipients = await planAgentMessageRecipients(tx, {
                 authorAgentId: runner.agentId,
                 chatId,
@@ -226,16 +215,15 @@ export async function createAgentTasks(
                 });
                 wakes.add(recipient.agentId);
             }
-            if (assignmentReceipt && assigneeAgentId) {
+            if (assignmentEnvelope && assigneeAgentId) {
                 await agentDelivery.enqueue(tx, {
                     agentId: assigneeAgentId,
                     chatId,
-                    content: assignmentReceipt.content,
-                    dedupeKey: assignmentReceipt.event.messageId,
+                    content: assignmentEnvelope,
+                    dedupeKey: taskAssignmentKey(message.id, 1),
                     mentioned: true,
-                    sequence: assignmentReceipt.event.sequence,
                     serverId: runner.serverId,
-                    source: 'system',
+                    source: 'task_assignment',
                 });
                 wakes.add(assigneeAgentId);
             }
@@ -251,8 +239,7 @@ export async function createAgentTasks(
                     messageId: message.id,
                     serverId: runner.serverId,
                     type: 'task.created',
-                }),
-                ...(assignmentReceipt ? [assignmentReceipt.event] : [])
+                })
             );
             const [task] = await tx
                 .select()

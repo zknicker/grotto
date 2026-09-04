@@ -6,7 +6,6 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
-    chatMessagesTable,
     chatsTable,
     reminderAgentAttentionTable,
     reminderFiresTable,
@@ -14,18 +13,19 @@ import {
 } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { nextReminderFireAt, parseReminderRepeat } from './cadence.ts';
+import { reminderEnvelope } from './reminder-envelope.ts';
 import {
     insertAnchoredReminderChangedEvent,
     insertReminderChangedEvent,
 } from './reminder-events.ts';
 import {
-    insertMessageEvent,
     ReminderAgentInactiveError,
     ReminderAnchorAccessError,
     type ReminderClock,
     requireActiveAgent,
     requireAgentAnchor,
 } from './reminder-model.ts';
+import { retireQueuedReminderFires } from './retire-fires.ts';
 
 export async function tickReminders(
     db: GrottoDatabase,
@@ -134,8 +134,13 @@ async function fireNextDueReminder(
                 }
                 throw cause;
             }
-            await tx
-                .select({ id: chatsTable.id })
+            // A fire posts no message, so the Chat sequence never moves. The
+            // locked read still pins the anchor for the rest of the commit.
+            const [chat] = await tx
+                .select({
+                    parentChatId: chatsTable.parentChatId,
+                    sequence: chatsTable.lastMessageSequence,
+                })
                 .from(chatsTable)
                 .where(
                     and(
@@ -144,36 +149,9 @@ async function fireNextDueReminder(
                     )
                 )
                 .for('update');
-
-            const [chat] = await tx
-                .update(chatsTable)
-                .set({
-                    lastActivityAt: now,
-                    lastMessageSequence: chatsTable.lastMessageSequence,
-                })
-                .where(
-                    and(
-                        eq(chatsTable.serverId, reminder.serverId),
-                        eq(chatsTable.id, reminder.anchorChatId)
-                    )
-                )
-                .returning({
-                    parentChatId: chatsTable.parentChatId,
-                    sequence: chatsTable.lastMessageSequence,
-                });
             if (!chat) {
                 throw new Error('The reminder anchor Chat no longer exists.');
             }
-            const sequence = chat.sequence + 1;
-            await tx
-                .update(chatsTable)
-                .set({ lastMessageSequence: sequence })
-                .where(
-                    and(
-                        eq(chatsTable.serverId, reminder.serverId),
-                        eq(chatsTable.id, reminder.anchorChatId)
-                    )
-                );
 
             const [agent] = await tx
                 .select({ computerId: agentsTable.computerId })
@@ -186,22 +164,10 @@ async function fireNextDueReminder(
                 )
                 .limit(1);
             const fireId = createOpaqueId('rmf');
-            const receiptId = createOpaqueId('msg');
             const attentionId = createOpaqueId('rma');
-            await tx.insert(chatMessagesTable).values({
-                chatId: reminder.anchorChatId,
-                content: `🔔 Reminder: ${reminder.title}`,
-                createdAt: now,
-                id: receiptId,
-                nonce: `reminder:fire:${receiptId}`,
-                sequence,
-                serverId: reminder.serverId,
-                systemAuthor: 'reminder',
-            });
             await tx.insert(reminderFiresTable).values({
                 firedAt: now,
                 id: fireId,
-                receiptMessageId: receiptId,
                 reminderId: reminder.id,
                 scheduledFor: reminder.fireAt,
                 serverId: reminder.serverId,
@@ -213,30 +179,32 @@ async function fireNextDueReminder(
                 id: attentionId,
                 kind: reminder.script === null ? 'reminder' : 'reminder_script',
                 queuedAt: now,
-                receiptMessageId: receiptId,
                 reminderId: reminder.id,
                 script: reminder.script,
                 serverId: reminder.serverId,
             });
+
+            const repeat = reminder.repeat ? parseReminderRepeat(reminder.repeat) : null;
+            const nextFireAt = repeat
+                ? new Date(nextReminderFireAt(repeat, now.getTime(), reminder.timezone))
+                : null;
+            // A script reminder wakes its Agent only once the script settles, so
+            // its envelope can carry the run's outcome.
             if (delivery && reminder.script === null) {
                 await delivery.enqueue(tx, {
                     agentId: reminder.ownerAgentId,
                     chatId: reminder.anchorChatId,
-                    content: `🔔 Reminder: ${reminder.title}`,
-                    dedupeKey: receiptId,
-                    sequence,
+                    content: reminderEnvelope({ fireId, nextFireAt, title: reminder.title }),
+                    createdAt: now,
+                    dedupeKey: fireId,
                     serverId: reminder.serverId,
                     source: 'reminder',
                 });
             }
-
-            const repeat = reminder.repeat ? parseReminderRepeat(reminder.repeat) : null;
             await tx
                 .update(remindersTable)
                 .set({
-                    fireAt: repeat
-                        ? new Date(nextReminderFireAt(repeat, now.getTime(), reminder.timezone))
-                        : reminder.fireAt,
+                    fireAt: nextFireAt ?? reminder.fireAt,
                     status: repeat ? 'scheduled' : 'fired',
                     updatedAt: now,
                     version: reminder.version + 1,
@@ -247,21 +215,13 @@ async function fireNextDueReminder(
                         eq(remindersTable.id, reminder.id)
                     )
                 );
-            const messageEvent = await insertMessageEvent(tx, {
-                chatId: reminder.anchorChatId,
-                createdAt: now,
-                messageId: receiptId,
-                parentChatId: chat.parentChatId,
-                sequence,
-                serverId: reminder.serverId,
-            });
             const reminderEvent = await insertReminderChangedEvent(tx, {
                 action: 'fired',
                 chatId: reminder.anchorChatId,
                 createdAt: now,
                 parentChatId: chat.parentChatId,
                 reminderId: reminder.id,
-                sequence,
+                sequence: chat.sequence,
                 serverId: reminder.serverId,
             });
             return {
@@ -286,7 +246,7 @@ async function fireNextDueReminder(
                                 kind: 'script' as const,
                             }
                           : null,
-                events: [messageEvent, reminderEvent],
+                events: [reminderEvent],
                 fired: true,
             };
         });
@@ -371,6 +331,7 @@ async function cancelUnauthorizedReminder(
                 eq(reminderAgentAttentionTable.reminderId, reminder.id)
             )
         );
+    await retireQueuedReminderFires(db, reminder.serverId, reminder.id);
     return insertAnchoredReminderChangedEvent(db, {
         action: 'canceled',
         chatId: reminder.anchorChatId,

@@ -97,7 +97,6 @@ export async function listChats(
                             message.author_user_id is null
                             or message.author_user_id <> ${member.id}
                         )
-                        and message.system_author is distinct from 'task'
                         and message.sequence > coalesce(
                             (
                                 select read.sequence

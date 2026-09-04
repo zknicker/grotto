@@ -1,4 +1,4 @@
-import type { AttachmentMetadata, ChatMessage, PreparedAction } from '@grotto/api';
+import type { AttachmentMetadata, ChatMessage, MessageCause, PreparedAction } from '@grotto/api';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
 interface StoredChatMessage {
@@ -12,7 +12,7 @@ interface StoredChatMessage {
     runId: string | null;
     sequence: number;
     serverId: string;
-    systemAuthor: 'reminder' | 'session' | 'task' | null;
+    sessionGeneration: number | null;
 }
 
 export interface StoredChatMessageAuthorProfile {
@@ -61,11 +61,13 @@ export function toChatMessage(
     message: StoredChatMessage,
     attachments: AttachmentMetadata[] = [],
     authorProfile?: StoredChatMessageAuthorProfile,
-    preparedAction?: PreparedAction
+    preparedAction?: PreparedAction,
+    cause?: MessageCause
 ): ChatMessage {
     return {
         attachments,
         author: readAuthor(message, authorProfile),
+        ...(cause ? { cause } : {}),
         chatId: message.chatId,
         content: message.content,
         createdAt: message.createdAt.toISOString(),
@@ -74,6 +76,7 @@ export function toChatMessage(
         runId: message.runId,
         sequence: message.sequence,
         serverId: message.serverId,
+        sessionGeneration: message.sessionGeneration,
         ...(preparedAction ? { preparedAction } : {}),
     };
 }
@@ -82,15 +85,6 @@ function readAuthor(
     message: StoredChatMessage,
     profile?: StoredChatMessageAuthorProfile
 ): ChatMessage['author'] {
-    if (message.systemAuthor === 'reminder') {
-        return { kind: 'system', system: 'reminder' };
-    }
-    if (message.systemAuthor === 'session') {
-        return { kind: 'system', system: 'session' };
-    }
-    if (message.systemAuthor === 'task') {
-        return { kind: 'system', system: 'task' };
-    }
     if (message.authorAgentId !== null) {
         return { agentId: message.authorAgentId, kind: 'agent', profile };
     }

@@ -1,5 +1,6 @@
 import { agentRouter } from './agent/router.ts';
 import { attachmentRouter } from './attachment/router.ts';
+import { automationRouter } from './automation/router.ts';
 import { avatarRouter } from './avatar/router.ts';
 import { browserRouter } from './browser/router.ts';
 import { chatRouter } from './chat/router.ts';
@@ -15,6 +16,7 @@ import { statsRouter } from './stats/router.ts';
 import { taskRouter } from './task/router.ts';
 import { taskLabelRouter } from './task-label/router.ts';
 import { threadRouter } from './thread/router.ts';
+import { triggerRouter } from './trigger/router.ts';
 import { createRouter } from './trpc.ts';
 
 /**
@@ -23,6 +25,7 @@ import { createRouter } from './trpc.ts';
 export const grottoRouter = createRouter({
     agent: agentRouter,
     attachment: attachmentRouter,
+    automation: automationRouter,
     avatar: avatarRouter,
     browser: browserRouter,
     chat: chatRouter,
@@ -38,6 +41,7 @@ export const grottoRouter = createRouter({
     task: taskRouter,
     taskLabel: taskLabelRouter,
     thread: threadRouter,
+    trigger: triggerRouter,
 });
 
 export type GrottoRouter = typeof grottoRouter;

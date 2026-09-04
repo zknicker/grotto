@@ -1,6 +1,6 @@
 import type { Agent, CoveApplyCommand, CoveApplyResult } from '@grotto/api';
 import { and, eq, isNull } from 'drizzle-orm';
-import { enqueuePendingWork } from '../agent-delivery/store.ts';
+import { enqueueInboxItem } from '../agent-delivery/store.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -233,7 +233,7 @@ export async function recordCoveApplyResult(
                     .update(agentsTable)
                     .set({ factoryAppliedAt: new Date() })
                     .where(eq(agentsTable.id, result.agentId));
-                await enqueuePendingWork(tx, {
+                await enqueueInboxItem(tx, {
                     agentId: result.agentId,
                     chatId: row.channelId,
                     content:

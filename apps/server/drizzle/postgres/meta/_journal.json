@@ -169,6 +169,41 @@
       "when": 1787973382185,
       "tag": "0023_mixed_gabe_jones",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788448980832,
+      "tag": "0024_triggers",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1788463781008,
+      "tag": "0025_message_causes",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1788463782008,
+      "tag": "0026_defer_trigger_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1788536083333,
+      "tag": "0027_visible_messages",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1788536084333,
+      "tag": "0028_agent_inbox",
+      "breakpoints": true
     }
   ]
 }

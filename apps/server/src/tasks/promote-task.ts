@@ -50,7 +50,6 @@ export async function promoteMessageTask(
             .select({
                 chatId: chatMessagesTable.chatId,
                 id: chatMessagesTable.id,
-                systemAuthor: chatMessagesTable.systemAuthor,
             })
             .from(chatMessagesTable)
             .where(
@@ -68,7 +67,7 @@ export async function promoteMessageTask(
             chatId: message.chatId,
             serverId: input.serverId,
         });
-        if (chat.kind === 'thread' || message.systemAuthor) {
+        if (chat.kind === 'thread') {
             throw new UntaskableMessageError();
         }
 

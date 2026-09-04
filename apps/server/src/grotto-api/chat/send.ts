@@ -12,7 +12,7 @@ export const sendChatMessageProcedure = chatProcedure
         if (result.event) {
             emitDurableChatEvent({ audienceUserId: null, event: result.event });
         }
-        // The pending work was enqueued atomically with the message commit; this
+        // The inbox item was enqueued atomically with the message commit; this
         // is only the best-effort wire nudge, so the send never waits on it. If
         // it fails, the retry sweep and reconnect reconciliation still deliver
         // the durably queued work.

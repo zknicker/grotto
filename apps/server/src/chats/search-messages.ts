@@ -1,6 +1,7 @@
 import type { ChatSearchResult } from '@grotto/api';
-import { and, eq, gte, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, eq, gte, isNull, ne, sql } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
+import { readMessageCauses } from '../automations/message-cause-read.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
@@ -55,7 +56,7 @@ export async function searchChatMessages(
             runId: chatMessagesTable.runId,
             sequence: chatMessagesTable.sequence,
             serverId: chatMessagesTable.serverId,
-            systemAuthor: chatMessagesTable.systemAuthor,
+            sessionGeneration: chatMessagesTable.sessionGeneration,
             authorAgentAvatarId: agentsTable.avatarId,
             authorAgentDescription: agentsTable.description,
             authorAgentDisplayName: agentsTable.displayName,
@@ -91,10 +92,6 @@ export async function searchChatMessages(
         .where(
             and(
                 eq(chatMessagesTable.serverId, input.serverId),
-                or(
-                    isNull(chatMessagesTable.systemAuthor),
-                    ne(chatMessagesTable.systemAuthor, 'task')
-                ),
                 ne(chatsTable.kind, 'thread'),
                 isNull(chatsTable.deletedAt),
                 input.chatId ? eq(chatMessagesTable.chatId, input.chatId) : undefined,
@@ -114,9 +111,10 @@ export async function searchChatMessages(
         .limit(input.limit);
 
     const messageIds = rows.map((message) => message.id);
-    const [attachments, actions] = await Promise.all([
+    const [attachments, actions, causes] = await Promise.all([
         readMessageAttachments(db, input.serverId, messageIds),
         readPreparedActionsForMessages(db, input.serverId, messageIds),
+        readMessageCauses(db, input.serverId, messageIds),
     ]);
 
     return rows.map((message) => ({
@@ -124,7 +122,8 @@ export async function searchChatMessages(
             message,
             attachments.get(message.id) ?? [],
             readStoredAuthorProfile(message),
-            actions.get(message.id)
+            actions.get(message.id),
+            causes.get(message.id)
         ),
         chatArchivedAt: message.chatArchivedAt?.toISOString() ?? null,
     }));

@@ -5,7 +5,6 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
-    chatMessagesTable,
     chatsTable,
     reminderCommandsTable,
     remindersTable,
@@ -15,14 +14,12 @@ import { isValidReminderTimezone, nextReminderFireAt, parseReminderRepeat } from
 import { lockReminderCommand, parseReminderCommandResult } from './mutations.ts';
 import { insertReminderChangedEvent } from './reminder-events.ts';
 import {
-    insertMessageEvent,
     type Reminder,
     type ReminderClock,
     ReminderCommandConflictError,
     requireActiveAgent,
     requireAgentAnchor,
     type ScheduleReminderInput,
-    scheduleReceipt,
     toReminder,
     validateScheduleInput,
 } from './reminder-model.ts';
@@ -139,40 +136,21 @@ export async function scheduleReminder(
                 updatedAt: now,
             })
             .returning();
-        const [updatedChat] = await tx
-            .update(chatsTable)
-            .set({
-                lastActivityAt: now,
-                lastMessageSequence: sql`${chatsTable.lastMessageSequence} + 1`,
-            })
+        // Scheduling posts nothing to the transcript. The Automations tab and the
+        // `reminder.changed` event carry the new Reminder; only the Agent's own
+        // message, sent with `--cause`, ever appears in Chat.
+        const [anchorChat] = await tx
+            .select({ sequence: chatsTable.lastMessageSequence })
+            .from(chatsTable)
             .where(
                 and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.anchorChatId))
             )
-            .returning({ sequence: chatsTable.lastMessageSequence });
-        if (!(reminder && updatedChat)) {
+            .for('update');
+        if (!(reminder && anchorChat)) {
             throw new Error('Failed to schedule the reminder.');
         }
         const shapedReminder = toReminder(reminder, agent.handle);
 
-        const [receipt] = await tx
-            .insert(chatMessagesTable)
-            .values({
-                chatId: input.anchorChatId,
-                content: scheduleReceipt(agent.handle, title, input.fireAt, repeat?.spec ?? null),
-                createdAt: now,
-                id: createOpaqueId('msg'),
-                nonce: `reminder:schedule:${reminderId}`,
-                sequence: updatedChat.sequence,
-                serverId: input.serverId,
-                systemAuthor: 'reminder',
-            })
-            .returning();
-        await tx
-            .update(remindersTable)
-            .set({ scheduleReceiptMessageId: receipt.id })
-            .where(
-                and(eq(remindersTable.serverId, input.serverId), eq(remindersTable.id, reminderId))
-            );
         await tx.insert(reminderCommandsTable).values({
             action: 'schedule',
             actorId: agentId,
@@ -187,25 +165,17 @@ export async function scheduleReminder(
             serverId: input.serverId,
         });
 
-        const messageEvent = await insertMessageEvent(tx, {
-            chatId: input.anchorChatId,
-            createdAt: now,
-            messageId: receipt.id,
-            parentChatId: anchor.parentChatId,
-            sequence: receipt.sequence,
-            serverId: input.serverId,
-        });
         const reminderEvent = await insertReminderChangedEvent(tx, {
             action: 'scheduled',
             chatId: input.anchorChatId,
             createdAt: now,
             parentChatId: anchor.parentChatId,
             reminderId,
-            sequence: receipt.sequence,
+            sequence: anchorChat.sequence,
             serverId: input.serverId,
         });
         return {
-            events: [messageEvent, reminderEvent],
+            events: [reminderEvent],
             idempotent: false,
             reminder: shapedReminder,
         };

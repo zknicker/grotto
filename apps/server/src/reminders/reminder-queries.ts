@@ -10,7 +10,6 @@ import { requireActiveAgent, requireAgentAnchor } from './reminder-model.ts';
 export interface ReminderFire {
     firedAt: string;
     id: string;
-    receiptMessageId: string;
     reminderId: string;
     scheduledFor: string;
     scriptExitCode?: number | null;
@@ -25,7 +24,6 @@ export interface ReminderAgentAttention {
     id: string;
     kind: 'reminder' | 'reminder_script';
     queuedAt: string;
-    receiptMessageId: string;
     reminderId: string;
     script: string | null;
 }
@@ -52,7 +50,6 @@ export async function listReminderFires(
     return rows.map((row) => ({
         firedAt: row.firedAt.toISOString(),
         id: row.id,
-        receiptMessageId: row.receiptMessageId,
         reminderId: row.reminderId,
         scheduledFor: row.scheduledFor.toISOString(),
         scriptExitCode: row.scriptExitCode,
@@ -83,7 +80,6 @@ export async function listReminderAgentAttention(
         id: row.id,
         kind: row.kind,
         queuedAt: row.queuedAt.toISOString(),
-        receiptMessageId: row.receiptMessageId,
         reminderId: row.reminderId,
         script: row.script,
     }));

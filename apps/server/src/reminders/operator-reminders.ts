@@ -28,6 +28,7 @@ import {
     toReminder,
 } from './reminder-model.ts';
 import type { ReminderFire } from './reminder-queries.ts';
+import { retireQueuedReminderFires } from './retire-fires.ts';
 
 export class ReminderOperatorAccessDeniedError extends Error {
     constructor() {
@@ -102,7 +103,6 @@ export async function listOperatorReminderRuns(
     return rows.map((row) => ({
         firedAt: row.firedAt.toISOString(),
         id: row.id,
-        receiptMessageId: row.receiptMessageId,
         reminderId: row.reminderId,
         scheduledFor: row.scheduledFor.toISOString(),
     }));
@@ -236,6 +236,7 @@ export async function cancelOperatorReminder(
         if (!updated) {
             throw new Error('Failed to cancel the reminder.');
         }
+        await retireQueuedReminderFires(tx, input.serverId, input.reminderId);
         const shapedReminder = await readReminder(tx, input.serverId, updated.id);
         await tx.insert(reminderCommandsTable).values({
             action: 'cancel',

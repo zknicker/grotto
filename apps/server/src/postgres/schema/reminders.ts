@@ -27,7 +27,6 @@ export const remindersTable = pgTable(
         id: text('id').primaryKey(),
         ownerAgentId: text('owner_agent_id').notNull(),
         repeat: text('repeat'),
-        scheduleReceiptMessageId: text('schedule_receipt_message_id'),
         script: text('script'),
         serverId: text('server_id')
             .notNull()
@@ -61,11 +60,6 @@ export const remindersTable = pgTable(
                 chatMessagesTable.id,
             ],
             name: 'reminders_anchor_message_fk',
-        }),
-        foreignKey({
-            columns: [table.serverId, table.scheduleReceiptMessageId],
-            foreignColumns: [chatMessagesTable.serverId, chatMessagesTable.id],
-            name: 'reminders_schedule_receipt_fk',
         }),
         check('reminders_status', sql`${table.status} in ('scheduled', 'fired', 'canceled')`),
         check('reminders_positive_version', sql`${table.version} > 0`),
@@ -121,7 +115,6 @@ export const reminderFiresTable = pgTable(
         scriptExitCode: integer('script_exit_code'),
         scriptOutput: text('script_output'),
         scriptTimedOut: boolean('script_timed_out').notNull().default(false),
-        receiptMessageId: text('receipt_message_id').notNull(),
         reminderId: text('reminder_id').notNull(),
         scheduledFor: timestamp('scheduled_for', { withTimezone: true }).notNull(),
         serverId: text('server_id')
@@ -140,11 +133,6 @@ export const reminderFiresTable = pgTable(
             foreignColumns: [remindersTable.serverId, remindersTable.id],
             name: 'reminder_fires_reminder_fk',
         }).onDelete('cascade'),
-        foreignKey({
-            columns: [table.serverId, table.receiptMessageId],
-            foreignColumns: [chatMessagesTable.serverId, chatMessagesTable.id],
-            name: 'reminder_fires_receipt_fk',
-        }),
         check(
             'reminder_fires_script_output_size',
             sql`${table.scriptOutput} is null or octet_length(${table.scriptOutput}) <= 65536`
@@ -161,7 +149,6 @@ export const reminderAgentAttentionTable = pgTable(
         id: text('id').primaryKey(),
         kind: text('attention_kind').notNull().$type<'reminder' | 'reminder_script'>(),
         queuedAt: timestamp('queued_at', { withTimezone: true }).notNull(),
-        receiptMessageId: text('receipt_message_id').notNull(),
         reminderId: text('reminder_id').notNull(),
         script: text('script'),
         serverId: text('server_id')
@@ -190,11 +177,6 @@ export const reminderAgentAttentionTable = pgTable(
             columns: [table.serverId, table.anchorChatId],
             foreignColumns: [chatsTable.serverId, chatsTable.id],
             name: 'reminder_agent_attention_anchor_chat_fk',
-        }),
-        foreignKey({
-            columns: [table.serverId, table.receiptMessageId],
-            foreignColumns: [chatMessagesTable.serverId, chatMessagesTable.id],
-            name: 'reminder_agent_attention_receipt_fk',
         }),
         check(
             'reminder_agent_attention_shape',

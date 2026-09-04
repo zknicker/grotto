@@ -3,8 +3,8 @@ import { and, eq, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     agentDeliveryTable,
+    agentInboxTable,
     agentMcpConnectionGrantsTable,
-    agentPendingWorkTable,
     agentRunnerCredentialsTable,
     agentsTable,
     channelAgentParticipantsTable,
@@ -67,11 +67,11 @@ export async function deleteAgent(
                 )
             );
         await tx
-            .delete(agentPendingWorkTable)
+            .delete(agentInboxTable)
             .where(
                 and(
-                    eq(agentPendingWorkTable.serverId, input.serverId),
-                    eq(agentPendingWorkTable.agentId, agent.id)
+                    eq(agentInboxTable.serverId, input.serverId),
+                    eq(agentInboxTable.agentId, agent.id)
                 )
             );
         await tx

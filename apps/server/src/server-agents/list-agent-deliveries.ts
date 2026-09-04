@@ -1,7 +1,7 @@
 import type { AgentDeliveriesInput, AgentDeliveryRecord } from '@grotto/api';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { agentPendingWorkTable } from '../postgres/schema.ts';
+import { agentInboxTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { requireAgent } from './agent-delivery-control.ts';
@@ -21,30 +21,30 @@ export async function listAgentDeliveries(
 
     const rows = await db
         .select({
-            acceptedAt: agentPendingWorkTable.acceptedAt,
+            acceptedAt: agentInboxTable.acceptedAt,
             actionId: sql<
                 string | null
-            >`case when ${agentPendingWorkTable.source} = 'action' then ${agentPendingWorkTable.dedupeKey} else null end`,
-            chatId: agentPendingWorkTable.chatId,
-            createdAt: agentPendingWorkTable.createdAt,
+            >`case when ${agentInboxTable.source} = 'action' then ${agentInboxTable.dedupeKey} else null end`,
+            chatId: agentInboxTable.chatId,
+            createdAt: agentInboxTable.createdAt,
             messageId: sql<
                 string | null
-            >`case when ${agentPendingWorkTable.source} = 'action' then null else ${agentPendingWorkTable.dedupeKey} end`,
-            source: agentPendingWorkTable.source,
-            seenAt: agentPendingWorkTable.seenAt,
-            servedAt: agentPendingWorkTable.servedAt,
-            state: agentPendingWorkTable.state,
-            turnId: agentPendingWorkTable.settledRunId,
-            workId: agentPendingWorkTable.dedupeKey,
+            >`case when ${agentInboxTable.source} = 'action' then null else ${agentInboxTable.dedupeKey} end`,
+            source: agentInboxTable.source,
+            seenAt: agentInboxTable.seenAt,
+            servedAt: agentInboxTable.servedAt,
+            state: agentInboxTable.state,
+            turnId: agentInboxTable.settledRunId,
+            workId: agentInboxTable.dedupeKey,
         })
-        .from(agentPendingWorkTable)
+        .from(agentInboxTable)
         .where(
             and(
-                eq(agentPendingWorkTable.serverId, input.serverId),
-                eq(agentPendingWorkTable.agentId, input.agentId)
+                eq(agentInboxTable.serverId, input.serverId),
+                eq(agentInboxTable.agentId, input.agentId)
             )
         )
-        .orderBy(desc(agentPendingWorkTable.createdAt))
+        .orderBy(desc(agentInboxTable.createdAt))
         .limit(input.limit);
 
     return rows.map((row) => ({

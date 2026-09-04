@@ -7,6 +7,7 @@ import type {
 import { and, eq, sql } from 'drizzle-orm';
 import { followAgentThread } from '../agent-api/attention.ts';
 import { resolveAgentTarget } from '../agent-api/resolve-target.ts';
+import { readAgentSessionGeneration } from '../agent-delivery/cursors.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
@@ -173,6 +174,7 @@ async function prepareAgentActionInTransaction(
             runId: runner.runId,
             sequence: updatedChat.sequence,
             serverId: input.serverId,
+            sessionGeneration: await readAgentSessionGeneration(db, runner.agentId),
         })
         .returning();
     if (!message) {

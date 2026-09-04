@@ -5,7 +5,7 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentDeliveryTable,
-    agentPendingWorkTable,
+    agentInboxTable,
     agentRunnerCredentialsTable,
     agentsTable,
     avatarsTable,
@@ -104,7 +104,7 @@ export async function markServerDeleting(
                 .set({ credentialHash: revokedComputerCredential(computer.id, deletionId) })
                 .where(eq(computersTable.id, computer.id));
         }
-        await tx.delete(agentPendingWorkTable).where(eq(agentPendingWorkTable.serverId, server.id));
+        await tx.delete(agentInboxTable).where(eq(agentInboxTable.serverId, server.id));
         await tx.delete(agentDeliveryTable).where(eq(agentDeliveryTable.serverId, server.id));
         await tx
             .delete(reminderAgentAttentionTable)

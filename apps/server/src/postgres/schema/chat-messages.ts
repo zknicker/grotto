@@ -35,7 +35,8 @@ export const chatMessagesTable = pgTable(
         ),
         sequence: integer('sequence').notNull(),
         serverId: text('server_id').notNull(),
-        systemAuthor: text('system_author').$type<'reminder' | 'session' | 'task'>(),
+        /** The Agent session that wrote this; null for every human message. */
+        sessionGeneration: integer('session_generation'),
     },
     (table) => [
         unique('chat_messages_server_id_key').on(table.serverId, table.id),
@@ -62,14 +63,20 @@ export const chatMessagesTable = pgTable(
             name: 'chat_messages_author_agent_fk',
         }),
         check('chat_messages_positive_sequence', sql`${table.sequence} > 0`),
+        // Every durable Chat message is human-readable, so every row has a
+        // human or an Agent author. Agent-only deliveries ride the agent inbox.
         check(
             'chat_messages_author_shape',
             sql`(
-                (${table.authorUserId} is not null and ${table.authorAgentId} is null and ${table.systemAuthor} is null)
+                (${table.authorUserId} is not null and ${table.authorAgentId} is null)
                 or
-                (${table.authorAgentId} is not null and ${table.authorUserId} is null and ${table.systemAuthor} is null)
-                or
-                (${table.authorUserId} is null and ${table.authorAgentId} is null and ${table.systemAuthor} in ('reminder', 'session', 'task'))
+                (${table.authorAgentId} is not null and ${table.authorUserId} is null)
+            )`
+        ),
+        check(
+            'chat_messages_session_generation',
+            sql`${table.sessionGeneration} is null or (
+                ${table.sessionGeneration} > 0 and ${table.authorAgentId} is not null
             )`
         ),
         index('chat_messages_chat_sequence_idx').on(table.serverId, table.chatId, table.sequence),

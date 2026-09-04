@@ -1,20 +1,21 @@
 import type { MessageTask, ServerDurableEvent } from '@grotto/api';
 import { and, eq, sql } from 'drizzle-orm';
+import { targetForChat } from '../agent-api/message-view.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
-import { insertSystemMessage } from '../chats/insert-system-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     agentThreadFollowsTable,
     chatMessagesTable,
     messageTasksTable,
+    serverMembershipsTable,
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { TaskConflictError, TaskNotFoundError } from './claim-task.ts';
 import { resolveTaskAssignee } from './resolve-task-assignee.ts';
-import { taskAssignmentReceiptContent } from './task-assignment-receipt.ts';
+import { taskAssignmentEnvelope, taskAssignmentKey } from './task-assignment-envelope.ts';
 import { insertTaskEvent } from './task-events.ts';
 import { findMessageTask } from './task-shape.ts';
 
@@ -33,7 +34,7 @@ export class TaskClosedAssignError extends Error {
 }
 
 /**
- * Assignment emits its own receipt message alongside the task update, so it
+ * Assignment updates the task and hands the assignee a typed delivery, so it
  * carries a list of events rather than the single event the other task
  * mutations return, plus the Agents to wake.
  */
@@ -176,30 +177,32 @@ export async function assignTask(
                     )
                 )
                 .limit(1);
-            const content = taskAssignmentReceiptContent({
-                assigneeHandle: assignee.handle ?? '',
-                number: task.number,
-                title: anchor?.content ?? '',
-            });
-            // The nonce carries the new version: a task can be reassigned many
-            // times, and a per-message nonce would collide on the second one.
-            const receiptEvent = await insertSystemMessage(tx, {
-                chatId: current.chatId,
-                content,
-                nonce: `task-assignment:${current.messageId}:${task.version}`,
-                serverId: input.serverId,
-                systemAuthor: 'task',
-            });
-            events.push(receiptEvent);
+            const [assigner] = await tx
+                .select({ handle: serverMembershipsTable.handle })
+                .from(serverMembershipsTable)
+                .where(
+                    and(
+                        eq(serverMembershipsTable.serverId, input.serverId),
+                        eq(serverMembershipsTable.userId, member.id)
+                    )
+                )
+                .limit(1);
+            // The handoff is a private Agent delivery, so it is typed pending
+            // work and never a Chat message. The delivery key carries the new
+            // version: a task can be reassigned many times.
             await agentDelivery.enqueue(tx, {
                 agentId: assignee.agentId,
                 chatId: current.chatId,
-                content,
-                dedupeKey: receiptEvent.messageId,
+                content: taskAssignmentEnvelope({
+                    assignedByHandle: assigner?.handle ?? null,
+                    number: task.number,
+                    target: await targetForChat(tx, input.serverId, current.chatId),
+                    title: anchor?.content ?? '',
+                }),
+                dedupeKey: taskAssignmentKey(current.messageId, task.version),
                 mentioned: true,
-                sequence: receiptEvent.sequence,
                 serverId: input.serverId,
-                source: 'system',
+                source: 'task_assignment',
             });
             wakes.push(assignee.agentId);
         }

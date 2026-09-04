@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import { deleteQueuedOrdinaryWork } from '../agent-delivery/store.ts';
+import { deleteQueuedOrdinaryItems } from '../agent-delivery/store.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentChannelMutesTable, agentThreadFollowsTable, chatsTable } from '../postgres/schema.ts';
@@ -34,7 +34,7 @@ export async function changeAgentChannelMute(
                 .insert(agentChannelMutesTable)
                 .values({ agentId: runner.agentId, chatId, serverId: runner.serverId })
                 .onConflictDoNothing();
-            await deleteQueuedOrdinaryWork(tx, {
+            await deleteQueuedOrdinaryItems(tx, {
                 agentId: runner.agentId,
                 chatIds: [chatId],
                 serverId: runner.serverId,
@@ -93,7 +93,7 @@ export async function unfollowAgentThread(
                     agentThreadFollowsTable.threadChatId,
                 ],
             });
-        await deleteQueuedOrdinaryWork(tx, {
+        await deleteQueuedOrdinaryItems(tx, {
             agentId: runner.agentId,
             chatIds: [threadChatId],
             serverId: runner.serverId,

@@ -8,6 +8,8 @@ import type { ClerkUsers } from '../identity/clerk-users.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import type { McpOAuthRelay } from '../server-mcp/oauth-relay.ts';
 import type { McpRuntime } from '../server-mcp/runtime.ts';
+import type { TriggerRateLimiter } from '../triggers/trigger-rate-limit.ts';
+import { publicOrigin } from '../triggers/trigger-url.ts';
 
 /**
  * Request context for the Grotto Server. It carries the Clerk session
@@ -39,6 +41,15 @@ export interface GrottoContext {
     mcpRuntime: McpRuntime;
     /** HTTP Host header, used only to constrain localhost development procedures. */
     requestHost: string | null;
+    /**
+     * The public origin this request reached the Server on, read from the same
+     * forwarded headers the Agent routes use. Trigger URLs are derived from it
+     * rather than from configuration, so an operator and an Agent name the same
+     * address.
+     */
+    requestOrigin: string;
+    /** The one in-memory inbound fire budget, shared by the public route and test fires. */
+    triggerRateLimiter: TriggerRateLimiter;
 }
 
 export interface GrottoContextDependencies {
@@ -53,11 +64,16 @@ export interface GrottoContextDependencies {
     grottoDb: GrottoDatabase;
     mcpOAuthRelay: McpOAuthRelay;
     mcpRuntime: McpRuntime;
+    triggerRateLimiter: TriggerRateLimiter;
 }
 
 interface ContextCarrier {
     info?: { connectionParams?: Record<string, string | undefined> | null } | null;
-    req?: { headers?: Record<string, string | string[] | undefined> } | null;
+    req?: {
+        headers?: Record<string, string | string[] | undefined>;
+        /** Fastify resolves this per connection; a WebSocket upgrade carries none. */
+        protocol?: string;
+    } | null;
 }
 
 export function createGrottoContextFactory(dependencies: GrottoContextDependencies) {
@@ -66,6 +82,10 @@ export function createGrottoContextFactory(dependencies: GrottoContextDependenci
         appProtocol: readAppProtocol(opts),
         clerkSessionToken: readClerkSessionToken(opts),
         requestHost: readRequestHost(opts),
+        requestOrigin: publicOrigin({
+            headers: opts?.req?.headers,
+            protocol: opts?.req?.protocol,
+        }),
     });
 }
 

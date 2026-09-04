@@ -1,12 +1,8 @@
-import type { ServerDurableEvent } from '@grotto/api';
 import { and, eq, isNull } from 'drizzle-orm';
-import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
     channelAgentParticipantsTable,
-    chatEventsTable,
     chatMessagesTable,
     chatsTable,
     remindersTable,
@@ -89,14 +85,51 @@ export async function requireActiveAgent(
     return agent;
 }
 
+/**
+ * The Agent can still reach where its automation lands. `anchorMessageId` is
+ * null when the anchor is the Chat itself — a human wires a Trigger from the
+ * Automations drawer with no asking message to point at — and then Chat access
+ * is the whole check.
+ */
 export async function requireAgentAnchor(
     db: Pick<GrottoDatabase, 'select'>,
     input: {
         agentId: string;
         anchorChatId: string;
-        anchorMessageId: string;
+        anchorMessageId: string | null;
         serverId: string;
     }
+) {
+    const anchor = input.anchorMessageId
+        ? await readMessageAnchor(db, { ...input, anchorMessageId: input.anchorMessageId })
+        : await readChatAnchor(db, input);
+    const accessChatId = anchor?.chatKind === 'thread' ? anchor.parentChatId : input.anchorChatId;
+    if (!(anchor && accessChatId)) {
+        throw new ReminderAnchorAccessError('The reminder anchor is not a message in this Server.');
+    }
+    if (anchor.chatKind === 'dm' && anchor.dmAgentId === input.agentId) {
+        return anchor;
+    }
+    const [access] = await db
+        .select({ agentId: channelAgentParticipantsTable.agentId })
+        .from(channelAgentParticipantsTable)
+        .where(
+            and(
+                eq(channelAgentParticipantsTable.serverId, input.serverId),
+                eq(channelAgentParticipantsTable.chatId, accessChatId),
+                eq(channelAgentParticipantsTable.agentId, input.agentId)
+            )
+        )
+        .limit(1);
+    if (!access) {
+        throw new ReminderAnchorAccessError('The reminder author cannot access the anchor Chat.');
+    }
+    return anchor;
+}
+
+async function readMessageAnchor(
+    db: Pick<GrottoDatabase, 'select'>,
+    input: { anchorChatId: string; anchorMessageId: string; serverId: string }
 ) {
     const [anchor] = await db
         .select({
@@ -121,28 +154,24 @@ export async function requireAgentAnchor(
             )
         )
         .limit(1);
-    const accessChatId = anchor?.chatKind === 'thread' ? anchor.parentChatId : input.anchorChatId;
-    if (!(anchor && accessChatId)) {
-        throw new ReminderAnchorAccessError('The reminder anchor is not a message in this Server.');
-    }
-    if (anchor.chatKind === 'dm' && anchor.dmAgentId === input.agentId) {
-        return anchor;
-    }
-    const [access] = await db
-        .select({ agentId: channelAgentParticipantsTable.agentId })
-        .from(channelAgentParticipantsTable)
-        .where(
-            and(
-                eq(channelAgentParticipantsTable.serverId, input.serverId),
-                eq(channelAgentParticipantsTable.chatId, accessChatId),
-                eq(channelAgentParticipantsTable.agentId, input.agentId)
-            )
-        )
+    return anchor ?? null;
+}
+
+async function readChatAnchor(
+    db: Pick<GrottoDatabase, 'select'>,
+    input: { anchorChatId: string; serverId: string }
+) {
+    const [anchor] = await db
+        .select({
+            chatKind: chatsTable.kind,
+            dmAgentId: chatsTable.dmAgentId,
+            messageId: chatsTable.id,
+            parentChatId: chatsTable.parentChatId,
+        })
+        .from(chatsTable)
+        .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.anchorChatId)))
         .limit(1);
-    if (!access) {
-        throw new ReminderAnchorAccessError('The reminder author cannot access the anchor Chat.');
-    }
-    return anchor;
+    return anchor ?? null;
 }
 
 export async function readReminder(
@@ -168,44 +197,6 @@ export async function readReminder(
     return toReminder(row.reminder, row.agent.handle);
 }
 
-export async function insertMessageEvent(
-    db: GrottoDatabase,
-    input: {
-        chatId: string;
-        createdAt: Date;
-        messageId: string;
-        parentChatId: string | null;
-        sequence: number;
-        serverId: string;
-    }
-): Promise<ServerDurableEvent> {
-    const cursor = await allocateEventCursor(db, input.serverId);
-    const [event] = await db
-        .insert(chatEventsTable)
-        .values({
-            chatId: input.chatId,
-            createdAt: input.createdAt,
-            cursor,
-            id: createOpaqueId('evt'),
-            messageId: input.messageId,
-            sequence: input.sequence,
-            serverId: input.serverId,
-            type: 'message.created',
-        })
-        .returning({ id: chatEventsTable.id });
-    return {
-        chatId: input.chatId,
-        createdAt: input.createdAt.toISOString(),
-        cursor: cursor.toString(),
-        id: event.id,
-        messageId: input.messageId,
-        parentChatId: input.parentChatId,
-        sequence: input.sequence,
-        serverId: input.serverId,
-        type: 'message.created',
-    };
-}
-
 export function validateScheduleInput(
     input: ScheduleReminderInput,
     parsed: { repeat: ReturnType<typeof parseReminderRepeat>; title: string }
@@ -220,16 +211,6 @@ export function validateScheduleInput(
     if (input.script != null && (bytes < 1 || bytes > 16_384)) {
         throw new Error('Reminder script must be between 1 and 16384 UTF-8 bytes.');
     }
-}
-
-export function scheduleReceipt(
-    ownerHandle: string,
-    title: string,
-    fireAt: Date,
-    repeat: string | null
-) {
-    const cadence = repeat ? `, repeats ${repeat}` : '';
-    return `🔔 @${ownerHandle} scheduled a reminder: "${title}" (fires ${fireAt.toISOString()}${cadence})`;
 }
 
 export function toReminder(

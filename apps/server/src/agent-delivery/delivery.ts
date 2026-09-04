@@ -6,7 +6,6 @@ import type {
     AgentTurnSummary,
     ReminderScriptCommand,
     ReminderScriptResult,
-    ServerDurableEvent,
 } from '@grotto/api';
 import { agentActionAttentionSchema } from '@grotto/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
@@ -15,7 +14,6 @@ import {
     targetForChat as targetForAgentChat,
     toAgentMessages,
 } from '../agent-api/message-view.ts';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -39,8 +37,9 @@ import { publishCommittedAgentActivity } from './activity-events.ts';
 import { canBeginAgentDrain, nextAgentChainTurns } from './chain-budget.ts';
 import { advanceSeenForRun, markCursorSubsumedSeen, recordExactMessagesServed } from './cursors.ts';
 import { shouldRetryFailure } from './failure-policy.ts';
+import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
-import { recordSessionRotationReceipts } from './session-rotation.ts';
+import { recordSessionRotation } from './session-rotation.ts';
 import type { AgentDeliveryRow, AgentDispatchConfig } from './store.ts';
 import * as store from './store.ts';
 
@@ -68,6 +67,8 @@ export interface EnqueueInput {
     agentId: string;
     chatId: string;
     content: string;
+    /** Queue time for work with no Chat message of its own, such as an automation fire. */
+    createdAt?: Date;
     /** Idempotency key; a duplicate delivery of the same message is a no-op. */
     dedupeKey: string;
     mentioned?: boolean;
@@ -112,10 +113,11 @@ export class AgentDelivery {
     async enqueue(tx: GrottoDatabase, input: EnqueueInput): Promise<void> {
         const source = input.source ?? 'human';
         await store.ensureDeliveryState(tx, { agentId: input.agentId, serverId: input.serverId });
-        await store.enqueuePendingWork(tx, {
+        await store.enqueueInboxItem(tx, {
             agentId: input.agentId,
             chatId: input.chatId,
             content: input.content,
+            ...(input.createdAt ? { createdAt: input.createdAt } : {}),
             dedupeKey: input.dedupeKey,
             mentioned: input.mentioned,
             serverId: input.serverId,
@@ -173,7 +175,7 @@ export class AgentDelivery {
                 runId: state.activeRunId,
                 serverId: input.serverId,
             });
-            await store.requeuePendingForRun(tx, {
+            await store.requeueInboxItemsForRun(tx, {
                 agentId: input.agentId,
                 runId: state.activeRunId,
             });
@@ -231,7 +233,7 @@ export class AgentDelivery {
             await lockServerRow(tx, input.serverId);
             await store.setStopped(tx, { ...input, stopped: false });
             await store.clearDeliveryFailures(tx, input.agentId);
-            await store.clearPendingNotices(tx, { agentId: input.agentId });
+            await store.clearInboxNotices(tx, { agentId: input.agentId });
             return this.planDispatch(tx, input.agentId);
         });
         this.emit(plan);
@@ -278,7 +280,7 @@ export class AgentDelivery {
         const plan = await this.db.transaction(async (tx) => {
             await lockServerRow(tx, input.serverId);
             await store.clearDeliveryFailures(tx, input.agentId);
-            await store.clearPendingNotices(tx, { agentId: input.agentId });
+            await store.clearInboxNotices(tx, { agentId: input.agentId });
             return this.planDispatch(tx, input.agentId);
         });
         this.emit(plan);
@@ -296,7 +298,7 @@ export class AgentDelivery {
                     runId: state.activeRunId,
                     serverId: input.serverId,
                 });
-                await store.requeuePendingForRun(tx, {
+                await store.requeueInboxItemsForRun(tx, {
                     agentId: input.agentId,
                     runId: state.activeRunId,
                 });
@@ -309,7 +311,7 @@ export class AgentDelivery {
                 });
                 await store.clearActiveRun(tx, input.agentId);
             }
-            await store.clearPendingNotices(tx, { agentId: input.agentId });
+            await store.clearInboxNotices(tx, { agentId: input.agentId });
             const [rotated] = await tx
                 .update(agentsTable)
                 .set({
@@ -334,9 +336,9 @@ export class AgentDelivery {
                 (state.activeRunModelId !== config.desiredModelId ||
                     state.activeRunRuntimeId !== config.desiredRuntimeId ||
                     state.activeRunReasoningEffort !== config.desiredReasoningEffort)
-                    ? { agentId: input.agentId, config, events: [] }
+                    ? { agentId: input.agentId, config }
                     : null;
-            const events = await recordSessionRotationReceipts(tx, {
+            await recordSessionRotation(tx, {
                 agentId: input.agentId,
                 generation: rotated.sessionGeneration,
                 reason: input.kind,
@@ -347,16 +349,12 @@ export class AgentDelivery {
                 chatId: state?.activeRunChatId ?? null,
                 computerId: config?.computerId ?? null,
                 configuration,
-                events,
                 runId: state?.activeRunId ?? null,
                 sessionGeneration: rotated.sessionGeneration,
             };
         });
         if (result.activity) {
             publishCommittedAgentActivity(result.activity);
-        }
-        for (const event of result.events) {
-            emitDurableChatEvent({ audienceUserId: null, event });
         }
         if (!result.computerId) {
             return;
@@ -442,10 +440,10 @@ export class AgentDelivery {
             if (state?.activeRunId !== input.runId || state.acceptedAt === null) {
                 return;
             }
-            const queued = await store.listQueuedPending(tx, input.agentId, 1000);
-            await store.markPendingNoticed(tx, {
+            const queued = await store.listQueuedItems(tx, input.agentId, 1000);
+            await store.markInboxItemsNoticed(tx, {
                 agentId: input.agentId,
-                pendingIds: queued
+                itemIds: queued
                     .filter((row) => input.workIds.includes(row.dedupeKey))
                     .map((row) => row.id),
                 runId: input.runId,
@@ -476,11 +474,11 @@ export class AgentDelivery {
                     runId: summary.runId,
                     serverId,
                 });
-                await store.requeuePendingForRun(tx, {
+                await store.requeueInboxItemsForRun(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
                 });
-                await store.clearPendingNotices(tx, {
+                await store.clearInboxNotices(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
                 });
@@ -510,7 +508,7 @@ export class AgentDelivery {
                     .where(eq(agentMessageDraftsTable.agentId, summary.agentId));
                 await store.clearDeliveryFailures(tx, summary.agentId);
                 const config = await store.readAgentDispatchConfig(tx, summary.agentId);
-                const events = await recordSessionRotationReceipts(tx, {
+                await recordSessionRotation(tx, {
                     agentId: summary.agentId,
                     generation: rotated.sessionGeneration,
                     reason: 'recovery',
@@ -520,7 +518,6 @@ export class AgentDelivery {
                     activity,
                     chatId: state.activeRunChatId,
                     config,
-                    events,
                     plan: await this.planDispatch(tx, summary.agentId),
                 };
             });
@@ -529,9 +526,6 @@ export class AgentDelivery {
             }
             if (recovery.activity) {
                 publishCommittedAgentActivity(recovery.activity);
-            }
-            for (const event of recovery.events) {
-                emitDurableChatEvent({ audienceUserId: null, event });
             }
             if (isConfigured(recovery.config)) {
                 this.transport.send(
@@ -570,14 +564,14 @@ export class AgentDelivery {
             });
             await attachSummaryVisibility(tx, state, summary.visibleMessages);
             if (summary.status === 'completed') {
-                const completedRows = await store.listPendingForRun(tx, {
+                const completedRows = await store.listInboxItemsForRun(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
                 });
                 const budgetRows =
                     completedRows.length > 0 || !summary.outputProduced
                         ? completedRows
-                        : await store.listPendingOfferedForRun(tx, {
+                        : await store.listOfferedItemsForRun(tx, {
                               agentId: summary.agentId,
                               runId: summary.runId,
                           });
@@ -586,9 +580,14 @@ export class AgentDelivery {
                     runId: summary.runId,
                     serverId,
                 });
-                await store.markPendingSeenForRun(tx, {
+                await store.markInboxItemsSeenForRun(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
+                });
+                await store.releaseUnservedTypedItems(tx, {
+                    agentId: summary.agentId,
+                    runId: summary.runId,
+                    serverId,
                 });
                 await store.clearDeliveryFailures(tx, summary.agentId);
                 await store.setAgentChainTurns(tx, {
@@ -629,16 +628,21 @@ export class AgentDelivery {
                     runId: summary.runId,
                     serverId,
                 });
-                await store.markPendingSeenForRun(tx, {
+                await store.markInboxItemsSeenForRun(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
+                });
+                await store.releaseUnservedTypedItems(tx, {
+                    agentId: summary.agentId,
+                    runId: summary.runId,
+                    serverId,
                 });
             } else {
-                await store.requeuePendingForRun(tx, {
+                await store.requeueInboxItemsForRun(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
                 });
-                await store.clearPendingNotices(tx, {
+                await store.clearInboxNotices(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
                 });
@@ -757,9 +761,6 @@ export class AgentDelivery {
         if (rotation) {
             if (rotation.activity) {
                 publishCommittedAgentActivity(rotation.activity);
-            }
-            for (const event of rotation.events) {
-                emitDurableChatEvent({ audienceUserId: null, event });
             }
             if (rotation.runId) {
                 if (rotation.chatId) {
@@ -920,11 +921,11 @@ export class AgentDelivery {
                 };
             }
             const unnoticed = (
-                await store.listUnnoticedQueuedPending(tx, agentId, maxDrainRows)
+                await store.listUnnoticedQueuedItems(tx, agentId, maxDrainRows)
             ).filter((row) => row.source !== 'onboarding');
             if (unnoticed.length > 0) {
                 const pending = noticeWindow(
-                    (await store.listQueuedPending(tx, agentId, 1000)).filter(
+                    (await store.listQueuedItems(tx, agentId, 1000)).filter(
                         (row) => row.source !== 'onboarding'
                     ),
                     unnoticed
@@ -935,7 +936,7 @@ export class AgentDelivery {
                         agentId,
                         inbox: await buildInboxItems(tx, pending),
                         runId: state.activeRunId,
-                        totalPending: await store.countQueuedNoticePending(tx, agentId),
+                        totalPending: await store.countQueuedNoticeItems(tx, agentId),
                         type: 'notice',
                     },
                     serverId: state.serverId,
@@ -946,16 +947,19 @@ export class AgentDelivery {
         if (isBackedOff(state)) {
             return null;
         }
-        const [unnoticed, actionRows] = await Promise.all([
-            store.listUnnoticedQueuedPending(tx, agentId, maxDrainRows),
-            store.listQueuedActionPending(tx, agentId, maxDrainRows),
+        const [unnoticed, concreteRows] = await Promise.all([
+            store.listUnnoticedQueuedItems(tx, agentId, maxDrainRows),
+            store.listQueuedConcreteItems(tx, agentId, maxDrainRows),
         ]);
         const candidates = [
-            ...new Map([...unnoticed, ...actionRows].map((row) => [row.id, row])).values(),
+            ...new Map([...unnoticed, ...concreteRows].map((row) => [row.id, row])).values(),
         ];
+        // Concrete work leads its own run: its envelope exists nowhere but the
+        // inbox, so it enters the first prompt instead of waiting behind a
+        // notice the Agent may never pull.
         const first =
             candidates.find((row) => row.source === 'onboarding') ??
-            candidates.find((row) => row.source === 'action') ??
+            candidates.find((row) => isConcreteSource(row.source)) ??
             candidates[0];
         if (!first) {
             return null;
@@ -966,24 +970,24 @@ export class AgentDelivery {
         const runId = createOpaqueId('run');
         const concrete = isConcreteSource(first.source);
         const selected = boundedCompatibleRows(candidates, first.source);
-        let noticeRows: store.PendingWorkRow[] = [];
+        let noticeRows: store.InboxItemRow[] = [];
         if (concrete) {
-            await store.attachQueuedPendingToRun(tx, {
+            await store.attachQueuedItemsToRun(tx, {
                 agentId,
-                pendingIds: selected.map((row) => row.id),
+                itemIds: selected.map((row) => row.id),
                 runId,
             });
         } else {
             noticeRows = noticeWindow(
-                (await store.listQueuedPending(tx, agentId, 1000)).filter(
+                (await store.listQueuedItems(tx, agentId, 1000)).filter(
                     (row) => !isConcreteSource(row.source)
                 ),
                 selected
             );
-            await store.markPendingNoticed(tx, {
+            await store.markInboxItemsNoticed(tx, {
                 agentId,
                 initial: true,
-                pendingIds: noticeRows.map((row) => row.id),
+                itemIds: noticeRows.map((row) => row.id),
                 runId,
             });
         }
@@ -1020,7 +1024,7 @@ export class AgentDelivery {
                 runId,
                 runtimeId: config.desiredRuntimeId,
                 sessionGeneration: config.sessionGeneration,
-                totalPending: concrete ? 0 : await store.countQueuedNoticePending(tx, agentId),
+                totalPending: concrete ? 0 : await store.countQueuedNoticeItems(tx, agentId),
                 type: 'start',
             },
             serverId: state.serverId,
@@ -1073,7 +1077,7 @@ export class AgentDelivery {
                 runId: state.activeRunId,
                 serverId: input.serverId,
             });
-            await store.requeuePendingForRun(tx, {
+            await store.requeueInboxItemsForRun(tx, {
                 agentId: input.agentId,
                 runId: state.activeRunId,
             });
@@ -1106,7 +1110,6 @@ export class AgentDelivery {
 interface DeferredConfiguration {
     agentId: string;
     config: ConfiguredAgent;
-    events: ServerDurableEvent[];
 }
 
 function sendDeferredConfiguration(
@@ -1114,9 +1117,6 @@ function sendDeferredConfiguration(
     agentId: string,
     configuration: DeferredConfiguration
 ): void {
-    for (const event of configuration.events) {
-        emitDurableChatEvent({ audienceUserId: null, event });
-    }
     transport.send(configuration.config.computerId, configureFrame(agentId, configuration.config));
 }
 
@@ -1156,7 +1156,7 @@ async function rotateDeferredConfiguration(
     await db
         .delete(agentMessageDraftsTable)
         .where(eq(agentMessageDraftsTable.agentId, input.agentId));
-    const events = await recordSessionRotationReceipts(db, {
+    await recordSessionRotation(db, {
         agentId: input.agentId,
         generation: rotated.sessionGeneration,
         reason: 'configuration',
@@ -1166,7 +1166,7 @@ async function rotateDeferredConfiguration(
     if (!isConfigured(latestConfig)) {
         return null;
     }
-    return { agentId: input.agentId, config: latestConfig, events };
+    return { agentId: input.agentId, config: latestConfig };
 }
 
 interface ConfiguredAgent {
@@ -1231,7 +1231,7 @@ async function startFrame(
     >
 ): Promise<AgentCommand> {
     const runRows = state.activeRunId
-        ? await store.listPendingForRun(db, {
+        ? await store.listInboxItemsForRun(db, {
               agentId: state.agentId,
               runId: state.activeRunId,
           })
@@ -1239,7 +1239,7 @@ async function startFrame(
     const noticeRows =
         runRows.length === 0 && state.activeRunId
             ? (
-                  await store.listPendingNoticedForRun(db, {
+                  await store.listNoticedItemsForRun(db, {
                       agentId: state.agentId,
                       runId: state.activeRunId,
                   })
@@ -1258,22 +1258,22 @@ async function startFrame(
         runtimeId: state.activeRunRuntimeId ?? '',
         sessionGeneration: config.sessionGeneration,
         totalPending:
-            runRows.length > 0 ? 0 : await store.countQueuedNoticePending(db, state.agentId),
+            runRows.length > 0 ? 0 : await store.countQueuedNoticeItems(db, state.agentId),
         type: 'start',
     };
 }
 
-function boundedCompatibleRows(rows: store.PendingWorkRow[], source: string) {
-    const selected: store.PendingWorkRow[] = [];
+/**
+ * One drain never mixes the lanes, and a concrete drain never mixes kinds: a
+ * fire, a task assignment, an action result, and Cove's bootstrap each earn
+ * their own dedicated wake, which is also what keeps the sole-fire cause
+ * inference readable (specs/inbox.md).
+ */
+function boundedCompatibleRows(rows: store.InboxItemRow[], source: string) {
+    const selected: store.InboxItemRow[] = [];
     let chars = 0;
     for (const row of rows) {
-        if (source === 'onboarding' && row.source !== 'onboarding') {
-            continue;
-        }
-        if (source === 'action' && row.source !== 'action') {
-            continue;
-        }
-        if (!isConcreteSource(source) && isConcreteSource(row.source)) {
+        if (isConcreteSource(source) ? row.source !== source : isConcreteSource(row.source)) {
             continue;
         }
         const nextChars = chars + row.content.length;
@@ -1286,14 +1286,10 @@ function boundedCompatibleRows(rows: store.PendingWorkRow[], source: string) {
     return selected;
 }
 
-function isConcreteSource(source: string): boolean {
-    return source === 'onboarding' || source === 'action';
-}
-
 function noticeWindow(
-    queued: store.PendingWorkRow[],
-    mustInclude: store.PendingWorkRow[]
-): store.PendingWorkRow[] {
+    queued: store.InboxItemRow[],
+    mustInclude: store.InboxItemRow[]
+): store.InboxItemRow[] {
     const selected = new Map(mustInclude.map((row) => [row.id, row]));
     for (const row of queued) {
         if (selected.size >= maxDrainRows) {
@@ -1314,7 +1310,7 @@ async function attachSummaryVisibility(
     if (!(state.activeRunId && identities && identities.length > 0)) {
         return;
     }
-    const rows = await store.listPendingByDedupeKeys(db, {
+    const rows = await store.listInboxItemsByDedupeKeys(db, {
         agentId: state.agentId,
         dedupeKeys: identities.map((identity) => identity.id),
         runId: state.activeRunId,
@@ -1350,9 +1346,9 @@ async function attachSummaryVisibility(
             attachableIds.push(row.id);
         }
     }
-    await store.attachQueuedPendingToRun(db, {
+    await store.attachQueuedItemsToRun(db, {
         agentId: state.agentId,
-        pendingIds: attachableIds,
+        itemIds: attachableIds,
         runId: state.activeRunId,
     });
     await recordExactMessagesServed(db, {
@@ -1365,7 +1361,7 @@ async function attachSummaryVisibility(
 
 async function buildInboxItems(
     db: GrottoDatabase,
-    rows: store.PendingWorkRow[]
+    rows: store.InboxItemRow[]
 ): Promise<AgentInboxItem[]> {
     const serverId = rows[0]?.serverId;
     const messageIds = rows.map((row) => row.dedupeKey).filter((id) => id.startsWith('msg_'));
@@ -1447,7 +1443,7 @@ async function buildInboxItems(
             ? 'grotto'
             : row.source === 'human'
               ? (apiMessage?.sender.handle ?? humanHandleFromDmTarget(target))
-              : (agentHandle ?? row.source);
+              : (agentHandle ?? typedSenderHandle(row.source));
         if (!senderHandle) {
             throw new Error('A human delivery sender does not have an active Server handle.');
         }
@@ -1468,14 +1464,21 @@ async function buildInboxItems(
                 ? ('system' as const)
                 : row.source === 'human'
                   ? ('human' as const)
-                  : agentHandle
-                    ? ('agent' as const)
-                    : ('system' as const),
+                  : row.source === 'trigger'
+                    ? ('trigger' as const)
+                    : agentHandle
+                      ? ('agent' as const)
+                      : ('system' as const),
             sequence: actionAttention ? 0 : (sequenceByMessageId.get(row.dedupeKey) ?? 1),
             ...(taskByMessage.get(row.dedupeKey) ? { task: taskByMessage.get(row.dedupeKey) } : {}),
             target,
         };
     });
+}
+
+/** Server-authored typed work speaks as Grotto, not as its internal source. */
+function typedSenderHandle(source: string): string {
+    return source === 'task_assignment' ? 'grotto' : source;
 }
 
 function humanHandleFromDmTarget(target: string): string | null {

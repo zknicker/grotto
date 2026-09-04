@@ -1,17 +1,15 @@
-import type { ReminderScriptCommand, ReminderScriptResult, ServerDurableEvent } from '@grotto/api';
+import type { ReminderScriptCommand, ReminderScriptResult } from '@grotto/api';
 import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
-    chatMessagesTable,
     chatsTable,
     reminderAgentAttentionTable,
     reminderFiresTable,
+    remindersTable,
 } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { insertMessageEvent } from './reminder-model.ts';
+import { reminderEnvelope, reminderScriptLines } from './reminder-envelope.ts';
 
 export async function listReminderScriptCommands(
     db: GrottoDatabase,
@@ -62,8 +60,8 @@ export async function settleReminderScript(
             agentId: string;
             chatId: string;
             content: string;
+            createdAt: Date;
             dedupeKey: string;
-            sequence: number;
             serverId: string;
             source: string;
         }
@@ -93,7 +91,7 @@ export async function settleReminderScript(
     if (!identity || identity.computerId !== computerId) {
         return;
     }
-    const event = await db.transaction(async (tx) => {
+    await db.transaction(async (tx) => {
         await lockServerRow(tx, identity.serverId);
         const [attention] = await tx
             .select()
@@ -131,20 +129,28 @@ export async function settleReminderScript(
                     eq(reminderAgentAttentionTable.id, attention.id)
                 )
             );
-        const content = scriptResultContent(result);
-        if (!content) {
-            return null;
+        // A script that succeeded with nothing to say stays silent: that is the
+        // whole point of a watchdog script.
+        const script = {
+            exitCode: result.exitCode,
+            output: result.output,
+            timedOut: result.timedOut,
+        };
+        if (!reminderScriptLines(script)) {
+            return;
         }
-        const [chat] = await tx
-            .update(chatsTable)
-            .set({
-                lastActivityAt: sql`now()`,
-                lastMessageSequence: sql`${chatsTable.lastMessageSequence} + 1`,
+        const [reminder] = await tx
+            .select({
+                fireAt: remindersTable.fireAt,
+                status: remindersTable.status,
+                title: remindersTable.title,
             })
-            .where(
+            .from(remindersTable)
+            .innerJoin(
+                chatsTable,
                 and(
-                    eq(chatsTable.serverId, identity.serverId),
-                    eq(chatsTable.id, attention.anchorChatId),
+                    eq(chatsTable.serverId, remindersTable.serverId),
+                    eq(chatsTable.id, remindersTable.anchorChatId),
                     isNull(chatsTable.archivedAt),
                     isNull(chatsTable.deletedAt),
                     or(
@@ -159,57 +165,29 @@ export async function settleReminderScript(
                     )
                 )
             )
-            .returning({
-                parentChatId: chatsTable.parentChatId,
-                sequence: chatsTable.lastMessageSequence,
-            });
-        if (!chat) {
-            return null;
+            .where(
+                and(
+                    eq(remindersTable.serverId, identity.serverId),
+                    eq(remindersTable.id, attention.reminderId)
+                )
+            )
+            .limit(1);
+        if (!reminder) {
+            return;
         }
-        const messageId = createOpaqueId('msg');
-        await tx.insert(chatMessagesTable).values({
-            chatId: attention.anchorChatId,
-            content,
-            id: messageId,
-            nonce: `reminder:script:${attention.id}`,
-            sequence: chat.sequence,
-            serverId: identity.serverId,
-            systemAuthor: 'reminder',
-        });
         await enqueue(tx, {
             agentId: attention.agentId,
             chatId: attention.anchorChatId,
-            content,
-            dedupeKey: messageId,
-            sequence: chat.sequence,
-            serverId: identity.serverId,
-            source: 'reminder-script',
-        });
-        return await insertMessageEvent(tx, {
-            chatId: attention.anchorChatId,
+            content: reminderEnvelope({
+                fireId: attention.fireId,
+                nextFireAt: reminder.status === 'scheduled' ? reminder.fireAt : null,
+                script,
+                title: reminder.title,
+            }),
             createdAt: new Date(),
-            messageId,
-            parentChatId: chat.parentChatId,
-            sequence: chat.sequence,
+            dedupeKey: attention.fireId,
             serverId: identity.serverId,
+            source: 'reminder',
         });
     });
-    if (event) {
-        emitDurableChatEvent({ audienceUserId: null, event: event as ServerDurableEvent });
-    }
-}
-
-function scriptResultContent(result: ReminderScriptResult) {
-    // Agent launch envelopes cap one inbox item's content at 32 KiB.
-    const output = result.output.trim().slice(0, 30_000);
-    if (!output && result.exitCode === 0 && !result.timedOut) {
-        return null;
-    }
-    if (result.timedOut) {
-        return `🔔 Reminder script timed out.${output ? `\n${output}` : ''}`;
-    }
-    if (result.exitCode !== 0) {
-        return `🔔 Reminder script exited ${result.exitCode}.${output ? `\n${output}` : ''}`;
-    }
-    return `🔔 Reminder script output:\n${output}`;
 }

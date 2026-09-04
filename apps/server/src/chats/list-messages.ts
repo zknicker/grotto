@@ -1,6 +1,7 @@
 import type { ChatMessage } from '@grotto/api';
-import { and, desc, eq, getTableColumns, isNull, lt, ne, or } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, lt } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
+import { readMessageCauses } from '../automations/message-cause-read.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
@@ -34,10 +35,6 @@ export async function listChatMessages(
     const predicates = [
         eq(chatMessagesTable.serverId, input.serverId),
         eq(chatMessagesTable.chatId, input.chatId),
-        // Task assignment receipts are Agent-facing handoff messages. They
-        // remain canonical for Agent delivery but never enter the App Chat
-        // transcript.
-        or(isNull(chatMessagesTable.systemAuthor), ne(chatMessagesTable.systemAuthor, 'task')),
     ];
 
     if (input.beforeSequence !== undefined) {
@@ -78,17 +75,20 @@ export async function listChatMessages(
     const hasOlderMessages = newestFirst.length > input.limit;
     const messageRows = newestFirst.slice(0, input.limit).reverse();
     const messageIds = messageRows.map((message) => message.id);
-    const [attachmentsByMessageId, taskByMessageId, actionByMessageId] = await Promise.all([
-        readMessageAttachments(db, input.serverId, messageIds),
-        listMessageTaskMap(db, input.serverId, messageIds),
-        readPreparedActionsForMessages(db, input.serverId, messageIds),
-    ]);
+    const [attachmentsByMessageId, taskByMessageId, actionByMessageId, causeByMessageId] =
+        await Promise.all([
+            readMessageAttachments(db, input.serverId, messageIds),
+            listMessageTaskMap(db, input.serverId, messageIds),
+            readPreparedActionsForMessages(db, input.serverId, messageIds),
+            readMessageCauses(db, input.serverId, messageIds),
+        ]);
     const messages = messageRows.map((message) => ({
         ...toChatMessage(
             message,
             attachmentsByMessageId.get(message.id) ?? [],
             readStoredAuthorProfile(message),
-            actionByMessageId.get(message.id)
+            actionByMessageId.get(message.id),
+            causeByMessageId.get(message.id)
         ),
         task: taskByMessageId.get(message.id) ?? null,
     }));

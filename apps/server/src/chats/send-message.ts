@@ -109,7 +109,7 @@ export async function sendChatMessage(
                 runId: chatMessagesTable.runId,
                 sequence: chatMessagesTable.sequence,
                 serverId: chatMessagesTable.serverId,
-                systemAuthor: chatMessagesTable.systemAuthor,
+                sessionGeneration: chatMessagesTable.sessionGeneration,
             })
             .from(chatMessagesTable)
             .innerJoin(

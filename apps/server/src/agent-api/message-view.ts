@@ -23,7 +23,6 @@ export interface MessageRow {
     id: string;
     nonce: string;
     sequence: number;
-    systemAuthor: 'reminder' | 'session' | 'task' | null;
 }
 
 export const messageSelection = {
@@ -35,7 +34,6 @@ export const messageSelection = {
     id: chatMessagesTable.id,
     nonce: chatMessagesTable.nonce,
     sequence: chatMessagesTable.sequence,
-    systemAuthor: chatMessagesTable.systemAuthor,
 };
 
 export async function toAgentMessages(
@@ -101,11 +99,8 @@ export async function toAgentMessages(
     return rows.map((row) => {
         const agent = row.authorAgentId ? agentById.get(row.authorAgentId) : undefined;
         const human = row.authorUserId ? humanById.get(row.authorUserId) : undefined;
-        const system = row.systemAuthor !== null;
-        const handle =
-            agent?.handle ??
-            (row.systemAuthor === 'task' ? 'system' : system ? null : (human?.handle ?? null));
-        const label = agent?.displayName ?? (system ? 'Grotto' : (human?.displayName ?? 'Human'));
+        const handle = agent?.handle ?? human?.handle ?? null;
+        const label = agent?.displayName ?? human?.displayName ?? 'Human';
         const task = tasksByMessage.get(row.id);
         const taskAssigneeAgent = task?.assigneeAgentId
             ? agentById.get(task.assigneeAgentId)
@@ -116,8 +111,8 @@ export async function toAgentMessages(
         return {
             attachments: attachmentsByMessage.get(row.id) ?? [],
             author: {
-                id: row.authorAgentId ?? row.authorUserId ?? 'system',
-                kind: system ? 'system' : agent ? 'agent' : 'user',
+                id: row.authorAgentId ?? row.authorUserId ?? '',
+                kind: agent ? 'agent' : 'user',
                 label,
                 metadata: {},
             },
@@ -129,12 +124,12 @@ export async function toAgentMessages(
             id: row.id,
             metadata: {},
             nonce: row.nonce,
-            role: system ? 'system' : agent ? 'assistant' : 'user',
+            role: agent ? 'assistant' : 'user',
             reactions: reactionsByMessage.get(row.id) ?? [],
             sender: {
                 description: agent?.description ?? human?.description ?? null,
                 handle,
-                type: system ? 'system' : agent ? 'agent' : 'human',
+                type: agent ? 'agent' : 'human',
             },
             sequence: row.sequence,
             ...(preparedActionsByMessage.has(row.id)

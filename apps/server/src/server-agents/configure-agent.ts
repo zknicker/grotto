@@ -1,12 +1,7 @@
-import type {
-    Agent,
-    AgentActivityEvent,
-    ConfigureAgentInput,
-    ServerDurableEvent,
-} from '@grotto/api';
+import type { Agent, AgentActivityEvent, ConfigureAgentInput } from '@grotto/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import { recordSessionRotationReceipts } from '../agent-delivery/session-rotation.ts';
+import { recordSessionRotation } from '../agent-delivery/session-rotation.ts';
 import * as deliveryStore from '../agent-delivery/store.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -27,7 +22,6 @@ export interface AgentConfigurationRotation {
     chatId: string | null;
     computerId: string;
     deferred: boolean;
-    events: ServerDurableEvent[];
     runId: string | null;
     sessionGeneration: number;
 }
@@ -127,12 +121,11 @@ export async function configureAgent(
 
         let rotation: AgentConfigurationRotation | null = null;
         if (changed || deferred) {
-            let events: ServerDurableEvent[] = [];
             if (rotateNow) {
                 await tx
                     .delete(agentMessageDraftsTable)
                     .where(eq(agentMessageDraftsTable.agentId, input.agentId));
-                events = await recordSessionRotationReceipts(tx, {
+                await recordSessionRotation(tx, {
                     agentId: input.agentId,
                     generation: configured.sessionGeneration,
                     reason: 'configuration',
@@ -144,7 +137,6 @@ export async function configureAgent(
                 chatId: delivery?.activeRunChatId ?? null,
                 computerId: agent.computerId,
                 deferred,
-                events,
                 runId: rotateNow ? (delivery?.activeRunId ?? null) : null,
                 sessionGeneration: configured.sessionGeneration,
             };

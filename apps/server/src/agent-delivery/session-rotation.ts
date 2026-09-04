@@ -1,62 +1,98 @@
-import type { ServerDurableEvent } from '@grotto/api';
-import { and, eq } from 'drizzle-orm';
-import { insertSystemMessage } from '../chats/insert-system-message.ts';
+import type { AgentSessionRotation, AgentSessionRotationReason } from '@grotto/api';
+import { and, desc, eq, lt } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { chatsTable } from '../postgres/schema.ts';
-
-type SessionRotationReason = 'configuration' | 'full' | 'recovery' | 'session';
+import { agentSessionRotationsTable, agentsTable } from '../postgres/schema.ts';
 
 /**
- * Lands one canonical new-session receipt in every existing human↔Agent DM.
- *  Servers can have more than one human seat for an Agent, so the
- * Agent-scoped lifecycle fact belongs in each built-in DM rather than an
- * arbitrary channel.
+ * Records one session rotation. A reset is a fact about the Agent, not a Chat
+ * message: every Agent message carries the generation that wrote it, and the
+ * App draws the session mark where that generation changes. This row is what
+ * the mark's hover card reads.
  */
-export async function recordSessionRotationReceipts(
+export async function recordSessionRotation(
     db: GrottoDatabase,
     input: {
         agentId: string;
         generation: number;
-        reason: SessionRotationReason;
+        reason: AgentSessionRotationReason;
         serverId: string;
     }
-): Promise<ServerDurableEvent[]> {
-    const dms = await db
-        .select({ chatId: chatsTable.id })
-        .from(chatsTable)
-        .where(
-            and(
-                eq(chatsTable.serverId, input.serverId),
-                eq(chatsTable.kind, 'dm'),
-                eq(chatsTable.dmAgentId, input.agentId)
-            )
-        );
-    const events: ServerDurableEvent[] = [];
-    const now = new Date();
-    for (const dm of dms) {
-        events.push(
-            await insertSystemMessage(db, {
-                chatId: dm.chatId,
-                content: rotationText(input.reason),
-                createdAt: now,
-                nonce: `session:${input.agentId}:${input.generation}`,
-                serverId: input.serverId,
-                systemAuthor: 'session',
-            })
-        );
-    }
-    return events;
+): Promise<void> {
+    const rotatedAt = new Date();
+    await db
+        .insert(agentSessionRotationsTable)
+        .values({
+            agentId: input.agentId,
+            generation: input.generation,
+            previousStartedAt: await readGenerationStart(db, input),
+            reason: input.reason,
+            rotatedAt,
+            serverId: input.serverId,
+        })
+        .onConflictDoNothing();
 }
 
-function rotationText(reason: SessionRotationReason): string {
-    if (reason === 'configuration') {
-        return 'Started a fresh session with the newly selected runtime and model. The workspace and MEMORY.md are intact.';
+/** The rotation that began one generation, for the session mark's hover card. */
+export async function readSessionRotation(
+    db: GrottoDatabase,
+    input: { agentId: string; generation: number; serverId: string }
+): Promise<AgentSessionRotation | null> {
+    const [row] = await db
+        .select({
+            generation: agentSessionRotationsTable.generation,
+            previousStartedAt: agentSessionRotationsTable.previousStartedAt,
+            reason: agentSessionRotationsTable.reason,
+            rotatedAt: agentSessionRotationsTable.rotatedAt,
+        })
+        .from(agentSessionRotationsTable)
+        .where(
+            and(
+                eq(agentSessionRotationsTable.serverId, input.serverId),
+                eq(agentSessionRotationsTable.agentId, input.agentId),
+                eq(agentSessionRotationsTable.generation, input.generation)
+            )
+        )
+        .limit(1);
+    if (!row) {
+        return null;
     }
-    if (reason === 'full') {
-        return 'Started completely fresh: new session and a factory-fresh local workspace. Earlier files and MEMORY.md are gone.';
+    return {
+        generation: row.generation,
+        previousDurationMs: row.previousStartedAt
+            ? Math.max(row.rotatedAt.getTime() - row.previousStartedAt.getTime(), 0)
+            : null,
+        reason: row.reason,
+        rotatedAt: row.rotatedAt.toISOString(),
+    };
+}
+
+/**
+ * When the generation being retired began: the rotation that started it, or the
+ * Agent's own creation for the first generation.
+ */
+async function readGenerationStart(
+    db: GrottoDatabase,
+    input: { agentId: string; generation: number; serverId: string }
+): Promise<Date | null> {
+    const [previous] = await db
+        .select({ rotatedAt: agentSessionRotationsTable.rotatedAt })
+        .from(agentSessionRotationsTable)
+        .where(
+            and(
+                eq(agentSessionRotationsTable.serverId, input.serverId),
+                eq(agentSessionRotationsTable.agentId, input.agentId),
+                lt(agentSessionRotationsTable.generation, input.generation)
+            )
+        )
+        .orderBy(desc(agentSessionRotationsTable.generation))
+        .limit(1);
+    if (previous) {
+        return previous.rotatedAt;
     }
-    if (reason === 'recovery') {
-        return 'Started a fresh session because the previous runtime context could not be resumed. The workspace and MEMORY.md are intact.';
-    }
-    return 'Started a fresh session. New messages start with fresh context; the workspace and MEMORY.md are intact.';
+    const [agent] = await db
+        .select({ createdAt: agentsTable.createdAt })
+        .from(agentsTable)
+        .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
+        .limit(1);
+    return agent?.createdAt ?? null;
 }

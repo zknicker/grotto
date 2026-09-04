@@ -6,7 +6,7 @@ import type {
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { agentPendingWorkTable, chatsTable } from '../postgres/schema.ts';
+import { agentInboxTable, chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
@@ -179,15 +179,15 @@ async function discardQueuedChannelWork(
                 or(eq(chatsTable.id, input.chatId), eq(chatsTable.parentChatId, input.chatId))
             )
         );
-    await db.delete(agentPendingWorkTable).where(
+    await db.delete(agentInboxTable).where(
         and(
-            eq(agentPendingWorkTable.serverId, input.serverId),
+            eq(agentInboxTable.serverId, input.serverId),
             inArray(
-                agentPendingWorkTable.chatId,
+                agentInboxTable.chatId,
                 chats.map(({ id }) => id)
             ),
-            isNull(agentPendingWorkTable.runId),
-            eq(agentPendingWorkTable.state, 'queued')
+            isNull(agentInboxTable.runId),
+            eq(agentInboxTable.state, 'queued')
         )
     );
 }

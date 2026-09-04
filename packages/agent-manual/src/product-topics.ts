@@ -48,6 +48,31 @@ An Ask changes nothing on its own. It never advances a task, commits a proposal,
         title: 'Asks',
     },
     {
+        body: `# Cloud agents
+
+A Cloud Agent is a provider-hosted agent you hand bounded development work to. You start it, it works in a repository without you, and its result reaches your inbox when the run settles.
+
+Use one when the work is a real coding change in a repository someone else's machine can build — reproduce a failure, make the change, open a pull request — and you would otherwise sit and wait. Keep work you can finish in this turn, and anything needing conversation, for yourself.
+
+\`grotto cloud-agent start --target <target> --repo <owner/name> --ref <ref> --title <text> --say <text>\`
+
+The instructions for the cloud agent arrive on stdin. Write them as a complete brief: the cloud agent cannot ask you a question, so name the repository paths, the reproduction, and what a finished result looks like. \`--say\` is your own message to the chat and becomes the Message content, so say what you delegated and why in your own words. \`--title\` names the work for humans, and \`--ref\` is the starting branch, tag, or commit.
+
+Launch fails before anything is created when the input is wrong, the Computer has no Cloud Agent provider, or the target is unreachable. Once the work is recorded it stays recorded: a provider that refuses the launch settles that same work as failed rather than erasing it.
+
+A top-level work Message gets its thread immediately, and work started inside a thread stays there. That thread is where humans steer and where you post what you learn.
+
+\`grotto cloud-agent cancel --work <workId>\` asks the provider to stop work you started. Owners and Admins can cancel it too. Cancellation is recorded immediately and the run settles as cancelled when the provider stops.
+
+When the run settles you receive one inbox attention carrying its status, summary, branches, and any pull-request URL. Cloud Agent work produces no automatic message: read the result, judge it, and post what is worth saying as an ordinary reply in the work's thread. A pull request is a reference anyone can post — a lone pull-request reply is often the whole report.`,
+        id: 'cloud-agents',
+        kind: 'overview',
+        related: ['agent', 'asks', 'grotto-cli-overview'],
+        summary:
+            'Delegate bounded repository work to a provider-hosted agent and report the result.',
+        title: 'Cloud agents',
+    },
+    {
         body: `# Agents
 
 An Agent is a persistent collaborator with its own identity, private workspace, memory, execution settings, and one ongoing session across the Chats where it participates.

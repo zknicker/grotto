@@ -3,6 +3,7 @@ import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
+    archiveComputerArtifact,
     computerReleaseRoot,
     verifyAppleSignature,
     verifyComputerIdentity,
@@ -12,6 +13,7 @@ import {
     sha256File,
     verifySignedComputerRelease,
 } from './computer-release-contract.mjs';
+import { ensureComputerGithubRelease, ensureComputerReleaseTag } from './computer-release-tags.mjs';
 import { fail, repoRoot } from './release-utils.mjs';
 
 export async function publishImmutableObjects(input) {
@@ -75,6 +77,62 @@ export async function recoverImmutableComputerArtifact(input) {
     await verifyComputerIdentity(artifactPath, input);
     console.log(`Recovered verified immutable Computer artifact: ${uri}`);
     return artifactPath;
+}
+
+export function publishedComputerReleaseMatchesSource(production, candidate) {
+    const release = production?.release;
+    return Boolean(
+        release &&
+            release.version === candidate.version &&
+            release.sourceRevision === candidate.sourceRevision
+    );
+}
+
+export function computerReleaseIsAlreadyPublished(production, candidate) {
+    return (
+        publishedComputerReleaseMatchesSource(production, candidate) &&
+        production.release.sha256 === candidate.sha256
+    );
+}
+
+// A publish that fails after promotion (a dropped tag push, for example) must be resumable.
+// The already-promoted artifact is the candidate only when version, source, and digest all match.
+export async function recoverPublishedComputerRelease(input) {
+    if (
+        !publishedComputerReleaseMatchesSource(input.production, {
+            sourceRevision: input.sourceRevision,
+            version: input.version,
+        })
+    ) {
+        return null;
+    }
+    const artifactPath = await recoverImmutableComputerArtifact(input);
+    if (!artifactPath) {
+        return null;
+    }
+    const candidate = {
+        sha256: await sha256File(artifactPath),
+        sourceRevision: input.sourceRevision,
+        version: input.version,
+    };
+    return computerReleaseIsAlreadyPublished(input.production, candidate)
+        ? { artifactPath, descriptor: input.production }
+        : null;
+}
+
+export async function completePublishedComputerRelease(input) {
+    const descriptorPath = path.join(path.dirname(input.artifactPath), 'release.json');
+    await writeFile(descriptorPath, `${JSON.stringify(input.descriptor, null, 2)}\n`);
+    ensureComputerReleaseTag(input.version, input.sourceRevision);
+    ensureComputerGithubRelease(input.version, {
+        assets: [
+            input.artifactPath,
+            descriptorPath,
+            input.installerPath,
+            archiveComputerArtifact(input.artifactPath),
+        ],
+        sourceRevision: input.sourceRevision,
+    });
 }
 
 export async function readProductionComputerRelease(url, publicKey, request = fetch) {

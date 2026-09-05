@@ -211,7 +211,7 @@ test('a Cloud Agent capability state names exactly one of ready or a reason', ()
         cloudAgentCapabilityStateSchema.safeParse({ ...connected, ready: false, reason: null })
             .success
     ).toBe(false);
-    for (const reason of ['not-connected', 'expired', 'provider-unavailable']) {
+    for (const reason of ['not-connected', 'expired', 'provider-unavailable'] as const) {
         expect(
             cloudAgentCapabilityStateSchema.parse({
                 accountEmail: null,

@@ -55,7 +55,7 @@ test.skipIf(!enabled)(
         expect(isTerminalCloudAgentStatus(observation.status)).toBe(true);
         expect(observation.rawStatus).toBeString();
         expect(observation.providerRunId).toBe(launch.providerRunId);
-        expect(observation.providerUrl).toBe(launch.providerUrl);
+        expect(observation.providerUrl).toBe(launch.providerUrl ?? undefined);
         if (observation.status === 'completed') {
             expect(observation.summary).toBeString();
         }

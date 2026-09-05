@@ -147,7 +147,8 @@ Rules:
 - Suffixes, in order: attachments
   (`[2 attachments: a.png (id:att_…), … — use grotto attachment view to download]`, WS5),
   task (`[task #N status=… assignee=…]`, WS5), ask (`[ask status=open|answered to=@handle]`),
-  cloud agent work (`[cloud-agent-work status=… title=…]`).
+  cloud agent work (`[cloud-agent-work status=… title=… pr=#N]`, the pull request omitted until
+  the Run reports one).
 - The turn-drain envelope carries the same work facts compressed inside the
   bracket instead of as trailing suffixes, in the same order:
   `task=#N:status:assignee` (`unassigned` when nobody owns it), then

@@ -1,6 +1,5 @@
 import { ListView } from '@heroui-pro/react';
-import { CloudIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { Icon } from '../../../components/ui/icon.tsx';
+import { CloudAgentProviderGlyph } from '../../cloud-agents/cloud-agent-provider-mark.tsx';
 import { CloudAgentStatusDisc } from '../../cloud-agents/cloud-agent-status-disc.tsx';
 import type { HappeningNowWork } from './happening-now-work.ts';
 
@@ -26,7 +25,7 @@ export function HappeningNowWorkList({
             {(item) => (
                 <ListView.Item id={item.id} textValue={item.title}>
                     <ListView.ItemContent>
-                        <Icon className="size-4 shrink-0 text-muted" icon={CloudIcon} />
+                        <CloudAgentProviderGlyph provider={item.provider} />
                         <div className="flex min-w-0 flex-col">
                             <ListView.Title>{item.title}</ListView.Title>
                             <ListView.Description>

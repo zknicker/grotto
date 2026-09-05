@@ -7,7 +7,7 @@ import {
     seedCoveWorkspace,
     seedFactoryManagedSkills,
 } from '@grotto/agent-workspace';
-import { type AgentTurnActivitySummary, cloudAgentWorkAttentionSchema } from '@grotto/api';
+import { type AgentTurnActivitySummary, type CloudAgentBranch, cloudAgentWorkAttentionSchema } from '@grotto/api';
 import type { TraceCarrier } from '@grotto/effect';
 import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 import { AgentActivityRun } from './agent-activity-run.ts';
@@ -97,7 +97,7 @@ export interface AgentInboxAsk {
 
 /** A settled Cloud Agent Run's terminal attention for the delegating Agent. */
 export interface AgentCloudAgentWorkAttention {
-    branches: { branch: string; pullRequestUrl: string | null; repository: string }[];
+    branches: CloudAgentBranch[];
     errorCode: string | null;
     provider: 'cursor';
     providerUrl: string | null;

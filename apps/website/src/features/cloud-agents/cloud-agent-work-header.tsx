@@ -1,15 +1,14 @@
 import { type CloudAgentWork, isTerminalCloudAgentStatus } from '@grotto/api';
-import { CloudIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
-import { Icon } from '../../components/ui/icon.tsx';
 import { formatRelativeTime } from '../../lib/format.ts';
 import {
     cloudAgentPresentationStatus,
-    cloudAgentProviderLabels,
     cloudAgentStatusText,
-    cloudAgentWorkDetailLine,
+    cloudAgentWorkActivityLine,
     isCloudAgentWorkStale,
 } from './cloud-agent-presentation.ts';
+import { CloudAgentProviderGlyph } from './cloud-agent-provider-mark.tsx';
+import { cloudAgentProviderName } from './cloud-agent-provider-presentation.ts';
 import { CloudAgentStatusDisc } from './cloud-agent-status-disc.tsx';
 
 /**
@@ -39,8 +38,8 @@ export function CloudAgentWorkHeader({ work }: { work: CloudAgentWork }) {
             className="inline-flex min-w-0 max-w-full items-center gap-1.5 font-semibold text-muted text-sm"
             data-testid="cloud-agent-work-header"
         >
-            <Icon className="size-3.5 shrink-0" icon={CloudIcon} />
-            <span className="shrink-0">{cloudAgentProviderLabels[work.provider]}</span>
+            <CloudAgentProviderGlyph provider={work.provider} />
+            <span className="shrink-0">{cloudAgentProviderName(work.provider)}</span>
             <span className="min-w-0 truncate">{work.title}</span>
             <CloudAgentStatusDisc status={status} />
             <span className="shrink-0">{statusText}</span>
@@ -64,7 +63,7 @@ export function CloudAgentWorkStatusMark({ work }: { work: CloudAgentWork }) {
             className="inline-flex shrink-0 items-center gap-1.5 font-semibold text-muted text-sm"
             data-testid="cloud-agent-work-status-mark"
         >
-            <Icon className="size-3.5 shrink-0" icon={CloudIcon} />
+            <CloudAgentProviderGlyph provider={work.provider} />
             <CloudAgentStatusDisc status={status} />
             <span className="shrink-0 tabular-nums">{cloudAgentStatusText(work, now)}</span>
         </span>
@@ -72,13 +71,15 @@ export function CloudAgentWorkStatusMark({ work }: { work: CloudAgentWork }) {
 }
 
 /**
- * The one muted line under the header: what the work is doing now, or what its
- * latest Run reported. A running work that has gone quiet says when it last
- * said anything, rather than gating on Computer connection state.
+ * The one muted line under the header: what the work is doing right now. A
+ * settled work says nothing here — the card inside the Thread states the
+ * branch, the pull request, and the diff it produced. A running work that has
+ * gone quiet says when it last said anything, rather than gating on Computer
+ * connection state.
  */
 export function CloudAgentWorkDetail({ work }: { work: CloudAgentWork }) {
     const now = useWorkNow(work);
-    const line = cloudAgentWorkDetailLine(work);
+    const line = cloudAgentWorkActivityLine(work);
     const stale = isCloudAgentWorkStale(work, now);
 
     if (!(line || stale)) {

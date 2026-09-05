@@ -10,11 +10,13 @@ import {
 import type * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../lib/clipboard.ts';
-import { openExternalLink } from '../../lib/open-external-link.ts';
 import { cn } from '../../lib/utils.ts';
 import { useServerContext } from '../servers/server-context.ts';
 import { appLink, serverChatRoute } from '../servers/server-routes.ts';
-import { cloudAgentProviderLabels } from './cloud-agent-presentation.ts';
+import {
+    openCloudAgentProviderUrl,
+    openInCloudAgentProviderLabel,
+} from './cloud-agent-provider-presentation.ts';
 import { useCloudAgentCancelAction } from './use-cloud-agent-cancel-action.ts';
 
 /**
@@ -37,7 +39,7 @@ export function CloudAgentWorkMenu({
 }) {
     const { server } = useServerContext();
     const cancel = useCloudAgentCancelAction(work);
-    const providerLabel = cloudAgentProviderLabels[work.provider];
+    const providerLabel = openInCloudAgentProviderLabel(work.provider);
 
     const runAction = (key: React.Key) => {
         if (key === 'thread') {
@@ -45,9 +47,7 @@ export function CloudAgentWorkMenu({
             return;
         }
         if (key === 'provider' && work.providerUrl) {
-            openExternalLink(work.providerUrl).catch(() =>
-                toast.danger(`Could not open ${providerLabel}`)
-            );
+            openCloudAgentProviderUrl(work.provider, work.providerUrl);
             return;
         }
         if (key === 'link') {
@@ -83,10 +83,10 @@ export function CloudAgentWorkMenu({
                     <Dropdown.Item
                         id="provider"
                         isDisabled={!work.providerUrl}
-                        textValue={`Open in ${providerLabel}`}
+                        textValue={providerLabel}
                     >
                         <Icon icon={ArrowUpRight01Icon} size={16} />
-                        <Label>Open in {providerLabel}</Label>
+                        <Label>{providerLabel}</Label>
                     </Dropdown.Item>
                     <Dropdown.Item id="link" textValue="Copy link">
                         <Icon icon={Copy01Icon} size={16} />

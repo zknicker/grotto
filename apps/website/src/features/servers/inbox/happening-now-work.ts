@@ -1,4 +1,4 @@
-import type { ActiveCloudAgentWork, Agent } from '@grotto/api';
+import type { ActiveCloudAgentWork, Agent, CloudAgentProvider } from '@grotto/api';
 import {
     type CloudAgentPresentationStatus,
     cloudAgentPresentationStatus,
@@ -13,6 +13,7 @@ export interface HappeningNowWork {
     chatLabel: string;
     /** The work Message id, which is also the `?work=` deep link. */
     id: string;
+    provider: CloudAgentProvider;
     status: CloudAgentPresentationStatus;
     statusText: string;
     title: string;
@@ -36,6 +37,7 @@ export function toHappeningNowWork(
         agentName: workAgentName(item, agentsById),
         chatLabel: conversationLabel(item, humans),
         id: item.work.messageId,
+        provider: item.work.provider,
         status: cloudAgentPresentationStatus(item.work),
         statusText: cloudAgentStatusText(item.work, now),
         title: item.work.title,

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import {
+    type CloudAgentBranch,
     type CloudAgentWork,
     computerBootstrapProtocolVersion,
     computerProtocolVersion,
@@ -222,6 +223,35 @@ test('observations apply idempotently and a settled Run creates one inbox attent
     await Bun.sleep(150);
     expect(await readWork(work.id)).toMatchObject({ activity_summary: null, status: 'running' });
 
+    // The Computer's own GitHub reading of the pull request the Run opened.
+    socket.send(
+        JSON.stringify({
+            observation: {
+                branches: [
+                    {
+                        branch: 'cloud/fix-flake',
+                        pullRequest: {
+                            additions: 34,
+                            changedFiles: 1,
+                            deletions: 0,
+                            number: 12,
+                            observedAt: '2026-09-04T12:04:00.000Z',
+                            state: 'draft',
+                        },
+                        pullRequestUrl: 'https://github.com/grotto/grotto/pull/12',
+                        repository: 'grotto/grotto',
+                    },
+                ],
+                observedAt: '2026-09-04T12:04:00.000Z',
+                runId,
+                status: 'running',
+                workId: work.id,
+            },
+            type: 'cloud-agent-observation',
+        })
+    );
+    await waitFor(async () => (await readBranches(runId))[0]?.pullRequest);
+
     socket.send(
         JSON.stringify({
             observation: {
@@ -248,6 +278,22 @@ test('observations apply idempotently and a settled Run creates one inbox attent
         status: 'completed',
         summary: 'Opened a pull request.',
     });
+    // A terminal report that could not read GitHub keeps the snapshot already recorded.
+    expect(await readBranches(runId)).toEqual([
+        {
+            branch: 'cloud/fix-flake',
+            pullRequest: {
+                additions: 34,
+                changedFiles: 1,
+                deletions: 0,
+                number: 12,
+                observedAt: '2026-09-04T12:04:00.000Z',
+                state: 'draft',
+            },
+            pullRequestUrl: 'https://github.com/grotto/grotto/pull/12',
+            repository: 'grotto/grotto',
+        },
+    ]);
     expect(await readAttentions(runId)).toHaveLength(1);
 
     // A later terminal report changes nothing and adds no second attention.
@@ -455,6 +501,10 @@ async function readRun(runId: string) {
         from cloud_agent_runs where id = ${runId}
     `) as Record<string, unknown>[];
     return row;
+}
+
+async function readBranches(runId: string): Promise<CloudAgentBranch[]> {
+    return ((await readRun(runId))?.branches as CloudAgentBranch[] | undefined) ?? [];
 }
 
 async function readAttentions(runId: string) {

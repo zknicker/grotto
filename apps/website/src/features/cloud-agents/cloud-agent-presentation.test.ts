@@ -2,16 +2,15 @@ import { expect, test } from 'bun:test';
 import type { CloudAgentRun, CloudAgentStatus, CloudAgentWork } from '@grotto/api';
 import {
     canCancelCloudAgentWork,
+    cloudAgentBranchPullRequestNumber,
     cloudAgentPresentationStatus,
-    cloudAgentRunReportLine,
     cloudAgentStatusChipColor,
     cloudAgentStatusText,
     cloudAgentStatusTone,
+    cloudAgentWorkActivityLine,
     cloudAgentWorkBranch,
-    cloudAgentWorkDetailLine,
     formatCloudAgentDuration,
     isCloudAgentWorkStale,
-    pullRequestNumber,
 } from './cloud-agent-presentation.ts';
 
 const startedAt = '2026-09-04T12:00:00.000Z';
@@ -63,62 +62,30 @@ test('only a live or completed work carries a colour beyond muted', () => {
     expect(cloudAgentStatusTone('cancelling')).toBe('muted');
 });
 
-test('activity carries the line while the work runs and yields once it settles', () => {
+test('activity carries the line while the work runs and says nothing once it settles', () => {
     const activity = { at: startedAt, summary: 'Reading the failing test.' };
 
-    expect(cloudAgentWorkDetailLine(work({ activity, status: 'running' }))).toBe(
+    expect(cloudAgentWorkActivityLine(work({ activity, status: 'running' }))).toBe(
         'Reading the failing test.'
     );
     expect(
-        cloudAgentWorkDetailLine(
+        cloudAgentWorkActivityLine(
             work({
                 activity,
                 runs: [run({ summary: 'Opened a pull request.' })],
                 status: 'completed',
             })
         )
-    ).toBe('Opened a pull request.');
+    ).toBeNull();
 });
 
-test('a terminal work with no summary falls back to the Run error it reported', () => {
-    expect(
-        cloudAgentWorkDetailLine(
-            work({ runs: [run({ errorCode: 'provider_timeout' })], status: 'failed' })
-        )
-    ).toBe('provider_timeout');
-    expect(cloudAgentWorkDetailLine(work({ runs: [], status: 'failed' }))).toBeNull();
-});
-
-test('a Markdown Run summary collapses to one flat line', () => {
-    const reported = work({
-        runs: [
-            run({
-                summary:
-                    '## Summary\nI **fixed** the stale wording in the `README`.\n\n- Ran the tests',
-            }),
-        ],
-        status: 'completed',
-    });
-
-    expect(cloudAgentWorkDetailLine(reported)).toBe(
-        'Summary I fixed the stale wording in the README. Ran the tests'
-    );
-});
-
-test('a Markdown activity summary collapses the same way while the work runs', () => {
+test('a Markdown activity summary collapses to one flat line while the work runs', () => {
     const live = work({
         activity: { at: startedAt, summary: '### Now\nReading `migrations/003.sql`' },
         status: 'running',
     });
 
-    expect(cloudAgentWorkDetailLine(live)).toBe('Now Reading migrations/003.sql');
-});
-
-test('a Run whose summary is only Markdown scaffolding falls back to its error', () => {
-    expect(cloudAgentRunReportLine(run({ errorCode: 'provider_timeout', summary: '##  ' }))).toBe(
-        'provider_timeout'
-    );
-    expect(cloudAgentRunReportLine(run({ summary: '# Done' }))).toBe('Done');
+    expect(cloudAgentWorkActivityLine(live)).toBe('Now Reading migrations/003.sql');
 });
 
 test('a running work that has not reported for ten minutes reads as stale', () => {
@@ -215,10 +182,37 @@ test('a work with no reported branch has none', () => {
     expect(cloudAgentWorkBranch(work({}))).toBe(null);
 });
 
-test('a pull request URL yields the number the card prints', () => {
-    expect(pullRequestNumber('https://github.com/grotto/grotto/pull/482')).toBe(482);
-    expect(pullRequestNumber('https://gitlab.com/grotto/grotto/-/merge_requests/7')).toBe(null);
-    expect(pullRequestNumber('https://github.com/grotto/grotto/pull/482/files')).toBe(482);
+test('a branch names its pull request from the snapshot, then from its URL', () => {
+    const observed = {
+        branch: 'cursor/fix-migration',
+        pullRequest: {
+            additions: 5743,
+            changedFiles: 47,
+            deletions: 2,
+            number: 482,
+            observedAt: startedAt,
+            state: 'open' as const,
+        },
+        pullRequestUrl: 'https://github.com/grotto/grotto/pull/482',
+        repository: 'grotto/grotto',
+    };
+
+    expect(cloudAgentBranchPullRequestNumber(observed)).toBe(482);
+    expect(cloudAgentBranchPullRequestNumber({ ...observed, pullRequest: null })).toBe(482);
+    expect(
+        cloudAgentBranchPullRequestNumber({
+            ...observed,
+            pullRequest: null,
+            pullRequestUrl: 'https://gitlab.com/grotto/grotto/-/merge_requests/7',
+        })
+    ).toBe(null);
+    expect(
+        cloudAgentBranchPullRequestNumber({
+            ...observed,
+            pullRequest: null,
+            pullRequestUrl: null,
+        })
+    ).toBe(null);
 });
 
 test('the status chip takes the same tone the disc does', () => {

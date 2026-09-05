@@ -81,15 +81,15 @@ and [Agent Inbox](../../specs/inbox.md).
   renders inline on the reply itself, without a count.
 * **Cloud Agent work.** A Message carrying
   [Cloud Agent work](../../specs/cloud-agents.md) reads as an ordinary Message
-  whose Thread surface is headed by that work: a cloud glyph, the provider
-  (`Cursor`), the work title, and a trailing status disc and label — `Queued`,
+  whose Thread surface is headed by that work: the provider's own mark and
+  name, the work title, and a trailing status disc and label — `Queued`,
   `Running · <elapsed>`, `Done · <duration>`, `Failed`, `Expired`, `Cancelled`,
   or `Cancelling` while a cancel is recorded against a live Run. One muted line
-  under it states the work's current `activity` while it runs and its latest
-  Run's summary or error once it settles, plus a `Last update <relative>` note
-  when a running work has not reported for ten minutes. The surface's overflow
-  menu carries Open thread, Open in Cursor, Copy link, and — for Owners and
-  Admins, while the work is live — Cancel run.
+  under it states the work's current `activity` while it runs and nothing once
+  it settles, plus a `Last update <relative>` note when a running work has not
+  reported for ten minutes. The surface's overflow menu carries Open thread,
+  Open in `<provider>`, Copy link, and — for Owners and Admins, while the work
+  is live — Cancel run.
 * **Hoisted work status.** When a Thread contains queued or running Cloud Agent
   work, its anchor's surface header states that work's status after the anchor's
   own chip — `Task #1 · <disc> Blippy · <cloud> Running · 2m` — so a reader
@@ -100,13 +100,18 @@ and [Agent Inbox](../../specs/inbox.md).
 * **The in-Thread work card.** Inside the Thread, the work Message renders as
   the Agent's own words followed immediately by a detailed card, in sequence
   right where the Agent handed the work off. The card is presentation of the
-  Server-owned record, never a Chat row: a cloud mark, the title with a status
-  chip, `Cursor · <repository>`, a branch row carrying the branch the run wrote
-  and `PR #<n>` when it opened one, the activity or Run report, and an actions
-  row of **View PR**, **Open in Cursor**, and **Cancel run** for Owners and
-  Admins while the run is live, with a `Delegated by <Agent> · <time>` receipt.
-  Everything updates in place from `cloud-agent-work.updated`; the work never
-  writes a second Message.
+  Server-owned record, never a Chat row, and nothing on it is named after any
+  one provider: the provider's own mark, the title with a status chip, the
+  repository, a branch row carrying the branch the run wrote and `PR #<n>` when
+  it opened one, a diff row of `<n> files changed` with additions in success and
+  deletions in danger once the branch carries a pull-request snapshot, and one
+  split button — **View PR** when there is a pull request and **Open in
+  `<provider>`** until then, with Open in `<provider>`, Copy link, and Cancel
+  run for Owners and Admins while the run is live behind the chevron — with a
+  `Delegated by <Agent> · <time>` receipt. The Run report is not on the card:
+  the branch, the pull request, and the diff are the evidence. Everything
+  updates in place from `cloud-agent-work.updated`; the work never writes a
+  second Message.
 * **Hosted attachments.** Humans and Agents can attach files to hosted Server
   messages. The App streams human-selected bytes directly to that Server, and
   Agents upload through their scoped Server credential. The Server publishes

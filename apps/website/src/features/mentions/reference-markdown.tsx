@@ -1,3 +1,4 @@
+import { cloudAgentPullRequestNumber } from '@grotto/api';
 import { Markdown } from '@heroui-pro/react/markdown';
 import * as React from 'react';
 import { MarkdownLink } from '../chats/chat-inline-markdown-link.tsx';
@@ -155,6 +156,26 @@ function ReferenceLink({
         return <MarkdownLink href={prepared.href}>{children}</MarkdownLink>;
     }
 
+    const pullRequest = getPullRequestReference(href);
+
+    if (pullRequest) {
+        return (
+            <a
+                aria-label={`Open pull request ${pullRequest.label}`}
+                className="reference-chip-trigger inline-flex max-w-full align-middle no-underline"
+                href={pullRequest.href}
+                rel="noreferrer"
+                target="_blank"
+            >
+                <ReferenceChip
+                    id={pullRequest.href}
+                    kind="pull-request"
+                    label={pullRequest.label}
+                />
+            </a>
+        );
+    }
+
     const website = getWebsiteReference(href, children);
 
     if (website) {
@@ -177,6 +198,31 @@ function ReferenceLink({
     }
 
     return href ? <MarkdownLink href={href}>{children}</MarkdownLink> : children;
+}
+
+/**
+ * A pull request an Agent linked in prose. It reads as a reference rather than
+ * a link because that is what it is — a named object in the work, like an
+ * Agent or a Channel — so it wears the same chip: the pull-request glyph as
+ * its 18px mark and `#<n>` as its label, at the surrounding font size. The
+ * number comes from the URL through the one parser every surface that prints
+ * `PR #<n>` already shares.
+ */
+function getPullRequestReference(href: string | undefined) {
+    if (!href) {
+        return null;
+    }
+
+    try {
+        const url = new URL(href);
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+            return null;
+        }
+        const number = cloudAgentPullRequestNumber(url.toString());
+        return number === null ? null : { href: url.toString(), label: `#${number}` };
+    } catch {
+        return null;
+    }
 }
 
 function getWebsiteReference(href: string | undefined, children: React.ReactNode) {

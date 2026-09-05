@@ -16,6 +16,7 @@ test('a channel work reads its title, ticking status, Chat, and live Agent name'
             agentName: 'Blippy',
             chatLabel: '#product',
             id: 'message_one',
+            provider: 'cursor',
             status: 'running',
             statusText: 'Running · 7m',
             title: 'Fix the failing migration',

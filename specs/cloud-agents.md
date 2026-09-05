@@ -263,7 +263,14 @@ capabilities:
 | Capability | Ready when | Purpose |
 | --- | --- | --- |
 | Cursor runtime | `cursor-agent` is installed and its native session is usable | Local Cursor execution through an AI SDK harness adapter |
-| Cursor Cloud Agent | `@cursor/sdk` resolves a user API key from explicit configuration, `CURSOR_API_KEY`, or `~/.cursor/sdk/auth.json` | Provider-hosted execution |
+| Cursor Cloud Agent | `@cursor/sdk` resolves a user API key from `CURSOR_API_KEY` or `~/.cursor/sdk/auth.json` | Provider-hosted execution |
+
+Readiness reports one of three reasons when it is not ready. `not-connected` — no credential
+resolves. `expired` — a stored credential resolved but its own expiry has passed, so reconnecting is
+the fix rather than installing anything. `provider-unavailable` — `@cursor/sdk` itself cannot be
+loaded or reached on this Computer, which is a platform fact, not a credential one. `CURSOR_API_KEY`
+is Cursor's own variable, read by the SDK and outside Grotto's environment contract; a Computer that
+sets it is connected and carries no expiry Grotto can date.
 
 Grotto reuses provider-native state already present on the Computer. It does not scrape Cursor's
 Keychain entries, copy credentials into Server, or invent a Grotto credential format.
@@ -291,7 +298,8 @@ separate from runtime harnesses; each Computer reports and onboards its own read
 ## The provider boundary
 
 `CloudAgentProvider` is the whole provider surface: `readiness()`, `start()`, `read()`,
-`subscribe()`, and `cancel()`. Everything above it — the Agent CLI, the Server record, the durable
+`subscribe()`, `cancel()`, plus `connect()` and `disconnect()` for the credential the other five
+depend on. Everything above it — the Agent CLI, the Server record, the durable
 events, the inbox attention — is provider-neutral, and everything below it, including credentials,
 prompts, and raw status mapping, belongs to the adapter. An in-memory fake with scripted transitions
 covers the whole path without a provider account.
@@ -311,9 +319,27 @@ call `send()` on the same provider Agent.
 Cursor Agent state and Run state remain distinct. An `IDLE` Agent does not prove successful
 completion. Grotto settles work from the corresponding Run's `FINISHED`, `ERROR`, `CANCELLED`, or
 `EXPIRED` result. Computer may consume provider events for live progress but always reconciles with
-a Run read after missed events, reconnect, or restart. The SDK normalizes raw `EXPIRED` to `error`,
-so Computer preserves the public raw status message when Grotto must distinguish expiry from an
-ordinary failure.
+a Run read after missed events, reconnect, or restart.
+
+One status table owns the mapping, and it is the only place Cursor's vocabulary appears:
+
+| Cursor Run status | Grotto status |
+| --- | --- |
+| `QUEUED` | `queued` |
+| `CREATING`, `RUNNING` | `running` |
+| `FINISHED` | `completed` |
+| `ERROR` | `failed` |
+| `CANCELLED` | `cancelled` |
+| `EXPIRED` | `expired` |
+
+The raw string is preserved on every observation. The public SDK's `Run` handle normalizes `EXPIRED`
+into `error`, so a **read** recovers expiry only from the terminal error Cursor reports with it,
+while the per-Run **event stream** carries the unambiguous raw status on its `status` message. A Run
+that expires while nothing is streaming and is then read fresh after a Computer restart can
+therefore settle as `failed` rather than `expired`; that is a provider limit, not a mapping choice.
+
+The SDK does not surface the hosted Agent's own `url`, so the adapter builds the "Open in Cursor"
+link as `https://cursor.com/agents?id=<agentId>`.
 
 Grotto supplies Cursor's Agent and Send idempotency keys, but Cursor does not document exactly-once
 replay semantics for those headers. Grotto's own nonce, durable ids, conflict handling, and
@@ -326,7 +352,14 @@ repository is usable only when the Cursor account has the required source-contro
 ## Settings and usage
 
 Computer settings report Cursor runtime and Cursor Cloud Agent as separate capabilities even when
-they use the same Cursor account. Cursor appears alongside other detected execution runtimes.
+they use the same Cursor account. Cursor appears alongside other detected execution runtimes, and
+the Cloud Agent capability is one row beside them reading Not connected, Connecting, Expired, Ready,
+or Unavailable, with Connect on the row and Disconnect behind its overflow menu once connected.
+
+The App reaches it through `cloudAgentProvider.get`, `.connect`, and `.disconnect`, which Server
+authorizes to Owners and Admins and relays to the selected Computer over the attachment protocol —
+the same shape Browser settings use. No provider credential exists on Server to store or leak; only
+readiness and the account it resolves to cross the boundary.
 Grotto reports per-Agent and per-Run tokens and optional cost available through the public SDK; it
 does not claim personal plan capacity, remaining allowance, or reset time because Cursor exposes no
 supported public personal-account surface for them. Interactive CLI `/usage` reports activity and
@@ -366,9 +399,11 @@ administrative integration and is outside this Computer capability.
    fake, the durable work and Run records, the work Message, and the eager Thread.
 6. **Landed.** Lifecycle reporting, reconnect reconciliation, cancellation by Agent and by
    Owner/Admin, `cloud-agent-work.updated`, and the terminal inbox attention. Computer protocol 14.
-7. Add the Cursor adapter behind `CloudAgentProvider`, its readiness detection, and the Computer
-   settings connect flow. Until it lands, readiness reports `provider-unavailable` and a launch
-   fails before creating a Message.
+7. **Landed.** The Cursor adapter behind `CloudAgentProvider`, its readiness detection, and the
+   Computer settings connect flow. Every SDK type stops at a transport seam inside the adapter, so
+   the deterministic lanes run against recorded provider responses; one opt-in live lane
+   (`GROTTO_RUN_LIVE_CURSOR_TEST=1` with `GROTTO_LIVE_CURSOR_REPOSITORY=owner/name`) proves the
+   recordings still describe Cursor.
 8. Add the web and iOS Thread-surface header, the Thread pane header, and the Inbox "Happening now"
    section over `cloudAgentWork.listActive`.
 9. Run deterministic Server, API, Computer, App, and iOS coverage, then one opt-in live Cursor
@@ -378,6 +413,10 @@ administrative integration and is outside this Computer capability.
 
 - Pin the public-beta `@cursor/sdk` version and isolate all status and field mapping in the Cursor
   adapter. Live documentation and one downloadable OpenAPI snapshot currently disagree about the
-  raw `IDLE` Agent status.
+  raw `IDLE` Agent status; Grotto reads no Agent status at all, so the disagreement cannot reach it.
+- The pinned version is `1.0.30`. The SDK carries platform-specific optional dependencies with
+  native binaries and still bundles into the Computer's `bun build --compile` artifact.
+- Cursor reports a repository as a clone URL. Grotto records `owner/name`, so a reported branch
+  whose repository cannot be read back into that shape is dropped rather than reshaped.
 - Git metadata is an Agent-workspace snapshot, not guaranteed per-Run diff attribution.
 - Optional provider cost can arrive eventually and does not represent account-plan allowance.

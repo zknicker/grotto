@@ -201,6 +201,27 @@ work that Computer still owns, with any cancel recorded while it was offline; Co
 Run from the provider and reports what it finds. `cloudAgentWork.listActive({ serverId })` is the
 human read behind the Inbox.
 
+#### Cloud Agent provider access
+
+Cloud Agent provider access is a Computer capability with its own credential store, separate from
+the Cursor runtime harness even when both belong to one Cursor account. Each Computer reports it in
+its inventory as `cloudAgentProviders: [{ provider, ready, reason }]`, where an unready reason is
+`not-connected`, `expired`, or `provider-unavailable`.
+
+`cloudAgentProvider.get`, `cloudAgentProvider.connect`, and `cloudAgentProvider.disconnect` each
+take `{ computerId, provider, serverId }` and answer with the Computer's own
+`{ accountEmail, expiresAt, provider, ready, reason }`. Server verifies current membership plus
+Owner or Admin authority, verifies the Computer belongs to that Server, and relays a
+`cloud-agent-capability-request` over that Computer's outbound socket, which answers with
+`cloud-agent-capability-result` — the same shape [Browser](../internals/browser.md) uses, for the
+same reason: the App never touches a Computer socket.
+
+`connect` runs the provider's own browser sign-in on the Computer and stores the key in the
+provider's credential store; `disconnect` forgets it, and the key stays revocable from the
+provider's dashboard. Server holds no provider credential and stores none — only readiness and the
+account it resolves to cross the boundary. Connecting waits up to five minutes because a human
+finishes the flow, and Grotto never opens it during an Agent turn.
+
 `preparedAction.commit` is the human follow-up mutation. It is Server-scoped and accepts the
 prepared action id plus the submitted display name, description, handle, Computer, runtime,
 model, reasoning effort, and optional replacement avatar bytes. Only the current Owner or Admin

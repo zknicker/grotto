@@ -41,10 +41,15 @@ async function relay(
     operation: CloudAgentCapabilityRequest['operation']
 ) {
     try {
-        return await requestCloudAgentCapability(ctx.grottoDb, ctx.computerConnections, ctx.member, {
-            ...input,
-            operation,
-        });
+        return await requestCloudAgentCapability(
+            ctx.grottoDb,
+            ctx.computerConnections,
+            ctx.member,
+            {
+                ...input,
+                operation,
+            }
+        );
     } catch (cause) {
         if (cause instanceof CloudAgentCapabilityDeniedError) {
             throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });

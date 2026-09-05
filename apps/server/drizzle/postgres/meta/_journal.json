@@ -211,6 +211,13 @@
       "when": 1788554187906,
       "tag": "0029_message_bodies_and_asks",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1788558743015,
+      "tag": "0030_reminder_history_and_cause_snapshot",
+      "breakpoints": true
     }
   ]
 }

@@ -47,13 +47,17 @@ leads with open [Asks](../../specs/asks.md) addressed to the viewer — title, s
 asking Agent, and the recommended step as a button that sends that exact text into the Ask's Thread
 as the viewer's own Message — then lists Tasks in `in_review` that the viewer created or that are
 reserved for them. An Ask row peeks its Thread over the Inbox at `?ask=<messageId>`; a Task row
-opens the Task on the Tasks page. **Happening now** lists Agents currently in a turn, read from the
-Agent activity provider, and opens the Agent's page in Settings. **While you were away** lists Chats
-with an unread count, newest activity first, and opens the Chat.
+opens the Task on the Tasks page. **Happening now** leads with queued and running
+[Cloud Agent work](../../specs/cloud-agents.md) — cloud glyph, title, status with elapsed time,
+Chat, and the delegating Agent — above the Agents currently in a turn, read from the Agent activity
+provider. A work row peeks its conversation over the Inbox at `?work=<messageId>`; an Agent row
+opens that Agent's page in Settings. The section stays neutral until both reads settle, and states
+one empty line when neither has anything to show. **While you were away** lists Chats with an unread
+count, newest activity first, and opens the Chat.
 
-Three sources have no Server list procedure yet and are absent until they do: pending Agent creation
-proposals (**Needs you**), Cloud Agent work (**Happening now**), and followed Threads plus each
-Chat's last line (**While you were away**).
+Two sources have no Server list procedure yet and are absent until they do: pending Agent creation
+proposals (**Needs you**), and followed Threads plus each Chat's last line (**While you were
+away**).
 
 ## Rules
 
@@ -66,4 +70,5 @@ Chat's last line (**While you were away**).
   the Ask, Task, and work records. Opening the Inbox marks nothing read.
 - The Inbox adds no store, no cache, and no page-local lifecycle. Authorization is the ordinary
   Server membership and Chat access of each projected record.
-- iOS mirrors this page later; the sections and their ordering are the contract it mirrors.
+- iOS mirrors this page later; the sections and their ordering are the contract it mirrors. No iOS
+  Inbox exists yet, and Cloud Agent work has no iPhone presentation either.

@@ -108,9 +108,9 @@ control. Inside a Task Thread the work Message is a reply and renders the same h
 previews of its own.
 
 Only the trailing status carries lifecycle color. A running work whose `updatedAt` is older than ten
-minutes shows a last-update note rather than gating on Computer connection state. iOS mirrors this
-presentation in its Thread preview card. Older clients and unknown body kinds render the Message
-`content` and the ordinary Thread preview.
+minutes shows a last-update note rather than gating on Computer connection state. iOS will mirror
+this presentation in its Thread preview card and does not yet. Older clients and unknown body kinds
+render the Message `content` and the ordinary Thread preview.
 
 Server has one Message reader that projects authors, attachments, Tasks, and typed bodies for every
 consumer: Chat history, Threads, search, send receipts, Agent delivery, web, and iOS. Clients do not
@@ -413,8 +413,10 @@ administrative integration and is outside this Computer capability.
    the deterministic lanes run against recorded provider responses; one opt-in live lane
    (`GROTTO_RUN_LIVE_CURSOR_TEST=1` with `GROTTO_LIVE_CURSOR_REPOSITORY=owner/name`) proves the
    recordings still describe Cursor.
-8. Add the web and iOS Thread-surface header, the Thread pane header, and the Inbox "Happening now"
-   section over `cloudAgentWork.listActive`.
+8. **Web landed.** The Thread-surface header, its activity and last-update line, the surface's
+   overflow menu with cancel, the Thread pane header with run history, the `?work=` peek, and the
+   Inbox "Happening now" section over `cloudAgentWork.listActive`. The iPhone app has no Cloud Agent
+   presentation yet; that is the remainder of this step.
 9. Run deterministic Server, API, Computer, App, and iOS coverage, then one opt-in live Cursor
    lifecycle smoke.
 

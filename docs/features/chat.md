@@ -68,6 +68,25 @@ and [Agent Inbox](../../specs/inbox.md).
   name, and a trailing status — an accent open disc, or a filled success disc
   with `Answered by <name>` — beside the ordinary reply count. Inside a Thread
   the marker renders on the reply itself, without a count.
+* **Cloud Agent work headers.** A Message carrying
+  [Cloud Agent work](../../specs/cloud-agents.md) reads as an ordinary Message
+  whose recessed Thread surface is headed by that work, in the same grammar as
+  the Ask marker: a cloud glyph, the provider (`Cursor`), the work title, and a
+  trailing status disc and label — `Queued`, `Running · <elapsed>`,
+  `Done · <duration>`, `Failed`, `Expired`, `Cancelled`, or `Cancelling` while a
+  cancel is recorded against a live Run — beside the ordinary reply count. Only
+  that trailing status carries lifecycle color. One muted line under it states
+  the work's current `activity` while it runs and its latest Run's summary or
+  error once it settles, plus a `Last update <relative>` note when a running
+  work has not reported for ten minutes. The surface's overflow menu carries
+  Open thread, Open in Cursor, Copy link, and — for Owners and Admins, while the
+  work is live — Cancel run; there is no button band. Inside a Thread the work
+  Message is a reply and renders the same header without reply previews. Opening
+  the Thread on a work Message shows the work's full metadata above the anchor —
+  provider, repository, starting ref, status, every Run with its own evidence,
+  and the Cancel control — so the anchor drops its compact header there. The
+  header updates in place from `cloud-agent-work.updated`; the work never writes
+  a second Message.
 * **Hosted attachments.** Humans and Agents can attach files to hosted Server
   messages. The App streams human-selected bytes directly to that Server, and
   Agents upload through their scoped Server credential. The Server publishes

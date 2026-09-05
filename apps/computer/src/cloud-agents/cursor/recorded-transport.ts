@@ -113,7 +113,9 @@ export function recordedRun(
                   {
                       branch: 'cursor/fix-flaky-delivery-test',
                       prUrl: 'https://github.com/grotto/grotto/pull/412',
-                      repoUrl: 'https://github.com/grotto/grotto.git',
+                      // Recorded from a live Run: Cursor reports the repository
+                      // scheme-less, not as the clone URL it was started from.
+                      repoUrl: 'github.com/grotto/grotto',
                   },
               ]
             : [],

@@ -1,4 +1,4 @@
-import { computerProtocolVersion } from '@grotto/api';
+import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
 import { attachComputer, createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -206,48 +206,6 @@ function answerCloudAgentCapability(socket: WebSocket) {
             socket,
             connected ? { ready: true, reason: null } : { ready: false, reason: 'not-connected' }
         );
-    });
-}
-
-function socketOpen(socket: WebSocket) {
-    return new Promise<void>((resolve, reject) => {
-        socket.addEventListener('open', () => resolve(), { once: true });
-        socket.addEventListener('error', () => reject(new Error('Computer socket failed.')), {
-            once: true,
-        });
-    });
-}
-
-function sendBootstrap(socket: WebSocket, credential: string, phase: 'complete' | 'idle') {
-    socket.send(
-        JSON.stringify({
-            architecture: 'arm64',
-            bootstrapProtocolVersion: 1,
-            credential,
-            health: 'healthy',
-            operatingSystem: 'darwin',
-            productVersion: phase === 'complete' ? '1.1.0' : '1.0.0',
-            protocolVersion: phase === 'complete' ? computerProtocolVersion : 999,
-            type: 'bootstrap',
-            update: {
-                activeAgentCount: null,
-                detail: phase === 'complete' ? 'Grotto Computer updated successfully.' : null,
-                downloadedBytes: null,
-                failedPhase: null,
-                phase,
-                targetVersion: phase === 'complete' ? '1.1.0' : null,
-                totalBytes: null,
-                updatedAt: new Date().toISOString(),
-            },
-        })
-    );
-}
-
-function socketMessage(socket: WebSocket) {
-    return new Promise<unknown>((resolve) => {
-        socket.addEventListener('message', (event) => resolve(JSON.parse(String(event.data))), {
-            once: true,
-        });
     });
 }
 

@@ -153,3 +153,22 @@ export function askEvent(
         type: 'ask.updated',
     };
 }
+
+export function cloudAgentWorkEvent(
+    cursor: string,
+    chatId: string,
+    parentChatId: string | null = null
+): ChatEventOf<'cloud-agent-work.updated'> {
+    return {
+        chatId,
+        cloudAgentWorkId: `caw_${cursor}`,
+        createdAt: '2026-09-04T12:00:00.000Z',
+        cursor,
+        id: `event_${cursor}`,
+        messageId: `message_${cursor}`,
+        parentChatId,
+        sequence: Number(cursor),
+        serverId: 'server_one',
+        type: 'cloud-agent-work.updated',
+    };
+}

@@ -73,6 +73,7 @@ export function projectChatMessage(
                 type: 'file' as const,
             })),
             ...(message.cause ? { cause: message.cause } : {}),
+            cloudAgentWork: message.body.kind === 'cloud-agent-work' ? message.body.work : null,
             content: message.content,
             id: message.id,
             sender:

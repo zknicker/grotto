@@ -39,7 +39,21 @@ export interface TranscriptRenderContextValue {
      */
     causeMarkHidden?: boolean;
     chatId?: string;
+    /**
+     * The one Message whose Cloud Agent work header a surrounding panel
+     * already states. A Thread opened on a work Message names its provider,
+     * repository, status, and run history above the anchor, so the compact
+     * header on that row would say the same thing twice — while a second work
+     * delegated inside the same Thread still renders its own.
+     */
+    cloudAgentWorkHeaderHiddenMessageId?: string;
     composerId?: string;
+    /**
+     * The Channel or DM this transcript belongs to, which for a Thread is its
+     * parent. Only a conversation can be linked to; a Thread has no route of
+     * its own.
+     */
+    conversationChatId?: string;
     conversationLayout: ConversationMessageLayout;
     currentSessionKey?: string | null;
     defaultOpenWorkGroups: boolean;

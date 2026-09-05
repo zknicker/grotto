@@ -41,6 +41,10 @@ interface ChatTranscriptInput {
     /** Hides the header automation mark when a context card already states it. */
     causeMarkHidden?: boolean;
     chatId: string;
+    /** The Message whose Cloud Agent work a surrounding panel already states. */
+    cloudAgentWorkHeaderHiddenMessageId?: string;
+    /** The Channel or DM this transcript belongs to; a Thread names its parent. */
+    conversationChatId?: string;
     messages: readonly ChatMessage[] | undefined;
     onOpenArtifact: (target: GrottoResourceTarget) => void;
     onOpenThread?: (message: ChatMessage, summary: ThreadSummary | null) => void;
@@ -100,6 +104,8 @@ export function useChatTranscript({
     canManage = false,
     causeMarkHidden,
     chatId,
+    cloudAgentWorkHeaderHiddenMessageId,
+    conversationChatId,
     messages,
     onOpenArtifact,
     onReferenceActivate,
@@ -229,6 +235,8 @@ export function useChatTranscript({
             ({
                 canRequestMention: true,
                 chatId,
+                cloudAgentWorkHeaderHiddenMessageId,
+                conversationChatId: conversationChatId ?? chatId,
                 conversationLayout,
                 defaultOpenWorkGroups: false,
                 flashMessageId: null,
@@ -289,6 +297,8 @@ export function useChatTranscript({
             causeMarkHidden,
             chatId,
             chatsById,
+            cloudAgentWorkHeaderHiddenMessageId,
+            conversationChatId,
             handleOpenThread,
             humans,
             onOpenThread,

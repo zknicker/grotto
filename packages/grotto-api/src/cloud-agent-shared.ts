@@ -67,6 +67,23 @@ export const cloudAgentActivitySchema = z
     .strict();
 
 /**
+ * The repository a reported branch belongs to. A provider names it in whatever
+ * shape its own Git metadata carries, so this is wider than the repository
+ * Grotto was asked to work in: `owner/name` on GitHub, and the host-qualified
+ * `host/owner/name` anywhere else, so branch evidence off GitHub survives
+ * instead of being dropped for want of a shape.
+ */
+export const cloudAgentBranchRepositorySchema = z
+    .string()
+    .trim()
+    .min(3)
+    .max(200)
+    .regex(
+        /^[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+){1,4}$/u,
+        'A branch repository reads as owner/name, or host/owner/name off GitHub.'
+    );
+
+/**
  * Cursor's own terminal Run report, retained as evidence. Grotto stores no
  * branch or pull-request entity and claims no GitHub lifecycle.
  */
@@ -74,7 +91,7 @@ export const cloudAgentBranchSchema = z
     .object({
         branch: z.string().trim().min(1).max(300),
         pullRequestUrl: z.url().max(2000).nullable(),
-        repository: cloudAgentRepositorySchema,
+        repository: cloudAgentBranchRepositorySchema,
     })
     .strict();
 

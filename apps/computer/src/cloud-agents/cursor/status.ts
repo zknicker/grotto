@@ -3,7 +3,7 @@ import {
     type CloudAgentStatus,
     type CloudAgentUsage,
     cloudAgentActivityMaxLength,
-    cloudAgentRepositorySchema,
+    cloudAgentBranchRepositorySchema,
     cloudAgentSummaryMaxLength,
 } from '@grotto/api';
 import type { CloudAgentProviderObservation } from '../provider.ts';
@@ -70,9 +70,10 @@ export function activityOf(summary: string, at: string): { at: string; summary: 
 }
 
 /**
- * Cursor's terminal Run report, retained as evidence. A branch Cursor reports
- * against a repository Grotto cannot name as `owner/name` is dropped rather
- * than reshaped: Grotto stores no branch entity and invents no repository.
+ * Cursor's terminal Run report, retained as evidence. A branch whose reported
+ * repository cannot be read back as a repository label at all is dropped
+ * rather than reshaped: Grotto stores no branch entity and invents no
+ * repository.
  */
 export function branchesOf(readings: CursorBranchReading[]): CloudAgentBranch[] {
     const branches: CloudAgentBranch[] = [];
@@ -95,17 +96,31 @@ export function branchesOf(readings: CursorBranchReading[]): CloudAgentBranch[] 
 }
 
 /**
- * `owner/name` from a Cursor repository URL. Cursor reports a clone URL; Grotto
- * records the repository the Agent named, in the one shape it records.
+ * One repository label from a Cursor repository reference. Cursor names a
+ * repository in whatever shape its Git metadata carries — the scheme-less
+ * `github.com/owner/name` a Run reports, an HTTPS clone URL, an SSH remote —
+ * so all of them read back to `owner/name` on GitHub, and to the
+ * host-qualified `host/owner/name` elsewhere, which keeps the branch as
+ * evidence instead of discarding it for want of a GitHub shape.
  */
 export function repositoryOf(repoUrl: string): string | null {
-    const path = repoUrl
-        .replace(/^[a-z+]+:\/\/[^/]+\//iu, '')
-        .replace(/^git@[^:]+:/iu, '')
+    const remote = repoUrl
+        .trim()
+        .replace(/\/+$/u, '')
         .replace(/\.git$/iu, '')
         .replace(/\/+$/u, '');
-    const parsed = cloudAgentRepositorySchema.safeParse(path);
-    return parsed.success ? parsed.data : null;
+    const match =
+        // scheme://[user@]host[:port]/path
+        /^[a-z][a-z0-9+.-]*:\/\/(?:[^@/]*@)?([^/:]+)(?::\d+)?\/(.+)$/iu.exec(remote) ??
+        // [user@]host:path, Git's SSH shorthand
+        /^(?:[^@\s/]+@)?([^\s/:]+\.[^\s/:]+):(.+)$/u.exec(remote) ??
+        // host/path, the shape a Cursor Run's Git metadata reports
+        /^([^\s/:]+\.[^\s/:]+)\/(.+)$/u.exec(remote);
+    const host = match?.[1]?.toLowerCase() ?? null;
+    const segments = (match?.[2] ?? remote).split('/').filter((segment) => segment.length > 0);
+    const label = labelOf(host, segments);
+    const parsed = label ? cloudAgentBranchRepositorySchema.safeParse(label) : null;
+    return parsed?.success ? parsed.data : null;
 }
 
 /**
@@ -129,6 +144,22 @@ export function usageOf(reading: CursorRunReading): CloudAgentUsage | null {
 function boundedSummary(reading: CursorRunReading): string | null {
     const text = reading.result ?? reading.errorMessage;
     return text ? bounded(collapse(text), cloudAgentSummaryMaxLength) : null;
+}
+
+/**
+ * GitHub owns the `owner/name` shape, and every other host keeps its own path
+ * — a nested group off GitHub is still one repository, not an owner. A remote
+ * with no recognizable host is only a label when it already reads as
+ * `owner/name`.
+ */
+function labelOf(host: string | null, segments: string[]): string | null {
+    if (host === null) {
+        return segments.length === 2 ? segments.join('/') : null;
+    }
+    if (host === 'github.com' || host === 'www.github.com') {
+        return segments.length >= 2 ? segments.slice(0, 2).join('/') : null;
+    }
+    return segments.length >= 2 ? [host, ...segments].join('/') : null;
 }
 
 function collapse(value: string): string {

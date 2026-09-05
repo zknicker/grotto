@@ -39,8 +39,9 @@ facts and compatibility risks, not unresolved product decisions.
   launched inside an existing Thread stays in that Thread because Threads do not nest. Replying to
   the Message is the human steering and discussion surface; the card has no separate reply model.
 - **One updating presentation.** Grotto App renders the Message's Cloud Agent work body as one
-  Thread surface header. It updates from queued or running into a terminal report without creating
-  automatic progress or completion Messages.
+  Thread surface header in the parent Chat and one detailed card inside the Thread. Both update from
+  queued or running into a terminal report without creating automatic progress or completion
+  Messages.
 - **Inbox completion.** Every terminal provider run creates at most one durable inbox attention for
   the delegating Agent. Completion does not keep the launch turn open. The resumed Agent owns any
   follow-up and may post an ordinary Message when it has useful judgment to add.
@@ -98,19 +99,35 @@ A card is presentation, not a durable noun. It owns no id, placement, lifecycle,
 data. Grotto App renders a card from the Message and the Server-owned record projected through its
 typed body.
 
-Grotto App renders Cloud Agent work as the header of the Message's recessed Thread surface, the same
-surface a Task uses: provider glyph and name, title, a status disc with elapsed or total duration,
-and the reply count. One optional line shows `activity` while the work runs, and the latest Run
-summary or error once the work is terminal. The surface opens the Thread. Open in Cursor and Cancel
-live in the surface's overflow menu. The Thread pane header, like the Task metadata header, shows
-provider, repository, starting ref, status, run history with each Run's evidence, and the Cancel
-control. Inside a Task Thread the work Message is a reply and renders the same header without reply
-previews of its own.
+In the parent Chat — a Channel or a DM — Grotto App renders Cloud Agent work as the header of the
+Message's recessed Thread surface, the same surface and the same chip grammar a Task and an Ask use:
+provider glyph and name, title, a status disc with elapsed or total duration, and the reply count.
+One optional line shows `activity` while the work runs, and the latest Run summary or error once the
+work is terminal. The surface opens the Thread. Open in Cursor and Cancel live in the surface's
+overflow menu.
 
-Only the trailing status carries lifecycle color. A running work whose `updatedAt` is older than ten
-minutes shows a last-update note rather than gating on Computer connection state. iOS will mirror
-this presentation in its Thread preview card and does not yet. Older clients and unknown body kinds
-render the Message `content` and the ordinary Thread preview.
+**Hoisted status.** When any Message's Thread contains queued or running work, that Message's own
+surface header states the work's status after its own chip — a cloud glyph, a status disc, and the
+elapsed label — so live work under a Task is visible without opening it. The hoist is derived at read
+time from the Server's active-work list, keyed by the Thread's anchor Message; nothing new is stored,
+and terminal work is absent from that list by construction, so a finished run never hoists.
+
+**Inside the Thread**, the work Message renders as its ordinary Message — the Agent's own words — and
+is followed immediately by a detailed card in sequence, right where the Agent handed the work off.
+The card is presentation derived from the work record and is never a Chat row: a cloud mark, the
+title with a status chip (`Queued`, `Running` with the in-progress disc, `Done` in success, `Failed`
+and `Expired` in danger, `Cancelled` muted, `Cancelling`), `Cursor · <repository>`, a branch row
+carrying the branch the run wrote and `PR #<n>` when it opened one, the current activity or the Run
+report, and an actions row of View PR, Open in Cursor, and Cancel run for Owners and Admins while the
+run is live, with a `Delegated by <Agent> · <time>` receipt. It updates in place from the same event.
+The Thread pane carries no separate work panel: the card states every fact that panel did, in the one
+place the work actually happened. A Task Thread keeps its Task metadata header, because a Task's
+lifecycle is edited there while work is only watched.
+
+Only status discs and the card's status chip carry lifecycle color. A running work whose `updatedAt`
+is older than ten minutes shows a last-update note rather than gating on Computer connection state.
+iOS will mirror this presentation in its Thread preview card and does not yet. Older clients and
+unknown body kinds render the Message `content` and the ordinary Thread preview.
 
 Server has one Message reader that projects authors, attachments, Tasks, and typed bodies for every
 consumer: Chat history, Threads, search, send receipts, Agent delivery, web, and iOS. Clients do not
@@ -204,7 +221,7 @@ events no more than every few seconds. It is the work's current state in a sente
 transcript, and it yields to the latest Run summary once the work settles.
 
 `branches` and `pullRequestUrl` are Cursor's own terminal Run report, retained as evidence for the
-Thread pane header. They are not a Grotto product relation: Grotto stores no branch or pull-request
+in-Thread work card's branch row. They are not a Grotto product relation: Grotto stores no branch or pull-request
 entity, and a reported pull-request URL claims no ownership of GitHub lifecycle.
 
 A cancel request records `cancelRequestedAt` and `cancelRequestedBy`, and the presentation reads as
@@ -232,7 +249,8 @@ execution evidence, not collaboration state.
 Lifecycle changes emit a durable `cloud-agent-work.updated` event carrying the Message and work
 identities. Events notify; refetching the Message recovers. The delegating Agent may cancel through
 `grotto cloud-agent cancel`; human Owners and Admins may cancel through
-`cloudAgentWork.cancel`, reached from the Thread surface's overflow menu or the Thread pane header. Other Chat participants request cancellation in the Thread. Reply and follow-up
+`cloudAgentWork.cancel`, reached from the Thread surface's overflow menu or the in-Thread work
+card. Other Chat participants request cancellation in the Thread. Reply and follow-up
 work use the work Thread rather than surface-local conversation controls.
 
 ## Results are ordinary Messages
@@ -413,8 +431,10 @@ administrative integration and is outside this Computer capability.
    the deterministic lanes run against recorded provider responses; one opt-in live lane
    (`GROTTO_RUN_LIVE_CURSOR_TEST=1` with `GROTTO_LIVE_CURSOR_REPOSITORY=owner/name`) proves the
    recordings still describe Cursor.
-8. **Web landed.** The Thread-surface header, its activity and last-update line, the surface's
-   overflow menu with cancel, the Thread pane header with run history, the `?work=` peek, and the
+8. **Web landed.** The Thread-surface header with its activity and last-update line, the hoisted
+   status on an anchor whose Thread holds live work, the surface's overflow menu with cancel, the
+   in-Thread work card with its branch and pull-request row and its View PR, Open in Cursor, and
+   Cancel run actions, the `?work=` peek, and the
    Inbox "Happening now" section over `cloudAgentWork.listActive`. The iPhone app has no Cloud Agent
    presentation yet; that is the remainder of this step.
 9. Run deterministic Server, API, Computer, App, and iOS coverage, then one opt-in live Cursor

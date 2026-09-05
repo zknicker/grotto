@@ -50,8 +50,8 @@ reserved for them. An Ask row peeks its Thread over the Inbox at `?ask=<messageI
 opens the Task on the Tasks page. **Happening now** leads with queued and running
 [Cloud Agent work](../../specs/cloud-agents.md) — cloud glyph, title, status with elapsed time,
 Chat, and the delegating Agent — above the Agents currently in a turn, read from the Agent activity
-provider. A work row peeks its conversation over the Inbox at `?work=<messageId>`; an Agent row
-opens that Agent's page in Settings. The section stays neutral until both reads settle, and states
+provider. A work row peeks its conversation over the Inbox at `?work=<messageId>` — the same Thread
+timeline the Chat opens, work card and all; an Agent row opens that Agent's page in Settings. The section stays neutral until both reads settle, and states
 one empty line when neither has anything to show. **While you were away** lists Chats with an unread
 count, newest activity first, and opens the Chat.
 

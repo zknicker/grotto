@@ -60,13 +60,15 @@ provider access, the provider and its agent id and URL, the title, repository, a
 the lifecycle status with its started and terminal timestamps, the bounded one-line `activity`, and
 the cancel request with exactly one of the requesting human or Agent. `cloud_agent_runs` holds one
 row per provider Run — normalized and raw status, timestamps, bounded summary, error code, reported
-branches with their optional pull-request URLs, optional token and cost usage, and the newest
-applied observation timestamp that makes a stale report a no-op. CHECKs keep each terminal status
-in agreement with its terminal timestamp, and composite foreign keys keep the work, its Message,
-its Chat, its Agent, its Computer, and its canceller in one Server tenant. Lifecycle changes append
-`cloud-agent-work.updated` to the `chat_events` cursor log through the nullable
-`cloud_agent_work_id` column. Provider prompts, credentials, transcripts, and workspace files never
-reach Server. A settled Run creates one `agent_inbox` row keyed by that Run id for the delegating
+branches with their optional pull-request URLs and the Computer's optional dated GitHub snapshot of
+each (number, state, changed files, additions, deletions), optional token and cost usage, and the
+newest applied observation timestamp that makes a stale report a no-op. A branch report merges by
+that snapshot's own timestamp, so a read that failed never erases a snapshot the Run already had.
+CHECKs keep each terminal status in agreement with its terminal timestamp, and composite foreign
+keys keep the work, its Message, its Chat, its Agent, its Computer, and its canceller in one Server
+tenant. Lifecycle changes append `cloud-agent-work.updated` to the `chat_events` cursor log through
+the nullable `cloud_agent_work_id` column. Provider prompts, credentials, transcripts, and
+workspace files never reach Server. A settled Run creates one `agent_inbox` row keyed by that Run id for the delegating
 Agent, in the same transaction that settles it.
 
 `prepared_actions` is the immutable Server record for an Agent-authored proposal. It is anchored

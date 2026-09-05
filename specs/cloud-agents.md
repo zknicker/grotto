@@ -114,12 +114,17 @@ and terminal work is absent from that list by construction, so a finished run ne
 
 **Inside the Thread**, the work Message renders as its ordinary Message — the Agent's own words — and
 is followed immediately by a detailed card in sequence, right where the Agent handed the work off.
-The card is presentation derived from the work record and is never a Chat row: a cloud mark, the
-title with a status chip (`Queued`, `Running` with the in-progress disc, `Done` in success, `Failed`
-and `Expired` in danger, `Cancelled` muted, `Cancelling`), `Cursor · <repository>`, a branch row
-carrying the branch the run wrote and `PR #<n>` when it opened one, the current activity or the Run
-report, and an actions row of View PR, Open in Cursor, and Cancel run for Owners and Admins while the
-run is live, with a `Delegated by <Agent> · <time>` receipt. It updates in place from the same event.
+The card is presentation derived from the work record and is never a Chat row, and nothing on it is
+named after any one provider: the provider's own mark, the title with a status chip (`Queued`,
+`Running` with the in-progress disc, `Done` in success, `Failed` and `Expired` in danger, `Cancelled`
+muted, `Cancelling`), the repository, a branch row carrying the branch the run wrote and `PR #<n>`
+when it opened one, a diff row of `<n> files changed` with additions in success and deletions in
+danger whenever the branch carries a pull-request snapshot, and one split-button control band — View
+PR when there is a pull request and Open in `<provider>` until then, with Open in `<provider>`, Copy
+link, and Cancel run for Owners and Admins while the run is live behind the chevron — plus a
+`Delegated by <Agent> · <time>` receipt. The Run report is not on the card: the branch, the pull
+request, and the diff are the evidence, and provider prose only crowded them out. It updates in place
+from the same event.
 The Thread pane carries no separate work panel: the card states every fact that panel did, in the one
 place the work actually happened. A Task Thread keeps its Task metadata header, because a Task's
 lifecycle is edited there while work is only watched.
@@ -202,7 +207,19 @@ type CloudAgentRun = {
     terminalAt: string | null;
     summary: string | null;
     errorCode: string | null;
-    branches: { repository: string; branch: string; pullRequestUrl: string | null }[];
+    branches: {
+        repository: string;
+        branch: string;
+        pullRequestUrl: string | null;
+        pullRequest: {
+            number: number;
+            state: 'draft' | 'open' | 'merged' | 'closed';
+            changedFiles: number;
+            additions: number;
+            deletions: number;
+            observedAt: string;
+        } | null;
+    }[];
     usage: { inputTokens: number; outputTokens: number; costUsd: number | null } | null;
 };
 ```
@@ -223,6 +240,24 @@ transcript, and it yields to the latest Run summary once the work settles.
 `branches` and `pullRequestUrl` are Cursor's own terminal Run report, retained as evidence for the
 in-Thread work card's branch row. They are not a Grotto product relation: Grotto stores no branch or pull-request
 entity, and a reported pull-request URL claims no ownership of GitHub lifecycle.
+
+`pullRequest` is the Computer's own reading of that URL, and it is evidence on the Run for exactly
+the same reason. Cursor's API carries no diff statistics, so the Computer reads
+`GET https://api.github.com/repos/{owner}/{repo}/pulls/{n}` when an observation names a GitHub pull
+request, at most once per pull request per 30 seconds, under a bounded timeout with one retry on a
+5xx. Every failure is the same answer — no snapshot — and a failed read never fails or delays the
+observation. The read happens before the observation is reported, because Server settles a Run on
+its first terminal observation and evidence arriving after that is correctly ignored. Server merges
+by `observedAt`: a report carrying no snapshot never erases a recorded one, a newer reading replaces
+an older one, and a settled Run stays final. The credential is the Computer's own: it asks the
+locally installed `gh` CLI for the token the human already signed in with, once per process, held
+in memory and never logged, stored, or reported to Server. A Computer without `gh` reads public
+pull requests unauthenticated, and an unreadable pull request simply has no snapshot.
+
+The snapshot's consumers today are the delegating Agent's surfaces: the terminal inbox attention
+states the branch's pull-request state and diff counts, and the work Message reads back with
+`pr=#<n>` wherever messages are shown. The in-Thread card still shows the branch row and `PR #<n>`
+alone and does not yet state the diff.
 
 A cancel request records `cancelRequestedAt` and `cancelRequestedBy`, and the presentation reads as
 cancelling until the Run settles. Inside Grotto every hop is push: Computer reports
@@ -405,8 +440,9 @@ administrative integration and is outside this Computer capability.
 - No automatic completion Message; the delegating Agent decides whether the result deserves one.
 - No outputs relation, output table, or produced-by provenance; results are ordinary Messages and
   references.
-- No pull-request facts sourced from Cursor; title, state, and diff statistics come only from the
-  Server GitHub connection through the pull-request reference.
+- No pull-request facts sourced from Cursor. A Run's own `pullRequest` snapshot is the Computer
+  reading GitHub directly for the branch row's state and diff counts; the pull-request reference's
+  title and cached presentation still come only from the Server GitHub connection.
 - No per-launch human approval card. Launch approval, when a Server wants it, is an Ask
   ([Asks](asks.md)), not a card.
 
@@ -425,7 +461,7 @@ administrative integration and is outside this Computer capability.
 5. **Landed.** The `grotto cloud-agent` verbs, the `CloudAgentProvider` boundary with an in-memory
    fake, the durable work and Run records, the work Message, and the eager Thread.
 6. **Landed.** Lifecycle reporting, reconnect reconciliation, cancellation by Agent and by
-   Owner/Admin, `cloud-agent-work.updated`, and the terminal inbox attention. Computer protocol 14.
+   Owner/Admin, `cloud-agent-work.updated`, and the terminal inbox attention. Computer protocol 15.
 7. **Landed.** The Cursor adapter behind `CloudAgentProvider`, its readiness detection, and the
    Computer settings connect flow. Every SDK type stops at a transport seam inside the adapter, so
    the deterministic lanes run against recorded provider responses; one opt-in live lane

@@ -66,6 +66,12 @@ mints, delivers, or stores it: the Computer settings **Connect** action runs Cur
 sign-in on the machine, and the key stays in Cursor's store. Nothing in this contract resolves it,
 so it has no 1Password item and no schema arm.
 
+The local `gh` CLI token is absent for the same reason. A Computer reads a Cloud Agent Run's pull
+request from GitHub using whatever token `gh auth token` already resolves on that machine, held in
+memory for the life of the process and never logged, stored, or reported to Server. It is a
+host-native credential, not a Grotto variable: it has no 1Password item, no schema arm, and a
+Computer without `gh` reads public pull requests unauthenticated instead.
+
 The opt-in live Cursor Cloud Agent smoke reads `GROTTO_RUN_LIVE_CURSOR_TEST=1` and
 `GROTTO_LIVE_CURSOR_REPOSITORY=owner/name`. Both are declared and both resolve `undefined` in every
 lifecycle: the run spends a real Cursor allowance against a real repository, so an operator sets

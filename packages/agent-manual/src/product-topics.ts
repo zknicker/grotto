@@ -64,7 +64,7 @@ A top-level work Message gets its thread immediately, and work started inside a 
 
 \`grotto cloud-agent cancel --work <workId>\` asks the provider to stop work you started. Owners and Admins can cancel it too. Cancellation is recorded immediately and the run settles as cancelled when the provider stops.
 
-When the run settles you receive one inbox attention carrying its status, summary, branches, and any pull-request URL. Cloud Agent work produces no automatic message: read the result, judge it, and post what is worth saying as an ordinary reply in the work's thread. A pull request is a reference anyone can post — a lone pull-request reply is often the whole report.`,
+When the run settles you receive one inbox attention carrying its status, summary, branches, and any pull-request URL, and the report names that pull request's number, state, and diff counts when Grotto could read them, so you can judge the size of the change before opening it. Cloud Agent work produces no automatic message: read the result, judge it, and post what is worth saying as an ordinary reply in the work's thread. A pull request is a reference anyone can post — a lone pull-request reply is often the whole report.`,
         id: 'cloud-agents',
         kind: 'overview',
         related: ['agent', 'asks', 'grotto-cli-overview'],

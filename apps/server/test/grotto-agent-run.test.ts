@@ -3,18 +3,19 @@ import { attestAgentEvents } from '../src/agent-api/inbox.ts';
 import { readAgentInboxCursor, recordExactMessagesServed } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { subscribeToAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
-import { ComputerConnections } from '../src/computers/connections.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import { readAgentSkillFile } from '../src/server-agents/agent-skill-file.ts';
 import { importAgentSkill } from '../src/server-agents/import-agent-skill.ts';
 import { recordAgentTurnSummary } from '../src/server-agents/record-agent-turn.ts';
 import { McpDeniedError, type McpUpstreamError } from '../src/server-mcp/errors.ts';
+import { makeMcpIconResolver } from '../src/server-mcp/icons.ts';
 import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { createMcpConnection, disconnectMcpConnection } from '../src/server-mcp/service.ts';
 import { listMcpConnections, setMcpGrant } from '../src/server-mcp/state.ts';
 import { modelToolName } from '../src/server-mcp/tool-catalog.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
+import { registerServerRuntime, registerTestConnections } from './test-computer-connections.ts';
 
 let harness: GrottoServerHarness;
 let owner: GrottoClient;
@@ -23,7 +24,9 @@ let serverId: string;
 let ownerUserId: string;
 let agentId: string;
 let dmChatId: string;
-
+const makeConnections = registerTestConnections();
+const serverEffectRuntime = registerServerRuntime();
+const mcpIconResolver = makeMcpIconResolver(serverEffectRuntime);
 const computerId = 'cmp_rrrrrrrrrrrrrrrr';
 const credentialHash = 'd'.repeat(64);
 const codexRuntime = { id: 'codex', label: 'Codex', models: [{ id: 'gpt-5.6-sol', label: 'Sol' }] };
@@ -128,7 +131,6 @@ test('chat mention options expose the DM Agent, active humans, visible channels,
         }),
     ]);
 });
-
 test('mints a scoped runner credential and records a durable Agent-authored message', async () => {
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_send_1' });
     expect(minted.runnerToken).toMatch(/^grtr_/u);
@@ -210,7 +212,6 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
         sessionGeneration: 1,
     });
 });
-
 test('Agent sends remove terminal whitespace while preserving leading and internal whitespace', async () => {
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_send_whitespace_1' });
     const sent = await agentSend(minted.runnerToken, {
@@ -236,7 +237,6 @@ test('Agent sends remove terminal whitespace while preserving leading and intern
         { content: '  Leading indentation\n\n    internal code  \n\nFinal line' },
     ]);
 });
-
 test('Agent message references persist as stable Agent and Chat links', async () => {
     const blippy = await owner.trpc.agent.create.mutate({
         computerId,
@@ -342,7 +342,6 @@ test('Agent message references persist as stable Agent and Chat links', async ()
         status: 200,
     });
 });
-
 test('Agent reference expansion cannot exceed the durable message limit', async () => {
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_reference_length' });
     const content = `${'x'.repeat(31_990)} @sage`;
@@ -363,7 +362,6 @@ test('Agent reference expansion cannot exceed the durable message limit', async 
     `) as { id: string }[];
     expect(rows).toEqual([]);
 });
-
 test('an Agent send resolves its target instead of writing into the launch chat', async () => {
     const channelId = 'cht_targetchannel01';
     await harness.sql`
@@ -402,7 +400,6 @@ test('an Agent send resolves its target instead of writing into the launch chat'
     expect(denied.status).toBe(404);
     expect(denied.body.code).toBe('INVALID_TARGET');
 });
-
 test('an Agent send creates the canonical Thread for a visible fresh anchor', async () => {
     const channelId = 'cht_freshthreadchan';
     await harness.sql`
@@ -459,7 +456,6 @@ test('an Agent send creates the canonical Thread for a visible fresh anchor', as
     `) as Array<{ followed: boolean }>;
     expect(humanFollow).toEqual([{ followed: true }]);
 });
-
 test('an Agent resolves an exact DM thread target and fails closed on wrong peers or anchors', async () => {
     const created = await owner.trpc.task.create.mutate({
         chatId: dmChatId,
@@ -632,7 +628,6 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
     `) as Array<{ mentioned: boolean; thread_follow_reactivated: boolean }>;
     expect(alreadyFollowedPending).toEqual([{ mentioned: true, thread_follow_reactivated: false }]);
 });
-
 test('As Task enters the Agent inbox with canonical unassigned task metadata', async () => {
     const created = await owner.trpc.task.create.mutate({
         chatId: dmChatId,
@@ -663,7 +658,6 @@ test('As Task enters the Agent inbox with canonical unassigned task metadata', a
         history.body.messages?.find((message) => message.id === created.task.messageId)?.task
     ).toMatchObject({ number: created.task.number, status: 'todo' });
 });
-
 test('ordinary Channel delivery preserves per-recipient direct attention', async () => {
     const peer = await owner.trpc.agent.create.mutate({
         computerId,
@@ -745,7 +739,6 @@ test('ordinary Channel delivery preserves per-recipient direct attention', async
     );
     expect(richPending).toHaveLength(2);
 });
-
 test('mute and explicit unfollow purge ordinary work while preserving exact mentions', async () => {
     const channelId = 'cht_attentioncontract';
     await harness.sql`
@@ -864,7 +857,6 @@ test('mute and explicit unfollow purge ordinary work while preserving exact ment
     `) as Array<{ mentioned: boolean; thread_follow_reactivated: boolean }>;
     expect(ordinaryPending).toEqual([{ mentioned: false, thread_follow_reactivated: false }]);
 });
-
 test('a followed Thread stays active when its parent Channel is muted', async () => {
     const channel = await owner.trpc.chat.createChannel.mutate({
         agentIds: [agentId],
@@ -926,7 +918,6 @@ test('a followed Thread stays active when its parent Channel is muted', async ()
     `) as Array<{ n: number }>;
     expect(afterUnfollow).toEqual([{ n: 0 }]);
 });
-
 test('history visibility across a muted gap prevents a duplicate freshness hold', async () => {
     const channel = await owner.trpc.chat.createChannel.mutate({
         agentIds: [agentId],
@@ -1021,7 +1012,6 @@ test('history visibility across a muted gap prevents a duplicate freshness hold'
         where agent_id = ${agentId}
     `;
 });
-
 test('an ambiguous Channel Thread prefix fails closed', async () => {
     const channelId = 'cht_ambiguous_threads';
     await harness.sql`
@@ -2148,7 +2138,7 @@ test('durable delivery sends one typed start, serializes per Agent, and needs an
         runtimeId?: string;
         type: string;
     }[] = [];
-    const connections = new ComputerConnections();
+    const connections = makeConnections();
     const delivery = new AgentDelivery(connection.db, connections);
 
     // Offline: the message is queued durably but nothing reaches the wire.
@@ -2193,6 +2183,7 @@ test('durable delivery sends one typed start, serializes per Agent, and needs an
 
     // The safe boundary: settling the run drains the queued work into the next.
     await delivery.onTurnSettled(computerId, {
+        activity: { operations: [] },
         agentId,
         endedAt: '2026-07-27T00:00:01.000Z',
         messageCount: 0,
@@ -2231,7 +2222,7 @@ test('an Owner imports a Computer-reported host skill into exactly one assigned 
     const sent = new Promise<void>((resolve) => {
         reportSent = resolve;
     });
-    const computers = new ComputerConnections();
+    const computers = makeConnections();
     computers.register(computerId, {
         ordinary: true,
         send: (frame) => {
@@ -2280,7 +2271,7 @@ test('a Member cannot relay Agent skill file bytes through the Server', async ()
     await expect(
         readAgentSkillFile(
             connection.db,
-            new ComputerConnections(),
+            makeConnections(),
             { clerkUserId: 'user_skill_member', id: memberUserId },
             { agentId, name: 'agent-browser', serverId }
         )
@@ -2314,11 +2305,10 @@ test('a human DM send enqueues durable pending work atomically with the message'
     expect(count[0]?.n).toBe((before[0]?.n ?? 0) + 1);
     expect(after[0]?.content).toBe('Durable delivery, please.');
 });
-
 test('keeps MCP credentials on Server and grants one whole connection', async () => {
     const member = { clerkUserId: 'user_run_owner', id: ownerUserId };
-    const runtime = new McpRuntime(connection.db);
-    const created = await createMcpConnection(connection.db, runtime, member, {
+    const runtime = new McpRuntime(connection.db, serverEffectRuntime);
+    const created = await createMcpConnection(connection.db, runtime, mcpIconResolver, member, {
         auth: 'oauth',
         headers: {},
         name: 'Deterministic',
@@ -2328,7 +2318,6 @@ test('keeps MCP credentials on Server and grants one whole connection', async ()
         serverId,
         url: 'http://127.0.0.1:9999/mcp',
     });
-
     const rows = (await harness.sql`
         select auth, header_names, tools
         from mcp_connections where id = ${created.id}
@@ -2343,7 +2332,6 @@ test('keeps MCP credentials on Server and grants one whole connection', async ()
         select secret from mcp_secrets where connection_id = ${created.id}
     `) as { secret: Record<string, unknown> }[];
     expect(JSON.stringify(secrets[0]?.secret)).toContain('server-secret');
-
     await harness.sql`
         update mcp_connections
         set account_label = 'Fixture account', connected = true, tools = ARRAY['echo']
@@ -2451,10 +2439,10 @@ test('Server discovers and invokes a granted remote MCP without Computer custody
         hostname: '127.0.0.1',
         port: 0,
     });
-    const runtime = new McpRuntime(connection.db);
+    const runtime = new McpRuntime(connection.db, serverEffectRuntime);
     try {
         const member = { clerkUserId: 'user_run_owner', id: ownerUserId };
-        const created = await createMcpConnection(connection.db, runtime, member, {
+        const created = await createMcpConnection(connection.db, runtime, mcpIconResolver, member, {
             auth: 'none',
             headers: {},
             name: 'Server fixture',
@@ -2498,7 +2486,7 @@ test('a slow MCP discovery is bounded without hiding healthy granted tools', asy
         delayMs: 200,
         toolName: 'slow_echo',
     });
-    const runtime = new McpRuntime(connection.db, { discoveryTimeoutMs: 25 });
+    const runtime = new McpRuntime(connection.db, serverEffectRuntime, { discoveryTimeoutMs: 25 });
     try {
         for (const fixture of [
             { id: healthyId, server: healthy, tool: 'healthy_echo' },
@@ -2550,7 +2538,7 @@ test('MCP invocation distinguishes revoked access, timeout, and upstream auth', 
         hostname: '127.0.0.1',
         port: 0,
     });
-    const runtime = new McpRuntime(connection.db, {
+    const runtime = new McpRuntime(connection.db, serverEffectRuntime, {
         discoveryTimeoutMs: 25,
         invocationTimeoutMs: 25,
     });
@@ -2647,6 +2635,16 @@ test('MCP invocation distinguishes revoked access, timeout, and upstream auth', 
 
 test('records a compact turn summary and fails closed on cross-Computer claims', async () => {
     const summary = {
+        activity: {
+            operations: [
+                {
+                    category: 'running_command' as const,
+                    completed: 2,
+                    failed: 0,
+                    interrupted: 0,
+                },
+            ],
+        },
         agentId,
         endedAt: '2026-07-27T00:00:01.000Z',
         messageCount: 1,
@@ -2668,10 +2666,11 @@ test('records a compact turn summary and fails closed on cross-Computer claims',
     };
     await recordAgentTurnSummary(connection.db, computerId, summary);
     const rows = (await harness.sql`
-        select status, message_count, model_id, runtime_id, total_tokens, token_usage_reported
+        select activity, status, message_count, model_id, runtime_id, total_tokens, token_usage_reported
         from agent_turns
         where server_id = ${serverId} and agent_id = ${agentId} and run_id = 'run_turn_1'
     `) as {
+        activity: { operations: Array<{ category: string; completed: number }> };
         message_count: number;
         model_id: string;
         runtime_id: string;
@@ -2681,6 +2680,7 @@ test('records a compact turn summary and fails closed on cross-Computer claims',
     }[];
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
+        activity: { operations: [{ category: 'running_command', completed: 2 }] },
         message_count: 1,
         model_id: 'gpt-test',
         runtime_id: 'codex',

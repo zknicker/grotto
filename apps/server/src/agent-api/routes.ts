@@ -21,6 +21,7 @@ import {
     sendAgentMessage,
 } from '../chats/send-agent-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { registerAgentActionRoutes } from './action-routes.ts';
 import { registerAgentAskRoutes } from './ask-routes.ts';
@@ -87,17 +88,16 @@ export function registerAgentApiRoutes(
         attachmentRoot: AttachmentRoot;
         db: GrottoDatabase;
         mcpRuntime: import('../server-mcp/runtime.ts').McpRuntime;
+        postCommitWork: ServerPostCommitWork;
     }
 ) {
     registerAgentAttachmentRoutes(app, { db: options.db, root: options.attachmentRoot });
     registerAgentActionRoutes(app, {
         agentDelivery: options.agentDelivery,
         db: options.db,
+        postCommitWork: options.postCommitWork,
     });
-    registerAgentAskRoutes(app, {
-        agentDelivery: options.agentDelivery,
-        db: options.db,
-    });
+    registerAgentAskRoutes(app, options);
     registerAgentInboxRoutes(app, options.db);
     registerAgentManualRoutes(app, options.db);
     registerAgentMcpRoutes(app, { db: options.db, runtime: options.mcpRuntime });
@@ -106,6 +106,7 @@ export function registerAgentApiRoutes(
     registerAgentTaskRoutes(app, {
         agentDelivery: options.agentDelivery,
         db: options.db,
+        postCommitWork: options.postCommitWork,
     });
     registerAgentTriggerRoutes(app, options.db);
 
@@ -484,13 +485,7 @@ export function registerAgentApiRoutes(
             for (const event of result.events) {
                 emitDurableChatEvent({ audienceUserId: null, event });
             }
-            await Promise.all(
-                result.wakes.map((wake) =>
-                    options.agentDelivery
-                        .dispatchAgent(wake.agentId, wake.serverId)
-                        .catch(() => undefined)
-                )
-            );
+            await options.postCommitWork.wakeAgents(options.agentDelivery, result.wakes);
             return { message: result.message, recentUnread: [], state: 'sent' as const };
         } catch (cause) {
             if (

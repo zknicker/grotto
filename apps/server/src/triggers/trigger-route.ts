@@ -1,7 +1,9 @@
 import { triggerDedupeKeyMaxLength, triggerPayloadMaxBytes } from '@grotto/api';
+import type { EffectRuntime } from '@grotto/effect';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authenticateTrigger, findTriggerFireByDedupeKey, fireTrigger } from './trigger-fire.ts';
 import { readBearerSecret, type TriggerClock } from './trigger-model.ts';
 import { TriggerRateLimiter } from './trigger-rate-limit.ts';
@@ -16,6 +18,8 @@ export interface TriggerRouteOptions {
     db: GrottoDatabase;
     delivery: AgentDelivery;
     limiter?: TriggerRateLimiter;
+    postCommitWork: ServerPostCommitWork;
+    runtime: EffectRuntime<never>;
 }
 
 /**
@@ -36,76 +40,7 @@ export function registerTriggerRoutes(app: FastifyInstance, options: TriggerRout
         scope.post<{ Params: { triggerId: string } }>(
             '/api/triggers/:triggerId',
             { bodyLimit: routeBodyLimit },
-            async (request, reply) => {
-                const secret = readBearerSecret(request.headers.authorization);
-                if (!secret) {
-                    return refuse(reply, 401, 'unauthorized');
-                }
-                const body = readPayload(request);
-                if (body.refusal) {
-                    return refuse(reply, body.status, body.refusal);
-                }
-                const dedupeKey = readDedupeKey(request);
-                if (dedupeKey === 'invalid') {
-                    return refuse(reply, 400, 'invalid_idempotency_key');
-                }
-
-                const trigger = await authenticateTrigger(options.db, {
-                    secret,
-                    triggerId: request.params.triggerId,
-                });
-                if (!trigger) {
-                    return refuse(reply, 401, 'unauthorized');
-                }
-                // A replay of a delivery already recorded is answered from
-                // history: it is not new traffic, so it spends no budget.
-                const replayed = await findTriggerFireByDedupeKey(options.db, {
-                    dedupeKey,
-                    serverId: trigger.serverId,
-                    triggerId: trigger.id,
-                });
-                if (replayed) {
-                    return reply.code(200).send({
-                        duplicate: true,
-                        fireId: replayed,
-                        triggerId: trigger.id,
-                        type: 'trigger_fire',
-                    });
-                }
-                // Every other authenticated request is metered, disabled
-                // triggers included, so a caller cannot hammer one for free.
-                const limited = limiter.admit(trigger.id, clock.now().getTime());
-                if (limited) {
-                    return reply
-                        .code(429)
-                        .header('retry-after', String(limited.retryAfterSeconds))
-                        .send({ code: 'rate_limited' });
-                }
-                if (trigger.status === 'disabled') {
-                    return refuse(reply, 409, 'trigger_disabled');
-                }
-
-                const outcome = await fireTrigger(
-                    options.db,
-                    options.delivery,
-                    {
-                        contentType: readContentType(request),
-                        dedupeKey,
-                        payload: body.payload,
-                        trigger,
-                    },
-                    clock
-                );
-                if (outcome.status === 'refused') {
-                    return refuse(reply, outcome.code === 'unauthorized' ? 401 : 409, outcome.code);
-                }
-                return reply.code(outcome.status === 'duplicate' ? 200 : 202).send({
-                    ...(outcome.status === 'duplicate' ? { duplicate: true } : {}),
-                    fireId: outcome.fireId,
-                    triggerId: outcome.triggerId,
-                    type: 'trigger_fire',
-                });
-            }
+            (request, reply) => handleTriggerRequest(options, limiter, clock, request, reply)
         );
         // Only Fastify's own body-reading failures get a trigger refusal: a
         // body it could not read is a body we cannot store. Anything else is a
@@ -120,6 +55,130 @@ export function registerTriggerRoutes(app: FastifyInstance, options: TriggerRout
             return refuse(reply, refusal.status, refusal.code);
         });
     });
+}
+
+type TriggerHttpRequest = FastifyRequest<{ Params: { triggerId: string } }>;
+
+async function handleTriggerRequest(
+    options: TriggerRouteOptions,
+    limiter: TriggerRateLimiter,
+    clock: TriggerClock,
+    request: TriggerHttpRequest,
+    reply: FastifyReply
+) {
+    const parsed = readTriggerDelivery(request);
+    if (parsed.kind === 'refusal') {
+        return refuse(reply, parsed.status, parsed.code);
+    }
+    const authorized = await authorizeTriggerDelivery(options, limiter, clock, request, parsed);
+    if (authorized.kind === 'refusal') {
+        if (authorized.retryAfterSeconds) {
+            reply.header('retry-after', String(authorized.retryAfterSeconds));
+        }
+        return refuse(reply, authorized.status, authorized.code);
+    }
+    if (authorized.kind === 'replay') {
+        return reply.code(200).send({
+            duplicate: true,
+            fireId: authorized.fireId,
+            triggerId: authorized.triggerId,
+            type: 'trigger_fire',
+        });
+    }
+    const outcome = await fireTrigger(options.db, options, authorized.request, clock);
+    if (outcome.status === 'refused') {
+        return refuse(reply, outcome.code === 'unauthorized' ? 401 : 409, outcome.code);
+    }
+    return reply.code(outcome.status === 'duplicate' ? 200 : 202).send({
+        ...(outcome.status === 'duplicate' ? { duplicate: true } : {}),
+        fireId: outcome.fireId,
+        triggerId: outcome.triggerId,
+        type: 'trigger_fire',
+    });
+}
+
+type ParsedTriggerDelivery =
+    | { code: string; kind: 'refusal'; status: number }
+    | {
+          contentType: string | null;
+          dedupeKey: string | null;
+          kind: 'parsed';
+          payload: string;
+          secret: string;
+      };
+
+function readTriggerDelivery(request: TriggerHttpRequest): ParsedTriggerDelivery {
+    const secret = readBearerSecret(request.headers.authorization);
+    if (!secret) {
+        return { code: 'unauthorized', kind: 'refusal', status: 401 };
+    }
+    const body = readPayload(request);
+    if (body.refusal) {
+        return { code: body.refusal, kind: 'refusal', status: body.status };
+    }
+    const dedupeKey = readDedupeKey(request);
+    if (dedupeKey === 'invalid') {
+        return { code: 'invalid_idempotency_key', kind: 'refusal', status: 400 };
+    }
+    return {
+        contentType: readContentType(request),
+        dedupeKey,
+        kind: 'parsed',
+        payload: body.payload,
+        secret,
+    };
+}
+
+type AuthorizedTriggerDelivery =
+    | { code: string; kind: 'refusal'; retryAfterSeconds?: number; status: number }
+    | { fireId: string; kind: 'replay'; triggerId: string }
+    | { kind: 'ready'; request: Parameters<typeof fireTrigger>[2] };
+
+async function authorizeTriggerDelivery(
+    options: TriggerRouteOptions,
+    limiter: TriggerRateLimiter,
+    clock: TriggerClock,
+    request: TriggerHttpRequest,
+    parsed: Exclude<ParsedTriggerDelivery, { kind: 'refusal' }>
+): Promise<AuthorizedTriggerDelivery> {
+    const trigger = await authenticateTrigger(options.db, {
+        secret: parsed.secret,
+        triggerId: request.params.triggerId,
+    });
+    if (!trigger) {
+        return { code: 'unauthorized', kind: 'refusal', status: 401 };
+    }
+    // A recorded replay is not new traffic, so it spends no rate-limit budget.
+    const replayed = await findTriggerFireByDedupeKey(options.db, {
+        dedupeKey: parsed.dedupeKey,
+        serverId: trigger.serverId,
+        triggerId: trigger.id,
+    });
+    if (replayed) {
+        return { fireId: replayed, kind: 'replay', triggerId: trigger.id };
+    }
+    // Disabled triggers are still metered so callers cannot hammer one for free.
+    const limited = limiter.admit(trigger.id, clock.now().getTime());
+    if (limited) {
+        return {
+            code: 'rate_limited',
+            kind: 'refusal',
+            retryAfterSeconds: limited.retryAfterSeconds,
+            status: 429,
+        };
+    }
+    if (trigger.status === 'disabled') {
+        return { code: 'trigger_disabled', kind: 'refusal', status: 409 };
+    }
+    return {
+        kind: 'ready',
+        request: {
+            contentType: parsed.contentType,
+            dedupeKey: parsed.dedupeKey,
+            payload: parsed.payload,
+            trigger,
+        },
+    };
 }
 
 function refuse(reply: FastifyReply, status: number, code: string) {

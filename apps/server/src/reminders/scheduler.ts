@@ -22,6 +22,7 @@ import {
     ReminderAgentInactiveError,
     ReminderAnchorAccessError,
     type ReminderClock,
+    ReminderFireError,
     requireActiveAgent,
     requireAgentAnchor,
 } from './reminder-model.ts';
@@ -113,26 +114,9 @@ async function fireNextDueReminder(
                 return { dispatch: null, events: [], fired: false };
             }
 
-            try {
-                await requireActiveAgent(tx, reminder.serverId, reminder.ownerAgentId);
-                await requireAgentAnchor(tx, {
-                    agentId: reminder.ownerAgentId,
-                    anchorChatId: reminder.anchorChatId,
-                    anchorMessageId: reminder.anchorMessageId,
-                    serverId: reminder.serverId,
-                });
-            } catch (cause) {
-                if (
-                    cause instanceof ReminderAgentInactiveError ||
-                    cause instanceof ReminderAnchorAccessError
-                ) {
-                    return {
-                        dispatch: null,
-                        events: [await cancelUnauthorizedReminder(tx, reminder, now)],
-                        fired: true,
-                    };
-                }
-                throw cause;
+            const canceled = await cancelIfUnauthorized(tx, reminder, now);
+            if (canceled) {
+                return { dispatch: null, events: [canceled], fired: true };
             }
             // A fire posts no message, so the Chat sequence never moves. The
             // locked read still pins the anchor for the rest of the commit.
@@ -261,6 +245,31 @@ async function fireNextDueReminder(
     }
 }
 
+async function cancelIfUnauthorized(
+    db: GrottoDatabase,
+    reminder: typeof remindersTable.$inferSelect,
+    now: Date
+): Promise<ServerDurableEvent | null> {
+    try {
+        await requireActiveAgent(db, reminder.serverId, reminder.ownerAgentId);
+        await requireAgentAnchor(db, {
+            agentId: reminder.ownerAgentId,
+            anchorChatId: reminder.anchorChatId,
+            anchorMessageId: reminder.anchorMessageId,
+            serverId: reminder.serverId,
+        });
+        return null;
+    } catch (cause) {
+        if (
+            cause instanceof ReminderAgentInactiveError ||
+            cause instanceof ReminderAnchorAccessError
+        ) {
+            return await cancelUnauthorizedReminder(db, reminder, now);
+        }
+        throw cause;
+    }
+}
+
 function writableReminderAnchor() {
     return sql`exists (
         select 1 from chats anchor
@@ -299,16 +308,6 @@ interface ReminderFireAttempt {
         | null;
     events: ServerDurableEvent[];
     fired: boolean;
-}
-
-class ReminderFireError extends Error {
-    readonly reminderId: string;
-
-    constructor(reminderId: string, cause: unknown) {
-        super('A reminder could not fire.', { cause });
-        this.name = 'ReminderFireError';
-        this.reminderId = reminderId;
-    }
 }
 
 async function cancelUnauthorizedReminder(

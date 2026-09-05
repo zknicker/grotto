@@ -3,6 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AgentCommand } from '@grotto/api';
+import { makeTestRuntime } from '@grotto/effect';
 import { eq, sql } from 'drizzle-orm';
 import { pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
@@ -48,7 +49,6 @@ afterEach(async () => {
     cluster = null;
     attachmentRoot = null;
 });
-
 describe('reminder scheduler lifecycle', () => {
     test('fresh schema indexes the global scheduled-due scan', async () => {
         cluster = await startPostgresCluster();
@@ -84,7 +84,6 @@ describe('reminder scheduler lifecycle', () => {
             clerkIssuerUrl: clerk.url,
             databaseUrl: cluster.databaseUrl,
             reminderClock: { now: () => now },
-            reminderSchedulerTimers: inertTimers,
         });
         const firstHealth = await first.app.inject({ method: 'GET', url: '/healthz' });
         await first.close();
@@ -95,7 +94,6 @@ describe('reminder scheduler lifecycle', () => {
             clerkIssuerUrl: clerk.url,
             databaseUrl: cluster.databaseUrl,
             reminderClock: { now: () => now },
-            reminderSchedulerTimers: inertTimers,
         });
         const restartHealth = await restarted.app.inject({ method: 'GET', url: '/healthz' });
         await restarted.close();
@@ -119,15 +117,16 @@ describe('reminder scheduler lifecycle', () => {
     });
 
     test('waits for an in-flight tick during graceful shutdown', async () => {
+        const runtime = makeTestRuntime();
         const tickStarted = Promise.withResolvers<void>();
         const releaseTick = Promise.withResolvers<void>();
-        const scheduler = createReminderScheduler({
+        const scheduler = await createReminderScheduler({
             clock: { now: () => now },
+            runtime,
             tick: async () => {
                 tickStarted.resolve();
                 await releaseTick.promise;
             },
-            timers: inertTimers,
         });
         const starting = scheduler.start();
         await tickStarted.promise;
@@ -142,18 +141,20 @@ describe('reminder scheduler lifecycle', () => {
         releaseTick.resolve();
         await Promise.all([starting, closing]);
         expect(closed).toBe(true);
+        await runtime.dispose();
     });
 
     test('reports failures without exposing their details and recovers on success', async () => {
+        const runtime = makeTestRuntime();
         let shouldFail = true;
-        const scheduler = createReminderScheduler({
+        const scheduler = await createReminderScheduler({
             clock: { now: () => now },
+            runtime,
             tick: async () => {
                 if (shouldFail) {
                     throw new Error('database host and secret details');
                 }
             },
-            timers: inertTimers,
         });
 
         await scheduler.start();
@@ -177,6 +178,7 @@ describe('reminder scheduler lifecycle', () => {
             lastSuccessfulTickAt: now.toISOString(),
             status: 'stopped',
         });
+        await runtime.dispose();
     });
 
     test('continues past one poisoned reminder and reports the degraded tick', async () => {
@@ -403,6 +405,7 @@ describe('reminder scheduler lifecycle', () => {
             status: 'completed',
             summary: 'followed up',
             tokenUsage: null,
+            activity: { operations: [] },
             type: 'turn',
         });
 
@@ -428,12 +431,6 @@ class RecordingTransport implements DeliveryTransport {
         return true;
     }
 }
-
-const inertTimers = {
-    clearInterval: (_timer: ReturnType<typeof setInterval>) => undefined,
-    setInterval: (_callback: () => void, _milliseconds: number) =>
-        Symbol('timer') as unknown as ReturnType<typeof setInterval>,
-};
 
 async function seedOverdueReminder(grotto: GrottoConnection) {
     const serverId = 'srv_scheduler';

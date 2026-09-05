@@ -27,6 +27,7 @@ export async function recordAgentTurnSummary(
     await db
         .insert(agentTurnsTable)
         .values({
+            activity: summary.activity,
             agentId: summary.agentId,
             computerId,
             endedAt: new Date(summary.endedAt),
@@ -50,6 +51,7 @@ export async function recordAgentTurnSummary(
         })
         .onConflictDoUpdate({
             set: {
+                activity: summary.activity,
                 endedAt: new Date(summary.endedAt),
                 failureKind: summary.failureKind ?? null,
                 messageCount: summary.messageCount,

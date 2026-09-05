@@ -1,5 +1,10 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { type EffectRuntime, settle } from '@grotto/effect';
+import {
+    liveReminderScriptExecution,
+    type ReminderScriptExecutionRunner,
+} from './reminder-script-execution.ts';
 
 export interface ReminderScriptCommand {
     agentId: string;
@@ -20,8 +25,6 @@ export interface ReminderScriptResult {
     type: 'reminder-script-result';
 }
 
-const scriptTimeoutMs = 60_000;
-const maxOutputBytes = 65_536;
 const runningScripts = new Map<string, Promise<ReminderScriptResult>>();
 
 export function parseReminderScriptCommand(frame: unknown): ReminderScriptCommand | null {
@@ -42,8 +45,21 @@ export function parseReminderScriptCommand(frame: unknown): ReminderScriptComman
 export async function runReminderScript(input: {
     command: ReminderScriptCommand;
     dataRoot: string;
+    runtime: EffectRuntime<never>;
     serverId: string;
 }): Promise<ReminderScriptResult> {
+    return await runReminderScriptWithExecution(input, liveReminderScriptExecution);
+}
+
+export async function runReminderScriptWithExecution(
+    input: {
+        command: ReminderScriptCommand;
+        dataRoot: string;
+        runtime: EffectRuntime<never>;
+        serverId: string;
+    },
+    executionRunner: ReminderScriptExecutionRunner
+): Promise<ReminderScriptResult> {
     const agentRoot = join(
         input.dataRoot,
         'servers',
@@ -57,7 +73,13 @@ export async function runReminderScript(input: {
     if (running) {
         return running;
     }
-    const execution = executeReminderScript({ ...input, agentRoot, resultDir, resultPath });
+    const execution = executeReminderScript({
+        ...input,
+        agentRoot,
+        executionRunner,
+        resultDir,
+        resultPath,
+    });
     runningScripts.set(resultPath, execution);
     try {
         return await execution;
@@ -71,6 +93,7 @@ export async function runReminderScript(input: {
 async function executeReminderScript(
     input: Parameters<typeof runReminderScript>[0] & {
         agentRoot: string;
+        executionRunner: ReminderScriptExecutionRunner;
         resultDir: string;
         resultPath: string;
     }
@@ -87,38 +110,34 @@ async function executeReminderScript(
         mkdir(home, { mode: 0o700, recursive: true }),
     ]);
 
-    const controller = new AbortController();
-    let timedOut = false;
-    const timeout = setTimeout(() => {
-        timedOut = true;
-        controller.abort();
-    }, scriptTimeoutMs);
-    const child = Bun.spawn(['/bin/zsh', '-lc', input.command.script], {
-        cwd: workspace,
-        env: reminderScriptEnvironment(home),
-        signal: controller.signal,
-        stderr: 'pipe',
-        stdout: 'pipe',
-    });
-    const [stdout, stderr, exitCode] = await Promise.all([
-        readLimited(child.stdout, maxOutputBytes),
-        readLimited(child.stderr, maxOutputBytes),
-        child.exited.catch(() => (timedOut ? 124 : 1)),
-    ]).finally(() => clearTimeout(timeout));
-    const output = truncateUtf8([stdout, stderr].filter(Boolean).join('\n'), maxOutputBytes);
+    const execution = await runExecution(
+        input.runtime,
+        input.executionRunner({
+            cwd: workspace,
+            env: reminderScriptEnvironment(home),
+            script: input.command.script,
+        })
+    );
     const result: ReminderScriptResult = {
         agentId: input.command.agentId,
         attentionId: input.command.attentionId,
-        exitCode: timedOut ? 124 : exitCode,
+        exitCode: execution.exitCode,
         fireId: input.command.fireId,
-        output,
-        timedOut,
+        output: execution.output,
+        timedOut: execution.timedOut,
         type: 'reminder-script-result',
     };
     const temporary = `${input.resultPath}.${process.pid}.tmp`;
     await writeFile(temporary, JSON.stringify(result), { mode: 0o600 });
     await rename(temporary, input.resultPath);
     return result;
+}
+
+async function runExecution(
+    runtime: EffectRuntime<never>,
+    execution: ReturnType<ReminderScriptExecutionRunner>
+) {
+    return await settle(runtime, execution);
 }
 
 function reminderScriptEnvironment(home: string): Record<string, string> {
@@ -142,30 +161,6 @@ async function readResult(path: string): Promise<ReminderScriptResult | null> {
     } catch {
         return null;
     }
-}
-
-async function readLimited(stream: ReadableStream<Uint8Array>, limit: number) {
-    let output = '';
-    for await (const chunk of stream) {
-        if (output.length < limit) {
-            output += new TextDecoder().decode(chunk).slice(0, limit - output.length);
-        }
-    }
-    return output;
-}
-
-function truncateUtf8(value: string, maxBytes: number): string {
-    let bytes = 0;
-    let result = '';
-    for (const character of value) {
-        const characterBytes = Buffer.byteLength(character);
-        if (bytes + characterBytes > maxBytes) {
-            break;
-        }
-        result += character;
-        bytes += characterBytes;
-    }
-    return result;
 }
 
 function isResult(value: unknown): value is ReminderScriptResult {

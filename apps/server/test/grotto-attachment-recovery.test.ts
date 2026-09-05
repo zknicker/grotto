@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { makeTestRuntime } from '@grotto/effect';
 import { type AttachmentRoot, openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { reconcileAttachments } from '../src/attachments/reconcile-attachments.ts';
 import { uploadAttachment } from '../src/attachments/upload-attachment.ts';
@@ -14,6 +15,7 @@ let root: AttachmentRoot;
 let member: GrottoUser;
 let serverId: string;
 let chatId: string;
+const runtime = makeTestRuntime();
 
 beforeAll(async () => {
     harness = await startGrottoServerHarness();
@@ -25,7 +27,7 @@ beforeAll(async () => {
     serverId = server.id;
     chatId = server.channels[0].id;
     connection = await connectGrottoDatabase(harness.databaseUrl);
-    root = await openAttachmentRoot(harness.attachmentRoot);
+    root = await openAttachmentRoot(harness.attachmentRoot, runtime);
     const found = await findUserByClerkId(connection.db, 'recovery_owner');
     if (!found) {
         throw new Error('Recovery test owner was not created.');
@@ -36,6 +38,7 @@ beforeAll(async () => {
 afterAll(async () => {
     client.close();
     await connection.close();
+    await runtime.dispose();
     await harness.close();
 });
 
@@ -57,11 +60,29 @@ test('a failure before the finalizing commit removes staging and records one fai
     expect((await root.listKeys(serverId)).stagingKeys).toEqual([]);
 });
 
+test('a failure before staged-file close still closes and removes the staged resource', async () => {
+    const attachmentId = await reserve('before-staged-close');
+
+    await expect(
+        upload(attachmentId, root, {
+            beforeStagedFileClose: () => {
+                throw new Error('close boundary failed');
+            },
+        })
+    ).rejects.toThrow(/close boundary failed/i);
+
+    expect(await state(attachmentId)).toEqual({
+        failure_code: 'storage',
+        state: 'failed',
+    });
+    expect((await root.listKeys(serverId)).stagingKeys).toEqual([]);
+});
+
 test('an interrupted request stream removes its partial staging file', async () => {
     const attachmentId = await reserve('interrupted-stream');
 
     await expect(
-        uploadAttachment(connection.db, root, {
+        uploadAttachment(connection.db, root, runtime, {
             attachmentId,
             declaredLength: null,
             member,
@@ -100,7 +121,7 @@ test('restart completes a committed finalizing row whose staging file is durable
 
 test('restart verifies an object renamed before directory fsync and finishes its row', async () => {
     const attachmentId = await reserve('after-rename');
-    const interruptedRoot = await openAttachmentRoot(harness.attachmentRoot, {
+    const interruptedRoot = await openAttachmentRoot(harness.attachmentRoot, runtime, {
         afterRename: () => {
             throw new Error('process stopped before directory fsync');
         },
@@ -117,7 +138,7 @@ test('restart verifies an object renamed before directory fsync and finishes its
 
 test('restart removes a matching staging leaf left beside its finalized object', async () => {
     const attachmentId = await reserve('rename-source-reappeared');
-    const interruptedRoot = await openAttachmentRoot(harness.attachmentRoot, {
+    const interruptedRoot = await openAttachmentRoot(harness.attachmentRoot, runtime, {
         afterRename: () => {
             throw new Error('process stopped during cross-directory fsync');
         },
@@ -207,7 +228,7 @@ async function upload(
     attachmentRoot: AttachmentRoot,
     failureInjection?: Parameters<typeof uploadAttachment>[2]['failureInjection']
 ) {
-    return await uploadAttachment(connection.db, attachmentRoot, {
+    return await uploadAttachment(connection.db, attachmentRoot, runtime, {
         attachmentId,
         declaredLength: null,
         failureInjection,

@@ -1,3 +1,4 @@
+import { parseTraceCarrier } from '@grotto/effect';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -28,7 +29,11 @@ export function registerAgentMcpRoutes(
         }
         try {
             return {
-                tools: await options.runtime.listAgentTools(runner.serverId, runner.agentId),
+                tools: await options.runtime.listAgentTools(
+                    runner.serverId,
+                    runner.agentId,
+                    readTraceContext(request.headers.traceparent)
+                ),
             };
         } catch (cause) {
             return sendAgentApiError(
@@ -53,6 +58,7 @@ export function registerAgentMcpRoutes(
                     args: parsed.data.args,
                     serverId: runner.serverId,
                     toolName: parsed.data.toolName,
+                    traceContext: readTraceContext(request.headers.traceparent),
                 }),
             };
         } catch (cause) {
@@ -75,4 +81,12 @@ export function registerAgentMcpRoutes(
             );
         }
     });
+}
+
+function readTraceContext(header: string | string[] | undefined) {
+    if (typeof header !== 'string') {
+        return undefined;
+    }
+    const carrier = { traceparent: header };
+    return parseTraceCarrier(carrier) ? carrier : undefined;
 }

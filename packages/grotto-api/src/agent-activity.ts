@@ -28,8 +28,44 @@ export const agentActivityCategorySchema = z.enum([
 
 export type AgentActivityCategory = z.infer<typeof agentActivityCategorySchema>;
 
-export const agentActivityPhaseSchema = z.enum(['started', 'completed', 'failed']);
+export const agentActivityPhaseSchema = z.enum(['started', 'completed', 'failed', 'interrupted']);
 export type AgentActivityPhase = z.infer<typeof agentActivityPhaseSchema>;
+
+export const agentTurnOperationCategorySchema = agentActivityCategorySchema.exclude([
+    'sending_message',
+    'starting_work',
+    'thinking',
+    'working',
+]);
+export type AgentTurnOperationCategory = z.infer<typeof agentTurnOperationCategorySchema>;
+
+export const agentTurnOperationCountSchema = z
+    .object({
+        category: agentTurnOperationCategorySchema,
+        completed: z.number().int().nonnegative().safe(),
+        failed: z.number().int().nonnegative().safe(),
+        interrupted: z.number().int().nonnegative().safe(),
+    })
+    .strict()
+    .refine((count) => count.completed + count.failed + count.interrupted > 0, {
+        message: 'An operation count must include at least one settled operation.',
+    });
+export type AgentTurnOperationCount = z.infer<typeof agentTurnOperationCountSchema>;
+
+/** Exact Computer-owned semantic operation totals for one settled turn. */
+export const agentTurnActivitySummarySchema = z
+    .object({
+        operations: z.array(agentTurnOperationCountSchema).max(8),
+    })
+    .strict()
+    .refine(
+        (summary) =>
+            new Set(summary.operations.map((operation) => operation.category)).size ===
+            summary.operations.length,
+        { message: 'Operation categories must be unique.' }
+    );
+
+export type AgentTurnActivitySummary = z.infer<typeof agentTurnActivitySummarySchema>;
 
 export const agentActivityProducerSchema = z.enum(['server', 'computer']);
 export type AgentActivityProducer = z.infer<typeof agentActivityProducerSchema>;

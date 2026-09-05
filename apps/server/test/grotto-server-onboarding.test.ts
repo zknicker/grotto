@@ -117,7 +117,6 @@ test('Computer reports advance durable onboarding only after usable inventory', 
         });
     }
 });
-
 test('incompatible and invalid Computer reports stay actionable', async () => {
     const created = await owner.trpc.server.create.mutate({
         displayName: 'Repair HQ',
@@ -167,7 +166,6 @@ test('incompatible and invalid Computer reports stay actionable', async () => {
     });
     repaired.close();
 });
-
 test('creates and applies one immutable Cove through a replayable Computer operation', async () => {
     const created = await owner.trpc.server.create.mutate({
         displayName: 'Cove HQ',
@@ -384,6 +382,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
             status: 'failed',
             summary: 'provider unavailable',
             tokenUsage: null,
+            activity: { operations: [] },
             type: 'turn',
         })
     );
@@ -439,6 +438,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
             status: 'completed',
             summary: 'greeted',
             tokenUsage: null,
+            activity: { operations: [] },
             type: 'turn',
         })
     );

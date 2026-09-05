@@ -12,9 +12,10 @@ import {
     agentRuntimeBrowserSettingsSchema,
     agentRuntimeSaveBrowserSettingsSchema,
 } from '@grotto/api';
+import type { EffectRuntime } from '@grotto/effect';
 import * as z from 'zod';
 import { detectChromeApplications } from './chrome-detection.ts';
-import { getBrowserService, startBrowserService, stopBrowserService } from './service.ts';
+import { getBrowserService, reconcileBrowserService } from './service.ts';
 
 const execFileAsync = promisify(execFile);
 const defaultBrowserProfileName = 'default';
@@ -53,39 +54,39 @@ export async function getComputerBrowserSettings(
 
 export async function saveComputerBrowserSettings(
     root: string,
-    input: AgentRuntimeSaveBrowserSettings
+    input: AgentRuntimeSaveBrowserSettings,
+    runtime: EffectRuntime<never>
 ): Promise<AgentRuntimeBrowserSettings> {
     const parsed = agentRuntimeSaveBrowserSettingsSchema.parse(input);
-    const current = await readBrowserConfig(root);
-    const next = {
-        enabled: parsed.enabled ?? current.enabled,
-        profileName: parsed.profileName ?? current.profileName,
-        updatedAt: new Date().toISOString(),
-    } satisfies BrowserConfig;
-    const service = getBrowserService();
-
-    if (service?.root === root && service.profileName !== next.profileName) {
-        await service.lifecycle.stop().catch(() => undefined);
-    }
-
-    await writeBrowserConfig(root, next);
-    await reconcileComputerBrowser(root);
+    await reconcileBrowserService(
+        root,
+        async () => {
+            const current = await readBrowserConfig(root);
+            const next = {
+                enabled: parsed.enabled ?? current.enabled,
+                profileName: parsed.profileName ?? current.profileName,
+                updatedAt: new Date().toISOString(),
+            } satisfies BrowserConfig;
+            await writeBrowserConfig(root, next);
+            return next;
+        },
+        runtime
+    );
     return await getComputerBrowserSettings(root);
 }
 
-export async function reconcileComputerBrowser(root: string): Promise<void> {
-    const config = await readBrowserConfig(root);
-    if (!config.enabled) {
-        if (getBrowserService()?.root === root) {
-            stopBrowserService();
-        }
-        return;
-    }
-    await startBrowserService({ profileName: config.profileName, root });
+export async function reconcileComputerBrowser(
+    root: string,
+    runtime: EffectRuntime<never>
+): Promise<void> {
+    await reconcileBrowserService(root, () => readBrowserConfig(root), runtime);
 }
 
-export async function openComputerBrowser(root: string): Promise<AgentRuntimeBrowserActionResult> {
-    const service = await requireBrowserService(root);
+export async function openComputerBrowser(
+    root: string,
+    runtime: EffectRuntime<never>
+): Promise<AgentRuntimeBrowserActionResult> {
+    const service = await requireBrowserService(root, runtime);
     await service.supervisor.startBrowser();
     await activateChrome();
     return agentRuntimeBrowserActionResultSchema.parse({
@@ -96,9 +97,10 @@ export async function openComputerBrowser(root: string): Promise<AgentRuntimeBro
 }
 
 export async function restartComputerBrowser(
-    root: string
+    root: string,
+    runtime: EffectRuntime<never>
 ): Promise<AgentRuntimeBrowserActionResult> {
-    const service = await requireBrowserService(root);
+    const service = await requireBrowserService(root, runtime);
     await service.supervisor.restartBrowser();
     return agentRuntimeBrowserActionResultSchema.parse({
         message: null,
@@ -107,8 +109,8 @@ export async function restartComputerBrowser(
     });
 }
 
-async function requireBrowserService(root: string) {
-    await reconcileComputerBrowser(root);
+async function requireBrowserService(root: string, runtime: EffectRuntime<never>) {
+    await reconcileComputerBrowser(root, runtime);
     const service = getBrowserService();
     if (service?.root !== root) {
         throw new Error('Browser is unavailable on this Computer.');

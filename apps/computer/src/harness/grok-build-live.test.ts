@@ -1,13 +1,17 @@
-import { expect, test } from 'bun:test';
+import { afterAll, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
+import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 
 const grokPreflight = await checkLocalGrok();
 const liveTest = grokPreflight.available ? test : test.skip;
+const runtime = makeDaemonRuntime();
+
+afterAll(() => runtime.dispose());
 
 liveTest(
     `installed Grok accepts a live interjection during an active turn${
@@ -31,6 +35,7 @@ liveTest(
                 },
                 homeDir,
                 rootDir,
+                runtime,
             }),
             sandboxConfig: { workDir: 'workspace' },
         });

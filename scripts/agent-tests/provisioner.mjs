@@ -66,8 +66,14 @@ export async function provisionAgents(harness, requests, { onCreated, onPhase } 
 export async function retireAgents(harness, agents, { timeoutMs = retireTimeoutMs } = {}) {
     const failures = [];
     const retired = [];
+    const listed = await harness.trpc('agent.list', { serverId: harness.serverId });
+    const existingIds = new Set(listed.map((agent) => agent.id));
     await Promise.all(
         (agents ?? []).map(async (agent) => {
+            if (!existingIds.has(agent.id)) {
+                retired.push(agent.id);
+                return;
+            }
             try {
                 await withTimeout(
                     harness.trpc('agent.delete', {
@@ -146,8 +152,12 @@ async function provisionAgent(harness, request, position, { onCreated, onPhase }
         });
         const agentId = created.agent.id;
         await onCreated?.({ displayName, handle, id: agentId });
+        const dm = await harness.trpc('chat.ensureAgentDm', {
+            agentId,
+            serverId: harness.serverId,
+        });
         const agent = await waitForReady(harness, agentId, { handle, onPhase });
-        return { ...agent, kind: request.kind };
+        return { ...agent, dmChatId: dm.id, kind: request.kind };
     } finally {
         gate.release();
     }

@@ -11,61 +11,73 @@ const activityCopy: Record<AgentActivityCategory, ActivityCopy> = {
     browsing: {
         completed: 'Browsed',
         failed: 'Failed while browsing',
+        interrupted: 'Browsing was interrupted',
         started: 'Browsing…',
     },
     checking_messages: {
         completed: 'Checked messages',
         failed: 'Failed to check messages',
+        interrupted: 'Message check was interrupted',
         started: 'Checking messages…',
     },
     editing_files: {
         completed: 'Edited files',
         failed: 'Failed to edit files',
+        interrupted: 'File editing was interrupted',
         started: 'Editing files…',
     },
     reading_files: {
         completed: 'Read files',
         failed: 'Failed to read files',
+        interrupted: 'File reading was interrupted',
         started: 'Reading files…',
     },
     running_command: {
         completed: 'Ran a command',
         failed: 'Failed to run a command',
+        interrupted: 'Command was interrupted',
         started: 'Running a command…',
     },
     searching_web: {
         completed: 'Searched the web',
         failed: 'Failed to search the web',
+        interrupted: 'Web search was interrupted',
         started: 'Searching the web…',
     },
     sending_message: {
         completed: 'Sent a message',
         failed: 'Failed to send a message',
+        interrupted: 'Message send was interrupted',
         started: 'Sending a message…',
     },
     starting_work: {
         completed: 'Started work',
         failed: 'Failed to start work',
+        interrupted: 'Starting work was interrupted',
         started: 'Starting work…',
     },
     thinking: {
         completed: 'Thought',
         failed: 'Failed while thinking',
+        interrupted: 'Thinking was interrupted',
         started: 'Thinking…',
     },
     updating_instructions: {
         completed: 'Updated instructions',
         failed: 'Failed to update instructions',
+        interrupted: 'Instruction update was interrupted',
         started: 'Updating instructions…',
     },
     using_tool: {
         completed: 'Used a tool',
         failed: 'Failed while using a tool',
+        interrupted: 'Tool use was interrupted',
         started: 'Using a tool…',
     },
     working: {
         completed: 'Worked',
         failed: 'Failed while working',
+        interrupted: 'Work was interrupted',
         started: 'Working…',
     },
 };
@@ -81,6 +93,7 @@ export function formatAgentActivityEvent(event: AgentActivityEvent): string {
     const toolCopy = {
         completed: `Used ${event.toolRef}`,
         failed: `Failed while using ${event.toolRef}`,
+        interrupted: `${event.toolRef} was interrupted`,
         started: `Using ${event.toolRef}…`,
     } satisfies ActivityCopy;
 
@@ -97,7 +110,7 @@ export function getAgentActivityColor(phase: AgentActivityPhase): ActivityColor 
     if (phase === 'failed') {
         return 'danger';
     }
-    if (phase === 'started') {
+    if (phase === 'started' || phase === 'interrupted') {
         return 'warning';
     }
     return 'success';
@@ -109,6 +122,9 @@ export function getAgentActivityPhaseLabel(phase: AgentActivityPhase) {
     }
     if (phase === 'started') {
         return 'Active';
+    }
+    if (phase === 'interrupted') {
+        return 'Interrupted';
     }
     return 'Completed';
 }

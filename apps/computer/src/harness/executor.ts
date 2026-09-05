@@ -15,7 +15,10 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
 import { inspectCoveFactoryGuidance, reconcileCoveFactoryGuidance } from '@grotto/agent-workspace';
 import { type AgentReasoningEffort, grottoAgentVersion } from '@grotto/api';
 import { type ClaudeUsageSnapshot, normalizeClaudeUsageResponse } from '@grotto/claude-usage';
-import type { ComputerAgentActivityUpdate } from '../agent-activity.ts';
+import { settle } from '@grotto/effect';
+import { Cause, Data, Effect, Exit, Stream } from 'effect';
+import type { AgentActivityRun } from '../agent-activity-run.ts';
+import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
 import type { AgentInboxItem } from '../launch.ts';
@@ -24,8 +27,8 @@ import {
     saveClaudePlanUsageSnapshot,
 } from '../usage/claude-plan-usage-state.ts';
 import {
-    createComputerActivityProjector,
-    createComputerActivityRegistry,
+    type createComputerActivityProjector,
+    createHarnessActivityProjector,
 } from './activity-projector.ts';
 import { fingerprintHarnessBootstrap, refreshHarnessBootstrap } from './bootstrap-refresh.ts';
 import { bridgeStoreDirForHost, withComputerBridgeBootstrap } from './bridge-bootstrap.ts';
@@ -39,59 +42,47 @@ import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 import { clearSessionRestartRequest, isSessionRestartRequested } from './session-restart.ts';
 import {
     type AgentSessionState,
-    type AgentSessionTokenUsage,
     readAgentSessionState,
     resolveTurnSession,
     writeAgentSessionState,
 } from './session-store.ts';
 import { readAgentSkills } from './skills.ts';
+import {
+    addTokenUsage,
+    type HarnessTokenUsage,
+    normalizeRuntimeUsage,
+    readTokenUsage,
+    usageContextTokens,
+} from './token-usage.ts';
 
-/**
- * A ported copy of Runtime's `harness-agent-executor.ts`, adapted to the
- * Computer's launch boundary. It drives the real `@ai-sdk/harness` Codex, Claude
- * Code, Grok Build, and Pi adapters for one Agent turn: an isolated
- * workspace/HOME/skills, native host provider login (the sandbox seeds the machine's own session), the
- * managed `grotto` wrapper as the sole output channel, the ported Grotto
- * operating/system prompt (`instructions.ts`) composed per turn and delivered
- * once on cold start, and the Agent's one global persistent session resumed
- * across turns. Runtime-owned boundaries not available here — credential
- * injection (native host login replaces it), telemetry, and composition
- * publishing — are dropped or replaced.
- */
+/** Drives one isolated, persistent Codex, Claude Code, Grok Build, or Pi Agent session. */
 export interface HarnessTurnInput {
+    activity: AgentActivityRun;
     agentId: string;
-    /** The Agent handle: `@agentName` and the identity/mention sections. */
     agentName: string;
-    /** The Agent's local partition root: `<serverId>/agents/<agentId>`. */
     agentRoot: string;
     dataRoot: string;
-    /** Sandbox env: `grotto` on PATH, proxy/MCP identity, HOME. */
     env: Record<string, string>;
     factoryKind: 'cove' | 'ordinary';
     /** Per-turn construction seam for boundary tests; production uses the default Harness Agent. */
     harnessAgentFactory?: HarnessAgentFactory;
     homeDir: string;
-    /** Home timezone for the Current Runtime Context section. */
     homeTimezone: string;
-    /** Structured Server-owned inbox rows. Computer owns their model projection. */
     inbox: AgentInboxItem[];
     inboxDelivery: 'concrete' | 'notice';
-    /** The Agent's description — the personality surface (ruling W2). */
     initialRole: string | null;
     modelId: string;
-    onActivity?: (activity: ComputerAgentActivityUpdate) => void;
     onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
     reasoningEffort: AgentReasoningEffort;
     registerNoticeSink?: NoticeSinkRegistrar;
     runId: string;
+    runtime: DaemonRuntime;
     runtimeId: string;
     sessionGeneration: number;
     signal?: AbortSignal;
     skillsDir: string;
-    /** Runtime's grant-filtered MCP tools, now composed by Computer. */
     tools: ToolSet;
     totalPending: number;
-    /** Resolved web-access variant, or null when off. */
     webAccess: 'fetch-only' | 'search' | 'search-only' | null;
     workspaceDir: string;
 }
@@ -105,7 +96,7 @@ export interface HarnessTurnResult {
     tokenUsage: HarnessTokenUsage | null;
 }
 
-export type HarnessTokenUsage = AgentSessionTokenUsage;
+export type { HarnessTokenUsage } from './token-usage.ts';
 
 /** Resume was rejected; the caller rotates the generation and cold-starts once. */
 export class AgentSessionResumeRejectedError extends Error {
@@ -132,29 +123,56 @@ export class HarnessTurnFailedError extends Error {
     }
 }
 
+class HarnessStreamForeignError extends Data.TaggedError('HarnessStreamForeignError')<{
+    readonly cause: unknown;
+}> {}
+
+function journalOutcome(
+    exit: Exit.Exit<HarnessTurnResult, HarnessStreamForeignError>,
+    signal?: AbortSignal
+): 'completed' | 'failed' | 'interrupted' {
+    if (Exit.isSuccess(exit)) {
+        return exit.value.aborted ? 'interrupted' : 'completed';
+    }
+    return signal?.aborted || Cause.isInterruptedOnly(exit.cause) ? 'interrupted' : 'failed';
+}
+
+function journalError(exit: Exit.Exit<HarnessTurnResult, HarnessStreamForeignError>) {
+    return Exit.isFailure(exit) ? Cause.pretty(exit.cause) : undefined;
+}
+
 export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTurnResult> {
     const journal = await createComputerExecutionJournal({
         agentRoot: input.agentRoot,
         runId: input.runId,
     });
-    try {
-        const stored = await readAgentSessionState(input.agentRoot);
-        const session = resolveTurnSession(stored, {
-            generation: input.sessionGeneration,
-            modelId: input.modelId,
-            runtimeId: input.runtimeId,
-        });
-        const restartRequested = await isSessionRestartRequested(input.agentRoot);
-        const result = await executeHarnessTurn(input, session, restartRequested, journal);
-        if (restartRequested && !result.aborted) {
-            await clearSessionRestartRequest(input.agentRoot);
-        }
-        await journal.finish(result.aborted ? 'interrupted' : 'completed');
-        return result;
-    } catch (error) {
-        await journal.finish(input.signal?.aborted ? 'interrupted' : 'failed', error);
-        throw error;
-    }
+    const operation = Effect.tryPromise({
+        catch: (cause) => new HarnessStreamForeignError({ cause }),
+        try: async () => {
+            const stored = await readAgentSessionState(input.agentRoot);
+            const session = resolveTurnSession(stored, {
+                generation: input.sessionGeneration,
+                modelId: input.modelId,
+                runtimeId: input.runtimeId,
+            });
+            const restartRequested = await isSessionRestartRequested(input.agentRoot);
+            const result = await executeHarnessTurn(input, session, restartRequested, journal);
+            if (restartRequested && !result.aborted) {
+                await clearSessionRestartRequest(input.agentRoot);
+            }
+            return result;
+        },
+    }).pipe(
+        Effect.onExit((exit) =>
+            Effect.tryPromise({
+                catch: (cause) => new HarnessStreamForeignError({ cause }),
+                try: () => journal.finish(journalOutcome(exit, input.signal), journalError(exit)),
+            }).pipe(Effect.orDie)
+        )
+    );
+    return settle(input.runtime, operation, {
+        mapFailure: (failure) => failure.cause,
+    });
 }
 
 async function executeHarnessTurn(
@@ -164,9 +182,7 @@ async function executeHarnessTurn(
     journal: ComputerExecutionJournal
 ): Promise<HarnessTurnResult> {
     const skills = await readAgentSkills(input.skillsDir);
-    // The Computer composes the managed Grotto operating contract itself. A
-    // changed fingerprint restarts the adapter boundary before this turn while
-    // preserving the native conversation.
+    // A changed managed-instruction fingerprint restarts the adapter, preserving conversation.
     const { fingerprint: instructionFingerprint, instructions } = composeAgentInstructions({
         agentId: input.agentId,
         agentName: input.agentName,
@@ -200,7 +216,7 @@ async function executeHarnessTurn(
         skills,
     });
     let live: HarnessAgentSession | undefined;
-    let instructionUpdate: 'completed' | 'none' | 'started' = 'none';
+    const instructionActivityKey = 'instructions';
     const grottoAgentVersionDrift = session.grottoAgentVersion !== grottoAgentVersion;
     let grottoAgentVersionCanApply = true;
     try {
@@ -213,24 +229,27 @@ async function executeHarnessTurn(
             input.factoryKind === 'cove' && (await hasPendingCoveGuidanceRefresh(input.agentRoot));
         let factoryGuidanceRefreshCanComplete = factoryGuidanceRefreshPending;
         if (factoryGuidanceRefreshPending) {
-            input.onActivity?.({ category: 'updating_instructions', phase: 'started' });
-            instructionUpdate = 'started';
+            await input.activity.start({
+                category: 'updating_instructions',
+                key: instructionActivityKey,
+            });
             factoryGuidanceNotice = coveGuidanceRefreshNotice;
         }
         if (input.factoryKind === 'cove') {
             const plan = await inspectCoveFactoryGuidance(input.workspaceDir);
             if (plan.kind !== 'current') {
-                if (instructionUpdate === 'none') {
-                    input.onActivity?.({ category: 'updating_instructions', phase: 'started' });
+                if (!input.activity.isActive(instructionActivityKey)) {
+                    await input.activity.start({
+                        category: 'updating_instructions',
+                        key: instructionActivityKey,
+                    });
                 }
                 if (plan.kind === 'conflict') {
-                    input.onActivity?.({ category: 'updating_instructions', phase: 'failed' });
-                    instructionUpdate = 'none';
+                    await input.activity.finish(instructionActivityKey, 'failed');
                     grottoAgentVersionCanApply = false;
                     factoryGuidanceRefreshCanComplete = false;
                     factoryGuidanceNotice = coveGuidanceConflictNotice(plan.files);
                 } else {
-                    instructionUpdate = 'started';
                     await markCoveGuidanceRefreshPending(input.agentRoot);
                     factoryGuidanceRefreshPending = true;
                     factoryGuidanceRefreshCanComplete = true;
@@ -238,8 +257,7 @@ async function executeHarnessTurn(
                     if (result.kind !== 'conflict') {
                         factoryGuidanceNotice = coveGuidanceRefreshNotice;
                     } else {
-                        input.onActivity?.({ category: 'updating_instructions', phase: 'failed' });
-                        instructionUpdate = 'none';
+                        await input.activity.finish(instructionActivityKey, 'failed');
                         grottoAgentVersionCanApply = false;
                         factoryGuidanceRefreshCanComplete = false;
                         factoryGuidanceNotice = coveGuidanceConflictNotice(
@@ -249,11 +267,7 @@ async function executeHarnessTurn(
                 }
             }
         }
-        // Unlike Runtime's DB-issued session ids, Computer derives its cold id
-        // from the durable generation. A failed/interrupted cold start can leave
-        // an unresumable harness run directory behind; remove only that exact
-        // cold directory so the next attempt installs the current bridge and
-        // starts clean. Successful sessions persist resume state and skip this.
+        // Remove only an unresumable cold generation; successful sessions retain resume state.
         if (!(resumeFrom || session.runtimeSessionId)) {
             await rm(join(input.agentRoot, '.agent-runs', sessionId), {
                 force: true,
@@ -269,10 +283,12 @@ async function executeHarnessTurn(
                 instructionDrift ||
                 bootstrapDrift ||
                 (grottoAgentVersionDrift && grottoAgentVersionCanApply)) &&
-            instructionUpdate === 'none'
+            !input.activity.isActive(instructionActivityKey)
         ) {
-            input.onActivity?.({ category: 'updating_instructions', phase: 'started' });
-            instructionUpdate = 'started';
+            await input.activity.start({
+                category: 'updating_instructions',
+                key: instructionActivityKey,
+            });
         }
         if (resumeFrom && refreshBootstrap) {
             let parked: HarnessAgentSession;
@@ -285,9 +301,7 @@ async function executeHarnessTurn(
             } catch (error) {
                 throw new AgentSessionResumeRejectedError(input.agentId, { cause: error });
             }
-            // Only creation rejection proves the native resume state is bad.
-            // Parking or bootstrap I/O failures leave this generation intact so
-            // a later delivery can retry the idempotent refresh.
+            // Only creation rejection invalidates native resume state.
             const parkedState = await parked.stop();
             await harnessBootstrapRefresh({
                 abortSignal: input.signal,
@@ -298,24 +312,33 @@ async function executeHarnessTurn(
             });
             effectiveResumeFrom = parkedState;
         }
-        // Wedge attribution: a turn stuck before its first stream event is
-        // invisible to the stream watchdog, so the startup path logs its own
-        // phases with timings.
+        // Startup phases cover wedges before the stream watchdog can observe an event.
         const phaseStartedAt = Date.now();
         const phase = (label: string) =>
-            console.error(
-                `[turn-phase] ${input.runtimeId} agent=${input.agentId} ${label} (${Math.round((Date.now() - phaseStartedAt) / 1000)}s)`
+            settle(
+                input.runtime,
+                Effect.logInfo('Harness turn reached a lifecycle phase.').pipe(
+                    Effect.annotateLogs({
+                        agentId: input.agentId,
+                        elapsedSeconds: Math.round((Date.now() - phaseStartedAt) / 1000),
+                        event: 'harness-turn-phase',
+                        phase: label,
+                        runtimeId: input.runtimeId,
+                    })
+                )
             );
         try {
-            phase(effectiveResumeFrom ? 'creating session (resume)' : 'creating session (cold)');
+            await phase(
+                effectiveResumeFrom ? 'creating session (resume)' : 'creating session (cold)'
+            );
             live = await agent.createSession({
                 abortSignal: input.signal,
                 resumeFrom: effectiveResumeFrom,
                 sessionId,
             });
-            phase('session ready');
+            await phase('session ready');
         } catch (error) {
-            phase('session creation failed');
+            await phase('session creation failed');
             if (!resumeFrom) {
                 throw error;
             }
@@ -372,34 +395,40 @@ async function executeHarnessTurn(
             () => storedNoticeReady.resolve()
         );
         let observation: HarnessTurnResult;
-        const activityRegistry = createComputerActivityRegistry();
-        activityRegistry.registerGrottoHostTool({
-            category: 'browsing',
-            name: 'browser',
-            toolRef: 'browser',
-        });
-        activityRegistry.registerGrottoHostTool({
-            category: 'browsing',
-            name: 'web_fetch',
-            toolRef: 'web-fetch',
-        });
-        const projector = createComputerActivityProjector({
+        const projector = createHarnessActivityProjector({
+            activity: input.activity,
             journal,
-            onActivity: input.onActivity,
-            registry: activityRegistry,
             runtimeId: input.runtimeId,
         });
-        input.onActivity?.({ category: 'thinking', phase: 'started' });
         try {
-            await storedNoticeReady.promise;
-            observation = await observeTurnStream(
-                turn.fullStream,
-                noticeCoordinator.flush,
-                projector,
-                {
-                    onFirstPart: () => phase('first stream event'),
-                    stallLabel: `${input.runtimeId} agent=${input.agentId}`,
-                }
+            observation = await settle(
+                input.runtime,
+                input.activity.around(
+                    Effect.tryPromise({
+                        catch: (cause) => new HarnessStreamForeignError({ cause }),
+                        try: async () => {
+                            await storedNoticeReady.promise;
+                            return await observeTurnStream(
+                                turn.fullStream,
+                                noticeCoordinator.flush,
+                                projector,
+                                {
+                                    onFirstPart: () => phase('first stream event'),
+                                    runtime: input.runtime,
+                                    signal: input.signal,
+                                    stallLabel: `${input.runtimeId} agent=${input.agentId}`,
+                                }
+                            );
+                        },
+                    }),
+                    {
+                        category: 'thinking',
+                        key: 'thinking',
+                        outcomeFromResult: (result) =>
+                            result.aborted ? 'interrupted' : 'completed',
+                    }
+                ),
+                { mapFailure: (failure) => failure.cause }
             );
             if (observation.claudePlanUsage) {
                 await saveClaudePlanUsageSnapshot(
@@ -407,22 +436,15 @@ async function executeHarnessTurn(
                     observation.claudePlanUsage
                 ).catch(() => undefined);
             }
-            input.onActivity?.({
-                category: 'thinking',
-                phase: observation.aborted ? 'failed' : 'completed',
-            });
         } catch (error) {
             await projector.finish(input.signal?.aborted ? 'interrupted' : 'failed', error);
-            input.onActivity?.({ category: 'thinking', phase: 'failed' });
             throw error;
         } finally {
             unregisterNoticeSink?.();
             noticeCoordinator.close();
             await storedNoticeDelivery;
         }
-        // Detach parks the Harness session while leaving its underlying runtime
-        // process alive. The next delivery reattaches to this same per-Agent
-        // daemon instead of cold-spawning a new runtime.
+        // Detach parks the runtime so the next delivery reattaches to this Agent daemon.
         const resumeState = await live.detach();
         const normalizedUsage = normalizeRuntimeUsage(
             input.runtimeId,
@@ -437,10 +459,7 @@ async function executeHarnessTurn(
                 resumeState: resumeState as Record<string, unknown>,
                 runtimeSessionId: live.sessionId,
             });
-            if (instructionUpdate === 'started') {
-                instructionUpdate = 'none';
-                input.onActivity?.({ category: 'updating_instructions', phase: 'failed' });
-            }
+            await input.activity.finish(instructionActivityKey, 'interrupted');
             return { ...observation, tokenUsage: normalizedUsage.turn };
         }
         const appliesGrottoAgentVersion = !grottoAgentVersionDrift || grottoAgentVersionCanApply;
@@ -464,15 +483,13 @@ async function executeHarnessTurn(
         if (factoryGuidanceRefreshPending && factoryGuidanceRefreshCanComplete) {
             await clearPendingCoveGuidanceRefresh(input.agentRoot);
         }
-        if (instructionUpdate === 'started') {
-            instructionUpdate = 'completed';
-            input.onActivity?.({ category: 'updating_instructions', phase: 'completed' });
-        }
+        await input.activity.finish(instructionActivityKey, 'completed');
         return { ...observation, tokenUsage: normalizedUsage.turn };
     } catch (error) {
-        if (instructionUpdate === 'started') {
-            input.onActivity?.({ category: 'updating_instructions', phase: 'failed' });
-        }
+        await input.activity.finish(
+            instructionActivityKey,
+            input.signal?.aborted ? 'interrupted' : 'failed'
+        );
         if (grottoAgentVersionDrift) {
             await writeAgentSessionState(input.agentRoot, {
                 ...session,
@@ -653,21 +670,24 @@ function pendingNoticePath(agentRoot: string) {
     return join(agentRoot, 'runtime', 'pending-notice.json');
 }
 
-/**
- * Watches the turn's stream for its context-size fact and terminal state. With
- * CLI-only output the stream is execution evidence, not chat content — the
- * durable reply left through `grotto message send`. A simplified port of
- * Runtime's `harness-stream-observer.ts` with the composition wiring dropped.
- */
+/** Observes execution evidence and terminal state; durable replies leave through the CLI. */
 async function observeTurnStream(
     stream: AsyncIterable<unknown>,
-    onToolBoundary?: () => Promise<void>,
-    projector?: ReturnType<typeof createComputerActivityProjector>,
+    onToolBoundary: (() => Promise<void>) | undefined,
+    projector: ReturnType<typeof createComputerActivityProjector> | undefined,
     {
         onFirstPart,
+        runtime,
+        signal,
         stallLabel,
         stallAfterMs = 120_000,
-    }: { onFirstPart?: () => void; stallAfterMs?: number; stallLabel?: string } = {}
+    }: {
+        onFirstPart?: () => void | Promise<void>;
+        runtime: DaemonRuntime;
+        signal?: AbortSignal;
+        stallAfterMs?: number;
+        stallLabel?: string;
+    }
 ): Promise<HarnessTurnResult> {
     let contextTokens: number | null = null;
     let finalTokenUsage: HarnessTokenUsage | null = null;
@@ -675,95 +695,135 @@ async function observeTurnStream(
     let stepTokenUsage: HarnessTokenUsage | null = null;
     let streamError: unknown;
     let aborted = false;
-    // Wedge telemetry: long silences separate provider latency (events flowed,
-    // then stopped after a known part) from a hung bridge (nothing ever came).
+    // Last-part timing distinguishes provider silence from a bridge that never emitted.
     let lastPartAt = Date.now();
     let lastPartType = 'none yet';
     let partCount = 0;
-    const stallTimer = stallLabel
-        ? setInterval(() => {
-              const silentForMs = Date.now() - lastPartAt;
-              if (silentForMs >= stallAfterMs) {
-                  console.error(
-                      `[harness-stall] ${stallLabel}: no stream events for ${Math.round(silentForMs / 1000)}s (${partCount} events so far, last: ${lastPartType})`
-                  );
-              }
-          }, 60_000)
-        : null;
-    stallTimer?.unref?.();
-    try {
-        for await (const part of stream) {
-            if (!isRecord(part) || typeof part.type !== 'string') {
-                continue;
-            }
-            lastPartAt = Date.now();
-            lastPartType = part.type;
-            partCount += 1;
-            if (partCount === 1) {
-                onFirstPart?.();
-            }
-            switch (part.type) {
-                case 'tool-call':
-                    await projector?.observe(part);
-                    break;
-                case 'tool-result':
-                    await projector?.observe(part);
-                    if (part.preliminary !== true) {
-                        await onToolBoundary?.();
+    const consume = Stream.fromAsyncIterable(
+        stream,
+        (cause) => new HarnessStreamForeignError({ cause })
+    ).pipe(
+        Stream.runForEach((part) =>
+            Effect.tryPromise({
+                catch: (cause) => new HarnessStreamForeignError({ cause }),
+                try: async () => {
+                    if (!isRecord(part) || typeof part.type !== 'string') {
+                        return;
                     }
-                    break;
-                case 'file-change':
-                    await projector?.observe(part);
-                    break;
-                case 'finish-step':
-                    contextTokens = usageContextTokens(part.usage) ?? contextTokens;
-                    stepTokenUsage = addTokenUsage(stepTokenUsage, readTokenUsage(part.usage));
-                    break;
-                case 'finish':
-                    contextTokens = usageContextTokens(part.totalUsage) ?? contextTokens;
-                    finalTokenUsage = readTokenUsage(part.totalUsage);
-                    claudePlanUsage = readClaudePlanUsageMetadata(part.providerMetadata);
-                    break;
-                case 'error':
-                    streamError ??=
-                        (part as { error?: unknown }).error ?? new Error('Harness stream failed.');
-                    break;
-                case 'abort':
-                    aborted = true;
-                    break;
-                default:
-                    break;
+                    lastPartAt = Date.now();
+                    lastPartType = part.type;
+                    partCount += 1;
+                    if (partCount === 1) {
+                        await onFirstPart?.();
+                    }
+                    switch (part.type) {
+                        case 'tool-call':
+                        case 'file-change':
+                            await projector?.observe(part);
+                            return;
+                        case 'tool-result':
+                            await projector?.observe(part);
+                            if (part.preliminary !== true) {
+                                await onToolBoundary?.();
+                            }
+                            return;
+                        case 'finish-step':
+                            contextTokens = usageContextTokens(part.usage) ?? contextTokens;
+                            stepTokenUsage = addTokenUsage(
+                                stepTokenUsage,
+                                readTokenUsage(part.usage)
+                            );
+                            return;
+                        case 'finish':
+                            contextTokens = usageContextTokens(part.totalUsage) ?? contextTokens;
+                            finalTokenUsage = readTokenUsage(part.totalUsage);
+                            claudePlanUsage = readClaudePlanUsageMetadata(part.providerMetadata);
+                            return;
+                        case 'error':
+                            streamError ??= part.error ?? new Error('Harness stream failed.');
+                            return;
+                        case 'abort':
+                            aborted = true;
+                            return;
+                        default:
+                            return;
+                    }
+                },
+            })
+        ),
+        Effect.catchAll((failure) =>
+            Effect.sync(() => {
+                streamError ??= failure.cause;
+            })
+        )
+    );
+    const watchdog = Effect.sleep('60 seconds').pipe(
+        Effect.andThen(
+            Effect.sync(() => Date.now() - lastPartAt).pipe(
+                Effect.flatMap((silentForMs) =>
+                    stallLabel && silentForMs >= stallAfterMs
+                        ? Effect.logWarning('Harness turn stream stalled.').pipe(
+                              Effect.annotateLogs({
+                                  event: 'harness-turn-stream-stalled',
+                                  eventCount: partCount,
+                                  lastEventType: lastPartType,
+                                  silentSeconds: Math.round(silentForMs / 1000),
+                                  stallLabel,
+                              })
+                          )
+                        : Effect.void
+                )
+            )
+        ),
+        Effect.forever
+    );
+    const program = Effect.scoped(
+        Effect.gen(function* () {
+            if (stallLabel) {
+                yield* Effect.forkScoped(watchdog);
             }
-        }
-    } catch (error) {
-        streamError ??= error;
-    } finally {
-        if (stallTimer) {
-            clearInterval(stallTimer);
-        }
-    }
-    if (aborted) {
-        await projector?.finish('interrupted', streamError);
-        return {
+            yield* consume;
+            const tokenUsage = finalTokenUsage ?? stepTokenUsage;
+            if (aborted) {
+                yield* finishProjector(projector, 'interrupted', streamError);
+                return { aborted: true, claudePlanUsage, contextTokens, tokenUsage };
+            }
+            if (streamError) {
+                yield* finishProjector(projector, 'failed', streamError);
+                return yield* Effect.fail(
+                    new HarnessTurnFailedError(tokenUsage, { cause: streamError })
+                );
+            }
+            yield* finishProjector(projector, 'completed');
+            return { aborted: false, claudePlanUsage, contextTokens, tokenUsage };
+        })
+    ).pipe(
+        Effect.onInterrupt(() =>
+            finishProjector(projector, 'interrupted', streamError).pipe(Effect.ignore)
+        )
+    );
+    return await settle(runtime, program, {
+        mapFailure: (failure) =>
+            failure instanceof HarnessStreamForeignError ? failure.cause : failure,
+        onInterrupted: () => ({
             aborted: true,
             claudePlanUsage,
             contextTokens,
             tokenUsage: finalTokenUsage ?? stepTokenUsage,
-        };
-    }
-    if (streamError) {
-        await projector?.finish('failed', streamError);
-        throw new HarnessTurnFailedError(finalTokenUsage ?? stepTokenUsage, {
-            cause: streamError,
-        });
-    }
-    await projector?.finish('completed');
-    return {
-        aborted: false,
-        claudePlanUsage,
-        contextTokens,
-        tokenUsage: finalTokenUsage ?? stepTokenUsage,
-    };
+        }),
+        signal,
+    });
+}
+
+function finishProjector(
+    projector: ReturnType<typeof createComputerActivityProjector> | undefined,
+    phase: 'completed' | 'failed' | 'interrupted',
+    error?: unknown
+) {
+    return Effect.tryPromise({
+        catch: (cause) => new HarnessStreamForeignError({ cause }),
+        try: () => projector?.finish(phase, error) ?? Promise.resolve(),
+    });
 }
 
 function readClaudePlanUsageMetadata(value: unknown): ClaudeUsageSnapshot | null {
@@ -789,8 +849,7 @@ function readClaudePlanUsageMetadata(value: unknown): ClaudeUsageSnapshot | null
     }
 }
 
-// The construction seam. Tests inject a fake harness Agent to exercise the
-// executor and CLI-reply path without a real model.
+// Tests inject a fake Agent at this construction seam.
 export type HarnessAgentFactory = (
     input: HarnessTurnInput,
     options: { harness: HarnessV1<ToolSet>; instructions: string; skills: HarnessAgentSkill[] }
@@ -834,9 +893,7 @@ function createHarnessAgent(
         instructions: options.instructions,
         permissionMode: 'allow-all',
         sandbox: createLocalTrustedSandboxProvider(sandboxOptions(input)),
-        // The session's work directory IS the workspace: the sandbox anchors at
-        // the workspace parent and workDir names the workspace folder, so Agent
-        // files stay visible to workspace browsing (Runtime parity).
+        // Anchor at the parent so the workDir remains visible to workspace browsing.
         sandboxConfig: { workDir: basename(input.workspaceDir) },
         skills: options.skills,
         tools: input.tools,
@@ -856,6 +913,7 @@ function sandboxOptions(input: HarnessTurnInput) {
             },
             homeDir: input.homeDir,
             rootDir,
+            runtime: input.runtime,
         };
     }
     if (input.runtimeId !== 'codex') {
@@ -864,10 +922,10 @@ function sandboxOptions(input: HarnessTurnInput) {
             env: { ...input.env, HOME: input.homeDir },
             homeDir: input.homeDir,
             rootDir,
+            runtime: input.runtime,
         };
     }
-    // Codex reads auth + sessions from CODEX_HOME; keep it inside the isolated
-    // HOME so the host's native login is reused without leaking cross-Agent.
+    // Isolated CODEX_HOME reuses host login without leaking cross-Agent sessions.
     return {
         authProfiles: ['codex'] as const,
         env: {
@@ -877,6 +935,7 @@ function sandboxOptions(input: HarnessTurnInput) {
         },
         homeDir: input.homeDir,
         rootDir,
+        runtime: input.runtime,
     };
 }
 
@@ -892,17 +951,7 @@ function authProfileFor(runtimeId: string) {
     return null;
 }
 
-/**
- * Selects and configures the `@ai-sdk/harness` adapter by the Computer's own
- * runtime inventory ids, so what inventory advertises and what the Computer runs
- * never diverge. Provider authentication is the host's native login (seeded into
- * the sandbox HOME), so no credential is injected here.
- */
-/**
- * One machine-wide content-addressed pnpm store, shared by development and
- * production Computers. Agent state stays isolated; only immutable package
- * artifacts cross those boundaries.
- */
+/** Machine-wide immutable package store; Agent state remains isolated. */
 function bridgeStoreDir() {
     return bridgeStoreDirForHost();
 }
@@ -947,105 +996,6 @@ function createHarnessForRuntime(
         default:
             throw new Error(`Unsupported runtime "${runtimeId}".`);
     }
-}
-
-function usageContextTokens(usage: unknown): number | null {
-    if (!isRecord(usage)) {
-        return null;
-    }
-    const inputTotal = tokenCount(usage.inputTokens);
-    const outputTotal = tokenCount(usage.outputTokens);
-    if (inputTotal === null && outputTotal === null) {
-        return null;
-    }
-    return (inputTotal ?? 0) + (outputTotal ?? 0);
-}
-
-function readTokenUsage(usage: unknown): HarnessTokenUsage | null {
-    if (!isRecord(usage)) {
-        return null;
-    }
-    const inputDetails = isRecord(usage.inputTokenDetails) ? usage.inputTokenDetails : null;
-    const inputTokens = tokenCount(usage.inputTokens);
-    const outputTokens = tokenCount(usage.outputTokens);
-    const cacheReadTokens = tokenCount(inputDetails?.cacheReadTokens);
-    const cacheWriteTokens = tokenCount(inputDetails?.cacheWriteTokens);
-    if (
-        inputTokens === null &&
-        outputTokens === null &&
-        cacheReadTokens === null &&
-        cacheWriteTokens === null
-    ) {
-        return null;
-    }
-    return {
-        cacheReadTokens: cacheReadTokens ?? 0,
-        cacheWriteTokens: cacheWriteTokens ?? 0,
-        inputTokens: inputTokens ?? 0,
-        outputTokens: outputTokens ?? 0,
-        totalTokens: (inputTokens ?? 0) + (outputTokens ?? 0),
-    };
-}
-
-function addTokenUsage(
-    current: HarnessTokenUsage | null,
-    next: HarnessTokenUsage | null
-): HarnessTokenUsage | null {
-    if (!next) {
-        return current;
-    }
-    if (!current) {
-        return next;
-    }
-    return {
-        cacheReadTokens: current.cacheReadTokens + next.cacheReadTokens,
-        cacheWriteTokens: current.cacheWriteTokens + next.cacheWriteTokens,
-        inputTokens: current.inputTokens + next.inputTokens,
-        outputTokens: current.outputTokens + next.outputTokens,
-        totalTokens: current.totalTokens + next.totalTokens,
-    };
-}
-
-function normalizeRuntimeUsage(
-    runtimeId: string,
-    observed: HarnessTokenUsage | null,
-    previous: HarnessTokenUsage | null
-): { cumulative: HarnessTokenUsage | null; turn: HarnessTokenUsage | null } {
-    if (runtimeId !== 'codex' || observed === null) {
-        return { cumulative: previous, turn: observed };
-    }
-    if (previous === null) {
-        // Older Computer state predates the cumulative baseline. Seed it without
-        // attributing the entire persistent Codex session to this one turn.
-        return { cumulative: observed, turn: null };
-    }
-    const fields = tokenFields;
-    const counterReset = fields.some((field) => observed[field] < previous[field]);
-    if (counterReset) {
-        return { cumulative: observed, turn: observed };
-    }
-    const turn = emptyTokenUsage();
-    for (const field of fields) {
-        turn[field] = observed[field] - previous[field];
-    }
-    turn.totalTokens = turn.inputTokens + turn.outputTokens;
-    return { cumulative: observed, turn };
-}
-
-const tokenFields = ['cacheReadTokens', 'cacheWriteTokens', 'inputTokens', 'outputTokens'] as const;
-
-function emptyTokenUsage(): HarnessTokenUsage {
-    return {
-        cacheReadTokens: 0,
-        cacheWriteTokens: 0,
-        inputTokens: 0,
-        outputTokens: 0,
-        totalTokens: 0,
-    };
-}
-
-function tokenCount(value: unknown): number | null {
-    return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

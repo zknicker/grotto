@@ -1,4 +1,4 @@
-import type { AgentActivityEntry } from '@grotto/api';
+import { type AgentActivityEntry, agentTurnActivitySummarySchema } from '@grotto/api';
 import { and, desc, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentTurnsTable } from '../postgres/schema.ts';
@@ -13,6 +13,7 @@ export async function listAgentActivity(
     await requireServerMembership(db, member, input.serverId);
     const rows = await db
         .select({
+            activity: agentTurnsTable.activity,
             endedAt: agentTurnsTable.endedAt,
             messageCount: agentTurnsTable.messageCount,
             runId: agentTurnsTable.runId,
@@ -32,6 +33,7 @@ export async function listAgentActivity(
 
     return rows.map((row) => ({
         ...row,
+        activity: agentTurnActivitySummarySchema.parse(row.activity),
         endedAt: row.endedAt.toISOString(),
         startedAt: row.startedAt.toISOString(),
     }));

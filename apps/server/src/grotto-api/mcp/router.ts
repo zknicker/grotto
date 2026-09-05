@@ -45,7 +45,13 @@ export const mcpRouter = createRouter({
         .output(mcpConnectionSchema)
         .mutation(({ ctx, input }) =>
             withMcpUpdate(input.serverId, () =>
-                createMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+                createMcpConnection(
+                    ctx.grottoDb,
+                    ctx.mcpRuntime,
+                    ctx.mcpIconResolver,
+                    ctx.member,
+                    input
+                )
             )
         ),
     addPresetAccount: guarded
@@ -53,7 +59,13 @@ export const mcpRouter = createRouter({
         .output(mcpConnectionSchema)
         .mutation(({ ctx, input }) =>
             withMcpUpdate(input.serverId, () =>
-                createMcpPresetAccount(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+                createMcpPresetAccount(
+                    ctx.grottoDb,
+                    ctx.mcpRuntime,
+                    ctx.mcpIconResolver,
+                    ctx.member,
+                    input
+                )
             )
         ),
     delete: guarded
@@ -81,7 +93,13 @@ export const mcpRouter = createRouter({
         .output(mcpConnectionSchema)
         .mutation(({ ctx, input }) =>
             withMcpUpdate(input.serverId, () =>
-                refreshMcpConnection(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+                refreshMcpConnection(
+                    ctx.grottoDb,
+                    ctx.mcpRuntime,
+                    ctx.mcpIconResolver,
+                    ctx.member,
+                    input
+                )
             )
         ),
     replaceHeaders: guarded
@@ -89,7 +107,13 @@ export const mcpRouter = createRouter({
         .output(mcpConnectionSchema)
         .mutation(({ ctx, input }) =>
             withMcpUpdate(input.serverId, () =>
-                replaceMcpHeaders(ctx.grottoDb, ctx.mcpRuntime, ctx.member, input)
+                replaceMcpHeaders(
+                    ctx.grottoDb,
+                    ctx.mcpRuntime,
+                    ctx.mcpIconResolver,
+                    ctx.member,
+                    input
+                )
             )
         ),
     setGrant: guarded

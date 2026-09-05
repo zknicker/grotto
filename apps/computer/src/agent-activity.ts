@@ -13,10 +13,11 @@ export type ComputerAgentActivityCategory =
     | 'using_tool'
     | 'working';
 
-export type ComputerAgentActivityPhase = 'completed' | 'failed' | 'started';
+export type ComputerAgentActivityPhase = 'completed' | 'failed' | 'interrupted' | 'started';
 
 export interface ComputerAgentActivityUpdate {
     category: ComputerAgentActivityCategory;
+    occurredAt: string;
     phase: ComputerAgentActivityPhase;
     /** Only a canonical Grotto-owned identity may cross the Computer boundary. */
     toolRef?: string;

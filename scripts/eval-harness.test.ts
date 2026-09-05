@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { spawn } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { syncEvalHumanIdentity } from './eval-human-identity.mjs';
 
 // Loading the bundle is open-ended work: a cold Node start plus roughly a
 // megabyte of Clerk, which takes ~70ms on a warm developer machine and far
@@ -13,6 +14,24 @@ const EXIT_BUDGET_MS = 15_000;
 const LOADED_MARKER = 'loaded ';
 
 describe('eval harness', () => {
+    test('headless evaluations establish the human Server identity', async () => {
+        const calls: Array<{ input: unknown; path: string }> = [];
+        await syncEvalHumanIdentity(async (path: string, input: unknown) => {
+            calls.push({ input, path });
+        }, 'srv_test');
+
+        expect(calls).toEqual([
+            {
+                input: {
+                    email: 'evaluations@grotto.invalid',
+                    name: 'Grotto Evaluator',
+                    serverId: 'srv_test',
+                },
+                path: 'member.syncIdentity',
+            },
+        ]);
+    });
+
     test(
         'headless Clerk does not keep the process alive',
         async () => {

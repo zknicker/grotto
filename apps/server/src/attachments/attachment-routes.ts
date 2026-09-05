@@ -6,6 +6,7 @@ import {
 } from '../chats/chat-access.ts';
 import type { ClerkSessions } from '../identity/clerk-sessions.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { ServerRuntime } from '../server-runtime.ts';
 import { ServerAccessDeniedError, ServerNotFoundError } from '../servers/server-access.ts';
 import { findUserByClerkId } from '../users/grotto-user.ts';
 import type { AttachmentRoot } from './attachment-root.ts';
@@ -17,6 +18,7 @@ interface AttachmentRouteDependencies {
     clerkSessions: ClerkSessions;
     db: GrottoDatabase;
     root: AttachmentRoot;
+    runtime: ServerRuntime;
 }
 
 interface AttachmentParams {
@@ -71,13 +73,18 @@ export async function registerAttachmentRoutes(
                     requireOctetStream(request.headers['content-type']);
                     const member = await findUserByClerkId(dependencies.db, clerkUserId);
                     const declaredLength = parseContentLength(request.headers['content-length']);
-                    const result = await uploadAttachment(dependencies.db, dependencies.root, {
-                        attachmentId: request.params.attachmentId,
-                        declaredLength,
-                        member,
-                        serverId: request.params.serverId,
-                        stream: request.raw,
-                    });
+                    const result = await uploadAttachment(
+                        dependencies.db,
+                        dependencies.root,
+                        dependencies.runtime,
+                        {
+                            attachmentId: request.params.attachmentId,
+                            declaredLength,
+                            member,
+                            serverId: request.params.serverId,
+                            stream: request.raw,
+                        }
+                    );
 
                     await reply.send(result);
                 } catch (error) {

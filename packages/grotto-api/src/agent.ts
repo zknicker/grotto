@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { agentTurnActivitySummarySchema } from './agent-activity.ts';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { workspacePathSchema } from './agent-runner.ts';
 import { avatarBytesInputSchema } from './avatar.ts';
@@ -7,11 +8,7 @@ import { participantHandleSchema } from './participant-handle.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
-/**
- * A Computer reports only sanitized runtime and model inventory. Provider
- * credentials, session tokens, and OAuth material never leave the Computer, so
- * they have no field here by construction.
- */
+/** Sanitized Computer inventory excludes credentials and session material by construction. */
 export const computerModelSchema = z
     .object({
         id: z.string().trim().min(1).max(128),
@@ -276,11 +273,12 @@ export const agentActivityInputSchema = agentDetailInputSchema.extend({
 
 export const agentActivityEntrySchema = z
     .object({
+        activity: agentTurnActivitySummarySchema,
         endedAt: timestampSchema,
         messageCount: z.number().int().nonnegative(),
         runId: idSchema,
         startedAt: timestampSchema,
-        status: z.enum(['completed', 'failed']),
+        status: z.enum(['completed', 'failed', 'interrupted']),
         summary: z.string().max(2000),
     })
     .strict();
@@ -322,7 +320,7 @@ export const agentLifecycleEventSchema = z.discriminatedUnion('phase', [
         .strict(),
     agentLifecycleBaseSchema
         .extend({
-            outcome: z.enum(['completed', 'failed', 'stopped']),
+            outcome: z.enum(['completed', 'failed', 'interrupted', 'stopped']),
             phase: z.literal('settled'),
         })
         .strict(),
@@ -415,6 +413,7 @@ export type AgentDeliveryState = z.infer<typeof agentDeliveryStateSchema>;
  */
 export const agentTurnSchema = z
     .object({
+        activity: agentTurnActivitySummarySchema,
         agentId: idSchema,
         endedAt: timestampSchema,
         failureKind: z.string().trim().min(1).max(64).nullable(),
@@ -422,7 +421,7 @@ export const agentTurnSchema = z
         outputProduced: z.boolean(),
         runId: idSchema,
         startedAt: timestampSchema,
-        status: z.enum(['completed', 'failed']),
+        status: z.enum(['completed', 'failed', 'interrupted']),
         summary: z.string().max(2000).nullable(),
     })
     .strict();
@@ -431,6 +430,7 @@ export type AgentTurn = z.infer<typeof agentTurnSchema>;
 
 export const agentTurnsInputSchema = agentDetailInputSchema.extend({
     limit: z.number().int().min(1).max(50).default(10),
+    runId: idSchema.optional(),
 });
 
 export type AgentTurnsInput = z.infer<typeof agentTurnsInputSchema>;

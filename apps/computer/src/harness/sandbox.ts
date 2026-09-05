@@ -1,19 +1,16 @@
-import { type ChildProcessWithoutNullStreams, spawn as spawnProcess } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
-import { Readable } from 'node:stream';
 import type {
     HarnessV1NetworkPolicy,
     HarnessV1NetworkSandboxSession,
     HarnessV1SandboxProvider,
 } from '@ai-sdk/harness';
-import type {
-    Experimental_SandboxProcess,
-    Experimental_SandboxSession,
-} from '@ai-sdk/provider-utils';
+import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
+import type { EffectRuntime } from '@grotto/effect';
+import { createSandboxProcessRegistry } from './sandbox-processes.ts';
 
 /**
  * The Computer's harness sandbox: a faithful port of Runtime's
@@ -34,6 +31,7 @@ interface LocalTrustedSandboxOptions {
     hostGrokHomeDir?: string;
     hostHomeDir?: string;
     rootDir: string;
+    runtime: EffectRuntime<never>;
 }
 
 export function createLocalTrustedSandboxProvider(
@@ -60,6 +58,7 @@ export function createLocalTrustedSandboxProvider(
                 hostGrokHomeDir,
                 hostHomeDir,
                 rootDir,
+                runtime: options.runtime,
                 sessionId: input.sessionId,
             });
             if (input.onFirstCreate) {
@@ -78,6 +77,7 @@ export function createLocalTrustedSandboxProvider(
                 hostGrokHomeDir,
                 hostHomeDir,
                 rootDir,
+                runtime: options.runtime,
                 sessionId: input.sessionId,
             }),
         specificationVersion: 'harness-sandbox-v1',
@@ -91,6 +91,7 @@ async function createLocalTrustedSandboxSession(input: {
     hostGrokHomeDir: string;
     hostHomeDir: string;
     rootDir: string;
+    runtime: EffectRuntime<never>;
     sessionId?: string;
 }): Promise<HarnessV1NetworkSandboxSession> {
     const rootDir = path.resolve(input.rootDir);
@@ -102,16 +103,18 @@ async function createLocalTrustedSandboxSession(input: {
         hostHomeDir: input.hostHomeDir,
     });
     const id = input.sessionId ?? `local_${randomUUID()}`;
-    const processes = new Set<ChildProcessWithoutNullStreams>();
+    const processes = createSandboxProcessRegistry({
+        defaultWorkingDirectory: rootDir,
+        env: input.env,
+        resolveWorkingDirectory: (value) => resolveLocalPath(rootDir, value),
+        runtime: input.runtime,
+    });
     let ports = [await reservePort()];
-    let stopped = false;
 
     const session: HarnessV1NetworkSandboxSession = {
         defaultWorkingDirectory: rootDir,
         description: `Local trusted workspace at ${rootDir}. Commands run on this host without isolation.`,
-        destroy: async () => {
-            await stopProcesses(processes);
-        },
+        destroy: processes.destroy,
         get id() {
             return id;
         },
@@ -133,7 +136,7 @@ async function createLocalTrustedSandboxSession(input: {
         },
         restricted: () => restrictedSession(session),
         run: async (options) => {
-            const proc = await spawnLocalProcess(rootDir, input.env, processes, options);
+            const proc = await processes.spawn(options);
             const [stdout, stderr, status] = await Promise.all([
                 streamToText(proc.stdout),
                 streamToText(proc.stderr),
@@ -145,14 +148,8 @@ async function createLocalTrustedSandboxSession(input: {
         setPorts: async (nextPorts) => {
             ports = [...nextPorts];
         },
-        spawn: async (options) => spawnLocalProcess(rootDir, input.env, processes, options),
-        stop: async () => {
-            if (stopped) {
-                return;
-            }
-            stopped = true;
-            await stopProcesses(processes);
-        },
+        spawn: processes.spawn,
+        stop: processes.stop,
         writeBinaryFile: async (options) => writeBinaryFile(rootDir, options.path, options.content),
         writeFile: async (options) =>
             writeBinaryFile(rootDir, options.path, await streamToBytes(options.content)),
@@ -175,63 +172,6 @@ function restrictedSession(session: HarnessV1NetworkSandboxSession): Experimenta
         writeFile: session.writeFile,
         writeTextFile: session.writeTextFile,
     };
-}
-
-async function spawnLocalProcess(
-    rootDir: string,
-    env: Record<string, string>,
-    processes: Set<ChildProcessWithoutNullStreams>,
-    options: {
-        abortSignal?: AbortSignal;
-        command: string;
-        env?: Record<string, string>;
-        workingDirectory?: string;
-    }
-): Promise<Experimental_SandboxProcess> {
-    const cwd = resolveLocalPath(rootDir, options.workingDirectory ?? rootDir);
-    await fs.mkdir(cwd, { recursive: true });
-    const child = spawnProcess(options.command, {
-        cwd,
-        env: { ...process.env, ...env, ...options.env },
-        shell: process.env.SHELL ?? true,
-        signal: options.abortSignal,
-    });
-    const waitPromise = new Promise<{ exitCode: number }>((resolve, reject) => {
-        child.once('error', reject);
-        child.once('close', (code) => resolve({ exitCode: code ?? 0 }));
-    });
-    processes.add(child);
-    child.once('close', () => processes.delete(child));
-
-    return {
-        kill: async () => {
-            if (!child.killed) {
-                child.kill();
-            }
-        },
-        pid: child.pid,
-        stderr: Readable.toWeb(child.stderr) as ReadableStream<Uint8Array>,
-        stdout: Readable.toWeb(child.stdout) as ReadableStream<Uint8Array>,
-        wait: () => waitPromise,
-    };
-}
-
-async function stopProcesses(processes: Set<ChildProcessWithoutNullStreams>) {
-    await Promise.all(
-        [...processes].map(
-            (processHandle) =>
-                new Promise<void>((resolve) => {
-                    if (processHandle.killed) {
-                        resolve();
-                        return;
-                    }
-                    processHandle.once('close', () => resolve());
-                    processHandle.kill();
-                    setTimeout(resolve, 1000).unref();
-                })
-        )
-    );
-    processes.clear();
 }
 
 function resolveLocalPath(rootDir: string, value: string) {

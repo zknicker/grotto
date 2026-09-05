@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { makeTestRuntime } from '@grotto/effect';
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import {
     type AttachmentUploadError,
@@ -14,6 +15,7 @@ let owner: GrottoClient;
 let outsider: GrottoClient;
 let serverId: string;
 let chatId: string;
+const runtime = makeTestRuntime();
 
 beforeAll(async () => {
     harness = await startGrottoServerHarness();
@@ -30,6 +32,7 @@ beforeAll(async () => {
 afterAll(async () => {
     owner.close();
     outsider.close();
+    await runtime.dispose();
     await harness.close();
 });
 
@@ -84,9 +87,9 @@ test('accepts missing Content-Length and rejects streamed overflow without a rea
     const connection = await connectGrottoDatabase(harness.databaseUrl);
     try {
         const member = await findUserByClerkId(connection.db, 'upload_owner');
-        const root = await openAttachmentRoot(harness.attachmentRoot);
+        const root = await openAttachmentRoot(harness.attachmentRoot, runtime);
         await expect(
-            uploadAttachment(connection.db, root, {
+            uploadAttachment(connection.db, root, runtime, {
                 attachmentId: tooLarge.attachmentId,
                 declaredLength: null,
                 member,
@@ -156,9 +159,9 @@ test('accepts zero bytes and marks a dishonest Content-Length attempt failed', a
     const connection = await connectGrottoDatabase(harness.databaseUrl);
     try {
         const member = await findUserByClerkId(connection.db, 'upload_owner');
-        const root = await openAttachmentRoot(harness.attachmentRoot);
+        const root = await openAttachmentRoot(harness.attachmentRoot, runtime);
         await expect(
-            uploadAttachment(connection.db, root, {
+            uploadAttachment(connection.db, root, runtime, {
                 attachmentId: partial.attachmentId,
                 declaredLength: 2,
                 member,

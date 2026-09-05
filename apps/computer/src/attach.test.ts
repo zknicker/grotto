@@ -97,6 +97,7 @@ test('attach uses the saved login and stores only the Server-scoped credential',
             GROTTO_COMPUTER_ONESHOT: '1',
             GROTTO_COMPUTER_USAGE_DISABLED: '1',
             GROTTO_SERVER_ORIGIN: origin,
+            OTEL_SDK_DISABLED: 'true',
         });
 
         expect(result.exitCode, result.stderr).toBe(0);

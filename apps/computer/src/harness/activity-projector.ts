@@ -1,7 +1,5 @@
-import type {
-    ComputerAgentActivityCategory,
-    ComputerAgentActivityUpdate,
-} from '../agent-activity.ts';
+import type { ComputerAgentActivityCategory } from '../agent-activity.ts';
+import type { AgentActivityRun } from '../agent-activity-run.ts';
 import type { ComputerExecutionJournal } from './execution-journal.ts';
 
 export interface GrottoHostToolRegistration {
@@ -16,7 +14,7 @@ export interface ComputerActivityRegistry {
         nativeName?: string;
         runtimeId: string;
         toolName: string;
-    }): ComputerAgentActivityUpdate & { toolRef?: string };
+    }): { category: ComputerAgentActivityCategory; toolRef?: string };
     registerGrottoHostTool(registration: GrottoHostToolRegistration): void;
 }
 
@@ -60,18 +58,17 @@ export function createComputerActivityRegistry(): ComputerActivityRegistry {
     return {
         classify(input) {
             if (input.dynamic || isMcpName(input.toolName) || isMcpName(input.nativeName)) {
-                return { category: 'using_tool', phase: 'started' };
+                return { category: 'using_tool' };
             }
             const host = hostTools.get(input.nativeName ?? '') ?? hostTools.get(input.toolName);
             if (host) {
                 return {
                     category: host.category,
-                    phase: 'started',
                     ...(host.toolRef ? { toolRef: host.toolRef } : {}),
                 };
             }
             const known = knownToolCategory(input.runtimeId, input.toolName, input.nativeName);
-            return { category: known ?? 'using_tool', phase: 'started' };
+            return { category: known ?? 'using_tool' };
         },
         registerGrottoHostTool(registration) {
             hostTools.set(registration.name, registration);
@@ -100,12 +97,15 @@ export function classifyGrottoProxyBoundary(
 }
 
 export function createComputerActivityProjector(input: {
+    activity: AgentActivityRun;
     journal?: ComputerExecutionJournal;
-    onActivity?: (activity: ComputerAgentActivityUpdate & { toolRef?: string }) => void;
     registry: ComputerActivityRegistry;
     runtimeId: string;
 }) {
-    const pending = new Map<string, ComputerAgentActivityUpdate & { toolRef?: string }>();
+    const pending = new Map<
+        string,
+        { category: ComputerAgentActivityCategory; toolRef?: string }
+    >();
     return {
         async finish(phase: 'completed' | 'failed' | 'interrupted', error?: unknown) {
             if (pending.size > 0) {
@@ -116,8 +116,11 @@ export function createComputerActivityProjector(input: {
                 );
             }
             if (phase !== 'completed' || pending.size > 0) {
-                for (const activity of pending.values()) {
-                    emit(input.onActivity, { ...activity, phase: 'failed' });
+                for (const toolCallId of pending.keys()) {
+                    await input.activity.finish(
+                        toolActivityKey(toolCallId),
+                        phase === 'interrupted' ? 'interrupted' : 'failed'
+                    );
                 }
             }
             pending.clear();
@@ -135,22 +138,39 @@ export function createComputerActivityProjector(input: {
                 return;
             }
             if (part.type === 'file-change') {
-                emit(input.onActivity, { category: 'editing_files', phase: 'started' });
-                emit(input.onActivity, { category: 'editing_files', phase: 'completed' });
+                await input.activity.runPromise(
+                    { category: 'editing_files' },
+                    async () => undefined
+                );
             }
         },
     };
 }
 
+export function createHarnessActivityProjector(input: {
+    activity: AgentActivityRun;
+    journal: ComputerExecutionJournal;
+    runtimeId: string;
+}) {
+    const registry = createComputerActivityRegistry();
+    registry.registerGrottoHostTool({ category: 'browsing', name: 'browser', toolRef: 'browser' });
+    registry.registerGrottoHostTool({
+        category: 'browsing',
+        name: 'web_fetch',
+        toolRef: 'web-fetch',
+    });
+    return createComputerActivityProjector({ ...input, registry });
+}
+
 async function observeToolCall(
     part: Record<string, unknown>,
     input: {
+        activity: AgentActivityRun;
         journal?: ComputerExecutionJournal;
-        onActivity?: (activity: ComputerAgentActivityUpdate & { toolRef?: string }) => void;
         registry: ComputerActivityRegistry;
         runtimeId: string;
     },
-    pending: Map<string, ComputerAgentActivityUpdate & { toolRef?: string }>
+    pending: Map<string, { category: ComputerAgentActivityCategory; toolRef?: string }>
 ) {
     const toolCallId = stringValue(part.toolCallId);
     const toolName = stringValue(part.toolName);
@@ -165,7 +185,7 @@ async function observeToolCall(
     });
     if (!pending.has(toolCallId)) {
         pending.set(toolCallId, activity);
-        emit(input.onActivity, activity);
+        await input.activity.start({ ...activity, key: toolActivityKey(toolCallId) });
     }
     await input.journal?.recordToolCall({
         input: part.input,
@@ -178,12 +198,12 @@ async function observeToolCall(
 async function observeToolResult(
     part: Record<string, unknown>,
     input: {
+        activity: AgentActivityRun;
         journal?: ComputerExecutionJournal;
-        onActivity?: (activity: ComputerAgentActivityUpdate & { toolRef?: string }) => void;
         registry: ComputerActivityRegistry;
         runtimeId: string;
     },
-    pending: Map<string, ComputerAgentActivityUpdate & { toolRef?: string }>
+    pending: Map<string, { category: ComputerAgentActivityCategory; toolRef?: string }>
 ) {
     const toolCallId = stringValue(part.toolCallId);
     const toolName = stringValue(part.toolName);
@@ -200,7 +220,7 @@ async function observeToolResult(
         });
     if (!pending.has(toolCallId)) {
         pending.set(toolCallId, activity);
-        emit(input.onActivity, activity);
+        await input.activity.start({ ...activity, key: toolActivityKey(toolCallId) });
     }
     const isPreliminary = part.preliminary === true;
     await input.journal?.recordToolResult({
@@ -215,10 +235,10 @@ async function observeToolResult(
         return;
     }
     pending.delete(toolCallId);
-    emit(input.onActivity, {
-        ...activity,
-        phase: part.isError === true ? 'failed' : 'completed',
-    });
+    await input.activity.finish(
+        toolActivityKey(toolCallId),
+        part.isError === true ? 'failed' : 'completed'
+    );
 }
 
 function knownToolCategory(runtimeId: string, toolName: string, nativeName?: string) {
@@ -231,13 +251,8 @@ function knownToolCategory(runtimeId: string, toolName: string, nativeName?: str
     return mapping?.[identity] ?? mapping?.[commonName];
 }
 
-function emit(
-    onActivity:
-        | ((activity: ComputerAgentActivityUpdate & { toolRef?: string }) => void)
-        | undefined,
-    activity: ComputerAgentActivityUpdate & { toolRef?: string }
-) {
-    onActivity?.(activity);
+function toolActivityKey(toolCallId: string): string {
+    return `tool:${toolCallId}`;
 }
 
 function isMcpName(value: string | undefined): boolean {

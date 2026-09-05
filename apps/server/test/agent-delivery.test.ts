@@ -135,6 +135,7 @@ function turnSummary(
     failureKind?: AgentTurnSummary['failureKind']
 ): AgentTurnSummary {
     return {
+        activity: { operations: [] },
         agentId,
         endedAt: new Date().toISOString(),
         ...(failureKind ? { failureKind } : {}),
@@ -384,7 +385,6 @@ test('offers ordinary Chat work as a notice and does not loop when it is deferre
     ]);
     lifecycleController.abort();
 });
-
 test('preserves direct-attention metadata independently through wire replay', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();

@@ -11,7 +11,13 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createEvalHarness } from '../eval-harness.mjs';
 import { createAgentTestKit } from './kit.mjs';
 import { createRenderer, formatWall } from './render.mjs';
-import { buildSummary, buildTranscript, createReportWriter, runStamp } from './report.mjs';
+import {
+    buildSummary,
+    buildTranscript,
+    captureAgentDiagnostics,
+    createReportWriter,
+    runStamp,
+} from './report.mjs';
 import { createExpect, isScenario } from './scenario.mjs';
 import { describeSweep, sweepAgentTestLeftovers } from './sweep.mjs';
 
@@ -145,6 +151,19 @@ async function runScenario(harness, { index, scenario }, retirements) {
     // ids to the next run via the crash ledger instead of stretching this one;
     // the ledger only forgets ids the delete confirmed.
     const seconds = Math.round((Date.now() - startedAtScenario) / 1000);
+    const diagnostics = error ? await captureAgentDiagnostics(kit, agents) : [];
+    const result = {
+        agents: agents.map((agent) => agent.handle),
+        assertions,
+        error,
+        name: scenario.name,
+        ok: !error,
+        seconds,
+    };
+    await report.writeScenario(
+        scenario.name,
+        buildTranscript({ diagnostics, error, kit, result, scenario })
+    );
     await Promise.race([
         kit.cleanup().catch((cause) => {
             process.stderr.write(`\ncleanup deferred for ${key}: ${String(cause).slice(0, 200)}\n`);
@@ -157,15 +176,6 @@ async function runScenario(harness, { index, scenario }, retirements) {
     // while these Agents are deleted, and the run awaits them at the end.
     retirements.push(retire(kit, key));
 
-    const result = {
-        agents: agents.map((agent) => agent.handle),
-        assertions,
-        error,
-        name: scenario.name,
-        ok: !error,
-        seconds,
-    };
-    await report.writeScenario(scenario.name, buildTranscript({ error, kit, result, scenario }));
     renderer.finish(key, { error, ok: result.ok, seconds });
     return result;
 }

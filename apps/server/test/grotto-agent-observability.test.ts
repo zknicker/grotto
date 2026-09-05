@@ -49,7 +49,20 @@ beforeAll(async () => {
     chatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
 
     await insertTurn(1, { outputProduced: true, status: 'completed' });
-    await insertTurn(2, { outputProduced: false, status: 'completed' });
+    await insertTurn(2, {
+        activity: {
+            operations: [
+                {
+                    category: 'searching_web',
+                    completed: 3,
+                    failed: 0,
+                    interrupted: 0,
+                },
+            ],
+        },
+        outputProduced: false,
+        status: 'completed',
+    });
     await insertTurn(3, { failureKind: 'timeout', outputProduced: false, status: 'failed' });
 
     await insertDelivery(1, { state: 'seen', settledRunId: 'run_observability002' });
@@ -80,6 +93,7 @@ test('reports settled turns newest first with the evidence that proves silence',
     });
     // The silent turn: it completed, it produced nothing, and nothing failed.
     expect(turns[1]).toMatchObject({
+        activity: { operations: [{ category: 'searching_web', completed: 3 }] },
         failureKind: null,
         messageCount: 0,
         outputProduced: false,
@@ -93,6 +107,17 @@ test('honors the turn limit', async () => {
 
     expect(turns).toHaveLength(1);
     expect(turns[0]?.runId).toBe('run_observability003');
+});
+
+test('reads one exact historical turn for Chat details', async () => {
+    const turns = await owner.trpc.agent.turns.query({
+        agentId,
+        limit: 1,
+        runId: 'run_observability001',
+        serverId,
+    });
+
+    expect(turns.map((turn) => turn.runId)).toEqual(['run_observability001']);
 });
 
 test('reports the delivery ledger including rows retained after settlement', async () => {
@@ -159,14 +184,19 @@ async function insertComputer() {
 
 async function insertTurn(
     index: number,
-    turn: { failureKind?: string; outputProduced: boolean; status: 'completed' | 'failed' }
+    turn: {
+        activity?: { operations: unknown[] };
+        failureKind?: string;
+        outputProduced: boolean;
+        status: 'completed' | 'failed';
+    }
 ) {
     const startedAt = new Date(Date.UTC(2026, 0, index)).toISOString();
     const endedAt = new Date(Date.UTC(2026, 0, index, 1)).toISOString();
     await harness.sql`
         insert into agent_turns (
             id, server_id, agent_id, computer_id, run_id, started_at, ended_at,
-            status, summary, message_count, output_produced, failure_kind
+            status, summary, message_count, output_produced, failure_kind, activity
         )
         values (
             ${`atn_observability00${index}`},
@@ -180,7 +210,8 @@ async function insertTurn(
             'settled',
             ${turn.outputProduced ? 1 : 0},
             ${turn.outputProduced},
-            ${turn.failureKind ?? null}
+            ${turn.failureKind ?? null},
+            ${turn.activity ?? { operations: [] }}::jsonb
         )
     `;
 }

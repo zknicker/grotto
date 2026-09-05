@@ -60,7 +60,7 @@ test('credential validation identifies an attachment removed from its Server', a
     });
 });
 
-test('incompatible ordinary protocol remains connected only for update progress', async () => {
+test('preceding Computer protocol remains connected only for update progress', async () => {
     const socket = new WebSocket(computerSocketUrl());
     await opened(socket);
     socket.send(
@@ -71,7 +71,7 @@ test('incompatible ordinary protocol remains connected only for update progress'
             health: 'healthy',
             operatingSystem: 'darwin',
             productVersion: '0.9.0',
-            protocolVersion: 999,
+            protocolVersion: computerProtocolVersion - 1,
             type: 'bootstrap',
             update: {
                 activeAgentCount: null,

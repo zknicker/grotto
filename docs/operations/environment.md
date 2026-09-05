@@ -42,6 +42,8 @@ the access boundary.
 | `Dev Sign-In User - Grotto` | `Development` | the Clerk user the local auto sign-in signs in as |
 | `Google MCP OAuth - Grotto` | `Development` | OAuth client for the Google Calendar MCP connection |
 | `OpenAI API - Grotto` | `Development`, `Production` | Server-owned transient Agent avatar generation; one independently rotated key per lifecycle |
+| `Axiom Development OTLP - Grotto` | `Development` | Development OTLP ingestion for the shared operations and metrics datasets |
+| `Axiom Production OTLP - Grotto` | `Production` | Hosted Server OTLP ingestion for the shared operations and metrics datasets |
 | `Postgres - Grotto` | `Production` | runtime URL, migration URL, container admin password |
 | `HugeIcons Pro - Merchbase` | `Development` | shared licensed registry key (adopted, not copied) |
 | `HeroUI Pro CICD - Merchbase` | `Development` | shared licensed artifact token (adopted, not copied) |

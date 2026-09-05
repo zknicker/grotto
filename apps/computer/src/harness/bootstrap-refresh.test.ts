@@ -1,12 +1,16 @@
-import { afterEach, expect, test } from 'bun:test';
+import { afterAll, afterEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { HarnessV1 } from '@ai-sdk/harness';
+import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { fingerprintHarnessBootstrap, refreshHarnessBootstrap } from './bootstrap-refresh.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 
 const roots: string[] = [];
+const runtime = makeDaemonRuntime();
+
+afterAll(() => runtime.dispose());
 
 afterEach(async () => {
     await Promise.all(roots.splice(0).map((root) => rm(root, { force: true, recursive: true })));
@@ -19,7 +23,7 @@ test('refreshes changed bridge assets before a resumed session starts', async ()
     await mkdir(join(root, '.harness-bootstrap', 'test'), { recursive: true });
     await writeFile(bridgePath, 'old bridge');
     const harness = fakeHarness('current bridge');
-    const provider = createLocalTrustedSandboxProvider({ rootDir: root });
+    const provider = createLocalTrustedSandboxProvider({ rootDir: root, runtime });
 
     await refreshHarnessBootstrap({
         harness,

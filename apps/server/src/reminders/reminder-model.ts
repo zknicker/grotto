@@ -13,6 +13,16 @@ export interface ReminderClock {
     now(): Date;
 }
 
+export class ReminderFireError extends Error {
+    readonly reminderId: string;
+
+    constructor(reminderId: string, cause: unknown) {
+        super('A reminder could not fire.', { cause });
+        this.name = 'ReminderFireError';
+        this.reminderId = reminderId;
+    }
+}
+
 export interface Reminder {
     anchorChatId: string;
     anchorMessageId: string;

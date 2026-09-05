@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { lstat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { makeTestRuntime } from '@grotto/effect';
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { ComputerConnections } from '../src/computers/connections.ts';
 import { connectGrottoDatabase } from '../src/postgres/connection.ts';
@@ -15,6 +16,7 @@ let member: GrottoClient;
 let serverId: string;
 const slug = 'vanishing-hq';
 const clients: GrottoClient[] = [];
+const runtime = makeTestRuntime();
 
 beforeAll(async () => {
     harness = await startGrottoServerHarness();
@@ -36,6 +38,7 @@ afterAll(async () => {
     for (const client of clients) {
         client.close();
     }
+    await runtime.dispose();
     await harness.close();
 });
 
@@ -119,7 +122,7 @@ test('revokes immediately, never waits for an offline Computer, and asynchronous
             ${'a'.repeat(64)}
         )
     `;
-    const root = await openAttachmentRoot(harness.attachmentRoot);
+    const root = await openAttachmentRoot(harness.attachmentRoot, runtime);
     const serverAttachmentPath = join(
         root.path,
         dirname(dirname(root.objectKey(serverId, 'att_1234567890abcdef')))
@@ -177,7 +180,7 @@ test('revokes immediately, never waits for an offline Computer, and asynchronous
 test('sends cleanup only to online Computers for the deleted Server and does not wait', () => {
     const frames: unknown[] = [];
     let disconnected = false;
-    const connections = new ComputerConnections();
+    const connections = new ComputerConnections(runtime);
     connections.register('cmp_online', {
         disconnect: () => {
             disconnected = true;
@@ -202,7 +205,7 @@ test('sends cleanup only to online Computers for the deleted Server and does not
 });
 
 test('a closing Computer socket cannot block asynchronous deletion', () => {
-    const connections = new ComputerConnections();
+    const connections = new ComputerConnections(runtime);
     connections.register('cmp_closing', {
         disconnect: () => {
             throw new Error('already closed');
@@ -232,7 +235,7 @@ test('keeps a failed asynchronous purge observable without restoring access', as
             confirmation: server.slug,
             serverId: server.id,
         });
-        const root = await openAttachmentRoot(harness.attachmentRoot);
+        const root = await openAttachmentRoot(harness.attachmentRoot, runtime);
         await purgeDeletedServer(
             connection.db,
             {

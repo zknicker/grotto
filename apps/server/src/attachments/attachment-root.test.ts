@@ -2,18 +2,21 @@ import { afterEach, expect, test } from 'bun:test';
 import { lstat, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { makeServerRuntime, type ServerRuntime } from '../server-runtime.ts';
 import { openAttachmentRoot } from './attachment-root.ts';
 
 const roots: string[] = [];
+const runtimes: ServerRuntime[] = [];
 
 afterEach(async () => {
+    await Promise.all(runtimes.splice(0).map((runtime) => runtime.dispose()));
     await Promise.all(roots.splice(0).map((root) => rm(root, { force: true, recursive: true })));
 });
 
 test('creates a private absolute root and derives only fixed digest leaves', async () => {
     const parent = await temporaryDirectory();
     const rootPath = join(parent, 'attachments');
-    const root = await openAttachmentRoot(rootPath);
+    const root = await openRoot(rootPath);
 
     expect((await lstat(rootPath)).mode & 0o777).toBe(0o700);
     expect(root.objectKey('srv_1234567890abcdef', 'att_1234567890abcdef')).toMatch(
@@ -22,26 +25,26 @@ test('creates a private absolute root and derives only fixed digest leaves', asy
 });
 
 test('rejects relative, symlinked, and substituted layout roots', async () => {
-    await expect(openAttachmentRoot('relative/attachments')).rejects.toThrow(/absolute/i);
+    await expect(openRoot('relative/attachments')).rejects.toThrow(/absolute/i);
 
     const parent = await temporaryDirectory();
     const target = join(parent, 'target');
     const linkedRoot = join(parent, 'linked');
     await mkdir(target);
     await symlink(target, linkedRoot);
-    await expect(openAttachmentRoot(linkedRoot)).rejects.toThrow(/symbolic link/i);
+    await expect(openRoot(linkedRoot)).rejects.toThrow(/symbolic link/i);
 
     const rootPath = join(parent, 'attachments');
-    const opened = await openAttachmentRoot(rootPath);
+    const opened = await openRoot(rootPath);
     await rm(join(rootPath, 'servers'), { recursive: true });
     await symlink(target, join(rootPath, 'servers'));
     await expect(opened.listKeys('srv_1234567890abcdef')).rejects.toThrow(/symbolic link/i);
-    await expect(openAttachmentRoot(rootPath)).rejects.toThrow(/symbolic link/i);
+    await expect(openRoot(rootPath)).rejects.toThrow(/symbolic link/i);
 });
 
 test('rejects traversal, encoded separators, absolute ids, and foreign id shapes', async () => {
     const parent = await temporaryDirectory();
-    const root = await openAttachmentRoot(join(parent, 'attachments'));
+    const root = await openRoot(join(parent, 'attachments'));
 
     for (const value of ['../outside', '%2foutside', '/outside', 'srv_wrong']) {
         expect(() => root.objectKey(value, 'att_1234567890abcdef')).toThrow(/invalid Server id/i);
@@ -55,7 +58,7 @@ test('rejects traversal, encoded separators, absolute ids, and foreign id shapes
 
 test('fails closed when an expected staging or object leaf is substituted', async () => {
     const parent = await temporaryDirectory();
-    const root = await openAttachmentRoot(join(parent, 'attachments'));
+    const root = await openRoot(join(parent, 'attachments'));
     const serverId = 'srv_1234567890abcdef';
     const attachmentId = 'att_1234567890abcdef';
     const stagingKey = 'upl_1234567890abcdef';
@@ -87,7 +90,7 @@ test('fails closed when an expected staging or object leaf is substituted', asyn
 
 test('quiesces active writes before purge and rejects later layout recreation', async () => {
     const parent = await temporaryDirectory();
-    const root = await openAttachmentRoot(join(parent, 'attachments'));
+    const root = await openRoot(join(parent, 'attachments'));
     const serverId = 'srv_1234567890abcdef';
     const release = root.beginServerWrite(serverId);
     let purged = false;
@@ -106,7 +109,7 @@ test('quiesces active writes before purge and rejects later layout recreation', 
 
 test('quiesces uploads before discarding finalized and staging attachment bytes', async () => {
     const parent = await temporaryDirectory();
-    const root = await openAttachmentRoot(join(parent, 'attachments'));
+    const root = await openRoot(join(parent, 'attachments'));
     const serverId = 'srv_1234567890abcdef';
     const finalizedId = 'att_1234567890abcdef';
     const finalizedStagingKey = 'upl_1234567890abcdef';
@@ -148,4 +151,10 @@ async function temporaryDirectory() {
     const root = await mkdtemp(join(tmpdir(), 'grotto-attachment-root-'));
     roots.push(root);
     return root;
+}
+
+async function openRoot(path: string) {
+    const runtime = makeServerRuntime();
+    runtimes.push(runtime);
+    return await openAttachmentRoot(path, runtime);
 }

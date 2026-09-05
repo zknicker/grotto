@@ -5,8 +5,12 @@ import {
 } from '@grotto/api';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import * as z from 'zod';
-import { ChatArchivedError } from '../chats/chat-access.ts';
+import { ChatArchivedError, ChatNotFoundError } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import {
+    ReminderAgentInactiveError,
+    ReminderAnchorAccessError,
+} from '../reminders/reminder-model.ts';
 import { TriggerNotFoundError } from '../triggers/trigger-model.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { AgentTargetError } from './resolve-target.ts';
@@ -141,12 +145,14 @@ async function runAction(reply: FastifyReply, action: () => Promise<unknown>) {
         if (cause instanceof ChatArchivedError) {
             return sendAgentApiError(reply, 409, 'TARGET_READ_ONLY', cause.message);
         }
-        return sendAgentApiError(
-            reply,
-            409,
-            'INVALID_ARG',
-            cause instanceof Error ? cause.message : 'The trigger request failed.'
-        );
+        if (
+            cause instanceof ChatNotFoundError ||
+            cause instanceof ReminderAgentInactiveError ||
+            cause instanceof ReminderAnchorAccessError
+        ) {
+            return sendAgentApiError(reply, 409, 'INVALID_ARG', cause.message);
+        }
+        throw cause;
     }
 }
 

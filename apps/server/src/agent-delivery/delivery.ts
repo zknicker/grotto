@@ -8,6 +8,7 @@ import type {
     ReminderScriptResult,
 } from '@grotto/api';
 import { agentActionAttentionSchema } from '@grotto/api';
+import type { EffectRuntime } from '@grotto/effect';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
     messageSelection,
@@ -36,9 +37,11 @@ import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
 import { canBeginAgentDrain, nextAgentChainTurns } from './chain-budget.ts';
 import { advanceSeenForRun, markCursorSubsumedSeen, recordExactMessagesServed } from './cursors.ts';
+import { traceAgentDispatch } from './dispatch-telemetry.ts';
 import { shouldRetryFailure } from './failure-policy.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
+import { isBackedOff, maxDeliveryFailures, nextRetryAt } from './retry-policy.ts';
 import { recordSessionRotation } from './session-rotation.ts';
 import type { AgentDeliveryRow, AgentDispatchConfig } from './store.ts';
 import * as store from './store.ts';
@@ -78,20 +81,15 @@ export interface EnqueueInput {
     threadFollowReactivated?: boolean;
 }
 
-/** After how many consecutive failed turns an Agent stops auto-retrying (degraded). */
-const maxDeliveryFailures = 5;
-const failureBackoffBaseMs = 5000;
-const failureBackoffCapMs = 60_000;
 /** Bounds one drain so the composed prompt stays well under command/env limits. */
 const maxDrainRows = 50;
 const maxDrainChars = 24_000;
 
 /**
- * Server-owned durable Agent delivery. All run, stop, and pending-inbox state
- * lives in PostgreSQL, so a restarted Server or a reconnecting Computer resumes
- * without losing or duplicating model-visible work. One Agent serializes its
- * turns through its single delivery row; different Agents dispatch concurrently
- * with no Computer-wide queue. The retry sweep resends unacknowledged
+ * Server-owned durable Agent delivery. PostgreSQL owns all run, stop, and pending-inbox state, so a restarted Server or reconnecting Computer resumes
+ * without losing accepted work. Crash recovery is at least once, so lost
+ * settlement evidence may repeat model-visible work. Agents serialize independently, and the
+ * retry sweep resends unacknowledged
  * deliveries, reconnect reconciliation is idempotent, and a floating-session
  * run drains a bounded slice across all pending targets.
  */
@@ -99,7 +97,11 @@ export class AgentDelivery {
     private readonly db: GrottoDatabase;
     private readonly transport: DeliveryTransport;
 
-    constructor(db: GrottoDatabase, transport: DeliveryTransport) {
+    constructor(
+        db: GrottoDatabase,
+        transport: DeliveryTransport,
+        private readonly runtime?: EffectRuntime<never>
+    ) {
         this.db = db;
         this.transport = transport;
     }
@@ -134,11 +136,13 @@ export class AgentDelivery {
 
     /** Enqueues work in its own transaction and dispatches — the direct-caller path. */
     async deliver(input: EnqueueInput): Promise<void> {
-        const plan = await this.db.transaction(async (tx) => {
-            await lockServerRow(tx, input.serverId);
-            await this.enqueue(tx, input);
-            return this.planDispatch(tx, input.agentId);
-        });
+        const plan = await traceAgentDispatch(this.runtime, input, async () =>
+            this.db.transaction(async (tx) => {
+                await lockServerRow(tx, input.serverId);
+                await this.enqueue(tx, input);
+                return this.planDispatch(tx, input.agentId);
+            })
+        );
         this.emit(plan);
     }
 
@@ -148,12 +152,14 @@ export class AgentDelivery {
         serverId: string,
         options?: DispatchOptions
     ): Promise<void> {
-        const plan = await this.db.transaction(async (tx) => {
-            await lockServerRow(tx, serverId);
-            await store.ensureDeliveryState(tx, { agentId, serverId });
-            await store.materializeActionAttentions(tx, { agentId, serverId });
-            return this.planDispatch(tx, agentId, options);
-        });
+        const plan = await traceAgentDispatch(this.runtime, { agentId, serverId }, async () =>
+            this.db.transaction(async (tx) => {
+                await lockServerRow(tx, serverId);
+                await store.ensureDeliveryState(tx, { agentId, serverId });
+                await store.materializeActionAttentions(tx, { agentId, serverId });
+                return this.planDispatch(tx, agentId, options);
+            })
+        );
         this.emit(plan);
     }
 
@@ -451,7 +457,7 @@ export class AgentDelivery {
         });
     }
 
-    /** A run settled on the Computer: consume or requeue its work, then drain next. */
+    /** A run settled on the Computer: consume or requeue its work, then drain when eligible. */
     async onTurnSettled(computerId: string, summary: AgentTurnSummary): Promise<void> {
         await recordAgentTurnSummary(this.db, computerId, summary);
         const serverId = await store.readAgentServerId(this.db, summary.agentId);
@@ -650,7 +656,7 @@ export class AgentDelivery {
             const activity = await appendServerAgentActivity(tx, {
                 agentId: summary.agentId,
                 category: 'working',
-                phase: 'failed',
+                phase: summary.status === 'interrupted' ? 'interrupted' : 'failed',
                 runId: summary.runId,
                 serverId,
             });
@@ -695,7 +701,8 @@ export class AgentDelivery {
     /**
      * A Computer (re)connected: resend every in-flight run — acknowledged or not —
      * because the Computer may have lost its live turn, then drain queued work.
-     * The Computer dedupes by durable run marker, so resends are idempotent.
+     * A live daemon suppresses concurrent duplicates. After process loss, an
+     * accepted-but-unsettled run intentionally replays at least once.
      */
     async onComputerReconnect(computerId: string): Promise<void> {
         for (const command of await listReminderScriptCommands(this.db, computerId)) {
@@ -1208,18 +1215,6 @@ function configureFrame(agentId: string, config: ConfiguredAgent): AgentCommand 
         sessionResetKind: config.sessionResetKind,
         type: 'agent-configure',
     };
-}
-
-function isBackedOff(state: AgentDeliveryRow): boolean {
-    if (state.consecutiveFailures >= maxDeliveryFailures) {
-        return true;
-    }
-    return state.retryAfter !== null && state.retryAfter.getTime() > Date.now();
-}
-
-function nextRetryAt(failures: number): Date {
-    const backoff = Math.min(failureBackoffCapMs, failureBackoffBaseMs * 2 ** (failures - 1));
-    return new Date(Date.now() + backoff);
 }
 
 async function startFrame(

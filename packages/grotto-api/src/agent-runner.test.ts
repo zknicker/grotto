@@ -1,5 +1,10 @@
 import { expect, test } from 'bun:test';
-import { agentCommandSchema, agentInboxItemSchema, coveApplyResultSchema } from './agent-runner.ts';
+import {
+    agentCommandSchema,
+    agentInboxItemSchema,
+    agentTurnSummarySchema,
+    coveApplyResultSchema,
+} from './agent-runner.ts';
 import { agentCreateActionResultSchema } from './prepared-actions.ts';
 
 test('Agent restart carries only the Agent identity', () => {
@@ -19,6 +24,43 @@ test('Agent restart carries only the Agent identity', () => {
             type: 'agent-restart',
         }).success
     ).toBe(false);
+});
+
+test('turn summaries carry durable activity and explicit interruption', () => {
+    const turn = {
+        activity: {
+            operations: [
+                {
+                    category: 'using_tool',
+                    completed: 0,
+                    failed: 0,
+                    interrupted: 1,
+                },
+            ],
+        },
+        agentId: 'agt_turn',
+        endedAt: '2026-08-11T12:00:01.000Z',
+        messageCount: 0,
+        modelId: 'gpt-5.6-sol',
+        outputProduced: false,
+        runId: 'run_turn',
+        runtimeId: 'codex',
+        startedAt: '2026-08-11T12:00:00.000Z',
+        status: 'interrupted',
+        summary: 'The Agent turn was interrupted.',
+        tokenUsage: null,
+        type: 'turn',
+        visibleMessages: [],
+    };
+
+    const parsed = agentTurnSummarySchema.parse(turn);
+    expect(parsed.status).toBe('interrupted');
+    expect(parsed.activity.operations[0]).toMatchObject({
+        category: 'using_tool',
+        interrupted: 1,
+    });
+    const { activity: _activity, ...legacyTurn } = turn;
+    expect(agentTurnSummarySchema.parse(legacyTurn).activity).toEqual({ operations: [] });
 });
 
 test('Cove application uses one explicit factory command and durable result', () => {

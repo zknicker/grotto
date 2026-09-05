@@ -1,20 +1,15 @@
 import cors from '@fastify/cors';
+import { makeProcessTelemetryRelay, settle, tracePromise } from '@grotto/effect';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
+import { Effect, Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { registerAgentApiRoutes } from './agent-api/routes.ts';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
-import { startDeliveryRetrySweep } from './agent-delivery/retry-sweep.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
 import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { reconcileAttachments } from './attachments/reconcile-attachments.ts';
-import {
-    type AvatarGenerationLogger,
-    type AvatarImageProvider,
-    AvatarImageService,
-    OpenAiAvatarImageProvider,
-} from './avatar-generation/index.ts';
+import { AvatarImageService, OpenAiAvatarImageProvider } from './avatar-generation/index.ts';
 import { registerAvatarRoutes } from './avatars/avatar-routes.ts';
-import type { SweepTimers } from './boot-sweep.ts';
 import { purgeDeletedChannels } from './chats/channel-lifecycle.ts';
 import { ComputerConnections } from './computers/connections.ts';
 import { registerComputerRoutes } from './computers/routes.ts';
@@ -25,68 +20,33 @@ import { createGrottoContextFactory } from './grotto-api/context.ts';
 import { grottoRouter } from './grotto-api/router.ts';
 import { startGrottoWebSocketServer } from './grotto-api/ws.ts';
 import { registerGrottoHealth } from './grotto-health.ts';
-import type { GrottoReleaseIdentity } from './grotto-release-identity.ts';
 import { registerGrottoReleaseRoute } from './grotto-release-route.ts';
+import type { GrottoServerApplicationOptions } from './grotto-server-options.ts';
+import {
+    type GrottoServerShutdownResources,
+    makeGrottoServerShutdown,
+} from './grotto-server-shutdown.ts';
 import { registerGrottoStaticApp } from './grotto-static-app.ts';
 import { createClerkSessions } from './identity/clerk-sessions.ts';
-import { type ClerkUsers, createClerkUsers } from './identity/clerk-users.ts';
+import { createClerkUsers } from './identity/clerk-users.ts';
 import { isAllowedAppOrigin } from './origin.ts';
 import { connectGrottoDatabase } from './postgres/connection.ts';
 import { registerPreparedActionMediaRoutes } from './prepared-actions/media.ts';
-import type { ReminderClock } from './reminders/reminder-model.ts';
-import {
-    createReminderScheduler,
-    type ReminderScheduler,
-    type ReminderSchedulerTimers,
-} from './reminders/reminder-scheduler.ts';
+import { type ServerRecurringWork, startServerRecurringWork } from './recurring-work.ts';
 import { startReminderRetentionSweep } from './reminders/retention-sweep.ts';
 import { tickReminders } from './reminders/scheduler.ts';
+import { makeMcpIconResolver } from './server-mcp/icons.ts';
 import { registerMcpOAuthCallback } from './server-mcp/oauth-callback-route.ts';
 import { McpOAuthRelay } from './server-mcp/oauth-relay.ts';
 import { McpRuntime } from './server-mcp/runtime.ts';
+import { ServerPostCommitWork } from './server-post-commit-work.ts';
+import { makeServerRuntime } from './server-runtime.ts';
 import { purgeDeletedServers } from './servers/delete-server.ts';
 import { startStaleTaskSweep } from './tasks/close-stale-tasks.ts';
 import { TriggerRateLimiter } from './triggers/trigger-rate-limit.ts';
 import { registerTriggerRoutes } from './triggers/trigger-route.ts';
 
-/**
- * The Grotto Server. It serves only the Grotto Server contract over
- * HTTP and WebSocket, backed by PostgreSQL and Clerk.
- */
-export interface GrottoServerApplicationOptions {
-    appOrigin: string;
-    /** Absolute private root for Server-owned attachment bytes. */
-    attachmentRoot: string;
-    /** Safe operational logger for transient avatar generation. */
-    avatarGenerationLogger?: AvatarGenerationLogger;
-    /** Testable Server-owned image provider; production uses OpenAI when configured. */
-    avatarImageProvider?: AvatarImageProvider;
-    /** Clerk Backend API origin; defaults to Clerk's production endpoint. */
-    clerkApiUrl?: string;
-    /** Origin of the Clerk instance that authenticates humans. */
-    clerkIssuerUrl: string;
-    /** Clerk secret for the verified-email lookup invitations depend on. */
-    clerkSecretKey?: string;
-    /** Overrides the Clerk verified-email boundary; tests stand in for it. */
-    clerkUsers?: ClerkUsers;
-    /** Signed latest-production Computer release descriptor. */
-    computerReleaseManifestUrl?: string;
-    /** PostgreSQL database owning Users, Servers, memberships, and Channels. */
-    databaseUrl: string;
-    /** Server-owned OpenAI key; omitted when avatar generation is unavailable. */
-    openAiApiKey?: string;
-    /** Exact identity of the running release; absent for an ordinary development Server. */
-    releaseIdentity?: GrottoReleaseIdentity | null;
-    /** Controlled time seam for deterministic reminder and sweep lifecycle tests. */
-    reminderClock?: ReminderClock;
-    /** Timer seam; production uses the process interval. */
-    reminderSchedulerTimers?: ReminderSchedulerTimers;
-    /** Built Grotto App assets. Omit only when another process serves the App in development. */
-    staticAppRoot?: string;
-    /** Interval seam for the boot sweeps; tests pass inert timers. */
-    sweepTimers?: SweepTimers;
-}
-
+export type { GrottoServerApplicationOptions } from './grotto-server-options.ts';
 export interface GrottoServerApplication {
     app: FastifyInstance;
     close(): Promise<void>;
@@ -102,35 +62,74 @@ export interface GrottoServerApplication {
 export const grottoFastifyOptions = {
     bodyLimit: 12 * 1024 * 1024,
     logger: false,
-    maxParamLength: 5000,
+    routerOptions: { maxParamLength: 5000 },
 } as const;
 
 export async function createGrottoServerApplication(
     options: GrottoServerApplicationOptions
 ): Promise<GrottoServerApplication> {
-    const grotto = await connectGrottoDatabase(options.databaseUrl);
+    const runtime = makeServerRuntime({
+        releaseId: options.releaseIdentity?.releaseId,
+        serviceRevision: options.releaseIdentity?.sourceRevision,
+        serviceVersion: options.releaseIdentity?.serverVersion,
+    });
+    const scope = await settle(runtime, Scope.make());
+    const shutdown = await settle(runtime, makeGrottoServerShutdown());
+    let grotto: Awaited<ReturnType<typeof connectGrottoDatabase>> | null = null;
     let app: FastifyInstance | null = null;
-    let reminderScheduler: ReminderScheduler | null = null;
+    let recurringWork: ServerRecurringWork | null = null;
+    let postCommitWork: ServerPostCommitWork | null = null;
+    let mcpRuntime: McpRuntime | null = null;
+    let computerSocket: ReturnType<typeof startComputerAttachmentSocket> | null = null;
+    let webSocketServer: ReturnType<typeof startGrottoWebSocketServer> | null = null;
+    const resources = {
+        broadcastReconnectNotification: () => webSocketServer?.broadcastReconnectNotification(),
+        closeComputerSocket: () => computerSocket?.close(),
+        closeDatabase: async () => {
+            await grotto?.close();
+        },
+        closeFastify: async () => {
+            await app?.close();
+        },
+        closeHttpConnections: () => app?.server.closeAllConnections(),
+        closeMcpRuntime: async () => {
+            await mcpRuntime?.close();
+        },
+        closePostCommitWork: async () => {
+            await postCommitWork?.close();
+        },
+        closeRecurringWork: async () => {
+            await recurringWork?.close();
+        },
+        closeWebSocketServer: () => webSocketServer?.close(),
+    } satisfies GrottoServerShutdownResources;
 
     try {
-        const attachmentRoot = await openAttachmentRoot(options.attachmentRoot);
-        await reconcileAttachments(grotto.db, attachmentRoot);
-        await purgeDeletedChannels(grotto.db, attachmentRoot);
-        await purgeDeletedServers(grotto.db, attachmentRoot);
-        await markAllComputersOffline(grotto.db);
+        await settle(runtime, Scope.extend(shutdown.register(resources), scope));
+        const connectedGrotto = await connectGrottoDatabase(options.databaseUrl);
+        grotto = connectedGrotto;
+        const attachmentRoot = await openAttachmentRoot(options.attachmentRoot, runtime);
+        await reconcileAttachments(connectedGrotto.db, attachmentRoot);
+        await purgeDeletedChannels(connectedGrotto.db, attachmentRoot);
+        await purgeDeletedServers(connectedGrotto.db, attachmentRoot);
+        await markAllComputersOffline(connectedGrotto.db);
         const clerkSessions = createClerkSessions(options.clerkIssuerUrl, options.appOrigin);
-        const computerConnections = new ComputerConnections();
-        const agentDelivery = new AgentDelivery(grotto.db, computerConnections);
+        const computerConnections = new ComputerConnections(runtime);
+        const agentDelivery = new AgentDelivery(connectedGrotto.db, computerConnections, runtime);
+        const startedPostCommitWork = new ServerPostCommitWork(runtime);
+        postCommitWork = startedPostCommitWork;
         const avatarImageService = new AvatarImageService(
             options.avatarImageProvider ??
                 new OpenAiAvatarImageProvider({ apiKey: options.openAiApiKey }),
             options.avatarGenerationLogger
         );
-        const mcpRuntime = new McpRuntime(grotto.db);
+        const startedMcpRuntime = new McpRuntime(connectedGrotto.db, runtime);
+        mcpRuntime = startedMcpRuntime;
+        const mcpIconResolver = makeMcpIconResolver(runtime);
+        const mcpOAuthRelay = new McpOAuthRelay(connectedGrotto.db, startedMcpRuntime);
         // One inbound budget per trigger, shared by the public route and the
         // operator's test fire: a test costs exactly what a real delivery does.
         const triggerRateLimiter = new TriggerRateLimiter();
-        const mcpOAuthRelay = new McpOAuthRelay(grotto.db, mcpRuntime);
         const createContext = createGrottoContextFactory({
             agentDelivery,
             appOrigin: options.appOrigin,
@@ -146,17 +145,21 @@ export async function createGrottoServerApplication(
             computerConnections,
             computerReleaseManifestUrl:
                 options.computerReleaseManifestUrl ?? productionComputerManifestUrl,
-            grottoDb: grotto.db,
+            grottoDb: connectedGrotto.db,
+            mcpIconResolver,
             mcpOAuthRelay,
-            mcpRuntime,
+            mcpRuntime: startedMcpRuntime,
+            postCommitWork: startedPostCommitWork,
+            runtime,
             triggerRateLimiter,
         });
         const isAllowedOrigin = (origin: string | undefined) =>
             isAllowedAppOrigin(origin, options.appOrigin);
 
-        app = Fastify(grottoFastifyOptions);
+        const startedApp = Fastify(grottoFastifyOptions);
+        app = startedApp;
 
-        await app.register(cors, {
+        await startedApp.register(cors, {
             credentials: true,
             methods: ['GET', 'HEAD', 'POST', 'PUT'],
             origin: (origin, callback) => {
@@ -164,30 +167,38 @@ export async function createGrottoServerApplication(
             },
         });
 
-        await registerAttachmentRoutes(app, {
+        await registerAttachmentRoutes(startedApp, {
             clerkSessions,
-            db: grotto.db,
+            db: connectedGrotto.db,
             root: attachmentRoot,
+            runtime,
         });
-        registerAvatarRoutes(app, { db: grotto.db });
-        registerPreparedActionMediaRoutes(app, { db: grotto.db });
-        registerComputerRoutes(app, { appOrigin: options.appOrigin, db: grotto.db });
-        registerAgentApiRoutes(app, {
+        registerAvatarRoutes(startedApp, { db: connectedGrotto.db });
+        registerPreparedActionMediaRoutes(startedApp, { db: connectedGrotto.db });
+        registerComputerRoutes(startedApp, {
+            appOrigin: options.appOrigin,
+            db: connectedGrotto.db,
+            telemetryRelay: makeProcessTelemetryRelay(),
+        });
+        registerAgentApiRoutes(startedApp, {
             agentDelivery,
             avatarImageService,
             attachmentRoot,
-            db: grotto.db,
-            mcpRuntime,
+            db: connectedGrotto.db,
+            mcpRuntime: startedMcpRuntime,
+            postCommitWork: startedPostCommitWork,
         });
-        registerMcpOAuthCallback(app, mcpOAuthRelay);
-        await registerTriggerRoutes(app, {
-            db: grotto.db,
+        registerMcpOAuthCallback(startedApp, mcpOAuthRelay);
+        await registerTriggerRoutes(startedApp, {
+            db: connectedGrotto.db,
             delivery: agentDelivery,
             limiter: triggerRateLimiter,
+            postCommitWork: startedPostCommitWork,
+            runtime,
         });
-        registerGrottoReleaseRoute(app, { releaseIdentity: options.releaseIdentity });
+        registerGrottoReleaseRoute(startedApp, { releaseIdentity: options.releaseIdentity });
 
-        await app.register(fastifyTRPCPlugin, {
+        await startedApp.register(fastifyTRPCPlugin, {
             prefix: '/trpc',
             trpcOptions: {
                 allowMethodOverride: true,
@@ -196,35 +207,43 @@ export async function createGrottoServerApplication(
             },
         });
 
-        const startedApp = app;
-        const webSocketServer = startGrottoWebSocketServer(startedApp.server, {
+        const startedWebSocketServer = startGrottoWebSocketServer(startedApp.server, {
             createContext,
             isAllowedOrigin,
         });
-        const computerSocket = startComputerAttachmentSocket(
+        webSocketServer = startedWebSocketServer;
+        const startedComputerSocket = startComputerAttachmentSocket(
             startedApp.server,
-            grotto.db,
+            connectedGrotto.db,
             computerConnections,
             agentDelivery
         );
-        const deliveryRetrySweep = startDeliveryRetrySweep(agentDelivery);
+        computerSocket = startedComputerSocket;
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
-        const reminderRetentionSweep = startReminderRetentionSweep(
-            grotto.db,
+        for (const startSweep of [startReminderRetentionSweep, startStaleTaskSweep]) {
+            await settle(
+                runtime,
+                Scope.extend(
+                    Effect.acquireRelease(
+                        Effect.sync(() =>
+                            startSweep(connectedGrotto.db, reminderClock, options.sweepTimers)
+                        ),
+                        (sweep) => Effect.promise(() => sweep.close())
+                    ),
+                    scope
+                )
+            );
+        }
+        recurringWork = await startServerRecurringWork({
+            delivery: agentDelivery,
             reminderClock,
-            options.sweepTimers
-        );
-        const staleTaskSweep = startStaleTaskSweep(grotto.db, reminderClock, options.sweepTimers);
-        reminderScheduler = createReminderScheduler({
-            clock: reminderClock,
-            tick: () => tickReminders(grotto.db, reminderClock, agentDelivery),
-            timers: options.reminderSchedulerTimers,
+            reminderTick: () => tickReminders(connectedGrotto.db, reminderClock, agentDelivery),
+            runtime,
         });
-        await reminderScheduler.start();
 
-        registerGrottoHealth(app, grotto.health, 5000, () => {
+        registerGrottoHealth(startedApp, runtime, connectedGrotto.health, 5000, () => {
             return (
-                reminderScheduler?.health() ?? {
+                recurringWork?.reminderHealth() ?? {
                     consecutiveFailures: 1,
                     lastSuccessfulTickAt: null,
                     status: 'degraded' as const,
@@ -233,30 +252,18 @@ export async function createGrottoServerApplication(
         });
 
         if (options.staticAppRoot) {
-            await registerGrottoStaticApp(app, options.staticAppRoot);
+            await registerGrottoStaticApp(startedApp, options.staticAppRoot);
         }
 
         let closePromise: Promise<void> | null = null;
         const close = () => {
-            closePromise ??= (async () => {
-                webSocketServer.broadcastReconnectNotification();
-                webSocketServer.close();
-                deliveryRetrySweep.close();
-                // Both sweeps stop their schedule on the call and settle their
-                // in-flight write before the pool goes; awaiting later keeps
-                // the socket teardown ahead of the wait.
-                const sweepsClosed = Promise.all([
-                    reminderRetentionSweep.close(),
-                    staleTaskSweep.close(),
-                ]);
-                computerSocket.close();
-                startedApp.server.closeAllConnections();
-                await reminderScheduler?.close();
-                await sweepsClosed;
-                await mcpRuntime.close();
-                await startedApp.close();
-                await grotto.close();
-            })();
+            closePromise ??= settle(runtime, shutdown.close(scope, Exit.succeed(undefined))).then(
+                () => runtime.dispose(),
+                async (cause) => {
+                    await runtime.dispose().catch(() => undefined);
+                    throw cause;
+                }
+            );
             return closePromise;
         };
 
@@ -265,10 +272,14 @@ export async function createGrottoServerApplication(
             close,
             listen: async (port) => {
                 try {
-                    await startedApp.listen({ host: '127.0.0.1', port });
+                    await tracePromise(
+                        runtime,
+                        'grotto.server.startup',
+                        { 'grotto.operation': 'server.startup' },
+                        async () => startedApp.listen({ host: '127.0.0.1', port })
+                    );
                 } catch (cause) {
-                    // A failed bind leaves the application and its PostgreSQL
-                    // pool open; the bind error is the useful one.
+                    // A failed bind must not leave the application and pool open.
                     await close().catch(() => undefined);
                     throw cause;
                 }
@@ -276,9 +287,8 @@ export async function createGrottoServerApplication(
         };
     } catch (cause) {
         // The original failure is the useful one; teardown must not mask it.
-        await reminderScheduler?.close().catch(() => undefined);
-        await app?.close().catch(() => undefined);
-        await grotto.close().catch(() => undefined);
+        await settle(runtime, shutdown.close(scope, Exit.fail(cause))).catch(() => undefined);
+        await runtime.dispose().catch(() => undefined);
         throw cause;
     }
 }

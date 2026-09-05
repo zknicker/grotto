@@ -10,12 +10,17 @@ import {
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
 export function registerAgentAskRoutes(
     app: FastifyInstance,
-    dependencies: { agentDelivery: AgentDelivery; db: GrottoDatabase }
+    dependencies: {
+        agentDelivery: AgentDelivery;
+        db: GrottoDatabase;
+        postCommitWork: ServerPostCommitWork;
+    }
 ) {
     app.post('/api/agent/asks', async (request, reply) => {
         const runner = await authorizeAgentRunner(dependencies.db, request);
@@ -43,13 +48,7 @@ export function registerAgentAskRoutes(
             for (const event of created.events) {
                 emitDurableChatEvent({ audienceUserId: null, event });
             }
-            await Promise.all(
-                created.wakes.map((wake) =>
-                    dependencies.agentDelivery
-                        .dispatchAgent(wake.agentId, wake.serverId)
-                        .catch(() => undefined)
-                )
-            );
+            await dependencies.postCommitWork.wakeAgents(dependencies.agentDelivery, created.wakes);
             return created.receipt;
         } catch (cause) {
             if (cause instanceof AskConflictError) {

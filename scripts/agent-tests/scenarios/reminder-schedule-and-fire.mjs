@@ -1,13 +1,14 @@
 // An Agent asked to check back later must schedule a real reminder instead of
-// holding its turn open, and when that reminder fires it must reread the chat
-// and report the newest business state exactly once.
+// holding its turn open, and when that reminder fires it must reread the chat,
+// report the newest business state exactly once, and attribute that message to
+// the fire. The fire itself never writes a Chat receipt.
 
 import { defineScenario } from '../scenario.mjs';
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'An Agent asked for a one-minute follow-up schedules one non-repeating reminder anchored to the conversation, ends its turn, and after exactly one fire receipt reports the status line that arrived while it was away.',
+        'An Agent asked for a one-minute follow-up schedules one non-repeating reminder anchored to the conversation, ends its turn, and reports the status line that arrived while it was away in exactly one reminder-caused message.',
     name: 'reminder-schedule-and-fire',
     async run({ agents, expect, kit, log, marker, settleTurn }) {
         const [worker] = agents;
@@ -48,13 +49,8 @@ export default defineScenario({
             }
 
             log('waiting for the reminder to fire');
-            const receipt = await kit.awaitMessage(anchorChatId, isReminderFireReceipt, 140_000);
-            expect(receipt, 'the reminder fire receipt').toBeTruthy();
-
             const earlyReports = (await readAgentReplies(kit, anchorChatId, worker.id)).filter(
-                (message) =>
-                    message.content.includes(`READY-${token}`) &&
-                    Date.parse(message.createdAt) < Date.parse(receipt.createdAt)
+                (message) => message.content.includes(`READY-${token}`)
             );
             expect(earlyReports, 'follow-up reports before the reminder fired').toHaveLength(0);
 
@@ -63,23 +59,20 @@ export default defineScenario({
                 worker.id,
                 (message) =>
                     message.content.includes(`READY-${token}`) &&
-                    Date.parse(message.createdAt) >= Date.parse(receipt.createdAt),
+                    message.cause?.kind === 'reminder' &&
+                    message.cause.automationId === reminder.id,
                 200_000
             );
             const report = reported.message;
             expect(report.content, 'the follow-up report').toContain(`READY-${token}`);
+            expect(report.cause?.fireId, 'the reminder fire attribution').toBeTruthy();
 
             log('checking gates');
-            const messages = await kit.readMessages(anchorChatId);
-            const receipts = messages.filter(isReminderFireReceipt);
-            expect(receipts, 'reminder fire receipts in the anchor chat').toHaveLength(1);
-            expect(
-                Date.parse(receipt.createdAt) <= Date.parse(report.createdAt),
-                'the fire receipt precedes the follow-up report'
-            ).toBe(true);
-
             const reports = (await readAgentReplies(kit, anchorChatId, worker.id)).filter(
-                (message) => message.content.includes(`READY-${token}`)
+                (message) =>
+                    message.content.includes(`READY-${token}`) &&
+                    message.cause?.kind === 'reminder' &&
+                    message.cause.automationId === reminder.id
             );
             expect(
                 reports,
@@ -153,14 +146,6 @@ async function cancelIfScheduled(kit, reminder) {
             });
         })
         .catch(() => undefined);
-}
-
-function isReminderFireReceipt(message) {
-    return (
-        message.author.kind === 'system' &&
-        message.author.system === 'reminder' &&
-        message.content.startsWith('🔔 Reminder:')
-    );
 }
 
 function wait(ms) {

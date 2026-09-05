@@ -11,13 +11,18 @@ import {
     parseAgentConfigureCommand,
     parseCoveApplyCommand,
 } from './agent-configuration.ts';
-import { AgentConfigurationQueue } from './agent-configuration-queue.ts';
 import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.ts';
-import { AgentRunSettlements } from './agent-run-settlements.ts';
 import { applyAuthoritativeSession } from './agent-session-authority.ts';
 import { parseAgentSkillFileRequest, runAgentSkillFileRequest } from './agent-skill-files.ts';
+import { traceAgentTurn } from './agent-turn-telemetry.ts';
+import { AttachmentConnectionWork } from './attachment-connection-work.ts';
 import { type AttachmentConnectionOutcome, runAttachmentDaemon } from './attachment-daemon-loop.ts';
+import {
+    AttachmentDaemonProcessRegistry,
+    readAttachmentDaemonMarker,
+} from './attachment-daemon-process.ts';
+import { AttachmentDaemonWork } from './attachment-daemon-work.ts';
 import { type AttachmentHeartbeat, startAttachmentHeartbeat } from './attachment-heartbeat.ts';
 import {
     archiveUnlinkedAttachment,
@@ -46,14 +51,9 @@ import { printComputerHeader, printComputerHelpPage } from './cli/chrome.ts';
 import { findComputerCommandHelp, resolveComputerHelpRequest } from './cli/help.ts';
 import { cliColorsEnabled, createCliRenderer, stdoutRenderer } from './cli/render.ts';
 import { readComputerName } from './computer-name.ts';
-import {
-    decideStart,
-    purgeServerPartition,
-    readRunMarker,
-    releaseAgentRun,
-    reserveAgentRun,
-    writeRunMarker,
-} from './delivery.ts';
+import { toReportedAgentState } from './computer-report.ts';
+import { type DaemonRuntime, withDaemonRuntime } from './daemon-runtime.ts';
+import { decideStart, purgeServerPartition, readRunMarker, writeRunMarker } from './delivery.ts';
 import {
     doctorComputer,
     formatComputerStatus,
@@ -67,7 +67,7 @@ import {
     readExecutionJournalRequest,
 } from './execution-journal-relay.ts';
 import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
-import { prewarmBridgeStores } from './harness/bridge-prewarm.ts';
+import { createBridgePrewarmer } from './harness/bridge-prewarm.ts';
 import { requestSessionRestart } from './harness/session-restart.ts';
 import {
     acceptHostSkillImport,
@@ -100,6 +100,7 @@ import {
     resetAgentState,
     runAgentLaunch,
 } from './launch.ts';
+import { launchCrashTurn } from './launch-crash-turn.ts';
 import { replaceLaunchdService } from './launchd.ts';
 import {
     completeComputerLogin,
@@ -148,9 +149,9 @@ interface AttachResponse {
 const dataRoot = process.env.GROTTO_COMPUTER_DATA_ROOT ?? join(homedir(), '.grotto', 'computer');
 const readCachedComputerUsage = createComputerUsageCache({ dataRoot });
 const serverOrigin = process.env.GROTTO_SERVER_ORIGIN ?? 'https://grotto.sh';
+const attachmentDaemonProcesses = new AttachmentDaemonProcessRegistry();
 
-// Commands that open with the one-line header on a TTY. The freshness status
-// line rides along only where staleness is the point of the command.
+// TTY commands with the one-line header; freshness appears only when relevant.
 const headerCommands: Record<string, { updateStatus: boolean }> = {
     attach: { updateStatus: false },
     'configure-openrouter': { updateStatus: false },
@@ -169,8 +170,7 @@ const headerCommands: Record<string, { updateStatus: boolean }> = {
 
 async function main(args: string[]) {
     const [command, target] = args;
-    // The embedded Agent CLI. The managed `grotto` wrapper re-executes this
-    // entrypoint; it is a separate command surface, not a separate artifact.
+    // The managed Agent CLI re-executes this entrypoint as another command surface.
     if (command === '__agent') {
         process.exitCode = await runAgentCli(args.slice(1));
         return;
@@ -249,8 +249,7 @@ async function main(args: string[]) {
         return;
     }
     if (command === '--version' || command === 'version') {
-        // Piped output is a contract: the signed-release updater JSON-parses
-        // this to verify artifact identity. Only a TTY gets the pretty line.
+        // The signed-release updater parses piped JSON; only a TTY gets presentation.
         if (process.stdout.isTTY === true) {
             console.log(
                 `${stdoutRenderer.header({ version: computerVersion })} ${stdoutRenderer.hint(
@@ -349,8 +348,7 @@ async function main(args: string[]) {
                 try {
                     await startAttachments(target);
                 } catch (error) {
-                    // The resident supervisor outlives transient respawn failures;
-                    // exiting here would strand every attachment until a full restart.
+                    // The resident supervisor must outlive transient respawn failures.
                     console.error(error instanceof Error ? error.message : String(error));
                 }
             }
@@ -391,32 +389,40 @@ async function main(args: string[]) {
         if (!attachment) {
             throw new Error('This Server is not attached to this Grotto Computer.');
         }
-        let prewarmed = false;
-        process.exitCode = await runAttachmentDaemon({
-            attachmentExists: async () => (await readAttachment(target)) !== null,
-            connect: () => {
-                // Fire-and-forget: a warm store makes first Agent bootstraps local
-                // hard-links; a failed warm just means they fetch, as before. Tests
-                // exercise this daemon path and must not spawn real installs.
-                if (!prewarmed && process.env.NODE_ENV !== 'test') {
-                    prewarmed = true;
-                    void prewarmBridgeStores({
-                        agentsRoot: join(dataRoot, 'servers', attachment.serverId, 'agents'),
-                        // Fresh development Servers seed only Codex Agents. Other
-                        // runtimes warm on demand instead of adding hundreds of
-                        // megabytes to every disposable dev stack.
-                        ...(process.env.GROTTO_DEV_STACK === '1' ? { harnessIds: ['codex'] } : {}),
-                    });
-                }
-                return connect(attachment);
-            },
-            isTerminalUnlinkedError: isComputerMachineUnlinked,
-            log: (message) => console.error(`/${attachment.slug}: ${message}`),
-            markTerminalUnlinked: () => markTerminalUnlinked(dataRoot, attachment),
-            oneshot: process.env.GROTTO_COMPUTER_ONESHOT === '1',
-            sleep: (ms) => Bun.sleep(ms),
-            validate: () => validate(attachment),
+        const prewarm = createBridgePrewarmer({
+            agentsRoot: join(dataRoot, 'servers', attachment.serverId, 'agents'),
+            ...(process.env.GROTTO_DEV_STACK === '1' ? { harnessIds: ['codex'] } : {}),
         });
+        process.exitCode = await withDaemonRuntime(
+            async (runtime) => {
+                const daemonWork = new AttachmentDaemonWork(runtime);
+                try {
+                    return await runAttachmentDaemon(runtime, {
+                        attachmentExists: async () => (await readAttachment(target)) !== null,
+                        connect: () => {
+                            // Best-effort prewarm; tests on this path never spawn real installs.
+                            if (process.env.NODE_ENV !== 'test') {
+                                prewarm();
+                            }
+                            return connect(attachment, runtime, daemonWork);
+                        },
+                        isTerminalUnlinkedError: isComputerMachineUnlinked,
+                        log: (message) => console.error(`/${attachment.slug}: ${message}`),
+                        markTerminalUnlinked: () => markTerminalUnlinked(dataRoot, attachment),
+                        oneshot: process.env.GROTTO_COMPUTER_ONESHOT === '1',
+                        validate: () => validate(attachment),
+                    });
+                } finally {
+                    await daemonWork.close();
+                }
+            },
+            {
+                telemetryRelay: {
+                    credential: attachment.credential,
+                    serverOrigin: attachment.serverOrigin,
+                },
+            }
+        );
         return;
     }
     if (command === 'attach') {
@@ -779,12 +785,21 @@ async function startAttachmentDaemon(attachment: Attachment) {
     if (await isTerminalUnlinked(dataRoot, attachment)) {
         return;
     }
-    const marker = await readAttachmentDaemonMarker(attachment);
-    if (marker && isPidAlive(marker.pid) && marker.credentialHash === hash(attachment.credential)) {
+    const marker = await readAttachmentDaemonMarker(attachmentDaemonPath(attachment));
+    const plan = await attachmentDaemonProcesses.planStart(
+        marker,
+        hash(attachment.credential),
+        attachment.serverId
+    );
+    if (plan.kind === 'retain') {
         return;
     }
-    if (marker && isPidAlive(marker.pid)) {
-        process.kill(marker.pid, 'SIGTERM');
+    if (plan.kind === 'restart') {
+        try {
+            process.kill(plan.pid, 'SIGTERM');
+        } catch {
+            // It exited after identity verification; replacement still proceeds.
+        }
     }
     const entrypoint = computerAttachmentDaemonEntrypoint(attachment.serverId, {
         watch: process.env.GROTTO_COMPUTER_WATCH_ATTACHMENT_DAEMON === '1',
@@ -804,11 +819,12 @@ async function startAttachmentDaemon(attachment: Attachment) {
         `${JSON.stringify({ credentialHash: hash(attachment.credential), pid: child.pid })}\n`,
         { mode: 0o600 }
     );
-    // The durable marker and resident supervisor own the attachment daemon, not this
-    // one-shot CLI invocation.
+    attachmentDaemonProcesses.recordStarted(attachment.serverId, child.pid);
+    // The durable marker and resident supervisor own the daemon, not this command.
     child.unref();
     void child.exited.then(async () => {
-        const marker = await readAttachmentDaemonMarker(attachment);
+        attachmentDaemonProcesses.recordExited(attachment.serverId, child.pid);
+        const marker = await readAttachmentDaemonMarker(attachmentDaemonPath(attachment));
         if (marker?.pid === child.pid) {
             await rm(attachmentDaemonPath(attachment), { force: true });
         }
@@ -816,10 +832,11 @@ async function startAttachmentDaemon(attachment: Attachment) {
 }
 
 async function stopAttachmentDaemon(attachment: Attachment) {
-    const marker = await readAttachmentDaemonMarker(attachment);
+    const marker = await readAttachmentDaemonMarker(attachmentDaemonPath(attachment));
     try {
-        if (marker && isPidAlive(marker.pid)) {
-            process.kill(marker.pid, 'SIGTERM');
+        const pid = await attachmentDaemonProcesses.verifiedPid(marker, attachment.serverId);
+        if (pid) {
+            process.kill(pid, 'SIGTERM');
         }
     } catch {
         // A stopped or stale attachment daemon is already isolated from the other attachments.
@@ -829,39 +846,6 @@ async function stopAttachmentDaemon(attachment: Attachment) {
 
 function attachmentDaemonPath(attachment: Attachment) {
     return join(dataRoot, 'servers', attachment.serverId, 'attachment-daemon.pid');
-}
-
-async function readAttachmentDaemonMarker(
-    attachment: Attachment
-): Promise<{ credentialHash: string | null; pid: number } | null> {
-    try {
-        const contents = await readFile(attachmentDaemonPath(attachment), 'utf8');
-        const legacyPid = Number.parseInt(contents, 10);
-        if (Number.isSafeInteger(legacyPid) && legacyPid > 0) {
-            return { credentialHash: null, pid: legacyPid };
-        }
-        const marker = JSON.parse(contents) as { credentialHash?: unknown; pid?: unknown };
-        if (
-            typeof marker.credentialHash !== 'string' ||
-            !/^[a-f0-9]{64}$/u.test(marker.credentialHash) ||
-            !Number.isSafeInteger(marker.pid) ||
-            (marker.pid as number) <= 0
-        ) {
-            return null;
-        }
-        return { credentialHash: marker.credentialHash, pid: marker.pid as number };
-    } catch {
-        return null;
-    }
-}
-
-function isPidAlive(pid: number) {
-    try {
-        process.kill(pid, 0);
-        return true;
-    } catch {
-        return false;
-    }
 }
 
 async function installResidentService() {
@@ -903,9 +887,10 @@ async function stopResidentService() {
 async function restartAfterUpdate() {
     for (const attachment of await listAttachments()) {
         try {
-            const marker = await readAttachmentDaemonMarker(attachment);
-            if (marker && marker.pid !== process.pid && isPidAlive(marker.pid)) {
-                process.kill(marker.pid, 'SIGTERM');
+            const marker = await readAttachmentDaemonMarker(attachmentDaemonPath(attachment));
+            const pid = await attachmentDaemonProcesses.verifiedPid(marker, attachment.serverId);
+            if (pid && pid !== process.pid) {
+                process.kill(pid, 'SIGTERM');
             }
         } catch {
             // A missing attachment daemon is already ready for the resident restart.
@@ -976,9 +961,13 @@ function escapeXml(value: string) {
         .replaceAll('"', '&quot;');
 }
 
-async function connect(attachment: Attachment): Promise<AttachmentConnectionOutcome> {
+async function connect(
+    attachment: Attachment,
+    runtime: DaemonRuntime,
+    daemonWork: AttachmentDaemonWork
+): Promise<AttachmentConnectionOutcome> {
     const browserRoot = join(dataRoot, 'servers', attachment.serverId, 'browser');
-    void reconcileComputerBrowser(browserRoot).catch((error) => {
+    void reconcileComputerBrowser(browserRoot, runtime).catch((error) => {
         console.error(error instanceof Error ? error.message : error);
     });
     const socketUrl = new URL('/computer/attachment', attachment.serverOrigin);
@@ -988,27 +977,13 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
         readComputerName(),
     ]);
     const socket = new WebSocket(socketUrl);
-    // Live runs in this process, keyed by run so a Stop can kill the right child.
-    const running = new Map<string, AbortController>();
-    const agentRuns = new Map<string, string>();
-    const noticeSinks = new Map<
-        string,
-        { deliver: (notice: string) => Promise<boolean>; runId: string }
-    >();
-    const resettingAgents = new Set<string>();
-    const retiredAgents = new Set<string>();
-    const agentConfigurations = new AgentConfigurationQueue();
-    const runSettlements = new AgentRunSettlements(agentRuns);
-    const pendingWriters = new Set<Promise<unknown>>();
+    const connectionWork = await AttachmentConnectionWork.make(runtime);
+    const { agentWork, noticeSinks, resettingAgents, retiredAgents } = daemonWork;
     let deleting = false;
-    const trackWriter = <Result>(operation: Promise<Result>) => {
-        pendingWriters.add(operation);
-        operation.then(
-            () => pendingWriters.delete(operation),
-            () => pendingWriters.delete(operation)
-        );
-        return operation;
-    };
+    let deletionPromise: Promise<void> | null = null;
+    let detachSender: () => void = () => undefined;
+    const sendFrame = (frame: unknown) => daemonWork.send(frame);
+    const trackWriter = <Result>(operation: Promise<Result>) => daemonWork.track(operation);
     const startAgent = (command: AgentStartCommand) => {
         if (resettingAgents.has(command.agentId) || retiredAgents.has(command.agentId)) {
             return;
@@ -1016,23 +991,16 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
         // Reserve the run synchronously, before any async marker I/O, so a
         // duplicate start frame that arrives mid-launch is deduped here
         // instead of racing into a second concurrent child.
-        const reservation = reserveAgentRun(running, agentRuns, command.agentId, command.runId);
+        const reservation = agentWork.reserve(command.agentId, command.runId);
         if (reservation.kind === 'duplicate') {
-            socket.send(
-                JSON.stringify({
-                    agentId: command.agentId,
-                    runId: command.runId,
-                    type: 'ack',
-                })
-            );
+            sendFrame({ agentId: command.agentId, runId: command.runId, type: 'ack' });
             return;
         }
         if (reservation.kind === 'busy') {
             return;
         }
         const releaseRun = () => {
-            releaseAgentRun(running, agentRuns, command.agentId, command.runId);
-            runSettlements.released(command.agentId);
+            agentWork.release(command.agentId, command.runId);
         };
         void trackWriter(
             admitActiveRun(dataRoot, command.runId)
@@ -1049,7 +1017,8 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                         controller: reservation.controller,
                         noticeSinks,
                         releaseRun,
-                        socket,
+                        runtime,
+                        send: sendFrame,
                     });
                 })
                 .catch((error) => {
@@ -1059,16 +1028,14 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
         );
     };
     const sendSkillImportRecord = (record: AgentSkillImportRecord) => {
-        if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ ...record, type: 'agent-skill-import-result' }));
-        }
+        sendFrame({ ...record, type: 'agent-skill-import-result' });
     };
     const applyAcceptedSkillImport = async (
         record: Extract<AgentSkillImportRecord, { status: 'accepted' }>
     ) => {
         let settled: AgentSkillImportRecord;
         try {
-            await runSettlements.wait(record.agentId);
+            await agentWork.waitForRun(record.agentId);
             const skill = await importHostSkill({
                 agentId: record.agentId,
                 dataRoot,
@@ -1100,7 +1067,7 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
             });
         }
         sendSkillImportRecord(settled);
-        await sendComputerReport(socket, attachment.serverId, computerName);
+        await sendComputerReport(sendFrame, attachment.serverId, computerName);
     };
     const acceptSkillImport = async (command: AgentSkillImportCommand) => {
         const record = await acceptHostSkillImport({
@@ -1109,36 +1076,39 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
             serverId: attachment.serverId,
         });
         sendSkillImportRecord(record);
-        await sendComputerReport(socket, attachment.serverId, computerName);
+        await sendComputerReport(sendFrame, attachment.serverId, computerName);
         if (record.status === 'accepted') {
             await applyAcceptedSkillImport(record);
         }
     };
     let lastProgress = JSON.stringify(initialProgress);
     let heartbeat: AttachmentHeartbeat | null = null;
-    let usageTimer: ReturnType<typeof setInterval> | null = null;
-    const progressTimer = setInterval(() => {
-        void readUpdateProgress(dataRoot).then((update) => {
+    let usageLoopStarted = false;
+    connectionWork.startLoop(
+        500,
+        async () => {
+            const update = await readUpdateProgress(dataRoot);
             const serialized = JSON.stringify(update);
             if (serialized === lastProgress || socket.readyState !== WebSocket.OPEN) {
                 return;
             }
             lastProgress = serialized;
-            socket.send(JSON.stringify({ type: 'update-progress', update }));
-        });
-    }, 500);
+            sendFrame({ type: 'update-progress', update });
+        },
+        reportStateError
+    );
     let opened = false;
-    // A failed socket still fires close after error, so resolving on close is
-    // the one settled path; the reconnect loop reads `connected` to tell a
-    // Server disconnect from a Server that was never reachable.
+    // Resolve on close; `connected` distinguishes disconnect from unreachable Server.
     return await new Promise<AttachmentConnectionOutcome>((resolve) => {
         socket.addEventListener('close', () => {
-            clearInterval(progressTimer);
+            detachSender();
             heartbeat?.dispose();
-            if (usageTimer) {
-                clearInterval(usageTimer);
-            }
-            resolve({ connected: opened, deleted: deleting });
+            void Promise.allSettled([
+                connectionWork.close(),
+                deletionPromise ?? Promise.resolve(),
+            ]).finally(() => {
+                resolve({ connected: opened, deleted: deleting });
+            });
         });
         socket.addEventListener('error', () => {
             heartbeat?.dispose();
@@ -1151,6 +1121,7 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                 heartbeat = startAttachmentHeartbeat({
                     configuration: heartbeatConfiguration,
                     onTimeout: () => undefined,
+                    runtime,
                     socket,
                 });
                 return;
@@ -1163,15 +1134,15 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
             if (parseServerDeleteCommand(frame)) {
                 deleting = true;
                 disposeServerLaunchHosts(attachment.serverId);
+                agentWork.abortAll();
+                deletionPromise = purgeServerPartition(
+                    dataRoot,
+                    attachment.serverId,
+                    daemonWork.writerSnapshot()
+                ).catch((error) => {
+                    console.error(error instanceof Error ? error.message : error);
+                });
                 socket.close();
-                for (const controller of running.values()) {
-                    controller.abort();
-                }
-                void purgeServerPartition(dataRoot, attachment.serverId, pendingWriters).catch(
-                    (error) => {
-                        console.error(error instanceof Error ? error.message : error);
-                    }
-                );
                 return;
             }
             if (deleting) {
@@ -1179,12 +1150,12 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
             }
             const bootstrap = parseBootstrapAccepted(frame);
             if (bootstrap) {
-                socket.send(JSON.stringify({ type: 'heartbeat-negotiate' }));
+                sendFrame({ type: 'heartbeat-negotiate' });
                 if (bootstrap.mode === 'ordinary') {
                     const initialReport = Promise.resolve().then(async () => {
                         await Promise.all([
-                            sendComputerReport(socket, attachment.serverId, computerName),
-                            sendSystemEventReport(socket, attachment.serverId),
+                            sendComputerReport(sendFrame, attachment.serverId, computerName),
+                            sendSystemEventReport(sendFrame, attachment.serverId),
                         ]);
                         const acceptedImports = await listAcceptedHostSkillImports(
                             dataRoot,
@@ -1194,7 +1165,7 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                             await applyAcceptedSkillImport(record);
                         }
                         if (process.env.GROTTO_COMPUTER_USAGE_DISABLED !== '1') {
-                            await sendUsageReport(socket);
+                            await sendUsageReport(sendFrame);
                         }
                     });
                     void trackWriter(initialReport.catch(reportStateError)).finally(() => {
@@ -1202,10 +1173,15 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                             socket.close();
                         }
                     });
-                    if (process.env.GROTTO_COMPUTER_USAGE_DISABLED !== '1' && usageTimer === null) {
-                        usageTimer = setInterval(() => {
-                            void trackWriter(sendUsageReport(socket).catch(reportStateError));
-                        }, 15 * 60_000);
+                    if (process.env.GROTTO_COMPUTER_USAGE_DISABLED !== '1' && !usageLoopStarted) {
+                        usageLoopStarted = true;
+                        connectionWork.startLoop(
+                            '15 minutes',
+                            async () => {
+                                await trackWriter(sendUsageReport(sendFrame));
+                            },
+                            reportStateError
+                        );
                     }
                     return;
                 }
@@ -1227,7 +1203,7 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
             }
             const stop = parseStopCommand(frame);
             if (stop) {
-                running.get(stop.runId)?.abort();
+                agentWork.abortRun(stop.runId);
                 return;
             }
             const restart = parseRestartCommand(frame);
@@ -1236,9 +1212,9 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                     return;
                 }
                 void trackWriter(
-                    agentConfigurations
-                        .enqueue(restart.agentId, async () => {
-                            await runSettlements.wait(restart.agentId);
+                    agentWork
+                        .enqueueConfiguration(restart.agentId, async () => {
+                            await agentWork.waitForRun(restart.agentId);
                             disposeAgentLaunchHost(attachment.serverId, restart.agentId);
                             await requestSessionRestart(
                                 join(
@@ -1257,14 +1233,14 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
             const retirement = parseAgentRetireCommand(frame);
             if (retirement) {
                 retiredAgents.add(retirement.agentId);
-                const runId = agentRuns.get(retirement.agentId);
+                const runId = agentWork.activeRunId(retirement.agentId);
                 if (runId) {
-                    running.get(runId)?.abort();
+                    agentWork.abortRun(runId);
                 }
                 void trackWriter(
-                    agentConfigurations
-                        .wait(retirement.agentId)
-                        .then(() => runSettlements.wait(retirement.agentId))
+                    agentWork
+                        .waitForConfiguration(retirement.agentId)
+                        .then(() => agentWork.waitForRun(retirement.agentId))
                         .then(() => {
                             disposeAgentLaunchHost(attachment.serverId, retirement.agentId);
                             return purgeRetiredAgent({
@@ -1273,7 +1249,9 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                                 serverId: attachment.serverId,
                             });
                         })
-                        .then(() => sendComputerReport(socket, attachment.serverId, computerName))
+                        .then(() =>
+                            sendComputerReport(sendFrame, attachment.serverId, computerName)
+                        )
                         .catch(reportStateError)
                 );
                 return;
@@ -1284,9 +1262,9 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                     return;
                 }
                 void trackWriter(
-                    agentConfigurations
-                        .enqueue(configuration.agentId, async () => {
-                            await runSettlements.wait(configuration.agentId);
+                    agentWork
+                        .enqueueConfiguration(configuration.agentId, async () => {
+                            await agentWork.waitForRun(configuration.agentId);
                             const agentRoot = join(
                                 dataRoot,
                                 'servers',
@@ -1317,7 +1295,9 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                                 serverId: attachment.serverId,
                             });
                         })
-                        .then(() => sendComputerReport(socket, attachment.serverId, computerName))
+                        .then(() =>
+                            sendComputerReport(sendFrame, attachment.serverId, computerName)
+                        )
                         .catch(reportStateError)
                 );
                 return;
@@ -1328,18 +1308,22 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                     return;
                 }
                 void trackWriter(
-                    agentConfigurations
-                        .enqueue(coveApplication.agentId, async () => {
-                            await runSettlements.wait(coveApplication.agentId);
+                    agentWork
+                        .enqueueConfiguration(coveApplication.agentId, async () => {
+                            await agentWork.waitForRun(coveApplication.agentId);
                             const result = await applyCoveConfiguration({
                                 command: coveApplication,
                                 dataRoot,
                                 inventory: detectInventory(),
                                 serverId: attachment.serverId,
                             });
-                            socket.send(JSON.stringify(result));
+                            sendFrame(result);
                             if (result.status === 'applied') {
-                                await sendComputerReport(socket, attachment.serverId, computerName);
+                                await sendComputerReport(
+                                    sendFrame,
+                                    attachment.serverId,
+                                    computerName
+                                );
                             }
                         })
                         .catch(reportStateError)
@@ -1356,7 +1340,7 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                 void trackWriter(
                     (skillFileRequest.operation.kind === 'read'
                         ? Promise.resolve()
-                        : runSettlements.wait(skillFileRequest.agentId)
+                        : agentWork.waitForRun(skillFileRequest.agentId)
                     )
                         .then(() =>
                             runAgentSkillFileRequest({
@@ -1366,9 +1350,13 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                             })
                         )
                         .then(async (result) => {
-                            socket.send(JSON.stringify(result));
+                            sendFrame(result);
                             if (skillFileRequest.operation.kind !== 'read' && result.result) {
-                                await sendComputerReport(socket, attachment.serverId, computerName);
+                                await sendComputerReport(
+                                    sendFrame,
+                                    attachment.serverId,
+                                    computerName
+                                );
                             }
                         })
                         .catch(reportStateError)
@@ -1382,7 +1370,7 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                         dataRoot,
                         request: workspaceRequest,
                         serverId: attachment.serverId,
-                    }).then((result) => socket.send(JSON.stringify(result)))
+                    }).then((result) => sendFrame(result))
                 );
                 return;
             }
@@ -1393,15 +1381,15 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                         dataRoot,
                         request: executionJournalRequest,
                         serverId: attachment.serverId,
-                    }).then((result) => socket.send(JSON.stringify(result)))
+                    }).then((result) => sendFrame(result))
                 );
                 return;
             }
             const browserRequest = parseBrowserRequest(frame);
             if (browserRequest) {
                 void trackWriter(
-                    runBrowserRequest(browserRoot, browserRequest).then((result) =>
-                        socket.send(JSON.stringify(result))
+                    runBrowserRequest(browserRoot, browserRequest, runtime).then((result) =>
+                        sendFrame(result)
                     )
                 );
                 return;
@@ -1412,14 +1400,14 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                     return;
                 }
                 resettingAgents.add(reset.agentId);
-                const runId = agentRuns.get(reset.agentId);
+                const runId = agentWork.activeRunId(reset.agentId);
                 if (runId) {
-                    running.get(runId)?.abort();
+                    agentWork.abortRun(runId);
                 }
                 void trackWriter(
-                    agentConfigurations
-                        .wait(reset.agentId)
-                        .then(() => runSettlements.wait(reset.agentId))
+                    agentWork
+                        .waitForConfiguration(reset.agentId)
+                        .then(() => agentWork.waitForRun(reset.agentId))
                         .then(async () => {
                             await applyAuthoritativeSession({
                                 agentRoot: join(
@@ -1441,7 +1429,9 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                                 },
                             });
                         })
-                        .then(() => sendComputerReport(socket, attachment.serverId, computerName))
+                        .then(() =>
+                            sendComputerReport(sendFrame, attachment.serverId, computerName)
+                        )
                         .catch((error) => {
                             console.error(error instanceof Error ? error.message : error);
                         })
@@ -1454,16 +1444,17 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
             const reminderScript = parseReminderScriptCommand(frame);
             if (reminderScript) {
                 void trackWriter(
-                    runSettlements
-                        .wait(reminderScript.agentId)
+                    agentWork
+                        .waitForRun(reminderScript.agentId)
                         .then(() =>
                             runReminderScript({
                                 command: reminderScript,
                                 dataRoot,
+                                runtime,
                                 serverId: attachment.serverId,
                             })
                         )
-                        .then((result) => socket.send(JSON.stringify(result)))
+                        .then((result) => sendFrame(result))
                         .catch((error) => {
                             console.error(error instanceof Error ? error.message : error);
                         })
@@ -1496,14 +1487,12 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                     )
                         .then(() => {
                             if (injected) {
-                                socket.send(
-                                    JSON.stringify({
-                                        agentId: notice.agentId,
-                                        runId: notice.runId,
-                                        type: 'notice-ack',
-                                        workIds: notice.inbox.map((item) => item.id),
-                                    })
-                                );
+                                sendFrame({
+                                    agentId: notice.agentId,
+                                    runId: notice.runId,
+                                    type: 'notice-ack',
+                                    workIds: notice.inbox.map((item) => item.id),
+                                });
                             }
                         })
                         .catch((error) => {
@@ -1514,7 +1503,7 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
             }
             const command = parseStartCommand(frame);
             if (command) {
-                const pendingConfiguration = agentConfigurations.wait(command.agentId);
+                const pendingConfiguration = agentWork.waitForConfiguration(command.agentId);
                 void trackWriter(
                     pendingConfiguration.then(() => startAgent(command)).catch(reportStateError)
                 );
@@ -1522,21 +1511,28 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
         });
         socket.addEventListener('open', () => {
             opened = true;
+            detachSender = daemonWork.attachSender({
+                send(frame) {
+                    if (socket.readyState !== WebSocket.OPEN) {
+                        return false;
+                    }
+                    socket.send(JSON.stringify(frame));
+                    return true;
+                },
+            });
             void readUpdateProgress(dataRoot).then((update) => {
                 lastProgress = JSON.stringify(update);
-                socket.send(
-                    JSON.stringify({
-                        architecture: arch(),
-                        bootstrapProtocolVersion: computerBootstrapProtocolVersion,
-                        credential: attachment.credential,
-                        health: 'healthy',
-                        operatingSystem: platform(),
-                        productVersion: computerVersion,
-                        protocolVersion: computerProtocolVersion,
-                        type: 'bootstrap',
-                        update,
-                    })
-                );
+                sendFrame({
+                    architecture: arch(),
+                    bootstrapProtocolVersion: computerBootstrapProtocolVersion,
+                    credential: attachment.credential,
+                    health: 'healthy',
+                    operatingSystem: platform(),
+                    productVersion: computerVersion,
+                    protocolVersion: computerProtocolVersion,
+                    type: 'bootstrap',
+                    update,
+                });
             });
         });
     });
@@ -1570,7 +1566,8 @@ async function handleStartCommand(input: {
     clearActiveRun: () => Promise<void>;
     noticeSinks: Map<string, { deliver: (notice: string) => Promise<boolean>; runId: string }>;
     releaseRun: () => void;
-    socket: WebSocket;
+    runtime: DaemonRuntime;
+    send: (frame: unknown) => boolean;
 }): Promise<void> {
     const {
         attachment,
@@ -1580,10 +1577,10 @@ async function handleStartCommand(input: {
         controller,
         noticeSinks,
         releaseRun,
-        socket,
+        runtime,
+        send,
     } = input;
     const startedAt = new Date().toISOString();
-    const send = (frame: unknown) => socket.send(JSON.stringify(frame));
     const ack = () => send({ agentId: command.agentId, runId: command.runId, type: 'ack' });
     const settle = async (summary: AgentTurnFrame) => {
         send(summary);
@@ -1616,61 +1613,64 @@ async function handleStartCommand(input: {
         const launchCommand = { ...command, inbox: modelInbox };
         let summary: AgentTurnFrame;
         try {
-            summary = await runAgentLaunch({
-                attachment,
-                command: launchCommand,
-                dataRoot,
-                onRuntimeReady: async () => {
-                    const location = {
-                        agentId: command.agentId,
-                        dataRoot,
-                        serverId: attachment.serverId,
-                    };
-                    if (command.inboxDelivery === 'notice') {
-                        await reofferPendingMessages(location, command.inbox ?? []);
-                        await replacePendingInbox(
-                            location,
-                            command.inbox ?? [],
-                            command.totalPending
-                        );
-                    } else {
-                        if (marker?.status !== 'accepted') {
+            summary = await traceAgentTurn(runtime, command, (turnTraceContext) =>
+                runAgentLaunch({
+                    attachment,
+                    command: launchCommand,
+                    dataRoot,
+                    onRuntimeReady: async () => {
+                        const location = {
+                            agentId: command.agentId,
+                            dataRoot,
+                            serverId: attachment.serverId,
+                        };
+                        if (command.inboxDelivery === 'notice') {
                             await reofferPendingMessages(location, command.inbox ?? []);
+                            await replacePendingInbox(
+                                location,
+                                command.inbox ?? [],
+                                command.totalPending
+                            );
+                        } else {
+                            if (marker?.status !== 'accepted') {
+                                await reofferPendingMessages(location, command.inbox ?? []);
+                            }
+                            modelInbox = await acceptRunInbox(
+                                location,
+                                command.runId,
+                                command.inbox ?? []
+                            );
+                            launchCommand.inbox = modelInbox;
                         }
-                        modelInbox = await acceptRunInbox(
-                            location,
-                            command.runId,
-                            command.inbox ?? []
-                        );
-                        launchCommand.inbox = modelInbox;
-                    }
-                    await writeRunMarker(dataRoot, {
-                        marker: { status: 'accepted' },
-                        runId: command.runId,
-                        serverId: attachment.serverId,
-                    });
-                    ack();
-                },
-                onStoredNoticeDelivered: (receipt) => {
-                    send({
-                        agentId: command.agentId,
-                        ...receipt,
-                        type: 'notice-ack',
-                    });
-                },
-                registerNoticeSink: (deliver) => {
-                    const sink = { deliver, runId: command.runId };
-                    noticeSinks.set(command.agentId, sink);
-                    return () => {
-                        if (noticeSinks.get(command.agentId) === sink) {
-                            noticeSinks.delete(command.agentId);
-                        }
-                    };
-                },
-                sendFrame: send,
-                serverOrigin,
-                signal: controller.signal,
-            });
+                        await writeRunMarker(dataRoot, {
+                            marker: { status: 'accepted' },
+                            runId: command.runId,
+                            serverId: attachment.serverId,
+                        });
+                        ack();
+                    },
+                    onStoredNoticeDelivered: (receipt) =>
+                        send({
+                            agentId: command.agentId,
+                            ...receipt,
+                            type: 'notice-ack',
+                        }),
+                    registerNoticeSink: (deliver) => {
+                        const sink = { deliver, runId: command.runId };
+                        noticeSinks.set(command.agentId, sink);
+                        return () => {
+                            if (noticeSinks.get(command.agentId) === sink) {
+                                noticeSinks.delete(command.agentId);
+                            }
+                        };
+                    },
+                    runtime,
+                    sendFrame: send,
+                    serverOrigin,
+                    signal: controller.signal,
+                    turnTraceContext,
+                })
+            );
         } catch (error) {
             // A crash after the ack must still report a terminal turn, or the
             // Server's in-flight run never settles. The launch failed before any
@@ -1688,56 +1688,44 @@ async function handleStartCommand(input: {
             { agentId: command.agentId, dataRoot, serverId: attachment.serverId },
             command.runId
         );
-        await sendComputerReport(socket, attachment.serverId, computerName).catch(reportStateError);
+        await sendComputerReport(send, attachment.serverId, computerName).catch(reportStateError);
     } finally {
         await clearActiveRun();
         releaseRun();
     }
 }
 
-async function sendComputerReport(socket: WebSocket, serverId: string, computerName: string) {
+type SendComputerFrame = (frame: unknown) => boolean;
+
+async function sendComputerReport(send: SendComputerFrame, serverId: string, computerName: string) {
     const agents = await readEffectiveAgentStates(dataRoot, serverId);
-    socket.send(
-        JSON.stringify({
-            agents: agents.map(({ agentId, missingResources, modelId, runtimeId }) => ({
+    send({
+        agents: agents.map(toReportedAgentState),
+        inventory: {
+            ...detectInventory(),
+            agentSkillImports: await listAgentSkillImportReports(dataRoot, serverId),
+            agentSkills: await listAgentSkillReports(dataRoot, serverId),
+            importableSkills: await listImportableSkills(),
+            name: computerName,
+        },
+        type: 'report',
+    });
+    send({
+        agents: agents.map(
+            ({ agentId, grottoAgentAppliedAt, grottoAgentStatus, grottoAgentVersion }) => ({
                 agentId,
-                missingResources,
-                modelId,
-                runtimeId,
-            })),
-            inventory: {
-                ...detectInventory(),
-                agentSkillImports: await listAgentSkillImportReports(dataRoot, serverId),
-                agentSkills: await listAgentSkillReports(dataRoot, serverId),
-                importableSkills: await listImportableSkills(),
-                name: computerName,
-            },
-            type: 'report',
-        })
-    );
-    socket.send(
-        JSON.stringify({
-            agents: agents.map(
-                ({ agentId, grottoAgentAppliedAt, grottoAgentStatus, grottoAgentVersion }) => ({
-                    agentId,
-                    appliedAt: grottoAgentAppliedAt,
-                    status: grottoAgentStatus,
-                    version: grottoAgentVersion,
-                })
-            ),
-            type: 'grotto-agent-report',
-        })
-    );
+                appliedAt: grottoAgentAppliedAt,
+                status: grottoAgentStatus,
+                version: grottoAgentVersion,
+            })
+        ),
+        type: 'grotto-agent-report',
+    });
 }
 
-async function sendSystemEventReport(socket: WebSocket, serverId: string) {
+async function sendSystemEventReport(send: SendComputerFrame, serverId: string) {
     const events = await readAttachmentManagementEvents(dataRoot, serverId);
-    socket.send(
-        JSON.stringify({
-            events,
-            type: 'system-event-report',
-        })
-    );
+    send({ events, type: 'system-event-report' });
 }
 
 async function recordManagementCommandForAttachments(
@@ -1750,41 +1738,17 @@ async function recordManagementCommandForAttachments(
     );
 }
 
-async function sendUsageReport(socket: WebSocket) {
+async function sendUsageReport(send: SendComputerFrame) {
     const usage = await readCachedComputerUsage({
         openRouterManagementKey: await readOpenRouterManagementKey(dataRoot),
     });
-    if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: 'usage-report', usage }));
-    }
+    send({ type: 'usage-report', usage });
 }
 
 function reportStateError(error: unknown) {
     console.error(
         `Computer state report failed: ${error instanceof Error ? error.message : error}`
     );
-}
-
-function launchCrashTurn(
-    command: AgentStartCommand,
-    startedAt: string,
-    error: unknown
-): AgentTurnFrame {
-    return {
-        agentId: command.agentId,
-        endedAt: new Date().toISOString(),
-        messageCount: 0,
-        modelId: command.modelId,
-        outputProduced: false,
-        runId: command.runId,
-        runtimeId: command.runtimeId,
-        startedAt,
-        status: 'failed',
-        summary: `The Agent launch failed: ${error instanceof Error ? error.message : String(error)}`,
-        tokenUsage: null,
-        type: 'turn',
-        visibleMessages: [],
-    };
 }
 
 function hash(value: string) {

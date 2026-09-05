@@ -1,6 +1,7 @@
 import type { McpConnection, McpPresetAccountCreate } from '@grotto/api';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
+import type { McpIconResolver } from './icons.ts';
 import type { McpRuntime } from './runtime.ts';
 import { createMcpConnection } from './service.ts';
 
@@ -18,6 +19,7 @@ const presets = {
 export async function createMcpPresetAccount(
     db: GrottoDatabase,
     runtime: McpRuntime,
+    resolveIcon: McpIconResolver,
     member: GrottoUser | null,
     input: McpPresetAccountCreate
 ): Promise<McpConnection> {
@@ -25,6 +27,7 @@ export async function createMcpPresetAccount(
     return await createMcpConnection(
         db,
         runtime,
+        resolveIcon,
         member,
         {
             auth: 'oauth',

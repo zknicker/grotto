@@ -11,6 +11,7 @@ import {
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
+import { bunJsonb } from './bun-jsonb.ts';
 import { computersTable } from './computers.ts';
 import { serversTable } from './servers.ts';
 
@@ -22,6 +23,7 @@ import { serversTable } from './servers.ts';
 export const agentTurnsTable = pgTable(
     'agent_turns',
     {
+        activity: bunJsonb('activity').notNull().default(sql`'{"operations":[]}'::jsonb`),
         agentId: text('agent_id').notNull(),
         computerId: text('computer_id').notNull(),
         endedAt: timestamp('ended_at', { withTimezone: true }).notNull(),
@@ -39,7 +41,7 @@ export const agentTurnsTable = pgTable(
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
         startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
-        status: text('status').notNull().$type<'completed' | 'failed'>(),
+        status: text('status').notNull().$type<'completed' | 'failed' | 'interrupted'>(),
         summary: text('summary').notNull(),
         cacheReadTokens: integer('cache_read_tokens').notNull().default(0),
         cacheWriteTokens: integer('cache_write_tokens').notNull().default(0),
@@ -61,7 +63,7 @@ export const agentTurnsTable = pgTable(
             foreignColumns: [computersTable.serverId, computersTable.id],
             name: 'agent_turns_computer_fk',
         }).onDelete('cascade'),
-        check('agent_turns_status', sql`${table.status} in ('completed', 'failed')`),
+        check('agent_turns_status', sql`${table.status} in ('completed', 'failed', 'interrupted')`),
         check('agent_turns_message_count', sql`${table.messageCount} >= 0`),
         check(
             'agent_turns_token_counts',

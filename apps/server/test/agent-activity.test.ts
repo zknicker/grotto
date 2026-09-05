@@ -149,6 +149,7 @@ function activityFrame(seed: Seed, runId: string, producerSequence: number): Age
 
 function summary(seed: Seed, runId: string): AgentTurnSummary {
     return {
+        activity: { operations: [] },
         agentId: seed.agentId,
         endedAt: '2026-08-11T12:00:00.000Z',
         messageCount: 0,
@@ -240,7 +241,6 @@ test('deduplicates out-of-order Computer frames and interleaves by Server positi
     expect(secondPage.events.map((event) => event.position)).toEqual([2, 1]);
     expect(secondPage.nextBefore).toBeNull();
 });
-
 test('persists instruction refresh activity in agent history', async () => {
     const seed = await seedActivity();
     const { delivery, frame } = await startRun(seed);

@@ -70,8 +70,8 @@ test('aligns the Settings escape row with the first Chat navigation row', async 
 test('reads and updates the canonical human identity in Profile settings', async ({ page }) => {
     await signInAsClerkHuman(page);
     await page.goto(`/s/${slug}/settings/profile`);
-
     const name = page.getByRole('textbox', { name: 'Display name' });
+
     await expect(name).toHaveValue('Zach Knickerbocker');
     await expect(page.getByRole('button', { name: 'Upload profile photo' })).toContainText('ZK');
 

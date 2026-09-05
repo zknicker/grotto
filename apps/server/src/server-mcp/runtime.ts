@@ -1,4 +1,5 @@
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
+import type { EffectRuntime, TraceCarrier } from '@grotto/effect';
 import { and, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -6,13 +7,16 @@ import {
     mcpConnectionsTable,
     mcpSecretsTable,
 } from '../postgres/schema.ts';
-import { classifyMcpUpstreamError, McpDeniedError, withMcpTimeout } from './errors.ts';
+import { type ClientFactory, McpClientCache } from './client-cache.ts';
+import { asMcpArguments, McpDeniedError } from './errors.ts';
 import { createMcpOAuthProvider } from './oauth.ts';
 import { secureMcpFetch } from './secure-fetch.ts';
 import { listAllTools, modelToolName } from './tool-catalog.ts';
+import { runMcpUpstream } from './upstream-operation.ts';
 
 const DEFAULT_DISCOVERY_TIMEOUT_MS = 5000;
 const DEFAULT_INVOCATION_TIMEOUT_MS = 30_000;
+const DEFAULT_CLOSE_TIMEOUT_MS = 5000;
 
 export interface McpSecret {
     approvedAuthorizationServerOrigins: string[];
@@ -26,56 +30,69 @@ export interface McpSecret {
     tokens?: Record<string, unknown>;
     verifier?: string;
 }
-
 export interface McpToolDefinition {
     description: string;
     inputSchema: Record<string, unknown>;
     name: string;
     title: string | null;
 }
-
 interface McpRuntimeOptions {
+    clientFactory?: ClientFactory;
+    closeTimeoutMs?: number;
     discoveryTimeoutMs?: number;
     invocationTimeoutMs?: number;
 }
-
-/** Server-owned remote MCP clients, credentials, discovery, and invocation. */
 export class McpRuntime {
-    private readonly clients = new Map<string, Promise<MCPClient>>();
+    private readonly clients: McpClientCache;
+    private readonly closeTimeoutMs: number;
     private readonly discoveryTimeoutMs: number;
     private readonly invocationTimeoutMs: number;
-
     constructor(
         private readonly db: GrottoDatabase,
+        runtime: EffectRuntime<never>,
         options: McpRuntimeOptions = {}
     ) {
+        this.closeTimeoutMs = options.closeTimeoutMs ?? DEFAULT_CLOSE_TIMEOUT_MS;
         this.discoveryTimeoutMs = options.discoveryTimeoutMs ?? DEFAULT_DISCOVERY_TIMEOUT_MS;
         this.invocationTimeoutMs = options.invocationTimeoutMs ?? DEFAULT_INVOCATION_TIMEOUT_MS;
+        this.clients = new McpClientCache(
+            runtime,
+            options.clientFactory ??
+                ((connectionId, signal) => this.createClient(connectionId, signal))
+        );
     }
-
     async discover(connectionId: string) {
-        return await this.runUpstream(connectionId, 'discovery', async () => {
-            const client = await this.client(connectionId);
-            const definitions = await listAllTools(client);
+        return await this.runUpstream(connectionId, 'discovery', async (client, signal) => {
+            const definitions = await listAllTools(client, {
+                signal,
+                timeout: this.discoveryTimeoutMs,
+            });
             return {
                 accountLabel: client.serverInfo.name,
-                // SEP-973 icons ride in serverInfo. The SDK parses that object
-                // with a passthrough schema, so the field survives even though
-                // its declared type stops at name/version/title.
                 instructions: client.instructions,
                 serverInfoIcons: (client.serverInfo as { icons?: unknown }).icons,
                 tools: definitions.map((tool) => tool.name),
             };
         });
     }
-
-    async listAgentTools(serverId: string, agentId: string): Promise<McpToolDefinition[]> {
+    async listAgentTools(
+        serverId: string,
+        agentId: string,
+        traceContext?: TraceCarrier
+    ): Promise<McpToolDefinition[]> {
         const connections = await this.grantedConnections(serverId, agentId);
         const definitions = await Promise.all(
             connections.map(async (connection) => {
                 try {
-                    const tools = await this.runUpstream(connection.id, 'discovery', async () =>
-                        listAllTools(await this.client(connection.id))
+                    const tools = await this.runUpstream(
+                        connection.id,
+                        'discovery',
+                        (client, signal) =>
+                            listAllTools(client, {
+                                signal,
+                                timeout: this.discoveryTimeoutMs,
+                            }),
+                        traceContext
                     );
                     return tools.map((tool) => ({
                         description:
@@ -91,12 +108,12 @@ export class McpRuntime {
         );
         return definitions.flat();
     }
-
     async invoke(input: {
         agentId: string;
         args: unknown;
         serverId: string;
         toolName: string;
+        traceContext?: TraceCarrier;
     }): Promise<unknown> {
         const resolved = await this.resolveGrantedTool(
             input.serverId,
@@ -104,35 +121,24 @@ export class McpRuntime {
             input.toolName
         );
         await this.requireGrant(input.serverId, input.agentId, resolved.connectionId);
-        return await this.runUpstream(resolved.connectionId, 'invocation', async () => {
-            const client = await this.client(resolved.connectionId);
-            return await client.callTool({
-                arguments: asMcpArguments(input.args),
-                name: resolved.upstreamName,
-                options: { timeout: this.invocationTimeoutMs },
-            });
-        });
+        return await this.runUpstream(
+            resolved.connectionId,
+            'invocation',
+            (client, signal) =>
+                client.callTool({
+                    arguments: asMcpArguments(input.args),
+                    name: resolved.upstreamName,
+                    options: { signal, timeout: this.invocationTimeoutMs },
+                }),
+            input.traceContext
+        );
     }
-
     async closeConnection(connectionId: string): Promise<void> {
-        const pending = this.clients.get(connectionId);
-        this.clients.delete(connectionId);
-        if (!pending) {
-            return;
-        }
-        await withMcpTimeout(
-            pending.then((client) => client.close()),
-            this.discoveryTimeoutMs,
-            'discovery'
-        ).catch(() => undefined);
+        await this.clients.closeConnection(connectionId, this.closeTimeoutMs);
     }
-
     async close(): Promise<void> {
-        const pending = [...this.clients.values()];
-        this.clients.clear();
-        await Promise.allSettled(pending.map(async (client) => (await client).close()));
+        await this.clients.closeAll(this.closeTimeoutMs);
     }
-
     async readConnection(connectionId: string) {
         const [connection] = await this.db
             .select()
@@ -144,7 +150,6 @@ export class McpRuntime {
         }
         return connection;
     }
-
     async readSecret(connectionId: string): Promise<McpSecret> {
         const [row] = await this.db
             .select({ secret: mcpSecretsTable.secret })
@@ -153,7 +158,6 @@ export class McpRuntime {
             .limit(1);
         return (row?.secret as unknown as McpSecret | undefined) ?? emptySecret();
     }
-
     async writeSecret(connectionId: string, secret: McpSecret): Promise<void> {
         await this.db
             .insert(mcpSecretsTable)
@@ -166,27 +170,12 @@ export class McpRuntime {
                 target: mcpSecretsTable.connectionId,
             });
     }
-
-    private async client(connectionId: string): Promise<MCPClient> {
-        const existing = this.clients.get(connectionId);
-        if (existing) {
-            return await existing;
-        }
-        const pending = this.createClient(connectionId);
-        this.clients.set(connectionId, pending);
-        try {
-            return await pending;
-        } catch (cause) {
-            this.clients.delete(connectionId);
-            throw cause;
-        }
-    }
-
-    private async createClient(connectionId: string): Promise<MCPClient> {
+    private async createClient(connectionId: string, signal: AbortSignal): Promise<MCPClient> {
         const connection = await this.readConnection(connectionId);
         const secret = await this.readSecret(connectionId);
         return await createMCPClient({
             clientName: 'Grotto Server',
+            initializationOptions: { signal },
             transport: {
                 authProvider:
                     connection.auth === 'oauth'
@@ -210,7 +199,6 @@ export class McpRuntime {
             },
         });
     }
-
     private async grantedConnections(serverId: string, agentId: string) {
         return await this.db
             .select({
@@ -234,7 +222,6 @@ export class McpRuntime {
                 )
             );
     }
-
     private async requireGrant(serverId: string, agentId: string, connectionId: string) {
         const [grant] = await this.db
             .select({ connectionId: agentMcpConnectionGrantsTable.connectionId })
@@ -251,7 +238,6 @@ export class McpRuntime {
             throw new McpDeniedError('Access to this MCP connection was revoked.');
         }
     }
-
     private async resolveGrantedTool(serverId: string, agentId: string, visibleName: string) {
         const connections = await this.grantedConnections(serverId, agentId);
         for (const connection of connections) {
@@ -264,36 +250,24 @@ export class McpRuntime {
         }
         throw new McpDeniedError(`MCP tool ${visibleName} is not granted.`);
     }
-
     private async runUpstream<T>(
         connectionId: string,
         operation: 'discovery' | 'invocation',
-        run: () => Promise<T>
+        use: (client: MCPClient, signal: AbortSignal) => Promise<T>,
+        traceContext?: TraceCarrier
     ): Promise<T> {
-        const timeoutMs =
-            operation === 'discovery' ? this.discoveryTimeoutMs : this.invocationTimeoutMs;
-        try {
-            return await withMcpTimeout(run(), timeoutMs, operation);
-        } catch (cause) {
-            this.discardClient(connectionId);
-            throw classifyMcpUpstreamError(cause, operation);
-        }
-    }
-
-    private discardClient(connectionId: string) {
-        const pending = this.clients.get(connectionId);
-        this.clients.delete(connectionId);
-        void pending?.then((client) => client.close()).catch(() => undefined);
+        return await runMcpUpstream({
+            clients: this.clients,
+            connectionId,
+            operation,
+            traceContext,
+            timeoutMs:
+                operation === 'discovery' ? this.discoveryTimeoutMs : this.invocationTimeoutMs,
+            use,
+        });
     }
 }
 
 export function emptySecret(): McpSecret {
     return { approvedAuthorizationServerOrigins: [], headers: {}, oauthScopes: [] };
-}
-
-function asMcpArguments(value: unknown): Record<string, unknown> {
-    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        return value as Record<string, unknown>;
-    }
-    throw new McpDeniedError('MCP tool arguments must be an object.');
 }

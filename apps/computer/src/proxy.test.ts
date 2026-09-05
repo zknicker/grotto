@@ -1,17 +1,20 @@
-import { afterEach, expect, test } from 'bun:test';
+import { afterAll, afterEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
 import { createServer, type Server as NetServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Server } from 'bun';
+import { AgentActivityRun } from './agent-activity-run.ts';
+import { makeDaemonRuntime } from './daemon-runtime.ts';
 import { readPendingInbox, readRunVisibleMessages, replacePendingInbox } from './inbox-store.ts';
 import type { AgentInboxItem } from './launch.ts';
 import { startLoopbackProxy } from './proxy.ts';
 
 const servers: Server<unknown>[] = [];
 const netServers: NetServer[] = [];
-
+const runtime = makeDaemonRuntime();
+afterAll(() => runtime.dispose());
 afterEach(() => {
     for (const server of servers.splice(0)) {
         server.stop(true);
@@ -20,7 +23,6 @@ afterEach(() => {
         server.close();
     }
 });
-
 test('the loopback proxy forwards inbox reads to the canonical Server ledger', async () => {
     const requested: string[] = [];
     const forwardedAuth: string[] = [];
@@ -65,7 +67,6 @@ test('the loopback proxy forwards inbox reads to the canonical Server ledger', a
         proxy.close();
     }
 });
-
 test('projects structured message and Browser proxy boundaries without request details', async () => {
     const activity: Array<{ category: string; phase: string }> = [];
     const upstream = Bun.serve({
@@ -77,11 +78,13 @@ test('projects structured message and Browser proxy boundaries without request d
     });
     servers.push(upstream);
     const proxy = startLoopbackProxy({
-        onActivity: (event) => activity.push(event),
         proxyToken: 'local-token',
         runnerToken: 'runner-token',
         serverOrigin: `http://127.0.0.1:${upstream.port}`,
     });
+    proxy.setActivityRun(
+        new AgentActivityRun(runtime, ({ category, phase }) => activity.push({ category, phase }))
+    );
     try {
         const headers = { authorization: 'Bearer local-token' };
         await fetch(`${proxy.url}/api/agent/events`, { headers });
@@ -102,7 +105,6 @@ test('projects structured message and Browser proxy boundaries without request d
         proxy.close();
     }
 });
-
 test('the loopback proxy preserves Agent API query parameters', async () => {
     let upstreamUrl = '';
     const upstream = Bun.serve({
@@ -129,7 +131,6 @@ test('the loopback proxy preserves Agent API query parameters', async () => {
         proxy.close();
     }
 });
-
 test('serves cached message bodies locally when the Server fetch is unavailable', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-local-first-'));
     const location = { agentId: 'agt_local', dataRoot, serverId: 'srv_local' };
@@ -166,7 +167,6 @@ test('serves cached message bodies locally when the Server fetch is unavailable'
         await rm(dataRoot, { force: true, recursive: true });
     }
 });
-
 test('local pulls preserve the canonical more signal beyond the cached window', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-window-'));
     const location = { agentId: 'agt_window', dataRoot, serverId: 'srv_window' };

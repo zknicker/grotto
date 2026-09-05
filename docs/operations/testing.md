@@ -4,6 +4,7 @@ read_when:
   - adding tests, changing execution-runtime contracts, or choosing a verification lane
   - changing OpenAPI, Server stores, SDK, App e2e, or Computer execution behavior
   - adding or changing an agent-behavior scenario under scripts/agent-tests/
+  - changing lint rules, source-size policy, or Quality CI gates
 ---
 
 # Testing
@@ -55,7 +56,14 @@ Each package gate includes its tests and typecheck:
 Rules that keep runs cheap and honest:
 
 * Every code change runs `bun run lint` at handoff. Use `bun run lint:fix` for
-  fixes; the raw Biome command applies the wrong ruleset.
+  fixes; the raw Biome command applies the wrong ruleset. Lint enforces a
+  cognitive-complexity ceiling of 20 and a 300-line source-file limit.
+  Existing debt has named per-file ceilings in `biome.jsonc` and
+  `scripts/source-size-policy.json`; line-count debt may not grow, while
+  complexity hotspots cannot cross their bounded legacy bands. Named
+  exceptions are for declarative corpora or generated sources, require a
+  reason, and retain a concrete ceiling. Do not add a blanket directory or
+  file-type exemption.
 * Documentation-only changes use `bun run docs:list` plus direct link and
   rendering inspection. Copy-, token-, and CSS-only changes use lint, adding a
   suite only for an encoded browser contract.
@@ -235,6 +243,13 @@ Add raw-frame or fixture-backed tests for behavior Grotto depends on.
 Manual real-provider chats are rare. Prefer deterministic e2e or unit/service
 tests.
 
+The Grok Build live interjection smoke is opt-in and still checks for a local
+login before running:
+
+```sh
+GROTTO_RUN_LIVE_GROK_TEST=1 bun test apps/computer/src/harness/grok-build-live.test.ts
+```
+
 If manual validation creates real Grotto chats, use an obvious temporary first
 message such as `Codex smoke <timestamp>: <purpose>`, record the created chat
 ids, and delete only those chats before finishing. If cleanup fails, report the
@@ -322,6 +337,9 @@ authored messages in the chat, and a delivery row in state `seen` distinguishes
 Each run writes `summary.json` plus one `transcript.json` per scenario under
 `.context/agent-tests/<run>/`, carrying the contract, assertions, observed
 messages, and settled turns. Read the transcript before rerunning a failure.
+Failed scenarios also capture each Agent's current delivery state, recent turns,
+and retained delivery rows before cleanup. Query failures are recorded beside
+the available evidence rather than replacing the original scenario failure.
 
 Like `eval:prompt`, the lane needs `bun run dev` and configured development
 Clerk keys, plus one attached Computer whose reported inventory carries a

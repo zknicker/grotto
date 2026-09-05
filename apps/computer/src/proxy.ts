@@ -1,5 +1,6 @@
+import type { TraceCarrier } from '@grotto/effect';
 import * as z from 'zod';
-import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
+import type { AgentActivityRun } from './agent-activity-run.ts';
 import {
     agentHistoryResponseSchema,
     agentMessageCheckResponseSchema,
@@ -50,18 +51,14 @@ export interface LoopbackProxy {
     close(): void;
     resetSendCount(): void;
     sendCount(): number;
-    setActivitySink(sink: ((activity: ComputerAgentActivityUpdate) => void) | undefined): void;
+    setActivityRun(activity: AgentActivityRun | undefined): void;
     setRunId(runId: string): void;
     setRunnerToken(token: string): void;
+    setTraceContext(context: TraceCarrier | undefined): void;
     url: string;
 }
 
-/**
- * The per-launch loopback proxy. The Agent authenticates to it with a local-only
- * token; the proxy forwards `/api/agent/*` to the Server with the scoped
- * runner credential. The runner credential never leaves this process, so the
- * Agent can act as itself without ever holding Server-valid authority.
- */
+/** Per-launch proxy that keeps scoped Server authority outside the Agent process. */
 export function startLoopbackProxy(input: {
     agentId?: string;
     dataRoot?: string;
@@ -71,12 +68,12 @@ export function startLoopbackProxy(input: {
     serverId?: string;
     serverOrigin: string;
     skillsDir?: string;
-    onActivity?: (activity: ComputerAgentActivityUpdate) => void;
 }): LoopbackProxy {
     let sends = 0;
     let runnerToken: string | null = input.runnerToken;
     let runId: string | null = input.runId ?? null;
-    let activitySink = input.onActivity;
+    let activityRun: AgentActivityRun | undefined;
+    let traceContext: TraceCarrier | undefined;
     const server = Bun.serve({
         fetch: async (request) => {
             const url = new URL(request.url);
@@ -87,30 +84,24 @@ export function startLoopbackProxy(input: {
                 return new Response('Unauthorized', { status: 401 });
             }
             const category = classifyGrottoProxyBoundary(request.method, url.pathname);
-            if (!category) {
-                return await handleAuthorizedProxyRequest(request, url, input, {
+            const operation = async () =>
+                await handleAuthorizedProxyRequest(request, url, input, {
                     getRunId: () => runId,
                     getRunnerToken: () => runnerToken,
+                    traceContext,
                     incrementSendCount: () => {
                         sends += 1;
                     },
                 });
-            }
-            activitySink?.({ category, phase: 'started' });
-            let completed = false;
-            try {
-                const response = await handleAuthorizedProxyRequest(request, url, input, {
-                    getRunId: () => runId,
-                    getRunnerToken: () => runnerToken,
-                    incrementSendCount: () => {
-                        sends += 1;
-                    },
-                });
-                completed = response.ok;
-                return response;
-            } finally {
-                activitySink?.({ category, phase: completed ? 'completed' : 'failed' });
-            }
+            return activityRun && category
+                ? await activityRun.runPromise(
+                      {
+                          category,
+                          outcomeFromResult: (response) => (response.ok ? 'completed' : 'failed'),
+                      },
+                      operation
+                  )
+                : await operation();
         },
         hostname: '127.0.0.1',
         port: 0,
@@ -118,20 +109,24 @@ export function startLoopbackProxy(input: {
     return {
         clearRunnerToken: () => {
             runnerToken = null;
+            traceContext = undefined;
         },
         close: () => server.stop(true),
         resetSendCount: () => {
             sends = 0;
         },
         sendCount: () => sends,
-        setActivitySink: (sink) => {
-            activitySink = sink;
+        setActivityRun: (activity) => {
+            activityRun = activity;
         },
         setRunId: (value) => {
             runId = value;
         },
         setRunnerToken: (token) => {
             runnerToken = token;
+        },
+        setTraceContext: (context) => {
+            traceContext = context;
         },
         url: `http://127.0.0.1:${server.port}`,
     };
@@ -152,6 +147,7 @@ async function handleAuthorizedProxyRequest(
     state: {
         getRunId(): string | null;
         getRunnerToken(): string | null;
+        traceContext?: TraceCarrier;
         incrementSendCount(): void;
     }
 ): Promise<Response> {
@@ -160,6 +156,7 @@ async function handleAuthorizedProxyRequest(
         return skillResponse;
     }
     const runnerToken = state.getRunnerToken();
+    const traceContext = state.traceContext;
     if (!runnerToken) {
         return Response.json(
             { code: 'AGENT_IDLE', message: 'The Agent has no active turn.' },
@@ -198,6 +195,7 @@ async function handleAuthorizedProxyRequest(
             ...(forwardsBody ? { body } : {}),
             headers: {
                 authorization: `Bearer ${runnerToken}`,
+                ...(traceContext ? { traceparent: traceContext.traceparent } : {}),
                 ...(forwardsBody
                     ? {
                           'content-type': request.headers.get('content-type') ?? 'application/json',
@@ -207,8 +205,7 @@ async function handleAuthorizedProxyRequest(
             method: request.method,
         });
     } catch (error) {
-        // A send may have committed before its response disappeared. Count it
-        // conservatively so a failed turn cannot replay duplicate model output.
+        // Count ambiguous sends so a failed turn cannot replay duplicate model output.
         if (isMessageSend && !isDefinitelyPreCommitFailure(error)) {
             state.incrementSendCount();
         }
@@ -503,6 +500,5 @@ function isDefinitelyPreCommitFailure(error: unknown): boolean {
 }
 
 function isAuthorized(request: Request, proxyToken: string): boolean {
-    const header = request.headers.get('authorization');
-    return header === `Bearer ${proxyToken}`;
+    return request.headers.get('authorization') === `Bearer ${proxyToken}`;
 }

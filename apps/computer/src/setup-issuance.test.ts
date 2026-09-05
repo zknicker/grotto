@@ -237,7 +237,7 @@ async function writeSession(dataRoot: string, value: StoredSession) {
 
 async function runCli(args: string[], environment: Record<string, string | undefined>) {
     const child = Bun.spawn(['bun', entrypoint, ...args], {
-        env: { ...process.env, ...environment },
+        env: { ...process.env, ...environment, OTEL_SDK_DISABLED: 'true' },
         stderr: 'pipe',
         stdout: 'pipe',
     });

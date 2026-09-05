@@ -74,7 +74,10 @@ export const agentActivityTable = pgTable(
             'agent_activity_category',
             sql`${table.category} in ('starting_work', 'updating_instructions', 'checking_messages', 'thinking', 'browsing', 'searching_web', 'reading_files', 'editing_files', 'running_command', 'using_tool', 'sending_message', 'working')`
         ),
-        check('agent_activity_phase', sql`${table.phase} in ('started', 'completed', 'failed')`),
+        check(
+            'agent_activity_phase',
+            sql`${table.phase} in ('started', 'completed', 'failed', 'interrupted')`
+        ),
         check('agent_activity_producer', sql`${table.producer} in ('server', 'computer')`),
         check('agent_activity_positive_position', sql`${table.position} > 0`),
         check('agent_activity_positive_run_order', sql`${table.runOrder} > 0`),

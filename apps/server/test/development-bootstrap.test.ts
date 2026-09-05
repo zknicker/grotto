@@ -22,10 +22,12 @@ import {
     threadFollowsTable,
     usersTable,
 } from '../src/postgres/schema.ts';
+import { makeServerRuntime } from '../src/server-runtime.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 let cluster: PostgresCluster;
 let connection: GrottoConnection;
+const runtime = makeServerRuntime();
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
@@ -36,11 +38,12 @@ beforeAll(async () => {
 afterAll(async () => {
     await connection?.close();
     await cluster?.stop();
+    await runtime.dispose();
 });
 
 test('creates one idempotent Server-owned demo workspace', async () => {
     const computerDataRoot = await mkdtemp(join(tmpdir(), 'grotto-dev-computer-'));
-    const attachmentRoot = await openAttachmentRoot(join(computerDataRoot, 'attachments'));
+    const attachmentRoot = await openAttachmentRoot(join(computerDataRoot, 'attachments'), runtime);
     const options = {
         attachmentRoot,
         computerDataRoot,

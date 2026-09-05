@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { lstat } from 'node:fs/promises';
 import { join } from 'node:path';
+import { makeTestRuntime } from '@grotto/effect';
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
@@ -11,6 +12,7 @@ let member: GrottoClient;
 let serverId: string;
 let allChatId: string;
 let agentId: string;
+const runtime = makeTestRuntime();
 
 beforeAll(async () => {
     harness = await startGrottoServerHarness();
@@ -63,6 +65,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+    await runtime.dispose();
     owner?.close();
     member?.close();
     await harness?.close();
@@ -178,7 +181,7 @@ test('deletes the channel aggregate while retaining its lifecycle event', async 
         }
     );
     expect(upload.status).toBe(200);
-    const root = await openAttachmentRoot(harness.attachmentRoot);
+    const root = await openAttachmentRoot(harness.attachmentRoot, runtime);
     const objectPath = join(root.path, root.objectKey(serverId, reservation.attachmentId));
     await expect(lstat(objectPath)).resolves.toBeDefined();
     const sent = await owner.trpc.chat.send.mutate({

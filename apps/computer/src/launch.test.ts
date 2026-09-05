@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, test } from 'bun:test';
+import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,12 +10,12 @@ import {
     parseAgentConfigureCommand,
 } from './agent-configuration.ts';
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
+import { makeDaemonRuntime } from './daemon-runtime.ts';
 import type { HarnessAgentFactory } from './harness/executor.ts';
 import {
     type AgentStartCommand,
     type Attachment,
     parseResetCommand,
-    parseRestartCommand,
     parseStartCommand,
     resetAgentState,
     runAgentLaunch,
@@ -34,6 +34,8 @@ interface FakeServerState {
 }
 
 let state: FakeServerState;
+const runtime = makeDaemonRuntime();
+afterAll(() => runtime.dispose());
 
 test('rejects a typed action whose envelope identity does not match its attention', () => {
     expect(
@@ -203,6 +205,7 @@ test('runs a deterministic Agent launch that lands a durable Server message', as
         attachment,
         command,
         dataRoot,
+        runtime,
         sendFrame: (frame) => turnFrames.push(frame as Record<string, unknown>),
         serverOrigin: `http://127.0.0.1:${state.server.port}`,
     });
@@ -222,7 +225,6 @@ test('runs a deterministic Agent launch that lands a durable Server message', as
     expect(state.mintCount).toBe(1);
     expect(state.revokedRunnerId).toBe('arc_launchtest000000');
 
-    // One compact turn summary, no runner secret in it.
     expect(turnFrames).toHaveLength(1);
     expect(turnFrames[0]).toMatchObject({
         agentId: 'agt_launchtest',
@@ -233,7 +235,6 @@ test('runs a deterministic Agent launch that lands a durable Server message', as
     });
     expect(JSON.stringify(turnFrames[0])).not.toContain(runnerToken);
 
-    // Isolated logical home/workspace/skills/runtime were created.
     const agentRoot = join(dataRoot, 'servers', attachment.serverId, 'agents', command.agentId);
     for (const dir of ['home', 'skills', 'workspace', 'runtime']) {
         expect((await stat(join(agentRoot, dir))).isDirectory()).toBe(true);
@@ -273,6 +274,7 @@ test('reports a failed turn when the runtime is not installed', async () => {
             type: 'start',
         },
         dataRoot,
+        runtime,
         sendFrame: (frame) => turnFrames.push(frame as Record<string, unknown>),
         serverOrigin: `http://127.0.0.1:${state.server.port}`,
     });
@@ -359,6 +361,7 @@ test('the launch injects Server-owned MCP tools into the real Harness boundary',
         command: base,
         dataRoot,
         harnessAgentFactory,
+        runtime,
         sendFrame: () => undefined,
         serverOrigin: `http://127.0.0.1:${state.server.port}`,
     });
@@ -567,12 +570,3 @@ async function seedResetFixture() {
     ]);
     return { agentRoot, configuration, configurationJson };
 }
-
-test('restart commands require one Agent id', () => {
-    expect(parseRestartCommand({ agentId: 'agt_restart', type: 'agent-restart' })).toEqual({
-        agentId: 'agt_restart',
-        type: 'agent-restart',
-    });
-    expect(parseRestartCommand({ agentId: '', type: 'agent-restart' })).toBe(null);
-    expect(parseRestartCommand({ agentId: 'agt_restart', type: 'agent-reset' })).toBe(null);
-});

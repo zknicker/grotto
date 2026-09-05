@@ -15,7 +15,7 @@ import {
 
 test('Computer publisher uses the canonical ordinary protocol version', () => {
     expect(computerProtocolVersion).toBe(computerProtocol.version);
-    expect(computerProtocolVersion).toBe(14);
+    expect(computerProtocolVersion).toBe(15);
 });
 
 const release = {

@@ -84,12 +84,44 @@ export const cloudAgentBranchRepositorySchema = z
     );
 
 /**
+ * How GitHub reports a pull request's own lifecycle. `draft` and `open` are
+ * both live and `merged` and `closed` are both finished, and each pair reads
+ * differently to a human, so none of them collapse into one another.
+ */
+export const cloudAgentPullRequestStates = ['draft', 'open', 'merged', 'closed'] as const;
+
+export const cloudAgentPullRequestStateSchema = z.enum(cloudAgentPullRequestStates);
+
+/**
+ * One GitHub reading of the pull request a Run opened, taken by the Computer
+ * at observation time. Cursor's own API carries no diff statistics, so the
+ * Computer reads them where they exist. This is provider-observation evidence
+ * on the Run and not a Grotto product relation: Grotto still stores no
+ * pull-request entity and claims no GitHub lifecycle. `observedAt` dates the
+ * reading, so a newer snapshot replaces an older one and a Run that could not
+ * be read keeps the snapshot it already had.
+ */
+export const cloudAgentPullRequestSchema = z
+    .object({
+        additions: z.number().int().nonnegative(),
+        changedFiles: z.number().int().nonnegative(),
+        deletions: z.number().int().nonnegative(),
+        number: z.number().int().positive(),
+        observedAt: cloudAgentTimestampSchema,
+        state: cloudAgentPullRequestStateSchema,
+    })
+    .strict();
+
+/**
  * Cursor's own terminal Run report, retained as evidence. Grotto stores no
- * branch or pull-request entity and claims no GitHub lifecycle.
+ * branch or pull-request entity and claims no GitHub lifecycle. `pullRequest`
+ * is the Computer's own GitHub reading of `pullRequestUrl`; absent and `null`
+ * both mean no snapshot was ever recorded for this branch.
  */
 export const cloudAgentBranchSchema = z
     .object({
         branch: z.string().trim().min(1).max(300),
+        pullRequest: cloudAgentPullRequestSchema.nullable().optional(),
         pullRequestUrl: z.url().max(2000).nullable(),
         repository: cloudAgentBranchRepositorySchema,
     })
@@ -180,6 +212,8 @@ export const cloudAgentCapabilityStateSchema = z
 export type CloudAgentCapabilityState = z.infer<typeof cloudAgentCapabilityStateSchema>;
 
 export type CloudAgentBranch = z.infer<typeof cloudAgentBranchSchema>;
+export type CloudAgentPullRequest = z.infer<typeof cloudAgentPullRequestSchema>;
+export type CloudAgentPullRequestState = z.infer<typeof cloudAgentPullRequestStateSchema>;
 export type CloudAgentUnreadyReason = z.infer<typeof cloudAgentUnreadyReasonSchema>;
 export type CloudAgentCancelRequestedBy = z.infer<typeof cloudAgentCancelRequestedBySchema>;
 export type CloudAgentProvider = z.infer<typeof cloudAgentProviderSchema>;
@@ -194,8 +228,21 @@ export type CloudAgentWork = z.infer<typeof cloudAgentWorkSchema>;
  * (specs/grotto-cli.md#4-envelopes-and-message-lines).
  */
 export function formatCloudAgentWorkSuffix(work: {
+    pullRequestNumber?: number | null;
     status: CloudAgentStatus;
     title: string;
 }): string {
-    return ` [cloud-agent-work status=${work.status} title=${work.title}]`;
+    const pullRequest = work.pullRequestNumber ? ` pr=#${work.pullRequestNumber}` : '';
+    return ` [cloud-agent-work status=${work.status} title=${work.title}${pullRequest}]`;
+}
+
+/**
+ * The pull-request number a GitHub-shaped URL names. One owner for the parse,
+ * so every surface that prints `pr=#<n>` reads the same digits out of the same
+ * URL Cursor reported.
+ */
+export function cloudAgentPullRequestNumber(pullRequestUrl: string): number | null {
+    const matched = /\/pull(?:s|-requests)?\/(\d+)(?:[/?#]|$)/u.exec(pullRequestUrl);
+    const number = matched ? Number.parseInt(matched[1] as string, 10) : Number.NaN;
+    return Number.isSafeInteger(number) && number > 0 ? number : null;
 }

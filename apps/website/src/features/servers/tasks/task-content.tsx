@@ -25,14 +25,11 @@ export function TaskContent({ onOpenTask }: { onOpenTask: (task: TaskItem) => vo
     );
     // The chat filter narrows the query itself, so a filtered-out chat comes
     // back with no tasks at all. Without this the page would claim the Server
-    // has no tasks when it only has none matching.
-    const isFiltered =
-        assignee !== null ||
-        chatId !== null ||
-        labelId !== null ||
-        priority !== null ||
-        status !== null ||
-        view !== 'all';
+    // has no tasks when it only has none matching. Every other filter runs
+    // over `tasks` in memory, so an empty `tasks` means there is genuinely
+    // nothing to filter — including under the default `active` lens, which is
+    // the page's own standing view rather than something the reader set.
+    const isFiltered = chatId !== null;
 
     if (tasksQuery.error) {
         return (

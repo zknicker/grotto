@@ -176,11 +176,14 @@ test('a hosted task message projects its status in the Chat and opens its Thread
         serverId: server.id,
     });
 
-    const row = page
-        .getByText('Projected task message', { exact: true })
-        .locator('xpath=ancestor::div[@data-message-id][1]');
-    await expect(row.getByTestId('message-task-badge')).toBeVisible();
-    await expect(row.getByRole('button', { exact: true, name: 'Open thread' })).toBeVisible();
+    await expect(page.getByText('Projected task message', { exact: true })).toBeVisible();
+    // Task identity is a header mark on the turn, not a block under the
+    // message, so it reads beside the author's name and is itself the way into
+    // the work surface. This Chat has exactly one task, so the mark is unique.
+    const mark = page.getByTestId('message-task-mark');
+    const openThread = page.getByRole('button', { name: /^Task #1 — .*Open thread$/u });
+    await expect(mark).toBeVisible();
+    await expect(openThread).toBeVisible();
 
     // Claiming advances status through the same task realtime invalidation; no reload.
     const claim = await client.task.claim.mutate({
@@ -198,9 +201,9 @@ test('a hosted task message projects its status in the Chat and opens its Thread
     if (!assignee?.displayName) {
         throw new Error('The claiming human did not carry a canonical display name.');
     }
-    await expect(row.getByTestId('message-task-badge')).toContainText(assignee.displayName);
+    await expect(mark).toContainText(assignee.displayName);
 
-    await row.getByRole('button', { exact: true, name: 'Open thread' }).click();
+    await openThread.click();
     const thread = page.getByRole('complementary', { name: 'Thread' });
     await expect(thread).toBeVisible();
     await expect(thread.getByRole('region', { name: 'Task #1 details' })).toBeVisible();

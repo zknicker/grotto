@@ -1,17 +1,11 @@
 import {
     type CloudAgentBranch,
-    type CloudAgentProvider,
-    type CloudAgentRun,
     type CloudAgentStatus,
     type CloudAgentWork,
+    cloudAgentPullRequestNumber,
     isTerminalCloudAgentStatus,
 } from '@grotto/api';
 import { messagePreviewLine } from '../chats/message-preview-line.ts';
-
-/** The provider name a Cloud Agent work reads under. Cursor is the only one. */
-export const cloudAgentProviderLabels: Record<CloudAgentProvider, string> = {
-    cursor: 'Cursor',
-};
 
 /**
  * How one work reads right now. `cancelling` is not a stored status: a cancel
@@ -94,27 +88,19 @@ export function cloudAgentStatusText(work: CloudAgentWorkPresentationInput, now:
 }
 
 /**
- * The one muted line beneath the header: what the work is doing while it runs,
- * and what its latest Run reported once it settles. `activity` yields to that
- * report rather than freezing mid-sentence on a finished work.
+ * The one muted line beneath the header: what the work is doing right now. A
+ * settled work says nothing here — its own card states the branch, the pull
+ * request, and the diff, and a provider's Run prose repeated at Chat scale
+ * only crowded those facts out.
  *
- * A provider writes both as Markdown — a Run summary routinely opens with a
- * `## Summary` heading — so both collapse to one flat line here rather than at
- * each surface that shows them.
+ * A provider writes `activity` as Markdown, so it collapses to one flat line
+ * here rather than at each surface that shows it.
  */
-export function cloudAgentWorkDetailLine(work: CloudAgentWorkPresentationInput): null | string {
+export function cloudAgentWorkActivityLine(work: CloudAgentWorkPresentationInput): null | string {
     if (isTerminalCloudAgentStatus(work.status)) {
-        const latest = work.runs.at(0);
-        return latest ? cloudAgentRunReportLine(latest) : null;
+        return null;
     }
     return oneLine(work.activity?.summary ?? null);
-}
-
-/** What one Run reported, or the error code standing in for a missing report. */
-export function cloudAgentRunReportLine(
-    run: Pick<CloudAgentRun, 'errorCode' | 'summary'>
-): null | string {
-    return oneLine(run.summary) ?? run.errorCode;
 }
 
 /**
@@ -147,14 +133,18 @@ export function cloudAgentWorkBranch(
 }
 
 /**
- * The pull request number a provider's URL names, so the card can say `PR #482`
- * rather than print a URL. An unrecognised URL keeps its link and loses only
- * the number.
+ * The pull request number one branch names. The Computer's own GitHub reading
+ * is authoritative when it exists; otherwise the provider's URL is parsed, so
+ * a branch observed before any snapshot still says `PR #482` rather than print
+ * a URL. An unrecognised URL keeps its link and loses only the number.
  */
-export function pullRequestNumber(pullRequestUrl: string): null | number {
-    const matched = /\/pull(?:s|-requests)?\/(\d+)/u.exec(pullRequestUrl);
-    const parsed = matched ? Number.parseInt(matched[1] as string, 10) : Number.NaN;
-    return Number.isSafeInteger(parsed) ? parsed : null;
+export function cloudAgentBranchPullRequestNumber(branch: CloudAgentBranch): null | number {
+    if (branch.pullRequest) {
+        return branch.pullRequest.number;
+    }
+    return branch.pullRequestUrl === null
+        ? null
+        : cloudAgentPullRequestNumber(branch.pullRequestUrl);
 }
 
 /** The Chip color the card's status wears, from the one tone rule above. */

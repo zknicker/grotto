@@ -3,6 +3,9 @@ import {
     agentCloudAgentStartInputSchema,
     agentCommandSchema,
     agentInboxItemSchema,
+    cloudAgentCapabilityRequestSchema,
+    cloudAgentCapabilityResultSchema,
+    cloudAgentCapabilityStateSchema,
     cloudAgentObservationSchema,
     cloudAgentWorkSchema,
     computerInventorySchema,
@@ -190,4 +193,65 @@ test('Computer inventory reports Cloud Agent provider readiness on protocol 14',
         }).cloudAgentProviders
     ).toHaveLength(1);
     expect(computerProtocolVersion).toBe(14);
+});
+
+test('a Cloud Agent capability state names exactly one of ready or a reason', () => {
+    const connected = {
+        accountEmail: 'delegate@example.com',
+        expiresAt: '2026-12-01T00:00:00.000Z',
+        provider: 'cursor',
+        ready: true,
+        reason: null,
+    };
+    expect(cloudAgentCapabilityStateSchema.parse(connected).ready).toBe(true);
+    expect(
+        cloudAgentCapabilityStateSchema.safeParse({ ...connected, reason: 'expired' }).success
+    ).toBe(false);
+    expect(
+        cloudAgentCapabilityStateSchema.safeParse({ ...connected, ready: false, reason: null })
+            .success
+    ).toBe(false);
+    for (const reason of ['not-connected', 'expired', 'provider-unavailable']) {
+        expect(
+            cloudAgentCapabilityStateSchema.parse({
+                accountEmail: null,
+                expiresAt: null,
+                provider: 'cursor',
+                ready: false,
+                reason,
+            }).reason
+        ).toBe(reason);
+    }
+});
+
+test('the capability request rides the Computer command union and answers with one shape', () => {
+    const request = {
+        operation: { kind: 'connect' },
+        provider: 'cursor',
+        requestId: 'req_connect_cursor',
+        type: 'cloud-agent-capability-request',
+    };
+    expect(cloudAgentCapabilityRequestSchema.parse(request).operation.kind).toBe('connect');
+    expect(agentCommandSchema.parse(request).type).toBe('cloud-agent-capability-request');
+    expect(
+        cloudAgentCapabilityResultSchema.parse({
+            error: 'The Cursor login was cancelled.',
+            requestId: 'req_connect_cursor',
+            type: 'cloud-agent-capability-result',
+        }).error
+    ).toBe('The Cursor login was cancelled.');
+    expect(
+        cloudAgentCapabilityResultSchema.safeParse({
+            error: 'Both at once is a mapping failure.',
+            requestId: 'req_connect_cursor',
+            result: {
+                accountEmail: null,
+                expiresAt: null,
+                provider: 'cursor',
+                ready: false,
+                reason: 'not-connected',
+            },
+            type: 'cloud-agent-capability-result',
+        }).success
+    ).toBe(false);
 });

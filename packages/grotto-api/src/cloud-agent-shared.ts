@@ -13,6 +13,22 @@ export const cloudAgentProviders = ['cursor'] as const;
 
 export const cloudAgentProviderSchema = z.enum(cloudAgentProviders);
 
+/**
+ * Why a Cloud Agent provider is not ready on a Computer. `not-connected` — no
+ * credential resolves from explicit configuration, the environment, or the
+ * provider's own credential store. `expired` — a stored credential resolved
+ * but its own expiry has passed, so reconnecting is the fix rather than
+ * installing anything. `provider-unavailable` — the provider SDK itself cannot
+ * be reached on this Computer.
+ */
+export const cloudAgentUnreadyReasons = [
+    'not-connected',
+    'expired',
+    'provider-unavailable',
+] as const;
+
+export const cloudAgentUnreadyReasonSchema = z.enum(cloudAgentUnreadyReasons);
+
 export const cloudAgentStatuses = [
     'queued',
     'running',
@@ -123,7 +139,31 @@ export const cloudAgentWorkSchema = z
     })
     .strict();
 
+/**
+ * One Cloud Agent provider capability on one Computer: whether its credential
+ * store currently resolves, and the account it resolves to. It carries no
+ * credential — Grotto never copies a provider key into Server.
+ */
+export const cloudAgentCapabilityStateSchema = z
+    .object({
+        /** The provider account the resolved credential belongs to, when it names one. */
+        accountEmail: z.string().trim().min(1).max(320).nullable(),
+        /** When the resolved credential expires, when the provider dates it. */
+        expiresAt: cloudAgentTimestampSchema.nullable(),
+        provider: cloudAgentProviderSchema,
+        ready: z.boolean(),
+        reason: cloudAgentUnreadyReasonSchema.nullable(),
+    })
+    .strict()
+    .refine((value) => value.ready !== Boolean(value.reason), {
+        message: 'A ready capability carries no reason, and an unready one must name its reason.',
+        path: ['reason'],
+    });
+
+export type CloudAgentCapabilityState = z.infer<typeof cloudAgentCapabilityStateSchema>;
+
 export type CloudAgentBranch = z.infer<typeof cloudAgentBranchSchema>;
+export type CloudAgentUnreadyReason = z.infer<typeof cloudAgentUnreadyReasonSchema>;
 export type CloudAgentCancelRequestedBy = z.infer<typeof cloudAgentCancelRequestedBySchema>;
 export type CloudAgentProvider = z.infer<typeof cloudAgentProviderSchema>;
 export type CloudAgentRun = z.infer<typeof cloudAgentRunSchema>;

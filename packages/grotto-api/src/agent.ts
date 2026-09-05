@@ -3,7 +3,7 @@ import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { workspacePathSchema } from './agent-runner.ts';
 import { avatarBytesInputSchema } from './avatar.ts';
 import { idSchema } from './chat.ts';
-import { cloudAgentProviderSchema } from './cloud-agent-shared.ts';
+import { cloudAgentProviderSchema, cloudAgentUnreadyReasonSchema } from './cloud-agent-shared.ts';
 import { participantHandleSchema } from './participant-handle.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -93,7 +93,7 @@ export const cloudAgentProviderReadinessSchema = z
     .object({
         provider: cloudAgentProviderSchema,
         ready: z.boolean(),
-        reason: z.enum(['not-authenticated', 'provider-unavailable']).nullable(),
+        reason: cloudAgentUnreadyReasonSchema.nullable(),
     })
     .strict();
 

@@ -286,3 +286,22 @@ test('publishes Raft-aligned Agent and action-card reference topics', () => {
     expect(actionCards?.body).toContain('Server role is fixed to Member');
     expect(actionCards?.body).toContain('typed terminal action attention');
 });
+
+test('publishes the Ask reference topic without turning it into a procedure', () => {
+    const asks = getManualTopic('asks');
+
+    expect(asks?.kind).toBe('overview');
+    expect(asks?.body).toContain(
+        'grotto ask --target <target> --to @<handle> --title <text> --summary <text> --step <text>'
+    );
+    expect(asks?.body).toContain('one named human for a decision');
+    expect(asks?.body).toContain('The question text arrives on stdin');
+    expect(asks?.body).toContain('settles the Ask');
+    expect(asks?.body).toContain('An Ask changes nothing on its own');
+    expect(getManualTopic('grotto-cli-overview')?.body).toContain('grotto ask');
+    expect(
+        searchManualTopics('ask a human for a decision', { limit: 5, scope: 'all' }).map(
+            (topic) => topic.id
+        )
+    ).toContain('asks');
+});

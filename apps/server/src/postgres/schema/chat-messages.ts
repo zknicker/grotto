@@ -1,3 +1,4 @@
+import type { MessageBodyKind } from '@grotto/api';
 import { sql } from 'drizzle-orm';
 import {
     check,
@@ -24,6 +25,9 @@ export const chatMessagesTable = pgTable(
     {
         authorAgentId: text('author_agent_id'),
         authorUserId: text('author_user_id'),
+        // The Message body discriminator (ADR 0025). Optional feature fields
+        // never define a Message's type.
+        bodyKind: text('body_kind').notNull().default('text').$type<MessageBodyKind>(),
         chatId: text('chat_id').notNull(),
         content: text('content').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -63,6 +67,7 @@ export const chatMessagesTable = pgTable(
             name: 'chat_messages_author_agent_fk',
         }),
         check('chat_messages_positive_sequence', sql`${table.sequence} > 0`),
+        check('chat_messages_body_kind', sql`${table.bodyKind} in ('text', 'ask')`),
         // Every durable Chat message is human-readable, so every row has a
         // human or an Agent author. Agent-only deliveries ride the agent inbox.
         check(

@@ -106,6 +106,7 @@ function communicationSection() {
         '10. **Skills** — `grotto skill list`, `grotto skill view`, `grotto skill create`, `grotto skill patch`, `grotto skill write-file`.',
         '11. **Action cards** — `grotto action prepare`.',
         '12. **Avatar generation** — `grotto avatar generate`.',
+        '13. **Asks** — `grotto ask`. Ask one named human for a decision when the choice is theirs to make; the answer is their reply in the Ask’s thread. Read the `asks` Manual topic before the first one.',
         '13. **Manual** — `grotto manual get`, `grotto manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Grotto) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
     ].join('\n');
     const criticalRules = [

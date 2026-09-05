@@ -11,6 +11,7 @@ function message(id: string, sequence: number): AgentCliMessage {
     return {
         attachments: [],
         author: { id: 'usr_operator', kind: 'user', label: 'Operator', metadata: {} },
+        body_kind: 'text',
         chat_id: 'chat_messages',
         content: `body-${id}`,
         created_at: `2026-08-17T12:00:${String(sequence).padStart(2, '0')}.000Z`,

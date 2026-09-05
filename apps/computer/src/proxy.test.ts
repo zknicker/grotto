@@ -772,6 +772,7 @@ function agentMessage(item: AgentInboxItem) {
     return {
         attachments: [],
         author: { id: 'usr_operator', kind: 'user', label: 'Operator', metadata: {} },
+        body_kind: 'text',
         chat_id: item.chatId,
         content: item.content,
         created_at: item.createdAt,

@@ -3,6 +3,7 @@ import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { cn } from '../../../lib/utils.ts';
+import { TranscriptAskMarker } from '../../asks/transcript-ask-marker.tsx';
 import { ActionTooltip } from '../chat-action-tooltip.tsx';
 import {
     type TranscriptMessageRow,
@@ -14,9 +15,9 @@ import { isThreadAnchorRow } from './thread-anchor.ts';
 import { ThreadPreviewBlock } from './thread-preview-block.tsx';
 
 /**
- * One message's Thread surroundings: its reactions, any surface-owned block,
- * and the Thread preview once the Thread has replies. The message's own task
- * identity is a header mark, not a block down here.
+ * One message's Thread surroundings: its Ask marker, its reactions, any
+ * surface-owned block, and the Thread preview once the Thread has replies.
+ * The message's own task identity is a header mark, not a block down here.
  */
 export function ThreadMessageSurface({
     children,
@@ -34,6 +35,7 @@ export function ThreadMessageSurface({
         <MessageContextMenu className={cn(flashing && 'chat-thread-flash')} row={row}>
             {children}
             <div className="flex flex-wrap items-center gap-1.5">
+                {row.message.ask ? <TranscriptAskMarker ask={row.message.ask} /> : null}
                 <MessageReactionPills row={row} />
             </div>
             {messageBlock}

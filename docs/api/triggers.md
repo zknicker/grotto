@@ -9,7 +9,7 @@ read_when:
 
 # Triggers API
 
-A Trigger is an Agent-owned inbound wake (ADR 0025). Four surfaces touch it: the
+A Trigger is an Agent-owned inbound wake (ADR 0027). Four surfaces touch it: the
 public route an outside system calls, the managed Agent routes an Agent uses on
 its own Triggers, the operator tRPC procedures behind the Agent profile's
 Automations tab, and the provenance surface that carries a fire onto the Agent's

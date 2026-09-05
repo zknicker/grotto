@@ -62,6 +62,7 @@ export interface AgentStartCommand {
 
 export interface AgentInboxItem {
     actionAttention?: AgentActionAttention;
+    ask?: AgentInboxAsk;
     chatId: string;
     content: string;
     createdAt: string;
@@ -82,6 +83,12 @@ export interface AgentInboxItem {
         status: 'closed' | 'done' | 'in_progress' | 'in_review' | 'todo';
     };
     threadFollowReactivated?: boolean;
+}
+
+/** The inbox projection of an Ask: who owes the answer, and whether it is still owed. */
+export interface AgentInboxAsk {
+    addresseeHandle: string | null;
+    status: 'answered' | 'open';
 }
 
 export interface AgentActionAttention {

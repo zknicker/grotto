@@ -1453,6 +1453,14 @@ async function buildInboxItems(
             createdAt: row.createdAt.toISOString(),
             id: row.dedupeKey,
             ...(actionAttention ? { actionAttention } : {}),
+            ...(apiMessage?.ask
+                ? {
+                      ask: {
+                          addresseeHandle: apiMessage.ask.addressee_handle,
+                          status: apiMessage.ask.status,
+                      },
+                  }
+                : {}),
             ...(apiMessage ? { message: apiMessage } : {}),
             ...(row.mentioned ? { mentioned: true } : {}),
             ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),

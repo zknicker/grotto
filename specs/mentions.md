@@ -2,7 +2,7 @@
 summary: Rich reference model for explicit markdown mentions, chip rendering, agent addressing, and runtime skill projection.
 read_when:
   - changing composer @ or $ autocomplete, rich reference rendering, runtime mention projection, transcript mention rendering, or agent addressing
-  - adding new rich reference kinds such as skills, plugins, apps, files, directories, agents, chats, sessions, memories, or product cards
+  - adding new rich reference kinds such as skills, plugins, apps, files, directories, agents, chats, pull requests, sessions, memories, or product cards
 ---
 
 # Rich References
@@ -21,6 +21,7 @@ message:
 [@Chrome](app://computer-use/com.google.Chrome)
 [#product](chat://cht_product)
 [mentions.md](/Users/zknicker/.codex/worktrees/1b41/grotto/specs/mentions.md)
+[#482](pr://github/grotto/grotto/482)
 ```
 
 Autocomplete inserts friendly text while editing, then the composer serializes
@@ -63,6 +64,7 @@ leading sigil is presentation syntax.
 | `app` | `app://computer-use/<encoded-app-id>` | `capability-reference` | Preserve the link with the selected app label. Computer Use resolves the app when tools are invoked. |
 | `file` | absolute file path | `path-reference` | Preserve the path. Do not attach file contents automatically. |
 | `directory` | absolute directory path | `path-reference` | Preserve the path. Do not recursively attach contents automatically. |
+| `pull-request` | `pr://github/<owner>/<repo>/<number>` | `visual reference` | Visual reference to a GitHub pull request, also recognized from a pasted `https://github.com/<owner>/<repo>/pull/<n>` link. Owner, repository, and number come from the target; v1 stores no GitHub state. No notification or wake behavior. |
 
 Images can still travel through attachment/image-input paths, but image
 attachments are not part of this typed-link contract.

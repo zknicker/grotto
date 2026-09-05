@@ -1,5 +1,6 @@
-import type { GrottoAgentMessage } from '@grotto/api';
+import type { GrottoAgentMessage, MessageBodyKind } from '@grotto/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
+import { readAsksForMessages } from '../asks/ask-shape.ts';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -17,6 +18,7 @@ import { listMessageTaskMap } from '../tasks/task-shape.ts';
 export interface MessageRow {
     authorAgentId: string | null;
     authorUserId: string | null;
+    bodyKind: MessageBodyKind;
     chatId: string;
     content: string;
     createdAt: Date;
@@ -28,6 +30,7 @@ export interface MessageRow {
 export const messageSelection = {
     authorAgentId: chatMessagesTable.authorAgentId,
     authorUserId: chatMessagesTable.authorUserId,
+    bodyKind: chatMessagesTable.bodyKind,
     chatId: chatMessagesTable.chatId,
     content: chatMessagesTable.content,
     createdAt: chatMessagesTable.createdAt,
@@ -42,10 +45,12 @@ export async function toAgentMessages(
     rows: MessageRow[]
 ): Promise<GrottoAgentMessage[]> {
     const messageIds = rows.map(({ id }) => id);
-    const [tasksByMessage, preparedActionsByMessage] = await Promise.all([
-        listMessageTaskMap(db, serverId, messageIds),
-        readPreparedActionsForMessages(db, serverId, messageIds),
-    ]);
+    // Sequential, not Promise.all: `db` is often the caller's transaction, and
+    // overlapping reads on that one connection deadlocked Agent delivery
+    // against the Server row lock its own transaction already held.
+    const tasksByMessage = await listMessageTaskMap(db, serverId, messageIds);
+    const preparedActionsByMessage = await readPreparedActionsForMessages(db, serverId, messageIds);
+    const asksByMessage = await readAsksForMessages(db, serverId, messageIds);
     const agentIds = [
         ...new Set(
             rows
@@ -73,6 +78,7 @@ export async function toAgentMessages(
             rows
                 .flatMap((row) => row.authorUserId ?? [])
                 .concat([...tasksByMessage.values()].flatMap((task) => task.assigneeUserId ?? []))
+                .concat([...asksByMessage.values()].map((ask) => ask.addresseeUserId))
         ),
     ];
     const humans =
@@ -102,6 +108,7 @@ export async function toAgentMessages(
         const handle = agent?.handle ?? human?.handle ?? null;
         const label = agent?.displayName ?? human?.displayName ?? 'Human';
         const task = tasksByMessage.get(row.id);
+        const ask = asksByMessage.get(row.id);
         const taskAssigneeAgent = task?.assigneeAgentId
             ? agentById.get(task.assigneeAgentId)
             : undefined;
@@ -116,6 +123,7 @@ export async function toAgentMessages(
                 label,
                 metadata: {},
             },
+            body_kind: row.bodyKind,
             chat_id: row.chatId,
             content: row.content,
             created_at: row.createdAt.toISOString(),
@@ -132,6 +140,17 @@ export async function toAgentMessages(
                 type: agent ? 'agent' : 'human',
             },
             sequence: row.sequence,
+            ...(ask
+                ? {
+                      ask: {
+                          addressee_handle: humanById.get(ask.addresseeUserId)?.handle ?? null,
+                          id: ask.id,
+                          recommended_step: ask.recommendedStep,
+                          status: ask.status,
+                          title: ask.title,
+                      },
+                  }
+                : {}),
             ...(preparedActionsByMessage.has(row.id)
                 ? { preparedAction: preparedActionsByMessage.get(row.id) }
                 : {}),

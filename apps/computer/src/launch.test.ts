@@ -110,6 +110,7 @@ beforeEach(async () => {
                             label: 'Launch',
                             metadata: {},
                         },
+                        body_kind: 'text',
                         chat_id: 'cht_test',
                         content: state.sends.at(-1)?.content ?? '',
                         created_at: new Date().toISOString(),

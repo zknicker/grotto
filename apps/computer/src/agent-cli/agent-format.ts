@@ -1,4 +1,4 @@
-import { formatThreadFollowRestoration, shortInboxId } from '../inbox-format.ts';
+import { formatAskSuffix, formatThreadFollowRestoration, shortInboxId } from '../inbox-format.ts';
 import type { AgentCliAutomationEvent, AgentCliMessage } from './agent-api-schemas.ts';
 import { AgentCliError } from './agent-error.ts';
 
@@ -32,7 +32,7 @@ export function formatHistoryLine(message: AgentCliMessage): string {
         ...(message.replyCount !== undefined ? [`replyCount=${message.replyCount}`] : []),
         ...(message.replyTarget ? [`replyTarget=${message.replyTarget}`] : []),
     ];
-    return `[${attributes.join(' ')}] ${formatSender(message)}: ${message.content}${attachmentSuffix(message)}${taskSuffix(message)}`;
+    return `[${attributes.join(' ')}] ${formatSender(message)}: ${message.content}${messageSuffixes(message)}`;
 }
 
 export function formatDeliveryEnvelope(
@@ -46,7 +46,7 @@ export function formatDeliveryEnvelope(
         `time=${formatLocalTime(message.created_at)}`,
         `type=${message.sender.type}`,
     ];
-    const envelope = `[${attributes.join(' ')}] ${formatSender(message)}: ${message.content}${attachmentSuffix(message)}${taskSuffix(message)}`;
+    const envelope = `[${attributes.join(' ')}] ${formatSender(message)}: ${message.content}${messageSuffixes(message)}`;
     return threadFollowReactivated
         ? `${formatThreadFollowRestoration(target)}\n${envelope}`
         : envelope;
@@ -69,7 +69,26 @@ export function formatAutomationEnvelope(event: AgentCliAutomationEvent): string
     return `[${attributes.join(' ')}] @${event.senderHandle}: ${event.content}`;
 }
 
-export function attachmentSuffix(message: AgentCliMessage): string {
+export function formatSender(message: AgentCliMessage): string {
+    // System and unlabeled authors legitimately have no handle (Raft renders
+    // them as @unknown too); never fail a whole read over one such row.
+    const handle = message.sender.handle ?? 'unknown';
+    return message.sender.description ? `@${handle} — ${message.sender.description}` : `@${handle}`;
+}
+
+export function shortMessageId(messageId: string): string {
+    return messageId.startsWith('msg_') ? messageId.slice(4, 12) : messageId;
+}
+
+/**
+ * Every product record a Message carries rides its line in one fixed order:
+ * attachments, then the task metadata, then the Ask lifecycle.
+ */
+function messageSuffixes(message: AgentCliMessage): string {
+    return `${attachmentSuffix(message)}${taskSuffix(message)}${askSuffix(message)}`;
+}
+
+function attachmentSuffix(message: AgentCliMessage): string {
     if (message.attachments.length === 0) {
         return '';
     }
@@ -89,7 +108,7 @@ export function attachmentSuffix(message: AgentCliMessage): string {
 }
 
 /** Task-messages ride every surface with their metadata suffix (D8). */
-export function taskSuffix(message: AgentCliMessage): string {
+function taskSuffix(message: AgentCliMessage): string {
     const task = message.task;
     if (!task) {
         return '';
@@ -98,15 +117,13 @@ export function taskSuffix(message: AgentCliMessage): string {
     return ` [task #${task.number} status=${task.status}${assignee}]`;
 }
 
-export function formatSender(message: AgentCliMessage): string {
-    // System and unlabeled authors legitimately have no handle (Raft renders
-    // them as @unknown too); never fail a whole read over one such row.
-    const handle = message.sender.handle ?? 'unknown';
-    return message.sender.description ? `@${handle} — ${message.sender.description}` : `@${handle}`;
-}
-
-export function shortMessageId(messageId: string): string {
-    return messageId.startsWith('msg_') ? messageId.slice(4, 12) : messageId;
+/** An Ask Message states who owes the answer and whether it is still owed. */
+function askSuffix(message: AgentCliMessage): string {
+    const ask = message.ask;
+    if (!ask) {
+        return '';
+    }
+    return formatAskSuffix({ addresseeHandle: ask.addressee_handle, status: ask.status });
 }
 
 function pad(value: number): string {

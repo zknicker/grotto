@@ -1,5 +1,5 @@
 {
-  "id": "c090c2d5-cc63-40e7-bd6f-b16545059c06",
+  "id": "41f1904f-5ae2-42ca-99a3-d700e10334b3",
   "prevId": "085eee55-a9ba-45de-8cea-41fa210b17ff",
   "version": "7",
   "dialect": "postgresql",
@@ -2376,6 +2376,240 @@
       },
       "isRLSEnabled": false
     },
+    "public.asks": {
+      "name": "asks",
+      "schema": "",
+      "columns": {
+        "addressee_user_id": {
+          "name": "addressee_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "answer_message_id": {
+          "name": "answer_message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "answered_at": {
+          "name": "answered_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "answered_by_agent_id": {
+          "name": "answered_by_agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "answered_by_user_id": {
+          "name": "answered_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "chat_id": {
+          "name": "chat_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "message_id": {
+          "name": "message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recommended_step": {
+          "name": "recommended_step",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "asks_addressee_open_idx": {
+          "name": "asks_addressee_open_idx",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "addressee_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"asks\".\"status\" = 'open'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "asks_chat_fk": {
+          "name": "asks_chat_fk",
+          "tableFrom": "asks",
+          "tableTo": "chats",
+          "columnsFrom": ["server_id", "chat_id"],
+          "columnsTo": ["server_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "asks_message_fk": {
+          "name": "asks_message_fk",
+          "tableFrom": "asks",
+          "tableTo": "chat_messages",
+          "columnsFrom": ["server_id", "chat_id", "message_id"],
+          "columnsTo": ["server_id", "chat_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "asks_answer_message_fk": {
+          "name": "asks_answer_message_fk",
+          "tableFrom": "asks",
+          "tableTo": "chat_messages",
+          "columnsFrom": ["server_id", "answer_message_id"],
+          "columnsTo": ["server_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "asks_agent_fk": {
+          "name": "asks_agent_fk",
+          "tableFrom": "asks",
+          "tableTo": "agents",
+          "columnsFrom": ["server_id", "agent_id"],
+          "columnsTo": ["server_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "asks_answered_by_agent_fk": {
+          "name": "asks_answered_by_agent_fk",
+          "tableFrom": "asks",
+          "tableTo": "agents",
+          "columnsFrom": ["server_id", "answered_by_agent_id"],
+          "columnsTo": ["server_id", "id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "asks_addressee_membership_fk": {
+          "name": "asks_addressee_membership_fk",
+          "tableFrom": "asks",
+          "tableTo": "server_memberships",
+          "columnsFrom": ["server_id", "addressee_user_id"],
+          "columnsTo": ["server_id", "user_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "asks_answered_by_membership_fk": {
+          "name": "asks_answered_by_membership_fk",
+          "tableFrom": "asks",
+          "tableTo": "server_memberships",
+          "columnsFrom": ["server_id", "answered_by_user_id"],
+          "columnsTo": ["server_id", "user_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "asks_server_id_key": {
+          "name": "asks_server_id_key",
+          "nullsNotDistinct": false,
+          "columns": ["server_id", "id"]
+        },
+        "asks_message_key": {
+          "name": "asks_message_key",
+          "nullsNotDistinct": false,
+          "columns": ["server_id", "message_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "asks_id_shape": {
+          "name": "asks_id_shape",
+          "value": "\"asks\".\"id\" ~ '^ask_[A-Za-z0-9_-]{16}$'"
+        },
+        "asks_status": {
+          "name": "asks_status",
+          "value": "\"asks\".\"status\" in ('open', 'answered')"
+        },
+        "asks_title_length": {
+          "name": "asks_title_length",
+          "value": "char_length(\"asks\".\"title\") between 1 and 120"
+        },
+        "asks_summary_length": {
+          "name": "asks_summary_length",
+          "value": "char_length(\"asks\".\"summary\") between 1 and 500"
+        },
+        "asks_step_length": {
+          "name": "asks_step_length",
+          "value": "char_length(\"asks\".\"recommended_step\") between 1 and 200"
+        },
+        "asks_settlement_shape": {
+          "name": "asks_settlement_shape",
+          "value": "(\"asks\".\"status\" = 'answered') = (\n                \"asks\".\"answered_at\" is not null\n                and \"asks\".\"answer_message_id\" is not null\n                and num_nonnulls(\"asks\".\"answered_by_user_id\", \"asks\".\"answered_by_agent_id\") = 1\n            )"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.attachments": {
       "name": "attachments",
       "schema": "",
@@ -2828,6 +3062,12 @@
       "name": "chat_events",
       "schema": "",
       "columns": {
+        "ask_id": {
+          "name": "ask_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "chat_id": {
           "name": "chat_id",
           "type": "text",
@@ -2959,6 +3199,15 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
+        "chat_events_ask_fk": {
+          "name": "chat_events_ask_fk",
+          "tableFrom": "chat_events",
+          "tableTo": "asks",
+          "columnsFrom": ["server_id", "ask_id"],
+          "columnsTo": ["server_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "chat_events_reminder_fk": {
           "name": "chat_events_reminder_fk",
           "tableFrom": "chat_events",
@@ -3010,7 +3259,7 @@
         },
         "chat_events_shape": {
           "name": "chat_events_shape",
-          "value": "(\n                (\"chat_events\".\"event_type\" = 'message.created'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'prepared-action.updated'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"action_id\" IS NOT NULL\n                    AND \"chat_events\".\"action_status\" IN ('pending', 'executed', 'superseded')\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'chat.lifecycle'\n                    AND \"chat_events\".\"chat_id\" IS NULL\n                    AND \"chat_events\".\"lifecycle_chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"chat_action\" IN (\n                        'archived', 'created', 'deleted', 'unarchived', 'updated'\n                    )\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" = 0)\n                OR\n                (\"chat_events\".\"event_type\" IN ('task.created', 'task.updated')\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'chat.read'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NOT NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" >= 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'thread.follow.updated'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NOT NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" >= 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'reminder.changed'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NOT NULL\n                    AND \"chat_events\".\"reminder_action\" IN (\n                        'scheduled', 'updated', 'snoozed', 'canceled', 'fired'\n                    )\n                    AND \"chat_events\".\"sequence\" >= 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'task.label.updated'\n                    AND \"chat_events\".\"chat_id\" IS NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NOT NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" = 0)\n            )"
+          "value": "(\n                (\"chat_events\".\"event_type\" = 'ask.updated'\n                    AND \"chat_events\".\"ask_id\" IS NOT NULL\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'message.created'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"ask_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'prepared-action.updated'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"action_id\" IS NOT NULL\n                    AND \"chat_events\".\"action_status\" IN ('pending', 'executed', 'superseded')\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"ask_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'chat.lifecycle'\n                    AND \"chat_events\".\"chat_id\" IS NULL\n                    AND \"chat_events\".\"lifecycle_chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"chat_action\" IN (\n                        'archived', 'created', 'deleted', 'unarchived', 'updated'\n                    )\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"ask_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" = 0)\n                OR\n                (\"chat_events\".\"event_type\" IN ('task.created', 'task.updated')\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NOT NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"ask_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" > 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'chat.read'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NOT NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"ask_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" >= 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'thread.follow.updated'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NOT NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"ask_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" >= 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'reminder.changed'\n                    AND \"chat_events\".\"chat_id\" IS NOT NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NOT NULL\n                    AND \"chat_events\".\"reminder_action\" IN (\n                        'scheduled', 'updated', 'snoozed', 'canceled', 'fired'\n                    )\n                    AND \"chat_events\".\"ask_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" >= 0)\n                OR\n                (\"chat_events\".\"event_type\" = 'task.label.updated'\n                    AND \"chat_events\".\"chat_id\" IS NULL\n                    AND \"chat_events\".\"message_id\" IS NULL\n                    AND \"chat_events\".\"action_id\" IS NULL\n                    AND \"chat_events\".\"action_status\" IS NULL\n                    AND \"chat_events\".\"label_id\" IS NOT NULL\n                    AND \"chat_events\".\"reader_user_id\" IS NULL\n                    AND \"chat_events\".\"reminder_id\" IS NULL\n                    AND \"chat_events\".\"reminder_action\" IS NULL\n                    AND \"chat_events\".\"ask_id\" IS NULL\n                    AND \"chat_events\".\"sequence\" = 0)\n            )"
         }
       },
       "isRLSEnabled": false
@@ -3030,6 +3279,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "body_kind": {
+          "name": "body_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'text'"
         },
         "chat_id": {
           "name": "chat_id",
@@ -3242,6 +3498,10 @@
         "chat_messages_positive_sequence": {
           "name": "chat_messages_positive_sequence",
           "value": "\"chat_messages\".\"sequence\" > 0"
+        },
+        "chat_messages_body_kind": {
+          "name": "chat_messages_body_kind",
+          "value": "\"chat_messages\".\"body_kind\" in ('text', 'ask')"
         },
         "chat_messages_author_shape": {
           "name": "chat_messages_author_shape",
@@ -6143,13 +6403,6 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
-        },
-        "has_script": {
-          "name": "has_script",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "id": {
           "name": "id",

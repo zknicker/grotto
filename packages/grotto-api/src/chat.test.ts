@@ -56,6 +56,7 @@ test('Chat reads derive the reader from the verified Clerk member', () => {
 test('Server messages and durable events keep stable Server and Chat identity', () => {
     const message = chatMessageSchema.parse({
         attachments: [],
+        body: { kind: 'text' },
         author: { kind: 'human', userId: 'usr_human' },
         chatId: 'cht_all',
         content: 'Durable.',
@@ -112,6 +113,7 @@ test('Server messages and durable events keep stable Server and Chat identity', 
 test('Server message history can preserve a deleted author profile', () => {
     const message = chatMessageSchema.parse({
         attachments: [],
+        body: { kind: 'text' },
         author: {
             agentId: 'agt_cove',
             kind: 'agent',
@@ -145,6 +147,7 @@ test('Server message contracts admit only human and Agent authors', () => {
         chatMessageSchema.parse({
             attachments: [],
             author: { kind: 'system', system: 'session' },
+            body: { kind: 'text' },
             chatId: 'cht_all',
             content: 'Session reset.',
             createdAt: '2026-07-26T12:00:00.000Z',
@@ -161,6 +164,7 @@ test('an Agent message carries the session that wrote it', () => {
     const message = chatMessageSchema.parse({
         attachments: [],
         author: { agentId: 'agt_cove', kind: 'agent' },
+        body: { kind: 'text' },
         chatId: 'cht_all',
         content: 'Back with a fresh session.',
         createdAt: '2026-07-26T12:00:00.000Z',
@@ -177,6 +181,7 @@ test('an Agent message carries the session that wrote it', () => {
         chatMessageSchema.parse({
             attachments: [],
             author: { kind: 'human', userId: 'usr_1' },
+            body: { kind: 'text' },
             chatId: 'cht_all',
             content: 'Thanks.',
             createdAt: '2026-07-26T12:00:01.000Z',

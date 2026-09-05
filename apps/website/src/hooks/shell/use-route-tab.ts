@@ -6,6 +6,7 @@ export const routeTabs = [
     { id: 'search', label: 'Search', path: appRoutes.search },
     { id: 'chat', label: 'Chat', path: appRoutes.chats },
     { id: 'activity', label: 'Activity', path: appRoutes.activity },
+    { id: 'inbox', label: 'Inbox', path: appRoutes.inbox },
     { id: 'tasks', label: 'Tasks', path: appRoutes.tasks },
     { id: 'members', label: 'Members', path: appRoutes.settingsMembers },
 ] as const;

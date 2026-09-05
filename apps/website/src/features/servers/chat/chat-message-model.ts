@@ -64,6 +64,7 @@ export function projectChatMessage(
         kind: 'message',
         message: {
             actor,
+            ask: message.body.kind === 'ask' ? message.body.ask : null,
             attachments: message.attachments.map((attachment) => ({
                 filename: attachment.filename,
                 mediaType: attachment.mediaType,

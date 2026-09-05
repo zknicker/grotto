@@ -107,13 +107,17 @@ test('chat mention options expose the DM Agent, active humans, visible channels,
         }),
         expect.objectContaining({
             id: expect.stringMatching(/^chat:\/\/cht_/u),
+            insertText: '#all',
             kind: 'chat',
             label: 'all',
+            sourceLabel: 'Channels',
         }),
         expect.objectContaining({
             id: expect.stringMatching(/^chat:\/\/cht_/u),
+            insertText: '#onboarding-owner',
             kind: 'chat',
             label: 'onboarding-owner',
+            sourceLabel: 'Channels',
         }),
         expect.objectContaining({
             id: 'skill://agent-browser',

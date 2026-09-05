@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
+import { askStatusSchema } from './ask-shared.ts';
 import { idSchema } from './chat.ts';
 import { agentCreateActionResultSchema } from './prepared-actions.ts';
 import {
@@ -24,6 +25,16 @@ export const agentActionAttentionSchema = z
 
 export type AgentActionAttention = z.infer<typeof agentActionAttentionSchema>;
 
+/** The inbox projection of an Ask: who owes the answer, and whether it is still owed. */
+export const inboxAskSchema = z
+    .object({
+        addresseeHandle: z.string().trim().min(1).max(128).nullable(),
+        status: askStatusSchema,
+    })
+    .strict();
+
+export type InboxAsk = z.infer<typeof inboxAskSchema>;
+
 /** One Server-owned message envelope durably accepted into a Computer inbox. */
 export const agentInboxItemSchema = z
     .object({
@@ -33,6 +44,7 @@ export const agentInboxItemSchema = z
         id: idSchema,
         /** Typed Server attention; unlike a Chat message, it has no message cursor. */
         actionAttention: agentActionAttentionSchema.optional(),
+        ask: inboxAskSchema.optional(),
         /** Canonical Agent API shape cached for Computer-local message checks. */
         message: z.record(z.string(), z.unknown()).optional(),
         mentioned: z.boolean().optional(),

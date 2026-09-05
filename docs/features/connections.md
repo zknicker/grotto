@@ -17,6 +17,12 @@ discovered tools. There is no Computer picker and no local or stdio transport.
 Google Calendar and MerchBase are presets for endpoint and auth defaults. They remain ordinary MCP
 connections, and another account can be added from the connection detail.
 
+GitHub is the one first-party connection that is not an MCP server. Owners and Admins connect one
+GitHub account or token per Server, and the Server uses it only to resolve pull-request references
+into their cached snapshot (title, state, additions, deletions, files changed) for
+[rich references](rich-references.md). It exposes no tools and has no per-Agent access switch;
+Agents reach GitHub through their own Computer tooling or an ordinary MCP connection.
+
 Disconnect warns which Agents lose access, then clears active credentials, discovered tools, and
 grants. Custom connections may be deleted. Reconnect uses the same connection and can reuse its
 configured OAuth client and previously approved authorization-server origins.

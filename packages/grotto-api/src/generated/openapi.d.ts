@@ -1722,6 +1722,8 @@ export interface components {
             /** @enum {string} */
             role: "user" | "assistant" | "system";
             content: string;
+            /** @enum {string} */
+            body_kind: "text" | "ask";
             attachments: components["schemas"]["JsonObject"][];
             nonce: string | null;
             delivery_id: components["schemas"]["DeliveryId"] | null;
@@ -1729,8 +1731,17 @@ export interface components {
             deleted_at: components["schemas"]["Timestamp"] | null;
             metadata: components["schemas"]["JsonObject"];
             task?: components["schemas"]["MessageTask"] | null;
+            ask?: components["schemas"]["MessageAsk"] | null;
             reactions?: components["schemas"]["MessageReaction"][];
             preparedAction?: components["schemas"]["PreparedAction"];
+        };
+        MessageAsk: {
+            id: string;
+            /** @enum {string} */
+            status: "open" | "answered";
+            addressee_handle: string | null;
+            title: string;
+            recommended_step: string;
         };
         MessageTask: {
             number: number;

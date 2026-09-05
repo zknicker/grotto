@@ -2,7 +2,7 @@
 summary: User-facing rich reference behavior for mentions, skills, apps, plugins, files, and future product cards.
 read_when:
   - changing chat mentions, rich reference rendering, autocomplete references, or explicit typed links in messages
-  - adding a new reference type such as agent, skill, app, plugin, file, directory, product, ASIN, memory, chat, or session
+  - adding a new reference type such as agent, skill, app, plugin, file, directory, pull request, product, ASIN, memory, chat, or session
 ---
 
 # Rich References
@@ -20,6 +20,7 @@ Examples:
 - `[@Chrome](app://computer-use/com.google.Chrome)` references a Mac app.
 - `[#product](chat://cht_product)` opens a channel by immutable chat id.
 - `[README.md](/repo/README.md)` references a file.
+- `[#482](pr://github/grotto/grotto/482)` references a GitHub pull request.
 
 The human composer persists selected references as explicit typed links. Agent
 output may use bare `@handle` and `#channel` tokens; the Server resolves known
@@ -120,6 +121,15 @@ tokens stay plain text. For example, `@blippy` becomes
   Interactive references strengthen slightly on hover or focus — deepening in
   the light theme and brightening in the dark theme, so the gesture never
   washes the reference toward its ground.
+- Pull-request references are recognized from a GitHub pull-request URL pasted
+  or posted as a link (`https://github.com/<owner>/<repo>/pull/<n>`) or written
+  as `[#482](pr://github/<owner>/<repo>/482)`. They render compact inline — the
+  pull-request glyph, `#<n>`, and `owner/repo` — and card-like when the
+  reference is the entire message. Owner, repository, and number come from the
+  URL. A Server-owned GitHub connection in Settings → Connections resolves the
+  reference into a cached snapshot — title, open, draft, merged, or closed
+  state, additions, deletions, and files changed — that both renderings show;
+  without a connection the reference renders from the URL alone.
 - Ordinary web links use the same chip shell with the site's favicon and a
   globe fallback. Activating one opens the original URL. Agent and chat chips
   are interactive: they open the referenced Agent profile or channel.

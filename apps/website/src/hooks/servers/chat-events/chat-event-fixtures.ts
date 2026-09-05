@@ -134,3 +134,22 @@ export function reminderEvent(cursor: string, chatId: string): ChatEventOf<'remi
         type: 'reminder.changed',
     };
 }
+
+export function askEvent(
+    cursor: string,
+    chatId: string,
+    parentChatId: string | null = null
+): ChatEventOf<'ask.updated'> {
+    return {
+        askId: `ask_${cursor}`,
+        chatId,
+        createdAt: '2026-09-02T12:00:00.000Z',
+        cursor,
+        id: `event_${cursor}`,
+        messageId: `message_${cursor}`,
+        parentChatId,
+        sequence: Number(cursor),
+        serverId: 'server_one',
+        type: 'ask.updated',
+    };
+}

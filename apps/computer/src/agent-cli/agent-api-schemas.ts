@@ -15,6 +15,14 @@ export const taskActorSchema = z.object({
     id: z.string(),
 });
 
+const messageAskSchema = z.object({
+    addressee_handle: z.string().nullable(),
+    id: z.string(),
+    recommended_step: z.string(),
+    status: z.enum(['open', 'answered']),
+    title: z.string(),
+});
+
 const messageTaskSchema = z.object({
     assignee: taskActorSchema.nullable(),
     claimed_at: z.string().nullable(),
@@ -44,6 +52,7 @@ const messageTaskSchema = z.object({
 });
 
 export const agentMessageSchema = z.object({
+    ask: messageAskSchema.nullable().optional(),
     attachments: z.array(jsonObjectSchema),
     author: z.object({
         id: z.string().min(1),
@@ -51,6 +60,7 @@ export const agentMessageSchema = z.object({
         label: z.string().nullable(),
         metadata: jsonObjectSchema,
     }),
+    body_kind: z.enum(['text', 'ask']),
     chat_id: z.string().min(1),
     content: z.string(),
     created_at: z.string().min(1),

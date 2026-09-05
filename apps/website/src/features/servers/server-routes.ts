@@ -22,6 +22,11 @@ export function serverArchivedChatsRoute(slug: string) {
     return `${serverRoute(slug)}/archived`;
 }
 
+/** The human Inbox: one lens over what needs this person right now. */
+export function inboxRoute(slug: string) {
+    return `${serverRoute(slug)}/inbox`;
+}
+
 export function tasksRoute(slug: string) {
     return `${serverRoute(slug)}/tasks`;
 }

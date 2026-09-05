@@ -33,10 +33,11 @@ Grotto acts rather than generic actions, UI cards, or provider-specific implemen
 - One Server Message reader owns typed record projection for every consumer.
 - A related record owns mutable lifecycle and is unique to its Message; lifecycle events refetch
   the Message instead of creating receipt Messages.
-- Agent creation uses `agent-creation-proposal`; delegated hosted work uses `cloud-agent-work`.
-  Grotto adds another body kind only when a distinct authored product act requires one.
-- Expand/contract compatibility exists only for a named separately released client cutover and is
-  removed in the following release.
+- Agent creation uses `agent-creation-proposal`; delegated hosted work uses `cloud-agent-work`; a
+  human decision request uses `ask`. Grotto adds another body kind only when a distinct authored
+  product act requires one.
+- The canonicalization ships as one breaking release against a fresh production database; Grotto
+  carries no expand/contract compatibility path for it.
 
 Rejected alternatives are empty anchor Messages, a generic card or action table, arbitrary JSON
 content blocks, provider-specific Message kinds, and permanent multi-version body readers.

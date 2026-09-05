@@ -82,6 +82,7 @@ function message(id: string, content: string): ChatMessage {
     return {
         attachments: [],
         author: { kind: 'human', userId: 'usr_1' },
+        body: { kind: 'text' },
         chatId: 'cht_1',
         content,
         createdAt: '2026-08-11T00:00:00.000Z',

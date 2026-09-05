@@ -180,7 +180,7 @@ test('a hosted task message projects its status in the Chat and opens its Thread
         .getByText('Projected task message', { exact: true })
         .locator('xpath=ancestor::div[@data-message-id][1]');
     await expect(row.getByTestId('message-task-badge')).toBeVisible();
-    await expect(row.getByRole('button', { name: 'Open task thread' })).toBeVisible();
+    await expect(row.getByRole('button', { exact: true, name: 'Open thread' })).toBeVisible();
 
     // Claiming advances status through the same task realtime invalidation; no reload.
     const claim = await client.task.claim.mutate({
@@ -200,7 +200,7 @@ test('a hosted task message projects its status in the Chat and opens its Thread
     }
     await expect(row.getByTestId('message-task-badge')).toContainText(assignee.displayName);
 
-    await row.getByRole('button', { name: 'Open task thread' }).click();
+    await row.getByRole('button', { exact: true, name: 'Open thread' }).click();
     const thread = page.getByRole('complementary', { name: 'Thread' });
     await expect(thread).toBeVisible();
     await expect(thread.getByRole('region', { name: 'Task #1 details' })).toBeVisible();

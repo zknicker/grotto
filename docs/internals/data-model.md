@@ -41,6 +41,19 @@ actually applied that version.
 Semantic Agent activity is durable Server metadata. Detailed execution journals remain
 Computer-local and are read only through an authorized live relay.
 
+`chat_messages.body_kind` is the Message body discriminator (ADR 0025). It defaults to `text`, and
+`ask` is the first typed kind; optional feature columns never define a Message's type. One Server
+Message reader projects the stored kind and its record together, and fails the mapping rather than
+downgrading a typed Message to text.
+
+`asks` is the Server record behind an `ask` body: one row per Message (`(server_id, message_id)` is
+unique) carrying the addressed human, the asking Agent, the title, summary, and recommended step,
+plus the settlement columns — status, answered-at, answer Message, and exactly one of the answering
+human or Agent. A CHECK keeps `answered` and its settlement columns in agreement, and composite
+foreign keys keep the Ask, its Message, its Chat, its addressee, and its answerer in one Server
+tenant. Ask lifecycle changes append `ask.updated` to the same `chat_events` cursor log through the
+new nullable `ask_id` column.
+
 `prepared_actions` is the immutable Server record for an Agent-authored proposal. It is anchored
 to one canonical Agent message and carries the narrow action kind, validated proposal, proposer,
 nonce, and lifecycle fields. `prepared_action_media` stores the exact avatar bytes owned by that

@@ -17,7 +17,7 @@ clients recover through durable reads.
 
 | Component | Owner | Role |
 | --- | --- | --- |
-| Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for messages, reads, follows, Chat lifecycle, prepared-action changes, and reminder changes |
+| Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for messages, reads, follows, Chat lifecycle, prepared-action changes, Ask changes, and reminder changes |
 | Hosted durable subscription | Grotto Server | Live notification after commit; membership rechecked at delivery |
 | Hosted composition hub | Grotto Server | In-memory, membership-checked, no persistence or replay |
 | Hosted Agent activity journal | Grotto Server | Durable semantic execution metadata plus live current-state projection |
@@ -50,7 +50,8 @@ from durable `chat_events`.
 ## Hosted Server Realtime
 
 `chat.send`, an advancing `chat.markRead`, `thread.setFollow`, Chat lifecycle
-mutations, prepared-action mutations, task mutations, and reminder mutations insert their durable event in
+mutations, prepared-action mutations, Ask creation and settlement, task mutations, and reminder
+mutations insert their durable event in
 the same PostgreSQL transaction as the owned row. `chat.events` lists accessible
 events after a cursor in ascending order. `chat.onEvent` does not replay; it
 notifies the App after commit. On subscription start or reconnect, the App
@@ -160,7 +161,15 @@ run as `Finishing up…`. Terminal lifecycle proof owns both sidebar-row removal
 working-to-idle transition, keeping those surfaces synchronized. Trailing completion events preserve
 the finishing state; a later started operation replaces it.
 
-Hosted durable event kinds are `message.created`, `prepared-action.updated`,
+`ask.updated` is a participant-gated durable event carrying the Ask id, its Message id, the Chat id,
+the anchor Message's Chat sequence, and the cursor. Creating an Ask emits `message.created` and then
+`ask.updated` in one transaction; the first reply in the Ask's Thread emits its own
+`message.created` and the settling `ask.updated` in the reply's transaction. The payload never
+carries the question, summary, or recommended step: clients refetch the affected Message — whose
+`body` projects the current Ask — and the viewer's open-Ask list. Reconnect recovery therefore walks
+the same events and cannot lose a settlement whose notification was dropped.
+
+Hosted durable event kinds are `message.created`, `ask.updated`, `prepared-action.updated`,
 `chat.read`, `chat.lifecycle`, the reader-private `thread.follow.updated`,
 `task.created`, `task.updated`, and `task.label.updated`, plus `reminder.changed`.
 

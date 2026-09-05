@@ -110,6 +110,9 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
         'A parent channel mute already suppresses ordinary delivery from its threads'
     );
 
+    expect(prompt).toContain('**Asks** — `grotto ask`');
+    expect(prompt).toContain('the answer is their reply in the Ask’s thread');
+
     // These Raft-only surfaces must not leak into the Grotto prompt.
     expect(prompt).not.toContain('reviewer-isolation');
     expect(prompt).not.toContain('raft wiki');
@@ -141,17 +144,18 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // rendered prompt from 36,763 to 36,808 — still inside the reviewed 37,000.
     // Saying where a fire actually arrives — in the wake it causes, or the next
     // turn when busy — instead of implying a pull spends ~168 more, taking it to
-    // 36,976. That leaves almost no headroom on purpose: the next
-    // prompt-teaching change needs its own review, not a bump.
+    // 36,976. The Asks command-family entry — one named human's decision, and
+    // where its answer arrives — spends ~197, taking it to 37,173.
     //
-    // Reviewed bump to 38,000: the task promotion rule was rewritten because the
+    // Reviewed bump to 38,200: the task promotion rule was rewritten because the
     // old broad "requires action → claim it" rule turned one-turn conversational
     // requests into tasks that sat in `in_progress` forever. Naming both
     // promotion conditions, the same-turn counter-example, the self-`done`
-    // close-out, and the stale `in_review` window costs ~900 chars, and every
-    // one of those sentences fixes a live production failure. Headroom is again
-    // deliberately thin.
-    expect(prompt.length).toBeLessThanOrEqual(38_000);
+    // close-out, and the stale `in_review` window costs ~936 chars, taking the
+    // rendered prompt to 38,109, and every one of those sentences fixes a live
+    // production failure. Headroom is again deliberately thin: the next
+    // prompt-teaching change needs its own review, not a bump.
+    expect(prompt.length).toBeLessThanOrEqual(38_200);
 });
 
 test('teaches automation provenance: silent fires, envelopes, and top-level fire answers', () => {

@@ -3,12 +3,14 @@ import type {
     AgentSendReceipt,
     AttachmentMetadata,
     GrottoAgentMessage,
+    MessageBodyKind,
     ServerDurableEvent,
 } from '@grotto/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { followAgentThread } from '../agent-api/attention.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
+import { settleAskForReply } from '../asks/settle-ask.ts';
 import {
     associateMessageAttachments,
     attachmentMetadata,
@@ -47,7 +49,7 @@ export interface SendAgentMessageInput {
 
 export interface SendAgentMessageResult {
     activities: AgentActivityEvent[];
-    event: ServerDurableEvent | null;
+    events: ServerDurableEvent[];
     message: GrottoAgentMessage;
     receipt: AgentSendReceipt;
     wakes: Array<{ agentId: string; serverId: string }>;
@@ -88,6 +90,7 @@ export async function sendAgentMessage(
         const [existing] = await tx
             .select({
                 authorAgentId: chatMessagesTable.authorAgentId,
+                bodyKind: chatMessagesTable.bodyKind,
                 content: chatMessagesTable.content,
                 createdAt: chatMessagesTable.createdAt,
                 cursor: chatEventsTable.cursor,
@@ -140,7 +143,7 @@ export async function sendAgentMessage(
             }
             return {
                 activities: [],
-                event: null,
+                events: [],
                 message: toAgentCliMessage(existing, {
                     ...agent,
                     agentId: input.agentId,
@@ -211,7 +214,11 @@ export async function sendAgentMessage(
         }
 
         const [writtenChat] = await tx
-            .select({ kind: chatsTable.kind, parentChatId: chatsTable.parentChatId })
+            .select({
+                anchorMessageId: chatsTable.anchorMessageId,
+                kind: chatsTable.kind,
+                parentChatId: chatsTable.parentChatId,
+            })
             .from(chatsTable)
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
             .limit(1);
@@ -230,6 +237,20 @@ export async function sendAgentMessage(
                 });
             }
         }
+        // An Agent reply in an Ask's Thread settles that Ask, unless it is the
+        // asking Agent's own reply. Settlement commits with the reply.
+        const settledAsk =
+            writtenChat?.kind === 'thread'
+                ? await settleAskForReply(tx, {
+                      anchorMessageId: writtenChat.anchorMessageId,
+                      answeredBy: { id: input.agentId, kind: 'agent' },
+                      answerMessageId: message.id,
+                      replySequence: message.sequence,
+                      serverId: input.serverId,
+                      threadChatId: input.chatId,
+                  })
+                : null;
+
         const recipients = await planAgentMessageRecipients(tx, {
             authorAgentId: input.agentId,
             chatId: input.chatId,
@@ -281,17 +302,20 @@ export async function sendAgentMessage(
 
         return {
             activities,
-            event: {
-                chatId: input.chatId,
-                createdAt: event.createdAt.toISOString(),
-                cursor: event.cursor.toString(),
-                id: event.id,
-                messageId: message.id,
-                parentChatId: writtenChat?.kind === 'thread' ? writtenChat.parentChatId : null,
-                sequence: message.sequence,
-                serverId: input.serverId,
-                type: 'message.created',
-            },
+            events: [
+                {
+                    chatId: input.chatId,
+                    createdAt: event.createdAt.toISOString(),
+                    cursor: event.cursor.toString(),
+                    id: event.id,
+                    messageId: message.id,
+                    parentChatId: writtenChat?.kind === 'thread' ? writtenChat.parentChatId : null,
+                    sequence: message.sequence,
+                    serverId: input.serverId,
+                    type: 'message.created',
+                },
+                ...(settledAsk ? [settledAsk] : []),
+            ],
             message: toAgentCliMessage(message, {
                 ...agent,
                 agentId: input.agentId,
@@ -312,6 +336,7 @@ export async function sendAgentMessage(
 
 function toAgentCliMessage(
     message: {
+        bodyKind: MessageBodyKind;
         content: string;
         createdAt: Date;
         id: string;
@@ -335,6 +360,7 @@ function toAgentCliMessage(
             label: agent.displayName,
             metadata: {},
         },
+        body_kind: message.bodyKind,
         chat_id: agent.chatId,
         content: message.content,
         created_at: message.createdAt.toISOString(),

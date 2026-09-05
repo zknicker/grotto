@@ -11,6 +11,9 @@ read_when:
 
 # Agent Inbox
 
+The Agent inbox is agent-only delivery state; the human Inbox page is
+[docs/features/inbox.md](../docs/features/inbox.md).
+
 The agent inbox is the only lane that carries work no human sees, and `agent_inbox`
 is the table that holds it (ADR 0026). Everything an Agent is given to act on is an
 inbox item: a delivery planner queues items per attention rules, notice turns preserve
@@ -138,7 +141,11 @@ attention.
 
 Idle and busy agents receive only the content-free inbox notice (turn-shapes §4):
 batched target rows with counts, first/latest short ids, latest sender, and
-`· thread / · dm / · you were mentioned` tags — never bodies. Rows are
+`· thread / · dm / · task #N / · ask <status> to=@handle / · action attention /
+· you were mentioned` tags — never bodies. The Ask tag reads the same status and
+addressee as the `[ask status=… to=@handle]` envelope suffix and the drain
+envelope's compressed `ask=<status>[:@handle]` marker (grotto-cli.md §4), from
+one formatting owner. Rows are
 deduped by exact offered identities and repeat only when the pending set
 changes. Busy injection is acknowledged only after Computer durably caches the
 envelopes and successfully injects the notice after a completed tool boundary.

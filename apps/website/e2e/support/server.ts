@@ -6,18 +6,37 @@ import { appProtocolHeaders, appProtocolVersion } from '@grotto/api/app-protocol
 import type { Page } from '@playwright/test';
 import { createTRPCClient, httpLink } from '@trpc/client';
 import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
-import { readClerkSessionFixture, signInAsClerkHuman } from './clerk-session.ts';
+import {
+    e2eHumanEmail,
+    e2eHumanName,
+    readClerkSessionFixture,
+    signInAsClerkHuman,
+} from './clerk-session.ts';
 
 export async function createTestServer(page: Page, input: { displayName: string; slug: string }) {
     await signInAsClerkHuman(page);
     const session = readClerkSessionFixture();
     const client = createClient(session.token);
     const created = await client.server.create.mutate(input);
+    await seedHumanIdentity(client, created.id);
     completeOnboarding(session.databaseUrl, created.id);
     const server = await client.server.bySlug.query({ slug: input.slug });
     await page.goto(`/s/${input.slug}`);
 
     return { client, server, session };
+}
+
+/**
+ * Reports the signed-in human's Clerk identity, which the App does on every
+ * real sign-in. clerk-js never loads in e2e, so nothing else would, and the
+ * human would stay nameless where the product reads a display name.
+ */
+export async function seedHumanIdentity(client: ReturnType<typeof createClient>, serverId: string) {
+    await client.member.syncIdentity.mutate({
+        email: e2eHumanEmail,
+        name: e2eHumanName,
+        serverId,
+    });
 }
 
 /** Unrelated browser specs start after the mandatory first-run journey. */
@@ -37,7 +56,7 @@ export async function openSection(page: Page, name: string) {
     // Chat has no dedicated row: non-chat sidebar pages expose a back link,
     // and everywhere else the chat navigation is already the visible sidebar.
     if (name === 'Chat') {
-        const back = page.getByRole('link', { name: 'Back to chat' });
+        const back = page.getByRole('row', { exact: true, name: 'Back to chat' });
         if (await back.isVisible().catch(() => false)) {
             await back.click();
         }

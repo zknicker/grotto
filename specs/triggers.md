@@ -1,6 +1,6 @@
 # Triggers
 
-A Trigger is the inbound stimulus primitive (ADR 0025). It is an Agent-owned,
+A Trigger is the inbound stimulus primitive (ADR 0027). It is an Agent-owned,
 anchored, secret-authenticated HTTP wake: an outside system POSTs to a private
 URL and the owning Agent wakes with the payload. The anchor is a Chat, plus the
 asking message when an Agent created it. A Trigger has no

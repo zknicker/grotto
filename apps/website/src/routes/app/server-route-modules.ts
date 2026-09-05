@@ -16,6 +16,7 @@ export const serverRouteModules = {
     archivedChats: cachedRouteModule(() => import('./archived-chats-route.tsx')),
     chat: cachedRouteModule(() => import('./chat-route.tsx')),
     default: cachedRouteModule(() => import('./server-default-page.tsx')),
+    inbox: cachedRouteModule(() => import('./inbox-page.tsx')),
     usage: cachedRouteModule(() => import('./usage-page.tsx')),
     search: cachedRouteModule(() => import('./search-route.tsx')),
     settings: cachedRouteModule(() => import('./server-settings-page.tsx')),
@@ -28,6 +29,7 @@ const routeModulesBySection: Record<
     ReadonlyArray<() => Promise<Record<string, unknown>>>
 > = {
     chat: [serverRouteModules.chat, serverRouteModules.archivedChats],
+    inbox: [serverRouteModules.inbox],
     usage: [serverRouteModules.usage],
     search: [serverRouteModules.search],
     settings: [serverRouteModules.settings, serverRouteModules.settingsSection],

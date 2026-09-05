@@ -1,4 +1,5 @@
 import { agentRouter } from './agent/router.ts';
+import { askRouter } from './ask/router.ts';
 import { attachmentRouter } from './attachment/router.ts';
 import { automationRouter } from './automation/router.ts';
 import { avatarRouter } from './avatar/router.ts';
@@ -24,6 +25,7 @@ import { createRouter } from './trpc.ts';
  */
 export const grottoRouter = createRouter({
     agent: agentRouter,
+    ask: askRouter,
     attachment: attachmentRouter,
     automation: automationRouter,
     avatar: avatarRouter,

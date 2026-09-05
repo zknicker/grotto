@@ -10,6 +10,7 @@ import {
     timestamp,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { asksTable } from './asks.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { chatsTable } from './chats.ts';
 import { preparedActionsTable } from './prepared-actions.ts';
@@ -19,6 +20,7 @@ import { serverMembershipsTable } from './server-memberships.ts';
 export const chatEventsTable = pgTable(
     'chat_events',
     {
+        askId: text('ask_id'),
         chatId: text('chat_id'),
         chatAction: text('chat_action').$type<
             'archived' | 'created' | 'deleted' | 'unarchived' | 'updated'
@@ -41,6 +43,7 @@ export const chatEventsTable = pgTable(
         type: text('event_type')
             .notNull()
             .$type<
+                | 'ask.updated'
                 | 'chat.read'
                 | 'chat.lifecycle'
                 | 'message.created'
@@ -66,6 +69,11 @@ export const chatEventsTable = pgTable(
             name: 'chat_events_chat_fk',
         }).onDelete('cascade'),
         foreignKey({
+            columns: [table.serverId, table.askId],
+            foreignColumns: [asksTable.serverId, asksTable.id],
+            name: 'chat_events_ask_fk',
+        }).onDelete('cascade'),
+        foreignKey({
             columns: [table.serverId, table.reminderId],
             foreignColumns: [remindersTable.serverId, remindersTable.id],
             name: 'chat_events_reminder_fk',
@@ -88,6 +96,18 @@ export const chatEventsTable = pgTable(
         check(
             'chat_events_shape',
             sql`(
+                (${table.type} = 'ask.updated'
+                    AND ${table.askId} IS NOT NULL
+                    AND ${table.chatId} IS NOT NULL
+                    AND ${table.messageId} IS NOT NULL
+                    AND ${table.actionId} IS NULL
+                    AND ${table.actionStatus} IS NULL
+                    AND ${table.labelId} IS NULL
+                    AND ${table.readerUserId} IS NULL
+                    AND ${table.reminderId} IS NULL
+                    AND ${table.reminderAction} IS NULL
+                    AND ${table.sequence} > 0)
+                OR
                 (${table.type} = 'message.created'
                     AND ${table.chatId} IS NOT NULL
                     AND ${table.messageId} IS NOT NULL
@@ -97,6 +117,7 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
+                    AND ${table.askId} IS NULL
                     AND ${table.sequence} > 0)
                 OR
                 (${table.type} = 'prepared-action.updated'
@@ -108,6 +129,7 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
+                    AND ${table.askId} IS NULL
                     AND ${table.sequence} > 0)
                 OR
                 (${table.type} = 'chat.lifecycle'
@@ -123,6 +145,7 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
+                    AND ${table.askId} IS NULL
                     AND ${table.sequence} = 0)
                 OR
                 (${table.type} IN ('task.created', 'task.updated')
@@ -134,6 +157,7 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
+                    AND ${table.askId} IS NULL
                     AND ${table.sequence} > 0)
                 OR
                 (${table.type} = 'chat.read'
@@ -145,6 +169,7 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NOT NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
+                    AND ${table.askId} IS NULL
                     AND ${table.sequence} >= 0)
                 OR
                 (${table.type} = 'thread.follow.updated'
@@ -156,6 +181,7 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NOT NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
+                    AND ${table.askId} IS NULL
                     AND ${table.sequence} >= 0)
                 OR
                 (${table.type} = 'reminder.changed'
@@ -169,6 +195,7 @@ export const chatEventsTable = pgTable(
                     AND ${table.reminderAction} IN (
                         'scheduled', 'updated', 'snoozed', 'canceled', 'fired'
                     )
+                    AND ${table.askId} IS NULL
                     AND ${table.sequence} >= 0)
                 OR
                 (${table.type} = 'task.label.updated'
@@ -180,6 +207,7 @@ export const chatEventsTable = pgTable(
                     AND ${table.readerUserId} IS NULL
                     AND ${table.reminderId} IS NULL
                     AND ${table.reminderAction} IS NULL
+                    AND ${table.askId} IS NULL
                     AND ${table.sequence} = 0)
             )`
         ),

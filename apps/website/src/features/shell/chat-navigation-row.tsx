@@ -1,8 +1,8 @@
 import type { Agent, Chat } from '@grotto/api';
-import { Chip } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import type * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
+import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { serverChatRoute } from '../servers/server-routes.ts';
@@ -102,17 +102,7 @@ function ChatRowChip({ chat }: { chat: Chat }) {
     if (chat.unreadCount === 0) {
         return null;
     }
-    return (
-        <Chip
-            aria-label={`${chat.unreadCount} unread`}
-            className="min-w-5 justify-center tabular-nums"
-            color="accent"
-            size="sm"
-            variant="primary"
-        >
-            {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
-        </Chip>
-    );
+    return <UnreadCountChip count={chat.unreadCount} />;
 }
 
 function ChatIcon({ agent, chat }: { agent: Agent | null; chat: Chat }) {

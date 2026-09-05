@@ -59,7 +59,9 @@ test('aligns the Settings escape row with the first Chat navigation row', async 
     expect(searchBox).not.toBeNull();
 
     await page.goto(`/s/${slug}/settings/appearance`);
-    const backBox = await page.getByRole('link', { name: 'Back to chat' }).boundingBox();
+    const backBox = await page
+        .getByRole('row', { exact: true, name: 'Back to chat' })
+        .boundingBox();
     expect(backBox).not.toBeNull();
     expect(backBox?.y).toBe(searchBox?.y);
     expect(backBox?.height).toBe(searchBox?.height);
@@ -100,9 +102,9 @@ test('reports current Computer models and skills in Server Settings', async ({ p
     await expect(page.getByText('gpt-5.6-terra', { exact: true })).toBeVisible();
 
     await page.goto(`/s/${slug}/settings/skills`);
-    await expect(page.getByRole('heading', { exact: true, name: 'Skills' })).toBeVisible();
-    await expect(page.getByText('Browse Skills', { exact: true })).toBeVisible();
-    await expect(page.getByRole('treeitem', { name: 'durable-testing' })).toBeVisible();
+    const skills = page.getByRole('treegrid', { name: 'Skills' });
+    await expect(skills.getByRole('row', { exact: true, name: 'durable-testing' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: 'Durable Testing' })).toBeVisible();
     await expect(page.getByText('E2E fixture', { exact: true })).toBeVisible();
 });
 
@@ -119,13 +121,14 @@ test('creates and deletes a custom Server MCP connection', async ({ page }) => {
     await page.getByRole('option', { name: 'OAuth' }).click();
     await drawer.getByRole('button', { name: 'Add Connection' }).click();
 
-    const row = page.getByRole('row', { name: new RegExp(name, 'u') });
-    await expect(row).toBeVisible();
-    await row.click();
+    // The Added list renders each connection as a card button, not a row.
+    const connection = page.getByRole('button', { name: new RegExp(name, 'u') });
+    await expect(connection).toBeVisible();
+    await connection.click();
     const detail = page.getByRole('dialog', { name });
     await detail.getByRole('button', { name: 'Delete' }).click();
     const confirmation = page.getByRole('alertdialog', { name: `Delete ${name}?` });
     await expect(confirmation).toContainText('No Agents currently use this connection.');
     await confirmation.getByRole('button', { name: 'Delete' }).click();
-    await expect(row).toHaveCount(0);
+    await expect(connection).toHaveCount(0);
 });

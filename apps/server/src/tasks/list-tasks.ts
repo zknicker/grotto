@@ -1,6 +1,7 @@
 import type { TaskListItem } from '@grotto/api';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { visibleChats } from '../chats/chat-visibility.ts';
+import { readMessageBodies } from '../chats/message-bodies.ts';
 import { toChatMessage } from '../chats/message-shape.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
@@ -57,6 +58,11 @@ export async function listTasks(
         input.serverId,
         rows.map((row) => row.task.messageId)
     );
+    const bodies = await readMessageBodies(
+        db,
+        input.serverId,
+        rows.map((row) => row.task.messageId)
+    );
     const summaries = await listThreadSummaries(db, member, {
         anchorMessageIds: rows.map((row) => row.task.messageId),
         serverId: input.serverId,
@@ -78,7 +84,7 @@ export async function listTasks(
             chatKind: row.chatKind,
             chatName: row.chatName,
             chatPeerUserId: row.chatPeerUserId,
-            message: { ...toChatMessage(row.message), task },
+            message: { ...toChatMessage(row.message, { body: bodies.get(row.message.id) }), task },
             task,
             threadSummary,
         });

@@ -2732,6 +2732,7 @@ components:
         - author
         - role
         - content
+        - body_kind
         - attachments
         - nonce
         - delivery_id
@@ -2753,6 +2754,9 @@ components:
           enum: [user, assistant, system]
         content:
           type: string
+        body_kind:
+          type: string
+          enum: [text, ask]
         attachments:
           type: array
           items:
@@ -2775,12 +2779,40 @@ components:
           oneOf:
             - $ref: '#/components/schemas/MessageTask'
             - type: 'null'
+        ask:
+          oneOf:
+            - $ref: '#/components/schemas/MessageAsk'
+            - type: 'null'
         reactions:
           type: array
           items:
             $ref: '#/components/schemas/MessageReaction'
         preparedAction:
           $ref: '#/components/schemas/PreparedAction'
+    MessageAsk:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - status
+        - addressee_handle
+        - title
+        - recommended_step
+      properties:
+        id:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum: [open, answered]
+        addressee_handle:
+          type: [string, 'null']
+        title:
+          type: string
+          minLength: 1
+        recommended_step:
+          type: string
+          minLength: 1
     MessageTask:
       type: object
       additionalProperties: false

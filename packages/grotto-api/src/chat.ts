@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { askSchema } from './ask-shared.ts';
 import { attachmentMetadataSchema } from './attachments.ts';
 import { messageCauseSchema } from './automation.ts';
 import { preparedActionSchema, preparedActionStatusSchema } from './prepared-actions.ts';
@@ -40,10 +41,28 @@ export const chatMessageAuthorSchema = z.discriminatedUnion('kind', [
         .strict(),
 ]);
 
+export const messageBodyKinds = ['text', 'ask'] as const;
+
+export type MessageBodyKind = (typeof messageBodyKinds)[number];
+
+/**
+ * The Server-validated typed body one Message carries (ADR 0025). `text` is
+ * every ordinary Message; `ask` projects the Server Ask record its Message
+ * anchors. Unknown kinds do not exist on the wire — a client that has not
+ * learned a kind degrades through the Message `content`.
+ */
+export const messageBodySchema = z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('text') }).strict(),
+    z.object({ ask: askSchema, kind: z.literal('ask') }).strict(),
+]);
+
+export type MessageBody = z.infer<typeof messageBodySchema>;
+
 export const chatMessageSchema = z
     .object({
         attachments: z.array(attachmentMetadataSchema).default([]),
         author: chatMessageAuthorSchema,
+        body: messageBodySchema,
         /** Why an Agent wrote this: the Trigger or Reminder fire it answered. */
         cause: messageCauseSchema.optional(),
         chatId: idSchema,
@@ -399,6 +418,21 @@ export const messageCreatedEventSchema = z
     })
     .strict();
 
+export const askUpdatedEventSchema = z
+    .object({
+        askId: idSchema,
+        chatId: idSchema,
+        createdAt: timestampSchema,
+        cursor: z.string().regex(/^[1-9]\d*$/u),
+        id: idSchema,
+        messageId: idSchema,
+        parentChatId: idSchema.nullable(),
+        sequence: z.number().int().positive(),
+        serverId: idSchema,
+        type: z.literal('ask.updated'),
+    })
+    .strict();
+
 export const preparedActionUpdatedEventSchema = z
     .object({
         actionId: idSchema,
@@ -508,6 +542,7 @@ export const chatLifecycleEventSchema = z
 
 export const serverdurableeventSchema = z.discriminatedUnion('type', [
     messageCreatedEventSchema,
+    askUpdatedEventSchema,
     preparedActionUpdatedEventSchema,
     chatReadEventSchema,
     threadFollowUpdatedEventSchema,

@@ -338,6 +338,15 @@ while the per-Run **event stream** carries the unambiguous raw status on its `st
 that expires while nothing is streaming and is then read fresh after a Computer restart can
 therefore settle as `failed` rather than `expired`; that is a provider limit, not a mapping choice.
 
+The end of a stream is never a settlement. The SDK's run handle stops streaming after its own
+client-side wait deadline and locally marks itself errored while the hosted Run keeps working, so a
+detached stream hands off to reconciliation instead: a Run read every 5 seconds until it is
+genuinely terminal, backed off to 60 seconds after a provider failure, and nothing further once it
+settles. A streamed terminal status does settle the Run, because that is where `EXPIRED` survives,
+but it settles through one observation carrying both that raw status and the Run's own evidence —
+Computer stops watching a Run the moment it settles, so a bare status followed by an evidence read
+would lose the evidence.
+
 The SDK does not surface the hosted Agent's own `url`, so the adapter builds the "Open in Cursor"
 link as `https://cursor.com/agents?id=<agentId>`.
 

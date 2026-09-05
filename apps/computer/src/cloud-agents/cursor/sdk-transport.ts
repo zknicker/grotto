@@ -141,6 +141,11 @@ export function createCursorSdkTransport(
  * Cursor's per-Run event stream, consumed while the Run is active. Its `status`
  * messages carry the raw lifecycle status — the only place `EXPIRED` survives,
  * since a Run read through the public SDK normalizes it to `error`.
+ *
+ * The end of this stream is never a settlement. The SDK's own run handle stops
+ * streaming after its client-side wait deadline and locally marks itself
+ * errored while the hosted Run keeps working, so every exit reports `detached`
+ * and lets the adapter reconcile by reading the Run.
  */
 async function streamCursorRun(
     load: () => Promise<CursorSdk>,
@@ -154,28 +159,26 @@ async function streamCursorRun(
             agentId: address.agentId,
             runtime: 'cloud',
         });
-        if (!run.supports('stream')) {
-            return;
-        }
-        for await (const message of run.stream()) {
-            if (isStopped()) {
-                return;
+        if (run.supports('stream')) {
+            for await (const message of run.stream()) {
+                if (isStopped()) {
+                    return;
+                }
+                const event = eventOf(message);
+                if (event) {
+                    onEvent(event);
+                }
             }
-            const event = eventOf(message);
-            if (event) {
-                onEvent(event);
-            }
-        }
-        if (!isStopped()) {
-            onEvent({ kind: 'settled', reading: await readingOf(Agent, address.agentId, run) });
         }
     } catch (error) {
-        // A dropped stream is not a settlement. Reconciliation reads the Run.
         console.error(
             `Cursor run ${address.runId} stream ended: ${
                 error instanceof Error ? error.message : String(error)
             }`
         );
+    }
+    if (!isStopped()) {
+        onEvent({ kind: 'detached' });
     }
 }
 

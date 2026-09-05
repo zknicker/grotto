@@ -77,11 +77,26 @@ export type CursorAuth =
     | { connected: false; reason: 'expired' | 'not-connected' }
     | { connected: true; email: string | null; expiresAt: string | null };
 
-/** One live event from a Run's stream. */
+/**
+ * One live event from a Run's stream. A stream reports progress and Cursor's
+ * own raw status; it never reports settlement, because the SDK's stream handle
+ * can end for client-side reasons — its own wait deadline, an abort — while the
+ * hosted Run is still working. `detached` says the live edge is gone, and the
+ * adapter reconciles by reading the Run.
+ */
 export type CursorRunEvent =
     | { kind: 'activity'; summary: string }
-    | { kind: 'status'; rawStatus: CursorRunStatus }
-    | { kind: 'settled'; reading: CursorRunReading };
+    | { kind: 'detached' }
+    | { kind: 'status'; rawStatus: CursorRunStatus };
+
+export function isTerminalCursorRunStatus(status: CursorRunStatus): boolean {
+    return (
+        status === 'FINISHED' ||
+        status === 'ERROR' ||
+        status === 'CANCELLED' ||
+        status === 'EXPIRED'
+    );
+}
 
 export interface CursorTransport {
     authStatus(): Promise<CursorAuth>;

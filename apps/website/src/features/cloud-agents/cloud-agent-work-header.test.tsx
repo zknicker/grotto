@@ -1,7 +1,11 @@
 import { expect, test } from 'bun:test';
 import type { CloudAgentWork } from '@grotto/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CloudAgentWorkDetail, CloudAgentWorkHeader } from './cloud-agent-work-header.tsx';
+import {
+    CloudAgentWorkDetail,
+    CloudAgentWorkHeader,
+    CloudAgentWorkStatusMark,
+} from './cloud-agent-work-header.tsx';
 
 test('the header names the provider and the work, and states its status', () => {
     const html = renderToStaticMarkup(<CloudAgentWorkHeader work={work({})} />);
@@ -11,6 +15,21 @@ test('the header names the provider and the work, and states its status', () => 
     expect(html).toContain('Queued');
     // The title is the only part that gives way when the row runs out of room.
     expect(html).toContain('truncate');
+});
+
+test('the hoisted mark states only the status, not the title', () => {
+    const html = renderToStaticMarkup(
+        <CloudAgentWorkStatusMark
+            work={work({
+                startedAt: new Date(Date.now() - 120_000).toISOString(),
+                status: 'running',
+            })}
+        />
+    );
+
+    expect(html).toContain('Running · 2m');
+    // The title belongs to the work's own Message, inside the Thread.
+    expect(html).not.toContain('Fix the failing migration');
 });
 
 test('the detail line carries activity while the work runs', () => {

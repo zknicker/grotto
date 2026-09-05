@@ -4,11 +4,14 @@ import {
     canCancelCloudAgentWork,
     cloudAgentPresentationStatus,
     cloudAgentRunReportLine,
+    cloudAgentStatusChipColor,
     cloudAgentStatusText,
     cloudAgentStatusTone,
+    cloudAgentWorkBranch,
     cloudAgentWorkDetailLine,
     formatCloudAgentDuration,
     isCloudAgentWorkStale,
+    pullRequestNumber,
 } from './cloud-agent-presentation.ts';
 
 const startedAt = '2026-09-04T12:00:00.000Z';
@@ -174,6 +177,57 @@ function work(overrides: Partial<CloudAgentWork>): CloudAgentWork {
         ...overrides,
     };
 }
+
+test('the branch that opened a pull request wins over the ones that did not', () => {
+    const branched = work({
+        runs: [
+            run({
+                branches: [
+                    { branch: 'cursor/spike', pullRequestUrl: null, repository: 'grotto/grotto' },
+                    {
+                        branch: 'cursor/fix-migration',
+                        pullRequestUrl: 'https://github.com/grotto/grotto/pull/482',
+                        repository: 'grotto/grotto',
+                    },
+                ],
+            }),
+        ],
+    });
+
+    expect(cloudAgentWorkBranch(branched)?.branch).toBe('cursor/fix-migration');
+});
+
+test('a work whose branches opened nothing still names the first one', () => {
+    const branched = work({
+        runs: [
+            run({
+                branches: [
+                    { branch: 'cursor/spike', pullRequestUrl: null, repository: 'grotto/grotto' },
+                ],
+            }),
+        ],
+    });
+
+    expect(cloudAgentWorkBranch(branched)?.branch).toBe('cursor/spike');
+});
+
+test('a work with no reported branch has none', () => {
+    expect(cloudAgentWorkBranch(work({}))).toBe(null);
+});
+
+test('a pull request URL yields the number the card prints', () => {
+    expect(pullRequestNumber('https://github.com/grotto/grotto/pull/482')).toBe(482);
+    expect(pullRequestNumber('https://gitlab.com/grotto/grotto/-/merge_requests/7')).toBe(null);
+    expect(pullRequestNumber('https://github.com/grotto/grotto/pull/482/files')).toBe(482);
+});
+
+test('the status chip takes the same tone the disc does', () => {
+    expect(cloudAgentStatusChipColor('running')).toBe('accent');
+    expect(cloudAgentStatusChipColor('completed')).toBe('success');
+    expect(cloudAgentStatusChipColor('failed')).toBe('danger');
+    expect(cloudAgentStatusChipColor('cancelled')).toBe('default');
+    expect(cloudAgentStatusChipColor('queued')).toBe('default');
+});
 
 function run(overrides: Partial<CloudAgentRun>): CloudAgentRun {
     return {

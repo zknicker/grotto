@@ -67,34 +67,16 @@ export async function seedCloudAgentWork(input: {
          on conflict do nothing`
     );
 
-    const runnerToken = await mintAgentRunner({
+    const receipt = await startCloudAgentWork({
         agentId: created.agent.id,
         chatId,
-        credential: input.computerCredential,
+        computerCredential: input.computerCredential,
+        content: input.content,
+        repository: input.repository,
+        startingRef: input.startingRef ?? null,
+        target: `#${input.channelName}`,
+        title: input.title,
     });
-    const response = await fetch(`${grottoOrigin()}/api/agent/cloud-agents`, {
-        body: JSON.stringify({
-            content: input.content,
-            nonce: `cloud-agent-${created.agent.id}`,
-            provider: 'cursor',
-            repository: input.repository,
-            startingRef: input.startingRef ?? null,
-            target: `#${input.channelName}`,
-            title: input.title,
-        }),
-        headers: { authorization: `Bearer ${runnerToken}`, 'content-type': 'application/json' },
-        method: 'POST',
-    });
-    const receipt = (await response.json()) as {
-        messageId?: string;
-        runId?: string;
-        work?: { id: string };
-    };
-    if (response.status !== 200 || !(receipt.work && receipt.messageId && receipt.runId)) {
-        throw new Error(
-            `The Cloud Agent fixture could not start its work: ${response.status} ${JSON.stringify(receipt)}`
-        );
-    }
     const threadChatId = runPsql(
         input.databaseUrl,
         `select id from chats where server_id = '${input.serverId}'
@@ -113,10 +95,60 @@ export async function seedCloudAgentWork(input: {
     };
 }
 
+/**
+ * One more work from an Agent that already exists, against any product target
+ * the CLI accepts — including `#channel:<anchorMessageId>`, which is how work
+ * comes to run inside somebody else's Thread.
+ */
+export async function startCloudAgentWork(input: {
+    agentId: string;
+    /** The launch context Chat the runner credential is minted against. */
+    chatId: string;
+    computerCredential: string;
+    content: string;
+    repository: string;
+    startingRef?: null | string;
+    target: string;
+    title: string;
+}): Promise<{ messageId: string; runId: string; work: { id: string } }> {
+    const runnerToken = await mintAgentRunner({
+        agentId: input.agentId,
+        chatId: input.chatId,
+        credential: input.computerCredential,
+    });
+    const response = await fetch(`${grottoOrigin()}/api/agent/cloud-agents`, {
+        body: JSON.stringify({
+            content: input.content,
+            nonce: `cloud-agent-${input.agentId}-${input.target}`,
+            provider: 'cursor',
+            repository: input.repository,
+            startingRef: input.startingRef ?? null,
+            target: input.target,
+            title: input.title,
+        }),
+        headers: { authorization: `Bearer ${runnerToken}`, 'content-type': 'application/json' },
+        method: 'POST',
+    });
+    const receipt = (await response.json()) as {
+        messageId?: string;
+        runId?: string;
+        work?: { id: string };
+    };
+    if (response.status !== 200 || !(receipt.work && receipt.messageId && receipt.runId)) {
+        throw new Error(
+            `The Cloud Agent fixture could not start its work: ${response.status} ${JSON.stringify(receipt)}`
+        );
+    }
+
+    return { messageId: receipt.messageId, runId: receipt.runId, work: receipt.work };
+}
+
 /** One bounded observation, the frame a Computer sends over its attachment. */
 export function cloudAgentObservationFrame(input: {
     /** The work's one bounded line of current state while it runs. */
     activity?: string;
+    /** The Run's terminal branch evidence, including any pull request it opened. */
+    branches?: Array<{ branch: string; pullRequestUrl: null | string; repository: string }>;
     observedAt: string;
     runId: string;
     status: 'cancelled' | 'completed' | 'expired' | 'failed' | 'queued' | 'running';
@@ -129,6 +161,7 @@ export function cloudAgentObservationFrame(input: {
             ...(input.activity
                 ? { activity: { at: input.observedAt, summary: input.activity } }
                 : {}),
+            ...(input.branches ? { branches: input.branches } : {}),
             observedAt: input.observedAt,
             providerUrl: 'https://cursor.com/agents?id=bc_e2e',
             runId: input.runId,

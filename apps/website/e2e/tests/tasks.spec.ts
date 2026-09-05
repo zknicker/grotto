@@ -177,12 +177,14 @@ test('a hosted task message projects its status in the Chat and opens its Thread
     });
 
     await expect(page.getByText('Projected task message', { exact: true })).toBeVisible();
-    // Task identity is a header mark on the turn, not a block under the
-    // message, so it reads beside the author's name and is itself the way into
-    // the work surface. This Chat has exactly one task, so the mark is unique.
-    const mark = page.getByTestId('message-task-mark');
-    const openThread = page.getByRole('button', { name: /^Task #1 — .*Open thread$/u });
-    await expect(mark).toBeVisible();
+    // Task identity is the header of the recessed Thread surface beneath the
+    // message — the same slot an Ask and Cloud Agent work use — and that whole
+    // surface is the way into the work. The author line carries provenance only.
+    const chip = page.getByTestId('message-task-chip');
+    const openThread = page.getByRole('button', { name: /^Open thread, Task #1/u });
+    await expect(chip).toBeVisible();
+    await expect(chip).toContainText('Task #1');
+    await expect(page.getByTestId('message-task-mark')).toHaveCount(0);
     await expect(openThread).toBeVisible();
 
     // Claiming advances status through the same task realtime invalidation; no reload.
@@ -201,12 +203,15 @@ test('a hosted task message projects its status in the Chat and opens its Thread
     if (!assignee?.displayName) {
         throw new Error('The claiming human did not carry a canonical display name.');
     }
-    await expect(mark).toContainText(assignee.displayName);
+    await expect(chip).toContainText(assignee.displayName);
 
     await openThread.click();
     const thread = page.getByRole('complementary', { name: 'Thread' });
     await expect(thread).toBeVisible();
     await expect(thread.getByRole('region', { name: 'Task #1 details' })).toBeVisible();
+    // The panel above the anchor states the task in full, so the anchor's own
+    // chip would say every word of it twice.
+    await expect(thread.getByTestId('message-task-chip')).toHaveCount(0);
     await expect(thread.getByRole('button', { name: 'Status for task #1' })).toContainText(
         'In progress'
     );

@@ -1,4 +1,4 @@
-import { formatCloudAgentWorkSuffix } from '@grotto/api';
+import { cloudAgentPullRequestNumber, formatCloudAgentWorkSuffix } from '@grotto/api';
 import { formatAskSuffix, formatThreadFollowRestoration, shortInboxId } from '../inbox-format.ts';
 import type { AgentCliAutomationEvent, AgentCliMessage } from './agent-api-schemas.ts';
 import { AgentCliError } from './agent-error.ts';
@@ -127,13 +127,23 @@ function askSuffix(message: AgentCliMessage): string {
     return formatAskSuffix({ addresseeHandle: ask.addressee_handle, status: ask.status });
 }
 
-/** A Cloud Agent work Message states what was delegated and where it stands. */
+/**
+ * A Cloud Agent work Message states what was delegated, where it stands, and
+ * the pull request it opened once the Run reports one, so history answers
+ * "which PR was that?" without a second command.
+ */
 function cloudAgentWorkSuffix(message: AgentCliMessage): string {
     const work = message.cloud_agent_work;
     if (!work) {
         return '';
     }
-    return formatCloudAgentWorkSuffix(work);
+    const url = work.latest_run?.branches.find(
+        (branch) => branch.pull_request_url !== null
+    )?.pull_request_url;
+    return formatCloudAgentWorkSuffix({
+        ...work,
+        pullRequestNumber: url ? cloudAgentPullRequestNumber(url) : null,
+    });
 }
 
 function pad(value: number): string {

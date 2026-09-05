@@ -1,6 +1,7 @@
-import { afterEach, expect, test } from 'bun:test';
+import { afterEach, beforeEach, expect, test } from 'bun:test';
 import type { CloudAgentObservation } from '@grotto/api';
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
+import { githubToken, resetGithubToken } from './github/token.ts';
 import { CloudAgentProviderUnavailableError } from './provider.ts';
 import { setCloudAgentProvider } from './registry.ts';
 import {
@@ -57,9 +58,28 @@ const receipt = {
     },
 };
 
+/** GitHub's own answer for the pull request the scripted Run opens. */
+const pullRequestPayload = {
+    additions: 34,
+    changed_files: 1,
+    deletions: 0,
+    draft: true,
+    merged: false,
+    number: 91_356,
+    state: 'open',
+};
+
 const restores: Array<() => void> = [];
 
+// The evidence read asks for the local `gh` token; a test resolves that as a
+// Computer without `gh` rather than shelling out to the machine running it.
+beforeEach(() => {
+    resetGithubToken();
+    void githubToken(() => Promise.resolve(null));
+});
+
 afterEach(() => {
+    resetGithubToken();
     setCloudAgentReporter(serverId, null);
     while (restores.length > 0) {
         restores.pop()?.();
@@ -81,6 +101,10 @@ function stubServer(body: unknown = receipt, status = 200) {
     const calls: Array<{ body: unknown; url: string }> = [];
     const original = globalThis.fetch;
     globalThis.fetch = ((url: URL | string, init?: RequestInit) => {
+        // The Computer's own GitHub evidence read rides the same stub.
+        if (String(url).startsWith('https://api.github.com/')) {
+            return Promise.resolve(Response.json(pullRequestPayload));
+        }
         calls.push({ body: JSON.parse(String(init?.body ?? '{}')), url: String(url) });
         return Promise.resolve(Response.json(body, { status }));
     }) as typeof fetch;
@@ -88,6 +112,18 @@ function stubServer(body: unknown = receipt, status = 200) {
         globalThis.fetch = original;
     });
     return calls;
+}
+
+async function settle<T>(read: () => T | undefined | null): Promise<T> {
+    const deadline = Date.now() + 2000;
+    while (Date.now() < deadline) {
+        const value = read();
+        if (value) {
+            return value;
+        }
+        await Bun.sleep(5);
+    }
+    throw new Error('Timed out waiting for the observation to be reported.');
 }
 
 test('an unavailable provider fails before the Server is asked for anything', async () => {
@@ -300,4 +336,90 @@ test('a replayed nonce reconciles the recorded Run instead of launching a second
     expect(result.idempotent).toBe(true);
     expect(provider.launches).toHaveLength(0);
     expect(observations[0]).toMatchObject({ runId, workId });
+});
+
+test('a settled Run carries the pull-request evidence Cursor itself cannot report', async () => {
+    const provider = install(
+        createFakeCloudAgentProvider({
+            transitions: [
+                {
+                    branches: [
+                        {
+                            branch: 'cloud/fix-flake',
+                            pullRequestUrl: 'https://github.com/grotto/grotto/pull/91356',
+                            repository: 'grotto/grotto',
+                        },
+                    ],
+                    observedAt: '2026-09-04T12:05:00.000Z',
+                    status: 'completed',
+                    summary: 'Opened a pull request.',
+                },
+            ],
+        })
+    );
+    stubServer();
+    const observations = collect();
+
+    await startCloudAgentWork({ request, runnerToken: 'grtr_x', serverId, serverOrigin });
+    provider.advance();
+
+    const settled = await settle(() =>
+        observations.find((observation) => observation.status === 'completed')
+    );
+    expect(settled.branches).toEqual([
+        {
+            branch: 'cloud/fix-flake',
+            pullRequest: {
+                additions: 34,
+                changedFiles: 1,
+                deletions: 0,
+                number: 91_356,
+                observedAt: expect.any(String),
+                state: 'draft',
+            },
+            pullRequestUrl: 'https://github.com/grotto/grotto/pull/91356',
+            repository: 'grotto/grotto',
+        },
+    ]);
+    // The launch observation still reported first: an evidence read never reorders a Run.
+    expect(observations.map((observation) => observation.status)).toEqual(['running', 'completed']);
+});
+
+test('an evidence read never lets a later observation overtake an earlier one', async () => {
+    const provider = install(
+        createFakeCloudAgentProvider({
+            transitions: [
+                {
+                    branches: [
+                        {
+                            branch: 'cloud/fix-flake',
+                            pullRequestUrl: 'https://github.com/grotto/grotto/pull/91357',
+                            repository: 'grotto/grotto',
+                        },
+                    ],
+                    activity: { at: '2026-09-04T12:01:00.000Z', summary: 'Opened a pull request.' },
+                    observedAt: '2026-09-04T12:01:00.000Z',
+                    status: 'running',
+                },
+                {
+                    observedAt: '2026-09-04T12:05:00.000Z',
+                    status: 'completed',
+                    summary: 'Done.',
+                },
+            ],
+        })
+    );
+    stubServer();
+    const observations = collect();
+
+    await startCloudAgentWork({ request, runnerToken: 'grtr_x', serverId, serverOrigin });
+    provider.advance();
+    provider.advance();
+
+    await settle(() => observations.find((observation) => observation.status === 'completed'));
+    expect(observations.map((observation) => observation.summary)).toEqual([
+        undefined,
+        undefined,
+        'Done.',
+    ]);
 });

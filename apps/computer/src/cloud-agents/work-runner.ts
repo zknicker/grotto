@@ -5,6 +5,7 @@ import type {
     CloudAgentReconcileEntry,
 } from '@grotto/api';
 import { agentCloudAgentReceiptSchema } from '@grotto/api';
+import { carriesPullRequest, withPullRequestEvidence } from './github/observation-evidence.ts';
 import {
     type CloudAgentProviderObservation,
     CloudAgentProviderUnavailableError,
@@ -39,6 +40,7 @@ type ObservationSink = (observation: CloudAgentObservation) => void;
 
 const reporters = new Map<string, ObservationSink>();
 const liveRuns = new Map<string, () => void>();
+const reportQueues = new Map<string, Promise<void>>();
 
 /** Routes this attachment's observations up its Computer socket. */
 export function setCloudAgentReporter(serverId: string, sink: ObservationSink | null): void {
@@ -109,7 +111,7 @@ export async function startCloudAgentWork(input: {
             repository: receipt.work.repository,
             title: receipt.work.title,
         });
-        report(input.serverId, ref, {
+        await report(input.serverId, ref, {
             observedAt: new Date().toISOString(),
             providerAgentId: launch.providerAgentId,
             providerRunId: launch.providerRunId,
@@ -123,7 +125,7 @@ export async function startCloudAgentWork(input: {
         });
         return receipt;
     } catch (cause) {
-        report(input.serverId, ref, {
+        await report(input.serverId, ref, {
             errorCode: 'provider-launch-failed',
             observedAt: new Date().toISOString(),
             status: 'failed',
@@ -147,7 +149,7 @@ export async function applyCloudAgentCancel(
     releaseRun(serverId, ref);
     const provider = cloudAgentProvider();
     await provider.cancel(ref);
-    report(serverId, ref, await provider.read(ref));
+    await report(serverId, ref, await provider.read(ref));
 }
 
 /**
@@ -190,7 +192,7 @@ async function reconcileRun(
         if (cancelRequested) {
             await provider.cancel(ref);
         }
-        report(serverId, ref, await provider.read(ref));
+        await report(serverId, ref, await provider.read(ref));
         watchRun(serverId, ref);
     } catch (error) {
         console.error(
@@ -221,7 +223,7 @@ function watchRun(serverId: string, ref: CloudAgentRunRef): void {
         liveRuns.set(
             key,
             cloudAgentProvider().subscribe(ref, (observation) => {
-                report(serverId, ref, observation);
+                void report(serverId, ref, observation);
                 if (observation.status !== 'queued' && observation.status !== 'running') {
                     releaseRun(serverId, ref);
                 }
@@ -242,7 +244,51 @@ function runKey(serverId: string, ref: CloudAgentRunRef): string {
     return `${serverId}:${ref.runId}`;
 }
 
+/**
+ * One observation on its way to Server, in the order the provider produced it.
+ *
+ * An observation naming a pull request gains the GitHub evidence the provider
+ * itself cannot report, and that read happens before the report rather than
+ * after it: Server settles a Run on its first terminal observation, so evidence
+ * arriving later would correctly be ignored. The read is bounded and never
+ * throws — a Run whose pull request cannot be read reports exactly what it
+ * always reported.
+ *
+ * An observation naming no pull request needs no read and is reported on the
+ * spot, unless a read is already in flight for this Run; then it queues behind
+ * it, because a later observation must never overtake an earlier one.
+ */
 function report(
+    serverId: string,
+    ref: CloudAgentRunRef,
+    observation: CloudAgentProviderObservation
+): Promise<void> {
+    const key = runKey(serverId, ref);
+    const pending = reportQueues.get(key);
+    if (!(pending || carriesPullRequest(observation))) {
+        deliver(serverId, ref, observation);
+        return Promise.resolve();
+    }
+    const next = (pending ?? Promise.resolve())
+        .then(() => withPullRequestEvidence(observation))
+        .then((reported) => deliver(serverId, ref, reported))
+        .catch((error: unknown) => {
+            console.error(
+                `Cloud Agent run ${ref.runId} could not be reported: ${
+                    error instanceof Error ? error.message : String(error)
+                }`
+            );
+        });
+    reportQueues.set(key, next);
+    void next.then(() => {
+        if (reportQueues.get(key) === next) {
+            reportQueues.delete(key);
+        }
+    });
+    return next;
+}
+
+function deliver(
     serverId: string,
     ref: CloudAgentRunRef,
     observation: CloudAgentProviderObservation

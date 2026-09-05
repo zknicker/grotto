@@ -1,3 +1,4 @@
+import type { CloudAgentBranch } from '@grotto/api';
 import type { AgentCloudAgentWorkAttention, AgentInboxAsk, AgentInboxItem } from './launch.ts';
 
 const deliveryTrailer = [
@@ -105,10 +106,7 @@ function formatActionAttention(item: AgentInboxItem): string {
  * reaches a human until the Agent writes one.
  */
 function formatCloudAgentWorkAttention(work: AgentCloudAgentWorkAttention, target: string): string {
-    const branches = work.branches.map(
-        (branch) =>
-            `${branch.repository}:${branch.branch}${branch.pullRequestUrl ? ` pr=${branch.pullRequestUrl}` : ''}`
-    );
+    const branches = work.branches.map(formatCloudAgentBranch);
     return [
         `[Grotto cloud agent attention status=${work.status} work=${work.workId} run=${work.runId} target=${target}]`,
         `${work.title} — ${work.repository} (${work.provider})`,
@@ -117,6 +115,21 @@ function formatCloudAgentWorkAttention(work: AgentCloudAgentWorkAttention, targe
         `branches=${branches.length > 0 ? branches.join(', ') : '-'}`,
         `url=${work.providerUrl ?? '-'}`,
     ].join('\n');
+}
+
+/**
+ * One branch a Run wrote, with the pull request it opened and the diff the
+ * Computer read from GitHub. The counts are evidence the Agent can act on
+ * without opening the pull request; a branch whose pull request could not be
+ * read states the URL alone.
+ */
+function formatCloudAgentBranch(branch: CloudAgentBranch): string {
+    const pullRequest = branch.pullRequest;
+    const diff = pullRequest
+        ? ` state=${pullRequest.state} files=${pullRequest.changedFiles} +${pullRequest.additions} -${pullRequest.deletions}`
+        : '';
+    const url = branch.pullRequestUrl ? ` pr=${branch.pullRequestUrl}` : '';
+    return `${branch.repository}:${branch.branch}${url}${diff}`;
 }
 
 /**

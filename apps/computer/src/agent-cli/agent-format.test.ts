@@ -79,3 +79,65 @@ test('an ordinary Message carries no Ask suffix, and the suffixes keep their ord
             ' [task #3 status=in_progress assignee=@ada] [ask status=open to=@ada]'
     );
 });
+
+type CloudAgentWorkBody = NonNullable<AgentCliMessage['cloud_agent_work']>;
+
+const latestRun: NonNullable<CloudAgentWorkBody['latest_run']> = {
+    branches: [
+        {
+            branch: 'cloud/fix-flake',
+            pull_request_url: 'https://github.com/grotto/grotto/pull/56',
+            repository: 'grotto/grotto',
+        },
+    ],
+    error_code: null,
+    run_id: 'car_1234567890abcdef',
+    status: 'completed',
+    summary: 'Opened a pull request.',
+};
+
+const cloudAgentWork: CloudAgentWorkBody = {
+    activity: null,
+    id: 'caw_1234567890abcdef',
+    latest_run: latestRun,
+    provider: 'cursor',
+    provider_url: 'https://cursor.com/agents/bc_one',
+    repository: 'grotto/grotto',
+    starting_ref: 'main',
+    status: 'completed',
+    title: 'Fix the flaky delivery test',
+};
+
+test('a Cloud Agent work Message names the pull request it opened', () => {
+    const work = message({ body_kind: 'cloud-agent-work', cloud_agent_work: cloudAgentWork });
+
+    expect(formatHistoryLine(work)).toEndWith(
+        '[cloud-agent-work status=completed title=Fix the flaky delivery test pr=#56]'
+    );
+    expect(formatDeliveryEnvelope('#product', work)).toEndWith(
+        '[cloud-agent-work status=completed title=Fix the flaky delivery test pr=#56]'
+    );
+});
+
+test('work with no pull request yet reads exactly as it always did', () => {
+    expect(
+        formatHistoryLine(
+            message({
+                body_kind: 'cloud-agent-work',
+                cloud_agent_work: {
+                    ...cloudAgentWork,
+                    latest_run: { ...latestRun, branches: [] },
+                    status: 'running',
+                },
+            })
+        )
+    ).toEndWith('[cloud-agent-work status=running title=Fix the flaky delivery test]');
+    expect(
+        formatHistoryLine(
+            message({
+                body_kind: 'cloud-agent-work',
+                cloud_agent_work: { ...cloudAgentWork, latest_run: null, status: 'queued' },
+            })
+        )
+    ).toEndWith('[cloud-agent-work status=queued title=Fix the flaky delivery test]');
+});

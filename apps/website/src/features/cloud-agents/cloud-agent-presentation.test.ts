@@ -3,6 +3,7 @@ import type { CloudAgentRun, CloudAgentStatus, CloudAgentWork } from '@grotto/ap
 import {
     canCancelCloudAgentWork,
     cloudAgentPresentationStatus,
+    cloudAgentRunReportLine,
     cloudAgentStatusText,
     cloudAgentStatusTone,
     cloudAgentWorkDetailLine,
@@ -83,6 +84,38 @@ test('a terminal work with no summary falls back to the Run error it reported', 
         )
     ).toBe('provider_timeout');
     expect(cloudAgentWorkDetailLine(work({ runs: [], status: 'failed' }))).toBeNull();
+});
+
+test('a Markdown Run summary collapses to one flat line', () => {
+    const reported = work({
+        runs: [
+            run({
+                summary:
+                    '## Summary\nI **fixed** the stale wording in the `README`.\n\n- Ran the tests',
+            }),
+        ],
+        status: 'completed',
+    });
+
+    expect(cloudAgentWorkDetailLine(reported)).toBe(
+        'Summary I fixed the stale wording in the README. Ran the tests'
+    );
+});
+
+test('a Markdown activity summary collapses the same way while the work runs', () => {
+    const live = work({
+        activity: { at: startedAt, summary: '### Now\nReading `migrations/003.sql`' },
+        status: 'running',
+    });
+
+    expect(cloudAgentWorkDetailLine(live)).toBe('Now Reading migrations/003.sql');
+});
+
+test('a Run whose summary is only Markdown scaffolding falls back to its error', () => {
+    expect(cloudAgentRunReportLine(run({ errorCode: 'provider_timeout', summary: '##  ' }))).toBe(
+        'provider_timeout'
+    );
+    expect(cloudAgentRunReportLine(run({ summary: '# Done' }))).toBe('Done');
 });
 
 test('a running work that has not reported for ten minutes reads as stale', () => {

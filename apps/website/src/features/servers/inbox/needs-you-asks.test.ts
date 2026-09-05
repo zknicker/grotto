@@ -108,6 +108,23 @@ test('a DM with the asking Agent reads as a DM without inventing a peer', () => 
     expect(rows[0]?.chatLabel).toBe('DM');
 });
 
+test('an Ask summary written as Markdown reads as one flat line', () => {
+    const rows = toNeedsYouAsks(
+        [
+            openAsk({
+                ask: {
+                    ...openAsk().ask,
+                    summary: '## Summary\nThe migration is **staged** and reversible.',
+                },
+            }),
+        ],
+        humans,
+        agents
+    );
+
+    expect(rows[0]?.summary).toBe('Summary The migration is staged and reversible.');
+});
+
 test('a retired Agent keeps the name its Message stored', () => {
     expect(toNeedsYouAsks([openAsk()], humans, [])[0]?.agentName).toBe('Blippy (stored)');
 });

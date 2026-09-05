@@ -1,9 +1,11 @@
 import {
     type CloudAgentProvider,
+    type CloudAgentRun,
     type CloudAgentStatus,
     type CloudAgentWork,
     isTerminalCloudAgentStatus,
 } from '@grotto/api';
+import { messagePreviewLine } from '../chats/message-preview-line.ts';
 
 /** The provider name a Cloud Agent work reads under. Cursor is the only one. */
 export const cloudAgentProviderLabels: Record<CloudAgentProvider, string> = {
@@ -94,13 +96,24 @@ export function cloudAgentStatusText(work: CloudAgentWorkPresentationInput, now:
  * The one muted line beneath the header: what the work is doing while it runs,
  * and what its latest Run reported once it settles. `activity` yields to that
  * report rather than freezing mid-sentence on a finished work.
+ *
+ * A provider writes both as Markdown — a Run summary routinely opens with a
+ * `## Summary` heading — so both collapse to one flat line here rather than at
+ * each surface that shows them.
  */
 export function cloudAgentWorkDetailLine(work: CloudAgentWorkPresentationInput): null | string {
     if (isTerminalCloudAgentStatus(work.status)) {
         const latest = work.runs.at(0);
-        return latest?.summary ?? latest?.errorCode ?? null;
+        return latest ? cloudAgentRunReportLine(latest) : null;
     }
-    return work.activity?.summary ?? null;
+    return oneLine(work.activity?.summary ?? null);
+}
+
+/** What one Run reported, or the error code standing in for a missing report. */
+export function cloudAgentRunReportLine(
+    run: Pick<CloudAgentRun, 'errorCode' | 'summary'>
+): null | string {
+    return oneLine(run.summary) ?? run.errorCode;
 }
 
 /**
@@ -157,6 +170,15 @@ export function elapsedSince(startedAt: null | string, now: number): null | stri
         return null;
     }
     return formatCloudAgentDuration(Math.max(0, now - started));
+}
+
+/** Markdown a provider wrote, as the one muted line a surface can show. */
+function oneLine(text: null | string): null | string {
+    if (text === null) {
+        return null;
+    }
+    const line = messagePreviewLine(text);
+    return line === '' ? null : line;
 }
 
 export function spanBetween(startedAt: null | string, terminalAt: null | string): null | string {

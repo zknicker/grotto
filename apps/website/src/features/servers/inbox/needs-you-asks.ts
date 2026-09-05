@@ -1,4 +1,5 @@
 import { type Agent, type ChatSendInput, type OpenAsk, openAskThreadAnchor } from '@grotto/api';
+import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { conversationLabel } from '../conversation-label.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
@@ -11,6 +12,7 @@ export interface NeedsYouAsk {
     /** The Ask Message id, which is also the `?ask=` deep link. */
     id: string;
     recommendedStep: string;
+    /** The Agent's summary as one flat line, never its raw Markdown. */
     summary: string;
     /** The Message the answer replies to: the answer Thread's anchor. */
     threadAnchorMessageId: string;
@@ -37,7 +39,7 @@ export function toNeedsYouAsks(
         conversationChatId: item.conversationChatId,
         id: item.ask.messageId,
         recommendedStep: item.ask.recommendedStep,
-        summary: item.ask.summary,
+        summary: messagePreviewLine(item.ask.summary),
         threadAnchorMessageId: openAskThreadAnchor(item).id,
         threadChatId: item.threadChatId,
         title: item.ask.title,

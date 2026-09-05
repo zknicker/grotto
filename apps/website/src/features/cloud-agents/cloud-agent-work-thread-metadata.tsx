@@ -5,6 +5,7 @@ import { formatTimestamp } from '../../lib/format.ts';
 import {
     cloudAgentPresentationStatus,
     cloudAgentProviderLabels,
+    cloudAgentRunReportLine,
     cloudAgentStatusText,
     elapsedSince,
     spanBetween,
@@ -84,7 +85,7 @@ function RunHistory({ now, runs }: { now: number; runs: readonly CloudAgentRun[]
 }
 
 function RunRow({ now, run }: { now: number; run: CloudAgentRun }) {
-    const report = run.summary ?? run.errorCode;
+    const report = cloudAgentRunReportLine(run);
 
     return (
         <li className="flex min-w-0 flex-col gap-0.5">

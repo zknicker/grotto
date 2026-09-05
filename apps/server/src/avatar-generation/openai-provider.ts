@@ -32,6 +32,7 @@ export class OpenAiAvatarImageProvider implements AvatarImageProvider {
         try {
             response = await this.fetcher(this.options.endpoint ?? defaultEndpoint, {
                 body: JSON.stringify({
+                    background: 'opaque',
                     model: request.model,
                     n: request.numberOfImages,
                     output_format: request.outputFormat,

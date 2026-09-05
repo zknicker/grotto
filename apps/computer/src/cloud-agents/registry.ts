@@ -1,7 +1,15 @@
-import type { CloudAgentProviderReadiness } from '@grotto/api';
-import { type CloudAgentProvider, unavailableCloudAgentProvider } from './provider.ts';
+import type { CloudAgentCapabilityState, CloudAgentProviderReadiness } from '@grotto/api';
+import { createCursorCloudAgentProvider } from './cursor/provider.ts';
+import { createCursorSdkTransport } from './cursor/sdk-transport.ts';
+import type { CloudAgentProvider, CloudAgentReadiness } from './provider.ts';
 
-let installed: CloudAgentProvider = unavailableCloudAgentProvider();
+/**
+ * Cursor is the Cloud Agent provider every Computer ships with. It reports its
+ * own readiness truthfully — `not-connected` until a credential resolves — so
+ * an unconnected Computer needs no placeholder provider and a launch still
+ * fails before any Message exists.
+ */
+let installed: CloudAgentProvider = createCursorCloudAgentProvider(createCursorSdkTransport());
 
 /** The Cloud Agent provider this Computer can reach. */
 export function cloudAgentProvider(): CloudAgentProvider {
@@ -20,13 +28,13 @@ export function setCloudAgentProvider(provider: CloudAgentProvider): () => void 
 /**
  * The Cloud Agent capability line in the Computer inventory. It is reported
  * separately from the runtime harnesses even when a provider shares a vendor
- * with one, because the two use different credential stores.
+ * with one, because the two use different credential stores. It is read fresh
+ * on every Computer report, so a credential that appears between reports shows
+ * up on the next one.
  */
 export async function detectCloudAgentProviders(): Promise<CloudAgentProviderReadiness[]> {
     const provider = cloudAgentProvider();
-    const readiness = await provider
-        .readiness()
-        .catch(() => ({ ready: false as const, reason: 'provider-unavailable' as const }));
+    const readiness = await readCloudAgentReadiness(provider);
     return [
         {
             provider: provider.provider,
@@ -34,4 +42,35 @@ export async function detectCloudAgentProviders(): Promise<CloudAgentProviderRea
             reason: readiness.ready ? null : readiness.reason,
         },
     ];
+}
+
+/** The same capability, plus the account it resolves to, for Computer settings. */
+export function cloudAgentCapabilityState(
+    provider: CloudAgentProvider,
+    readiness: CloudAgentReadiness
+): CloudAgentCapabilityState {
+    return readiness.ready
+        ? {
+              accountEmail: readiness.account.email,
+              expiresAt: readiness.account.expiresAt,
+              provider: provider.provider,
+              ready: true,
+              reason: null,
+          }
+        : {
+              accountEmail: null,
+              expiresAt: null,
+              provider: provider.provider,
+              ready: false,
+              reason: readiness.reason,
+          };
+}
+
+/** A provider that cannot answer at all is reported as unreachable, not omitted. */
+export function readCloudAgentReadiness(
+    provider: CloudAgentProvider
+): Promise<CloudAgentReadiness> {
+    return provider
+        .readiness()
+        .catch(() => ({ ready: false as const, reason: 'provider-unavailable' as const }));
 }

@@ -46,6 +46,10 @@ import { printComputerHeader, printComputerHelpPage } from './cli/chrome.ts';
 import { findComputerCommandHelp, resolveComputerHelpRequest } from './cli/help.ts';
 import { cliColorsEnabled, createCliRenderer, stdoutRenderer } from './cli/render.ts';
 import {
+    parseCloudAgentCapabilityRequest,
+    runCloudAgentCapabilityRequest,
+} from './cloud-agents/capability-requests.ts';
+import {
     parseCloudAgentCancelCommand,
     parseCloudAgentReconcileCommand,
 } from './cloud-agents/frames.ts';
@@ -1262,6 +1266,21 @@ async function connect(attachment: Attachment): Promise<AttachmentConnectionOutc
                     reconcileCloudAgentWork(attachment.serverId, cloudAgentReconcile.work).catch(
                         reportStateError
                     )
+                );
+                return;
+            }
+            const cloudAgentCapability = parseCloudAgentCapabilityRequest(frame);
+            if (cloudAgentCapability) {
+                void trackWriter(
+                    runCloudAgentCapabilityRequest(cloudAgentCapability).then(async (result) => {
+                        socket.send(JSON.stringify(result));
+                        // Connecting or disconnecting changes what this
+                        // Computer can do, so the inventory line follows it
+                        // rather than waiting for the next report.
+                        if (cloudAgentCapability.operation.kind !== 'get') {
+                            await sendComputerReport(socket, attachment.serverId, computerName);
+                        }
+                    })
                 );
                 return;
             }

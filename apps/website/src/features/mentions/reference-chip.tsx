@@ -54,6 +54,7 @@ export function ReferenceChip({
             className={cn(
                 'reference-chip max-w-full whitespace-nowrap align-middle',
                 kind === 'chat' && 'reference-chip--channel',
+                kind === 'pull-request' && 'reference-chip--pull-request',
                 kind === 'skill' && 'reference-chip--skill',
                 className
             )}

@@ -8,7 +8,7 @@ export type MentionKind =
     | 'plugin'
     | 'skill'
     | 'user';
-export type ReferenceKind = MentionKind | 'website';
+export type ReferenceKind = MentionKind | 'pull-request' | 'website';
 export type MentionOptionKind = MentionKind;
 export type MentionTrigger = '@' | '$' | '#';
 export type MentionProjection =

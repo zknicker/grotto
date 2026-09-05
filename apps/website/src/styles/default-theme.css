@@ -807,6 +807,16 @@
         --chip-fg: var(--skill-reference);
     }
 
+    /*
+     * A pull request has no identity color of its own — no brand, no
+     * configured Channel color — so it reads in foreground ink, the same
+     * fallback a colorless Channel takes. Everything else about it is the
+     * shared reference grammar: inherited size, 18px mark, dotted underline.
+     */
+    .chip.reference-chip--pull-request {
+        --chip-fg: var(--foreground);
+    }
+
     /* The three-sparkle glyph carries extra empty space on its inline end. */
     .chip.reference-chip--skill .reference-chip__mark {
         margin-inline-end: calc(var(--spacing) * -0.5);

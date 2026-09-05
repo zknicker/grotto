@@ -15,6 +15,7 @@ import {
     readCloudAgentEventAnchor,
 } from './cloud-agent-events.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
+import { mergeBranchEvidence } from './merge-branch-evidence.ts';
 
 export interface AppliedCloudAgentObservation {
     event: ServerDurableEvent;
@@ -41,6 +42,7 @@ export async function applyCloudAgentObservation(
         const [row] = await tx
             .select({
                 agentId: cloudAgentWorkTable.agentId,
+                branches: cloudAgentRunsTable.branches,
                 chatId: cloudAgentWorkTable.chatId,
                 computerId: cloudAgentWorkTable.computerId,
                 messageId: cloudAgentWorkTable.messageId,
@@ -78,7 +80,9 @@ export async function applyCloudAgentObservation(
         await tx
             .update(cloudAgentRunsTable)
             .set({
-                ...(observation.branches ? { branches: observation.branches } : {}),
+                ...(observation.branches
+                    ? { branches: mergeBranchEvidence(row.branches, observation.branches) }
+                    : {}),
                 ...(observation.errorCode ? { errorCode: observation.errorCode } : {}),
                 observedAt,
                 ...(observation.providerRunId ? { providerRunId: observation.providerRunId } : {}),

@@ -90,6 +90,13 @@ configured Clerk instance.
 
 ## State
 
+The Server opens two PostgreSQL pools: one serves plain queries, the other
+serves `db.transaction` alone (`apps/server/src/postgres/connection.ts`). Bun's
+pooled `SQL` client will hand a connection to a plain query while an open
+transaction still holds it, which strands that transaction's Server row lock and
+wedges every later durable write. Keeping the two off one pool holds the
+invariant; the split goes away when Bun isolates reserved connections.
+
 PostgreSQL owns the hosted collaboration tables
 (`apps/server/src/postgres/schema/`):
 

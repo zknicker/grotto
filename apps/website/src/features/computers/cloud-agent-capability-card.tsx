@@ -128,10 +128,11 @@ export function CloudAgentCapabilityRow({
                         <Dropdown>
                             <Button
                                 aria-label="Cursor Cloud Agents actions"
+                                isIconOnly
                                 size="sm"
                                 variant="ghost"
                             >
-                                <Icon aria-hidden="true" icon={MoreHorizontalIcon} />
+                                <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={16} />
                             </Button>
                             <Dropdown.Popover placement="bottom end">
                                 <Dropdown.Menu>

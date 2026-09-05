@@ -62,6 +62,8 @@ test('a connected Computer names its account and hides Disconnect behind the row
     const html = render(view);
     expect(html).toContain('Ready');
     expect(html).toContain('aria-label="Cursor Cloud Agents actions"');
+    // The trigger is an icon-only ghost button, like every other row menu.
+    expect(html).toContain('button--icon-only');
     // Disconnect lives in the menu popover, which does not render until opened.
     expect(html).not.toContain('>Connect<');
 });

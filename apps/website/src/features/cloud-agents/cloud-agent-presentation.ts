@@ -1,4 +1,5 @@
 import {
+    type CloudAgentBranch,
     type CloudAgentProvider,
     type CloudAgentRun,
     type CloudAgentStatus,
@@ -130,6 +131,38 @@ export function isCloudAgentWorkStale(
     }
     const updatedAt = Date.parse(work.updatedAt);
     return Number.isFinite(updatedAt) && now - updatedAt > cloudAgentStaleAfterMs;
+}
+
+/**
+ * The branch evidence one work has produced, from its newest Run. A provider
+ * may report several branches; the one that opened a pull request is the one a
+ * human wants, so it wins over the rest and the first reported branch stands in
+ * when none has.
+ */
+export function cloudAgentWorkBranch(
+    work: Pick<CloudAgentWorkPresentationInput, 'runs'>
+): CloudAgentBranch | null {
+    const branches = work.runs.at(0)?.branches ?? [];
+    return branches.find((branch) => branch.pullRequestUrl !== null) ?? branches.at(0) ?? null;
+}
+
+/**
+ * The pull request number a provider's URL names, so the card can say `PR #482`
+ * rather than print a URL. An unrecognised URL keeps its link and loses only
+ * the number.
+ */
+export function pullRequestNumber(pullRequestUrl: string): null | number {
+    const matched = /\/pull(?:s|-requests)?\/(\d+)/u.exec(pullRequestUrl);
+    const parsed = matched ? Number.parseInt(matched[1] as string, 10) : Number.NaN;
+    return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+/** The Chip color the card's status wears, from the one tone rule above. */
+export function cloudAgentStatusChipColor(
+    status: CloudAgentPresentationStatus
+): 'accent' | 'danger' | 'default' | 'success' {
+    const tone = cloudAgentStatusTone(status);
+    return tone === 'muted' ? 'default' : tone;
 }
 
 /** Owners and Admins may cancel; a settled Run has nothing left to stop. */

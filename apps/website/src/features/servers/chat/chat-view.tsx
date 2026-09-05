@@ -110,6 +110,19 @@ export function ChatView({
         ) ??
         threadSelection?.initialSummary ??
         null;
+    // The selection carries identity; the record itself is read live from the
+    // transcript, so a Thread left open follows its anchor's own changes — a
+    // Task claimed, a Cloud Agent work that finished. The captured message is
+    // the fallback for an anchor this transcript has not loaded.
+    const threadAnchor = React.useMemo(
+        () =>
+            threadSelection
+                ? (transcriptMessages?.find(
+                      (message) => message.id === threadSelection.anchor.id
+                  ) ?? threadSelection.anchor)
+                : null,
+        [threadSelection, transcriptMessages]
+    );
     const initialThreadChatId = initialTask?.threadChatId;
     const threadAnchorId = searchParams.get('thread');
     const threadCloseRequestedRef = React.useRef(false);
@@ -212,7 +225,7 @@ export function ChatView({
     const threadPanel = threadSelection ? (
         <ThreadPanel
             active={activeSidePane === 'thread'}
-            anchor={threadSelection.anchor}
+            anchor={threadAnchor ?? threadSelection.anchor}
             canManage={server.role === 'owner' || server.role === 'admin'}
             chat={chat}
             initialThreadChatId={threadSelection.initialThreadChatId}

@@ -4,7 +4,6 @@ import {
     useTranscriptRenderContextOptional,
 } from '../chats/chat-transcript-render-context.tsx';
 import { isThreadAnchorRow } from '../chats/thread/thread-anchor.ts';
-import { CloudAgentWorkDetail, CloudAgentWorkHeader } from './cloud-agent-work-header.tsx';
 import { CloudAgentWorkMenu } from './cloud-agent-work-menu.tsx';
 
 /**
@@ -43,28 +42,12 @@ export function TranscriptCloudAgentWorkMenu({
 }
 
 /**
- * The work as it reads where there is no recessed Thread surface to host it:
- * inside a Thread, where the Message is a reply and has no reply previews of
- * its own. Same header, same one muted line, same menu.
+ * The live Cloud Agent work running inside this Message's Thread, if any. The
+ * transcript surface owns the read and hands it down through the render
+ * context, so a row stays a row: it looks its own Message up, and learns
+ * nothing about where active work comes from.
  */
-export function TranscriptCloudAgentWorkBlock({
-    row,
-    work,
-}: {
-    row: TranscriptMessageRow;
-    work: CloudAgentWork;
-}) {
-    return (
-        <div className="group/cloud-agent-work flex w-full min-w-0 flex-col gap-0.5">
-            <div className="flex min-w-0 items-center gap-1">
-                <CloudAgentWorkHeader work={work} />
-                <TranscriptCloudAgentWorkMenu
-                    className="opacity-0 transition-opacity focus-visible:opacity-100 group-hover/cloud-agent-work:opacity-100 aria-expanded:opacity-100"
-                    row={row}
-                    work={work}
-                />
-            </div>
-            <CloudAgentWorkDetail work={work} />
-        </div>
-    );
+export function useHoistedCloudAgentWork(row: TranscriptMessageRow): CloudAgentWork | null {
+    const context = useTranscriptRenderContextOptional();
+    return context?.hoistedCloudAgentWork?.get(row.message.id) ?? null;
 }

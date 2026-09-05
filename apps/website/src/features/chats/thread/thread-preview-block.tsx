@@ -24,6 +24,7 @@ import { messagePreviewLine } from '../message-preview-line.ts';
  */
 export function ThreadPreviewBlock({
     detail,
+    headerLabel,
     headerLeading,
     headerTrailing,
     row,
@@ -34,6 +35,12 @@ export function ThreadPreviewBlock({
      * one Open-thread button, and a solid child would punch a hole in it.
      */
     detail?: React.ReactNode;
+    /**
+     * What this surface is, for the button's accessible name. The marks in the
+     * header sit beside the button rather than inside it, so without this the
+     * only way in reads as a bare "Open thread" however much the header says.
+     */
+    headerLabel?: string;
     headerLeading?: React.ReactNode;
     /** Interactive chrome after the reply count, such as an overflow menu. */
     headerTrailing?: React.ReactNode;
@@ -54,7 +61,7 @@ export function ThreadPreviewBlock({
     return (
         <div className="group/thread card-shell relative mt-1.5 flex w-full min-w-0 flex-col gap-1 bg-nested-surface px-2.5 py-2 shadow-(--nested-surface-ring) hover:bg-nested-surface-hover">
             <button
-                aria-label={replyCount > 0 ? `Open thread, ${label}` : 'Open thread'}
+                aria-label={openThreadLabel(headerLabel, replyCount, label)}
                 className="card-shell absolute inset-0 cursor-[var(--cursor-interactive)] outline-none focus-visible:ring-2 focus-visible:ring-focus"
                 onClick={() => context.onOpenThread(row)}
                 type="button"
@@ -149,6 +156,12 @@ function ThreadPreviewReply({
 
 export function threadPreviewAuthorName(profile: { name: string } | null | undefined) {
     return profile?.name ?? 'Unknown';
+}
+
+function openThreadLabel(headerLabel: string | undefined, replyCount: number, label: string) {
+    return ['Open thread', headerLabel, replyCount > 0 ? label : null]
+        .filter((part) => part !== null && part !== undefined)
+        .join(', ');
 }
 
 function replyLabel(replyCount: number) {

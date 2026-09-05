@@ -12,7 +12,6 @@ import { TranscriptRenderProvider } from '../../chats/chat-transcript-render-con
 import { TranscriptEntryView } from '../../chats/chat-transcript-turn.tsx';
 import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
 import { ThreadPanelHeader } from '../../chats/thread/thread-panel-header.tsx';
-import { CloudAgentWorkThreadMetadata } from '../../cloud-agents/cloud-agent-work-thread-metadata.tsx';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { ChatAgentComposition } from '../chat/agent-composition.tsx';
 import { ChatComposer } from '../chat/chat-composer-variants.tsx';
@@ -25,6 +24,11 @@ import { threadTitles } from './thread-target.ts';
  * The full Thread work surface — header, the anchor record's own metadata,
  * the anchor, replies, and composer. The chat page hosts it in the shell side pane (`ThreadPanel`);
  * the Tasks page hosts it in the task thread dialog.
+ *
+ * A Task states itself in a metadata panel above the anchor, because its
+ * lifecycle is edited here. Cloud Agent work does not: it is watched rather
+ * than driven, so it reads as a card in sequence beneath the Message that
+ * delegated it, wherever in the Thread that was.
  */
 export function ThreadContent({
     active,
@@ -84,7 +88,6 @@ export function ThreadContent({
     // anchor owns, so the very first reply — which has no Thread chat id until
     // its receipt lands — is carried the same way every later one is.
     const pendingReplies = usePendingChatMessages(pendingThreadReplyKey(anchor.id), replies);
-    const anchorWork = anchor.body.kind === 'cloud-agent-work' ? anchor.body.work : null;
     // The thread renders through the same Server transcript wiring as the
     // main chat, so anchor and replies look and feel like channel rows.
     const threadMessages = React.useMemo(() => [anchor, ...replies], [anchor, replies]);
@@ -93,16 +96,14 @@ export function ThreadContent({
         // The context card above the anchor already names the automation.
         causeMarkHidden: Boolean(anchor.cause),
         chatId: threadChatId ?? chat.id,
-        // The metadata panel above the anchor already states its work.
-        cloudAgentWorkHeaderHiddenMessageId: anchorWork ? anchor.id : undefined,
         conversationChatId: chat.id,
         messages: threadMessages,
         onOpenArtifact,
         onReferenceActivate,
         pendingMessages: pendingReplies,
         serverId: chat.serverId,
-        // The header names the task and the metadata panel below states it.
-        taskMarkHidden: Boolean(anchor.task),
+        // The header names the Task and the metadata panel below states it.
+        taskChipHiddenMessageId: anchor.task ? anchor.id : undefined,
         turnDetailsAccess,
         viewerUserId,
     });
@@ -160,7 +161,6 @@ export function ThreadContent({
                     {anchor.cause ? (
                         <AutomationFireContextCard messageId={anchor.id} serverId={chat.serverId} />
                     ) : null}
-                    {anchorWork ? <CloudAgentWorkThreadMetadata work={anchorWork} /> : null}
                     {anchor.task ? (
                         <TaskThreadMetadata
                             chat={chat}

@@ -49,6 +49,29 @@ export function CloudAgentWorkHeader({ work }: { work: CloudAgentWork }) {
 }
 
 /**
+ * Live Cloud Agent work hoisted onto the surface of the Message it runs under,
+ * beside that Message's own Task or Ask chip: the provider glyph and the
+ * trailing status, without the title. The title belongs to the work's own
+ * Message inside the Thread; what the anchor owes a reader scanning the Chat is
+ * only that something is running under it, and for how long.
+ */
+export function CloudAgentWorkStatusMark({ work }: { work: CloudAgentWork }) {
+    const now = useWorkNow(work);
+    const status = cloudAgentPresentationStatus(work);
+
+    return (
+        <span
+            className="inline-flex shrink-0 items-center gap-1.5 font-semibold text-muted text-sm"
+            data-testid="cloud-agent-work-status-mark"
+        >
+            <Icon className="size-3.5 shrink-0" icon={CloudIcon} />
+            <CloudAgentStatusDisc status={status} />
+            <span className="shrink-0 tabular-nums">{cloudAgentStatusText(work, now)}</span>
+        </span>
+    );
+}
+
+/**
  * The one muted line under the header: what the work is doing now, or what its
  * latest Run reported. A running work that has gone quiet says when it last
  * said anything, rather than gating on Computer connection state.

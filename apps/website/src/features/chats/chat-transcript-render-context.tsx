@@ -1,3 +1,4 @@
+import type { CloudAgentWork } from '@grotto/api';
 import * as React from 'react';
 import type { TranscriptMessage } from './chat-transcript-message.tsx';
 import type { ConversationMessageLayout, TranscriptActor } from './chat-transcript-model.ts';
@@ -39,14 +40,6 @@ export interface TranscriptRenderContextValue {
      */
     causeMarkHidden?: boolean;
     chatId?: string;
-    /**
-     * The one Message whose Cloud Agent work header a surrounding panel
-     * already states. A Thread opened on a work Message names its provider,
-     * repository, status, and run history above the anchor, so the compact
-     * header on that row would say the same thing twice — while a second work
-     * delegated inside the same Thread still renders its own.
-     */
-    cloudAgentWorkHeaderHiddenMessageId?: string;
     composerId?: string;
     /**
      * The Channel or DM this transcript belongs to, which for a Thread is its
@@ -59,6 +52,14 @@ export interface TranscriptRenderContextValue {
     defaultOpenWorkGroups: boolean;
     flashMessageId: string | null;
     hiddenCount: number;
+    /**
+     * Live Cloud Agent work by the Message whose Thread it runs inside, so an
+     * anchor's own surface can state that something is running under it. A Chat
+     * transcript carries its Threads only as reply previews, so this is the one
+     * read that can see in; terminal work is absent by construction, which is
+     * the hoist rule itself.
+     */
+    hoistedCloudAgentWork?: ReadonlyMap<string, CloudAgentWork>;
     /**
      * The text a message's Copy action writes to the clipboard. Absent by
      * default, in which case `getMessageCopyText` falls back to the raw
@@ -101,12 +102,13 @@ export interface TranscriptRenderContextValue {
      */
     shouldAnimateItemEnter: (key: string, timestampMs: number | null) => boolean;
     /**
-     * Suppresses the header's task mark. A Thread opened on a task states its
-     * number in the header and its status, assignee, and creator in the
-     * metadata panel above the anchor, so the anchor's own mark would repeat
-     * all of it.
+     * The one Message whose task chip a surrounding panel already states. A
+     * Thread opened on a Task names it in the header and states its status,
+     * assignee, and creator in the metadata panel above the anchor, so the
+     * anchor's own chip would repeat all of it — while a reply promoted to its
+     * own Task inside that Thread still wears one.
      */
-    taskMarkHidden?: boolean;
+    taskChipHiddenMessageId?: string;
     threadActionsEnabled: boolean;
     turnDetails?: {
         access: 'journal' | 'summary';

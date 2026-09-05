@@ -11,6 +11,7 @@ import {
     agentTurnSummarySchema,
     agentWorkspaceResultSchema,
     browserResultSchema,
+    cloudAgentCapabilityResultSchema,
     cloudAgentObservationFrameSchema,
     computerBootstrapHelloSchema,
     computerHeartbeatNegotiationSchema,
@@ -407,6 +408,12 @@ async function ingestReport(
     const browser = browserResultSchema.safeParse(frame);
     if (browser.success) {
         connections.acceptBrowserResult(computerId, browser.data);
+        return;
+    }
+
+    const cloudAgentCapability = cloudAgentCapabilityResultSchema.safeParse(frame);
+    if (cloudAgentCapability.success) {
+        connections.acceptCloudAgentCapabilityResult(computerId, cloudAgentCapability.data);
         return;
     }
 

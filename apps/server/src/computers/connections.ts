@@ -8,6 +8,8 @@ import type {
     AgentWorkspaceResult,
     BrowserRequest,
     BrowserResult,
+    CloudAgentCapabilityRequest,
+    CloudAgentCapabilityResult,
     ComputerUpdatePhase,
     SignedComputerRelease,
 } from '@grotto/api';
@@ -46,6 +48,13 @@ interface PendingBrowserRequest {
     timeout: ReturnType<typeof setTimeout>;
 }
 
+interface PendingCloudAgentCapabilityRequest {
+    computerId: string;
+    reject(error: Error): void;
+    resolve(result: NonNullable<CloudAgentCapabilityResult['result']>): void;
+    timeout: ReturnType<typeof setTimeout>;
+}
+
 interface PendingExecutionJournalRequest {
     agentId: string;
     computerId: string;
@@ -70,6 +79,10 @@ export class ComputerConnections implements DeliveryTransport {
     );
     private readonly pendingWorkspaceRequests = new Map<string, PendingWorkspaceRequest>();
     private readonly pendingBrowserRequests = new Map<string, PendingBrowserRequest>();
+    private readonly pendingCloudAgentCapabilityRequests = new Map<
+        string,
+        PendingCloudAgentCapabilityRequest
+    >();
     private readonly pendingExecutionJournalRequests = new Map<
         string,
         PendingExecutionJournalRequest
@@ -99,6 +112,13 @@ export class ComputerConnections implements DeliveryTransport {
             if (pending.computerId === computerId) {
                 clearTimeout(pending.timeout);
                 this.pendingBrowserRequests.delete(requestId);
+                pending.reject(new Error('The selected Computer went offline.'));
+            }
+        }
+        for (const [requestId, pending] of this.pendingCloudAgentCapabilityRequests) {
+            if (pending.computerId === computerId) {
+                clearTimeout(pending.timeout);
+                this.pendingCloudAgentCapabilityRequests.delete(requestId);
                 pending.reject(new Error('The selected Computer went offline.'));
             }
         }
@@ -317,6 +337,63 @@ export class ComputerConnections implements DeliveryTransport {
             pending.resolve(result.result);
         } else {
             pending.reject(new Error(result.error ?? 'The Browser request failed.'));
+        }
+        return true;
+    }
+
+    /**
+     * A Cloud Agent capability read or connect on one Computer. Connecting runs
+     * the provider's own browser sign-in on that machine, so this waits far
+     * longer than a Browser request: a human has to finish the flow.
+     */
+    requestCloudAgentCapability(
+        computerId: string,
+        input: {
+            operation: CloudAgentCapabilityRequest['operation'];
+            provider: CloudAgentCapabilityRequest['provider'];
+        }
+    ): Promise<NonNullable<CloudAgentCapabilityResult['result']>> {
+        const requestId = createOpaqueId('req');
+        const timeoutMs = input.operation.kind === 'connect' ? 300_000 : 10_000;
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                this.pendingCloudAgentCapabilityRequests.delete(requestId);
+                reject(new Error('The Computer did not answer the Cloud Agent request.'));
+            }, timeoutMs);
+            this.pendingCloudAgentCapabilityRequests.set(requestId, {
+                computerId,
+                reject,
+                resolve,
+                timeout,
+            });
+            if (
+                !this.send(computerId, {
+                    ...input,
+                    requestId,
+                    type: 'cloud-agent-capability-request',
+                })
+            ) {
+                clearTimeout(timeout);
+                this.pendingCloudAgentCapabilityRequests.delete(requestId);
+                reject(new Error('The selected Computer is offline.'));
+            }
+        });
+    }
+
+    acceptCloudAgentCapabilityResult(
+        computerId: string,
+        result: CloudAgentCapabilityResult
+    ): boolean {
+        const pending = this.pendingCloudAgentCapabilityRequests.get(result.requestId);
+        if (!pending || pending.computerId !== computerId) {
+            return false;
+        }
+        clearTimeout(pending.timeout);
+        this.pendingCloudAgentCapabilityRequests.delete(result.requestId);
+        if (result.result) {
+            pending.resolve(result.result);
+        } else {
+            pending.reject(new Error(result.error ?? 'The Cloud Agent request failed.'));
         }
         return true;
     }

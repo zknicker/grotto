@@ -5,6 +5,7 @@ import { automationRouter } from './automation/router.ts';
 import { avatarRouter } from './avatar/router.ts';
 import { browserRouter } from './browser/router.ts';
 import { chatRouter } from './chat/router.ts';
+import { cloudAgentProviderRouter } from './cloud-agent-provider/router.ts';
 import { cloudAgentWorkRouter } from './cloud-agent-work/router.ts';
 import { computerRouter } from './computer/router.ts';
 import { devRouter } from './dev/router.ts';
@@ -32,6 +33,7 @@ export const grottoRouter = createRouter({
     avatar: avatarRouter,
     browser: browserRouter,
     chat: chatRouter,
+    cloudAgentProvider: cloudAgentProviderRouter,
     cloudAgentWork: cloudAgentWorkRouter,
     computer: computerRouter,
     dev: devRouter,

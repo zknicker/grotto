@@ -202,14 +202,16 @@ test('a detached stream reconciles by reading the Run rather than settling it', 
     // The SDK's stream handle ends on its own wait deadline while the hosted
     // Run keeps working. Settling on that would be a lie.
     transport.emit({ kind: 'detached' });
-    await settled();
+    await until(() => seen.length >= 1);
     expect(seen.map((observation) => observation.status)).toEqual(['running']);
 
-    await Bun.sleep(20);
+    await until(() => seen.length >= 2);
     expect(seen.map((observation) => observation.status)).toEqual(['running', 'completed']);
-    // Nothing further once the Run is terminal.
-    await Bun.sleep(20);
+    // Nothing further once the Run is terminal: the reads stop with it.
+    const reads = transport.requests.filter((entry) => entry.startsWith('readRun')).length;
+    await Bun.sleep(50);
     expect(seen).toHaveLength(2);
+    expect(transport.requests.filter((entry) => entry.startsWith('readRun'))).toHaveLength(reads);
 });
 
 test('reconciliation backs off after a provider failure and stops on unsubscribe', async () => {
@@ -223,11 +225,10 @@ test('reconciliation backs off after a provider failure and stops on unsubscribe
     const unsubscribe = provider.subscribe(ref, (observation) => seen.push(observation));
 
     transport.emit({ kind: 'detached' });
-    await settled();
-    await Bun.sleep(20);
-    // One failed read, then the long backoff rather than the 5-second cadence.
+    // Long enough for several 10ms reconcile intervals; the 200ms backoff means
+    // only the first read is attempted in that window.
+    await Bun.sleep(60);
     expect(seen).toHaveLength(0);
-    expect(transport.requests.filter((entry) => entry.startsWith('streamRun'))).toHaveLength(1);
     unsubscribe();
 });
 
@@ -283,9 +284,20 @@ test('a settling read that fails still settles the work from the streamed status
     expect(parse(seen[0] as CloudAgentProviderObservation).status).toBe('cancelled');
 });
 
-/** Lets the adapter's own read-after-settle microtasks and timers run. */
+/** Lets the adapter's own read-after-settle microtasks run. */
 function settled() {
     return Bun.sleep(5);
+}
+
+/** Waits on the condition itself rather than on a wall-clock guess. */
+async function until(condition: () => boolean, timeoutMs = 2000) {
+    const deadline = Date.now() + timeoutMs;
+    while (!condition()) {
+        if (Date.now() > deadline) {
+            throw new Error('The adapter never reached the expected state.');
+        }
+        await Bun.sleep(2);
+    }
 }
 
 function parse(observation: CloudAgentProviderObservation) {

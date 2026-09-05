@@ -1,3 +1,4 @@
+import { CloudAgentWorkDialog } from '../../features/cloud-agents/cloud-agent-work-dialog.tsx';
 import { AskThreadDialog } from '../../features/servers/inbox/ask-thread-dialog.tsx';
 import { InboxHappeningNow } from '../../features/servers/inbox/inbox-happening-now.tsx';
 import { InboxNeedsYou } from '../../features/servers/inbox/inbox-needs-you.tsx';
@@ -26,6 +27,7 @@ export function InboxPage() {
                 <InboxWhileYouWereAway />
             </PageColumn>
             <AskThreadDialog />
+            <CloudAgentWorkDialog />
         </>
     );
 }

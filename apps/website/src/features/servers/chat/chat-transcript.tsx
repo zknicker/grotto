@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
+import { useActiveCloudAgentWork } from '../../../hooks/servers/use-cloud-agent-work.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { ChatTranscriptPresentation } from '../../chats/chat-transcript.tsx';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
@@ -16,6 +17,7 @@ import {
     preparedActionMessageText,
 } from '../../chats/prepared-action-card.tsx';
 import { deriveSessionMarks } from '../../chats/session/session-mark-model.ts';
+import { indexCloudAgentWorkByThreadAnchor } from '../../cloud-agents/hoisted-cloud-agent-work.ts';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { useResolveActorProfile } from './chat-actor-profiles.ts';
 import { applyLocalReactions, useLocalChatReactions } from './chat-local-reactions.ts';
@@ -41,6 +43,8 @@ interface ChatTranscriptInput {
     /** Hides the header automation mark when a context card already states it. */
     causeMarkHidden?: boolean;
     chatId: string;
+    /** The Channel or DM this transcript belongs to; a Thread names its parent. */
+    conversationChatId?: string;
     messages: readonly ChatMessage[] | undefined;
     onOpenArtifact: (target: GrottoResourceTarget) => void;
     onOpenThread?: (message: ChatMessage, summary: ThreadSummary | null) => void;
@@ -48,8 +52,8 @@ interface ChatTranscriptInput {
     onStartDm?: (userId: string) => void;
     pendingMessages?: readonly PendingChatMessage[];
     serverId: string;
-    /** Hides the header task mark when a metadata panel already states it. */
-    taskMarkHidden?: boolean;
+    /** Hides one Message's task chip when a metadata panel already states it. */
+    taskChipHiddenMessageId?: string;
     threads?: readonly ThreadSummary[];
     turnDetailsAccess?: 'journal' | 'summary';
     viewerUserId?: string;
@@ -100,6 +104,7 @@ export function useChatTranscript({
     canManage = false,
     causeMarkHidden,
     chatId,
+    conversationChatId,
     messages,
     onOpenArtifact,
     onReferenceActivate,
@@ -107,7 +112,7 @@ export function useChatTranscript({
     onStartDm,
     pendingMessages = emptyPendingMessages,
     serverId,
-    taskMarkHidden,
+    taskChipHiddenMessageId,
     threads = emptyChatThreads,
     turnDetailsAccess = 'summary',
     viewerUserId,
@@ -154,6 +159,14 @@ export function useChatTranscript({
                 }))
             ),
         [messageList]
+    );
+    // Live work delegated inside a Thread, indexed by that Thread's anchor: the
+    // transcript surface owns this read, and each row only looks its own
+    // Message up. `cloud-agent-work.updated` already invalidates the list.
+    const activeCloudAgentWork = useActiveCloudAgentWork(serverId);
+    const hoistedCloudAgentWork = React.useMemo(
+        () => indexCloudAgentWorkByThreadAnchor(activeCloudAgentWork.data),
+        [activeCloudAgentWork.data]
     );
     const chatsById = React.useMemo(
         () => new Map((chats.data ?? []).map((chat) => [chat.id, chat])),
@@ -229,6 +242,7 @@ export function useChatTranscript({
             ({
                 canRequestMention: true,
                 chatId,
+                conversationChatId: conversationChatId ?? chatId,
                 conversationLayout,
                 defaultOpenWorkGroups: false,
                 flashMessageId: null,
@@ -237,6 +251,7 @@ export function useChatTranscript({
                     serverId,
                 },
                 hiddenCount: 0,
+                hoistedCloudAgentWork,
                 messageCopyText: preparedActionMessageText,
                 onActorClick: onStartDm
                     ? (actor) => {
@@ -279,7 +294,7 @@ export function useChatTranscript({
                 resolveActorProfile,
                 sessionMarks,
                 shouldAnimateItemEnter: () => false,
-                taskMarkHidden,
+                taskChipHiddenMessageId,
                 threadActionsEnabled: Boolean(onOpenThread),
             }) satisfies TranscriptRenderContextValue,
         [
@@ -289,7 +304,9 @@ export function useChatTranscript({
             causeMarkHidden,
             chatId,
             chatsById,
+            conversationChatId,
             handleOpenThread,
+            hoistedCloudAgentWork,
             humans,
             onOpenThread,
             onOpenArtifact,
@@ -300,7 +317,7 @@ export function useChatTranscript({
             resolveActorProfile,
             serverId,
             sessionMarks,
-            taskMarkHidden,
+            taskChipHiddenMessageId,
             turnDetailsAccess,
         ]
     );

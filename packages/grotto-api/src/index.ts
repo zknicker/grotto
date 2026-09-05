@@ -71,6 +71,8 @@ export * from './automation.ts';
 export * from './avatar.ts';
 export * from './avatar-generation.ts';
 export * from './chat.ts';
+export * from './cloud-agent.ts';
+export * from './cloud-agent-shared.ts';
 export * from './computer-runtime.ts';
 export * from './computer-system-events.ts';
 export * from './computer-update.ts';

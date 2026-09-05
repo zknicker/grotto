@@ -21,9 +21,14 @@ import { TaskThreadMetadata } from '../tasks/task-thread-metadata.tsx';
 import { threadTitles } from './thread-target.ts';
 
 /**
- * The full Thread work surface — header, task metadata, anchor, replies, and
- * composer. The chat page hosts it in the shell side pane (`ThreadPanel`);
+ * The full Thread work surface — header, the anchor record's own metadata,
+ * the anchor, replies, and composer. The chat page hosts it in the shell side pane (`ThreadPanel`);
  * the Tasks page hosts it in the task thread dialog.
+ *
+ * A Task states itself in a metadata panel above the anchor, because its
+ * lifecycle is edited here. Cloud Agent work does not: it is watched rather
+ * than driven, so it reads as a card in sequence beneath the Message that
+ * delegated it, wherever in the Thread that was.
  */
 export function ThreadContent({
     active,
@@ -91,13 +96,14 @@ export function ThreadContent({
         // The context card above the anchor already names the automation.
         causeMarkHidden: Boolean(anchor.cause),
         chatId: threadChatId ?? chat.id,
+        conversationChatId: chat.id,
         messages: threadMessages,
         onOpenArtifact,
         onReferenceActivate,
         pendingMessages: pendingReplies,
         serverId: chat.serverId,
-        // The header names the task and the metadata panel below states it.
-        taskMarkHidden: Boolean(anchor.task),
+        // The header names the Task and the metadata panel below states it.
+        taskChipHiddenMessageId: anchor.task ? anchor.id : undefined,
         turnDetailsAccess,
         viewerUserId,
     });

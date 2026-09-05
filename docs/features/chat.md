@@ -20,10 +20,12 @@ and [Agent Inbox](../../specs/inbox.md).
   conversation units only — messages, artifacts, notices, thread anchors — and
   nothing turn-shaped. See [chat-timeline](../../specs/chat-timeline.md).
 * **Why an Agent said something.** Anything an Agent was told privately stays
-  out of the conversation and shows up as a mark on the message it explains: a
-  **task mark** when the message was promoted to a task, a lightning or clock
-  **fire mark** when a Trigger or reminder woke the Agent, and a **session mark** on the
-  first thing the Agent says in a chat after its session was reset. Hovering a
+  out of the conversation and shows up as a mark on the message's author line: a
+  lightning or clock **fire mark** when a Trigger or reminder woke the Agent, and
+  a **session mark** on the first thing the Agent says in a chat after its
+  session was reset. The author line carries provenance only — what the message
+  *is*, and anything with a lifecycle to follow, reads in the recessed Thread
+  surface beneath it. Hovering a
   mark previews the automation or the reset — what it was, when, and where to
   manage it — and a fire's Thread carries a context card with the payload or the
   anchoring note. A fire, an assignment, or a reset the Agent never speaks about
@@ -62,12 +64,49 @@ and [Agent Inbox](../../specs/inbox.md).
   an inert fallback. A successful commit names the human and does not add a
   Chat receipt. Dropped realtime
   events recover through the ordinary message snapshot on reconnect.
+* **The Thread surface header.** Everything under a Message that carries a
+  lifecycle a reader tracks reads in the header of the one recessed Thread
+  surface beneath it, in a single chip grammar at annotation scale, with the
+  reply count trailing and reply previews below: the **task chip**
+  (`Task #<n>`, a status disc, the assignee's face and name), the **Ask marker**,
+  the **Cloud Agent work header**, and the **hoisted status** of live work
+  running inside that Thread. Only status discs carry lifecycle color. A Message
+  with none of these keeps the plain preview, which appears only once someone has
+  replied. The surface is one button into the Thread, and its accessible name
+  says what it opens (`Open thread, Task #1, 2 replies`).
 * **Ask markers.** A Message carrying an [Ask](../../specs/asks.md) reads as an
-  ordinary Message with a compact marker on its recessed Thread surface, in the
-  same grammar as the task chip: the Ask glyph, `Ask`, the addressee's face and
-  name, and a trailing status — an accent open disc, or a filled success disc
-  with `Answered by <name>` — beside the ordinary reply count. Inside a Thread
-  the marker renders on the reply itself, without a count.
+  ordinary Message with a compact marker in that header: the Ask glyph, `Ask`,
+  the addressee's face and name, and a trailing status — an accent open disc, or
+  a filled success disc with `Answered by <name>`. Inside a Thread the marker
+  renders inline on the reply itself, without a count.
+* **Cloud Agent work.** A Message carrying
+  [Cloud Agent work](../../specs/cloud-agents.md) reads as an ordinary Message
+  whose Thread surface is headed by that work: a cloud glyph, the provider
+  (`Cursor`), the work title, and a trailing status disc and label — `Queued`,
+  `Running · <elapsed>`, `Done · <duration>`, `Failed`, `Expired`, `Cancelled`,
+  or `Cancelling` while a cancel is recorded against a live Run. One muted line
+  under it states the work's current `activity` while it runs and its latest
+  Run's summary or error once it settles, plus a `Last update <relative>` note
+  when a running work has not reported for ten minutes. The surface's overflow
+  menu carries Open thread, Open in Cursor, Copy link, and — for Owners and
+  Admins, while the work is live — Cancel run.
+* **Hoisted work status.** When a Thread contains queued or running Cloud Agent
+  work, its anchor's surface header states that work's status after the anchor's
+  own chip — `Task #1 · <disc> Blippy · <cloud> Running · 2m` — so a reader
+  scanning the Chat sees that something is still going under it. The hoist is
+  derived at read time from the Server's active-work list, keyed by the Thread's
+  anchor; terminal work is absent from that list, so a finished run is a fact for
+  the Thread rather than a status on the Chat.
+* **The in-Thread work card.** Inside the Thread, the work Message renders as
+  the Agent's own words followed immediately by a detailed card, in sequence
+  right where the Agent handed the work off. The card is presentation of the
+  Server-owned record, never a Chat row: a cloud mark, the title with a status
+  chip, `Cursor · <repository>`, a branch row carrying the branch the run wrote
+  and `PR #<n>` when it opened one, the activity or Run report, and an actions
+  row of **View PR**, **Open in Cursor**, and **Cancel run** for Owners and
+  Admins while the run is live, with a `Delegated by <Agent> · <time>` receipt.
+  Everything updates in place from `cloud-agent-work.updated`; the work never
+  writes a second Message.
 * **Hosted attachments.** Humans and Agents can attach files to hosted Server
   messages. The App streams human-selected bytes directly to that Server, and
   Agents upload through their scoped Server credential. The Server publishes

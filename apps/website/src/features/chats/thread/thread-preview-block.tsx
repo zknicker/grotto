@@ -1,5 +1,6 @@
 import { Chip } from '@heroui/react';
 import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import type * as React from 'react';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -16,41 +17,76 @@ import { messagePreviewLine } from '../message-preview-line.ts';
 /**
  * A Thread as it reads from its anchor: a reply count and the last few
  * replies with their faces, so the conversation is legible without opening
- * the panel. A Thread with no replies shows nothing at all — a task says what
- * it is with its header mark, so an empty card would only add noise.
+ * the panel. A plain Thread with no replies shows nothing at all — a task says
+ * what it is with its header mark, so an empty card would only add noise. A
+ * surface that brings its own header, such as Cloud Agent work, keeps the card
+ * before the first reply.
  */
-export function ThreadPreviewBlock({ row }: { row: TranscriptMessageRow }) {
+export function ThreadPreviewBlock({
+    detail,
+    headerLabel,
+    headerLeading,
+    headerTrailing,
+    row,
+}: {
+    /**
+     * One line the surface's own record owns, under the header. It renders
+     * bare, so it carries its own `pointer-events-none`: the whole block is
+     * one Open-thread button, and a solid child would punch a hole in it.
+     */
+    detail?: React.ReactNode;
+    /**
+     * What this surface is, for the button's accessible name. The marks in the
+     * header sit beside the button rather than inside it, so without this the
+     * only way in reads as a bare "Open thread" however much the header says.
+     */
+    headerLabel?: string;
+    headerLeading?: React.ReactNode;
+    /** Interactive chrome after the reply count, such as an overflow menu. */
+    headerTrailing?: React.ReactNode;
+    row: TranscriptMessageRow;
+}) {
     const context = useTranscriptRenderContextOptional();
     const now = useRelativeNow();
     const thread = getTranscriptMessageThread(row);
 
-    if (!(context && thread) || thread.replyCount === 0) {
+    if (!context || (!headerLeading && (!thread || thread.replyCount === 0))) {
         return null;
     }
 
-    const replies = thread.recentReplies ?? [];
-    const label = replyLabel(thread.replyCount);
+    const replies = thread?.recentReplies ?? [];
+    const replyCount = thread?.replyCount ?? 0;
+    const label = replyLabel(replyCount);
 
     return (
         <div className="group/thread card-shell relative mt-1.5 flex w-full min-w-0 flex-col gap-1 bg-nested-surface px-2.5 py-2 shadow-(--nested-surface-ring) hover:bg-nested-surface-hover">
             <button
-                aria-label={`Open thread, ${label}`}
+                aria-label={openThreadLabel(headerLabel, replyCount, label)}
                 className="card-shell absolute inset-0 cursor-[var(--cursor-interactive)] outline-none focus-visible:ring-2 focus-visible:ring-focus"
                 onClick={() => context.onOpenThread(row)}
                 type="button"
             />
-            <div className="pointer-events-none relative flex min-w-0 items-center justify-end gap-2 text-xs">
+            <div className="pointer-events-none relative flex min-w-0 items-center justify-between gap-2 text-xs">
+                {headerLeading ? (
+                    <div className="relative z-10 min-w-0">{headerLeading}</div>
+                ) : null}
                 <span className="flex shrink-0 items-center gap-1 font-semibold text-muted text-xs group-hover/thread:text-foreground">
                     {label}
-                    {thread.unreadCount > 0 ? (
+                    {(thread?.unreadCount ?? 0) > 0 ? (
                         <>
                             <span aria-hidden>·</span>
-                            <span className="text-accent">{thread.unreadCount} new</span>
+                            <span className="text-accent">{thread?.unreadCount} new</span>
                         </>
                     ) : null}
                     <Icon aria-hidden className="size-3" icon={ArrowRight01Icon} />
                 </span>
+                {headerTrailing ? (
+                    <div className="pointer-events-auto relative z-10 shrink-0">
+                        {headerTrailing}
+                    </div>
+                ) : null}
             </div>
+            {detail}
             {replies.length > 0 ? (
                 <div className="pointer-events-none relative flex w-full min-w-0 flex-col gap-1 text-left">
                     {replies.map((reply) => (
@@ -120,6 +156,12 @@ function ThreadPreviewReply({
 
 export function threadPreviewAuthorName(profile: { name: string } | null | undefined) {
     return profile?.name ?? 'Unknown';
+}
+
+function openThreadLabel(headerLabel: string | undefined, replyCount: number, label: string) {
+    return ['Open thread', headerLabel, replyCount > 0 ? label : null]
+        .filter((part) => part !== null && part !== undefined)
+        .join(', ');
 }
 
 function replyLabel(replyCount: number) {

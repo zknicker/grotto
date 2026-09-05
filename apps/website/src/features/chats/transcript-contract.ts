@@ -1,4 +1,11 @@
-import type { AgentAvailability, Ask, MessageCause, PreparedAction, TaskLabel } from '@grotto/api';
+import type {
+    AgentAvailability,
+    Ask,
+    CloudAgentWork,
+    MessageCause,
+    PreparedAction,
+    TaskLabel,
+} from '@grotto/api';
 import type { MessageTask } from '../tasks/task-presentation.ts';
 
 export type TranscriptActor =
@@ -90,6 +97,8 @@ export interface TranscriptMessage {
      * row of its own, so this is what the header mark renders from.
      */
     cause?: MessageCause | null;
+    /** The Cloud Agent work this Message anchors, projected from its typed body. */
+    cloudAgentWork?: CloudAgentWork | null;
     content: string;
     grottoAgentId?: string | null;
     id: string;

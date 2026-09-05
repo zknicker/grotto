@@ -13,10 +13,3 @@ export class InvalidAskAddresseeError extends Error {
         this.name = 'InvalidAskAddresseeError';
     }
 }
-
-export class AskAgentNotFoundError extends Error {
-    constructor() {
-        super('The asking Agent no longer exists.');
-        this.name = 'AskAgentNotFoundError';
-    }
-}

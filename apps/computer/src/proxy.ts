@@ -18,6 +18,7 @@ import {
     viewLocalAgentSkill,
     writeLocalAgentSkillFile,
 } from './agent-skills.ts';
+import { handleCloudAgentStart } from './cloud-agents/proxy-route.ts';
 import { classifyGrottoProxyBoundary } from './harness/activity-projector.ts';
 import {
     type AgentInboxLocation,
@@ -162,6 +163,14 @@ async function handleAuthorizedProxyRequest(
             { code: 'AGENT_IDLE', message: 'The Agent has no active turn.' },
             { status: 409 }
         );
+    }
+    const cloudAgent = await handleCloudAgentStart(request, url, {
+        runnerToken,
+        serverId: input.serverId,
+        serverOrigin: input.serverOrigin,
+    });
+    if (cloudAgent) {
+        return cloudAgent;
     }
     const location = agentInboxLocation(input);
     if (request.method === 'GET' && url.pathname === '/api/agent/events' && location) {

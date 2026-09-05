@@ -50,6 +50,19 @@ import {
 import { printComputerHeader, printComputerHelpPage } from './cli/chrome.ts';
 import { findComputerCommandHelp, resolveComputerHelpRequest } from './cli/help.ts';
 import { cliColorsEnabled, createCliRenderer, stdoutRenderer } from './cli/render.ts';
+import {
+    parseCloudAgentCapabilityRequest,
+    runCloudAgentCapabilityRequest,
+} from './cloud-agents/capability-requests.ts';
+import {
+    parseCloudAgentCancelCommand,
+    parseCloudAgentReconcileCommand,
+} from './cloud-agents/frames.ts';
+import {
+    applyCloudAgentCancel,
+    reconcileCloudAgentWork,
+    setCloudAgentReporter,
+} from './cloud-agents/work-runner.ts';
 import { readComputerName } from './computer-name.ts';
 import { toReportedAgentState } from './computer-report.ts';
 import { type DaemonRuntime, withDaemonRuntime } from './daemon-runtime.ts';
@@ -86,7 +99,7 @@ import {
     reofferPendingMessages,
     replacePendingInbox,
 } from './inbox-store.ts';
-import { detectInventory } from './inventory.ts';
+import { detectFullInventory, detectInventory } from './inventory.ts';
 import {
     type AgentStartCommand,
     type AgentTurnFrame,
@@ -1102,6 +1115,7 @@ async function connect(
     return await new Promise<AttachmentConnectionOutcome>((resolve) => {
         socket.addEventListener('close', () => {
             detachSender();
+            setCloudAgentReporter(attachment.serverId, null);
             heartbeat?.dispose();
             void Promise.allSettled([
                 connectionWork.close(),
@@ -1152,6 +1166,11 @@ async function connect(
             if (bootstrap) {
                 sendFrame({ type: 'heartbeat-negotiate' });
                 if (bootstrap.mode === 'ordinary') {
+                    // Provider-hosted work outlives this socket, so observations
+                    // ride it back up as soon as the ordinary protocol is live.
+                    setCloudAgentReporter(attachment.serverId, (observation) => {
+                        sendFrame({ observation, type: 'cloud-agent-observation' });
+                    });
                     const initialReport = Promise.resolve().then(async () => {
                         await Promise.all([
                             sendComputerReport(sendFrame, attachment.serverId, computerName),
@@ -1199,6 +1218,45 @@ async function connect(
                 }).catch((error) => {
                     console.error(error instanceof Error ? error.message : error);
                 });
+                return;
+            }
+            const cloudAgentCancel = parseCloudAgentCancelCommand(frame);
+            if (cloudAgentCancel) {
+                void trackWriter(
+                    applyCloudAgentCancel(attachment.serverId, cloudAgentCancel).catch(
+                        reportStateError
+                    )
+                );
+                return;
+            }
+            const cloudAgentReconcile = parseCloudAgentReconcileCommand(frame);
+            if (cloudAgentReconcile) {
+                void trackWriter(
+                    reconcileCloudAgentWork(attachment.serverId, cloudAgentReconcile.work).catch(
+                        reportStateError
+                    )
+                );
+                return;
+            }
+            const cloudAgentCapability = parseCloudAgentCapabilityRequest(frame);
+            if (cloudAgentCapability) {
+                void trackWriter(
+                    runCloudAgentCapabilityRequest(cloudAgentCapability)
+                        .then(async (result) => {
+                            sendFrame(result);
+                            // Connecting or disconnecting changes what this
+                            // Computer can do, so the inventory line follows it
+                            // rather than waiting for the next report.
+                            if (cloudAgentCapability.operation.kind !== 'get') {
+                                await sendComputerReport(
+                                    sendFrame,
+                                    attachment.serverId,
+                                    computerName
+                                );
+                            }
+                        })
+                        .catch(reportStateError)
+                );
                 return;
             }
             const stop = parseStopCommand(frame);
@@ -1702,7 +1760,7 @@ async function sendComputerReport(send: SendComputerFrame, serverId: string, com
     send({
         agents: agents.map(toReportedAgentState),
         inventory: {
-            ...detectInventory(),
+            ...(await detectFullInventory()),
             agentSkillImports: await listAgentSkillImportReports(dataRoot, serverId),
             agentSkills: await listAgentSkillReports(dataRoot, serverId),
             importableSkills: await listImportableSkills(),

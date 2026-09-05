@@ -2756,7 +2756,7 @@ components:
           type: string
         body_kind:
           type: string
-          enum: [text, ask]
+          enum: [text, ask, cloud-agent-work]
         attachments:
           type: array
           items:
@@ -2782,6 +2782,10 @@ components:
         ask:
           oneOf:
             - $ref: '#/components/schemas/MessageAsk'
+            - type: 'null'
+        cloud_agent_work:
+          oneOf:
+            - $ref: '#/components/schemas/MessageCloudAgentWork'
             - type: 'null'
         reactions:
           type: array
@@ -2813,6 +2817,83 @@ components:
         recommended_step:
           type: string
           minLength: 1
+    MessageCloudAgentWork:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - provider
+        - status
+        - title
+        - repository
+        - starting_ref
+        - provider_url
+        - activity
+        - latest_run
+      properties:
+        id:
+          type: string
+          minLength: 1
+        provider:
+          type: string
+          enum: [cursor]
+        status:
+          type: string
+          enum: [queued, running, completed, failed, cancelled, expired]
+        title:
+          type: string
+          minLength: 1
+        repository:
+          type: string
+          minLength: 1
+        starting_ref:
+          type: [string, 'null']
+        provider_url:
+          type: [string, 'null']
+        activity:
+          type: [string, 'null']
+        latest_run:
+          oneOf:
+            - $ref: '#/components/schemas/MessageCloudAgentRun'
+            - type: 'null'
+    MessageCloudAgentRun:
+      type: object
+      additionalProperties: false
+      required:
+        - run_id
+        - status
+        - summary
+        - error_code
+        - branches
+      properties:
+        run_id:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum: [queued, running, completed, failed, cancelled, expired]
+        summary:
+          type: [string, 'null']
+        error_code:
+          type: [string, 'null']
+        branches:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - repository
+              - branch
+              - pull_request_url
+            properties:
+              repository:
+                type: string
+                minLength: 1
+              branch:
+                type: string
+                minLength: 1
+              pull_request_url:
+                type: [string, 'null']
     MessageTask:
       type: object
       additionalProperties: false

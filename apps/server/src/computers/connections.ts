@@ -8,6 +8,8 @@ import type {
     AgentWorkspaceResult,
     BrowserRequest,
     BrowserResult,
+    CloudAgentCapabilityRequest,
+    CloudAgentCapabilityResult,
     ComputerUpdatePhase,
     SignedComputerRelease,
 } from '@grotto/api';
@@ -16,6 +18,7 @@ import type { DeliveryTransport } from '../agent-delivery/delivery.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { AgentReplyOffice } from './agent-reply-office.ts';
 import { BrowserReplyOffice } from './browser-reply-office.ts';
+import { CloudAgentCapabilityReplyOffice } from './cloud-agent-capability-reply-office.ts';
 
 interface AttachedComputer {
     disconnect?(reason: string): void;
@@ -36,9 +39,14 @@ export class ComputerConnections implements DeliveryTransport {
     private readonly attached = new Map<string, AttachedComputer>();
     private readonly agentReplies: AgentReplyOffice;
     private readonly browserReplies: BrowserReplyOffice;
+    private readonly cloudAgentCapabilityReplies: CloudAgentCapabilityReplyOffice;
 
     constructor(runtime: EffectRuntime<never>) {
         this.agentReplies = new AgentReplyOffice({
+            runtime,
+            send: (computerId, frame) => this.send(computerId, frame),
+        });
+        this.cloudAgentCapabilityReplies = new CloudAgentCapabilityReplyOffice({
             runtime,
             send: (computerId, frame) => this.send(computerId, frame),
         });
@@ -56,6 +64,7 @@ export class ComputerConnections implements DeliveryTransport {
         this.attached.delete(computerId);
         this.agentReplies.disconnect(computerId);
         this.browserReplies.disconnect(computerId);
+        this.cloudAgentCapabilityReplies.disconnect(computerId);
     }
 
     /** Drops one revoked Computer attachment without disturbing the Server's other Computers. */
@@ -162,6 +171,28 @@ export class ComputerConnections implements DeliveryTransport {
 
     acceptBrowserResult(computerId: string, result: BrowserResult): boolean {
         return this.browserReplies.accept(computerId, result);
+    }
+
+    /**
+     * A Cloud Agent capability read or connect on one Computer. Connecting runs
+     * the provider's own browser sign-in on that machine, so this waits far
+     * longer than a Browser request: a human has to finish the flow.
+     */
+    requestCloudAgentCapability(
+        computerId: string,
+        input: {
+            operation: CloudAgentCapabilityRequest['operation'];
+            provider: CloudAgentCapabilityRequest['provider'];
+        }
+    ): Promise<NonNullable<CloudAgentCapabilityResult['result']>> {
+        return this.cloudAgentCapabilityReplies.request(computerId, input);
+    }
+
+    acceptCloudAgentCapabilityResult(
+        computerId: string,
+        result: CloudAgentCapabilityResult
+    ): boolean {
+        return this.cloudAgentCapabilityReplies.accept(computerId, result);
     }
 
     requestExecutionJournal(

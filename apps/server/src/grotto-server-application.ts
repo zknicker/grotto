@@ -184,6 +184,7 @@ export async function createGrottoServerApplication(
             agentDelivery,
             avatarImageService,
             attachmentRoot,
+            computers: computerConnections,
             db: connectedGrotto.db,
             mcpRuntime: startedMcpRuntime,
             postCommitWork: startedPostCommitWork,

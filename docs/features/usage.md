@@ -25,6 +25,13 @@ Agent or Computer that owns its meaning.
   **View usage** action opens Agents Overview scoped to that Computer and Pi. Computer-local token
   ledgers are not shown on this surface.
 
+* **Cloud Agents.** Beside the runtime capacity cards, the same Computer page carries one **Cursor
+  Cloud Agents** row: Not connected, Connecting, Expired, Ready, or Unavailable, with **Connect** on
+  the row and **Disconnect** behind its overflow menu once connected. Connecting runs Cursor's own
+  browser sign-in on that Computer; Grotto never opens it during an Agent turn, and no provider
+  credential reaches Server. Cloud Agent access is separate from the Cursor runtime because the
+  Cursor CLI and the Cursor SDK use different credential stores even for one account.
+
 The atomic Grotto token reporting unit is Agent × runtime × model, with input, output, cache-read,
 and cache-write counts. Computer-local Claude Code and Grok Build ledgers are runtime × model
 because those runtime transcripts do not carry a Grotto Agent id.
@@ -49,6 +56,12 @@ local login and the same credits billing request as the official Grok Build clie
 use the provider's all-model weekly allowance as their shared primary metric. A compact header
 indicator conditionally shows an enforced 5-hour window; model-specific windows stay out of this
 comparative surface. Authentication and raw provider responses remain Computer-local.
+
+Cloud Agent usage is per-Run rather than per-window. Each terminal Run observation carries the
+input and output tokens Cursor reports plus its optional cost, which is eventually consistent and
+can lag a settled Run. Grotto makes no claim about a Cursor plan's capacity, remaining allowance, or
+reset time: Cursor exposes no supported public personal-account surface for them, so the Cloud
+Agents row shows readiness only and never a meter.
 
 Claude Code and Grok Build token totals follow ccusage's source rules: Claude assistant usage rows
 under `${CLAUDE_CONFIG_DIR:-~/.claude}/projects/**/*.jsonl`, including subagents and replay

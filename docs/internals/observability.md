@@ -16,7 +16,7 @@ OTLP endpoint exists, OpenTelemetry trace and metric exporters. Product modules
 describe domain operations; `@grotto/effect` owns exporter setup, shutdown,
 privacy filtering, and Promise-to-Effect tracing.
 
-Cross-process trace context requires Computer protocol 14. Earlier Computers
+The combined cloud-work and cross-process trace contract requires Computer protocol 15. Earlier Computers
 remain connected only for the existing update workflow; they must not receive
 ordinary commands with fields their strict schemas reject. Server acquires
 reminder-retention and stale-task sweeps in its Effect scope, joining their

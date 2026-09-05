@@ -102,17 +102,22 @@ Concrete durable events (`message.created` for a newly composed task, `task.crea
 `task.label.updated`) notify the Grotto App. The hosted realtime hook owns exact task-list, label-catalog,
 and affected-message invalidation; cursor catch-up applies the same invalidations after reconnect.
 
-In Chat, a task's identity is a **task mark** in the message header, beside the author's name and
-in the same slot as the automation and session marks ([ADR 0026](../adr/0026-automation-provenance-rides-the-agents-message.md)).
-It is compact and neutral: the task number owns the left edge, only the status disc carries
-lifecycle color, and the assignee appears by avatar and display name. The mark is a button that
-opens the task's Thread, and hovering it previews the status, the assignee, and the same "Open
-thread" way in. When a turn carries both, the task mark leads the automation and session marks:
-what the message *is* outranks how it came to be said.
+In Chat, a task's identity is a **task chip** in the header of the recessed Thread surface beneath
+the message: the task number owns the left edge, only the status disc carries lifecycle color, and
+the assignee appears by avatar and display name. It shares that header with the Ask marker and the
+Cloud Agent work header — one chip grammar for everything with a lifecycle a reader follows — and
+the reply count trails it. The message's author line carries provenance only: the automation and
+session marks explain how the message came to be said
+([ADR 0026](../adr/0026-automation-provenance-rides-the-agents-message.md)).
 
-The Thread preview below the message follows the ordinary Thread rule — it appears only once the
-Thread has a reply. A task with no replies shows its mark and nothing else, so its first reply adds
-a card rather than changing one.
+The chip is a label, not a second target: the whole surface is one button into the Thread, named for
+what it opens (`Open thread, Task #1, 2 replies`). Because the chip lives there, the surface appears
+as soon as the task does, and replies fill in beneath it rather than changing the card. When the
+task's Thread contains queued or running [Cloud Agent work](../../specs/cloud-agents.md), that
+work's status trails the chip in the same header.
+
+Opening the task's Thread states it in full in the metadata panel above the anchor, so the anchor
+drops its own chip there.
 
 There is no task calendar, due date, or `scheduledFor` field. Scheduling belongs to reminders, not
 tasks.

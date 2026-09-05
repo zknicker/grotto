@@ -53,7 +53,6 @@ import {
 } from './chat-transcript-model.ts';
 import {
     getMessageCopyText,
-    type TranscriptMessageRow,
     useTranscriptRenderContext,
     useTranscriptRenderContextOptional,
 } from './chat-transcript-render-context.tsx';
@@ -65,7 +64,6 @@ import { isLocalTimelineMessageMetadata } from './local-timeline-message.ts';
 import { ServerTurnDetailsDrawer } from './server-turn-details-drawer.tsx';
 import { MessageSessionMark } from './session/message-session-mark.tsx';
 import type { SessionMark } from './session/session-mark-model.ts';
-import { TurnTaskMark } from './task/turn-task-mark.tsx';
 import { MessageContextActionsProvider } from './thread/message-context-actions.tsx';
 import { MessageReactionActions } from './thread/message-reactions.tsx';
 import { ThreadMessageActions, ThreadMessageSurface } from './thread/thread-message-surface.tsx';
@@ -239,7 +237,6 @@ function UserTurnPresentation({
                                 ? () => context.onActorClick?.(entry.actor)
                                 : undefined
                         }
-                        taskRow={getTurnTaskRow(entry.items)}
                         timestamp={entry.timestamp}
                     />
                 ) : null}
@@ -346,7 +343,6 @@ function TurnHeader({
     mentionAgentId,
     onClick,
     sessionMark,
-    taskRow,
     timestamp,
 }: {
     bio?: string | null;
@@ -357,8 +353,6 @@ function TurnHeader({
     mentionAgentId?: string;
     onClick?: () => void;
     sessionMark?: TurnSessionMark | null;
-    /** The turn's task-promoted message, when it has one. */
-    taskRow?: TranscriptMessageRow | null;
     timestamp: string | null;
 }) {
     return (
@@ -411,11 +405,11 @@ function TurnHeader({
              * a time is one fact too many for it — when an Agent spoke because
              * something fired, or spoke having just started over, that outranks
              * what it is generally for. Cause first when both apply: why it
-             * spoke comes before what it had already forgotten, and the task
-             * mark leads both: what the message *is* outranks how it came to
-             * be said.
+             * spoke comes before what it had already forgotten. Only provenance
+             * lives here; what the message *is* — a Task, an Ask, delegated
+             * work — states itself in the recessed surface beneath it, where
+             * its lifecycle can be followed.
              */}
-            {taskRow ? <TurnTaskMark row={taskRow} /> : null}
             {cause ? <MessageCauseMark cause={cause} /> : null}
             {sessionMark ? (
                 <MessageSessionMark
@@ -424,7 +418,7 @@ function TurnHeader({
                     serverId={sessionMark.serverId}
                 />
             ) : null}
-            {!(taskRow || cause || sessionMark) && bio ? (
+            {!(cause || sessionMark) && bio ? (
                 <span className="min-w-0 truncate text-muted text-xs leading-5">
                     {bio.length > turnHeaderBioMaxChars
                         ? `${bio.slice(0, turnHeaderBioMaxChars).trimEnd()}…`
@@ -608,7 +602,6 @@ function AgentTurnPresentation({
                                 sessionMarks,
                                 turnDetails?.serverId
                             )}
-                            taskRow={getTurnTaskRow(items)}
                             timestamp={entry.timestamp}
                         />
                     ) : null}
@@ -1270,21 +1263,6 @@ function getTurnCause(items: TranscriptItem[]): MessageCause | null {
     for (const item of items) {
         if (item.kind === 'row' && item.row.kind === 'message' && item.row.message.cause) {
             return item.row.message.cause;
-        }
-    }
-
-    return null;
-}
-
-/**
- * The turn's task-promoted message, if one of its messages was promoted. A
- * turn's header speaks for its messages, and a turn carries at most one task
- * in practice, so the first one found is the turn's.
- */
-function getTurnTaskRow(items: TranscriptItem[]): TranscriptMessageRow | null {
-    for (const item of items) {
-        if (item.kind === 'row' && item.row.kind === 'message' && item.row.message.task) {
-            return item.row;
         }
     }
 

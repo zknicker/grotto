@@ -27,7 +27,8 @@ test('upgrades the preceding production schema without replaying migrations', as
         await upgraded`INSERT INTO users (id, clerk_user_id, display_name)
             VALUES ('usr_upgrade', 'clerk_upgrade', 'Before upgrade')`;
         expect(await migrateGrottoDatabase(url.toString(), 'grotto', 'grotto')).toEqual([
-            '0031_agent_activity_outcomes',
+            '0031_cloud_agent_work',
+            '0032_agent_activity_outcomes',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },

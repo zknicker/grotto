@@ -1,5 +1,5 @@
 import type { AgentReasoningEffort } from '@grotto/api';
-import { and, eq, inArray, isNotNull, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, lt, lte, ne, notInArray, or, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -10,7 +10,7 @@ import {
     chatMessagesTable,
     messageTasksTable,
 } from '../postgres/schema.ts';
-import { concreteInboxSources } from './inbox-lanes.ts';
+import { bodilessInboxSources, concreteInboxSources } from './inbox-lanes.ts';
 
 export interface AgentDeliveryRow {
     acceptedAt: Date | null;
@@ -221,11 +221,7 @@ export async function countQueuedMessageItems(
         .select({ total: sql<number>`count(*)::int` })
         .from(agentInboxTable)
         .where(
-            and(
-                queuedFor(agentId),
-                ne(agentInboxTable.source, 'onboarding'),
-                ne(agentInboxTable.source, 'action')
-            )
+            and(queuedFor(agentId), notInArray(agentInboxTable.source, [...bodilessInboxSources]))
         );
     return row?.total ?? 0;
 }
@@ -529,11 +525,7 @@ export async function listQueuedMessageItems(
         })
         .from(agentInboxTable)
         .where(
-            and(
-                queuedFor(agentId),
-                ne(agentInboxTable.source, 'onboarding'),
-                ne(agentInboxTable.source, 'action')
-            )
+            and(queuedFor(agentId), notInArray(agentInboxTable.source, [...bodilessInboxSources]))
         )
         .orderBy(...inboxOrder())
         .limit(limit);

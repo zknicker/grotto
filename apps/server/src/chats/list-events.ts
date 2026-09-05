@@ -23,6 +23,7 @@ export async function listChatEvents(
             askId: chatEventsTable.askId,
             chatAction: chatEventsTable.chatAction,
             chatId: chatEventsTable.chatId,
+            cloudAgentWorkId: chatEventsTable.cloudAgentWorkId,
             createdAt: chatEventsTable.createdAt,
             cursor: chatEventsTable.cursor,
             id: chatEventsTable.id,
@@ -62,6 +63,7 @@ export async function listChatEvents(
                             // reminder lane (reminder.changes) owns cross-chat replay.
                             eq(chatEventsTable.type, 'reminder.changed'),
                             eq(chatEventsTable.type, 'ask.updated'),
+                            eq(chatEventsTable.type, 'cloud-agent-work.updated'),
                             eq(chatEventsTable.type, 'message.created'),
                             eq(chatEventsTable.type, 'prepared-action.updated'),
                             eq(chatEventsTable.type, 'task.created'),
@@ -121,6 +123,18 @@ export async function listChatEvents(
                 parentChatId: event.parentChatId,
                 sequence: event.sequence,
                 type: 'ask.updated' as const,
+            };
+        }
+
+        if (event.type === 'cloud-agent-work.updated') {
+            return {
+                ...common,
+                chatId: event.chatId as string,
+                cloudAgentWorkId: event.cloudAgentWorkId as string,
+                messageId: event.messageId as string,
+                parentChatId: event.parentChatId,
+                sequence: event.sequence,
+                type: 'cloud-agent-work.updated' as const,
             };
         }
 

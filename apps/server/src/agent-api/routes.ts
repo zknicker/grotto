@@ -28,6 +28,7 @@ import { registerAgentAskRoutes } from './ask-routes.ts';
 import { registerAgentAttachmentRoutes } from './attachment-routes.ts';
 import { changeAgentChannelMute, unfollowAgentThread } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
+import { registerAgentCloudAgentRoutes } from './cloud-agent-routes.ts';
 import {
     changeAgentChannelMembership,
     readAgentChannelInfo,
@@ -86,6 +87,7 @@ export function registerAgentApiRoutes(
         agentDelivery: import('../agent-delivery/delivery.ts').AgentDelivery;
         avatarImageService: AvatarImageService;
         attachmentRoot: AttachmentRoot;
+        computers: import('../computers/connections.ts').ComputerConnections;
         db: GrottoDatabase;
         mcpRuntime: import('../server-mcp/runtime.ts').McpRuntime;
         postCommitWork: ServerPostCommitWork;
@@ -98,6 +100,11 @@ export function registerAgentApiRoutes(
         postCommitWork: options.postCommitWork,
     });
     registerAgentAskRoutes(app, options);
+    registerAgentCloudAgentRoutes(app, {
+        agentDelivery: options.agentDelivery,
+        computers: options.computers,
+        db: options.db,
+    });
     registerAgentInboxRoutes(app, options.db);
     registerAgentManualRoutes(app, options.db);
     registerAgentMcpRoutes(app, { db: options.db, runtime: options.mcpRuntime });

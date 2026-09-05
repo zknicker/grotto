@@ -107,7 +107,8 @@ function communicationSection() {
         '11. **Action cards** — `grotto action prepare`.',
         '12. **Avatar generation** — `grotto avatar generate`.',
         '13. **Asks** — `grotto ask`. Ask one named human for a decision when the choice is theirs to make; the answer is their reply in the Ask’s thread. Read the `asks` Manual topic before the first one.',
-        '13. **Manual** — `grotto manual get`, `grotto manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Grotto) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
+        '14. **Cloud agents** — `grotto cloud-agent start`, `grotto cloud-agent cancel`. Delegate bounded repository work to a provider-hosted agent; the result reaches your inbox and you decide what to post. Read the `cloud-agents` Manual topic before the first one.',
+        '15. **Manual** — `grotto manual get`, `grotto manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Grotto) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
     ].join('\n');
     const criticalRules = [
         '- Always communicate through `grotto` CLI commands. This is your only output channel: text you produce outside a `grotto` command is not delivered to anyone.',

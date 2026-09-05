@@ -1723,7 +1723,7 @@ export interface components {
             role: "user" | "assistant" | "system";
             content: string;
             /** @enum {string} */
-            body_kind: "text" | "ask";
+            body_kind: "text" | "ask" | "cloud-agent-work";
             attachments: components["schemas"]["JsonObject"][];
             nonce: string | null;
             delivery_id: components["schemas"]["DeliveryId"] | null;
@@ -1732,6 +1732,7 @@ export interface components {
             metadata: components["schemas"]["JsonObject"];
             task?: components["schemas"]["MessageTask"] | null;
             ask?: components["schemas"]["MessageAsk"] | null;
+            cloud_agent_work?: components["schemas"]["MessageCloudAgentWork"] | null;
             reactions?: components["schemas"]["MessageReaction"][];
             preparedAction?: components["schemas"]["PreparedAction"];
         };
@@ -1742,6 +1743,31 @@ export interface components {
             addressee_handle: string | null;
             title: string;
             recommended_step: string;
+        };
+        MessageCloudAgentWork: {
+            id: string;
+            /** @enum {string} */
+            provider: "cursor";
+            /** @enum {string} */
+            status: "queued" | "running" | "completed" | "failed" | "cancelled" | "expired";
+            title: string;
+            repository: string;
+            starting_ref: string | null;
+            provider_url: string | null;
+            activity: string | null;
+            latest_run: components["schemas"]["MessageCloudAgentRun"] | null;
+        };
+        MessageCloudAgentRun: {
+            run_id: string;
+            /** @enum {string} */
+            status: "queued" | "running" | "completed" | "failed" | "cancelled" | "expired";
+            summary: string | null;
+            error_code: string | null;
+            branches: {
+                repository: string;
+                branch: string;
+                pull_request_url: string | null;
+            }[];
         };
         MessageTask: {
             number: number;

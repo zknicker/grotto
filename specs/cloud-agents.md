@@ -427,7 +427,11 @@ administrative integration and is outside this Computer capability.
   raw `IDLE` Agent status; Grotto reads no Agent status at all, so the disagreement cannot reach it.
 - The pinned version is `1.0.30`. The SDK carries platform-specific optional dependencies with
   native binaries and still bundles into the Computer's `bun build --compile` artifact.
-- Cursor reports a repository as a clone URL. Grotto records `owner/name`, so a reported branch
-  whose repository cannot be read back into that shape is dropped rather than reshaped.
+- Cursor names a branch's repository in whatever shape its Git metadata carries: a live Run reports
+  the scheme-less `github.com/owner/name`, while other surfaces report an HTTPS clone URL or an SSH
+  remote. Every form reads back to one label — `owner/name` on GitHub, and the host-qualified
+  `host/owner/name` off it, so branch evidence survives on any host. A reference that names no
+  repository at all is dropped rather than reshaped. The work's own `repository`, which the Agent
+  supplies and Grotto starts a Run against, stays `owner/name`.
 - Git metadata is an Agent-workspace snapshot, not guaranteed per-Run diff attribution.
 - Optional provider cost can arrive eventually and does not represent account-plan allowance.

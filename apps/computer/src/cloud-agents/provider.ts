@@ -1,10 +1,15 @@
-import type { CloudAgentBranch, CloudAgentStatus, CloudAgentUsage } from '@grotto/api';
+import type {
+    CloudAgentBranch,
+    CloudAgentStatus,
+    CloudAgentUnreadyReason,
+    CloudAgentUsage,
+} from '@grotto/api';
 
-export type CloudAgentUnreadyReason = 'not-authenticated' | 'provider-unavailable';
+export type { CloudAgentUnreadyReason };
 
 export type CloudAgentReadiness =
-    | { ready: false; reason: CloudAgentUnreadyReason }
-    | { ready: true };
+    | { account: { email: string | null; expiresAt: string | null }; ready: true }
+    | { ready: false; reason: CloudAgentUnreadyReason };
 
 /** Everything a provider needs to address one Run it is already hosting. */
 export interface CloudAgentRunRef {
@@ -58,6 +63,14 @@ export interface CloudAgentProviderObservation {
  */
 export interface CloudAgentProvider {
     cancel(ref: CloudAgentRunRef): Promise<void>;
+    /**
+     * Runs the provider's own browser sign-in on this Computer and stores the
+     * credential where the provider keeps it. Only an explicit human action in
+     * Computer settings reaches this; an Agent turn never does.
+     */
+    connect(options?: { onLoginUrl?: (url: string) => void }): Promise<CloudAgentReadiness>;
+    /** Forgets the stored credential. The provider-side key stays revocable. */
+    disconnect(): Promise<CloudAgentReadiness>;
     readonly provider: 'cursor';
     read(ref: CloudAgentRunRef): Promise<CloudAgentProviderObservation>;
     readiness(): Promise<CloudAgentReadiness>;
@@ -72,13 +85,21 @@ export class CloudAgentProviderUnavailableError extends Error {
     readonly reason: CloudAgentUnreadyReason;
 
     constructor(reason: CloudAgentUnreadyReason) {
-        super(
-            reason === 'not-authenticated'
-                ? 'This Computer has no Cloud Agent credential. Connect the provider in Computer settings.'
-                : 'This Computer has no Cloud Agent provider installed.'
-        );
+        super(cloudAgentUnreadyMessage(reason));
         this.name = 'CloudAgentProviderUnavailableError';
         this.reason = reason;
+    }
+}
+
+/** The one place an unready reason becomes words a human reads. */
+export function cloudAgentUnreadyMessage(reason: CloudAgentUnreadyReason): string {
+    switch (reason) {
+        case 'not-connected':
+            return 'This Computer has no Cloud Agent credential. Connect the provider in Computer settings.';
+        case 'expired':
+            return "This Computer's Cloud Agent credential expired. Reconnect the provider in Computer settings.";
+        case 'provider-unavailable':
+            return 'This Computer cannot reach the Cloud Agent provider.';
     }
 }
 
@@ -92,6 +113,10 @@ export function unavailableCloudAgentProvider(): CloudAgentProvider {
     };
     return {
         cancel: () => Promise.resolve(),
+        connect: () =>
+            Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
+        disconnect: () =>
+            Promise.resolve({ ready: false, reason: 'provider-unavailable' as const }),
         provider: 'cursor',
         read: () => Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
         readiness: () => Promise.resolve({ ready: false, reason: 'provider-unavailable' as const }),

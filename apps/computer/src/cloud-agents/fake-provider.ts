@@ -55,6 +55,12 @@ export function createFakeCloudAgentProvider(
             latest = observe('cancelled', 'CANCELLED');
             return Promise.resolve();
         },
+        connect() {
+            return Promise.resolve(readiness());
+        },
+        disconnect() {
+            return Promise.resolve({ ready: false as const, reason: 'not-connected' as const });
+        },
         failNextStart(message: string) {
             startFailure = message;
         },
@@ -64,7 +70,7 @@ export function createFakeCloudAgentProvider(
             return Promise.resolve(latest);
         },
         readiness() {
-            return Promise.resolve(options.readiness ?? { ready: true });
+            return Promise.resolve(readiness());
         },
         start(input: CloudAgentStartInput): Promise<CloudAgentLaunch> {
             if (startFailure) {
@@ -89,6 +95,10 @@ export function createFakeCloudAgentProvider(
             return () => subscribers.delete(onObservation);
         },
     };
+
+    function readiness(): CloudAgentReadiness {
+        return options.readiness ?? { account: { email: null, expiresAt: null }, ready: true };
+    }
 }
 
 function observe(status: CloudAgentStatus, rawStatus: string): CloudAgentProviderObservation {

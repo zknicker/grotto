@@ -6,3 +6,7 @@ test('normalizes workspace path with forward slashes', () => {
 		'src/components/button.tsx'
 	);
 });
+
+test('returns empty string when allowEmpty is true', () => {
+	expect(normalizeWorkspacePath('', true)).toBe('');
+});

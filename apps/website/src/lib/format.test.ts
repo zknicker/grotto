@@ -8,7 +8,11 @@ describe('titleCase', () => {
 		expect(titleCase('aLREADY MiXeD')).toBe('Already Mixed');
 	});
 
-	it('returns empty string for empty input', () => {
+	it('returns empty string for empty and whitespace-only input', () => {
 		expect(titleCase('')).toBe('');
+		expect(titleCase('   ')).toBe('');
+		expect(titleCase('---')).toBe('');
+		expect(titleCase('___')).toBe('');
+		expect(titleCase(' - _ ')).toBe('');
 	});
 });

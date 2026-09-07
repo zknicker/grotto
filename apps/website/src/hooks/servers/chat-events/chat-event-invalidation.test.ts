@@ -195,6 +195,12 @@ test('uniqueChatIds deduplicates chat IDs', () => {
     expect(result).toEqual(['chat_one', 'chat_two', 'chat_three']);
 });
 
+test('uniqueChatIds returns empty array for empty input', () => {
+    const result = uniqueChatIds([]);
+
+    expect(result).toEqual([]);
+});
+
 function recordingCaches() {
     const recorded: Invalidation[] = [];
     const record = (name: string) => async (input?: unknown, options?: unknown) => {

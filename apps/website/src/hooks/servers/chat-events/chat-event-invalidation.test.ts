@@ -10,6 +10,7 @@ import {
     threadFollowEvent,
 } from './chat-event-fixtures.ts';
 import type { ChatEventUtils } from './chat-event-invalidation.ts';
+import { uniqueChatIds } from './chat-event-invalidation.ts';
 import { invalidateAskChanges } from './use-ask-events.ts';
 import { invalidateChatLifecycle } from './use-chat-lifecycle-events.ts';
 import { invalidateChatRead } from './use-chat-read-events.ts';
@@ -186,6 +187,18 @@ test('an Ask pass refetches the open-Ask list and both transcript reads', async 
             name: 'threadMessages',
         },
     ]);
+});
+
+test('uniqueChatIds deduplicates chat IDs', () => {
+    const result = uniqueChatIds(['chat_one', 'chat_two', 'chat_one', 'chat_three', 'chat_two']);
+
+    expect(result).toEqual(['chat_one', 'chat_two', 'chat_three']);
+});
+
+test('uniqueChatIds returns empty array for empty input', () => {
+    const result = uniqueChatIds([]);
+
+    expect(result).toEqual([]);
 });
 
 function recordingCaches() {

@@ -155,8 +155,10 @@ one formatting owner. Rows are
 deduped by exact offered identities and repeat only when the pending set
 changes. Busy injection is acknowledged only after Computer durably caches the
 envelopes and successfully injects the notice after a completed tool boundary.
-If the turn ends first, the notice remains unacknowledged and is offered by the
-next turn. A notice advances no cursor.
+If the runtime cannot accept mid-turn notices or the turn ends first, the notice
+remains unacknowledged and is offered by the next turn in the same session.
+Runtime acceptance must be acknowledged; writing to an adapter's local input
+queue is insufficient. A notice advances no cursor.
 
 Computer owns one local visibility coordinator for the busy-notice
 projection. Every path that makes a message visible to the model — an accepted

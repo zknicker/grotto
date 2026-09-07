@@ -356,6 +356,12 @@ wire end to end, nothing more. Agent behavior belongs in `test:agents`.
 
 ## Prompt Behavior Evals
 
+During development prompt iteration, reset the test Agent's **session only** before the live
+behavioral test, preserving workspace memory and Chat history. Verify that the fresh native session
+received the revised instructions. Creating a new Channel does not reset the Agent's global session.
+The managed Agent prompt-version bump belongs to release, not each local prompt edit. Capture any
+failing-session evidence before resetting; a fresh-session test does not prove hot instruction refresh.
+
 The composed Agent system prompt has two guard layers. Text loss and the reviewed size budget are
 caught in CI by `bun run test:prompt-contract`. Behavior loss is caught on demand by `bun run
 eval:prompt`. That command is a stable, serial subset of `test:agents`: addressed-only

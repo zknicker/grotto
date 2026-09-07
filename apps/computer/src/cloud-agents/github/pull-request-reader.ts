@@ -1,5 +1,7 @@
 import { type CloudAgentPullRequest, cloudAgentPullRequestSchema } from '@grotto/api';
-import { githubToken } from './token.ts';
+import { type EffectRuntime, settle } from '@grotto/effect';
+import { Effect } from 'effect';
+import { createGithubTokenReader } from './token.ts';
 
 /**
  * The Computer's own GitHub reading of a pull request a Run opened. Cursor's
@@ -8,12 +10,11 @@ import { githubToken } from './token.ts';
  * provider access. What crosses to Server is the bounded snapshot on the Run's
  * branch evidence — never the token, the diff, or anything else GitHub returns.
  *
- * Every failure is the same answer: no snapshot. A pull request that cannot be
- * read must never fail a Run observation, so the reader resolves `null` and
- * logs one debug line instead of throwing.
+ * A failed optional read resolves null and emits a safe diagnostic. Daemon
+ * cancellation remains interruption so detached work cannot publish evidence.
  */
 
-/** One GitHub read is bounded; a Run observation waits for nothing longer. */
+/** One total deadline includes token discovery, retry, and response consumption. */
 const defaultTimeoutMs = 4000;
 /** At most one read per pull request per window, however often a Run reports. */
 const defaultThrottleMs = 30_000;
@@ -28,30 +29,37 @@ export interface PullRequestAddress {
 }
 
 export interface PullRequestReader {
-    read(pullRequestUrl: string): Promise<CloudAgentPullRequest | null>;
+    read(pullRequestUrl: string, signal?: AbortSignal): Promise<CloudAgentPullRequest | null>;
 }
 
 export interface PullRequestReaderOptions {
     fetch?: FetchLike;
     now?: () => number;
     onDebug?: (message: string) => void;
+    runtime: EffectRuntime<never>;
     throttleMs?: number;
     timeoutMs?: number;
-    token?: () => Promise<string | null>;
+    token?: (signal: AbortSignal) => Promise<string | null>;
 }
 
-export function createPullRequestReader(options: PullRequestReaderOptions = {}): PullRequestReader {
+export function createPullRequestReader(options: PullRequestReaderOptions): PullRequestReader {
     // Late-bound, so a Computer (or a test) that replaces `fetch` is honored.
     const request: FetchLike = options.fetch ?? ((url, init) => globalThis.fetch(url, init));
     const now = options.now ?? Date.now;
-    const debug = options.onDebug ?? ((message: string) => console.debug(message));
     const throttleMs = options.throttleMs ?? defaultThrottleMs;
     const timeoutMs = options.timeoutMs ?? defaultTimeoutMs;
-    const token = options.token ?? (() => githubToken());
+    const tokenPermit = options.runtime.runSync(Effect.makeSemaphore(1));
+    const token = tokenPermit.withPermits(1)(
+        options.token ? foreign(options.token) : createGithubTokenReader()
+    );
     const cached = new Map<string, { at: number; snapshot: CloudAgentPullRequest | null }>();
 
     return {
-        async read(pullRequestUrl: string): Promise<CloudAgentPullRequest | null> {
+        async read(
+            pullRequestUrl: string,
+            signal?: AbortSignal
+        ): Promise<CloudAgentPullRequest | null> {
+            signal?.throwIfAborted();
             const address = pullRequestAddressOf(pullRequestUrl);
             if (!address) {
                 return null;
@@ -61,10 +69,27 @@ export function createPullRequestReader(options: PullRequestReaderOptions = {}):
             if (entry && now() - entry.at < throttleMs) {
                 return entry.snapshot;
             }
-            const snapshot = await readSnapshot(address).catch((error: unknown) => {
-                debug(`GitHub pull request ${key} could not be read: ${messageOf(error)}`);
-                return null;
-            });
+            const snapshot = await settle(
+                options.runtime,
+                Effect.gen(function* () {
+                    const authorization = yield* token;
+                    return yield* foreign((requestSignal) =>
+                        readSnapshot(address, authorization, requestSignal)
+                    );
+                }).pipe(
+                    Effect.timeout(timeoutMs),
+                    Effect.catchAll(() => {
+                        const message = `GitHub pull request ${key} could not be read.`;
+                        return (
+                            options.onDebug
+                                ? Effect.sync(() => options.onDebug?.(message))
+                                : Effect.logDebug('GitHub pull request unavailable')
+                        ).pipe(Effect.as(null));
+                    })
+                ),
+                { signal }
+            );
+            signal?.throwIfAborted();
             cached.set(key, { at: now(), snapshot });
             return snapshot;
         },
@@ -72,17 +97,23 @@ export function createPullRequestReader(options: PullRequestReaderOptions = {}):
 
     /** One read, retried once on a 5xx because that is GitHub having a moment. */
     async function readSnapshot(
-        address: PullRequestAddress
+        address: PullRequestAddress,
+        authorization: string | null,
+        signal: AbortSignal
     ): Promise<CloudAgentPullRequest | null> {
-        const first = await fetchPullRequest(address);
-        const payload = first.retryable ? (await fetchPullRequest(address)).payload : first.payload;
+        const first = await fetchPullRequest(address, authorization, signal);
+        const payload = first.retryable
+            ? (await fetchPullRequest(address, authorization, signal)).payload
+            : first.payload;
         return payload ? pullRequestOf(payload, new Date(now()).toISOString()) : null;
     }
 
     async function fetchPullRequest(
-        address: PullRequestAddress
+        address: PullRequestAddress,
+        authorization: string | null,
+        signal: AbortSignal
     ): Promise<{ payload: unknown; retryable: boolean }> {
-        const authorization = await token();
+        signal.throwIfAborted();
         const response = await request(
             `https://api.github.com/repos/${encodeURIComponent(address.owner)}/${encodeURIComponent(
                 address.repo
@@ -93,10 +124,11 @@ export function createPullRequestReader(options: PullRequestReaderOptions = {}):
                     ...(authorization ? { authorization: `Bearer ${authorization}` } : {}),
                     'x-github-api-version': '2022-11-28',
                 },
-                signal: AbortSignal.timeout(timeoutMs),
+                signal,
             }
         );
         if (!response.ok) {
+            await response.body?.cancel();
             return { payload: null, retryable: response.status >= 500 };
         }
         return { payload: await response.json(), retryable: false };
@@ -162,6 +194,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
 }
 
-function messageOf(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
+function foreign<Value>(operation: (signal: AbortSignal) => Promise<Value>) {
+    return Effect.async<Value, Error>((resume, signal) => {
+        const pending = Promise.resolve().then(() => operation(signal));
+        pending.then(
+            (value) => resume(Effect.succeed(value)),
+            (cause: unknown) =>
+                resume(
+                    Effect.fail(cause instanceof Error ? cause : new Error('GitHub request failed'))
+                )
+        );
+        return Effect.promise(() =>
+            pending.then(
+                () => undefined,
+                () => undefined
+            )
+        );
+    });
 }

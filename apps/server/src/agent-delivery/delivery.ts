@@ -8,7 +8,7 @@ import type {
     ReminderScriptCommand,
     ReminderScriptResult,
 } from '@grotto/api';
-import { agentActionAttentionSchema, cloudAgentWorkAttentionSchema } from '@grotto/api';
+import { agentActionAttentionSchema } from '@grotto/api';
 import type { EffectRuntime } from '@grotto/effect';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
@@ -16,6 +16,7 @@ import {
     targetForChat as targetForAgentChat,
     toAgentMessages,
 } from '../agent-api/message-view.ts';
+import { readCloudAgentWorkAttentions } from '../cloud-agents/read-cloud-agent-work-attentions.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -24,8 +25,6 @@ import {
     agentMessageDraftsTable,
     agentsTable,
     chatMessagesTable,
-    cloudAgentRunsTable,
-    cloudAgentWorkTable,
 } from '../postgres/schema.ts';
 import {
     listReminderScriptCommands,
@@ -43,6 +42,7 @@ import { advanceSeenForRun, markCursorSubsumedSeen, recordExactMessagesServed } 
 import { traceAgentDispatch } from './dispatch-telemetry.ts';
 import { shouldRetryFailure } from './failure-policy.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
+import { inboxSender } from './inbox-sender.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import { isBackedOff, maxDeliveryFailures, nextRetryAt } from './retry-policy.ts';
 import { recordSessionRotation } from './session-rotation.ts';
@@ -1449,18 +1449,13 @@ async function buildInboxItems(
             throw new Error(`Action attention ${row.dedupeKey} targets the wrong Chat.`);
         }
         const target = targetByChatId.get(row.chatId) ?? '#unknown';
-        const agentHandle = row.source.startsWith('agent:')
-            ? row.source.slice('agent:'.length)
-            : null;
         const apiMessage = apiMessageById.get(row.dedupeKey);
-        const senderHandle = attention
-            ? 'grotto'
-            : row.source === 'human'
-              ? (apiMessage?.sender.handle ?? humanHandleFromDmTarget(target))
-              : (agentHandle ?? typedSenderHandle(row.source));
-        if (!senderHandle) {
-            throw new Error('A human delivery sender does not have an active Server handle.');
-        }
+        const sender = inboxSender({
+            source: row.source,
+            target,
+            attention: Boolean(attention),
+            message: apiMessage,
+        });
         return {
             chatId: row.chatId,
             content: attention ? '' : row.content,
@@ -1482,68 +1477,10 @@ async function buildInboxItems(
             ...(apiMessage?.sender.description
                 ? { senderDescription: apiMessage.sender.description }
                 : {}),
-            senderHandle,
-            senderType: attention
-                ? ('system' as const)
-                : row.source === 'human'
-                  ? ('human' as const)
-                  : row.source === 'trigger'
-                    ? ('trigger' as const)
-                    : agentHandle
-                      ? ('agent' as const)
-                      : ('system' as const),
+            ...sender,
             sequence: attention ? 0 : (sequenceByMessageId.get(row.dedupeKey) ?? 1),
             ...(taskByMessage.get(row.dedupeKey) ? { task: taskByMessage.get(row.dedupeKey) } : {}),
             target,
         };
     });
-}
-
-/** Server-authored typed work speaks as Grotto, not as its internal source. */
-function typedSenderHandle(source: string): string {
-    return source === 'task_assignment' ? 'grotto' : source;
-}
-
-/**
- * The terminal attention one settled Cloud Agent Run hands its delegating
- * Agent: the outcome it needs to inspect the work and post results as ordinary
- * Messages, keyed by the Run id the inbox row already carries.
- */
-async function readCloudAgentWorkAttentions(
-    db: GrottoDatabase,
-    serverId: string,
-    runIds: string[]
-): Promise<Map<string, CloudAgentWorkAttention>> {
-    const rows = await db
-        .select({
-            branches: cloudAgentRunsTable.branches,
-            errorCode: cloudAgentRunsTable.errorCode,
-            provider: cloudAgentWorkTable.provider,
-            providerUrl: cloudAgentWorkTable.providerUrl,
-            repository: cloudAgentWorkTable.repository,
-            runId: cloudAgentRunsTable.id,
-            status: cloudAgentRunsTable.status,
-            summary: cloudAgentRunsTable.summary,
-            title: cloudAgentWorkTable.title,
-            workId: cloudAgentWorkTable.id,
-        })
-        .from(cloudAgentRunsTable)
-        .innerJoin(
-            cloudAgentWorkTable,
-            and(
-                eq(cloudAgentWorkTable.serverId, cloudAgentRunsTable.serverId),
-                eq(cloudAgentWorkTable.id, cloudAgentRunsTable.workId)
-            )
-        )
-        .where(
-            and(eq(cloudAgentRunsTable.serverId, serverId), inArray(cloudAgentRunsTable.id, runIds))
-        );
-    return new Map(rows.map((row) => [row.runId, cloudAgentWorkAttentionSchema.parse(row)]));
-}
-
-function humanHandleFromDmTarget(target: string): string | null {
-    if (!target.startsWith('dm:@')) {
-        return null;
-    }
-    return target.slice('dm:@'.length).split(':')[0] || null;
 }

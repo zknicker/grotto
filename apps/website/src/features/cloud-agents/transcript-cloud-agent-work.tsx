@@ -42,12 +42,12 @@ export function TranscriptCloudAgentWorkMenu({
 }
 
 /**
- * The live Cloud Agent work running inside this Message's Thread, if any. The
+ * Cloud Agent work inside this Message's Thread, including settled work. The
  * transcript surface owns the read and hands it down through the render
  * context, so a row stays a row: it looks its own Message up, and learns
- * nothing about where active work comes from.
+ * nothing about where work comes from.
  */
-export function useHoistedCloudAgentWork(row: TranscriptMessageRow): CloudAgentWork | null {
+export function useHoistedCloudAgentWork(row: TranscriptMessageRow): readonly CloudAgentWork[] {
     const context = useTranscriptRenderContextOptional();
-    return context?.hoistedCloudAgentWork?.get(row.message.id) ?? null;
+    return context?.hoistedCloudAgentWork?.get(row.message.id) ?? [];
 }

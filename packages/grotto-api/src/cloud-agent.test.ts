@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { work } from './cloud-agent-fixture.ts';
 import {
     agentCloudAgentStartInputSchema,
     agentCommandSchema,
@@ -7,9 +8,6 @@ import {
     cloudAgentCapabilityResultSchema,
     cloudAgentCapabilityStateSchema,
     cloudAgentObservationSchema,
-    cloudAgentPullRequestNumber,
-    cloudAgentPullRequestSchema,
-    cloudAgentPullRequestStates,
     cloudAgentWorkSchema,
     computerInventorySchema,
     computerProtocolVersion,
@@ -17,42 +15,6 @@ import {
     messageBodySchema,
     serverdurableeventSchema,
 } from './index.ts';
-
-const work = {
-    activity: { at: '2026-09-04T12:01:00.000Z', summary: 'Reading the failing test.' },
-    agentId: 'agt_orbit',
-    cancelRequestedAt: null,
-    cancelRequestedBy: null,
-    chatId: 'cht_product',
-    computerId: 'cmp_studio',
-    createdAt: '2026-09-04T12:00:00.000Z',
-    id: 'caw_1234567890abcdef',
-    messageId: 'msg_1234567890abcdef',
-    provider: 'cursor',
-    providerAgentId: 'bc_abc',
-    providerUrl: 'https://cursor.com/agents/bc_abc',
-    repository: 'grotto/grotto',
-    runs: [
-        {
-            branches: [],
-            errorCode: null,
-            providerRunId: 'run_abc',
-            rawStatus: 'RUNNING',
-            runId: 'car_1234567890abcdef',
-            startedAt: '2026-09-04T12:00:30.000Z',
-            status: 'running',
-            summary: null,
-            terminalAt: null,
-            usage: null,
-        },
-    ],
-    startedAt: '2026-09-04T12:00:30.000Z',
-    startingRef: 'main',
-    status: 'running',
-    terminalAt: null,
-    title: 'Fix the flaky delivery test',
-    updatedAt: '2026-09-04T12:01:00.000Z',
-};
 
 test('Cloud Agent work stores bounded, provider-safe execution state', () => {
     expect(cloudAgentWorkSchema.parse(work)).toMatchObject({ status: 'running' });
@@ -186,7 +148,7 @@ test('a Cloud Agent attention is a bodiless inbox item keyed by its Run', () => 
     expect(agentInboxItemSchema.safeParse({ ...item, sequence: 3 }).success).toBe(false);
 });
 
-test('Computer inventory reports Cloud Agent provider readiness on protocol 15', () => {
+test('Computer inventory reports Cloud Agent provider readiness on protocol 16', () => {
     expect(
         computerInventorySchema.parse({
             cloudAgentProviders: [
@@ -195,7 +157,7 @@ test('Computer inventory reports Cloud Agent provider readiness on protocol 15',
             runtimes: [],
         }).cloudAgentProviders
     ).toHaveLength(1);
-    expect(computerProtocolVersion).toBe(15);
+    expect(computerProtocolVersion).toBe(16);
 });
 
 test('a Cloud Agent capability state names exactly one of ready or a reason', () => {
@@ -257,82 +219,4 @@ test('the capability request rides the Computer command union and answers with o
             type: 'cloud-agent-capability-result',
         }).success
     ).toBe(false);
-});
-
-const pullRequest = {
-    additions: 34,
-    changedFiles: 1,
-    deletions: 0,
-    number: 56,
-    observedAt: '2026-09-05T12:00:00.000Z',
-    state: 'draft',
-} as const;
-
-test("a branch may carry the Computer's own dated GitHub reading of its pull request", () => {
-    const branch = {
-        branch: 'cloud/fix-flake',
-        pullRequestUrl: 'https://github.com/grotto/grotto/pull/56',
-        repository: 'grotto/grotto',
-    };
-    const observation = {
-        branches: [{ ...branch, pullRequest }],
-        observedAt: '2026-09-05T12:00:00.000Z',
-        runId: 'car_1234567890abcdef',
-        status: 'completed',
-        workId: 'caw_1234567890abcdef',
-    };
-
-    expect(cloudAgentObservationSchema.parse(observation).branches?.[0]?.pullRequest).toEqual(
-        pullRequest
-    );
-    // A Run that opened nothing, or one whose pull request could not be read,
-    // is the same branch report Grotto always accepted.
-    expect(
-        cloudAgentObservationSchema.safeParse({ ...observation, branches: [branch] }).success
-    ).toBe(true);
-    expect(
-        cloudAgentObservationSchema.safeParse({
-            ...observation,
-            branches: [{ ...branch, pullRequest: null }],
-        }).success
-    ).toBe(true);
-});
-
-test('a pull-request snapshot states real counts, a live number, and a GitHub state', () => {
-    for (const state of cloudAgentPullRequestStates) {
-        expect(cloudAgentPullRequestSchema.parse({ ...pullRequest, state }).state).toBe(state);
-    }
-    expect(
-        cloudAgentPullRequestSchema.safeParse({ ...pullRequest, state: 'reopened' }).success
-    ).toBe(false);
-    expect(cloudAgentPullRequestSchema.safeParse({ ...pullRequest, number: 0 }).success).toBe(
-        false
-    );
-    expect(cloudAgentPullRequestSchema.safeParse({ ...pullRequest, additions: -1 }).success).toBe(
-        false
-    );
-    expect(
-        cloudAgentPullRequestSchema.safeParse({ ...pullRequest, changedFiles: 1.5 }).success
-    ).toBe(false);
-    // The reading is dated, so Server can tell a newer snapshot from an older one.
-    expect(
-        cloudAgentPullRequestSchema.safeParse({ ...pullRequest, observedAt: undefined }).success
-    ).toBe(false);
-    expect(cloudAgentPullRequestSchema.safeParse({ ...pullRequest, title: 'Fix it' }).success).toBe(
-        false
-    );
-});
-
-test('the work suffix names the pull request a Run opened', () => {
-    expect(
-        formatCloudAgentWorkSuffix({ ...cloudAgentWorkSchema.parse(work), pullRequestNumber: 56 })
-    ).toBe(' [cloud-agent-work status=running title=Fix the flaky delivery test pr=#56]');
-    expect(cloudAgentPullRequestNumber('https://github.com/grotto/grotto/pull/56')).toBe(56);
-    expect(cloudAgentPullRequestNumber('https://api.github.com/repos/grotto/grotto/pulls/56')).toBe(
-        56
-    );
-    expect(cloudAgentPullRequestNumber('https://github.com/grotto/grotto/pull/56/files')).toBe(56);
-    expect(cloudAgentPullRequestNumber('https://github.com/grotto/grotto/pull/0')).toBeNull();
-    expect(cloudAgentPullRequestNumber('https://github.com/grotto/grotto/tree/main')).toBeNull();
-    expect(cloudAgentPullRequestNumber('not a url')).toBeNull();
 });

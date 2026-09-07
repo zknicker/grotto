@@ -5,6 +5,15 @@ export class CloudAgentWorkConflictError extends Error {
     }
 }
 
+export class CloudAgentNotLaunchedError extends Error {
+    constructor() {
+        super(
+            'This Cloud Agent has no provider identity yet. Wait for its initial launch before sending a follow-up.'
+        );
+        this.name = 'CloudAgentNotLaunchedError';
+    }
+}
+
 export class CloudAgentAgentNotFoundError extends Error {
     constructor() {
         super('The delegating Agent no longer exists.');

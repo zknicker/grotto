@@ -1,3 +1,4 @@
+import type { CloudAgentWork } from '@grotto/api';
 import { ChatMessage } from '@heroui-pro/react';
 import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
@@ -8,8 +9,8 @@ import { CloudAgentWorkCard } from '../../cloud-agents/cloud-agent-work-card.tsx
 import {
     CloudAgentWorkDetail,
     CloudAgentWorkHeader,
-    CloudAgentWorkStatusMark,
 } from '../../cloud-agents/cloud-agent-work-header.tsx';
+import { ThreadCloudAgentRows } from '../../cloud-agents/thread-cloud-agent-rows.tsx';
 import {
     TranscriptCloudAgentWorkMenu,
     useHoistedCloudAgentWork,
@@ -36,8 +37,7 @@ import { ThreadPreviewBlock } from './thread-preview-block.tsx';
  * a trigger or reminder fire and a session restart explain how the message came
  * to be said, and neither has a status to follow.
  *
- * A row with no Thread of its own — a reply inside a Thread — keeps its marks
- * inline, and its Cloud Agent work states itself in full as a card instead.
+ * Inside a Thread, full Cloud Agent cards follow their delegation Message.
  */
 export function ThreadMessageSurface({
     children,
@@ -49,27 +49,18 @@ export function ThreadMessageSurface({
     const context = useTranscriptRenderContextOptional();
     const canOpenThread = Boolean(context?.threadActionsEnabled && isThreadAnchorRow(row));
     const work = row.message.cloudAgentWork ?? null;
-    const liveWorkInThread = useHoistedCloudAgentWork(row);
-    // Only a Chat row hoists: inside the Thread that work is already right
-    // there, stating itself in full.
-    const hoisted = canOpenThread ? liveWorkInThread : null;
+    const works = useHoistedCloudAgentWork(row);
+    const hoisted = canOpenThread ? works.filter((item) => item.id !== work?.id) : [];
     const flashing = context?.flashMessageId === row.message.id;
     const messageBlock = context?.renderMessageBlock?.(row.message) ?? null;
     // A Thread opened on a Task states it in full in the metadata panel above
     // the anchor, so the anchor's own chip would repeat every word of it.
     const task =
         context?.taskChipHiddenMessageId === row.message.id ? null : (row.message.task ?? null);
-    const marks = (
-        <>
-            {task ? <TranscriptTaskChip row={row} /> : null}
-            {row.message.ask ? <TranscriptAskMarker ask={row.message.ask} /> : null}
-            {canOpenThread && work ? <CloudAgentWorkHeader work={work} /> : null}
-            {hoisted ? <CloudAgentWorkStatusMark work={hoisted} /> : null}
-        </>
-    );
+    const marks = <ThreadSurfaceMarks row={row} task={task} work={canOpenThread ? work : null} />;
     // The preview card exists for the marks even before the first reply, so
     // whether there are any decides whether it appears at all.
-    const hasMarks = Boolean(task || row.message.ask || work || hoisted);
+    const hasMarks = Boolean(task || row.message.ask || work || hoisted.length);
 
     return (
         <MessageContextMenu className={cn(flashing && 'chat-thread-flash')} row={row}>
@@ -79,15 +70,13 @@ export function ThreadMessageSurface({
                 <MessageReactionPills row={row} />
             </div>
             {messageBlock}
-            {/* Inside a Thread the work states itself in full, in sequence
-                right where the Agent handed it off. */}
             {work && !canOpenThread ? <CloudAgentWorkCard work={work} /> : null}
             {canOpenThread ? (
                 <ThreadPreviewBlock
-                    detail={work ? <CloudAgentWorkDetail work={work} /> : undefined}
+                    detail={<ThreadSurfaceWorkDetail hoisted={hoisted} work={work} />}
                     headerLabel={threadSurfaceLabel({
                         ask: Boolean(row.message.ask),
-                        hoisted: Boolean(hoisted),
+                        hoisted: hoisted.length > 0,
                         taskNumber: task?.number,
                         workTitle: work?.title,
                     })}
@@ -112,6 +101,39 @@ export function ThreadMessageSurface({
     );
 }
 
+function ThreadSurfaceWorkDetail({
+    work,
+    hoisted,
+}: {
+    work: CloudAgentWork | null;
+    hoisted: readonly CloudAgentWork[];
+}) {
+    return (
+        <>
+            {work ? <CloudAgentWorkDetail work={work} /> : null}
+            {hoisted.length > 0 ? <ThreadCloudAgentRows works={hoisted} /> : null}
+        </>
+    );
+}
+
+function ThreadSurfaceMarks({
+    row,
+    task,
+    work,
+}: {
+    row: TranscriptMessageRow;
+    task: TranscriptMessageRow['message']['task'];
+    work: CloudAgentWork | null;
+}) {
+    return (
+        <>
+            {task ? <TranscriptTaskChip row={row} /> : null}
+            {row.message.ask ? <TranscriptAskMarker ask={row.message.ask} /> : null}
+            {work ? <CloudAgentWorkHeader work={work} /> : null}
+        </>
+    );
+}
+
 /**
  * What the surface is, for the button that opens it. The marks are laid out
  * beside that button rather than inside it, so their text never reaches its
@@ -133,7 +155,7 @@ export function threadSurfaceLabel({
         taskNumber === undefined ? null : `Task #${taskNumber}`,
         ask ? 'Ask' : null,
         workTitle === undefined ? null : `Cloud Agent work: ${workTitle}`,
-        hoisted ? 'Cloud Agent work running' : null,
+        hoisted ? 'Cloud Agent work' : null,
     ].filter((part) => part !== null);
 
     return parts.length === 0 ? undefined : parts.join(', ');

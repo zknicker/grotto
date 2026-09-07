@@ -3,7 +3,7 @@ import type {
     AgentCloudAgentStartInput,
     ServerDurableEvent,
 } from '@grotto/api';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import {
     findAgentMessageByNonce,
@@ -144,7 +144,7 @@ async function readWorkByNonce(
                 eq(cloudAgentRunsTable.workId, work.id)
             )
         )
-        .orderBy(desc(cloudAgentRunsTable.createdAt))
+        .orderBy(asc(cloudAgentRunsTable.createdAt))
         .limit(1);
     if (!firstRun) {
         throw new CloudAgentWorkConflictError('That Cloud Agent work has no Run to launch.');

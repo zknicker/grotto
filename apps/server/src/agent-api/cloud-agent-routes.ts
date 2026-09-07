@@ -1,4 +1,9 @@
-import { agentCloudAgentCancelInputSchema, agentCloudAgentStartInputSchema } from '@grotto/api';
+import {
+    agentCloudAgentCancelInputSchema,
+    agentCloudAgentListInputSchema,
+    agentCloudAgentSendInputSchema,
+    agentCloudAgentStartInputSchema,
+} from '@grotto/api';
 import type { FastifyInstance } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { AgentAuthorNotFoundError } from '../chats/agent-authored-message.ts';
@@ -8,13 +13,17 @@ import { createCloudAgentWork } from '../cloud-agents/create-cloud-agent-work.ts
 import {
     CloudAgentAgentNotFoundError,
     CloudAgentCancelDeniedError,
+    CloudAgentNotLaunchedError,
     CloudAgentWorkConflictError,
     CloudAgentWorkNotFoundError,
     CloudAgentWorkSettledError,
 } from '../cloud-agents/errors.ts';
+import { listAgentCloudAgentWork } from '../cloud-agents/list-agent-cloud-agent-work.ts';
 import { requestCloudAgentCancel } from '../cloud-agents/request-cloud-agent-cancel.ts';
+import { sendCloudAgentWork } from '../cloud-agents/send-cloud-agent-work.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { requireCancellableWorkAgent } from './cloud-agents.ts';
 import { AgentTargetError } from './resolve-target.ts';
@@ -30,8 +39,65 @@ export function registerAgentCloudAgentRoutes(
         agentDelivery: AgentDelivery;
         computers: ComputerConnections;
         db: GrottoDatabase;
+        postCommitWork: ServerPostCommitWork;
     }
 ) {
+    app.get('/api/agent/cloud-agents', async (request, reply) => {
+        const runner = await authorizeAgentRunner(dependencies.db, request);
+        if (!runner) {
+            return sendAgentApiError(
+                reply,
+                401,
+                'MISSING_TOKEN',
+                'A valid runner credential is required.'
+            );
+        }
+        const parsed = agentCloudAgentListInputSchema.safeParse(request.query);
+        if (!parsed.success) {
+            return sendAgentApiError(
+                reply,
+                400,
+                'INVALID_ARG',
+                'The Cloud Agent query was invalid.'
+            );
+        }
+        try {
+            return {
+                works: await listAgentCloudAgentWork(dependencies.db, runner, parsed.data.workId),
+            };
+        } catch (cause) {
+            return sendCloudAgentFailure(reply, cause);
+        }
+    });
+    app.post('/api/agent/cloud-agents/send', async (request, reply) => {
+        const runner = await authorizeAgentRunner(dependencies.db, request);
+        if (!runner) {
+            return sendAgentApiError(
+                reply,
+                401,
+                'MISSING_TOKEN',
+                'A valid runner credential is required.'
+            );
+        }
+        const parsed = agentCloudAgentSendInputSchema.safeParse(request.body);
+        if (!parsed.success) {
+            return sendAgentApiError(
+                reply,
+                400,
+                'INVALID_ARG',
+                'The follow-up request was invalid.'
+            );
+        }
+        try {
+            const sent = await sendCloudAgentWork(dependencies.db, runner, parsed.data);
+            if (sent.event) {
+                emitDurableChatEvent({ audienceUserId: null, event: sent.event });
+            }
+            return sent.receipt;
+        } catch (cause) {
+            return sendCloudAgentFailure(reply, cause);
+        }
+    });
     app.post('/api/agent/cloud-agents', async (request, reply) => {
         const runner = await authorizeAgentRunner(dependencies.db, request);
         if (!runner) {
@@ -61,13 +127,7 @@ export function registerAgentCloudAgentRoutes(
             for (const event of created.events) {
                 emitDurableChatEvent({ audienceUserId: null, event });
             }
-            await Promise.all(
-                created.wakes.map((wake) =>
-                    dependencies.agentDelivery
-                        .dispatchAgent(wake.agentId, wake.serverId)
-                        .catch(() => undefined)
-                )
-            );
+            await dependencies.postCommitWork.wakeAgents(dependencies.agentDelivery, created.wakes);
             return created.receipt;
         } catch (cause) {
             return sendCloudAgentFailure(reply, cause);
@@ -112,6 +172,9 @@ function sendCloudAgentFailure(
     reply: Parameters<typeof sendAgentApiError>[0],
     cause: unknown
 ): unknown {
+    if (cause instanceof CloudAgentNotLaunchedError) {
+        return sendAgentApiError(reply, 409, 'CLOUD_AGENT_NOT_LAUNCHED', cause.message);
+    }
     if (cause instanceof CloudAgentWorkConflictError) {
         return sendAgentApiError(reply, 409, 'CLOUD_AGENT_IDEMPOTENCY_CONFLICT', cause.message);
     }

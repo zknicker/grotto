@@ -15,14 +15,16 @@ interface StoredSession {
     refreshTokenExpiresAt: string;
     sessionId: string;
 }
-const session: StoredSession = {
-    accessToken: `gcl_at_${'a'.repeat(43)}`,
-    accessTokenExpiresAt: new Date(Date.now() + 60_000).toISOString(),
-    origin: '',
-    refreshToken: `gcl_rt_${'b'.repeat(43)}`,
-    refreshTokenExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
-    sessionId: 'cls_1234567890123456',
-};
+function createSession(origin: string): StoredSession {
+    return {
+        accessToken: `gcl_at_${'a'.repeat(43)}`,
+        accessTokenExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+        origin,
+        refreshToken: `gcl_rt_${'b'.repeat(43)}`,
+        refreshTokenExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        sessionId: 'cls_1234567890123456',
+    };
+}
 
 test('attach requires an existing usable Computer login and never launches login', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-attach-login-'));
@@ -90,8 +92,9 @@ test('attach uses the saved login and stores only the Server-scoped credential',
         },
     });
     const origin = `http://127.0.0.1:${peer.port}`;
+    const session = createSession(origin);
     try {
-        await writeSession(dataRoot, { ...session, origin });
+        await writeSession(dataRoot, session);
         const result = await runCli(['attach', '/hq'], {
             GROTTO_COMPUTER_DATA_ROOT: dataRoot,
             GROTTO_COMPUTER_ONESHOT: '1',

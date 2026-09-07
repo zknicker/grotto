@@ -186,18 +186,34 @@ and both the `message.created` and `cloud-agent-work.updated` events. It is idem
 refuses settles that same recorded work as `failed` with an error code and returns
 `CLOUD_AGENT_LAUNCH_FAILED` rather than erasing the attempt.
 
-`POST /api/agent/cloud-agents/cancel` takes `{ workId }` and is authorized to the delegating Agent
-alone; `cloudAgentWork.cancel({ serverId, workId })` is the Owner/Admin equivalent. Both record
+`grotto cloud-agent send --work <workId>` takes follow-up instructions on stdin. The Computer
+accepts `{ workId, nonce, instructions, interrupt }` at `POST /api/agent/cloud-agents/send`, retains
+the instructions locally, and forwards `{ workId, nonce }` to Server. Server returns
+`{ work, runId, idempotent, predecessors }` for a Run on the existing work. Computer sends it to the
+same hosted agent after preceding work settles, or stops active work and discards older queued
+prompts when `interrupt` is true. Pending instructions stay in a private Computer-local journal
+until launched or cancelled. Revisions reuse the Work ID, work Message, and Thread. Each settled
+Run gets its own inbox attention; callers do not need to manage provider Run IDs.
+
+`grotto cloud-agent inspect` uses `GET /api/agent/cloud-agents` to read `{ works }` for the caller's
+delegated work. An optional `workId` query selects one work with its recorded results. These are
+Server records, not a live provider transcript.
+
+`grotto cloud-agent stop --work <workId>` uses `POST /api/agent/cloud-agents/cancel`. The published
+`cancel` CLI spelling remains a compatibility alias. The endpoint takes `{ workId }` and is
+authorized to the delegating Agent alone; `cloudAgentWork.cancel({ serverId, workId })` is the
+Owner/Admin equivalent. Both record
 `cancelRequestedAt` and `cancelRequestedBy` and send a `cloud-agent-cancel` frame to the assigned
 Computer. Cancelling settled work returns `CLOUD_AGENT_WORK_SETTLED`.
 
 Computer reports lifecycle over the attachment socket as a `cloud-agent-observation` frame carrying
 `{ workId, runId, status, observedAt }` plus optional provider ids and URL, raw status, bounded
 `activity` and `summary`, error code, reported branches, and usage. Server applies it idempotently:
-a duplicate, out-of-order, or post-terminal observation changes nothing. A Run that settles here
-settles its work and creates exactly one `agent_inbox` attention for the delegating Agent, keyed by
-the Run id. On reconnect Server pushes one `cloud-agent-reconcile` frame listing every non-terminal
-work that Computer still owns, with any cancel recorded while it was offline; Computer reads each
+a duplicate, out-of-order, or post-terminal observation changes nothing. A settled Run creates
+exactly one `agent_inbox` attention for the delegating Agent, keyed by the Run id. The latest Run
+owns the work's displayed status, so an earlier Run settling cannot finish a queued follow-up.
+On reconnect Server pushes `cloud-agent-reconcile` frames of at most 200 entries covering every
+non-terminal Run that Computer still owns, with any cancel recorded while it was offline; Computer reads each
 Run from the provider and reports what it finds. `cloudAgentWork.listActive({ serverId })` is the
 human read behind the Inbox.
 

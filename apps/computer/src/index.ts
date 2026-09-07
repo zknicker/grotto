@@ -16,6 +16,7 @@ import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.t
 import { applyAuthoritativeSession } from './agent-session-authority.ts';
 import { parseAgentSkillFileRequest, runAgentSkillFileRequest } from './agent-skill-files.ts';
 import { traceAgentTurn } from './agent-turn-telemetry.ts';
+import { handleCloudAgentFrame } from './attachment-cloud-agents.ts';
 import { AttachmentConnectionWork } from './attachment-connection-work.ts';
 import { type AttachmentConnectionOutcome, runAttachmentDaemon } from './attachment-daemon-loop.ts';
 import {
@@ -50,21 +51,9 @@ import {
 import { printComputerHeader, printComputerHelpPage } from './cli/chrome.ts';
 import { findComputerCommandHelp, resolveComputerHelpRequest } from './cli/help.ts';
 import { cliColorsEnabled, createCliRenderer, stdoutRenderer } from './cli/render.ts';
-import {
-    parseCloudAgentCapabilityRequest,
-    runCloudAgentCapabilityRequest,
-} from './cloud-agents/capability-requests.ts';
-import {
-    parseCloudAgentCancelCommand,
-    parseCloudAgentReconcileCommand,
-} from './cloud-agents/frames.ts';
-import {
-    applyCloudAgentCancel,
-    reconcileCloudAgentWork,
-    setCloudAgentReporter,
-} from './cloud-agents/work-runner.ts';
+import { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { readComputerName } from './computer-name.ts';
-import { toReportedAgentState } from './computer-report.ts';
+import { reportStateError, sendEffectiveComputerReport } from './computer-report.ts';
 import { type DaemonRuntime, withDaemonRuntime } from './daemon-runtime.ts';
 import { decideStart, purgeServerPartition, readRunMarker, writeRunMarker } from './delivery.ts';
 import {
@@ -74,7 +63,6 @@ import {
     readComputerLogs,
     readComputerStatus,
 } from './diagnostics.ts';
-import { readEffectiveAgentStates } from './effective-state.ts';
 import {
     parseExecutionJournalRequest,
     readExecutionJournalRequest,
@@ -87,9 +75,6 @@ import {
     finishHostSkillImport,
     importHostSkill,
     listAcceptedHostSkillImports,
-    listAgentSkillImportReports,
-    listAgentSkillReports,
-    listImportableSkills,
     parseAgentSkillImportCommand,
 } from './host-skills.ts';
 import {
@@ -99,7 +84,7 @@ import {
     reofferPendingMessages,
     replacePendingInbox,
 } from './inbox-store.ts';
-import { detectFullInventory, detectInventory } from './inventory.ts';
+import { detectInventory } from './inventory.ts';
 import {
     type AgentStartCommand,
     type AgentTurnFrame,
@@ -408,7 +393,13 @@ async function main(args: string[]) {
         });
         process.exitCode = await withDaemonRuntime(
             async (runtime) => {
-                const daemonWork = new AttachmentDaemonWork(runtime);
+                const daemonWork = new AttachmentDaemonWork(
+                    runtime,
+                    new CloudAgentWorkSupervisor(runtime, {
+                        dataRoot,
+                        serverId: attachment.serverId,
+                    })
+                );
                 try {
                     return await runAttachmentDaemon(runtime, {
                         attachmentExists: async () => (await readAttachment(target)) !== null,
@@ -1024,6 +1015,7 @@ async function connect(
                     }
                     return handleStartCommand({
                         attachment,
+                        cloudAgents: daemonWork.cloudAgents,
                         clearActiveRun,
                         command,
                         computerName,
@@ -1115,10 +1107,10 @@ async function connect(
     return await new Promise<AttachmentConnectionOutcome>((resolve) => {
         socket.addEventListener('close', () => {
             detachSender();
-            setCloudAgentReporter(attachment.serverId, null);
             heartbeat?.dispose();
             void Promise.allSettled([
                 connectionWork.close(),
+                daemonWork.cloudAgents?.detach(),
                 deletionPromise ?? Promise.resolve(),
             ]).finally(() => {
                 resolve({ connected: opened, deleted: deleting });
@@ -1168,7 +1160,7 @@ async function connect(
                 if (bootstrap.mode === 'ordinary') {
                     // Provider-hosted work outlives this socket, so observations
                     // ride it back up as soon as the ordinary protocol is live.
-                    setCloudAgentReporter(attachment.serverId, (observation) => {
+                    daemonWork.cloudAgents?.attach((observation) => {
                         sendFrame({ observation, type: 'cloud-agent-observation' });
                     });
                     const initialReport = Promise.resolve().then(async () => {
@@ -1220,43 +1212,15 @@ async function connect(
                 });
                 return;
             }
-            const cloudAgentCancel = parseCloudAgentCancelCommand(frame);
-            if (cloudAgentCancel) {
-                void trackWriter(
-                    applyCloudAgentCancel(attachment.serverId, cloudAgentCancel).catch(
-                        reportStateError
-                    )
-                );
-                return;
-            }
-            const cloudAgentReconcile = parseCloudAgentReconcileCommand(frame);
-            if (cloudAgentReconcile) {
-                void trackWriter(
-                    reconcileCloudAgentWork(attachment.serverId, cloudAgentReconcile.work).catch(
-                        reportStateError
-                    )
-                );
-                return;
-            }
-            const cloudAgentCapability = parseCloudAgentCapabilityRequest(frame);
-            if (cloudAgentCapability) {
-                void trackWriter(
-                    runCloudAgentCapabilityRequest(cloudAgentCapability)
-                        .then(async (result) => {
-                            sendFrame(result);
-                            // Connecting or disconnecting changes what this
-                            // Computer can do, so the inventory line follows it
-                            // rather than waiting for the next report.
-                            if (cloudAgentCapability.operation.kind !== 'get') {
-                                await sendComputerReport(
-                                    sendFrame,
-                                    attachment.serverId,
-                                    computerName
-                                );
-                            }
-                        })
-                        .catch(reportStateError)
-                );
+            if (
+                handleCloudAgentFrame(frame, {
+                    cloudAgents: daemonWork.cloudAgents,
+                    track: trackWriter,
+                    send: sendFrame,
+                    refresh: () => sendComputerReport(sendFrame, attachment.serverId, computerName),
+                    onFailure: reportStateError,
+                })
+            ) {
                 return;
             }
             const stop = parseStopCommand(frame);
@@ -1618,6 +1582,7 @@ function safeSkillImportError(error: unknown) {
  */
 async function handleStartCommand(input: {
     attachment: Attachment;
+    cloudAgents?: CloudAgentWorkSupervisor;
     command: AgentStartCommand;
     computerName: string;
     controller: AbortController;
@@ -1674,6 +1639,7 @@ async function handleStartCommand(input: {
             summary = await traceAgentTurn(runtime, command, (turnTraceContext) =>
                 runAgentLaunch({
                     attachment,
+                    cloudAgents: input.cloudAgents,
                     command: launchCommand,
                     dataRoot,
                     onRuntimeReady: async () => {
@@ -1756,29 +1722,7 @@ async function handleStartCommand(input: {
 type SendComputerFrame = (frame: unknown) => boolean;
 
 async function sendComputerReport(send: SendComputerFrame, serverId: string, computerName: string) {
-    const agents = await readEffectiveAgentStates(dataRoot, serverId);
-    send({
-        agents: agents.map(toReportedAgentState),
-        inventory: {
-            ...(await detectFullInventory()),
-            agentSkillImports: await listAgentSkillImportReports(dataRoot, serverId),
-            agentSkills: await listAgentSkillReports(dataRoot, serverId),
-            importableSkills: await listImportableSkills(),
-            name: computerName,
-        },
-        type: 'report',
-    });
-    send({
-        agents: agents.map(
-            ({ agentId, grottoAgentAppliedAt, grottoAgentStatus, grottoAgentVersion }) => ({
-                agentId,
-                appliedAt: grottoAgentAppliedAt,
-                status: grottoAgentStatus,
-                version: grottoAgentVersion,
-            })
-        ),
-        type: 'grotto-agent-report',
-    });
+    await sendEffectiveComputerReport({ send, serverId, computerName, dataRoot });
 }
 
 async function sendSystemEventReport(send: SendComputerFrame, serverId: string) {
@@ -1801,12 +1745,6 @@ async function sendUsageReport(send: SendComputerFrame) {
         openRouterManagementKey: await readOpenRouterManagementKey(dataRoot),
     });
     send({ type: 'usage-report', usage });
-}
-
-function reportStateError(error: unknown) {
-    console.error(
-        `Computer state report failed: ${error instanceof Error ? error.message : error}`
-    );
 }
 
 function hash(value: string) {

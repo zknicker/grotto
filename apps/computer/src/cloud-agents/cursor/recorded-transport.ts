@@ -5,6 +5,7 @@ import type {
     CursorRunEvent,
     CursorRunReading,
     CursorRunStatus,
+    CursorSendInput,
     CursorStartInput,
     CursorTransport,
 } from './transport.ts';
@@ -17,7 +18,7 @@ import type {
  */
 export interface RecordedCursorTransport extends CursorTransport {
     /** Pushes the next recorded stream event to the live subscriber. */
-    emit(event: CursorRunEvent): void;
+    emit(event: CursorRunEvent): Promise<void>;
     /** Every request the adapter made, newest last. */
     readonly requests: string[];
 }
@@ -26,6 +27,8 @@ export interface RecordedCursorTransportOptions {
     auth?: CursorAuth;
     /** Replayed in order; the last one repeats once the script runs out. */
     reads?: CursorRunReading[];
+    sendFailure?: Error;
+    sendReading?: CursorLaunchReading;
     startFailure?: Error;
     startReading?: CursorLaunchReading;
 }
@@ -37,7 +40,7 @@ export function createRecordedCursorTransport(
     const reads = [...(options.reads ?? [])];
     let auth: CursorAuth = options.auth ?? recordedAuth.connected;
     let latest: CursorRunReading = reads.at(-1) ?? recordedRun('RUNNING');
-    let subscriber: ((event: CursorRunEvent) => void) | null = null;
+    let subscriber: ((event: CursorRunEvent) => Promise<void>) | null = null;
 
     return {
         authStatus() {
@@ -51,7 +54,7 @@ export function createRecordedCursorTransport(
             return Promise.resolve();
         },
         emit(event: CursorRunEvent) {
-            subscriber?.(event);
+            return subscriber?.(event) ?? Promise.resolve();
         },
         login() {
             requests.push('login');
@@ -69,6 +72,18 @@ export function createRecordedCursorTransport(
             return Promise.resolve(latest);
         },
         requests,
+        send(input: CursorSendInput) {
+            requests.push(`send ${input.agentId} ${input.idempotencyKey}`);
+            if (options.sendFailure) {
+                return Promise.reject(options.sendFailure);
+            }
+            return Promise.resolve(
+                options.sendReading ?? {
+                    agentId: input.agentId,
+                    reading: recordedRun('RUNNING', { runId: `run_${input.idempotencyKey}` }),
+                }
+            );
+        },
         start(input: CursorStartInput) {
             requests.push(
                 `start ${input.repository}@${input.ref ?? 'default'} ${input.idempotencyKey}`
@@ -78,12 +93,39 @@ export function createRecordedCursorTransport(
             }
             return Promise.resolve(options.startReading ?? recordedLaunch);
         },
-        streamRun(address: CursorRunAddress, onEvent: (event: CursorRunEvent) => void) {
+        async streamRun(
+            address: CursorRunAddress,
+            onEvent: (event: CursorRunEvent) => Promise<void>,
+            signal: AbortSignal
+        ) {
             requests.push(`streamRun ${address.agentId}/${address.runId}`);
-            subscriber = onEvent;
-            return () => {
-                subscriber = null;
+            if (signal.aborted) {
+                return;
+            }
+            const done = Promise.withResolvers<void>();
+            let pending = Promise.resolve();
+            const stop = () => done.resolve();
+            signal.addEventListener('abort', stop, { once: true });
+            subscriber = (event) => {
+                pending = pending.then(async () => {
+                    if (signal.aborted) {
+                        return;
+                    }
+                    if (event.kind === 'detached') {
+                        stop();
+                    } else {
+                        await onEvent(event);
+                    }
+                });
+                return pending;
             };
+            try {
+                await done.promise;
+                await pending;
+            } finally {
+                signal.removeEventListener('abort', stop);
+                subscriber = null;
+            }
         },
     };
 }

@@ -15,6 +15,15 @@ import {
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
+export const cloudAgentWorkListForChatInputSchema = z
+    .object({ serverId: idSchema, chatId: idSchema })
+    .strict();
+export const threadCloudAgentWorkSchema = z
+    .object({ anchorMessageId: idSchema, work: cloudAgentWorkSchema })
+    .strict();
+export const threadCloudAgentWorkListSchema = z.array(threadCloudAgentWorkSchema);
+export type ThreadCloudAgentWork = z.infer<typeof threadCloudAgentWorkSchema>;
+
 /**
  * `grotto cloud-agent start` — the Agent-scoped creation request the Computer
  * forwards after its provider readiness check passes. The instructions the
@@ -97,6 +106,24 @@ export const cloudAgentReconcileEntrySchema = z
     .strict();
 
 export type CloudAgentReconcileEntry = z.infer<typeof cloudAgentReconcileEntrySchema>;
+
+export const agentCloudAgentSendInputSchema = z
+    .object({ workId: idSchema, nonce: z.string().trim().min(1).max(128) })
+    .strict();
+export type AgentCloudAgentSendInput = z.infer<typeof agentCloudAgentSendInputSchema>;
+export const agentCloudAgentSendReceiptSchema = z
+    .object({
+        work: cloudAgentWorkSchema,
+        runId: idSchema,
+        idempotent: z.boolean(),
+        predecessors: z.array(cloudAgentReconcileEntrySchema),
+    })
+    .strict();
+export type AgentCloudAgentSendReceipt = z.infer<typeof agentCloudAgentSendReceiptSchema>;
+export const agentCloudAgentListInputSchema = z.object({ workId: idSchema.optional() }).strict();
+export const agentCloudAgentListReceiptSchema = z
+    .object({ works: z.array(cloudAgentWorkSchema) })
+    .strict();
 
 /** Human reads. */
 export const cloudAgentWorkListActiveInputSchema = z.object({ serverId: idSchema }).strict();

@@ -217,7 +217,8 @@ export async function createGrottoServerApplication(
             startedApp.server,
             connectedGrotto.db,
             computerConnections,
-            agentDelivery
+            agentDelivery,
+            startedPostCommitWork
         );
         computerSocket = startedComputerSocket;
         const reminderClock = options.reminderClock ?? { now: () => new Date() };

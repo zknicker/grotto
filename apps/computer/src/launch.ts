@@ -7,7 +7,7 @@ import {
     seedCoveWorkspace,
     seedFactoryManagedSkills,
 } from '@grotto/agent-workspace';
-import { type AgentTurnActivitySummary, type CloudAgentBranch, cloudAgentWorkAttentionSchema } from '@grotto/api';
+import type { AgentTurnActivitySummary, CloudAgentBranch } from '@grotto/api';
 import type { TraceCarrier } from '@grotto/effect';
 import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 import { AgentActivityRun } from './agent-activity-run.ts';
@@ -15,9 +15,11 @@ import {
     readAgentSeedConfiguration,
     readAppliedAgentConfiguration,
 } from './agent-configuration.ts';
+import { parseInbox } from './agent-inbox-input.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
 import { parseTurnTraceContext } from './agent-turn-telemetry.ts';
 import { computerEntrypoint } from './build-identity.ts';
+import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import type { StoredNoticeReceipt } from './delivery.ts';
 import {
@@ -192,6 +194,7 @@ export interface AgentTurnFrame {
 
 export interface RunAgentLaunchOptions {
     attachment: Attachment;
+    cloudAgents?: CloudAgentWorkSupervisor;
     command: AgentStartCommand;
     dataRoot: string;
     /** Per-launch construction seam for deterministic Harness boundary tests. */
@@ -262,6 +265,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
 
     const host = acquireAgentLaunchHost({
         agentId: command.agentId,
+        cloudAgents: options.cloudAgents,
         dataRoot: options.dataRoot,
         runnerToken: runner.runnerToken,
         runId: command.runId,
@@ -565,124 +569,8 @@ export function parseNoticeCommand(frame: unknown): AgentNoticeCommand | null {
         inbox: parseInbox(frame.inbox) ?? [],
         runId: frame.runId,
         totalPending: frame.totalPending,
+
         type: 'notice',
-    };
-}
-
-function parseInbox(value: unknown): AgentInboxItem[] | null {
-    if (!Array.isArray(value) || value.length > 100) {
-        return null;
-    }
-    const inbox: AgentInboxItem[] = [];
-    for (const item of value) {
-        if (
-            !(
-                isRecord(item) &&
-                ['chatId', 'createdAt', 'id', 'senderHandle', 'target'].every(
-                    (field) => typeof item[field] === 'string' && item[field].length > 0
-                ) &&
-                typeof item.content === 'string' &&
-                (item.senderDescription === undefined ||
-                    typeof item.senderDescription === 'string') &&
-                (item.message === undefined || isRecord(item.message)) &&
-                (item.threadFollowReactivated === undefined ||
-                    typeof item.threadFollowReactivated === 'boolean') &&
-                ['agent', 'human', 'system', 'trigger'].includes(item.senderType as string)
-            ) ||
-            typeof item.sequence !== 'number' ||
-            !Number.isInteger(item.sequence) ||
-            item.sequence < 0
-        ) {
-            return null;
-        }
-        const actionAttention = parseActionAttention(item.actionAttention);
-        if (item.actionAttention !== undefined && !actionAttention) {
-            return null;
-        }
-        const cloudAgentWork = parseCloudAgentWorkAttention(item.cloudAgentWork);
-        if (item.cloudAgentWork !== undefined && !cloudAgentWork) {
-            return null;
-        }
-        if (actionAttention && cloudAgentWork) {
-            return null;
-        }
-        if (
-            actionAttention
-                ? item.sequence !== 0 ||
-                  item.id !== actionAttention.actionId ||
-                  item.chatId !== actionAttention.chatId ||
-                  item.senderType !== 'system'
-                : cloudAgentWork
-                  ? item.sequence !== 0 ||
-                    item.id !== cloudAgentWork.runId ||
-                    item.senderType !== 'system'
-                  : item.sequence === 0
-        ) {
-            return null;
-        }
-        inbox.push({
-            ...item,
-            ...(actionAttention ? { actionAttention } : {}),
-            ...(cloudAgentWork ? { cloudAgentWork } : {}),
-        } as unknown as AgentInboxItem);
-    }
-    return inbox;
-}
-
-function parseCloudAgentWorkAttention(
-    value: unknown
-): AgentCloudAgentWorkAttention | undefined | null {
-    if (value === undefined) {
-        return undefined;
-    }
-    const parsed = cloudAgentWorkAttentionSchema.safeParse(value);
-    return parsed.success ? parsed.data : null;
-}
-
-function parseActionAttention(value: unknown): AgentActionAttention | undefined | null {
-    if (value === undefined) {
-        return undefined;
-    }
-    if (
-        !isRecord(value) ||
-        value.kind !== 'agent:create' ||
-        typeof value.actionId !== 'string' ||
-        value.actionId.length === 0 ||
-        typeof value.chatId !== 'string' ||
-        value.chatId.length === 0 ||
-        typeof value.createdAgentId !== 'string' ||
-        value.createdAgentId.length === 0 ||
-        !isRecord(value.executedResult)
-    ) {
-        return null;
-    }
-    const result = value.executedResult;
-    const stringFields = [
-        'agentId',
-        'chatId',
-        'computerId',
-        'displayName',
-        'handle',
-        'modelId',
-        'runtimeId',
-    ] as const;
-    if (
-        stringFields.some(
-            (field) => typeof result[field] !== 'string' || result[field].length === 0
-        ) ||
-        (result.avatarUrl !== null && typeof result.avatarUrl !== 'string') ||
-        (result.description !== null && typeof result.description !== 'string') ||
-        !['high', 'low', 'medium'].includes(result.reasoningEffort as string) ||
-        result.role !== 'member'
-    ) {
-        return null;
-    }
-    return {
-        actionId: value.actionId,
-        chatId: value.chatId,
-        createdAgentId: value.createdAgentId,
-        executedResult: result as AgentActionAttention['executedResult'],
-        kind: 'agent:create',
     };
 }
 

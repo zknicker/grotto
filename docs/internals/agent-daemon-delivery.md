@@ -109,9 +109,15 @@ includes its action identity, originating Chat, created Agent identity, and
 executed result; its result is never exposed by the ordinary message-check path.
 
 Busy notices queue behind the active turn and inject only after a completed
-tool boundary. Computer acknowledges the notice after that injection succeeds;
-when no safe boundary remains, the durable notice is left unacknowledged for
-the next turn instead of being accepted too late for the model to observe it.
+tool boundary using AI SDK Harness's acknowledged `experimental_steerTurn` API.
+Computer acknowledges only successful runtime acceptance, never a local queue write.
+If steering is unsupported, as with the current Codex adapter, or no safe boundary
+remains, the durable notice stays unacknowledged. Server wakes the same Agent session
+again after settlement. The Agent can still pull its inbox during the active turn;
+those exact visibility receipts prevent a redundant wake for already-read work.
+Rejected steering also preserves the notice without changing the primary turn's
+outcome. Unexpected failures while the SDK still has an active turn emit an
+`inbox-notice-deferred` warning; already-ended turns need no warning.
 
 Computer reconciles every model-visible message through one exact-identity
 consume point. Accepted run inboxes and successful Agent API responses

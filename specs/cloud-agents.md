@@ -21,12 +21,18 @@ facts and compatibility risks, not unresolved product decisions.
 
 ## Product contract
 
-- **Two Agent CLI verbs.** `grotto cloud-agent start` and `grotto cloud-agent cancel` are the Agent
+- **Agent CLI verbs.** `grotto cloud-agent start`, `send`, `inspect`, and `stop` are the Agent
   surface, not a harness tool, because the Agent CLI is an Agent's only output channel
   (ADR 0014). Every supported execution runtime may call them; the caller does not need to be a
   Cursor-backed Agent. `start` takes `--target`, `--repo`, an optional `--ref`, `--title`, and
   `--say` — the Agent's own words, which become the Message content — with the provider
   instructions on stdin.
+  `send --work <workId>` takes another prompt on stdin and continues the same hosted agent;
+  a busy agent queues it, and `--interrupt` stops active work and discards older queued prompts
+  before processing it.
+  `inspect` lists the caller's work, or reads recorded details with `--work <workId>`.
+  `stop --work <workId>` requests cancellation. The published `cancel` spelling remains a CLI
+  compatibility alias for existing callers.
 - **Provider-neutral capability.** Cursor is the only initial implementation, so an Agent does not
   pass a provider on every call. Computer configuration chooses the default if a second provider
   arrives; an explicit selector is added only when per-execution choice becomes useful.
@@ -45,12 +51,30 @@ facts and compatibility risks, not unresolved product decisions.
 - **Inbox completion.** Every terminal provider run creates at most one durable inbox attention for
   the delegating Agent. Completion does not keep the launch turn open. The resumed Agent owns any
   follow-up and may post an ordinary Message when it has useful judgment to add.
+  Cloud Agent instructions explicitly explain this automatic wake: the Agent does not need a
+  reminder or polling to learn when the work finishes. General reminder guidance is unchanged.
 - **Provider-hosted lifecycle.** Cloud Agent work may outlive a turn, App session, or Computer
   connection. Computer reconciles provider state after reconnect and reports bounded observations
   to Server idempotently.
 - **Truthful launch failures.** Invalid input, unavailable capability, and missing authorization
-  fail before creating a Message. Once Server accepts and records a launch, later provider failures
-  settle the same card as failed instead of erasing the attempt.
+  fail before creating a Message. Once Server accepts and records a launch, a definite provider
+  refusal settles the same card as failed. A lost response leaves the launch unconfirmed, not failed:
+  the provider may already be running it. Replaying that request never blindly launches another run.
+
+Computer journals launch intent and acknowledged provider IDs in its private data directory,
+without credentials. Pending follow-ups retain their instructions and preceding Run IDs in a
+Computer-local file with mode `0600`, so reconciliation can resume the queue after restart.
+Instructions are removed once launched or cancelled and never reach Server.
+Reconnect recovers acknowledged IDs even if their Server report
+was lost. An intent without an acknowledgement requires inspecting the provider; it cannot prove
+whether the launch occurred. The daemon owns monitoring, retry delays and cancellation retries.
+Disconnect joins local monitoring without cancelling the hosted run.
+
+Cursor SDK 1.0.30 has a pinned Bun patch bounding otherwise unbounded finite fetches to 30 seconds
+per request. Streams retain their caller-owned abort signal. The adapter joins local stream disposal;
+sequential SDK requests can take longer than one deadline. Recheck the patch and internal stream
+disposal bridge on SDK upgrades, and remove them when the public SDK supports bounded requests
+and abortable, joined subscriptions. Installed-SDK tests cover both contracts.
 
 Cloud Agent work is task-like but is not a Grotto Task. It has no assignee, claim, priority, label,
 or board lifecycle, and a structured work Message cannot be promoted to a Task.
@@ -106,14 +130,16 @@ One optional line shows `activity` while the work runs, and the latest Run summa
 work is terminal. The surface opens the Thread. Open in Cursor and Cancel live in the surface's
 overflow menu.
 
-**Hoisted status.** When any Message's Thread contains queued or running work, that Message's own
-surface header states the work's status after its own chip — a cloud glyph, a status disc, and the
-elapsed label — so live work under a Task is visible without opening it. The hoist is derived at read
-time from the Server's active-work list, keyed by the Thread's anchor Message; nothing new is stored,
-and terminal work is absent from that list by construction, so a finished run never hoists.
+**Thread preview.** Each Cloud Agent work inside a Thread gets an informational row below the
+anchor's Task/Ask header: provider, title, and status with elapsed or total duration. Completed work
+stays visible. The entire preview opens the Thread; individual work rows are not click targets.
+Server's conversation-scoped `cloudAgentWork.listForChat` read includes all statuses, grouped by
+Thread anchor. The Inbox's separate active-work read remains active-only.
 
-**Inside the Thread**, the work Message renders as its ordinary Message — the Agent's own words — and
-is followed immediately by a detailed card in sequence, right where the Agent handed the work off.
+**Inside the Thread**, each delegation Message renders its prose followed by one full work card
+in the scrolling conversation. The Message's sequence fixes its position; status, PR, and follow-up
+updates change the same card in place. New delegations get their own Messages and cards. There is
+no pinned Cloud Agents section or carousel. Task metadata remains above the conversation.
 The card is presentation derived from the work record and is never a Chat row, and nothing on it is
 named after any one provider: the provider's own mark, the title with a status chip (`Queued`,
 `Running` with the in-progress disc, `Done` in success, `Failed` and `Expired` in danger, `Cancelled`
@@ -125,9 +151,9 @@ link, and Cancel run for Owners and Admins while the run is live behind the chev
 `Delegated by <Agent> · <time>` receipt. The Run report is not on the card: the branch, the pull
 request, and the diff are the evidence, and provider prose only crowded them out. It updates in place
 from the same event.
-The Thread pane carries no separate work panel: the card states every fact that panel did, in the one
-place the work actually happened. A Task Thread keeps its Task metadata header, because a Task's
-lifecycle is edited there while work is only watched.
+Multiple Cloud Agents may run inside one Task or Thread. The presentation imposes no one-to-one
+workflow restriction. Meaningful result announcements may be new conversation Messages; work
+observations update existing records rather than automatically posting channel chatter.
 
 Only status discs and the card's status chip carry lifecycle color. A running work whose `updatedAt`
 is older than ten minutes shows a last-update note rather than gating on Computer connection state.
@@ -227,11 +253,14 @@ type CloudAgentRun = {
 One work may contain several provider Runs. A follow-up, correction, or retry adds a Run to the
 same work, reactivates the same surface, and preserves earlier Run outcomes for inspection. A
 substantively separate assignment creates a new Message and Cloud Agent work record. Cursor permits
-only one active Run per provider Agent; an `agent_busy` response leaves the current Run unchanged.
+only one active Run per provider Agent; Computer queues accepted follow-ups until preceding work
+settles. `send --interrupt` stops active work and discards older queued prompts before the follow-up
+runs. `stop` stops active work and discards the pending queue. Revisions reuse
+the same Work ID and Thread, including when the work belongs to a Task.
 A cancelled Run cannot resume, so continuing after cancellation creates another Run in the same
 work and retains the cancelled Run's partial evidence. `runs` is ordered newest first and is bounded
 at twenty; the work keeps recent Runs for inspection rather than an unbounded execution history.
-Follow-up Runs are not implemented yet: creation writes the first Run and nothing adds a second.
+Each accepted follow-up adds a Run to the existing work without creating another Message or Task.
 
 `activity` is one bounded line of at most 120 characters. Computer may update it from provider
 events no more than every few seconds. It is the work's current state in a sentence, never a
@@ -244,26 +273,32 @@ entity, and a reported pull-request URL claims no ownership of GitHub lifecycle.
 `pullRequest` is the Computer's own reading of that URL, and it is evidence on the Run for exactly
 the same reason. Cursor's API carries no diff statistics, so the Computer reads
 `GET https://api.github.com/repos/{owner}/{repo}/pulls/{n}` when an observation names a GitHub pull
-request, at most once per pull request per 30 seconds, under a bounded timeout with one retry on a
-5xx. Every failure is the same answer — no snapshot — and a failed read never fails or delays the
-observation. The read happens before the observation is reported, because Server settles a Run on
+request, caching completed reads for 30 seconds, under one four-second deadline covering credential
+discovery, response consumption, and one retry on a 5xx. A failed read does not fail the Run; it
+reports without a snapshot after the bounded wait.
+The read happens before the observation is reported, because Server settles a Run on
 its first terminal observation and evidence arriving after that is correctly ignored. Server merges
 by `observedAt`: a report carrying no snapshot never erases a recorded one, a newer reading replaces
 an older one, and a settled Run stays final. The credential is the Computer's own: it asks the
-locally installed `gh` CLI for the token the human already signed in with, once per process, held
-in memory and never logged, stored, or reported to Server. A Computer without `gh` reads public
-pull requests unauthenticated, and an unreadable pull request simply has no snapshot.
+locally installed `gh` CLI for the token the human already signed in with, cached per attachment
+daemon and held in memory without being logged, stored, or reported to Server. The daemon owns
+the reader and its Effect deadline; cancellation aborts and joins the HTTP request, kills and
+reaps any credential subprocess, and suppresses the detached observation. Cancellation does not
+cache a missing credential or snapshot. A Computer without `gh` reads public pull requests
+unauthenticated, and an unreadable pull request simply has no snapshot.
 
 The snapshot's consumers today are the delegating Agent's surfaces: the terminal inbox attention
 states the branch's pull-request state and diff counts, and the work Message reads back with
-`pr=#<n>` wherever messages are shown. The in-Thread card still shows the branch row and `PR #<n>`
-alone and does not yet state the diff.
+`pr=#<n>` wherever messages are shown. The in-Thread card shows the branch row and `PR #<n>`
+with files changed, additions, and deletions when GitHub evidence is available. Missing evidence
+does not become a fabricated zero-line diff.
 
 A cancel request records `cancelRequestedAt` and `cancelRequestedBy`, and the presentation reads as
 cancelling until the Run settles. Inside Grotto every hop is push: Computer reports
 observations over the attachment protocol, Server emits the durable event, and the App refetches
-the Message. Reconnect follows the same direction — Server pushes one `cloud-agent-reconcile` frame
-naming every non-terminal work that Computer still owns, along with any cancel recorded while it
+the Message. Reconnect follows the same direction — Server pushes `cloud-agent-reconcile` frames
+of at most 200 entries naming every non-terminal Run that Computer still owns, including preceding
+Runs hidden by the bounded card history, along with any cancel recorded while it
 was offline, rather than adding a Computer-authenticated read. Only the provider edge pulls. Computer subscribes to Cursor's per-Run event stream
 while a Run is active and treats polling as reconciliation: a Run read every 5 seconds only while
 no stream is attached, backed off to 60 seconds after a provider failure, one full Run read on
@@ -283,7 +318,7 @@ execution evidence, not collaboration state.
 
 Lifecycle changes emit a durable `cloud-agent-work.updated` event carrying the Message and work
 identities. Events notify; refetching the Message recovers. The delegating Agent may cancel through
-`grotto cloud-agent cancel`; human Owners and Admins may cancel through
+`grotto cloud-agent stop`; human Owners and Admins may cancel through
 `cloudAgentWork.cancel`, reached from the Thread surface's overflow menu or the in-Thread work
 card. Other Chat participants request cancellation in the Thread. Reply and follow-up
 work use the work Thread rather than surface-local conversation controls.
@@ -461,7 +496,8 @@ administrative integration and is outside this Computer capability.
 5. **Landed.** The `grotto cloud-agent` verbs, the `CloudAgentProvider` boundary with an in-memory
    fake, the durable work and Run records, the work Message, and the eager Thread.
 6. **Landed.** Lifecycle reporting, reconnect reconciliation, cancellation by Agent and by
-   Owner/Admin, `cloud-agent-work.updated`, and the terminal inbox attention. Computer protocol 15.
+   Owner/Admin, `cloud-agent-work.updated`, and the terminal inbox attention. The combined Effect
+   and Cloud Agent contract uses Computer protocol 16.
 7. **Landed.** The Cursor adapter behind `CloudAgentProvider`, its readiness detection, and the
    Computer settings connect flow. Every SDK type stops at a transport seam inside the adapter, so
    the deterministic lanes run against recorded provider responses; one opt-in live lane

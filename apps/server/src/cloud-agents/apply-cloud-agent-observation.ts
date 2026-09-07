@@ -4,7 +4,7 @@ import {
     isTerminalCloudAgentStatus,
     type ServerDurableEvent,
 } from '@grotto/api';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
@@ -27,8 +27,8 @@ export interface AppliedCloudAgentObservation {
 /**
  * Applies one bounded Computer observation to its Run and work. A duplicate,
  * out-of-order, or post-terminal observation is a no-op: the first terminal
- * result a Run reports is the one that stands. A Run that settles here also
- * settles its work and creates exactly one durable inbox attention for the
+ * result a Run reports is the one that stands. Only the newest Run projects
+ * work lifecycle. Every settling Run creates one durable inbox attention for the
  * delegating Agent, in the same transaction.
  */
 export async function applyCloudAgentObservation(
@@ -76,23 +76,9 @@ export async function applyCloudAgentObservation(
         }
 
         const settling = isTerminalCloudAgentStatus(observation.status);
-        const startedAt = observation.status === 'queued' ? null : observedAt;
         await tx
             .update(cloudAgentRunsTable)
-            .set({
-                ...(observation.branches
-                    ? { branches: mergeBranchEvidence(row.branches, observation.branches) }
-                    : {}),
-                ...(observation.errorCode ? { errorCode: observation.errorCode } : {}),
-                observedAt,
-                ...(observation.providerRunId ? { providerRunId: observation.providerRunId } : {}),
-                ...(observation.rawStatus ? { rawStatus: observation.rawStatus } : {}),
-                ...(startedAt && !row.runStartedAt ? { startedAt } : {}),
-                status: observation.status,
-                ...(observation.summary ? { summary: observation.summary } : {}),
-                terminalAt: settling ? observedAt : null,
-                ...(observation.usage ? { usage: observation.usage } : {}),
-            })
+            .set(runObservationUpdate(observation, row.runStartedAt, row.branches))
             .where(
                 and(
                     eq(cloudAgentRunsTable.serverId, input.serverId),
@@ -100,30 +86,28 @@ export async function applyCloudAgentObservation(
                 )
             );
 
-        await tx
-            .update(cloudAgentWorkTable)
-            .set({
-                ...(observation.activity
-                    ? {
-                          activityAt: new Date(observation.activity.at),
-                          activitySummary: observation.activity.summary,
-                      }
-                    : {}),
-                ...(observation.providerAgentId
-                    ? { providerAgentId: observation.providerAgentId }
-                    : {}),
-                ...(observation.providerUrl ? { providerUrl: observation.providerUrl } : {}),
-                ...(startedAt && !row.workStartedAt ? { startedAt } : {}),
-                status: observation.status,
-                terminalAt: settling ? observedAt : null,
-                updatedAt: observedAt,
-            })
+        const [latestRun] = await tx
+            .select({ id: cloudAgentRunsTable.id })
+            .from(cloudAgentRunsTable)
             .where(
                 and(
-                    eq(cloudAgentWorkTable.serverId, input.serverId),
-                    eq(cloudAgentWorkTable.id, observation.workId)
+                    eq(cloudAgentRunsTable.serverId, input.serverId),
+                    eq(cloudAgentRunsTable.workId, observation.workId)
                 )
-            );
+            )
+            .orderBy(desc(cloudAgentRunsTable.createdAt))
+            .limit(1);
+        if (latestRun?.id === observation.runId) {
+            await tx
+                .update(cloudAgentWorkTable)
+                .set(workObservationUpdate(observation, row.workStartedAt))
+                .where(
+                    and(
+                        eq(cloudAgentWorkTable.serverId, input.serverId),
+                        eq(cloudAgentWorkTable.id, observation.workId)
+                    )
+                );
+        }
 
         if (settling) {
             await agentDelivery.enqueue(tx, {
@@ -169,4 +153,48 @@ export async function emitWorkEvent(
         sequence: anchor.sequence,
         serverId: input.serverId,
     });
+}
+
+function runObservationUpdate(
+    observation: CloudAgentObservation,
+    previousStart: Date | null,
+    previousBranches: Parameters<typeof mergeBranchEvidence>[0]
+) {
+    const observedAt = new Date(observation.observedAt);
+    return {
+        ...observationTimes(observation, previousStart),
+        ...(observation.branches
+            ? { branches: mergeBranchEvidence(previousBranches, observation.branches) }
+            : {}),
+        ...(observation.errorCode ? { errorCode: observation.errorCode } : {}),
+        observedAt,
+        ...(observation.providerRunId ? { providerRunId: observation.providerRunId } : {}),
+        ...(observation.rawStatus ? { rawStatus: observation.rawStatus } : {}),
+        ...(observation.summary ? { summary: observation.summary } : {}),
+        ...(observation.usage ? { usage: observation.usage } : {}),
+    };
+}
+
+function workObservationUpdate(observation: CloudAgentObservation, previousStart: Date | null) {
+    return {
+        ...observationTimes(observation, previousStart),
+        ...(observation.activity
+            ? {
+                  activityAt: new Date(observation.activity.at),
+                  activitySummary: observation.activity.summary,
+              }
+            : {}),
+        ...(observation.providerAgentId ? { providerAgentId: observation.providerAgentId } : {}),
+        ...(observation.providerUrl ? { providerUrl: observation.providerUrl } : {}),
+        updatedAt: new Date(observation.observedAt),
+    };
+}
+
+function observationTimes(observation: CloudAgentObservation, previousStart: Date | null) {
+    const observedAt = new Date(observation.observedAt);
+    return {
+        ...(observation.status !== 'queued' && !previousStart ? { startedAt: observedAt } : {}),
+        status: observation.status,
+        terminalAt: isTerminalCloudAgentStatus(observation.status) ? observedAt : null,
+    };
 }

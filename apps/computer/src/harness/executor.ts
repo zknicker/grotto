@@ -47,6 +47,7 @@ import {
     writeAgentSessionState,
 } from './session-store.ts';
 import { readAgentSkills } from './skills.ts';
+import { createNoticeDelivery } from './steer-inbox-notice.ts';
 import {
     addTokenUsage,
     type HarnessTokenUsage,
@@ -377,6 +378,7 @@ async function executeHarnessTurn(
         });
         const deliverNotice = createNoticeDelivery(
             live,
+            input.runtime,
             input.agentRoot,
             warmNotice ?? (input.inboxDelivery === 'notice' ? coldInbox : null)
         );
@@ -539,56 +541,6 @@ async function clearPendingCoveGuidanceRefresh(agentRoot: string): Promise<void>
 
 function coveGuidanceRefreshReceiptPath(agentRoot: string): string {
     return join(agentRoot, 'runtime', 'cove-guidance-refresh.json');
-}
-
-function createNoticeDelivery(
-    session: HarnessAgentSession,
-    agentRoot: string,
-    alreadyVisible: string | null = null
-) {
-    let lastDelivered: string | null = alreadyVisible;
-    return async (notice: string) => {
-        if (!notice.trim()) {
-            return false;
-        }
-        if (notice !== lastDelivered && !(await storedNoticeMatches(agentRoot, notice))) {
-            return false;
-        }
-        const accepted = notice === lastDelivered || (await session.sendUserMessage(notice));
-        if (accepted) {
-            lastDelivered = notice;
-            await clearStoredNoticeIfMatching(agentRoot, notice);
-        }
-        return accepted;
-    };
-}
-
-async function storedNoticeMatches(agentRoot: string, notice: string): Promise<boolean> {
-    try {
-        const value = JSON.parse(await readFile(pendingNoticePath(agentRoot), 'utf8')) as {
-            notice?: unknown;
-        };
-        return value.notice === notice;
-    } catch (cause) {
-        if (isRecord(cause) && cause.code === 'ENOENT') {
-            return false;
-        }
-        throw cause;
-    }
-}
-
-async function clearStoredNoticeIfMatching(agentRoot: string, notice: string) {
-    const path = pendingNoticePath(agentRoot);
-    try {
-        const value = JSON.parse(await readFile(path, 'utf8')) as { notice?: unknown };
-        if (value.notice === notice) {
-            await rm(path, { force: true });
-        }
-    } catch (cause) {
-        if (!(isRecord(cause) && cause.code === 'ENOENT')) {
-            throw cause;
-        }
-    }
 }
 
 async function deliverStoredNotice(

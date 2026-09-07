@@ -1,8 +1,8 @@
 diff --git a/src/bridge/index.ts b/src/bridge/index.ts
-index f610c83..de1570a 100644
+index 76b1e86b3..2b54677ed 100644
 --- a/src/bridge/index.ts
 +++ b/src/bridge/index.ts
-@@ -379,6 +379,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+@@ -390,6 +390,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
    });
    let turnUsage: Record<string, unknown> | undefined;
    let totalCostUsd: number | undefined;
@@ -10,22 +10,22 @@ index f610c83..de1570a 100644
    let emittedTerminalError = false;
    let emittedTerminalFinish = false;
  
-@@ -431,6 +432,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
-               emit,
-               usage: harnessUsage ?? streamEventState.pendingStepUsage,
-             });
-+          }
-+          if (start.env?.GROTTO_CLAUDE_USAGE_REFRESH === '1') {
-+            try {
-+              planUsage =
-+                await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
-+            } catch {
-+              // Usage evidence is auxiliary; never fail an Agent turn for it.
-+            }
+@@ -463,6 +464,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
            }
-           queryInput.close();
-           break;
-@@ -461,8 +470,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+           queryInput.observeResult();
+           if (!queryInput.hasActiveUserMessages()) {
++            if (start.env?.GROTTO_CLAUDE_USAGE_REFRESH === '1') {
++              try {
++                planUsage =
++                  await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
++              } catch {
++                // Usage evidence is auxiliary; never fail an Agent turn for it.
++              }
++            }
+             queryInput.close();
+             break;
+           }
+@@ -498,8 +507,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
      type: 'finish',
      finishReason: { unified: 'stop', raw: 'stop' },
      totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
@@ -44,10 +44,10 @@ index f610c83..de1570a 100644
    });
  }
 diff --git a/dist/bridge/index.mjs b/dist/bridge/index.mjs
-index 03ec01a..7fe0c23 100644
+index 99221af2c..018d4ed94 100644
 --- a/dist/bridge/index.mjs
 +++ b/dist/bridge/index.mjs
-@@ -1167,6 +1167,7 @@ async function runTurn(start, turn) {
+@@ -1306,6 +1306,7 @@ async function runTurn(start, turn) {
    });
    let turnUsage;
    let totalCostUsd;
@@ -55,20 +55,20 @@ index 03ec01a..7fe0c23 100644
    let emittedTerminalError = false;
    let emittedTerminalFinish = false;
    const emitTerminalError = (message) => {
-@@ -1214,6 +1215,12 @@ async function runTurn(start, turn) {
-               usage: harnessUsage ?? streamEventState.pendingStepUsage
-             });
+@@ -1369,6 +1370,12 @@ async function runTurn(start, turn) {
            }
-+          if (start.env?.GROTTO_CLAUDE_USAGE_REFRESH === "1") {
-+            try {
-+              planUsage = await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
-+            } catch {
+           queryInput.observeResult();
+           if (!queryInput.hasActiveUserMessages()) {
++            if (start.env?.GROTTO_CLAUDE_USAGE_REFRESH === "1") {
++              try {
++                planUsage = await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
++              } catch {
++              }
 +            }
-+          }
-           queryInput.close();
-           break;
-         } else {
-@@ -1239,7 +1246,14 @@ async function runTurn(start, turn) {
+             queryInput.close();
+             break;
+           }
+@@ -1399,7 +1406,14 @@ async function runTurn(start, turn) {
      type: "finish",
      finishReason: { unified: "stop", raw: "stop" },
      totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
@@ -84,3 +84,10 @@ index 03ec01a..7fe0c23 100644
    });
  }
  function createQueryInput({
+@@ -1537,4 +1551,4 @@ function emitFatal(message) {
+   stdout2.write(JSON.stringify({ type: "bridge-fatal", message }) + "\n");
+   process.exit(1);
+ }
+-//# sourceMappingURL=index.mjs.map
+\ No newline at end of file
++//# sourceMappingURL=index.mjs.map

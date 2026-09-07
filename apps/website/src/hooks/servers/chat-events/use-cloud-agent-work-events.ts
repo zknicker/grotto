@@ -33,6 +33,9 @@ export async function invalidateCloudAgentWorkChanges({
 
     await Promise.all([
         utils.cloudAgentWork.listActive.invalidate({ serverId }),
+        ...chatIds.map((chatId) =>
+            utils.cloudAgentWork.listForChat.invalidate({ serverId, chatId })
+        ),
         ...chatIds.map((chatId) => utils.chat.messages.invalidate({ chatId, serverId })),
         ...uniqueChatIds(events.map((event) => event.chatId)).map((chatId) =>
             queryClient.invalidateQueries({ queryKey: threadMessagesQueryKey(serverId, chatId) })

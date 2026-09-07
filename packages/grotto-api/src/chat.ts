@@ -1,8 +1,14 @@
+import { channelColorSchema, channelIconSchema } from './channel-appearance.ts';
+
+export * from './channel-appearance.ts';
+
+import { messageBodySchema } from './message-body.ts';
+
+export * from './message-body.ts';
+
 import * as z from 'zod';
-import { askSchema } from './ask-shared.ts';
 import { attachmentMetadataSchema } from './attachments.ts';
 import { messageCauseSchema } from './automation.ts';
-import { cloudAgentWorkSchema } from './cloud-agent-shared.ts';
 import { preparedActionSchema, preparedActionStatusSchema } from './prepared-actions.ts';
 import { messageTaskSchema } from './task-shared.ts';
 
@@ -41,24 +47,6 @@ export const chatMessageAuthorSchema = z.discriminatedUnion('kind', [
         })
         .strict(),
 ]);
-
-export const messageBodyKinds = ['text', 'ask', 'cloud-agent-work'] as const;
-
-export type MessageBodyKind = (typeof messageBodyKinds)[number];
-
-/**
- * The Server-validated typed body one Message carries (ADR 0025). `text` is
- * every ordinary Message; `ask` and `cloud-agent-work` project the Server
- * record their Message anchors. Unknown kinds do not exist on the wire — a
- * client that has not learned a kind degrades through the Message `content`.
- */
-export const messageBodySchema = z.discriminatedUnion('kind', [
-    z.object({ kind: z.literal('text') }).strict(),
-    z.object({ ask: askSchema, kind: z.literal('ask') }).strict(),
-    z.object({ kind: z.literal('cloud-agent-work'), work: cloudAgentWorkSchema }).strict(),
-]);
-
-export type MessageBody = z.infer<typeof messageBodySchema>;
 
 export const chatMessageSchema = z
     .object({
@@ -160,21 +148,6 @@ export const chatSendInputSchema = z
     });
 
 export type ChatSendInput = z.infer<typeof chatSendInputSchema>;
-
-/**
- * Channel appearance. `icon` names a curated hugeicons export (for example
- * `RocketIcon`); `color` is a preset id (for example `violet`). Both are
- * channel-only and null means the default hash glyph / muted box.
- */
-export const channelIconSchema = z
-    .string()
-    .trim()
-    .regex(/^[A-Z][A-Za-z0-9]{0,63}Icon$/u);
-
-export const channelColorSchema = z
-    .string()
-    .trim()
-    .regex(/^[a-z][a-z0-9-]{0,31}$/u);
 
 const channelAppearanceInputSchema = {
     color: channelColorSchema.nullable().optional(),

@@ -1,6 +1,13 @@
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
+export function useChatCloudAgentWork(serverId: string, chatId: string) {
+    return grottoTrpc.cloudAgentWork.listForChat.useQuery(
+        { serverId, chatId },
+        queryPolicy.syncedSnapshot
+    );
+}
+
 /**
  * Every queued or running Cloud Agent work the viewer can see on one Server,
  * oldest first. Server membership and Chat access gate the read, so work the

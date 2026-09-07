@@ -21,6 +21,72 @@
     }
   },
   "lifecycleCandidates": {
+    "apps/computer/src/cloud-agents/cursor/provider.ts": {
+      "disposition": "external-adapter",
+      "reason": "Cursor terminal stream handling aborts only the local subscription. The daemon Effect supervisor owns polling, retries and joined subscription teardown.",
+      "risks": {
+        "abortController": 1,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/cloud-agents/cursor/recorded-transport.ts": {
+      "disposition": "test-support",
+      "reason": "Recorded Cursor streams expose an abortable deterministic subscription, removing the listener when the simulated stream ends.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/cloud-agents/cursor/sdk-stream.ts": {
+      "disposition": "external-adapter",
+      "reason": "The pinned SDK stream bridge closes and joins the SDK reader on interruption. An early rejection observer prevents an unhandled rejection; finalization awaits and propagates that same disposal failure.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 1,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/cloud-agents/cursor/sdk-transport.ts": {
+      "disposition": "external-adapter",
+      "reason": "SDK launches and follow-ups join automatic local stream disposal before returning provider identity. The daemon owns accepted launch completion; finite SDK requests have a pinned timeout patch.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/cloud-agents/fake-provider.ts": {
+      "disposition": "test-support",
+      "reason": "The in-memory Cloud Agent fixture exposes a Promise subscription that settles on abort so supervisor tests exercise joined teardown.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/cloud-agents/launch-journal.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Finite journal writes close their file handles and remove only their own temporary file. Exclusive intent creation and atomic acknowledgement preserve launch identity across process restarts.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 2,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
     "apps/server/src/boot-sweep.ts": {
       "disposition": "external-adapter",
       "reason": "Upstream fixed-interval maintenance adapter retains its deterministic timer seam. Server acquires each sweep in its Effect Scope; close stops admission and joins the in-flight database write before database teardown.",

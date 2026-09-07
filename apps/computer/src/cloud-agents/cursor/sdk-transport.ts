@@ -1,10 +1,5 @@
-import type {
-    Agent as CursorAgentApi,
-    Cursor as CursorApi,
-    Run,
-    RunStatus,
-    SDKMessage,
-} from '@cursor/sdk';
+import type { Agent as CursorAgentApi, Cursor as CursorApi, Run, RunStatus } from '@cursor/sdk';
+import { streamCursorRun } from './sdk-stream.ts';
 import {
     type CursorAuth,
     type CursorLaunchReading,
@@ -12,10 +7,10 @@ import {
     type CursorRunEvent,
     type CursorRunReading,
     type CursorRunStatus,
+    type CursorSendInput,
     type CursorStartInput,
     type CursorTransport,
     CursorTransportUnavailableError,
-    isCursorRunStatus,
 } from './transport.ts';
 
 interface CursorSdk {
@@ -71,9 +66,12 @@ export function createCursorSdkTransport(
                         : new Date(status.apiKeyExpiresAtMs).toISOString(),
             };
         },
-        async cancelRun(address: CursorRunAddress): Promise<void> {
+        async cancelRun(address: CursorRunAddress, signal?: AbortSignal): Promise<void> {
+            signal?.throwIfAborted();
             const { Agent } = await load();
+            signal?.throwIfAborted();
             await Agent.cancelRun(address.runId, { agentId: address.agentId, runtime: 'cloud' });
+            signal?.throwIfAborted();
         },
         async login(options: { onLoginUrl?: (url: string) => void }): Promise<CursorAuth> {
             const { Cursor } = await load();
@@ -90,13 +88,23 @@ export function createCursorSdkTransport(
             const { Cursor } = await load();
             await Cursor.auth.logout();
         },
-        async readRun(address: CursorRunAddress): Promise<CursorRunReading> {
+        async readRun(address: CursorRunAddress, signal?: AbortSignal): Promise<CursorRunReading> {
+            signal?.throwIfAborted();
             const { Agent } = await load();
+            signal?.throwIfAborted();
             const run = await Agent.getRun(address.runId, {
                 agentId: address.agentId,
                 runtime: 'cloud',
             });
-            return await readingOf(Agent, address.agentId, run);
+            signal?.throwIfAborted();
+            const reading = await readingOf(Agent, address.agentId, run);
+            signal?.throwIfAborted();
+            return reading;
+        },
+        async send(input: CursorSendInput): Promise<CursorLaunchReading> {
+            const { Agent } = await load();
+            const agent = await Agent.resume(input.agentId, { cloud: {} });
+            return sendWithHandle(agent, input);
         },
         async start(input: CursorStartInput): Promise<CursorLaunchReading> {
             const { Agent } = await load();
@@ -115,84 +123,48 @@ export function createCursorSdkTransport(
                 idempotencyKey: input.idempotencyKey,
                 name: input.title,
             });
-            try {
-                const run = await agent.send(input.instructions, {
-                    idempotencyKey: input.idempotencyKey,
-                });
-                return {
-                    agentId: agent.agentId,
-                    reading: await readingOf(Agent, agent.agentId, run),
-                };
-            } finally {
-                agent.close();
-            }
+            return sendWithHandle(agent, input);
         },
-        streamRun(address: CursorRunAddress, onEvent: (event: CursorRunEvent) => void): () => void {
-            let stopped = false;
-            void streamCursorRun(load, address, onEvent, () => stopped);
-            return () => {
-                stopped = true;
-            };
+        async streamRun(
+            address: CursorRunAddress,
+            onEvent: (event: CursorRunEvent) => Promise<void>,
+            signal: AbortSignal
+        ): Promise<void> {
+            signal.throwIfAborted();
+            const { Agent } = await load();
+            signal.throwIfAborted();
+            const run = await Agent.getRun(address.runId, {
+                agentId: address.agentId,
+                runtime: 'cloud',
+            });
+            await streamCursorRun(run, onEvent, signal);
         },
     };
 }
 
-/**
- * Cursor's per-Run event stream, consumed while the Run is active. Its `status`
- * messages carry the raw lifecycle status — the only place `EXPIRED` survives,
- * since a Run read through the public SDK normalizes it to `error`.
- *
- * The end of this stream is never a settlement. The SDK's own run handle stops
- * streaming after its client-side wait deadline and locally marks itself
- * errored while the hosted Run keeps working, so every exit reports `detached`
- * and lets the adapter reconcile by reading the Run.
- */
-async function streamCursorRun(
-    load: () => Promise<CursorSdk>,
-    address: CursorRunAddress,
-    onEvent: (event: CursorRunEvent) => void,
-    isStopped: () => boolean
-): Promise<void> {
+async function sendWithHandle(
+    agent: Awaited<ReturnType<typeof CursorAgentApi.resume>>,
+    input: Pick<CursorSendInput, 'instructions' | 'idempotencyKey'>
+): Promise<CursorLaunchReading> {
     try {
-        const { Agent } = await load();
-        const run = await Agent.getRun(address.runId, {
-            agentId: address.agentId,
-            runtime: 'cloud',
+        const run = await agent.send(input.instructions, {
+            idempotencyKey: input.idempotencyKey,
         });
-        if (run.supports('stream')) {
-            for await (const message of run.stream()) {
-                if (isStopped()) {
-                    return;
-                }
-                const event = eventOf(message);
-                if (event) {
-                    onEvent(event);
-                }
-            }
-        }
-    } catch (error) {
-        console.error(
-            `Cursor run ${address.runId} stream ended: ${
-                error instanceof Error ? error.message : String(error)
-            }`
-        );
+        return {
+            agentId: agent.agentId,
+            reading: {
+                branches: [],
+                errorCode: run.error?.code ?? null,
+                errorMessage: run.error?.message ?? null,
+                rawStatus: rawStatusOf(run.status, run.error),
+                result: run.result ?? null,
+                runId: run.id,
+                usage: null,
+            },
+        };
+    } finally {
+        await agent[Symbol.asyncDispose]();
     }
-    if (!isStopped()) {
-        onEvent({ kind: 'detached' });
-    }
-}
-
-function eventOf(message: SDKMessage): CursorRunEvent | null {
-    if (message.type === 'status' && isCursorRunStatus(message.status)) {
-        return { kind: 'status', rawStatus: message.status };
-    }
-    if (message.type === 'task' && message.text) {
-        return { kind: 'activity', summary: message.text };
-    }
-    if (message.type === 'tool_call') {
-        return { kind: 'activity', summary: `Running ${message.name}` };
-    }
-    return null;
 }
 
 async function readingOf(

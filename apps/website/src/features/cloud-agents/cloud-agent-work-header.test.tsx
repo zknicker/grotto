@@ -1,11 +1,8 @@
 import { expect, test } from 'bun:test';
 import type { CloudAgentWork } from '@grotto/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import {
-    CloudAgentWorkDetail,
-    CloudAgentWorkHeader,
-    CloudAgentWorkStatusMark,
-} from './cloud-agent-work-header.tsx';
+import { CloudAgentWorkDetail, CloudAgentWorkHeader } from './cloud-agent-work-header.tsx';
+import { ThreadCloudAgentRows } from './thread-cloud-agent-rows.tsx';
 
 test('the header names the provider and the work, and states its status', () => {
     const html = renderToStaticMarkup(<CloudAgentWorkHeader work={work({})} />);
@@ -17,19 +14,36 @@ test('the header names the provider and the work, and states its status', () => 
     expect(html).toContain('truncate');
 });
 
-test('the hoisted mark states only the status, not the title', () => {
+test('each hoisted row names its work and status without another click target', () => {
     const html = renderToStaticMarkup(
-        <CloudAgentWorkStatusMark
-            work={work({
-                startedAt: new Date(Date.now() - 120_000).toISOString(),
-                status: 'running',
-            })}
+        <ThreadCloudAgentRows
+            works={[
+                work({
+                    startedAt: new Date(Date.now() - 120_000).toISOString(),
+                    status: 'running',
+                }),
+            ]}
         />
     );
 
-    expect(html).toContain('Running · 2m');
-    // The title belongs to the work's own Message, inside the Thread.
-    expect(html).not.toContain('Fix the failing migration');
+    expect(html).toContain('>Running</span>');
+    expect(html).not.toContain('Running ·');
+    expect(html).toContain('>Cursor</span>');
+    expect(html).toContain('height:20px;width:20px');
+    expect(html).toContain('Fix the failing migration');
+    expect(html).not.toContain('<button');
+    expect(html).not.toContain('<a ');
+});
+
+test('thread rows show the current outcome, including a pending cancellation', () => {
+    for (const [overrides, label] of [
+        [{ status: 'completed' }, 'Done'],
+        [{ status: 'failed' }, 'Failed'],
+        [{ status: 'running', cancelRequestedAt: new Date().toISOString() }, 'Cancelling'],
+    ] satisfies [Partial<CloudAgentWork>, string][]) {
+        const html = renderToStaticMarkup(<ThreadCloudAgentRows works={[work(overrides)]} />);
+        expect(html).toContain(`>${label}</span>`);
+    }
 });
 
 test('the detail line carries activity while the work runs', () => {

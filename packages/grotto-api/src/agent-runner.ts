@@ -1,120 +1,25 @@
+import { agentInboxItemSchema } from './agent-inbox.ts';
+import {
+    cloudAgentCancelCommandSchema,
+    cloudAgentCapabilityRequestSchema,
+    cloudAgentReconcileCommandSchema,
+} from './cloud-agent-protocol.ts';
+
+export * from './agent-inbox.ts';
+export * from './cloud-agent-protocol.ts';
+
 import * as z from 'zod';
 import { agentTurnActivitySummarySchema } from './agent-activity.ts';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
-import { askStatusSchema } from './ask-shared.ts';
 import { idSchema } from './chat.ts';
-import { cloudAgentObservationSchema, cloudAgentReconcileEntrySchema } from './cloud-agent.ts';
-import {
-    cloudAgentBranchSchema,
-    cloudAgentCapabilityStateSchema,
-    cloudAgentProviderSchema,
-    cloudAgentStatusSchema,
-    cloudAgentSummaryMaxLength,
-    cloudAgentTitleSchema,
-} from './cloud-agent-shared.ts';
-import { agentCreateActionResultSchema } from './prepared-actions.ts';
 import {
     agentRuntimeBrowserActionResultSchema,
     agentRuntimeBrowserSettingsSchema,
     agentRuntimeSaveBrowserSettingsSchema,
 } from './runtime/contracts.ts';
-import { messageTaskSchema } from './task-shared.ts';
 import { traceCarrierSchema } from './trace-context.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
-/** A committed prepared action's terminal result, addressed by action identity. */
-export const agentActionAttentionSchema = z
-    .object({
-        actionId: idSchema,
-        chatId: idSchema,
-        createdAgentId: idSchema,
-        executedResult: agentCreateActionResultSchema,
-        kind: z.literal('agent:create'),
-    })
-    .strict();
-
-export type AgentActionAttention = z.infer<typeof agentActionAttentionSchema>;
-
-/**
- * A settled Cloud Agent Run's terminal attention for the Agent that delegated
- * it. It exists nowhere but the inbox row, so it carries the Run outcome the
- * Agent needs to inspect the work and post results as ordinary Messages.
- */
-export const cloudAgentWorkAttentionSchema = z
-    .object({
-        branches: z.array(cloudAgentBranchSchema).max(50),
-        errorCode: z.string().trim().min(1).max(120).nullable(),
-        provider: cloudAgentProviderSchema,
-        providerUrl: z.url().max(2000).nullable(),
-        repository: z.string().trim().min(1).max(200),
-        runId: idSchema,
-        status: cloudAgentStatusSchema,
-        summary: z.string().trim().min(1).max(cloudAgentSummaryMaxLength).nullable(),
-        title: cloudAgentTitleSchema,
-        workId: idSchema,
-    })
-    .strict();
-
-export type CloudAgentWorkAttention = z.infer<typeof cloudAgentWorkAttentionSchema>;
-
-/** The inbox projection of an Ask: who owes the answer, and whether it is still owed. */
-export const inboxAskSchema = z
-    .object({
-        addresseeHandle: z.string().trim().min(1).max(128).nullable(),
-        status: askStatusSchema,
-    })
-    .strict();
-
-export type InboxAsk = z.infer<typeof inboxAskSchema>;
-
-/** One Server-owned message envelope durably accepted into a Computer inbox. */
-export const agentInboxItemSchema = z
-    .object({
-        chatId: idSchema,
-        content: z.string().max(32_000),
-        createdAt: timestampSchema,
-        id: idSchema,
-        /** Typed Server attention; unlike a Chat message, it has no message cursor. */
-        actionAttention: agentActionAttentionSchema.optional(),
-        ask: inboxAskSchema.optional(),
-        cloudAgentWork: cloudAgentWorkAttentionSchema.optional(),
-        /** Canonical Agent API shape cached for Computer-local message checks. */
-        message: z.record(z.string(), z.unknown()).optional(),
-        mentioned: z.boolean().optional(),
-        senderDescription: z.string().trim().max(500).optional(),
-        senderHandle: z.string().trim().min(1).max(128),
-        senderType: z.enum(['agent', 'human', 'system', 'trigger']),
-        /** Chat sequence, or zero for a typed attention with no Chat cursor. */
-        sequence: z.number().int().nonnegative(),
-        task: messageTaskSchema.optional(),
-        target: z.string().trim().min(1).max(200),
-        threadFollowReactivated: z.boolean().optional(),
-    })
-    .strict()
-    .refine((item) => !(item.actionAttention && item.cloudAgentWork), {
-        message: 'An inbox item carries at most one typed attention.',
-        path: ['cloudAgentWork'],
-    })
-    .refine(
-        (item) =>
-            item.actionAttention
-                ? item.sequence === 0 &&
-                  item.id === item.actionAttention.actionId &&
-                  item.chatId === item.actionAttention.chatId &&
-                  item.senderType === 'system'
-                : item.cloudAgentWork
-                  ? item.sequence === 0 &&
-                    item.id === item.cloudAgentWork.runId &&
-                    item.senderType === 'system'
-                  : item.sequence > 0,
-        {
-            message: 'Typed attentions use their own identity and zero Chat sequence.',
-            path: ['sequence'],
-        }
-    );
-
-export type AgentInboxItem = z.infer<typeof agentInboxItemSchema>;
-
 /** Server→Computer launch command; Computer mints authority instead of receiving it. */
 export const agentStartCommandSchema = z
     .object({
@@ -311,82 +216,6 @@ export const agentNoticeCommandSchema = z
     .strict();
 
 export type AgentNoticeCommand = z.infer<typeof agentNoticeCommandSchema>;
-
-/**
- * Server-recorded cancellation riding down to the Computer that owns the
- * provider access. The Run settles through the ordinary observation path.
- */
-export const cloudAgentCancelCommandSchema = z
-    .object({
-        provider: cloudAgentProviderSchema,
-        providerAgentId: z.string().trim().min(1).max(200).nullable(),
-        providerRunId: z.string().trim().min(1).max(200).nullable(),
-        runId: idSchema,
-        type: z.literal('cloud-agent-cancel'),
-        workId: idSchema,
-    })
-    .strict();
-
-export type CloudAgentCancelCommand = z.infer<typeof cloudAgentCancelCommandSchema>;
-
-/**
- * Every non-terminal work assigned to this Computer, sent once per reconnect.
- * The Computer reads each Run from the provider and reports an observation, so
- * work that settled while the socket was down still settles here.
- */
-export const cloudAgentReconcileCommandSchema = z
-    .object({
-        type: z.literal('cloud-agent-reconcile'),
-        work: z.array(cloudAgentReconcileEntrySchema).max(200),
-    })
-    .strict();
-
-export type CloudAgentReconcileCommand = z.infer<typeof cloudAgentReconcileCommandSchema>;
-
-/**
- * One authenticated Server request against this Computer's Cloud Agent
- * provider access, shaped like the Browser request for the same reason: the
- * App never touches a Computer socket, and provider credentials never leave
- * the machine. `connect` runs the provider's own browser login on the
- * Computer and stores the key in the provider's credential store; `disconnect`
- * forgets it. Grotto never opens that flow during an Agent turn.
- */
-export const cloudAgentCapabilityRequestSchema = z
-    .object({
-        operation: z.discriminatedUnion('kind', [
-            z.object({ kind: z.literal('get') }).strict(),
-            z.object({ kind: z.literal('connect') }).strict(),
-            z.object({ kind: z.literal('disconnect') }).strict(),
-        ]),
-        provider: cloudAgentProviderSchema,
-        requestId: idSchema,
-        type: z.literal('cloud-agent-capability-request'),
-    })
-    .strict();
-
-export type CloudAgentCapabilityRequest = z.infer<typeof cloudAgentCapabilityRequestSchema>;
-
-export const cloudAgentCapabilityResultSchema = z
-    .object({
-        error: z.string().trim().min(1).max(500).optional(),
-        requestId: idSchema,
-        result: cloudAgentCapabilityStateSchema.optional(),
-        type: z.literal('cloud-agent-capability-result'),
-    })
-    .strict()
-    .refine((value) => Boolean(value.error) !== Boolean(value.result));
-
-export type CloudAgentCapabilityResult = z.infer<typeof cloudAgentCapabilityResultSchema>;
-
-/** One bounded Computer observation of a provider Run, applied idempotently. */
-export const cloudAgentObservationFrameSchema = z
-    .object({
-        observation: cloudAgentObservationSchema,
-        type: z.literal('cloud-agent-observation'),
-    })
-    .strict();
-
-export type CloudAgentObservationFrame = z.infer<typeof cloudAgentObservationFrameSchema>;
 
 /** Best-effort instruction to erase this Server attachment's Computer-local state. */
 export const serverDeleteCommandSchema = z

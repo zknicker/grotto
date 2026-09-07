@@ -143,95 +143,6 @@ test('a long Run result is bounded before it reaches Server', async () => {
     expect(parse(await provider.read(ref)).summary?.length).toBe(2000);
 });
 
-test('the Run event stream carries raw status and one bounded activity line', async () => {
-    const transport = createRecordedCursorTransport({ reads: [recordedRun('FINISHED')] });
-    const provider = createCursorCloudAgentProvider(transport);
-    const seen: CloudAgentProviderObservation[] = [];
-    const unsubscribe = provider.subscribe(ref, (observation) => seen.push(observation));
-
-    transport.emit({ kind: 'status', rawStatus: 'RUNNING' });
-    transport.emit({ kind: 'activity', summary: `Reading\n  ${'the failing test '.repeat(20)}` });
-    transport.emit({ kind: 'status', rawStatus: 'FINISHED' });
-    await settled();
-    unsubscribe();
-    transport.emit({ kind: 'status', rawStatus: 'CANCELLED' });
-
-    expect(seen.map((observation) => observation.status)).toEqual([
-        'running',
-        'running',
-        'completed',
-    ]);
-    expect(seen[0]?.rawStatus).toBe('RUNNING');
-    expect(seen[1]?.activity?.summary.length).toBe(120);
-    // One settling observation, carrying the Run's evidence. A bare terminal
-    // status first would settle the work, and the caller unsubscribes on
-    // settlement — the evidence would never arrive.
-    expect(seen[2]?.summary).toBe('Reproduced the flake and opened a pull request.');
-    expect(seen[2]?.branches).toHaveLength(1);
-    expect(seen[2]?.usage).toBeDefined();
-    for (const observation of seen) {
-        parse(observation);
-    }
-});
-
-test('a streamed EXPIRED survives the read that collapses it into a failure', async () => {
-    const transport = createRecordedCursorTransport({
-        // A read cannot tell expiry from an ordinary failure; the stream can.
-        reads: [recordedRun('ERROR')],
-    });
-    const provider = createCursorCloudAgentProvider(transport);
-    const seen: CloudAgentProviderObservation[] = [];
-    provider.subscribe(ref, (observation) => seen.push(observation));
-
-    transport.emit({ kind: 'status', rawStatus: 'EXPIRED' });
-    await settled();
-
-    expect(seen.map((observation) => observation.status)).toEqual(['expired']);
-    expect(seen[0]?.rawStatus).toBe('EXPIRED');
-    expect(seen[0]?.errorCode).toBe('agent_run_failed');
-});
-
-test('a detached stream reconciles by reading the Run rather than settling it', async () => {
-    const transport = createRecordedCursorTransport({
-        reads: [recordedRun('RUNNING'), recordedRun('FINISHED')],
-    });
-    const provider = createCursorCloudAgentProvider(transport, { backoffMs: 200, intervalMs: 10 });
-    const seen: CloudAgentProviderObservation[] = [];
-    provider.subscribe(ref, (observation) => seen.push(observation));
-
-    // The SDK's stream handle ends on its own wait deadline while the hosted
-    // Run keeps working. Settling on that would be a lie.
-    transport.emit({ kind: 'detached' });
-    await until(() => seen.length >= 1);
-    expect(seen.map((observation) => observation.status)).toEqual(['running']);
-
-    await until(() => seen.length >= 2);
-    expect(seen.map((observation) => observation.status)).toEqual(['running', 'completed']);
-    // Nothing further once the Run is terminal: the reads stop with it.
-    const reads = transport.requests.filter((entry) => entry.startsWith('readRun')).length;
-    await Bun.sleep(50);
-    expect(seen).toHaveLength(2);
-    expect(transport.requests.filter((entry) => entry.startsWith('readRun'))).toHaveLength(reads);
-});
-
-test('reconciliation backs off after a provider failure and stops on unsubscribe', async () => {
-    const transport = createRecordedCursorTransport();
-    const failing = {
-        ...transport,
-        readRun: () => Promise.reject(new Error('The provider is unreachable.')),
-    };
-    const provider = createCursorCloudAgentProvider(failing, { backoffMs: 200, intervalMs: 10 });
-    const seen: CloudAgentProviderObservation[] = [];
-    const unsubscribe = provider.subscribe(ref, (observation) => seen.push(observation));
-
-    transport.emit({ kind: 'detached' });
-    // Long enough for several 10ms reconcile intervals; the 200ms backoff means
-    // only the first read is attempted in that window.
-    await Bun.sleep(60);
-    expect(seen).toHaveLength(0);
-    unsubscribe();
-});
-
 test('cancelling addresses the provider Run Grotto recorded', async () => {
     const transport = createRecordedCursorTransport();
     const provider = createCursorCloudAgentProvider(transport);
@@ -242,9 +153,13 @@ test('cancelling addresses the provider Run Grotto recorded', async () => {
 
 test('a Run Cursor never hosted has no provider address to act on', () => {
     const provider = createCursorCloudAgentProvider(createRecordedCursorTransport());
-    expect(() => provider.subscribe({ ...ref, providerRunId: null }, () => undefined)).toThrow(
-        CloudAgentProviderUnavailableError
-    );
+    expect(() =>
+        provider.subscribe(
+            { ...ref, providerRunId: null },
+            () => undefined,
+            new AbortController().signal
+        )
+    ).toThrow(CloudAgentProviderUnavailableError);
     expect(provider.cancel({ ...ref, providerAgentId: null })).rejects.toThrow(
         CloudAgentProviderUnavailableError
     );
@@ -267,38 +182,6 @@ test('connect stores the credential with Cursor and disconnect forgets it', asyn
         'authStatus',
     ]);
 });
-
-test('a settling read that fails still settles the work from the streamed status', async () => {
-    const transport = createRecordedCursorTransport();
-    const provider = createCursorCloudAgentProvider({
-        ...transport,
-        readRun: () => Promise.reject(new Error('The provider is unreachable.')),
-    });
-    const seen: CloudAgentProviderObservation[] = [];
-    provider.subscribe(ref, (observation) => seen.push(observation));
-
-    transport.emit({ kind: 'status', rawStatus: 'CANCELLED' });
-    await settled();
-
-    expect(seen).toHaveLength(1);
-    expect(parse(seen[0] as CloudAgentProviderObservation).status).toBe('cancelled');
-});
-
-/** Lets the adapter's own read-after-settle microtasks run. */
-function settled() {
-    return Bun.sleep(5);
-}
-
-/** Waits on the condition itself rather than on a wall-clock guess. */
-async function until(condition: () => boolean, timeoutMs = 2000) {
-    const deadline = Date.now() + timeoutMs;
-    while (!condition()) {
-        if (Date.now() > deadline) {
-            throw new Error('The adapter never reached the expected state.');
-        }
-        await Bun.sleep(2);
-    }
-}
 
 function parse(observation: CloudAgentProviderObservation) {
     return cloudAgentObservationSchema.parse({

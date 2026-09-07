@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { buildCommandGroups } from '../../commands/server-commands.ts';
+import { buildThemeCommandGroup } from '../../commands/theme-commands.ts';
 import { useDevMode } from '../../components/dev-mode-provider.tsx';
+import { useTheme } from '../../components/theme-provider.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
@@ -13,6 +15,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
     const { pathname } = useLocation();
     const navigateRoute = useNavigate();
     const { devMode, setDevMode } = useDevMode();
+    const { setTheme } = useTheme();
     const agents = useAgents(server.id);
     const chats = useChats(server.id);
     const agentItems = React.useMemo(() => agents.data ?? [], [agents.data]);
@@ -24,8 +27,8 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
         [navigateRoute]
     );
     const commandGroups = React.useMemo(
-        () =>
-            buildCommandGroups({
+        () => [
+            ...buildCommandGroups({
                 agents: agentItems,
                 chats: chatItems,
                 devMode,
@@ -35,7 +38,9 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
                 serverSlug: server.slug,
                 setDevMode,
             }),
-        [agentItems, chatItems, devMode, navigate, pathname, server, setDevMode]
+            buildThemeCommandGroup(setTheme),
+        ],
+        [agentItems, chatItems, devMode, navigate, pathname, server, setDevMode, setTheme]
     );
     const lookupAgentAvatarUrl = React.useMemo<AgentAvatarLookup>(() => {
         const avatarById = new Map(agentItems.map((agent) => [agent.id, agent.avatarUrl]));

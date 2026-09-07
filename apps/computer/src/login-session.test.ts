@@ -161,10 +161,12 @@ test('login does not forward an origin-bound refresh token through redirects', a
 
 test('login requires explicit replacement before changing the saved origin', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-login-replace-'));
+    const requests: string[] = [];
     let polls = 0;
     const peer = Bun.serve({
         async fetch(request) {
             const url = new URL(request.url);
+            requests.push(`${request.method} ${url.pathname}`);
             if (url.pathname === '/computer/login' && request.method === 'POST') {
                 return Response.json({
                     deviceCode: 'm'.repeat(43),
@@ -220,7 +222,7 @@ test('login requires explicit replacement before changing the saved origin', asy
             GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
             GROTTO_SERVER_ORIGIN: replacementOrigin,
         });
-        expect(replaced.exitCode, replaced.stderr).toBe(0);
+        expect(replaced.exitCode, `${replaced.stderr}\nRequests: ${requests.join(', ')}`).toBe(0);
         expect(replaced.stdout).toContain('Grotto Computer signed in.');
         expect(JSON.parse(await readFile(join(dataRoot, 'login.json'), 'utf8'))).toMatchObject({
             origin: replacementOrigin,

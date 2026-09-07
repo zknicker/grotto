@@ -1,4 +1,5 @@
 import { AgentWorkCoordinator } from './agent-work-coordinator.ts';
+import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 
 export interface AttachmentFrameSender {
@@ -20,7 +21,10 @@ export class AttachmentDaemonWork {
     private sender: AttachmentFrameSender | null = null;
     private readonly writers = new Set<Promise<unknown>>();
 
-    constructor(runtime: DaemonRuntime) {
+    constructor(
+        runtime: DaemonRuntime,
+        readonly cloudAgents?: CloudAgentWorkSupervisor
+    ) {
         this.agentWork = new AgentWorkCoordinator(runtime);
     }
 
@@ -63,7 +67,10 @@ export class AttachmentDaemonWork {
         this.closing = true;
         this.sender = null;
         this.agentWork.abortAll();
-        this.closePromise = Promise.allSettled(this.writerSnapshot()).then(() => undefined);
+        this.closePromise = Promise.allSettled([
+            ...this.writerSnapshot(),
+            this.cloudAgents?.close(),
+        ]).then(() => undefined);
         return this.closePromise;
     }
 }

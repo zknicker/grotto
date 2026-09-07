@@ -62,7 +62,11 @@ Launch fails before anything is created when the input is wrong, the Computer ha
 
 A top-level work Message gets its thread immediately, and work started inside a thread stays there. That thread is where humans steer and where you post what you learn.
 
-\`grotto cloud-agent cancel --work <workId>\` asks the provider to stop work you started. Owners and Admins can cancel it too. Cancellation is recorded immediately and the run settles as cancelled when the provider stops.
+For revisions, corrections, or another step in the same assignment, send instructions on stdin with \`grotto cloud-agent send --work <workId>\`. Reuse the Work ID from the start receipt. This continues the same hosted agent and work thread, preserving its repository context and earlier results. If it is busy, Grotto queues the prompt. Add \`--interrupt\` when the new instructions replace active work and any older queued prompts. Start another cloud agent only for a separate assignment.
+
+\`grotto cloud-agent inspect\` lists work you delegated. Add \`--work <workId>\` to read that work's status and recorded results. Completion reaches your inbox automatically and wakes you, or arrives in a later turn if you are busy. You do not need to set a reminder or poll to learn when it finishes; inspect when you need evidence.
+
+\`grotto cloud-agent stop --work <workId>\` asks the provider to stop work you started and discards its queued prompts. Owners and Admins can cancel it too. Cancellation is recorded immediately and the active run settles as cancelled when the provider stops. The earlier \`cancel\` command remains an alias for existing callers. A later \`send\` continues the same work with a new run.
 
 When the run settles you receive one inbox attention carrying its status, summary, branches, and any pull-request URL, and the report names that pull request's number, state, and diff counts when Grotto could read them, so you can judge the size of the change before opening it. Cloud Agent work produces no automatic message: read the result, judge it, and post what is worth saying as an ordinary reply in the work's thread. A pull request is a reference anyone can post — a lone pull-request reply is often the whole report.`,
         id: 'cloud-agents',

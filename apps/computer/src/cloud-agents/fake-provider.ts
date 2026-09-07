@@ -5,8 +5,10 @@ import type {
     CloudAgentProviderObservation,
     CloudAgentReadiness,
     CloudAgentRunRef,
+    CloudAgentSendInput,
     CloudAgentStartInput,
 } from './provider.ts';
+import { CloudAgentLaunchRejectedError } from './provider.ts';
 
 export interface FakeCloudAgentProvider extends CloudAgentProvider {
     /** Pushes the next scripted transition to every live subscriber. */
@@ -14,6 +16,7 @@ export interface FakeCloudAgentProvider extends CloudAgentProvider {
     failNextStart(message: string): void;
     /** Every launch this provider was asked for, newest last. */
     readonly launches: CloudAgentStartInput[];
+    readonly sends: CloudAgentSendInput[];
 }
 
 export interface FakeCloudAgentProviderOptions {
@@ -31,6 +34,7 @@ export function createFakeCloudAgentProvider(
     options: FakeCloudAgentProviderOptions = {}
 ): FakeCloudAgentProvider {
     const launches: CloudAgentStartInput[] = [];
+    const sends: CloudAgentSendInput[] = [];
     const subscribers = new Set<(observation: CloudAgentProviderObservation) => void>();
     const transitions = [...(options.transitions ?? [])];
     let startFailure: string | null = null;
@@ -72,11 +76,26 @@ export function createFakeCloudAgentProvider(
         readiness() {
             return Promise.resolve(readiness());
         },
+        sends,
+        send(input: CloudAgentSendInput): Promise<CloudAgentLaunch> {
+            sends.push(input);
+            latest = {
+                ...observe('running', 'RUNNING'),
+                providerAgentId: input.providerAgentId,
+                providerRunId: `run_${input.idempotencyKey}`,
+            };
+            return Promise.resolve({
+                providerAgentId: input.providerAgentId,
+                providerRunId: `run_${input.idempotencyKey}`,
+                providerUrl: `https://cursor.com/agents/${input.providerAgentId}`,
+                status: 'running',
+            });
+        },
         start(input: CloudAgentStartInput): Promise<CloudAgentLaunch> {
             if (startFailure) {
                 const message = startFailure;
                 startFailure = null;
-                return Promise.reject(new Error(message));
+                return Promise.reject(new CloudAgentLaunchRejectedError(message));
             }
             launches.push(input);
             latest = {
@@ -90,9 +109,21 @@ export function createFakeCloudAgentProvider(
                 status: 'running',
             });
         },
-        subscribe(_ref, onObservation) {
-            subscribers.add(onObservation);
-            return () => subscribers.delete(onObservation);
+        subscribe(_ref, onObservation, signal) {
+            if (signal.aborted) {
+                return Promise.resolve();
+            }
+            return new Promise<void>((resolve) => {
+                subscribers.add(onObservation);
+                signal.addEventListener(
+                    'abort',
+                    () => {
+                        subscribers.delete(onObservation);
+                        resolve();
+                    },
+                    { once: true }
+                );
+            });
         },
     };
 

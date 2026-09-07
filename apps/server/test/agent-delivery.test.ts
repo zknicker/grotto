@@ -889,7 +889,7 @@ test('reconnect configuration preserves Cove factory identity', async () => {
     ]);
 });
 
-test('queues work for a busy Agent and notices it, then drains at the boundary', async () => {
+test.each([false, true])('busy notice acknowledgment=%s', async (acknowledged) => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
     transport.online.add(seed.computerId);
@@ -908,8 +908,6 @@ test('queues work for a busy Agent and notices it, then drains at the boundary',
     const firstRun = transport.framesOfType('start')[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId: firstRun });
 
-    // Busy: the Computer receives the full durable envelope, starts no second
-    // model turn, and projects only content-free metadata into the live turn.
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: seed.chatId,
@@ -923,21 +921,23 @@ test('queues work for a busy Agent and notices it, then drains at the boundary',
     expect(notices).toHaveLength(1);
     expect(notices[0]?.inbox.map((item) => item.content)).toEqual(['first', 'second']);
     expect(notices[0]?.totalPending).toBe(2);
-    expect(transport.framesOfType('start')[0]?.inbox.map((item) => item.content)).toEqual([
-        'first',
-    ]);
-    await delivery.onNoticeAck({
-        agentId: seed.agentId,
-        workIds: [firstMessageId, secondMessageId],
-        runId: firstRun,
-    });
+    const firstInbox = transport.framesOfType('start')[0]?.inbox.map((item) => item.content);
+    expect(firstInbox).toEqual(['first']);
+    if (acknowledged) {
+        await delivery.onNoticeAck({
+            agentId: seed.agentId,
+            workIds: [firstMessageId, secondMessageId],
+            runId: firstRun,
+        });
+    }
 
-    // Both identities were offered to this live turn. A deferred Chat message
-    // is still readable from history, so the unchanged pending set must not
-    // create another turn.
+    // An unacknowledged notice must earn a turn; a delivered notice permits silence.
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, firstRun, 'completed'));
     const starts = transport.framesOfType('start');
-    expect(starts).toHaveLength(1);
+    expect(starts).toHaveLength(acknowledged ? 1 : 2);
+    if (!acknowledged) {
+        expect(starts[1]?.inbox.some((item) => item.id === secondMessageId)).toBe(true);
+    }
     expect(await countQueuedInboxItems(connection.db, seed.agentId)).toBe(2);
 });
 

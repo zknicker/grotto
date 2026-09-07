@@ -72,6 +72,12 @@ export interface CursorStartInput {
     title: string;
 }
 
+export interface CursorSendInput {
+    agentId: string;
+    idempotencyKey: string;
+    instructions: string;
+}
+
 /** What a Cursor credential resolves to, without ever carrying the key. */
 export type CursorAuth =
     | { connected: false; reason: 'expired' | 'not-connected' }
@@ -100,14 +106,20 @@ export function isTerminalCursorRunStatus(status: CursorRunStatus): boolean {
 
 export interface CursorTransport {
     authStatus(): Promise<CursorAuth>;
-    cancelRun(address: CursorRunAddress): Promise<void>;
+    cancelRun(address: CursorRunAddress, signal?: AbortSignal): Promise<void>;
     /** Cursor's browser sign-in. Only a human action in settings reaches this. */
     login(options: { onLoginUrl?: (url: string) => void }): Promise<CursorAuth>;
     logout(): Promise<void>;
-    readRun(address: CursorRunAddress): Promise<CursorRunReading>;
+    readRun(address: CursorRunAddress, signal?: AbortSignal): Promise<CursorRunReading>;
+    /** Starts another Run on the existing provider Agent; never creates an Agent. */
+    send(input: CursorSendInput): Promise<CursorLaunchReading>;
     /** Creates the provider Agent and performs the first send that hosts the Run. */
     start(input: CursorStartInput): Promise<CursorLaunchReading>;
-    streamRun(address: CursorRunAddress, onEvent: (event: CursorRunEvent) => void): () => void;
+    streamRun(
+        address: CursorRunAddress,
+        onEvent: (event: CursorRunEvent) => Promise<void>,
+        signal: AbortSignal
+    ): Promise<void>;
 }
 
 /**

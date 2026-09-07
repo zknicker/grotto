@@ -4,7 +4,6 @@ import type { AgentActivityRun } from './agent-activity-run.ts';
 import {
     agentHistoryResponseSchema,
     agentMessageCheckResponseSchema,
-    agentMessageSchema,
     agentReactionResponseSchema,
     agentSearchResponseSchema,
     agentSendResponseSchema,
@@ -19,16 +18,16 @@ import {
     writeLocalAgentSkillFile,
 } from './agent-skills.ts';
 import { handleCloudAgentStart } from './cloud-agents/proxy-route.ts';
+import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { classifyGrottoProxyBoundary } from './harness/activity-projector.ts';
 import {
     type AgentInboxLocation,
     consumeServedAutomations,
     consumeVisibleMessages,
-    isAutomationInboxItem,
-    readPendingInboxState,
     recordRunVisibleMessages,
     type VisibleMessageIdentity,
 } from './inbox-store.ts';
+import { serveLocalAgentEvents } from './proxy-inbox.ts';
 
 const skillCreateSchema = z.object({
     content: z.string().min(1),
@@ -62,6 +61,7 @@ export interface LoopbackProxy {
 /** Per-launch proxy that keeps scoped Server authority outside the Agent process. */
 export function startLoopbackProxy(input: {
     agentId?: string;
+    cloudAgents?: CloudAgentWorkSupervisor;
     dataRoot?: string;
     proxyToken: string;
     runnerToken: string;
@@ -138,6 +138,7 @@ async function handleAuthorizedProxyRequest(
     url: URL,
     input: {
         agentId?: string;
+        cloudAgents?: CloudAgentWorkSupervisor;
         dataRoot?: string;
         proxyToken: string;
         runId?: string;
@@ -165,6 +166,8 @@ async function handleAuthorizedProxyRequest(
         );
     }
     const cloudAgent = await handleCloudAgentStart(request, url, {
+        dataRoot: input.dataRoot,
+        supervisor: input.cloudAgents,
         runnerToken,
         serverId: input.serverId,
         serverOrigin: input.serverOrigin,
@@ -174,19 +177,14 @@ async function handleAuthorizedProxyRequest(
     }
     const location = agentInboxLocation(input);
     if (request.method === 'GET' && url.pathname === '/api/agent/events' && location) {
-        const local = await localAgentEvents(location);
+        const local = await serveLocalAgentEvents({
+            location,
+            getRunId: state.getRunId,
+            attest: (identities) =>
+                awaitBestEffortAttestation(input.serverOrigin, runnerToken, identities),
+        });
         if (local) {
-            const activeRunId = state.getRunId();
-            if (!activeRunId) {
-                return Response.json(
-                    { code: 'AGENT_IDLE', message: 'The Agent has no active turn.' },
-                    { status: 409 }
-                );
-            }
-            await recordRunVisibleMessages(location, activeRunId, local.identities);
-            await awaitBestEffortAttestation(input.serverOrigin, runnerToken, local.identities);
-            await consumeVisibleMessages(location, local.identities);
-            return Response.json({ automations: [], messages: local.messages, more: local.more });
+            return local;
         }
     }
     const body = await request.text();
@@ -280,36 +278,6 @@ async function handleAuthorizedProxyRequest(
         headers: { 'content-type': 'application/json' },
         status: upstream.status,
     });
-}
-
-async function localAgentEvents(location: AgentInboxLocation) {
-    const pending = await readPendingInboxState(location);
-    // A pending fire or task assignment has no cached body and only the Server
-    // can retire it. Let the whole pull go upstream so those items and messages
-    // arrive in one ordered response instead of being split across a local page
-    // and a Server page.
-    if (pending.items.some(isAutomationInboxItem)) {
-        return null;
-    }
-    const visible = pending.items
-        .map((item) => {
-            const message = agentMessageSchema.safeParse(item.message);
-            return message.success ? { item, message: message.data } : null;
-        })
-        .filter((row): row is NonNullable<typeof row> => row !== null);
-    if (visible.length === 0) {
-        return null;
-    }
-    const selected = visible.slice(0, 40);
-    return {
-        identities: selected.map(({ message }) => identity(message)),
-        messages: selected.map(({ item, message }) => ({
-            message,
-            target: item.target,
-            ...(item.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
-        })),
-        more: pending.totalPending > selected.length,
-    };
 }
 
 async function attestLocalEvents(

@@ -19,10 +19,8 @@ import { CloudAgentWorkActions } from './cloud-agent-work-actions.tsx';
 
 /**
  * The Cloud Agent work as it reads inside its Thread: the Agent says what it
- * delegated in its own Message, and this card states the run itself, in
- * sequence directly beneath. It is presentation of the Server-owned work
- * record, never a Chat row of its own — nothing here has an id, an author, or
- * a place in the sequence except the Message above it.
+ * delegated in its own Message, followed by this card in the conversation.
+ * It presents the Server-owned work record, not a separate Chat row.
  *
  * The card states facts, not prose. Top to bottom: what the work is and how it
  * is going, the branch it wrote and the pull request that branch opened, the
@@ -50,6 +48,7 @@ export function CloudAgentWorkCard({ work }: { work: CloudAgentWork }) {
             actionKind="cloud-agent-work"
             actionStatus={work.status}
             aria-label={`Cloud Agent work: ${work.title}`}
+            className="bg-nested-surface"
             data-testid="cloud-agent-work-card"
         >
             <ActionCard.Header>
@@ -84,24 +83,26 @@ export function CloudAgentWorkCard({ work }: { work: CloudAgentWork }) {
                 the run produced: the branch it wrote, and the pull request that
                 branch opened — the part a reader is actually here for, so the
                 branch gives way before the PR number does. */}
-            <ActionCard.Meta>
-                <Icon aria-hidden="true" icon={GitBranchIcon} />
-                {branchLabel(branch, work.repository, work.startingRef)}
-                {pullRequestNumber === null ? null : (
-                    <span data-testid="cloud-agent-work-pull-request">
-                        {' · '}
-                        {`PR #${pullRequestNumber}`}
-                    </span>
-                )}
-            </ActionCard.Meta>
-            {pullRequest ? <CloudAgentDiffRow pullRequest={pullRequest} /> : null}
+            <div className="flex min-w-0 flex-col gap-1">
+                <ActionCard.Meta>
+                    <Icon aria-hidden="true" icon={GitBranchIcon} />
+                    {branchLabel(branch, work.repository, work.startingRef)}
+                    {pullRequestNumber === null ? null : (
+                        <span data-testid="cloud-agent-work-pull-request">
+                            {' · '}
+                            {`PR #${pullRequestNumber}`}
+                        </span>
+                    )}
+                </ActionCard.Meta>
+                {pullRequest ? <CloudAgentDiffRow pullRequest={pullRequest} /> : null}
+            </div>
             <ActionCard.Actions>
                 <CloudAgentWorkActions
                     pullRequestUrl={branch?.pullRequestUrl ?? null}
                     work={work}
                 />
                 {delegatedBy ? (
-                    <ActionCard.Receipt>
+                    <ActionCard.Receipt className="self-end">
                         Delegated by {delegatedBy} · {formatShortTime(work.createdAt)}
                     </ActionCard.Receipt>
                 ) : null}
@@ -140,7 +141,7 @@ function branchLabel(
     startingRef: null | string
 ): string {
     if (!branch) {
-        return startingRef ? `from ${startingRef}` : 'No branch yet';
+        return startingRef ? `Base: ${startingRef}` : 'No branch yet';
     }
     return branch.repository === repository
         ? branch.branch

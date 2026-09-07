@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { seedCoveWorkspace } from '@grotto/agent-workspace';
 import { grottoAgentVersion } from '@grotto/api';
@@ -134,10 +135,16 @@ function fakeAgent(input: HarnessTurnInput): Pick<HarnessAgent, 'createSession' 
                 },
                 destroy: async () => undefined,
                 isResume: Boolean(options.resumeFrom),
-                sendUserMessage: async (message: string) => {
+                experimental_steerTurn: async (message: string) => {
                     sentUserMessages.push(message);
-                    return acceptsUserMessages;
+                    if (!acceptsUserMessages) {
+                        throw new HarnessCapabilityUnsupportedError({
+                            harnessId: 'codex',
+                            message: 'Harness does not support steering active turns.',
+                        });
+                    }
                 },
+                hasUnfinishedTurn: () => true,
                 sessionId: 'engine_session_1',
                 stop: async () => {
                     stoppedSessions += 1;
@@ -1220,60 +1227,44 @@ test('delivers a pending busy notice into the live harness turn', async () => {
     await expect(access(join(runtimeDir, 'pending-notice.json'))).rejects.toThrow();
 });
 
-test('reports a busy notice delivered after the start ack and before sink registration', async () => {
+test.each([
+    { boundary: true, supported: true },
+    { boundary: true, supported: false },
+    { boundary: false, supported: true },
+])('acknowledges stored busy notices only after supported delivery: %j', async ({
+    boundary,
+    supported,
+}) => {
     await runHarnessTurn(turnInput());
     sentUserMessages = [];
-    streamIncludesToolBoundary = true;
+    acceptsUserMessages = supported;
+    streamIncludesToolBoundary = boundary;
     const runtimeDir = join(agentRoot, 'runtime');
-    await mkdir(runtimeDir, { recursive: true });
-    const notice = '[Grotto inbox notice:\nInbox update: 1 unread messages total\n]';
-    await writeFile(
-        join(runtimeDir, 'pending-notice.json'),
-        JSON.stringify({
-            notice,
-            receipt: { runId: 'run_active', workIds: ['msg_late'] },
-        })
-    );
-    const receipts: Array<{ runId: string; workIds: string[] }> = [];
+    const notice = '[Grotto inbox notice:\\nInbox update: 1 unread message total\\n]';
+    const receipt = { runId: 'run_active', workIds: ['msg_late'] };
+    await writeFile(join(runtimeDir, 'pending-notice.json'), JSON.stringify({ notice, receipt }));
+    const receipts: (typeof receipt)[] = [];
 
     await runHarnessTurn(
         turnInput({
             inbox: [],
-            onStoredNoticeDelivered: (receipt) => receipts.push(receipt),
+            onStoredNoticeDelivered: (value) => receipts.push(value),
             totalPending: 0,
         })
     );
 
-    expect(sentUserMessages).toEqual([notice]);
-    expect(receipts).toEqual([{ runId: 'run_active', workIds: ['msg_late'] }]);
-});
-
-test('leaves a late busy notice unacknowledged when no safe tool boundary remains', async () => {
-    await runHarnessTurn(turnInput());
-    sentUserMessages = [];
-    const runtimeDir = join(agentRoot, 'runtime');
-    await mkdir(runtimeDir, { recursive: true });
-    const notice = '[Grotto inbox notice:\nInbox update: 1 unread message total\n]';
-    await writeFile(
-        join(runtimeDir, 'pending-notice.json'),
-        JSON.stringify({
-            notice,
-            receipt: { runId: 'run_active', workIds: ['msg_late'] },
-        })
-    );
-    const receipts: Array<{ runId: string; workIds: string[] }> = [];
-
-    await runHarnessTurn(
-        turnInput({
-            inbox: [],
-            onStoredNoticeDelivered: (receipt) => receipts.push(receipt),
-            totalPending: 0,
-        })
-    );
-
-    expect(sentUserMessages).toEqual([]);
-    expect(receipts).toEqual([]);
-    await expect(access(join(runtimeDir, 'pending-notice.json'))).resolves.toBeNull();
+    expect(sentUserMessages).toEqual(boundary ? [notice] : []);
+    expect(receipts).toEqual(boundary && supported ? [receipt] : []);
+    if (boundary && supported) {
+        await expect(access(join(runtimeDir, 'pending-notice.json'))).rejects.toThrow();
+    } else {
+        expect(JSON.parse(await readFile(join(runtimeDir, 'pending-notice.json'), 'utf8'))).toEqual(
+            {
+                notice,
+                receipt,
+            }
+        );
+    }
 });
 
 test('defers a stored follow-up notice until the cold turn has a safe live boundary', async () => {

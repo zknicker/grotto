@@ -1,6 +1,8 @@
 import * as z from 'zod';
+import { CloudAgentLaunchFailedError, startCloudAgentWork } from './launch-work.ts';
 import { CloudAgentProviderUnavailableError } from './provider.ts';
-import { CloudAgentLaunchFailedError, startCloudAgentWork } from './work-runner.ts';
+import { sendCloudAgentWork } from './send-work.ts';
+import type { CloudAgentWorkSupervisor } from './work-runner.ts';
 
 const cloudAgentStartSchema = z.object({
     content: z.string().trim().min(1),
@@ -10,6 +12,12 @@ const cloudAgentStartSchema = z.object({
     startingRef: z.string().trim().min(1).nullable(),
     target: z.string().trim().min(1),
     title: z.string().trim().min(1),
+});
+const cloudAgentSendSchema = z.object({
+    workId: z.string().trim().min(1),
+    nonce: z.string().trim().min(1).max(128),
+    instructions: z.string().trim().min(1).max(128_000),
+    interrupt: z.boolean().default(false),
 });
 
 /**
@@ -21,12 +29,19 @@ const cloudAgentStartSchema = z.object({
 export async function handleCloudAgentStart(
     request: Request,
     url: URL,
-    input: { runnerToken: string; serverId?: string; serverOrigin: string }
+    input: {
+        dataRoot?: string;
+        supervisor?: CloudAgentWorkSupervisor;
+        runnerToken: string;
+        serverId?: string;
+        serverOrigin: string;
+    }
 ): Promise<Response | null> {
-    if (!(url.pathname === '/api/agent/cloud-agents' && request.method === 'POST')) {
+    const sending = url.pathname === '/api/agent/cloud-agents/send';
+    if (!((url.pathname === '/api/agent/cloud-agents' || sending) && request.method === 'POST')) {
         return null;
     }
-    if (!input.serverId) {
+    if (!(input.serverId && input.dataRoot && input.supervisor)) {
         return Response.json(
             {
                 code: 'CLOUD_AGENT_UNAVAILABLE',
@@ -35,9 +50,24 @@ export async function handleCloudAgentStart(
             { status: 409 }
         );
     }
-    let parsed: z.infer<typeof cloudAgentStartSchema>;
+    const { dataRoot, serverId, supervisor } = input;
+    let operation: () => Promise<unknown>;
     try {
-        parsed = cloudAgentStartSchema.parse(await request.json());
+        const body = await request.json();
+        const context = {
+            dataRoot,
+            serverId,
+            supervisor,
+            runnerToken: input.runnerToken,
+            serverOrigin: input.serverOrigin,
+        };
+        if (sending) {
+            const parsed = cloudAgentSendSchema.parse(body);
+            operation = () => sendCloudAgentWork({ ...context, request: parsed });
+        } else {
+            const parsed = cloudAgentStartSchema.parse(body);
+            operation = () => startCloudAgentWork({ ...context, request: parsed });
+        }
     } catch (error) {
         return Response.json(
             {
@@ -48,14 +78,7 @@ export async function handleCloudAgentStart(
         );
     }
     try {
-        return Response.json(
-            await startCloudAgentWork({
-                request: parsed,
-                runnerToken: input.runnerToken,
-                serverId: input.serverId,
-                serverOrigin: input.serverOrigin,
-            })
-        );
+        return Response.json(await supervisor.runLaunch(operation));
     } catch (error) {
         if (error instanceof CloudAgentProviderUnavailableError) {
             return Response.json(

@@ -5,12 +5,12 @@ import {
     CloudAgentProviderUnavailableError,
     type CloudAgentReadiness,
     type CloudAgentRunRef,
+    type CloudAgentSendInput,
     type CloudAgentStartInput,
 } from '../provider.ts';
 import { activityOf, cloudAgentStatusOf, cursorAgentUrl, observationOf } from './status.ts';
 import {
     type CursorRunAddress,
-    type CursorRunStatus,
     type CursorTransport,
     CursorTransportUnavailableError,
     isTerminalCursorRunStatus,
@@ -23,17 +23,10 @@ import {
  * observations. The user API key is never logged, stored by Grotto, or copied
  * to Server — it lives only in Cursor's own credential store.
  */
-export function createCursorCloudAgentProvider(
-    transport: CursorTransport,
-    options: CursorReconcilePolicy = {}
-): CloudAgentProvider {
-    const policy = {
-        backoffMs: options.backoffMs ?? defaultReconcileBackoffMs,
-        intervalMs: options.intervalMs ?? defaultReconcileIntervalMs,
-    };
+export function createCursorCloudAgentProvider(transport: CursorTransport): CloudAgentProvider {
     return {
-        async cancel(ref: CloudAgentRunRef): Promise<void> {
-            await transport.cancelRun(requireAddress(ref));
+        async cancel(ref: CloudAgentRunRef, signal?: AbortSignal): Promise<void> {
+            await transport.cancelRun(requireAddress(ref), signal);
         },
         async connect(options: { onLoginUrl?: (url: string) => void } = {}) {
             return readinessOf(
@@ -47,9 +40,12 @@ export function createCursorCloudAgentProvider(
             return { ready: false as const, reason: 'not-connected' as const };
         },
         provider: 'cursor',
-        async read(ref: CloudAgentRunRef): Promise<CloudAgentProviderObservation> {
+        async read(
+            ref: CloudAgentRunRef,
+            signal?: AbortSignal
+        ): Promise<CloudAgentProviderObservation> {
             const address = requireAddress(ref);
-            return observationOf(await transport.readRun(address), {
+            return observationOf(await transport.readRun(address, signal), {
                 agentId: address.agentId,
                 observedAt: new Date().toISOString(),
             });
@@ -66,6 +62,22 @@ export function createCursorCloudAgentProvider(
                 }
                 throw error;
             }
+        },
+        async send(input: CloudAgentSendInput): Promise<CloudAgentLaunch> {
+            const launch = await transport.send({
+                agentId: input.providerAgentId,
+                idempotencyKey: input.idempotencyKey,
+                instructions: input.instructions,
+            });
+            if (launch.agentId !== input.providerAgentId) {
+                throw new Error('Cursor follow-up returned a different provider Agent');
+            }
+            return {
+                providerAgentId: launch.agentId,
+                providerRunId: launch.reading.runId,
+                providerUrl: cursorAgentUrl(launch.agentId),
+                status: cloudAgentStatusOf(launch.reading.rawStatus),
+            };
         },
         async start(input: CloudAgentStartInput): Promise<CloudAgentLaunch> {
             const launch = await transport.start({
@@ -84,152 +96,78 @@ export function createCursorCloudAgentProvider(
         },
         subscribe(
             ref: CloudAgentRunRef,
-            onObservation: (observation: CloudAgentProviderObservation) => void
-        ): () => void {
-            return watchCursorRun(transport, requireAddress(ref), onObservation, policy);
+            onObservation: (observation: CloudAgentProviderObservation) => void,
+            signal: AbortSignal
+        ): Promise<void> {
+            return watchCursorRun(transport, requireAddress(ref), onObservation, signal);
         },
     };
 }
 
-/** A Run read every 5 seconds, but only while no stream is attached. */
-const defaultReconcileIntervalMs = 5000;
-/** After a provider failure, back off rather than hammering an unhappy API. */
-const defaultReconcileBackoffMs = 60_000;
-
-/** Only tests narrow these; production runs the spec's own cadence. */
-export interface CursorReconcilePolicy {
-    backoffMs?: number;
-    intervalMs?: number;
-}
-
-/**
- * The live edge for one Run. The stream carries progress and Cursor's own raw
- * status; reading the Run is what settles it. Those are deliberately separate:
- * the SDK's stream handle ends on its own client-side wait deadline while the
- * hosted Run keeps working, so trusting the end of a stream would settle live
- * work as failed. When the stream detaches, reconciliation reads the Run until
- * it is genuinely terminal, and stops there.
- */
-function watchCursorRun(
+async function watchCursorRun(
     transport: CursorTransport,
     address: CursorRunAddress,
     onObservation: (observation: CloudAgentProviderObservation) => void,
-    policy: { backoffMs: number; intervalMs: number }
-): () => void {
-    let stopped = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    let detachStream: (() => void) | null = null;
-
-    const stop = () => {
-        stopped = true;
-        if (timer) {
-            clearTimeout(timer);
-            timer = null;
-        }
-        detachStream?.();
-        detachStream = null;
-    };
-
-    const reconcile = (delayMs: number) => {
-        if (stopped || timer) {
-            return;
-        }
-        timer = setTimeout(async () => {
-            timer = null;
-            if (stopped) {
+    signal: AbortSignal
+): Promise<void> {
+    const terminal = new AbortController();
+    const lifetime = AbortSignal.any([signal, terminal.signal]);
+    await transport.streamRun(
+        address,
+        async (event) => {
+            if (lifetime.aborted || event.kind === 'detached') {
                 return;
             }
-            try {
-                const reading = await transport.readRun(address);
-                if (stopped) {
+            const observedAt = new Date().toISOString();
+            if (event.kind === 'status') {
+                if (isTerminalCursorRunStatus(event.rawStatus)) {
+                    // Preserve the stream's EXPIRED alongside the read's terminal evidence.
+                    const reading = await transport.readRun(address, lifetime).catch(() => null);
+                    if (lifetime.aborted) {
+                        return;
+                    }
+                    onObservation(
+                        reading
+                            ? observationOf(
+                                  { ...reading, rawStatus: event.rawStatus },
+                                  {
+                                      agentId: address.agentId,
+                                      observedAt,
+                                  }
+                              )
+                            : {
+                                  observedAt,
+                                  providerAgentId: address.agentId,
+                                  providerRunId: address.runId,
+                                  rawStatus: event.rawStatus,
+                                  status: cloudAgentStatusOf(event.rawStatus),
+                              }
+                    );
+                    terminal.abort();
                     return;
                 }
-                onObservation(
-                    observationOf(reading, {
-                        agentId: address.agentId,
-                        observedAt: new Date().toISOString(),
-                    })
-                );
-                if (isTerminalCursorRunStatus(reading.rawStatus)) {
-                    stop();
-                    return;
-                }
-                reconcile(policy.intervalMs);
-            } catch {
-                reconcile(policy.backoffMs);
-            }
-        }, delayMs);
-    };
-
-    detachStream = transport.streamRun(address, (event) => {
-        if (stopped) {
-            return;
-        }
-        const observedAt = new Date().toISOString();
-        if (event.kind === 'detached') {
-            detachStream = null;
-            reconcile(0);
-            return;
-        }
-        if (event.kind === 'status') {
-            // A streamed terminal status is the one place Cursor's raw
-            // `EXPIRED` survives, so it settles the Run — but the Run's
-            // evidence comes from a read, and the settling observation must
-            // carry both. Reporting the bare status first would settle the
-            // work, and the caller unsubscribes on settlement, so the evidence
-            // read would never be reported.
-            if (isTerminalCursorRunStatus(event.rawStatus)) {
-                void settle(event.rawStatus);
+                onObservation({
+                    observedAt,
+                    providerAgentId: address.agentId,
+                    providerRunId: address.runId,
+                    rawStatus: event.rawStatus,
+                    status: cloudAgentStatusOf(event.rawStatus),
+                });
                 return;
             }
-            onObservation({
-                observedAt,
-                providerAgentId: address.agentId,
-                providerRunId: address.runId,
-                rawStatus: event.rawStatus,
-                status: cloudAgentStatusOf(event.rawStatus),
-            });
-            return;
-        }
-        const activity = activityOf(event.summary, observedAt);
-        if (activity) {
-            onObservation({
-                activity,
-                observedAt,
-                providerAgentId: address.agentId,
-                providerRunId: address.runId,
-                status: 'running',
-            });
-        }
-    });
-
-    return stop;
-
-    /**
-     * One settling observation carrying the stream's raw status and the Run's
-     * own evidence. A read that fails still settles the work from the streamed
-     * status alone: losing the summary is a smaller lie than leaving terminal
-     * work running forever.
-     */
-    async function settle(rawStatus: CursorRunStatus): Promise<void> {
-        const reading = await transport.readRun(address).catch(() => null);
-        if (stopped) {
-            return;
-        }
-        const observedAt = new Date().toISOString();
-        onObservation(
-            reading
-                ? observationOf({ ...reading, rawStatus }, { agentId: address.agentId, observedAt })
-                : {
-                      observedAt,
-                      providerAgentId: address.agentId,
-                      providerRunId: address.runId,
-                      rawStatus,
-                      status: cloudAgentStatusOf(rawStatus),
-                  }
-        );
-        stop();
-    }
+            const activity = activityOf(event.summary, observedAt);
+            if (activity) {
+                onObservation({
+                    activity,
+                    observedAt,
+                    providerAgentId: address.agentId,
+                    providerRunId: address.runId,
+                    status: 'running',
+                });
+            }
+        },
+        lifetime
+    );
 }
 
 /**

@@ -202,6 +202,8 @@ test('a Cloud Agent work pass refetches the active list and both transcript read
 
     expect(recorded).toEqual([
         { input: { serverId }, name: 'cloudAgentWork.listActive' },
+        { input: { chatId: 'chat_thread', serverId }, name: 'cloudAgentWork.listForChat' },
+        { input: { chatId: 'chat_parent', serverId }, name: 'cloudAgentWork.listForChat' },
         { input: { chatId: 'chat_thread', serverId }, name: 'chat.messages' },
         { input: { chatId: 'chat_parent', serverId }, name: 'chat.messages' },
         {
@@ -226,7 +228,10 @@ function recordingCaches() {
             messages: { invalidate: record('chat.messages') },
             search: { invalidate: record('chat.search') },
         },
-        cloudAgentWork: { listActive: { invalidate: record('cloudAgentWork.listActive') } },
+        cloudAgentWork: {
+            listActive: { invalidate: record('cloudAgentWork.listActive') },
+            listForChat: { invalidate: record('cloudAgentWork.listForChat') },
+        },
         task: { list: { invalidate: record('task.list') } },
         taskLabel: { list: { invalidate: record('taskLabel.list') } },
     } as unknown as ChatEventUtils;

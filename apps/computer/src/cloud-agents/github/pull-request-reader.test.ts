@@ -1,4 +1,9 @@
-import { expect, test } from 'bun:test';
+import { afterAll, expect, test } from 'bun:test';
+import { makeTestRuntime } from '@grotto/effect';
+
+const runtime = makeTestRuntime();
+afterAll(() => runtime.dispose());
+
 import {
     createPullRequestReader,
     pullRequestAddressOf,
@@ -65,6 +70,7 @@ test('a payload missing its diff counts is no snapshot rather than zeros', () =>
 
 test('a read carries the diff counts GitHub reports', async () => {
     const reader = createPullRequestReader({
+        runtime,
         fetch: () => Promise.resolve(Response.json(payload)),
         now: () => Date.parse(observedAt),
         token: () => Promise.resolve(null),
@@ -83,6 +89,7 @@ test('a read carries the diff counts GitHub reports', async () => {
 test('a resolved token authorizes the read and never appears anywhere else', async () => {
     const headers: Record<string, string>[] = [];
     const reader = createPullRequestReader({
+        runtime,
         fetch: (_url, init) => {
             headers.push({ ...((init?.headers ?? {}) as Record<string, string>) });
             return Promise.resolve(Response.json(payload));
@@ -99,6 +106,7 @@ test('a resolved token authorizes the read and never appears anywhere else', asy
 test('a 5xx is retried once and a second failure is no snapshot', async () => {
     let calls = 0;
     const reader = createPullRequestReader({
+        runtime,
         fetch: () => {
             calls += 1;
             return Promise.resolve(new Response('', { status: 502 }));
@@ -115,6 +123,7 @@ test('a 5xx is retried once and a second failure is no snapshot', async () => {
 test('a 404 is not retried, and a thrown request is no snapshot either', async () => {
     let calls = 0;
     const missing = createPullRequestReader({
+        runtime,
         fetch: () => {
             calls += 1;
             return Promise.resolve(new Response('', { status: 404 }));
@@ -128,6 +137,7 @@ test('a 404 is not retried, and a thrown request is no snapshot either', async (
 
     const debug: string[] = [];
     const offline = createPullRequestReader({
+        runtime,
         fetch: () => Promise.reject(new Error('network is unreachable')),
         now: () => Date.parse(observedAt),
         onDebug: (message) => debug.push(message),
@@ -141,6 +151,7 @@ test('one pull request is read at most once per throttle window', async () => {
     let calls = 0;
     let clock = Date.parse(observedAt);
     const reader = createPullRequestReader({
+        runtime,
         fetch: () => {
             calls += 1;
             return Promise.resolve(Response.json(payload));

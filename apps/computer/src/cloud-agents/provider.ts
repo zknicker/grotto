@@ -36,6 +36,12 @@ export interface CloudAgentLaunch {
     status: CloudAgentStatus;
 }
 
+export interface CloudAgentSendInput {
+    idempotencyKey: string;
+    instructions: string;
+    providerAgentId: string;
+}
+
 /** One bounded provider reading, before Grotto's own work and Run identities. */
 export interface CloudAgentProviderObservation {
     activity?: { at: string; summary: string };
@@ -62,7 +68,7 @@ export interface CloudAgentProviderObservation {
  * already settled.
  */
 export interface CloudAgentProvider {
-    cancel(ref: CloudAgentRunRef): Promise<void>;
+    cancel(ref: CloudAgentRunRef, signal?: AbortSignal): Promise<void>;
     /**
      * Runs the provider's own browser sign-in on this Computer and stores the
      * credential where the provider keeps it. Only an explicit human action in
@@ -72,13 +78,19 @@ export interface CloudAgentProvider {
     /** Forgets the stored credential. The provider-side key stays revocable. */
     disconnect(): Promise<CloudAgentReadiness>;
     readonly provider: 'cursor';
-    read(ref: CloudAgentRunRef): Promise<CloudAgentProviderObservation>;
+    read(ref: CloudAgentRunRef, signal?: AbortSignal): Promise<CloudAgentProviderObservation>;
     readiness(): Promise<CloudAgentReadiness>;
+    send(input: CloudAgentSendInput): Promise<CloudAgentLaunch>;
     start(input: CloudAgentStartInput): Promise<CloudAgentLaunch>;
     subscribe(
         ref: CloudAgentRunRef,
-        onObservation: (observation: CloudAgentProviderObservation) => void
-    ): () => void;
+        onObservation: (observation: CloudAgentProviderObservation) => void,
+        signal: AbortSignal
+    ): Promise<void>;
+}
+
+export class CloudAgentLaunchRejectedError extends Error {
+    override readonly name = 'CloudAgentLaunchRejectedError';
 }
 
 export class CloudAgentProviderUnavailableError extends Error {
@@ -120,6 +132,7 @@ export function unavailableCloudAgentProvider(): CloudAgentProvider {
         provider: 'cursor',
         read: () => Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
         readiness: () => Promise.resolve({ ready: false, reason: 'provider-unavailable' as const }),
+        send: () => Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
         start: () => Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
         subscribe: () => unavailable(),
     };

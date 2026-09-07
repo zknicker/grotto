@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import {
     agentCloudAgentCancelReceiptSchema,
+    agentCloudAgentListReceiptSchema,
     agentCloudAgentReceiptSchema,
+    agentCloudAgentSendReceiptSchema,
     cloudAgentRepositorySchema,
     cloudAgentTitleSchema,
 } from '@grotto/api';
@@ -44,17 +46,119 @@ const START_COMMAND: SubCommand = {
     usage: 'grotto cloud-agent start --target <target> --repo <owner/name> --ref <ref> --title <text> --say <text>',
 };
 
-const CANCEL_COMMAND: SubCommand = {
-    examples: ['grotto cloud-agent cancel --work caw_9f2c1a0b7d4e6f81'],
-    flags: [{ description: 'The work to cancel', name: '--work', valueName: '<workId>' }],
-    name: 'cancel',
+const SEND_COMMAND: SubCommand = {
+    examples: [
+        'printf "Address the review comments." | grotto cloud-agent send --work caw_9f2c1a0b7d4e6f81',
+    ],
+    flags: [
+        { description: 'Existing work to continue', name: '--work', valueName: '<workId>' },
+        { description: 'Replace active work and older queued prompts', name: '--interrupt' },
+    ],
+    name: 'send',
+    positionals: [],
+    run: (args) => runCloudAgentSend(args, defaultDeps()),
+    summary: 'Send stdin instructions to the same cloud agent; queue while busy',
+    usage: 'grotto cloud-agent send --work <workId> [--interrupt]',
+};
+
+const INSPECT_COMMAND: SubCommand = {
+    examples: [
+        'grotto cloud-agent inspect',
+        'grotto cloud-agent inspect --work caw_9f2c1a0b7d4e6f81',
+    ],
+    flags: [
+        {
+            description: 'Work to inspect; omit to list your work',
+            name: '--work',
+            valueName: '<workId>',
+        },
+    ],
+    name: 'inspect',
+    positionals: [],
+    run: (args) => runCloudAgentInspect(args, defaultDeps()),
+    summary: 'Inspect your cloud agent work and its recorded results',
+    usage: 'grotto cloud-agent inspect [--work <workId>]',
+};
+
+const STOP_COMMAND: SubCommand = {
+    examples: ['grotto cloud-agent stop --work caw_9f2c1a0b7d4e6f81'],
+    flags: [{ description: 'The work to stop', name: '--work', valueName: '<workId>' }],
+    name: 'stop',
     positionals: [],
     run: (args) => runCloudAgentCancel(args, defaultDeps()),
     summary: 'Ask the provider to stop work you delegated',
+    usage: 'grotto cloud-agent stop --work <workId>',
+};
+
+const CANCEL_COMMAND: SubCommand = {
+    ...STOP_COMMAND,
+    examples: ['grotto cloud-agent cancel --work caw_9f2c1a0b7d4e6f81'],
+    name: 'cancel',
+    summary: 'Compatibility alias for cloud-agent stop',
     usage: 'grotto cloud-agent cancel --work <workId>',
 };
 
-export const CLOUD_AGENT_SUBCOMMANDS: SubCommand[] = [START_COMMAND, CANCEL_COMMAND];
+export const CLOUD_AGENT_SUBCOMMANDS: SubCommand[] = [
+    START_COMMAND,
+    SEND_COMMAND,
+    INSPECT_COMMAND,
+    STOP_COMMAND,
+    CANCEL_COMMAND,
+];
+
+export async function runCloudAgentSend(args: ParsedArgs, deps: CloudAgentDeps): Promise<number> {
+    const workId = requiredValue(args, '--work');
+    const instructions = deps.stdinIsTty ? '' : await deps.readStdin();
+    if (!instructions.trim()) {
+        throw new AgentCliError(
+            'MISSING_CONTENT',
+            'Follow-up instructions are required on stdin.',
+            {
+                nextAction: `printf "Address the review comments." | grotto cloud-agent send --work ${workId}`,
+            }
+        );
+    }
+    const receipt = await deps.client.request(
+        '/api/agent/cloud-agents/send',
+        agentCloudAgentSendReceiptSchema,
+        {
+            body: {
+                workId,
+                instructions: instructions.trimEnd(),
+                nonce: deps.mintNonce(),
+                interrupt: args.flags['--interrupt'] === true,
+            },
+            method: 'POST',
+            timeoutMs: 60_000,
+        }
+    );
+    deps.write(
+        `Follow-up accepted for ${receipt.work.title}. Work ID: ${receipt.work.id}\nThe result reaches your inbox when this follow-up settles. Use this Work ID for further revisions.\n`
+    );
+    return 0;
+}
+
+export async function runCloudAgentInspect(
+    args: ParsedArgs,
+    deps: CloudAgentDeps
+): Promise<number> {
+    const workId = args.values['--work']?.trim();
+    const { works } = await deps.client.request(
+        '/api/agent/cloud-agents',
+        agentCloudAgentListReceiptSchema,
+        { query: { workId } }
+    );
+    if (workId) {
+        deps.write(`${JSON.stringify(works, null, 2)}\n`);
+    } else {
+        deps.write(
+            works.length
+                ? `${works.map((work) => `${work.id} [${work.status}] ${work.title} (${work.repository})`).join('\n')}\n`
+                : 'No cloud agent work found.\n'
+        );
+    }
+    return 0;
+}
 
 export async function runCloudAgentStart(args: ParsedArgs, deps: CloudAgentDeps): Promise<number> {
     const target = requiredValue(args, '--target');

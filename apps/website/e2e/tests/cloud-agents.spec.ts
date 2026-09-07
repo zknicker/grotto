@@ -10,7 +10,9 @@ import { expect, test } from '../support/test.ts';
 const workTitle = 'Fix the failing migration';
 const credential = 'computer-cloud-agent-work-credential-12';
 
-test('Cloud Agent work reads as a Chat surface header and an in-Thread card', async ({ page }) => {
+test('Cloud Agent work reads as a Chat surface header and an in-Thread card', async ({
+    page,
+}, testInfo) => {
     test.setTimeout(90_000);
     const { server, session } = await createTestServer(page, {
         displayName: 'Cloud Agent Work',
@@ -74,7 +76,12 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
     // beneath the Agent's own words — which the card never replaced.
     await page.getByRole('button', { name: /^Open thread, Cloud Agent work/u }).click();
     const thread = page.getByRole('complementary', { name: 'Thread' });
-    const card = thread.getByTestId('cloud-agent-work-card');
+    const conversation = thread.getByTestId('thread-conversation');
+    const card = conversation
+        .locator(`[data-message-id="${seeded.messageId}"]`)
+        .getByTestId('cloud-agent-work-card');
+    await expect(thread.getByTestId('thread-cloud-agent-carousel')).toHaveCount(0);
+    await expect(thread.getByRole('heading', { name: /Cloud agents/u })).toHaveCount(0);
     await expect(card).toContainText('Running');
     await expect(card).toContainText('grotto/grotto');
     await expect(
@@ -91,6 +98,14 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
                     branch: 'cursor/fix-migration',
                     pullRequestUrl: 'https://github.com/grotto/grotto/pull/482',
                     repository: 'grotto/grotto',
+                    pullRequest: {
+                        number: 482,
+                        state: 'open',
+                        additions: 18,
+                        deletions: 7,
+                        changedFiles: 3,
+                        observedAt: new Date().toISOString(),
+                    },
                 },
             ],
             observedAt: new Date().toISOString(),
@@ -104,9 +119,14 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
     await expect(card).toContainText('cursor/fix-migration');
     await expect(card.getByTestId('cloud-agent-work-pull-request')).toContainText('PR #482');
     await expect(card.getByRole('button', { name: 'View PR' })).toBeVisible();
-    await expect(card.getByTestId('cloud-agent-work-report')).toContainText(
-        'Opened a pull request.'
-    );
+    await expect(card.getByTestId('cloud-agent-work-diff')).toContainText('3 files changed');
+    await expect(card.getByTestId('cloud-agent-work-diff')).toContainText('+18');
+    await expect(card.getByTestId('cloud-agent-work-diff')).toContainText('−7');
+    await expect(card.getByText('Opened a pull request.')).toHaveCount(0);
+    await page.reload();
+    await expect(card).toContainText('Done');
+    await expect(card.getByTestId('cloud-agent-work-diff')).toContainText('3 files changed');
+    await page.screenshot({ path: testInfo.outputPath('cloud-agent-completed.png') });
 
     // Settled work leaves "Happening now", which lists only live work.
     await page.goto('/s/cloud-agent-work/inbox');
@@ -135,6 +155,51 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
 
     await page.goto('/s/cloud-agent-work');
     await openChannel(page, 'all');
-    await expect(page.getByTestId('cloud-agent-work-status-mark')).toContainText('Running');
+    const rows = page.getByTestId('thread-cloud-agent-rows');
+    await expect(rows).toContainText('Backfill the migration test');
+    await expect(rows).toContainText('Running');
+    await expect(rows.getByRole('button')).toHaveCount(0);
+    await page.getByRole('button', { name: /^Open thread, Cloud Agent work/u }).click();
+    const cards = conversation.getByTestId('cloud-agent-work-card');
+    const nestedCard = conversation
+        .locator(`[data-message-id="${nested.messageId}"]`)
+        .getByTestId('cloud-agent-work-card');
+    await expect(cards).toHaveCount(2);
+    await expect(cards.nth(0)).toContainText(workTitle);
+    await expect(cards.nth(1)).toContainText('Backfill the migration test');
+    await expect(nestedCard).toContainText('Running');
+    await page.setViewportSize({ width: 1280, height: 400 });
+    const initialTop = await card.evaluate((element) => element.getBoundingClientRect().top);
+    await conversation.evaluate((element) => {
+        element.scrollTop = element.scrollHeight;
+    });
+    await expect
+        .poll(() => conversation.evaluate((element) => element.scrollTop))
+        .toBeGreaterThan(0);
+    await expect
+        .poll(() => card.evaluate((element) => element.getBoundingClientRect().top))
+        .toBeLessThan(initialTop);
+    await expect(nestedCard).toBeInViewport();
+    computer.send(
+        cloudAgentObservationFrame({
+            observedAt: new Date().toISOString(),
+            runId: nested.runId,
+            status: 'completed',
+            summary: 'Finished the follow-up.',
+            workId: nested.work.id,
+        })
+    );
+    await expect(rows).toContainText('Done');
+    await expect(nestedCard).toContainText('Done');
+    await expect(cards).toHaveCount(2);
+    await expect(cards.nth(0)).toContainText(workTitle);
+    await expect(cards.nth(1)).toContainText('Backfill the migration test');
+    await page.reload();
+    await expect(rows).toContainText('Backfill the migration test');
+    await expect(rows).toContainText('Done');
+    await expect(cards).toHaveCount(2);
+    await expect(cards.nth(0)).toContainText(workTitle);
+    await expect(cards.nth(1)).toContainText('Backfill the migration test');
+    await page.screenshot({ path: testInfo.outputPath('cloud-agent-inline.png') });
     computer.close();
 });

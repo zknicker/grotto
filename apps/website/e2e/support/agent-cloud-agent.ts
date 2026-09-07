@@ -148,7 +148,7 @@ export function cloudAgentObservationFrame(input: {
     /** The work's one bounded line of current state while it runs. */
     activity?: string;
     /** The Run's terminal branch evidence, including any pull request it opened. */
-    branches?: Array<{ branch: string; pullRequestUrl: null | string; repository: string }>;
+    branches?: import('@grotto/api').CloudAgentBranch[];
     observedAt: string;
     runId: string;
     status: 'cancelled' | 'completed' | 'expired' | 'failed' | 'queued' | 'running';

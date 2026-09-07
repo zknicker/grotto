@@ -90,16 +90,16 @@ and [Agent Inbox](../../specs/inbox.md).
   reported for ten minutes. The surface's overflow menu carries Open thread,
   Open in `<provider>`, Copy link, and — for Owners and Admins, while the work
   is live — Cancel run.
-* **Hoisted work status.** When a Thread contains queued or running Cloud Agent
-  work, its anchor's surface header states that work's status after the anchor's
-  own chip — `Task #1 · <disc> Blippy · <cloud> Running · 2m` — so a reader
-  scanning the Chat sees that something is still going under it. The hoist is
-  derived at read time from the Server's active-work list, keyed by the Thread's
-  anchor; terminal work is absent from that list, so a finished run is a fact for
-  the Thread rather than a status on the Chat.
+* **Hoisted work status.** Each Cloud Agent inside a Thread gets a compact row
+  beneath its anchor's Task/Ask header, showing provider, title, and status.
+  Completed work remains visible. The Server's conversation-scoped work list
+  supplies these rows, grouped by Thread anchor. The whole preview opens the
+  Thread; individual work rows are not click targets.
 * **The in-Thread work card.** Inside the Thread, the work Message renders as
   the Agent's own words followed immediately by a detailed card, in sequence
   right where the Agent handed the work off. The card is presentation of the
+  same work through later prompts and status updates; it never moves to the end
+  of the conversation. There is no pinned cloud section or carousel. It shows the
   Server-owned record, never a Chat row, and nothing on it is named after any
   one provider: the provider's own mark, the title with a status chip, the
   repository, a branch row carrying the branch the run wrote and `PR #<n>` when

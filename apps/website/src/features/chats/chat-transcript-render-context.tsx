@@ -53,13 +53,9 @@ export interface TranscriptRenderContextValue {
     flashMessageId: string | null;
     hiddenCount: number;
     /**
-     * Live Cloud Agent work by the Message whose Thread it runs inside, so an
-     * anchor's own surface can state that something is running under it. A Chat
-     * transcript carries its Threads only as reply previews, so this is the one
-     * read that can see in; terminal work is absent by construction, which is
-     * the hoist rule itself.
+     * Cloud Agent work by Thread anchor, including completed delegations.
      */
-    hoistedCloudAgentWork?: ReadonlyMap<string, CloudAgentWork>;
+    hoistedCloudAgentWork?: ReadonlyMap<string, readonly CloudAgentWork[]>;
     /**
      * The text a message's Copy action writes to the clipboard. Absent by
      * default, in which case `getMessageCopyText` falls back to the raw

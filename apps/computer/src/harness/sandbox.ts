@@ -121,10 +121,11 @@ async function createLocalTrustedSandboxSession(input: {
         get ports() {
             return ports;
         },
-        getPortUrl: async (options) => {
+        getPortEndpoint: async (options) => {
             const protocol = options.protocol ?? 'http';
-            return `${protocol}://127.0.0.1:${options.port}`;
+            return { url: `${protocol}://127.0.0.1:${options.port}` };
         },
+        getPortUrl: async (options) => (await session.getPortEndpoint(options)).url,
         readBinaryFile: async (options) => readBinaryFile(rootDir, options.path),
         readFile: async (options) => {
             const content = await readBinaryFile(rootDir, options.path);
@@ -393,10 +394,5 @@ function reservePort() {
 }
 
 function isNodeCode(error: unknown, code: string) {
-    return (
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        (error as { code?: unknown }).code === code
-    );
+    return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
 }

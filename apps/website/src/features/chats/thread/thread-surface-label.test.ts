@@ -15,6 +15,6 @@ test('each surface names what it opens', () => {
 
 test('a task with work running under it names both', () => {
     expect(threadSurfaceLabel({ ask: false, hoisted: true, taskNumber: 4 })).toBe(
-        'Task #4, Cloud Agent work running'
+        'Task #4, Cloud Agent work'
     );
 });

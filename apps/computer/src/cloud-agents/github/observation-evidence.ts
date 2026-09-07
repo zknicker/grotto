@@ -1,5 +1,5 @@
 import type { CloudAgentProviderObservation } from '../provider.ts';
-import { createPullRequestReader, type PullRequestReader } from './pull-request-reader.ts';
+import type { PullRequestReader } from './pull-request-reader.ts';
 
 /** Whether an observation names a pull request worth reading GitHub for. */
 export function carriesPullRequest(observation: CloudAgentProviderObservation): boolean {
@@ -15,12 +15,13 @@ export function carriesPullRequest(observation: CloudAgentProviderObservation): 
  * This runs before the observation is reported rather than after it, because
  * Server settles a Run on its first terminal observation and a later report
  * against a settled Run is correctly a no-op. The read is therefore bounded
- * and never throws: a Run whose pull request cannot be read reports exactly
- * what it always reported.
+ * and optional: a Run whose pull request cannot be read reports exactly what
+ * it always reported. Daemon cancellation interrupts enrichment instead.
  */
 export async function withPullRequestEvidence(
     observation: CloudAgentProviderObservation,
-    reader: PullRequestReader = sharedPullRequestReader()
+    reader: PullRequestReader,
+    signal?: AbortSignal
 ): Promise<CloudAgentProviderObservation> {
     const branches = observation.branches;
     // The branch the card shows: the one carrying a pull request. One read per
@@ -30,7 +31,8 @@ export async function withPullRequestEvidence(
     if (!(branches && branch?.pullRequestUrl)) {
         return observation;
     }
-    const pullRequest = await reader.read(branch.pullRequestUrl);
+    const pullRequest = await reader.read(branch.pullRequestUrl, signal);
+    signal?.throwIfAborted();
     if (!pullRequest) {
         return observation;
     }
@@ -38,12 +40,4 @@ export async function withPullRequestEvidence(
         ...observation,
         branches: branches.map((entry, at) => (at === index ? { ...entry, pullRequest } : entry)),
     };
-}
-
-let shared: PullRequestReader | null = null;
-
-/** One reader per Computer process, so its throttle actually throttles. */
-function sharedPullRequestReader(): PullRequestReader {
-    shared ??= createPullRequestReader();
-    return shared;
 }

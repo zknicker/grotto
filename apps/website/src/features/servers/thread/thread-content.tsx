@@ -25,10 +25,7 @@ import { threadTitles } from './thread-target.ts';
  * the anchor, replies, and composer. The chat page hosts it in the shell side pane (`ThreadPanel`);
  * the Tasks page hosts it in the task thread dialog.
  *
- * A Task states itself in a metadata panel above the anchor, because its
- * lifecycle is edited here. Cloud Agent work does not: it is watched rather
- * than driven, so it reads as a card in sequence beneath the Message that
- * delegated it, wherever in the Thread that was.
+ * Task metadata stays above the conversation; Cloud Agent cards scroll with their Messages.
  */
 export function ThreadContent({
     active,
@@ -149,9 +146,22 @@ export function ThreadContent({
                 threadExists={threadChatId !== undefined}
             />
             <TranscriptRenderProvider value={renderContext}>
+                <div className="max-h-[50%] shrink-0 overflow-y-auto px-5">
+                    {anchor.task ? (
+                        <TaskThreadMetadata
+                            chat={chat}
+                            chatId={chat.id}
+                            fallbackTask={anchor.task}
+                            messageId={anchor.id}
+                        />
+                    ) : null}
+                </div>
                 {/* px-5 matches the main chat viewport gutter so the
                             rows' full-width hover bleed stays contained. */}
-                <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                <div
+                    className="min-h-0 flex-1 overflow-y-auto px-5 py-4"
+                    data-testid="thread-conversation"
+                >
                     {/*
                      * Why the anchor was sent, above the anchor itself. A fire
                      * writes no transcript row, so this card is where the
@@ -160,14 +170,6 @@ export function ThreadContent({
                      */}
                     {anchor.cause ? (
                         <AutomationFireContextCard messageId={anchor.id} serverId={chat.serverId} />
-                    ) : null}
-                    {anchor.task ? (
-                        <TaskThreadMetadata
-                            chat={chat}
-                            chatId={chat.id}
-                            fallbackTask={anchor.task}
-                            messageId={anchor.id}
-                        />
                     ) : null}
                     {anchorEntries.map((entry) => (
                         <TranscriptEntryView

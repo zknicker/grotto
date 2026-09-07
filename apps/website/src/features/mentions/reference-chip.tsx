@@ -38,17 +38,7 @@ export function ReferenceChip({
     const previewable = preview && isPreviewReference(kind, id);
     const activatable = Boolean(onActivate && (kind === 'agent' || kind === 'chat'));
     const chipColor = getMentionChipColor(kind);
-    const brandForeground = chipColor === 'default' ? appearance.brandColor : undefined;
-    const channelColorStyle = appearance.channelAppearance
-        ? getChannelColorStyle(appearance.channelAppearance.color)
-        : undefined;
-    const chipStyle =
-        brandForeground || channelColorStyle
-            ? ({
-                  ...channelColorStyle,
-                  ...(brandForeground ? { '--chip-fg': brandForeground } : {}),
-              } as React.CSSProperties & Record<`--${string}`, string>)
-            : undefined;
+    const chipStyle = referenceChipStyle(appearance, chipColor);
     const chip = (
         <Chip
             className={cn(
@@ -120,4 +110,21 @@ export function ReferenceChip({
     ) : (
         trigger
     );
+}
+
+function referenceChipStyle(
+    appearance: ReturnType<typeof getMentionAppearance>,
+    chipColor: ReturnType<typeof getMentionChipColor>
+): (React.CSSProperties & { '--chip-fg'?: string }) | undefined {
+    const brandForeground = chipColor === 'default' ? appearance.brandColor : undefined;
+    const channelStyle = appearance.channelAppearance
+        ? getChannelColorStyle(appearance.channelAppearance.color)
+        : undefined;
+    if (!(brandForeground || channelStyle)) {
+        return undefined;
+    }
+    return {
+        ...channelStyle,
+        ...(brandForeground ? { '--chip-fg': brandForeground } : {}),
+    };
 }

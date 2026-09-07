@@ -1,297 +1,295 @@
 import type {
-    AgentCloudAgentReceipt,
     CloudAgentCancelCommand,
     CloudAgentObservation,
     CloudAgentReconcileEntry,
 } from '@grotto/api';
-import { agentCloudAgentReceiptSchema } from '@grotto/api';
-import { carriesPullRequest, withPullRequestEvidence } from './github/observation-evidence.ts';
-import {
-    type CloudAgentProviderObservation,
-    CloudAgentProviderUnavailableError,
-    type CloudAgentRunRef,
+import { isTerminalCloudAgentStatus } from '@grotto/api';
+import { settle } from '@grotto/effect';
+import { Clock, Deferred, type Duration, Effect, Exit, Scope } from 'effect';
+import type { DaemonRuntime } from '../daemon-runtime.ts';
+import { type CloudAgentOperationError, foreign } from './foreign-operation.ts';
+import { withPullRequestEvidence } from './github/observation-evidence.ts';
+import { createPullRequestReader } from './github/pull-request-reader.ts';
+import { CloudLaunchJournal } from './launch-journal.ts';
+import { CloudAgentLaunchScope } from './launch-scope.ts';
+import { type EnrichObservation, ObservationReports } from './observation-reports.ts';
+import type {
+    CloudAgentProvider,
+    CloudAgentProviderObservation,
+    CloudAgentRunRef,
 } from './provider.ts';
 import { cloudAgentProvider } from './registry.ts';
+import { CloudAgentSendQueue } from './send-queue.ts';
 
-export interface CloudAgentStartRequest {
-    content: string;
-    /** The provider prompt. It stays on this Computer and never reaches Server. */
-    instructions: string;
-    nonce: string;
-    repository: string;
-    startingRef: string | null;
-    target: string;
-    title: string;
+interface WatchedRun {
+    cancelRequested: boolean;
+    readonly ready: Deferred.Deferred<void>;
+    ref: CloudAgentRunRef;
+    terminal: boolean;
+    readonly wake: Deferred.Deferred<void>;
 }
 
-export class CloudAgentLaunchFailedError extends Error {
-    readonly receipt: AgentCloudAgentReceipt;
+interface Connection {
+    readonly runs: Map<string, WatchedRun>;
+    readonly scope: Scope.CloseableScope;
+    readonly sink: (observation: CloudAgentObservation) => void;
+}
 
-    constructor(receipt: AgentCloudAgentReceipt, cause: unknown) {
-        super(
-            `The provider refused the launch: ${cause instanceof Error ? cause.message : String(cause)}`
+/** The attachment daemon owns local monitoring; closing it never cancels hosted work. */
+export class CloudAgentWorkSupervisor {
+    private connection: Connection | null = null;
+    private closed = false;
+    private closePromise: Promise<void> | null = null;
+    private detachPromise: Promise<void> = Promise.resolve();
+    private readonly launches: CloudAgentLaunchScope;
+    private readonly enrich: EnrichObservation;
+    private readonly provider: () => CloudAgentProvider;
+    private readonly sends: CloudAgentSendQueue;
+
+    constructor(
+        private readonly runtime: DaemonRuntime,
+        options: {
+            dataRoot: string;
+            serverId: string;
+            provider?: () => CloudAgentProvider;
+            enrich?: EnrichObservation;
+        }
+    ) {
+        const journal = new CloudLaunchJournal(options.dataRoot);
+        this.provider = options.provider ?? cloudAgentProvider;
+        this.sends = new CloudAgentSendQueue(runtime, journal, options.serverId, this.provider);
+        this.launches = new CloudAgentLaunchScope(runtime);
+        const reader = createPullRequestReader({ runtime });
+        this.enrich =
+            options.enrich ??
+            ((observation, signal) => withPullRequestEvidence(observation, reader, signal));
+    }
+
+    attach(sink: Connection['sink']): void {
+        if (this.closed || this.connection) {
+            return;
+        }
+        this.connection = { runs: new Map(), scope: this.runtime.runSync(Scope.make()), sink };
+    }
+
+    detach(): Promise<void> {
+        const connection = this.connection;
+        this.connection = null;
+        if (connection) {
+            this.detachPromise = Promise.all([
+                this.detachPromise,
+                settle(this.runtime, Scope.close(connection.scope, Exit.succeed(undefined))),
+            ]).then(() => undefined);
+        }
+        return this.detachPromise;
+    }
+
+    close(): Promise<void> {
+        this.closed = true;
+        this.closePromise ??= Promise.all([this.launches.close(), this.detach()]).then(
+            () => undefined
         );
-        this.name = 'CloudAgentLaunchFailedError';
-        this.receipt = receipt;
+        return this.closePromise;
     }
-}
 
-type ObservationSink = (observation: CloudAgentObservation) => void;
-
-const reporters = new Map<string, ObservationSink>();
-const liveRuns = new Map<string, () => void>();
-const reportQueues = new Map<string, Promise<void>>();
-
-/** Routes this attachment's observations up its Computer socket. */
-export function setCloudAgentReporter(serverId: string, sink: ObservationSink | null): void {
-    if (sink) {
-        reporters.set(serverId, sink);
-        return;
+    runLaunch<Value>(operation: () => Promise<Value>): Promise<Value> {
+        return this.launches.run(operation);
     }
-    reporters.delete(serverId);
-    for (const [key, unsubscribe] of liveRuns) {
-        if (key.startsWith(`${serverId}:`)) {
-            unsubscribe();
-            liveRuns.delete(key);
+
+    report(ref: CloudAgentRunRef, observation: CloudAgentProviderObservation): void {
+        this.connection?.sink({ ...observation, runId: ref.runId, workId: ref.workId });
+    }
+
+    watch(ref: CloudAgentRunRef): void {
+        this.admit(ref, false);
+    }
+
+    async cancel(command: CloudAgentCancelCommand): Promise<void> {
+        const run = this.admit(command, true);
+        if (run) {
+            await settle(this.runtime, Deferred.await(run.ready));
         }
     }
-}
 
-/**
- * Runs one `grotto cloud-agent start`. Readiness is checked before Server is
- * asked for anything, so an unavailable capability creates no Message. Once
- * Server has accepted the launch the work exists: a provider refusal is
- * reported as a failed observation against that same work rather than erased.
- */
-export async function startCloudAgentWork(input: {
-    request: CloudAgentStartRequest;
-    runnerToken: string;
-    serverId: string;
-    serverOrigin: string;
-}): Promise<AgentCloudAgentReceipt> {
-    const provider = cloudAgentProvider();
-    const readiness = await provider.readiness();
-    if (!readiness.ready) {
-        throw new CloudAgentProviderUnavailableError(readiness.reason);
-    }
-
-    const { instructions, ...serverInput } = input.request;
-    const response = await fetch(new URL('/api/agent/cloud-agents', input.serverOrigin), {
-        body: JSON.stringify({ ...serverInput, provider: provider.provider }),
-        headers: {
-            authorization: `Bearer ${input.runnerToken}`,
-            'content-type': 'application/json',
-        },
-        method: 'POST',
-    });
-    const payload = await response.json();
-    if (!response.ok) {
-        throw new CloudAgentServerError(payload);
-    }
-    const receipt = agentCloudAgentReceiptSchema.parse(payload);
-    const ref: CloudAgentRunRef = {
-        providerAgentId: receipt.work.providerAgentId,
-        providerRunId: receipt.work.runs[0]?.providerRunId ?? null,
-        runId: receipt.runId,
-        workId: receipt.work.id,
-    };
-    // A replayed nonce returns the work Server already recorded. Launching
-    // again would strand a second provider agent against a Run that is already
-    // running or settled, so reconcile that Run instead.
-    if (receipt.idempotent) {
-        await reconcileRun(input.serverId, ref);
-        return receipt;
-    }
-
-    try {
-        const launch = await provider.start({
-            idempotencyKey: receipt.runId,
-            instructions,
-            ref: receipt.work.startingRef,
-            repository: receipt.work.repository,
-            title: receipt.work.title,
-        });
-        await report(input.serverId, ref, {
-            observedAt: new Date().toISOString(),
-            providerAgentId: launch.providerAgentId,
-            providerRunId: launch.providerRunId,
-            ...(launch.providerUrl ? { providerUrl: launch.providerUrl } : {}),
-            status: launch.status,
-        });
-        watchRun(input.serverId, {
-            ...ref,
-            providerAgentId: launch.providerAgentId,
-            providerRunId: launch.providerRunId,
-        });
-        return receipt;
-    } catch (cause) {
-        await report(input.serverId, ref, {
-            errorCode: 'provider-launch-failed',
-            observedAt: new Date().toISOString(),
-            status: 'failed',
-            summary: cause instanceof Error ? cause.message : String(cause),
-        });
-        throw new CloudAgentLaunchFailedError(receipt, cause);
-    }
-}
-
-/** Applies a Server-recorded cancellation and reports the settled Run. */
-export async function applyCloudAgentCancel(
-    serverId: string,
-    command: CloudAgentCancelCommand
-): Promise<void> {
-    const ref: CloudAgentRunRef = {
-        providerAgentId: command.providerAgentId,
-        providerRunId: command.providerRunId,
-        runId: command.runId,
-        workId: command.workId,
-    };
-    releaseRun(serverId, ref);
-    const provider = cloudAgentProvider();
-    await provider.cancel(ref);
-    await report(serverId, ref, await provider.read(ref));
-}
-
-/**
- * Reconnect reconciliation. Every non-terminal work this Computer still owns is
- * re-read from the provider and reported, and a cancel recorded while the
- * socket was down is applied first.
- */
-export async function reconcileCloudAgentWork(
-    serverId: string,
-    entries: CloudAgentReconcileEntry[]
-): Promise<void> {
-    for (const entry of entries) {
-        await reconcileRun(
-            serverId,
-            {
-                providerAgentId: entry.providerAgentId,
-                providerRunId: entry.providerRunId,
-                runId: entry.runId,
-                workId: entry.workId,
-            },
-            entry.cancelRequested
+    async reconcile(entries: CloudAgentReconcileEntry[]): Promise<void> {
+        const runs = entries.map((entry) =>
+            isTerminalCloudAgentStatus(entry.status)
+                ? undefined
+                : this.admit(entry, entry.cancelRequested)
+        );
+        await Promise.all(
+            runs.map((run) =>
+                run ? settle(this.runtime, Deferred.await(run.ready)) : Promise.resolve()
+            )
         );
     }
-}
 
-/**
- * Reads one Run from the provider and reports what it finds. A provider that
- * cannot be reached reports nothing: the work stays non-terminal with a stale
- * `updatedAt`, which the presentation already accounts for, and the next
- * reconnect tries again. Settling live provider work on a transient read
- * failure would be a lie.
- */
-async function reconcileRun(
-    serverId: string,
-    ref: CloudAgentRunRef,
-    cancelRequested = false
-): Promise<void> {
-    const provider = cloudAgentProvider();
-    try {
-        if (cancelRequested) {
-            await provider.cancel(ref);
+    private admit(ref: CloudAgentRunRef, cancelRequested: boolean): WatchedRun | undefined {
+        const connection = this.connection;
+        if (!connection || this.closed) {
+            return;
         }
-        await report(serverId, ref, await provider.read(ref));
-        watchRun(serverId, ref);
-    } catch (error) {
-        console.error(
-            `Cloud Agent run ${ref.runId} could not be read: ${
-                error instanceof Error ? error.message : String(error)
-            }`
-        );
+        const current = connection.runs.get(ref.runId);
+        if (current) {
+            if (cancelRequested) {
+                current.cancelRequested = true;
+                this.runtime.runSync(Deferred.succeed(current.wake, undefined));
+            }
+            return current;
+        }
+        const run: WatchedRun = {
+            cancelRequested,
+            ready: this.runtime.runSync(Deferred.make<void>()),
+            ref,
+            terminal: false,
+            wake: this.runtime.runSync(Deferred.make<void>()),
+        };
+        connection.runs.set(ref.runId, run);
+        this.runtime.runSync(Effect.forkIn(this.monitor(connection, run), connection.scope));
+        return run;
     }
-}
 
-class CloudAgentServerError extends Error {
-    readonly code: string;
-
-    constructor(payload: unknown) {
-        const body = (payload ?? {}) as { code?: unknown; message?: unknown };
-        super(typeof body.message === 'string' ? body.message : 'The Server refused the launch.');
-        this.code = typeof body.code === 'string' ? body.code : 'SERVER_5XX';
-        this.name = 'CloudAgentServerError';
-    }
-}
-
-function watchRun(serverId: string, ref: CloudAgentRunRef): void {
-    const key = runKey(serverId, ref);
-    if (liveRuns.has(key)) {
-        return;
-    }
-    try {
-        liveRuns.set(
-            key,
-            cloudAgentProvider().subscribe(ref, (observation) => {
-                void report(serverId, ref, observation);
-                if (observation.status !== 'queued' && observation.status !== 'running') {
-                    releaseRun(serverId, ref);
-                }
-            })
-        );
-    } catch {
-        // A provider without a live stream reconciles by read alone.
-    }
-}
-
-function releaseRun(serverId: string, ref: CloudAgentRunRef): void {
-    const key = runKey(serverId, ref);
-    liveRuns.get(key)?.();
-    liveRuns.delete(key);
-}
-
-function runKey(serverId: string, ref: CloudAgentRunRef): string {
-    return `${serverId}:${ref.runId}`;
-}
-
-/**
- * One observation on its way to Server, in the order the provider produced it.
- *
- * An observation naming a pull request gains the GitHub evidence the provider
- * itself cannot report, and that read happens before the report rather than
- * after it: Server settles a Run on its first terminal observation, so evidence
- * arriving later would correctly be ignored. The read is bounded and never
- * throws — a Run whose pull request cannot be read reports exactly what it
- * always reported.
- *
- * An observation naming no pull request needs no read and is reported on the
- * spot, unless a read is already in flight for this Run; then it queues behind
- * it, because a later observation must never overtake an earlier one.
- */
-function report(
-    serverId: string,
-    ref: CloudAgentRunRef,
-    observation: CloudAgentProviderObservation
-): Promise<void> {
-    const key = runKey(serverId, ref);
-    const pending = reportQueues.get(key);
-    if (!(pending || carriesPullRequest(observation))) {
-        deliver(serverId, ref, observation);
-        return Promise.resolve();
-    }
-    const next = (pending ?? Promise.resolve())
-        .then(() => withPullRequestEvidence(observation))
-        .then((reported) => deliver(serverId, ref, reported))
-        .catch((error: unknown) => {
-            console.error(
-                `Cloud Agent run ${ref.runId} could not be reported: ${
-                    error instanceof Error ? error.message : String(error)
-                }`
+    private monitor(connection: Connection, run: WatchedRun): Effect.Effect<void> {
+        const self = this;
+        return Effect.gen(function* () {
+            const reports = new ObservationReports(self.runtime, self.enrich, (observation) =>
+                self.observe(connection, run, observation)
             );
-        });
-    reportQueues.set(key, next);
-    void next.then(() => {
-        if (reportQueues.get(key) === next) {
-            reportQueues.delete(key);
-        }
-    });
-    return next;
-}
+            yield* Effect.forkScoped(reports.consume());
+            let streamAttempted = false;
+            while (!run.terminal) {
+                const attempt = Effect.gen(function* () {
+                    if (!(yield* self.resolveAddress(connection, run))) {
+                        return false;
+                    }
+                    const provider = self.provider();
+                    if (run.cancelRequested) {
+                        yield* foreign((signal) => provider.cancel(run.ref, signal));
+                    }
+                    yield* reports.publish(
+                        yield* foreign((signal) => provider.read(run.ref, signal))
+                    );
+                    yield* Deferred.succeed(run.ready, undefined);
+                    if (!(run.terminal || run.cancelRequested || streamAttempted)) {
+                        streamAttempted = true;
+                        yield* Effect.raceFirst(
+                            foreign((signal) =>
+                                provider.subscribe(
+                                    run.ref,
+                                    (observation) => reports.enqueue(observation),
+                                    signal
+                                )
+                            ),
+                            Deferred.await(run.wake)
+                        );
+                        return true;
+                    }
+                    return false;
+                });
+                const wasCancelling = run.cancelRequested;
+                const outcome = yield* Effect.either(attempt);
+                yield* Deferred.succeed(run.ready, undefined);
+                if (run.terminal) {
+                    break;
+                }
+                if (outcome._tag === 'Left') {
+                    yield* Effect.logWarning('Cloud Agent monitoring will retry').pipe(
+                        Effect.annotateLogs({
+                            operation: 'cloud-agent.monitor',
+                            runId: run.ref.runId,
+                        })
+                    );
+                    yield* self.pause(run, '60 seconds', wasCancelling);
+                } else if (!outcome.right) {
+                    yield* self.pause(run, '5 seconds', wasCancelling);
+                }
+            }
+        }).pipe(
+            Effect.scoped,
+            Effect.ensuring(Effect.sync(() => connection.runs.delete(run.ref.runId))),
+            Effect.ensuring(Deferred.succeed(run.ready, undefined)),
+            Effect.asVoid
+        );
+    }
 
-function deliver(
-    serverId: string,
-    ref: CloudAgentRunRef,
-    observation: CloudAgentProviderObservation
-): void {
-    reporters.get(serverId)?.({ ...observation, runId: ref.runId, workId: ref.workId });
+    private pause(run: WatchedRun, duration: Duration.DurationInput, wasCancelling: boolean) {
+        return wasCancelling
+            ? Effect.sleep(duration)
+            : Effect.raceFirst(Effect.sleep(duration), Deferred.await(run.wake));
+    }
+
+    private resolveAddress(
+        connection: Connection,
+        run: WatchedRun
+    ): Effect.Effect<boolean, CloudAgentOperationError> {
+        const self = this;
+        return Effect.gen(function* () {
+            if (run.ref.providerAgentId && run.ref.providerRunId) {
+                return true;
+            }
+            const recorded = yield* self.sends.advance(run.ref, () => run.cancelRequested);
+            if (recorded?.phase === 'pending') {
+                return false;
+            }
+            if (recorded?.phase === 'cancelled') {
+                self.observe(connection, run, {
+                    observedAt: new Date(yield* Clock.currentTimeMillis).toISOString(),
+                    status: 'cancelled',
+                });
+                return false;
+            }
+            if (recorded?.phase === 'launched') {
+                run.ref = {
+                    ...run.ref,
+                    providerAgentId: recorded.launch.providerAgentId,
+                    providerRunId: recorded.launch.providerRunId,
+                };
+                const observedAt = new Date(yield* Clock.currentTimeMillis).toISOString();
+                self.observe(connection, run, {
+                    ...recorded.launch,
+                    providerUrl: recorded.launch.providerUrl ?? undefined,
+                    observedAt,
+                });
+                return !run.terminal;
+            }
+            const now = new Date(yield* Clock.currentTimeMillis).toISOString();
+            self.observe(
+                connection,
+                run,
+                recorded?.phase === 'rejected'
+                    ? { errorCode: 'provider-launch-rejected', observedAt: now, status: 'failed' }
+                    : {
+                          activity: {
+                              at: now,
+                              summary:
+                                  'Launch confirmation unavailable; inspect provider before retrying.',
+                          },
+                          observedAt: now,
+                          status: 'queued',
+                      }
+            );
+            return false;
+        });
+    }
+
+    private observe(
+        connection: Connection,
+        run: WatchedRun,
+        observation: CloudAgentProviderObservation
+    ): void {
+        if (this.connection !== connection || run.terminal) {
+            return;
+        }
+        connection.sink({
+            ...observation,
+            providerAgentId: run.ref.providerAgentId ?? undefined,
+            providerRunId: run.ref.providerRunId ?? undefined,
+            runId: run.ref.runId,
+            workId: run.ref.workId,
+        });
+        if (isTerminalCloudAgentStatus(observation.status)) {
+            run.terminal = true;
+            this.runtime.runSync(Deferred.succeed(run.wake, undefined));
+        }
+    }
 }

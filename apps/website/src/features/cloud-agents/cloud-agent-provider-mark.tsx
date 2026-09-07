@@ -6,21 +6,19 @@ import { cn } from '../../lib/utils.ts';
 import { cloudAgentProviderPresentation } from './cloud-agent-provider-presentation.ts';
 
 /**
- * The provider's own mark at card scale: the same 48px box every `ActionCard`
- * identity uses, with the radius derived from that box rather than fixed, so
- * the corner tracks the size the way `EntityAvatar` does.
+ * A 40px identity mark matches the card's two 20px text lines.
  */
 export function CloudAgentProviderMark({ provider }: { provider: CloudAgentProvider }) {
     const presentation = cloudAgentProviderPresentation[provider];
 
     return (
         <ModelProviderLogo
-            className="size-12 border border-separator"
+            className="size-10 border border-separator"
             color={presentation.color}
             fallbackIcon={CloudIcon}
-            iconClassName="size-6"
+            iconClassName="size-5"
             logo={presentation.logo}
-            style={{ borderRadius: identityMarkRadius(48) }}
+            style={{ borderRadius: identityMarkRadius(40) }}
         />
     );
 }

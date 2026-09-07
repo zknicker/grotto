@@ -162,8 +162,8 @@ typography:
     lineHeight: "20px"
   base:
     fontFamily: "Inter"
-    fontSize: "15px"
-    lineHeight: "24px"
+    fontSize: "14px"
+    lineHeight: "22.4px"
   lg:
     fontFamily: "Inter"
     fontSize: "17px"
@@ -367,7 +367,7 @@ Use the generated font and text scale through HeroUI components and Tailwind tex
 | --- | --- | --- | --- | --- | --- |
 | `xs` | Inter | `11px` | `16px` | `--text-xs` | `text-xs` |
 | `sm` | Inter | `13px` | `20px` | `--text-sm` | `text-sm` |
-| `base` | Inter | `15px` | `24px` | `--text-base` | `text-base` |
+| `base` | Inter | `14px` | `22.4px` | `--text-base` | `text-base` |
 | `lg` | Inter | `17px` | `28px` | `--text-lg` | `text-lg` |
 | `xl` | Inter | `19px` | `28px` | `--text-xl` | `text-xl` |
 | `2xl` | Inter | `22px` | `32px` | `--text-2xl` | `text-2xl` |
@@ -381,6 +381,10 @@ Use the generated font and text scale through HeroUI components and Tailwind tex
 
 Product copy uses `base`; compact app chrome uses `sm`. Tooltips are globally promoted from
 HeroUI's stock `xs` to `sm` in `default-theme.css` so action labels never read as fine print.
+Base text retains a 1.6 line-height ratio. HeroUI Markdown uses its own 1.625 ratio,
+giving chat messages a 22.75px line height at the shared 14px base size.
+Inline code uses a 7% foreground tint over its surrounding surface, keeping it distinct
+when a message is hovered in either theme. Fenced code blocks retain their stock background.
 
 ### Document type roles
 
@@ -394,7 +398,7 @@ carries the right step and a call site never sets its own size.
 | Page title | `2xl` (22px), `tracking-tight` | 600 | `SettingsPageHeader`, `MemberProfileHeader` |
 | Page description | `sm` (13px) | 400, muted | `SettingsPageHeader` |
 | Dialog title | `lg` (17px) | 600 | `.modal__heading`, `.drawer__heading`, `.alert-dialog__heading` |
-| Section heading | `base` (15px) | 600 | `ItemCardGroup.Title`, `SettingsSection` |
+| Section heading | `base` (14px) | 600 | `ItemCardGroup.Title`, `SettingsSection` |
 | Sub-section inside one | `sm` (13px) | 600 | `Widget.Title` |
 | Body: row titles, descriptions, table headers and cells, facts, errors | `sm` (13px) | 500 title / 400 rest | `ItemCard`, `DataGrid`, `SettingsFact` |
 
@@ -599,6 +603,13 @@ scopes, and do not scatter override rules into feature CSS. Product CSS may own 
 behavior HeroUI cannot express, but must not recreate component appearance.
 
 ## Components
+- **Chat message width:** The transcript pane owns the horizontal gutter. Message bodies have
+  no additional end padding, so text and thread previews use the space beside the avatar rail.
+- **Chat card backgrounds:** Thread/task previews and Cloud Agent action cards share
+  `nested-surface`: `rgb(189 189 219 / 10%)` in dark mode and solid `surface` in light mode.
+  The dark tint is calibrated to composite to the original blue-gray `surface` over `background`.
+  Recalibrate it when those colors change. Message hover lightens the fill without dimming content;
+  clickable thread previews strengthen to 12% opacity on hover. Light keeps its existing hover fill.
 - **Buttons:** Use HeroUI Button semantic variants. Primary actions use `variant="primary"`; alternatives use `secondary`, `tertiary`, `outline`, or `ghost`; destructive actions use `danger` or `danger-soft`. The sidebar updater keeps its primary opacity while pending because pending blocks presses there but also represents live status.
 - **Cursors:** Keep the desktop arrow on buttons and other app controls. Reserve the pointer for
   true hyperlinks and specialized cursors for an active manipulation such as dragging or resizing;

@@ -22,12 +22,12 @@
 
         /*
          * Filled boxes nested inside a washable row (thread/task preview in
-         * a chat turn). Dark keeps HeroUI's surface stepping; light lifts to
-         * pure --surface (borderless, like the composer shell) because the
-         * light surface scale (93–97 L) collapses into the wash on hover.
+         * a chat turn and Cloud Agent cards). The dark tint is calibrated as
+         * (surface - 0.9 * background) / 0.1 in sRGB, matching surface at rest
+         * while letting the row wash show through. Recalibrate if either changes.
          */
-        --nested-surface: var(--surface-secondary);
-        --nested-surface-hover: var(--surface-tertiary);
+        --nested-surface: rgb(189 189 219 / 10%);
+        --nested-surface-hover: rgb(from var(--nested-surface) r g b / 12%);
         --nested-surface-ring: none;
 
         --sender-1: var(--color-violet-400);

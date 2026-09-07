@@ -86,6 +86,12 @@ proposed test oracle is strong enough. Update the ranking from evidence, not aut
 
 ## Regress, Fix, Validate
 
+For development prompt iterations, reset the test Agent's session before behavioral verification,
+using the session-only reset that preserves workspace memory and Chat history. Confirm the fresh
+native session received the revised instructions before judging model behavior. A new Channel alone
+does not create a new session. Reserve the managed Agent prompt-version bump for release; do not bump
+it for each local edit. Capture any failing session evidence before resetting it.
+
 Add a focused regression at the smallest boundary that reproduces the actual mechanism before
 changing implementation. For context-misassociation bugs, the oracle must keep the global session:
 prior work in Chat A, then a concrete request in Chat B, with Chat B delivered once and grounded as

@@ -1,3 +1,4 @@
+import { agentExecutionJournalRequestSchema } from './agent-execution-journal.ts';
 import { agentInboxItemSchema } from './agent-inbox.ts';
 import {
     cloudAgentCancelCommandSchema,
@@ -5,6 +6,7 @@ import {
     cloudAgentReconcileCommandSchema,
 } from './cloud-agent-protocol.ts';
 
+export * from './agent-execution-journal.ts';
 export * from './agent-inbox.ts';
 export * from './cloud-agent-protocol.ts';
 
@@ -337,17 +339,6 @@ export const browserRequestSchema = z
 
 export type BrowserRequest = z.infer<typeof browserRequestSchema>;
 
-export const agentExecutionJournalRequestSchema = z
-    .object({
-        agentId: idSchema,
-        requestId: idSchema,
-        runId: idSchema,
-        type: z.literal('agent-execution-journal-request'),
-    })
-    .strict();
-
-export type AgentExecutionJournalRequest = z.infer<typeof agentExecutionJournalRequestSchema>;
-
 /** Every typed frame the Server sends down a Computer attachment socket. */
 export const agentCommandSchema = z.discriminatedUnion('type', [
     agentStartCommandSchema,
@@ -556,87 +547,6 @@ export const agentWorkspaceResultSchema = z
     .refine((value) => Boolean(value.error) !== Boolean(value.result));
 
 export type AgentWorkspaceResult = z.infer<typeof agentWorkspaceResultSchema>;
-
-const executionJournalResultSchema = z
-    .object({
-        error: z.unknown().optional(),
-        observedAt: timestampSchema,
-        output: z.unknown().optional(),
-    })
-    .strict();
-
-const executionJournalToolSchema = z
-    .object({
-        durationMs: z.number().int().nonnegative().optional(),
-        endedAt: timestampSchema.optional(),
-        error: z.unknown().optional(),
-        final: executionJournalResultSchema.optional(),
-        input: z.unknown().optional(),
-        interruptions: z
-            .array(
-                z
-                    .object({
-                        at: timestampSchema,
-                        reason: z.enum(['computer_restart', 'stream_abort', 'stream_error']),
-                    })
-                    .strict()
-            )
-            .max(100)
-            .optional(),
-        nativeName: z.string().max(256).optional(),
-        output: z.unknown().optional(),
-        preliminary: executionJournalResultSchema.optional(),
-        startedAt: timestampSchema,
-        status: z.enum(['completed', 'failed', 'interrupted', 'running']),
-        toolCallId: z.string().trim().min(1).max(256),
-        toolName: z.string().trim().min(1).max(256),
-    })
-    .strict();
-
-export const agentExecutionJournalSchema = z
-    .object({
-        endedAt: timestampSchema.optional(),
-        error: z.unknown().optional(),
-        runId: idSchema,
-        startedAt: timestampSchema,
-        status: z.enum(['completed', 'failed', 'interrupted', 'running']),
-        tools: z.array(executionJournalToolSchema).max(10_000),
-    })
-    .strict();
-
-export type AgentExecutionJournal = z.infer<typeof agentExecutionJournalSchema>;
-
-export const agentExecutionJournalResultSchema = z.discriminatedUnion('status', [
-    z
-        .object({
-            agentId: idSchema,
-            journal: agentExecutionJournalSchema,
-            requestId: idSchema,
-            runId: idSchema,
-            status: z.literal('available'),
-            type: z.literal('agent-execution-journal-result'),
-        })
-        .strict()
-        .refine((value) => value.journal.runId === value.runId, {
-            message: 'The execution journal must belong to the requested run.',
-            path: ['journal', 'runId'],
-        }),
-    z
-        .object({
-            agentId: idSchema,
-            reason: z.enum(['missing', 'offline', 'timeout']),
-            requestId: idSchema,
-            runId: idSchema,
-            status: z.literal('unavailable'),
-            type: z.literal('agent-execution-journal-result'),
-        })
-        .strict(),
-]);
-
-export type AgentExecutionJournalResult = z.infer<typeof agentExecutionJournalResultSchema>;
-
-export const agentTurnDetailRequestSchema = agentExecutionJournalRequestSchema;
-export const agentTurnDetailResultSchema = agentExecutionJournalResultSchema;
 
 /**
  * A Computer mints a per-launch runner credential from its Computer credential

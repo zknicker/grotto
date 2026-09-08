@@ -121,6 +121,37 @@ Telemetry is operational evidence, not the canonical product record. Confirm
 exact messages, silent completion, token usage, and durable turn outcome in
 Grotto's Agent Activity and Turn Details UI.
 
+### Agent turn timing
+
+Completed turn spans include request-local monotonic measurements under `grotto.turn.*`:
+
+| Attribute | Boundary, in milliseconds |
+| --- | --- |
+| `harness_ready_ms` | Turn tracing begins to the main native session creation attempt; includes launch setup, MCP discovery, instruction preparation, and any bootstrap refresh |
+| `bootstrap_ms` | Time inside a required bootstrap refresh; absent when no refresh ran |
+| `session_create_ms` | Duration of the main native session creation/resumption attempt, including a failed attempt |
+| `first_stream_ms` | Turn tracing begins to the first recognized runtime stream event, which may be a finish or error rather than model text |
+| `first_tool_ms` | Turn tracing begins to the first runtime tool-call event; absent for tool-free turns |
+| `first_send_ms`, `last_send_ms` | Turn tracing begins to the first/last Server-confirmed committed send observed by the Computer proxy |
+| `after_last_send_ms` | Last confirmed send to turn result observation, including trailing memory and cleanup work |
+
+These attributes also accompany returned failed/interrupted turn results when the boundary was
+reached. They are not live milestones; they export when the span settles. Missing fields mean
+unobserved boundaries, not zero duration. Phase durations overlap the cumulative milestones and
+must not be summed together. Neither a first send nor a last send proves that an answer is complete:
+acknowledgments are ordinary sends. Held, refused, and ambiguous transport-failure sends do not
+produce confirmed-send timings. These timings do not measure App rendering or provider-internal
+queueing/reasoning. Local journals remain the detailed tool evidence.
+
+`grotto.reasoning.effort` is the applied Computer setting passed to the adapter, not proof of
+provider execution policy. `grotto.tokens.input`, `output`, `cache_read`, and `cache_write` carry
+the same normalized per-turn usage as the durable summary when available. A missing usage object
+omits all four; normalized counts inherit the runtime adapter's treatment of unavailable subfields.
+In particular, a first Codex cumulative observation establishes a baseline and omits per-turn usage.
+The relay accepts finite nonnegative timings through seven days, integral token counts through
+12 digits, and only the product's known reasoning settings. No content or new metric dimensions
+are exported.
+
 ## Trace shape
 
 The first distributed traces cover the operations where failures otherwise

@@ -276,6 +276,17 @@ bun run test:agents --include-opt-in --only cove-composes-agent-creation --lanes
 
 Repeat `--only` to run a small named subset in one process.
 
+Response-efficiency probes are opt-in. They check same-session context retention without a
+redundant MEMORY.md read and bounded discovery for an unavailable MCP, using Computer execution
+journals rather than a flaky wall-clock threshold:
+
+```sh
+bun run test:agents --include-opt-in --only response-efficiency --lanes 1
+```
+
+They log durations for comparison; a single model run is not a latency guarantee. Run agent-test
+commands serially against one dev stack, because startup cleanup sweeps prior run records.
+
 The Cove creation scenario is opt-in because it needs a real active Cove on an
 attached healthy Computer plus the local deterministic avatar fixture. Start
 the dev stack with an absolute JSONL path, then run the scenario:

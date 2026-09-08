@@ -22,6 +22,13 @@ model session. Per-turn message delivery is an inbox concern; see
   context and prior data reads must be rechecked.
 - The model session spans every Chat the Agent participates in and resumes
   between deliveries and Computer restarts.
+- Fresh sessions and context compression require a MEMORY.md recovery read. Ordinary resumed
+  turns reuse memory already in context; missing context, topic changes, or possibly changed
+  files still require relevant rereads. Each inbox wake is not a new startup.
+- Explicit MCP requests use the current injected tool inventory and runtime tool discovery.
+  Missing tools call for the specific connection or grant to be repaired; local configuration
+  searches do not establish Server-owned MCP access. General capability selection still considers
+  other authorized execution methods, and requested setup troubleshooting can inspect local state.
 - Sessions never rotate because of age or idle time.
 - The Harness supplies current composed instructions on every accepted turn. When the persisted
   instruction fingerprint differs, the same native conversation therefore adopts them without

@@ -117,14 +117,14 @@ Use the host fonts, not artifact-specific or presentation fonts.
 
 ### Scale
 
-The base body size is **16px** (`var(--app-ui-font-size)`, line-height
+The base body size is **14px** (`var(--app-ui-font-size)`, line-height
 1.5) — the frame sets this on `body`, so plain text is already correct;
 don't resize it.
 
-- Body text: 16px, line-height 1.5. Emphasized body: 16px weight 500.
-- Title / section labels: 18–20px, weight 500.
-- Secondary text, dense table cells, and code: 14px.
-- Metadata and compact labels: 12px. No font-size below 12px.
+- Body text: 14px, line-height 1.5. Emphasized body: 14px weight 500.
+- Title / section labels: 15–16px, weight 500.
+- Secondary text, dense table cells, and code: 12–13px.
+- Metadata and compact labels: 11–12px. No font-size below 11px.
 - Primary display values: usually 24–36px, never larger than 42px in a
   compact visual; weight 500, line-height at least 1.08 so glyphs don't
   crop.
@@ -230,7 +230,7 @@ Hard ceilings; past them, split the output or simplify:
   communicate progress or state. Use the shared motion tokens instead of
   arbitrary values: durations `--t-micro` / `--t-fast` / `--t-normal` /
   `--t-slow` (80–300ms), easings `--ease-out` / `--ease-in` /
-  `--ease-in-out-quad`.
+  `--ease-standard`.
 - Responsive, natural width `100%`; the host card fills the content column.
   No `position: fixed` — everything stays in normal document flow. Avoid
   nested scrolling; let height follow content, don't reserve empty vertical
@@ -345,10 +345,10 @@ page skeleton).
 Diagrams are boxes, labels, and connectors drawn with flex/grid for
 structure and inline SVG for connectors — no diagram library, no mermaid.
 
-- Nodes: fill `var(--surface-secondary)`, border 1px `var(--border-strong)`, radius
-  `var(--radius-lg)`, text `var(--foreground)`. Secondary text and edge
-  labels: `var(--muted-foreground)`, 12px, beside the line — not on colored
-  chips.
+- Nodes: fill `var(--surface-secondary)`, border 1px
+  `var(--border-strong)`, radius `var(--radius-lg)`, text
+  `var(--foreground)`. Secondary text and edge labels:
+  `var(--muted-foreground)`, 12px, beside the line — not on colored chips.
 - Connectors: 1.5px `var(--border-strong)` strokes; arrowheads as small SVG
   markers in the same color. Emphasize at most one path with `--chart-1`.
 - Highlight at most one node: `var(--brand-muted)` fill with
@@ -390,8 +390,9 @@ Full self-contained HTML pages (artifact pages) follow everything above,
 plus:
 
 - Pages own their ground: `background: var(--background)` on the page,
-  `var(--card)` panels, `--surface-secondary` and `--surface-tertiary` for nested elevation. This is the
-  one surface where you set a base background.
+  `var(--card)` panels, `--surface-secondary` and `--surface-tertiary`
+  for nested elevation. This is the one surface where you set a base
+  background.
 - One file: inline `<style>` and `<script>`, `data:` URIs for small images.
   No external fonts, scripts, stylesheets, or fetches; assume the page
   renders offline from a snapshot. (The Chart.js pin applies to `visual`
@@ -453,8 +454,9 @@ variables; prefer runtime variables over hardcoded values.
   neutral); derived chrome `--chart-grid`, `--chart-label` (visual fences)
 - Radii: `--radius-sm`, `--radius-md`, `--radius-lg`, `--radius-xl`
 - Motion: `--t-micro`, `--t-fast`, `--t-normal`, `--t-slow`, `--ease-out`,
-  `--ease-in`, `--ease-in-out-quad`
-- Fonts: `--font-sans`, `--font-mono`; base size `--app-ui-font-size`
+  `--ease-in`, `--ease-standard`
+- Fonts: `--font-sans`, `--font-mono`; base size `--app-ui-font-size`,
+  code size `--app-code-font-size`
 
 Do not use `prefers-color-scheme` or maintain a separate light/dark token
 table — the host injects the active theme's values.

@@ -6,6 +6,12 @@ import UIKit
 import AppKit
 #endif
 
+#if canImport(UIKit)
+typealias PlatformFont = UIFont
+#elseif canImport(AppKit)
+typealias PlatformFont = NSFont
+#endif
+
 /// The vertical metrics of the system font behind a `Font.TextStyle`.
 struct PlatformFontMetrics: Equatable {
     /// The size the text style resolves to at this Dynamic Type size.
@@ -23,45 +29,69 @@ struct PlatformFontMetrics: Equatable {
     var lineHeight: CGFloat { ascent + descent + leading }
 }
 
-/// Resolved metrics for the system font behind a `Font.TextStyle`.
+/// The system font behind a `Font.TextStyle`, and its vertical metrics.
 ///
-/// SwiftUI does not expose the font it resolves, and inline chip placement
-/// needs the real line box, so the platform font is asked for the same style at
-/// the same Dynamic Type size.
+/// SwiftUI does not expose the font it resolves, and a message body needs both
+/// the font itself — to set its words and its mention labels in one run — and
+/// its real line box, which is what a reference capsule is sized to. So the
+/// platform font is asked for the same style at the same Dynamic Type size.
 enum PlatformTextMetrics {
     static func metrics(
         for style: Font.TextStyle,
-        dynamicTypeSize: DynamicTypeSize
+        dynamicTypeSize: DynamicTypeSize,
+        legibilityWeight: LegibilityWeight? = nil
     ) -> PlatformFontMetrics {
-        #if canImport(UIKit)
-        let font = UIFont.preferredFont(
-            forTextStyle: uiTextStyle(style),
-            compatibleWith: UITraitCollection(
-                preferredContentSizeCategory: contentSizeCategory(dynamicTypeSize)
+        measure(
+            font(
+                for: style,
+                dynamicTypeSize: dynamicTypeSize,
+                legibilityWeight: legibilityWeight
             )
         )
-        return measure(font)
-        #elseif canImport(AppKit)
-        // macOS has no Dynamic Type; the style resolves to one size.
-        return measure(NSFont.preferredFont(forTextStyle: nsTextStyle(style)))
-        #endif
     }
 
-    /// Metrics for the system font at an explicit point size.
+    /// The system font a text style resolves to at this Dynamic Type size and
+    /// legibility weight.
     ///
-    /// The chip's label is the one run whose size comes from the surrounding
-    /// text rather than from a text style, and placing it inside the capsule
-    /// needs its real line box. Weight is not asked for: SF's ascent, descent,
-    /// and cap height are the same at every weight of a given size.
-    static func metrics(forPointSize pointSize: CGFloat) -> PlatformFontMetrics {
+    /// The body's words and a mention's label are set in it at the same size,
+    /// which is what puts them on one baseline. Bold Text is a trait of the
+    /// same resolution, not a separate switch: it has to be asked for here, or
+    /// the body stays regular while the rest of the app goes bold.
+    static func font(
+        for style: Font.TextStyle,
+        dynamicTypeSize: DynamicTypeSize,
+        legibilityWeight: LegibilityWeight? = nil
+    ) -> PlatformFont {
         #if canImport(UIKit)
-        return measure(UIFont.systemFont(ofSize: pointSize))
+        return UIFont.preferredFont(
+            forTextStyle: uiTextStyle(style),
+            compatibleWith: UITraitCollection(traitsFrom: [
+                UITraitCollection(
+                    preferredContentSizeCategory: contentSizeCategory(dynamicTypeSize)
+                ),
+                UITraitCollection(legibilityWeight: uiLegibilityWeight(legibilityWeight)),
+            ])
+        )
         #elseif canImport(AppKit)
-        return measure(NSFont.systemFont(ofSize: pointSize))
+        // macOS has no Dynamic Type; the style resolves to one size. Bold Text
+        // has no trait collection to carry it either, so the face is asked for
+        // directly.
+        let base = NSFont.preferredFont(forTextStyle: nsTextStyle(style))
+        guard legibilityWeight == .bold else { return base }
+        let bold = base.fontDescriptor.withSymbolicTraits(.bold)
+        return NSFont(descriptor: bold, size: base.pointSize) ?? base
         #endif
     }
 
     #if canImport(UIKit)
+    private static func uiLegibilityWeight(_ weight: LegibilityWeight?) -> UILegibilityWeight {
+        switch weight {
+        case .bold: .bold
+        case .regular: .regular
+        default: .unspecified
+        }
+    }
+
     private static func measure(_ font: UIFont) -> PlatformFontMetrics {
         PlatformFontMetrics(
             pointSize: font.pointSize,
@@ -134,40 +164,4 @@ enum PlatformTextMetrics {
         }
     }
     #endif
-}
-
-/// How tall an inline chip may be, and how far below the baseline it may hang,
-/// without making its line taller than a line of plain words.
-struct InlineChipFit: Equatable {
-    /// The exact height the chip is drawn at.
-    let height: CGFloat
-    /// Negative: the distance the image run is dropped.
-    let baselineOffset: CGFloat
-
-    /// Measured behavior of the SwiftUI text engine, which the arithmetic here
-    /// answers: a line absorbs an image run's above-baseline extent only up to
-    /// the font's ascent plus its leading, and absorbs no baseline offset at
-    /// all — every point of offset, up or down, is added to the line. So a chip
-    /// centered on the x-height the way web `align-middle` centers one would
-    /// cost its line about four points of extra pitch. The chip is instead
-    /// sized to that absorption ceiling and dropped only as far as the pitch
-    /// tolerance below buys, which rests it on the words rather than floating
-    /// it above them.
-    init(metrics: PlatformFontMetrics, displayScale: CGFloat) {
-        let scale = displayScale > 0 ? displayScale : 1
-        // Floored to a whole pixel so the rasterizer cannot round the chip
-        // back over the ceiling it was sized against.
-        let ceiling = (metrics.ascent + metrics.leading) * scale
-        height = max(1, ceiling.rounded(.down) / scale)
-        let centering = max(0, (height - metrics.xHeight) / 2)
-        baselineOffset = -min(centering, metrics.lineHeight * Self.pitchTolerance)
-    }
-
-    /// How much taller than a plain line a line carrying this chip becomes.
-    func lineGrowth(_ metrics: PlatformFontMetrics) -> CGFloat {
-        max(0, height - metrics.ascent - metrics.leading) - baselineOffset
-    }
-
-    /// A twentieth of the line — one point at default type — spent on the drop.
-    private static let pitchTolerance: CGFloat = 0.05
 }

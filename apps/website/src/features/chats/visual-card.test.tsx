@@ -50,3 +50,9 @@ test('malformed html still renders inside the sandbox instead of failing', () =>
     expect(markup).toContain('<iframe');
     expect(markup).toContain('Broken');
 });
+
+test('the sandbox paints native controls with the frame ink, not the browser accent', () => {
+    const doc = buildVisualSrcDoc('<input type="range">', '');
+
+    expect(doc).toContain('accent-color: var(--primary, currentColor)');
+});

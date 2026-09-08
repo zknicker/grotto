@@ -104,6 +104,11 @@ export function buildVisualSrcDoc(html: string, tokensCss: string): string {
         '<style>',
         `:root { color-scheme: ${scheme}; ${tokensCss ? `\n${tokensCss}` : ''} }`,
         '* { box-sizing: border-box; }',
+        // Native controls (range, checkbox, radio, progress) otherwise paint
+        // the browser's default accent, the one thing in a visual that looks
+        // like another product. The skill teaches ink, not a hue, for generic
+        // controls, so they inherit the frame's ink pair.
+        'body { accent-color: var(--primary, currentColor); }',
         'body { margin: 0; padding: 16px; background: transparent; color: var(--foreground, inherit); font-family: var(--font-sans, system-ui, sans-serif); font-size: var(--app-ui-font-size, 14px); line-height: 1.5; -webkit-font-smoothing: antialiased; }',
         // Plain <table> markup wears the app's ui/table.tsx look, so agents
         // render tabular data as bare HTML tables and get native theming.

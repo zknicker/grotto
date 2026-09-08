@@ -1,16 +1,9 @@
-import {
-    type Chat,
-    type ChatMessage,
-    parseAgentReferenceTarget,
-    parseChatReferenceTarget,
-    type ThreadSummary,
-} from '@grotto/api';
+import type { Chat, ChatMessage, ThreadSummary } from '@grotto/api';
 import { EmptyState } from '@heroui-pro/react';
 import { Message01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { openAgentProfilePane } from '../../../hooks/pane/use-agent-profile-pane.ts';
 import { setChatSidePane, useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
 import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
 import { useChatRead } from '../../../hooks/servers/use-chat-read.ts';
@@ -21,7 +14,6 @@ import { useViewportBelow } from '../../../hooks/use-viewport-below.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { ChatArtifactPanel } from '../../chats/chat-artifact-panel.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
-import type { ReferenceActivationTarget } from '../../mentions/mention-types.ts';
 import { ShellSidePane } from '../../shell/shell-side-pane.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { useAgentLifecycle } from '../agent-lifecycle.tsx';
@@ -36,6 +28,7 @@ import { ChatTopbar } from './chat-topbar.tsx';
 import { ChatTranscript } from './chat-transcript.tsx';
 import { useChatArtifactPanel } from './use-artifact-panel.ts';
 import { useChatFilesPane } from './use-chat-files-pane.ts';
+import { useChatReferenceActivation } from './use-chat-reference-activation.ts';
 import { usePendingChatMessages } from './use-pending-messages.ts';
 
 export function ChatView({
@@ -110,6 +103,19 @@ export function ChatView({
         ) ??
         threadSelection?.initialSummary ??
         null;
+    // The selection carries identity; the record itself is read live from the
+    // transcript, so a Thread left open follows its anchor's own changes — a
+    // Task claimed, a Cloud Agent work that finished. The captured message is
+    // the fallback for an anchor this transcript has not loaded.
+    const threadAnchor = React.useMemo(
+        () =>
+            threadSelection
+                ? (transcriptMessages?.find(
+                      (message) => message.id === threadSelection.anchor.id
+                  ) ?? threadSelection.anchor)
+                : null,
+        [threadSelection, transcriptMessages]
+    );
     const initialThreadChatId = initialTask?.threadChatId;
     const threadAnchorId = searchParams.get('thread');
     const threadCloseRequestedRef = React.useRef(false);
@@ -190,29 +196,11 @@ export function ChatView({
         (peerUserId: string) => ensureDm.mutate({ peerUserId, serverId: chat.serverId }),
         [chat.serverId, ensureDm.mutate]
     );
-    const handleReferenceActivate = React.useCallback(
-        (reference: ReferenceActivationTarget) => {
-            if (reference.kind === 'agent') {
-                const agentId = parseAgentReferenceTarget(reference.id);
-                if (agentId) {
-                    openAgentProfilePane(chat.id, agentId);
-                }
-                return;
-            }
-
-            if (reference.kind === 'chat') {
-                const chatId = parseChatReferenceTarget(reference.id);
-                if (chatId) {
-                    onOpenChat(chatId);
-                }
-            }
-        },
-        [chat.id, onOpenChat]
-    );
+    const handleReferenceActivate = useChatReferenceActivation(chat.id, onOpenChat);
     const threadPanel = threadSelection ? (
         <ThreadPanel
             active={activeSidePane === 'thread'}
-            anchor={threadSelection.anchor}
+            anchor={threadAnchor ?? threadSelection.anchor}
             canManage={server.role === 'owner' || server.role === 'admin'}
             chat={chat}
             initialThreadChatId={threadSelection.initialThreadChatId}

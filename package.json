@@ -27,14 +27,16 @@
     "env:check": "VARLOCK_ENV=test bunx varlock@1.16.1 load --agent --skip-cache -p .env.schema",
     "env:contract": "bun run scripts/env-contract-check.ts",
     "env:load": "bunx varlock@1.16.1 load --agent",
+    "effect:migration-report": "bun scripts/effect-migration-report.ts",
+    "effect:migration-check": "bun scripts/effect-migration-report.ts --complete",
     "eval:design": "bun scripts/design-eval.mjs",
     "eval:prompt": "bun scripts/agent-tests/cli.mjs --only mention-wakes-only-addressed --only fyi-silence-channel --only fyi-silence-dm --only dm-single-concise-reply --only multi-chat-drain --only instruction-injection-resistance --lanes 1",
     "eval:sessions": "bun scripts/session-eval.mjs",
     "ios:release": "GROTTO_RESOLVE_RELEASE_TOKENS=true varlock run --include-internal -- node scripts/release/publish-ios.mjs",
     "ios:prepare-icon": "node scripts/release/prepare-ios-icon.mjs",
     "ios:status": "GROTTO_RESOLVE_RELEASE_TOKENS=true varlock run --include-internal -- node scripts/release/ios-build-status.mjs",
-    "lint": "ultracite check .",
-    "lint:fix": "ultracite fix .",
+    "lint": "ultracite check . && bun scripts/check-source-size.ts && bun run effect:migration-check",
+    "lint:fix": "ultracite fix . && bun scripts/check-source-size.ts && bun run effect:migration-check",
     "publish:desktop": "GROTTO_RESOLVE_RELEASE_TOKENS=true varlock run --include-internal -- bun run --filter @grotto/website desktop:publish",
     "release:bump": "node scripts/release/bump-version.mjs",
     "release:changed": "node scripts/release/changed-release.mjs",
@@ -69,12 +71,15 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
     "@varlock/1password-plugin": "2.0.3",
+    "typescript": "5.9.3",
     "ultracite": "7.3.0",
     "varlock": "1.16.1",
     "zod": "4.1.11"
   },
   "overrides": {
     "@hono/node-server": "1.19.13",
+    "@tiptap/extension-bubble-menu": "3.30.4",
+    "@tiptap/extension-floating-menu": "3.30.4",
     "brace-expansion": "5.0.6",
     "esbuild": "0.27.4",
     "fast-uri": "3.1.2",
@@ -91,12 +96,12 @@
   },
   "patchedDependencies": {
     "@shadcn/react@0.1.0": "patches/@shadcn%2Freact@0.1.0.patch",
-    "@ai-sdk/harness@1.0.70": "patches/@ai-sdk%2Fharness@1.0.70.patch",
-    "@ai-sdk/harness-pi@1.0.71": "patches/@ai-sdk%2Fharness-pi@1.0.71.patch",
-    "@ai-sdk/harness-grok-build@1.0.6": "patches/@ai-sdk%2Fharness-grok-build@1.0.6.patch",
-    "@ai-sdk/harness-acp@1.0.7": "patches/@ai-sdk%2Fharness-acp@1.0.7.patch",
-    "@ai-sdk/harness-claude-code@1.0.73": "patches/@ai-sdk%2Fharness-claude-code@1.0.73.patch",
-    "@ai-sdk/harness-codex@1.0.72": "patches/@ai-sdk%2Fharness-codex@1.0.72.patch"
+    "@ai-sdk/harness-pi@1.0.80": "patches/@ai-sdk%2Fharness-pi@1.0.80.patch",
+    "@ai-sdk/harness-grok-build@1.0.15": "patches/@ai-sdk%2Fharness-grok-build@1.0.15.patch",
+    "@ai-sdk/harness-acp@1.0.16": "patches/@ai-sdk%2Fharness-acp@1.0.16.patch",
+    "@ai-sdk/harness-claude-code@1.0.81": "patches/@ai-sdk%2Fharness-claude-code@1.0.81.patch",
+    "@ai-sdk/harness-codex@1.0.80": "patches/@ai-sdk%2Fharness-codex@1.0.80.patch",
+    "@cursor/sdk@1.0.30": "patches/@cursor%2Fsdk@1.0.30.patch"
   },
   "trustedDependencies": [
     "heroui-pro",

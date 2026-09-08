@@ -73,6 +73,14 @@ const envSchema = z
             .positive()
             .default(getDefaultGrottoServerPort()),
         GROTTO_STATIC_APP_ROOT: z.string().min(1).transform(resolveHomePath).optional(),
+        OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
+        OTEL_EXPORTER_OTLP_HEADERS: z.string().min(1).optional(),
+        OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: z.string().url().optional(),
+        OTEL_EXPORTER_OTLP_METRICS_HEADERS: z.string().min(1).optional(),
+        OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: z.string().url().optional(),
+        OTEL_EXPORTER_OTLP_TRACES_HEADERS: z.string().min(1).optional(),
+        OTEL_RESOURCE_ATTRIBUTES: z.string().min(1).optional(),
+        OTEL_SDK_DISABLED: z.enum(['false', 'true']).optional(),
     })
     .superRefine((value, context) => {
         if (

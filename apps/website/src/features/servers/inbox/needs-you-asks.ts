@@ -1,4 +1,6 @@
 import { type Agent, type ChatSendInput, type OpenAsk, openAskThreadAnchor } from '@grotto/api';
+import { messagePreviewLine } from '../../chats/message-preview-line.ts';
+import { conversationLabel } from '../conversation-label.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
 /** One open Ask as the Inbox reads it: the decision, where it came from. */
@@ -10,6 +12,7 @@ export interface NeedsYouAsk {
     /** The Ask Message id, which is also the `?ask=` deep link. */
     id: string;
     recommendedStep: string;
+    /** The Agent's summary as one flat line, never its raw Markdown. */
     summary: string;
     /** The Message the answer replies to: the answer Thread's anchor. */
     threadAnchorMessageId: string;
@@ -32,11 +35,11 @@ export function toNeedsYouAsks(
 
     return items.map((item) => ({
         agentName: askAgentName(item, agentsById),
-        chatLabel: askChatLabel(item, humans),
+        chatLabel: conversationLabel(item, humans),
         conversationChatId: item.conversationChatId,
         id: item.ask.messageId,
         recommendedStep: item.ask.recommendedStep,
-        summary: item.ask.summary,
+        summary: messagePreviewLine(item.ask.summary),
         threadAnchorMessageId: openAskThreadAnchor(item).id,
         threadChatId: item.threadChatId,
         title: item.ask.title,
@@ -62,18 +65,6 @@ export function askAnswerMessage(
         serverId: input.serverId,
         thread: { anchorMessageId: ask.threadAnchorMessageId },
     };
-}
-
-/**
- * Where the Ask was posted. A DM with an Agent has no human peer to name, and
- * the asking Agent is already stated beside this label, so it reads as `DM`
- * rather than repeating a name or claiming a peer that is not there.
- */
-function askChatLabel(item: OpenAsk, humans: HumanDirectory): string {
-    if (item.chatKind === 'channel') {
-        return `#${item.chatName ?? 'channel'}`;
-    }
-    return item.chatPeerUserId ? `DM · ${humans.name(item.chatPeerUserId)}` : 'DM';
 }
 
 function askAgentName(item: OpenAsk, agentsById: ReadonlyMap<string, Agent>): string {

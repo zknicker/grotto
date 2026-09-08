@@ -1,85 +1,26 @@
+import { agentInboxItemSchema } from './agent-inbox.ts';
+import {
+    cloudAgentCancelCommandSchema,
+    cloudAgentCapabilityRequestSchema,
+    cloudAgentReconcileCommandSchema,
+} from './cloud-agent-protocol.ts';
+
+export * from './agent-inbox.ts';
+export * from './cloud-agent-protocol.ts';
+
 import * as z from 'zod';
+import { agentTurnActivitySummarySchema } from './agent-activity.ts';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
-import { askStatusSchema } from './ask-shared.ts';
 import { idSchema } from './chat.ts';
-import { agentCreateActionResultSchema } from './prepared-actions.ts';
 import {
     agentRuntimeBrowserActionResultSchema,
     agentRuntimeBrowserSettingsSchema,
     agentRuntimeSaveBrowserSettingsSchema,
 } from './runtime/contracts.ts';
-import { messageTaskSchema } from './task-shared.ts';
+import { traceCarrierSchema } from './trace-context.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
-
-/** A committed prepared action's terminal result, addressed by action identity. */
-export const agentActionAttentionSchema = z
-    .object({
-        actionId: idSchema,
-        chatId: idSchema,
-        createdAgentId: idSchema,
-        executedResult: agentCreateActionResultSchema,
-        kind: z.literal('agent:create'),
-    })
-    .strict();
-
-export type AgentActionAttention = z.infer<typeof agentActionAttentionSchema>;
-
-/** The inbox projection of an Ask: who owes the answer, and whether it is still owed. */
-export const inboxAskSchema = z
-    .object({
-        addresseeHandle: z.string().trim().min(1).max(128).nullable(),
-        status: askStatusSchema,
-    })
-    .strict();
-
-export type InboxAsk = z.infer<typeof inboxAskSchema>;
-
-/** One Server-owned message envelope durably accepted into a Computer inbox. */
-export const agentInboxItemSchema = z
-    .object({
-        chatId: idSchema,
-        content: z.string().max(32_000),
-        createdAt: timestampSchema,
-        id: idSchema,
-        /** Typed Server attention; unlike a Chat message, it has no message cursor. */
-        actionAttention: agentActionAttentionSchema.optional(),
-        ask: inboxAskSchema.optional(),
-        /** Canonical Agent API shape cached for Computer-local message checks. */
-        message: z.record(z.string(), z.unknown()).optional(),
-        mentioned: z.boolean().optional(),
-        senderDescription: z.string().trim().max(500).optional(),
-        senderHandle: z.string().trim().min(1).max(128),
-        senderType: z.enum(['agent', 'human', 'system', 'trigger']),
-        /** Chat sequence, or zero for a typed attention with no Chat cursor. */
-        sequence: z.number().int().nonnegative(),
-        task: messageTaskSchema.optional(),
-        target: z.string().trim().min(1).max(200),
-        threadFollowReactivated: z.boolean().optional(),
-    })
-    .strict()
-    .refine(
-        (item) =>
-            item.actionAttention
-                ? item.sequence === 0 &&
-                  item.id === item.actionAttention.actionId &&
-                  item.chatId === item.actionAttention.chatId &&
-                  item.senderType === 'system'
-                : item.sequence > 0,
-        {
-            message: 'Typed action attentions use their action identity and zero Chat sequence.',
-            path: ['sequence'],
-        }
-    );
-
-export type AgentInboxItem = z.infer<typeof agentInboxItemSchema>;
-
-/**
- * The Server→Computer typed launch command. It carries only identity, the
- * resolved runtime/model to run, and structured durable inbox envelopes. The
- * Computer owns the model-visible projection. It never carries a Server-valid
- * credential: the Computer mints its own scoped runner authority (below).
- */
+/** Server→Computer launch command; Computer mints authority instead of receiving it. */
 export const agentStartCommandSchema = z
     .object({
         agentId: idSchema,
@@ -95,6 +36,7 @@ export const agentStartCommandSchema = z
         runtimeId: z.string().trim().min(1).max(64),
         sessionGeneration: z.number().int().positive(),
         totalPending: z.number().int().nonnegative(),
+        traceContext: traceCarrierSchema.optional(),
         type: z.literal('start'),
         webAccess: z.enum(['fetch-only', 'search', 'search-only']).optional(),
     })
@@ -388,6 +330,7 @@ export const browserRequestSchema = z
             z.object({ kind: z.literal('restart') }).strict(),
         ]),
         requestId: idSchema,
+        traceContext: traceCarrierSchema.optional(),
         type: z.literal('browser-request'),
     })
     .strict();
@@ -421,6 +364,9 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     browserRequestSchema,
     reminderScriptCommandSchema,
     agentNoticeCommandSchema,
+    cloudAgentCancelCommandSchema,
+    cloudAgentCapabilityRequestSchema,
+    cloudAgentReconcileCommandSchema,
     serverDeleteCommandSchema,
 ]);
 
@@ -764,7 +710,7 @@ export type AgentSendReceipt = z.infer<typeof agentSendReceiptSchema>;
  * collaboration and this compact activity live Server-side; the raw transcript,
  * logs, and workspace stay Computer-local behind the authorized live relay.
  */
-export const agentTurnStatusSchema = z.enum(['completed', 'failed']);
+export const agentTurnStatusSchema = z.enum(['completed', 'failed', 'interrupted']);
 export const agentTurnFailureKindSchema = z.enum([
     'authentication',
     'configuration',
@@ -788,6 +734,8 @@ export const agentTokenUsageSchema = z
 
 export const agentTurnSummarySchema = z
     .object({
+        /** Older settled Computer run markers replay with an empty aggregate. */
+        activity: agentTurnActivitySummarySchema.default({ operations: [] }),
         agentId: idSchema,
         endedAt: timestampSchema,
         failureKind: agentTurnFailureKindSchema.optional(),

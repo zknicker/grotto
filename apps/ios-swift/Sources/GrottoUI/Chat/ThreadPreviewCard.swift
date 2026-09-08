@@ -3,109 +3,111 @@ import SwiftUI
 struct ThreadPreviewCard: View {
     let thread: ThreadPreviewPresentation?
     let task: TaskPresentation?
+    var cloudAgents: [CloudAgentPresentation] = []
     let onOpen: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Button(action: onOpen) {
-            VStack(alignment: .leading, spacing: 7) {
-                header
-
-                if let replies = thread?.recentReplies, !replies.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
-                        ForEach(replies) { reply in
-                            ThreadPreviewReplyRow(reply: reply)
-                        }
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 5) {
+                    Text(replyLabel).font(.subheadline.weight(.semibold))
+                        .contentTransition(reduceMotion ? .opacity : .numericText())
+                        .animation(rowAnimation, value: replyLabel)
+                    Image(systemName: "chevron.right").font(.caption2.weight(.semibold))
+                    if let unread = thread?.unreadCount, unread > 0 {
+                        Text("\(unread) new").font(.caption).foregroundStyle(.secondary)
                     }
                 }
+                .foregroundStyle(.tint)
+                .frame(minHeight: 22, alignment: .leading)
+
+                ZStack(alignment: .leading) {
+                    if let reply = thread?.latestReply {
+                        ThreadPreviewReplyRow(reply: reply)
+                            .id(reply)
+                            .transition(rowTransition)
+                    }
+                }
+                .clipped()
+                .animation(rowAnimation, value: thread?.latestReply)
+
+                ZStack(alignment: .leading) {
+                    if let task {
+                        HStack(spacing: 5) {
+                            TaskStatusDisc(status: TaskStatusShape(task.status), size: 18, surface: GrottoPlatformColor.inputSurface)
+                            Text("Task #\(task.number) · \(task.status.rawValue)").lineLimit(1)
+                        }
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .id("\(task.number):\(task.status.rawValue)")
+                        .transition(rowTransition)
+                    }
+                }
+                .clipped()
+                .animation(rowAnimation, value: task?.status)
+                .animation(rowAnimation, value: task?.number)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    ForEach(cloudAgents) { agent in
+                        ZStack(alignment: .leading) {
+                            HStack(spacing: 5) {
+                                CloudAgentMark(size: 16, style: .glyph)
+                                    .frame(width: 18, height: 18)
+                                Text("\(agent.providerName) · \(agent.statusLabel)")
+                                if let description = agent.compactDescription {
+                                    Text(description).lineLimit(1)
+                                }
+                            }
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .id([agent.providerName, agent.statusLabel, agent.compactDescription])
+                            .transition(rowTransition)
+                        }
+                        .transition(rowTransition)
+                    }
+                }
+                .clipped()
+                .animation(rowAnimation, value: cloudAgents.map { [$0.id, $0.providerName, $0.statusLabel, $0.compactDescription] })
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(GrottoPlatformColor.inputSurface, in: .rect(cornerRadius: 12))
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
         }
-        .buttonStyle(.pressableRow(cornerRadius: 12))
+        .buttonStyle(.pressableRow(cornerRadius: 8))
         .accessibilityLabel(accessibilityLabel)
-        // A card attached under a message body takes the same step the
-        // prepared-action card takes. The message's own attachments sit closer,
-        // at 3pt, because they are the message rather than about it.
         .padding(.top, 6)
+        .anchorPreference(key: ThreadIngressAnchor.self, value: .bounds) { $0 }
     }
 
-    /// A task leads with its own summary and sends the count to the trailing
-    /// edge; a plain Thread has nothing to lead with, so the count itself is
-    /// the header and only the chevron stays pinned trailing.
-    private var header: some View {
-        HStack(spacing: 4) {
-            if let task {
-                TaskSummary(task: task)
-                Spacer(minLength: 8)
-            }
-
-            HStack(spacing: 4) {
-                if let replyLabel {
-                    Text(replyLabel)
-                }
-                if let unreadCount = thread?.unreadCount, unreadCount > 0 {
-                    Text("· \(unreadCount) new")
-                        .foregroundStyle(.tint)
-                }
-            }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-
-            if task == nil {
-                Spacer(minLength: 8)
-            }
-
-            Image(systemName: "chevron.right")
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(.secondary)
-        }
+    private var replyLabel: String {
+        ThreadPreviewProjection.replyLabel(replyCount: thread?.replyCount ?? 0, hasTask: task != nil)
+            ?? "Reply in thread"
     }
 
-    private var replyLabel: String? {
-        ThreadPreviewProjection.replyLabel(
-            replyCount: thread?.replyCount ?? 0,
-            hasTask: task != nil
+    private var rowAnimation: Animation {
+        .easeOut(duration: reduceMotion ? 0.15 : 0.22)
+    }
+
+    private var rowTransition: AnyTransition {
+        reduceMotion ? .opacity : .asymmetric(
+            insertion: .offset(y: 6).combined(with: .opacity),
+            removal: .offset(y: -6).combined(with: .opacity)
         )
     }
 
     private var accessibilityLabel: String {
-        if let task {
-            return "Task number \(task.number), \(task.status.rawValue), \(replyLabel ?? "no replies"). Open thread"
+        var parts = [replyLabel]
+        if let unread = thread?.unreadCount, unread > 0 { parts.append("\(unread) new") }
+        if let reply = thread?.latestReply {
+            parts.append("\(reply.author.name): \(RichMessageParser.oneLinePreview(reply.content))")
         }
-        return "Open thread, \(replyLabel ?? "no replies")"
-    }
-}
-
-private struct TaskSummary: View {
-    let task: TaskPresentation
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Text("Task #\(task.number)")
-                .font(.caption.weight(.semibold))
-                .monospacedDigit()
-            TaskStatusDisc(
-                status: TaskStatusShape(task.status),
-                size: 13,
-                surface: GrottoPlatformColor.inputSurface
-            )
-
-            if let assignee = task.assignee {
-                AvatarView(
-                    name: assignee.name,
-                    url: assignee.avatarURL,
-                    presence: nil,
-                    size: 16
-                )
-                Text(assignee.name)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
+        if let task { parts.append("Task number \(task.number), \(task.status.rawValue)") }
+        parts += cloudAgents.map {
+            [$0.providerName, $0.work.title, $0.statusLabel, $0.compactDescription == $0.work.title ? nil : $0.compactDescription]
+                .compactMap { $0 }.joined(separator: ", ")
         }
+        return parts.joined(separator: ". ") + ". Open thread"
     }
 }
 
@@ -113,40 +115,18 @@ private struct ThreadPreviewReplyRow: View {
     let reply: ThreadReplyPresentation
 
     var body: some View {
-        HStack(spacing: 7) {
-            AvatarView(
-                name: reply.author.name,
-                url: reply.author.avatarURL,
-                presence: nil,
-                size: 18
-            )
-            Text(reply.author.name)
-                .font(.caption.weight(.semibold))
-                .lineLimit(1)
-            Text(RichMessageParser.oneLinePreview(reply.content))
+        HStack(spacing: 5) {
+            AvatarView(name: reply.author.name, url: reply.author.avatarURL, presence: nil, size: 18)
+            (Text(reply.author.name).fontWeight(.medium) + Text(" " + RichMessageParser.oneLinePreview(reply.content)))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-            Spacer(minLength: 4)
-            Text(GrottoCompactRelativeTime.label(for: reply.createdAt))
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
 #Preview {
-    VStack(alignment: .leading, spacing: 24) {
-        ThreadPreviewCard(
-            thread: ChatFixtures.messages[1].thread!,
-            task: nil,
-            onOpen: {}
-        )
-        ThreadPreviewCard(
-            thread: ChatFixtures.messages[2].thread!,
-            task: ChatFixtures.messages[2].task,
-            onOpen: {}
-        )
-    }
-    .padding(40)
+    ThreadPreviewCard(thread: ChatFixtures.messages[2].thread, task: ChatFixtures.messages[2].task, onOpen: {})
+        .padding(40)
 }

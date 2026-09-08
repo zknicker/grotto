@@ -4,10 +4,9 @@
 import { createRequire } from 'node:module';
 import { appProtocolHeaders, appProtocolVersion } from '../packages/grotto-api/src/app-protocol.ts';
 import { resolveDevPorts } from './dev-ports.mjs';
+import { syncEvalHumanIdentity } from './eval-human-identity.mjs';
 import { loadHeadlessClerk } from './headless-clerk.mjs';
-
 export class InfraError extends Error {}
-
 const devClerkAuthByServer = new Map();
 
 export async function createEvalHarness({ evalName, repositoryRoot = process.cwd() }) {
@@ -48,6 +47,7 @@ export async function createEvalHarness({ evalName, repositoryRoot = process.cwd
     }
     const server = selectServer(servers, resolveFlag('--server-id'));
     const serverId = server.id;
+    await syncEvalHumanIdentity(trpc, serverId);
 
     async function scenario(name, run, { retryOn = 'infra' } = {}) {
         if (onlyFilter && !name.includes(onlyFilter)) {

@@ -4,6 +4,7 @@ import { publishCommittedAgentActivity } from '../agent-delivery/activity-events
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import {
     claimAgentTasks,
@@ -17,9 +18,13 @@ const taskStatusSchema = z.enum(['todo', 'in_progress', 'in_review', 'done', 'cl
 
 export function registerAgentTaskRoutes(
     app: FastifyInstance,
-    options: { agentDelivery: AgentDelivery; db: GrottoDatabase }
+    options: {
+        agentDelivery: AgentDelivery;
+        db: GrottoDatabase;
+        postCommitWork: ServerPostCommitWork;
+    }
 ) {
-    const { agentDelivery, db } = options;
+    const { agentDelivery, db, postCommitWork } = options;
     app.get('/api/agent/tasks', async (request, reply) => {
         const runner = await authorizeAgentRunner(db, request);
         const parsed = z
@@ -55,11 +60,7 @@ export function registerAgentTaskRoutes(
                 publishCommittedAgentActivity(activity);
             }
             emitTaskEvents(result.events);
-            await Promise.all(
-                result.wakes.map(({ agentId, serverId }) =>
-                    agentDelivery.dispatchAgent(agentId, serverId).catch(() => undefined)
-                )
-            );
+            await postCommitWork.wakeAgents(agentDelivery, result.wakes);
             return { tasks: result.tasks };
         } catch (cause) {
             return sendAgentReadError(reply, cause);

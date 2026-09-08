@@ -445,8 +445,10 @@ with the newest message still visible, which is the keyboard behavior the produc
 What remains above the substrate is intent, not position management. `TranscriptListUpdate`
 classifies each snapshot change exactly (refresh, append, prepend, reset — pinned in
 `TranscriptListUpdateTests`), `MessageTimelineTailScroll` / `ThreadReplyReveal` still decide what an
-append may do to the viewport, and reveals arrive as one-shot `TranscriptReveal` tokens. The flip
-has known UIKit seams, all owned inside `TranscriptListView`: the system scroll edge effects are
+append may do to the viewport, and reveals arrive as one-shot `TranscriptReveal` tokens. The list
+passes the previous snapshot to append policy: a Thread's anchor and task metadata are not prior
+replies, so its first fetched reply page settles immediately rather than animating through history.
+The flip has known UIKit seams, all owned inside `TranscriptListView`: the system scroll edge effects are
 hidden (they compute their region from safe areas the flipped table lacks and wash the viewport —
 the dissolve is `transcriptTopDissolve`), the opening entrance runs as a UIKit animation because a
 SwiftUI opacity animation over a platform view can freeze mid-flight, hosting-configuration cells
@@ -454,12 +456,24 @@ carry `minSize` zero so continuation rows keep their tight rhythm, and long-pres
 table delegate's, with an upright `layer.render` snapshot as the lifted preview, because a
 context-menu lift of a flipped cell renders upside down.
 
-An anchor message owns one recessed Thread ingress, and it mirrors the desktop App's block: the
-Server-projected reply and unread counts as a header, then every recent reply the Server sent as its
-own row, uncapped by the client. A plain Thread reads those counts on the leading edge with only the
-chevron pinned trailing. A Task uses that same ingress with its number, status disc, and assignee
-leading and the counts trailing, including before its first reply. The anchor message remains the
-task title and is never duplicated inside the ingress.
+Cloud agents use the same Server records as the web App. Settings → Cloud agents lets an Owner or
+Admin inspect, connect, or disconnect Cursor on a selected Computer. Connecting opens the provider's
+sign-in browser on that Computer, not on the phone; iOS never receives the credential.
+
+Each delegation's typed Message body supplies its inline cloud-agent card in a Chat or Thread.
+The parent Chat's preview lists the Thread's cloud agents from `cloudAgentWork.listForChat`; the
+whole preview opens the Thread. Cards show status, repository, branch, available PR/diff evidence,
+external links, and cancellation inside the Thread for Owners/Admins. Missing diff evidence stays absent, not zero.
+`cloud-agent-work.updated` refreshes the loaded Thread and parent Chat through the normal durable
+event/reconnect path. Cards scroll with their Messages and follow-ups update the same card.
+
+An anchor message owns one unboxed Thread ingress, joined to its avatar rail by a rounded connector.
+The reply count and chevron lead, followed by the latest Server-projected reply's avatar, author,
+and one-line snippet. Task status and cloud-agent status remain secondary notes. The whole ingress
+opens the Thread, including before a Task's first reply. Every row uses an 18pt identity mark.
+Reply, Task, and cloud-agent rows enter, exit, and swap with a 220ms slide/fade; Reduce Motion uses
+a 150ms crossfade. Cloud-agent activity timestamps do not trigger swaps. The count stays in place. The anchor
+message remains the task title and is never duplicated inside the ingress.
 
 Tasks are Server work, not a settings screen. The sidebar opens the Task list as a push on the root
 navigation stack, and opening a Task row pushes its Thread on top of that list, so Back walks Thread

@@ -6,6 +6,7 @@ import OSLog
 extension GrottoStore {
     func loadMessages(chatID: String) async {
         guard let serverID = activeServer?.id else { return }
+        async let cloudAgentLoad: Void = loadCloudAgentWork(serverID: serverID, chatID: chatID)
         do {
             let page: ChatMessagePage = try await client.query(
                 "chat.messages",
@@ -31,6 +32,7 @@ extension GrottoStore {
             sendError = error.localizedDescription
             Self.logger.error("Loading messages failed: \(error.localizedDescription, privacy: .public)")
         }
+        await cloudAgentLoad
     }
 
     func hasOlderMessages(chatID: String) -> Bool {
@@ -101,7 +103,7 @@ extension GrottoStore {
                     affectedChatIDs.insert(parentChatID)
                 }
                 shouldReloadChats = true
-            case .preparedActionUpdated:
+            case .preparedActionUpdated, .cloudAgentWorkUpdated:
                 if let chatID = event.chatID {
                     affectedChatIDs.insert(chatID)
                 }

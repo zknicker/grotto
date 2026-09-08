@@ -9,7 +9,12 @@ export const testTriggerProcedure = triggerProcedure
     .mutation(async ({ ctx, input }) =>
         testOperatorTrigger(
             ctx.grottoDb,
-            { delivery: ctx.agentDelivery, limiter: ctx.triggerRateLimiter },
+            {
+                delivery: ctx.agentDelivery,
+                limiter: ctx.triggerRateLimiter,
+                postCommitWork: ctx.postCommitWork,
+                runtime: ctx.runtime,
+            },
             ctx.member,
             { ...input, origin: ctx.requestOrigin },
             triggerClock

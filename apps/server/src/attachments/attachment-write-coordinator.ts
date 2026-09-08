@@ -1,81 +1,111 @@
+import { asError, settle } from '@grotto/effect';
+import { Deferred, Effect } from 'effect';
+import type { ServerRuntime } from '../server-runtime.ts';
+
+interface ServerWriteState {
+    active: number;
+    deleting: boolean;
+    quiescence: Deferred.Deferred<void> | null;
+    quiescing: boolean;
+    semaphore: Effect.Semaphore;
+}
+
 export class AttachmentWriteCoordinator {
-    private readonly active = new Map<string, number>();
-    private readonly deleting = new Set<string>();
-    private readonly exclusiveTails = new Map<string, Promise<void>>();
-    private readonly quiescing = new Set<string>();
-    private readonly waiters = new Map<string, Set<() => void>>();
+    private readonly servers = new Map<string, ServerWriteState>();
+
+    constructor(private readonly runtime: ServerRuntime) {}
 
     begin(serverId: string): () => void {
-        if (this.deleting.has(serverId) || this.quiescing.has(serverId)) {
+        const state = this.server(serverId);
+        if (state.deleting || state.quiescing) {
             throw new Error('This Server attachment root is being deleted.');
         }
-        this.active.set(serverId, (this.active.get(serverId) ?? 0) + 1);
+        state.active += 1;
         let released = false;
         return () => {
             if (released) {
                 return;
             }
             released = true;
-            const remaining = (this.active.get(serverId) ?? 1) - 1;
-            if (remaining > 0) {
-                this.active.set(serverId, remaining);
-                return;
+            state.active -= 1;
+            if (state.active === 0 && state.quiescence) {
+                this.runtime.runSync(Deferred.succeed(state.quiescence, undefined));
             }
-            this.active.delete(serverId);
-            for (const resolve of this.waiters.get(serverId) ?? []) {
-                resolve();
-            }
-            this.waiters.delete(serverId);
         };
     }
 
-    async runExclusive<Result>(serverId: string, operation: () => Promise<Result>) {
-        if (this.deleting.has(serverId)) {
-            throw new Error('This Server attachment root is being deleted.');
+    runExclusive<Result>(
+        serverId: string,
+        operation: () => Promise<Result>,
+        options?: { signal?: AbortSignal }
+    ): Promise<Result> {
+        const state = this.server(serverId);
+        if (state.deleting) {
+            return Promise.reject(new Error('This Server attachment root is being deleted.'));
         }
-        return await this.enqueueExclusive(serverId, operation);
+        return this.run(state, operation, options);
     }
 
-    async runPermanentlyExclusive<Result>(serverId: string, operation: () => Promise<Result>) {
-        this.deleting.add(serverId);
-        return await this.enqueueExclusive(serverId, operation);
+    runPermanentlyExclusive<Result>(
+        serverId: string,
+        operation: () => Promise<Result>,
+        options?: { signal?: AbortSignal }
+    ): Promise<Result> {
+        const state = this.server(serverId);
+        state.deleting = true;
+        return this.run(state, operation, options);
     }
 
-    private async enqueueExclusive<Result>(serverId: string, operation: () => Promise<Result>) {
-        const predecessor = this.exclusiveTails.get(serverId) ?? Promise.resolve();
-        const result = predecessor
-            .catch(() => undefined)
-            .then(async () => {
-                this.quiescing.add(serverId);
-                try {
-                    await this.waitForActive(serverId);
-                    return await operation();
-                } finally {
-                    this.quiescing.delete(serverId);
-                }
-            });
-        const tail = result.then(
-            () => undefined,
-            () => undefined
+    private run<Result>(
+        state: ServerWriteState,
+        operation: () => Promise<Result>,
+        options?: { signal?: AbortSignal }
+    ): Promise<Result> {
+        const program = state.semaphore.withPermits(1)(
+            Effect.acquireUseRelease(
+                Effect.sync(() => this.beginQuiescence(state)),
+                (quiescence) =>
+                    (quiescence ? Deferred.await(quiescence) : Effect.void).pipe(
+                        Effect.andThen(
+                            Effect.tryPromise({
+                                catch: asError,
+                                try: operation,
+                            })
+                        )
+                    ),
+                () =>
+                    Effect.sync(() => {
+                        state.quiescence = null;
+                        state.quiescing = false;
+                    })
+            )
         );
-        this.exclusiveTails.set(serverId, tail);
-        try {
-            return await result;
-        } finally {
-            if (this.exclusiveTails.get(serverId) === tail) {
-                this.exclusiveTails.delete(serverId);
-            }
-        }
+        return settle(
+            this.runtime,
+            program,
+            options?.signal === undefined ? undefined : { signal: options.signal }
+        );
     }
 
-    private async waitForActive(serverId: string) {
-        if (!this.active.has(serverId)) {
-            return;
+    private beginQuiescence(state: ServerWriteState): Deferred.Deferred<void> | null {
+        state.quiescing = true;
+        state.quiescence = state.active === 0 ? null : this.runtime.runSync(Deferred.make<void>());
+        return state.quiescence;
+    }
+
+    private server(serverId: string): ServerWriteState {
+        const current = this.servers.get(serverId);
+        if (current) {
+            return current;
         }
-        await new Promise<void>((resolve) => {
-            const serverWaiters = this.waiters.get(serverId) ?? new Set();
-            serverWaiters.add(resolve);
-            this.waiters.set(serverId, serverWaiters);
-        });
+        const created = {
+            active: 0,
+            deleting: false,
+            quiescence: null,
+            quiescing: false,
+            semaphore: this.runtime.runSync(Effect.makeSemaphore(1)),
+        } satisfies ServerWriteState;
+        this.servers.set(serverId, created);
+        return created;
     }
 }

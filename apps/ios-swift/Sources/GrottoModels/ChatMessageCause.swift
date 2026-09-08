@@ -90,6 +90,7 @@ extension ChatMessage {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         attachments = try container.decode([AttachmentMetadata].self, forKey: .attachments)
         author = try container.decode(ChatAuthor.self, forKey: .author)
+        body = try container.decodeIfPresent(ChatMessageBody.self, forKey: .body)
         cause = try? container.decodeIfPresent(ChatMessageCause.self, forKey: .cause)
         chatID = try container.decode(String.self, forKey: .chatID)
         content = try container.decode(String.self, forKey: .content)

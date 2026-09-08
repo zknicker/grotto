@@ -8,12 +8,17 @@ import type {
     AgentWorkspaceResult,
     BrowserRequest,
     BrowserResult,
+    CloudAgentCapabilityRequest,
+    CloudAgentCapabilityResult,
     ComputerUpdatePhase,
     SignedComputerRelease,
 } from '@grotto/api';
+import type { EffectRuntime } from '@grotto/effect';
 import type { DeliveryTransport } from '../agent-delivery/delivery.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { SkillFileRelay } from './skill-file-relay.ts';
+import { AgentReplyOffice } from './agent-reply-office.ts';
+import { BrowserReplyOffice } from './browser-reply-office.ts';
+import { CloudAgentCapabilityReplyOffice } from './cloud-agent-capability-reply-office.ts';
 
 interface AttachedComputer {
     disconnect?(reason: string): void;
@@ -21,38 +26,6 @@ interface AttachedComputer {
     send(frame: unknown): void;
     serverId: string;
     updatePhase: ComputerUpdatePhase;
-}
-
-interface PendingSkillImport {
-    agentId: string;
-    computerId: string;
-    reject(error: Error): void;
-    resolve(result: { requestId: string; status: 'accepted' }): void;
-    sourceId: string;
-}
-
-interface PendingWorkspaceRequest {
-    agentId: string;
-    computerId: string;
-    reject(error: Error): void;
-    resolve(result: NonNullable<AgentWorkspaceResult['result']>): void;
-    timeout: ReturnType<typeof setTimeout>;
-}
-
-interface PendingBrowserRequest {
-    computerId: string;
-    reject(error: Error): void;
-    resolve(result: NonNullable<BrowserResult['result']>): void;
-    timeout: ReturnType<typeof setTimeout>;
-}
-
-interface PendingExecutionJournalRequest {
-    agentId: string;
-    computerId: string;
-    resolve(result: AgentExecutionJournalResult): void;
-    runId: string;
-    serverId: string;
-    timeout: ReturnType<typeof setTimeout>;
 }
 
 /**
@@ -64,16 +37,24 @@ interface PendingExecutionJournalRequest {
  */
 export class ComputerConnections implements DeliveryTransport {
     private readonly attached = new Map<string, AttachedComputer>();
-    private readonly pendingSkillImports = new Map<string, PendingSkillImport>();
-    private readonly skillFileRelay = new SkillFileRelay((computerId, frame) =>
-        this.send(computerId, frame)
-    );
-    private readonly pendingWorkspaceRequests = new Map<string, PendingWorkspaceRequest>();
-    private readonly pendingBrowserRequests = new Map<string, PendingBrowserRequest>();
-    private readonly pendingExecutionJournalRequests = new Map<
-        string,
-        PendingExecutionJournalRequest
-    >();
+    private readonly agentReplies: AgentReplyOffice;
+    private readonly browserReplies: BrowserReplyOffice;
+    private readonly cloudAgentCapabilityReplies: CloudAgentCapabilityReplyOffice;
+
+    constructor(runtime: EffectRuntime<never>) {
+        this.agentReplies = new AgentReplyOffice({
+            runtime,
+            send: (computerId, frame) => this.send(computerId, frame),
+        });
+        this.cloudAgentCapabilityReplies = new CloudAgentCapabilityReplyOffice({
+            runtime,
+            send: (computerId, frame) => this.send(computerId, frame),
+        });
+        this.browserReplies = new BrowserReplyOffice({
+            runtime,
+            send: (computerId, frame) => this.send(computerId, frame),
+        });
+    }
 
     register(computerId: string, computer: AttachedComputer): void {
         this.attached.set(computerId, computer);
@@ -81,41 +62,9 @@ export class ComputerConnections implements DeliveryTransport {
 
     unregister(computerId: string): void {
         this.attached.delete(computerId);
-        for (const [requestId, pending] of this.pendingSkillImports) {
-            if (pending.computerId === computerId) {
-                this.pendingSkillImports.delete(requestId);
-                pending.reject(new Error('The selected Computer went offline.'));
-            }
-        }
-        for (const [requestId, pending] of this.pendingWorkspaceRequests) {
-            if (pending.computerId === computerId) {
-                clearTimeout(pending.timeout);
-                this.pendingWorkspaceRequests.delete(requestId);
-                pending.reject(new Error('The selected Computer went offline.'));
-            }
-        }
-        this.skillFileRelay.disconnect(computerId);
-        for (const [requestId, pending] of this.pendingBrowserRequests) {
-            if (pending.computerId === computerId) {
-                clearTimeout(pending.timeout);
-                this.pendingBrowserRequests.delete(requestId);
-                pending.reject(new Error('The selected Computer went offline.'));
-            }
-        }
-        for (const [requestId, pending] of this.pendingExecutionJournalRequests) {
-            if (pending.computerId === computerId) {
-                clearTimeout(pending.timeout);
-                this.pendingExecutionJournalRequests.delete(requestId);
-                pending.resolve({
-                    agentId: pending.agentId,
-                    reason: 'offline',
-                    requestId,
-                    runId: pending.runId,
-                    status: 'unavailable',
-                    type: 'agent-execution-journal-result',
-                });
-            }
-        }
+        this.agentReplies.disconnect(computerId);
+        this.browserReplies.disconnect(computerId);
+        this.cloudAgentCapabilityReplies.disconnect(computerId);
     }
 
     /** Drops one revoked Computer attachment without disturbing the Server's other Computers. */
@@ -178,45 +127,11 @@ export class ComputerConnections implements DeliveryTransport {
         computerId: string,
         input: { agentId: string; sourceId: string }
     ): Promise<{ requestId: string; status: 'accepted' }> {
-        const requestId = createOpaqueId('req');
-        return new Promise((resolve, reject) => {
-            this.pendingSkillImports.set(requestId, {
-                agentId: input.agentId,
-                computerId,
-                reject,
-                resolve,
-                sourceId: input.sourceId,
-            });
-            if (
-                !this.send(computerId, {
-                    ...input,
-                    requestId,
-                    type: 'agent-skill-import',
-                })
-            ) {
-                this.pendingSkillImports.delete(requestId);
-                reject(new Error('The selected Computer is offline.'));
-            }
-        });
+        return this.agentReplies.requestSkillImport(computerId, input);
     }
 
     acceptSkillImport(computerId: string, result: AgentSkillImportResult): boolean {
-        const pending = this.pendingSkillImports.get(result.requestId);
-        if (
-            !pending ||
-            pending.computerId !== computerId ||
-            pending.agentId !== result.agentId ||
-            pending.sourceId !== result.sourceId
-        ) {
-            return false;
-        }
-        this.pendingSkillImports.delete(result.requestId);
-        if (result.status === 'accepted' || result.status === 'applied') {
-            pending.resolve({ requestId: result.requestId, status: 'accepted' });
-        } else {
-            pending.reject(new Error(result.error));
-        }
-        return true;
+        return this.agentReplies.acceptSkillImport(computerId, result);
     }
 
     requestSkillFile(
@@ -226,11 +141,11 @@ export class ComputerConnections implements DeliveryTransport {
             operation: AgentSkillFileRequest['operation'];
         }
     ): Promise<NonNullable<AgentSkillFileResult['result']>> {
-        return this.skillFileRelay.request(computerId, input);
+        return this.agentReplies.requestSkillFile(computerId, input);
     }
 
     acceptSkillFileResult(computerId: string, result: AgentSkillFileResult): boolean {
-        return this.skillFileRelay.accept(computerId, result);
+        return this.agentReplies.acceptSkillFile(computerId, result);
     }
 
     requestWorkspace(
@@ -240,85 +155,44 @@ export class ComputerConnections implements DeliveryTransport {
             operation: AgentWorkspaceRequest['operation'];
         }
     ): Promise<NonNullable<AgentWorkspaceResult['result']>> {
-        const requestId = createOpaqueId('req');
-        return new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                this.pendingWorkspaceRequests.delete(requestId);
-                reject(new Error('The Computer did not answer the workspace request.'));
-            }, 10_000);
-            this.pendingWorkspaceRequests.set(requestId, {
-                agentId: input.agentId,
-                computerId,
-                reject,
-                resolve,
-                timeout,
-            });
-            if (
-                !this.send(computerId, {
-                    ...input,
-                    requestId,
-                    type: 'agent-workspace-request',
-                })
-            ) {
-                clearTimeout(timeout);
-                this.pendingWorkspaceRequests.delete(requestId);
-                reject(new Error('The selected Computer is offline.'));
-            }
-        });
+        return this.agentReplies.requestWorkspace(computerId, input);
     }
 
     acceptWorkspaceResult(computerId: string, result: AgentWorkspaceResult): boolean {
-        const pending = this.pendingWorkspaceRequests.get(result.requestId);
-        if (!pending || pending.computerId !== computerId || pending.agentId !== result.agentId) {
-            return false;
-        }
-        clearTimeout(pending.timeout);
-        this.pendingWorkspaceRequests.delete(result.requestId);
-        if (result.result) {
-            pending.resolve(result.result);
-        } else {
-            pending.reject(new Error(result.error ?? 'The workspace request failed.'));
-        }
-        return true;
+        return this.agentReplies.acceptWorkspace(computerId, result);
     }
 
     requestBrowser(
         computerId: string,
         operation: BrowserRequest['operation']
     ): Promise<NonNullable<BrowserResult['result']>> {
-        const requestId = createOpaqueId('req');
-        return new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                this.pendingBrowserRequests.delete(requestId);
-                reject(new Error('The Computer did not answer the Browser request.'));
-            }, 10_000);
-            this.pendingBrowserRequests.set(requestId, {
-                computerId,
-                reject,
-                resolve,
-                timeout,
-            });
-            if (!this.send(computerId, { operation, requestId, type: 'browser-request' })) {
-                clearTimeout(timeout);
-                this.pendingBrowserRequests.delete(requestId);
-                reject(new Error('The selected Computer is offline.'));
-            }
-        });
+        return this.browserReplies.request(computerId, operation);
     }
 
     acceptBrowserResult(computerId: string, result: BrowserResult): boolean {
-        const pending = this.pendingBrowserRequests.get(result.requestId);
-        if (!pending || pending.computerId !== computerId) {
-            return false;
+        return this.browserReplies.accept(computerId, result);
+    }
+
+    /**
+     * A Cloud Agent capability read or connect on one Computer. Connecting runs
+     * the provider's own browser sign-in on that machine, so this waits far
+     * longer than a Browser request: a human has to finish the flow.
+     */
+    requestCloudAgentCapability(
+        computerId: string,
+        input: {
+            operation: CloudAgentCapabilityRequest['operation'];
+            provider: CloudAgentCapabilityRequest['provider'];
         }
-        clearTimeout(pending.timeout);
-        this.pendingBrowserRequests.delete(result.requestId);
-        if (result.result) {
-            pending.resolve(result.result);
-        } else {
-            pending.reject(new Error(result.error ?? 'The Browser request failed.'));
-        }
-        return true;
+    ): Promise<NonNullable<CloudAgentCapabilityResult['result']>> {
+        return this.cloudAgentCapabilityReplies.request(computerId, input);
+    }
+
+    acceptCloudAgentCapabilityResult(
+        computerId: string,
+        result: CloudAgentCapabilityResult
+    ): boolean {
+        return this.cloudAgentCapabilityReplies.accept(computerId, result);
     }
 
     requestExecutionJournal(
@@ -337,63 +211,15 @@ export class ComputerConnections implements DeliveryTransport {
                 type: 'agent-execution-journal-result',
             });
         }
-        return new Promise((resolve) => {
-            const timeout = setTimeout(() => {
-                this.pendingExecutionJournalRequests.delete(requestId);
-                resolve({
-                    agentId: input.agentId,
-                    reason: 'timeout',
-                    requestId,
-                    runId: input.runId,
-                    status: 'unavailable',
-                    type: 'agent-execution-journal-result',
-                });
-            }, 10_000);
-            this.pendingExecutionJournalRequests.set(requestId, {
-                agentId: input.agentId,
-                computerId,
-                resolve,
-                runId: input.runId,
-                serverId: input.serverId,
-                timeout,
-            });
-            if (
-                !this.send(computerId, {
-                    agentId: input.agentId,
-                    requestId,
-                    runId: input.runId,
-                    type: 'agent-execution-journal-request',
-                })
-            ) {
-                clearTimeout(timeout);
-                this.pendingExecutionJournalRequests.delete(requestId);
-                resolve({
-                    agentId: input.agentId,
-                    reason: 'offline',
-                    requestId,
-                    runId: input.runId,
-                    status: 'unavailable',
-                    type: 'agent-execution-journal-result',
-                });
-            }
-        });
+        return this.agentReplies.requestExecutionJournal(computerId, input);
     }
 
     acceptExecutionJournalResult(computerId: string, result: AgentExecutionJournalResult): boolean {
-        const pending = this.pendingExecutionJournalRequests.get(result.requestId);
-        if (
-            !pending ||
-            pending.computerId !== computerId ||
-            pending.agentId !== result.agentId ||
-            pending.runId !== result.runId ||
-            this.attached.get(computerId)?.serverId !== pending.serverId
-        ) {
-            return false;
-        }
-        clearTimeout(pending.timeout);
-        this.pendingExecutionJournalRequests.delete(result.requestId);
-        pending.resolve(result);
-        return true;
+        return this.agentReplies.acceptExecutionJournal(
+            computerId,
+            this.attached.get(computerId)?.serverId,
+            result
+        );
     }
 
     setUpdatePhase(computerId: string, updatePhase: ComputerUpdatePhase): void {

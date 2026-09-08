@@ -1,5 +1,9 @@
 import { type McpIcon, mcpIconMaxBytes, mcpIconSchema, mcpSummarySchema } from '@grotto/api';
+import type { EffectRuntime } from '@grotto/effect';
 import * as z from 'zod';
+import { loadRemoteIcon, type McpIconFetch } from './icon-loader.ts';
+
+export type { McpIconFetch } from './icon-loader.ts';
 
 /**
  * Resolving a connection's icon to inline bytes, at discovery time.
@@ -50,20 +54,32 @@ const iconMediaTypes = new Map<string, string>([
 /** Hosts prefixed with a service label usually front a site that has a favicon. */
 const serviceHostLabels = new Set(['api', 'connect', 'mcp', 'remote', 'server']);
 
-export type McpIconFetch = (url: string, signal: AbortSignal) => Promise<Response>;
-
-export async function resolveMcpIcon(input: {
+export interface McpIconResolverInput {
     connectionUrl: string;
     fetchImpl?: McpIconFetch;
     serverInfoIcons: unknown;
     timeoutMs: number;
-}): Promise<McpIcon | null> {
+}
+
+export type McpIconResolver = (input: McpIconResolverInput) => Promise<McpIcon | null>;
+
+export function makeMcpIconResolver(runtime: EffectRuntime<never>): McpIconResolver {
+    return async (input) => {
+        return await resolveMcpIcon(runtime, input);
+    };
+}
+
+async function resolveMcpIcon(
+    runtime: EffectRuntime<never>,
+    input: McpIconResolverInput
+): Promise<McpIcon | null> {
     const fetchImpl = input.fetchImpl ?? defaultIconFetch;
-    const advertised = await resolveAdvertisedIcon({ ...input, fetchImpl });
+    const advertised = await resolveAdvertisedIcon(runtime, { ...input, fetchImpl });
     if (advertised) {
         return advertised;
     }
-    const favicon = await loadIconBytes({
+    const favicon = await loadRemoteIcon(runtime, {
+        encode: encodeFetchedIcon,
         fetchImpl,
         timeoutMs: input.timeoutMs,
         url: siteFaviconUrl(input.connectionUrl),
@@ -71,12 +87,15 @@ export async function resolveMcpIcon(input: {
     return favicon ? asIcon({ dark: favicon, light: favicon }) : null;
 }
 
-async function resolveAdvertisedIcon(input: {
-    connectionUrl: string;
-    fetchImpl: McpIconFetch;
-    serverInfoIcons: unknown;
-    timeoutMs: number;
-}): Promise<McpIcon | null> {
+async function resolveAdvertisedIcon(
+    runtime: EffectRuntime<never>,
+    input: {
+        connectionUrl: string;
+        fetchImpl: McpIconFetch;
+        serverInfoIcons: unknown;
+        timeoutMs: number;
+    }
+): Promise<McpIcon | null> {
     const parsed = upstreamIconsSchema.safeParse(input.serverInfoIcons);
     if (!parsed.success || parsed.data.length === 0) {
         return null;
@@ -86,13 +105,14 @@ async function resolveAdvertisedIcon(input: {
     const loads = new Map<string, Promise<string | null>>();
     const context = { ...input, loads };
     const [light, dark] = await Promise.all([
-        loadVariant(parsed.data, 'light', context),
-        loadVariant(parsed.data, 'dark', context),
+        loadVariant(runtime, parsed.data, 'light', context),
+        loadVariant(runtime, parsed.data, 'dark', context),
     ]);
     return asIcon({ dark: dark ?? light, light: light ?? dark });
 }
 
 async function loadVariant(
+    runtime: EffectRuntime<never>,
     icons: UpstreamIcon[],
     theme: 'dark' | 'light',
     input: {
@@ -109,7 +129,8 @@ async function loadVariant(
             input.loads.get(candidate.src) ??
             (candidate.src.startsWith('data:')
                 ? Promise.resolve(readDataUrl(candidate.src))
-                : loadIconBytes({
+                : loadRemoteIcon(runtime, {
+                      encode: encodeFetchedIcon,
                       fetchImpl: input.fetchImpl,
                       timeoutMs: input.timeoutMs,
                       url: sameOriginIconUrl(candidate.src, input.connectionUrl),
@@ -205,82 +226,6 @@ export function siteFaviconUrl(connectionUrl: string): null | string {
     }
 }
 
-async function loadIconBytes(input: {
-    fetchImpl: McpIconFetch;
-    timeoutMs: number;
-    url: null | string;
-}): Promise<string | null> {
-    if (!input.url) {
-        return null;
-    }
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), input.timeoutMs);
-    try {
-        const response = await input.fetchImpl(input.url, controller.signal);
-        if (!response.ok) {
-            return null;
-        }
-        const mediaType = normalizeMediaType(response.headers.get('content-type'));
-        if (!mediaType) {
-            return null;
-        }
-        const bytes = await readCappedBody(response, controller);
-        return bytes ? encodeIcon(bytes, mediaType) : null;
-    } catch {
-        // An icon is decoration; a slow or hostile host must not fail discovery.
-        return null;
-    } finally {
-        clearTimeout(timeout);
-    }
-}
-
-/**
- * Reads at most the icon ceiling. Buffering the whole body first would let a
- * hostile host stream unbounded bytes into Server memory before the size check
- * ever ran, so the cap is enforced against the stream and the response is
- * aborted the moment it is exceeded.
- */
-async function readCappedBody(
-    response: Response,
-    controller: AbortController
-): Promise<Uint8Array | null> {
-    const declared = Number(response.headers.get('content-length'));
-    if (Number.isFinite(declared) && declared > mcpIconMaxBytes) {
-        controller.abort();
-        return null;
-    }
-    const body = response.body;
-    if (!body) {
-        return null;
-    }
-    const reader = body.getReader();
-    const chunks: Uint8Array[] = [];
-    let total = 0;
-    try {
-        for (;;) {
-            const { done, value } = await reader.read();
-            if (done) {
-                break;
-            }
-            total += value.byteLength;
-            if (total > mcpIconMaxBytes) {
-                controller.abort();
-                return null;
-            }
-            chunks.push(value);
-        }
-    } finally {
-        reader.releaseLock();
-    }
-    const bytes = new Uint8Array(total);
-    let offset = 0;
-    for (const chunk of chunks) {
-        bytes.set(chunk, offset);
-        offset += chunk.byteLength;
-    }
-    return bytes;
-}
-
 function readDataUrl(src: string): string | null {
     const match = /^data:([^;,]+);base64,(.*)$/su.exec(src);
     if (!match) {
@@ -292,6 +237,10 @@ function readDataUrl(src: string): string | null {
     } catch {
         return null;
     }
+}
+
+function encodeFetchedIcon(bytes: Uint8Array, mediaType: string | null): string | null {
+    return encodeIcon(bytes, normalizeMediaType(mediaType));
 }
 
 function encodeIcon(bytes: Uint8Array, mediaType: null | string): string | null {

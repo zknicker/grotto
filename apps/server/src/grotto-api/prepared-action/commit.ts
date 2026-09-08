@@ -25,8 +25,8 @@ export const commitPreparedActionProcedure = memberProcedure
             });
 
             if (!result.idempotent) {
-                try {
-                    await ctx.agentDelivery.configureAgent({
+                void ctx.postCommitWork.run('agent.configure-after-action-commit', () =>
+                    ctx.agentDelivery.configureAgent({
                         agentDescription: result.agent.description,
                         agentId: result.agent.id,
                         agentName: result.agent.displayName,
@@ -34,24 +34,11 @@ export const commitPreparedActionProcedure = memberProcedure
                         modelId: result.agent.desiredModelId,
                         reasoningEffort: result.agent.desiredReasoningEffort,
                         runtimeId: result.agent.desiredRuntimeId,
-                    });
-                } catch (cause) {
-                    console.error(
-                        '[grotto] committed Agent configuration could not be nudged',
-                        cause
-                    );
-                }
-                try {
-                    await ctx.agentDelivery.dispatchAgent(
-                        result.action.proposerAgentId,
-                        input.serverId
-                    );
-                } catch (cause) {
-                    console.error(
-                        '[grotto] committed action attention could not be dispatched',
-                        cause
-                    );
-                }
+                    })
+                );
+                void ctx.postCommitWork.wakeAgents(ctx.agentDelivery, [
+                    { agentId: result.action.proposerAgentId, serverId: input.serverId },
+                ]);
             }
 
             return {

@@ -8,8 +8,6 @@ import {
     purgeServerPartition,
     type RunMarker,
     readRunMarker,
-    releaseAgentRun,
-    reserveAgentRun,
     writePendingNotice,
     writeRunMarker,
 } from './delivery.ts';
@@ -28,6 +26,7 @@ afterEach(async () => {
 });
 
 const summary: AgentTurnFrame = {
+    activity: { operations: [] },
     agentId: 'agt_x',
     endedAt: '2026-07-27T00:00:01.000Z',
     messageCount: 1,
@@ -101,20 +100,6 @@ test('an interrupted accepted-only run stays replayable until it settles', async
         kind: 'replay',
         summary: interrupted,
     });
-});
-
-test('run admission serializes every turn for one Agent while allowing other Agents', () => {
-    const running = new Map<string, AbortController>();
-    const agentRuns = new Map<string, string>();
-    expect(reserveAgentRun(running, agentRuns, 'agt_x', 'run_x').kind).toBe('reserved');
-    expect(reserveAgentRun(running, agentRuns, 'agt_x', 'run_x')).toEqual({
-        kind: 'duplicate',
-    });
-    expect(reserveAgentRun(running, agentRuns, 'agt_x', 'run_y')).toEqual({ kind: 'busy' });
-    expect(reserveAgentRun(running, agentRuns, 'agt_y', 'run_z').kind).toBe('reserved');
-
-    releaseAgentRun(running, agentRuns, 'agt_x', 'run_x');
-    expect(reserveAgentRun(running, agentRuns, 'agt_x', 'run_y').kind).toBe('reserved');
 });
 
 test('a pending notice carries durable envelopes but persists only model-safe notice text', async () => {

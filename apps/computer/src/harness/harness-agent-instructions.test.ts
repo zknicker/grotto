@@ -1,12 +1,16 @@
-import { afterEach, expect, test } from 'bun:test';
+import { afterAll, afterEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { HarnessV1, HarnessV1PromptTurnOptions } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 
 const roots: string[] = [];
+const runtime = makeDaemonRuntime();
+
+afterAll(() => runtime.dispose());
 
 afterEach(async () => {
     await Promise.all(roots.splice(0).map((root) => rm(root, { force: true, recursive: true })));
@@ -17,7 +21,7 @@ test('HarnessAgent supplies current instructions to a resumed native session', a
     roots.push(root);
     const promptTurns: Array<{ instructions: string | undefined; isResume: boolean }> = [];
     const harness = createInstructionObservingHarness(promptTurns);
-    const sandbox = createLocalTrustedSandboxProvider({ rootDir: root });
+    const sandbox = createLocalTrustedSandboxProvider({ rootDir: root, runtime });
     const firstAgent = new HarnessAgent({
         harness,
         id: 'agt_instruction_test',

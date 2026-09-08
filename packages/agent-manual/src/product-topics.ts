@@ -48,6 +48,35 @@ An Ask changes nothing on its own. It never advances a task, commits a proposal,
         title: 'Asks',
     },
     {
+        body: `# Cloud agents
+
+A Cloud Agent is a provider-hosted agent you hand bounded development work to. You start it, it works in a repository without you, and its result reaches your inbox when the run settles.
+
+Use one when the work is a real coding change in a repository someone else's machine can build — reproduce a failure, make the change, open a pull request — and you would otherwise sit and wait. Keep work you can finish in this turn, and anything needing conversation, for yourself.
+
+\`grotto cloud-agent start --target <target> --repo <owner/name> --ref <ref> --title <text> --say <text>\`
+
+The instructions for the cloud agent arrive on stdin. Write them as a complete brief: the cloud agent cannot ask you a question, so name the repository paths, the reproduction, and what a finished result looks like. \`--say\` is your own message to the chat and becomes the Message content, so say what you delegated and why in your own words. \`--title\` names the work for humans, and \`--ref\` is the starting branch, tag, or commit.
+
+Launch fails before anything is created when the input is wrong, the Computer has no Cloud Agent provider, or the target is unreachable. Once the work is recorded it stays recorded: a provider that refuses the launch settles that same work as failed rather than erasing it.
+
+A top-level work Message gets its thread immediately, and work started inside a thread stays there. That thread is where humans steer and where you post what you learn.
+
+For revisions, corrections, or another step in the same assignment, send instructions on stdin with \`grotto cloud-agent send --work <workId>\`. Reuse the Work ID from the start receipt. This continues the same hosted agent and work thread, preserving its repository context and earlier results. If it is busy, Grotto queues the prompt. Add \`--interrupt\` when the new instructions replace active work and any older queued prompts. Start another cloud agent only for a separate assignment.
+
+\`grotto cloud-agent inspect\` lists work you delegated. Add \`--work <workId>\` to read that work's status and recorded results. Completion reaches your inbox automatically and wakes you, or arrives in a later turn if you are busy. You do not need to set a reminder or poll to learn when it finishes; inspect when you need evidence.
+
+\`grotto cloud-agent stop --work <workId>\` asks the provider to stop work you started and discards its queued prompts. Owners and Admins can cancel it too. Cancellation is recorded immediately and the active run settles as cancelled when the provider stops. The earlier \`cancel\` command remains an alias for existing callers. A later \`send\` continues the same work with a new run.
+
+When the run settles you receive one inbox attention carrying its status, summary, branches, and any pull-request URL, and the report names that pull request's number, state, and diff counts when Grotto could read them, so you can judge the size of the change before opening it. Cloud Agent work produces no automatic message: read the result, judge it, and post what is worth saying as an ordinary reply in the work's thread. A pull request is a reference anyone can post — a lone pull-request reply is often the whole report.`,
+        id: 'cloud-agents',
+        kind: 'overview',
+        related: ['agent', 'asks', 'grotto-cli-overview'],
+        summary:
+            'Delegate bounded repository work to a provider-hosted agent and report the result.',
+        title: 'Cloud agents',
+    },
+    {
         body: `# Agents
 
 An Agent is a persistent collaborator with its own identity, private workspace, memory, execution settings, and one ongoing session across the Chats where it participates.

@@ -208,6 +208,8 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   to the shell components, not feature pages.
 * Global command definitions live under `src/commands`; the shell only renders
   their groups.
+  Cmd+K includes Light, Dark, and System theme commands using the same device-local
+  theme preference as Settings.
 
 ## Hooks
 

@@ -312,7 +312,7 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
             }
         ).__threadCloseDuration = removal;
     });
-    await panel.getByRole('button', { name: 'Close thread' }).click();
+    await panel.getByRole('button', { name: 'Close thread' }).press('Enter');
     const closeDuration = await page.evaluate(
         () =>
             (

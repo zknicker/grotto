@@ -1,0 +1,60 @@
+import type { AgentEffectiveState } from '@grotto/api';
+import { type EffectiveAgentState, readEffectiveAgentStates } from './effective-state.ts';
+import {
+    listAgentSkillImportReports,
+    listAgentSkillReports,
+    listImportableSkills,
+} from './host-skills.ts';
+import { detectFullInventory } from './inventory.ts';
+
+export async function sendEffectiveComputerReport({
+    send,
+    serverId,
+    computerName,
+    dataRoot,
+}: {
+    send(frame: unknown): boolean;
+    serverId: string;
+    computerName: string;
+    dataRoot: string;
+}) {
+    const agents = await readEffectiveAgentStates(dataRoot, serverId);
+    send({
+        agents: agents.map(toReportedAgentState),
+        inventory: {
+            ...(await detectFullInventory()),
+            agentSkillImports: await listAgentSkillImportReports(dataRoot, serverId),
+            agentSkills: await listAgentSkillReports(dataRoot, serverId),
+            importableSkills: await listImportableSkills(),
+            name: computerName,
+        },
+        type: 'report',
+    });
+    send({
+        agents: agents.map(
+            ({ agentId, grottoAgentAppliedAt, grottoAgentStatus, grottoAgentVersion }) => ({
+                agentId,
+                appliedAt: grottoAgentAppliedAt,
+                status: grottoAgentStatus,
+                version: grottoAgentVersion,
+            })
+        ),
+        type: 'grotto-agent-report',
+    });
+}
+
+export function toReportedAgentState({
+    agentId,
+    missingResources,
+    modelId,
+    reasoningEffort,
+    runtimeId,
+}: EffectiveAgentState): AgentEffectiveState {
+    return { agentId, missingResources, modelId, reasoningEffort, runtimeId };
+}
+
+export function reportStateError(error: unknown) {
+    console.error(
+        `Computer state report failed: ${error instanceof Error ? error.message : error}`
+    );
+}

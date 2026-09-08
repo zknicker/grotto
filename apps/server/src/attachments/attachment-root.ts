@@ -1,5 +1,6 @@
 import { type FileHandle, mkdir, rename, rm } from 'node:fs/promises';
 import { isAbsolute, join, relative } from 'node:path';
+import type { ServerRuntime } from '../server-runtime.ts';
 import {
     digest,
     ensureServerLayout,
@@ -46,6 +47,7 @@ export interface AttachmentRootFailureInjection {
 
 export async function openAttachmentRoot(
     rootPath: string,
+    runtime: ServerRuntime,
     failureInjection?: AttachmentRootFailureInjection
 ): Promise<AttachmentRoot> {
     if (!isAbsolute(rootPath)) {
@@ -59,7 +61,7 @@ export async function openAttachmentRoot(
     await mkdir(serversPath, { mode: 0o700, recursive: true });
     await requirePrivateDirectory(serversPath, 'attachment servers directory');
 
-    const writes = new AttachmentWriteCoordinator();
+    const writes = new AttachmentWriteCoordinator(runtime);
     const attachmentRoot: AttachmentRoot = {
         beginServerWrite(serverId) {
             requireId(serverId, serverIdPattern, 'Server');

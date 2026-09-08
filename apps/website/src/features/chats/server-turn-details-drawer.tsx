@@ -1,15 +1,24 @@
 import type { AgentExecutionJournal } from '@grotto/api';
-import { Drawer } from '@heroui/react';
+import { Chip, Drawer } from '@heroui/react';
 import * as React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useAgentTurnActivityHistory } from '../../hooks/members/use-agent-activity-history.ts';
 import { useAgentExecutionJournal } from '../../hooks/members/use-agent-execution-journal.ts';
+import { useAgentTurn } from '../../hooks/members/use-agent-turns.ts';
 import {
-    formatAgentActivityEvent,
+    getAgentActivityColor,
+    getAgentActivityPhaseLabel,
     getTurnJournalPresentation,
     shouldRequestExecutionJournal,
     type TurnDetailAccess,
 } from '../members/agent-profile/agent-activity-model.ts';
+import { AgentActivityTimeline } from '../members/agent-profile/agent-activity-timeline.tsx';
+import {
+    formatActivityTurnCounts,
+    formatActivityTurnHeadline,
+    getActivityTurnPhase,
+    groupAgentActivityTurns,
+} from '../members/agent-profile/agent-activity-turns.ts';
 
 export function ServerTurnDetailsDrawer({
     access,
@@ -88,38 +97,40 @@ function TurnActivitySummary({
     runId: string | null;
     serverId: string;
 }) {
-    const activity = useAgentTurnActivityHistory(serverId, agentId ?? 'agent_missing', runId);
+    const activity = useAgentTurnActivityHistory(serverId, agentId ?? '', runId);
+    const settledTurn = useAgentTurn(serverId, agentId ?? '', runId);
     const events = activity.data?.events ?? [];
+    const turn = groupAgentActivityTurns(events, settledTurn.data ?? [])[0];
 
     return (
         <section className="grid gap-2">
             <h3 className="font-medium text-foreground text-sm">Activity summary</h3>
             {runId ? (
-                activity.isPending ? (
+                activity.isPending && settledTurn.isPending ? (
                     <p className="text-muted text-sm">Loading activity summary...</p>
-                ) : activity.error && events.length === 0 ? (
+                ) : activity.error && settledTurn.error && !turn ? (
                     <p className="text-muted text-sm">Activity summary is unavailable right now.</p>
-                ) : events.length === 0 ? (
-                    <p className="text-muted text-sm">No semantic activity was recorded.</p>
+                ) : turn ? (
+                    <div className="grid gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Chip
+                                color={getAgentActivityColor(getActivityTurnPhase(turn))}
+                                size="sm"
+                                variant="soft"
+                            >
+                                {getAgentActivityPhaseLabel(getActivityTurnPhase(turn))}
+                            </Chip>
+                            <span className="font-medium text-foreground text-sm">
+                                {formatActivityTurnHeadline(turn)}
+                            </span>
+                            <span className="text-muted text-sm">
+                                {formatActivityTurnCounts(turn)}
+                            </span>
+                        </div>
+                        <AgentActivityTimeline turn={turn} />
+                    </div>
                 ) : (
-                    <ol className="grid gap-2">
-                        {events.map((event) => (
-                            <li className="flex items-baseline gap-2 text-sm" key={event.id}>
-                                <time
-                                    className="shrink-0 text-muted text-xs tabular-nums"
-                                    dateTime={event.occurredAt}
-                                >
-                                    {new Date(event.occurredAt).toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                    })}
-                                </time>
-                                <span className="text-foreground">
-                                    {formatAgentActivityEvent(event)}
-                                </span>
-                            </li>
-                        ))}
-                    </ol>
+                    <p className="text-muted text-sm">No semantic activity was recorded.</p>
                 )
             ) : (
                 <p className="text-muted text-sm">This message has no available turn identity.</p>
@@ -190,9 +201,11 @@ function JournalContents({ journal }: { journal: AgentExecutionJournal }) {
             <p className="text-muted text-sm">
                 {journal.status === 'failed'
                     ? 'The turn failed after the recorded activity below.'
-                    : journal.status === 'running'
-                      ? 'The turn is still running.'
-                      : 'Recorded tool activity from the Computer.'}
+                    : journal.status === 'interrupted'
+                      ? 'The turn was interrupted after the recorded activity below.'
+                      : journal.status === 'running'
+                        ? 'The turn is still running.'
+                        : 'Recorded tool activity from the Computer.'}
             </p>
             {journal.error !== undefined ? (
                 <JournalValue label="Turn error" value={journal.error} />

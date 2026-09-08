@@ -41,6 +41,26 @@ test('closes PostgreSQL when application construction fails', async () => {
     await expect(waitForIdleBackends()).resolves.toBe(0);
 });
 
+test('closes PostgreSQL after late static App setup failure', async () => {
+    const clerk = await startClerkTestIssuer(appOrigin);
+
+    try {
+        await expect(
+            createGrottoServerApplication({
+                appOrigin,
+                attachmentRoot,
+                clerkIssuerUrl: clerk.url,
+                databaseUrl: cluster.databaseUrl,
+                staticAppRoot: 'relative-static-app',
+            })
+        ).rejects.toThrow(/root.*absolute path/i);
+
+        await expect(waitForIdleBackends()).resolves.toBe(0);
+    } finally {
+        await clerk.close();
+    }
+});
+
 test('closes PostgreSQL when a started application shuts down', async () => {
     const clerk = await startClerkTestIssuer(appOrigin);
     const application = await createGrottoServerApplication({

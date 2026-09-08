@@ -1,8 +1,10 @@
 import { expect, test } from 'bun:test';
 import type { AgentCommand, AgentExecutionJournalResult, SignedComputerRelease } from '@grotto/api';
-import { ComputerConnections } from '../src/computers/connections.ts';
+import { registerTestConnections } from './test-computer-connections.ts';
 
 const computerId = 'cmp_1234567890123456';
+const makeConnections = registerTestConnections();
+const traceparent = /^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$/u;
 const start: AgentCommand = {
     agentId: 'agt_1234567890123456',
     chatId: 'cht_1234567890123456',
@@ -28,10 +30,9 @@ const release = {
     },
     signature: Buffer.alloc(64, 1).toString('base64'),
 } satisfies SignedComputerRelease;
-
 test('update-required permits signed update control but rejects ordinary work', () => {
     const frames: unknown[] = [];
-    const connections = new ComputerConnections();
+    const connections = makeConnections();
     connections.register(computerId, {
         ordinary: false,
         send: (frame) => frames.push(frame),
@@ -43,10 +44,9 @@ test('update-required permits signed update control but rejects ordinary work', 
     expect(connections.sendUpdate(computerId, release)).toBe(true);
     expect(frames).toEqual([{ release, type: 'update' }]);
 });
-
 test('waiting for Agents closes admission until reconnect completes', () => {
     const frames: unknown[] = [];
-    const connections = new ComputerConnections();
+    const connections = makeConnections();
     connections.register(computerId, {
         ordinary: true,
         send: (frame) => frames.push(frame),
@@ -63,10 +63,9 @@ test('waiting for Agents closes admission until reconnect completes', () => {
     expect(connections.send(computerId, start)).toBe(true);
     expect(frames).toEqual([stop, start]);
 });
-
 test('skill imports resolve on durable acceptance from the requested Computer and Agent', async () => {
     const frames: Record<string, unknown>[] = [];
-    const connections = new ComputerConnections();
+    const connections = makeConnections();
     connections.register(computerId, {
         ordinary: true,
         send: (frame) => frames.push(frame as Record<string, unknown>),
@@ -111,7 +110,7 @@ test('skill imports resolve on durable acceptance from the requested Computer an
 
 test('workspace relay accepts a response only from the requested Computer and Agent', async () => {
     const frames: Record<string, unknown>[] = [];
-    const connections = new ComputerConnections();
+    const connections = makeConnections();
     connections.register(computerId, {
         ordinary: true,
         send: (frame) => frames.push(frame as Record<string, unknown>),
@@ -159,7 +158,7 @@ test('workspace relay accepts a response only from the requested Computer and Ag
 
 test('Agent skill file bytes relay only from the requested Computer and Agent', async () => {
     const frames: Record<string, unknown>[] = [];
-    const connections = new ComputerConnections();
+    const connections = makeConnections();
     connections.register(computerId, {
         ordinary: true,
         send: (frame) => frames.push(frame as Record<string, unknown>),
@@ -208,7 +207,7 @@ test('Agent skill file bytes relay only from the requested Computer and Agent', 
 
 test('Browser relay accepts a response only from the requested Computer', async () => {
     const frames: Record<string, unknown>[] = [];
-    const connections = new ComputerConnections();
+    const connections = makeConnections();
     connections.register(computerId, {
         ordinary: true,
         send: (frame) => frames.push(frame as Record<string, unknown>),
@@ -221,6 +220,7 @@ test('Browser relay accepts a response only from the requested Computer', async 
     expect(frames[0]).toEqual({
         operation: { kind: 'get' },
         requestId,
+        traceContext: { traceparent: expect.stringMatching(traceparent) },
         type: 'browser-request',
     });
     const result = {
@@ -254,7 +254,7 @@ test('Browser relay accepts a response only from the requested Computer', async 
 
 test('execution journal relay is paired to the assigned Computer, Agent, and run', async () => {
     const frames: Record<string, unknown>[] = [];
-    const connections = new ComputerConnections();
+    const connections = makeConnections();
     connections.register(computerId, {
         ordinary: true,
         send: (frame) => frames.push(frame as Record<string, unknown>),
@@ -299,7 +299,7 @@ test('execution journal relay is paired to the assigned Computer, Agent, and run
 });
 
 test('execution journal detail is explicitly unavailable when its Computer is offline', async () => {
-    const connections = new ComputerConnections();
+    const connections = makeConnections();
     await expect(
         connections.requestExecutionJournal('cmp_missing', {
             agentId: start.agentId,
@@ -314,7 +314,7 @@ test('execution journal detail is explicitly unavailable when its Computer is of
 });
 
 test('execution journal relay refuses a Computer attached to another Server', async () => {
-    const connections = new ComputerConnections();
+    const connections = makeConnections();
     connections.register(computerId, {
         ordinary: true,
         send: () => undefined,

@@ -21,9 +21,9 @@ export const deleteServerProcedure = memberProcedure
         const result = await markServerDeleting(ctx.grottoDb, ctx.member, input);
         ctx.computerConnections.cleanupServer(result.serverId);
         emitServerUpdated({ serverId: result.serverId });
-        queueMicrotask(() => {
-            void purgeDeletedServer(ctx.grottoDb, ctx.attachmentRoot, result);
-        });
+        void ctx.postCommitWork.run('server.delete-purge', () =>
+            purgeDeletedServer(ctx.grottoDb, ctx.attachmentRoot, result)
+        );
         return result;
     });
 

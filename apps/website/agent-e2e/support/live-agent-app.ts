@@ -45,9 +45,17 @@ export async function setTaskMode(page: Page, enabled: boolean) {
 }
 
 export async function expectVisibleReply(page: Page, content: string) {
-    await expect(messageByContent(messageTimeline(page), content, 'assistant')).toBeVisible({
+    await expect(messageTimeline(page).getByText(content, { exact: true }).last()).toBeVisible({
         timeout: 240_000,
     });
+}
+
+export async function expectAgentSettled(page: Page, agentId: string) {
+    await expect(
+        page
+            .getByRole('region', { name: 'Current Agent activity' })
+            .locator(`a[href*="/agents/${agentId}/"]`)
+    ).toHaveCount(0, { timeout: 240_000 });
 }
 
 export function messageByContent(

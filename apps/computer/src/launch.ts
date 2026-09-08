@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readlink, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -7,13 +7,20 @@ import {
     seedCoveWorkspace,
     seedFactoryManagedSkills,
 } from '@grotto/agent-workspace';
+import type { AgentTurnActivitySummary, CloudAgentBranch } from '@grotto/api';
+import type { TraceCarrier } from '@grotto/effect';
 import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
+import { AgentActivityRun } from './agent-activity-run.ts';
 import {
     readAgentSeedConfiguration,
     readAppliedAgentConfiguration,
 } from './agent-configuration.ts';
+import { parseInbox } from './agent-inbox-input.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
+import { parseTurnTraceContext } from './agent-turn-telemetry.ts';
 import { computerEntrypoint } from './build-identity.ts';
+import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
+import type { DaemonRuntime } from './daemon-runtime.ts';
 import type { StoredNoticeReceipt } from './delivery.ts';
 import {
     AgentSessionResumeRejectedError,
@@ -22,6 +29,7 @@ import {
     type NoticeSinkRegistrar,
     runHarnessTurn,
 } from './harness/executor.ts';
+import { ensureNativeSkillLinks } from './harness/native-skill-links.ts';
 import { composeInboxDrain } from './inbox-format.ts';
 import { readRunVisibleMessages } from './inbox-store.ts';
 import { resolveRuntimeExecutable, runtimeSearchPath } from './runtime-discovery.ts';
@@ -37,11 +45,7 @@ export interface Attachment {
     slug: string;
 }
 
-/**
- * The Server→Computer launch command. The Computer owns its own copy of the
- * wire shapes (like `inventory.ts`) rather than importing the Server contract
- * package, keeping the Computer artifact self-contained.
- */
+/** Server→Computer launch command kept local so the Computer artifact is self-contained. */
 export interface AgentStartCommand {
     /** Server-owned Agent facts the Computer composes into the system prompt. */
     agentDescription?: string;
@@ -56,6 +60,7 @@ export interface AgentStartCommand {
     runtimeId: string;
     sessionGeneration: number;
     totalPending: number;
+    traceContext?: { traceparent: string };
     type: 'start';
     webAccess?: 'fetch-only' | 'search' | 'search-only';
 }
@@ -64,6 +69,7 @@ export interface AgentInboxItem {
     actionAttention?: AgentActionAttention;
     ask?: AgentInboxAsk;
     chatId: string;
+    cloudAgentWork?: AgentCloudAgentWorkAttention;
     content: string;
     createdAt: string;
     id: string;
@@ -89,6 +95,20 @@ export interface AgentInboxItem {
 export interface AgentInboxAsk {
     addresseeHandle: string | null;
     status: 'answered' | 'open';
+}
+
+/** A settled Cloud Agent Run's terminal attention for the delegating Agent. */
+export interface AgentCloudAgentWorkAttention {
+    branches: CloudAgentBranch[];
+    errorCode: string | null;
+    provider: 'cursor';
+    providerUrl: string | null;
+    repository: string;
+    runId: string;
+    status: 'cancelled' | 'completed' | 'expired' | 'failed' | 'queued' | 'running';
+    summary: string | null;
+    title: string;
+    workId: string;
 }
 
 export interface AgentActionAttention {
@@ -148,6 +168,7 @@ export interface ServerDeleteCommand {
 
 /** The compact turn summary the Computer pushes up after a launch settles. */
 export interface AgentTurnFrame {
+    activity: AgentTurnActivitySummary;
     agentId: string;
     endedAt: string;
     failureKind?: RuntimeFailureKind;
@@ -158,7 +179,7 @@ export interface AgentTurnFrame {
     runId: string;
     runtimeId: string;
     startedAt: string;
-    status: 'completed' | 'failed';
+    status: 'completed' | 'failed' | 'interrupted';
     summary: string;
     tokenUsage: {
         cacheReadTokens: number;
@@ -173,6 +194,7 @@ export interface AgentTurnFrame {
 
 export interface RunAgentLaunchOptions {
     attachment: Attachment;
+    cloudAgents?: CloudAgentWorkSupervisor;
     command: AgentStartCommand;
     dataRoot: string;
     /** Per-launch construction seam for deterministic Harness boundary tests. */
@@ -183,23 +205,18 @@ export interface RunAgentLaunchOptions {
     onStoredNoticeDelivered?(receipt: StoredNoticeReceipt): void;
     /** Registers the live harness input used for content-free busy notices. */
     registerNoticeSink?: NoticeSinkRegistrar;
+    runtime: DaemonRuntime;
     /** Pushes the compact turn summary up the attachment socket. */
     sendFrame(frame: unknown): void;
     serverOrigin: string;
     /** Aborts the launch — a human Stop kills the live child through this. */
     signal?: AbortSignal;
+    turnTraceContext?: TraceCarrier;
 }
 
 const moduleDir = dirname(fileURLToPath(import.meta.url));
 const fakeRuntimePath = resolve(moduleDir, 'fake-runtime.ts');
-/**
- * Runs one Agent launch: isolated logical home/workspace/skills/runtime, a
- * Computer-minted scoped runner credential kept behind a loopback proxy, and the
- * managed `grotto` wrapper on PATH as the Agent's sole output channel. Real
- * runtimes drive the `@ai-sdk/harness` Codex/Claude/Pi executor with the Agent's
- * one persistent session; the `fake` lane runs the deterministic real-CLI turn.
- * Raw traces stay in the local runtime directory; only a compact summary leaves.
- */
+/** Runs one isolated Agent launch; only its compact summary leaves Computer. */
 export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<AgentTurnFrame> {
     const startedAt = new Date().toISOString();
     const { command } = options;
@@ -248,6 +265,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
 
     const host = acquireAgentLaunchHost({
         agentId: command.agentId,
+        cloudAgents: options.cloudAgents,
         dataRoot: options.dataRoot,
         runnerToken: runner.runnerToken,
         runId: command.runId,
@@ -256,12 +274,13 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
         skillsDir: dirs.skills,
     });
     const { proxy, proxyToken } = host;
+    proxy.setTraceContext(options.turnTraceContext);
     let activitySequence = 0;
     const sendActivity = (activity: ComputerAgentActivityUpdate) => {
         const frame = {
             agentId: command.agentId,
             category: activity.category,
-            occurredAt: new Date().toISOString(),
+            occurredAt: activity.occurredAt,
             phase: activity.phase,
             producerSequence: ++activitySequence,
             runId: command.runId,
@@ -271,11 +290,11 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
         try {
             options.sendFrame(frame);
         } catch {
-            // Activity is recoverable presentation metadata; a disconnected
-            // socket must not turn a model turn into a delivery failure.
+            // Disconnected activity presentation must not fail a model turn.
         }
     };
-    proxy.setActivitySink(sendActivity);
+    const activity = new AgentActivityRun(options.runtime, sendActivity);
+    proxy.setActivityRun(activity);
     const tokenFile = join(dirs.runtime, 'proxy-token');
     const binDir = join(dirs.runtime, 'bin');
     await mkdir(binDir, { mode: 0o700, recursive: true });
@@ -290,8 +309,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
             serverUrl: options.serverOrigin,
         },
     });
-    // The Agent's only reachable authority is the loopback proxy token; the
-    // managed `grotto` wrapper on PATH is its sole output channel.
+    // The loopback token and managed CLI are the Agent's only reachable authority.
     const agentEnv: Record<string, string> = {
         GROTTO_AGENT_ID: command.agentId,
         GROTTO_AGENT_PROXY_TOKEN_FILE: tokenFile,
@@ -310,7 +328,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
 
     let result: {
         failureKind?: RuntimeFailureKind;
-        status: 'completed' | 'failed';
+        status: 'completed' | 'failed' | 'interrupted';
         tokenUsage?: AgentTurnFrame['tokenUsage'];
     } = {
         status: 'failed',
@@ -321,10 +339,12 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
             command.runtimeId === 'fake'
                 ? {
                       status: await runFakeRuntime({
+                          activity,
                           agentEnv,
                           command,
                           dataRoot: options.dataRoot,
                           dirs,
+                          runtime: options.runtime,
                           signal: options.signal,
                       }),
                   }
@@ -336,8 +356,9 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
                       dirs,
                       harnessAgentFactory: options.harnessAgentFactory,
                       onStoredNoticeDelivered: options.onStoredNoticeDelivered,
-                      onActivity: sendActivity,
+                      activity,
                       registerNoticeSink: options.registerNoticeSink,
+                      runtime: options.runtime,
                       tools: await createServerMcpTools({
                           proxyToken,
                           proxyUrl: proxy.url,
@@ -347,17 +368,21 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
     } finally {
         await revokeRunner(options, runner.runnerId).catch(() => undefined);
         proxy.clearRunnerToken();
-        proxy.setActivitySink(undefined);
+        proxy.setActivityRun(undefined);
+        await activity.close(result.status);
     }
 
     return reportTurn(options, {
         messageCount: proxy.sendCount(),
+        activity: activity.snapshot(),
         startedAt,
         ...result,
         summary:
             result.status === 'completed'
                 ? completedTurnSummary(proxy.sendCount())
-                : `The Agent turn did not complete (${result.failureKind ?? 'unknown'}).`,
+                : result.status === 'interrupted'
+                  ? 'The Agent turn was interrupted.'
+                  : `The Agent turn did not complete (${result.failureKind ?? 'unknown'}).`,
         visibleMessages: await readRunVisibleMessages(
             {
                 agentId: command.agentId,
@@ -371,29 +396,6 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
 
 function completedTurnSummary(messageCount: number) {
     return `Sent ${messageCount} message(s).`;
-}
-
-async function ensureNativeSkillLinks(homeDir: string, skillsDir: string) {
-    for (const nativeDir of ['.agents', '.claude']) {
-        const parent = join(homeDir, nativeDir);
-        const target = join(parent, 'skills');
-        await mkdir(parent, { mode: 0o700, recursive: true });
-        try {
-            await symlink(skillsDir, target, 'dir');
-        } catch (cause) {
-            if (
-                !(
-                    cause &&
-                    typeof cause === 'object' &&
-                    'code' in cause &&
-                    cause.code === 'EEXIST' &&
-                    (await readlink(target)) === skillsDir
-                )
-            ) {
-                throw cause;
-            }
-        }
-    }
 }
 
 /** Validates a Server→Computer frame as a launch command. Fails closed to null. */
@@ -434,6 +436,10 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
     const webAccess = ['fetch-only', 'search', 'search-only'].includes(frame.webAccess as string)
         ? (frame.webAccess as 'fetch-only' | 'search' | 'search-only')
         : undefined;
+    const traceContext = parseTurnTraceContext(frame.traceContext);
+    if (frame.traceContext !== undefined && !traceContext) {
+        return null;
+    }
     return {
         agentId: frame.agentId as string,
         ...(typeof frame.agentDescription === 'string'
@@ -449,6 +455,7 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
         runtimeId: frame.runtimeId as string,
         sessionGeneration: frame.sessionGeneration,
         totalPending: frame.totalPending,
+        ...(traceContext ? { traceContext } : {}),
         type: 'start',
         ...(webAccess ? { webAccess } : {}),
     };
@@ -562,102 +569,8 @@ export function parseNoticeCommand(frame: unknown): AgentNoticeCommand | null {
         inbox: parseInbox(frame.inbox) ?? [],
         runId: frame.runId,
         totalPending: frame.totalPending,
+
         type: 'notice',
-    };
-}
-
-function parseInbox(value: unknown): AgentInboxItem[] | null {
-    if (!Array.isArray(value) || value.length > 100) {
-        return null;
-    }
-    const inbox: AgentInboxItem[] = [];
-    for (const item of value) {
-        if (
-            !(
-                isRecord(item) &&
-                ['chatId', 'createdAt', 'id', 'senderHandle', 'target'].every(
-                    (field) => typeof item[field] === 'string' && item[field].length > 0
-                ) &&
-                typeof item.content === 'string' &&
-                (item.senderDescription === undefined ||
-                    typeof item.senderDescription === 'string') &&
-                (item.message === undefined || isRecord(item.message)) &&
-                (item.threadFollowReactivated === undefined ||
-                    typeof item.threadFollowReactivated === 'boolean') &&
-                ['agent', 'human', 'system', 'trigger'].includes(item.senderType as string)
-            ) ||
-            typeof item.sequence !== 'number' ||
-            !Number.isInteger(item.sequence) ||
-            item.sequence < 0
-        ) {
-            return null;
-        }
-        const actionAttention = parseActionAttention(item.actionAttention);
-        if (item.actionAttention !== undefined && !actionAttention) {
-            return null;
-        }
-        if (
-            actionAttention
-                ? item.sequence !== 0 ||
-                  item.id !== actionAttention.actionId ||
-                  item.chatId !== actionAttention.chatId ||
-                  item.senderType !== 'system'
-                : item.sequence === 0
-        ) {
-            return null;
-        }
-        inbox.push({
-            ...item,
-            ...(actionAttention ? { actionAttention } : {}),
-        } as unknown as AgentInboxItem);
-    }
-    return inbox;
-}
-
-function parseActionAttention(value: unknown): AgentActionAttention | undefined | null {
-    if (value === undefined) {
-        return undefined;
-    }
-    if (
-        !isRecord(value) ||
-        value.kind !== 'agent:create' ||
-        typeof value.actionId !== 'string' ||
-        value.actionId.length === 0 ||
-        typeof value.chatId !== 'string' ||
-        value.chatId.length === 0 ||
-        typeof value.createdAgentId !== 'string' ||
-        value.createdAgentId.length === 0 ||
-        !isRecord(value.executedResult)
-    ) {
-        return null;
-    }
-    const result = value.executedResult;
-    const stringFields = [
-        'agentId',
-        'chatId',
-        'computerId',
-        'displayName',
-        'handle',
-        'modelId',
-        'runtimeId',
-    ] as const;
-    if (
-        stringFields.some(
-            (field) => typeof result[field] !== 'string' || result[field].length === 0
-        ) ||
-        (result.avatarUrl !== null && typeof result.avatarUrl !== 'string') ||
-        (result.description !== null && typeof result.description !== 'string') ||
-        !['high', 'low', 'medium'].includes(result.reasoningEffort as string) ||
-        result.role !== 'member'
-    ) {
-        return null;
-    }
-    return {
-        actionId: value.actionId,
-        chatId: value.chatId,
-        createdAgentId: value.createdAgentId,
-        executedResult: result as AgentActionAttention['executedResult'],
-        kind: 'agent:create',
     };
 }
 
@@ -674,16 +587,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function reportTurn(
     options: RunAgentLaunchOptions,
     input: {
+        activity?: AgentTurnActivitySummary;
         messageCount: number;
         failureKind?: RuntimeFailureKind;
         startedAt: string;
-        status: 'completed' | 'failed';
+        status: 'completed' | 'failed' | 'interrupted';
         summary: string;
         tokenUsage?: AgentTurnFrame['tokenUsage'];
         visibleMessages?: Array<{ chatId: string; id: string; sequence: number }>;
     }
 ): AgentTurnFrame {
     const frame: AgentTurnFrame = {
+        activity: input.activity ?? { operations: [] },
         agentId: options.command.agentId,
         endedAt: new Date().toISOString(),
         ...(input.failureKind ? { failureKind: input.failureKind } : {}),
@@ -704,22 +619,21 @@ function reportTurn(
 }
 
 interface RuntimeExecutionInput {
+    activity: AgentActivityRun;
     agentEnv: Record<string, string>;
     command: AgentStartCommand;
     dataRoot: string;
     dirs: { home: string; runtime: string; skills: string; workspace: string };
-    onActivity?: (activity: ComputerAgentActivityUpdate) => void;
     onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
     registerNoticeSink?: NoticeSinkRegistrar;
+    runtime: DaemonRuntime;
     signal?: AbortSignal;
 }
 
-/**
- * The deterministic real-harness lane: the real managed `grotto` CLI reaches the
- * Server through the loopback proxy, but the model is a local stub — no network
- * model call. It exercises the genuine output path for tests and the dev stack.
- */
-async function runFakeRuntime(input: RuntimeExecutionInput): Promise<'completed' | 'failed'> {
+/** Deterministic local model with the real managed CLI and loopback output path. */
+async function runFakeRuntime(
+    input: RuntimeExecutionInput
+): Promise<'completed' | 'failed' | 'interrupted'> {
     const child = Bun.spawn([process.execPath, fakeRuntimePath], {
         cwd: input.dirs.workspace,
         env: {
@@ -741,15 +655,10 @@ async function runFakeRuntime(input: RuntimeExecutionInput): Promise<'completed'
         child.exited,
     ]);
     await writeTrace(input, `${out}${err}`);
-    return exitCode === 0 ? 'completed' : 'failed';
+    return input.signal?.aborted ? 'interrupted' : exitCode === 0 ? 'completed' : 'failed';
 }
 
-/**
- * Drives a real `@ai-sdk/harness` executor (Codex/Claude Code/Pi) for the turn.
- * The Agent's replies leave exclusively through `grotto message send`, so a
- * completed turn is one whose harness stream settled without error; durable send
- * counting stays on the loopback proxy.
- */
+/** Drives a real Harness executor; durable replies leave only through the managed CLI. */
 async function runRealRuntime(
     input: RuntimeExecutionInput & {
         agentRoot: string;
@@ -758,7 +667,7 @@ async function runRealRuntime(
     }
 ): Promise<{
     failureKind?: RuntimeFailureKind;
-    status: 'completed' | 'failed';
+    status: 'completed' | 'failed' | 'interrupted';
     tokenUsage?: AgentTurnFrame['tokenUsage'];
 }> {
     const { command } = input;
@@ -783,8 +692,9 @@ async function runRealRuntime(
             inbox: command.inbox ?? [],
             inboxDelivery: command.inboxDelivery,
             onStoredNoticeDelivered: input.onStoredNoticeDelivered,
-            onActivity: input.onActivity,
+            activity: input.activity,
             registerNoticeSink: input.registerNoticeSink,
+            runtime: input.runtime,
             runId: command.runId,
             runtimeId: command.runtimeId,
             sessionGeneration: command.sessionGeneration,
@@ -797,7 +707,7 @@ async function runRealRuntime(
         });
         await writeTrace(input, 'Harness turn completed.\n');
         return {
-            status: turn.aborted ? 'failed' : 'completed',
+            status: turn.aborted ? 'interrupted' : 'completed',
             tokenUsage: turn.tokenUsage,
         };
     } catch (error) {
@@ -821,12 +731,7 @@ async function writeTrace(input: RuntimeExecutionInput, content: string) {
     });
 }
 
-/**
- * The runtimes the Computer can execute — kept in lockstep with the ids
- * `inventory.ts` advertises, so what a Server is offered and what the Computer
- * runs never diverge. `fake` is the always-available deterministic lane; the
- * real runtimes require their host CLI (native provider login lives there).
- */
+/** Executable runtimes kept in lockstep with the advertised inventory. */
 const runtimeCli: Record<string, string> = {
     'claude-code': 'claude',
     codex: 'codex',

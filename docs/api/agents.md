@@ -150,10 +150,93 @@ record. `ask.listOpen({ serverId })` is the human read for the Inbox, and it car
 conversation the answer is addressed to plus the Thread anchor a reply hangs off, so an Ask posted
 inside a Thread is answerable from the Inbox like any other.
 
-Every Agent-facing Message states its `body_kind` (`text | ask`), and an Ask Message carries
-`ask: { id, status, addressee_handle, title, recommended_step }` beside it. The Agent CLI appends
-`[ask status=open|answered to=@handle]` to that Message's history line and delivery envelope, after
-the task suffix ([Grotto CLI](../../specs/grotto-cli.md#4-envelopes-and-message-lines)).
+Every Agent-facing Message states its `body_kind` (`text | ask | cloud-agent-work`), and an Ask
+Message carries `ask: { id, status, addressee_handle, title, recommended_step }` beside it. The
+Agent CLI appends `[ask status=open|answered to=@handle]` to that Message's history line and
+delivery envelope, after the task suffix
+([Grotto CLI](../../specs/grotto-cli.md#4-envelopes-and-message-lines)).
+
+### Cloud Agent work
+
+A managed Agent delegates bounded repository work to a provider-hosted agent with
+`grotto cloud-agent start`:
+
+```sh
+grotto cloud-agent start --target "#product" --repo grotto/grotto --ref main \
+  --title "Fix the flaky delivery test" \
+  --say "Handing the flaky delivery test to a cloud agent." <<'GROTTOMSG'
+Reproduce the failure, fix it, and open a pull request.
+GROTTOMSG
+```
+
+This command runs on the Computer rather than upstream. The Computer checks
+`CloudAgentProvider.readiness()` first, so an unavailable capability fails with
+`CLOUD_AGENT_UNAVAILABLE` before Server records anything, and it keeps the stdin instructions
+local: they reach the provider and never Server.
+
+`POST /api/agent/cloud-agents` takes `{ content, nonce, provider, repository, startingRef, target,
+title }` and returns `{ chatId, idempotent, messageId, runId, sequence, target, work }`. `content`
+is the Agent's own words and becomes the Message content; `title` is at most 120 characters and
+`repository` reads as `owner/name`. One transaction writes the Message with
+`body_kind = 'cloud-agent-work'`, the `cloud_agent_work` row, its first `cloud_agent_runs` row in
+`queued`, the deterministic child Thread when the work is top-level, ordinary delivery planning,
+and both the `message.created` and `cloud-agent-work.updated` events. It is idempotent by
+`(Chat, nonce)`; the same nonce with different values returns
+`CLOUD_AGENT_IDEMPOTENCY_CONFLICT`. The Computer then calls `provider.start()`; a provider that
+refuses settles that same recorded work as `failed` with an error code and returns
+`CLOUD_AGENT_LAUNCH_FAILED` rather than erasing the attempt.
+
+`grotto cloud-agent send --work <workId>` takes follow-up instructions on stdin. The Computer
+accepts `{ workId, nonce, instructions, interrupt }` at `POST /api/agent/cloud-agents/send`, retains
+the instructions locally, and forwards `{ workId, nonce }` to Server. Server returns
+`{ work, runId, idempotent, predecessors }` for a Run on the existing work. Computer sends it to the
+same hosted agent after preceding work settles, or stops active work and discards older queued
+prompts when `interrupt` is true. Pending instructions stay in a private Computer-local journal
+until launched or cancelled. Revisions reuse the Work ID, work Message, and Thread. Each settled
+Run gets its own inbox attention; callers do not need to manage provider Run IDs.
+
+`grotto cloud-agent inspect` uses `GET /api/agent/cloud-agents` to read `{ works }` for the caller's
+delegated work. An optional `workId` query selects one work with its recorded results. These are
+Server records, not a live provider transcript.
+
+`grotto cloud-agent stop --work <workId>` uses `POST /api/agent/cloud-agents/cancel`. The published
+`cancel` CLI spelling remains a compatibility alias. The endpoint takes `{ workId }` and is
+authorized to the delegating Agent alone; `cloudAgentWork.cancel({ serverId, workId })` is the
+Owner/Admin equivalent. Both record
+`cancelRequestedAt` and `cancelRequestedBy` and send a `cloud-agent-cancel` frame to the assigned
+Computer. Cancelling settled work returns `CLOUD_AGENT_WORK_SETTLED`.
+
+Computer reports lifecycle over the attachment socket as a `cloud-agent-observation` frame carrying
+`{ workId, runId, status, observedAt }` plus optional provider ids and URL, raw status, bounded
+`activity` and `summary`, error code, reported branches, and usage. Server applies it idempotently:
+a duplicate, out-of-order, or post-terminal observation changes nothing. A settled Run creates
+exactly one `agent_inbox` attention for the delegating Agent, keyed by the Run id. The latest Run
+owns the work's displayed status, so an earlier Run settling cannot finish a queued follow-up.
+On reconnect Server pushes `cloud-agent-reconcile` frames of at most 200 entries covering every
+non-terminal Run that Computer still owns, with any cancel recorded while it was offline; Computer reads each
+Run from the provider and reports what it finds. `cloudAgentWork.listActive({ serverId })` is the
+human read behind the Inbox.
+
+#### Cloud Agent provider access
+
+Cloud Agent provider access is a Computer capability with its own credential store, separate from
+the Cursor runtime harness even when both belong to one Cursor account. Each Computer reports it in
+its inventory as `cloudAgentProviders: [{ provider, ready, reason }]`, where an unready reason is
+`not-connected`, `expired`, or `provider-unavailable`.
+
+`cloudAgentProvider.get`, `cloudAgentProvider.connect`, and `cloudAgentProvider.disconnect` each
+take `{ computerId, provider, serverId }` and answer with the Computer's own
+`{ accountEmail, expiresAt, provider, ready, reason }`. Server verifies current membership plus
+Owner or Admin authority, verifies the Computer belongs to that Server, and relays a
+`cloud-agent-capability-request` over that Computer's outbound socket, which answers with
+`cloud-agent-capability-result` — the same shape [Browser](../internals/browser.md) uses, for the
+same reason: the App never touches a Computer socket.
+
+`connect` runs the provider's own browser sign-in on the Computer and stores the key in the
+provider's credential store; `disconnect` forgets it, and the key stays revocable from the
+provider's dashboard. Server holds no provider credential and stores none — only readiness and the
+account it resolves to cross the boundary. Connecting waits up to five minutes because a human
+finishes the flow, and Grotto never opens it during an Agent turn.
 
 `preparedAction.commit` is the human follow-up mutation. It is Server-scoped and accepts the
 prepared action id plus the submitted display name, description, handle, Computer, runtime,

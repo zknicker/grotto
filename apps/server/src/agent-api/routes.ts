@@ -1,11 +1,7 @@
-import { agentSendInputSchema, avatarGenerationRequestSchema } from '@grotto/api';
+import { avatarGenerationRequestSchema } from '@grotto/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
-import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
-import { publishAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
-import { inferMessageCause } from '../automations/infer-message-cause.ts';
-import { MessageCauseError, resolveMessageCause } from '../automations/message-cause.ts';
 import {
     AvatarGenerationBusyError,
     AvatarGenerationProviderError,
@@ -13,20 +9,14 @@ import {
     AvatarImageOutputError,
     type AvatarImageService,
 } from '../avatar-generation/service.ts';
-import { ChatArchivedError } from '../chats/chat-access.ts';
-import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import {
-    AgentMessageContentTooLongError,
-    AgentSendConflictError,
-    sendAgentMessage,
-} from '../chats/send-agent-message.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
-import { lockServerRow } from '../servers/server-lock.ts';
+import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { registerAgentActionRoutes } from './action-routes.ts';
 import { registerAgentAskRoutes } from './ask-routes.ts';
 import { registerAgentAttachmentRoutes } from './attachment-routes.ts';
 import { changeAgentChannelMute, unfollowAgentThread } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
+import { registerAgentCloudAgentRoutes } from './cloud-agent-routes.ts';
 import {
     changeAgentChannelMembership,
     readAgentChannelInfo,
@@ -37,11 +27,10 @@ import { registerAgentInboxRoutes } from './inbox-routes.ts';
 import { registerAgentManualRoutes } from './manual.ts';
 import { registerAgentMcpRoutes } from './mcp-routes.ts';
 import { readAgentHistory, resolveAgentMessage, searchAgentMessages } from './message-read.ts';
+import { registerAgentMessageSendRoute } from './message-send-route.ts';
 import { readAgentProfile, updateAgentProfile } from './profile.ts';
 import { registerAgentReactionRoutes } from './reaction-routes.ts';
 import { registerAgentReminderRoutes } from './reminder-routes.ts';
-import { AgentTargetError, resolveAgentSendTarget } from './resolve-target.ts';
-import { AgentSendModeError, clearAgentDraft, prepareAgentSend } from './send-hold.ts';
 import { registerAgentTaskRoutes } from './task-routes.ts';
 import { registerAgentTriggerRoutes } from './trigger-routes.ts';
 
@@ -85,18 +74,24 @@ export function registerAgentApiRoutes(
         agentDelivery: import('../agent-delivery/delivery.ts').AgentDelivery;
         avatarImageService: AvatarImageService;
         attachmentRoot: AttachmentRoot;
+        computers: import('../computers/connections.ts').ComputerConnections;
         db: GrottoDatabase;
         mcpRuntime: import('../server-mcp/runtime.ts').McpRuntime;
+        postCommitWork: ServerPostCommitWork;
     }
 ) {
     registerAgentAttachmentRoutes(app, { db: options.db, root: options.attachmentRoot });
     registerAgentActionRoutes(app, {
         agentDelivery: options.agentDelivery,
         db: options.db,
+        postCommitWork: options.postCommitWork,
     });
-    registerAgentAskRoutes(app, {
+    registerAgentAskRoutes(app, options);
+    registerAgentCloudAgentRoutes(app, {
         agentDelivery: options.agentDelivery,
+        computers: options.computers,
         db: options.db,
+        postCommitWork: options.postCommitWork,
     });
     registerAgentInboxRoutes(app, options.db);
     registerAgentManualRoutes(app, options.db);
@@ -106,6 +101,7 @@ export function registerAgentApiRoutes(
     registerAgentTaskRoutes(app, {
         agentDelivery: options.agentDelivery,
         db: options.db,
+        postCommitWork: options.postCommitWork,
     });
     registerAgentTriggerRoutes(app, options.db);
 
@@ -393,130 +389,5 @@ export function registerAgentApiRoutes(
         }
     });
 
-    app.post('/api/agent/messages/send', async (request, reply) => {
-        const runner = await authorizeAgentRunner(options.db, request);
-        if (!runner) {
-            return sendAgentApiError(
-                reply,
-                401,
-                'MISSING_TOKEN',
-                'A valid runner credential is required.'
-            );
-        }
-
-        const parsed = agentSendInputSchema.safeParse(request.body);
-        if (!parsed.success) {
-            return sendAgentApiError(
-                reply,
-                400,
-                'INVALID_ARG',
-                'The message send request was invalid.'
-            );
-        }
-        const input = {
-            ...parsed.data,
-            content: parsed.data.content?.trimEnd(),
-        };
-
-        try {
-            const committed = await options.db.transaction(async (tx) => {
-                await lockServerRow(tx, runner.serverId);
-                const chatId = await resolveAgentSendTarget(tx, runner, input.target);
-                // Provenance is resolved before the hold check so an unknown or
-                // borrowed fire id is refused outright, never held. Without an
-                // explicit `--cause`, a sole served fire answered in its anchor
-                // Chat is inferred instead.
-                const cause = input.cause
-                    ? {
-                          attribution: 'explicit' as const,
-                          fire: await resolveMessageCause(tx, {
-                              agentId: runner.agentId,
-                              cause: input.cause,
-                              serverId: runner.serverId,
-                          }),
-                      }
-                    : await inferMessageCause(tx, { ...runner, chatId });
-                const prepared = await prepareAgentSend(tx, runner, chatId, input);
-                if (prepared.kind === 'held') {
-                    return { kind: 'held' as const, response: prepared.response };
-                }
-                const result = await sendAgentMessage(
-                    tx,
-                    {
-                        agentId: runner.agentId,
-                        attachmentIds: prepared.outgoing.attachmentIds,
-                        ...(cause ? { cause } : {}),
-                        chatId,
-                        content: prepared.outgoing.content,
-                        nonce: input.nonce,
-                        runId: runner.runId,
-                        serverId: runner.serverId,
-                        target: input.target,
-                    },
-                    options.agentDelivery
-                );
-                await clearAgentDraft(tx, runner, chatId);
-                return { chatId, kind: 'sent' as const, result };
-            });
-            if (committed.kind === 'held') {
-                return committed.response;
-            }
-            const { chatId, result } = committed;
-            for (const activity of result.activities) {
-                publishCommittedAgentActivity(activity);
-            }
-            publishAgentLifecycle({
-                agentId: runner.agentId,
-                chatId,
-                compositionId: input.compositionId ?? runner.runId,
-                phase: 'sending',
-                runId: runner.runId,
-                serverId: runner.serverId,
-                text: result.message.content,
-            });
-            publishAgentLifecycle({
-                agentId: runner.agentId,
-                chatId,
-                phase: 'working',
-                runId: runner.runId,
-                serverId: runner.serverId,
-            });
-            for (const event of result.events) {
-                emitDurableChatEvent({ audienceUserId: null, event });
-            }
-            await Promise.all(
-                result.wakes.map((wake) =>
-                    options.agentDelivery
-                        .dispatchAgent(wake.agentId, wake.serverId)
-                        .catch(() => undefined)
-                )
-            );
-            return { message: result.message, recentUnread: [], state: 'sent' as const };
-        } catch (cause) {
-            if (
-                cause instanceof AgentMessageContentTooLongError ||
-                cause instanceof MessageCauseError
-            ) {
-                return sendAgentApiError(reply, 400, 'INVALID_ARG', cause.message);
-            }
-            if (cause instanceof AgentSendConflictError) {
-                return sendAgentApiError(reply, 409, 'SEND_FAILED', cause.message);
-            }
-            if (cause instanceof AgentSendModeError) {
-                return sendAgentApiError(reply, cause.status, cause.code, cause.message);
-            }
-            if (cause instanceof AgentTargetError) {
-                return sendAgentApiError(reply, 404, 'INVALID_TARGET', cause.message);
-            }
-            if (cause instanceof ChatArchivedError) {
-                return sendAgentApiError(reply, 409, 'TARGET_READ_ONLY', cause.message);
-            }
-            return sendAgentApiError(
-                reply,
-                500,
-                'SERVER_5XX',
-                'The Server could not record the message.'
-            );
-        }
-    });
+    registerAgentMessageSendRoute(app, options);
 }

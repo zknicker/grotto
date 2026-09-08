@@ -42,9 +42,14 @@ export type ServerMemberAuthority =
     | { allowed: false; reason: ServerMemberAuthorityRefusal }
     | { allowed: true };
 
+/** Owners and Admins hold Server administrative authority. */
+export function hasServerAdminAuthority(role: ServerRole): boolean {
+    return role === 'owner' || role === 'admin';
+}
+
 /** Owners and Admins issue and revoke Server invitations. */
 export function canManageServerInvitations(role: ServerRole): boolean {
-    return role === 'owner' || role === 'admin';
+    return hasServerAdminAuthority(role);
 }
 
 /**

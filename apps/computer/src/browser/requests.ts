@@ -4,6 +4,7 @@ import {
     browserRequestSchema,
     browserResultSchema,
 } from '@grotto/api';
+import { type EffectRuntime, tracePromise } from '@grotto/effect';
 import {
     getComputerBrowserSettings,
     openComputerBrowser,
@@ -18,33 +19,20 @@ export function parseBrowserRequest(value: unknown): BrowserRequest | null {
 
 export async function runBrowserRequest(
     root: string,
-    request: BrowserRequest
+    request: BrowserRequest,
+    runtime: EffectRuntime<never>
 ): Promise<BrowserResult> {
     try {
-        const result =
-            request.operation.kind === 'get'
-                ? {
-                      kind: 'settings' as const,
-                      value: await getComputerBrowserSettings(root),
-                  }
-                : request.operation.kind === 'save'
-                  ? {
-                        kind: 'settings' as const,
-                        value: await saveComputerBrowserSettings(root, request.operation.input),
-                    }
-                  : {
-                        kind: 'action' as const,
-                        value:
-                            request.operation.kind === 'open'
-                                ? await openComputerBrowser(root)
-                                : await restartComputerBrowser(root),
-                    };
-
-        return browserResultSchema.parse({
-            requestId: request.requestId,
-            result,
-            type: 'browser-result',
-        });
+        return await tracePromise(
+            runtime,
+            'grotto.browser.operation',
+            {
+                'grotto.operation': `browser.${request.operation.kind}`,
+                'grotto.request.id': request.requestId,
+            },
+            () => runBrowserOperation(root, request, runtime),
+            request.traceContext
+        );
     } catch (error) {
         return browserResultSchema.parse({
             error: safeBrowserError(error),
@@ -52,6 +40,41 @@ export async function runBrowserRequest(
             type: 'browser-result',
         });
     }
+}
+
+async function runBrowserOperation(
+    root: string,
+    request: BrowserRequest,
+    runtime: EffectRuntime<never>
+): Promise<BrowserResult> {
+    const result =
+        request.operation.kind === 'get'
+            ? {
+                  kind: 'settings' as const,
+                  value: await getComputerBrowserSettings(root),
+              }
+            : request.operation.kind === 'save'
+              ? {
+                    kind: 'settings' as const,
+                    value: await saveComputerBrowserSettings(
+                        root,
+                        request.operation.input,
+                        runtime
+                    ),
+                }
+              : {
+                    kind: 'action' as const,
+                    value:
+                        request.operation.kind === 'open'
+                            ? await openComputerBrowser(root, runtime)
+                            : await restartComputerBrowser(root, runtime),
+                };
+
+    return browserResultSchema.parse({
+        requestId: request.requestId,
+        result,
+        type: 'browser-result',
+    });
 }
 
 function safeBrowserError(error: unknown) {

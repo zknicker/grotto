@@ -1,4 +1,5 @@
 import { appProtocolHeaders } from '@grotto/api';
+import type { EffectRuntime } from '@grotto/effect';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
@@ -6,8 +7,10 @@ import type { ComputerConnections } from '../computers/connections.ts';
 import type { ClerkSessions } from '../identity/clerk-sessions.ts';
 import type { ClerkUsers } from '../identity/clerk-users.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { McpIconResolver } from '../server-mcp/icons.ts';
 import type { McpOAuthRelay } from '../server-mcp/oauth-relay.ts';
 import type { McpRuntime } from '../server-mcp/runtime.ts';
+import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import type { TriggerRateLimiter } from '../triggers/trigger-rate-limit.ts';
 import { publicOrigin } from '../triggers/trigger-url.ts';
 
@@ -37,8 +40,10 @@ export interface GrottoContext {
     computerConnections: ComputerConnections;
     computerReleaseManifestUrl: string;
     grottoDb: GrottoDatabase;
+    mcpIconResolver: McpIconResolver;
     mcpOAuthRelay: McpOAuthRelay;
     mcpRuntime: McpRuntime;
+    postCommitWork: ServerPostCommitWork;
     /** HTTP Host header, used only to constrain localhost development procedures. */
     requestHost: string | null;
     /**
@@ -48,6 +53,7 @@ export interface GrottoContext {
      * address.
      */
     requestOrigin: string;
+    runtime: EffectRuntime<never>;
     /** The one in-memory inbound fire budget, shared by the public route and test fires. */
     triggerRateLimiter: TriggerRateLimiter;
 }
@@ -62,8 +68,11 @@ export interface GrottoContextDependencies {
     computerConnections: ComputerConnections;
     computerReleaseManifestUrl: string;
     grottoDb: GrottoDatabase;
+    mcpIconResolver: McpIconResolver;
     mcpOAuthRelay: McpOAuthRelay;
     mcpRuntime: McpRuntime;
+    postCommitWork: ServerPostCommitWork;
+    runtime: EffectRuntime<never>;
     triggerRateLimiter: TriggerRateLimiter;
 }
 

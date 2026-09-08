@@ -85,6 +85,11 @@ fire ids for that kind, the `attribution`, and the snapshot — `title`, `summar
 `fired_at`, `owner_agent_id`, and `anchor_chat_id`. A message has at most one
 cause.
 
+During the rollback window for Server 1.13.0, migration 0033 fills omitted snapshot fields on
+insert from the matching Server's live automation and fire. Complete snapshots bypass this
+bridge unchanged; unresolved fires fail rather than inventing provenance. Remove the bridge
+in a later migration only after every supported rollback target writes snapshots itself.
+
 Clients that do not know the field ignore it; the iPhone app decodes it as
 optional and a missing or unknown shape never fails a message page.
 

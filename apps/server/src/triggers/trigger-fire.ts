@@ -1,11 +1,19 @@
 import type { TriggerFireErrorCode } from '@grotto/api';
+import type { EffectRuntime } from '@grotto/effect';
+import { tracePromise } from '@grotto/effect';
 import { and, eq, isNotNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { requireChatWritable } from '../chats/chat-access.ts';
+import { ChatArchivedError, ChatNotFoundError, requireChatWritable } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { triggerFiresTable, triggersTable } from '../postgres/schema.ts';
-import { requireActiveAgent, requireAgentAnchor } from '../reminders/reminder-model.ts';
+import {
+    ReminderAgentInactiveError,
+    ReminderAnchorAccessError,
+    requireActiveAgent,
+    requireAgentAnchor,
+} from '../reminders/reminder-model.ts';
+import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { triggerEnvelope } from './trigger-envelope.ts';
 import { hashTriggerSecret, type TriggerClock } from './trigger-model.ts';
@@ -33,6 +41,12 @@ export type TriggerFireOutcome =
 interface TriggerFireCommit {
     dispatch?: { agentId: string; serverId: string };
     outcome: TriggerFireOutcome;
+}
+
+export interface TriggerFireDependencies {
+    delivery: AgentDelivery;
+    postCommitWork: ServerPostCommitWork;
+    runtime: EffectRuntime<never>;
 }
 
 /**
@@ -72,7 +86,24 @@ export async function authenticateTrigger(
  */
 export async function fireTrigger(
     db: GrottoDatabase,
-    delivery: AgentDelivery,
+    dependencies: TriggerFireDependencies,
+    request: TriggerFireRequest,
+    clock: TriggerClock
+): Promise<TriggerFireOutcome> {
+    return tracePromise(
+        dependencies.runtime,
+        'grotto.trigger.fire',
+        { 'grotto.operation': 'trigger.fire' },
+        async () => fireTriggerTransaction(db, dependencies, request, clock),
+        undefined,
+        (outcome) => ({ 'grotto.outcome': outcome.status }),
+        (outcome) => (outcome.status === 'refused' ? 'failure' : 'success')
+    );
+}
+
+async function fireTriggerTransaction(
+    db: GrottoDatabase,
+    dependencies: TriggerFireDependencies,
     request: TriggerFireRequest,
     clock: TriggerClock
 ): Promise<TriggerFireOutcome> {
@@ -131,7 +162,7 @@ export async function fireTrigger(
             serverId: locked.serverId,
             triggerId: locked.id,
         });
-        await delivery.enqueue(tx, {
+        await dependencies.delivery.enqueue(tx, {
             agentId: locked.ownerAgentId,
             chatId: locked.anchorChatId,
             content: triggerEnvelope({
@@ -166,7 +197,7 @@ export async function fireTrigger(
     });
 
     if (committed.dispatch) {
-        await delivery.dispatchAgent(committed.dispatch.agentId, committed.dispatch.serverId);
+        void dependencies.postCommitWork.wakeAgents(dependencies.delivery, [committed.dispatch]);
     }
     return committed.outcome;
 }
@@ -216,8 +247,16 @@ async function anchorIsLive(
             serverId: trigger.serverId,
         });
         return true;
-    } catch {
-        return false;
+    } catch (cause) {
+        if (
+            cause instanceof ReminderAgentInactiveError ||
+            cause instanceof ReminderAnchorAccessError ||
+            cause instanceof ChatNotFoundError ||
+            cause instanceof ChatArchivedError
+        ) {
+            return false;
+        }
+        throw cause;
     }
 }
 

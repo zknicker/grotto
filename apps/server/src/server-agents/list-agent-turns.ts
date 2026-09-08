@@ -1,4 +1,4 @@
-import type { AgentTurn, AgentTurnsInput } from '@grotto/api';
+import { type AgentTurn, type AgentTurnsInput, agentTurnActivitySummarySchema } from '@grotto/api';
 import { and, desc, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentTurnsTable } from '../postgres/schema.ts';
@@ -21,6 +21,7 @@ export async function listAgentTurns(
 
     const rows = await db
         .select({
+            activity: agentTurnsTable.activity,
             endedAt: agentTurnsTable.endedAt,
             failureKind: agentTurnsTable.failureKind,
             messageCount: agentTurnsTable.messageCount,
@@ -34,7 +35,8 @@ export async function listAgentTurns(
         .where(
             and(
                 eq(agentTurnsTable.serverId, input.serverId),
-                eq(agentTurnsTable.agentId, input.agentId)
+                eq(agentTurnsTable.agentId, input.agentId),
+                input.runId ? eq(agentTurnsTable.runId, input.runId) : undefined
             )
         )
         .orderBy(desc(agentTurnsTable.startedAt))
@@ -42,6 +44,7 @@ export async function listAgentTurns(
 
     return rows.map((row) => ({
         ...row,
+        activity: agentTurnActivitySummarySchema.parse(row.activity),
         agentId: input.agentId,
         endedAt: row.endedAt.toISOString(),
         startedAt: row.startedAt.toISOString(),

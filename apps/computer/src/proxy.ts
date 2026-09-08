@@ -1,9 +1,9 @@
+import type { TraceCarrier } from '@grotto/effect';
 import * as z from 'zod';
-import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
+import type { AgentActivityRun } from './agent-activity-run.ts';
 import {
     agentHistoryResponseSchema,
     agentMessageCheckResponseSchema,
-    agentMessageSchema,
     agentReactionResponseSchema,
     agentSearchResponseSchema,
     agentSendResponseSchema,
@@ -17,16 +17,17 @@ import {
     viewLocalAgentSkill,
     writeLocalAgentSkillFile,
 } from './agent-skills.ts';
+import { handleCloudAgentStart } from './cloud-agents/proxy-route.ts';
+import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { classifyGrottoProxyBoundary } from './harness/activity-projector.ts';
 import {
     type AgentInboxLocation,
     consumeServedAutomations,
     consumeVisibleMessages,
-    isAutomationInboxItem,
-    readPendingInboxState,
     recordRunVisibleMessages,
     type VisibleMessageIdentity,
 } from './inbox-store.ts';
+import { serveLocalAgentEvents } from './proxy-inbox.ts';
 
 const skillCreateSchema = z.object({
     content: z.string().min(1),
@@ -50,20 +51,17 @@ export interface LoopbackProxy {
     close(): void;
     resetSendCount(): void;
     sendCount(): number;
-    setActivitySink(sink: ((activity: ComputerAgentActivityUpdate) => void) | undefined): void;
+    setActivityRun(activity: AgentActivityRun | undefined): void;
     setRunId(runId: string): void;
     setRunnerToken(token: string): void;
+    setTraceContext(context: TraceCarrier | undefined): void;
     url: string;
 }
 
-/**
- * The per-launch loopback proxy. The Agent authenticates to it with a local-only
- * token; the proxy forwards `/api/agent/*` to the Server with the scoped
- * runner credential. The runner credential never leaves this process, so the
- * Agent can act as itself without ever holding Server-valid authority.
- */
+/** Per-launch proxy that keeps scoped Server authority outside the Agent process. */
 export function startLoopbackProxy(input: {
     agentId?: string;
+    cloudAgents?: CloudAgentWorkSupervisor;
     dataRoot?: string;
     proxyToken: string;
     runnerToken: string;
@@ -71,12 +69,12 @@ export function startLoopbackProxy(input: {
     serverId?: string;
     serverOrigin: string;
     skillsDir?: string;
-    onActivity?: (activity: ComputerAgentActivityUpdate) => void;
 }): LoopbackProxy {
     let sends = 0;
     let runnerToken: string | null = input.runnerToken;
     let runId: string | null = input.runId ?? null;
-    let activitySink = input.onActivity;
+    let activityRun: AgentActivityRun | undefined;
+    let traceContext: TraceCarrier | undefined;
     const server = Bun.serve({
         fetch: async (request) => {
             const url = new URL(request.url);
@@ -87,30 +85,24 @@ export function startLoopbackProxy(input: {
                 return new Response('Unauthorized', { status: 401 });
             }
             const category = classifyGrottoProxyBoundary(request.method, url.pathname);
-            if (!category) {
-                return await handleAuthorizedProxyRequest(request, url, input, {
+            const operation = async () =>
+                await handleAuthorizedProxyRequest(request, url, input, {
                     getRunId: () => runId,
                     getRunnerToken: () => runnerToken,
+                    traceContext,
                     incrementSendCount: () => {
                         sends += 1;
                     },
                 });
-            }
-            activitySink?.({ category, phase: 'started' });
-            let completed = false;
-            try {
-                const response = await handleAuthorizedProxyRequest(request, url, input, {
-                    getRunId: () => runId,
-                    getRunnerToken: () => runnerToken,
-                    incrementSendCount: () => {
-                        sends += 1;
-                    },
-                });
-                completed = response.ok;
-                return response;
-            } finally {
-                activitySink?.({ category, phase: completed ? 'completed' : 'failed' });
-            }
+            return activityRun && category
+                ? await activityRun.runPromise(
+                      {
+                          category,
+                          outcomeFromResult: (response) => (response.ok ? 'completed' : 'failed'),
+                      },
+                      operation
+                  )
+                : await operation();
         },
         hostname: '127.0.0.1',
         port: 0,
@@ -118,20 +110,24 @@ export function startLoopbackProxy(input: {
     return {
         clearRunnerToken: () => {
             runnerToken = null;
+            traceContext = undefined;
         },
         close: () => server.stop(true),
         resetSendCount: () => {
             sends = 0;
         },
         sendCount: () => sends,
-        setActivitySink: (sink) => {
-            activitySink = sink;
+        setActivityRun: (activity) => {
+            activityRun = activity;
         },
         setRunId: (value) => {
             runId = value;
         },
         setRunnerToken: (token) => {
             runnerToken = token;
+        },
+        setTraceContext: (context) => {
+            traceContext = context;
         },
         url: `http://127.0.0.1:${server.port}`,
     };
@@ -142,6 +138,7 @@ async function handleAuthorizedProxyRequest(
     url: URL,
     input: {
         agentId?: string;
+        cloudAgents?: CloudAgentWorkSupervisor;
         dataRoot?: string;
         proxyToken: string;
         runId?: string;
@@ -152,6 +149,7 @@ async function handleAuthorizedProxyRequest(
     state: {
         getRunId(): string | null;
         getRunnerToken(): string | null;
+        traceContext?: TraceCarrier;
         incrementSendCount(): void;
     }
 ): Promise<Response> {
@@ -160,27 +158,33 @@ async function handleAuthorizedProxyRequest(
         return skillResponse;
     }
     const runnerToken = state.getRunnerToken();
+    const traceContext = state.traceContext;
     if (!runnerToken) {
         return Response.json(
             { code: 'AGENT_IDLE', message: 'The Agent has no active turn.' },
             { status: 409 }
         );
     }
+    const cloudAgent = await handleCloudAgentStart(request, url, {
+        dataRoot: input.dataRoot,
+        supervisor: input.cloudAgents,
+        runnerToken,
+        serverId: input.serverId,
+        serverOrigin: input.serverOrigin,
+    });
+    if (cloudAgent) {
+        return cloudAgent;
+    }
     const location = agentInboxLocation(input);
     if (request.method === 'GET' && url.pathname === '/api/agent/events' && location) {
-        const local = await localAgentEvents(location);
+        const local = await serveLocalAgentEvents({
+            location,
+            getRunId: state.getRunId,
+            attest: (identities) =>
+                awaitBestEffortAttestation(input.serverOrigin, runnerToken, identities),
+        });
         if (local) {
-            const activeRunId = state.getRunId();
-            if (!activeRunId) {
-                return Response.json(
-                    { code: 'AGENT_IDLE', message: 'The Agent has no active turn.' },
-                    { status: 409 }
-                );
-            }
-            await recordRunVisibleMessages(location, activeRunId, local.identities);
-            await awaitBestEffortAttestation(input.serverOrigin, runnerToken, local.identities);
-            await consumeVisibleMessages(location, local.identities);
-            return Response.json({ automations: [], messages: local.messages, more: local.more });
+            return local;
         }
     }
     const body = await request.text();
@@ -198,6 +202,7 @@ async function handleAuthorizedProxyRequest(
             ...(forwardsBody ? { body } : {}),
             headers: {
                 authorization: `Bearer ${runnerToken}`,
+                ...(traceContext ? { traceparent: traceContext.traceparent } : {}),
                 ...(forwardsBody
                     ? {
                           'content-type': request.headers.get('content-type') ?? 'application/json',
@@ -207,8 +212,7 @@ async function handleAuthorizedProxyRequest(
             method: request.method,
         });
     } catch (error) {
-        // A send may have committed before its response disappeared. Count it
-        // conservatively so a failed turn cannot replay duplicate model output.
+        // Count ambiguous sends so a failed turn cannot replay duplicate model output.
         if (isMessageSend && !isDefinitelyPreCommitFailure(error)) {
             state.incrementSendCount();
         }
@@ -274,36 +278,6 @@ async function handleAuthorizedProxyRequest(
         headers: { 'content-type': 'application/json' },
         status: upstream.status,
     });
-}
-
-async function localAgentEvents(location: AgentInboxLocation) {
-    const pending = await readPendingInboxState(location);
-    // A pending fire or task assignment has no cached body and only the Server
-    // can retire it. Let the whole pull go upstream so those items and messages
-    // arrive in one ordered response instead of being split across a local page
-    // and a Server page.
-    if (pending.items.some(isAutomationInboxItem)) {
-        return null;
-    }
-    const visible = pending.items
-        .map((item) => {
-            const message = agentMessageSchema.safeParse(item.message);
-            return message.success ? { item, message: message.data } : null;
-        })
-        .filter((row): row is NonNullable<typeof row> => row !== null);
-    if (visible.length === 0) {
-        return null;
-    }
-    const selected = visible.slice(0, 40);
-    return {
-        identities: selected.map(({ message }) => identity(message)),
-        messages: selected.map(({ item, message }) => ({
-            message,
-            target: item.target,
-            ...(item.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
-        })),
-        more: pending.totalPending > selected.length,
-    };
 }
 
 async function attestLocalEvents(
@@ -503,6 +477,5 @@ function isDefinitelyPreCommitFailure(error: unknown): boolean {
 }
 
 function isAuthorized(request: Request, proxyToken: string): boolean {
-    const header = request.headers.get('authorization');
-    return header === `Bearer ${proxyToken}`;
+    return request.headers.get('authorization') === `Bearer ${proxyToken}`;
 }

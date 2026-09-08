@@ -1,300 +1,259 @@
 import type { AgentRuntimeBrowserState, AgentRuntimeBrowserStatus } from '@grotto/api';
-
-import type { BrowserCommandQueue } from './command-queue.ts';
+import { type EffectRuntime, settle } from '@grotto/effect';
+import { Cause, Chunk, Deferred, Effect, Exit, Fiber, Queue } from 'effect';
 import {
-    type BrowserRecoveryEvidence,
-    type BrowserSupervisorPolicy,
-    defaultBrowserSupervisorPolicy,
-    maxBrowserRecoveryEvidence,
-} from './supervisor-policy.ts';
-import type { BrowserClock, BrowserLifecycleControl, BrowserObservation } from './types.ts';
-import { systemBrowserClock } from './types.ts';
+    browserFailureLogAnnotations,
+    classifyBrowserFailure,
+    SupervisorOperations,
+    type SupervisorOperationsOptions,
+} from './supervisor-operations.ts';
 
-export interface BrowserSupervisorOptions {
-    browserVersion: string | null;
-    clock?: BrowserClock;
-    commandQueue: BrowserCommandQueue;
-    lifecycle: BrowserLifecycleControl;
+export type BrowserSupervisorStopMode = 'preserve-browser' | 'stop-browser';
+type SupervisorVoidRequest = 'restart-browser' | 'sample' | 'start' | 'start-browser';
+
+export interface BrowserSupervisorOptions extends SupervisorOperationsOptions {
     onStatusChanged?: (state: AgentRuntimeBrowserState) => void;
-    policy?: Partial<BrowserSupervisorPolicy>;
+    runtime: EffectRuntime<never>;
 }
 
-// The seven-state supervision model proven in BrowserHost: stopped, starting,
-// healthy, pressured, unresponsive, recovering, and degraded. Pressure is
-// reported but never independently restarts Chrome; automatic recovery
-// requires sustained CDP unresponsiveness and respects a restart budget.
-export class BrowserSupervisor {
-    private readonly lifecycle: BrowserLifecycleControl;
-    private readonly commandQueue: BrowserCommandQueue;
-    private readonly clock: BrowserClock;
-    private readonly policy: BrowserSupervisorPolicy;
-    private readonly browserVersion: string | null;
-    private readonly onStatusChanged?: (state: AgentRuntimeBrowserState) => void;
+export class BrowserSupervisorStoppedError extends Error {
+    constructor() {
+        super('Browser supervision has stopped.');
+        this.name = 'BrowserSupervisorStoppedError';
+    }
+}
 
-    private monitorTimer: ReturnType<typeof setInterval> | null = null;
-    private pressureSince: number | null = null;
-    private cdpFailureSince: number | null = null;
-    private automaticRestarts: number[] = [];
-    private recoveryRunning = false;
-    private recoveryFailure: string | null = null;
-    private lastState: AgentRuntimeBrowserState | null = null;
-    private readonly recoveryEvidence: BrowserRecoveryEvidence[] = [];
+type RequestKind = SupervisorVoidRequest | 'status';
+type Reply = { kind: 'status'; status: AgentRuntimeBrowserStatus } | { kind: 'void' };
+interface Request {
+    kind: RequestKind;
+    reply: Deferred.Deferred<Reply, Error>;
+}
+
+export class BrowserSupervisor {
+    private readonly operations: SupervisorOperations;
+    private readonly requests: Queue.Queue<Request>;
+    private readonly owner: Fiber.RuntimeFiber<never, Error>;
+    private readonly runtime: EffectRuntime<never>;
+    private accepting = true;
+    private current: Request | null = null;
+    private monitor: Fiber.RuntimeFiber<never, never> | null = null;
+    private monitoring = false;
+    private shutdownError: Error | null = null;
+    private stopMode: BrowserSupervisorStopMode = 'preserve-browser';
+    private stopPromise: Promise<void> | null = null;
 
     constructor(options: BrowserSupervisorOptions) {
-        this.lifecycle = options.lifecycle;
-        this.commandQueue = options.commandQueue;
-        this.clock = options.clock ?? systemBrowserClock;
-        this.policy = { ...defaultBrowserSupervisorPolicy, ...options.policy };
-        this.browserVersion = options.browserVersion;
-        this.onStatusChanged = options.onStatusChanged;
+        this.runtime = options.runtime;
+        this.operations = new SupervisorOperations(options);
+        this.requests = this.runtime.runSync(Queue.unbounded<Request>());
+        this.owner = this.runtime.runFork(this.run());
     }
 
-    async start(): Promise<void> {
-        this.monitorTimer ??= setInterval(() => {
-            void this.sample();
-        }, this.policy.sampleIntervalMs);
-        try {
-            await this.startBrowser();
-        } catch (error) {
-            console.warn('browser: managed Chrome did not start', error);
-        }
+    start(): Promise<void> {
+        return this.voidRequest('start');
     }
 
-    stop(): void {
-        if (this.monitorTimer) {
-            clearInterval(this.monitorTimer);
-            this.monitorTimer = null;
-        }
+    startBrowser(): Promise<void> {
+        return this.voidRequest('start-browser');
     }
 
-    async startBrowser(): Promise<void> {
-        await this.lifecycle.start();
-        this.recoveryFailure = null;
-        this.cdpFailureSince = null;
-        await this.status();
+    restartBrowser(): Promise<void> {
+        return this.voidRequest('restart-browser');
     }
 
-    async restartBrowser(): Promise<void> {
-        if (this.recoveryRunning) {
-            throw new Error('Browser recovery is already running.');
+    sample(): Promise<void> {
+        return this.voidRequest('sample');
+    }
+
+    private async voidRequest(kind: SupervisorVoidRequest): Promise<void> {
+        const reply = await this.submit(kind);
+        if (reply.kind !== 'void') {
+            throw new Error('Browser supervision returned an invalid command response.');
         }
-        await this.commandQueue.waitForDrain(this.policy.commandDrainTimeoutMs);
-        this.recoveryRunning = true;
-        try {
-            await this.lifecycle.restart();
-            await this.verifyAfterRestart();
-            this.recoveryFailure = null;
-            this.cdpFailureSince = null;
-        } finally {
-            this.recoveryRunning = false;
-        }
-        await this.status();
     }
 
     async status(): Promise<AgentRuntimeBrowserStatus> {
-        const now = this.clock.now();
-        let observation: BrowserObservation;
-        let evaluated: { reason: string | null; state: AgentRuntimeBrowserState };
-        try {
-            observation = await this.lifecycle.observe();
-            evaluated = this.recoveryRunning
-                ? { reason: 'Browser recovery is running.', state: 'recovering' }
-                : this.evaluate(observation, now);
-        } catch (error) {
-            observation = {
-                cdp: { latencyMs: null, state: 'unknown' },
-                contractCompatible: true,
-                lockHeld: false,
-                pid: null,
-                resources: {
-                    browserCpuPercent: null,
-                    browserRssBytes: null,
-                    gpuCpuPercent: null,
-                    gpuRssBytes: null,
-                },
-                running: false,
-                uptimeSeconds: null,
-            };
-            evaluated = {
-                reason: `Browser observation failed: ${error instanceof Error ? error.message : String(error)}`,
-                state: 'degraded',
-            };
+        const reply = await this.submit('status');
+        if (reply.kind !== 'status') {
+            throw new Error('Browser supervision returned an invalid status response.');
         }
-
-        if (this.lastState !== evaluated.state) {
-            this.lastState = evaluated.state;
-            this.onStatusChanged?.(evaluated.state);
-        }
-
-        return {
-            browserVersion: this.browserVersion,
-            cdpState: observation.cdp.state,
-            checkedAt: new Date(now).toISOString(),
-            pid: observation.pid,
-            pressureSince: this.pressureSince ? new Date(this.pressureSince).toISOString() : null,
-            reason: evaluated.reason,
-            resources: observation.resources,
-            restartBudget: {
-                automaticRestartLimit: this.policy.restartBudgetLimit,
-                automaticRestartsInWindow: this.automaticRestartsInWindow(now),
-            },
-            running: observation.running,
-            state: evaluated.state,
-            uptimeSeconds: observation.uptimeSeconds,
-        };
+        return reply.status;
     }
 
-    private evaluate(
-        observation: BrowserObservation,
-        now: number
-    ): { reason: string | null; state: AgentRuntimeBrowserState } {
-        if (!observation.running) {
-            this.pressureSince = null;
-            this.cdpFailureSince = null;
-            // A failed recovery that left Chrome dead needs operator action;
-            // an intentionally stopped browser does not.
-            if (this.recoveryFailure) {
-                return { reason: this.recoveryFailure, state: 'degraded' };
+    stop(mode: BrowserSupervisorStopMode = 'preserve-browser'): Promise<void> {
+        if (mode === 'stop-browser') {
+            this.stopMode = mode;
+        }
+        if (this.stopPromise) {
+            return this.stopPromise;
+        }
+        this.accepting = false;
+        this.stopPromise = this.interruptOwner();
+        return this.stopPromise;
+    }
+
+    private submit(kind: RequestKind): Promise<Reply> {
+        if (!this.accepting) {
+            return Promise.reject(new BrowserSupervisorStoppedError());
+        }
+        const reply = this.runtime.runSync(Deferred.make<Reply, Error>());
+        const offered = this.runtime.runSync(Queue.offer(this.requests, { kind, reply }));
+        return offered
+            ? settle(this.runtime, Deferred.await(reply))
+            : Promise.reject(new BrowserSupervisorStoppedError());
+    }
+
+    private submitEffect(kind: RequestKind): Effect.Effect<Reply, Error> {
+        return Effect.gen(this, function* () {
+            if (!this.accepting) {
+                return yield* Effect.fail(new BrowserSupervisorStoppedError());
             }
-            return { reason: 'Chrome is not running.', state: 'stopped' };
-        }
-
-        if (!observation.contractCompatible) {
-            return {
-                reason: 'Chrome is writing this profile with an incompatible launch contract.',
-                state: 'degraded',
-            };
-        }
-        if (!observation.lockHeld) {
-            return {
-                reason: 'Chrome is running without the Grotto profile lock.',
-                state: 'degraded',
-            };
-        }
-
-        const pressured =
-            (observation.resources.gpuCpuPercent ?? 0) >= this.policy.pressureGpuCpuPercent;
-        this.pressureSince = pressured ? (this.pressureSince ?? now) : null;
-        const sustainedPressure =
-            this.pressureSince !== null && now - this.pressureSince >= this.policy.pressureWindowMs;
-
-        const cdpFailed = observation.cdp.state !== 'healthy';
-        this.cdpFailureSince = cdpFailed ? (this.cdpFailureSince ?? now) : null;
-        const sustainedCdpFailure =
-            this.cdpFailureSince !== null &&
-            now - this.cdpFailureSince >= this.policy.cdpFailureWindowMs;
-
-        if (sustainedCdpFailure) {
-            if (this.automaticRestartsInWindow(now) >= this.policy.restartBudgetLimit) {
-                return {
-                    reason: 'Chrome is unresponsive and the automatic restart budget is exhausted. Restart the browser from settings.',
-                    state: 'degraded',
-                };
+            const reply = yield* Deferred.make<Reply, Error>();
+            const offered = yield* Queue.offer(this.requests, { kind, reply });
+            if (!offered) {
+                return yield* Effect.fail(new BrowserSupervisorStoppedError());
             }
-            return {
-                reason: 'Chrome is alive but CDP has remained unreachable.',
-                state: 'unresponsive',
-            };
-        }
-        if (sustainedPressure) {
-            return {
-                reason: 'Chrome remains responsive under sustained GPU pressure.',
-                state: 'pressured',
-            };
-        }
-        if (cdpFailed) {
-            return {
-                reason: 'Chrome CDP is temporarily unreachable within the evidence window.',
-                state: 'starting',
-            };
-        }
-        // A responsive browser under the contract clears any stale recovery
-        // failure: the failed attempt is no longer evidence.
-        this.recoveryFailure = null;
-        return { reason: null, state: 'healthy' };
+            return yield* Deferred.await(reply);
+        });
     }
 
-    // One supervision cycle: evaluate health, then recover when the evidence
-    // window and every guard allow it. Driven by the monitor interval.
-    async sample(): Promise<void> {
-        try {
-            const status = await this.status();
-            if (status.state === 'unresponsive') {
-                await this.recoverAutomatically(status.reason ?? 'Sustained CDP failure.');
-            }
-        } catch (error) {
-            console.warn('browser: supervision sample failed', error);
-        }
-    }
-
-    private async recoverAutomatically(reason: string): Promise<void> {
-        if (this.recoveryRunning) {
-            return;
-        }
-        const now = this.clock.now();
-        if (this.automaticRestartsInWindow(now) >= this.policy.restartBudgetLimit) {
-            return;
-        }
-        // An active browser command inhibits recovery; wait a bounded period
-        // for the queue to drain and try again on a later sample if it stays
-        // busy.
-        if (!(await this.commandQueue.waitForDrain(this.policy.commandDrainTimeoutMs))) {
-            console.warn('browser: recovery deferred while a browser command is running');
-            return;
-        }
-
-        this.recoveryRunning = true;
-        this.automaticRestarts.push(this.clock.now());
-        await this.captureEvidence(reason);
-        console.warn('browser: starting guarded recovery', reason);
-        try {
-            await this.lifecycle.restart();
-            await this.verifyAfterRestart();
-            this.recoveryFailure = null;
-            this.cdpFailureSince = null;
-            console.info('browser: guarded recovery succeeded');
-        } catch (error) {
-            this.recoveryFailure = `Browser recovery failed: ${
-                error instanceof Error ? error.message : String(error)
-            }`;
-            console.error('browser: guarded recovery failed', error);
-        } finally {
-            this.recoveryRunning = false;
-        }
-        await this.status();
-    }
-
-    private async verifyAfterRestart(): Promise<void> {
-        const observation = await this.lifecycle.observe();
-        const verified =
-            observation.running &&
-            observation.contractCompatible &&
-            observation.lockHeld &&
-            observation.cdp.state === 'healthy';
-        if (!verified) {
-            throw new Error('Chrome restarted but failed profile/CDP verification.');
-        }
-    }
-
-    private async captureEvidence(reason: string): Promise<void> {
-        try {
-            const observation = await this.lifecycle.observe();
-            this.recoveryEvidence.push({ at: this.clock.now(), observation, reason });
-            if (this.recoveryEvidence.length > maxBrowserRecoveryEvidence) {
-                this.recoveryEvidence.splice(
-                    0,
-                    this.recoveryEvidence.length - maxBrowserRecoveryEvidence
-                );
-            }
-        } catch {
-            // Evidence capture must never block recovery.
-        }
-    }
-
-    private automaticRestartsInWindow(now: number): number {
-        this.automaticRestarts = this.automaticRestarts.filter(
-            (at) => now - at < this.policy.restartBudgetWindowMs
+    private run(): Effect.Effect<never, Error> {
+        const finish = this.finish().pipe(
+            Effect.catchAll((error) =>
+                Effect.sync(() => {
+                    this.shutdownError = error;
+                })
+            )
         );
-        return this.automaticRestarts.length;
+        return Effect.forever(
+            Queue.take(this.requests).pipe(
+                Effect.tap((request) =>
+                    Effect.sync(() => {
+                        this.current = request;
+                    })
+                ),
+                Effect.flatMap((request) => this.handle(request)),
+                Effect.tap(() =>
+                    Effect.sync(() => {
+                        this.current = null;
+                    })
+                )
+            )
+        ).pipe(Effect.ensuring(finish));
+    }
+
+    private handle(request: Request): Effect.Effect<void, Error> {
+        return Effect.matchCauseEffect(this.action(request.kind), {
+            onFailure: (cause) =>
+                Deferred.failCause(request.reply, cause).pipe(
+                    Effect.andThen(
+                        Cause.isInterrupted(cause) ? Effect.failCause(cause) : Effect.void
+                    )
+                ),
+            onSuccess: (reply) => Deferred.succeed(request.reply, reply).pipe(Effect.asVoid),
+        });
+    }
+
+    private action(kind: RequestKind): Effect.Effect<Reply, Error> {
+        switch (kind) {
+            case 'start':
+                return this.startMonitoring().pipe(Effect.as({ kind: 'void' } as const));
+            case 'start-browser':
+                return this.operations.startBrowser().pipe(Effect.as({ kind: 'void' } as const));
+            case 'restart-browser':
+                return this.operations.restart('manual').pipe(Effect.as({ kind: 'void' } as const));
+            case 'status':
+                return this.operations
+                    .status()
+                    .pipe(Effect.map((status) => ({ kind: 'status' as const, status })));
+            case 'sample':
+                return this.operations.sample().pipe(Effect.as({ kind: 'void' } as const));
+            default: {
+                const _exhaustive: never = kind;
+                return _exhaustive;
+            }
+        }
+    }
+
+    private startMonitoring(): Effect.Effect<void, never> {
+        if (this.monitoring) {
+            return Effect.void;
+        }
+        return Effect.gen(this, function* () {
+            this.monitoring = true;
+            this.monitor = yield* Effect.fork(this.monitorLoop());
+            yield* this.operations
+                .startBrowser()
+                .pipe(
+                    Effect.catchAll((error) =>
+                        Effect.logWarning(
+                            'Managed Chrome did not start; Browser supervision will continue.'
+                        ).pipe(
+                            Effect.annotateLogs(
+                                browserFailureLogAnnotations(
+                                    'browser.start',
+                                    classifyBrowserFailure(error)
+                                )
+                            )
+                        )
+                    )
+                );
+        });
+    }
+
+    private monitorLoop(): Effect.Effect<never, never> {
+        return Effect.forever(
+            Effect.sleep(this.operations.sampleIntervalMs).pipe(
+                Effect.andThen(this.submitEffect('sample')),
+                Effect.asVoid,
+                Effect.catchAll((error) =>
+                    error instanceof BrowserSupervisorStoppedError
+                        ? Effect.interrupt
+                        : Effect.logWarning(
+                              'Browser supervision sample failed; the next sample will retry.'
+                          ).pipe(
+                              Effect.annotateLogs(
+                                  browserFailureLogAnnotations(
+                                      'browser.sample',
+                                      classifyBrowserFailure(error)
+                                  )
+                              )
+                          )
+                )
+            )
+        );
+    }
+
+    private finish(): Effect.Effect<void, Error> {
+        return Effect.gen(this, function* () {
+            this.accepting = false;
+            if (this.monitor) {
+                yield* Fiber.interrupt(this.monitor);
+            }
+            this.monitor = null;
+            if (this.current) {
+                yield* Deferred.fail(this.current.reply, new BrowserSupervisorStoppedError());
+                this.current = null;
+            }
+            const pending = yield* Queue.takeAll(this.requests);
+            yield* Effect.forEach(Chunk.toReadonlyArray(pending), (request) =>
+                Deferred.fail(request.reply, new BrowserSupervisorStoppedError())
+            );
+            yield* Queue.shutdown(this.requests);
+            if (this.stopMode === 'stop-browser') {
+                yield* this.operations.stopBrowser();
+            }
+        });
+    }
+
+    private async interruptOwner(): Promise<void> {
+        const exit = await settle(this.runtime, Fiber.interrupt(this.owner));
+        if (this.shutdownError) {
+            throw this.shutdownError;
+        }
+        if (Exit.isFailure(exit) && !Cause.isInterruptedOnly(exit.cause)) {
+            await settle(this.runtime, Effect.failCause(exit.cause));
+        }
     }
 }

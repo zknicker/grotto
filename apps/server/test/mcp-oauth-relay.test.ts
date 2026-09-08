@@ -3,6 +3,7 @@ import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import { McpOAuthRelay } from '../src/server-mcp/oauth-relay.ts';
 import { emptySecret, McpRuntime } from '../src/server-mcp/runtime.ts';
+import { makeServerRuntime } from '../src/server-runtime.ts';
 import { startControlledOAuthMcpProvider } from './controlled-oauth-mcp.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -14,13 +15,14 @@ let cluster: PostgresCluster;
 let connection: GrottoConnection;
 let provider: Awaited<ReturnType<typeof startControlledOAuthMcpProvider>>;
 let runtime: McpRuntime;
+const effectRuntime = makeServerRuntime();
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
     await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
     connection = await connectGrottoDatabase(cluster.databaseUrl);
     provider = await startControlledOAuthMcpProvider();
-    runtime = new McpRuntime(connection.db);
+    runtime = new McpRuntime(connection.db, effectRuntime);
     await connection.db.execute(
         `insert into servers (id, display_name, slug)
          values ('${serverId}', 'OAuth Relay', 'oauth-relay')`
@@ -37,6 +39,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
     await runtime.close();
+    await effectRuntime.dispose();
     provider.stop();
     await connection.close();
     await cluster.stop();

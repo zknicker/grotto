@@ -3,6 +3,8 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { makeTestRuntime } from '@grotto/effect';
+import { TestClock } from 'effect';
 import Fastify from 'fastify';
 import { registerGrottoHealth } from '../src/grotto-health.ts';
 import {
@@ -65,13 +67,35 @@ test('reports PostgreSQL failure without exposing connection details', async () 
 
 test('classifies a hung PostgreSQL probe without hanging the health route', async () => {
     const app = Fastify();
-    registerGrottoHealth(app, () => new Promise(() => undefined), 10);
+    const runtime = makeTestRuntime();
+    const probeStarted = Promise.withResolvers<void>();
+    let aborted = false;
+    registerGrottoHealth(
+        app,
+        runtime,
+        (signal) => {
+            probeStarted.resolve();
+            signal?.addEventListener('abort', () => {
+                aborted = true;
+            });
+            return new Promise(() => undefined);
+        },
+        10
+    );
 
-    const response = await app.inject('/healthz');
-    expect(response.statusCode).toBe(503);
-    expect(response.json()).toEqual({
-        code: 'postgres_unavailable',
-        status: 'unhealthy',
-    });
-    await app.close();
+    const response = app.inject('/healthz');
+    try {
+        await probeStarted.promise;
+        await runtime.runPromise(TestClock.adjust('10 millis'));
+        const completed = await response;
+        expect(completed.statusCode).toBe(503);
+        expect(completed.json()).toEqual({
+            code: 'postgres_unavailable',
+            status: 'unhealthy',
+        });
+        expect(aborted).toBe(true);
+    } finally {
+        await app.close();
+        await runtime.dispose();
+    }
 });

@@ -122,6 +122,7 @@ test('Grok Build bridge pins the private live-interjection contract', async () =
     expect(bridge).toContain('await interjectionReady');
     expect(bridge).toContain('message.kind === "session_update"');
     expect(bridge).toContain('markInterjectionReady?.()');
-    expect(bridge).toContain('grok-interjection-accepted');
-    expect(bridge).toContain('grok-interjection-rejected');
+    expect(bridge).toContain('turn.experimental_userMessages');
+    expect(bridge).toContain('message.accept()');
+    expect(bridge).toContain('message.reject(error)');
 });

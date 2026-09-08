@@ -1,10 +1,13 @@
-import { afterEach, beforeEach, expect, test } from 'bun:test';
+import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { seedCoveWorkspace } from '@grotto/agent-workspace';
 import { grottoAgentVersion } from '@grotto/api';
+import { AgentActivityRun } from '../agent-activity-run.ts';
+import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
 import { acceptRunInbox, replacePendingInbox } from '../inbox-store.ts';
 import { readClaudePlanUsageState } from '../usage/claude-plan-usage-state.ts';
@@ -19,9 +22,8 @@ import {
 } from './executor.ts';
 import type { AgentSessionState } from './session-store.ts';
 
-// Deterministic harness lane: a fake `@ai-sdk/harness` Agent stands in for the
-// real Codex/Claude/Pi driver so the ported executor's one-session-per-Agent
-// resume/reset/model-switch behavior is proven without a model call.
+const runtime = makeDaemonRuntime();
+afterAll(() => runtime.dispose());
 
 const legacyCoveFaq = `# Onboarding Knowledge FAQ
 
@@ -133,10 +135,16 @@ function fakeAgent(input: HarnessTurnInput): Pick<HarnessAgent, 'createSession' 
                 },
                 destroy: async () => undefined,
                 isResume: Boolean(options.resumeFrom),
-                sendUserMessage: async (message: string) => {
+                experimental_steerTurn: async (message: string) => {
                     sentUserMessages.push(message);
-                    return acceptsUserMessages;
+                    if (!acceptsUserMessages) {
+                        throw new HarnessCapabilityUnsupportedError({
+                            harnessId: 'codex',
+                            message: 'Harness does not support steering active turns.',
+                        });
+                    }
                 },
+                hasUnfinishedTurn: () => true,
                 sessionId: 'engine_session_1',
                 stop: async () => {
                     stoppedSessions += 1;
@@ -231,8 +239,18 @@ function publicUsage(scale = 1) {
     };
 }
 
-function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput {
+type TestTurnOverrides = Partial<HarnessTurnInput> & {
+    onActivity?: (activity: { category: string; phase: string }) => void;
+};
+
+function turnInput(overrides: TestTurnOverrides = {}): HarnessTurnInput {
+    const { activity, onActivity, ...inputOverrides } = overrides;
     return {
+        activity:
+            activity ??
+            new AgentActivityRun(runtime, ({ category, phase }) =>
+                onActivity?.({ category, phase })
+            ),
         agentId: 'agt_test',
         agentName: 'Cove',
         agentRoot,
@@ -259,12 +277,13 @@ function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput 
         reasoningEffort: 'medium',
         runId: 'run_test',
         runtimeId: 'codex',
+        runtime,
         sessionGeneration: 1,
         skillsDir: join(agentRoot, 'skills'),
         totalPending: 1,
         webAccess: null,
         workspaceDir: join(agentRoot, 'workspace'),
-        ...overrides,
+        ...inputOverrides,
         tools: overrides.tools ?? {},
     };
 }
@@ -272,7 +291,6 @@ function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput 
 async function readSession(): Promise<AgentSessionState> {
     return JSON.parse(await readFile(join(agentRoot, 'session.json'), 'utf8')) as AgentSessionState;
 }
-
 test('cold-starts a fresh Agent then resumes its one global session', async () => {
     const first = await runHarnessTurn(turnInput());
     expect(first.contextTokens).toBe(15);
@@ -284,8 +302,6 @@ test('cold-starts a fresh Agent then resumes its one global session', async () =
         totalTokens: 15,
     });
     expect(first.aborted).toBe(false);
-    // Cold start: no resume payload, generation 1, engine session + resume state
-    // persisted for the next turn.
     expect(createSessionCalls[0]?.resumeFrom).toBeUndefined();
     const afterFirst = await readSession();
     expect(afterFirst.generation).toBe(1);
@@ -304,7 +320,6 @@ test('cold-starts a fresh Agent then resumes its one global session', async () =
     expect((await readSession()).generation).toBe(1);
     expect(second.tokenUsage).toEqual(first.tokenUsage);
 });
-
 test('persists Claude plan limits emitted by the managed SDK turn', async () => {
     streamProviderMetadata = {
         'claude-code': {
@@ -337,7 +352,6 @@ test('persists Claude plan limits emitted by the managed SDK turn', async () => 
     });
     expect((await readClaudePlanUsageState(agentRoot)).snapshot).toEqual(result.claudePlanUsage);
 });
-
 test('seeds a Codex cumulative baseline when upgrading an existing session', async () => {
     await runHarnessTurn(turnInput());
     const { cumulativeTokenUsage: _removed, ...legacySession } = await readSession();
@@ -355,7 +369,6 @@ test('seeds a Codex cumulative baseline when upgrading an existing session', asy
         totalTokens: 30,
     });
 });
-
 test('refreshes a pre-fingerprint session once without rotating it', async () => {
     await runHarnessTurn(turnInput());
     const {
@@ -373,7 +386,6 @@ test('refreshes a pre-fingerprint session once without rotating it', async () =>
     expect(refreshed.bootstrapFingerprint).not.toBeNull();
     expect(refreshed.instructionFingerprint).not.toBeNull();
 });
-
 test('keeps detailed tool evidence local instead of returning raw tool names', async () => {
     streamToolNames = [
         'mcp__catalog__get_issue',
@@ -392,7 +404,6 @@ test('keeps detailed tool evidence local instead of returning raw tool names', a
     const journal = await readComputerExecutionJournal(agentRoot, 'run_test');
     expect(journal?.tools.map((tool) => tool.toolName)).toEqual(streamToolNames);
 });
-
 test('keeps billable token usage when a provider fails after reporting usage', async () => {
     streamFails = true;
 
@@ -407,7 +418,6 @@ test('keeps billable token usage when a provider fails after reporting usage', a
         },
     });
 });
-
 test('projects tool stream boundaries into safe semantic activity', async () => {
     streamToolNames = ['cat_private_file'];
     streamIncludesToolBoundary = true;
@@ -422,7 +432,6 @@ test('projects tool stream boundaries into safe semantic activity', async () => 
         { category: 'thinking', phase: 'completed' },
     ]);
 });
-
 test('uses a concrete cold inbox as the first prompt without mid-turn injection', async () => {
     acceptsUserMessages = false;
 
@@ -431,7 +440,6 @@ test('uses a concrete cold inbox as the first prompt without mid-turn injection'
     expect(streamedPrompts[0]).toContain('Hello Cove');
     expect(sentUserMessages).toEqual([]);
 });
-
 test('projects a concrete action attention into the first prompt by action identity', async () => {
     await runHarnessTurn(
         turnInput({
@@ -557,7 +565,6 @@ test('a warm notice prompt is not injected a second time from durable storage', 
     expect(sentUserMessages).toEqual([]);
     await expect(access(join(runtimeDir, 'pending-notice.json'))).rejects.toThrow();
 });
-
 test('an empty warm replay resumes without fabricating an inbox notice', async () => {
     await runHarnessTurn(turnInput());
     streamedPrompts = [];
@@ -566,7 +573,6 @@ test('an empty warm replay resumes without fabricating an inbox notice', async (
 
     expect(streamedPrompts).toEqual(['Resume the interrupted turn.']);
 });
-
 test('a cold start removes only its stale unresumable harness run', async () => {
     const staleRun = join(agentRoot, '.agent-runs', 'agt_test-1');
     await mkdir(staleRun, { recursive: true });
@@ -784,8 +790,8 @@ test('an aborted warm instruction and version update retries on the same session
     expect(abortedActivity).toEqual([
         { category: 'updating_instructions', phase: 'started' },
         { category: 'thinking', phase: 'started' },
-        { category: 'thinking', phase: 'failed' },
-        { category: 'updating_instructions', phase: 'failed' },
+        { category: 'thinking', phase: 'interrupted' },
+        { category: 'updating_instructions', phase: 'interrupted' },
     ]);
     expect(stoppedSessions).toBe(1);
     expect(refreshedBootstraps).toBe(1);
@@ -848,8 +854,8 @@ test('an aborted Restart keeps the current public Grotto Agent version current',
     expect(activity).toEqual([
         { category: 'updating_instructions', phase: 'started' },
         { category: 'thinking', phase: 'started' },
-        { category: 'thinking', phase: 'failed' },
-        { category: 'updating_instructions', phase: 'failed' },
+        { category: 'thinking', phase: 'interrupted' },
+        { category: 'updating_instructions', phase: 'interrupted' },
     ]);
     expect(stoppedSessions).toBe(1);
     expect(refreshedBootstraps).toBe(1);
@@ -948,8 +954,8 @@ test('an aborted warm Cove guidance refresh keeps its receipt and rereads on ret
     expect(abortedActivity).toEqual([
         { category: 'updating_instructions', phase: 'started' },
         { category: 'thinking', phase: 'started' },
-        { category: 'thinking', phase: 'failed' },
-        { category: 'updating_instructions', phase: 'failed' },
+        { category: 'thinking', phase: 'interrupted' },
+        { category: 'updating_instructions', phase: 'interrupted' },
     ]);
     await expect(
         access(join(agentRoot, 'runtime', 'cove-guidance-refresh.json'))
@@ -1221,60 +1227,44 @@ test('delivers a pending busy notice into the live harness turn', async () => {
     await expect(access(join(runtimeDir, 'pending-notice.json'))).rejects.toThrow();
 });
 
-test('reports a busy notice delivered after the start ack and before sink registration', async () => {
+test.each([
+    { boundary: true, supported: true },
+    { boundary: true, supported: false },
+    { boundary: false, supported: true },
+])('acknowledges stored busy notices only after supported delivery: %j', async ({
+    boundary,
+    supported,
+}) => {
     await runHarnessTurn(turnInput());
     sentUserMessages = [];
-    streamIncludesToolBoundary = true;
+    acceptsUserMessages = supported;
+    streamIncludesToolBoundary = boundary;
     const runtimeDir = join(agentRoot, 'runtime');
-    await mkdir(runtimeDir, { recursive: true });
-    const notice = '[Grotto inbox notice:\nInbox update: 1 unread messages total\n]';
-    await writeFile(
-        join(runtimeDir, 'pending-notice.json'),
-        JSON.stringify({
-            notice,
-            receipt: { runId: 'run_active', workIds: ['msg_late'] },
-        })
-    );
-    const receipts: Array<{ runId: string; workIds: string[] }> = [];
+    const notice = '[Grotto inbox notice:\\nInbox update: 1 unread message total\\n]';
+    const receipt = { runId: 'run_active', workIds: ['msg_late'] };
+    await writeFile(join(runtimeDir, 'pending-notice.json'), JSON.stringify({ notice, receipt }));
+    const receipts: (typeof receipt)[] = [];
 
     await runHarnessTurn(
         turnInput({
             inbox: [],
-            onStoredNoticeDelivered: (receipt) => receipts.push(receipt),
+            onStoredNoticeDelivered: (value) => receipts.push(value),
             totalPending: 0,
         })
     );
 
-    expect(sentUserMessages).toEqual([notice]);
-    expect(receipts).toEqual([{ runId: 'run_active', workIds: ['msg_late'] }]);
-});
-
-test('leaves a late busy notice unacknowledged when no safe tool boundary remains', async () => {
-    await runHarnessTurn(turnInput());
-    sentUserMessages = [];
-    const runtimeDir = join(agentRoot, 'runtime');
-    await mkdir(runtimeDir, { recursive: true });
-    const notice = '[Grotto inbox notice:\nInbox update: 1 unread message total\n]';
-    await writeFile(
-        join(runtimeDir, 'pending-notice.json'),
-        JSON.stringify({
-            notice,
-            receipt: { runId: 'run_active', workIds: ['msg_late'] },
-        })
-    );
-    const receipts: Array<{ runId: string; workIds: string[] }> = [];
-
-    await runHarnessTurn(
-        turnInput({
-            inbox: [],
-            onStoredNoticeDelivered: (receipt) => receipts.push(receipt),
-            totalPending: 0,
-        })
-    );
-
-    expect(sentUserMessages).toEqual([]);
-    expect(receipts).toEqual([]);
-    await expect(access(join(runtimeDir, 'pending-notice.json'))).resolves.toBeNull();
+    expect(sentUserMessages).toEqual(boundary ? [notice] : []);
+    expect(receipts).toEqual(boundary && supported ? [receipt] : []);
+    if (boundary && supported) {
+        await expect(access(join(runtimeDir, 'pending-notice.json'))).rejects.toThrow();
+    } else {
+        expect(JSON.parse(await readFile(join(runtimeDir, 'pending-notice.json'), 'utf8'))).toEqual(
+            {
+                notice,
+                receipt,
+            }
+        );
+    }
 });
 
 test('defers a stored follow-up notice until the cold turn has a safe live boundary', async () => {

@@ -42,6 +42,8 @@ the access boundary.
 | `Dev Sign-In User - Grotto` | `Development` | the Clerk user the local auto sign-in signs in as |
 | `Google MCP OAuth - Grotto` | `Development` | OAuth client for the Google Calendar MCP connection |
 | `OpenAI API - Grotto` | `Development`, `Production` | Server-owned transient Agent avatar generation; one independently rotated key per lifecycle |
+| `Axiom Development OTLP - Grotto` | `Development` | Development OTLP ingestion for the shared operations and metrics datasets |
+| `Axiom Production OTLP - Grotto` | `Production` | Hosted Server OTLP ingestion for the shared operations and metrics datasets |
 | `Postgres - Grotto` | `Production` | runtime URL, migration URL, container admin password |
 | `HugeIcons Pro - Merchbase` | `Development` | shared licensed registry key (adopted, not copied) |
 | `HeroUI Pro CICD - Merchbase` | `Development` | shared licensed artifact token (adopted, not copied) |
@@ -59,6 +61,23 @@ the real Server-owned provider in both lifecycles. Production requires its item 
 normal development startup resolves the Development item through its own identity. Release jobs
 deliberately suppress both runtime credentials. There is no App setting for this Server deployment
 capability. Test fixtures never need the key and never call the provider.
+
+`CURSOR_API_KEY` is deliberately absent. It is Cursor's own variable, read by `@cursor/sdk` on a
+Grotto Computer alongside that SDK's credential store at `~/.cursor/sdk/auth.json`. Grotto never
+mints, delivers, or stores it: the Computer settings **Connect** action runs Cursor's browser
+sign-in on the machine, and the key stays in Cursor's store. Nothing in this contract resolves it,
+so it has no 1Password item and no schema arm.
+
+The local `gh` CLI token is absent for the same reason. A Computer reads a Cloud Agent Run's pull
+request from GitHub using whatever token `gh auth token` already resolves on that machine, held in
+memory for the life of the process and never logged, stored, or reported to Server. It is a
+host-native credential, not a Grotto variable: it has no 1Password item, no schema arm, and a
+Computer without `gh` reads public pull requests unauthenticated instead.
+
+The opt-in live Cursor Cloud Agent smoke reads `GROTTO_RUN_LIVE_CURSOR_TEST=1` and
+`GROTTO_LIVE_CURSOR_REPOSITORY=owner/name`. Both are declared and both resolve `undefined` in every
+lifecycle: the run spends a real Cursor allowance against a real repository, so an operator sets
+them by hand and every automated lane runs against recorded provider responses instead.
 
 The opt-in Cove Agent E2E scenario can set `GROTTO_AGENT_E2E_AVATAR_FIXTURE=1`,
 an absolute `GROTTO_AGENT_E2E_AVATAR_FIXTURE_PATH`, and an absolute

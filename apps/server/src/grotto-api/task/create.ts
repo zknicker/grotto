@@ -12,11 +12,7 @@ export const createTaskProcedure = taskProcedure
         for (const event of result.events) {
             emitDurableChatEvent({ audienceUserId: null, event });
         }
-        await Promise.all(
-            result.wakes.map((wake) =>
-                ctx.agentDelivery.dispatchAgent(wake.agentId, wake.serverId).catch(() => undefined)
-            )
-        );
+        await ctx.postCommitWork.wakeAgents(ctx.agentDelivery, result.wakes);
 
         return { idempotent: result.idempotent, task: result.task };
     });

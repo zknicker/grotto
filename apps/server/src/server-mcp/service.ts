@@ -16,7 +16,7 @@ import {
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { McpDeniedError } from './errors.ts';
-import { resolveMcpIcon, summarizeInstructions } from './icons.ts';
+import { type McpIconResolver, summarizeInstructions } from './icons.ts';
 import type { McpOAuthRelay } from './oauth-relay.ts';
 import { emptySecret, type McpRuntime } from './runtime.ts';
 import { shapeMcpConnection } from './state.ts';
@@ -24,6 +24,7 @@ import { shapeMcpConnection } from './state.ts';
 export async function createMcpConnection(
     db: GrottoDatabase,
     runtime: McpRuntime,
+    resolveIcon: McpIconResolver,
     member: GrottoUser | null,
     input: McpConnectionCreate,
     preset: McpPreset | null = null
@@ -72,7 +73,7 @@ export async function createMcpConnection(
     });
     if (shouldConnect) {
         try {
-            return shapeMcpConnection(await refreshInventory(db, runtime, row));
+            return shapeMcpConnection(await refreshInventory(db, runtime, resolveIcon, row));
         } catch (cause) {
             await runtime.closeConnection(id);
             await db.delete(mcpConnectionsTable).where(eq(mcpConnectionsTable.id, id));
@@ -162,16 +163,18 @@ export async function deleteMcpConnection(
 export async function refreshMcpConnection(
     db: GrottoDatabase,
     runtime: McpRuntime,
+    resolveIcon: McpIconResolver,
     member: GrottoUser | null,
     input: { connectionId: string; serverId: string }
 ): Promise<McpConnection> {
     const connection = await requireOperableConnection(db, member, input);
-    return shapeMcpConnection(await refreshInventory(db, runtime, connection));
+    return shapeMcpConnection(await refreshInventory(db, runtime, resolveIcon, connection));
 }
 
 export async function replaceMcpHeaders(
     db: GrottoDatabase,
     runtime: McpRuntime,
+    resolveIcon: McpIconResolver,
     member: GrottoUser | null,
     input: { connectionId: string; headers: Record<string, string>; serverId: string }
 ): Promise<McpConnection> {
@@ -200,7 +203,7 @@ export async function replaceMcpHeaders(
         throw new Error('MCP headers were not saved.');
     }
     return Object.keys(input.headers).length > 0
-        ? shapeMcpConnection(await refreshInventory(db, runtime, row))
+        ? shapeMcpConnection(await refreshInventory(db, runtime, resolveIcon, row))
         : shapeMcpConnection(row);
 }
 
@@ -226,19 +229,16 @@ export async function clearMcpIdentity(
             );
     });
 }
-
-/** Bounded so an unresponsive icon host cannot stretch a refresh. */
 const iconTimeoutMs = 4000;
-
 async function refreshInventory(
     db: GrottoDatabase,
     runtime: McpRuntime,
+    resolveIcon: McpIconResolver,
     connection: typeof mcpConnectionsTable.$inferSelect
 ) {
     await runtime.closeConnection(connection.id);
     const discovery = await runtime.discover(connection.id);
-    // Decoration, so a missing or hostile icon host never fails discovery.
-    const icon = await resolveMcpIcon({
+    const icon = await resolveIcon({
         connectionUrl: connection.url,
         serverInfoIcons: discovery.serverInfoIcons,
         timeoutMs: iconTimeoutMs,

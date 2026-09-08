@@ -42,9 +42,9 @@ Semantic Agent activity is durable Server metadata. Detailed execution journals 
 Computer-local and are read only through an authorized live relay.
 
 `chat_messages.body_kind` is the Message body discriminator (ADR 0025). It defaults to `text`, and
-`ask` is the first typed kind; optional feature columns never define a Message's type. One Server
-Message reader projects the stored kind and its record together, and fails the mapping rather than
-downgrading a typed Message to text.
+`ask` and `cloud-agent-work` are the typed kinds; optional feature columns never define a Message's
+type. One Server Message reader projects the stored kind and its record together, and fails the
+mapping rather than downgrading a typed Message to text.
 
 `asks` is the Server record behind an `ask` body: one row per Message (`(server_id, message_id)` is
 unique) carrying the addressed human, the asking Agent, the title, summary, and recommended step,
@@ -53,6 +53,23 @@ human or Agent. A CHECK keeps `answered` and its settlement columns in agreement
 foreign keys keep the Ask, its Message, its Chat, its addressee, and its answerer in one Server
 tenant. Ask lifecycle changes append `ask.updated` to the same `chat_events` cursor log through the
 new nullable `ask_id` column.
+
+`cloud_agent_work` is the Server record behind a `cloud-agent-work` body: one row per Message
+(`(server_id, message_id)` is unique) carrying the delegating Agent, the Computer that holds the
+provider access, the provider and its agent id and URL, the title, repository, and starting ref,
+the lifecycle status with its started and terminal timestamps, the bounded one-line `activity`, and
+the cancel request with exactly one of the requesting human or Agent. `cloud_agent_runs` holds one
+row per provider Run — normalized and raw status, timestamps, bounded summary, error code, reported
+branches with their optional pull-request URLs and the Computer's optional dated GitHub snapshot of
+each (number, state, changed files, additions, deletions), optional token and cost usage, and the
+newest applied observation timestamp that makes a stale report a no-op. A branch report merges by
+that snapshot's own timestamp, so a read that failed never erases a snapshot the Run already had.
+CHECKs keep each terminal status in agreement with its terminal timestamp, and composite foreign
+keys keep the work, its Message, its Chat, its Agent, its Computer, and its canceller in one Server
+tenant. Lifecycle changes append `cloud-agent-work.updated` to the `chat_events` cursor log through
+the nullable `cloud_agent_work_id` column. Provider prompts, credentials, transcripts, and
+workspace files never reach Server. A settled Run creates one `agent_inbox` row keyed by that Run id for the delegating
+Agent, in the same transaction that settles it.
 
 `prepared_actions` is the immutable Server record for an Agent-authored proposal. It is anchored
 to one canonical Agent message and carries the narrow action kind, validated proposal, proposer,

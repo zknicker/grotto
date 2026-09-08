@@ -1,10 +1,61 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { SQL } from 'bun';
 import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
 import { migrateGrottoDatabase } from '../src/postgres/migrations.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 let cluster: PostgresCluster;
+
+test('upgrades the preceding production schema without replaying migrations', async () => {
+    const folder = await mkdtemp(join(tmpdir(), 'grotto-upgrade-'));
+    const database = new SQL(cluster.databaseUrl);
+    const url = new URL(cluster.databaseUrl);
+    url.pathname = '/grotto_effect_upgrade_test';
+    let upgraded: SQL | undefined;
+    try {
+        await cp(join(import.meta.dir, '../drizzle/postgres'), folder, { recursive: true });
+        const journalPath = join(folder, 'meta/_journal.json');
+        const journal = JSON.parse(await readFile(journalPath, 'utf8'));
+        journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx <= 28);
+        await writeFile(journalPath, JSON.stringify(journal));
+        await database.unsafe('CREATE DATABASE grotto_effect_upgrade_test');
+        await migrateGrottoDatabase(url.toString(), 'grotto', 'grotto', folder);
+        upgraded = new SQL(url.toString());
+        await upgraded`INSERT INTO users (id, clerk_user_id, display_name)
+            VALUES ('usr_upgrade', 'clerk_upgrade', 'Before upgrade')`;
+        expect(await migrateGrottoDatabase(url.toString(), 'grotto', 'grotto')).toEqual([
+            '0029_message_bodies_and_asks',
+            '0030_reminder_history_and_cause_snapshot',
+            '0031_cloud_agent_work',
+            '0032_agent_activity_outcomes',
+            '0033_provenance_rollback_writes',
+        ]);
+        expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
+            { display_name: 'Before upgrade' },
+        ]);
+        const columns = await upgraded`SELECT is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_name = 'agent_turns' AND column_name = 'activity'`;
+        expect(columns).toEqual([
+            { is_nullable: 'NO', column_default: '\'{"operations": []}\'::jsonb' },
+        ]);
+        const constraints = await upgraded`SELECT pg_get_constraintdef(oid) AS definition
+            FROM pg_constraint WHERE conname IN ('agent_turns_status', 'agent_activity_phase')`;
+        expect(constraints).toHaveLength(2);
+        for (const constraint of constraints) {
+            expect(constraint.definition).toContain('interrupted');
+        }
+        expect(await migrateGrottoDatabase(url.toString(), 'grotto', 'grotto')).toEqual([]);
+    } finally {
+        await upgraded?.close();
+        await database.unsafe('DROP DATABASE IF EXISTS grotto_effect_upgrade_test');
+        await database.close();
+        await rm(folder, { recursive: true, force: true });
+    }
+});
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();

@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.15.0 - 2026-09-07
+
+- Grotto Agents can delegate code changes to Cursor Cloud Agents. Connect Cursor in Computer
+  settings, follow progress and pull requests in the work Thread, and ask for further changes
+  on the same Cloud Agent and branch. Completion reaches the delegating Agent's inbox automatically.
+- Cloud Agent cards appear inline with the conversation. Thread previews show the work name while
+  it runs and file and line changes when it finishes. Grotto for iPhone adds Cursor connection
+  settings, the same work cards, and compact animated Thread previews.
+- Grotto's Inbox brings open Asks and active Cloud Agent work together. Agents can ask for a
+  decision without turning every exchange into a Task.
+- Reminders gain 30-day fire history. Finished one-shot and canceled reminders are removed after
+  30 days, while their messages keep their attribution. Tasks left in review without Thread
+  activity for seven days close automatically and can be reopened.
+- Grotto Computer re-wakes an Agent when an inbox message arrives as its turn finishes, instead
+  of leaving that message queued after the Agent becomes idle.
+- Grotto adds theme commands to Command-K and tighter chat typography, with card and inline-code
+  contrast preserved when hovering messages in dark mode.
+- Grotto updates its request-validation and rich-text dependencies to fix upstream security issues.
+- Grotto Computer 1.8.0 is a required update for Computer protocol 16. Grotto Agent 1.3.0 adds Cloud
+  Agent continuation tools and guidance, automatic completion handling, and shorter reminder and
+  Trigger instructions backed by the Manual.
+
 ## v1.14.1 - 2026-09-04
 
 - Grotto Server 1.13.0 reaches production. The 1.14.0 release published Grotto Computer 1.7.0 and

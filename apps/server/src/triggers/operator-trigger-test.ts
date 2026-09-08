@@ -1,5 +1,7 @@
+import type { EffectRuntime } from '@grotto/effect';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import {
     type OperatorTriggerInput,
@@ -14,6 +16,8 @@ import type { TriggerRateLimiter } from './trigger-rate-limit.ts';
 export interface TriggerTestDependencies {
     delivery: AgentDelivery;
     limiter: TriggerRateLimiter;
+    postCommitWork: ServerPostCommitWork;
+    runtime: EffectRuntime<never>;
 }
 
 /**
@@ -52,7 +56,7 @@ export async function testOperatorTrigger(
     });
     const outcome = await fireTrigger(
         db,
-        dependencies.delivery,
+        dependencies,
         {
             contentType: 'application/json',
             dedupeKey: null,

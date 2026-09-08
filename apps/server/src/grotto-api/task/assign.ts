@@ -14,10 +14,9 @@ export const assignTaskProcedure = taskProcedure
         }
         // Waking the assignee is what turns a reservation into work: the Agent
         // comes up, claims the task, and starts.
-        await Promise.all(
-            result.wakes.map((agentId) =>
-                ctx.agentDelivery.dispatchAgent(agentId, input.serverId).catch(() => undefined)
-            )
+        await ctx.postCommitWork.wakeAgents(
+            ctx.agentDelivery,
+            result.wakes.map((agentId) => ({ agentId, serverId: input.serverId }))
         );
 
         // The task update is the cursor clients resume from; the receipt is

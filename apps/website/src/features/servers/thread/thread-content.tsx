@@ -21,9 +21,11 @@ import { TaskThreadMetadata } from '../tasks/task-thread-metadata.tsx';
 import { threadTitles } from './thread-target.ts';
 
 /**
- * The full Thread work surface — header, task metadata, anchor, replies, and
- * composer. The chat page hosts it in the shell side pane (`ThreadPanel`);
+ * The full Thread work surface — header, the anchor record's own metadata,
+ * the anchor, replies, and composer. The chat page hosts it in the shell side pane (`ThreadPanel`);
  * the Tasks page hosts it in the task thread dialog.
+ *
+ * Task metadata stays above the conversation; Cloud Agent cards scroll with their Messages.
  */
 export function ThreadContent({
     active,
@@ -91,13 +93,14 @@ export function ThreadContent({
         // The context card above the anchor already names the automation.
         causeMarkHidden: Boolean(anchor.cause),
         chatId: threadChatId ?? chat.id,
+        conversationChatId: chat.id,
         messages: threadMessages,
         onOpenArtifact,
         onReferenceActivate,
         pendingMessages: pendingReplies,
         serverId: chat.serverId,
-        // The header names the task and the metadata panel below states it.
-        taskMarkHidden: Boolean(anchor.task),
+        // The header names the Task and the metadata panel below states it.
+        taskChipHiddenMessageId: anchor.task ? anchor.id : undefined,
         turnDetailsAccess,
         viewerUserId,
     });
@@ -143,9 +146,22 @@ export function ThreadContent({
                 threadExists={threadChatId !== undefined}
             />
             <TranscriptRenderProvider value={renderContext}>
+                <div className="max-h-[50%] shrink-0 overflow-y-auto px-5">
+                    {anchor.task ? (
+                        <TaskThreadMetadata
+                            chat={chat}
+                            chatId={chat.id}
+                            fallbackTask={anchor.task}
+                            messageId={anchor.id}
+                        />
+                    ) : null}
+                </div>
                 {/* px-5 matches the main chat viewport gutter so the
                             rows' full-width hover bleed stays contained. */}
-                <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                <div
+                    className="min-h-0 flex-1 overflow-y-auto px-5 py-4"
+                    data-testid="thread-conversation"
+                >
                     {/*
                      * Why the anchor was sent, above the anchor itself. A fire
                      * writes no transcript row, so this card is where the
@@ -154,14 +170,6 @@ export function ThreadContent({
                      */}
                     {anchor.cause ? (
                         <AutomationFireContextCard messageId={anchor.id} serverId={chat.serverId} />
-                    ) : null}
-                    {anchor.task ? (
-                        <TaskThreadMetadata
-                            chat={chat}
-                            chatId={chat.id}
-                            fallbackTask={anchor.task}
-                            messageId={anchor.id}
-                        />
                     ) : null}
                     {anchorEntries.map((entry) => (
                         <TranscriptEntryView

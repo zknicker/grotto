@@ -1,7 +1,9 @@
-import { afterEach, expect, test } from 'bun:test';
+import { afterAll, afterEach, expect, test } from 'bun:test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { AgentActivityRun } from '../agent-activity-run.ts';
+import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import {
     classifyGrottoProxyBoundary,
     createComputerActivityProjector,
@@ -13,11 +15,16 @@ import {
 } from './execution-journal.ts';
 
 const roots: string[] = [];
-
+const runtime = makeDaemonRuntime();
+afterAll(() => runtime.dispose());
+function activityRun(events: Array<{ category: string; phase: string; toolRef?: string }>) {
+    return new AgentActivityRun(runtime, ({ category, phase, toolRef }) =>
+        events.push({ category, phase, ...(toolRef ? { toolRef } : {}) })
+    );
+}
 afterEach(async () => {
     await Promise.all(roots.splice(0).map((root) => rm(root, { force: true, recursive: true })));
 });
-
 test('projects explicit Codex, Claude, and Pi fixtures without inspecting tool inputs', async () => {
     const cases = [
         { nativeName: 'shell', runtimeId: 'codex', toolName: 'bash', category: 'running_command' },
@@ -45,7 +52,7 @@ test('projects explicit Codex, Claude, and Pi fixtures without inspecting tool i
     for (const fixture of cases) {
         const events: Array<{ category: string; phase: string }> = [];
         const projector = createComputerActivityProjector({
-            onActivity: (event) => events.push(event),
+            activity: activityRun(events),
             registry: createComputerActivityRegistry(),
             runtimeId: fixture.runtimeId,
         });
@@ -68,7 +75,6 @@ test('projects explicit Codex, Claude, and Pi fixtures without inspecting tool i
         ]);
     }
 });
-
 test('keeps malicious MCP names and shell cat generic', async () => {
     const root = await mkdtemp(join(tmpdir(), 'grotto-projector-'));
     roots.push(root);
@@ -76,7 +82,7 @@ test('keeps malicious MCP names and shell cat generic', async () => {
     const events: Array<{ category: string; phase: string; toolRef?: string }> = [];
     const projector = createComputerActivityProjector({
         journal,
-        onActivity: (event) => events.push(event),
+        activity: activityRun(events),
         registry: createComputerActivityRegistry(),
         runtimeId: 'codex',
     });
@@ -128,11 +134,10 @@ test('keeps malicious MCP names and shell cat generic', async () => {
     ]);
     expect(JSON.stringify(events)).not.toContain('private');
 });
-
 test('projects opaque Harness file changes as safe edit activity', async () => {
     const events: Array<{ category: string; phase: string }> = [];
     const projector = createComputerActivityProjector({
-        onActivity: (event) => events.push(event),
+        activity: activityRun(events),
         registry: createComputerActivityRegistry(),
         runtimeId: 'codex',
     });
@@ -149,7 +154,6 @@ test('projects opaque Harness file changes as safe edit activity', async () => {
     ]);
     expect(JSON.stringify(events)).not.toContain('private');
 });
-
 test('pairs preliminary, failure, interruption, and restart journal evidence by toolCallId', async () => {
     const root = await mkdtemp(join(tmpdir(), 'grotto-journal-'));
     roots.push(root);
@@ -164,7 +168,7 @@ test('pairs preliminary, failure, interruption, and restart journal evidence by 
     const events: Array<{ category: string; phase: string }> = [];
     const projector = createComputerActivityProjector({
         journal,
-        onActivity: (event) => events.push(event),
+        activity: activityRun(events),
         registry: createComputerActivityRegistry(),
         runtimeId: 'pi',
     });
@@ -212,7 +216,7 @@ test('pairs preliminary, failure, interruption, and restart journal evidence by 
     });
     await createComputerActivityProjector({
         journal: reopened,
-        onActivity: (event) => events.push(event),
+        activity: activityRun(events),
         registry: createComputerActivityRegistry(),
         runtimeId: 'pi',
     }).observe({
@@ -224,7 +228,7 @@ test('pairs preliminary, failure, interruption, and restart journal evidence by 
     });
     await createComputerActivityProjector({
         journal: reopened,
-        onActivity: (event) => events.push(event),
+        activity: activityRun(events),
         registry: createComputerActivityRegistry(),
         runtimeId: 'pi',
     }).observe({
@@ -251,7 +255,6 @@ test('pairs preliminary, failure, interruption, and restart journal evidence by 
     expect(JSON.stringify(document)).not.toContain('reasoning');
     expect(events).toContainEqual({ category: 'running_command', phase: 'failed' });
 });
-
 test('classifies structured Grotto message and Browser proxy boundaries', () => {
     expect(classifyGrottoProxyBoundary('GET', '/api/agent/events')).toBe('checking_messages');
     expect(classifyGrottoProxyBoundary('GET', '/api/agent/history')).toBe('checking_messages');
@@ -261,7 +264,6 @@ test('classifies structured Grotto message and Browser proxy boundaries', () => 
     expect(classifyGrottoProxyBoundary('POST', '/api/agent/browser')).toBe('browsing');
     expect(classifyGrottoProxyBoundary('GET', '/api/agent/inbox')).toBeNull();
 });
-
 test('semantic activity frames have no raw tool fields and host categories are registration-owned', async () => {
     const root = await mkdtemp(join(tmpdir(), 'grotto-host-tool-'));
     roots.push(root);
@@ -271,7 +273,7 @@ test('semantic activity frames have no raw tool fields and host categories are r
     const events: Array<{ category: string; phase: string; toolRef?: string }> = [];
     const projector = createComputerActivityProjector({
         journal,
-        onActivity: (event) => events.push(event),
+        activity: activityRun(events),
         registry,
         runtimeId: 'codex',
     });

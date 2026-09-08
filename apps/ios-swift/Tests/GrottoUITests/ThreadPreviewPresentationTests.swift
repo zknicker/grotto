@@ -14,6 +14,8 @@ struct ThreadPreviewPresentationTests {
         #expect(preview.unreadCount == 1)
         #expect(preview.recentReplies.map(\.id) == ["a", "b", "c"])
         #expect(preview.recentReplies.map(\.content) == ["reply a", "reply b", "reply c"])
+        #expect(preview.latestReply?.id == "c")
+        #expect(preview.latestReply?.author.name == "Zach")
     }
 
     @Test func dropsRepliesWhoseAuthorTheDirectoriesCannotResolve() {
@@ -32,6 +34,21 @@ struct ThreadPreviewPresentationTests {
         }
 
         #expect(preview.recentReplies.isEmpty)
+        #expect(preview.latestReply == nil)
+    }
+
+    @Test func latestPreviewAdvancesWithoutChangingReplyIdentityOnRefresh() {
+        func project(_ ids: [String]) -> ThreadPreviewPresentation {
+            ThreadPreviewProjection.presentation(for: summary(replyIDs: ids)) {
+                MessageAuthorPresentation(id: $0.authorUserID!, name: "Zach", avatarURL: nil)
+            }
+        }
+        let initial = project(["a", "b"])
+        let refreshed = project(["a", "b"])
+        let appended = project(["a", "b", "c"])
+        #expect(initial.latestReply == refreshed.latestReply)
+        #expect(initial.latestReply?.id != appended.latestReply?.id)
+        #expect(appended.latestReply?.content == "reply c")
     }
 
     @Test func labelsTheReplyCount() {

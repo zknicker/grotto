@@ -29,6 +29,7 @@ the category is current.
 | `starting_work` | `Starting work…` | Server admits a turn to its assigned Computer |
 | `checking_messages` | `Checking messages…` | A structured Grotto message check/read/search boundary runs |
 | `thinking` | `Thinking…` | Harness reasoning starts; content is discarded |
+| `updating_instructions` | `Updating instructions…` | A managed instruction or factory-guidance refresh runs |
 | `browsing` | `Browsing…` | A known Browser capability runs |
 | `searching_web` | `Searching the web…` | A known provider or Grotto web-search capability runs |
 | `reading_files` | `Reading files…` | A known file-read capability runs |
@@ -38,7 +39,7 @@ the category is current.
 | `sending_message` | `Sending a message…` | Server begins the canonical Agent message-send boundary |
 | `working` | `Working…` | No narrower truthful category is current |
 
-Completed and failed phases appear in history with past-tense copy. The strip never adds a
+Completed, failed, and interrupted phases appear in history with past-tense copy. The strip never adds a
 synthetic `Finished` row; the Agent leaves the strip when its turn settles.
 
 ## Mapping evidence to activity
@@ -73,7 +74,7 @@ type AgentActivityEvent = {
   producerId: string
   producerSequence: number
   category: AgentActivityCategory
-  phase: "started" | "completed" | "failed"
+  phase: "started" | "completed" | "failed" | "interrupted"
   occurredAt: string
   toolRef?: string
 }
@@ -137,15 +138,18 @@ without a sidebar, including Search and Reminders.
 
 The strip consumes live current-state projection, not the historical query. Reconnect obtains a
 current active-activity snapshot before applying later events. A semantic operation's
-`completed` or `failed` event falls back to `Working…`; only the Server's terminal turn event
+`completed`, `failed`, or `interrupted` event falls back to `Working…`; only the Server's terminal turn event
 removes the Agent. Snapshot and live-event reconciliation preserves live events that arrive while
 an older snapshot request is still in flight.
 
 ### Agent activity history
 
-The Agent profile Activity tab reads the durable Server journal newest-first with pagination. It
-shows lifecycle and semantic tool-category rows similar to Raft's Activity diagnostics. Repeated
-heartbeats and raw details never appear.
+The Agent profile Activity tab reads the durable Server journal newest-first with pagination and
+groups it by turn. Each collapsed turn shows its duration, outcome, exact persisted message count,
+and exact Computer-reported totals by semantic operation category. These compact totals are part of
+the durable turn summary, so a settled row does not depend on every best-effort live activity frame
+having arrived. Silent completion and interruption are explicit. Expanding a turn reveals the
+existing granular semantic timeline when retained; repeated heartbeats and raw details never appear.
 
 Every Server member may see the summarized history. Complete execution evidence is restricted to
 Server Owners and Admins and remains Computer-local. Agent creation provenance grants no additional
@@ -157,8 +161,9 @@ belongs to PRD-216.
 ### Turn Details
 
 An Agent-authored Chat message stores the real `runId` that produced it. Its Turn Details drawer
-shows the Server-persisted activity summary to members who can access that message. Owners and
-Admins may additionally request the run's detailed execution journal while Computer is online.
+shows the same turn summary and Server-persisted semantic timeline to members who can access that
+message. Owners and Admins may additionally request the run's detailed execution journal while
+Computer is online.
 
 A global turn may touch several private Chats. Ordinary members never receive global raw evidence
 through one Chat message. Opening a Chat never fetches detailed evidence until the user explicitly

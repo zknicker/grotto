@@ -1,5 +1,6 @@
 import type { ComputerInventory } from '@grotto/api';
 import { type ComputerRuntimeId, computerRuntimeCatalog } from '@grotto/api/computer-runtime';
+import { detectCloudAgentProviders } from './cloud-agents/registry.ts';
 import { resolveRuntimeExecutable } from './runtime-discovery.ts';
 
 type ComputerRuntime = ComputerInventory['runtimes'][number];
@@ -38,6 +39,20 @@ const knownRuntimes: { command: string; runtime: ComputerRuntime }[] = [
         ]),
     },
 ];
+
+/**
+ * Reports the sanitized runtime/model inventory, plus Cloud Agent provider
+ * readiness. Cloud Agent access is its own Computer capability, separate from
+ * the runtime harnesses even when a provider shares a vendor with one.
+ */
+export async function detectFullInventory(
+    options: { searchPath?: string } = {}
+): Promise<ComputerInventory> {
+    return {
+        ...detectInventory(options),
+        cloudAgentProviders: await detectCloudAgentProviders(),
+    };
+}
 
 /**
  * Reports the sanitized runtime/model inventory. `GROTTO_COMPUTER_INVENTORY`

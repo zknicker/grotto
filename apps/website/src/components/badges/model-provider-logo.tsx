@@ -1,4 +1,5 @@
 import type { IconSvgElement } from '@hugeicons/react';
+import type * as React from 'react';
 import { cn } from '../../lib/utils.ts';
 import { Icon } from '../ui/icon.tsx';
 
@@ -13,6 +14,11 @@ interface ModelProviderLogoProps {
     fallbackIcon: IconSvgElement;
     iconClassName?: string;
     logo?: ModelProviderLogoSource | null;
+    /**
+     * Merged after the brand fill, so a caller that forces the box — a card's
+     * identity mark — can pair it with the matching radius step.
+     */
+    style?: React.CSSProperties;
 }
 
 export function ModelProviderLogo({
@@ -21,6 +27,7 @@ export function ModelProviderLogo({
     fallbackIcon,
     iconClassName,
     logo,
+    style,
 }: ModelProviderLogoProps) {
     return (
         <span
@@ -28,6 +35,7 @@ export function ModelProviderLogo({
             style={{
                 backgroundColor: `${color}1A`,
                 color,
+                ...style,
             }}
         >
             {logo ? (

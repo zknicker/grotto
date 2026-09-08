@@ -86,11 +86,16 @@ export function invitationRoute(token: string) {
     return `/invite/${token}`;
 }
 
-export function invitationLink(token: string, appOrigin = invitationAppOrigin()) {
-    return new URL(invitationRoute(token), appOrigin).toString();
+export function invitationLink(token: string, appOrigin = grottoAppOrigin()) {
+    return appLink(invitationRoute(token), appOrigin);
 }
 
-function invitationAppOrigin() {
+/** An absolute App URL, for a link a human copies somewhere outside Grotto. */
+export function appLink(route: string, appOrigin = grottoAppOrigin()) {
+    return new URL(route, appOrigin).toString();
+}
+
+function grottoAppOrigin() {
     const configured = import.meta.env.VITE_GROTTO_APP_ORIGIN;
 
     if (configured) {
@@ -102,6 +107,6 @@ function invitationAppOrigin() {
     }
 
     throw new Error(
-        'VITE_GROTTO_APP_ORIGIN is required to create invitation links in the desktop App.'
+        'VITE_GROTTO_APP_ORIGIN is required to create absolute App links in the desktop App.'
     );
 }

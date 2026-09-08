@@ -1,13 +1,21 @@
-// One process-wide FIFO serializes all browser commands across agents and
-// turns: agent-browser drives a single Chrome/CDP session that must never be
-// raced. Active commands also inhibit automatic recovery.
+interface DrainWaiter {
+    abort(): void;
+    drain(): void;
+}
+
+// One coordinator FIFO serializes Browser commands. Active commands also
+// inhibit automatic recovery.
 export class BrowserCommandQueue {
     private tail: Promise<unknown> = Promise.resolve();
     private inFlight = 0;
-    private drainWaiters: Array<() => void> = [];
+    private readonly drainWaiters = new Set<DrainWaiter>();
 
     get inFlightCount(): number {
         return this.inFlight;
+    }
+
+    get drainWaiterCount(): number {
+        return this.drainWaiters.size;
     }
 
     run<T>(command: () => Promise<T>): Promise<T> {
@@ -20,34 +28,44 @@ export class BrowserCommandQueue {
         return result;
     }
 
-    // Recovery waits a bounded period for active commands to finish before
-    // restarting Chrome. Resolves false when commands are still running at
-    // the deadline.
-    waitForDrain(timeoutMs: number): Promise<boolean> {
+    waitForDrain(signal: AbortSignal): Promise<void> {
         if (this.inFlight === 0) {
-            return Promise.resolve(true);
+            return Promise.resolve();
         }
-        return new Promise((resolve) => {
-            const timer = setTimeout(() => {
-                this.drainWaiters = this.drainWaiters.filter((waiter) => waiter !== onDrain);
-                resolve(false);
-            }, timeoutMs);
-            const onDrain = () => {
-                clearTimeout(timer);
-                resolve(true);
+        if (signal.aborted) {
+            return Promise.reject(abortedDrainError());
+        }
+        return new Promise((resolve, reject) => {
+            const remove = () => {
+                signal.removeEventListener('abort', waiter.abort);
+                this.drainWaiters.delete(waiter);
             };
-            this.drainWaiters.push(onDrain);
+            const waiter: DrainWaiter = {
+                abort: () => {
+                    remove();
+                    reject(abortedDrainError());
+                },
+                drain: () => {
+                    remove();
+                    resolve();
+                },
+            };
+            this.drainWaiters.add(waiter);
+            signal.addEventListener('abort', waiter.abort, { once: true });
         });
     }
 
     private settle(): void {
         this.inFlight -= 1;
-        if (this.inFlight === 0) {
-            const waiters = this.drainWaiters;
-            this.drainWaiters = [];
-            for (const waiter of waiters) {
-                waiter();
-            }
+        if (this.inFlight !== 0) {
+            return;
+        }
+        for (const waiter of [...this.drainWaiters]) {
+            waiter.drain();
         }
     }
+}
+
+function abortedDrainError(): Error {
+    return new Error('Browser command drain was cancelled.');
 }

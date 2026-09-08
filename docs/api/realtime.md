@@ -169,7 +169,16 @@ carries the question, summary, or recommended step: clients refetch the affected
 `body` projects the current Ask — and the viewer's open-Ask list. Reconnect recovery therefore walks
 the same events and cannot lose a settlement whose notification was dropped.
 
-Hosted durable event kinds are `message.created`, `ask.updated`, `prepared-action.updated`,
+`cloud-agent-work.updated` is the same participant-gated shape for Cloud Agent work: the work id,
+its Message id, the Chat id, the Message's Chat sequence, and the cursor. Creating the work emits
+`message.created` and then `cloud-agent-work.updated` in one transaction; every applied Computer
+observation and every recorded cancel request emits another. The payload carries no provider state:
+clients refetch the affected Message — whose `body` projects the current work and its recent Runs —
+and, for the Inbox, `cloudAgentWork.listActive`. A duplicate or stale observation applies nothing
+and therefore emits nothing, so reconnect replay of these events is idempotent.
+
+Hosted durable event kinds are `message.created`, `ask.updated`, `cloud-agent-work.updated`,
+`prepared-action.updated`,
 `chat.read`, `chat.lifecycle`, the reader-private `thread.follow.updated`,
 `task.created`, `task.updated`, and `task.label.updated`, plus `reminder.changed`.
 

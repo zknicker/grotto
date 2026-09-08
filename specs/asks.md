@@ -86,12 +86,13 @@ delivery. Opening the row opens the Thread.
 
 ## Chat presentation
 
-An Ask reads as an ordinary Message. Grotto App renders the recessed Thread surface beneath it with
-a compact Ask marker in the task-chip grammar: the Ask glyph, the addressee's avatar and name, and a
-trailing status — an open disc, or `Answered by <name>` — plus the ordinary reply count when the Ask
-is top-level. Inside a Thread the marker renders on the reply without a count. Only the trailing
-status carries lifecycle color. Older clients and unknown body kinds render the Message `content`
-and the ordinary Thread preview.
+An Ask reads as an ordinary Message. In the parent Chat, Grotto App renders the recessed Thread
+surface beneath it with a compact Ask marker in the task-chip grammar it shares with the Task chip
+and the Cloud Agent work header: the Ask glyph, the addressee's avatar and name, and a trailing
+status — an open disc, or `Answered by <name>` — plus the ordinary reply count. Inside a Thread the
+marker stays inline on the Ask Message itself, without a count. Only the trailing status carries
+lifecycle color. Older clients and unknown body kinds render the Message `content` and the ordinary
+Thread preview.
 
 ## Agent reading
 

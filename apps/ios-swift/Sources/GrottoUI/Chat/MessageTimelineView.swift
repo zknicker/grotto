@@ -92,7 +92,7 @@ public struct MessageTimelineView: View {
                     topInset: proxy.safeAreaInsets.top,
                     bottomInset: proxy.safeAreaInsets.bottom,
                     showsAccessory: hasOlderMessages && onLoadOlderMessages != nil,
-                    onAppend: { items, isNearNewest in
+                    onAppend: { _, items, isNearNewest in
                         switch MessageTimelineTailScroll.decide(
                             hadMessages: true,
                             isNearBottom: isNearNewest,
@@ -268,6 +268,10 @@ public struct MessageTimelineView: View {
                     .padding(.top, message.content.isEmpty ? 0 : 3)
                 }
 
+                ForEach(message.cloudAgents) { agent in
+                    CloudAgentCard(agent: agent).padding(.top, 6)
+                }
+
                 if let preparedAction = message.preparedAction {
                     PreparedActionCardView(
                         action: preparedAction,
@@ -298,10 +302,15 @@ public struct MessageTimelineView: View {
                     ThreadPreviewCard(
                         thread: message.thread,
                         task: message.task,
+                        cloudAgents: message.threadCloudAgents,
                         onOpen: { onOpenThread(message) }
                     )
+                    .id(message.id)
                 }
             }
+        }
+        .overlayPreferenceValue(ThreadIngressAnchor.self) { anchor in
+            ThreadIngressConnector(anchor: anchor, isContinuation: isContinuation)
         }
         // The tint is drawn behind the row without changing its layout, so a
         // revealed message keeps the timeline's ordinary rhythm.
@@ -322,16 +331,4 @@ public struct MessageTimelineView: View {
             && message.createdAt.timeIntervalSince(previous.createdAt) < 5 * 60
     }
 
-}
-
-#Preview {
-    MessageTimelineView(messages: ChatFixtures.messages, onOpenThread: { _ in })
-}
-
-#Preview("Empty") {
-    MessageTimelineView(
-        messages: [],
-        emptyStateDescription: "Start the conversation in #product.",
-        onOpenThread: { _ in }
-    )
 }

@@ -12,17 +12,8 @@ export const sendChatMessageProcedure = chatProcedure
         for (const event of result.events) {
             emitDurableChatEvent({ audienceUserId: null, event });
         }
-        // The inbox item was enqueued atomically with the message commit; this
-        // is only the best-effort wire nudge, so the send never waits on it. If
-        // it fails, the retry sweep and reconnect reconciliation still deliver
-        // the durably queued work.
-        for (const wake of result.wakes) {
-            void ctx.agentDelivery
-                .dispatchAgent(wake.agentId, wake.serverId)
-                .catch((error: unknown) => {
-                    console.error('[grotto] chat send could not nudge an Agent', error);
-                });
-        }
+        // Durable pending work is authoritative; the response never waits on its wire nudge.
+        void ctx.postCommitWork.wakeAgents(ctx.agentDelivery, result.wakes);
 
         return result.receipt;
     });

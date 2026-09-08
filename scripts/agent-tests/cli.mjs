@@ -9,9 +9,16 @@ import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createEvalHarness } from '../eval-harness.mjs';
+import { settleEvalCleanup } from './cleanup-chats.mjs';
 import { createAgentTestKit } from './kit.mjs';
 import { createRenderer, formatWall } from './render.mjs';
-import { buildSummary, buildTranscript, createReportWriter, runStamp } from './report.mjs';
+import {
+    buildSummary,
+    buildTranscript,
+    captureAgentDiagnostics,
+    createReportWriter,
+    runStamp,
+} from './report.mjs';
 import { createExpect, isScenario } from './scenario.mjs';
 import { describeSweep, sweepAgentTestLeftovers } from './sweep.mjs';
 
@@ -145,18 +152,7 @@ async function runScenario(harness, { index, scenario }, retirements) {
     // ids to the next run via the crash ledger instead of stretching this one;
     // the ledger only forgets ids the delete confirmed.
     const seconds = Math.round((Date.now() - startedAtScenario) / 1000);
-    await Promise.race([
-        kit.cleanup().catch((cause) => {
-            process.stderr.write(`\ncleanup deferred for ${key}: ${String(cause).slice(0, 200)}\n`);
-        }),
-        new Promise((resolve) => setTimeout(resolve, 60_000).unref?.()).then(() => {
-            process.stderr.write(`\ncleanup for ${key} exceeded 60s; deferring to the next run.\n`);
-        }),
-    ]);
-    // Retirement is started, not awaited: this lane takes the next scenario
-    // while these Agents are deleted, and the run awaits them at the end.
-    retirements.push(retire(kit, key));
-
+    const diagnostics = error ? await captureAgentDiagnostics(kit, agents) : [];
     const result = {
         agents: agents.map((agent) => agent.handle),
         assertions,
@@ -165,7 +161,22 @@ async function runScenario(harness, { index, scenario }, retirements) {
         ok: !error,
         seconds,
     };
-    await report.writeScenario(scenario.name, buildTranscript({ error, kit, result, scenario }));
+    await report.writeScenario(
+        scenario.name,
+        buildTranscript({ diagnostics, error, kit, result, scenario })
+    );
+    const cleanedUp = await settleEvalCleanup(
+        kit.cleanup().catch((cause) => {
+            process.stderr.write(`\ncleanup deferred for ${key}: ${String(cause).slice(0, 200)}\n`);
+        })
+    );
+    if (!cleanedUp) {
+        process.stderr.write(`\ncleanup for ${key} exceeded 60s; deferring to the next run.\n`);
+    }
+    // Retirement is started, not awaited: this lane takes the next scenario
+    // while these Agents are deleted, and the run awaits them at the end.
+    retirements.push(retire(kit, key));
+
     renderer.finish(key, { error, ok: result.ok, seconds });
     return result;
 }

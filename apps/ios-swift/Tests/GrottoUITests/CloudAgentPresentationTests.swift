@@ -1,0 +1,107 @@
+import Foundation
+import GrottoModels
+import Testing
+@testable import GrottoUI
+
+@Suite struct CloudAgentPresentationTests {
+    @Test func decodesExistingWorkAndShowsItsActualDiff() throws {
+        let agent = try presentation()
+        #expect(agent.providerName == "Cursor")
+        #expect(agent.statusLabel == "Done")
+        #expect(agent.durationLabel == "1m")
+        #expect(agent.branches.first?.pullRequest?.changedFiles == 1)
+        #expect(agent.branches.first?.pullRequest?.additions == 10)
+        #expect(agent.branches.first?.pullRequest?.deletions == 0)
+        #expect(agent.compactDescription == "1 file changed · +10 −0")
+    }
+
+    @Test func preservesAllTerminalAndPendingStatuses() throws {
+        for (status, label) in [
+            ("queued", "Queued"), ("running", "Running"), ("completed", "Done"),
+            ("failed", "Failed"), ("cancelled", "Cancelled"), ("expired", "Expired")
+        ] {
+            let agent = try presentation(status: status)
+            #expect(agent.statusLabel == label)
+            #expect((agent.durationLabel != nil) == (status == "completed"))
+            if status != "completed" { #expect(agent.compactDescription == agent.work.title) }
+        }
+    }
+
+    @Test func cancellationDoesNotOverrideTerminalOutcome() throws {
+        #expect(try presentation(status: "running", cancellation: true).statusLabel == "Cancelling")
+        #expect(try presentation(status: "completed", cancellation: true).statusLabel == "Done")
+    }
+
+    @Test func missingDiffIsNotReportedAsZeroChanges() throws {
+        let agent = try presentation(snapshot: "null")
+        #expect(agent.branches.first?.pullRequest == nil)
+        #expect(agent.branches.first?.pullRequestUrl != nil)
+        #expect(agent.compactDescription == nil)
+    }
+
+    @Test func onlyWebDestinationsCanBeOpened() {
+        #expect(CloudAgentPresentation.externalURL("https://github.com/zknicker/grotto/pull/112") != nil)
+        #expect(CloudAgentPresentation.externalURL("javascript:alert(1)") == nil)
+        #expect(CloudAgentPresentation.externalURL("file:///etc/passwd") == nil)
+        #expect(CloudAgentPresentation.externalURL("/relative") == nil)
+    }
+
+    @Test func typedBodyCarriesTheCardAndUnknownKindsKeepTheirProse() throws {
+        let work = try presentation().work
+        let body = ChatMessageBody.cloudAgentWork(work)
+        let encoded = try GrottoJSON.encoder().encode(body)
+        #expect(try GrottoJSON.decoder().decode(ChatMessageBody.self, from: encoded) == body)
+        let unknown = Data(#"{"kind":"future-body","details":{"anything":true}}"#.utf8)
+        #expect(try GrottoJSON.decoder().decode(ChatMessageBody.self, from: unknown) == .unsupported("future-body"))
+    }
+
+    @Test func liveDurationAndStalenessComeFromTheWork() throws {
+        let agent = try presentation(status: "running")
+        let now = try #require(GrottoISO8601.date(from: "2026-09-07T18:12:00Z"))
+        #expect(agent.statusText(at: now) == "Running · 12m")
+        #expect(agent.isStale(at: now))
+        #expect(try !presentation().isStale(at: now))
+    }
+
+    @Test func cloudUpdateDecodesAndReplaysWithoutBreakingChatStream() throws {
+        let json = """
+        {"type":"cloud-agent-work.updated","cloudAgentWorkId":"work-1",
+         "chatId":"thread-1","parentChatId":"channel-1","messageId":"delegation-1",
+         "serverId":"server-1","id":"event-1","sequence":8,"cursor":"9",
+         "createdAt":"2026-09-07T18:00:00.000Z"}
+        """
+        let event = try GrottoJSON.decoder().decode(ChatEvent.self, from: Data(json.utf8))
+        #expect(event.type == .cloudAgentWorkUpdated)
+        #expect(event.chatID == "thread-1")
+        #expect(event.parentChatID == "channel-1")
+        var replay = ChatEventReplayState()
+        let firstDelivery = replay.receive(event)
+        let repeatedDelivery = replay.receive(event)
+        #expect(firstDelivery)
+        #expect(!repeatedDelivery)
+    }
+
+    private func presentation(
+        status: String = "completed", cancellation: Bool = false,
+        snapshot: String = """
+        {"number":112,"state":"draft","changedFiles":1,"additions":10,"deletions":0,
+         "observedAt":"2026-09-07T18:01:00Z"}
+        """
+    ) throws -> CloudAgentPresentation {
+        let json = """
+        {"id":"work-1","agentId":"blippy","chatId":"thread-1","messageId":"delegation-1",
+         "provider":"cursor","providerUrl":"https://cursor.com/agents/test",
+         "repository":"zknicker/grotto","startingRef":"main","title":"Add one string-helper unit test",
+         "status":"\(status)","createdAt":"2026-09-07T18:00:00Z",
+         "updatedAt":"2026-09-07T18:01:00Z",
+         "startedAt":"2026-09-07T18:00:00Z","terminalAt":"2026-09-07T18:01:00Z",
+         "cancelRequestedAt":\(cancellation ? "\"2026-09-07T18:00:30Z\"" : "null"),
+         "activity":null,"runs":[{"runId":"run-1","status":"\(status)",
+         "startedAt":"2026-09-07T18:00:00Z","terminalAt":"2026-09-07T18:01:00Z",
+         "summary":null,"errorCode":null,"branches":[{"branch":"cursor/test","repository":"zknicker/grotto",
+         "pullRequestUrl":"https://github.com/zknicker/grotto/pull/112","pullRequest":\(snapshot)}]}]}
+        """
+        let work = try GrottoJSON.decoder().decode(CloudAgentWork.self, from: Data(json.utf8))
+        return CloudAgentPresentation(work: work, delegatedBy: "Blippy")
+    }
+}

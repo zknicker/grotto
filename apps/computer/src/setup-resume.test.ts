@@ -106,12 +106,12 @@ test('setup resumes an existing attachment without login or migration', async ()
             })}\n`,
             { mode: 0o600 }
         );
-
         const result = await runCli(['setup', '/hq'], {
             GROTTO_COMPUTER_DATA_ROOT: dataRoot,
             GROTTO_COMPUTER_ONESHOT: '1',
             GROTTO_COMPUTER_USAGE_DISABLED: '1',
             GROTTO_SERVER_ORIGIN: origin,
+            OTEL_SDK_DISABLED: 'true',
         });
 
         expect(result.exitCode, result.stderr).toBe(0);

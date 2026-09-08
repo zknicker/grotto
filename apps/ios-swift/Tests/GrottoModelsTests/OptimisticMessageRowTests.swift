@@ -50,6 +50,7 @@ final class OptimisticMessageRowTests: XCTestCase {
         ChatMessage(
             attachments: [],
             author: .human(profile: nil, userID: "user-1"),
+            body: .text,
             cause: nil,
             chatID: "chat-1",
             content: "hello",

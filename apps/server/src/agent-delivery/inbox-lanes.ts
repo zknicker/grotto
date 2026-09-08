@@ -10,6 +10,7 @@
 export const concreteInboxSources = [
     'onboarding',
     'action',
+    'cloud_agent_work',
     'trigger',
     'reminder',
     'task_assignment',
@@ -18,3 +19,10 @@ export const concreteInboxSources = [
 export function isConcreteInboxSource(source: string): boolean {
     return (concreteInboxSources as readonly string[]).includes(source);
 }
+
+/**
+ * Typed attentions that exist nowhere but their inbox row. They carry no Chat
+ * message, so a message pull can never return their bodies and the message
+ * lanes exclude them by source.
+ */
+export const bodilessInboxSources = ['onboarding', 'action', 'cloud_agent_work'] as const;

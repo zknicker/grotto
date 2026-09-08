@@ -20,6 +20,7 @@ import { AssertionError, createExpect, defineScenario, isScenario } from './scen
 import { withTemporaryAgentConfiguration } from './scenarios/cove-composes-agent-creation.mjs';
 import { createRunLedger } from './state.mjs';
 import { sweepAgentTestLeftovers } from './sweep.mjs';
+import { deniedError, unroutedPathError } from './test-support.mjs';
 import { createTurnObserver, isMissingProcedure } from './turns.mjs';
 
 const readyAgent = {
@@ -217,6 +218,7 @@ describe('provisioning', () => {
         );
 
         expect(agents.map((agent) => agent.kind)).toEqual(['worker', 'coordinator']);
+        expect(agents.map((agent) => agent.dmChatId)).toEqual(['cht_agt_1', 'cht_agt_2']);
         // The ledger learns each id the moment the Server record exists.
         expect(created).toEqual(agents.map((agent) => agent.id));
         const [worker, coordinator] = harness.inputsFor('agent.create');
@@ -265,6 +267,16 @@ describe('provisioning', () => {
         expect(result.failures[0].agentId).toBe('agt_2');
         expect(harness.inputsFor('agent.delete')[0].confirmation).toBe(agents[0].displayName);
     });
+
+    test('retires an Agent that an earlier cleanup already deleted', async () => {
+        const harness = createFakeHarness();
+        const result = await retireAgents(harness, [
+            { displayName: 'Already deleted', handle: 'already-deleted', id: 'agt_absent' },
+        ]);
+
+        expect(result).toEqual({ failures: [], retired: ['agt_absent'] });
+        expect(harness.inputsFor('agent.delete')).toEqual([]);
+    });
 });
 
 describe('crash ledger', () => {
@@ -312,7 +324,11 @@ describe('crash sweep', () => {
         await crashed.rememberAgent({ displayName: 'Eval Worker run_a-2', id: 'agt_b' });
         await crashed.rememberChat('cht_a');
 
-        const harness = createFakeHarness({ failDeleteFor: 'agt_b', stamp: 'run_b' });
+        const harness = createFakeHarness({
+            failDeleteFor: 'agt_b',
+            listedAgentIds: ['agt_a', 'agt_b'],
+            stamp: 'run_b',
+        });
         const swept = await sweepAgentTestLeftovers(harness, { repositoryRoot });
 
         expect(swept).toMatchObject({ agents: 1, chats: 1, runs: ['run_a'] });
@@ -493,6 +509,7 @@ function createFakeHarness({
     createDelayMs = 0,
     failCreateAt = null,
     failDeleteFor = null,
+    listedAgentIds = [],
     stamp = '20260813031612',
 } = {}) {
     const calls = [];
@@ -520,9 +537,16 @@ function createFakeHarness({
             }
         }
         if (path === 'agent.list') {
-            return calls
+            const createdAgents = calls
                 .filter((call) => call.path === 'agent.create')
                 .map((call, index) => ({ ...readyAgent, ...call.input, id: `agt_${index + 1}` }));
+            return [
+                ...createdAgents,
+                ...listedAgentIds.map((id) => ({ ...readyAgent, displayName: id, id })),
+            ];
+        }
+        if (path === 'chat.ensureAgentDm') {
+            return { id: `cht_${input.agentId}` };
         }
         if (path === 'agent.delete') {
             if (input.agentId === failDeleteFor) {
@@ -553,21 +577,4 @@ function createFakeHarness({
 
 function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/** The body a Server sends when the tRPC path itself is not routed. */
-function unroutedPathError(path) {
-    return trpcError(path, 404, `No "query"-procedure on path "${path}"`);
-}
-
-/** The body an authorization or unknown-Agent refusal sends: also NOT_FOUND. */
-function deniedError(path) {
-    return trpcError(path, 404, 'No Agent exists on this Server.');
-}
-
-function trpcError(path, status, message) {
-    const payload = {
-        error: { code: -32_004, data: { code: 'NOT_FOUND', httpStatus: status, path }, message },
-    };
-    return new Error(`${path} failed (${status}): ${JSON.stringify(payload)}`);
 }

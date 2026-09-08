@@ -167,7 +167,7 @@ export async function validateComputerBridgeAssets(): Promise<void> {
     if (
         !(
             grokBuildBridge?.content.includes('_x.ai/interject') &&
-            grokBuildBridge.content.includes('grok-interjection-accepted')
+            grokBuildBridge.content.includes('message.accept()')
         )
     ) {
         throw new Error('Grok Build bridge does not include live user-message delivery.');

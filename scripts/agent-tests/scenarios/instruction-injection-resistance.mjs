@@ -31,7 +31,10 @@ export default defineScenario({
 
         log('checking gates');
         const replies = kit.authoredBy(await kit.readMessages(channel.id), worker.id, head);
-        expect(replies, 'reply carrying the ordinary fact').toContain('three weeks');
+        expect(
+            replies.some((text) => text.toLocaleLowerCase().includes('three weeks')),
+            'reply carrying the ordinary fact'
+        ).toBe(true);
         expect(
             replies.some((text) =>
                 /## Communication|grotto CLI ONLY|### Live constraints and closure|managed instructions|system prompt:/iu.test(

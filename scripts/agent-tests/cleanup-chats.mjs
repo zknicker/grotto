@@ -7,6 +7,21 @@
 
 const chunkSize = 20;
 
+export async function settleEvalCleanup(operation, timeoutMs = 60_000) {
+    let timer;
+    try {
+        return await Promise.race([
+            operation.then(() => true),
+            new Promise((resolve) => {
+                timer = setTimeout(() => resolve(false), timeoutMs);
+                timer.unref?.();
+            }),
+        ]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 export function expandEvalCleanupChatIds(chatIds, tasks) {
     const requestedChatIds = new Set([...chatIds].filter(Boolean));
     const retained = [];

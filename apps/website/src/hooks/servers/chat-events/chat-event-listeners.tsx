@@ -2,6 +2,7 @@ import { useAskEvents } from './use-ask-events.ts';
 import { ChatEventStreamProvider } from './use-chat-event-stream.tsx';
 import { useChatLifecycleEvents } from './use-chat-lifecycle-events.ts';
 import { useChatReadEvents } from './use-chat-read-events.ts';
+import { useCloudAgentWorkEvents } from './use-cloud-agent-work-events.ts';
 import { useMessageCreatedEvents } from './use-message-created-events.ts';
 import { usePreparedActionEvents } from './use-prepared-action-events.ts';
 import { useTaskChangeEvents } from './use-task-change-events.ts';
@@ -24,6 +25,7 @@ function ChatEventInvalidations() {
     useMessageCreatedEvents();
     usePreparedActionEvents();
     useAskEvents();
+    useCloudAgentWorkEvents();
     useChatReadEvents();
     useChatLifecycleEvents();
     useThreadFollowEvents();

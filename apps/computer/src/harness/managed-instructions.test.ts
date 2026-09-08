@@ -131,34 +131,11 @@ test('keeps the managed prompt within its reviewed size budget', () => {
         workspacePath: '/workbench',
     });
 
-    // Current Raft parity adds precedence, credential, capability-selection,
-    // and URL-formatting guidance, and the Triggers section adds the inbound
-    // stimulus primitive (~1.5k chars with its command-family entry and Raft's
-    // third-party message-safety paragraph). Automation provenance then adds the
-    // trigger and reminder fire envelopes plus the `--cause` habit (~550 chars),
-    // which is why the reviewed ceiling moved from 36,500 to 37,000. Replacing
-    // the negative one-message-per-fire line with the positive placement rule
-    // ("a new top-level message in the anchor chat") cost another ~190 chars.
-    // Merging each section's doubled `--cause` sentence into one gives ~150 back,
-    // and the one cause-inference sentence spends ~195: net +45, taking the
-    // rendered prompt from 36,763 to 36,808 — still inside the reviewed 37,000.
-    // Saying where a fire actually arrives — in the wake it causes, or the next
-    // turn when busy — instead of implying a pull spends ~168 more, taking it to
-    // 36,976. The Asks command-family entry — one named human's decision, and
-    // where its answer arrives — spends ~197, taking it to 37,173.
-    //
-    // Reviewed bump to 38,200: the task promotion rule was rewritten because the
-    // old broad "requires action → claim it" rule turned one-turn conversational
-    // requests into tasks that sat in `in_progress` forever. Naming both
-    // promotion conditions, the same-turn counter-example, the self-`done`
-    // close-out, and the stale `in_review` window costs ~936 chars, taking the
-    // rendered prompt to 38,109, and every one of those sentences fixes a live
-    // production failure. Headroom is again deliberately thin: the next
-    // prompt-teaching change needs its own review, not a bump.
-    expect(prompt.length).toBeLessThanOrEqual(38_200);
+    // Reminder/trigger mechanics live in the manual; preserve the reduced prompt budget.
+    expect(prompt.length).toBeLessThanOrEqual(37_500);
 });
 
-test('teaches automation provenance: silent fires, envelopes, and top-level fire answers', () => {
+test('teaches automation provenance without an envelope tutorial', () => {
     const prompt = renderAgentInstructions({
         agentId: 'agt_prompt_test',
         agentName: 'Cove',
@@ -174,12 +151,9 @@ test('teaches automation provenance: silent fires, envelopes, and top-level fire
     // The fire itself is silent in chat; the Agent's own message carries the
     // provenance, and it lands top-level in the anchor chat.
     expect(prompt).toContain(
-        'the payload excerpt indented two spaces, and a closing `reply with: grotto message send --cause <fireId>` line'
+        'A fire arrives through your inbox and writes nothing to chat by itself.'
     );
-    expect(prompt).toContain(
-        'A fire writes nothing to chat by itself; it arrives in the wake it causes — the prompt you start with, or your next turn if you were busy — as a `🔔 Reminder: <title>` envelope'
-    );
-    expect(prompt).toContain('with any script output riding that same envelope');
+    expect(prompt).not.toContain('the payload excerpt indented two spaces');
     // One `--cause` sentence per section, not two: the placement rule and the
     // provenance reason are the same rule and read as one.
     expect(prompt).not.toContain('When you speak because a reminder fired');
@@ -189,12 +163,7 @@ test('teaches automation provenance: silent fires, envelopes, and top-level fire
             /Answer a fire with a new top-level message in the anchor chat, sent with `--cause <fireId>` so the message carries its provenance; never as a reply in any thread, even a thread you were already working in\./gu
         )
     ).toHaveLength(2);
-    // Inference is stated once and framed as the Server's safety net.
-    expect(
-        prompt.match(
-            /When a fire was the only thing that woke you, the Server records the cause even if you omit the flag — for reminder and trigger fires alike — but naming it explicitly is always correct\./gu
-        )
-    ).toHaveLength(1);
+    expect(prompt).not.toContain('the Server records the cause even if you omit the flag');
     expect(prompt).not.toContain(
         "Each fire is its own message; never reply into an earlier fire's thread."
     );

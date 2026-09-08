@@ -39,6 +39,12 @@ the sole human release gate. Verify those repository settings before merging a
 Server release.
 
 Neither a push to `main` nor a completed target job alone is deployment evidence.
+Production is ready only after deployment health checks pass and Axiom receives
+a successful `grotto.server.startup` operation carrying the expected
+`service.version`, `grotto.release.id`, and full `grotto.release.revision`.
+The `Grotto Operations` dashboard is the operator-facing confirmation that the
+new process actually started with that identity; `/healthz` remains the direct
+availability check.
 
 The self-hosted `Deploy Grotto Server` workflow:
 

@@ -1,10 +1,14 @@
-import { afterEach, expect, test } from 'bun:test';
+import { afterAll, afterEach, expect, test } from 'bun:test';
 import { lstat, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 
 const roots: string[] = [];
+const runtime = makeDaemonRuntime();
+
+afterAll(() => runtime.dispose());
 
 afterEach(async () => {
     await Promise.all(roots.splice(0).map((root) => rm(root, { force: true, recursive: true })));
@@ -32,6 +36,7 @@ test('provider credentials remain references to host-native auth, never copies',
         hostGrokHomeDir,
         hostHomeDir,
         rootDir: join(root, 'workspace'),
+        runtime,
     });
     const session = await provider.createSession?.();
     if (!session) {
@@ -92,6 +97,7 @@ test('restores native Codex image generation without changing other Codex config
         homeDir,
         hostHomeDir,
         rootDir: join(root, 'workspace'),
+        runtime,
     });
     const firstSession = await provider.createSession?.();
     await firstSession?.destroy?.();
@@ -131,6 +137,7 @@ test('preserves an explicit Codex image-generation preference not owned by Grott
         homeDir,
         hostHomeDir,
         rootDir: join(root, 'workspace'),
+        runtime,
     }).createSession?.();
     await session?.destroy?.();
 
@@ -145,6 +152,7 @@ test('sandbox file operations reject another Agent root', async () => {
     await writeFile(join(root, 'agent-b-token'), 'secret');
     const session = await createLocalTrustedSandboxProvider({
         rootDir: workspace,
+        runtime,
     }).createSession?.();
     if (!session) {
         throw new Error('Sandbox provider did not create a session.');
@@ -164,6 +172,7 @@ test('sandbox permits only the shared derived harness bootstrap outside the Agen
     roots.push(root);
     const session = await createLocalTrustedSandboxProvider({
         rootDir: join(root, 'agent'),
+        runtime,
     }).createSession?.();
     if (!session) {
         throw new Error('Sandbox provider did not create a session.');

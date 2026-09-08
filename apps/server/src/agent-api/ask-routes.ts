@@ -2,20 +2,22 @@ import { agentAskInputSchema } from '@grotto/api';
 import type { FastifyInstance } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { createAsk } from '../asks/create-ask.ts';
-import {
-    AskAgentNotFoundError,
-    AskConflictError,
-    InvalidAskAddresseeError,
-} from '../asks/errors.ts';
+import { AskConflictError, InvalidAskAddresseeError } from '../asks/errors.ts';
+import { AgentAuthorNotFoundError } from '../chats/agent-authored-message.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
 export function registerAgentAskRoutes(
     app: FastifyInstance,
-    dependencies: { agentDelivery: AgentDelivery; db: GrottoDatabase }
+    dependencies: {
+        agentDelivery: AgentDelivery;
+        db: GrottoDatabase;
+        postCommitWork: ServerPostCommitWork;
+    }
 ) {
     app.post('/api/agent/asks', async (request, reply) => {
         const runner = await authorizeAgentRunner(dependencies.db, request);
@@ -43,13 +45,7 @@ export function registerAgentAskRoutes(
             for (const event of created.events) {
                 emitDurableChatEvent({ audienceUserId: null, event });
             }
-            await Promise.all(
-                created.wakes.map((wake) =>
-                    dependencies.agentDelivery
-                        .dispatchAgent(wake.agentId, wake.serverId)
-                        .catch(() => undefined)
-                )
-            );
+            await dependencies.postCommitWork.wakeAgents(dependencies.agentDelivery, created.wakes);
             return created.receipt;
         } catch (cause) {
             if (cause instanceof AskConflictError) {
@@ -60,7 +56,7 @@ export function registerAgentAskRoutes(
                     nextAction: 'Run grotto server info --humans to see who can be addressed.',
                 });
             }
-            if (cause instanceof AskAgentNotFoundError) {
+            if (cause instanceof AgentAuthorNotFoundError) {
                 return sendAgentApiError(reply, 404, 'ASK_FAILED', cause.message);
             }
             if (cause instanceof AgentTargetError) {

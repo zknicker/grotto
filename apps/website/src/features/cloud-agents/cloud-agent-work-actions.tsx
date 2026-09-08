@@ -1,0 +1,127 @@
+import type { CloudAgentWork } from '@grotto/api';
+import { Button, ButtonGroup, Dropdown, Label, toast } from '@heroui/react';
+import {
+    ArrowDown01Icon,
+    ArrowUpRight01Icon,
+    Cancel01Icon,
+    Copy01Icon,
+    GitPullRequestIcon,
+} from '@hugeicons-pro/core-stroke-rounded';
+import type * as React from 'react';
+import { Icon } from '../../components/ui/icon.tsx';
+import { writeClipboardText } from '../../lib/clipboard.ts';
+import { openExternalLink } from '../../lib/open-external-link.ts';
+import { useTranscriptRenderContextOptional } from '../chats/chat-transcript-render-context.tsx';
+import { useServerContext } from '../servers/server-context.ts';
+import { appLink, serverChatRoute } from '../servers/server-routes.ts';
+import {
+    openCloudAgentProviderUrl,
+    openInCloudAgentProviderLabel,
+} from './cloud-agent-provider-presentation.ts';
+import { useCloudAgentCancelAction } from './use-cloud-agent-cancel-action.ts';
+
+/**
+ * The one control band on a work card: a split button. The primary half is the
+ * single thing a reader almost always wants — the pull request once there is
+ * one, and the provider's own page until then — and the chevron holds the rest,
+ * so a settled run does not spend a row on three equal buttons.
+ */
+export function CloudAgentWorkActions({
+    pullRequestUrl,
+    work,
+}: {
+    pullRequestUrl: null | string;
+    work: CloudAgentWork;
+}) {
+    const { server } = useServerContext();
+    const context = useTranscriptRenderContextOptional();
+    const cancel = useCloudAgentCancelAction(work);
+    const conversationChatId = context?.conversationChatId ?? context?.chatId ?? null;
+    const providerLabel = openInCloudAgentProviderLabel(work.provider);
+    const providerUrl = work.providerUrl;
+
+    const runAction = (key: React.Key) => {
+        if (key === 'provider' && providerUrl) {
+            openCloudAgentProviderUrl(work.provider, providerUrl);
+            return;
+        }
+        if (key === 'link' && conversationChatId) {
+            writeClipboardText(appLink(serverChatRoute(server.slug, conversationChatId)))
+                .then(() => toast.success('Link copied'))
+                .catch(() => toast.danger('Could not copy the link'));
+            return;
+        }
+        if (key === 'cancel') {
+            cancel.requestCancel();
+        }
+    };
+
+    return (
+        <ButtonGroup size="sm" variant="secondary">
+            {pullRequestUrl ? (
+                <Button onPress={() => openPullRequest(pullRequestUrl)}>
+                    <Icon aria-hidden="true" icon={GitPullRequestIcon} size={16} />
+                    View PR
+                </Button>
+            ) : (
+                <Button
+                    isDisabled={!providerUrl}
+                    onPress={() =>
+                        providerUrl && openCloudAgentProviderUrl(work.provider, providerUrl)
+                    }
+                >
+                    <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={16} />
+                    {providerLabel}
+                </Button>
+            )}
+            {/* A Button inside Dropdown is not a direct ButtonGroup child, so it
+                names its own size and variant to match the half beside it. */}
+            <Dropdown>
+                <Button
+                    aria-label={`${work.title} — more Cloud Agent actions`}
+                    isIconOnly
+                    size="sm"
+                    variant="secondary"
+                >
+                    <ButtonGroup.Separator />
+                    <Icon aria-hidden="true" icon={ArrowDown01Icon} size={14} />
+                </Button>
+                <Dropdown.Popover placement="bottom end">
+                    <Dropdown.Menu onAction={runAction}>
+                        <Dropdown.Item
+                            id="provider"
+                            isDisabled={!providerUrl}
+                            textValue={providerLabel}
+                        >
+                            <Icon icon={ArrowUpRight01Icon} size={16} />
+                            <Label>{providerLabel}</Label>
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                            id="link"
+                            isDisabled={!conversationChatId}
+                            textValue="Copy link"
+                        >
+                            <Icon icon={Copy01Icon} size={16} />
+                            <Label>Copy link</Label>
+                        </Dropdown.Item>
+                        {cancel.canCancel ? (
+                            <Dropdown.Item
+                                id="cancel"
+                                isDisabled={cancel.isPending}
+                                textValue="Cancel run"
+                                variant="danger"
+                            >
+                                <Icon icon={Cancel01Icon} size={16} />
+                                <Label>Cancel run</Label>
+                            </Dropdown.Item>
+                        ) : null}
+                    </Dropdown.Menu>
+                </Dropdown.Popover>
+            </Dropdown>
+        </ButtonGroup>
+    );
+}
+
+function openPullRequest(url: string) {
+    openExternalLink(url).catch(() => toast.danger('Could not open the pull request'));
+}

@@ -1,4 +1,9 @@
+import { computerInventorySchema } from './computer-inventory.ts';
+
+export * from './computer-inventory.ts';
+
 import * as z from 'zod';
+import { agentTurnActivitySummarySchema } from './agent-activity.ts';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { workspacePathSchema } from './agent-runner.ts';
 import { avatarBytesInputSchema } from './avatar.ts';
@@ -6,104 +11,6 @@ import { idSchema } from './chat.ts';
 import { participantHandleSchema } from './participant-handle.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
-
-/**
- * A Computer reports only sanitized runtime and model inventory. Provider
- * credentials, session tokens, and OAuth material never leave the Computer, so
- * they have no field here by construction.
- */
-export const computerModelSchema = z
-    .object({
-        id: z.string().trim().min(1).max(128),
-        label: z.string().trim().min(1).max(200),
-    })
-    .strict();
-
-export const computerRuntimeSchema = z
-    .object({
-        id: z.string().trim().min(1).max(64),
-        label: z.string().trim().min(1).max(200),
-        models: z.array(computerModelSchema).max(200),
-    })
-    .strict();
-
-export const agentSkillMetadataSchema = z
-    .object({
-        description: z.string().max(500),
-        hash: z.string().regex(/^[a-f0-9]{64}$/u),
-        modifiedAt: timestampSchema,
-        name: z.string().trim().min(1).max(128),
-    })
-    .strict();
-
-export type AgentSkillMetadata = z.infer<typeof agentSkillMetadataSchema>;
-
-export const agentSkillImportRecordSchema = z.discriminatedUnion('status', [
-    z
-        .object({
-            agentId: idSchema,
-            requestId: idSchema,
-            sourceId: idSchema,
-            status: z.literal('accepted'),
-            updatedAt: timestampSchema,
-        })
-        .strict(),
-    z
-        .object({
-            agentId: idSchema,
-            requestId: idSchema,
-            skill: agentSkillMetadataSchema,
-            sourceId: idSchema,
-            status: z.literal('applied'),
-            updatedAt: timestampSchema,
-        })
-        .strict(),
-    z
-        .object({
-            agentId: idSchema,
-            error: z.string().trim().min(1).max(300),
-            requestId: idSchema,
-            sourceId: idSchema,
-            status: z.literal('failed'),
-            updatedAt: timestampSchema,
-        })
-        .strict(),
-]);
-
-export type AgentSkillImportRecord = z.infer<typeof agentSkillImportRecordSchema>;
-
-export const importableSkillSchema = z
-    .object({
-        description: z.string().max(500),
-        id: idSchema,
-        name: z.string().trim().min(1).max(128),
-        source: z.string().trim().min(1).max(300),
-    })
-    .strict();
-
-export type ImportableSkill = z.infer<typeof importableSkillSchema>;
-
-export const computerInventorySchema = z
-    .object({
-        agentSkillImports: z.array(agentSkillImportRecordSchema).max(100).optional(),
-        agentSkills: z
-            .array(
-                z
-                    .object({
-                        agentId: idSchema,
-                        skills: z.array(agentSkillMetadataSchema).max(500),
-                    })
-                    .strict()
-            )
-            .max(500)
-            .optional(),
-        importableSkills: z.array(importableSkillSchema).max(1000).optional(),
-        name: z.string().trim().min(1).max(100).optional(),
-        runtimes: z.array(computerRuntimeSchema).max(50),
-    })
-    .strict();
-
-export type ComputerInventory = z.infer<typeof computerInventorySchema>;
 
 export const agentRoleSchema = z.enum(['admin', 'member']);
 
@@ -276,11 +183,12 @@ export const agentActivityInputSchema = agentDetailInputSchema.extend({
 
 export const agentActivityEntrySchema = z
     .object({
+        activity: agentTurnActivitySummarySchema,
         endedAt: timestampSchema,
         messageCount: z.number().int().nonnegative(),
         runId: idSchema,
         startedAt: timestampSchema,
-        status: z.enum(['completed', 'failed']),
+        status: z.enum(['completed', 'failed', 'interrupted']),
         summary: z.string().max(2000),
     })
     .strict();
@@ -322,7 +230,7 @@ export const agentLifecycleEventSchema = z.discriminatedUnion('phase', [
         .strict(),
     agentLifecycleBaseSchema
         .extend({
-            outcome: z.enum(['completed', 'failed', 'stopped']),
+            outcome: z.enum(['completed', 'failed', 'interrupted', 'stopped']),
             phase: z.literal('settled'),
         })
         .strict(),
@@ -415,6 +323,7 @@ export type AgentDeliveryState = z.infer<typeof agentDeliveryStateSchema>;
  */
 export const agentTurnSchema = z
     .object({
+        activity: agentTurnActivitySummarySchema,
         agentId: idSchema,
         endedAt: timestampSchema,
         failureKind: z.string().trim().min(1).max(64).nullable(),
@@ -422,7 +331,7 @@ export const agentTurnSchema = z
         outputProduced: z.boolean(),
         runId: idSchema,
         startedAt: timestampSchema,
-        status: z.enum(['completed', 'failed']),
+        status: z.enum(['completed', 'failed', 'interrupted']),
         summary: z.string().max(2000).nullable(),
     })
     .strict();
@@ -431,6 +340,7 @@ export type AgentTurn = z.infer<typeof agentTurnSchema>;
 
 export const agentTurnsInputSchema = agentDetailInputSchema.extend({
     limit: z.number().int().min(1).max(50).default(10),
+    runId: idSchema.optional(),
 });
 
 export type AgentTurnsInput = z.infer<typeof agentTurnsInputSchema>;

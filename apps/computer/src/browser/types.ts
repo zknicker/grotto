@@ -84,11 +84,3 @@ export interface ChromeProcessControl {
     signal(pid: number, signal: 'SIGKILL' | 'SIGTERM'): void;
     spawnDetached(executablePath: string, args: string[]): number;
 }
-
-export interface BrowserClock {
-    now(): number;
-}
-
-export const systemBrowserClock: BrowserClock = {
-    now: () => Date.now(),
-};

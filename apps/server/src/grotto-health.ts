@@ -1,17 +1,29 @@
+import { type EffectRuntime, settle } from '@grotto/effect';
+import { Effect } from 'effect';
 import type { FastifyInstance } from 'fastify';
 import type { ReminderSchedulerHealth } from './reminders/reminder-scheduler.ts';
 
 export function registerGrottoHealth(
     app: FastifyInstance,
-    postgresIsAvailable: () => Promise<boolean>,
+    runtime: EffectRuntime<never>,
+    postgresIsAvailable: (signal?: AbortSignal) => Promise<boolean>,
     postgresTimeoutMs = 5000,
     reminderHealth?: () => ReminderSchedulerHealth
 ) {
     app.get('/healthz', async (_request, reply) => {
-        const available = await Promise.race([
-            postgresIsAvailable(),
-            new Promise<false>((resolve) => setTimeout(() => resolve(false), postgresTimeoutMs)),
-        ]);
+        const available = await settle(
+            runtime,
+            Effect.tryPromise({
+                catch: () => false,
+                try: (signal) => postgresIsAvailable(signal),
+            }).pipe(
+                Effect.timeoutTo({
+                    duration: postgresTimeoutMs,
+                    onSuccess: (result) => result,
+                    onTimeout: () => false,
+                })
+            )
+        );
         if (available) {
             const reminders = reminderHealth?.();
             if (reminders) {

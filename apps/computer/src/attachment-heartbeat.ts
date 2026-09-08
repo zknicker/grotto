@@ -1,4 +1,7 @@
 import type { ComputerHeartbeatConfiguration } from '@grotto/api';
+import { settle } from '@grotto/effect';
+import { Effect, Exit, Queue, Scope } from 'effect';
+import type { DaemonRuntime } from './daemon-runtime.ts';
 
 export interface AttachmentHeartbeat {
     acceptAck(id: number): void;
@@ -8,47 +11,33 @@ export interface AttachmentHeartbeat {
 export function startAttachmentHeartbeat(input: {
     configuration: ComputerHeartbeatConfiguration;
     onTimeout?: () => void;
+    runtime: DaemonRuntime;
     socket: WebSocket;
 }): AttachmentHeartbeat {
-    const { configuration, onTimeout, socket } = input;
-    let deadline: ReturnType<typeof setTimeout> | null = null;
+    const { configuration, onTimeout, runtime, socket } = input;
     let disposed = false;
     let highestAcceptedId = -1;
     let highestSentId = -1;
-    let interval: ReturnType<typeof setInterval> | null = null;
-    let lastAckAt = Date.now();
+    const scope = runtime.runSync(Scope.make());
+    const acknowledgements = runtime.runSync(Queue.unbounded<void>());
 
     const dispose = () => {
         if (disposed) {
             return;
         }
         disposed = true;
-        if (interval) {
-            clearInterval(interval);
-        }
-        if (deadline) {
-            clearTimeout(deadline);
-        }
+        void settle(runtime, Scope.close(scope, Exit.succeed(undefined)), {
+            onInterrupted: () => undefined,
+        });
     };
     const terminate = () => {
         if (disposed) {
             return;
         }
         onTimeout?.();
-        dispose();
         socket.terminate();
     };
-    const scheduleDeadline = () => {
-        if (deadline) {
-            clearTimeout(deadline);
-        }
-        deadline = setTimeout(terminate, configuration.timeoutMs);
-    };
     const sendHeartbeat = () => {
-        if (Date.now() - lastAckAt >= configuration.timeoutMs) {
-            terminate();
-            return;
-        }
         if (socket.readyState !== WebSocket.OPEN) {
             return;
         }
@@ -56,9 +45,21 @@ export function startAttachmentHeartbeat(input: {
         socket.send(JSON.stringify({ id: highestSentId, type: 'heartbeat' }));
     };
 
-    scheduleDeadline();
-    sendHeartbeat();
-    interval = setInterval(sendHeartbeat, configuration.intervalMs);
+    const sendLoop = Effect.forever(
+        Effect.sync(sendHeartbeat).pipe(Effect.andThen(Effect.sleep(configuration.intervalMs)))
+    );
+    const watchDeadline: Effect.Effect<void> = Effect.suspend(() =>
+        Effect.race(
+            Queue.take(acknowledgements).pipe(Effect.as(true)),
+            Effect.sleep(configuration.timeoutMs).pipe(Effect.as(false))
+        ).pipe(
+            Effect.flatMap((acknowledged) =>
+                acknowledged ? watchDeadline : Effect.sync(terminate)
+            )
+        )
+    );
+    runtime.runSync(Effect.forkIn(sendLoop, scope));
+    runtime.runSync(Effect.forkIn(watchDeadline, scope));
 
     return {
         acceptAck(id) {
@@ -66,8 +67,7 @@ export function startAttachmentHeartbeat(input: {
                 return;
             }
             highestAcceptedId = id;
-            lastAckAt = Date.now();
-            scheduleDeadline();
+            runtime.runFork(Queue.offer(acknowledgements, undefined));
         },
         dispose,
     };

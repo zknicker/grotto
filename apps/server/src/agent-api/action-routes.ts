@@ -11,12 +11,17 @@ import {
     PreparedActionStaleViewError,
     prepareAgentAction,
 } from '../prepared-actions/prepare.ts';
+import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
 export function registerAgentActionRoutes(
     app: FastifyInstance,
-    dependencies: { agentDelivery: AgentDelivery; db: GrottoDatabase }
+    dependencies: {
+        agentDelivery: AgentDelivery;
+        db: GrottoDatabase;
+        postCommitWork: ServerPostCommitWork;
+    }
 ) {
     app.post('/api/agent/actions/prepare', async (request, reply) => {
         const runner = await authorizeAgentRunner(dependencies.db, request);
@@ -68,12 +73,9 @@ export function registerAgentActionRoutes(
             for (const event of committed.events) {
                 emitDurableChatEvent({ audienceUserId: null, event });
             }
-            await Promise.all(
-                committed.wakes.map((wake) =>
-                    dependencies.agentDelivery
-                        .dispatchAgent(wake.agentId, wake.serverId)
-                        .catch(() => undefined)
-                )
+            await dependencies.postCommitWork.wakeAgents(
+                dependencies.agentDelivery,
+                committed.wakes
             );
             return committed.receipt;
         } catch (cause) {

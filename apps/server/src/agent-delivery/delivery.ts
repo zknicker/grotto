@@ -4,16 +4,19 @@ import type {
     AgentCommand,
     AgentInboxItem,
     AgentTurnSummary,
+    CloudAgentWorkAttention,
     ReminderScriptCommand,
     ReminderScriptResult,
 } from '@grotto/api';
 import { agentActionAttentionSchema } from '@grotto/api';
+import type { EffectRuntime } from '@grotto/effect';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
     messageSelection,
     targetForChat as targetForAgentChat,
     toAgentMessages,
 } from '../agent-api/message-view.ts';
+import { readCloudAgentWorkAttentions } from '../cloud-agents/read-cloud-agent-work-attentions.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -36,9 +39,12 @@ import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
 import { canBeginAgentDrain, nextAgentChainTurns } from './chain-budget.ts';
 import { advanceSeenForRun, markCursorSubsumedSeen, recordExactMessagesServed } from './cursors.ts';
+import { traceAgentDispatch } from './dispatch-telemetry.ts';
 import { shouldRetryFailure } from './failure-policy.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
+import { inboxSender } from './inbox-sender.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
+import { isBackedOff, maxDeliveryFailures, nextRetryAt } from './retry-policy.ts';
 import { recordSessionRotation } from './session-rotation.ts';
 import type { AgentDeliveryRow, AgentDispatchConfig } from './store.ts';
 import * as store from './store.ts';
@@ -78,20 +84,15 @@ export interface EnqueueInput {
     threadFollowReactivated?: boolean;
 }
 
-/** After how many consecutive failed turns an Agent stops auto-retrying (degraded). */
-const maxDeliveryFailures = 5;
-const failureBackoffBaseMs = 5000;
-const failureBackoffCapMs = 60_000;
 /** Bounds one drain so the composed prompt stays well under command/env limits. */
 const maxDrainRows = 50;
 const maxDrainChars = 24_000;
 
 /**
- * Server-owned durable Agent delivery. All run, stop, and pending-inbox state
- * lives in PostgreSQL, so a restarted Server or a reconnecting Computer resumes
- * without losing or duplicating model-visible work. One Agent serializes its
- * turns through its single delivery row; different Agents dispatch concurrently
- * with no Computer-wide queue. The retry sweep resends unacknowledged
+ * Server-owned durable Agent delivery. PostgreSQL owns all run, stop, and pending-inbox state, so a restarted Server or reconnecting Computer resumes
+ * without losing accepted work. Crash recovery is at least once, so lost
+ * settlement evidence may repeat model-visible work. Agents serialize independently, and the
+ * retry sweep resends unacknowledged
  * deliveries, reconnect reconciliation is idempotent, and a floating-session
  * run drains a bounded slice across all pending targets.
  */
@@ -99,7 +100,11 @@ export class AgentDelivery {
     private readonly db: GrottoDatabase;
     private readonly transport: DeliveryTransport;
 
-    constructor(db: GrottoDatabase, transport: DeliveryTransport) {
+    constructor(
+        db: GrottoDatabase,
+        transport: DeliveryTransport,
+        private readonly runtime?: EffectRuntime<never>
+    ) {
         this.db = db;
         this.transport = transport;
     }
@@ -134,11 +139,13 @@ export class AgentDelivery {
 
     /** Enqueues work in its own transaction and dispatches — the direct-caller path. */
     async deliver(input: EnqueueInput): Promise<void> {
-        const plan = await this.db.transaction(async (tx) => {
-            await lockServerRow(tx, input.serverId);
-            await this.enqueue(tx, input);
-            return this.planDispatch(tx, input.agentId);
-        });
+        const plan = await traceAgentDispatch(this.runtime, input, async () =>
+            this.db.transaction(async (tx) => {
+                await lockServerRow(tx, input.serverId);
+                await this.enqueue(tx, input);
+                return this.planDispatch(tx, input.agentId);
+            })
+        );
         this.emit(plan);
     }
 
@@ -148,12 +155,14 @@ export class AgentDelivery {
         serverId: string,
         options?: DispatchOptions
     ): Promise<void> {
-        const plan = await this.db.transaction(async (tx) => {
-            await lockServerRow(tx, serverId);
-            await store.ensureDeliveryState(tx, { agentId, serverId });
-            await store.materializeActionAttentions(tx, { agentId, serverId });
-            return this.planDispatch(tx, agentId, options);
-        });
+        const plan = await traceAgentDispatch(this.runtime, { agentId, serverId }, async () =>
+            this.db.transaction(async (tx) => {
+                await lockServerRow(tx, serverId);
+                await store.ensureDeliveryState(tx, { agentId, serverId });
+                await store.materializeActionAttentions(tx, { agentId, serverId });
+                return this.planDispatch(tx, agentId, options);
+            })
+        );
         this.emit(plan);
     }
 
@@ -451,7 +460,7 @@ export class AgentDelivery {
         });
     }
 
-    /** A run settled on the Computer: consume or requeue its work, then drain next. */
+    /** A run settled on the Computer: consume or requeue its work, then drain when eligible. */
     async onTurnSettled(computerId: string, summary: AgentTurnSummary): Promise<void> {
         await recordAgentTurnSummary(this.db, computerId, summary);
         const serverId = await store.readAgentServerId(this.db, summary.agentId);
@@ -650,7 +659,7 @@ export class AgentDelivery {
             const activity = await appendServerAgentActivity(tx, {
                 agentId: summary.agentId,
                 category: 'working',
-                phase: 'failed',
+                phase: summary.status === 'interrupted' ? 'interrupted' : 'failed',
                 runId: summary.runId,
                 serverId,
             });
@@ -695,7 +704,8 @@ export class AgentDelivery {
     /**
      * A Computer (re)connected: resend every in-flight run — acknowledged or not —
      * because the Computer may have lost its live turn, then drain queued work.
-     * The Computer dedupes by durable run marker, so resends are idempotent.
+     * A live daemon suppresses concurrent duplicates. After process loss, an
+     * accepted-but-unsettled run intentionally replays at least once.
      */
     async onComputerReconnect(computerId: string): Promise<void> {
         for (const command of await listReminderScriptCommands(this.db, computerId)) {
@@ -1210,18 +1220,6 @@ function configureFrame(agentId: string, config: ConfiguredAgent): AgentCommand 
     };
 }
 
-function isBackedOff(state: AgentDeliveryRow): boolean {
-    if (state.consecutiveFailures >= maxDeliveryFailures) {
-        return true;
-    }
-    return state.retryAfter !== null && state.retryAfter.getTime() > Date.now();
-}
-
-function nextRetryAt(failures: number): Date {
-    const backoff = Math.min(failureBackoffCapMs, failureBackoffBaseMs * 2 ** (failures - 1));
-    return new Date(Date.now() + backoff);
-}
-
 async function startFrame(
     db: GrottoDatabase,
     state: AgentDeliveryRow,
@@ -1379,6 +1377,16 @@ async function buildInboxItems(
             : [];
     const apiMessages = serverId ? await toAgentMessages(db, serverId, messageRows) : [];
     const apiMessageById = new Map(apiMessages.map((message) => [message.id, message]));
+    const cloudAgentWorkByRun =
+        serverId && rows.some((row) => row.source === 'cloud_agent_work')
+            ? await readCloudAgentWorkAttentions(
+                  db,
+                  serverId,
+                  rows
+                      .filter((row) => row.source === 'cloud_agent_work')
+                      .map((row) => row.dedupeKey)
+              )
+            : new Map<string, CloudAgentWorkAttention>();
     const actionIds = rows.filter((row) => row.source === 'action').map((row) => row.dedupeKey);
     const actionRows =
         serverId && actionIds.length > 0
@@ -1431,28 +1439,30 @@ async function buildInboxItems(
         if (row.source === 'action' && !actionAttention) {
             throw new Error(`Action attention ${row.dedupeKey} is missing.`);
         }
+        const cloudAgentWork =
+            row.source === 'cloud_agent_work' ? cloudAgentWorkByRun.get(row.dedupeKey) : undefined;
+        if (row.source === 'cloud_agent_work' && !cloudAgentWork) {
+            throw new Error(`Cloud Agent attention ${row.dedupeKey} is missing.`);
+        }
+        const attention = actionAttention ?? cloudAgentWork;
         if (actionAttention && actionAttention.chatId !== row.chatId) {
             throw new Error(`Action attention ${row.dedupeKey} targets the wrong Chat.`);
         }
         const target = targetByChatId.get(row.chatId) ?? '#unknown';
-        const agentHandle = row.source.startsWith('agent:')
-            ? row.source.slice('agent:'.length)
-            : null;
         const apiMessage = apiMessageById.get(row.dedupeKey);
-        const senderHandle = actionAttention
-            ? 'grotto'
-            : row.source === 'human'
-              ? (apiMessage?.sender.handle ?? humanHandleFromDmTarget(target))
-              : (agentHandle ?? typedSenderHandle(row.source));
-        if (!senderHandle) {
-            throw new Error('A human delivery sender does not have an active Server handle.');
-        }
+        const sender = inboxSender({
+            source: row.source,
+            target,
+            attention: Boolean(attention),
+            message: apiMessage,
+        });
         return {
             chatId: row.chatId,
-            content: actionAttention ? '' : row.content,
+            content: attention ? '' : row.content,
             createdAt: row.createdAt.toISOString(),
             id: row.dedupeKey,
             ...(actionAttention ? { actionAttention } : {}),
+            ...(cloudAgentWork ? { cloudAgentWork } : {}),
             ...(apiMessage?.ask
                 ? {
                       ask: {
@@ -1467,31 +1477,10 @@ async function buildInboxItems(
             ...(apiMessage?.sender.description
                 ? { senderDescription: apiMessage.sender.description }
                 : {}),
-            senderHandle,
-            senderType: actionAttention
-                ? ('system' as const)
-                : row.source === 'human'
-                  ? ('human' as const)
-                  : row.source === 'trigger'
-                    ? ('trigger' as const)
-                    : agentHandle
-                      ? ('agent' as const)
-                      : ('system' as const),
-            sequence: actionAttention ? 0 : (sequenceByMessageId.get(row.dedupeKey) ?? 1),
+            ...sender,
+            sequence: attention ? 0 : (sequenceByMessageId.get(row.dedupeKey) ?? 1),
             ...(taskByMessage.get(row.dedupeKey) ? { task: taskByMessage.get(row.dedupeKey) } : {}),
             target,
         };
     });
-}
-
-/** Server-authored typed work speaks as Grotto, not as its internal source. */
-function typedSenderHandle(source: string): string {
-    return source === 'task_assignment' ? 'grotto' : source;
-}
-
-function humanHandleFromDmTarget(target: string): string | null {
-    if (!target.startsWith('dm:@')) {
-        return null;
-    }
-    return target.slice('dm:@'.length).split(':')[0] || null;
 }

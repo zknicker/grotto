@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { threadMessagesQueryKey } from '../use-thread-messages.ts';
 import {
     askEvent,
+    cloudAgentWorkEvent,
     lifecycleEvent,
     messageEvent,
     preparedActionEvent,
@@ -13,6 +14,7 @@ import type { ChatEventUtils } from './chat-event-invalidation.ts';
 import { invalidateAskChanges } from './use-ask-events.ts';
 import { invalidateChatLifecycle } from './use-chat-lifecycle-events.ts';
 import { invalidateChatRead } from './use-chat-read-events.ts';
+import { invalidateCloudAgentWorkChanges } from './use-cloud-agent-work-events.ts';
 import { invalidateMessageCreated } from './use-message-created-events.ts';
 import { invalidatePreparedActionEvents } from './use-prepared-action-events.ts';
 import { invalidateTaskChanges } from './use-task-change-events.ts';
@@ -188,6 +190,29 @@ test('an Ask pass refetches the open-Ask list and both transcript reads', async 
     ]);
 });
 
+test('a Cloud Agent work pass refetches the active list and both transcript reads', async () => {
+    const { queryClient, recorded, utils } = recordingCaches();
+
+    await invalidateCloudAgentWorkChanges({
+        events: [cloudAgentWorkEvent('11', 'chat_thread', 'chat_parent')],
+        queryClient,
+        serverId,
+        utils,
+    });
+
+    expect(recorded).toEqual([
+        { input: { serverId }, name: 'cloudAgentWork.listActive' },
+        { input: { chatId: 'chat_thread', serverId }, name: 'cloudAgentWork.listForChat' },
+        { input: { chatId: 'chat_parent', serverId }, name: 'cloudAgentWork.listForChat' },
+        { input: { chatId: 'chat_thread', serverId }, name: 'chat.messages' },
+        { input: { chatId: 'chat_parent', serverId }, name: 'chat.messages' },
+        {
+            input: { queryKey: threadMessagesQueryKey(serverId, 'chat_thread') },
+            name: 'threadMessages',
+        },
+    ]);
+});
+
 function recordingCaches() {
     const recorded: Invalidation[] = [];
     const record = (name: string) => async (input?: unknown, options?: unknown) => {
@@ -202,6 +227,10 @@ function recordingCaches() {
             listArchived: { invalidate: record('chat.listArchived') },
             messages: { invalidate: record('chat.messages') },
             search: { invalidate: record('chat.search') },
+        },
+        cloudAgentWork: {
+            listActive: { invalidate: record('cloudAgentWork.listActive') },
+            listForChat: { invalidate: record('cloudAgentWork.listForChat') },
         },
         task: { list: { invalidate: record('task.list') } },
         taskLabel: { list: { invalidate: record('taskLabel.list') } },

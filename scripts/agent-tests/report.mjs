@@ -27,13 +27,14 @@ export function createReportWriter({ repositoryRoot = process.cwd(), stamp }) {
 }
 
 /** The transcript a scenario leaves behind: what it saw, and what settled. */
-export function buildTranscript({ error, kit, result, scenario }) {
+export function buildTranscript({ diagnostics = [], error, kit, result, scenario }) {
     const observed = kit?.transcript() ?? { chats: [], messages: [], turns: [] };
     return {
         agents: result?.agents ?? [],
         assertions: result?.assertions ?? [],
         chats: observed.chats,
         contract: scenario.contract,
+        diagnostics,
         error: error ? String(error) : null,
         finishedAt: new Date().toISOString(),
         lastMessages: error ? observed.messages.slice(-20) : [],
@@ -43,6 +44,28 @@ export function buildTranscript({ error, kit, result, scenario }) {
         seconds: result?.seconds ?? 0,
         settledTurns: observed.turns,
     };
+}
+
+export async function captureAgentDiagnostics(kit, agents) {
+    return await Promise.all(
+        agents.map(async ({ id: agentId }) => {
+            const reads = {
+                state: () => kit.turns.deliveryState(agentId),
+                turns: () => kit.turns.listTurns(agentId),
+                deliveries: () => kit.turns.listDeliveries(agentId),
+            };
+            const entries = await Promise.all(
+                Object.entries(reads).map(async ([key, read]) => {
+                    try {
+                        return [key, await read()];
+                    } catch (error) {
+                        return [key, { error: String(error) }];
+                    }
+                })
+            );
+            return { agentId, ...Object.fromEntries(entries) };
+        })
+    );
 }
 
 export function buildSummary({ scenarios, startedAt, wallSeconds }) {

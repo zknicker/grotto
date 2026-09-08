@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import { type Agent, chatSchema } from '@grotto/api';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
 import { cleanupEvalChats } from './cleanup-eval-chats.ts';
 
@@ -103,7 +103,13 @@ async function createAgent(
         runtimeId: template.desiredRuntimeId,
         serverId: harness.serverId,
     })) as { agent: Agent };
-    return { ...created.agent, name: created.agent.displayName };
+    const dm = chatSchema.parse(
+        await harness.trpc('chat.ensureAgentDm', {
+            agentId: created.agent.id,
+            serverId: harness.serverId,
+        })
+    );
+    return { ...created.agent, dmChatId: dm.id, name: created.agent.displayName };
 }
 
 async function waitForReadyAgent(harness: EvalHarness, agentId: string) {

@@ -1,13 +1,17 @@
-import { expect, test } from 'bun:test';
+import { afterAll, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
+import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 
 const grokPreflight = await checkLocalGrok();
 const liveTest = grokPreflight.available ? test : test.skip;
+const runtime = makeDaemonRuntime();
+
+afterAll(() => runtime.dispose());
 
 liveTest(
     `installed Grok accepts a live interjection during an active turn${
@@ -31,26 +35,30 @@ liveTest(
                 },
                 homeDir,
                 rootDir,
+                runtime,
             }),
             sandboxConfig: { workDir: 'workspace' },
         });
         const session = await agent.createSession();
 
         try {
-            const resultPromise = agent.generate({
+            const result = await agent.stream({
                 abortSignal: AbortSignal.timeout(45_000),
                 prompt: 'Run the shell command `sleep 5`. After it finishes, reply with exactly ORIGINAL and nothing else.',
                 session,
             });
-            const delivered = await waitForInterjectionAcceptance(() =>
-                session.sendUserMessage(
-                    'Change the final reply to exactly INTERJECTED and nothing else.'
-                )
-            );
-            const result = await resultPromise;
+            let delivered = false;
+            for await (const part of result.fullStream) {
+                if (part.type === 'tool-call' && !delivered) {
+                    await session.experimental_steerTurn(
+                        'Change the final reply to exactly INTERJECTED and nothing else.'
+                    );
+                    delivered = true;
+                }
+            }
 
             expect(delivered).toBe(true);
-            expect(result.text.trim()).toBe('INTERJECTED');
+            expect((await result.text).trim()).toBe('INTERJECTED');
         } finally {
             await session.destroy();
             await rm(temporaryRoot, { force: true, recursive: true });
@@ -58,17 +66,6 @@ liveTest(
     },
     60_000
 );
-
-async function waitForInterjectionAcceptance(send: () => Promise<boolean>) {
-    const deadline = Date.now() + 10_000;
-    while (Date.now() < deadline) {
-        if (await send()) {
-            return true;
-        }
-        await Bun.sleep(10);
-    }
-    throw new Error('Grok turn did not accept a live interjection.');
-}
 
 async function checkLocalGrok(): Promise<
     { available: true } | { available: false; reason: string }

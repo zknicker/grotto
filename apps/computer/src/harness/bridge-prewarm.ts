@@ -13,6 +13,21 @@ import {
 
 type RunCommand = (command: string, cwd: string) => Promise<number>;
 
+/** Starts the best-effort daemon warm at most once. */
+export function createBridgePrewarmer(options: {
+    agentsRoot: string;
+    harnessIds?: readonly BridgeHarnessId[];
+}): () => void {
+    let started = false;
+    return () => {
+        if (started) {
+            return;
+        }
+        started = true;
+        void prewarmBridgeStores(options);
+    };
+}
+
 /**
  * Warms every bridge's install into the shared store. Never throws and never
  * blocks attach readiness: a failed warm only means the first Agent bootstrap

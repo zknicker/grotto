@@ -11,7 +11,7 @@ import {
     PlugIcon,
     UserIcon,
 } from '@hugeicons-pro/core-solid-rounded';
-import { Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { GitPullRequestIcon, Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -29,6 +29,7 @@ const mentionIconKeys = [
     'github',
     'image',
     'plugin',
+    'pull-request',
     'skill',
     'unknown',
     'user',
@@ -63,6 +64,7 @@ const defaultMentionAppearance = {
     file: { icon: 'file' },
     image: { icon: 'image' },
     plugin: { icon: 'plugin' },
+    'pull-request': { icon: 'pull-request' },
     skill: { icon: 'skill' },
     user: { icon: 'user' },
     website: { icon: 'website' },
@@ -107,6 +109,7 @@ const mentionIconMap = {
     github: Github01Icon,
     image: Image01Icon,
     plugin: PlugIcon,
+    'pull-request': GitPullRequestIcon,
     skill: AiSparklesIcon,
     unknown: MagicWand01Icon,
     user: UserIcon,

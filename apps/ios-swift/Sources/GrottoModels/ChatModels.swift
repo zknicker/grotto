@@ -188,6 +188,7 @@ public enum ChatAuthor: Codable, Sendable, Equatable {
 public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
     public let attachments: [AttachmentMetadata]
     public let author: ChatAuthor
+    public let body: ChatMessageBody?
     /// The automation fire that produced this message, when the Server
     /// reported one. Decoded tolerantly in `ChatMessageCause.swift`.
     public let cause: ChatMessageCause?
@@ -209,6 +210,7 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
     enum CodingKeys: String, CodingKey {
         case attachments
         case author
+        case body
         case cause
         case chatID = "chatId"
         case content
@@ -302,26 +304,5 @@ public struct ChatMessagePage: Codable, Sendable, Equatable {
                 $0.anchorMessageID < $1.anchorMessageID
             }
         )
-    }
-}
-
-public struct SendReceipt: Codable, Sendable, Equatable {
-    public let eventCursor: String
-    public let idempotent: Bool
-    public let message: ChatMessage
-    public let threadChatID: String?
-
-    enum CodingKeys: String, CodingKey {
-        case eventCursor
-        case idempotent
-        case message
-        case threadChatID = "threadChatId"
-    }
-
-    public init(eventCursor: String, idempotent: Bool, message: ChatMessage, threadChatID: String?) {
-        self.eventCursor = eventCursor
-        self.idempotent = idempotent
-        self.message = message
-        self.threadChatID = threadChatID
     }
 }

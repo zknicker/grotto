@@ -2,7 +2,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { createAgentChannelFixture } from '../support/agent-channel-fixture.ts';
-import { expectVisibleReply, openChat, sendFromComposer } from '../support/live-agent-app.ts';
+import {
+    expectAgentSettled,
+    expectVisibleReply,
+    openChat,
+    sendFromComposer,
+} from '../support/live-agent-app.ts';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -31,6 +36,7 @@ test('a direct mention reaches the Agent and the reply renders in the App', asyn
         .authoredBy(messages, agent.id, head)
         .map((reply: string) => reply.trim());
     expect(replies.join('\n')).toContain(token);
+    await expectAgentSettled(page, agent.id);
 });
 
 async function setupSuite() {

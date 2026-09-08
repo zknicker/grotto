@@ -1,4 +1,5 @@
 import { runnerMintRequestSchema, runnerRevokeRequestSchema } from '@grotto/api';
+import type { OtlpTelemetryRelay } from '@grotto/effect';
 import type { FastifyInstance } from 'fastify';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { attachComputer, ComputerAttachmentError } from './attachment-service.ts';
@@ -22,11 +23,20 @@ import {
 } from './login-session-service.ts';
 import { mintRunnerCredential, revokeRunnerCredential } from './runner-credentials.ts';
 import { ComputerSetupDeniedError, validateComputerCredential } from './service.ts';
+import { registerComputerTelemetryRoutes } from './telemetry-routes.ts';
 
 export function registerComputerRoutes(
     app: FastifyInstance,
-    options: { appOrigin: string; db: GrottoDatabase }
+    options: {
+        appOrigin: string;
+        db: GrottoDatabase;
+        telemetryRelay?: OtlpTelemetryRelay | null;
+    }
 ) {
+    registerComputerTelemetryRoutes(app, {
+        auth: { db: options.db, kind: 'database' },
+        relay: options.telemetryRelay ?? null,
+    });
     app.post('/computer/attach', async (request, reply) => {
         try {
             const input = attachComputerSchema.parse(request.body);

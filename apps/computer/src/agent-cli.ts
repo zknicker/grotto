@@ -3,6 +3,7 @@ import { ACTION_SUBCOMMANDS } from './agent-cli/commands/agent-action.ts';
 import { ASK_COMMAND } from './agent-cli/commands/agent-ask.ts';
 import { ATTACHMENT_SUBCOMMANDS } from './agent-cli/commands/agent-attachment.ts';
 import { AVATAR_SUBCOMMANDS } from './agent-cli/commands/agent-avatar.ts';
+import { CLOUD_AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-cloud-agent.ts';
 import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/agent-directory.ts';
 import { INBOX_SUBCOMMANDS } from './agent-cli/commands/agent-inbox.ts';
 import { MANUAL_SUBCOMMANDS } from './agent-cli/commands/agent-manual.ts';
@@ -22,6 +23,7 @@ const commandGroups = {
     attachment: ATTACHMENT_SUBCOMMANDS,
     avatar: AVATAR_SUBCOMMANDS,
     channel: CHANNEL_SUBCOMMANDS,
+    'cloud-agent': CLOUD_AGENT_SUBCOMMANDS,
     inbox: INBOX_SUBCOMMANDS,
     manual: MANUAL_SUBCOMMANDS,
     message: MESSAGE_SUBCOMMANDS,

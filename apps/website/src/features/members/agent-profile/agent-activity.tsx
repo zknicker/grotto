@@ -1,27 +1,37 @@
 import type { Agent } from '@grotto/api';
-import { Button, Chip, Separator } from '@heroui/react';
+import { Accordion, Button, Chip } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import * as React from 'react';
 import { CopyButton } from '../../../components/copy-button.tsx';
 import { useAgentActivityHistory } from '../../../hooks/members/use-agent-activity-history.ts';
+import { useAgentTurns } from '../../../hooks/members/use-agent-turns.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { useGrottoServerConnectionState } from '../../../lib/grotto-server.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
 import {
     formatAgentActivityDiagnosticInfo,
-    formatAgentActivityEvent,
     getAgentActivityColor,
     getAgentActivityPhaseLabel,
 } from './agent-activity-model.ts';
+import { AgentActivityTimeline } from './agent-activity-timeline.tsx';
+import {
+    type AgentActivityTurn,
+    formatActivityTurnCounts,
+    formatActivityTurnHeadline,
+    getActivityTurnPhase,
+    groupAgentActivityTurns,
+} from './agent-activity-turns.ts';
 import { AgentChats } from './agent-chats.tsx';
 import { AgentLoading } from './agent-loading.tsx';
 
 export function AgentActivity({ agent, server }: { agent: Agent; server: ServerDetail }) {
     const activity = useAgentActivityHistory(server.id, agent.id);
+    const settledTurns = useAgentTurns(server.id, agent.id);
     const connectionState = useGrottoServerConnectionState();
     const events = activity.events;
-    const unavailable = events.length === 0 && activity.error !== null;
+    const unavailable =
+        events.length === 0 && activity.error !== null && settledTurns.error !== null;
     const diagnosticInfo = formatAgentActivityDiagnosticInfo(events);
+    const turns = groupAgentActivityTurns(events, settledTurns.data ?? []);
 
     return (
         <PageColumn>
@@ -38,7 +48,7 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
                         value={diagnosticInfo}
                     />
                 </ItemCardGroup.Header>
-                {activity.isPending ? (
+                {activity.isPending && settledTurns.isPending ? (
                     <AgentLoading label="Loading activity history..." />
                 ) : unavailable ? (
                     // Empty and error states sit in the group they replace, so
@@ -56,7 +66,7 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
                             </ItemCard.Content>
                         </ItemCard>
                     </ItemCardGroup>
-                ) : events.length === 0 ? (
+                ) : turns.length === 0 ? (
                     <ItemCardGroup className="overflow-hidden">
                         <ItemCard>
                             <ItemCard.Content>
@@ -65,7 +75,7 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
                         </ItemCard>
                     </ItemCardGroup>
                 ) : (
-                    <ActivityHistoryRows events={events} />
+                    <ActivityTurnHistory turns={turns} />
                 )}
                 {events.length > 0 && activity.hasMore ? (
                     <div className="flex justify-center border-separator border-t px-4 py-3">
@@ -87,43 +97,48 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
     );
 }
 
-function ActivityHistoryRows({
-    events,
-}: {
-    events: ReturnType<typeof useAgentActivityHistory>['events'];
-}) {
+function ActivityTurnHistory({ turns }: { turns: readonly AgentActivityTurn[] }) {
     return (
-        <ItemCardGroup className="overflow-hidden">
-            {events.map((event, index) => (
-                <React.Fragment key={event.id}>
-                    {index > 0 ? <Separator /> : null}
-                    <ItemCard>
-                        <ItemCard.Content>
-                            {/* Time, phase, then what happened — one line, so
-                                the column of timestamps stays scannable. */}
-                            <span className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-                                <time
-                                    className="shrink-0 text-muted text-sm tabular-nums"
-                                    dateTime={event.occurredAt}
-                                >
-                                    {formatActivityTime(event.occurredAt)}
-                                </time>
-                                <Chip
-                                    color={getAgentActivityColor(event.phase)}
-                                    size="sm"
-                                    variant="soft"
-                                >
-                                    {getAgentActivityPhaseLabel(event.phase)}
-                                </Chip>
-                                <span className="min-w-0 text-foreground text-sm">
-                                    {formatAgentActivityEvent(event)}
+        <Accordion allowsMultipleExpanded variant="surface">
+            {turns.map((turn) => {
+                const phase = getActivityTurnPhase(turn);
+                return (
+                    <Accordion.Item id={turn.runId} key={turn.runId}>
+                        <Accordion.Heading>
+                            <Accordion.Trigger>
+                                <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-left">
+                                    <time
+                                        className="shrink-0 text-muted text-sm tabular-nums"
+                                        dateTime={turn.startedAt}
+                                    >
+                                        {formatActivityTime(turn.startedAt)}
+                                    </time>
+                                    <Chip
+                                        color={getAgentActivityColor(phase)}
+                                        size="sm"
+                                        variant="soft"
+                                    >
+                                        {getAgentActivityPhaseLabel(phase)}
+                                    </Chip>
+                                    <span className="font-medium text-foreground text-sm">
+                                        {formatActivityTurnHeadline(turn)}
+                                    </span>
+                                    <span className="text-muted text-sm">
+                                        {formatActivityTurnCounts(turn)}
+                                    </span>
                                 </span>
-                            </span>
-                        </ItemCard.Content>
-                    </ItemCard>
-                </React.Fragment>
-            ))}
-        </ItemCardGroup>
+                                <Accordion.Indicator />
+                            </Accordion.Trigger>
+                        </Accordion.Heading>
+                        <Accordion.Panel>
+                            <Accordion.Body>
+                                <AgentActivityTimeline turn={turn} />
+                            </Accordion.Body>
+                        </Accordion.Panel>
+                    </Accordion.Item>
+                );
+            })}
+        </Accordion>
     );
 }
 

@@ -3,6 +3,7 @@ import {
     agentActivityCategorySchema,
     agentActivityEventSchema,
     agentActivityFrameSchema,
+    agentTurnActivitySummarySchema,
     projectAgentCurrentActivity,
 } from './agent-activity.ts';
 
@@ -20,6 +21,43 @@ test('activity categories are the safe semantic vocabulary', () => {
     expect(agentActivityCategorySchema.safeParse('running_command').success).toBe(true);
     expect(agentActivityCategorySchema.safeParse('updating_instructions').success).toBe(true);
     expect(agentActivityCategorySchema.safeParse('drafting').success).toBe(false);
+});
+
+test('turn activity summaries retain only exact low-cardinality operation counts', () => {
+    expect(
+        agentTurnActivitySummarySchema.parse({
+            operations: [
+                {
+                    category: 'running_command',
+                    completed: 2,
+                    failed: 1,
+                    interrupted: 0,
+                },
+            ],
+        })
+    ).toEqual({
+        operations: [{ category: 'running_command', completed: 2, failed: 1, interrupted: 0 }],
+    });
+    expect(
+        agentTurnActivitySummarySchema.safeParse({
+            operations: [
+                {
+                    category: 'thinking',
+                    completed: 1,
+                    failed: 0,
+                    interrupted: 0,
+                },
+            ],
+        }).success
+    ).toBe(false);
+    expect(
+        agentTurnActivitySummarySchema.safeParse({
+            operations: [
+                { category: 'using_tool', completed: 1, failed: 0, interrupted: 0 },
+                { category: 'using_tool', completed: 0, failed: 1, interrupted: 0 },
+            ],
+        }).success
+    ).toBe(false);
 });
 
 test('Computer frames reject detailed evidence and Server identity fields', () => {

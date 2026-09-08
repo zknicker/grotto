@@ -162,6 +162,7 @@ async function runCli(args: string[], dataRoot: string, origin: string) {
             GROTTO_COMPUTER_ONESHOT: '1',
             GROTTO_COMPUTER_USAGE_DISABLED: '1',
             GROTTO_SERVER_ORIGIN: origin,
+            OTEL_SDK_DISABLED: 'true',
         },
         stderr: 'pipe',
         stdout: 'pipe',

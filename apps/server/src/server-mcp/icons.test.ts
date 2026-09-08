@@ -6,13 +6,12 @@ import {
     resolveMcpIcon,
     siteFaviconUrl,
     summarizeInstructions,
-} from './icons.ts';
+} from './icon-test-resolver.ts';
 
 const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x01]);
 const pngDataUrl = `data:image/png;base64,${Buffer.from(pngBytes).toString('base64')}`;
 const icoBytes = new Uint8Array([0x00, 0x00, 0x01, 0x00, 0x01, 0x00]);
 const connectionUrl = 'https://mcp.example.com/mcp';
-
 function respondWith(bytes: Uint8Array, mediaType: string): Response {
     return new Response(bytes as unknown as BodyInit, {
         headers: { 'content-type': mediaType },

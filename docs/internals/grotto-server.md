@@ -90,6 +90,13 @@ configured Clerk instance.
 
 ## State
 
+The Server opens two PostgreSQL pools: one serves plain queries, the other
+serves `db.transaction` alone (`apps/server/src/postgres/connection.ts`). Bun's
+pooled `SQL` client will hand a connection to a plain query while an open
+transaction still holds it, which strands that transaction's Server row lock and
+wedges every later durable write. Keeping the two off one pool holds the
+invariant; the split goes away when Bun isolates reserved connections.
+
 PostgreSQL owns the hosted collaboration tables
 (`apps/server/src/postgres/schema/`):
 
@@ -157,7 +164,7 @@ Every socket starts with bootstrap protocol version 1. The authenticated
 progress, so it remains safe across Computer-first rollout and Server rollback.
 The versioned ordinary inventory report carries the Computer's human-readable
 machine name, which the Server retains for offline presentation. The Server admits
-ordinary reports, delivery, and control only when the ordinary protocol is version 13.
+ordinary reports, delivery, and control only when the ordinary protocol is version 15.
 An incompatible Computer stays connected
 as `update-required`: signed update control remains available, while inventory,
 Agent delivery, and MCP control fail closed. A Computer that cannot send the

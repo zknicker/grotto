@@ -29,7 +29,7 @@ Grotto Server is the AI SDK MCP client and credential broker:
 
 Each connection is one account. The same MCP server or preset may have multiple connections.
 Disconnect removes its active credentials, inventory, and Agent grants. Deleting also removes a
-custom connection.
+connection, including a preset account.
 
 OAuth follows the MCP authorization standard through AI SDK. Server owns discovery, PKCE, dynamic
 client registration, optional pre-registered clients, refresh tokens, and authorization-server

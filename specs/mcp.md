@@ -18,9 +18,11 @@ read_when:
 - Google Calendar and MerchBase presets populate immutable URL and auth defaults, then use the
   same storage, discovery, OAuth, grant, and invocation path as custom connections.
 - Multiple connections may target the same MCP server or preset.
+- Recommended lists only presets with no existing account, connected or disconnected. Additional
+  accounts are added from a connection's detail; deleting the last account restores its preset.
 - Disconnect clears the active identity, tokens, inventory, and Agent grants. It preserves
-  reusable client registration and operator-approved authorization origins. Custom connections
-  may also be deleted.
+  reusable client registration and operator-approved authorization origins. All connections,
+  including preset accounts, may be deleted; deletion also removes their stored secrets and grants.
 
 ## Agent access
 

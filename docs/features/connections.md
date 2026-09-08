@@ -10,12 +10,18 @@ read_when:
 
 Server Settings -> Connections manages remote MCP server accounts.
 
+**Add MCP** saves an MCP entry in Grotto. For OAuth MCPs, **Sign in** then opens the remote
+account's authorization flow; until that completes, the entry says **Sign in required**. Header
+authentication uses **Add credentials** instead. Adding an MCP does not grant Agents access.
+
 The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no auth, headers, or
 OAuth, complete authentication in a browser window, and inspect the connected identity and
 discovered tools. There is no Computer picker and no local or stdio transport.
 
 Google Calendar and MerchBase are presets for endpoint and auth defaults. They remain ordinary MCP
-connections, and another account can be added from the connection detail.
+connections. Once added, a preset disappears from Recommended, even while disconnected. Another
+account can be added deliberately from the connection detail. Deleting the last account makes the
+preset available in Recommended again; the section is hidden when every preset has been added.
 
 GitHub is the one first-party connection that is not an MCP server. Owners and Admins connect one
 GitHub account or token per Server, and the Server uses it only to resolve pull-request references
@@ -23,9 +29,10 @@ into their cached snapshot (title, state, additions, deletions, files changed) f
 [rich references](rich-references.md). It exposes no tools and has no per-Agent access switch;
 Agents reach GitHub through their own Computer tooling or an ordinary MCP connection.
 
-Disconnect warns which Agents lose access, then clears active credentials, discovered tools, and
-grants. Custom connections may be deleted. Reconnect uses the same connection and can reuse its
-configured OAuth client and previously approved authorization-server origins.
+**Disconnect account** warns which Agents lose access, then clears active credentials, discovered
+tools, and grants while keeping the MCP entry. **Remove from Grotto** deletes that entry and its
+saved credentials, including for preset accounts. Signing in again uses the same connection and
+can reuse its configured OAuth client and previously approved authorization-server origins.
 
 Each Agent profile shows one switch per connected MCP server. Turning it on grants that Agent all
 tools exposed by the connection. The tool names are read-only context, not individual permission

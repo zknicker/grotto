@@ -118,7 +118,7 @@
     "apps/website/src/features/mentions/use-mention-composer.tsx": 437,
     "apps/website/src/features/servers/chat/chat-composer.tsx": 316,
     "apps/website/src/features/servers/chat/chat-search.tsx": 338,
-    "apps/website/src/features/servers/chat/chat-topbar.tsx": 563,
+    "apps/website/src/features/servers/chat/chat-topbar.tsx": 439,
     "apps/website/src/features/servers/chat/chat-view.tsx": 343,
     "apps/website/src/features/servers/tasks/task-model.test.ts": 366,
     "apps/website/src/features/settings/mcp/mcp-connection-detail-dialog.tsx": 381,

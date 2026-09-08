@@ -7,6 +7,7 @@ public enum SettingsRoute: Hashable {
     case server
     case people
     case computers
+    case cloudAgents
     case appInfo
     case description(ownerID: String, title: String)
 }
@@ -37,6 +38,7 @@ public enum AppearancePreference: String, CaseIterable, Hashable, Sendable {
 public struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     private let persistence: SettingsPersistence
+    private let cloudAgentActions: CloudAgentSettingsActions
     @State private var data: SettingsData
     @State private var path: [SettingsRoute]
     @State private var avatarGenerator: AvatarGeneratorSheet?
@@ -48,10 +50,12 @@ public struct SettingsSheet: View {
     public init(
         data: SettingsData = SettingsFixtures.data,
         persistence: SettingsPersistence = .preview,
+        cloudAgentActions: CloudAgentSettingsActions = .unavailable,
         appearance: Binding<AppearancePreference> = .constant(.system),
         initialPath: [SettingsRoute] = []
     ) {
         self.persistence = persistence
+        self.cloudAgentActions = cloudAgentActions
         _data = State(initialValue: data)
         _path = State(initialValue: initialPath)
         _appearance = appearance
@@ -176,6 +180,12 @@ public struct SettingsSheet: View {
             ServerPeopleView(members: data.members)
         case .computers:
             ServerComputersView(computers: data.computers)
+        case .cloudAgents:
+            CloudAgentSettingsView(
+                computers: data.computers,
+                canManage: ["owner", "admin"].contains(data.server.role.lowercased()),
+                actions: cloudAgentActions
+            )
         case .appInfo:
             AppInfoView()
         case .description(let ownerID, let title):

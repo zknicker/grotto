@@ -10,13 +10,6 @@ import OSLog
 @Observable
 final class GrottoStore {
     static let logger = Logger(subsystem: "build.grotto.ios", category: "server")
-    enum State {
-        case idle
-        case loading
-        case loaded
-        case failed(String)
-    }
-
     private(set) var state: State = .idle
     private(set) var isConnected = false
     // Internal so the batched snapshot apply can live with the rest of the
@@ -35,6 +28,11 @@ final class GrottoStore {
     private var storedChats: [ChatSummary] = []
     private var storedReceiptBackedAgentDMsByChatID: [String: String] = [:]
     private var storedMessagesByChatID: [String: ChatMessagePage] = [:]
+    var cloudAgentWorkByChatID: [String: [ThreadCloudAgentWork]] = [:] {
+        didSet {
+            if oldValue != cloudAgentWorkByChatID { projections.retireMessageProjections() }
+        }
+    }
     private var storedPendingMessagesByChatID: [String: [PendingChatMessage]] = [:]
     private var storedLifecycleAvailability: [String: AgentAvailability] = [:]
     var sendError: String?

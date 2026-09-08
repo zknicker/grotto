@@ -31,6 +31,12 @@ enum GrottoRootRoute: Hashable {
 /// A Thread route anchored by the parent message, which exists before the child
 /// Chat does.
 struct ThreadSelection: Hashable, Identifiable {
+    @MainActor
+    func resolvedChatID(selectedThread: ThreadSelection?, store: GrottoStore) -> String? {
+        let explicitID = selectedThread?.id == id ? selectedThread?.threadChatID : threadChatID
+        return explicitID ?? store.threadChatID(parentChatID: parentChatID, anchorMessageID: anchor.id)
+    }
+
     let parentChatID: String
     var threadChatID: String?
     let anchor: MessagePresentation

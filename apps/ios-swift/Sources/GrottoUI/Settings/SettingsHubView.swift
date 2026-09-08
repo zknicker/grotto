@@ -60,6 +60,18 @@ struct SettingsHubView: View {
                     }
                 }
 
+                SettingsSection("Connections") {
+                    SettingsListGroup {
+                        DisclosureRow(
+                            "Cloud agents",
+                            subtitle: "Cursor",
+                            icon: .computer,
+                            showsDivider: false,
+                            action: { onNavigate(.cloudAgents) }
+                        )
+                    }
+                }
+
                 SettingsSection("Theme") {
                     SettingsListGroup {
                         PickerRow(

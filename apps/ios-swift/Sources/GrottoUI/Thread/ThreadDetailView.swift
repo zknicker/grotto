@@ -18,6 +18,7 @@ public struct ThreadDetailView: View {
     private let onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
     private let onShowPreparedActionDetails: (PreparedCreateAgentActionPresentation) -> Void
     private let onOpenAgent: (String) -> Void
+    private let onCancelCloudAgent: ((String) async throws -> Void)?
 
     @State private var draft = ""
     @State private var isNearNewest = true
@@ -49,7 +50,8 @@ public struct ThreadDetailView: View {
         canManagePreparedActions: Bool = false,
         onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
         onShowPreparedActionDetails: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
-        onOpenAgent: @escaping (String) -> Void = { _ in }
+        onOpenAgent: @escaping (String) -> Void = { _ in },
+        onCancelCloudAgent: ((String) async throws -> Void)? = nil
     ) {
         self.anchor = anchor
         self.replyProvider = { replies }
@@ -64,6 +66,7 @@ public struct ThreadDetailView: View {
         self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
         self.onShowPreparedActionDetails = onShowPreparedActionDetails
         self.onOpenAgent = onOpenAgent
+        self.onCancelCloudAgent = onCancelCloudAgent
     }
 
     /// Resolves replies while this view's body is being evaluated so an
@@ -85,7 +88,8 @@ public struct ThreadDetailView: View {
         canManagePreparedActions: Bool = false,
         onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
         onShowPreparedActionDetails: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
-        onOpenAgent: @escaping (String) -> Void = { _ in }
+        onOpenAgent: @escaping (String) -> Void = { _ in },
+        onCancelCloudAgent: ((String) async throws -> Void)? = nil
     ) {
         self.anchor = anchor
         self.replyProvider = replies
@@ -100,6 +104,7 @@ public struct ThreadDetailView: View {
         self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
         self.onShowPreparedActionDetails = onShowPreparedActionDetails
         self.onOpenAgent = onOpenAgent
+        self.onCancelCloudAgent = onCancelCloudAgent
     }
 
     public var body: some View {
@@ -160,12 +165,10 @@ public struct ThreadDetailView: View {
                 topInset: proxy.safeAreaInsets.top,
                 bottomInset: proxy.safeAreaInsets.bottom,
                 showsAccessory: hasOlderReplies && onLoadOlderReplies != nil,
-                onAppend: { items, isNearNewest in
-                    // A first page reaches the substrate as a reset that lands
-                    // already settled, so an append always has a predecessor;
-                    // the sentinel only says "not the first page".
+                onAppend: { previousItems, items, isNearNewest in
+                    // Anchor and task rows can precede the first fetched reply page.
                     switch ThreadReplyReveal.onLatestReplyChange(
-                        previousLatestID: items.first?.id,
+                        previousLatestID: previousItems.last(where: { $0.replyID != nil })?.replyID,
                         isNearBottom: isNearNewest,
                         latestIsPending: items.last?.isPending == true
                     ) {
@@ -216,7 +219,8 @@ public struct ThreadDetailView: View {
                 canManagePreparedActions: canManagePreparedActions,
                 onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
                 onShowPreparedActionDetails: onShowPreparedActionDetails,
-                onOpenAgent: onOpenAgent
+                onOpenAgent: onOpenAgent,
+                onCancelCloudAgent: onCancelCloudAgent
             )
             .padding(.bottom, hasReplies ? 2 : 0)
         case .taskMetadata(let task, let hasReplies):
@@ -232,7 +236,8 @@ public struct ThreadDetailView: View {
                 canManagePreparedActions: canManagePreparedActions,
                 onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
                 onShowPreparedActionDetails: onShowPreparedActionDetails,
-                onOpenAgent: onOpenAgent
+                onOpenAgent: onOpenAgent,
+                onCancelCloudAgent: onCancelCloudAgent
             )
             .padding(.top, 10)
         case .pendingSend:
@@ -270,102 +275,4 @@ public struct ThreadDetailView: View {
         }
     }
 
-}
-
-/// One row of the Thread transcript. A Thread's page is more than replies —
-/// the anchor message, its task metadata, and a pending send all occupy
-/// chronological positions — so the substrate sees them as items with stable
-/// ids rather than as decoration around a reply list.
-private enum ThreadTranscriptItem: Identifiable, Equatable {
-    case anchor(MessagePresentation, hasReplies: Bool)
-    case taskMetadata(TaskPresentation, hasReplies: Bool)
-    case reply(MessagePresentation)
-    case pendingSend
-
-    var id: String {
-        switch self {
-        case .anchor(let message, _): "thread-anchor-\(message.id)"
-        case .taskMetadata: "thread-task-metadata"
-        case .reply(let message): message.id
-        case .pendingSend: "thread-pending-send"
-        }
-    }
-
-    var isPending: Bool {
-        switch self {
-        case .pendingSend: true
-        case .reply(let message): message.isPending
-        case .anchor, .taskMetadata: false
-        }
-    }
-}
-
-/// Decides how the thread transcript responds when its latest reply changes.
-///
-/// Local to the Thread surface on purpose: the chat timeline owns its own
-/// parallel rule, and the two surfaces may diverge.
-enum ThreadReplyReveal: Equatable {
-    /// The first page just arrived; place it at the bottom with no animation
-    /// so the thread appears already settled.
-    case settle
-    /// Reveal the latest reply with a short animated scroll.
-    case animate
-    /// Leave the reader where they are.
-    case stay
-
-    static func onLatestReplyChange(
-        previousLatestID: String?,
-        isNearBottom: Bool,
-        latestIsPending: Bool
-    ) -> ThreadReplyReveal {
-        if previousLatestID == nil {
-            return .settle
-        }
-        // Pending rows exist only for the viewer's outgoing sends, so a send
-        // always reveals itself; other appends respect the reader's position.
-        if latestIsPending || isNearBottom {
-            return .animate
-        }
-        return .stay
-    }
-}
-
-#Preview("Thread") {
-    NavigationStack {
-        ThreadDetailView(
-            anchor: ChatFixtures.messages[1],
-            replies: [
-                MessagePresentation(
-                    id: "thread-reply-1",
-                    author: ChatFixtures.messages[0].author,
-                    content: "I’ll keep the first pass focused on the native shell.",
-                    createdAt: .now.addingTimeInterval(-90)
-                ),
-                MessagePresentation(
-                    id: "thread-reply-2",
-                    author: ChatFixtures.messages[1].author,
-                    content: "Perfect. I’ll preserve the shared Server contract.",
-                    createdAt: .now.addingTimeInterval(-45)
-                ),
-            ],
-            onSend: { _, _ in true }
-        )
-    }
-}
-
-#Preview("Task Thread") {
-    NavigationStack {
-        ThreadDetailView(
-            anchor: ChatFixtures.messages[2],
-            replies: [
-                MessagePresentation(
-                    id: "task-thread-reply-1",
-                    author: ChatFixtures.messages[1].author,
-                    content: "I’ll keep the work visible in this Thread.",
-                    createdAt: .now.addingTimeInterval(-45)
-                ),
-            ],
-            onSend: { _, _ in true }
-        )
-    }
 }

@@ -3,33 +3,6 @@ import SwiftUI
 import UIKit
 #endif
 
-/// What the list does with the viewport when newer items arrive at the tail.
-enum TranscriptAppendBehavior {
-    /// Show the newest item immediately — a send the reader just made.
-    case snapToNewest
-    /// Ease the newest item in — a delivery while the reader is at the tail.
-    case animateToNewest
-    /// Leave the viewport where it is — the reader has scrolled away.
-    case stay
-}
-
-/// A one-shot request to bring an item into view, keyed by token so the same
-/// item can be revealed twice.
-struct TranscriptReveal: Equatable {
-    let token: UUID
-    let id: String
-    let animated: Bool
-}
-
-/// One long-press menu action for a transcript row. The list owns the menu
-/// presentation (see the coordinator's context-menu delegate methods) because
-/// SwiftUI's `contextMenu` inside a flipped cell lifts an upside-down preview.
-struct TranscriptMenuAction {
-    let title: String
-    let systemImage: String
-    let handler: () -> Void
-}
-
 #if canImport(UIKit)
 
 /// The bottom-anchored transcript substrate: a `UITableView` flipped with
@@ -56,7 +29,7 @@ where Item.ID == String {
     /// Shown past the oldest item (visual top); used for history loading.
     let showsAccessory: Bool
     /// Decides the viewport's reaction to newer items arriving at the tail.
-    let onAppend: (_ items: [Item], _ isNearNewest: Bool) -> TranscriptAppendBehavior
+    let onAppend: (_ previousItems: [Item], _ items: [Item], _ isNearNewest: Bool) -> TranscriptAppendBehavior
     let reveal: TranscriptReveal?
     @Binding var isNearNewest: Bool
     /// Called for a tap that lands on the transcript itself; the Thread uses
@@ -166,6 +139,7 @@ where Item.ID == String {
         )
         let accessoryChanged = showsAccessory != view.showsAccessory
         let wasNearNewest = distanceFromNewest(table) < Self.nearNewestTolerance
+        let previousItems = items
         let oldCount = items.count
         items = view.items
         showsAccessory = view.showsAccessory
@@ -183,7 +157,7 @@ where Item.ID == String {
                 )
                 table.layoutIfNeeded()
             }
-            settleAppend(view: view, table: table, appended: appended, wasNearNewest: wasNearNewest)
+            settleAppend(view: view, table: table, previousItems: previousItems, appended: appended, wasNearNewest: wasNearNewest)
         case .prepend(let prepended) where !accessoryChanged:
             UIView.performWithoutAnimation {
                 table.insertRows(
@@ -232,11 +206,12 @@ where Item.ID == String {
     private func settleAppend(
         view: TranscriptListView<Item, Row, Accessory>,
         table: UITableView,
+        previousItems: [Item],
         appended: Int,
         wasNearNewest: Bool
     ) {
         let rest = CGPoint(x: 0, y: -table.contentInset.top)
-        switch view.onAppend(view.items, wasNearNewest) {
+        switch view.onAppend(previousItems, view.items, wasNearNewest) {
         case .snapToNewest:
             table.contentOffset = rest
         case .animateToNewest:
@@ -457,7 +432,7 @@ where Item.ID == String {
     let topInset: CGFloat
     let bottomInset: CGFloat
     let showsAccessory: Bool
-    let onAppend: (_ items: [Item], _ isNearNewest: Bool) -> TranscriptAppendBehavior
+    let onAppend: (_ previousItems: [Item], _ items: [Item], _ isNearNewest: Bool) -> TranscriptAppendBehavior
     let reveal: TranscriptReveal?
     @Binding var isNearNewest: Bool
     var onContentTap: (() -> Void)? = nil

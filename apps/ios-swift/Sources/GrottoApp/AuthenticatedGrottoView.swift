@@ -119,6 +119,7 @@ struct AuthenticatedGrottoView: View {
                             SettingsSheet(
                                 data: settingsData,
                                 persistence: store.settingsPersistence,
+                                cloudAgentActions: store.cloudAgentSettings,
                                 appearance: appearanceBinding,
                                 initialPath: initialPath
                             )
@@ -335,7 +336,8 @@ struct AuthenticatedGrottoView: View {
     @ViewBuilder
     private func threadDestination(_ thread: ThreadSelection) -> some View {
         ThreadDetailView(
-            anchor: thread.anchor,
+            anchor: store.messagePresentations(chatID: thread.parentChatID)
+                .first(where: { $0.id == thread.anchor.id }) ?? thread.anchor,
             replies: {
                 let chatID = resolvedThreadChatID(for: thread)
                     ?? store.pendingThreadChatID(anchorMessageID: thread.anchor.id)
@@ -380,7 +382,10 @@ struct AuthenticatedGrottoView: View {
             canManagePreparedActions: store.canManagePreparedActions,
             onReviewPreparedCreateAgent: { preparedActionReview = $0 },
             onShowPreparedActionDetails: { preparedActionDetail = $0 },
-            onOpenAgent: openAgentFromThread
+            onOpenAgent: openAgentFromThread,
+            onCancelCloudAgent: store.canManagePreparedActions ? { workID in
+                try await store.cancelCloudAgent(workID: workID)
+            } : nil
         )
         .task {
             guard let chatID = resolvedThreadChatID(for: thread) else { return }
@@ -389,15 +394,7 @@ struct AuthenticatedGrottoView: View {
     }
 
     private func resolvedThreadChatID(for thread: ThreadSelection) -> String? {
-        selectedThread?.id == thread.id
-            ? selectedThread?.threadChatID ?? store.threadChatID(
-                parentChatID: thread.parentChatID,
-                anchorMessageID: thread.anchor.id
-            )
-            : thread.threadChatID ?? store.threadChatID(
-                parentChatID: thread.parentChatID,
-                anchorMessageID: thread.anchor.id
-            )
+        thread.resolvedChatID(selectedThread: selectedThread, store: store)
     }
 
 }

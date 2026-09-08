@@ -3,11 +3,6 @@ import GrottoModels
 import GrottoUI
 
 extension GrottoStore {
-    var serverPresentation: ServerPresentation? {
-        guard let server = activeServer else { return nil }
-        return ServerPresentation(name: server.displayName)
-    }
-
     /// Reads — and so subscribes the calling view body to — every observable
     /// directory field the projections resolve names, avatars, and presence
     /// from. The memoized projections skip the work, never the observation: a
@@ -65,14 +60,17 @@ extension GrottoStore {
         trackProjectionDirectory()
         let page = messagesByChatID[chatID]
         let pending = pendingMessagesByChatID[chatID] ?? []
+        let cloudAgentWork = cloudAgentWorkByChatID[chatID] ?? []
         if let cached = projections.messagePresentationsByChatID[chatID] { return cached }
 
-        let rows = durableMessagePresentations(page) + pendingMessagePresentations(pending, page: page)
+        let rows = durableMessagePresentations(page, cloudAgentWork: cloudAgentWork) + pendingMessagePresentations(pending, page: page)
         projections.messagePresentationsByChatID[chatID] = rows
         return rows
     }
 
-    private func durableMessagePresentations(_ page: ChatMessagePage?) -> [MessagePresentation] {
+    private func durableMessagePresentations(
+        _ page: ChatMessagePage?, cloudAgentWork: [ThreadCloudAgentWork]
+    ) -> [MessagePresentation] {
         guard let page else { return [] }
         let threadByAnchor = Dictionary(
             page.threads.map { ($0.anchorMessageID, $0) },
@@ -109,6 +107,8 @@ extension GrottoStore {
                 thread: thread,
                 task: message.task.map(taskPresentation),
                 preparedAction: preparedAction,
+                cloudAgents: cloudAgentPresentation(message.body).map { [$0] } ?? [],
+                threadCloudAgents: cloudAgentPresentations(cloudAgentWork.filter { $0.anchorMessageId == message.id }),
                 richSegments: richMessageSegments(body)
             )
         }

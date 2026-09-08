@@ -13,6 +13,7 @@ struct ThreadMessageRow: View {
     var onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void = { _ in }
     var onShowPreparedActionDetails: (PreparedCreateAgentActionPresentation) -> Void = { _ in }
     var onOpenAgent: (String) -> Void = { _ in }
+    var onCancelCloudAgent: ((String) async throws -> Void)?
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -50,6 +51,10 @@ struct ThreadMessageRow: View {
                         tiles: tiles,
                         onOpen: onOpenAttachment
                     )
+                }
+
+                ForEach(message.cloudAgents) { agent in
+                    CloudAgentCard(agent: agent, onCancel: onCancelCloudAgent).padding(.top, 6)
                 }
 
                 if let preparedAction = message.preparedAction {

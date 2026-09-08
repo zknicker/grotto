@@ -4,6 +4,15 @@ import GrottoModels
 import GrottoTransport
 import GrottoUI
 
+extension GrottoStore {
+    enum State {
+        case idle
+        case loading
+        case loaded
+        case failed(String)
+    }
+}
+
 final class EventTaskBag: @unchecked Sendable {
     private let lock = NSLock()
     private var tasks: [Task<Void, Never>] = []

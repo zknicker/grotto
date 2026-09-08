@@ -3,6 +3,11 @@ import GrottoModels
 import GrottoUI
 
 extension GrottoStore {
+    var serverPresentation: ServerPresentation? {
+        guard let server = activeServer else { return nil }
+        return ServerPresentation(name: server.displayName)
+    }
+
     /// Projects Server-wide message search into the native result row. Search
     /// results are limited to the active chat directory because the shell can
     /// only select chats currently mounted in its active-chat projection.

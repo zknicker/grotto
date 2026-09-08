@@ -96,6 +96,8 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let task: TaskPresentation?
     public let isPending: Bool
     public let preparedAction: PreparedActionPresentation?
+    public let cloudAgents: [CloudAgentPresentation]
+    public let threadCloudAgents: [CloudAgentPresentation]
     public let richSegments: [RichMessageSegment]
 
     public init(
@@ -108,6 +110,8 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         task: TaskPresentation? = nil,
         isPending: Bool = false,
         preparedAction: PreparedActionPresentation? = nil,
+        cloudAgents: [CloudAgentPresentation] = [],
+        threadCloudAgents: [CloudAgentPresentation] = [],
         richSegments: [RichMessageSegment]? = nil
     ) {
         // The Server stores an empty body for a prepared-action anchor, so the
@@ -124,6 +128,8 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         self.task = task
         self.isPending = isPending
         self.preparedAction = preparedAction
+        self.cloudAgents = cloudAgents
+        self.threadCloudAgents = threadCloudAgents
         // Segments handed in were parsed from whatever body the caller resolved,
         // so they are trusted when they describe this one; a substitution made
         // here has none and falls back to a parse with no identity to resolve.
@@ -219,6 +225,8 @@ public struct ThreadPreviewPresentation: Hashable, Sendable {
     public let unreadCount: Int
     /// The Server's own recent replies, oldest first and already capped by it.
     public let recentReplies: [ThreadReplyPresentation]
+
+    public var latestReply: ThreadReplyPresentation? { recentReplies.last }
 
     public init(
         threadChatID: String,

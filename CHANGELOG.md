@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 - Grotto delivers the Cloud Agent and iPhone updates described in v1.15.0, whose publication
   stopped before upload. Release builds no longer require runtime telemetry credentials.
+- Grotto patches the telemetry decoder's protobuf dependency against upstream denial-of-service
+  and schema-property issues.
 - Update Grotto Computer to 1.8.1 for protocol 16 and Grotto Agent 1.3.1. The iPhone build is
   1.5.1 (25).
 

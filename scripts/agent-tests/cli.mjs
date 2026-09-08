@@ -9,6 +9,7 @@ import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createEvalHarness } from '../eval-harness.mjs';
+import { settleEvalCleanup } from './cleanup-chats.mjs';
 import { createAgentTestKit } from './kit.mjs';
 import { createRenderer, formatWall } from './render.mjs';
 import {
@@ -164,14 +165,14 @@ async function runScenario(harness, { index, scenario }, retirements) {
         scenario.name,
         buildTranscript({ diagnostics, error, kit, result, scenario })
     );
-    await Promise.race([
+    const cleanedUp = await settleEvalCleanup(
         kit.cleanup().catch((cause) => {
             process.stderr.write(`\ncleanup deferred for ${key}: ${String(cause).slice(0, 200)}\n`);
-        }),
-        new Promise((resolve) => setTimeout(resolve, 60_000).unref?.()).then(() => {
-            process.stderr.write(`\ncleanup for ${key} exceeded 60s; deferring to the next run.\n`);
-        }),
-    ]);
+        })
+    );
+    if (!cleanedUp) {
+        process.stderr.write(`\ncleanup for ${key} exceeded 60s; deferring to the next run.\n`);
+    }
     // Retirement is started, not awaited: this lane takes the next scenario
     // while these Agents are deleted, and the run awaits them at the end.
     retirements.push(retire(kit, key));

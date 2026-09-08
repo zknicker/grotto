@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.15.2 - 2026-09-08
+
+- Grotto Agent 1.3.2 skips unnecessary memory rereads on follow-ups and reports unavailable MCP
+  tools without searching local configuration for Server permissions.
+- Grotto records Agent preparation, session startup, confirmed sends, and trailing work in Axiom,
+  alongside reasoning settings and available token usage, to make slow responses easier to diagnose.
+- Grotto Computer repairs native runtime startup and refreshes stale usage information. Update
+  Computer to 1.8.2 to receive these fixes and Agent 1.3.2.
+- Grotto resumes stopped Agents and delivers Agent-creation continuations reliably. Agent DM
+  menus remain available before the first message, and MCP settings distinguish adding a connection
+  from authorizing an account.
+
 ## v1.15.1 - 2026-09-07
 
 - Grotto delivers the Cloud Agent and iPhone updates described in v1.15.0, whose publication

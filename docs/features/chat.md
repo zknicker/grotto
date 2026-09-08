@@ -147,7 +147,12 @@ and [Agent Inbox](../../specs/inbox.md).
 * **Channels and DMs.** Channels and materialized direct messages are durable
   Chat rooms. The sidebar also projects every active Agent as an implicit
   pairwise DM for the signed-in human, even before a Chat row exists. Opening
-  that row is App-local and shows an empty DM without persisting anything. The
+  that row is App-local and shows an empty DM without persisting anything.
+  Agent DMs share the same header dropdown and right-click menus before and
+  after the first message, including on the selected sidebar row. The sidebar
+  row keeps its Agent identity as the Chat materializes, preserving an open menu. View agent
+  profile works immediately; chat-scoped Tasks and Files remain disabled until
+  the Chat exists. Opening these menus or the profile does not create a Chat. The
   first human send, Agent `dm:@handle` send, or Server activity that needs a
   durable message atomically materializes the canonical human-stint↔Agent Chat
   and message. Every materialized chat's name is a dropdown menu offering its chat-scoped

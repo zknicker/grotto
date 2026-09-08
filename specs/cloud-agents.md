@@ -157,8 +157,11 @@ observations update existing records rather than automatically posting channel c
 
 Only status discs and the card's status chip carry lifecycle color. A running work whose `updatedAt`
 is older than ten minutes shows a last-update note rather than gating on Computer connection state.
-iOS will mirror this presentation in its Thread preview card and does not yet. Older clients and
+iOS mirrors this presentation in its Thread preview and inline work cards. Older clients and
 unknown body kinds render the Message `content` and the ordinary Thread preview.
+Compact Thread-preview rows on web and iOS show the work title until completion, then the newest
+Run's primary PR file/addition/deletion counts. Without a recorded PR snapshot, they show only
+Done, never inferred zero changes. Lifecycle status remains visible; full work cards keep their title.
 
 Server has one Message reader that projects authors, attachments, Tasks, and typed bodies for every
 consumer: Chat history, Threads, search, send receipts, Agent delivery, web, and iOS. Clients do not
@@ -507,8 +510,9 @@ administrative integration and is outside this Computer capability.
    status on an anchor whose Thread holds live work, the surface's overflow menu with cancel, the
    in-Thread work card with its branch and pull-request row and its View PR, Open in Cursor, and
    Cancel run actions, the `?work=` peek, and the
-   Inbox "Happening now" section over `cloudAgentWork.listActive`. The iPhone app has no Cloud Agent
-   presentation yet; that is the remainder of this step.
+   Inbox "Happening now" section over `cloudAgentWork.listActive`. iPhone supports the Thread preview,
+   inline work card, PR/provider links, cancellation, and Computer-scoped Cursor connection settings.
+   The web Inbox's active-work section and `?work=` peek remain web-only.
 9. Run deterministic Server, API, Computer, App, and iOS coverage, then one opt-in live Cursor
    lifecycle smoke.
 

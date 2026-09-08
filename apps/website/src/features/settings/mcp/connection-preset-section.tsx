@@ -3,6 +3,7 @@ import { Button, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Fragment } from 'react';
 import { useConnectionPresetAdd } from '../../../hooks/servers/use-connection-preset-add.ts';
+import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import { ConnectionGlyph } from './connection-mark.tsx';
 
 const presets: Array<{ description: string; id: McpPreset; name: string }> = [
@@ -20,6 +21,14 @@ const presets: Array<{ description: string; id: McpPreset; name: string }> = [
 
 export function ConnectionPresetSection({ serverId }: { serverId: string }) {
     const addPreset = useConnectionPresetAdd(serverId);
+    const connections = useConnections(serverId);
+    const availablePresets = presets.filter(
+        (preset) => !connections.data?.some((connection) => connection.preset === preset.id)
+    );
+
+    if (!connections.data || availablePresets.length === 0) {
+        return null;
+    }
 
     return (
         <ItemCardGroup variant="transparent">
@@ -27,7 +36,7 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
                 <ItemCardGroup.Title>Recommended</ItemCardGroup.Title>
             </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
-                {presets.map((preset, index) => (
+                {availablePresets.map((preset, index) => (
                     <Fragment key={preset.id}>
                         {index > 0 ? <Separator /> : null}
                         <ItemCard>
@@ -48,6 +57,7 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
                             </ItemCard.Content>
                             <ItemCard.Action>
                                 <Button
+                                    isDisabled={addPreset.isPending}
                                     isPending={
                                         addPreset.isPending &&
                                         addPreset.variables?.preset === preset.id
@@ -62,7 +72,7 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
                                     size="sm"
                                     variant="secondary"
                                 >
-                                    Add
+                                    Add MCP
                                 </Button>
                             </ItemCard.Action>
                         </ItemCard>

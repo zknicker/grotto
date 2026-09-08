@@ -152,9 +152,6 @@ export async function deleteMcpConnection(
     input: { connectionId: string; serverId: string }
 ): Promise<McpConnection> {
     const connection = await requireOperableConnection(db, member, input);
-    if (connection.preset) {
-        throw new McpDeniedError('Recommended connections cannot be deleted.');
-    }
     await runtime.closeConnection(input.connectionId);
     await db.delete(mcpConnectionsTable).where(eq(mcpConnectionsTable.id, input.connectionId));
     return shapeMcpConnection(connection);

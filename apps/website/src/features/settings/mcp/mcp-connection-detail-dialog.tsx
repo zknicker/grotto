@@ -10,6 +10,8 @@ import {
 } from './mcp-connection-actions.tsx';
 import { McpHeaderCredentialsDialog } from './mcp-header-credentials-dialog.tsx';
 import {
+    connectionSetupDescription,
+    connectionStatusLabel,
     connectionSummary,
     type McpConnection,
     type McpConnectionTool,
@@ -65,10 +67,6 @@ export function McpConnectionDetailDialog({
                     <Modal.Container scroll="inside" size="lg">
                         <Modal.Dialog>
                             <Modal.CloseTrigger />
-                            {/* Modal.Header stacks: icon, heading, then one
-                                muted line. Anything laid out across it fights
-                                the component, which is what left the mark
-                                stranded on its own row. */}
                             <Modal.Header>
                                 <Modal.Icon className="overflow-hidden bg-default text-foreground">
                                     <ConnectionGlyph connection={connection} />
@@ -81,7 +79,7 @@ export function McpConnectionDetailDialog({
                                         size="sm"
                                         variant="soft"
                                     >
-                                        {connection.connected ? 'Connected' : 'Not connected'}
+                                        {connectionStatusLabel(connection)}
                                     </Chip>
                                 </Modal.Heading>
                                 {/* What the server is, when it says so. Its
@@ -208,7 +206,7 @@ export function McpConnectionDetailDialog({
                                                 server takes no credentials. */}
                                             {connection.connected && connection.auth !== 'none' ? (
                                                 <ManageRow
-                                                    description="Signs out and revokes every Agent's access. The connection stays, so you can reconnect."
+                                                    description="Clears saved credentials and Agent access. Keeps this MCP in Added MCPs."
                                                     title="Disconnect account"
                                                 >
                                                     <Button
@@ -222,22 +220,18 @@ export function McpConnectionDetailDialog({
                                                     </Button>
                                                 </ManageRow>
                                             ) : null}
-                                            {connection.builtIn ? null : (
-                                                <ManageRow
-                                                    description="Removes this connection and every Agent's access to it."
-                                                    title="Delete connection"
+                                            <ManageRow
+                                                description="Removes this MCP entry, saved credentials, and Agent access from this Grotto Server."
+                                                title="Remove from Grotto"
+                                            >
+                                                <Button
+                                                    onPress={() => setDestructiveAction('delete')}
+                                                    size="sm"
+                                                    variant="danger-soft"
                                                 >
-                                                    <Button
-                                                        onPress={() =>
-                                                            setDestructiveAction('delete')
-                                                        }
-                                                        size="sm"
-                                                        variant="danger-soft"
-                                                    >
-                                                        Delete
-                                                    </Button>
-                                                </ManageRow>
-                                            )}
+                                                    Remove
+                                                </Button>
+                                            </ManageRow>
                                         </ItemCardGroup>
                                     </ItemCardGroup>
                                 </div>
@@ -252,7 +246,7 @@ export function McpConnectionDetailDialog({
                                         isPending={startingOAuthId === connection.id}
                                         onPress={() => onStartOAuth(connection)}
                                     >
-                                        {connection.connected ? 'Reconnect' : 'Connect'}
+                                        {connection.connected ? 'Sign in again' : 'Sign in'}
                                     </Button>
                                 ) : null}
                                 {connection.auth === 'headers' ? (
@@ -260,7 +254,9 @@ export function McpConnectionDetailDialog({
                                         isDisabled={saving}
                                         onPress={() => setEditingHeaders(true)}
                                     >
-                                        {connection.connected ? 'Replace credentials' : 'Connect'}
+                                        {connection.connected
+                                            ? 'Replace credentials'
+                                            : 'Add credentials'}
                                     </Button>
                                 ) : null}
                             </Modal.Footer>
@@ -321,7 +317,7 @@ function ToolList({
 }) {
     if (!connection.connected) {
         return (
-            <p className="px-4 py-4 text-muted text-sm">Connect this server to load its tools.</p>
+            <p className="px-4 py-4 text-muted text-sm">{connectionSetupDescription(connection)}</p>
         );
     }
     if (pending) {

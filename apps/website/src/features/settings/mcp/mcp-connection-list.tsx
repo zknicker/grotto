@@ -2,7 +2,7 @@ import { Chip, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup, PressableFeedback } from '@heroui-pro/react';
 import { Fragment } from 'react';
 import { ConnectionGlyph } from './connection-mark.tsx';
-import type { McpConnection } from './mcp-server-shared.ts';
+import { connectionStatusLabel, type McpConnection } from './mcp-server-shared.ts';
 
 /**
  * The connections this Server has, as the same row the Recommended list uses.
@@ -52,7 +52,7 @@ export function ConnectionList({
                                 size="sm"
                                 variant="soft"
                             >
-                                {connection.connected ? 'Connected' : 'Not connected'}
+                                {connectionStatusLabel(connection)}
                             </Chip>
                         </ItemCard.Action>
                     </ItemCard>

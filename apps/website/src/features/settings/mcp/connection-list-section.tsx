@@ -28,7 +28,7 @@ export function ConnectionListSection({
                 belongs to the section rather than the page. */}
             <ItemCardGroup.Header className="flex items-center justify-between gap-3">
                 <ItemCardGroup.Title>
-                    Added
+                    Added MCPs
                     {connections.data ? (
                         <span className="ms-2 text-muted tabular-nums">{items.length}</span>
                     ) : null}

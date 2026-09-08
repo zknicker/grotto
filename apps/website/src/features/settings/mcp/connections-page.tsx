@@ -31,7 +31,7 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
                     </Link>
                 )}
                 <SettingsPageHeader
-                    description="Connect remote tools to this Server, then enable each connection for the Agents that need it."
+                    description="Add an MCP to Grotto, authorize access if needed, then choose which Agents can use its tools."
                     title="Connections"
                 />
                 <ConnectionPresetSection serverId={server.id} />

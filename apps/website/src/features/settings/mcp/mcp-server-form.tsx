@@ -79,7 +79,7 @@ export function McpConnectionFormDrawer({
                                 isPending={saving}
                                 type="submit"
                             >
-                                Add Connection
+                                Add MCP
                             </Button>
                         </Drawer.Footer>
                     </Drawer.Dialog>

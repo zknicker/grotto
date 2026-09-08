@@ -48,6 +48,28 @@ export function connectionSummary(connection: McpConnection): string {
     return connection.url;
 }
 
+export function connectionStatusLabel(
+    connection: Pick<McpConnection, 'auth' | 'connected'>
+): string {
+    if (connection.auth === 'oauth') {
+        return connection.connected ? 'Account connected' : 'Sign in required';
+    }
+    if (connection.auth === 'headers') {
+        return connection.connected ? 'Credentials saved' : 'Credentials required';
+    }
+    return connection.connected ? 'Ready' : 'Unavailable';
+}
+
+export function connectionSetupDescription(connection: Pick<McpConnection, 'auth'>): string {
+    if (connection.auth === 'oauth') {
+        return 'This MCP is added to Grotto. Sign in to your account to authorize access and load its tools.';
+    }
+    if (connection.auth === 'headers') {
+        return 'This MCP is added to Grotto. Add credentials to authorize access and load its tools.';
+    }
+    return 'This MCP is added to Grotto, but its tools are unavailable.';
+}
+
 export function createConnectionDraft(): McpConnectionDraft {
     return {
         auth: 'none',

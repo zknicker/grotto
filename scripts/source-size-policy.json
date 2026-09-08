@@ -57,7 +57,7 @@
     "apps/ios-swift/Sources/GrottoUI/Chat/GrottoShellView.swift": 304,
     "apps/ios-swift/Sources/GrottoUI/Chat/MessageComposerView.swift": 386,
     "apps/ios-swift/Sources/GrottoUI/Chat/MessageTimelineView.swift": 334,
-    "apps/ios-swift/Sources/GrottoUI/Platform/TranscriptListView.swift": 459,
+    "apps/ios-swift/Sources/GrottoUI/Platform/TranscriptListView.swift": 436,
     "apps/ios-swift/Sources/GrottoUI/Settings/SettingsModels.swift": 311,
     "apps/ios-swift/Sources/GrottoUI/Settings/SettingsProfileViews.swift": 308,
     "apps/ios-swift/Sources/GrottoUI/Tasks/TaskListLensView.swift": 359,

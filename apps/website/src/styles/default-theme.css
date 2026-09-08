@@ -5,9 +5,10 @@
  */
 
 /*
- * Font: Inter
- * Load this font in your app:
- * <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
+ * Font: none. The HeroUI Pro export named Inter and a Google Fonts link, and
+ * the app never adopted either — no web font is loaded and this file declares
+ * no `--font-sans`, so type falls through to the Tailwind/HeroUI system stack.
+ * Adding a face here means loading it too; do not restore the link alone.
  */
 :root,
 .light,

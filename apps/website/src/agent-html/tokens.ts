@@ -77,7 +77,7 @@ export const agentHtmlTokenNames = [
     '--t-slow',
     '--ease-out',
     '--ease-in',
-    '--ease-in-out-quad',
+    '--ease-standard',
     '--radius-sm',
     '--radius-md',
     '--radius-lg',
@@ -93,6 +93,28 @@ export const agentHtmlTokenNames = [
     '--label-red-fg',
     '--label-teal-fg',
 ] as const;
+
+/**
+ * The host variable a published name reads from, where the two differ.
+ *
+ * `styles/artifact-tokens.css` is the home for this mapping and owns every
+ * other name. These two it cannot: HeroUI declares `--success-foreground` and
+ * `--warning-foreground` in `@layer base` — above the theme layer that file
+ * imports into — and spends them as the text on solid success and warning
+ * Chips and Badges, where near-black on a saturated fill is correct. The skill
+ * teaches the opposite job for the same names: text sitting on the matching
+ * `-bg` tint, which in dark mode puts near-black on near-black. Rebinding them
+ * for the frame keeps the artifact contract readable without repainting the
+ * app's components.
+ */
+const hostRoleOverrides: Record<string, string> = {
+    '--success-foreground': '--success-soft-foreground',
+    '--warning-foreground': '--warning-soft-foreground',
+};
+
+function hostRoleFor(name: string): string {
+    return hostRoleOverrides[name] ?? name;
+}
 
 /** The app's active color scheme, so the frame matches native form controls. */
 export function agentHtmlColorScheme(): 'dark' | 'light' {
@@ -110,10 +132,11 @@ export function agentHtmlTokenDeclarations(): string {
     }
 
     const computed = window.getComputedStyle(document.documentElement);
+    const read = (name: string) => computed.getPropertyValue(name).trim();
 
     return [
         ...agentHtmlTokenNames
-            .map((name) => ({ name, value: computed.getPropertyValue(name).trim() }))
+            .map((name) => ({ name, value: read(hostRoleFor(name)) }))
             .filter((token) => token.value.length > 0)
             .map((token) => `${token.name}: ${token.value};`),
         // Chart chrome is derived rather than snapshotted; the skill teaches

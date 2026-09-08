@@ -31,7 +31,7 @@ test('the sandbox document pins external sources to the Chart.js CDN', () => {
 test('the sandbox fallback uses HeroUI body typography', () => {
     const doc = buildVisualSrcDoc('<p>Body</p>', '');
 
-    expect(doc).toContain('font-size: var(--app-ui-font-size, 16px)');
+    expect(doc).toContain('font-size: var(--app-ui-font-size, 14px)');
 });
 
 test('the model body streams last so partial documents still parse', () => {

@@ -129,7 +129,10 @@ not a list of exclusions:
   browser — so the shell's production contracts (the preload bridge globals,
   trusted-renderer origins, Clerk SSO callback handling, external-link routing)
   are gated per commit. `test:app-unit` stays heavy because `apps/website/src`
-  resolves `@heroui-pro/react`.
+  resolves `@heroui-pro/react`. That is also why the iOS agent-HTML token drift
+  test sits in `apps/website/src/agent-html/` rather than beside its generator
+  under `scripts/`: it resolves the Pro dist stylesheet, so it belongs in the
+  lane that runs after the licensed download, not in `test:fast`.
 * `test:prompt-contract` is the narrow exception from the otherwise-heavy
   Computer suite. It renders managed instructions in-process, never starts an
   execution runtime, and keeps prompt-budget drift out of release preflight.

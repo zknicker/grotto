@@ -240,6 +240,63 @@ dismisses; a pinch back past fit returns to fit rather than dismissing. Paging i
 horizontal pan scrolls the zoomed image, and only once it is against its edge does a further swipe
 page to the next image, which arrives at fit with dismissal live again.
 
+A ```` ```visual ```` fence renders inline, the way it does on the web. `VisualFence` is a literal
+port of the shared grammar in `packages/grotto-api/src/widgets/visual/contracts.ts` — the same two
+patterns, matched over UTF-16 so cursor arithmetic lands where JavaScript's does — and it runs once
+per message, in `MessagePresentation`'s initializer. A message therefore carries two bodies: `prose`,
+every text segment concatenated and trimmed into the one block that sits above the cards, and
+`visuals`, the fences in the order they were written. `richSegments` parse from `prose`, so a fence
+can never leak into the transcript as raw HTML, and neither can it leak into a preview line —
+`RichMessageParser.oneLinePreview` substitutes each fence with its fallback text (explicit title,
+else the document `<title>`, else the first heading, else "Visual"). The Nth fence is a visual's
+identity; content only ever appends while a reply streams, so ordinals never reorder.
+
+`VisualSandboxDocument` is the same document the web builds: the same CSP with the same pinned
+Chart.js CDN entry, the same base stylesheet that gives bare `<table>` markup the app's table look,
+the same host-owned size reporter, and the model body last so a partial one still parses. The
+opaque origin the web gets from a sandboxed iframe comes from `loadHTMLString(_, baseURL: nil)` on a
+non-persistent data store; the main frame scrolls nothing, previews no links, and its navigation
+delegate allows the one load it started and cancels everything else — an http(s) link the model
+wrote opens in the system browser instead. Because the frame cannot scroll, the shared size reporter
+wraps every `<table>` in an `overflow-x: auto` scroller before its first report, on both platforms:
+inner overflow elements still scroll in WKWebView with `scrollView.isScrollEnabled = false`, so a
+wide table pans horizontally inside its card while a vertical drag still scrolls the transcript.
+Table layout itself is untouched, so a narrow table still spans the card, and the caption sticks to
+the scroller's left edge — shrunk to its content, because a table-wide caption box has nothing to
+hold on to — so a table's label stays readable while its columns pan. There is no browser to snapshot tokens off, so the published list
+(`apps/website/src/agent-html/tokens.ts`) is resolved from the app's own stylesheets at build time:
+`bun run gen:ios-tokens` walks `global.css`'s token-declaring imports in their import order —
+the three feature sheets (`slot-text`, `chat.css`, `shell.css`) declare no published token and are
+named as exclusions in the generator — folds `var()`, `oklch()`,
+`color-mix()` and `calc()` down to literal values, and writes `AgentHtmlTokens.generated.swift` —
+74 entries per scheme, the 72 published names plus the two derived chart-chrome declarations, with
+the two host-role remaps already applied. A bun test regenerates in memory and fails on any drift,
+so the table cannot fall behind the stylesheets unnoticed. The card picks its scheme from
+`@Environment(\.colorScheme)`, so a theme flip rebuilds the document and the frame reloads.
+
+Two of those 74 values are then deliberately overridden, and they are the only place the iOS card
+diverges from the web's. The web ties `--app-ui-font-size` to the web chat's own 14px body, so a
+card reads at the size of the transcript around it; the iOS transcript is SF `.body`, 17pt at the
+default Dynamic Type size, and the snapshotted 14px reads visibly small beside it. So
+`VisualTypography` resolves `--app-ui-font-size` from `UIFont.preferredFont(forTextStyle: .body)`
+and `--app-code-font-size` from `.callout` — the closest iOS style to the web's 13:14 ratio, 16/17 =
+0.94 against 0.93, where `.subheadline`'s 0.88 is nearly four times further off — for the card's
+current `dynamicTypeSize`, and `VisualSandboxDocument` emits them after the generated table so
+source order settles the conflict. An accessibility size therefore scales the card with the
+transcript, and changing it rebuilds the document and reloads the frame the same way a theme flip
+does.
+
+Height is the screen's, not the card's. Transcript rows are hosted in `UIHostingConfiguration` cells
+inside the flipped table, which re-hosts a row only when state above the table changes
+(`TranscriptListView.reconfigureVisibleRows`, driven from `updateUIView`) — a height measured inside
+a cell has nowhere to go. So `VisualHeightRegistry` holds measured heights and collapse state keyed
+by message id and fence ordinal, exactly as `AttachmentImageTileRegistry` holds tile anchors, and
+`MessageTimelineView` and `ThreadDetailView` each own one. The screen's own body reads the
+registry's `revision`, which is what turns a frame's report into a re-render, a reconfigure, and a
+row at its new height. The clamps are the web's: 240pt reserved until the first report, [120, 1600]
+after it, collapse past 420pt behind a fade and a Show all footer. The first measurement is never
+animated — it is layout, not a transition — and later ones ease over 200ms.
+
 A prepared action reaches the transcript as two things, not one. The Server posts an empty body for
 the anchor message, so the proposal's note to the human *is* that message's text:
 `MessagePresentation.body(content:preparedAction:)` substitutes it whenever the Server body is

@@ -106,6 +106,17 @@ registration), with optional info-string text as the title:
   sources are markdown files under
   `packages/agent-workspace/src/visuals-skill/`; quality is tuned with the
   design battery (`bun run eval:design`, `scripts/design-battery/RUBRIC.md`).
+- **iOS.** The Grotto App on iPhone renders the same fences inline, through a
+  Swift port of the same grammar and the same sandbox document — same CSP,
+  same base styles, same size reporter, same clamps and 420pt collapse — with
+  `WKWebView.loadHTMLString(_, baseURL: nil)` standing in for the opaque-origin
+  iframe. It has no browser to snapshot tokens off, so the published list is
+  resolved from the app's own stylesheets at build time into a checked-in
+  table: `bun run gen:ios-tokens` writes
+  `apps/ios-swift/Sources/GrottoUI/Visuals/AgentHtmlTokens.generated.swift`,
+  and a bun test fails when the checked-in file drifts from the stylesheets.
+  Rerun it after changing the token list or any value it resolves from.
+  See [ios.md](ios.md).
 
 ## Artifacts
 

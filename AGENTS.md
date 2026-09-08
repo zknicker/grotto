@@ -192,6 +192,10 @@ so `docs:list` routes future agents correctly.
 
 ## Agent Execution Work
 
+- For Agent latency, context, delivery, or tool-use investigations, use
+  `.agents/skills/diagnose-grotto-agents/SKILL.md`. It routes Axiom evidence and creates a
+  Luna-max Raft research partner when the mechanism benefits from comparison.
+
 - Grotto Computer owns runtime discovery, model inventory, instruction composition, tools, and the
   chat-to-Agent turn runner under `apps/computer/src/`.
 - Codex, Claude Code, and Pi are execution runtimes inside Computer. Do not use “Grotto Runtime” as

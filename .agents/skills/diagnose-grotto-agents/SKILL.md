@@ -1,11 +1,11 @@
 ---
 name: diagnose-grotto-agents
-description: Diagnose and fix Grotto Agent behavior involving wrong context, inbox delivery, duplicate or missing messages, stale replies, task or thread routing, global sessions, hosted Computer execution, or Raft parity. Use for bugs where an Agent appears to answer the wrong chat, mishandles a notice or envelope, loses its place across chats, or behaves differently from Raft.
+description: Diagnose and fix Grotto Agent latency, slow responses, tool loops, wrong context, inbox delivery, missing or duplicate messages, and Computer execution. Use for Agent performance and behavior investigations, including recordings and production incidents. Checks Axiom and creates a Luna-max Raft research partner when the mechanism benefits from comparison.
 ---
 
 # Diagnose Grotto Agents
 
-Treat these as distributed delivery bugs before treating them as prompt-quality bugs. Preserve the
+Trace the distributed execution path before attributing symptoms to prompt quality or model speed. Preserve the
 Raft-derived product contract: one Agent owns one continuous global execution session spanning all
 Chats. Cross-chat knowledge is expected; confusing the current request or target is not.
 
@@ -23,10 +23,31 @@ load every workstream artifact by default.
 Confirm the checkout and environment without printing secrets. Follow repository setup and dev-port
 conventions. Prefer deterministic tests and seeded fixtures over noisy hosted or local Chats.
 
-## Create A Raft Research Partner
+## Start With Existing Telemetry
+
+For runtime incidents and performance investigations, use the `axiom-ops` skill and query Axiom
+before declaring timing or failure evidence missing. Read `docs/internals/observability.md` for
+the current trace and privacy contract. Discover dataset schemas; bound queries by incident time,
+environment, and Agent/run identity. Follow dispatch → Computer turn → MCP spans, then join local
+journals and native session evidence for detail inside the turn. Check failures before journal
+creation too. If Axiom is unavailable, say so and continue with local evidence; an unqueried source
+is not missing instrumentation. Offline deterministic bugs need no production query.
+
+Separate dispatch delay, native preparation, tools, first/last confirmed send, and settlement.
+An acknowledgment is not a completed answer, and time between tool calls is not proven inference
+time. Match model, reasoning effort, session state, and available service-tier information before
+comparing runs. Keep raw content out of telemetry. Add instrumentation only for a named missing
+discriminator; distinguish temporary diagnostics from deliberate permanent observability changes.
+
+## Create A Raft Research Partner When Useful
 
 Read [references/raft-research.md](references/raft-research.md) completely. Early in the
-investigation, spawn one read-only subagent dedicated to Raft research. Keep it available for the
+investigation, spawn one read-only subagent when session lifecycle, delivery, tool discovery,
+context handling, or runtime architecture could explain the symptom. This workflow explicitly
+authorizes that delegation without a separate user request. Use `gpt-5.6-luna` at `max` reasoning
+with a scoped prompt and no inherited history when the tool supports those settings. If unavailable,
+report the fallback model rather than silently claiming Luna-max. Skip the partner for a proven
+local defect whose mechanism has no meaningful Raft comparison. Keep it available for the
 whole diagnosis; it is a conversation partner and adversarial validator, not a one-shot summarizer.
 Timebox its first pass to a compact checkpoint; deepen only the sources implicated by local
 evidence.
@@ -58,8 +79,8 @@ Trace identities through the full path: hosted send, canonical pending delivery,
 delivered/seen ledgers, session input construction, task or thread routing, prompt projection, and
 runtime execution. Inspect actual values at boundaries; do not infer them from UI labels.
 
-Add narrow temporary instrumentation only where evidence is missing. Use a unique prefix and remove
-it before handoff. Never log secrets or full unrelated conversation bodies.
+Use the evidence already collected before adding temporary instrumentation. Give temporary probes
+a unique prefix and remove them before handoff. Never log secrets or unrelated conversation bodies.
 
 If the task is read-only, hypothetical, or lacks the state needed for a red run, produce an
 **evidence-only checkpoint** instead: state the leading mechanisms and confidence, identify the
@@ -126,4 +147,7 @@ For a completed fix, lead with the exact cause. For a diagnosis-only checkpoint,
 highest-confidence mechanism and missing discriminator. Explain why the global session remains
 correct, which delivery or grounding invariant failed or may have failed, the smallest fix or next
 test, deterministic proof, Raft validation, and any unverified gap. Distinguish direct evidence,
-source-backed contract, and inference.
+source-backed contract, and inference. Name the Axiom window and trace/run ids, what it established,
+and remaining gaps. Describe Raft comparisons as implementation evidence unless matched timing was
+actually measured. When Grok Bot comparison is relevant, use current primary documentation and
+bounded installed-app inspection; keep its undocumented model loop and latency claims explicit gaps.

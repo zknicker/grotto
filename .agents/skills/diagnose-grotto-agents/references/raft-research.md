@@ -1,6 +1,8 @@
 # Raft Research Partner
 
-Use a dedicated read-only subagent early and keep it alive through diagnosis and fix validation.
+When the skill's comparison criteria apply, use a dedicated Luna (`gpt-5.6-luna`) subagent at `max`
+reasoning early and keep it alive through diagnosis and fix validation. Use a scoped prompt with
+`fork_turns: "none"` when model overrides require it. No separate operator request is needed.
 Its job is to supply independent Raft evidence and challenge local reasoning.
 
 Ask for a compact first checkpoint within roughly ten minutes: contract, exact local symbols, three
@@ -56,6 +58,8 @@ Useful symbols previously observed include:
 - `RuntimeNotificationState`
 - `sendStdinNotification`
 - `deliverMessagesViaStdin`
+- `CodexDriver.buildThreadRequest` and `startInitialTurn`
+- `prepareManagedMcpRuntimeProxy`
 
 Treat these as search leads, not guaranteed current APIs. Record the installed version and quote
 only the smallest relevant implementation fragment.
@@ -73,6 +77,12 @@ Adapt this without inserting a favored diagnosis:
 > (3) Raft/Grotto parity and deliberate divergence, (4) three to five falsifiable diagnostic
 > questions, (5) the strongest challenge to the most tempting explanation, and (6) evidence gaps.
 > Stay available for follow-up hypothesis and fix review.
+
+For latency reports, include available Axiom and local phase timings in follow-up prompts. Ask
+which differences could explain the measured slow stage, not merely which designs differ. Check
+the current MCP implementation: old notes saying Raft exposes no Server-managed MCP are not a
+current contract. Do not infer a resident-process speedup or prompt-cache benefit without matched
+measurements. An optimization may intentionally improve on Raft rather than restore parity.
 
 ## Hypothesis Review
 

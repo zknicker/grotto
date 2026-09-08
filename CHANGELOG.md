@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
   of leaving that message queued after the Agent becomes idle.
 - Grotto adds theme commands to Command-K and tighter chat typography, with card and inline-code
   contrast preserved when hovering messages in dark mode.
+- Grotto updates its request-validation and rich-text dependencies to fix upstream security issues.
 - Grotto Computer 1.8.0 is a required update for Computer protocol 16. Grotto Agent 1.3.0 adds Cloud
   Agent continuation tools and guidance, automatic completion handling, and shorter reminder and
   Trigger instructions backed by the Manual.

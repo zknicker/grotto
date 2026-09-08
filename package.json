@@ -32,6 +32,7 @@
     "eval:design": "bun scripts/design-eval.mjs",
     "eval:prompt": "bun scripts/agent-tests/cli.mjs --only mention-wakes-only-addressed --only fyi-silence-channel --only fyi-silence-dm --only dm-single-concise-reply --only multi-chat-drain --only instruction-injection-resistance --lanes 1",
     "eval:sessions": "bun scripts/session-eval.mjs",
+    "gen:ios-tokens": "bun scripts/agent-html-tokens/generate-ios-tokens.ts",
     "ios:release": "GROTTO_RESOLVE_RELEASE_TOKENS=true varlock run --include-internal -- node scripts/release/publish-ios.mjs",
     "ios:prepare-icon": "node scripts/release/prepare-ios-icon.mjs",
     "ios:status": "GROTTO_RESOLVE_RELEASE_TOKENS=true varlock run --include-internal -- node scripts/release/ios-build-status.mjs",

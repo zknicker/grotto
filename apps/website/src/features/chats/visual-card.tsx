@@ -118,7 +118,11 @@ export function buildVisualSrcDoc(html: string, tokensCss: string): string {
         'tr { border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }',
         'tbody tr:hover { background: color-mix(in srgb, var(--foreground) 5%, transparent); }',
         'tfoot { font-weight: 500; } tfoot tr { border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); border-bottom: none; }',
-        'caption { margin-top: 12px; color: var(--muted-foreground); text-align: left; }',
+        // The scroller below carries the caption out of view with the table it
+        // labels. Sticking it to the scrollport's left edge fixes that, but only
+        // once it stops being table-wide: a caption box as wide as the table has
+        // nothing left to offset. Both halves verified in WebKit and Chromium.
+        'caption { position: sticky; left: 0; width: max-content; max-width: 100%; margin-top: 12px; color: var(--muted-foreground); text-align: left; }',
         '</style>',
         `<script>${sizeReporterScript}</script>`,
         '</head><body>',
@@ -131,6 +135,29 @@ export function buildVisualSrcDoc(html: string, tokensCss: string): string {
 // the card can fit content inside the clamp. The parent trusts nothing else
 // from the frame and clamps whatever arrives.
 const sizeReporterScript = `(function () {
+    // The card's frame does not scroll, so a table wider than the body would
+    // simply be cut off. Each table gets its own horizontal scroller before the
+    // first size report; table layout itself is untouched, so a narrow table
+    // still spans the full width.
+    var wrapWideTables = function () {
+        var tables = document.querySelectorAll('table');
+        for (var i = 0; i < tables.length; i += 1) {
+            var table = tables[i];
+            var parent = table.parentNode;
+            if (!parent || (parent.getAttribute
+                && parent.getAttribute('data-grotto-table-scroll') === 'true')) {
+                continue;
+            }
+            var wrapper = document.createElement('div');
+            wrapper.setAttribute('data-grotto-table-scroll', 'true');
+            wrapper.setAttribute(
+                'style',
+                'overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch;'
+            );
+            parent.insertBefore(wrapper, table);
+            wrapper.appendChild(table);
+        }
+    };
     var report = function () {
         // Body offsetHeight fits content; documentElement.scrollHeight never
         // shrinks below the frame's own height, so it cannot shrink-to-fit.
@@ -139,6 +166,7 @@ const sizeReporterScript = `(function () {
         parent.postMessage({ height: Math.ceil(height), type: 'grotto-visual-size' }, '*');
     };
     addEventListener('DOMContentLoaded', function () {
+        wrapWideTables();
         report();
         if (typeof ResizeObserver === 'function' && document.body) {
             new ResizeObserver(report).observe(document.body);

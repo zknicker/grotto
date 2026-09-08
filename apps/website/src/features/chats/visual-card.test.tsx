@@ -56,3 +56,28 @@ test('the sandbox paints native controls with the frame ink, not the browser acc
 
     expect(doc).toContain('accent-color: var(--primary, currentColor)');
 });
+
+test('the sandbox gives every table its own scroller before the first size report', () => {
+    const doc = buildVisualSrcDoc('<table><tr><td>wide</td></tr></table>', '');
+
+    expect(doc).toContain('data-grotto-table-scroll');
+    expect(doc).toContain('overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch;');
+    expect(doc.indexOf('wrapWideTables();')).toBeLessThan(doc.indexOf('report();'));
+    expect(doc.indexOf('report();')).toBeLessThan(doc.indexOf('<table><tr><td>wide</td>'));
+    // Layout is untouched, so a narrow table still spans the card.
+    expect(doc).toContain('table { width: 100%; border-collapse: collapse;');
+    expect(doc).not.toContain('display: block');
+    // The height report still comes off the body, wrapper or not.
+    expect(doc).toContain('new ResizeObserver(report).observe(document.body)');
+});
+
+test('the sandbox keeps a table caption visible while the table pans', () => {
+    const doc = buildVisualSrcDoc('<table><caption>Sales</caption></table>', '');
+
+    // Sticky alone is not enough: a caption box is table-wide, so it has to
+    // shrink to its content before `left: 0` has anything to hold on to.
+    // Verified in WebKit and Chromium against the wrapper the reporter adds.
+    expect(doc).toContain(
+        'caption { position: sticky; left: 0; width: max-content; max-width: 100%;'
+    );
+});

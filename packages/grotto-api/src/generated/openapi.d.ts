@@ -1115,8 +1115,6 @@ export interface components {
             /** @default null */
             description: string | null;
             /** @default null */
-            draftHint: string | null;
-            /** @default null */
             computer: null | components["schemas"]["PreparedActionComputer"];
         };
         PreparedActionComputer: {
@@ -1150,8 +1148,6 @@ export interface components {
                 name: string;
                 /** @default null */
                 description: string | null;
-                /** @default null */
-                draftHint: string | null;
                 /** @default null */
                 computer: null | components["schemas"]["PreparedActionComputer"];
                 avatar: components["schemas"]["PreparedActionMedia"];

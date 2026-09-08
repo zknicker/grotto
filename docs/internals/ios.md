@@ -317,7 +317,9 @@ surfaces still earn the system effect through it.
 
 The composer keeps the plain inset and a hard edge on purpose: the clearance it reserves is the
 transcript's own scroll bound, so no sharp row ever reaches past it, and the rows that reach its
-glass are already being refracted. The Thread transcript wears the same mask under its system
+glass are already being refracted. `GrottoChrome.transcriptBottomRunway` is the breathing room the
+transcript holds above that clearance — a scroll bound too, not composer padding — and it runs wider
+than the inter-message rhythm because the composer's glass rim sits inside the region it reserves. The Thread transcript wears the same mask under its system
 navigation bar.
 
 Every floating chrome control is one control. `GlassChromeButton` owns the 44-point circle, the
@@ -448,6 +450,29 @@ classifies each snapshot change exactly (refresh, append, prepend, reset — pin
 append may do to the viewport, and reveals arrive as one-shot `TranscriptReveal` tokens. The list
 passes the previous snapshot to append policy: a Thread's anchor and task metadata are not prior
 replies, so its first fetched reply page settles immediately rather than animating through history.
+
+Whether the newest item is on screen — the answer behind the scroll-to-latest chevron — is published
+only from settled geometry. A landing transcript passes through intermediate offsets inside one
+runloop turn: an inset grows before the resting offset is reapplied, an append jumps the viewport
+before releasing it toward rest. Every trigger therefore coalesces into a single deferred reading per
+turn, taken after that turn's geometry stands, and deduped against the coordinator's own last report
+rather than the SwiftUI binding — the binding write is asynchronous, so a second reading in the same
+turn would compare against a value the first has not delivered and swallow its own correction. A
+programmatic settle reports its destination, not the offsets it is travelling through, and the rule
+itself is `TranscriptNearNewest`, pure so the UIKit path and its tests share one definition. That
+destination is the coordinator's own answer too: while a settle is in flight the transcript counts
+as showing its newest item, so an inset write landing mid-travel re-rests the viewport and an
+append still animates rather than reading the offset it is passing through as scrolled away. The
+travel itself stays the scroll view's own `setContentOffset(_:animated:)`, because that is what lays
+the table out frame by frame; a `UIView.animate` block on `contentOffset` looks identical, writes the
+destination offset immediately, and leaves everything the viewport passes over blank. Each settle
+therefore holds a single-use `SettleTicket`, closed by whichever arrives first —
+`scrollViewDidEndScrollingAnimation`, or a deferred fallback armed just past UIKit's own duration for
+the flights that never report one, such as a mid-flight inset write cancelling the travel — while a
+drag closes it on the spot and orphans both. Without that guarantee a cancelled settle would keep
+publishing "showing the newest item" over a viewport stranded anywhere, which is the stale chevron
+this contract exists to prevent.
+
 The flip has known UIKit seams, all owned inside `TranscriptListView`: the system scroll edge effects are
 hidden (they compute their region from safe areas the flipped table lacks and wash the viewport —
 the dissolve is `transcriptTopDissolve`), the opening entrance runs as a UIKit animation because a
@@ -683,6 +708,37 @@ already says what the reference is, so `ReferenceLabel` strips the sigil from re
 alike and reads a channel's stored slug as a title, `onboarding-owner` as `Onboarding Owner`. The inserted
 markdown and the reference target are untouched. Human references remain visual and do not create
 attention or notification behavior.
+
+A chip is a run inside the message body, not a box beside it. `RichReferenceChipRaster` draws each
+chip once through `ImageRenderer` at the display scale, and `RichMessageContentView` concatenates
+that bitmap into the single `Text` carrying the body's words. Segments rendered as sibling views
+cannot flow at all: a multi-word run measures at the full column width, so the chip and every word
+after it were pushed onto their own lines. `InlineChipFit` owns the chip's vertical contract,
+because a SwiftUI line absorbs an image run's above-baseline extent only up to the font's ascent
+plus its leading and absorbs no baseline offset at all — every point of offset, up or down, is added
+to that line. So the chip is sized to that ceiling — about 16.3pt inside 17pt body text at default
+Dynamic Type — and dropped only a twentieth of the line, which holds a chip line to the pitch of a
+plain line within a point where centering it on the x-height the way the App's `align-middle` span
+does would have cost four. `RichReferenceChipProportions` fills that box: the mark and the insets are
+fractions of the height, so a ~13pt mark sits a point and a half from the top, bottom, and leading
+edges and the corner keeps the `box / 3` curve `ChannelIconBox` gives the mark, while the label is
+the one measurement taken from the words rather than the box — 0.88 of the surrounding point size,
+about 15pt at default, the way the App's chip carries an 0.875 label. Sizing the label off the box
+instead made it read as a shrunken pill beside body text; sized off the text it reads as a
+highlighted run of the sentence, with its caps and the box's own height about two and a half points
+apart. That label's line box is taller than the box it sits in, so centering it hung the descenders
+through the capsule's bottom edge, where `ImageRenderer` — bounded to the chip's frame — cut them
+flat; the label is lifted by the overhang instead, about eight tenths of a point at default type,
+which rests the descenders on that edge and still leaves two points of air over the capitals. The
+raster is an `NSCache` bounded by pixels rather than entries, so a long back-scroll neither
+re-rasterizes inside cell layout nor ignores
+memory pressure, and it is keyed by the reference, the color scheme, Dynamic Type, Bold Text, the
+display scale, those proportions, and whether the avatar bytes or the channel glyph have arrived, so
+an asynchronous load draws a new chip instead of reviving a stale one. Avatar presence in that key
+is `AvatarImageCache`'s answer alone, never a per-view set: the cache restores an evicted avatar
+from its disk bytes and only reports absence once those are gone too, so a recycled row cannot flip
+a drawn avatar back to initials. The body carries its own accessibility label, so a rasterized chip
+still reads as `Agent reference, Marlow`.
 
 The open native Chat and Thread surfaces acknowledge the latest loaded message sequence through
 `chat.markRead`. Identical Server/Chat/sequence acknowledgements are deduplicated in memory. The

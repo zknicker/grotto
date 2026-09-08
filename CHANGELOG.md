@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.15.1 - 2026-09-07
+
+- Grotto delivers the Cloud Agent and iPhone updates described in v1.15.0, whose publication
+  stopped before upload. Release builds no longer require runtime telemetry credentials.
+- Update Grotto Computer to 1.8.1 for protocol 16 and Grotto Agent 1.3.1. The iPhone build is
+  1.5.1 (25).
+
 ## v1.15.0 - 2026-09-07
 
 - Grotto Agents can delegate code changes to Cursor Cloud Agents. Connect Cursor in Computer

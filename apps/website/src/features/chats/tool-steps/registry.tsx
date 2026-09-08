@@ -10,9 +10,8 @@ type ToolStepRenderer = (props: ToolStepRendererProps) => ReactNode;
 // Tool-aware inline rows, resolved by tool name: exact match first, then
 // substring match, then GenericToolStep. To customize a tool's row, add one
 // entry here; compose ToolTimelineStep + InlineToolLabel so the row inherits
-// the drawer trigger, enter animation, shimmer, and status colors. The
-// inspect drawer has a mirror registry in
-// features/sessions/tools/tool-drawer-registry.tsx. See
+// the drawer trigger, enter animation, shimmer, and status colors. Detailed
+// execution bodies live in features/turn-trace/. See
 // docs/internals/tool-presentation.md.
 const toolStepRenderers = {
     bash: ShellToolStep,

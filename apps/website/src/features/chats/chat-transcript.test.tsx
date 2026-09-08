@@ -9,10 +9,9 @@ import {
 } from '../../components/chats/message-scroller.tsx';
 import { DevModeProvider } from '../../components/dev-mode-provider.tsx';
 import { ArtifactLogEntry } from '../sessions/log/event-entry/artifact-entry.tsx';
-import { ToolDrawerBody } from '../sessions/tools/tool-drawer-body.tsx';
 import { ChatTranscriptPresentation } from './chat-transcript.tsx';
 import { groupAgentItems } from './chat-transcript-item-utils.ts';
-import type { TranscriptItem, TranscriptRow } from './chat-transcript-model.ts';
+import type { TranscriptRow } from './chat-transcript-model.ts';
 import type { TranscriptRenderContextValue } from './chat-transcript-render-context.tsx';
 import { SystemStep } from './chat-transcript-system-step.tsx';
 import {
@@ -20,10 +19,9 @@ import {
     getActiveReplyDisplayText,
     resolveMentionAgentId,
 } from './chat-transcript-turn.tsx';
-import { ChatTurnItems } from './chat-turn-drawer.tsx';
 import { withLocalTimelineMessageMetadata } from './local-timeline-message.ts';
 import { ToolStep } from './tool-steps/registry.tsx';
-import type { TranscriptActiveReply, TranscriptMessageRow } from './transcript-contract.ts';
+import type { TranscriptMessageRow } from './transcript-contract.ts';
 
 test('ChatTranscript renders hover time and copy action without session or usage badges', () => {
     const markup = renderTranscript([
@@ -290,7 +288,7 @@ test('active reply display text ignores invisible streaming edge whitespace', ()
     assert.equal(getActiveReplyDisplayText('\n\nDone.\n\n'), 'Done.');
 });
 
-test('ChatTranscript keeps tool calls out of the pane and in the turn body', () => {
+test('ChatTranscript keeps tool calls out of the chat pane', () => {
     const rows: ChatRow[] = [
         {
             actor: { id: 'tiny', kind: 'agent' },
@@ -341,12 +339,6 @@ test('ChatTranscript keeps tool calls out of the pane and in the turn body', () 
     // aria-expanded, so only an expanded work group is disqualifying.
     assert.doesNotMatch(markup, /aria-expanded="true"/);
     assert.doesNotMatch(markup, /command -v gog/);
-
-    const turnBody = renderTurnBody(rows);
-
-    assert.match(turnBody, /command -v gog/);
-    // The drawer renders tool calls as stock ChatTool cards.
-    assert.match(turnBody, /data-slot="chat-tool"/);
 });
 
 test('ChatTranscript labels recovered tool failures without making the final reply look failed', () => {
@@ -415,11 +407,6 @@ test('ChatTranscript labels recovered tool failures without making the final rep
     assert.match(markup, /Done\./);
     assert.doesNotMatch(markup, /Final reply failed/);
     assert.doesNotMatch(markup, /Recovered after failed file read/);
-
-    const turnBody = renderTurnBody(rows);
-
-    assert.match(turnBody, /chat-tool--error/);
-    assert.match(turnBody, /bad-upload\.png/);
 });
 
 test('ChatTranscript replays retired catalog widgets as the fallback card', () => {
@@ -610,13 +597,12 @@ test('ChatTranscript keeps reasoning out of the chat pane', () => {
         },
     ];
 
-    // Reasoning belongs to the turn details drawer alongside tool work, not
-    // the chat transcript.
+    // Reasoning belongs to the turn trace alongside tool work, not the chat
+    // transcript.
     assert.doesNotMatch(renderTranscript(rows), /I should greet the user directly\./);
-    assert.match(renderTurnBody(rows), /I should greet the user directly\./);
 });
 
-test('ChatTranscript keeps active thinking out of the pane and in the turn body', () => {
+test('ChatTranscript keeps active thinking out of the chat pane', () => {
     const rows: ChatRow[] = [
         {
             id: 'thinking-1',
@@ -646,14 +632,9 @@ test('ChatTranscript keeps active thinking out of the pane and in the turn body'
         },
     ];
     const markup = renderTranscript(rows);
-    const turnBodyMarkup = renderTurnBody(rows);
 
     assert.doesNotMatch(markup, /Reviewing the request/);
     assert.doesNotMatch(markup, /Checking tool output/);
-    assert.match(turnBodyMarkup, /Reviewing the request/);
-    assert.match(turnBodyMarkup, /I should inspect the workspace before using a command\./);
-    assert.match(turnBodyMarkup, /Checking tool output/);
-    assert.match(turnBodyMarkup, /I should summarize only the command result\./);
 });
 
 test('SystemStep uses leading bold thinking text as the thinking step title', () => {
@@ -681,51 +662,6 @@ test('SystemStep uses leading bold thinking text as the thinking step title', ()
     assert.match(markup, /It seems I can answer directly\./);
     assert.doesNotMatch(markup, /\*\*Deciding on greeting approach\*\*/);
     assert.doesNotMatch(markup, /<svg/u);
-});
-
-test('ChatTranscript keeps thinking rows alongside tool work in the turn body', () => {
-    const markup = renderTurnBody([
-        {
-            id: 'thinking-1',
-            kind: 'system',
-            systemKind: 'thinking',
-            thinking: {
-                id: 'thinking-1',
-                messageId: 'response-1',
-                sender: 'tiny',
-                text: 'I should inspect the workspace.',
-                timestamp: '2026-03-31T15:00:00.000Z',
-            },
-            timestamp: '2026-03-31T15:00:00.000Z',
-        },
-        {
-            actor: { id: 'tiny', kind: 'agent' },
-            completedAt: '2026-03-31T15:00:01.000Z',
-            connectsToNext: false,
-            connectsToPrevious: true,
-            id: 'tool-1',
-            isFirstInGroup: false,
-            kind: 'tool',
-            sessionKey: 'agent:tiny:session-1',
-            spawnedRelationships: [],
-            startedAt: '2026-03-31T15:00:00.500Z',
-            toolCall: {
-                callId: 'call-1',
-                facts: [],
-                label: 'command -v node',
-                name: 'exec',
-                status: 'completed',
-                summaryParts: ['command -v node'],
-            },
-        },
-    ]);
-
-    assert.match(markup, /I should inspect the workspace\./);
-    // Thinking renders as a ChainOfThought timeline; the tool keeps its
-    // inspectable ChatTool card alongside it.
-    assert.match(markup, /chain-of-thought/);
-    assert.match(markup, /command -v node/);
-    assert.match(markup, /data-slot="chat-tool"/);
 });
 
 test('ToolStep renders bash failures through the shell tool renderer', () => {
@@ -984,14 +920,6 @@ test('ToolStep keeps older tool rows inspectable when call id is missing', () =>
     assert.match(markup, /computer use\.list apps/);
 });
 
-test('ToolDrawerBody renders a concise unavailable state when tool details cannot load', () => {
-    const markup = renderToStaticMarkup(
-        <ToolDrawerBody details={null} isPending={false} queryError />
-    );
-
-    assert.match(markup, /Tool details not available\./);
-});
-
 test('ToolStep avoids duplicating the tool verb when the activity title already includes it', () => {
     const markup = renderToStaticMarkup(
         <ToolStep
@@ -1079,43 +1007,6 @@ test('ArtifactLogEntry renders durable artifact titles', () => {
 
     assert.match(markup, /document/);
     assert.match(markup, /Report/);
-});
-
-test('the turn drawer renders completed narration evidence as prose', () => {
-    const narrationText =
-        'Open https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=preview-client.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A1&scope=calendar.events.readonly before the final reply.';
-    const markup = renderTurnBody([
-        {
-            actor: { id: 'tiny', kind: 'agent' },
-            completedAt: '2026-03-31T15:00:01.000Z',
-            connectsToNext: false,
-            connectsToPrevious: false,
-            id: 'activity:run-1:assistant-reply:1',
-            isFirstInGroup: true,
-            kind: 'tool',
-            sessionKey: 'agent:tiny:session-1',
-            spawnedRelationships: [],
-            startedAt: '2026-03-31T15:00:00.000Z',
-            toolCall: {
-                callId: null,
-                facts: [
-                    {
-                        label: 'Detail',
-                        tone: 'default',
-                        value: narrationText,
-                    },
-                ],
-                label: 'Assistant reply',
-                name: 'message',
-                status: 'ok',
-                summaryParts: ['Assistant reply', narrationText],
-            },
-        },
-    ]);
-
-    assert.match(markup, /Open https:\/\/accounts\.google\.com\/o\/oauth2\/auth/);
-    assert.match(markup, /\[overflow-wrap:anywhere\]/);
-    assert.doesNotMatch(markup, /Assistant reply\n/);
 });
 
 test('ChatTranscript renders durable activity once when an assistant reply follows it', () => {
@@ -1410,146 +1301,6 @@ test('ChatTranscript keeps completed agent status out of transcript after activi
     assert.doesNotMatch(markup, /Agent idle/);
 });
 
-test('ChatTranscript shows active progress through the same thinking steps surface', () => {
-    const now = Date.now();
-    const markup = renderActiveTurnBody(
-        {
-            agentId: 'tiny',
-            isThinking: true,
-            runId: 'run-progress',
-            sessionKey: 'agent:tiny:session-1',
-            startedAt: new Date(now - 3000).toISOString(),
-            text: '',
-        },
-        [
-            {
-                actor: { id: 'tiny', kind: 'agent' },
-                completedAt: null,
-                connectsToNext: true,
-                connectsToPrevious: false,
-                id: 'activity:run-progress:assistant-reply:1',
-                isFirstInGroup: true,
-                kind: 'tool',
-                sessionKey: 'agent:tiny:session-1',
-                spawnedRelationships: [],
-                startedAt: new Date(now - 2500).toISOString(),
-                toolCall: {
-                    callId: null,
-                    facts: [
-                        {
-                            label: 'Detail',
-                            tone: 'default',
-                            value: "I'll inspect the workspace before making changes.",
-                        },
-                    ],
-                    label: 'Assistant reply',
-                    name: 'message',
-                    status: 'running',
-                    summaryParts: [
-                        'Assistant reply',
-                        "I'll inspect the workspace before making changes.",
-                    ],
-                },
-            },
-            {
-                actor: { id: 'tiny', kind: 'agent' },
-                completedAt: null,
-                connectsToNext: true,
-                connectsToPrevious: true,
-                id: 'activity:run-progress:tool:1',
-                isFirstInGroup: false,
-                kind: 'tool',
-                sessionKey: 'agent:tiny:session-1',
-                spawnedRelationships: [],
-                startedAt: new Date(now - 1500).toISOString(),
-                toolCall: {
-                    callId: 'call-1',
-                    facts: [],
-                    label: 'Listing files',
-                    name: 'bash',
-                    status: 'running',
-                    summaryParts: ['Listing files'],
-                },
-            },
-            {
-                actor: { id: 'tiny', kind: 'agent' },
-                completedAt: null,
-                connectsToNext: false,
-                connectsToPrevious: true,
-                id: 'activity:run-progress:assistant-reply:2',
-                isFirstInGroup: false,
-                kind: 'tool',
-                sessionKey: 'agent:tiny:session-1',
-                spawnedRelationships: [],
-                startedAt: new Date(now - 500).toISOString(),
-                toolCall: {
-                    callId: null,
-                    facts: [],
-                    label: 'I found the files. Next I will inspect the renderer.',
-                    name: 'message',
-                    status: 'running',
-                    summaryParts: ['I found the files. Next I will inspect the renderer.'],
-                },
-            },
-        ]
-    );
-
-    assert.match(markup, /I&#x27;ll inspect the workspace before making changes\./);
-    assert.doesNotMatch(markup, /Assistant reply\n/);
-    assert.match(markup, /data-state="input-available"[\s\S]*Listing files/);
-    assert.match(markup, /I found the files\. Next I will inspect the renderer\./);
-    assert.doesNotMatch(markup, /Agent is working/);
-    assert.doesNotMatch(markup, />Running</);
-    assert.doesNotMatch(markup, /chat-turn-work-panel/);
-});
-
-test('ChatTranscript renders active tool progress as one-line status rows', () => {
-    const markup = renderActiveTurnBody(
-        {
-            agentId: 'tiny',
-            isThinking: true,
-            runId: 'run-progress',
-            sessionKey: 'agent:tiny:session-1',
-            startedAt: new Date(Date.now() - 3000).toISOString(),
-            text: '',
-        },
-        [
-            {
-                actor: { id: 'tiny', kind: 'agent' },
-                completedAt: null,
-                connectsToNext: false,
-                connectsToPrevious: false,
-                id: 'activity:run-progress:tool:1',
-                isFirstInGroup: true,
-                kind: 'tool',
-                sessionKey: 'agent:tiny:session-1',
-                spawnedRelationships: [],
-                startedAt: new Date().toISOString(),
-                toolCall: {
-                    callId: 'call-1',
-                    facts: [
-                        {
-                            label: 'Detail',
-                            tone: 'default',
-                            value: 'start',
-                        },
-                    ],
-                    label: 'bash',
-                    name: 'bash',
-                    status: 'running',
-                    summaryParts: ['bash'],
-                },
-            },
-        ]
-    );
-
-    assert.match(markup, /data-state="input-available"[\s\S]*bash/);
-    assert.match(markup, /data-slot="chat-tool-trigger"/);
-    assert.doesNotMatch(markup, /Agent is working/);
-    assert.doesNotMatch(markup, />Running</);
-    assert.doesNotMatch(markup, />start</);
-});
-
 test('ChatTranscript renders a pending clarification as a read-only question row', () => {
     const markup = renderTranscript([
         {
@@ -1627,104 +1378,6 @@ test('ChatTranscript renders free-text clarifications as read-only question rows
     assert.doesNotMatch(markup, />Other</);
 });
 
-test('ChatTranscript wires active progress tool ids to the tool drawer trigger', () => {
-    const markup = renderActiveTurnBody(
-        {
-            agentId: 'tiny',
-            isThinking: true,
-            runId: 'run-progress',
-            sessionKey: 'agent:tiny:session-1',
-            startedAt: new Date(Date.now() - 3000).toISOString(),
-            text: '',
-        },
-        [
-            {
-                actor: { id: 'tiny', kind: 'agent' },
-                completedAt: null,
-                connectsToNext: false,
-                connectsToPrevious: false,
-                id: 'activity:run-progress:tool:call_123',
-                isFirstInGroup: true,
-                kind: 'tool',
-                sessionKey: 'agent:tiny:session-1',
-                spawnedRelationships: [],
-                startedAt: new Date().toISOString(),
-                toolCall: {
-                    callId: 'call_123',
-                    facts: [],
-                    label: 'computer use.list apps',
-                    name: 'computer-use.list_apps',
-                    status: 'running',
-                    summaryParts: ['computer use.list apps'],
-                },
-            },
-        ]
-    );
-
-    assert.match(markup, /computer use\.list apps/);
-    assert.match(markup, /data-slot="chat-tool-trigger"/);
-    assert.match(markup, /data-expandable="true"/);
-});
-
-test('ChatTranscript keeps active work headers stable between fast completed tools', () => {
-    const markup = renderActiveTurnBody(
-        {
-            agentId: 'tiny',
-            isThinking: true,
-            runId: 'run-progress',
-            sessionKey: 'agent:tiny:session-1',
-            startedAt: new Date(Date.now() - 3000).toISOString(),
-            text: '',
-        },
-        [
-            {
-                actor: { id: 'tiny', kind: 'agent' },
-                completedAt: new Date(Date.now() - 1200).toISOString(),
-                connectsToNext: true,
-                connectsToPrevious: false,
-                id: 'activity:run-progress:tool:1',
-                isFirstInGroup: true,
-                kind: 'tool',
-                sessionKey: 'agent:tiny:session-1',
-                spawnedRelationships: [],
-                startedAt: new Date(Date.now() - 1400).toISOString(),
-                toolCall: {
-                    callId: 'call-1',
-                    facts: [],
-                    label: 'query one',
-                    name: 'search_files',
-                    status: 'completed',
-                    summaryParts: ['query one'],
-                },
-            },
-            {
-                actor: { id: 'tiny', kind: 'agent' },
-                completedAt: new Date(Date.now() - 600).toISOString(),
-                connectsToNext: false,
-                connectsToPrevious: true,
-                id: 'activity:run-progress:tool:2',
-                isFirstInGroup: false,
-                kind: 'tool',
-                sessionKey: 'agent:tiny:session-1',
-                spawnedRelationships: [],
-                startedAt: new Date(Date.now() - 800).toISOString(),
-                toolCall: {
-                    callId: 'call-2',
-                    facts: [],
-                    label: 'query two',
-                    name: 'search_files',
-                    status: 'completed',
-                    summaryParts: ['query two'],
-                },
-            },
-        ]
-    );
-
-    assert.match(markup, /query one/);
-    assert.match(markup, /query two/);
-    assert.doesNotMatch(markup, /Searched code 2 times/);
-});
-
 test('ChatTranscript renders the streaming post as one evolving contribution', () => {
     const runId = 'run_0198f00d-1111-4222-8333-444455556666_blippy';
     const postId = `msg_${runId}_assistant`;
@@ -1759,69 +1412,6 @@ test('ChatTranscript renders the streaming post as one evolving contribution', (
     const done = renderTranscript([post('All done.', false)]);
     assert.match(done, /All done\./);
     assert.equal(done.match(/data-from="assistant"/g)?.length ?? 0, 1);
-});
-
-test('ChatTranscript keeps narration messages in the work log above later tools', () => {
-    const now = Date.now();
-    const markup = renderActiveTurnBody(
-        {
-            agentId: 'tiny',
-            isThinking: true,
-            runId: 'run-1',
-            sessionKey: 'agent:tiny:session-1',
-            startedAt: new Date(now - 3000).toISOString(),
-            text: '',
-        },
-        [
-            {
-                actor: { id: 'tiny', kind: 'agent' },
-                connectsToNext: false,
-                connectsToPrevious: false,
-                id: 'act_run-1_message_1',
-                isFirstInGroup: true,
-                kind: 'message',
-                message: {
-                    grottoAgentId: 'tiny',
-                    content: 'I will inspect the workspace before replying.',
-                    id: 'act_run-1_message_1',
-                    metadata: { runtime: { runId: 'run-1', sessionKey: 'agent:tiny:session-1' } },
-                    sender: 'tiny',
-                    senderType: 'agent',
-                    sourceSessionId: null,
-                    sourceSessionKey: 'agent:tiny:session-1',
-                    timestamp: new Date(now - 2500).toISOString(),
-                },
-            },
-            {
-                actor: { id: 'tiny', kind: 'agent' },
-                completedAt: null,
-                connectsToNext: false,
-                connectsToPrevious: false,
-                id: 'act_run-1_call_1',
-                isFirstInGroup: true,
-                kind: 'tool',
-                sessionKey: 'agent:tiny:session-1',
-                spawnedRelationships: [],
-                startedAt: new Date(now - 1500).toISOString(),
-                toolCall: {
-                    callId: 'call_1',
-                    facts: [],
-                    label: 'Listing files',
-                    name: 'search_files',
-                    status: 'running',
-                    summaryParts: ['Listing files'],
-                },
-            },
-        ]
-    );
-    const narrationIndex = markup.indexOf('I will inspect the workspace before replying.');
-    const toolIndex = markup.indexOf('Listing files');
-
-    assert.doesNotMatch(markup, /Worked for/);
-    assert.match(markup, /flex min-w-0 flex-col gap-3/);
-    assert.doesNotMatch(markup, /-my-1\.5/);
-    assert.ok(narrationIndex >= 0 && toolIndex >= 0, 'narration and tool both render');
-    assert.ok(narrationIndex < toolIndex, 'narration renders above the tool that follows it');
 });
 
 test('the pane narration slot keeps only the latest update while the turn runs', () => {
@@ -2173,30 +1763,6 @@ function renderTranscript(rows: ChatRow[], overrides: Partial<TranscriptRenderCo
             </DevModeProvider>
         </MemoryRouter>
     );
-}
-
-// Renders the turn-drawer body for the last agent turn — the surface tool
-// work moved to now that the chat pane is prose-only.
-function renderTurnBody(rows: ChatRow[], activeReply: TranscriptActiveReply | null = null) {
-    // The drawer merges turn-scoped evidence with the entry's conversation
-    // items; tests feed that merged view directly.
-    const items: TranscriptItem[] = rows.map((row) => ({ kind: 'row' as const, row }));
-
-    if (activeReply) {
-        items.push({ kind: 'activeReply', reply: activeReply });
-    }
-
-    return renderToStaticMarkup(
-        <MemoryRouter>
-            <DevModeProvider>
-                <ChatTurnItems chatId="cht_test" items={items} turnActive={Boolean(activeReply)} />
-            </DevModeProvider>
-        </MemoryRouter>
-    );
-}
-
-function renderActiveTurnBody(activeReply: TranscriptActiveReply, rows: ChatRow[] = []) {
-    return renderTurnBody(rows, activeReply);
 }
 
 function widgetRow(id: string): ChatRow {

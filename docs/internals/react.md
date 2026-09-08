@@ -342,6 +342,11 @@ identity is the change signal** — hosted chat messages carry no version or
   cannot provide, currently sender differentiation and task-label colors.
 * `styles/artifact-tokens.css` is the stable compatibility boundary for
   durable agent-authored HTML. Product components must not use its aliases.
+  Two published names, `--success-foreground` and `--warning-foreground`, are
+  remapped to HeroUI's `-soft-foreground` values in the frame snapshot
+  (`agent-html/tokens.ts`) rather than in that file. `--chart-1..5` is the one
+  deliberate crossover: it is declared globally so `features/stats` and
+  agent-authored visuals draw the same categorical palette.
 * Feature behavior CSS stays beside its owner, such as chat motion and the
   Electron shell. It must not restyle HeroUI component appearance.
 * At HeroUI `Avatar`, `Badge`, and `Chip` call sites, limit classes to layout,

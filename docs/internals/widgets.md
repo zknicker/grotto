@@ -3,6 +3,7 @@ summary: Visual and artifact architecture — tagged fences, generative visuals 
 read_when:
   - changing visual or artifact persistence, fence parsing, or renderer behavior
   - changing the visual sandbox, its CSP or CDN allowlist, or the theme-token injection
+  - changing the published agent-visual token vocabulary or the chart palette
   - changing how assistant final replies become app-rendered chat UI
   - touching legacy stored widget activity or its fallback rendering
 ---
@@ -71,13 +72,19 @@ registration), with optional info-string text as the title:
   skill steers toward inline SVG first, so the CDN is an escape hatch for
   genuinely interactive charts, and an offline app degrades to script-less
   markup.
-- **Theming.** The iframe cannot read app styles, so the host snapshots a
-  curated token list (surfaces, text tiers, borders, status, `--chart-1..5`,
-  radii, fonts) from computed styles and injects them as `:root` variables,
-  re-snapshotting on theme change (`apps/website/src/agent-html/tokens.ts`).
-  Generated visuals reference only those variables — never hardcoded surface
-  or text colors — which is what makes them wear Grotto's brand in both
-  schemes.
+- **Theming.** The iframe cannot read app styles, so the host snapshots the
+  published token list (`apps/website/src/agent-html/tokens.ts`) off computed
+  styles and injects it as `:root`, re-snapshotting on theme change. Those
+  names resolve through `apps/website/src/styles/artifact-tokens.css`, mostly
+  as aliases onto HeroUI roles, with named exceptions where HeroUI has no such
+  distinction: three text tiers under `--foreground`, `--brand` (Grotto violet,
+  deliberately not the accent), and the categorical `--chart-1..5`, which is
+  global and shared with the app's own usage chart. Two names,
+  `--success-foreground` and `--warning-foreground`, are remapped to HeroUI's
+  `-soft-foreground` values in the snapshot only. Font sizes track the app's
+  type scale (14px body), not a frozen value. Generated visuals reference only
+  the published names — never HeroUI names, never hardcoded colors — which is
+  what makes them wear Grotto's look in both schemes.
 - **Native tables.** The sandbox base stylesheet styles bare `<table>`
   markup to match the app's `ui/table.tsx` look (hairline row dividers,
   muted cells, hover tint, styled `tfoot`/`caption`), so agents render
@@ -92,7 +99,8 @@ registration), with optional info-string text as the title:
 - **Taste layer.** One seeded `visuals` skill owns everything the agent
   renders — when to render, the visual and artifact fence contracts, and the
   full design system (`references/design-system.md`, `references/icons.md`,
-  curated icon assets), all derived from DESIGN.md and the theme tokens. The
+  curated icon assets), written against the published token names in
+  `artifact-tokens.css`; DESIGN.md carries the app-side reference. The
   managed prompt keeps a three-line pointer: the surfaces exist and the
   skill is a mandatory read before emitting any fence (ADR 0012). Skill
   sources are markdown files under

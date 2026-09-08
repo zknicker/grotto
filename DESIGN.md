@@ -33,11 +33,11 @@ colors:
     field-foreground: "#FCFCFC"
     field-placeholder: "#A0A0A0"
     black: "#000000"
-    chart-1: "#0038A5"
-    chart-2: "#005FCE"
-    chart-3: "#0485F7"
-    chart-4: "#42ACFF"
-    chart-5: "#6CD4FF"
+    chart-1: "#00BCFF"
+    chart-2: "#FF6467"
+    chart-3: "#00D492"
+    chart-4: "#A684FF"
+    chart-5: "#A6A09B"
     eclipse: "#18181B"
     snow: "#FCFCFC"
     white: "#FFFFFF"
@@ -108,11 +108,11 @@ colors:
     field-foreground: "#18181B"
     field-placeholder: "#727272"
     black: "#000000"
-    chart-1: "#0038A5"
-    chart-2: "#005FCE"
-    chart-3: "#0485F7"
-    chart-4: "#42ACFF"
-    chart-5: "#6CD4FF"
+    chart-1: "#0084D1"
+    chart-2: "#E7000B"
+    chart-3: "#009966"
+    chart-4: "#7F22FE"
+    chart-5: "#79716B"
     eclipse: "#18181B"
     snow: "#FCFCFC"
     white: "#FFFFFF"
@@ -228,11 +228,11 @@ components:
     component: "Card"
     shadow: "0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06), 0 0 1px 0 rgba(0, 0, 0, 0.06)"
   chart:
-    series1: "#0038A5"
-    series2: "#005FCE"
-    series3: "#0485F7"
-    series4: "#42ACFF"
-    series5: "#6CD4FF"
+    series1: "#0084D1"
+    series2: "#E7000B"
+    series3: "#009966"
+    series4: "#7F22FE"
+    series5: "#79716B"
   field:
     backgroundColor: "#FFFFFF"
     borderColor: "#DEDEDE"
@@ -294,7 +294,7 @@ sitting on it rather than by tinting the ground. `--sidebar-surface` and
 | `surface` | `#FFFFFF` | `#181818` | `Light: = white; Dark: oklch(21.03% 0.0000 253.83)` | `--surface` | `bg-surface text-surface-foreground` for cards and panels | Container background for cards, panels, modals, and dropdowns. |
 | `surface-secondary` | `#EFEFEF` | `#232323` | `Light: oklch(95.24% 0.0000 253.83); Dark: oklch(25.70% 0.0000 253.83)` | `--surface-secondary` | `bg-surface-secondary` for subdued nested surfaces | Secondary surface for nested containers and layered panels. |
 | `surface-tertiary` | `#EAEAEA` | `#272727` | `Light: oklch(93.73% 0.0000 253.83); Dark: oklch(27.21% 0.0000 253.83)` | `--surface-tertiary` | `bg-surface-tertiary` for low-emphasis nested surfaces | Tertiary surface for deeper nesting levels. |
-| `accent` | `#0485F7` | `#0485F7` | `oklch(62.04% 0.1951 253.83)` | `--accent` | `Button variant="primary"` or `bg-accent text-accent-foreground` | Primary brand color. Used for key actions, highlights, and moments of emphasis. |
+| `accent` | `#0485F7` | `#0485F7` | `oklch(62.04% 0.1951 253.83)` | `--accent` | `Button variant="primary"` or `bg-accent text-accent-foreground` | The app's interactive and emphasis blue: key actions, selection, focus. Agent-authored visuals carry a separate `--brand` violet — see "Agent-visual tokens". |
 | `accent-foreground` | `#FCFCFC` | `#FCFCFC` | `= snow` | `--accent-foreground` | `text-accent-foreground` on accent surfaces | Text/icon color on accent backgrounds. Optimized for contrast and readability. |
 | `accent-hover` | `#3592F9` | `#3592F9` | `accent / 90% + accent-foreground / 10%` | `--accent-hover` | Prefer HeroUI hover states; use `bg-accent-hover` only for custom surfaces | Accent hover state. Derived automatically from accent and accent-foreground. |
 | `accent-soft` | `rgba(4, 133, 247, 0.15)` | `rgba(4, 133, 247, 0.12)` | `Light: accent / 15% + transparent; Dark: accent / 12% + transparent` | `--accent-soft` | `bg-accent-soft text-accent-soft-foreground` for selected or soft emphasis | Subtle accent background. A low-opacity tint for soft emphasis and selections. |
@@ -317,11 +317,11 @@ sitting on it rather than by tinting the ground. `--sidebar-surface` and
 | `field-foreground` | `#18181B` | `#FCFCFC` | `var(--foreground)` | `--field-foreground` | Field text color | Text color inside form fields. |
 | `field-placeholder` | `#727272` | `#A0A0A0` | `= muted` | `--field-placeholder` | Field placeholder text color | Placeholder text color in form fields. |
 | `black` | `#000000` | `#000000` | `oklch(0% 0 0)` | `--black` | Prefer the HeroUI token for black. | Pure black. Used as a base primitive for dark theme foreground elements. |
-| `chart-1` | `#0038A5` | `#0038A5` | `oklch(from var(--accent) calc(l - 0.24) c h)` | `--chart-1` | First chart series color | Chart series color 1. Darkest accent-derived shade for multi-series visualizations. |
-| `chart-2` | `#005FCE` | `#005FCE` | `oklch(from var(--accent) calc(l - 0.12) c h)` | `--chart-2` | Second chart series color | Chart series color 2. Mid-dark accent-derived shade. |
-| `chart-3` | `#0485F7` | `#0485F7` | `= accent` | `--chart-3` | Primary chart series color, aligned with accent | Chart series color 3. Equal to accent — the brand baseline. |
-| `chart-4` | `#42ACFF` | `#42ACFF` | `oklch(from var(--accent) calc(l + 0.12) c h)` | `--chart-4` | Fourth chart series color | Chart series color 4. Mid-light accent-derived tint. |
-| `chart-5` | `#6CD4FF` | `#6CD4FF` | `oklch(from var(--accent) calc(l + 0.24) c h)` | `--chart-5` | Fifth chart series color | Chart series color 5. Lightest accent-derived tint. |
+| `chart-1` | `#0084D1` | `#00BCFF` | `Light: = Tailwind sky-600; Dark: = Tailwind sky-400` | `--chart-1` | First chart series color | Categorical series 1 — sky. With series 2, the positive/negative pair. |
+| `chart-2` | `#E7000B` | `#FF6467` | `Light: = Tailwind red-600; Dark: = Tailwind red-400` | `--chart-2` | Second chart series color | Categorical series 2 — red. |
+| `chart-3` | `#009966` | `#00D492` | `Light: = Tailwind emerald-600; Dark: = Tailwind emerald-400` | `--chart-3` | Third chart series color | Categorical series 3 — emerald. |
+| `chart-4` | `#7F22FE` | `#A684FF` | `Light: = Tailwind violet-600; Dark: = Tailwind violet-400` | `--chart-4` | Fourth chart series color | Categorical series 4 — violet. |
+| `chart-5` | `#79716B` | `#A6A09B` | `Light: = Tailwind stone-500; Dark: = Tailwind stone-400` | `--chart-5` | Fifth chart series color | Categorical series 5 — stone. The neutral, for baselines and "no data". |
 | `eclipse` | `#18181B` | `#18181B` | `oklch(21.03% 0.0059 285.89)` | `--eclipse` | Prefer the HeroUI token for eclipse. | Near-black neutral. Slightly softer than pure black for dark surfaces. |
 | `snow` | `#FCFCFC` | `#FCFCFC` | `oklch(99.11% 0 0)` | `--snow` | Prefer the HeroUI token for snow. | Off-white neutral. Slightly softer than pure white for backgrounds. |
 | `white` | `#FFFFFF` | `#FFFFFF` | `oklch(100% 0 0)` | `--white` | Prefer the HeroUI token for white. | Pure white. Used as a base primitive for light theme surfaces and backgrounds. |
@@ -360,6 +360,34 @@ sitting on it rather than by tinting the ground. `--sidebar-surface` and
 | `warning-soft` | `rgba(245, 165, 36, 0.15)` | `rgba(247, 183, 80, 0.12)` | `Light: warning / 15% + transparent; Dark: warning / 12% + transparent` | `--warning-soft` | Prefer the HeroUI token for warning-soft. | Subtle warning background for soft emphasis. |
 | `warning-soft-foreground` | `#855F2E` | `#F9CB86` | `Light: warning / 80% + foreground / 70%; Dark: warning / 80% + foreground / 30%` | `--warning-soft-foreground` | Prefer the HeroUI token for warning-soft-foreground. | Text color on warning-soft backgrounds. |
 | `warning-soft-hover` | `rgba(245, 165, 36, 0.2)` | `rgba(247, 183, 80, 0.16)` | `Light: warning / 20% + transparent; Dark: warning / 16% + transparent` | `--warning-soft-hover` | Prefer the HeroUI token for warning-soft-hover. | Hover state for warning-soft backgrounds. |
+
+### Agent-visual tokens
+
+`styles/artifact-tokens.css` publishes a second, smaller vocabulary for
+agent-authored HTML — in-chat visuals and artifact pages, which render in a
+sandboxed frame and never see these stylesheets. Most of its names alias the
+HeroUI roles above, so an agent never writes a HeroUI name and a re-pointed
+alias updates every page ever authored. It defines real values only where
+HeroUI flattens a distinction the agent guidance needs:
+
+- **Three text tiers** under `--foreground` — `--muted-foreground` (HeroUI
+  `--muted`), then `--foreground-tertiary` and `--foreground-quaternary`, mixed
+  from `--muted` toward the background at per-scheme ratios.
+- **`--brand`** is Grotto violet, `oklch(54.38% 0.1824 295.4)` (`#7B51CC`) — one
+  deliberate moment of emphasis per visual, kept off the accent so it cannot
+  read as a link. `--info` keeps the accent, so an informational callout still
+  matches the app.
+- **`--primary`** is the foreground/background ink pair, not the accent, and
+  `--input` sits between `--border` and `--border-secondary`.
+- **`--chart-1..5`** is the categorical palette in the table above, replacing
+  HeroUI Pro's accent lightness ramp.
+
+These land on `:root`, so they are global rather than frame-scoped: the app's
+own usage chart (`features/stats/use-usage-spend.ts`) draws the same five
+series. Two published names, `--success-foreground` and `--warning-foreground`,
+resolve to HeroUI's `-soft-foreground` values only inside the frame
+snapshot (`agent-html/tokens.ts`), because HeroUI declares the base names
+in `@layer base` for solid chips.
 
 ## Typography
 Use the generated font and text scale through HeroUI components and Tailwind text utilities. The raw values below are normalized to px for design handoff.
@@ -640,7 +668,10 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   message has them — nothing else. What an Agent is generally for belongs to its hover card and
   profile, not to every message it writes, and what a message *is* states itself below the header,
   where its lifecycle can be followed.
-- **Charts:** Use `--chart-1` through `--chart-5` for multi-series charts; `--chart-3` aligns to the accent baseline.
+- **Charts:** Use `--chart-1` through `--chart-5` for multi-series charts. They are a categorical
+  palette — sky, red, emerald, violet, stone — so independent series separate by hue rather than by
+  lightness, and they survive grayscale. Dark uses the Tailwind 400 step and light the 600 step
+  (stone-500). The app's usage chart and agent-authored visuals share these five.
 
 ## Do's and Don'ts
 - Do use semantic HeroUI and Tailwind tokens as implementation handles; use raw values in this file for reference, QA, and migration only.

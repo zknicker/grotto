@@ -22,14 +22,17 @@ iterate on, and big surfaces stay out of the chat column.
   only, no external or sibling asset references, no multi-file projects.
 - Reference it with a bare `artifact` fence: `{"path": "workbench/...",
   "title"?: string}`. The chat shows a compact card; the pane owns sizing.
-- Grotto theme tokens are injected into the page as CSS variables
+- The published token vocabulary is injected into the page as CSS variables
   (`--background`, `--foreground`, `--surface-secondary`, `--border`,
   `--muted-foreground`, `--radius-lg`, ...) resolved for the current app
   scheme, so a token-styled page wears the Grotto look in light and dark.
-  Pages should use the tokens with fallbacks and must not depend on any other
-  host styling. The seeded `visuals` skill owns the authoring guidance —
-  the full token vocabulary, page layout discipline, and self-containment
-  rules — and the prompt only routes to it (ADR 0012).
+  `styles/artifact-tokens.css` owns those names — mostly aliases onto HeroUI
+  roles, with named exceptions such as the text tiers, `--brand`, and the chart
+  palette — and pages write only them, never a HeroUI name. Use the tokens
+  with fallbacks and do not depend on any other host styling. The seeded
+  `visuals` skill owns the authoring guidance — the full token vocabulary,
+  page layout discipline, and self-containment rules — and the prompt only
+  routes to it (ADR 0012).
 - Rendering is live file state — later edits or deletion change what the card
   opens, the same replay caveat as `html-preview`.
 
@@ -54,7 +57,9 @@ the same merge-or-focus flow `grotto://workspace` links and the agent
 `pane_open` tool use. In the pane, the workspace HTML preview
 (`apps/website/src/features/chats/chat-artifact-workspace-preview.tsx`)
 renders the page with host tokens injected
-(`agent-html/tokens.ts`): the token allowlist is read off the
+(`agent-html/tokens.ts`): the published token list is read off the
 live document with `getComputedStyle` at render time and re-injected when the
-app scheme flips. External-asset policy is self-contained-only; if a CDN
-allowlist lands for in-chat visuals, artifact rendering should mirror it.
+app scheme flips, with `--success-foreground` and `--warning-foreground`
+reading HeroUI's `-soft-foreground` values in the frame. External-asset policy
+is self-contained-only; if a CDN allowlist lands for in-chat visuals, artifact
+rendering should mirror it.

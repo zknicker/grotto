@@ -218,7 +218,6 @@ extension GrottoStore {
                     // creation stays cleared rather than falling back to the
                     // proposal's forever.
                     description: result.map(\.description) ?? action.proposal.description,
-                    draftHint: action.proposal.draftHint,
                     executedAt: action.executedAt,
                     executedByDisplayName: committer?.displayName ?? committer?.email,
                     id: action.id,

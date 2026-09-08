@@ -1623,7 +1623,6 @@ components:
         kind: { type: string, const: agent:create }
         name: { type: string, minLength: 1, maxLength: 80 }
         description: { type: [string, 'null'], maxLength: 500, default: null }
-        draftHint: { type: [string, 'null'], maxLength: 1000, default: null }
         computer:
           oneOf:
             - type: 'null'
@@ -1668,7 +1667,6 @@ components:
             kind: { type: string, const: agent:create }
             name: { type: string, minLength: 1, maxLength: 80 }
             description: { type: [string, 'null'], maxLength: 500, default: null }
-            draftHint: { type: [string, 'null'], maxLength: 1000, default: null }
             computer:
               oneOf:
                 - type: 'null'

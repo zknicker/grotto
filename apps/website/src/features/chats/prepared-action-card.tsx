@@ -4,12 +4,7 @@ import { AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { ActionCard, ActionCardGlyphMark } from '../../components/chats/action-card.tsx';
 import { AgentCreateActionCard } from './agent-create-action-card.tsx';
 
-/**
- * The Server posts an empty body for a prepared-action anchor, so the
- * proposal's note to the human is what that message actually said. A
- * superseded proposal leaves no card behind, so its row falls back to a
- * short note instead of going bodiless.
- */
+/** Empty superseded cards leave a receipt; authored message content always wins. */
 export function preparedActionMessageText(message: {
     content: string;
     preparedAction?: PreparedAction;
@@ -20,12 +15,6 @@ export function preparedActionMessageText(message: {
 
     if (!isAgentCreatePreparedAction(message.preparedAction)) {
         return '';
-    }
-
-    const { draftHint } = message.preparedAction.proposal;
-
-    if (draftHint) {
-        return draftHint;
     }
 
     return message.preparedAction.status === 'superseded' ? 'Earlier proposal, replaced.' : '';

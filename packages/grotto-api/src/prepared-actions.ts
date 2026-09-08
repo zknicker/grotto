@@ -45,7 +45,6 @@ export const agentCreateActionInputSchema = z
     .object({
         computer: computerGuidanceSchema.default(null),
         description: z.string().trim().max(500).nullable().default(null),
-        draftHint: z.string().trim().max(1000).nullable().default(null),
         kind: z.literal('agent:create'),
         name: z.string().trim().min(1).max(80),
     })

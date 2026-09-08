@@ -91,7 +91,6 @@ public struct PreparedCreateAgentProposal: Codable, Sendable, Equatable {
     public let avatar: PreparedActionMedia
     public let computer: PreparedActionComputerGuidance?
     public let description: String?
-    public let draftHint: String?
     public let kind: String
     public let name: String
 }

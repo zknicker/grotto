@@ -54,16 +54,9 @@ public struct PreparedActionDetailView: View {
                     }
                 }
 
-                if detail.runsOn != nil || detail.note != nil {
+                if let runsOn = detail.runsOn {
                     Section {
-                        if let runsOn = detail.runsOn {
-                            LabeledContent("Runs on", value: runsOn)
-                        }
-                        if let note = detail.note {
-                            Text(note)
-                                .foregroundStyle(.secondary)
-                                .textSelection(.enabled)
-                        }
+                        LabeledContent("Runs on", value: runsOn)
                     }
                 }
 
@@ -176,7 +169,6 @@ struct PreparedActionDetail: Equatable {
     let avatarURL: URL?
     let description: String?
     let name: String
-    let note: String?
     let receipt: String?
     let runsOn: String?
     let status: ActionCardStatus?
@@ -192,7 +184,6 @@ struct PreparedActionDetail: Equatable {
             avatarURL: action.avatarURL,
             description: action.description.nonEmpty,
             name: action.name,
-            note: action.draftHint.nonEmpty,
             receipt: action.receipt,
             runsOn: action.computerDetail.nonEmpty,
             status: action.status == .executed ? .created : nil

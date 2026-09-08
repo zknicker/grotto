@@ -15,7 +15,6 @@ public struct PreparedCreateAgentActionPresentation: Identifiable, Hashable, Sen
     public let createdAgentID: String?
     public let createdAt: Date
     public let description: String?
-    public let draftHint: String?
     public let executedAt: Date?
     public let executedByDisplayName: String?
     public let id: String
@@ -31,7 +30,6 @@ public struct PreparedCreateAgentActionPresentation: Identifiable, Hashable, Sen
         createdAgentID: String? = nil,
         createdAt: Date,
         description: String?,
-        draftHint: String?,
         executedAt: Date? = nil,
         executedByDisplayName: String?,
         id: String,
@@ -46,7 +44,6 @@ public struct PreparedCreateAgentActionPresentation: Identifiable, Hashable, Sen
         self.createdAgentID = createdAgentID
         self.createdAt = createdAt
         self.description = description
-        self.draftHint = draftHint
         self.executedAt = executedAt
         self.executedByDisplayName = executedByDisplayName
         self.id = id
@@ -91,10 +88,8 @@ public enum PreparedActionPresentation: Identifiable, Hashable, Sendable {
 
     /// Whether a superseded action leaves the transcript.
     ///
-    /// Only an `agent.create` proposal is replaced by a newer one, and its row
-    /// keeps the proposal's note, so the card can collapse out and leave text
-    /// behind. An unsupported kind has no successor and its row says nothing
-    /// else, so it stays drawn at any status rather than collapsing to nothing.
+    /// Replaced Agent proposals leave Message content or a replacement receipt.
+    /// Unsupported kinds have no known successor, so their cards stay visible.
     public var leavesWhenSuperseded: Bool {
         switch self {
         case .createAgent: true
@@ -104,13 +99,9 @@ public enum PreparedActionPresentation: Identifiable, Hashable, Sendable {
 
     /// What the anchor message actually said.
     ///
-    /// The Server stores an empty body for a prepared-action anchor, so the
-    /// proposal's note to the human is the message text. A superseded proposal
-    /// leaves no card behind, so its row falls back to a short note rather than
-    /// going bodiless.
+    /// Empty superseded cards leave a receipt. Authored text belongs to the Message.
     public var messageText: String {
         guard case let .createAgent(action) = self else { return "" }
-        if let draftHint = action.draftHint, !draftHint.isEmpty { return draftHint }
         return action.status == .superseded ? "Earlier proposal, replaced." : ""
     }
 }

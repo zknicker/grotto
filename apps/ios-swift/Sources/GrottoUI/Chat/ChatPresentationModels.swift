@@ -114,10 +114,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         threadCloudAgents: [CloudAgentPresentation] = [],
         richSegments: [RichMessageSegment]? = nil
     ) {
-        // The Server stores an empty body for a prepared-action anchor, so the
-        // proposal's note to the human is what that message said. Substituting
-        // it here keeps the surfaces that render a message body — the Chat
-        // transcript and a Thread's anchor — on the same text.
+        // Resolve the superseded-card fallback consistently for Chat and Thread bodies.
         let body = Self.body(content: content, preparedAction: preparedAction)
         self.id = id
         self.author = author
@@ -141,10 +138,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
             : RichMessageParser.parse(body) { _, _, _ in nil }
     }
 
-    /// What the row actually says. An empty Server body on a prepared-action
-    /// anchor stands in for the proposal's note; a superseded proposal, which
-    /// leaves no card behind, falls back to a short replacement line so its row
-    /// is not blank.
+    /// A superseded proposal with no Message content leaves a short replacement line.
     ///
     /// Edge whitespace is never layout. An Agent's reply routinely ends in a
     /// newline, and a `Text` that keeps it paints a blank line under the body —

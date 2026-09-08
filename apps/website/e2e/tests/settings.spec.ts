@@ -119,16 +119,74 @@ test('creates and deletes a custom Server MCP connection', async ({ page }) => {
     await drawer.getByLabel('URL').fill('https://example.com/mcp');
     await drawer.getByLabel('Authentication').click();
     await page.getByRole('option', { name: 'OAuth' }).click();
-    await drawer.getByRole('button', { name: 'Add Connection' }).click();
+    await drawer.getByRole('button', { name: 'Add MCP' }).click();
 
     // The Added list renders each connection as a card button, not a row.
     const connection = page.getByRole('button', { name: new RegExp(name, 'u') });
     await expect(connection).toBeVisible();
     await connection.click();
     const detail = page.getByRole('dialog', { name });
-    await detail.getByRole('button', { name: 'Delete' }).click();
-    const confirmation = page.getByRole('alertdialog', { name: `Delete ${name}?` });
+    await detail.getByRole('button', { name: 'Remove' }).click();
+    const confirmation = page.getByRole('alertdialog', { name: `Remove ${name} from Grotto?` });
     await expect(confirmation).toContainText('No Agents currently use this connection.');
-    await confirmation.getByRole('button', { name: 'Delete' }).click();
+    await confirmation.getByRole('button', { name: 'Remove' }).click();
+    await expect(connection).toHaveCount(0);
+});
+
+test('hides added presets and allows deleting every preset account', async ({ page }) => {
+    await signInAsClerkHuman(page);
+    await page.goto(`/s/${slug}/settings/connections`);
+
+    const recommendation = (description: string) =>
+        page.locator('.item-card').filter({ hasText: description });
+    const merchbase = recommendation('Query the MerchBase product catalog, designs, and sales.');
+    const calendar = recommendation('Read and schedule events on your Google calendars.');
+    await merchbase.getByRole('button', { exact: true, name: 'Add MCP' }).click();
+    await expect(merchbase).toHaveCount(0);
+    const connection = page.getByRole('button', { name: /MerchBase Built in/u });
+    await expect(connection).toBeVisible();
+
+    await page.reload();
+    await expect(connection).toBeVisible();
+    await expect(merchbase).toHaveCount(0);
+    await calendar.getByRole('button', { exact: true, name: 'Add MCP' }).click();
+    await expect(calendar).toHaveCount(0);
+    await expect(page.getByText('Recommended', { exact: true })).toHaveCount(0);
+
+    await connection.click();
+    const detail = page.getByRole('dialog', { name: 'MerchBase Sign in required' });
+    await expect(detail.getByRole('button', { exact: true, name: 'Sign in' })).toBeVisible();
+    await expect(detail).toContainText('This MCP is added to Grotto. Sign in to your account');
+    await expect(detail).toContainText(
+        'Removes this MCP entry, saved credentials, and Agent access'
+    );
+    await detail.getByRole('button', { exact: true, name: 'Add' }).click();
+    await detail.getByRole('button', { name: 'Done' }).click();
+    const secondAccount = page.getByRole('button', { name: /MerchBase account Built in/u });
+    await expect(secondAccount).toBeVisible();
+    await secondAccount.click();
+    await page
+        .getByRole('dialog', { name: 'MerchBase account Sign in required' })
+        .getByRole('button', { exact: true, name: 'Remove' })
+        .click();
+    await page
+        .getByRole('alertdialog', { name: 'Remove MerchBase account from Grotto?' })
+        .getByRole('button', { exact: true, name: 'Remove' })
+        .click();
+    await expect(secondAccount).toHaveCount(0);
+    await expect(connection).toBeVisible();
+    await expect(merchbase).toHaveCount(0);
+
+    await connection.click();
+    await detail.getByRole('button', { exact: true, name: 'Remove' }).click();
+    const confirmation = page.getByRole('alertdialog', { name: 'Remove MerchBase from Grotto?' });
+    await confirmation.getByRole('button', { name: 'Cancel' }).click();
+    await expect(detail).toBeVisible();
+    await detail.getByRole('button', { exact: true, name: 'Remove' }).click();
+    await confirmation.getByRole('button', { exact: true, name: 'Remove' }).click();
+    await expect(connection).toHaveCount(0);
+    await expect(merchbase.getByRole('button', { exact: true, name: 'Add MCP' })).toBeVisible();
+    await page.reload();
+    await expect(merchbase.getByRole('button', { exact: true, name: 'Add MCP' })).toBeVisible();
     await expect(connection).toHaveCount(0);
 });

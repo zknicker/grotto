@@ -1,6 +1,27 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildSaveInput, createConnectionDraft, splitArgs } from './mcp-server-shared.ts';
+import {
+    buildSaveInput,
+    connectionSetupDescription,
+    connectionStatusLabel,
+    createConnectionDraft,
+    splitArgs,
+} from './mcp-server-shared.ts';
+
+test('account authorization copy follows the MCP authentication method', () => {
+    assert.equal(connectionStatusLabel({ auth: 'oauth', connected: false }), 'Sign in required');
+    assert.equal(connectionStatusLabel({ auth: 'oauth', connected: true }), 'Account connected');
+    assert.match(connectionSetupDescription({ auth: 'oauth' }), /Sign in to your account/u);
+    assert.equal(
+        connectionStatusLabel({ auth: 'headers', connected: false }),
+        'Credentials required'
+    );
+    assert.equal(connectionStatusLabel({ auth: 'headers', connected: true }), 'Credentials saved');
+    assert.match(connectionSetupDescription({ auth: 'headers' }), /Add credentials/u);
+    assert.equal(connectionStatusLabel({ auth: 'none', connected: true }), 'Ready');
+    assert.equal(connectionStatusLabel({ auth: 'none', connected: false }), 'Unavailable');
+    assert.doesNotMatch(connectionSetupDescription({ auth: 'none' }), /Sign in|credentials/u);
+});
 
 test('splitArgs splits on whitespace and drops empty parts', () => {
     assert.deepEqual(splitArgs('  serve  --port 8080 '), ['serve', '--port', '8080']);

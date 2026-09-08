@@ -1,3 +1,17 @@
+import {
+    sanitizeTelemetryAttributes,
+    type TelemetryAttributes,
+    type TelemetryAttributeValue,
+} from './telemetry-attributes.ts';
+
+export {
+    sanitizeTelemetryAttributes,
+    type TelemetryAttributeKey,
+    type TelemetryAttributes,
+    type TelemetryAttributeValue,
+    telemetryAttributeKeys,
+} from './telemetry-attributes.ts';
+
 import { randomUUID } from 'node:crypto';
 import * as OtelMetrics from '@effect/opentelemetry/Metrics';
 import * as OtelNodeSdk from '@effect/opentelemetry/NodeSdk';
@@ -40,29 +54,6 @@ import {
 
 const traceparentPattern = /^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/u;
 const serviceInstanceId = randomUUID();
-
-export const telemetryAttributeKeys = [
-    'grotto.agent.id',
-    'grotto.chat.id',
-    'grotto.delivery.kind',
-    'grotto.failure.kind',
-    'grotto.message.count',
-    'grotto.model.id',
-    'grotto.operation',
-    'grotto.outcome',
-    'grotto.output.produced',
-    'grotto.request.id',
-    'grotto.retry.count',
-    'grotto.run.id',
-    'grotto.runtime.id',
-    'grotto.server.id',
-] as const;
-
-export type TelemetryAttributeKey = (typeof telemetryAttributeKeys)[number];
-export type TelemetryAttributeValue = boolean | number | string;
-export type TelemetryAttributes = Partial<
-    Readonly<Record<TelemetryAttributeKey, TelemetryAttributeValue>>
->;
 
 export type TelemetrySpanName =
     | 'grotto.agent.dispatch'
@@ -245,18 +236,6 @@ export function parseTraceCarrier(carrier: TraceCarrier): SpanContext | null {
         traceId: match[1],
     } satisfies SpanContext;
     return isSpanContextValid(context) ? context : null;
-}
-
-export function sanitizeTelemetryAttributes(
-    attributes: Readonly<Record<string, unknown>>
-): Record<string, TelemetryAttributeValue> {
-    const allowed = new Set<string>(telemetryAttributeKeys);
-    return Object.fromEntries(
-        Object.entries(attributes).filter(
-            (entry): entry is [string, TelemetryAttributeValue] =>
-                allowed.has(entry[0]) && ['boolean', 'number', 'string'].includes(typeof entry[1])
-        )
-    );
 }
 
 const currentTraceCarrier = OtelTracer.currentOtelSpan.pipe(

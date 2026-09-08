@@ -1,3 +1,4 @@
+import { agentReasoningEffortSchema } from '@grotto/api';
 import type { OtlpSignal } from '@grotto/effect';
 import { z } from 'zod';
 import {
@@ -227,6 +228,24 @@ function safeSpanAttributes(
                     return outcomes.has(value.stringValue ?? '');
                 case 'grotto.failure.kind':
                     return failures.has(value.stringValue ?? '');
+                case 'grotto.reasoning.effort':
+                    return agentReasoningEffortSchema.safeParse(value.stringValue).success;
+                case 'grotto.turn.harness_ready_ms':
+                case 'grotto.turn.bootstrap_ms':
+                case 'grotto.turn.session_create_ms':
+                case 'grotto.turn.first_stream_ms':
+                case 'grotto.turn.first_tool_ms':
+                case 'grotto.turn.first_send_ms':
+                case 'grotto.turn.last_send_ms':
+                case 'grotto.turn.after_last_send_ms': {
+                    const duration = value.doubleValue ?? Number(value.intValue);
+                    return Number.isFinite(duration) && duration >= 0 && duration <= 604_800_000;
+                }
+                case 'grotto.tokens.input':
+                case 'grotto.tokens.output':
+                case 'grotto.tokens.cache_read':
+                case 'grotto.tokens.cache_write':
+                    return /^\d{1,12}$/u.test(value.intValue ?? String(value.doubleValue));
                 case 'grotto.output.produced':
                     return value.boolValue !== undefined;
                 case 'grotto.message.count':

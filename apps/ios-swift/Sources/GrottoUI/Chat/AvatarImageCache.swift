@@ -24,14 +24,34 @@ final class AvatarImageCache {
 
     private let images = NSCache<NSURL, PlatformImageBox>()
     private var loads: [URL: Task<Data?, Never>] = [:]
+    /// Every avatar this process has decoded at least once. `images` is an
+    /// `NSCache` and drops entries under pressure; without this set a recycled
+    /// row would read "no avatar", raster initials over an avatar it had
+    /// already drawn, and reload — a visible flip and two junk chip bitmaps.
+    private var resolvedURLs: Set<URL> = []
 
     init() {
         images.countLimit = 100
         images.totalCostLimit = 32 * 1024 * 1024
     }
 
+    /// The avatar's decoded pixels, ready for a synchronous render. An entry
+    /// the memory cache has evicted is restored from the disk byte cache; when
+    /// even those bytes are gone the URL stops claiming to be resolved, so the
+    /// caller falls back to initials rather than rendering blank.
     func image(for url: URL) -> AvatarPlatformImage? {
-        images.object(forKey: url as NSURL)?.image
+        if let cached = images.object(forKey: url as NSURL)?.image {
+            return cached
+        }
+        guard resolvedURLs.contains(url) else { return nil }
+        guard let data = Self.byteCache.cachedResponse(for: URLRequest(url: url))?.data,
+              let decoded = Self.decode(data)
+        else {
+            resolvedURLs.remove(url)
+            return nil
+        }
+        store(decoded, for: url)
+        return decoded.image
     }
 
     func load(
@@ -58,27 +78,35 @@ final class AvatarImageCache {
         loads[url] = nil
 
         guard let decoded = Self.decode(data) else { return nil }
+        store(decoded, for: url)
+        return decoded.image
+    }
+
+    private func store(_ decoded: (image: AvatarPlatformImage, pixelCost: Int), for url: URL) {
         images.setObject(
             PlatformImageBox(image: decoded.image),
             forKey: url as NSURL,
             cost: decoded.pixelCost
         )
-        return decoded.image
+        resolvedURLs.insert(url)
     }
 
-    /// Avatars get their own session because `URLSession.shared` caches for
-    /// ordinary API traffic and evicts image bytes long before the next
-    /// launch needs them.
+    /// Avatars get their own byte cache because `URLSession.shared` caches for
+    /// ordinary API traffic and evicts image bytes long before the next launch
+    /// needs them. It also outlives the decoded `NSCache`, which is what lets
+    /// an evicted avatar come back without a round trip.
+    private static let byteCache = URLCache(
+        memoryCapacity: 4 * 1024 * 1024,
+        diskCapacity: 64 * 1024 * 1024,
+        directory: FileManager.default
+            .urls(for: .cachesDirectory, in: .userDomainMask)
+            .first?
+            .appendingPathComponent("grotto-avatars", isDirectory: true)
+    )
+
     private static let session: URLSession = {
         let configuration = URLSessionConfiguration.default
-        configuration.urlCache = URLCache(
-            memoryCapacity: 4 * 1024 * 1024,
-            diskCapacity: 64 * 1024 * 1024,
-            directory: FileManager.default
-                .urls(for: .cachesDirectory, in: .userDomainMask)
-                .first?
-                .appendingPathComponent("grotto-avatars", isDirectory: true)
-        )
+        configuration.urlCache = byteCache
         return URLSession(configuration: configuration)
     }()
 

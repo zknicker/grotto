@@ -37,7 +37,7 @@ struct ThreadMessageRow: View {
                 if !message.content.isEmpty {
                     RichMessageContentView(
                         segments: message.richSegments,
-                        font: emphasized ? .body : .subheadline
+                        textStyle: emphasized ? .body : .subheadline
                     )
                     .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)

@@ -271,3 +271,15 @@ one `serverId`, `agentId`, and `runId`; Server authorizes only Owners/Admins, re
 assigned Computer, and relays the request over that authenticated attachment. The response is
 either the Computer-local journal or an explicit `unavailable` result (`offline`, `missing`, or
 `timeout`). Server does not persist the journal, and ordinary members never receive it.
+
+An available journal carries `runId`, `status`, timestamps, a `tools` array (tool-call id, observed
+identity, input, `output`, `error`, `preliminary`, `final`, interruptions, and timings), and an
+optional `reasoning` array of `{ id, startedAt, endedAt?, text, truncated? }` blocks capped at
+64,000 characters each and 1,000 blocks per turn. Reasoning exists only in this response. Every
+other string leaf the journal carries is capped at 256,000 characters and ends with
+`…[truncated N more characters]` when clipped, so one oversized tool output cannot dominate the
+relayed response.
+
+A running turn is answered from the Computer's append-only `<runId>.ndjson` log and a settled one
+from the consolidated `<runId>.json` snapshot; both live under the Agent's
+`runtime/execution-journal/` directory and neither reaches the Server's store.

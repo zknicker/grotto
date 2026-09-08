@@ -1,7 +1,7 @@
 ---
 summary: Turn activity presentation from durable Server evidence and Computer-relayed execution details.
 read_when:
-  - changing turn activity rows or the turn-details drawer
+  - changing turn activity rows, the turn-details drawer, or the Agent Activity tab
   - changing execution-journal presentation or access
   - adding presentation for a Computer-reported tool event
 ---
@@ -20,17 +20,63 @@ projected by `features/servers/chat/` into
 `features/chats/transcript-contract.ts`. Transcript components render only that
 presentation contract.
 
-Detailed execution is optional, ephemeral evidence. When an authorized user
-opens `server-turn-details-drawer.tsx`,
-`use-agent-execution-journal.ts` asks Grotto Server for one run. Server relays
-the request to the Agent's assigned Computer. The result deliberately bypasses
-React Query: it is neither canonical collaboration state nor a durable App
-cache entry.
+Detailed execution is optional, ephemeral evidence. `hooks/members/use-turn-journal.ts`
+is its one owner: while a detail surface is open and the viewer's role allows it,
+`use-agent-execution-journal.ts` asks Grotto Server for one run, and Server relays the
+request to the Agent's assigned Computer. A live run re-asks on the run's own
+`agent.onActivity` events — never on a timer. The result deliberately bypasses React
+Query: it is neither canonical collaboration state nor a durable App cache entry.
+
+## Summary and detail
+
+Grotto shows turn activity twice, and the two must not converge. **Summary** is the
+high-level verb — `Thinking…`, `Ran a command`, `Sent a message` — in the transcript,
+avatar hover cards, the sidebar activity strip, and the inbox. **Detail** is
+`features/turn-trace/`: one chronological column merging the Server's semantic verbs with
+the Computer's reasoning blocks and tool calls, rendered by the turn-details drawer
+(`server-turn-details-drawer.tsx`) and the Agent profile Activity tab.
+
+`turn-trace-model.ts` builds that column. When the journal is readable it drops the verbs
+the journal already describes — the tool-shaped categories, plus `thinking` once reasoning
+blocks are present — so a command is not printed twice. With no journal every semantic
+event stands on its own. `turn-trace-tool-model.ts` classifies one journal tool by wire
+name into a kind (`shell`, `file-write`, `file-edit`, `file-read`, `search`, `web`, `mcp`,
+`message`, `file-change`, `compaction`, `generic`) with typed fields;
+`turn-trace-tool-bodies.tsx` owns the body each kind earns. The harness's reserved
+synthetic names get their own kinds so they read as what happened — `Modified <path>`,
+`Compacted the context` — rather than a generic call with empty arguments.
+
+## Row labels
+
+A row states what the Agent did, not what a runtime typed. Two derivations own that,
+both pure and both proved on their own:
+
+- `turn-trace-shell-label.ts` names a shell call. It unwraps the runtime's own wrapper
+  (`/bin/zsh -lc "…"`, `bash -lc`, `sh -c`), takes the first non-empty line, drops a
+  trailing heredoc opener, collapses whitespace, and caps the result. A real `grotto`
+  command — the Agent CLI names in `apps/computer/src/agent-cli.ts` — reads as the
+  product verb it is (`Sent a message with grotto`), because that is activity that
+  merely happens to be typed at a shell. The Command body still shows the original
+  verbatim.
+- `turn-trace-reasoning-model.ts` names a reasoning block. Codex emits complete
+  summaries whose first line is the model's own title and whose start and end share a
+  millisecond, so a heading or whole-line bold phrase becomes the trigger and the rest
+  becomes the body. Without a title, a duration is reported only when the Agent
+  actually paused for a second or more; anything shorter is just `Thought`. A block
+  still streaming says `Thinking…`.
+
+Reasoning bodies are model-authored markdown and render through `ReferenceMarkdown`,
+the same safe renderer a message uses — `react-markdown` with no raw-HTML pass.
+
+Labels stay in sentence case. Stock `ChatTool` sets its `Arguments`, `Result`, and error
+labels in ALL CAPS, which `DESIGN.md` forbids; `default-theme.css` returns those three
+BEM parts to the trace's own small muted role.
 
 ## Rules
 
 - Product history remains useful while Computer is offline. Missing execution
-  detail degrades the drawer; it never removes or gates the transcript.
+  detail degrades the trace to its semantic events and states why; it never
+  removes or gates the transcript, and it never hides the events it does have.
 - The App sends Server, Agent, and run identity. It never chooses a runtime
   base URL, auth token, runtime session, or runtime-specific chat id.
 - Reusable row, actor, composer, and drawer types belong to the App feature.
@@ -41,6 +87,17 @@ cache entry.
 - A managed instruction, Cove factory-guidance, or Harness bootstrap refresh is durable semantic activity:
   `Updating instructions…`, `Updated instructions`, or `Failed to update instructions`. It exposes
   only the lifecycle outcome; instruction text, hashes, paths, commands, and raw errors stay local.
-- Tool-specific labels and bodies may extend the App registries, but their
-  input must come through the transcript contract or execution journal path.
-  They must not restore a direct Runtime fetch.
+- Tool-specific labels and bodies extend `features/turn-trace/` for detail and
+  `features/chats/tool-steps/` for inline summary rows, but their input must come
+  through the transcript contract or the execution-journal path. They must not
+  restore a direct Runtime fetch.
+- A tool body reads unknown payloads through `turn-trace-values.ts` and degrades to
+  JSON. No runtime result shape is trusted.
+- Nothing bounds a model- or MCP-authored payload, and every tool body in a trace
+  mounts behind its disclosure at once, so text is clamped by character
+  (`clampTraceText` / `clampTraceValue`) before it reaches a code block, a diff, or a
+  stock `ChatTool` block. A line-count collapse alone does not bound one unbroken line.
+- Detail bodies compose the stock Pro chat primitives — `ChatTool` for a call,
+  `ChainOfThought` for reasoning, `ChatSource` for a citation — and the app's one
+  diff renderer for an edit. Source pills carry no third-party favicon, which
+  would leak every visited host to an icon service.

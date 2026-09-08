@@ -28,7 +28,7 @@ the category is current.
 | --- | --- | --- |
 | `starting_work` | `Starting work…` | Server admits a turn to its assigned Computer |
 | `checking_messages` | `Checking messages…` | A structured Grotto message check/read/search boundary runs |
-| `thinking` | `Thinking…` | Harness reasoning starts; content is discarded |
+| `thinking` | `Thinking…` | Harness reasoning starts; text stays out of Activity |
 | `updating_instructions` | `Updating instructions…` | A managed instruction or factory-guidance refresh runs |
 | `browsing` | `Browsing…` | A known Browser capability runs |
 | `searching_web` | `Searching the web…` | A known provider or Grotto web-search capability runs |
@@ -55,6 +55,11 @@ inference.
 3. **Unknown and MCP tools** default to `using_tool`. Their names, descriptions, and inputs are not
    parsed for intent. A tool named `search` does not prove web search; `cat` inside a shell command
    does not turn a shell event into file reading.
+4. **Harness-synthesized runtime events** arrive as reserved provider-executed tool calls:
+   `fileChange` maps to `editing_files`, so a runtime whose only file-edit evidence is a file-change
+   event still reports file work. `compaction` maps to no activity at all — context compaction is
+   harness bookkeeping rather than agent work — while still landing in the execution journal. Both
+   names stay generic when the call is not provider-executed, so a host or MCP tool cannot claim them.
 
 An optional tool label crosses only when it is a canonical Grotto-controlled display identity.
 Unknown native or third-party names remain Computer-local and render `Using a tool…`.
@@ -113,9 +118,30 @@ Harness tool call/result
 ```
 
 The **Agent execution journal** is keyed by `runId` and retains tool-call ids, exact observed tool
-identity, inputs, outputs, errors, and timings. It excludes model reasoning. It stays on Computer;
-Server Owners and Admins may inspect it through an authorized live Server-to-Computer relay. Server
-does not persist the response. When Computer is offline, detailed evidence is unavailable.
+identity, inputs, outputs, errors, timings, and the turn's model reasoning blocks. Tool payloads are
+read from the translated stream's `output` field, and a failed call keeps the `tool-error` the
+runtime reported rather than a synthetic stream failure. Reasoning is stored per block id with its
+start and end timestamps, capped at 64,000 characters per block and 1,000 blocks per turn
+(`truncated: true` marks a clipped block, and Computer stops opening blocks at the ceiling so an
+over-long turn cannot cost the whole journal its parse);
+deltas buffer in memory and reach disk at the next tool boundary, block end, or turn finish, so an
+interrupted turn keeps its partial text. Journals written before reasoning capture still load.
+
+On disk a run is either a live log or a settled snapshot, never both. While the turn runs, the
+Computer owns `<runId>.ndjson`: an append-only record log opened with the state the turn resumed
+from, then one small record per mutation (tool call, tool result, reasoning start/append/end,
+interruption, finish). Finishing writes the consolidated `<runId>.json` atomically and drops the
+log, so a settled run costs one write rather than a full rewrite per tool call. Readers prefer the
+snapshot and otherwise replay the log, which is how a still-running turn and one a crash left open
+are both served; a torn trailing record from a partial append is ignored. Every string a tool
+input, output, or error carries is capped at 256,000 characters per leaf — nested, so a
+`{ stdout, stderr }` payload keeps its shape with each field clipped — and a clipped string ends
+with `…[truncated N more characters]`. Reasoning text keeps its own 64,000-character cap.
+
+The journal stays on Computer; Server Owners and Admins may inspect it through an authorized live
+Server-to-Computer relay. Server does not persist the response, and reasoning never reaches the
+Server activity journal or any Activity event. When Computer is offline, detailed evidence is
+unavailable.
 
 This workstream assigns no retention or cleanup policy to the execution journal. Holistic cleanup
 is owned by Linear PRD-216.

@@ -264,8 +264,9 @@ Instruction, Cove factory-guidance, or bootstrap drift adds an explicit `updatin
 activity lifecycle. Its rows contain no prompt text, paths, commands, hashes, file contents, or raw
 bootstrap errors.
 
-Computer separately records a detailed execution journal keyed by run. Owner/Admin inspection uses
-an authorized live relay; Server never persists that response. Chat does not project run-attached
+Computer separately records a detailed execution journal keyed by run, including tool outputs,
+tool errors, and model reasoning blocks. Owner/Admin inspection uses an authorized live relay;
+Server never persists that response. Chat does not project run-attached
 inbox work as typing. The `sending` composition bubble remains tied only to an explicit in-flight
 message and its composition id.
 

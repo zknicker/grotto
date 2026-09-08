@@ -177,7 +177,8 @@ operation that removes the Agent execution host.
 
 Human Restart is distinct from session reset. Server requires the assigned
 Computer to be online, stops any active run, and sends an `agent-restart`
-command before redriving pending work. Computer records that command durably,
+command before clearing the stopped flag and redriving pending work. Restart
+therefore also resumes an Agent previously paused with Stop. Computer records that command durably,
 recreates the runner boundary, resumes the same native conversation, and
 uses the same fingerprinted instruction/bootstrap refresh path as automatic drift.
 
@@ -234,6 +235,12 @@ timeouts, transport failures, and unknown failures use the bounded retry
 policy. A human Restart clears the failure hold and redrives queued work without
 rotating the Agent's session. Raw failure evidence remains Computer-local; the
 compact failure kind crosses the Server boundary.
+
+Computer validates committed action results with the shared Grotto API schema.
+A rejected start whose run, Agent, runtime, and model identities remain valid
+reports a configuration failure immediately, without acknowledging delivery or
+exposing the rejected payload. Server retains the inbox work for recovery instead
+of leaving the run on Starting work.
 
 ## App Work Projection
 

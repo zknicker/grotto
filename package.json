@@ -89,7 +89,7 @@
     "path-to-regexp": "8.4.2",
     "picomatch": "4.0.4",
     "postcss": "8.5.14",
-    "protobufjs": "7.5.9",
+    "protobufjs": "7.6.6",
     "qs": "6.15.2",
     "vite": "7.3.6",
     "ws": "8.21.0"

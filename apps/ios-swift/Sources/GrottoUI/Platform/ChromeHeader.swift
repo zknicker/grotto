@@ -18,6 +18,14 @@ enum GrottoChrome {
     /// fully crisp. More runway starts softening that row too, which is the
     /// wrong trade — the point is a decisive dissolve, not a taller cap.
     static let scrollEdgeRunway: CGFloat = 28
+
+    /// Clearance the transcript holds between its newest row and the composer's
+    /// reserved region, applied as the list's own scroll bound rather than as
+    /// composer padding. It runs wider than the 16-point inter-message rhythm on
+    /// purpose: the composer's glass rim sits inside the region it reserves, so a
+    /// gap merely equal to the rhythm reads as the newest message crowding the
+    /// chrome instead of resting above it.
+    static let transcriptBottomRunway: CGFloat = 28
 }
 
 /// The shared app-chrome header row.

@@ -110,15 +110,23 @@ where Item.ID == String {
 final class TranscriptListCoordinator<Item: Identifiable & Equatable, Row: View, Accessory: View>:
     NSObject, UITableViewDataSource, UITableViewDelegate
 where Item.ID == String {
-    private var view: TranscriptListView<Item, Row, Accessory>?
-    private var items: [Item] = []
+    /// Internal, not private: `TranscriptListView+NearNewest` publishes through
+    /// it.
+    var view: TranscriptListView<Item, Row, Accessory>?
+    var items: [Item] = []
     private var showsAccessory = false
     private var appliedInsets: UIEdgeInsets?
-    private var handledRevealToken: UUID?
+    var handledRevealToken: UUID?
     /// The row whose context menu is open, kept directly because the
     /// configuration identifier round-trips through `NSCopying` unreliably.
     private var menuIndexPath: IndexPath?
-    private static var nearNewestTolerance: CGFloat { 80 }
+    /// The near-newest answer the view currently holds. It is cached here and
+    /// not read back from the binding: the binding write is asynchronous, so a
+    /// second reading inside the same turn would compare against a value the
+    /// first write has not delivered yet and swallow its own correction.
+    /// Driven from `TranscriptListView+NearNewest`.
+    var nearNewest = TranscriptNearNewest()
+    var nearNewestSyncScheduled = false
 
     // MARK: Lifecycle from the representable
 
@@ -128,6 +136,7 @@ where Item.ID == String {
         showsAccessory = view.showsAccessory
         applyInsets(view: view, table: table, wasNearNewest: true)
         table.reloadData()
+        scheduleNearNewestSync(table)
     }
 
     func update(view: TranscriptListView<Item, Row, Accessory>, table: UITableView) {
@@ -138,7 +147,7 @@ where Item.ID == String {
             new: view.items.map(\.id)
         )
         let accessoryChanged = showsAccessory != view.showsAccessory
-        let wasNearNewest = distanceFromNewest(table) < Self.nearNewestTolerance
+        let wasNearNewest = nearNewest.countsAsNear(distance: distanceFromNewest(table))
         let previousItems = items
         let oldCount = items.count
         items = view.items
@@ -171,14 +180,12 @@ where Item.ID == String {
 
         reconfigureVisibleRows(table: table)
         performReveal(view: view, table: table)
+        // Covers every path above — a reset's `reloadData`, an inset change, an
+        // append's settle — with one reading taken after all of them.
+        scheduleNearNewestSync(table)
     }
 
     // MARK: Anchoring
-
-    /// Distance from the resting (newest) edge, in points. Zero at rest.
-    private func distanceFromNewest(_ scrollView: UIScrollView) -> CGFloat {
-        scrollView.contentOffset.y + scrollView.contentInset.top
-    }
 
     private func applyInsets(
         view: TranscriptListView<Item, Row, Accessory>,
@@ -187,7 +194,10 @@ where Item.ID == String {
     ) {
         // Flipped mapping: the table's top inset renders at the visual bottom.
         let insets = UIEdgeInsets(
-            top: view.bottomInset + 14, left: 0, bottom: view.topInset + 14, right: 0
+            top: view.bottomInset + GrottoChrome.transcriptBottomRunway,
+            left: 0,
+            bottom: view.topInset + 14,
+            right: 0
         )
         guard insets != appliedInsets else { return }
         let isFirst = appliedInsets == nil
@@ -201,53 +211,6 @@ where Item.ID == String {
         if isFirst || (wasNearNewest && !table.isDragging && !table.isDecelerating) {
             table.contentOffset = CGPoint(x: 0, y: -insets.top)
         }
-    }
-
-    private func settleAppend(
-        view: TranscriptListView<Item, Row, Accessory>,
-        table: UITableView,
-        previousItems: [Item],
-        appended: Int,
-        wasNearNewest: Bool
-    ) {
-        let rest = CGPoint(x: 0, y: -table.contentInset.top)
-        switch view.onAppend(previousItems, view.items, wasNearNewest) {
-        case .snapToNewest:
-            table.contentOffset = rest
-        case .animateToNewest:
-            // In flipped space inserted rows appear in place; the ease-in is
-            // staged by holding the viewport on the previous newest row and
-            // releasing it toward rest, across everything that arrived.
-            let insertedHeight = (0..<appended).reduce(CGFloat.zero) { height, row in
-                height + table.rectForRow(at: IndexPath(row: row, section: 0)).height
-            }
-            table.contentOffset = CGPoint(x: 0, y: rest.y + insertedHeight)
-            table.setContentOffset(rest, animated: true)
-        case .stay:
-            break
-        }
-    }
-
-    private func performReveal(
-        view: TranscriptListView<Item, Row, Accessory>,
-        table: UITableView
-    ) {
-        guard let reveal = view.reveal, reveal.token != handledRevealToken else { return }
-        handledRevealToken = reveal.token
-        guard let index = items.lastIndex(where: { $0.id == reveal.id }) else { return }
-        // The newest item's home is the resting edge, not the viewport center.
-        guard index < items.count - 1 else {
-            table.setContentOffset(
-                CGPoint(x: 0, y: -table.contentInset.top),
-                animated: reveal.animated
-            )
-            return
-        }
-        table.scrollToRow(
-            at: IndexPath(row: items.count - 1 - index, section: 0),
-            at: .middle,
-            animated: reveal.animated
-        )
     }
 
     /// Hosting configurations capture SwiftUI state by value, so every SwiftUI
@@ -413,11 +376,23 @@ where Item.ID == String {
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        guard let view else { return }
-        let near = distanceFromNewest(scrollView) < Self.nearNewestTolerance
-        if view.isNearNewest != near {
-            DispatchQueue.main.async { view.isNearNewest = near }
-        }
+        scheduleNearNewestSync(scrollView)
+    }
+
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        // A touch owns the viewport from here; nothing is travelling to rest.
+        endSettling()
+    }
+
+    func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
+        // The normal close for a settle: the travel is over, so the reading
+        // this schedules is the destination it actually reached.
+        endSettling()
+        scheduleNearNewestSync(scrollView)
+    }
+
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        scheduleNearNewestSync(scrollView)
     }
 }
 
@@ -450,7 +425,9 @@ where Item.ID == String {
                 ForEach(items) { row($0) }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.top, 14)
+            // Upright here, so the runway is the literal bottom padding.
+            .padding(.bottom, GrottoChrome.transcriptBottomRunway)
         }
         .defaultScrollAnchor(.bottom)
     }

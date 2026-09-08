@@ -3,8 +3,8 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'A simple same-session follow-up retains the prior question and answers without a startup memory read, using at most three tools including an optional memory update.',
-    name: 'warm-dm-response-efficiency',
+        'A same-session follow-up retains the prior question while rereading the current memory index.',
+    name: 'warm-dm-memory-refresh',
     optIn: true,
     async run({ agents, expect, kit, log, settleTurn }) {
         const [worker] = agents;
@@ -30,17 +30,16 @@ export default defineScenario({
         });
         expect(result.status, 'execution evidence').toBe('available');
         const { journal } = result;
-        expect(
-            journal.tools.filter(
-                (tool) =>
-                    tool.toolName !== 'fileChange' &&
-                    JSON.stringify(tool.input ?? null).includes('MEMORY.md')
-            ),
-            'no repeated startup memory read'
-        ).toHaveLength(0);
+        const memoryReads = journal.tools.filter((tool) => {
+            const command = tool.input?.command;
+            return (
+                typeof command === 'string' &&
+                /\b(?:cat|sed|head|tail)\b[^\n]*MEMORY\.md/u.test(command)
+            );
+        });
+        expect(memoryReads.length > 0, 'warm turn reads the memory index').toBe(true);
         log(
             `warm turn: ${Date.parse(journal.endedAt) - Date.parse(journal.startedAt)}ms, ${journal.tools.length} tools`
         );
-        expect(journal.tools.length <= 3, 'inbox, answer, optional memory update').toBe(true);
     },
 });

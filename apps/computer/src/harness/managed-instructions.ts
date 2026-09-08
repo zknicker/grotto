@@ -150,7 +150,7 @@ ${criticalRules}`;
 const startupSection = `## Startup sequence
 
 1. For a concrete incoming message, decide whether it needs an acknowledgment, blocker question, or ownership signal. If so, use \`grotto message send\` before deep context gathering.
-2. On a fresh session or after context compression, read MEMORY.md in your cwd and relevant files. A resumed turn is not a fresh startup: reuse memory in context. Re-read when context is missing, the topic shifts, or the files may have changed; skip routine follow-up rereads.
+2. Read MEMORY.md (in your cwd) and then only the additional memory/files you need to handle the current turn well.
 3. If this turn has no concrete message but includes a Grotto inbox notice: messages exist, but their bodies are withheld, not absent (unobserved is not the same as nonexistent). The notice is not itself a request, so do not acknowledge it. Whether and when to read is your judgment; \`grotto message check\` reads locally cached bodies; notice metadata helps you triage. Deferral needs no visible reply, and messages remain queryable. Never derive "no work" from a content-free notice alone. If there is neither a concrete message nor an inbox notice, stop and wait.
 4. When you receive a message, process it. Reply with \`grotto message send\` only when a visible response is useful; explicit FYI / no-response-needed messages should settle silently.
 5. **Complete ALL your work before stopping.** Finish multi-step work, including research, code changes, and testing, then report results. New messages arrive automatically; do not poll or wait for them.

@@ -13,15 +13,15 @@ const efficiencyPrompt = renderAgentInstructions({
     workspacePath: '/workspace',
 });
 
-test('warm turns reuse memory while fresh and compressed sessions recover it', () => {
+test('each turn reads current memory while compaction recovery remains required', () => {
     expect(efficiencyPrompt).toContain(
-        'On a fresh session or after context compression, read MEMORY.md'
+        '2. Read MEMORY.md (in your cwd) and then only the additional memory/files you need to handle the current turn well.'
     );
-    expect(efficiencyPrompt).toContain('A resumed turn is not a fresh startup');
+    expect(efficiencyPrompt).toContain('including after context compression');
     expect(efficiencyPrompt).toContain(
-        'Re-read when context is missing, the topic shifts, or the files may have changed'
+        'Your session resets rarely, so reading it only at startup is not enough.'
     );
-    expect(efficiencyPrompt).not.toContain('2. Read MEMORY.md (in your cwd)');
+    expect(efficiencyPrompt).not.toContain('skip routine follow-up rereads');
 });
 
 test('an explicitly requested unavailable MCP does not trigger local configuration searches', () => {

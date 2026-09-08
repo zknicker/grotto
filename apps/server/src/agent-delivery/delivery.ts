@@ -286,13 +286,7 @@ export class AgentDelivery {
         ) {
             throw new Error('The assigned Computer disconnected before the Agent could restart.');
         }
-        const plan = await this.db.transaction(async (tx) => {
-            await lockServerRow(tx, input.serverId);
-            await store.clearDeliveryFailures(tx, input.agentId);
-            await store.clearInboxNotices(tx, { agentId: input.agentId });
-            return this.planDispatch(tx, input.agentId);
-        });
-        this.emit(plan);
+        await this.start(input);
     }
 
     /** Rotates session identity; full reset also recreates Computer-local Agent state. */

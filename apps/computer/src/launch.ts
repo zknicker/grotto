@@ -7,7 +7,7 @@ import {
     seedCoveWorkspace,
     seedFactoryManagedSkills,
 } from '@grotto/agent-workspace';
-import type { AgentTurnActivitySummary, CloudAgentBranch } from '@grotto/api';
+import type { AgentActionAttention, AgentTurnActivitySummary, CloudAgentBranch } from '@grotto/api';
 import type { TraceCarrier } from '@grotto/effect';
 import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 import { AgentActivityRun } from './agent-activity-run.ts';
@@ -109,26 +109,6 @@ export interface AgentCloudAgentWorkAttention {
     summary: string | null;
     title: string;
     workId: string;
-}
-
-export interface AgentActionAttention {
-    actionId: string;
-    chatId: string;
-    createdAgentId: string;
-    executedResult: {
-        agentId: string;
-        avatarUrl: string | null;
-        chatId: string;
-        computerId: string;
-        description: string | null;
-        displayName: string;
-        handle: string;
-        modelId: string;
-        reasoningEffort: 'high' | 'low' | 'medium';
-        role: 'member';
-        runtimeId: string;
-    };
-    kind: 'agent:create';
 }
 
 /** Server→Computer command to terminate the named in-flight run. */

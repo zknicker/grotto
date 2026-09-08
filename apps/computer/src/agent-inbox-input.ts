@@ -1,9 +1,9 @@
-import { cloudAgentWorkAttentionSchema } from '@grotto/api';
-import type {
-    AgentActionAttention,
-    AgentCloudAgentWorkAttention,
-    AgentInboxItem,
-} from './launch.ts';
+import {
+    type AgentActionAttention,
+    agentActionAttentionSchema,
+    cloudAgentWorkAttentionSchema,
+} from '@grotto/api';
+import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './launch.ts';
 
 export function parseInbox(value: unknown): AgentInboxItem[] | null {
     if (!Array.isArray(value) || value.length > 100) {
@@ -94,47 +94,8 @@ function parseActionAttention(value: unknown): AgentActionAttention | undefined 
     if (value === undefined) {
         return undefined;
     }
-    if (
-        !isRecord(value) ||
-        value.kind !== 'agent:create' ||
-        typeof value.actionId !== 'string' ||
-        value.actionId.length === 0 ||
-        typeof value.chatId !== 'string' ||
-        value.chatId.length === 0 ||
-        typeof value.createdAgentId !== 'string' ||
-        value.createdAgentId.length === 0 ||
-        !isRecord(value.executedResult)
-    ) {
-        return null;
-    }
-    const result = value.executedResult;
-    const stringFields = [
-        'agentId',
-        'chatId',
-        'computerId',
-        'displayName',
-        'handle',
-        'modelId',
-        'runtimeId',
-    ] as const;
-    if (
-        stringFields.some(
-            (field) => typeof result[field] !== 'string' || result[field].length === 0
-        ) ||
-        (result.avatarUrl !== null && typeof result.avatarUrl !== 'string') ||
-        (result.description !== null && typeof result.description !== 'string') ||
-        !['high', 'low', 'medium'].includes(result.reasoningEffort as string) ||
-        result.role !== 'member'
-    ) {
-        return null;
-    }
-    return {
-        actionId: value.actionId,
-        chatId: value.chatId,
-        createdAgentId: value.createdAgentId,
-        executedResult: result as AgentActionAttention['executedResult'],
-        kind: 'agent:create',
-    };
+    const parsed = agentActionAttentionSchema.safeParse(value);
+    return parsed.success ? parsed.data : null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

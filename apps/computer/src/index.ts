@@ -15,6 +15,7 @@ import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch
 import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.ts';
 import { applyAuthoritativeSession } from './agent-session-authority.ts';
 import { parseAgentSkillFileRequest, runAgentSkillFileRequest } from './agent-skill-files.ts';
+import { dispatchAgentStart } from './agent-start-dispatch.ts';
 import { traceAgentTurn } from './agent-turn-telemetry.ts';
 import { handleCloudAgentFrame } from './attachment-cloud-agents.ts';
 import { AttachmentConnectionWork } from './attachment-connection-work.ts';
@@ -93,7 +94,6 @@ import {
     parseResetCommand,
     parseRestartCommand,
     parseServerDeleteCommand,
-    parseStartCommand,
     parseStopCommand,
     resetAgentState,
     runAgentLaunch,
@@ -1523,13 +1523,13 @@ async function connect(
                 );
                 return;
             }
-            const command = parseStartCommand(frame);
-            if (command) {
-                const pendingConfiguration = agentWork.waitForConfiguration(command.agentId);
-                void trackWriter(
-                    pendingConfiguration.then(() => startAgent(command)).catch(reportStateError)
-                );
-            }
+            void trackWriter(
+                dispatchAgentStart(frame, {
+                    coordinator: agentWork,
+                    send: sendFrame,
+                    start: startAgent,
+                }).catch(reportStateError)
+            );
         });
         socket.addEventListener('open', () => {
             opened = true;

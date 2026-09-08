@@ -232,6 +232,13 @@
       "when": 1788639553772,
       "tag": "0032_agent_activity_outcomes",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1788829704911,
+      "tag": "0033_provenance_rollback_writes",
+      "breakpoints": true
     }
   ]
 }

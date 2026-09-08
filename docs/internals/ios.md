@@ -709,36 +709,55 @@ alike and reads a channel's stored slug as a title, `onboarding-owner` as `Onboa
 markdown and the reference target are untouched. Human references remain visual and do not create
 attention or notification behavior.
 
-A chip is a run inside the message body, not a box beside it. `RichReferenceChipRaster` draws each
-chip once through `ImageRenderer` at the display scale, and `RichMessageContentView` concatenates
-that bitmap into the single `Text` carrying the body's words. Segments rendered as sibling views
-cannot flow at all: a multi-word run measures at the full column width, so the chip and every word
-after it were pushed onto their own lines. `InlineChipFit` owns the chip's vertical contract,
-because a SwiftUI line absorbs an image run's above-baseline extent only up to the font's ascent
-plus its leading and absorbs no baseline offset at all — every point of offset, up or down, is added
-to that line. So the chip is sized to that ceiling — about 16.3pt inside 17pt body text at default
-Dynamic Type — and dropped only a twentieth of the line, which holds a chip line to the pitch of a
-plain line within a point where centering it on the x-height the way the App's `align-middle` span
-does would have cost four. `RichReferenceChipProportions` fills that box: the mark and the insets are
-fractions of the height, so a ~13pt mark sits a point and a half from the top, bottom, and leading
-edges and the corner keeps the `box / 3` curve `ChannelIconBox` gives the mark, while the label is
-the one measurement taken from the words rather than the box — 0.88 of the surrounding point size,
-about 15pt at default, the way the App's chip carries an 0.875 label. Sizing the label off the box
-instead made it read as a shrunken pill beside body text; sized off the text it reads as a
-highlighted run of the sentence, with its caps and the box's own height about two and a half points
-apart. That label's line box is taller than the box it sits in, so centering it hung the descenders
-through the capsule's bottom edge, where `ImageRenderer` — bounded to the chip's frame — cut them
-flat; the label is lifted by the overhang instead, about eight tenths of a point at default type,
-which rests the descenders on that edge and still leaves two points of air over the capitals. The
-raster is an `NSCache` bounded by pixels rather than entries, so a long back-scroll neither
-re-rasterizes inside cell layout nor ignores
-memory pressure, and it is keyed by the reference, the color scheme, Dynamic Type, Bold Text, the
-display scale, those proportions, and whether the avatar bytes or the channel glyph have arrived, so
-an asynchronous load draws a new chip instead of reviving a stale one. Avatar presence in that key
-is `AvatarImageCache`'s answer alone, never a per-view set: the cache restores an evicted avatar
-from its disk bytes and only reports absence once those are gone too, so a recycled row cannot flip
-a drawn avatar back to initials. The body carries its own accessibility label, so a rasterized chip
-still reads as `Agent reference, Marlow`.
+A chip is a run inside the message body, not a box beside it, and not a picture of one. The label is
+set in the body's own font at the body's own point size on the body's own baseline; the capsule and
+the identity mark are painted behind it. So the words after a mention keep their rhythm, a selection
+drags straight through it, and a line carrying a mention keeps the pitch of a line of plain words —
+asserted directly, as identical line-fragment heights for a wrapped paragraph with and without a
+mention. The body is a non-editable, non-scrolling `UITextView` (`RichMessageTextView`) over a
+TextKit 1 stack the app builds by hand rather than letting `UITextView` pick one, and
+`RichReferenceLayoutManager` paints in `drawBackground(forGlyphRange:at:)`, the hook the engine
+already calls with the text container's origin in view coordinates. `RichReferenceCapsuleGeometry`
+owns the arithmetic: the capsule is exactly the line's own box — the font's ascent above the
+baseline and its descent below — with the `box / 3` corner `ChannelIconBox` gives the mark, and the
+mark and insets are fractions of that box, so a ~16pt mark sits about two points from the top,
+bottom, and leading edges inside 17pt body text and the whole chip scales with Dynamic Type.
+
+The capsule's horizontal room is bought in the text itself. `RichMessageAttributedText` writes the
+reference as a run of three pieces — a zero-height `NSTextAttachment` wide enough for the leading
+inset, the mark, and the gap after it; the label; a second attachment for the trailing inset — all
+carrying one `.grottoReference` attribute. Zero height is what keeps the line box untouched, and
+each attachment is held against the label by a word joiner because an attachment character is
+otherwise a line-break opportunity and a capsule may not come away from its own padding.
+
+The label itself is written verbatim, spaces and hyphens intact, and whether its words may come
+apart is decided per break opportunity by `RichReferenceLineBreaking` through the layout manager's
+delegate. A label keeps together whenever the whole run — both spacers and the label — fits within
+the container's usable width, so a mention moves whole to the next line rather than splitting. Only
+a run too wide for any line may break, and then only at the label's own word boundaries; it is never
+hyphenated. Sealing those boundaries shut instead — the non-breaking spaces and joiners this
+replaced — made a long label one unbreakable token, and at an accessibility Dynamic Type size a
+token wider than the column left the engine nothing to do but wrap it by character, rendering
+"Product Design Team" as "Product Desig" / "n Team". A run that does break wears one capsule per
+line fragment, and the mark is drawn only on the fragment carrying the run's first glyph. Copying
+resolves all of it back to the sentence. The mark is a channel's glyph in its `ChannelIconBox`
+colors from `ChannelIconCatalog`, or an Agent's or human's avatar from `AvatarImageCache` over
+`AvatarView`'s initials.
+
+Two things drive relayout, and they are deliberately separate. The attributed body is rebuilt only
+when its segments, text style, Dynamic Type size, or Bold Text setting change — attachments and
+dynamic colors compare by identity, so handing the text view a freshly built but identical string
+would throw its layout away on every SwiftUI update. A mark arriving asynchronously — avatar bytes,
+or the one-time channel glyph load — changes no text at all, so it bumps a revision that repaints
+without relaying out. Avatar presence is `AvatarImageCache`'s answer alone, never a per-view set:
+the cache restores an evicted avatar from its disk bytes and only reports absence once those are
+gone too, so a recycled row cannot flip a drawn avatar back to initials. Row height comes from the
+representable's `sizeThatFits` at the proposed width, which is what `UIHostingConfiguration` asks
+for inside the self-sizing transcript cells. A long press belongs to the row, not the text: the text
+view refuses its own long-press recognizers so `TranscriptListView`'s context menu wins, leaving
+double-tap word selection intact. The body carries an accessibility label naming each reference's
+kind, and the text view's value is suppressed so VoiceOver reads the sentence once, as
+`Agent reference, Marlow`.
 
 The open native Chat and Thread surfaces acknowledge the latest loaded message sequence through
 `chat.markRead`. Identical Server/Chat/sequence acknowledgements are deduplicated in memory. The

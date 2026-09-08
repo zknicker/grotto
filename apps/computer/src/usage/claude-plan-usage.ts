@@ -39,10 +39,16 @@ export function createClaudePlanUsageReader(
         const now = readOptions.now ?? new Date();
         if (readOptions.dataRoot) {
             const state = await readClaudePlanUsageState(readOptions.dataRoot);
-            if (state.snapshot) {
+            if (
+                state.snapshot &&
+                now.getTime() - Date.parse(state.snapshot.capturedAt) < refreshIntervalMs
+            ) {
                 return state.snapshot;
             }
             if (now.getTime() < state.nextFallbackAt) {
+                if (state.snapshot) {
+                    return state.snapshot;
+                }
                 throw new ClaudeUsageRequestError(
                     'Claude plan usage is waiting for its guarded fallback retry.',
                     429,
@@ -99,8 +105,9 @@ export function createClaudePlanUsageReader(
                 if (dataRoot) {
                     await scheduleClaudeUsageFallback(dataRoot, nextRequestAt, true);
                 }
-                if (lastSnapshot) {
-                    return lastSnapshot;
+                const retainedSnapshot = dataRoot ? state?.snapshot : lastSnapshot;
+                if (retainedSnapshot) {
+                    return retainedSnapshot;
                 }
                 throw error;
             } finally {

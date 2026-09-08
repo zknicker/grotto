@@ -3,21 +3,13 @@ import { Button, ProgressBar, Skeleton, Tooltip } from '@heroui/react';
 import { DataGrid, type DataGridColumn } from '@heroui-pro/react';
 import { ProviderMark } from '../../components/provider-mark.tsx';
 import { formatTimestamp } from '../../lib/format.ts';
+import { type DisplayPlanWindow, usageColor } from './runtime-plan-windows.ts';
 import {
-    type DisplayPlanWindow,
-    selectFirstWindow,
-    selectWindow,
-    selectWindows,
-    usageColor,
-} from './runtime-plan-windows.ts';
-
-interface RuntimeUsageRow {
-    fiveHourWindow: DisplayPlanWindow | null;
-    id: ComputerRuntimeId;
-    status: string;
-    title: string;
-    window: DisplayPlanWindow | null;
-}
+    buildRuntimeRow,
+    type RuntimeUsageRow,
+    runtimeOrder,
+    staleUsageTimestamp,
+} from './runtime-usage-row.ts';
 
 /**
  * Runtimes render through the same DataGrid as Agents on this Computer, so the
@@ -49,7 +41,7 @@ export function DetectedRuntimeUsage({
     return (
         <DataGrid
             aria-label="Runtimes on this Computer"
-            columns={runtimeColumns(onViewPiUsage)}
+            columns={runtimeColumns(Date.now(), onViewPiUsage)}
             contentClassName="min-w-160"
             data={rows}
             getRowId={(item) => item.id}
@@ -76,13 +68,21 @@ export function DetectedRuntimeUsageSkeleton({
     );
 }
 
-function runtimeColumns(onViewPiUsage?: () => void): DataGridColumn<RuntimeUsageRow>[] {
+function runtimeColumns(
+    now: number,
+    onViewPiUsage?: () => void
+): DataGridColumn<RuntimeUsageRow>[] {
     return [
         {
             cell: (item) => (
                 <div className="flex min-w-0 items-center gap-3">
                     <ProviderMark className="size-5 shrink-0 text-muted" provider={item.id} />
-                    <p className="truncate font-medium">{item.title}</p>
+                    <div className="min-w-0">
+                        <p className="truncate font-medium">{item.title}</p>
+                        {staleUsageTimestamp(item, now) && (
+                            <p className="text-muted text-xs">Usage out of date</p>
+                        )}
+                    </div>
                 </div>
             ),
             header: 'Runtime',
@@ -119,7 +119,7 @@ function runtimeColumns(onViewPiUsage?: () => void): DataGridColumn<RuntimeUsage
                         </Tooltip.Trigger>
                         <Tooltip.Content showArrow>
                             <Tooltip.Arrow />
-                            <p className="max-w-xs">{burstResetCopy(item.fiveHourWindow)}</p>
+                            <p className="max-w-xs">{burstResetCopy(item.fiveHourWindow, now)}</p>
                         </Tooltip.Content>
                     </Tooltip>
                 ) : (
@@ -132,6 +132,14 @@ function runtimeColumns(onViewPiUsage?: () => void): DataGridColumn<RuntimeUsage
         {
             align: 'end',
             cell: (item) => {
+                const staleAt = staleUsageTimestamp(item, now);
+                if (staleAt) {
+                    return (
+                        <span className="text-muted text-sm">
+                            Last updated {formatTimestamp(staleAt)}
+                        </span>
+                    );
+                }
                 if (item.window?.resetsAt) {
                     return (
                         <span className="text-muted text-sm">
@@ -191,87 +199,9 @@ function UnsupportedMeter() {
     );
 }
 
-function buildRuntimeRow(
-    id: ComputerRuntimeId,
-    usage: UsageOverview,
-    piAgentCount: number | null
-): RuntimeUsageRow {
-    const title = runtimeLabels[id];
-
-    if (id === 'codex') {
-        return {
-            fiveHourWindow: null,
-            id,
-            status: 'Plan limits unavailable',
-            title,
-            window:
-                usage.codex.status === 'ok'
-                    ? selectFirstWindow(
-                          usage.codex.snapshot.windows,
-                          ['current-week', 'current-session'],
-                          'Weekly Limit'
-                      )
-                    : null,
-        };
-    }
-
-    if (id === 'claude-code') {
-        return {
-            fiveHourWindow:
-                usage.claude.status === 'ok'
-                    ? selectWindow(usage.claude.snapshot.windows, 'current-session', '5h')
-                    : null,
-            id,
-            status: 'Plan limits unavailable',
-            title,
-            window:
-                usage.claude.status === 'ok'
-                    ? (selectWindows(usage.claude.snapshot.windows, [
-                          ['current-week-all-models', 'Weekly Limit'],
-                      ])[0] ?? null)
-                    : null,
-        };
-    }
-
-    if (id === 'grok-build') {
-        return {
-            fiveHourWindow: null,
-            id,
-            status: 'Weekly limit unavailable',
-            title,
-            window:
-                usage.grok.status === 'ok'
-                    ? (usage.grok.snapshot.windows.find(
-                          (candidate) => candidate.label === 'Weekly Limit'
-                      ) ?? null)
-                    : null,
-        };
-    }
-
-    return { fiveHourWindow: null, id, status: piAgentSummary(piAgentCount), title, window: null };
-}
-
-function burstResetCopy(window: DisplayPlanWindow) {
+function burstResetCopy(window: DisplayPlanWindow, now: number) {
     const used = `Rolling 5-hour limit, ${Math.round(window.usedPercent)}% used.`;
     return window.resetsAt
-        ? `${used} Resets ${formatTimestamp(window.resetsAt)}.`
+        ? `${used} ${Date.parse(window.resetsAt) <= now ? 'Reset' : 'Resets'} ${formatTimestamp(window.resetsAt)}.`
         : `${used} Reset time unavailable.`;
 }
-
-function piAgentSummary(agentCount: number | null) {
-    if (agentCount === null) {
-        return 'API-backed · Usage tracked automatically';
-    }
-    return agentCount === 0
-        ? 'API-backed · No Agents using Pi'
-        : `API-backed · ${agentCount} ${agentCount === 1 ? 'Agent' : 'Agents'}`;
-}
-
-const runtimeOrder: ComputerRuntimeId[] = ['codex', 'claude-code', 'grok-build', 'pi'];
-
-const runtimeLabels: Record<ComputerRuntimeId, string> = {
-    'claude-code': 'Claude Code',
-    codex: 'Codex',
-    'grok-build': 'Grok Build',
-    pi: 'Pi',
-};

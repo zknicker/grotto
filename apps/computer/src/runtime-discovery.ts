@@ -1,5 +1,6 @@
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
+import type { ComputerRuntimeId } from '@grotto/api/computer-runtime';
 
 export interface ResolvedRuntimeExecutable {
     path: string;
@@ -68,4 +69,16 @@ export function resolveRuntimeExecutable(
         searchPath: [dirname(path), searchPath].join(':'),
         version: version.split('\n')[0] ?? version,
     };
+}
+
+const runtimeCommands: Record<ComputerRuntimeId, string> = {
+    'claude-code': 'claude',
+    codex: 'codex',
+    'grok-build': 'grok',
+    pi: 'pi',
+};
+
+export function resolveRuntimeById(runtimeId: string, options: { searchPath?: string } = {}) {
+    const command = Object.entries(runtimeCommands).find(([id]) => id === runtimeId)?.[1];
+    return command ? resolveRuntimeExecutable(command, options) : null;
 }

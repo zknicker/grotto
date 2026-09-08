@@ -1,7 +1,7 @@
 import type { ComputerInventory } from '@grotto/api';
 import { type ComputerRuntimeId, computerRuntimeCatalog } from '@grotto/api/computer-runtime';
 import { detectCloudAgentProviders } from './cloud-agents/registry.ts';
-import { resolveRuntimeExecutable } from './runtime-discovery.ts';
+import { resolveRuntimeById } from './runtime-discovery.ts';
 
 type ComputerRuntime = ComputerInventory['runtimes'][number];
 
@@ -10,34 +10,22 @@ type ComputerRuntime = ComputerInventory['runtimes'][number];
  * on PATH. Only installed runtimes are reported, and the report carries no
  * provider credentials — model availability, never secrets.
  */
-const knownRuntimes: { command: string; runtime: ComputerRuntime }[] = [
-    {
-        command: 'codex',
-        runtime: supportedRuntime('codex', [
-            { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' },
-            { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra' },
-            { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna' },
-        ]),
-    },
-    {
-        command: 'claude',
-        runtime: supportedRuntime('claude-code', [
-            { id: 'claude-opus-4-8', label: 'Claude Opus 4.8' },
-            { id: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
-            { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5' },
-        ]),
-    },
-    {
-        command: 'pi',
-        runtime: supportedRuntime('pi', [{ id: 'pi', label: 'Pi' }]),
-    },
-    {
-        command: 'grok',
-        runtime: supportedRuntime('grok-build', [
-            { id: 'grok-4.6', label: 'Grok 4.6' },
-            { id: 'grok-4.5', label: 'Grok 4.5' },
-        ]),
-    },
+const knownRuntimes: ComputerRuntime[] = [
+    supportedRuntime('codex', [
+        { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' },
+        { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra' },
+        { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna' },
+    ]),
+    supportedRuntime('claude-code', [
+        { id: 'claude-opus-4-8', label: 'Claude Opus 4.8' },
+        { id: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
+        { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5' },
+    ]),
+    supportedRuntime('pi', [{ id: 'pi', label: 'Pi' }]),
+    supportedRuntime('grok-build', [
+        { id: 'grok-4.6', label: 'Grok 4.6' },
+        { id: 'grok-4.5', label: 'Grok 4.5' },
+    ]),
 ];
 
 /**
@@ -64,14 +52,9 @@ export function detectInventory(options: { searchPath?: string } = {}): Computer
     if (override) {
         return JSON.parse(override) as ComputerInventory;
     }
-    const runtimes = knownRuntimes
-        .filter(
-            (entry) =>
-                resolveRuntimeExecutable(entry.command, {
-                    searchPath: options.searchPath,
-                }) !== null
-        )
-        .map((entry) => entry.runtime);
+    const runtimes = knownRuntimes.filter(
+        (runtime) => resolveRuntimeById(runtime.id, options) !== null
+    );
     return { runtimes };
 }
 

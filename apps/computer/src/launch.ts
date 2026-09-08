@@ -32,7 +32,7 @@ import {
 import { ensureNativeSkillLinks } from './harness/native-skill-links.ts';
 import { composeInboxDrain } from './inbox-format.ts';
 import { readRunVisibleMessages } from './inbox-store.ts';
-import { resolveRuntimeExecutable, runtimeSearchPath } from './runtime-discovery.ts';
+import { resolveRuntimeById, runtimeSearchPath } from './runtime-discovery.ts';
 import { classifyRuntimeFailure, type RuntimeFailureKind } from './runtime-failure.ts';
 import { createServerMcpTools } from './server-mcp-tools.ts';
 import { writeGrottoWrapper } from './wrapper.ts';
@@ -218,8 +218,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
     );
     await ensureNativeSkillLinks(dirs.home, dirs.skills);
 
-    const runtimeCommand = runtimeCli[command.runtimeId];
-    const runtimeExecutable = runtimeCommand ? resolveRuntimeExecutable(runtimeCommand) : null;
+    const runtimeExecutable = resolveRuntimeById(command.runtimeId);
     if (command.runtimeId !== 'fake' && !runtimeExecutable && !options.harnessAgentFactory) {
         return reportTurn(options, {
             failureKind: 'configuration',
@@ -710,13 +709,6 @@ async function writeTrace(input: RuntimeExecutionInput, content: string) {
         mode: 0o600,
     });
 }
-
-/** Executable runtimes kept in lockstep with the advertised inventory. */
-const runtimeCli: Record<string, string> = {
-    'claude-code': 'claude',
-    codex: 'codex',
-    pi: 'pi',
-};
 
 async function mintRunner(options: RunAgentLaunchOptions) {
     return await postJson<{ runnerId: string; runnerToken: string }>(

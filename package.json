@@ -71,12 +71,15 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
     "@varlock/1password-plugin": "2.0.3",
+    "typescript": "5.9.3",
     "ultracite": "7.3.0",
     "varlock": "1.16.1",
     "zod": "4.1.11"
   },
   "overrides": {
     "@hono/node-server": "1.19.13",
+    "@tiptap/extension-bubble-menu": "3.30.4",
+    "@tiptap/extension-floating-menu": "3.30.4",
     "brace-expansion": "5.0.6",
     "esbuild": "0.27.4",
     "fast-uri": "3.1.2",

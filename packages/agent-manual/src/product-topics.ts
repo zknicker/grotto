@@ -14,7 +14,11 @@ Then pipe one strict action object to the target Chat or DM:
 
 \`printf '{"kind":"agent:create","name":"Orbit","description":"Release helper"}' | grotto action prepare --target <target> --avatar-file <path>\`
 
-The optional proposal fields are \`description\`, \`draftHint\`, and structured Computer guidance. Runtime, model, and reasoning effort are human-owned settings in the review dialog and are not part of the prepared proposal; the created Agent's Server role is fixed to Member. The human may edit the submitted creation values and avatar before committing, while the proposal remains immutable.
+The optional proposal fields are \`description\` and structured Computer guidance. The description defines the Agent's role; the proposal has no separate instruction or commentary field. Runtime, model, and reasoning effort are human-owned settings in the review dialog and are not part of the prepared proposal; the created Agent's Server role is fixed to Member. The human may edit the submitted creation values and avatar before committing, while the proposal remains immutable.
+
+When the owner already names the role they want, prepare this card directly. Consult team-design recipes when the ownership or team shape needs a decision, not as a prerequisite to every creation.
+
+The card is the reviewable deliverable. Use \`grotto message send\` for any explanation the human still needs, and include only information the card does not already communicate. Do not post a copyable role prompt for the human to install or repeat the proposal in a separate completion message. End preparation after posting the card and any necessary explanation; after creation, send the new Agent a substantive working brief if one is needed.
 
 The card shows pending, Done, or superseded status. A newer proposal from the same Agent in the same Chat supersedes its older pending proposal. Never imply that preparation created the Agent; the human commit is a separate event.
 

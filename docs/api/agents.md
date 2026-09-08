@@ -96,12 +96,17 @@ printf '{"kind":"agent:create","name":"Orbit","description":"Release helper"}' \
 
 `grotto action prepare` accepts one strict `ActionCardAction` JSON object on stdin and a local
 PNG, JPEG, or WebP avatar file up to 512 KiB. Version 1 exposes only `agent:create`; its optional
-fields are `description`, `draftHint`, and `computer` guidance (`required` or `suggested` with a
+fields are `description` and `computer` guidance (`required` or `suggested` with a
 Server-resolved Computer id). Runtime, model, role, and credentials are deliberately absent.
 The Server resolves the target from the scoped runner, verifies the Agent's exact current Chat
 view, and stores the proposal plus the exact avatar bytes in one transaction. The response is a
 typed receipt containing the prepared action, its canonical Chat anchor, sequence, and idempotency
 result.
+
+Proposal commentary uses ordinary `grotto message send` content, not a field in the creation
+configuration. The card is the deliverable; another message is useful only when it adds information
+the card does not convey. The checked-in migration preserves historical proposal notes in their
+existing Message content before removing the old field.
 
 The same `(Server, proposer Agent, nonce)` and identical proposal/media returns the original
 receipt. Reusing that nonce for different values returns `ACTION_IDEMPOTENCY_CONFLICT`. A newer

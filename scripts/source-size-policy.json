@@ -131,11 +131,10 @@
     "packages/grotto-sdk/src/client.ts": 431,
     "scripts/agent-tests/kit.mjs": 309,
     "scripts/agent-tests/kit.test.mjs": 580,
-    "scripts/design-eval.mjs": 310,
     "scripts/dev-stack-controller.mjs": 580,
     "scripts/dev-stack-shared.mjs": 348,
     "scripts/env-contract-check.ts": 327,
-    "scripts/eval-harness.mjs": 481,
+    "scripts/eval-harness.mjs": 482,
     "scripts/release/release-impact.mjs": 304
   }
 }

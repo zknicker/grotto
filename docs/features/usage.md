@@ -46,12 +46,17 @@ snapshot. The Computer reports only sources it can actually read. The Server sto
 timestamped snapshot for each Computer. Disconnecting a Computer changes freshness and health; it
 does not erase its last report.
 
+Each runtime row uses its provider snapshot's capture time, independently of the Computer's report
+time. After 30 minutes, or once a displayed allowance window has reset, the row labels its retained
+numbers **Usage out of date** and shows **Last updated** instead of an upcoming reset date.
+
 Codex usage uses the Computer's native Codex session. Claude Code plan usage comes primarily from
 the structured usage data exposed by an already-running managed Claude Code SDK session. Computer
 leases that collection once per 15-minute interval and persists the result; the App never polls
-Anthropic. Before the first managed Claude turn, Computer may make one guarded OAuth usage request,
-then applies durable exponential backoff on failure. On macOS, that fallback prefers Claude Code's
-current Keychain session and rejects expired credential-file tokens. Grok Build plan usage uses its
+Anthropic. When no fresh snapshot is available, Computer may make one guarded OAuth usage request,
+including before the first managed Claude turn. Failures trigger durable exponential backoff.
+Fresh SDK evidence suppresses that fallback; a retained old snapshot never suppresses future retries.
+On macOS, that fallback prefers Claude Code's current Keychain session and rejects expired credential-file tokens. Grok Build plan usage uses its
 local login and the same credits billing request as the official Grok Build client. Computer cards
 use the provider's all-model weekly allowance as their shared primary metric. A compact header
 indicator conditionally shows an enforced 5-hour window; model-specific windows stay out of this

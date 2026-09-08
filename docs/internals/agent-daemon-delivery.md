@@ -25,6 +25,8 @@ the Server and Computer implementation.
 - AI SDK Harness remains the execution implementation. A settled turn detaches
   its local session handle, parking the sandbox and resume state for the next
   delivery. Reset or retirement destroys that Agent host.
+- Runtime discovery and launch share one exhaustive runtime-to-executable map. Detection proves
+  the executable answers its version probe, not that a provider login or Agent turn will succeed.
 - The Agent sees only the managed `grotto` wrapper and its stable local proxy
   token. The Computer rotates the Server-valid runner credential for every
   turn and never exposes it to the Agent.

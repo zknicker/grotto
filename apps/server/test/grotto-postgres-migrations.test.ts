@@ -19,7 +19,7 @@ test('upgrades the preceding production schema without replaying migrations', as
         await cp(join(import.meta.dir, '../drizzle/postgres'), folder, { recursive: true });
         const journalPath = join(folder, 'meta/_journal.json');
         const journal = JSON.parse(await readFile(journalPath, 'utf8'));
-        journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx <= 30);
+        journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx <= 28);
         await writeFile(journalPath, JSON.stringify(journal));
         await database.unsafe('CREATE DATABASE grotto_effect_upgrade_test');
         await migrateGrottoDatabase(url.toString(), 'grotto', 'grotto', folder);
@@ -27,8 +27,11 @@ test('upgrades the preceding production schema without replaying migrations', as
         await upgraded`INSERT INTO users (id, clerk_user_id, display_name)
             VALUES ('usr_upgrade', 'clerk_upgrade', 'Before upgrade')`;
         expect(await migrateGrottoDatabase(url.toString(), 'grotto', 'grotto')).toEqual([
+            '0029_message_bodies_and_asks',
+            '0030_reminder_history_and_cause_snapshot',
             '0031_cloud_agent_work',
             '0032_agent_activity_outcomes',
+            '0033_provenance_rollback_writes',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },

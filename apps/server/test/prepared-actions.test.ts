@@ -298,7 +298,6 @@ function action(name: string) {
     return {
         computer: null,
         description: `Description for ${name}`,
-        draftHint: null,
         kind: 'agent:create' as const,
         name,
     };

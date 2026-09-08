@@ -55,7 +55,6 @@ const pendingAction: AgentCreatePreparedAction = {
         },
         computer: { computerId: 'cmp_local', kind: 'suggested', label: 'Desk Mac' },
         description: 'Keeps the release tidy.',
-        draftHint: 'Start with release notes and small fixes.',
         kind: 'agent:create',
         name: 'Orbit',
     },
@@ -104,8 +103,6 @@ test('a pending proposal without manage rights names the Agent and offers no con
     expect(markup).not.toContain('Runs on');
     expect(markup).not.toContain('Desk Mac');
     expect(markup).not.toContain('Member');
-    // The proposer's note is the message above the card, never a quote in it.
-    expect(markup).not.toContain('Start with release notes and small fixes.');
     // A pending card asks by existing; it carries no status chip in the
     // title, so there's no "Created" text at all.
     expect(markup).not.toContain('Needs you');
@@ -201,31 +198,20 @@ test('a card that goes superseded live animates out; one already superseded neve
     ).toBe('hidden');
 });
 
-test('the anchor message reads as the proposer’s note when the Server body is empty', () => {
-    expect(preparedActionMessageText({ content: '', preparedAction: pendingAction })).toBe(
-        'Start with release notes and small fixes.'
-    );
+test('proposal commentary comes only from message content', () => {
+    expect(preparedActionMessageText({ content: '', preparedAction: pendingAction })).toBe('');
     expect(
         preparedActionMessageText({ content: 'Here is Orbit.', preparedAction: pendingAction })
     ).toBe('Here is Orbit.');
     expect(
         preparedActionMessageText({
             content: '',
-            preparedAction: {
-                ...pendingAction,
-                proposal: { ...pendingAction.proposal, draftHint: null },
-            },
-        })
-    ).toBe('');
-    expect(
-        preparedActionMessageText({
-            content: '',
-            preparedAction: {
-                ...supersededAction,
-                proposal: { ...supersededAction.proposal, draftHint: null },
-            },
+            preparedAction: supersededAction,
         })
     ).toBe('Earlier proposal, replaced.');
+    expect(
+        preparedActionMessageText({ content: 'Original note.', preparedAction: supersededAction })
+    ).toBe('Original note.');
     expect(preparedActionMessageText({ content: 'Plain message.' })).toBe('Plain message.');
 });
 

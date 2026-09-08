@@ -48,10 +48,10 @@ struct MessageBodyTrimmingTests {
         #expect(reference.avatarURL != nil)
     }
 
-    @Test func substitutesThePreparedActionNoteForAWhitespaceOnlyBody() {
+    @Test func trimsAuthoredTextAboveAPreparedAction() {
         let message = presentation(
-            content: " \n\n",
-            preparedAction: preparedAction(draftHint: "Meet Tiny.\n")
+            content: "Meet Tiny.\n",
+            preparedAction: preparedAction()
         )
 
         #expect(message.content == "Meet Tiny.")
@@ -93,7 +93,7 @@ struct MessageBodyTrimmingTests {
         )
     }
 
-    private func preparedAction(draftHint: String) -> PreparedActionPresentation {
+    private func preparedAction() -> PreparedActionPresentation {
         .createAgent(
             PreparedCreateAgentActionPresentation(
                 avatarURL: nil,
@@ -101,7 +101,6 @@ struct MessageBodyTrimmingTests {
                 computerDetail: nil,
                 createdAt: Date(timeIntervalSince1970: 0),
                 description: nil,
-                draftHint: draftHint,
                 executedByDisplayName: nil,
                 id: "prepared_1",
                 name: "Tiny",

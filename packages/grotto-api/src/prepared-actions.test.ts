@@ -15,6 +15,16 @@ const media = {
     url: '/api/prepared-action-media/pam_1234567890abcdef',
 };
 
+test('agent proposals reject commentary disguised as creation configuration', () => {
+    expect(
+        actionCardActionSchema.safeParse({
+            kind: 'agent:create',
+            name: 'Marlow',
+            draftHint: 'You are Marlow, the Amazon Merch Shop Operator.',
+        }).success
+    ).toBe(false);
+});
+
 test('the v1 action contract keeps agent:create proposal data narrow', () => {
     const parsed = actionCardActionSchema.parse({
         kind: 'agent:create',
@@ -24,7 +34,6 @@ test('the v1 action contract keeps agent:create proposal data narrow', () => {
     expect(parsed).toEqual({
         computer: null,
         description: null,
-        draftHint: null,
         kind: 'agent:create',
         name: 'Orbit',
     });
@@ -70,7 +79,6 @@ test('known and future action records share a status envelope', () => {
             avatar: media,
             computer: null,
             description: null,
-            draftHint: null,
             kind: 'agent:create',
             name: 'Orbit',
         },

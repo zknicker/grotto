@@ -24,7 +24,6 @@ test('prepares one typed action with exact local avatar bytes', async () => {
                     proposal: {
                         computer: null,
                         description: null,
-                        draftHint: null,
                         kind: 'agent:create',
                         name: 'Orbit',
                         avatar: {
@@ -65,7 +64,6 @@ test('prepares one typed action with exact local avatar bytes', async () => {
                 action: {
                     computer: null,
                     description: null,
-                    draftHint: null,
                     kind: 'agent:create',
                     name: 'Orbit',
                 },

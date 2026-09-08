@@ -117,7 +117,6 @@ test('projects a prepared action alongside its empty Chat anchor', () => {
             },
             computer: null,
             description: null,
-            draftHint: null,
             kind: 'agent:create',
             name: 'Orbit',
         },

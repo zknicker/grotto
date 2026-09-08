@@ -91,30 +91,21 @@ struct PreparedAgentCreationTests {
 
 @Suite("Prepared action card")
 struct PreparedActionCardTests {
-    @Test("the proposal's note is what the anchor message said")
-    func notesReadAsTheMessageBody() {
-        #expect(proposal(draftHint: "Runtime and model are yours to pick.").messageText
-            == "Runtime and model are yours to pick.")
-        #expect(proposal(draftHint: "Replaced draft", status: .superseded).messageText
-            == "Replaced draft")
-    }
-
     @Test("a superseded proposal with no note still leaves the row a body")
     func supersededProposalsFallBackToAShortNote() {
-        #expect(proposal(draftHint: nil, status: .superseded).messageText
+        #expect(proposal(status: .superseded).messageText
             == "Earlier proposal, replaced.")
-        #expect(proposal(draftHint: "").messageText == "")
+        #expect(proposal().messageText == "")
     }
 
-    @Test("an empty Server body renders the note instead")
-    func emptyAnchorBodiesRenderTheNote() {
+    @Test("proposal commentary is ordinary message content")
+    func authoredContentRendersAboveTheCard() {
         let message = MessagePresentation(
             id: "msg_1",
             author: MessageAuthorPresentation(id: "agent_cove", name: "Cove", avatarURL: nil),
-            content: "",
+            content: "Give Marlow read access to #product first.",
             createdAt: .now,
-            preparedAction: proposal(draftHint: "Give Marlow read access to #product first."),
-            richSegments: []
+            preparedAction: proposal()
         )
 
         #expect(message.content == "Give Marlow read access to #product first.")
@@ -160,11 +151,10 @@ struct PreparedActionCardTests {
 
         #expect(unsupported.messageText == "")
         #expect(unsupported.leavesWhenSuperseded == false)
-        #expect(proposal(draftHint: nil).leavesWhenSuperseded)
+        #expect(proposal().leavesWhenSuperseded)
     }
 
     private func proposal(
-        draftHint: String?,
         status: PreparedActionStatus = .pending
     ) -> PreparedActionPresentation {
         .createAgent(
@@ -174,7 +164,6 @@ struct PreparedActionCardTests {
                 computerDetail: nil,
                 createdAt: .now,
                 description: "Docs steward",
-                draftHint: draftHint,
                 executedByDisplayName: nil,
                 id: "act_1",
                 name: "Marlow",
@@ -198,7 +187,6 @@ struct PreparedActionDetailTests {
         #expect(detail.name == "Orbit")
         #expect(detail.description == longDescription)
         #expect(detail.runsOn == "Mac mini (suggested)")
-        #expect(detail.note == "Runtime and model are yours to pick.")
         #expect(detail.receipt == nil)
         #expect(detail.status == nil)
     }
@@ -206,12 +194,11 @@ struct PreparedActionDetailTests {
     @Test("a part with nothing to say is left out rather than drawn empty")
     func emptyValuesLeaveNoRow() {
         let detail = PreparedActionDetail.resolve(
-            proposal(computerDetail: nil, description: "", draftHint: ""),
+            proposal(computerDetail: nil, description: ""),
             canManage: true
         )
 
         #expect(detail.description == nil)
-        #expect(detail.note == nil)
         #expect(detail.runsOn == nil)
     }
 
@@ -252,7 +239,6 @@ struct PreparedActionDetailTests {
         computerDetail: String? = "Mac mini (suggested)",
         createdAgentID: String? = nil,
         description: String? = nil,
-        draftHint: String? = "Runtime and model are yours to pick.",
         executedByDisplayName: String? = nil,
         status: PreparedActionStatus = .pending
     ) -> PreparedCreateAgentActionPresentation {
@@ -263,7 +249,6 @@ struct PreparedActionDetailTests {
             createdAgentID: createdAgentID,
             createdAt: .now,
             description: description ?? longDescription,
-            draftHint: draftHint,
             executedAt: status == .executed ? executedAt : nil,
             executedByDisplayName: executedByDisplayName,
             id: "act_1",

@@ -13,6 +13,8 @@ All notable changes to this project will be documented in this file.
 - Grotto resumes stopped Agents and delivers Agent-creation continuations reliably. Agent DM
   menus remain available before the first message, and MCP settings distinguish adding a connection
   from authorizing an account.
+- Agent-creation cards keep configuration separate from commentary in the hosted App and iPhone
+  app. Historical proposal notes remain in their original messages. The iPhone build is 1.5.2 (26).
 
 ## v1.15.1 - 2026-09-07
 

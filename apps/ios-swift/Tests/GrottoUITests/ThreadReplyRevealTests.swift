@@ -2,6 +2,19 @@
 import Testing
 
 struct ThreadReplyRevealTests {
+    @Test func anchorAndTaskAreNotPreviousReplies() {
+        let anchor = ChatFixtures.messages[2]
+        var previous: [ThreadTranscriptItem] = [.anchor(anchor, hasReplies: false)]
+        if let task = anchor.task { previous.append(.taskMetadata(task, hasReplies: false)) }
+        #expect(ThreadReplyReveal.onLatestReplyChange(
+            previousLatestID: previous.last(where: { $0.replyID != nil })?.replyID,
+            isNearBottom: true,
+            latestIsPending: false
+        ) == .settle)
+        previous.append(.reply(ChatFixtures.messages[0]))
+        #expect(previous.last(where: { $0.replyID != nil })?.replyID == ChatFixtures.messages[0].id)
+    }
+
     @Test func firstPageSettlesWithoutAnimation() {
         #expect(
             ThreadReplyReveal.onLatestReplyChange(
@@ -51,4 +64,3 @@ struct ThreadReplyRevealTests {
         )
     }
 }
-

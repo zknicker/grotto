@@ -191,11 +191,12 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
     );
     await expect(rows).toContainText('Done');
     await expect(nestedCard).toContainText('Done');
+    await expect(rows).not.toContainText('Backfill the migration test');
     await expect(cards).toHaveCount(2);
     await expect(cards.nth(0)).toContainText(workTitle);
     await expect(cards.nth(1)).toContainText('Backfill the migration test');
     await page.reload();
-    await expect(rows).toContainText('Backfill the migration test');
+    await expect(rows).not.toContainText('Backfill the migration test');
     await expect(rows).toContainText('Done');
     await expect(cards).toHaveCount(2);
     await expect(cards.nth(0)).toContainText(workTitle);

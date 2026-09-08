@@ -59,6 +59,53 @@ test('the detail line carries activity while the work runs', () => {
     expect(html).toContain('Running the test suite.');
 });
 
+test('compact completed rows show recorded diff counts, not the task title', () => {
+    const completed = work({
+        status: 'completed',
+        runs: [
+            {
+                runId: 'car_one',
+                status: 'completed',
+                providerRunId: null,
+                rawStatus: null,
+                errorCode: null,
+                startedAt: null,
+                terminalAt: null,
+                summary: null,
+                usage: null,
+                branches: [
+                    {
+                        branch: 'cursor/test',
+                        repository: 'grotto/grotto',
+                        pullRequestUrl: 'https://github.com/grotto/grotto/pull/1',
+                        pullRequest: {
+                            number: 1,
+                            state: 'draft',
+                            changedFiles: 1,
+                            additions: 10,
+                            deletions: 0,
+                            observedAt: new Date().toISOString(),
+                        },
+                    },
+                ],
+            },
+        ],
+    });
+    const html = renderToStaticMarkup(<ThreadCloudAgentRows works={[completed]} />);
+    expect(html).toContain('1 file changed · +10 −0');
+    expect(html).not.toContain(completed.title);
+    const active = renderToStaticMarkup(
+        <ThreadCloudAgentRows works={[{ ...completed, status: 'running' }]} />
+    );
+    expect(active).toContain(completed.title);
+    expect(active).not.toContain('file changed');
+    const missing = renderToStaticMarkup(
+        <ThreadCloudAgentRows works={[work({ status: 'completed' })]} />
+    );
+    expect(missing).toContain('>Done</span>');
+    expect(missing).not.toContain('changed');
+});
+
 test('a work with nothing to report renders no line at all', () => {
     expect(renderToStaticMarkup(<CloudAgentWorkDetail work={work({})} />)).toBe('');
 });

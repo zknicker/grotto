@@ -28,6 +28,7 @@ import {
     type VisibleMessageIdentity,
 } from './inbox-store.ts';
 import { serveLocalAgentEvents } from './proxy-inbox.ts';
+import { isCommittedSend, isDefinitelyPreCommitFailure } from './proxy-send-outcome.ts';
 
 const skillCreateSchema = z.object({
     content: z.string().min(1),
@@ -52,6 +53,7 @@ export interface LoopbackProxy {
     resetSendCount(): void;
     sendCount(): number;
     setActivityRun(activity: AgentActivityRun | undefined): void;
+    setOnCommittedSend(onSend: (() => void) | undefined): void;
     setRunId(runId: string): void;
     setRunnerToken(token: string): void;
     setTraceContext(context: TraceCarrier | undefined): void;
@@ -75,6 +77,7 @@ export function startLoopbackProxy(input: {
     let runId: string | null = input.runId ?? null;
     let activityRun: AgentActivityRun | undefined;
     let traceContext: TraceCarrier | undefined;
+    let onCommittedSend: (() => void) | undefined;
     const server = Bun.serve({
         fetch: async (request) => {
             const url = new URL(request.url);
@@ -85,11 +88,13 @@ export function startLoopbackProxy(input: {
                 return new Response('Unauthorized', { status: 401 });
             }
             const category = classifyGrottoProxyBoundary(request.method, url.pathname);
+            const recordCommittedSend = onCommittedSend;
             const operation = async () =>
                 await handleAuthorizedProxyRequest(request, url, input, {
                     getRunId: () => runId,
                     getRunnerToken: () => runnerToken,
                     traceContext,
+                    onCommittedSend: recordCommittedSend,
                     incrementSendCount: () => {
                         sends += 1;
                     },
@@ -111,6 +116,7 @@ export function startLoopbackProxy(input: {
         clearRunnerToken: () => {
             runnerToken = null;
             traceContext = undefined;
+            onCommittedSend = undefined;
         },
         close: () => server.stop(true),
         resetSendCount: () => {
@@ -128,6 +134,9 @@ export function startLoopbackProxy(input: {
         },
         setTraceContext: (context) => {
             traceContext = context;
+        },
+        setOnCommittedSend: (onSend) => {
+            onCommittedSend = onSend;
         },
         url: `http://127.0.0.1:${server.port}`,
     };
@@ -150,6 +159,7 @@ async function handleAuthorizedProxyRequest(
         getRunId(): string | null;
         getRunnerToken(): string | null;
         traceContext?: TraceCarrier;
+        onCommittedSend?: () => void;
         incrementSendCount(): void;
     }
 ): Promise<Response> {
@@ -224,6 +234,7 @@ async function handleAuthorizedProxyRequest(
     const responseBody = await upstream.text();
     if (upstream.ok && isMessageSend && isCommittedSend(responseBody)) {
         state.incrementSendCount();
+        state.onCommittedSend?.();
     }
     const visibleMessageIds = upstream.ok
         ? extractVisibleMessageIds(url.pathname, responseBody)
@@ -444,36 +455,6 @@ async function handleSkillRequest(
             { status: 409 }
         );
     }
-}
-
-function isCommittedSend(body: string): boolean {
-    try {
-        return z.object({ state: z.literal('sent') }).safeParse(JSON.parse(body)).success;
-    } catch {
-        return false;
-    }
-}
-
-const preCommitFailureCodes = new Set([
-    'CERT_HAS_EXPIRED',
-    'DEPTH_ZERO_SELF_SIGNED_CERT',
-    'EAI_AGAIN',
-    'ECONNREFUSED',
-    'ENOTFOUND',
-    'ERR_TLS_CERT_ALTNAME_INVALID',
-    'ConnectionRefused',
-    'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
-]);
-
-function isDefinitelyPreCommitFailure(error: unknown): boolean {
-    let current = error;
-    for (let depth = 0; depth < 4 && current && typeof current === 'object'; depth += 1) {
-        if ('code' in current && preCommitFailureCodes.has(String(current.code))) {
-            return true;
-        }
-        current = 'cause' in current ? current.cause : null;
-    }
-    return false;
 }
 
 function isAuthorized(request: Request, proxyToken: string): boolean {

@@ -1,5 +1,7 @@
 import { type TraceCarrier, tracePromise } from '@grotto/effect';
+import { AgentTurnTimings } from './agent-turn-timings.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
+import type { HarnessTokenUsage } from './harness/token-usage.ts';
 import type { AgentStartCommand } from './launch.ts';
 
 export function parseTurnTraceContext(value: unknown): TraceCarrier | null {
@@ -24,6 +26,7 @@ export function traceAgentTurn<
         readonly messageCount: number;
         readonly outputProduced: boolean;
         readonly status: 'completed' | 'failed' | 'interrupted';
+        readonly tokenUsage?: HarnessTokenUsage | null;
     },
 >(
     runtime: DaemonRuntime,
@@ -31,8 +34,9 @@ export function traceAgentTurn<
         AgentStartCommand,
         'agentId' | 'chatId' | 'modelId' | 'runId' | 'runtimeId' | 'traceContext'
     >,
-    operation: (traceContext: TraceCarrier) => Promise<Result>
+    operation: (traceContext: TraceCarrier, timings: AgentTurnTimings) => Promise<Result>
 ): Promise<Result> {
+    const timings = new AgentTurnTimings();
     return tracePromise(
         runtime,
         'grotto.agent.turn',
@@ -44,9 +48,18 @@ export function traceAgentTurn<
             'grotto.run.id': command.runId,
             'grotto.runtime.id': command.runtimeId,
         },
-        operation,
+        (traceContext) => operation(traceContext, timings),
         command.traceContext,
         (result) => ({
+            ...timings.snapshot(),
+            ...(result.tokenUsage
+                ? {
+                      'grotto.tokens.input': result.tokenUsage.inputTokens,
+                      'grotto.tokens.output': result.tokenUsage.outputTokens,
+                      'grotto.tokens.cache_read': result.tokenUsage.cacheReadTokens,
+                      'grotto.tokens.cache_write': result.tokenUsage.cacheWriteTokens,
+                  }
+                : {}),
             ...(result.failureKind ? { 'grotto.failure.kind': result.failureKind } : {}),
             'grotto.message.count': result.messageCount,
             'grotto.outcome': result.status,

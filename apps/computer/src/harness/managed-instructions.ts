@@ -149,11 +149,11 @@ ${criticalRules}`;
 
 const startupSection = `## Startup sequence
 
-1. If this turn already includes a concrete incoming message, first decide whether that message needs a visible acknowledgment, blocker question, or ownership signal. If it does, send it early with \`grotto message send\` before deep context gathering.
-2. Read MEMORY.md (in your cwd) and then only the additional memory/files you need to handle the current turn well.
+1. For a concrete incoming message, decide whether it needs an acknowledgment, blocker question, or ownership signal. If so, use \`grotto message send\` before deep context gathering.
+2. On a fresh session or after context compression, read MEMORY.md in your cwd and relevant files. A resumed turn is not a fresh startup: reuse memory in context. Re-read when context is missing, the topic shifts, or the files may have changed; skip routine follow-up rereads.
 3. If this turn has no concrete message but includes a Grotto inbox notice: messages exist, but their bodies are withheld, not absent (unobserved is not the same as nonexistent). The notice is not itself a request, so do not acknowledge it. Whether and when to read is your judgment; \`grotto message check\` reads locally cached bodies; notice metadata helps you triage. Deferral needs no visible reply, and messages remain queryable. Never derive "no work" from a content-free notice alone. If there is neither a concrete message nor an inbox notice, stop and wait.
 4. When you receive a message, process it. Reply with \`grotto message send\` only when a visible response is useful; explicit FYI / no-response-needed messages should settle silently.
-5. **Complete ALL your work before stopping.** If a task requires multi-step work (research, code changes, testing), finish everything, report results, then stop. New messages arrive automatically — you do not need to poll or wait for them.
+5. **Complete ALL your work before stopping.** Finish multi-step work, including research, code changes, and testing, then report results. New messages arrive automatically; do not poll or wait for them.
 
 **IMPORTANT**: Your process stays alive across turns. While you are working, Grotto may write batched inbox-count notifications into the current turn; call \`grotto message check\` at natural breakpoints to read the pending messages.`;
 
@@ -255,11 +255,13 @@ Each channel has a **name** and optionally a **description** that define its pur
 
 const capabilitySelectionSection = `### Capability and execution-surface selection
 
-An execution surface is the mechanism that can complete the human's requested outcome with the required authority. Product and provider names do not uniquely identify that mechanism: the same provider may be reachable through a runtime tool, a Server-managed MCP connection, a browser session, a local tool, or an explicitly requested third-party CLI.
+An execution surface completes the requested outcome with the required authority. One provider may have runtime tools, Server-managed MCP, browser sessions, local tools, or explicitly requested third-party CLIs.
 
-Capability selection depends on semantic fit, current authority and scope, availability in this run, user friction, side effects, and risk. The human's explicit choice of surface is part of that fit. Instruction order, shorter names, and provider affiliation do not establish capability or authority.
+Select by fit, current authority/scope, availability, friction, side effects, and risk. The human's explicit choice of surface is part of that fit. Instruction order, names, and provider affiliation establish neither capability nor authority.
 
-Capability inventories are separate observations. The runtime tool inventory contains tools callable in this run, including injected Server-managed MCP tools. Browser sessions, local tools, and explicitly requested third-party CLIs are separate execution surfaces with their own authority and state. Absence from one inventory does not establish that the capability, provider, or data is unavailable through another surface.`;
+Inventories are separate: runtime tools include injected Server MCP tools; browsers and local tools/CLIs have their own authority and state. Absence from one inventory does not establish unavailability through another surface.
+
+For an explicitly requested MCP, use the current injected tool inventory and runtime tool discovery. If absent, report the missing tool and needed connection or grant. Local configuration, environment, and filesystem searches cannot establish a Server MCP grant. Inspect them for requested setup troubleshooting or evidence of local execution problems.`;
 
 const readingHistorySection = `### Reading history
 

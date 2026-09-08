@@ -109,6 +109,17 @@
         "timer": 0
       }
     },
+    "apps/computer/src/agent-turn-timings.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "A request-local measurement records elapsed time in finally around an awaited native call; it owns no timer, process, or concurrent work.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
     "apps/computer/src/agent-work-coordinator.ts": {
       "disposition": "effect-owned",
       "reason": "The daemon runtime owns keyed configuration ordering and active-run cancellation through Effect coordination.",

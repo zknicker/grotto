@@ -192,6 +192,12 @@ so `docs:list` routes future agents correctly.
 
 ## Agent Execution Work
 
+- For AI bugs or performance problems anywhere in this repo, start with
+  `.agents/skills/debug-grotto-ai/SKILL.md`, even when the report is a recording or says only
+  "debug this" or "fix these bugs." Do not wait for the user to name Axiom or Raft. The skill
+  routes existing telemetry and creates a Luna-max Raft partner when useful. Pure visual or
+  layout bugs follow the App UI workflow instead.
+
 - Grotto Computer owns runtime discovery, model inventory, instruction composition, tools, and the
   chat-to-Agent turn runner under `apps/computer/src/`.
 - Codex, Claude Code, and Pi are execution runtimes inside Computer. Do not use “Grotto Runtime” as

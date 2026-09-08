@@ -29,11 +29,22 @@ test('continues the Server dispatch trace across the Computer turn boundary', as
                 runtimeId: 'fake',
                 traceContext,
             },
-            async () => ({
-                messageCount: 0,
-                outputProduced: false,
-                status: 'completed' as const,
-            })
+            async (_carrier, timings) => {
+                timings.setReasoningEffort('low');
+                timings.mark('first_stream');
+                return {
+                    messageCount: 0,
+                    outputProduced: false,
+                    status: 'completed' as const,
+                    tokenUsage: {
+                        inputTokens: 10,
+                        outputTokens: 4,
+                        totalTokens: 14,
+                        cacheReadTokens: 8,
+                        cacheWriteTokens: 0,
+                    },
+                };
+            }
         );
 
         const spans = exporter.getFinishedSpans();
@@ -48,6 +59,12 @@ test('continues the Server dispatch trace across the Computer turn boundary', as
             'grotto.outcome': 'completed',
             'grotto.output.produced': false,
             'grotto.run.id': 'run_test',
+            'grotto.reasoning.effort': 'low',
+            'grotto.tokens.input': 10,
+            'grotto.tokens.output': 4,
+            'grotto.tokens.cache_read': 8,
+            'grotto.tokens.cache_write': 0,
+            'grotto.turn.first_stream_ms': expect.any(Number),
         });
     } finally {
         await runtime.dispose();

@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,6 +17,7 @@ import {
 import { parseInbox } from './agent-inbox-input.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
 import { parseTurnTraceContext } from './agent-turn-telemetry.ts';
+import type { AgentTurnTimings } from './agent-turn-timings.ts';
 import { computerEntrypoint } from './build-identity.ts';
 import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
@@ -32,6 +32,7 @@ import {
 import { ensureNativeSkillLinks } from './harness/native-skill-links.ts';
 import { composeInboxDrain } from './inbox-format.ts';
 import { readRunVisibleMessages } from './inbox-store.ts';
+import { mintRunner, revokeRunner } from './runner-authority.ts';
 import { resolveRuntimeById, runtimeSearchPath } from './runtime-discovery.ts';
 import { classifyRuntimeFailure, type RuntimeFailureKind } from './runtime-failure.ts';
 import { createServerMcpTools } from './server-mcp-tools.ts';
@@ -191,6 +192,7 @@ export interface RunAgentLaunchOptions {
     serverOrigin: string;
     /** Aborts the launch — a human Stop kills the live child through this. */
     signal?: AbortSignal;
+    turnTimings?: AgentTurnTimings;
     turnTraceContext?: TraceCarrier;
 }
 
@@ -254,6 +256,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
     });
     const { proxy, proxyToken } = host;
     proxy.setTraceContext(options.turnTraceContext);
+    proxy.setOnCommittedSend(() => options.turnTimings?.recordSend());
     let activitySequence = 0;
     const sendActivity = (activity: ComputerAgentActivityUpdate) => {
         const frame = {
@@ -328,6 +331,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
                       }),
                   }
                 : await runRealRuntime({
+                      turnTimings: options.turnTimings,
                       agentEnv,
                       agentRoot,
                       command,
@@ -607,6 +611,7 @@ interface RuntimeExecutionInput {
     registerNoticeSink?: NoticeSinkRegistrar;
     runtime: DaemonRuntime;
     signal?: AbortSignal;
+    turnTimings?: AgentTurnTimings;
 }
 
 /** Deterministic local model with the real managed CLI and loopback output path. */
@@ -653,6 +658,7 @@ async function runRealRuntime(
     try {
         const seed = await readAgentSeedConfiguration(input.agentRoot);
         const turn = await runHarnessTurn({
+            turnTimings: input.turnTimings,
             agentId: command.agentId,
             // The Server owns the Agent handle/description; sensible defaults keep
             // the managed contract intact when a facet is omitted.
@@ -708,43 +714,6 @@ async function writeTrace(input: RuntimeExecutionInput, content: string) {
     await writeFile(join(input.dirs.runtime, `turn-${input.command.runId}.log`), content, {
         mode: 0o600,
     });
-}
-
-async function mintRunner(options: RunAgentLaunchOptions) {
-    return await postJson<{ runnerId: string; runnerToken: string }>(
-        options.serverOrigin,
-        '/computer/runner/mint',
-        {
-            agentId: options.command.agentId,
-            chatId: options.command.chatId,
-            credentialHash: hash(options.attachment.credential),
-            runId: options.command.runId,
-        }
-    );
-}
-
-async function revokeRunner(options: RunAgentLaunchOptions, runnerId: string) {
-    await postJson(options.serverOrigin, '/computer/runner/revoke', {
-        credentialHash: hash(options.attachment.credential),
-        runnerId,
-    });
-}
-
-async function postJson<Response>(origin: string, path: string, body: object): Promise<Response> {
-    const response = await fetch(new URL(path, origin), {
-        body: JSON.stringify(body),
-        headers: { 'content-type': 'application/json' },
-        method: 'POST',
-    });
-    const payload = (await response.json()) as Response & { error?: string };
-    if (!response.ok) {
-        throw new Error(payload.error ?? 'The Computer request was rejected.');
-    }
-    return payload;
-}
-
-function hash(value: string) {
-    return createHash('sha256').update(value).digest('hex');
 }
 
 function messageOf(error: unknown) {

@@ -416,42 +416,6 @@ test('returns a committed send when its visibility receipt is unavailable', asyn
     }
 });
 
-test('counts only committed messages as produced output', async () => {
-    let state: 'held' | 'sent' = 'held';
-    const upstream = Bun.serve({
-        fetch() {
-            return Response.json({ state });
-        },
-        hostname: '127.0.0.1',
-        port: 0,
-    });
-    servers.push(upstream);
-    const proxy = startLoopbackProxy({
-        proxyToken: 'local-token',
-        runnerToken: 'runner-token',
-        serverOrigin: `http://127.0.0.1:${upstream.port}`,
-    });
-    try {
-        const request = () =>
-            fetch(`${proxy.url}/api/agent/messages/send`, {
-                body: '{}',
-                headers: {
-                    authorization: 'Bearer local-token',
-                    'content-type': 'application/json',
-                },
-                method: 'POST',
-            });
-        expect((await request()).status).toBe(200);
-        expect(proxy.sendCount()).toBe(0);
-
-        state = 'sent';
-        expect((await request()).status).toBe(200);
-        expect(proxy.sendCount()).toBe(1);
-    } finally {
-        proxy.close();
-    }
-});
-
 test('keeps one local proxy while rotating per-turn Server authority', async () => {
     const seen: string[] = [];
     const upstream = Bun.serve({

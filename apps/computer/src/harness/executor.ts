@@ -17,6 +17,7 @@ import { type ClaudeUsageSnapshot, normalizeClaudeUsageResponse } from '@grotto/
 import { settle } from '@grotto/effect';
 import { Cause, Data, Effect, Exit, Stream } from 'effect';
 import type { AgentActivityRun } from '../agent-activity-run.ts';
+import { AgentTurnTimings } from '../agent-turn-timings.ts';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { StoredNoticeReceipt } from '../delivery.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
@@ -56,6 +57,7 @@ import {
     readTokenUsage,
     usageContextTokens,
 } from './token-usage.ts';
+import { createTurnPhaseLog } from './turn-phase-log.ts';
 
 /** Drives one isolated, persistent Codex, Claude Code, Grok Build, or Pi Agent session. */
 export interface HarnessTurnInput {
@@ -85,6 +87,7 @@ export interface HarnessTurnInput {
     skillsDir: string;
     tools: ToolSet;
     totalPending: number;
+    turnTimings?: AgentTurnTimings;
     webAccess: 'fetch-only' | 'search' | 'search-only' | null;
     workspaceDir: string;
 }
@@ -146,6 +149,7 @@ function journalError(exit: Exit.Exit<HarnessTurnResult, HarnessStreamForeignErr
 }
 
 export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTurnResult> {
+    input.turnTimings?.setReasoningEffort(input.reasoningEffort);
     const journal = await createComputerExecutionJournal({
         agentRoot: input.agentRoot,
         runId: input.runId,
@@ -185,6 +189,7 @@ async function executeHarnessTurn(
     restartRequested: boolean,
     journal: ComputerExecutionJournal
 ): Promise<HarnessTurnResult> {
+    const timings = input.turnTimings ?? new AgentTurnTimings();
     const skills = await readAgentSkills(input.skillsDir);
     // A changed managed-instruction fingerprint restarts the adapter, preserving conversation.
     const { fingerprint: instructionFingerprint, instructions } = composeAgentInstructions({
@@ -200,7 +205,7 @@ async function executeHarnessTurn(
         input.modelId,
         input.reasoningEffort,
         input.webAccess !== null,
-        bridgeStoreDir()
+        bridgeStoreDirForHost()
     );
     const bootstrapFingerprint = await fingerprintHarnessBootstrap({
         abortSignal: input.signal,
@@ -307,39 +312,30 @@ async function executeHarnessTurn(
             }
             // Only creation rejection invalidates native resume state.
             const parkedState = await parked.stop();
-            await harnessBootstrapRefresh({
-                abortSignal: input.signal,
-                harness,
-                provider: createLocalTrustedSandboxProvider(sandboxOptions(input)),
-                sessionId,
-                workDir: basename(input.workspaceDir),
-            });
+            const refresh = () =>
+                harnessBootstrapRefresh({
+                    abortSignal: input.signal,
+                    harness,
+                    provider: createLocalTrustedSandboxProvider(sandboxOptions(input)),
+                    sessionId,
+                    workDir: basename(input.workspaceDir),
+                });
+            await timings.measure('bootstrap', refresh);
             effectiveResumeFrom = parkedState;
         }
-        // Startup phases cover wedges before the stream watchdog can observe an event.
-        const phaseStartedAt = Date.now();
-        const phase = (label: string) =>
-            settle(
-                input.runtime,
-                Effect.logInfo('Harness turn reached a lifecycle phase.').pipe(
-                    Effect.annotateLogs({
-                        agentId: input.agentId,
-                        elapsedSeconds: Math.round((Date.now() - phaseStartedAt) / 1000),
-                        event: 'harness-turn-phase',
-                        phase: label,
-                        runtimeId: input.runtimeId,
-                    })
-                )
-            );
+        const phase = createTurnPhaseLog(input);
         try {
             await phase(
                 effectiveResumeFrom ? 'creating session (resume)' : 'creating session (cold)'
             );
-            live = await agent.createSession({
-                abortSignal: input.signal,
-                resumeFrom: effectiveResumeFrom,
-                sessionId,
-            });
+            input.turnTimings?.mark('harness_ready');
+            const createSession = () =>
+                agent.createSession({
+                    abortSignal: input.signal,
+                    resumeFrom: effectiveResumeFrom,
+                    sessionId,
+                });
+            live = await timings.measure('session_create', createSession);
             await phase('session ready');
         } catch (error) {
             await phase('session creation failed');
@@ -418,7 +414,11 @@ async function executeHarnessTurn(
                                 noticeCoordinator.flush,
                                 projector,
                                 {
-                                    onFirstPart: () => phase('first stream event'),
+                                    onFirstPart: () => {
+                                        input.turnTimings?.mark('first_stream');
+                                        return phase('first stream event');
+                                    },
+                                    onToolCall: () => input.turnTimings?.mark('first_tool'),
                                     runtime: input.runtime,
                                     signal: input.signal,
                                     stallLabel: `${input.runtimeId} agent=${input.agentId}`,
@@ -632,12 +632,14 @@ async function observeTurnStream(
     projector: ReturnType<typeof createComputerActivityProjector> | undefined,
     {
         onFirstPart,
+        onToolCall,
         runtime,
         signal,
         stallLabel,
         stallAfterMs = 120_000,
     }: {
         onFirstPart?: () => void | Promise<void>;
+        onToolCall?: () => void;
         runtime: DaemonRuntime;
         signal?: AbortSignal;
         stallAfterMs?: number;
@@ -673,6 +675,9 @@ async function observeTurnStream(
                     }
                     switch (part.type) {
                         case 'tool-call':
+                            onToolCall?.();
+                            await projector?.observe(part);
+                            return;
                         case 'file-change':
                             await projector?.observe(part);
                             return;
@@ -830,11 +835,6 @@ export function setHarnessBootstrapRefreshForTesting(refresh: HarnessBootstrapRe
     return () => {
         harnessBootstrapRefresh = previous;
     };
-}
-
-/** Machine-wide immutable package store; Agent state remains isolated. */
-function bridgeStoreDir() {
-    return bridgeStoreDirForHost();
 }
 
 function createHarnessForRuntime(

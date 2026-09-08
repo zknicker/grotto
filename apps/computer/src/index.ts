@@ -1632,12 +1632,12 @@ async function handleStartCommand(input: {
                 command.runId
             );
         }
-        let modelInbox = command.inbox ?? [];
-        const launchCommand = { ...command, inbox: modelInbox };
+        const launchCommand = { ...command, inbox: command.inbox ?? [] };
         let summary: AgentTurnFrame;
         try {
-            summary = await traceAgentTurn(runtime, command, (turnTraceContext) =>
+            summary = await traceAgentTurn(runtime, command, (turnTraceContext, turnTimings) =>
                 runAgentLaunch({
+                    turnTimings,
                     attachment,
                     cloudAgents: input.cloudAgents,
                     command: launchCommand,
@@ -1659,7 +1659,7 @@ async function handleStartCommand(input: {
                             if (marker?.status !== 'accepted') {
                                 await reofferPendingMessages(location, command.inbox ?? []);
                             }
-                            modelInbox = await acceptRunInbox(
+                            const modelInbox = await acceptRunInbox(
                                 location,
                                 command.runId,
                                 command.inbox ?? []

@@ -1,6 +1,42 @@
 import { expect, test } from 'bun:test';
 import { renderAgentInstructions } from './managed-instructions.ts';
 
+const efficiencyPrompt = renderAgentInstructions({
+    agentId: 'agt_efficiency',
+    agentName: 'Marlow',
+    homeTimezone: 'America/New_York',
+    hostname: 'computer.test',
+    initialRole: null,
+    os: 'macOS',
+    runtimeVersion: 'test',
+    webAccess: null,
+    workspacePath: '/workspace',
+});
+
+test('warm turns reuse memory while fresh and compressed sessions recover it', () => {
+    expect(efficiencyPrompt).toContain(
+        'On a fresh session or after context compression, read MEMORY.md'
+    );
+    expect(efficiencyPrompt).toContain('A resumed turn is not a fresh startup');
+    expect(efficiencyPrompt).toContain(
+        'Re-read when context is missing, the topic shifts, or the files may have changed'
+    );
+    expect(efficiencyPrompt).not.toContain('2. Read MEMORY.md (in your cwd)');
+});
+
+test('an explicitly requested unavailable MCP does not trigger local configuration searches', () => {
+    expect(efficiencyPrompt).toContain(
+        'For an explicitly requested MCP, use the current injected tool inventory'
+    );
+    expect(efficiencyPrompt).toContain(
+        'Local configuration, environment, and filesystem searches cannot establish a Server MCP grant'
+    );
+    expect(efficiencyPrompt).toContain('Absence from one inventory does not establish');
+    expect(efficiencyPrompt).toContain(
+        "The human's explicit choice of surface is part of that fit."
+    );
+});
+
 test('the Agent prompt preserves the notice-to-pull contract', () => {
     const prompt = renderAgentInstructions({
         agentId: 'agt_prompt_test',

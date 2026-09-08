@@ -1,25 +1,21 @@
-import type { Agent, Chat } from '@grotto/api';
+import type { Chat } from '@grotto/api';
 import { Button, Chip, Dropdown, Header, Label, Separator, Tooltip, toast } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
 import {
     ArchiveIcon,
     ArchiveRestoreIcon,
     ArrowDown01Icon,
-    Attachment01Icon,
-    CheckListIcon,
     ColorsIcon,
     Delete02Icon,
     Edit02Icon,
     PaintBrush03Icon,
     SidebarRightIcon,
-    UserCircleIcon,
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { channelColorOptions } from '../../../components/chats/channel-color-options.ts';
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
-import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import {
@@ -34,7 +30,10 @@ import { ChannelAgentsDialog } from '../../chats/channel-agents-dialog.tsx';
 import { ChannelAppearanceDialog } from '../../chats/channel-appearance-dialog.tsx';
 import { ChannelRenameDialog } from '../../chats/channel-rename-dialog.tsx';
 import { SectionHeader, shellBandIconSize } from '../../shell/section-header.tsx';
-import { serverRoute, settingsAgentRoute, tasksRoute } from '../server-routes.ts';
+import { serverRoute, tasksRoute } from '../server-routes.ts';
+
+import { ChatContextSurfaceItems, ChatSurfaceItems } from './chat-surface-items.tsx';
+import { DmActions } from './dm-actions.tsx';
 
 export function ChatTopbar({
     artifactVisible,
@@ -69,11 +68,10 @@ export function ChatTopbar({
                     />
                 ) : (
                     <DmActions
-                        chat={chat}
                         chatName={chatName}
-                        onOpenFiles={onOpenFiles}
+                        content={{ chatId: chat.id, onOpenFiles }}
                         peerAgent={peerAgent}
-                        server={server}
+                        slug={server.slug}
                     />
                 )
             }
@@ -118,128 +116,6 @@ export function ChatTopbarMeta({
 // small dialog instead of one dialog that asks for everything at once.
 type ChannelEditDialog = 'agents' | 'appearance' | 'rename';
 const channelColorPrefix = 'color:';
-
-/** The chat-scoped surfaces every chat menu offers: its tasks and its files. */
-function ChatSurfaceItems() {
-    return (
-        <>
-            <Dropdown.Item id="tasks" textValue="View tasks">
-                <Icon icon={CheckListIcon} size={16} />
-                <Label>View tasks</Label>
-            </Dropdown.Item>
-            <Dropdown.Item id="files" textValue="Files">
-                <Icon icon={Attachment01Icon} size={16} />
-                <Label>Files</Label>
-            </Dropdown.Item>
-        </>
-    );
-}
-
-function ChatContextSurfaceItems() {
-    return (
-        <>
-            <ContextMenu.Item id="tasks" textValue="View tasks">
-                <Icon icon={CheckListIcon} size={16} />
-                <Label>View tasks</Label>
-            </ContextMenu.Item>
-            <ContextMenu.Item id="files" textValue="Files">
-                <Icon icon={Attachment01Icon} size={16} />
-                <Label>Files</Label>
-            </ContextMenu.Item>
-        </>
-    );
-}
-
-function DmActions({
-    chat,
-    chatName,
-    onOpenFiles,
-    peerAgent,
-    server,
-}: {
-    chat: Chat;
-    chatName: string;
-    onOpenFiles: () => void;
-    peerAgent: Agent | null;
-    server: ServerDetail;
-}) {
-    const navigate = useNavigate();
-    const runAction = (key: React.Key) => {
-        if (key === 'profile' && peerAgent) {
-            navigate(settingsAgentRoute(server.slug, peerAgent.id));
-            return;
-        }
-        if (key === 'tasks') {
-            navigate(`${tasksRoute(server.slug)}?chat=${encodeURIComponent(chat.id)}`);
-            return;
-        }
-        if (key === 'files') {
-            onOpenFiles();
-        }
-    };
-
-    return (
-        <ContextMenu>
-            <ContextMenu.Trigger className="min-w-0">
-                <Dropdown>
-                    <Button
-                        aria-label={`${chatName} — chat actions`}
-                        className="-ms-2 min-w-0 gap-2 px-2"
-                        size="sm"
-                        variant="ghost"
-                    >
-                        <EntityAvatar
-                            name={peerAgent?.displayName ?? chatName}
-                            size={24}
-                            src={peerAgent?.avatarUrl ?? null}
-                        />
-                        <span className="truncate font-semibold text-sm">{chatName}</span>
-                        <Icon
-                            aria-hidden="true"
-                            className="text-muted"
-                            icon={ArrowDown01Icon}
-                            size={15}
-                        />
-                    </Button>
-                    <Dropdown.Popover placement="bottom start">
-                        <Dropdown.Menu onAction={runAction}>
-                            <Dropdown.Section>
-                                <Header>Agent</Header>
-                                <Dropdown.Item
-                                    id="profile"
-                                    isDisabled={!peerAgent}
-                                    textValue="View agent profile"
-                                >
-                                    <Icon aria-hidden="true" icon={UserCircleIcon} size={16} />
-                                    <Label>View agent profile</Label>
-                                </Dropdown.Item>
-                            </Dropdown.Section>
-                            <Separator />
-                            <Dropdown.Section>
-                                <Header>Content</Header>
-                                <ChatSurfaceItems />
-                            </Dropdown.Section>
-                        </Dropdown.Menu>
-                    </Dropdown.Popover>
-                </Dropdown>
-            </ContextMenu.Trigger>
-            <ContextMenu.Popover>
-                <ContextMenu.Menu onAction={runAction}>
-                    <ContextMenu.Item
-                        id="profile"
-                        isDisabled={!peerAgent}
-                        textValue="View agent profile"
-                    >
-                        <Icon aria-hidden="true" icon={UserCircleIcon} size={16} />
-                        <Label>View agent profile</Label>
-                    </ContextMenu.Item>
-                    <ContextMenu.Separator />
-                    <ChatContextSurfaceItems />
-                </ContextMenu.Menu>
-            </ContextMenu.Popover>
-        </ContextMenu>
-    );
-}
 
 function ChannelActions({
     chat,

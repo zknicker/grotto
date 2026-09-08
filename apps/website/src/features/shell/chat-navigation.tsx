@@ -8,8 +8,8 @@ import { useLocation } from 'react-router-dom';
 import { loadChannelIconCatalog } from '../../components/chats/channel-icon-catalog.ts';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
-import { AgentAvatar } from '../members/agent-avatar.tsx';
-import { inboxRoute, serverAgentDmRoute, tasksRoute } from '../servers/server-routes.ts';
+import { inboxRoute, tasksRoute } from '../servers/server-routes.ts';
+import { AgentDmNavigationRow } from './agent-dm-navigation-row.tsx';
 import { ChatNavigationRow, chatNavigationName } from './chat-navigation-row.tsx';
 import { useCommandMenu } from './command-menu-provider.tsx';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
@@ -154,34 +154,16 @@ export function ChatNavigation({
                 label="Direct messages"
             >
                 <Sidebar.Menu aria-label="Direct messages">
-                    {agentDirectMessages.map(({ agent, chat }) =>
-                        chat ? (
-                            <ChatNavigationRow
-                                agent={agent}
-                                chat={chat}
-                                key={agent.id}
-                                name={agent.displayName}
-                                onChangeChannelColor={onChangeChannelColor}
-                                selectedChatId={selectedChatId}
-                                slug={slug}
-                            />
-                        ) : (
-                            <Sidebar.MenuItem
-                                href={serverAgentDmRoute(slug, agent.id)}
-                                id={`agent-dm:${agent.id}`}
-                                isCurrent={agent.id === selectedAgentDmId}
-                                key={agent.id}
-                                textValue={agent.displayName}
-                            >
-                                <Sidebar.MenuIcon>
-                                    <AgentAvatar agent={agent} size={24} />
-                                </Sidebar.MenuIcon>
-                                <Sidebar.MenuItemContent>
-                                    <Sidebar.MenuLabel>{agent.displayName}</Sidebar.MenuLabel>
-                                </Sidebar.MenuItemContent>
-                            </Sidebar.MenuItem>
-                        )
-                    )}
+                    {agentDirectMessages.map(({ agent, chat }) => (
+                        <AgentDmNavigationRow
+                            agent={agent}
+                            chat={chat}
+                            key={agent.id}
+                            selectedAgentDmId={selectedAgentDmId}
+                            selectedChatId={selectedChatId}
+                            slug={slug}
+                        />
+                    ))}
                     {humanDirectMessages.map((chat) => (
                         <ChatNavigationRow
                             agent={null}

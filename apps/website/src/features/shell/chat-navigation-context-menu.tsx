@@ -7,7 +7,6 @@ import {
     ColorsIcon,
     Edit02Icon,
     PaintBrush03Icon,
-    UserCircleIcon,
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
@@ -17,7 +16,9 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { ChannelAgentsDialog } from '../chats/channel-agents-dialog.tsx';
 import { ChannelAppearanceDialog } from '../chats/channel-appearance-dialog.tsx';
 import { ChannelRenameDialog } from '../chats/channel-rename-dialog.tsx';
-import { serverChatRoute, settingsAgentRoute, tasksRoute } from '../servers/server-routes.ts';
+import { serverChatRoute, tasksRoute } from '../servers/server-routes.ts';
+
+import { DmNavigationContextMenu } from './dm-navigation-context-menu.tsx';
 
 type ChannelEditDialog = 'agents' | 'appearance' | 'rename';
 
@@ -51,10 +52,6 @@ export function ChatNavigationContextMenu({
             navigate(`${tasksRoute(slug)}?chat=${encodeURIComponent(chat.id)}`);
             return;
         }
-        if (action === 'profile' && agent) {
-            navigate(settingsAgentRoute(slug, agent.id));
-            return;
-        }
         if (action === 'rename' || action === 'appearance' || action === 'agents') {
             setEditDialog(action);
             return;
@@ -65,6 +62,20 @@ export function ChatNavigationContextMenu({
     };
 
     const closeDialog = () => setEditDialog(null);
+
+    if (chat.kind === 'dm') {
+        return (
+            <DmNavigationContextMenu
+                agent={agent}
+                chatId={chat.id}
+                chatName={chatName}
+                href={serverChatRoute(slug, chat.id)}
+                slug={slug}
+            >
+                {children}
+            </DmNavigationContextMenu>
+        );
+    }
 
     return (
         <>
@@ -84,22 +95,11 @@ export function ChatNavigationContextMenu({
                             <Label>Open {chat.kind === 'channel' ? 'channel' : 'chat'}</Label>
                         </ContextMenu.Item>
                         <ContextMenu.Separator />
-                        {chat.kind === 'dm' ? (
-                            <ContextMenu.Item
-                                id="profile"
-                                isDisabled={!agent}
-                                textValue="View agent profile"
-                            >
-                                <Icon aria-hidden="true" icon={UserCircleIcon} size={16} />
-                                <Label>View agent profile</Label>
-                            </ContextMenu.Item>
-                        ) : (
-                            <ChannelContextItems
-                                chat={chat}
-                                disabled={!onChangeChannelColor}
-                                onAction={onAction}
-                            />
-                        )}
+                        <ChannelContextItems
+                            chat={chat}
+                            disabled={!onChangeChannelColor}
+                            onAction={onAction}
+                        />
                         <ContextMenu.Item id="tasks" textValue="View tasks">
                             <Icon aria-hidden="true" icon={CheckListIcon} size={16} />
                             <Label>View tasks</Label>

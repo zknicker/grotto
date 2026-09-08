@@ -1,7 +1,6 @@
 import { EmptyState } from '@heroui-pro/react';
 import { Message01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useWindowTitle } from '../../../hooks/shell/use-window-title.ts';
@@ -11,6 +10,8 @@ import { SectionHeader } from '../../shell/section-header.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { serverChatRoute, serverRoute } from '../server-routes.ts';
 import { ImplicitAgentDmComposer } from './chat-composer-variants.tsx';
+
+import { DmActions } from './dm-actions.tsx';
 
 export function ImplicitAgentDmPage({
     agentId,
@@ -42,14 +43,12 @@ export function ImplicitAgentDmPage({
             <PageTopbar>
                 <SectionHeader
                     leading={
-                        <div className="flex items-center gap-2">
-                            <EntityAvatar
-                                name={agent.displayName}
-                                size={24}
-                                src={agent.avatarUrl}
-                            />
-                            <span className="font-medium text-foreground">{agent.displayName}</span>
-                        </div>
+                        <DmActions
+                            chatName={agent.displayName}
+                            content={null}
+                            peerAgent={agent}
+                            slug={server.slug}
+                        />
                     }
                 >
                     <h1 className="sr-only">{agent.displayName}</h1>

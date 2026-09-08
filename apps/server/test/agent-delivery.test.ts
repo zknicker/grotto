@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-import type { AgentCommand, AgentCreateActionResult, AgentTurnSummary } from '@grotto/api';
+import type { AgentCommand, AgentTurnSummary } from '@grotto/api';
 import { and, eq, ne } from 'drizzle-orm';
 import { attestAgentEvents, pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { advanceSeenCursor, markCursorSubsumedSeen } from '../src/agent-delivery/cursors.ts';
@@ -25,12 +25,12 @@ import {
     chatsTable,
     computersTable,
     messageTasksTable,
-    preparedActionsTable,
     serverMembershipsTable,
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
 import { configureAgent } from '../src/server-agents/configure-agent.ts';
+import { seedCommittedAgentAction } from './agent-action-fixture.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 let cluster: PostgresCluster;
@@ -232,61 +232,7 @@ async function insertHumanMessage(seed: Seed, content: string, sequence: number)
 }
 
 async function seedActionAttention(seed: Seed, suffix: string) {
-    const db = connection.db;
-    const actionId = createOpaqueId('act');
-    const createdAgentId = createOpaqueId('agt');
-    const messageId = await insertHumanMessage(seed, `Prepare ${suffix}.`, 1);
-    const result: AgentCreateActionResult = {
-        agentId: createdAgentId,
-        avatarUrl: null,
-        computerId: seed.computerId,
-        description: `Created for ${suffix}.`,
-        displayName: `Created ${suffix}`,
-        handle: `created-${randomBytes(4).toString('hex')}`,
-        modelId: 'fake-model',
-        reasoningEffort: 'medium',
-        role: 'member',
-        runtimeId: 'fake',
-    };
-    await db.insert(agentsTable).values({
-        computerId: seed.computerId,
-        description: result.description,
-        desiredModelId: result.modelId,
-        desiredReasoningEffort: result.reasoningEffort,
-        desiredRuntimeId: result.runtimeId,
-        displayName: result.displayName,
-        handle: result.handle,
-        homeTimezone: 'UTC',
-        id: createdAgentId,
-        role: result.role,
-        serverId: seed.serverId,
-    });
-    await db.insert(preparedActionsTable).values({
-        chatId: seed.chatId,
-        executedAt: new Date(),
-        executedByUserId: seed.userId,
-        executedResult: result,
-        id: actionId,
-        kind: 'agent:create',
-        messageId,
-        nonce: `action-${suffix}-${randomBytes(4).toString('hex')}`,
-        proposal: { kind: 'agent:create', name: result.displayName },
-        proposerAgentId: seed.agentId,
-        serverId: seed.serverId,
-        status: 'executed',
-    });
-    await db.insert(agentActionAttentionsTable).values({
-        actionId,
-        agentId: seed.agentId,
-        chatId: seed.chatId,
-        createdAgentId,
-        dedupeKey: actionId,
-        executedResult: result,
-        id: createOpaqueId('aat'),
-        serverId: seed.serverId,
-        source: 'action',
-    });
-    return { actionId, createdAgentId, messageId, result };
+    return await seedCommittedAgentAction(connection.db, seed, suffix);
 }
 
 /** Adds a second Owner↔Agent DM for the same Agent, seated by a fresh user. */
@@ -1734,20 +1680,68 @@ test('Restart preserves the session generation and immediately redrives pending 
     expect(agent?.generation).toBe(1);
 });
 
+test('Restart resumes a stopped Agent and redrives its preserved inbox in the same session', async () => {
+    const seed = await seedAgent();
+    await seedActionAttention(seed, 'stopped-restart');
+    const transport = new FakeTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+
+    await delivery.dispatchAgent(seed.agentId, seed.serverId);
+    const first = transport.framesOfType('start')[0];
+    await delivery.stop({ agentId: seed.agentId, serverId: seed.serverId });
+    await delivery.restart({ agentId: seed.agentId, serverId: seed.serverId });
+
+    expect((await readDeliveryState(connection.db, seed.agentId))?.stopped).toBe(false);
+    const starts = transport.framesOfType('start');
+    expect(starts).toHaveLength(2);
+    expect(starts[1]?.runId).not.toBe(first?.runId);
+    expect(starts[1]?.sessionGeneration).toBe(first?.sessionGeneration);
+    expect(starts[1]?.inbox).toEqual(first?.inbox);
+    expect(transport.framesOfType('agent-restart')).toEqual([
+        { agentId: seed.agentId, type: 'agent-restart' },
+    ]);
+});
+
 test('Restart fails without disturbing pending work when the assigned Computer is offline', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
     const delivery = new AgentDelivery(connection.db, transport);
+    await delivery.stop({ agentId: seed.agentId, serverId: seed.serverId });
 
     await expect(
         delivery.restart({ agentId: seed.agentId, serverId: seed.serverId })
     ).rejects.toThrow('The assigned Computer must be online');
     expect(transport.sent).toEqual([]);
+    expect((await readDeliveryState(connection.db, seed.agentId))?.stopped).toBe(true);
     const [agent] = await connection.db
         .select({ generation: agentsTable.sessionGeneration })
         .from(agentsTable)
         .where(eq(agentsTable.id, seed.agentId));
     expect(agent?.generation).toBe(1);
+});
+
+test('Restart keeps a stopped Agent paused when the Computer disconnects before the command', async () => {
+    const seed = await seedAgent();
+    const attention = await seedActionAttention(seed, 'restart-disconnected');
+    class DisconnectedTransport extends FakeTransport {
+        override send(): boolean {
+            return false;
+        }
+    }
+    const transport = new DisconnectedTransport();
+    transport.online.add(seed.computerId);
+    const delivery = new AgentDelivery(connection.db, transport);
+    await delivery.stop({ agentId: seed.agentId, serverId: seed.serverId });
+    await delivery.dispatchAgent(seed.agentId, seed.serverId);
+
+    await expect(
+        delivery.restart({ agentId: seed.agentId, serverId: seed.serverId })
+    ).rejects.toThrow('disconnected before the Agent could restart');
+    expect((await readDeliveryState(connection.db, seed.agentId))?.stopped).toBe(true);
+    expect(await readDeliveryLedger(seed.agentId)).toEqual([
+        expect.objectContaining({ dedupeKey: attention.actionId, state: 'queued' }),
+    ]);
 });
 
 test('Reset rotates the session and tells the assigned Computer to clear local state', async () => {

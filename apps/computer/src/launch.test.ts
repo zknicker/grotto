@@ -51,7 +51,6 @@ test('rejects a typed action whose envelope identity does not match its attentio
                         executedResult: {
                             agentId: 'agt_created',
                             avatarUrl: null,
-                            chatId: 'cht_created',
                             computerId: 'cmp_local',
                             description: null,
                             displayName: 'Scout',

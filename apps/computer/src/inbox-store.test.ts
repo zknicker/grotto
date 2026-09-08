@@ -56,7 +56,6 @@ test('does not expose a replayed action result twice, but reoffers it for a new 
             executedResult: {
                 agentId: 'agt_created',
                 avatarUrl: null,
-                chatId: 'cht_created',
                 computerId: 'cmp_local',
                 description: 'A new teammate',
                 displayName: 'Scout',
@@ -235,7 +234,6 @@ test('names bodiless frames apart from ordinary and typed system inbox rows', ()
                 executedResult: {
                     agentId: 'agt_new',
                     avatarUrl: null,
-                    chatId: 'cht_inbox',
                     computerId: 'cmp_one',
                     description: null,
                     displayName: 'Scout',

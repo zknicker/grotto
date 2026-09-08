@@ -452,7 +452,6 @@ test('projects a concrete action attention into the first prompt by action ident
                         executedResult: {
                             agentId: 'agt_created',
                             avatarUrl: null,
-                            chatId: 'cht_created',
                             computerId: 'cmp_local',
                             description: 'A new teammate',
                             displayName: 'Scout',

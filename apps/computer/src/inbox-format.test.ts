@@ -154,7 +154,6 @@ test('projects an action attention with its typed result and identity', () => {
             executedResult: {
                 agentId: 'agt_created',
                 avatarUrl: null,
-                chatId: 'cht_created',
                 computerId: 'cmp_local',
                 description: 'A new teammate',
                 displayName: 'Scout',

@@ -13,7 +13,7 @@ import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { inspectCoveFactoryGuidance, reconcileCoveFactoryGuidance } from '@grotto/agent-workspace';
 import { type AgentReasoningEffort, grottoAgentVersion } from '@grotto/api';
-import { type ClaudeUsageSnapshot, normalizeClaudeUsageResponse } from '@grotto/claude-usage';
+import type { ClaudeUsageSnapshot } from '@grotto/claude-usage';
 import { settle } from '@grotto/effect';
 import { Cause, Data, Effect, Exit, Stream } from 'effect';
 import type { AgentActivityRun } from '../agent-activity-run.ts';
@@ -54,6 +54,7 @@ import {
     addTokenUsage,
     type HarnessTokenUsage,
     normalizeRuntimeUsage,
+    readClaudePlanUsageMetadata,
     readTokenUsage,
     usageContextTokens,
 } from './token-usage.ts';
@@ -674,13 +675,16 @@ async function observeTurnStream(
                         await onFirstPart?.();
                     }
                     switch (part.type) {
+                        case 'reasoning-delta':
+                        case 'reasoning-end':
+                        case 'reasoning-start':
+                            await projector?.observe(part);
+                            return;
                         case 'tool-call':
                             onToolCall?.();
                             await projector?.observe(part);
                             return;
-                        case 'file-change':
-                            await projector?.observe(part);
-                            return;
+                        case 'tool-error':
                         case 'tool-result':
                             await projector?.observe(part);
                             if (part.preliminary !== true) {
@@ -784,29 +788,6 @@ function finishProjector(
         catch: (cause) => new HarnessStreamForeignError({ cause }),
         try: () => projector?.finish(phase, error) ?? Promise.resolve(),
     });
-}
-
-function readClaudePlanUsageMetadata(value: unknown): ClaudeUsageSnapshot | null {
-    if (!isRecord(value)) {
-        return null;
-    }
-    const claude = value['claude-code'];
-    if (!(isRecord(claude) && isRecord(claude.planUsage))) {
-        return null;
-    }
-    const usage = claude.planUsage;
-    if (usage.rate_limits_available !== true || !isRecord(usage.rate_limits)) {
-        return null;
-    }
-    try {
-        return normalizeClaudeUsageResponse(usage.rate_limits, {
-            source: 'claude-code-sdk-usage',
-            subscriptionType:
-                typeof usage.subscription_type === 'string' ? usage.subscription_type : null,
-        });
-    } catch {
-        return null;
-    }
 }
 
 // Tests inject a fake Agent at this construction seam.

@@ -1,6 +1,8 @@
 import type { ComputerAgentActivityCategory } from '../agent-activity.ts';
 import type { AgentActivityRun } from '../agent-activity-run.ts';
+import { knownToolCategory, syntheticHarnessToolActivity } from './activity-tool-fixtures.ts';
 import type { ComputerExecutionJournal } from './execution-journal.ts';
+import { observeReasoningPart } from './reasoning-capture.ts';
 
 export interface GrottoHostToolRegistration {
     category: Exclude<ComputerAgentActivityCategory, 'starting_work' | 'thinking' | 'working'>;
@@ -8,67 +10,57 @@ export interface GrottoHostToolRegistration {
     toolRef?: string;
 }
 
+/** One tool call that opens a semantic activity operation. */
+export interface ComputerToolActivity {
+    category: ComputerAgentActivityCategory;
+    outcome: 'activity';
+    toolRef?: string;
+}
+
+/**
+ * `skip` is a deliberate silence, not a missing mapping: harness bookkeeping
+ * such as context compaction is journaled evidence but never agent work, so it
+ * must not open an Activity row.
+ */
+export type ComputerToolClassification = ComputerToolActivity | { outcome: 'skip' };
+
 export interface ComputerActivityRegistry {
     classify(input: {
         dynamic?: boolean;
         nativeName?: string;
+        providerExecuted?: boolean;
         runtimeId: string;
         toolName: string;
-    }): { category: ComputerAgentActivityCategory; toolRef?: string };
+    }): ComputerToolClassification;
     registerGrottoHostTool(registration: GrottoHostToolRegistration): void;
 }
-
-/** Fixture-shaped native identities kept explicit so adapter renames fail closed. */
-export const computerNativeToolActivityFixtures = {
-    'claude-code': {
-        Bash: 'running_command',
-        Edit: 'editing_files',
-        Glob: 'reading_files',
-        Grep: 'reading_files',
-        Read: 'reading_files',
-        Write: 'editing_files',
-        WebFetch: 'browsing',
-        WebSearch: 'searching_web',
-        bash: 'running_command',
-        edit: 'editing_files',
-        glob: 'reading_files',
-        grep: 'reading_files',
-        read: 'reading_files',
-        webSearch: 'searching_web',
-    },
-    codex: {
-        bash: 'running_command',
-        shell: 'running_command',
-        webSearch: 'searching_web',
-        web_search: 'searching_web',
-    },
-    pi: {
-        bash: 'running_command',
-        edit: 'editing_files',
-        find: 'reading_files',
-        grep: 'reading_files',
-        ls: 'reading_files',
-        read: 'reading_files',
-        write: 'editing_files',
-    },
-} as const satisfies Record<string, Readonly<Record<string, ComputerAgentActivityCategory>>>;
 
 export function createComputerActivityRegistry(): ComputerActivityRegistry {
     const hostTools = new Map<string, GrottoHostToolRegistration>();
     return {
         classify(input) {
+            const synthetic = syntheticHarnessToolActivity(
+                input.toolName,
+                input.providerExecuted === true
+            );
+            if (synthetic) {
+                return synthetic === 'skip'
+                    ? { outcome: 'skip' }
+                    : { category: synthetic, outcome: 'activity' };
+            }
             if (input.dynamic || isMcpName(input.toolName) || isMcpName(input.nativeName)) {
-                return { category: 'using_tool' };
+                return { category: 'using_tool', outcome: 'activity' };
             }
             const host = hostTools.get(input.nativeName ?? '') ?? hostTools.get(input.toolName);
             if (host) {
                 return {
                     category: host.category,
+                    outcome: 'activity',
                     ...(host.toolRef ? { toolRef: host.toolRef } : {}),
                 };
             }
             const known = knownToolCategory(input.runtimeId, input.toolName, input.nativeName);
-            return { category: known ?? 'using_tool' };
+            return { category: known ?? 'using_tool', outcome: 'activity' };
         },
         registerGrottoHostTool(registration) {
             hostTools.set(registration.name, registration);
@@ -102,10 +94,7 @@ export function createComputerActivityProjector(input: {
     registry: ComputerActivityRegistry;
     runtimeId: string;
 }) {
-    const pending = new Map<
-        string,
-        { category: ComputerAgentActivityCategory; toolRef?: string }
-    >();
+    const pending = new Map<string, ComputerToolActivity>();
     return {
         async finish(phase: 'completed' | 'failed' | 'interrupted', error?: unknown) {
             if (pending.size > 0) {
@@ -124,6 +113,7 @@ export function createComputerActivityProjector(input: {
                 }
             }
             pending.clear();
+            await input.journal?.flushReasoning();
         },
         async observe(part: unknown) {
             if (!isRecord(part) || typeof part.type !== 'string') {
@@ -133,16 +123,11 @@ export function createComputerActivityProjector(input: {
                 await observeToolCall(part, input, pending);
                 return;
             }
-            if (part.type === 'tool-result') {
-                await observeToolResult(part, input, pending);
+            if (part.type === 'tool-result' || part.type === 'tool-error') {
+                await observeToolOutcome(part, input, pending);
                 return;
             }
-            if (part.type === 'file-change') {
-                await input.activity.runPromise(
-                    { category: 'editing_files' },
-                    async () => undefined
-                );
-            }
+            await observeReasoningPart(part, input.journal);
         },
     };
 }
@@ -170,23 +155,25 @@ async function observeToolCall(
         registry: ComputerActivityRegistry;
         runtimeId: string;
     },
-    pending: Map<string, { category: ComputerAgentActivityCategory; toolRef?: string }>
+    pending: Map<string, ComputerToolActivity>
 ) {
     const toolCallId = stringValue(part.toolCallId);
     const toolName = stringValue(part.toolName);
     if (!(toolCallId && toolName)) {
         return;
     }
-    const activity = input.registry.classify({
-        dynamic: part.dynamic === true,
-        nativeName: stringValue(part.nativeName),
-        runtimeId: input.runtimeId,
-        toolName,
+    await startToolActivity({
+        activity: input.activity,
+        classification: input.registry.classify({
+            dynamic: part.dynamic === true,
+            nativeName: stringValue(part.nativeName),
+            providerExecuted: part.providerExecuted === true,
+            runtimeId: input.runtimeId,
+            toolName,
+        }),
+        pending,
+        toolCallId,
     });
-    if (!pending.has(toolCallId)) {
-        pending.set(toolCallId, activity);
-        await input.activity.start({ ...activity, key: toolActivityKey(toolCallId) });
-    }
     await input.journal?.recordToolCall({
         input: part.input,
         nativeName: stringValue(part.nativeName),
@@ -195,7 +182,8 @@ async function observeToolCall(
     });
 }
 
-async function observeToolResult(
+/** Handles both `tool-result` and the `tool-error` a failed tool call ends on. */
+async function observeToolOutcome(
     part: Record<string, unknown>,
     input: {
         activity: AgentActivityRun;
@@ -203,52 +191,62 @@ async function observeToolResult(
         registry: ComputerActivityRegistry;
         runtimeId: string;
     },
-    pending: Map<string, { category: ComputerAgentActivityCategory; toolRef?: string }>
+    pending: Map<string, ComputerToolActivity>
 ) {
     const toolCallId = stringValue(part.toolCallId);
     const toolName = stringValue(part.toolName);
     if (!(toolCallId && toolName)) {
         return;
     }
-    const activity =
-        pending.get(toolCallId) ??
-        input.registry.classify({
-            dynamic: part.dynamic === true,
-            nativeName: stringValue(part.nativeName),
-            runtimeId: input.runtimeId,
-            toolName,
-        });
-    if (!pending.has(toolCallId)) {
-        pending.set(toolCallId, activity);
-        await input.activity.start({ ...activity, key: toolActivityKey(toolCallId) });
-    }
+    await startToolActivity({
+        activity: input.activity,
+        classification:
+            pending.get(toolCallId) ??
+            input.registry.classify({
+                dynamic: part.dynamic === true,
+                nativeName: stringValue(part.nativeName),
+                providerExecuted: part.providerExecuted === true,
+                runtimeId: input.runtimeId,
+                toolName,
+            }),
+        pending,
+        toolCallId,
+    });
+    const failed = part.type === 'tool-error' || part.isError === true;
     const isPreliminary = part.preliminary === true;
     await input.journal?.recordToolResult({
-        isError: part.isError === true,
+        isError: failed,
         nativeName: stringValue(part.nativeName),
+        // The translated stream carries payloads on `output`; `tool-error` on `error`.
+        output: part.type === 'tool-error' ? part.error : part.output,
         preliminary: isPreliminary,
-        result: part.result,
         toolCallId,
         toolName,
     });
     if (isPreliminary) {
         return;
     }
-    pending.delete(toolCallId);
-    await input.activity.finish(
-        toolActivityKey(toolCallId),
-        part.isError === true ? 'failed' : 'completed'
-    );
+    if (pending.delete(toolCallId)) {
+        await input.activity.finish(toolActivityKey(toolCallId), failed ? 'failed' : 'completed');
+    }
 }
 
-function knownToolCategory(runtimeId: string, toolName: string, nativeName?: string) {
-    const identity = nativeName ?? toolName;
-    const commonName = toolName;
-    const mapping: Readonly<Record<string, ComputerAgentActivityCategory>> | undefined =
-        computerNativeToolActivityFixtures[
-            runtimeId as keyof typeof computerNativeToolActivityFixtures
-        ];
-    return mapping?.[identity] ?? mapping?.[commonName];
+/** No-ops for a skipped tool, so its evidence reaches the journal alone. */
+async function startToolActivity(input: {
+    activity: AgentActivityRun;
+    classification: ComputerToolClassification;
+    pending: Map<string, ComputerToolActivity>;
+    toolCallId: string;
+}) {
+    if (input.classification.outcome === 'skip' || input.pending.has(input.toolCallId)) {
+        return;
+    }
+    input.pending.set(input.toolCallId, input.classification);
+    await input.activity.start({
+        category: input.classification.category,
+        key: toolActivityKey(input.toolCallId),
+        ...(input.classification.toolRef ? { toolRef: input.classification.toolRef } : {}),
+    });
 }
 
 function toolActivityKey(toolCallId: string): string {

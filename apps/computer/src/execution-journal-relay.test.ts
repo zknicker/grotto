@@ -39,6 +39,40 @@ test('serves one local journal only for the attached Server partition', async ()
     ).resolves.toMatchObject({ status: 'available', journal: { runId: 'run_attached' } });
 });
 
+test('serves a still-running turn from its append-only log', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-journal-running-'));
+    roots.push(dataRoot);
+    const journal = await createComputerExecutionJournal({
+        agentRoot: join(dataRoot, 'servers', 'srv_attached', 'agents', 'agt_running'),
+        runId: 'run_live',
+    });
+    await journal.recordToolCall({
+        input: { command: 'sleep 100' },
+        toolCallId: 'call_live',
+        toolName: 'bash',
+    });
+
+    const request = parseExecutionJournalRequest({
+        agentId: 'agt_running',
+        requestId: 'req_live',
+        runId: 'run_live',
+        type: 'agent-execution-journal-request',
+    });
+    expect(request).not.toBeNull();
+    const result = await readExecutionJournalRequest({
+        dataRoot,
+        request: request!,
+        serverId: 'srv_attached',
+    });
+    expect(result).toMatchObject({
+        journal: { runId: 'run_live', status: 'running' },
+        status: 'available',
+    });
+    expect(result.status === 'available' && result.journal.tools).toMatchObject([
+        { status: 'running', toolCallId: 'call_live', toolName: 'bash' },
+    ]);
+});
+
 test('returns an explicit missing result instead of inventing local detail', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-journal-missing-'));
     roots.push(dataRoot);

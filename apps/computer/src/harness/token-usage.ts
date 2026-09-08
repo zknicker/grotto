@@ -1,3 +1,4 @@
+import { type ClaudeUsageSnapshot, normalizeClaudeUsageResponse } from '@grotto/claude-usage';
 import type { AgentSessionTokenUsage } from './session-store.ts';
 
 export type HarnessTokenUsage = AgentSessionTokenUsage;
@@ -71,6 +72,30 @@ export function normalizeRuntimeUsage(
     }
     turn.totalTokens = turn.inputTokens + turn.outputTokens;
     return { cumulative: observed, turn };
+}
+
+/** Claude Code reports subscription rate limits through the turn's provider metadata. */
+export function readClaudePlanUsageMetadata(value: unknown): ClaudeUsageSnapshot | null {
+    if (!isRecord(value)) {
+        return null;
+    }
+    const claude = value['claude-code'];
+    if (!(isRecord(claude) && isRecord(claude.planUsage))) {
+        return null;
+    }
+    const usage = claude.planUsage;
+    if (usage.rate_limits_available !== true || !isRecord(usage.rate_limits)) {
+        return null;
+    }
+    try {
+        return normalizeClaudeUsageResponse(usage.rate_limits, {
+            source: 'claude-code-sdk-usage',
+            subscriptionType:
+                typeof usage.subscription_type === 'string' ? usage.subscription_type : null,
+        });
+    } catch {
+        return null;
+    }
 }
 
 const tokenFields = ['cacheReadTokens', 'cacheWriteTokens', 'inputTokens', 'outputTokens'] as const;

@@ -180,7 +180,7 @@ function fakeAgent(input: HarnessTurnInput): Pick<HarnessAgent, 'createSession' 
                         } else {
                             for (const [index, toolName] of streamToolNames.entries()) {
                                 yield {
-                                    result: { ok: true },
+                                    output: { ok: true },
                                     toolCallId: `call_${index}`,
                                     toolName,
                                     type: 'tool-result',

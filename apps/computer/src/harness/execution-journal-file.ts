@@ -1,15 +1,25 @@
-import { mkdir, rename, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { EXECUTION_JOURNAL_REASONING_MAX_CHARS } from '@grotto/api';
+import { applyJournalRecord, findJournalReasoning } from './execution-journal-mutations';
+import type { JournalMutationRecord } from './execution-journal-records';
+import {
+    appendExecutionJournalRecords,
+    writeExecutionJournalSnapshot,
+} from './execution-journal-store';
 import type {
     ComputerExecutionJournal,
     ComputerExecutionJournalDocument,
     ComputerExecutionJournalStatus,
-    ComputerExecutionJournalTool,
 } from './execution-journal-types';
-import { interruptTool, journalValue } from './execution-journal-values';
+import { journalValue } from './execution-journal-values';
 
+/**
+ * The in-memory document stays the source of truth for the live turn; each
+ * mutation also queues one log record, so a crash mid-turn loses nothing and no
+ * write is larger than the mutation that caused it.
+ */
 export class FileExecutionJournal implements ComputerExecutionJournal {
     private writeChain = Promise.resolve();
+    private pending: JournalMutationRecord[] = [];
 
     constructor(
         readonly path: string,
@@ -27,65 +37,86 @@ export class FileExecutionJournal implements ComputerExecutionJournal {
         if (!(input.toolCallId && input.toolName)) {
             return;
         }
-        const occurredAt = input.occurredAt ?? this.now().toISOString();
-        let tool = this.findTool(input.toolCallId);
-        if (!tool) {
-            tool = {
-                startedAt: occurredAt,
-                status: 'running',
-                toolCallId: input.toolCallId,
-                toolName: input.toolName,
-            };
-            this.document.tools.push(tool);
-        } else if (tool.status === 'interrupted') {
-            tool.status = 'running';
-            tool.endedAt = undefined;
-            tool.durationMs = undefined;
-            tool.final = undefined;
-            tool.output = undefined;
-            tool.error = undefined;
-        }
-        tool.toolName = input.toolName;
-        tool.nativeName ??= input.nativeName;
-        if (input.input !== undefined) {
-            tool.input = journalValue(input.input);
-        }
-        await this.persist();
+        this.push({
+            input: input.input === undefined ? undefined : journalValue(input.input),
+            nativeName: input.nativeName,
+            occurredAt: input.occurredAt ?? this.now().toISOString(),
+            toolCallId: input.toolCallId,
+            toolName: input.toolName,
+            type: 'tool-call',
+        });
+        await this.flush();
     }
 
     async recordToolResult(input: {
         isError: boolean;
         nativeName?: string;
         occurredAt?: string;
+        output?: unknown;
         preliminary: boolean;
-        result?: unknown;
         toolCallId: string;
         toolName: string;
     }): Promise<void> {
         if (!(input.toolCallId && input.toolName)) {
             return;
         }
-        const occurredAt = input.occurredAt ?? this.now().toISOString();
-        const tool = this.findOrCreateTool(input.toolCallId, input.toolName, occurredAt);
-        if (tool.final) {
+        this.push({
+            isError: input.isError,
+            nativeName: input.nativeName,
+            occurredAt: input.occurredAt ?? this.now().toISOString(),
+            output: journalValue(input.output),
+            preliminary: input.preliminary,
+            toolCallId: input.toolCallId,
+            toolName: input.toolName,
+            type: 'tool-result',
+        });
+        await this.flush();
+    }
+
+    /**
+     * Blocks past the contract's ceiling are dropped rather than written: a
+     * journal Server cannot parse loses every tool call too, not just the
+     * reasoning that overflowed.
+     */
+    recordReasoningStart(input: { id: string; occurredAt?: string }): void {
+        if (!input.id) {
             return;
         }
-        tool.toolName = input.toolName;
-        tool.nativeName ??= input.nativeName;
-        const result = input.isError
-            ? { error: journalValue(input.result), observedAt: occurredAt }
-            : { observedAt: occurredAt, output: journalValue(input.result) };
-        if (input.preliminary) {
-            tool.preliminary = result;
-            this.setLatestValue(tool, result);
-        } else {
-            tool.final = result;
-            tool.status = input.isError ? 'failed' : 'completed';
-            tool.endedAt = occurredAt;
-            tool.durationMs = Math.max(0, Date.parse(occurredAt) - Date.parse(tool.startedAt));
-            this.setLatestValue(tool, result);
+        this.push({
+            id: input.id,
+            startedAt: input.occurredAt ?? this.now().toISOString(),
+            type: 'reasoning-start',
+        });
+    }
+
+    appendReasoning(input: { id: string; text: string }): void {
+        if (!(input.id && input.text)) {
+            return;
         }
-        await this.persist();
+        const block = findJournalReasoning(this.document, input.id) ?? this.openReasoning(input.id);
+        if (!block) {
+            return;
+        }
+        const room = EXECUTION_JOURNAL_REASONING_MAX_CHARS - block.text.length;
+        this.push({
+            id: input.id,
+            text: room > 0 ? input.text.slice(0, room) : '',
+            truncated: input.text.length > room ? true : undefined,
+            type: 'reasoning-append',
+        });
+    }
+
+    async recordReasoningEnd(input: { id: string; occurredAt?: string }): Promise<void> {
+        this.push({
+            endedAt: input.occurredAt ?? this.now().toISOString(),
+            id: input.id,
+            type: 'reasoning-end',
+        });
+        await this.flush();
+    }
+
+    async flushReasoning(): Promise<void> {
+        await this.flush();
     }
 
     async finishPending(
@@ -93,102 +124,78 @@ export class FileExecutionJournal implements ComputerExecutionJournal {
         reason: 'stream_abort' | 'stream_error',
         error?: unknown
     ): Promise<void> {
-        const at = this.now();
-        let changed = false;
-        for (const tool of this.document.tools) {
-            if (tool.status !== 'running') {
-                continue;
-            }
-            if (status === 'interrupted') {
-                interruptTool(tool, at, reason);
-            } else {
-                tool.status = 'failed';
-                tool.endedAt = at.toISOString();
-                tool.durationMs = Math.max(0, at.getTime() - Date.parse(tool.startedAt));
-                tool.error = journalValue(error ?? { code: 'stream_failed' });
-                tool.final = { error: tool.error, observedAt: tool.endedAt };
-            }
-            changed = true;
-        }
-        if (changed) {
-            await this.persist();
-        }
+        this.push({
+            at: this.now().toISOString(),
+            error:
+                status === 'failed' ? journalValue(error ?? { code: 'stream_failed' }) : undefined,
+            reason,
+            status,
+            type: 'interrupt',
+        });
+        await this.flush();
     }
 
+    /** Settles the turn: the log is closed out and replaced by one snapshot. */
     async finish(status: Exclude<ComputerExecutionJournalStatus, 'running'>, error?: unknown) {
-        const at = this.now();
-        for (const tool of this.document.tools) {
-            if (tool.status !== 'running') {
-                continue;
-            }
-            tool.status = status === 'completed' ? 'failed' : status;
-            tool.endedAt = at.toISOString();
-            tool.durationMs = Math.max(0, at.getTime() - Date.parse(tool.startedAt));
-            if (status === 'completed') {
-                tool.error = { code: 'missing_result' };
-                tool.final = { error: tool.error, observedAt: tool.endedAt };
-            } else {
-                tool.error = journalValue(error ?? { code: status });
-            }
-        }
-        this.document.status = status;
-        this.document.endedAt = at.toISOString();
-        if (error !== undefined) {
-            this.document.error = journalValue(error);
-        } else {
-            this.document.error = undefined;
-        }
-        await this.persist();
+        this.push({
+            at: this.now().toISOString(),
+            error: error === undefined ? undefined : journalValue(error),
+            status,
+            type: 'finish',
+        });
+        await this.flush();
+        await this.writeSnapshot();
     }
 
     snapshot(): ComputerExecutionJournalDocument {
         return structuredClone(this.document);
     }
 
-    async persist(): Promise<void> {
+    /**
+     * Applies the record to the live document and queues it for the log.
+     * Consecutive reasoning deltas for one block coalesce, so a flush writes one
+     * record per block rather than one per streamed token.
+     */
+    private push(record: JournalMutationRecord): void {
+        if (!applyJournalRecord(this.document, record)) {
+            return;
+        }
+        const last = this.pending.at(-1);
+        if (
+            record.type === 'reasoning-append' &&
+            last?.type === 'reasoning-append' &&
+            last.id === record.id
+        ) {
+            last.text += record.text;
+            last.truncated ||= record.truncated;
+            return;
+        }
+        this.pending.push(record);
+    }
+
+    private openReasoning(id: string) {
+        this.recordReasoningStart({ id });
+        return findJournalReasoning(this.document, id);
+    }
+
+    private async flush(): Promise<void> {
+        if (this.pending.length === 0) {
+            return;
+        }
+        const records = this.pending;
+        this.pending = [];
+        await this.enqueueWrite(() => appendExecutionJournalRecords(this.path, records));
+    }
+
+    private writeSnapshot(): Promise<void> {
         const serialized = JSON.stringify(this.document);
-        const write = this.writeChain.then(async () => {
-            await mkdir(dirname(this.path), { mode: 0o700, recursive: true });
-            const temporary = `${this.path}.tmp`;
-            await writeFile(temporary, serialized, { encoding: 'utf8', mode: 0o600 });
-            await rename(temporary, this.path);
-        });
+        return this.enqueueWrite(() => writeExecutionJournalSnapshot(this.path, serialized));
+    }
+
+    // Serializes disk writes; the caller still observes the failure through the returned promise.
+    private enqueueWrite(task: () => Promise<void>): Promise<void> {
+        const write = this.writeChain.then(task);
         this.writeChain = write.catch(() => undefined);
         return write;
-    }
-
-    private findTool(toolCallId: string) {
-        return this.document.tools.find((candidate) => candidate.toolCallId === toolCallId);
-    }
-
-    private findOrCreateTool(toolCallId: string, toolName: string, startedAt: string) {
-        const existing = this.findTool(toolCallId);
-        if (existing) {
-            return existing;
-        }
-        const tool: ComputerExecutionJournalTool = {
-            startedAt,
-            status: 'running',
-            toolCallId,
-            toolName,
-        };
-        this.document.tools.push(tool);
-        return tool;
-    }
-
-    private setLatestValue(
-        tool: ComputerExecutionJournalTool,
-        result:
-            | { error: ReturnType<typeof journalValue>; observedAt: string }
-            | {
-                  observedAt: string;
-                  output: ReturnType<typeof journalValue>;
-              }
-    ) {
-        if ('error' in result) {
-            tool.error = result.error;
-        } else {
-            tool.output = result.output;
-        }
     }
 }

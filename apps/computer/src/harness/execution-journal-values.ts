@@ -1,3 +1,4 @@
+import { EXECUTION_JOURNAL_VALUE_MAX_CHARS } from '@grotto/api';
 import type {
     ComputerExecutionJournalDocument,
     ComputerExecutionJournalTool,
@@ -17,18 +18,39 @@ export function interruptTool(
     tool.interruptions = interruptions;
 }
 
-export function journalValue(value: unknown, seen = new WeakSet<object>()): JournalValue {
-    if (value === null || typeof value === 'string' || typeof value === 'boolean') {
+/**
+ * Clips one string leaf to the journal's per-value ceiling. The suffix keeps the
+ * reader honest about what was dropped instead of silently ending mid-output.
+ */
+export function capJournalString(value: string): string {
+    if (value.length <= EXECUTION_JOURNAL_VALUE_MAX_CHARS) {
         return value;
+    }
+    const dropped = value.length - EXECUTION_JOURNAL_VALUE_MAX_CHARS;
+    const kept = value.slice(0, EXECUTION_JOURNAL_VALUE_MAX_CHARS);
+    return `${kept}\n…[truncated ${String(dropped)} more characters]`;
+}
+
+/**
+ * Projects an arbitrary runtime value into the journal's serializable shape,
+ * capping every string leaf so a payload shape such as `{ stdout, stderr }`
+ * survives with each field clipped rather than the whole value discarded.
+ */
+export function journalValue(value: unknown, seen = new WeakSet<object>()): JournalValue {
+    if (value === null || typeof value === 'boolean') {
+        return value;
+    }
+    if (typeof value === 'string') {
+        return capJournalString(value);
     }
     if (typeof value === 'number') {
         return Number.isFinite(value) ? value : String(value);
     }
     if (typeof value === 'bigint') {
-        return value.toString();
+        return capJournalString(value.toString());
     }
     if (value instanceof Error) {
-        return { message: value.message, name: value.name };
+        return { message: capJournalString(value.message), name: value.name };
     }
     if (typeof value === 'undefined') {
         return null;
@@ -45,7 +67,7 @@ export function journalValue(value: unknown, seen = new WeakSet<object>()): Jour
             Object.entries(value).map(([key, item]) => [key, journalValue(item, seen)])
         );
     }
-    return String(value);
+    return capJournalString(String(value));
 }
 
 export function isJournalDocument(
@@ -57,7 +79,8 @@ export function isJournalDocument(
         value.runId !== runId ||
         typeof value.startedAt !== 'string' ||
         !['completed', 'failed', 'interrupted', 'running'].includes(value.status as string) ||
-        !Array.isArray(value.tools)
+        !Array.isArray(value.tools) ||
+        !isReasoningList(value.reasoning)
     ) {
         return false;
     }
@@ -68,6 +91,23 @@ export function isJournalDocument(
             typeof tool.toolName === 'string' &&
             typeof tool.startedAt === 'string' &&
             ['completed', 'failed', 'interrupted', 'running'].includes(tool.status as string)
+    );
+}
+
+/** Journals written before reasoning capture omit the field entirely. */
+function isReasoningList(value: unknown): boolean {
+    if (value === undefined) {
+        return true;
+    }
+    return (
+        Array.isArray(value) &&
+        value.every(
+            (block) =>
+                isRecord(block) &&
+                typeof block.id === 'string' &&
+                typeof block.startedAt === 'string' &&
+                typeof block.text === 'string'
+        )
     );
 }
 

@@ -1,5 +1,5 @@
 import { afterAll, afterEach, expect, test } from 'bun:test';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AgentActivityRun } from '../agent-activity-run.ts';
@@ -25,7 +25,7 @@ function activityRun(events: Array<{ category: string; phase: string; toolRef?: 
 afterEach(async () => {
     await Promise.all(roots.splice(0).map((root) => rm(root, { force: true, recursive: true })));
 });
-test('projects explicit Codex, Claude, and Pi fixtures without inspecting tool inputs', async () => {
+test('projects explicit adapter tool fixtures without inspecting tool inputs', async () => {
     const cases = [
         { nativeName: 'shell', runtimeId: 'codex', toolName: 'bash', category: 'running_command' },
         {
@@ -41,6 +41,11 @@ test('projects explicit Codex, Claude, and Pi fixtures without inspecting tool i
             category: 'editing_files',
         },
         { nativeName: 'edit', runtimeId: 'pi', toolName: 'edit', category: 'editing_files' },
+        { runtimeId: 'pi', toolName: 'glob', category: 'reading_files' },
+        { runtimeId: 'pi', toolName: 'ls', category: 'reading_files' },
+        { runtimeId: 'grok-build', toolName: 'bash', category: 'running_command' },
+        { runtimeId: 'grok-build', toolName: 'write', category: 'editing_files' },
+        { runtimeId: 'grok-build', toolName: 'webSearch', category: 'searching_web' },
         {
             nativeName: 'web_search',
             runtimeId: 'codex',
@@ -58,13 +63,13 @@ test('projects explicit Codex, Claude, and Pi fixtures without inspecting tool i
         });
         await projector.observe({
             input: JSON.stringify({ command: 'cat private.txt', query: 'private query' }),
-            nativeName: fixture.nativeName,
+            ...('nativeName' in fixture ? { nativeName: fixture.nativeName } : {}),
             toolCallId: `call_${fixture.runtimeId}`,
             toolName: fixture.toolName,
             type: 'tool-call',
         });
         await projector.observe({
-            result: { output: 'private output' },
+            output: { text: 'private output' },
             toolCallId: `call_${fixture.runtimeId}`,
             toolName: fixture.toolName,
             type: 'tool-result',
@@ -104,7 +109,7 @@ test('keeps malicious MCP names and shell cat generic', async () => {
             type: 'tool-call',
         });
         await projector.observe({
-            result: { output: 'private' },
+            output: { text: 'private' },
             toolCallId,
             toolName,
             type: 'tool-result',
@@ -118,7 +123,7 @@ test('keeps malicious MCP names and shell cat generic', async () => {
         type: 'tool-call',
     });
     await projector.observe({
-        result: 'private',
+        output: 'private',
         toolCallId: 'call_dynamic_bash',
         toolName: 'bash',
         type: 'tool-result',
@@ -131,26 +136,6 @@ test('keeps malicious MCP names and shell cat generic', async () => {
         { category: 'running_command', phase: 'completed' },
         { category: 'using_tool', phase: 'started' },
         { category: 'using_tool', phase: 'completed' },
-    ]);
-    expect(JSON.stringify(events)).not.toContain('private');
-});
-test('projects opaque Harness file changes as safe edit activity', async () => {
-    const events: Array<{ category: string; phase: string }> = [];
-    const projector = createComputerActivityProjector({
-        activity: activityRun(events),
-        registry: createComputerActivityRegistry(),
-        runtimeId: 'codex',
-    });
-
-    await projector.observe({
-        event: 'modify',
-        path: 'private/secret.txt',
-        type: 'file-change',
-    });
-
-    expect(events).toEqual([
-        { category: 'editing_files', phase: 'started' },
-        { category: 'editing_files', phase: 'completed' },
     ]);
     expect(JSON.stringify(events)).not.toContain('private');
 });
@@ -181,23 +166,23 @@ test('pairs preliminary, failure, interruption, and restart journal evidence by 
         type: 'tool-call',
     });
     await projector.observe({
+        output: 'partial',
         preliminary: true,
-        result: 'partial',
         toolCallId: 'call_preliminary',
         toolName: 'bash',
         type: 'tool-result',
     });
     await projector.observe({
         isError: true,
-        result: 'failed output',
+        output: 'failed output',
         toolCallId: 'call_preliminary',
         toolName: 'bash',
         type: 'tool-result',
     });
     await journal.recordToolResult({
         isError: false,
+        output: 'late preliminary output',
         preliminary: true,
-        result: 'late preliminary output',
         toolCallId: 'call_preliminary',
         toolName: 'bash',
     });
@@ -232,7 +217,7 @@ test('pairs preliminary, failure, interruption, and restart journal evidence by 
         registry: createComputerActivityRegistry(),
         runtimeId: 'pi',
     }).observe({
-        result: 'restarted output',
+        output: 'restarted output',
         toolCallId: 'call_interrupted',
         toolName: 'bash',
         type: 'tool-result',
@@ -252,7 +237,6 @@ test('pairs preliminary, failure, interruption, and restart journal evidence by 
         status: 'completed',
         toolCallId: 'call_interrupted',
     });
-    expect(JSON.stringify(document)).not.toContain('reasoning');
     expect(events).toContainEqual({ category: 'running_command', phase: 'failed' });
 });
 test('classifies structured Grotto message and Browser proxy boundaries', () => {
@@ -284,7 +268,7 @@ test('semantic activity frames have no raw tool fields and host categories are r
         type: 'tool-call',
     });
     await projector.observe({
-        result: 'do not leak this either',
+        output: 'do not leak this either',
         toolCallId: 'call_browser',
         toolName: 'browser',
         type: 'tool-result',
@@ -296,5 +280,6 @@ test('semantic activity frames have no raw tool fields and host categories are r
     ]);
     expect(Object.keys(events[0] ?? {})).toEqual(['category', 'phase', 'toolRef']);
     expect(JSON.stringify(events)).not.toContain('do not leak');
-    expect(await readFile(journal.path, 'utf8')).toContain('do not leak this');
+    const evidence = await readComputerExecutionJournal(root, 'run_host');
+    expect(JSON.stringify(evidence)).toContain('do not leak this');
 });

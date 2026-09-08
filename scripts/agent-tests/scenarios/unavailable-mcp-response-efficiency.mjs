@@ -34,7 +34,10 @@ export default defineScenario({
                 /\b(?:rg|grep|find|env|printenv)\b|config\.(?:toml|json|ya?ml)/u.test(command)
             );
         });
-        expect(reconnaissance, 'no local capability reconnaissance').toHaveLength(0);
+        expect(
+            reconnaissance.map((tool) => tool.input.command),
+            'no local capability reconnaissance'
+        ).toHaveLength(0);
         log(
             `unavailable MCP: ${Date.parse(journal.endedAt) - Date.parse(journal.startedAt)}ms, ${journal.tools.length} tools`
         );

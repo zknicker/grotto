@@ -40,3 +40,36 @@ test('a preview line drops emphasis and code markers', () => {
     );
     expect(messagePreviewLine('Ran:\n```bash\nbun test\n```')).toBe('Ran: bash bun test');
 });
+
+test('a preview line reads a visual-only message as its fence title', () => {
+    expect(
+        messagePreviewLine('```visual Weekly sales\n<h1>Weekly sales</h1>\n<svg></svg>\n```')
+    ).toBe('Weekly sales');
+});
+
+test('a preview line falls back to an untitled visual heading', () => {
+    expect(messagePreviewLine('```visual\n<div><h2>Ranked teams</h2></div>\n```')).toBe(
+        'Ranked teams'
+    );
+});
+
+test('a preview line keeps the prose around a visual', () => {
+    expect(
+        messagePreviewLine(
+            'Here is the chart.\n```visual Weekly sales\n<svg></svg>\n```\nLet me know.'
+        )
+    ).toBe('Here is the chart. Weekly sales Let me know.');
+});
+
+test('a preview line reads a still-streaming visual as its label', () => {
+    expect(messagePreviewLine('Drawing now.\n```visual Weekly sales\n<h1>Weekly')).toBe(
+        'Drawing now. Weekly sales'
+    );
+    expect(messagePreviewLine('Drawing now.\n```visual\n<div><svg')).toBe('Drawing now. Visual');
+});
+
+test('a preview line leaves a message without a visual fence alone', () => {
+    expect(messagePreviewLine('Shipped the visual renderer today')).toBe(
+        'Shipped the visual renderer today'
+    );
+});

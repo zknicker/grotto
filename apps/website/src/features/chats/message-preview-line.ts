@@ -1,20 +1,33 @@
+import { splitVisualFences, visualFallbackText } from '@grotto/api/widgets/visual';
+
 /**
  * Message content as one line of plain text: a rich reference or link reads as
- * its label (`#product`, `@Blippy`) rather than its Markdown target, Markdown
- * that only exists to shape a block — headings, bullets, emphasis, code ticks —
- * drops away, and newlines or code fences collapse to single spaces.
+ * its label (`#product`, `@Blippy`) rather than its Markdown target, a visual
+ * fence reads as its title rather than its raw HTML body, Markdown that only
+ * exists to shape a block — headings, bullets, emphasis, code ticks — drops
+ * away, and newlines or code fences collapse to single spaces.
  *
  * Every surface that quotes a message without rendering it — a Thread preview
  * row, a Task's title, the Inbox, a Cloud Agent work's detail line — shares
  * this so they cannot disagree about what a quoted line says.
  */
 export function messagePreviewLine(content: string) {
-    return content
+    return visualsAsFallbackText(content)
         .replace(markdownLinkPattern, (_match, label: string) => label)
         .replace(blockMarkerPattern, '')
         .replace(emphasisMarkerPattern, '')
         .replace(/\s+/gu, ' ')
         .trim();
+}
+
+/**
+ * A visual's body is model-authored HTML, never prose: an open or closed
+ * ```visual fence reads as the same fallback label the unavailable state uses.
+ */
+function visualsAsFallbackText(content: string) {
+    return splitVisualFences(content)
+        .map((segment) => (segment.kind === 'visual' ? visualFallbackText(segment) : segment.text))
+        .join('');
 }
 
 /** Mirrors the link grammar `parseGrottoRichReferences` reads references from. */

@@ -39,6 +39,11 @@ describe('visual widget contracts', () => {
         expect(visualFallbackText({ html: '<svg viewBox="0 0 10 10"></svg>' })).toBe('Visual');
     });
 
+    test('fallback labels a still-empty streaming body', () => {
+        expect(visualFallbackText({ html: '' })).toBe('Visual');
+        expect(visualFallbackText({ html: '<div><h2>Ranked te' })).toBe('Visual');
+    });
+
     test('splits prose and closed visual fences in order', () => {
         const segments = splitVisualFences(
             'Here you go:\n```visual Weekly sales\n<h1>Sales</h1>\n<svg></svg>\n```\nDone.'

@@ -99,6 +99,12 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let cloudAgents: [CloudAgentPresentation]
     public let threadCloudAgents: [CloudAgentPresentation]
     public let richSegments: [RichMessageSegment]
+    /// What the row says with its ```visual fences taken out — the web's
+    /// placement, where every text segment concatenates into one prose block
+    /// above the cards.
+    public let prose: String
+    /// The fences this message drew, in the order it wrote them.
+    public let visuals: [VisualSegment]
 
     public init(
         id: String,
@@ -112,10 +118,17 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         preparedAction: PreparedActionPresentation? = nil,
         cloudAgents: [CloudAgentPresentation] = [],
         threadCloudAgents: [CloudAgentPresentation] = [],
-        richSegments: [RichMessageSegment]? = nil
+        richSegments: [RichMessageSegment]? = nil,
+        visualBody: VisualMessageBody? = nil
     ) {
         // Resolve the superseded-card fallback consistently for Chat and Thread bodies.
         let body = Self.body(content: content, preparedAction: preparedAction)
+        // Fences are split off the resolved body before anything renders it:
+        // the message content IS the visual, and the prose above the cards is
+        // what the text surfaces get. An adapter that needed the prose to parse
+        // mentions has already split this exact body and hands the split in, so
+        // the fence grammar runs once per message.
+        let fenced = visualBody ?? VisualFence.body(body)
         self.id = id
         self.author = author
         self.content = body
@@ -133,9 +146,22 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         // An adapter that can resolve mentions calls `body(content:)` itself
         // and hands both in, so a note that mentions an Agent renders like any
         // other body.
+        self.prose = fenced.prose
+        self.visuals = fenced.visuals
         self.richSegments = body == content
-            ? richSegments ?? RichMessageParser.parse(body) { _, _, _ in nil }
-            : RichMessageParser.parse(body) { _, _, _ in nil }
+            ? richSegments ?? RichMessageParser.parse(fenced.prose) { _, _, _ in nil }
+            : RichMessageParser.parse(fenced.prose) { _, _, _ in nil }
+    }
+
+    /// The resolved body together with its fence split. An adapter that needs
+    /// the prose to parse mentions resolves both here and hands the split back
+    /// to `init`, so the fence grammar runs once per message.
+    public static func resolvedBody(
+        content: String,
+        preparedAction: PreparedActionPresentation?
+    ) -> (body: String, visuals: VisualMessageBody) {
+        let resolved = body(content: content, preparedAction: preparedAction)
+        return (resolved, VisualFence.body(resolved))
     }
 
     /// A superseded proposal with no Message content leaves a short replacement line.
@@ -152,64 +178,6 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.isEmpty else { return trimmed }
         return (preparedAction?.messageText ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-}
-
-public struct MessageAttachmentPresentation: Identifiable, Hashable, Sendable {
-    public let id: String
-    public let filename: String
-    public let mediaType: String
-    public let sizeBytes: Int
-    public let localURL: URL?
-
-    public init(
-        id: String,
-        filename: String,
-        mediaType: String,
-        sizeBytes: Int,
-        localURL: URL? = nil
-    ) {
-        self.id = id
-        self.filename = filename
-        self.mediaType = mediaType
-        self.sizeBytes = sizeBytes
-        self.localURL = localURL
-    }
-
-    public var isImage: Bool { mediaType.hasPrefix("image/") }
-}
-
-/// A local file staged by the native composer. The Server remains the owner of
-/// durable attachment metadata and bytes after a successful send.
-public struct ComposerAttachment: Identifiable, Hashable, Sendable {
-    public let id: String
-    public let filename: String
-    public let mediaType: String
-    public let sizeBytes: Int
-    public let localURL: URL
-
-    public init(
-        id: String = UUID().uuidString.lowercased(),
-        filename: String,
-        mediaType: String,
-        sizeBytes: Int,
-        localURL: URL
-    ) {
-        self.id = id
-        self.filename = filename
-        self.mediaType = mediaType
-        self.sizeBytes = sizeBytes
-        self.localURL = localURL
-    }
-
-    public var presentation: MessageAttachmentPresentation {
-        MessageAttachmentPresentation(
-            id: id,
-            filename: filename,
-            mediaType: mediaType,
-            sizeBytes: sizeBytes,
-            localURL: localURL
-        )
     }
 }
 

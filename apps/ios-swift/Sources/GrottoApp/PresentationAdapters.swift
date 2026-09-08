@@ -94,10 +94,7 @@ extension GrottoStore {
             // written with the same mention markdown as any other message. The
             // substitution is resolved here so the note goes through the parser
             // that knows the Server's Agents and members.
-            let body = MessagePresentation.body(
-                content: message.content,
-                preparedAction: preparedAction
-            )
+            let (body, fenced) = MessagePresentation.resolvedBody(content: message.content, preparedAction: preparedAction)
             return MessagePresentation(
                 id: message.id,
                 author: author,
@@ -109,7 +106,8 @@ extension GrottoStore {
                 preparedAction: preparedAction,
                 cloudAgents: cloudAgentPresentation(message.body).map { [$0] } ?? [],
                 threadCloudAgents: cloudAgentPresentations(cloudAgentWork.filter { $0.anchorMessageId == message.id }),
-                richSegments: richMessageSegments(body)
+                richSegments: richMessageSegments(fenced.prose),
+                visualBody: fenced
             )
         }
     }
@@ -133,7 +131,7 @@ extension GrottoStore {
             // An optimistic row goes through the same body resolution as a
             // durable one, so its mentions survive the trust check even when
             // trimming changes the string the composer staged.
-            let body = MessagePresentation.body(content: message.content, preparedAction: nil)
+            let (body, fenced) = MessagePresentation.resolvedBody(content: message.content, preparedAction: nil)
             return MessagePresentation(
                 id: message.id,
                 author: viewer,
@@ -141,7 +139,8 @@ extension GrottoStore {
                 createdAt: message.createdAt,
                 attachments: message.attachments.map(\.presentation),
                 isPending: true,
-                richSegments: richMessageSegments(body)
+                richSegments: richMessageSegments(fenced.prose),
+                visualBody: fenced
             )
         }
     }

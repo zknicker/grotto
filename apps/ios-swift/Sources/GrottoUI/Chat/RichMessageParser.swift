@@ -39,13 +39,15 @@ public enum RichMessageParser {
         return segments.isEmpty ? [.text(content)] : segments
     }
 
-    /// A one-line preview of a message: every Markdown link reads as the words a
-    /// person sees on the chip — a typed reference through `ReferenceLabel`, so
-    /// a preview says `Product` and `Agent Browser` rather than `#product` and
-    /// `$agent-browser`, and an ordinary web link as its own link text. Each run
-    /// of whitespace becomes a single space.
+    /// A one-line preview of a message: every visual fence reads as the visual's
+    /// name, every Markdown link reads as the words a person sees on the chip —
+    /// a typed reference through `ReferenceLabel`, so a preview says `Product`
+    /// and `Agent Browser` rather than `#product` and `$agent-browser`, and an
+    /// ordinary web link as its own link text. Each run of whitespace becomes a
+    /// single space.
     public static func oneLinePreview(_ content: String) -> String {
-        let unlinked = linkExpression.map { previewText(content, expression: $0) } ?? content
+        let named = VisualFence.previewText(content)
+        let unlinked = linkExpression.map { previewText(named, expression: $0) } ?? named
         return unlinked.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
     }
 

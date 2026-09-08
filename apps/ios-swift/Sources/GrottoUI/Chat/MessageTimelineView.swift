@@ -20,6 +20,10 @@ public struct MessageTimelineView: View {
     /// viewer's transition has to outlive the cell it grew out of.
     @State private var attachmentPreview: AttachmentPreview?
     @State private var attachmentTiles = AttachmentImageTileRegistry()
+    /// Visual heights are the screen's for the same structural reason
+    /// attachment tiles are: rows live in table cells the screen has to
+    /// re-host. See `VisualHeightRegistry`.
+    @State private var visualHeights = VisualHeightRegistry()
     @State private var highlightedMessageID: String?
     @State private var isNearNewest = true
     @State private var reveal: TranscriptReveal?
@@ -72,6 +76,13 @@ public struct MessageTimelineView: View {
     /// passes under the header's and the composer's glass.
     public var body: some View {
         let indexByID = messageIndexByID
+        // Read here, in the screen's own body, so a visual's height report
+        // re-renders the screen and the table re-hosts its visible rows. The
+        // card reads the registry too, but a cell's hosting view invalidating
+        // itself is not what re-measures the row: only a change ABOVE the table
+        // reaches `updateUIView` and its `reconfigureVisibleRows`. Every screen
+        // that owns a registry has to read `revision` for its cards to grow.
+        _ = visualHeights.revision
         return GeometryReader { proxy in
             if messages.isEmpty && isMessageHistoryLoaded {
                 ContentUnavailableView(
@@ -220,107 +231,21 @@ public struct MessageTimelineView: View {
     private func timelineRow(_ message: MessagePresentation, indexByID: [String: Int]) -> some View {
         let index = indexByID[message.id] ?? 0
         let continuation = isContinuation(at: index)
-        messageRow(message, isContinuation: continuation)
-            .padding(.top, index == 0 ? 0 : continuation ? 4 : 16)
-    }
-
-    private func messageRow(
-        _ message: MessagePresentation,
-        isContinuation: Bool
-    ) -> some View {
-        HStack(alignment: .top, spacing: 11) {
-            if isContinuation {
-                Color.clear.frame(width: 38, height: 1)
-            } else {
-                AvatarView(
-                    name: message.author.name,
-                    url: message.author.avatarURL,
-                    presence: message.author.presence,
-                    size: 38
-                )
-            }
-
-            VStack(alignment: .leading, spacing: 3) {
-                if !isContinuation {
-                    HStack(alignment: .firstTextBaseline, spacing: 7) {
-                        Text(message.author.name)
-                            .font(.body.weight(.semibold))
-                            .lineLimit(1)
-                        Text(message.createdAt, format: .dateTime.hour().minute())
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                if !message.content.isEmpty {
-                    RichMessageContentView(segments: message.richSegments)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                if !message.attachments.isEmpty {
-                    MessageAttachmentGroup(
-                        attachments: message.attachments,
-                        isPending: message.isPending,
-                        preview: $attachmentPreview,
-                        tiles: attachmentTiles,
-                        onOpen: onOpenAttachment
-                    )
-                    .padding(.top, message.content.isEmpty ? 0 : 3)
-                }
-
-                ForEach(message.cloudAgents) { agent in
-                    CloudAgentCard(agent: agent).padding(.top, 6)
-                }
-
-                if let preparedAction = message.preparedAction {
-                    PreparedActionCardView(
-                        action: preparedAction,
-                        canManage: canManagePreparedActions,
-                        onReviewCreateAgent: onReviewPreparedCreateAgent,
-                        onShowDetails: onShowPreparedActionDetails,
-                        onOpenAgent: onOpenAgent
-                    )
-                    // The card's collapse and its memory of having been live
-                    // are per-action state, and transcript rows are hosted in
-                    // recycled cells reconfigured in place. Keying on the
-                    // action retires that state with the action it belongs to,
-                    // so a collapsed card cannot blank the next message's live
-                    // one.
-                    .id(preparedAction.id)
-                    .padding(.top, message.content.isEmpty ? 0 : 6)
-                }
-
-                if message.isPending {
-                    HStack(spacing: 5) {
-                        ProgressView().controlSize(.mini)
-                        Text("Sending").font(.caption).foregroundStyle(.secondary)
-                    }
-                    .padding(.top, 2)
-                }
-
-                if message.thread?.replyCount ?? 0 > 0 || message.task != nil {
-                    ThreadPreviewCard(
-                        thread: message.thread,
-                        task: message.task,
-                        cloudAgents: message.threadCloudAgents,
-                        onOpen: { onOpenThread(message) }
-                    )
-                    .id(message.id)
-                }
-            }
-        }
-        .overlayPreferenceValue(ThreadIngressAnchor.self) { anchor in
-            ThreadIngressConnector(anchor: anchor, isContinuation: isContinuation)
-        }
-        // The tint is drawn behind the row without changing its layout, so a
-        // revealed message keeps the timeline's ordinary rhythm.
-        .background {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(GrottoPlatformColor.inputSurface)
-                .opacity(highlightedMessageID == message.id ? 1 : 0)
-                .padding(.horizontal, -8)
-                .padding(.vertical, -5)
-        }
+        MessageTimelineRow(
+            message: message,
+            isContinuation: continuation,
+            isHighlighted: highlightedMessageID == message.id,
+            attachmentPreview: $attachmentPreview,
+            attachmentTiles: attachmentTiles,
+            visualHeights: visualHeights,
+            canManagePreparedActions: canManagePreparedActions,
+            onOpenThread: { onOpenThread(message) },
+            onOpenAttachment: onOpenAttachment,
+            onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
+            onShowPreparedActionDetails: onShowPreparedActionDetails,
+            onOpenAgent: onOpenAgent
+        )
+        .padding(.top, index == 0 ? 0 : continuation ? 4 : 16)
     }
 
     private func isContinuation(at index: Int) -> Bool {

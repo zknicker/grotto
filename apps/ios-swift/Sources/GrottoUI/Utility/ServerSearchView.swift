@@ -30,7 +30,10 @@ public struct MessageSearchResultPresentation: Identifiable, Hashable, Sendable 
         self.chatID = chatID
         self.chatKind = chatKind
         self.chatName = chatName
-        self.content = content
+        // A search result is a message excerpt, and a ```visual fence has no
+        // prose to excerpt: the same rule the transcript follows applies here,
+        // so the row reads the visual's name rather than its raw markup.
+        self.content = VisualFence.previewText(content)
         self.createdAt = createdAt
     }
 }

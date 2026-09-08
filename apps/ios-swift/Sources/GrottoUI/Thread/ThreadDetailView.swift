@@ -26,6 +26,9 @@ public struct ThreadDetailView: View {
     /// only ask.
     @State private var attachmentPreview: AttachmentPreview?
     @State private var attachmentTiles = AttachmentImageTileRegistry()
+    /// Visual heights are the screen's for the same structural reason attachment
+    /// tiles are; see `VisualHeightRegistry`.
+    @State private var visualHeights = VisualHeightRegistry()
     /// A Thread is one pushed screen rather than a keyed canvas, so its composer
     /// state is screen-owned: it survives anything presented over the Thread and
     /// goes away with the pop, unlike the Chat canvas, whose interactions the
@@ -110,8 +113,13 @@ public struct ThreadDetailView: View {
     public var body: some View {
         let replies = replyProvider()
         let items = transcriptItems(replies: replies)
+        // Read here, in the screen's own body, so a visual's height report
+        // re-renders the screen and the table re-hosts its visible rows. Read
+        // only inside a row it would land on the cell's hosting view, which the
+        // table never asks about.
+        _ = visualHeights.revision
 
-        GeometryReader { geometry in
+        return GeometryReader { geometry in
             ZStack(alignment: .bottomLeading) {
                 transcript(items: items)
                     // Same shape as the chat screen: replies run under the floating glass
@@ -216,6 +224,7 @@ public struct ThreadDetailView: View {
                 onOpenAttachment: onOpenAttachment,
                 preview: $attachmentPreview,
                 tiles: attachmentTiles,
+                visualHeights: visualHeights,
                 canManagePreparedActions: canManagePreparedActions,
                 onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
                 onShowPreparedActionDetails: onShowPreparedActionDetails,
@@ -233,6 +242,7 @@ public struct ThreadDetailView: View {
                 onOpenAttachment: onOpenAttachment,
                 preview: $attachmentPreview,
                 tiles: attachmentTiles,
+                visualHeights: visualHeights,
                 canManagePreparedActions: canManagePreparedActions,
                 onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
                 onShowPreparedActionDetails: onShowPreparedActionDetails,

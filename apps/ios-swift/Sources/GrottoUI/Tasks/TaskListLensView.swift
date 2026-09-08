@@ -225,9 +225,9 @@ private struct TaskListRow: View {
         .swipeActions(edge: .trailing, allowsFullSwipe: false) { swipeActions }
     }
 
-    // The row is one line, so a wrapped anchor collapses to a single line.
+    // One line, so the anchor collapses and a fence reads as the visual's name.
     private var title: String {
-        item.message.content.split(whereSeparator: { $0.isNewline }).joined(separator: " ")
+        RichMessageParser.oneLinePreview(item.message.content)
     }
 
     @ViewBuilder

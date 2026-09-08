@@ -9,6 +9,8 @@ struct ThreadMessageRow: View {
     }
     var preview: Binding<AttachmentPreview?> = .constant(nil)
     var tiles: AttachmentImageTileRegistry?
+    /// The screen's, not the row's — see `VisualHeightRegistry`.
+    let visualHeights: VisualHeightRegistry
     var canManagePreparedActions = false
     var onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void = { _ in }
     var onShowPreparedActionDetails: (PreparedCreateAgentActionPresentation) -> Void = { _ in }
@@ -34,7 +36,7 @@ struct ThreadMessageRow: View {
                         .foregroundStyle(.secondary)
                 }
 
-                if !message.content.isEmpty {
+                if !message.prose.isEmpty {
                     RichMessageContentView(
                         segments: message.richSegments,
                         textStyle: emphasized ? .body : .subheadline
@@ -42,6 +44,12 @@ struct ThreadMessageRow: View {
                     .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+
+                MessageVisualStack(
+                    message: message,
+                    heights: visualHeights,
+                    topPadding: message.prose.isEmpty ? 0 : 3
+                )
 
                 if !message.attachments.isEmpty {
                     MessageAttachmentGroup(
@@ -72,7 +80,7 @@ struct ThreadMessageRow: View {
                     // so a collapsed card cannot blank the next message's live
                     // one.
                     .id(preparedAction.id)
-                    .padding(.top, message.content.isEmpty ? 0 : 6)
+                    .padding(.top, message.prose.isEmpty && message.visuals.isEmpty ? 0 : 6)
                 }
 
                 if message.isPending {

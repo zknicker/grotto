@@ -24,7 +24,6 @@ import type { AgentSessionState } from './session-store.ts';
 
 const runtime = makeDaemonRuntime();
 afterAll(() => runtime.dispose());
-
 const legacyCoveFaq = `# Onboarding Knowledge FAQ
 
 ## What can Cove do?
@@ -406,7 +405,6 @@ test('keeps detailed tool evidence local instead of returning raw tool names', a
 });
 test('keeps billable token usage when a provider fails after reporting usage', async () => {
     streamFails = true;
-
     await expect(runHarnessTurn(turnInput())).rejects.toMatchObject({
         name: HarnessTurnFailedError.name,
         tokenUsage: {
@@ -417,6 +415,8 @@ test('keeps billable token usage when a provider fails after reporting usage', a
             totalTokens: 15,
         },
     });
+    const journal = await readComputerExecutionJournal(agentRoot, 'run_test');
+    expect(journal?.error).toContain('provider failed');
 });
 test('projects tool stream boundaries into safe semantic activity', async () => {
     streamToolNames = ['cat_private_file'];

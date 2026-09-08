@@ -82,6 +82,8 @@ test('keeps a Computer plan snapshot visible while the Computer is offline', () 
     expect(markup).toContain('Weekly Limit');
     expect(markup).not.toContain('5h Limit');
     expect(markup).toContain('13%');
+    expect(markup).toContain('Usage out of date');
+    expect(markup).toContain('Last updated');
     expect(markup).not.toContain('Pi');
 });
 
@@ -202,8 +204,6 @@ test('renders only detected runtime cards without token details', () => {
     expect(markup).not.toContain('Codex');
     expect(markup).not.toContain('Pi');
     expect(markup).toContain('Weekly Limit');
-    // The burst window has its own column, so the chip carries only its value
-    // and the meter column keeps one bar width across every row.
     expect(markup).toContain('5h limit');
     expect(markup).toContain('>11%<');
     expect(markup).toContain('tooltip__trigger flex');

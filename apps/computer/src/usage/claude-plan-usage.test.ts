@@ -86,7 +86,7 @@ test('uses managed Claude SDK evidence without calling the OAuth fallback', asyn
 
     const result = await read({
         dataRoot,
-        now: new Date('2026-08-15T15:00:00.000Z'),
+        now: new Date('2026-08-14T15:01:00.000Z'),
     });
 
     expect(result.source).toBe('claude-code-sdk-usage');
@@ -122,4 +122,30 @@ test('leases one Claude SDK usage refresh per interval', async () => {
 
     expect(await claimClaudeSdkUsageRefresh(dataRoot, now)).toBe(true);
     expect(await claimClaudeSdkUsageRefresh(dataRoot, now)).toBe(false);
+});
+
+test('refreshes expired persisted usage and preserves it during durable backoff', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-claude-plan-'));
+    await saveClaudePlanUsageSnapshot(dataRoot, snapshot);
+    const refreshed = { ...snapshot, capturedAt: '2026-09-08T15:00:00.000Z' };
+    let calls = 0;
+    const load = async () => {
+        calls += 1;
+        if (calls === 1) {
+            return refreshed;
+        }
+        throw new ClaudeUsageRequestError('rate limited', 429, 1_200_000);
+    };
+    const read = createClaudePlanUsageReader({ load });
+    expect(await read({ dataRoot, now: new Date(refreshed.capturedAt) })).toEqual(refreshed);
+    expect(calls).toBe(1);
+    expect(await read({ dataRoot, now: new Date('2026-09-08T15:16:00.000Z') })).toEqual(refreshed);
+    expect(calls).toBe(2);
+    expect(
+        await createClaudePlanUsageReader({ load })({
+            dataRoot,
+            now: new Date('2026-09-08T15:30:00.000Z'),
+        })
+    ).toEqual(refreshed);
+    expect(calls).toBe(2);
 });

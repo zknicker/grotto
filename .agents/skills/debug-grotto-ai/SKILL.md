@@ -1,13 +1,20 @@
 ---
-name: diagnose-grotto-agents
-description: Diagnose and fix Grotto Agent latency, slow responses, tool loops, wrong context, inbox delivery, missing or duplicate messages, and Computer execution. Use for Agent performance and behavior investigations, including recordings and production incidents. Checks Axiom and creates a Luna-max Raft research partner when the mechanism benefits from comparison.
+name: debug-grotto-ai
+description: Debug AI bugs and performance anywhere in Grotto, including model calls, prompts, context, tools and MCP, streaming, usage, and Agent execution. Use for slow, stuck, missing, duplicate, or incorrect AI behavior, including reports from recordings. Investigate with Axiom and use Luna-max Raft research when relevant.
 ---
 
-# Diagnose Grotto Agents
+# Debug Grotto AI
 
-Trace the distributed execution path before attributing symptoms to prompt quality or model speed. Preserve the
-Raft-derived product contract: one Agent owns one continuous global execution session spanning all
-Chats. Cross-chat knowledge is expected; confusing the current request or target is not.
+This is the repository entry point for debugging AI behavior and performance across App, Server,
+Computer, and shared contracts. Trace the affected request before attributing symptoms to prompt
+quality or model speed. Cover model selection and configuration, prompts, context, tools and MCP,
+streaming, usage accounting, and execution. Pure visual or layout bugs follow the App UI workflow.
+
+Start with the failing capability; do not assume every AI operation is an Agent turn. The session,
+inbox, and delivery guidance below applies when an Agent execution path is involved. For other AI
+paths, follow the owning API, model call, stream, or usage mapping and its focused regression tests.
+Axiom is the first evidence source for runtime incidents; Raft research is conditional on a useful
+architectural comparison, not required for every AI bug.
 
 Use the repository's `diagnosing-bugs` skill too when it is available. This skill supplies the
 Grotto/Raft domain model and research-partner protocol; `diagnosing-bugs` supplies the general
@@ -15,10 +22,11 @@ red-green diagnosis loop.
 
 ## Start With The Model
 
-Read [references/grotto-agent-model.md](references/grotto-agent-model.md) completely. Run the
-repository's docs-list command, read the reference's core set, then add documents whose `read_when`
-hints match the observed subsystem. Include the relevant portion of the Raft-alignment epic; do not
-load every workstream artifact by default.
+Run the repository's docs-list command and read documents whose `read_when` hints match the
+failing capability. For Agent execution, also read
+[references/grotto-agent-model.md](references/grotto-agent-model.md) completely and its core docs.
+Preserve the Raft-derived contract: one Agent owns one continuous global execution session across
+Chats. Include only the relevant Raft-alignment workstreams.
 
 Confirm the checkout and environment without printing secrets. Follow repository setup and dev-port
 conventions. Prefer deterministic tests and seeded fixtures over noisy hosted or local Chats.
@@ -64,7 +72,13 @@ Do not give the partner a suspected answer as fact. Do not let it edit Grotto or
 or inspect credentials. If local Raft code or the public network is unavailable, record that
 evidence gap and continue with repository sources.
 
-## Establish A Deterministic Red Loop
+## Agent execution diagnosis
+
+Apply the following session and delivery workflow when the affected AI path runs through an Agent.
+For other AI paths, use the same evidence → reproduction → fix → verification sequence at the owning
+boundary, without introducing Agent session or inbox assumptions.
+
+### Establish A Deterministic Red Loop
 
 Before ranking causes for a fix, reduce the report to a concrete observable:
 

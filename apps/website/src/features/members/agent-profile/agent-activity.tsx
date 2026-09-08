@@ -1,18 +1,21 @@
 import type { Agent } from '@grotto/api';
 import { Accordion, Button, Chip } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import * as React from 'react';
 import { CopyButton } from '../../../components/copy-button.tsx';
 import { useAgentActivityHistory } from '../../../hooks/members/use-agent-activity-history.ts';
 import { useAgentTurns } from '../../../hooks/members/use-agent-turns.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { useGrottoServerConnectionState } from '../../../lib/grotto-server.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
+import { TurnTrace } from '../../turn-trace/turn-trace.tsx';
 import {
     formatAgentActivityDiagnosticInfo,
     getAgentActivityColor,
     getAgentActivityPhaseLabel,
+    getTurnDetailAccess,
+    type TurnDetailAccess,
 } from './agent-activity-model.ts';
-import { AgentActivityTimeline } from './agent-activity-timeline.tsx';
 import {
     type AgentActivityTurn,
     formatActivityTurnCounts,
@@ -75,7 +78,12 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
                         </ItemCard>
                     </ItemCardGroup>
                 ) : (
-                    <ActivityTurnHistory turns={turns} />
+                    <ActivityTurnHistory
+                        access={getTurnDetailAccess(server.role)}
+                        agentId={agent.id}
+                        serverId={server.id}
+                        turns={turns}
+                    />
                 )}
                 {events.length > 0 && activity.hasMore ? (
                     <div className="flex justify-center border-separator border-t px-4 py-3">
@@ -97,9 +105,28 @@ export function AgentActivity({ agent, server }: { agent: Agent; server: ServerD
     );
 }
 
-function ActivityTurnHistory({ turns }: { turns: readonly AgentActivityTurn[] }) {
+function ActivityTurnHistory({
+    access,
+    agentId,
+    serverId,
+    turns,
+}: {
+    access: TurnDetailAccess;
+    agentId: string;
+    serverId: string;
+    turns: readonly AgentActivityTurn[];
+}) {
+    // Expansion is the journal's request gate: a turn asks its Computer for
+    // execution detail only once someone opens it.
+    const [expanded, setExpanded] = React.useState<ReadonlySet<string>>(new Set());
+
     return (
-        <Accordion allowsMultipleExpanded variant="surface">
+        <Accordion
+            allowsMultipleExpanded
+            expandedKeys={expanded}
+            onExpandedChange={(keys) => setExpanded(new Set([...keys].map(String)))}
+            variant="surface"
+        >
             {turns.map((turn) => {
                 const phase = getActivityTurnPhase(turn);
                 return (
@@ -132,7 +159,14 @@ function ActivityTurnHistory({ turns }: { turns: readonly AgentActivityTurn[] })
                         </Accordion.Heading>
                         <Accordion.Panel>
                             <Accordion.Body>
-                                <AgentActivityTimeline turn={turn} />
+                                <TurnTrace
+                                    access={access}
+                                    agentId={agentId}
+                                    enabled={expanded.has(turn.runId)}
+                                    runId={turn.runId}
+                                    serverId={serverId}
+                                    turn={turn}
+                                />
                             </Accordion.Body>
                         </Accordion.Panel>
                     </Accordion.Item>

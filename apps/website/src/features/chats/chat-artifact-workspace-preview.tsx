@@ -7,6 +7,7 @@ import { agentHtmlTokenCss, injectHostTokenStyle } from '../../agent-html/tokens
 import { SelectionQuoteContainer } from '../../components/quote/selection-quote.tsx';
 import { useResolvedThemeOptional } from '../../components/theme-provider.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { codeLanguageForPath } from '../../lib/code-language.ts';
 import { isWorkspaceSourceFile, type WorkspaceArtifact } from './chat-artifact-workspace-file.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import { formatGrottoResourceLink, type GrottoResourceTarget } from './grotto-resource-link.ts';
@@ -84,7 +85,7 @@ export function WorkspaceArtifactContent({
                 </span>
                 {sourceFile ? (
                     <span className="shrink-0 text-muted text-xs">
-                        {workspaceFileLanguage(target.path).label}
+                        {codeLanguageForPath(target.path).label}
                     </span>
                 ) : null}
             </div>
@@ -140,50 +141,11 @@ function WorkspaceFilePreview({
                 source={{ href: formatGrottoResourceLink(target), label: path }}
             >
                 <CodeBlock>
-                    <CodeBlock.Code code={content} language={workspaceFileLanguage(path).id} />
+                    <CodeBlock.Code code={content} language={codeLanguageForPath(path).id} />
                 </CodeBlock>
             </SelectionQuoteContainer>
         </div>
     );
-}
-
-/** Shiki language for a workspace file, by extension; plain text otherwise. */
-function workspaceFileLanguage(path: string): { id: string; label: string } {
-    const extension = path.split('.').at(-1)?.toLowerCase() ?? '';
-    switch (extension) {
-        case 'cjs':
-        case 'js':
-        case 'mjs':
-            return { id: 'javascript', label: 'JavaScript' };
-        case 'cts':
-        case 'mts':
-        case 'ts':
-            return { id: 'typescript', label: 'TypeScript' };
-        case 'jsx':
-        case 'tsx':
-            return { id: 'tsx', label: 'TSX' };
-        case 'json':
-        case 'jsonc':
-            return { id: 'json', label: 'JSON' };
-        case 'css':
-            return { id: 'css', label: 'CSS' };
-        case 'md':
-        case 'mdx':
-            return { id: 'markdown', label: 'Markdown' };
-        case 'py':
-            return { id: 'python', label: 'Python' };
-        case 'sh':
-        case 'bash':
-        case 'zsh':
-            return { id: 'shellscript', label: 'Shell' };
-        case 'yaml':
-        case 'yml':
-            return { id: 'yaml', label: 'YAML' };
-        case 'toml':
-            return { id: 'toml', label: 'TOML' };
-        default:
-            return { id: 'text', label: 'Text' };
-    }
 }
 
 export function formatWorkspaceFileMetadata(sizeBytes: number, updatedAt: string | null) {

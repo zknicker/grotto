@@ -230,6 +230,11 @@ export function getTurnJournalPresentation(
 
 export type TurnDetailAccess = 'journal' | 'summary';
 
+/** Members read the semantic summary; owners and admins may read the journal. */
+export function getTurnDetailAccess(role: string): TurnDetailAccess {
+    return role === 'member' ? 'summary' : 'journal';
+}
+
 export function shouldRequestExecutionJournal(input: {
     access: TurnDetailAccess;
     open: boolean;

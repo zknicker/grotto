@@ -1,24 +1,11 @@
-import type { AgentExecutionJournal } from '@grotto/api';
-import { Chip, Drawer } from '@heroui/react';
-import * as React from 'react';
+import { Drawer } from '@heroui/react';
+import type * as React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useAgentTurnActivityHistory } from '../../hooks/members/use-agent-activity-history.ts';
-import { useAgentExecutionJournal } from '../../hooks/members/use-agent-execution-journal.ts';
 import { useAgentTurn } from '../../hooks/members/use-agent-turns.ts';
-import {
-    getAgentActivityColor,
-    getAgentActivityPhaseLabel,
-    getTurnJournalPresentation,
-    shouldRequestExecutionJournal,
-    type TurnDetailAccess,
-} from '../members/agent-profile/agent-activity-model.ts';
-import { AgentActivityTimeline } from '../members/agent-profile/agent-activity-timeline.tsx';
-import {
-    formatActivityTurnCounts,
-    formatActivityTurnHeadline,
-    getActivityTurnPhase,
-    groupAgentActivityTurns,
-} from '../members/agent-profile/agent-activity-turns.ts';
+import type { TurnDetailAccess } from '../members/agent-profile/agent-activity-model.ts';
+import { groupAgentActivityTurns } from '../members/agent-profile/agent-activity-turns.ts';
+import { TurnTrace, TurnTraceHeader } from '../turn-trace/turn-trace.tsx';
 
 export function ServerTurnDetailsDrawer({
     access,
@@ -46,10 +33,13 @@ export function ServerTurnDetailsDrawer({
             onOpenChange={onOpenChange}
             open={open}
         >
-            <TurnActivitySummary agentId={agentId} runId={runId} serverId={serverId} />
-            {access === 'journal' && agentId ? (
-                <OwnerTurnJournal agentId={agentId} open={open} runId={runId} serverId={serverId} />
-            ) : null}
+            <ServerTurnTrace
+                access={access}
+                agentId={agentId}
+                open={open}
+                runId={runId}
+                serverId={serverId}
+            />
         </TurnDetailsDrawer>
     );
 }
@@ -70,7 +60,9 @@ function TurnDetailsDrawer({
     return (
         <Drawer.Backdrop isOpen={open} onOpenChange={onOpenChange}>
             <Drawer.Content placement="right">
-                <Drawer.Dialog>
+                {/* The trace prints code and diffs, so this drawer takes the
+                    wider measure named in `default-theme.css`. */}
+                <Drawer.Dialog className="drawer__dialog--turn-details">
                     <Drawer.CloseTrigger />
                     <Drawer.Header>
                         <div className="flex items-center gap-2.5">
@@ -88,176 +80,43 @@ function TurnDetailsDrawer({
     );
 }
 
-function TurnActivitySummary({
-    agentId,
-    runId,
-    serverId,
-}: {
-    agentId: string | null;
-    runId: string | null;
-    serverId: string;
-}) {
-    const activity = useAgentTurnActivityHistory(serverId, agentId ?? '', runId);
-    const settledTurn = useAgentTurn(serverId, agentId ?? '', runId);
-    const events = activity.data?.events ?? [];
-    const turn = groupAgentActivityTurns(events, settledTurn.data ?? [])[0];
-
-    return (
-        <section className="grid gap-2">
-            <h3 className="font-medium text-foreground text-sm">Activity summary</h3>
-            {runId ? (
-                activity.isPending && settledTurn.isPending ? (
-                    <p className="text-muted text-sm">Loading activity summary...</p>
-                ) : activity.error && settledTurn.error && !turn ? (
-                    <p className="text-muted text-sm">Activity summary is unavailable right now.</p>
-                ) : turn ? (
-                    <div className="grid gap-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Chip
-                                color={getAgentActivityColor(getActivityTurnPhase(turn))}
-                                size="sm"
-                                variant="soft"
-                            >
-                                {getAgentActivityPhaseLabel(getActivityTurnPhase(turn))}
-                            </Chip>
-                            <span className="font-medium text-foreground text-sm">
-                                {formatActivityTurnHeadline(turn)}
-                            </span>
-                            <span className="text-muted text-sm">
-                                {formatActivityTurnCounts(turn)}
-                            </span>
-                        </div>
-                        <AgentActivityTimeline turn={turn} />
-                    </div>
-                ) : (
-                    <p className="text-muted text-sm">No semantic activity was recorded.</p>
-                )
-            ) : (
-                <p className="text-muted text-sm">This message has no available turn identity.</p>
-            )}
-        </section>
-    );
-}
-
-function OwnerTurnJournal({
+/** Resolves the run's durable turn, then hands it to the shared trace. */
+function ServerTurnTrace({
+    access,
     agentId,
     open,
     runId,
     serverId,
 }: {
-    agentId: string;
+    access: TurnDetailAccess;
+    agentId: string | null;
     open: boolean;
     runId: string | null;
     serverId: string;
 }) {
-    const { data, isPending, request, reset, status } = useAgentExecutionJournal();
+    const activity = useAgentTurnActivityHistory(serverId, agentId ?? '', runId);
+    const settledTurn = useAgentTurn(serverId, agentId ?? '', runId);
+    const turn =
+        groupAgentActivityTurns(activity.data?.events ?? [], settledTurn.data ?? [])[0] ?? null;
 
-    React.useEffect(() => {
-        if (!open) {
-            reset();
-            return;
-        }
-        if (!(shouldRequestExecutionJournal({ access: 'journal', open, runId }) && runId)) {
-            return;
-        }
+    if (runId && activity.isPending && settledTurn.isPending) {
+        return <p className="text-muted text-sm">Loading turn activity...</p>;
+    }
+    if (runId && !turn && activity.error && settledTurn.error) {
+        return <p className="text-muted text-sm">Turn activity is unavailable right now.</p>;
+    }
 
-        void request({ agentId, runId, serverId });
-    }, [agentId, open, request, reset, runId, serverId]);
-
-    const presentation =
-        status === 'success'
-            ? getTurnJournalPresentation(data, runId)
-            : status === 'error'
-              ? {
-                    description: 'The Computer did not return detailed activity.',
-                    kind: 'unavailable' as const,
-                    reason: 'timeout' as const,
-                    title: 'Detailed activity unavailable',
-                }
-              : null;
-
-    return (
-        <section className="grid gap-2 border-separator border-t pt-4">
-            <h3 className="font-medium text-foreground text-sm">Detailed execution</h3>
-            {isPending ? (
-                <p className="text-muted text-sm">Loading detailed activity...</p>
-            ) : presentation?.kind === 'available' ? (
-                <JournalContents journal={presentation.journal} />
-            ) : presentation ? (
-                <div className="grid gap-1">
-                    <p className="font-medium text-foreground text-sm">{presentation.title}</p>
-                    <p className="text-muted text-sm">{presentation.description}</p>
-                </div>
-            ) : (
-                <p className="text-muted text-sm">Open this drawer to request detailed activity.</p>
-            )}
-        </section>
-    );
-}
-
-function JournalContents({ journal }: { journal: AgentExecutionJournal }) {
     return (
         <div className="grid gap-3">
-            <p className="text-muted text-sm">
-                {journal.status === 'failed'
-                    ? 'The turn failed after the recorded activity below.'
-                    : journal.status === 'interrupted'
-                      ? 'The turn was interrupted after the recorded activity below.'
-                      : journal.status === 'running'
-                        ? 'The turn is still running.'
-                        : 'Recorded tool activity from the Computer.'}
-            </p>
-            {journal.error !== undefined ? (
-                <JournalValue label="Turn error" value={journal.error} />
-            ) : null}
-            {journal.tools.map((tool) => (
-                <article
-                    className="card-shell grid gap-1.5 bg-surface-secondary px-3 py-2"
-                    key={tool.toolCallId}
-                >
-                    <div className="flex items-baseline justify-between gap-3">
-                        <h4 className="min-w-0 truncate font-medium text-foreground text-sm">
-                            {tool.toolName}
-                        </h4>
-                        <span className="shrink-0 text-muted text-sm">{tool.status}</span>
-                    </div>
-                    {tool.input !== undefined ? (
-                        <JournalValue label="Input" value={tool.input} />
-                    ) : null}
-                    {tool.output !== undefined ? (
-                        <JournalValue label="Output" value={tool.output} />
-                    ) : null}
-                    {tool.error !== undefined ? (
-                        <JournalValue label="Error" value={tool.error} />
-                    ) : null}
-                    {tool.final ? <JournalValue label="Final" value={tool.final} /> : null}
-                    {tool.preliminary ? (
-                        <JournalValue label="Preliminary" value={tool.preliminary} />
-                    ) : null}
-                </article>
-            ))}
+            {turn ? <TurnTraceHeader turn={turn} /> : null}
+            <TurnTrace
+                access={access}
+                agentId={agentId}
+                enabled={open}
+                runId={runId}
+                serverId={serverId}
+                turn={turn}
+            />
         </div>
     );
-}
-
-function JournalValue({ label, value }: { label: string; value: unknown }) {
-    return (
-        <div className="grid gap-0.5">
-            <span className="text-muted text-sm">{label}</span>
-            <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded bg-surface px-2 py-1 font-mono text-muted text-xs">
-                {formatJournalValue(value)}
-            </pre>
-        </div>
-    );
-}
-
-function formatJournalValue(value: unknown) {
-    if (typeof value === 'string') {
-        return value;
-    }
-    try {
-        return JSON.stringify(value, null, 2) ?? String(value);
-    } catch {
-        return 'Value unavailable.';
-    }
 }

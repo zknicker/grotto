@@ -8,6 +8,7 @@ import {
 import { Modal } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
 import { openAgentProfilePane } from '../../../hooks/pane/use-agent-profile-pane.ts';
+import { getTurnDetailAccess } from '../../members/agent-profile/agent-activity-model.ts';
 import type { ReferenceActivationTarget } from '../../mentions/mention-types.ts';
 import { useServerContext } from '../server-context.ts';
 import { serverChatRoute } from '../server-routes.ts';
@@ -101,7 +102,7 @@ export function ThreadPeekDialog({
                         readOnly={readOnly}
                         summary={summary}
                         takeover={false}
-                        turnDetailsAccess={server.role === 'member' ? 'summary' : 'journal'}
+                        turnDetailsAccess={getTurnDetailAccess(server.role)}
                         width={null}
                     />
                 </Modal.Dialog>

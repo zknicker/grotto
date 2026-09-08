@@ -853,4 +853,33 @@
         line-height: var(--text-lg--line-height);
         font-weight: 600;
     }
+
+    /*
+     * Stock ChatTool sets its three section labels in 10px ALL CAPS with extra
+     * tracking. DESIGN.md has no all-caps tier, and a turn trace stacks these
+     * labels beside its own plain muted ones — "Command", "File", "Exit code"
+     * — so the same small muted role carries all of them and nothing in an
+     * expanded call shouts.
+     */
+    .chat-tool__args-label,
+    .chat-tool__error-label,
+    .chat-tool__result-label {
+        font-size: var(--text-sm);
+        line-height: var(--text-sm--line-height);
+        font-weight: 400;
+        letter-spacing: normal;
+        text-transform: none;
+    }
+
+    /*
+     * The turn trace is evidence: commands, diffs, and file contents. A stock
+     * right drawer is sized for a settings form, and at that width every code
+     * line wraps, which is exactly what the full-width Activity tab shows it
+     * does not have to do. Only this drawer widens, and never past the
+     * viewport it is drawn over.
+     */
+    .drawer__dialog--turn-details[data-placement='right'] {
+        width: 32rem;
+        max-width: 100vw;
+    }
 }

@@ -67,7 +67,7 @@ export function MessageContextMenu({
                 {children}
             </ContextMenu.Trigger>
             <ContextMenu.Popover>
-                <ContextMenu.Menu onAction={onAction}>
+                <ContextMenu.Menu aria-label="Message actions" onAction={onAction}>
                     <ContextMenu.Item id="copy" textValue="Copy message">
                         <Icon aria-hidden="true" icon={Copy01Icon} size={16} />
                         <Label>Copy message</Label>
@@ -93,7 +93,7 @@ export function MessageContextMenu({
                             <ContextMenu.SubmenuIndicator />
                         </ContextMenu.Item>
                         <ContextMenu.Popover>
-                            <ContextMenu.Menu onAction={onAction}>
+                            <ContextMenu.Menu aria-label="Add reaction" onAction={onAction}>
                                 {quickReactionEmoji.map((emoji) => (
                                     <ContextMenu.Item
                                         id={`${reactionPrefix}${emoji}`}

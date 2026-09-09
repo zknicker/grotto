@@ -65,11 +65,13 @@ export function convert(tag: string, props: Record<string, string>): Subpath | n
         }
         // Two half arcs, because a single arc back to its own start point is
         // degenerate in the SVG arc spec.
-        return {
+        const circle: Subpath = {
             d: round(
                 `M${cx - r} ${cy}A${r} ${r} 0 1 0 ${cx + r} ${cy}A${r} ${r} 0 1 0 ${cx - r} ${cy}Z`
             ),
         };
+        applyStroke(circle, props);
+        return circle;
     }
 
     if (tag === 'rect') {

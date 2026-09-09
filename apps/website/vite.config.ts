@@ -45,9 +45,6 @@ export default defineConfig(({ command }) => ({
             '/api/grotto-release': {
                 target: grottoServerOrigin,
             },
-            '/api/prepared-action-media': {
-                target: grottoServerOrigin,
-            },
             '/healthz': {
                 target: serverOrigin,
             },

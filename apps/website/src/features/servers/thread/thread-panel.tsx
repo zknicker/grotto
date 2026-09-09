@@ -7,7 +7,6 @@ import { ThreadContent } from './thread-content.tsx';
 export function ThreadPanel({
     active,
     anchor,
-    canManage,
     chat,
     initialThreadChatId,
     onClose,
@@ -22,7 +21,6 @@ export function ThreadPanel({
 }: {
     active: boolean;
     anchor: ChatMessage;
-    canManage: boolean;
     chat: Chat;
     initialThreadChatId?: string;
     onClose: () => void;
@@ -47,7 +45,6 @@ export function ThreadPanel({
                 <ThreadContent
                     active={active}
                     anchor={anchor}
-                    canManage={canManage}
                     chat={chat}
                     initialThreadChatId={initialThreadChatId}
                     key={anchor.id}

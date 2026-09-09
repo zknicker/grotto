@@ -25,7 +25,6 @@ export function CreateAgentDialog({
         async (values: AgentCreationSubmitValues) => {
             const result = await create.createAgent({
                 ...values,
-                role: 'member',
                 serverId,
             });
             return { agentId: result.agent.id };

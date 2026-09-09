@@ -42,7 +42,6 @@ import { threadTitles } from './thread-target.ts';
 export function ThreadContent({
     active,
     anchor,
-    canManage = false,
     chat,
     composerVariant = 'primary',
     headerTitle,
@@ -60,7 +59,6 @@ export function ThreadContent({
     active: boolean;
     anchor: ChatMessage;
     chat: Chat;
-    canManage?: boolean;
     /** `secondary` when the host is a surface (the task dialog). */
     composerVariant?: 'primary' | 'secondary';
     /**
@@ -100,7 +98,6 @@ export function ThreadContent({
     // main chat, so anchor and replies look and feel like channel rows.
     const threadMessages = React.useMemo(() => [anchor, ...replies], [anchor, replies]);
     const { renderContext, rows } = useChatTranscript({
-        canManage,
         // The context card above the anchor already names the automation.
         causeMarkHidden: Boolean(anchor.cause),
         chatId: threadChatId ?? chat.id,

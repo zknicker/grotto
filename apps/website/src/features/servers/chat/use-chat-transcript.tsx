@@ -12,10 +12,6 @@ import type {
     TranscriptRenderContextValue,
 } from '../../chats/chat-transcript-render-context.tsx';
 import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
-import {
-    PreparedActionCard,
-    preparedActionMessageText,
-} from '../../chats/prepared-action-card.tsx';
 import { deriveSessionMarks } from '../../chats/session/session-mark-model.ts';
 import { indexCloudAgentWorkByThreadAnchor } from '../../cloud-agents/hoisted-cloud-agent-work.ts';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
@@ -38,7 +34,6 @@ const conversationLayout = {
 const emptyPendingMessages: readonly PendingChatMessage[] = [];
 
 export interface ChatTranscriptInput {
-    canManage?: boolean;
     /** Hides the header automation mark when a context card already states it. */
     causeMarkHidden?: boolean;
     chatId: string;
@@ -60,7 +55,6 @@ export interface ChatTranscriptInput {
 
 /** Rows and render context retain identity across unchanged refetches to avoid rerendering every turn. */
 export function useChatTranscript({
-    canManage = false,
     causeMarkHidden,
     chatId,
     conversationChatId,
@@ -216,7 +210,6 @@ export function useChatTranscript({
                 },
                 hiddenCount: 0,
                 hoistedCloudAgentWork,
-                messageCopyText: preparedActionMessageText,
                 onActorClick: onStartDm
                     ? (actor) => {
                           if (actor?.kind === 'participant') {
@@ -229,20 +222,6 @@ export function useChatTranscript({
                 onUnfollowThread: () => undefined,
                 profilePaneChatId: chatId,
                 renderMessageAttachments,
-                renderMessageBlock: (message) =>
-                    message.preparedAction ? (
-                        <PreparedActionCard
-                            action={message.preparedAction}
-                            agents={agentList}
-                            canManage={canManage}
-                            executedByDisplayName={
-                                message.preparedAction.executedByUserId
-                                    ? humans.name(message.preparedAction.executedByUserId)
-                                    : undefined
-                            }
-                            serverId={serverId}
-                        />
-                    ) : null,
                 renderMessageContent: (message) => (
                     <ServerChatMessageContent
                         agentsById={agentsById}
@@ -263,9 +242,7 @@ export function useChatTranscript({
                 viewerUserId,
             }) satisfies TranscriptRenderContextValue,
         [
-            agentList,
             agentsById,
-            canManage,
             causeMarkHidden,
             chatId,
             chatsById,

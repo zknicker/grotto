@@ -455,7 +455,6 @@ async function seedOverdueReminder(grotto: GrottoConnection) {
         handle: 'scheduler-cove',
         homeTimezone: 'America/New_York',
         id: agentId,
-        role: 'member',
         serverId,
     });
     await grotto.db.insert(chatMessagesTable).values({

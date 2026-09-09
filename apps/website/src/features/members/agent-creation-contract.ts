@@ -7,16 +7,6 @@ export interface ReportedComputer {
     label: string;
 }
 
-export interface AgentCreationInitialValues {
-    avatarUrl: string | null;
-    computerId?: string;
-    description: string | null;
-    displayName: string;
-    modelId?: string;
-    reasoningEffort?: AgentReasoningEffort;
-    runtimeId?: string;
-}
-
 export interface AgentCreationSubmitValues {
     avatar?: {
         bytesBase64: string;

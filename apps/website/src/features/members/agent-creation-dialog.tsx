@@ -4,7 +4,6 @@ import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { computerLabel } from '../computers/presentation.ts';
 import {
     AgentCreationForm,
-    type AgentCreationInitialValues,
     type AgentCreationSubmitValues,
     type ReportedComputer,
 } from './agent-creation-form.tsx';
@@ -12,7 +11,6 @@ import {
 interface AgentCreationDialogProps {
     agents: readonly Agent[];
     error: { message: string } | null;
-    initialValues?: AgentCreationInitialValues;
     isPending: boolean;
     onCreated: (agentId: string) => void;
     onOpenChange: (open: boolean) => void;
@@ -24,7 +22,6 @@ interface AgentCreationDialogProps {
 export function AgentCreationDialog({
     agents,
     error,
-    initialValues,
     isPending,
     onCreated,
     onOpenChange,
@@ -74,7 +71,6 @@ export function AgentCreationDialog({
                             <AgentCreationForm
                                 agents={agents}
                                 error={error}
-                                initialValues={initialValues}
                                 isPending={isPending}
                                 onCreated={onCreated}
                                 onSubmit={onSubmit}

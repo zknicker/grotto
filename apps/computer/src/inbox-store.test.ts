@@ -46,38 +46,6 @@ test('mirrors the latest busy snapshot and removes next-run claims', async () =>
     expect(await readPendingInbox(location())).toEqual([second]);
 });
 
-test('does not expose a replayed action result twice, but reoffers it for a new run', async () => {
-    const action = {
-        ...item('act_create_agent', '#product', 0),
-        actionAttention: {
-            actionId: 'act_create_agent',
-            chatId: 'cht_origin',
-            createdAgentId: 'agt_created',
-            executedResult: {
-                agentId: 'agt_created',
-                avatarUrl: null,
-                computerId: 'cmp_local',
-                description: 'A new teammate',
-                displayName: 'Scout',
-                handle: 'scout',
-                modelId: 'gpt-5',
-                reasoningEffort: 'medium' as const,
-                role: 'member' as const,
-                runtimeId: 'codex',
-            },
-            kind: 'agent:create' as const,
-        },
-        content: '',
-        sequence: 0,
-    };
-
-    expect(await acceptRunInbox(location(), 'run_action', [action])).toEqual([action]);
-    expect(await acceptRunInbox(location(), 'run_action', [action])).toEqual([]);
-
-    await reofferPendingMessages(location(), [action]);
-    expect(await acceptRunInbox(location(), 'run_action_retry', [action])).toEqual([action]);
-});
-
 test('dedupes and orders a replacement snapshot', async () => {
     const first = item('msg_first', '#general', 1);
     const second = item('msg_second', '#general', 2);
@@ -222,31 +190,6 @@ test('names bodiless frames apart from ordinary and typed system inbox rows', ()
         isAutomationInboxItem(automationItem('task-assign:msg_1a2b3c4d:3', 'grotto', 'system'))
     ).toBe(true);
     expect(isAutomationInboxItem(item('msg_plain', '#general', 1))).toBe(false);
-    // An action attention also speaks as @grotto, but carries its own payload
-    // and settles on the ordinary visibility path.
-    expect(
-        isAutomationInboxItem({
-            ...automationItem('act_committed', 'grotto', 'system'),
-            actionAttention: {
-                actionId: 'act_committed',
-                chatId: 'cht_inbox',
-                createdAgentId: 'agt_creator',
-                executedResult: {
-                    agentId: 'agt_new',
-                    avatarUrl: null,
-                    computerId: 'cmp_one',
-                    description: null,
-                    displayName: 'Scout',
-                    handle: 'scout',
-                    modelId: 'model',
-                    reasoningEffort: 'medium',
-                    role: 'member',
-                    runtimeId: 'runtime',
-                },
-                kind: 'agent:create',
-            },
-        })
-    ).toBe(false);
     expect(
         isAutomationInboxItem({
             ...automationItem('cap_greeting', 'onboarding', 'system'),

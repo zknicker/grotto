@@ -6,7 +6,6 @@ import {
     cloudAgentWorkEvent,
     lifecycleEvent,
     messageEvent,
-    preparedActionEvent,
     reactionEvent,
     taskEvent,
     threadFollowEvent,
@@ -18,7 +17,6 @@ import { invalidateChatRead } from './use-chat-read-events.ts';
 import { invalidateCloudAgentWorkChanges } from './use-cloud-agent-work-events.ts';
 import { invalidateMessageCreated } from './use-message-created-events.ts';
 import { invalidateMessageReactionChanges } from './use-message-reaction-events.ts';
-import { invalidatePreparedActionEvents } from './use-prepared-action-events.ts';
 import { invalidateTaskChanges } from './use-task-change-events.ts';
 import { invalidateTaskLabelChanges } from './use-task-label-events.ts';
 import { invalidateThreadFollow } from './use-thread-follow-events.ts';
@@ -171,27 +169,6 @@ test('a task label pass refetches the label catalog and the task list only', asy
     expect(recorded).toEqual([
         { input: { serverId }, name: 'task.list', options: { refetchType: 'all' } },
         { input: { serverId }, name: 'taskLabel.list', options: { refetchType: 'all' } },
-    ]);
-});
-
-test('an action lifecycle pass refetches the action transcript and search', async () => {
-    const { queryClient, recorded, utils } = recordingCaches();
-
-    await invalidatePreparedActionEvents({
-        events: [preparedActionEvent('8', 'chat_thread', 'superseded', 'chat_parent')],
-        queryClient,
-        serverId,
-        utils,
-    });
-
-    expect(recorded).toEqual([
-        { input: { serverId }, name: 'chat.search' },
-        { input: { chatId: 'chat_thread', serverId }, name: 'chat.messages' },
-        { input: { chatId: 'chat_parent', serverId }, name: 'chat.messages' },
-        {
-            input: { queryKey: threadMessagesQueryKey(serverId, 'chat_thread') },
-            name: 'threadMessages',
-        },
     ]);
 });
 

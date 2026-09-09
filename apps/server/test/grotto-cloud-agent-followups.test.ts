@@ -95,7 +95,6 @@ test('send requires delegator identity and its current assigned Computer', async
         displayName: 'Other',
         handle: 'other',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId: fixture.serverId,
     });

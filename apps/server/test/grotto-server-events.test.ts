@@ -50,7 +50,6 @@ beforeAll(async () => {
         displayName: 'Signal',
         handle: 'signal',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });

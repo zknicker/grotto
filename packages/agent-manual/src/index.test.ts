@@ -261,38 +261,3 @@ test('publishes the trigger technique card with its CLI verbs and untrusted-payl
         ).toContain('recipes/technique/trigger-webhook');
     }
 });
-
-test('publishes Raft-aligned Agent and action-card reference topics', () => {
-    const agent = getManualTopic('agent');
-    const actionCards = getManualTopic('action-cards');
-
-    expect(getManualTopic('recipes/playbook/agent-creation')).toBeNull();
-    expect(agent?.kind).toBe('overview');
-    expect(agent?.body).toContain('Agents cannot create other Agents directly');
-    expect(agent?.body).toContain('grotto action prepare');
-    expect(actionCards?.kind).toBe('overview');
-    expect(actionCards?.body).toContain('grotto avatar generate');
-    expect(actionCards?.body).toContain('grotto action prepare');
-    expect(actionCards?.body).toContain('Runtime, model, and reasoning effort');
-    expect(actionCards?.body).toContain('Server role is fixed to Member');
-    expect(actionCards?.body).toContain('typed terminal action attention');
-});
-
-test('publishes the Ask reference topic without turning it into a procedure', () => {
-    const asks = getManualTopic('asks');
-
-    expect(asks?.kind).toBe('overview');
-    expect(asks?.body).toContain(
-        'grotto ask --target <target> --to @<handle> --title <text> --summary <text> --step <text>'
-    );
-    expect(asks?.body).toContain('one named human for a decision');
-    expect(asks?.body).toContain('The question text arrives on stdin');
-    expect(asks?.body).toContain('settles the Ask');
-    expect(asks?.body).toContain('An Ask changes nothing on its own');
-    expect(getManualTopic('grotto-cli-overview')?.body).toContain('grotto ask');
-    expect(
-        searchManualTopics('ask a human for a decision', { limit: 5, scope: 'all' }).map(
-            (topic) => topic.id
-        )
-    ).toContain('asks');
-});

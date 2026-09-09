@@ -40,7 +40,6 @@ test('concurrent Agent DM sends commit while Server-scoped reads keep arriving',
             displayName: 'Blippy',
             handle: 'blippy',
             modelId: 'pi',
-            role: 'member',
             runtimeId: 'pi',
             serverId,
         });

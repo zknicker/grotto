@@ -119,7 +119,6 @@ extension GrottoStore {
         return AgentProfilePresentation(
             handle: agent.handle,
             description: agent.description ?? "",
-            role: agent.role.rawValue.capitalized,
             runtime: settingsRuntimeDisplayName(agent.effectiveRuntimeID ?? agent.desiredRuntimeID),
             model: agent.effectiveModelID ?? agent.desiredModelID
         )

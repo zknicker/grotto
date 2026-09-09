@@ -6,9 +6,6 @@ public struct MessageTimelineView: View {
     private let emptyStateDescription: String
     private let onOpenThread: (MessagePresentation) -> Void
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
-    private let canManagePreparedActions: Bool
-    private let onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
-    private let onShowPreparedActionDetails: (PreparedCreateAgentActionPresentation) -> Void
     private let onOpenAgent: (String) -> Void
     private let hasOlderMessages: Bool
     private let isLoadingOlderMessages: Bool
@@ -42,9 +39,6 @@ public struct MessageTimelineView: View {
             guard let localURL = attachment.localURL else { throw CancellationError() }
             return localURL
         },
-        canManagePreparedActions: Bool = false,
-        onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
-        onShowPreparedActionDetails: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
         onOpenAgent: @escaping (String) -> Void = { _ in },
         hasOlderMessages: Bool = false,
         isLoadingOlderMessages: Bool = false,
@@ -57,9 +51,6 @@ public struct MessageTimelineView: View {
         self.emptyStateDescription = emptyStateDescription
         self.onOpenThread = onOpenThread
         self.onOpenAttachment = onOpenAttachment
-        self.canManagePreparedActions = canManagePreparedActions
-        self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
-        self.onShowPreparedActionDetails = onShowPreparedActionDetails
         self.onOpenAgent = onOpenAgent
         self.hasOlderMessages = hasOlderMessages
         self.isLoadingOlderMessages = isLoadingOlderMessages
@@ -238,12 +229,8 @@ public struct MessageTimelineView: View {
             attachmentPreview: $attachmentPreview,
             attachmentTiles: attachmentTiles,
             visualHeights: visualHeights,
-            canManagePreparedActions: canManagePreparedActions,
             onOpenThread: { onOpenThread(message) },
-            onOpenAttachment: onOpenAttachment,
-            onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
-            onShowPreparedActionDetails: onShowPreparedActionDetails,
-            onOpenAgent: onOpenAgent
+            onOpenAttachment: onOpenAttachment
         )
         .padding(.top, index == 0 ? 0 : continuation ? 4 : 16)
     }

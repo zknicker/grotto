@@ -31,7 +31,6 @@ import { createClerkSessions } from './identity/clerk-sessions.ts';
 import { createClerkUsers } from './identity/clerk-users.ts';
 import { isAllowedAppOrigin } from './origin.ts';
 import { connectGrottoDatabase } from './postgres/connection.ts';
-import { registerPreparedActionMediaRoutes } from './prepared-actions/media.ts';
 import { type ServerRecurringWork, startServerRecurringWork } from './recurring-work.ts';
 import { startReminderRetentionSweep } from './reminders/retention-sweep.ts';
 import { tickReminders } from './reminders/scheduler.ts';
@@ -175,7 +174,6 @@ export async function createGrottoServerApplication(
             runtime,
         });
         registerAvatarRoutes(startedApp, { db: connectedGrotto.db });
-        registerPreparedActionMediaRoutes(startedApp, { db: connectedGrotto.db });
         registerComputerRoutes(startedApp, {
             appOrigin: options.appOrigin,
             db: connectedGrotto.db,

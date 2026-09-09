@@ -44,7 +44,6 @@ beforeAll(async () => {
         displayName: 'Trace Agent',
         handle: 'trace-agent',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId: server.id,
     });

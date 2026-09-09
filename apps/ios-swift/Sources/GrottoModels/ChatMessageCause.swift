@@ -97,7 +97,6 @@ extension ChatMessage {
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         id = try container.decode(String.self, forKey: .id)
         nonce = try container.decode(String.self, forKey: .nonce)
-        preparedAction = try container.decodeIfPresent(PreparedAction.self, forKey: .preparedAction)
         runID = try container.decodeIfPresent(String.self, forKey: .runID)
         sequence = try container.decode(Int.self, forKey: .sequence)
         serverID = try container.decode(String.self, forKey: .serverID)

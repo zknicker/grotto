@@ -24,7 +24,6 @@ const base: ConfiguredAgentRow = {
     factoryKind: 'ordinary',
     handle: 'sage',
     id: 'agt_1234567890123456',
-    role: 'member',
     serverId: 'srv_1234567890123456',
     stopped: false,
 };

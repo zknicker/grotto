@@ -41,7 +41,6 @@ beforeAll(async () => {
         displayName: 'Wren',
         handle: 'wren',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });

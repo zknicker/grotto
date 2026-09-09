@@ -14,9 +14,6 @@ public struct ThreadDetailView: View {
     private let hasOlderReplies: Bool
     private let isLoadingOlderReplies: Bool
     private let onLoadOlderReplies: (() async -> Bool)?
-    private let canManagePreparedActions: Bool
-    private let onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
-    private let onShowPreparedActionDetails: (PreparedCreateAgentActionPresentation) -> Void
     private let onOpenAgent: (String) -> Void
     private let onCancelCloudAgent: ((String) async throws -> Void)?
 
@@ -50,9 +47,6 @@ public struct ThreadDetailView: View {
         hasOlderReplies: Bool = false,
         isLoadingOlderReplies: Bool = false,
         onLoadOlderReplies: (() async -> Bool)? = nil,
-        canManagePreparedActions: Bool = false,
-        onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
-        onShowPreparedActionDetails: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
         onOpenAgent: @escaping (String) -> Void = { _ in },
         onCancelCloudAgent: ((String) async throws -> Void)? = nil
     ) {
@@ -65,9 +59,6 @@ public struct ThreadDetailView: View {
         self.hasOlderReplies = hasOlderReplies
         self.isLoadingOlderReplies = isLoadingOlderReplies
         self.onLoadOlderReplies = onLoadOlderReplies
-        self.canManagePreparedActions = canManagePreparedActions
-        self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
-        self.onShowPreparedActionDetails = onShowPreparedActionDetails
         self.onOpenAgent = onOpenAgent
         self.onCancelCloudAgent = onCancelCloudAgent
     }
@@ -88,9 +79,6 @@ public struct ThreadDetailView: View {
         hasOlderReplies: Bool = false,
         isLoadingOlderReplies: Bool = false,
         onLoadOlderReplies: (() async -> Bool)? = nil,
-        canManagePreparedActions: Bool = false,
-        onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
-        onShowPreparedActionDetails: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
         onOpenAgent: @escaping (String) -> Void = { _ in },
         onCancelCloudAgent: ((String) async throws -> Void)? = nil
     ) {
@@ -103,9 +91,6 @@ public struct ThreadDetailView: View {
         self.hasOlderReplies = hasOlderReplies
         self.isLoadingOlderReplies = isLoadingOlderReplies
         self.onLoadOlderReplies = onLoadOlderReplies
-        self.canManagePreparedActions = canManagePreparedActions
-        self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
-        self.onShowPreparedActionDetails = onShowPreparedActionDetails
         self.onOpenAgent = onOpenAgent
         self.onCancelCloudAgent = onCancelCloudAgent
     }
@@ -225,9 +210,6 @@ public struct ThreadDetailView: View {
                 preview: $attachmentPreview,
                 tiles: attachmentTiles,
                 visualHeights: visualHeights,
-                canManagePreparedActions: canManagePreparedActions,
-                onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
-                onShowPreparedActionDetails: onShowPreparedActionDetails,
                 onOpenAgent: onOpenAgent,
                 onCancelCloudAgent: onCancelCloudAgent
             )
@@ -243,9 +225,6 @@ public struct ThreadDetailView: View {
                 preview: $attachmentPreview,
                 tiles: attachmentTiles,
                 visualHeights: visualHeights,
-                canManagePreparedActions: canManagePreparedActions,
-                onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
-                onShowPreparedActionDetails: onShowPreparedActionDetails,
                 onOpenAgent: onOpenAgent,
                 onCancelCloudAgent: onCancelCloudAgent
             )

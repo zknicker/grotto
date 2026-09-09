@@ -5,7 +5,6 @@ import { useChatReadEvents } from './use-chat-read-events.ts';
 import { useCloudAgentWorkEvents } from './use-cloud-agent-work-events.ts';
 import { useMessageCreatedEvents } from './use-message-created-events.ts';
 import { useMessageReactionEvents } from './use-message-reaction-events.ts';
-import { usePreparedActionEvents } from './use-prepared-action-events.ts';
 import { useTaskChangeEvents } from './use-task-change-events.ts';
 import { useTaskLabelEvents } from './use-task-label-events.ts';
 import { useThreadFollowEvents } from './use-thread-follow-events.ts';
@@ -25,7 +24,6 @@ export function ChatEventListeners({ serverId }: { serverId: string | undefined 
 function ChatEventInvalidations() {
     useMessageCreatedEvents();
     useMessageReactionEvents();
-    usePreparedActionEvents();
     useAskEvents();
     useCloudAgentWorkEvents();
     useChatReadEvents();

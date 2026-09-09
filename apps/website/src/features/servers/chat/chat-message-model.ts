@@ -84,7 +84,6 @@ export function projectChatMessage(
             sourceSessionId: null,
             sourceSessionKey: `hosted:${agentId ?? message.author.kind}`,
             grottoAgentId: agentId,
-            ...(message.preparedAction ? { preparedAction: message.preparedAction } : {}),
             reactions: message.reactions,
             task: messageTask(message.task, directories.handleByAgentId, directories.humans),
             timestamp: message.createdAt,

@@ -26,9 +26,6 @@ public struct GrottoShellView<SettingsContent: View>: View {
     private let createChannel: @Sendable (NewChannelDraft) async throws -> CreatedChannelPresentation
     private let currentAgentActivity: (String) -> AgentActivityPresentation?
     private let loadAgentActivity: @Sendable (String) async throws -> [AgentActivityPresentation]
-    private let canManagePreparedActions: Bool
-    private let onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
-    private let onShowPreparedActionDetails: (PreparedCreateAgentActionPresentation) -> Void
     private let agentProfile: (String) -> AgentProfilePresentation?
     private let mentionOptions: (ChatDestination) -> [MentionOptionPresentation]
     private let loadMentionOptions: (ChatDestination) async -> Void
@@ -79,9 +76,6 @@ public struct GrottoShellView<SettingsContent: View>: View {
         newChannelAgents: @escaping () -> [NewChannelAgentPresentation] = { [] },
         currentAgentActivity: @escaping (String) -> AgentActivityPresentation? = { _ in nil },
         loadAgentActivity: @escaping @Sendable (String) async throws -> [AgentActivityPresentation] = { _ in [] },
-        canManagePreparedActions: Bool = false,
-        onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
-        onShowPreparedActionDetails: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
         agentProfile: @escaping (String) -> AgentProfilePresentation? = { _ in nil },
         mentionOptions: @escaping (ChatDestination) -> [MentionOptionPresentation] = { _ in [] },
         loadMentionOptions: @escaping (ChatDestination) async -> Void = { _ in },
@@ -109,9 +103,6 @@ public struct GrottoShellView<SettingsContent: View>: View {
         self.newChannelAgents = newChannelAgents
         self.currentAgentActivity = currentAgentActivity
         self.loadAgentActivity = loadAgentActivity
-        self.canManagePreparedActions = canManagePreparedActions
-        self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
-        self.onShowPreparedActionDetails = onShowPreparedActionDetails
         self.agentProfile = agentProfile
         self.mentionOptions = mentionOptions
         self.loadMentionOptions = loadMentionOptions
@@ -178,9 +169,6 @@ public struct GrottoShellView<SettingsContent: View>: View {
                             },
                             onSend: { await onSend(selectedDestination, $0, $1) },
                             onOpenAttachment: onOpenAttachment,
-                            canManagePreparedActions: canManagePreparedActions,
-                            onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
-                            onShowPreparedActionDetails: onShowPreparedActionDetails,
                             onOpenAgent: openAgent,
                             hasOlderMessages: selectedDestination.durableChat.map(hasOlderMessages) ?? false,
                             isLoadingOlderMessages: selectedDestination.durableChat.map(isLoadingOlderMessages) ?? false,

@@ -87,7 +87,6 @@ export async function seedBackgroundClaim(db: GrottoDatabase): Promise<Backgroun
         handle: `ada-${randomBytes(4).toString('hex')}`,
         homeTimezone: 'UTC',
         id: agentId,
-        role: 'member',
         serverId,
     });
     await db.insert(chatsTable).values({ id: chatId, kind: 'channel', name: 'dispatch', serverId });
@@ -235,7 +234,6 @@ export async function seedPeerAgent(db: GrottoDatabase, claim: BackgroundClaim) 
         handle: `tiny-${randomBytes(4).toString('hex')}`,
         homeTimezone: 'UTC',
         id: agentId,
-        role: 'member',
         serverId: claim.serverId,
     });
     return agentId;

@@ -56,7 +56,6 @@ beforeAll(async () => {
         displayName: 'Sage',
         handle: 'sage',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });
@@ -243,7 +242,6 @@ test('Agent message references persist as stable Agent and Chat links', async ()
         displayName: 'Blippy',
         handle: 'blippy',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });
@@ -252,7 +250,6 @@ test('Agent message references persist as stable Agent and Chat links', async ()
         displayName: 'Tiny',
         handle: 'tiny',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });
@@ -315,7 +312,6 @@ test('Agent message references persist as stable Agent and Chat links', async ()
         displayName: 'Blippy Replacement',
         handle: 'blippy',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });
@@ -328,7 +324,6 @@ test('Agent message references persist as stable Agent and Chat links', async ()
         displayName: 'Future',
         handle: 'future',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });
@@ -664,7 +659,6 @@ test('ordinary Channel delivery preserves per-recipient direct attention', async
         displayName: 'Attention Peer',
         handle: 'attention-peer',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });
@@ -1583,7 +1577,6 @@ test('concurrent Agent claims choose one owner and the losing Agent cannot proce
         displayName: 'Rival',
         handle: 'rival',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });
@@ -1809,7 +1802,6 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
         displayName: 'Scout',
         handle: 'scout',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });

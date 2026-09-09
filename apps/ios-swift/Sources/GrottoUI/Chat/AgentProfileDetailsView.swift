@@ -143,7 +143,6 @@ extension AgentPresence {
             profile: AgentProfilePresentation(
                 handle: "cove",
                 description: "Onboards new Servers and keeps the plan tight.",
-                role: "Owner",
                 runtime: "Claude Code",
                 model: "claude-opus-4"
             ),

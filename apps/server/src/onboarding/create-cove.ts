@@ -107,7 +107,6 @@ export async function createCove(
             handle: 'cove',
             homeTimezone: 'UTC',
             id: agentId,
-            role: 'admin',
             serverId: input.serverId,
         });
         await tx.insert(agentDeliveryTable).values({ agentId, serverId: input.serverId });

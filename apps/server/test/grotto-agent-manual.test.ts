@@ -38,7 +38,6 @@ beforeAll(async () => {
         displayName: 'Manual Agent',
         handle: 'manual-agent',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });
@@ -239,7 +238,6 @@ async function createOtherServer() {
         displayName: 'Other Manual Agent',
         handle: 'other-manual-agent',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId: server.id,
     });

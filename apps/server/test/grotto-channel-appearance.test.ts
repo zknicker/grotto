@@ -46,7 +46,6 @@ beforeAll(async () => {
         displayName: 'Iris',
         handle: 'iris',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });

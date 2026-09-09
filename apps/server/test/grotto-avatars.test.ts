@@ -55,7 +55,6 @@ beforeAll(async () => {
         displayName: 'Cove',
         handle: 'sage',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });

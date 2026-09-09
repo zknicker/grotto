@@ -101,7 +101,6 @@ async function seedActivity(): Promise<Seed> {
         handle: `ada-${randomBytes(4).toString('hex')}`,
         homeTimezone: 'UTC',
         id: agentId,
-        role: 'member',
         serverId,
     });
     await connection.db.insert(chatsTable).values({

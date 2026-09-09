@@ -260,7 +260,6 @@ public struct SettingsSheet: View {
             displayName: agent.displayName,
             handle: agent.handle,
             description: value,
-            role: agent.role,
             runtime: agent.runtime,
             model: agent.model,
             status: agent.status,

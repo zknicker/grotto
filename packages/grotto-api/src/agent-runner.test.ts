@@ -1,11 +1,9 @@
 import { expect, test } from 'bun:test';
 import {
     agentCommandSchema,
-    agentInboxItemSchema,
     agentTurnSummarySchema,
     coveApplyResultSchema,
 } from './agent-runner.ts';
-import { agentCreateActionResultSchema } from './prepared-actions.ts';
 
 test('Agent restart carries only the Agent identity', () => {
     expect(
@@ -103,46 +101,4 @@ test('ordinary configuration replay preserves Cove factory identity', () => {
             type: 'agent-configure',
         })
     ).toMatchObject({ factoryKind: 'cove', type: 'agent-configure' });
-});
-
-test('typed action attention carries the action identity and executed Agent result', () => {
-    const result = agentCreateActionResultSchema.parse({
-        agentId: 'agt_created',
-        avatarUrl: null,
-        computerId: 'cmp_local',
-        description: 'A new teammate',
-        displayName: 'Scout',
-        handle: 'scout',
-        modelId: 'gpt-5',
-        reasoningEffort: 'medium',
-        role: 'member',
-        runtimeId: 'codex',
-    });
-
-    expect(
-        agentInboxItemSchema.parse({
-            actionAttention: {
-                actionId: 'act_create_agent',
-                chatId: 'cht_origin',
-                createdAgentId: result.agentId,
-                executedResult: result,
-                kind: 'agent:create',
-            },
-            chatId: 'cht_origin',
-            content: '',
-            createdAt: '2026-08-26T12:00:00.000Z',
-            id: 'act_create_agent',
-            senderHandle: 'grotto',
-            senderType: 'system',
-            sequence: 0,
-            target: '#product',
-        })
-    ).toMatchObject({
-        actionAttention: {
-            actionId: 'act_create_agent',
-            createdAgentId: 'agt_created',
-            kind: 'agent:create',
-        },
-        sequence: 0,
-    });
 });

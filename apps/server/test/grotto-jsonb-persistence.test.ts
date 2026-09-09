@@ -61,7 +61,6 @@ beforeAll(async () => {
             display_name,
             handle,
             home_timezone,
-            role,
             desired_runtime_id,
             desired_model_id
         )
@@ -73,7 +72,6 @@ beforeAll(async () => {
                 'Cove',
                 'jsonb-cove',
                 'UTC',
-                'member',
                 'codex',
                 'gpt-5.6-sol'
             ),
@@ -84,7 +82,6 @@ beforeAll(async () => {
                 'Scout',
                 'jsonb-scout',
                 'UTC',
-                'member',
                 'codex',
                 'gpt-5.6-sol'
             ),
@@ -95,7 +92,6 @@ beforeAll(async () => {
                 'Other',
                 'jsonb-other',
                 'UTC',
-                'member',
                 'codex',
                 'gpt-5.6-sol'
             )

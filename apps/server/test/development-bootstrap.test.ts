@@ -128,7 +128,6 @@ test('seeds a demo workspace an operator can actually look at', async () => {
         desiredRuntimeId: 'codex',
         factoryAppliedAt: null,
         factoryKind: 'cove',
-        role: 'admin',
     });
 
     // Nothing in the demo workspace falls back to initials.

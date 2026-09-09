@@ -75,7 +75,6 @@ public struct SettingsAgent: Identifiable, Hashable, Sendable {
     public let displayName: String
     public let handle: String
     public let description: String
-    public let role: String
     public let runtime: String
     public let model: String
     public let status: String
@@ -91,7 +90,6 @@ public struct SettingsAgent: Identifiable, Hashable, Sendable {
         displayName: String,
         handle: String,
         description: String = "",
-        role: String = "Agent",
         runtime: String = "Managed",
         model: String = "Default",
         status: String = "Online",
@@ -104,7 +102,6 @@ public struct SettingsAgent: Identifiable, Hashable, Sendable {
         self.displayName = displayName
         self.handle = handle
         self.description = description
-        self.role = role
         self.runtime = runtime
         self.model = model
         self.status = status
@@ -226,7 +223,6 @@ public struct SettingsPersistence: Sendable {
                 displayName: displayName,
                 handle: agent.handle,
                 description: description,
-                role: agent.role,
                 runtime: agent.runtime,
                 model: agent.model,
                 status: agent.status,
@@ -270,7 +266,6 @@ public enum SettingsFixtures {
         displayName: "Cove",
         handle: "cove",
         description: "Onboarding Assistant",
-        role: "Guide Agent",
         runtime: "Computer",
         model: "Default",
         status: "Online",
@@ -283,7 +278,6 @@ public enum SettingsFixtures {
         displayName: "Blippy",
         handle: "blippy",
         description: "Ships small changes and keeps the board honest.",
-        role: "Agent",
         runtime: "Computer",
         model: "Default",
         status: "Online",

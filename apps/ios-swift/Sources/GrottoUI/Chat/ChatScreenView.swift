@@ -11,9 +11,6 @@ public struct ChatScreenView: View {
     private let onOpenThread: (MessagePresentation) -> Void
     private let onSend: (String, [ComposerAttachment]) async -> Bool
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
-    private let canManagePreparedActions: Bool
-    private let onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
-    private let onShowPreparedActionDetails: (PreparedCreateAgentActionPresentation) -> Void
     private let onOpenAgent: (String) -> Void
     private let hasOlderMessages: Bool
     private let isLoadingOlderMessages: Bool
@@ -48,9 +45,6 @@ public struct ChatScreenView: View {
             guard let localURL = attachment.localURL else { throw CancellationError() }
             return localURL
         },
-        canManagePreparedActions: Bool = false,
-        onReviewPreparedCreateAgent: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
-        onShowPreparedActionDetails: @escaping (PreparedCreateAgentActionPresentation) -> Void = { _ in },
         onOpenAgent: @escaping (String) -> Void = { _ in },
         hasOlderMessages: Bool = false,
         isLoadingOlderMessages: Bool = false,
@@ -73,9 +67,6 @@ public struct ChatScreenView: View {
         self.onOpenThread = onOpenThread
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
-        self.canManagePreparedActions = canManagePreparedActions
-        self.onReviewPreparedCreateAgent = onReviewPreparedCreateAgent
-        self.onShowPreparedActionDetails = onShowPreparedActionDetails
         self.onOpenAgent = onOpenAgent
         self.hasOlderMessages = hasOlderMessages
         self.isLoadingOlderMessages = isLoadingOlderMessages
@@ -162,9 +153,6 @@ public struct ChatScreenView: View {
             emptyStateDescription: emptyStateDescription,
             onOpenThread: onOpenThread,
             onOpenAttachment: onOpenAttachment,
-            canManagePreparedActions: canManagePreparedActions,
-            onReviewPreparedCreateAgent: onReviewPreparedCreateAgent,
-            onShowPreparedActionDetails: onShowPreparedActionDetails,
             onOpenAgent: onOpenAgent,
             hasOlderMessages: hasOlderMessages,
             isLoadingOlderMessages: isLoadingOlderMessages,

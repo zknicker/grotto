@@ -84,7 +84,6 @@ export async function ensureDevelopmentCove(
             handle: 'cove',
             homeTimezone: 'UTC',
             id: agentId,
-            role: 'admin',
             serverId: input.serverId,
         });
         await tx.insert(chatsTable).values({

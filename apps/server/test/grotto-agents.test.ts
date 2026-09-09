@@ -77,7 +77,6 @@ test('reserves the Cove identity from ordinary Agent creation', async () => {
             displayName: 'Cove',
             handle: 'cove',
             modelId: 'gpt-5.6-sol',
-            role: 'admin',
             runtimeId: 'codex',
             serverId,
         })
@@ -91,7 +90,6 @@ test('provisions an ordinary Agent without pre-creating an Owner DM', async () =
         displayName: 'Scout',
         handle: 'scout',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });
@@ -152,7 +150,6 @@ test('first human sends materialize exactly one pair DM under retries and per-hu
         displayName: 'Relay',
         handle: 'relay',
         modelId: 'pi',
-        role: 'member',
         runtimeId: 'pi',
         serverId,
     });
@@ -230,7 +227,6 @@ test('fails closed on a runtime or model the assigned Computer never reported', 
             displayName: 'Ghost',
             handle: 'ghost',
             modelId: 'gpt-9-imaginary',
-            role: 'member',
             runtimeId: 'codex',
             serverId,
         })
@@ -243,7 +239,6 @@ test('fails closed on a runtime or model the assigned Computer never reported', 
             displayName: 'Ghost',
             handle: 'ghost',
             modelId: 'pi',
-            role: 'member',
             runtimeId: 'pi',
             serverId,
         })
@@ -257,7 +252,6 @@ test('fails closed when configuration references another Server’s Computer', a
             displayName: 'Ghost',
             handle: 'ghost',
             modelId: 'gpt-5.6-sol',
-            role: 'member',
             runtimeId: 'codex',
             serverId,
         })
@@ -271,7 +265,6 @@ test('only an Owner or Admin can create an Agent', async () => {
             displayName: 'Nope',
             handle: 'nope',
             modelId: 'gpt-5.6-sol',
-            role: 'member',
             runtimeId: 'codex',
             serverId,
         })
@@ -531,7 +524,6 @@ test('hides a retired Agent DM, preserves its transcript, and rejects new sends'
         displayName: 'Fen',
         handle: 'fen',
         modelId: 'pi',
-        role: 'member',
         runtimeId: 'pi',
         serverId,
     });
@@ -627,7 +619,6 @@ test('releases a retired Agent handle without conflating the replacement identit
         displayName: 'Echo',
         handle: 'echo',
         modelId: 'pi',
-        role: 'member',
         runtimeId: 'pi',
         serverId,
     });
@@ -642,7 +633,6 @@ test('releases a retired Agent handle without conflating the replacement identit
             displayName: 'Other Echo',
             handle: 'echo',
             modelId: 'pi',
-            role: 'member',
             runtimeId: 'pi',
             serverId,
         })
@@ -659,7 +649,6 @@ test('releases a retired Agent handle without conflating the replacement identit
         displayName: 'Echo',
         handle: 'echo',
         modelId: 'pi',
-        role: 'member',
         runtimeId: 'pi',
         serverId,
     });

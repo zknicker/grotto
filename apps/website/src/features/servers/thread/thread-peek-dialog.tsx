@@ -89,7 +89,6 @@ export function ThreadPeekDialog({
                     <ThreadContent
                         active
                         anchor={anchor}
-                        canManage={server.role === 'owner' || server.role === 'admin'}
                         chat={chat}
                         composerVariant="secondary"
                         headerTitle={headerTitle}

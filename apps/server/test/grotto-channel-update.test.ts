@@ -49,7 +49,6 @@ beforeAll(async () => {
         displayName: 'Fen',
         handle: 'fen',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });
@@ -60,7 +59,6 @@ beforeAll(async () => {
         displayName: 'Juno',
         handle: 'juno',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });

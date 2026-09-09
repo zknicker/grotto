@@ -18,7 +18,6 @@
     "./membership": "./src/membership.ts",
     "./participant-handle": "./src/participant-handle.ts",
     "./pane-links": "./src/runtime/pane-links.ts",
-    "./prepared-actions": "./src/prepared-actions.ts",
     "./rich-references": "./src/rich-references.ts",
     "./widgets": "./src/widgets/contracts.ts",
     "./widgets/artifact": "./src/widgets/artifact/contracts.ts",

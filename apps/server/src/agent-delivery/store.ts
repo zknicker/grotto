@@ -3,7 +3,6 @@ import { and, eq, inArray, isNotNull, isNull, lt, lte, ne, notInArray, or, sql }
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
-    agentActionAttentionsTable,
     agentDeliveryTable,
     agentInboxTable,
     agentsTable,
@@ -40,49 +39,6 @@ export interface InboxItemRow {
     serverId: string;
     source: string;
     threadFollowReactivated: boolean;
-}
-
-export interface AgentDispatchConfig {
-    agentDescription: string | null;
-    agentDisplayName: string;
-    agentName: string;
-    computerId: string | null;
-    desiredModelId: string | null;
-    desiredReasoningEffort: AgentReasoningEffort;
-    desiredRuntimeId: string | null;
-    factoryAppliedAt: Date | null;
-    factoryKind: 'cove' | 'ordinary';
-    homeTimezone: string;
-    retiredAt: Date | null;
-    sessionGeneration: number;
-    sessionResetKind: 'full' | 'session';
-}
-
-/** The Agent's assigned Computer and desired runtime/model, or nulls when unconfigured. */
-export async function readAgentDispatchConfig(
-    db: GrottoDatabase,
-    agentId: string
-): Promise<AgentDispatchConfig | null> {
-    const [row] = await db
-        .select({
-            agentDescription: agentsTable.description,
-            agentDisplayName: agentsTable.displayName,
-            agentName: agentsTable.handle,
-            computerId: agentsTable.computerId,
-            desiredModelId: agentsTable.desiredModelId,
-            desiredReasoningEffort: agentsTable.desiredReasoningEffort,
-            desiredRuntimeId: agentsTable.desiredRuntimeId,
-            factoryAppliedAt: agentsTable.factoryAppliedAt,
-            factoryKind: agentsTable.factoryKind,
-            homeTimezone: agentsTable.homeTimezone,
-            retiredAt: agentsTable.retiredAt,
-            sessionGeneration: agentsTable.sessionGeneration,
-            sessionResetKind: agentsTable.sessionResetKind,
-        })
-        .from(agentsTable)
-        .where(eq(agentsTable.id, agentId))
-        .limit(1);
-    return row ?? null;
 }
 
 export async function readAgentServerId(
@@ -165,45 +121,6 @@ export async function enqueueInboxItem(
             threadFollowReactivated: input.threadFollowReactivated ?? false,
         })
         .onConflictDoNothing();
-}
-
-/** Materializes PRD-261 terminal attentions into the ordinary durable Agent queue. */
-export async function materializeActionAttentions(
-    db: GrottoDatabase,
-    input: { agentId: string; serverId: string }
-): Promise<void> {
-    const attentions = await db
-        .select({
-            actionId: agentActionAttentionsTable.actionId,
-            chatId: agentActionAttentionsTable.chatId,
-            createdAt: agentActionAttentionsTable.createdAt,
-        })
-        .from(agentActionAttentionsTable)
-        .innerJoin(
-            agentsTable,
-            and(
-                eq(agentsTable.serverId, agentActionAttentionsTable.serverId),
-                eq(agentsTable.id, agentActionAttentionsTable.agentId)
-            )
-        )
-        .where(
-            and(
-                eq(agentActionAttentionsTable.serverId, input.serverId),
-                eq(agentActionAttentionsTable.agentId, input.agentId),
-                isNull(agentsTable.retiredAt)
-            )
-        );
-    for (const attention of attentions) {
-        await enqueueInboxItem(db, {
-            agentId: input.agentId,
-            chatId: attention.chatId,
-            content: '',
-            createdAt: attention.createdAt,
-            dedupeKey: attention.actionId,
-            serverId: input.serverId,
-            source: 'action',
-        });
-    }
 }
 
 export async function countQueuedInboxItems(db: GrottoDatabase, agentId: string): Promise<number> {
@@ -828,45 +745,6 @@ export async function requeueInboxItemsForRun(
         );
     await retireRemovedTriggerItemsForRun(db, input.agentId);
 }
-/** Agents assigned to one Computer, for reconnect reconciliation. */
-export async function listComputerAgents(
-    db: GrottoDatabase,
-    computerId: string
-): Promise<
-    {
-        agentDescription: string | null;
-        agentId: string;
-        agentName: string;
-        desiredModelId: string | null;
-        desiredReasoningEffort: AgentReasoningEffort;
-        desiredRuntimeId: string | null;
-        factoryAppliedAt: Date | null;
-        factoryKind: 'cove' | 'ordinary';
-        retiredAt: Date | null;
-        sessionGeneration: number;
-        sessionResetKind: 'full' | 'session';
-        serverId: string;
-    }[]
-> {
-    const rows = await db
-        .select({
-            agentDescription: agentsTable.description,
-            agentId: agentsTable.id,
-            agentName: agentsTable.displayName,
-            desiredModelId: agentsTable.desiredModelId,
-            desiredReasoningEffort: agentsTable.desiredReasoningEffort,
-            desiredRuntimeId: agentsTable.desiredRuntimeId,
-            factoryAppliedAt: agentsTable.factoryAppliedAt,
-            factoryKind: agentsTable.factoryKind,
-            retiredAt: agentsTable.retiredAt,
-            sessionGeneration: agentsTable.sessionGeneration,
-            sessionResetKind: agentsTable.sessionResetKind,
-            serverId: agentsTable.serverId,
-        })
-        .from(agentsTable)
-        .where(eq(agentsTable.computerId, computerId));
-    return rows;
-}
 
 /**
  * Every Agent the retry sweep should re-examine: one with an unacknowledged
@@ -921,55 +799,9 @@ export async function listDispatchCandidates(
             )
         );
 
-    const unmaterializedActions = await db
-        .selectDistinct({
-            agentId: agentActionAttentionsTable.agentId,
-            serverId: agentActionAttentionsTable.serverId,
-            activeRunId: agentDeliveryTable.activeRunId,
-            stopped: agentDeliveryTable.stopped,
-            consecutiveFailures: agentDeliveryTable.consecutiveFailures,
-            retryAfter: agentDeliveryTable.retryAfter,
-        })
-        .from(agentActionAttentionsTable)
-        .leftJoin(
-            agentDeliveryTable,
-            and(
-                eq(agentDeliveryTable.serverId, agentActionAttentionsTable.serverId),
-                eq(agentDeliveryTable.agentId, agentActionAttentionsTable.agentId)
-            )
-        )
-        .innerJoin(
-            agentsTable,
-            and(
-                eq(agentsTable.serverId, agentActionAttentionsTable.serverId),
-                eq(agentsTable.id, agentActionAttentionsTable.agentId)
-            )
-        )
-        .where(
-            and(
-                isNull(agentsTable.retiredAt),
-                sql`not exists (
-                    select 1 from ${agentInboxTable} item
-                    where item.server_id = ${agentActionAttentionsTable.serverId}
-                      and item.agent_id = ${agentActionAttentionsTable.agentId}
-                      and item.dedupe_key = ${agentActionAttentionsTable.actionId}
-                )`
-            )
-        );
-
     const byAgent = new Map<string, { agentId: string; serverId: string }>();
     for (const row of [...unacknowledged, ...queued]) {
         byAgent.set(row.agentId, row);
-    }
-    for (const row of unmaterializedActions) {
-        if (
-            row.activeRunId === null &&
-            row.stopped !== true &&
-            (row.consecutiveFailures ?? 0) < maxFailures &&
-            (row.retryAfter === null || row.retryAfter === undefined || row.retryAfter <= now)
-        ) {
-            byAgent.set(row.agentId, { agentId: row.agentId, serverId: row.serverId });
-        }
     }
     return [...byAgent.values()];
 }

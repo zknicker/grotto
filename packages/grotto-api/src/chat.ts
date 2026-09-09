@@ -12,7 +12,6 @@ import { messageCauseSchema } from './automation.ts';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 import * as reactionContracts from './chat-message-reactions.ts';
 import * as receiptContracts from './chat-message-receipts.ts';
-import { preparedActionSchema, preparedActionStatusSchema } from './prepared-actions.ts';
 import { messageTaskSchema } from './task-shared.ts';
 
 export { idSchema } from './chat-contract-primitives.ts';
@@ -62,7 +61,6 @@ export const chatMessageSchema = z
         createdAt: timestampSchema,
         id: idSchema,
         nonce: z.string().trim().min(1).max(128),
-        preparedAction: preparedActionSchema.optional(),
         reactions: z.array(reactionContracts.chatMessageReactionSchema).default([]),
         /** The real Server-assigned Agent run; human messages are null. */
         runId: idSchema.nullable(),
@@ -422,22 +420,6 @@ export const cloudAgentWorkUpdatedEventSchema = z
     })
     .strict();
 
-export const preparedActionUpdatedEventSchema = z
-    .object({
-        actionId: idSchema,
-        chatId: idSchema,
-        createdAt: timestampSchema,
-        cursor: z.string().regex(/^[1-9]\d*$/u),
-        id: idSchema,
-        messageId: idSchema,
-        parentChatId: idSchema.nullable(),
-        sequence: z.number().int().positive(),
-        serverId: idSchema,
-        status: preparedActionStatusSchema,
-        type: z.literal('prepared-action.updated'),
-    })
-    .strict();
-
 export const chatReadEventSchema = z
     .object({
         chatId: idSchema,
@@ -534,7 +516,6 @@ export const serverdurableeventSchema = z.discriminatedUnion('type', [
     reactionContracts.messageReactionUpdatedEventSchema,
     askUpdatedEventSchema,
     cloudAgentWorkUpdatedEventSchema,
-    preparedActionUpdatedEventSchema,
     chatReadEventSchema,
     threadFollowUpdatedEventSchema,
     taskChangedEventSchema,

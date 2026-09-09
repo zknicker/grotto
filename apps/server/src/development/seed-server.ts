@@ -485,7 +485,6 @@ function demoAgent(agent: {
         handle: agent.handle,
         homeTimezone: 'America/New_York',
         id: agent.id,
-        role: 'member' as const,
         serverId: agent.serverId,
     };
 }

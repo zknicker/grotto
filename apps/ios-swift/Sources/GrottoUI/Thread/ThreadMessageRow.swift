@@ -11,9 +11,6 @@ struct ThreadMessageRow: View {
     var tiles: AttachmentImageTileRegistry?
     /// The screen's, not the row's — see `VisualHeightRegistry`.
     let visualHeights: VisualHeightRegistry
-    var canManagePreparedActions = false
-    var onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void = { _ in }
-    var onShowPreparedActionDetails: (PreparedCreateAgentActionPresentation) -> Void = { _ in }
     var onOpenAgent: (String) -> Void = { _ in }
     var onCancelCloudAgent: ((String) async throws -> Void)?
 
@@ -63,24 +60,6 @@ struct ThreadMessageRow: View {
 
                 ForEach(message.cloudAgents) { agent in
                     CloudAgentCard(agent: agent, onCancel: onCancelCloudAgent).padding(.top, 6)
-                }
-
-                if let preparedAction = message.preparedAction {
-                    PreparedActionCardView(
-                        action: preparedAction,
-                        canManage: canManagePreparedActions,
-                        onReviewCreateAgent: onReviewPreparedCreateAgent,
-                        onShowDetails: onShowPreparedActionDetails,
-                        onOpenAgent: onOpenAgent
-                    )
-                    // The card's collapse and its memory of having been live
-                    // are per-action state, and transcript rows are hosted in
-                    // recycled cells reconfigured in place. Keying on the
-                    // action retires that state with the action it belongs to,
-                    // so a collapsed card cannot blank the next message's live
-                    // one.
-                    .id(preparedAction.id)
-                    .padding(.top, message.prose.isEmpty && message.visuals.isEmpty ? 0 : 6)
                 }
 
                 if message.isPending {

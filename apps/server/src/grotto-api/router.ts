@@ -12,7 +12,6 @@ import { devRouter } from './dev/router.ts';
 import { invitationRouter } from './invitation/router.ts';
 import { mcpRouter } from './mcp/router.ts';
 import { memberRouter } from './member/router.ts';
-import { preparedActionRouter } from './prepared-action/router.ts';
 import { reminderRouter } from './reminder/router.ts';
 import { serverRouter } from './server/router.ts';
 import { statsRouter } from './stats/router.ts';
@@ -40,7 +39,6 @@ export const grottoRouter = createRouter({
     invitation: invitationRouter,
     member: memberRouter,
     mcp: mcpRouter,
-    preparedAction: preparedActionRouter,
     reminder: reminderRouter,
     server: serverRouter,
     stats: statsRouter,

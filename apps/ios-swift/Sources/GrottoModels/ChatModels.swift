@@ -197,7 +197,6 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
     public let createdAt: Date
     public let id: String
     public let nonce: String
-    public let preparedAction: PreparedAction?
     public let runID: String?
     public let sequence: Int
     public let serverID: String
@@ -217,7 +216,6 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
         case createdAt
         case id
         case nonce
-        case preparedAction
         case runID = "runId"
         case sequence
         case serverID = "serverId"

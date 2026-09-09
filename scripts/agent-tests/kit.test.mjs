@@ -17,7 +17,6 @@ import {
 import { activeLine, formatWall, pad } from './render.mjs';
 import { buildSummary, runStamp, slug } from './report.mjs';
 import { AssertionError, createExpect, defineScenario, isScenario } from './scenario.mjs';
-import { withTemporaryAgentConfiguration } from './scenarios/cove-composes-agent-creation.mjs';
 import { createRunLedger } from './state.mjs';
 import { sweepAgentTestLeftovers } from './sweep.mjs';
 import { deniedError, unroutedPathError } from './test-support.mjs';
@@ -120,33 +119,6 @@ describe('defineScenario', () => {
         });
         expect(scenario.optIn).toBe(true);
         expect(isScenario(scenario)).toBe(true);
-    });
-});
-
-describe('Agent scenario configuration isolation', () => {
-    test('restores the exact original runtime and model when an operation fails', async () => {
-        const calls = [];
-        const harness = {
-            configureAgent: async (_agent, runtimeId, modelId) => {
-                calls.push({ modelId, runtimeId });
-            },
-        };
-        const cove = {
-            desiredModelId: 'gpt-5.6-sol',
-            desiredRuntimeId: 'codex',
-        };
-        const terra = { modelId: 'gpt-5.6-terra', runtimeId: 'codex' };
-
-        await expect(
-            withTemporaryAgentConfiguration(harness, cove, terra, async () => {
-                throw new Error('scenario assertion failed');
-            })
-        ).rejects.toThrow('scenario assertion failed');
-
-        expect(calls).toEqual([
-            { modelId: terra.modelId, runtimeId: terra.runtimeId },
-            { modelId: cove.desiredModelId, runtimeId: cove.desiredRuntimeId },
-        ]);
     });
 });
 

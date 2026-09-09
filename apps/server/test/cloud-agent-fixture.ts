@@ -59,7 +59,6 @@ export function cloudAgentFixture() {
                 displayName: 'Orbit',
                 handle: 'orbit',
                 modelId: 'gpt-5.6-sol',
-                role: 'member',
                 runtimeId: 'codex',
                 serverId,
             })

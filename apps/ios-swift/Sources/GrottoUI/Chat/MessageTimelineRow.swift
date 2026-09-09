@@ -12,12 +12,8 @@ struct MessageTimelineRow: View {
     @Binding var attachmentPreview: AttachmentPreview?
     let attachmentTiles: AttachmentImageTileRegistry
     let visualHeights: VisualHeightRegistry
-    let canManagePreparedActions: Bool
     let onOpenThread: () -> Void
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
-    let onReviewPreparedCreateAgent: (PreparedCreateAgentActionPresentation) -> Void
-    let onShowPreparedActionDetails: (PreparedCreateAgentActionPresentation) -> Void
-    let onOpenAgent: (String) -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 11) {
@@ -68,24 +64,6 @@ struct MessageTimelineRow: View {
 
                 ForEach(message.cloudAgents) { agent in
                     CloudAgentCard(agent: agent).padding(.top, 6)
-                }
-
-                if let preparedAction = message.preparedAction {
-                    PreparedActionCardView(
-                        action: preparedAction,
-                        canManage: canManagePreparedActions,
-                        onReviewCreateAgent: onReviewPreparedCreateAgent,
-                        onShowDetails: onShowPreparedActionDetails,
-                        onOpenAgent: onOpenAgent
-                    )
-                    // The card's collapse and its memory of having been live
-                    // are per-action state, and transcript rows are hosted in
-                    // recycled cells reconfigured in place. Keying on the
-                    // action retires that state with the action it belongs to,
-                    // so a collapsed card cannot blank the next message's live
-                    // one.
-                    .id(preparedAction.id)
-                    .padding(.top, hasBodyAbove ? 6 : 0)
                 }
 
                 if message.isPending {

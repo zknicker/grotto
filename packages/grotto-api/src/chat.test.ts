@@ -63,10 +63,22 @@ test('Server messages and durable events keep stable Server and Chat identity', 
         createdAt: '2026-07-26T12:00:00.000Z',
         id: 'msg_one',
         nonce: 'send-1',
+        reactions: [
+            {
+                actors: [{ handle: 'alex', id: 'usr_human', kind: 'human' }],
+                emoji: '👍',
+            },
+        ],
         runId: null,
         sequence: 1,
         serverId: 'srv_main',
     });
+    expect(message.reactions).toEqual([
+        {
+            actors: [{ handle: 'alex', id: 'usr_human', kind: 'human' }],
+            emoji: '👍',
+        },
+    ]);
 
     expect(
         serverdurableeventSchema.parse({
@@ -81,6 +93,19 @@ test('Server messages and durable events keep stable Server and Chat identity', 
             type: 'message.created',
         })
     ).toMatchObject({ cursor: '4', messageId: 'msg_one', type: 'message.created' });
+    expect(
+        serverdurableeventSchema.parse({
+            chatId: message.chatId,
+            createdAt: message.createdAt,
+            cursor: '7',
+            id: 'evt_reaction',
+            messageId: message.id,
+            parentChatId: null,
+            sequence: message.sequence,
+            serverId: message.serverId,
+            type: 'message.reaction.updated',
+        })
+    ).toMatchObject({ cursor: '7', messageId: 'msg_one', type: 'message.reaction.updated' });
     expect(
         serverdurableeventSchema.parse({
             action: 'fired',

@@ -12,7 +12,6 @@ import {
 } from './task-model.ts';
 
 const humans = humanDirectory([]);
-
 test('projects a task from its canonical message', () => {
     const task = toTaskItem(item(), humans);
 
@@ -324,6 +323,7 @@ function item(overrides: { content?: string } = {}): TaskListItem {
             createdAt: '2026-07-26T12:00:00.000Z',
             id: 'message_one',
             nonce: 'nonce_one',
+            reactions: [],
             runId: null,
             sequence: 1,
             serverId: 'server_one',

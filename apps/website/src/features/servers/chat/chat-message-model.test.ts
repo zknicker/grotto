@@ -21,6 +21,12 @@ test('projects Server messages into the preserved transcript contract', () => {
             sizeBytes: 42,
         },
     ];
+    human.reactions = [
+        {
+            actors: [{ handle: 'owner', id: 'user_one', kind: 'human' }],
+            emoji: '👍',
+        },
+    ];
     const agent: ChatMessage = {
         ...message('message_agent', 2),
         author: { agentId: 'agent_one', kind: 'agent' },
@@ -56,6 +62,12 @@ test('projects Server messages into the preserved transcript contract', () => {
         type: 'file',
     });
     expect(humanRow?.kind === 'message' ? humanRow.thread?.threadChatId : null).toBe('thread_one');
+    expect(humanRow?.kind === 'message' ? humanRow.message.reactions : null).toEqual([
+        {
+            actors: [{ handle: 'owner', id: 'user_one', kind: 'human' }],
+            emoji: '👍',
+        },
+    ]);
     expect(agentRow?.kind === 'message' ? agentRow.actor : null).toEqual({
         id: 'agent_one',
         kind: 'agent',
@@ -150,6 +162,7 @@ function message(id: string, sequence: number): ChatMessage {
         createdAt: '2026-07-26T12:00:00.000Z',
         id,
         nonce: `nonce_${id}`,
+        reactions: [],
         runId: null,
         sequence,
         serverId: 'server_one',

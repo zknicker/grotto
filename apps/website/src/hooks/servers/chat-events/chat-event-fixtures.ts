@@ -19,6 +19,24 @@ export function messageEvent(
     };
 }
 
+export function reactionEvent(
+    cursor: string,
+    chatId: string,
+    parentChatId: string | null = null
+): ChatEventOf<'message.reaction.updated'> {
+    return {
+        chatId,
+        createdAt: '2026-09-09T12:00:00.000Z',
+        cursor,
+        id: `event_${cursor}`,
+        messageId: `message_${cursor}`,
+        parentChatId,
+        sequence: Number(cursor),
+        serverId: 'server_one',
+        type: 'message.reaction.updated',
+    };
+}
+
 export function readEvent(cursor: string, chatId: string): ChatEventOf<'chat.read'> {
     return {
         chatId,

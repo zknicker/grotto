@@ -7,6 +7,7 @@ import {
     lifecycleEvent,
     messageEvent,
     preparedActionEvent,
+    reactionEvent,
     taskEvent,
     threadFollowEvent,
 } from './chat-event-fixtures.ts';
@@ -16,6 +17,7 @@ import { invalidateChatLifecycle } from './use-chat-lifecycle-events.ts';
 import { invalidateChatRead } from './use-chat-read-events.ts';
 import { invalidateCloudAgentWorkChanges } from './use-cloud-agent-work-events.ts';
 import { invalidateMessageCreated } from './use-message-created-events.ts';
+import { invalidateMessageReactionChanges } from './use-message-reaction-events.ts';
 import { invalidatePreparedActionEvents } from './use-prepared-action-events.ts';
 import { invalidateTaskChanges } from './use-task-change-events.ts';
 import { invalidateTaskLabelChanges } from './use-task-label-events.ts';
@@ -70,6 +72,30 @@ test('a message burst refetches each Chat once', async () => {
         { input: { chatId: 'chat_two', serverId }, name: 'chat.messages' },
     ]);
     expect(recorded.filter((entry) => entry.name === 'threadMessages')).toHaveLength(2);
+});
+
+test('a reaction pass refetches message lenses and search, not read state', async () => {
+    const { queryClient, recorded, utils } = recordingCaches();
+
+    await invalidateMessageReactionChanges({
+        events: [reactionEvent('12', 'chat_thread', 'chat_parent')],
+        queryClient,
+        serverId,
+        utils,
+    });
+
+    expect(recorded).toEqual([
+        { input: { serverId }, name: 'ask.listOpen' },
+        { input: { serverId }, name: 'chat.search' },
+        { input: { serverId }, name: 'cloudAgentWork.listActive' },
+        { input: { chatId: 'chat_thread', serverId }, name: 'chat.messages' },
+        { input: { chatId: 'chat_parent', serverId }, name: 'chat.messages' },
+        { input: { serverId }, name: 'task.list', options: { refetchType: 'all' } },
+        {
+            input: { queryKey: threadMessagesQueryKey(serverId, 'chat_thread') },
+            name: 'threadMessages',
+        },
+    ]);
 });
 
 test('a read pass refetches the chat list alone', async () => {

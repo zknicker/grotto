@@ -88,6 +88,7 @@ function message(id: string, content: string): ChatMessage {
         createdAt: '2026-08-11T00:00:00.000Z',
         id,
         nonce: `nonce_${id}`,
+        reactions: [],
         runId: null,
         sequence: Number(id.slice(-1)),
         serverId: 'srv_1',

@@ -1,7 +1,7 @@
 ---
 name: visuals
 description: >
-  Grotto design system for everything you render: inline visuals and artifact
+  Grotto design system for everything you render — inline visuals and artifact
   pages. Read this BEFORE emitting any visual or artifact fence. Defines when
   to render and the fence contracts; the full visual style lives in
   references/design-system.md.

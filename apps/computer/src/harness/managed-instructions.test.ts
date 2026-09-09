@@ -260,3 +260,32 @@ test('teaches automation provenance without an envelope tutorial', () => {
     expect(prompt).toContain('Anchoring to a message or thread does not transfer wake ownership.');
     expect(prompt).toContain('it wakes the author who scheduled it, not other people');
 });
+
+test('pins the rendered visuals and artifact fence contract', () => {
+    const prompt = renderAgentInstructions({
+        agentId: 'agt_prompt_test',
+        agentName: 'Cove',
+        homeTimezone: 'UTC',
+        hostname: 'computer.test',
+        initialRole: null,
+        os: 'macOS',
+        runtimeVersion: 'test',
+        webAccess: null,
+        workspacePath: '/workbench',
+    });
+
+    // The prompt keeps only the pointer; the visuals skill owns the contracts.
+    expect(prompt).toContain('## Visuals');
+    expect(prompt).toContain('read the visuals skill');
+    expect(prompt).toContain(
+        'Never output HTML, JSX, CSS, imports, or class names in plain message text.'
+    );
+
+    expect(prompt).toContain('## Outputs');
+    expect(prompt).toContain(
+        '- Fences render only inside messages you send: write visual and artifact fences directly in the body of a `grotto message send`.'
+    );
+    expect(prompt).toContain(
+        'Artifact fences render a card the reader clicks to open in the artifact pane; nothing auto-opens.'
+    );
+});

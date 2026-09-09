@@ -4,7 +4,12 @@ description: >
   Grotto design system for everything you render — inline visuals and artifact
   pages. Read this BEFORE emitting any visual or artifact fence. Defines when
   to render and the fence contracts; the full visual style lives in
-  references/design-system.md.
+  references/design-system.md. Reach for it when a reply would be clearer as a
+  chart, graph, dashboard, table, KPI row, stat tile, timeline, calendar,
+  schedule, or status card, or when asked to compare, break down, trend, or
+  forecast sales, revenue, orders, units, returns, royalties, conversion,
+  inventory, spend, cash flow, margin, budget, events, availability, or agenda
+  items, including week over week, top N, or by region or currency.
 ---
 
 # Visuals

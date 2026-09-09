@@ -166,4 +166,9 @@ test('visuals skill states the visual frame facts', () => {
     expect(defaultVisualsSkill).toContain('the app font');
     expect(defaultVisualsSkill).toContain('14px text');
     expect(defaultVisualsSkill).not.toContain('Tavern');
+    // The description ends with the words users actually type, so the skill
+    // listing matches a chart or calendar request that never says "visual".
+    for (const trigger of ['chart', 'dashboard', 'KPI row', 'calendar', 'revenue', 'cash flow']) {
+        expect(defaultVisualsSkill.split('\n---\n')[0]).toContain(trigger);
+    }
 });

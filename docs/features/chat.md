@@ -130,10 +130,14 @@ and [Agent Inbox](../../specs/inbox.md).
   the durable message arrives. Pending and durable messages pass through the same
   transcript grouping, so rapid sends keep the same avatar and name structure when
   they commit. Each pending message is matched to its durable message by send nonce;
-  a failed send drops its message and restores the whole draft, attachments included. Thread replies send
-  the same way, including the first reply, whose pending row belongs to the
-  anchor message until the Thread it creates exists. Pending rows are never
-  written into durable chat history.
+  a failed send drops its pending message and keeps the failed content,
+  attachments, and mention metadata available for recovery. Newer text entered
+  while that send was in flight remains in the current draft; failed sends and
+  newer work are recovered independently. Drafts are app-local and scoped to
+  their Chat or Thread, with no restart persistence. Thread replies send the
+  same way, including the first reply, whose pending row belongs to the anchor
+  message until the Thread it creates exists. Pending rows are never written
+  into durable chat history.
 * **Changed files.** A turn that creates, modifies, or deletes workspace files
   shows a "Changed N files" chip under the agent's reply, and the full
   per-file diff view. Selecting text in a diff or workspace file preview
@@ -147,7 +151,8 @@ and [Agent Inbox](../../specs/inbox.md).
 * **Channels and DMs.** Channels and materialized direct messages are durable
   Chat rooms. The sidebar also projects every active Agent as an implicit
   pairwise DM for the signed-in human, even before a Chat row exists. Opening
-  that row is App-local and shows an empty DM without persisting anything.
+  that row is App-local and shows an empty DM without persisting a Server Chat;
+  the App may still keep a transient in-memory draft scoped to that Agent.
   Agent DMs share the same header dropdown and right-click menus before and
   after the first message, including on the selected sidebar row. The sidebar
   row keeps its Agent identity as the Chat materializes, preserving an open menu. View agent

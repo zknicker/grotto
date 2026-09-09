@@ -73,22 +73,32 @@ registration), with optional info-string text as the title:
   genuinely interactive charts, and an offline app degrades to script-less
   markup.
 - **Theming.** The iframe cannot read app styles, so the host snapshots the
-  published token list (`apps/website/src/agent-html/tokens.ts`) off computed
-  styles and injects it as `:root`, re-snapshotting on theme change. Those
-  names resolve through `apps/website/src/styles/artifact-tokens.css`, mostly
-  as aliases onto HeroUI roles, with named exceptions where HeroUI has no such
-  distinction: three text tiers under `--foreground`, `--brand` (Grotto violet,
-  deliberately not the accent), and the categorical `--chart-1..5`, which is
-  global and shared with the app's own usage chart. Two names,
-  `--success-foreground` and `--warning-foreground`, are remapped to HeroUI's
-  `-soft-foreground` values in the snapshot only. Font sizes track the app's
-  type scale (14px body), not a frozen value. Generated visuals reference only
-  the published names — never HeroUI names, never hardcoded colors — which is
+  token list (`apps/website/src/agent-html/tokens.ts`) off computed styles and
+  injects it as `:root`, re-snapshotting on theme change. The taught vocabulary
+  is 40 role names in eight groups — type, surfaces, text, borders, emphasis,
+  status, charts, layout — one name per role, and it is all the skill teaches.
+  Beside it the snapshot emits a **legacy alias list** (`--brand`, `--primary`,
+  `--info`, `--card`, `--radius-sm..2xl`, motion steps, label colors) taught to
+  nobody: visuals already in chat history reference those names and must keep
+  rendering. Each maps onto a taught role, and the list only shrinks when stored
+  content is migrated. Names resolve through
+  `apps/website/src/styles/artifact-tokens.css`, mostly as aliases onto HeroUI
+  roles; the exceptions are the text tiers, the categorical `--chart-1..5`
+  (global, shared with the app's own usage chart), and the layout group, which
+  derives `--radius` from HeroUI's fields tier and the pads and gaps from
+  `--spacing`. A few names read a different host role in the snapshot only:
+  `--accent-foreground`, `--success-foreground` and `--warning-foreground` take
+  HeroUI's `-soft-foreground` values, and the radius names read the
+  artifact-owned `--radius-control` / `--radius-card`. Font sizes track the
+  app's type scale (14px body), not a frozen value. Generated visuals reference
+  only the taught names — never HeroUI names, never hardcoded colors — which is
   what makes them wear Grotto's look in both schemes.
-- **Native tables.** The sandbox base stylesheet styles bare `<table>`
-  markup to match the app's `ui/table.tsx` look (hairline row dividers,
-  muted cells, hover tint, styled `tfoot`/`caption`), so agents render
-  tabular data as plain HTML tables with no per-visual CSS. The visuals
+- **Native elements.** Bare markup renders native. The sandbox base
+  stylesheet styles `<table>` to match the app's `ui/table.tsx` look (hairline
+  row dividers, muted cells, hover tint, styled `tfoot`/`caption`), and
+  `input`, `select`, `textarea`, `button` and `input[type=range]` on HeroUI's
+  field and outline-button metrics, expressed in published tokens. So an agent
+  writes plain HTML and gets Grotto chrome with no per-visual CSS. The visuals
   skill forbids Markdown tables in replies for the same reason.
 - **Presentation.** Height fits content via a host-owned size reporter inside
   the frame (clamped 120-1600px); visuals taller than 420px render collapsed

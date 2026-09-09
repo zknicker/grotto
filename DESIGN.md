@@ -294,7 +294,7 @@ sitting on it rather than by tinting the ground. `--sidebar-surface` and
 | `surface` | `#FFFFFF` | `#181818` | `Light: = white; Dark: oklch(21.03% 0.0000 253.83)` | `--surface` | `bg-surface text-surface-foreground` for cards and panels | Container background for cards, panels, modals, and dropdowns. |
 | `surface-secondary` | `#EFEFEF` | `#232323` | `Light: oklch(95.24% 0.0000 253.83); Dark: oklch(25.70% 0.0000 253.83)` | `--surface-secondary` | `bg-surface-secondary` for subdued nested surfaces | Secondary surface for nested containers and layered panels. |
 | `surface-tertiary` | `#EAEAEA` | `#272727` | `Light: oklch(93.73% 0.0000 253.83); Dark: oklch(27.21% 0.0000 253.83)` | `--surface-tertiary` | `bg-surface-tertiary` for low-emphasis nested surfaces | Tertiary surface for deeper nesting levels. |
-| `accent` | `#0485F7` | `#0485F7` | `oklch(62.04% 0.1951 253.83)` | `--accent` | `Button variant="primary"` or `bg-accent text-accent-foreground` | The app's interactive and emphasis blue: key actions, selection, focus. Agent-authored visuals carry a separate `--brand` violet — see "Agent-visual tokens". |
+| `accent` | `#0485F7` | `#0485F7` | `oklch(62.04% 0.1951 253.83)` | `--accent` | `Button variant="primary"` or `bg-accent text-accent-foreground` | The app's interactive and emphasis blue: key actions, selection, focus. Agent-authored visuals publish it as their one emphasis role — see "Agent-visual tokens". |
 | `accent-foreground` | `#FCFCFC` | `#FCFCFC` | `= snow` | `--accent-foreground` | `text-accent-foreground` on accent surfaces | Text/icon color on accent backgrounds. Optimized for contrast and readability. |
 | `accent-hover` | `#3592F9` | `#3592F9` | `accent / 90% + accent-foreground / 10%` | `--accent-hover` | Prefer HeroUI hover states; use `bg-accent-hover` only for custom surfaces | Accent hover state. Derived automatically from accent and accent-foreground. |
 | `accent-soft` | `rgba(4, 133, 247, 0.15)` | `rgba(4, 133, 247, 0.12)` | `Light: accent / 15% + transparent; Dark: accent / 12% + transparent` | `--accent-soft` | `bg-accent-soft text-accent-soft-foreground` for selected or soft emphasis | Subtle accent background. A low-opacity tint for soft emphasis and selections. |
@@ -363,31 +363,66 @@ sitting on it rather than by tinting the ground. `--sidebar-surface` and
 
 ### Agent-visual tokens
 
-`styles/artifact-tokens.css` publishes a second, smaller vocabulary for
+`styles/artifact-tokens.css` publishes a second, much smaller vocabulary for
 agent-authored HTML — in-chat visuals and artifact pages, which render in a
 sandboxed frame and never see these stylesheets. Most of its names alias the
 HeroUI roles above, so an agent never writes a HeroUI name and a re-pointed
-alias updates every page ever authored. It defines real values only where
-HeroUI flattens a distinction the agent guidance needs:
+alias updates every page ever authored.
 
-- **Three text tiers** under `--foreground` — `--muted-foreground` (HeroUI
-  `--muted`), then `--foreground-tertiary` and `--foreground-quaternary`, mixed
-  from `--muted` toward the background at per-scheme ratios.
-- **`--brand`** is Grotto violet, `oklch(54.38% 0.1824 295.4)` (`#7B51CC`) — one
-  deliberate moment of emphasis per visual, kept off the accent so it cannot
-  read as a link. `--info` keeps the accent, so an informational callout still
-  matches the app.
-- **`--primary`** is the foreground/background ink pair, not the accent, and
-  `--input` sits between `--border` and `--border-secondary`.
+The taught vocabulary is **40 role names in eight groups**, one name per role
+and no synonyms:
+
+| Group | Names |
+| --- | --- |
+| Type | `--font-sans`, `--font-mono`, `--app-ui-font-size` |
+| Surfaces | `--background`, `--surface`, `--surface-secondary`, `--surface-tertiary` |
+| Text | `--foreground`, `--muted-foreground`, `--foreground-tertiary` |
+| Borders | `--border`, `--border-strong` |
+| Emphasis | `--accent`, `--accent-foreground`, `--accent-bg` |
+| Status | `--success`, `--warning`, `--error`, each with `-foreground` and `-bg` |
+| Charts | `--chart-1..5`, `--chart-grid`, `--chart-label` |
+| Layout | `--radius`, `--radius-card`, `--pad-sm/md/lg`, `--gap-xs/sm/md/lg` |
+
+Four of those groups are more than an alias:
+
+- **Two text tiers** under `--foreground` — `--muted-foreground` (HeroUI
+  `--muted`), then `--foreground-tertiary`, mixed from `--muted` toward the
+  background at per-scheme ratios. Tertiary is metadata contrast, never prose.
+- **Emphasis is the app's accent**, in the same three-part shape as a status
+  group: the hue, the ink that reads on its tint, and the tint. Emphasis and
+  informational callouts are one role, so there is no separate brand hue.
 - **`--chart-1..5`** is the categorical palette in the table above, replacing
   HeroUI Pro's accent lightness ramp.
+- **Layout** derives from HeroUI: `--radius` is the fields tier
+  (`calc(var(--radius) * 1.5)`, 9px) because a visual is mostly control-sized
+  boxes, and `--radius-card` is the shell tier (`min(32px, ×3)`, 18px). Pads
+  and gaps are the `--spacing` steps HeroUI actually pads with — `lg` ×4 (Card
+  `p-4`), `md` ×3 (ItemCard block pad, Card `gap-3`), `sm` ×2 (Input `py-2`),
+  `xs` ×1.
+
+Everything else the frame emits is a **legacy alias**: `--brand`, `--primary`,
+`--info`, `--card`, `--radius-sm..2xl`, the motion steps, the label colors and
+the rest. They are emitted so visuals already in chat history keep rendering
+and are taught to nobody; each maps onto a taught role, and the list only
+shrinks when stored content is migrated. The two lists live in
+`agent-html/tokens.ts` as `agentHtmlTokenNames` and
+`agentHtmlLegacyTokenNames`.
+
+The frame's base stylesheet pre-styles bare `input`, `select`, `textarea`,
+`button` and `input[type=range]` on HeroUI's field and outline-button metrics,
+expressed in published tokens, so an agent gets native-looking controls from
+plain markup and never hand-rolls chrome. Bare `<table>` markup is styled the
+same way.
 
 These land on `:root`, so they are global rather than frame-scoped: the app's
 own usage chart (`features/stats/use-usage-spend.ts`) draws the same five
-series. Two published names, `--success-foreground` and `--warning-foreground`,
-resolve to HeroUI's `-soft-foreground` values only inside the frame
-snapshot (`agent-html/tokens.ts`), because HeroUI declares the base names
-in `@layer base` for solid chips.
+series. A few published names resolve through a host role the frame reads
+instead: `--accent-foreground`, `--success-foreground` and
+`--warning-foreground` take HeroUI's `-soft-foreground` values (HeroUI declares
+the base names in `@layer base` for solid chips), and `--radius` plus the legacy
+radius ramp read the artifact-owned `--radius-control` / `--radius-card` so
+redeclaring Tailwind's scale cannot reshape the product. That remapping lives in
+`agent-html/tokens.ts`.
 
 ## Typography
 Use the generated font and text scale through HeroUI components and Tailwind text utilities. The raw values below are normalized to px for design handoff.

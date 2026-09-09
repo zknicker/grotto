@@ -3,6 +3,7 @@ import type { HarnessV1 } from '@ai-sdk/harness';
 import { HarnessAgent, type HarnessAgentSkill } from '@ai-sdk/harness/agent';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { HarnessTurnInput } from './executor.ts';
+import { inactiveWebToolSettings } from './runtime-web-tools.ts';
 import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 
 type AgentConstructionInput = Pick<
@@ -17,12 +18,7 @@ export function createHarnessAgent(
     return new HarnessAgent({
         harness: options.harness,
         id: input.agentId,
-        ...(input.runtimeId === 'claude-code'
-            ? {
-                  inactiveTools:
-                      input.webAccess !== null ? ['WebFetch'] : ['webSearch', 'WebFetch'],
-              }
-            : {}),
+        ...inactiveWebToolSettings(options.harness, input),
         instructions: options.instructions,
         permissionMode: 'allow-all',
         sandbox: createLocalTrustedSandboxProvider(sandboxOptions(input)),

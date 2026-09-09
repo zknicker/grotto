@@ -17,7 +17,7 @@ export function sendAgentApiError(
     status: number,
     code: string,
     message: string,
-    options: { nextAction?: string; retryable?: boolean } = {}
+    options: { claimConflict?: unknown; nextAction?: string; retryable?: boolean } = {}
 ) {
     return reply.code(status).send({ code, message, ...options });
 }
@@ -27,7 +27,11 @@ export function sendAgentReadError(reply: FastifyReply, cause: unknown) {
         return sendAgentApiError(reply, 404, 'INVALID_TARGET', cause.message);
     }
     if (cause instanceof AgentTaskError) {
-        return sendAgentApiError(reply, 409, 'TASK_CONFLICT', cause.message);
+        // A lost claim carries the structured conflict alongside the message so
+        // the CLI can state what the lock blocks and what it leaves open.
+        return sendAgentApiError(reply, 409, 'TASK_CONFLICT', cause.message, {
+            ...(cause.claimConflict ? { claimConflict: cause.claimConflict } : {}),
+        });
     }
     if (cause instanceof ChatArchivedError) {
         return sendAgentApiError(reply, 409, 'TARGET_READ_ONLY', cause.message);

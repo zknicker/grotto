@@ -219,7 +219,7 @@ test('removal clears task ownership and reinvitation restores no task authority'
         userId: returnerUserId,
     });
 
-    const tasksAfterRemoval = await owner.trpc.task.list.query({ serverId });
+    const { tasks: tasksAfterRemoval } = await owner.trpc.task.list.query({ serverId });
     for (const messageId of [shared.task.messageId, privateTask.task.messageId]) {
         expect(
             tasksAfterRemoval.find((item) => item.task.messageId === messageId)?.task
@@ -266,7 +266,7 @@ test('removal clears task ownership and reinvitation restores no task authority'
 
     await join(returner, 'return-tasks@grotto.test');
 
-    const returnedTasks = await returner.trpc.task.list.query({ serverId });
+    const { tasks: returnedTasks } = await returner.trpc.task.list.query({ serverId });
     expect(returnedTasks.map((item) => item.task.messageId)).toContain(shared.task.messageId);
     expect(returnedTasks.map((item) => item.task.messageId)).not.toContain(
         privateTask.task.messageId

@@ -17,7 +17,6 @@ import {
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { ensureThread } from '../threads/ensure-thread.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { TaskAdminRequiredError } from './assign-task.ts';
 import { TaskNotFoundError } from './claim-task.ts';
@@ -154,11 +153,6 @@ export async function createTask(
                 serverId: input.serverId,
             })
             .returning();
-        await ensureThread(tx, member, {
-            anchorMessageId: message.id,
-            parentChatId: input.chatId,
-            serverId: input.serverId,
-        });
 
         const selfClaim = input.assigneeUserId === member.id;
         await tx.insert(messageTasksTable).values({

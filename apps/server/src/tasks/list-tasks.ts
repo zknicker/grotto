@@ -1,4 +1,4 @@
-import type { TaskListItem } from '@grotto/api';
+import type { TaskList, TaskListItem, ThreadSummary } from '@grotto/api';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { visibleChats } from '../chats/chat-visibility.ts';
 import { readMessageBodies } from '../chats/message-bodies.ts';
@@ -7,17 +7,23 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
+import { threadChatIdForAnchor } from '../threads/thread-id.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { listTaskLabelMap, toMessageTaskWithLabels } from './task-shape.ts';
+import { projectMessageTasks } from './task-shape.ts';
 
+/**
+ * The Board and List lens. Background claims are an Agent's own bookkeeping,
+ * so they stay out of the default answer and are counted instead;
+ * `includeBackground` widens the lens to everything.
+ */
 export async function listTasks(
     db: GrottoDatabase,
     member: GrottoUser | null,
-    input: { chatId?: string; serverId: string }
-): Promise<TaskListItem[]> {
+    input: { chatId?: string; includeBackground: boolean; serverId: string }
+): Promise<TaskList> {
     await requireServerMembership(db, member, input.serverId);
     if (!member) {
-        return [];
+        return { backgroundCount: 0, tasks: [] };
     }
     const predicates = [eq(messageTasksTable.serverId, input.serverId), visibleChats(member.id)];
     if (input.chatId) {
@@ -53,41 +59,61 @@ export async function listTasks(
         .where(and(...predicates))
         .orderBy(desc(messageTasksTable.updatedAt));
 
-    const labels = await listTaskLabelMap(
-        db,
-        input.serverId,
-        rows.map((row) => row.task.messageId)
-    );
-    const bodies = await readMessageBodies(
-        db,
-        input.serverId,
-        rows.map((row) => row.task.messageId)
-    );
-    const summaries = await listThreadSummaries(db, member, {
-        anchorMessageIds: rows.map((row) => row.task.messageId),
-        serverId: input.serverId,
-    });
+    const visible = rows.filter((row) => row.chatKind === 'channel' || row.chatKind === 'dm');
+    const messageIds = visible.map((row) => row.task.messageId);
+    const [projected, bodies, summaries] = await Promise.all([
+        projectMessageTasks(
+            db,
+            input.serverId,
+            visible.map((row) => row.task)
+        ),
+        readMessageBodies(db, input.serverId, messageIds),
+        listThreadSummaries(db, member, {
+            anchorMessageIds: messageIds,
+            serverId: input.serverId,
+        }),
+    ]);
+    const taskByMessageId = new Map(projected.map((task) => [task.messageId, task]));
     const summaryByMessageId = new Map(
         summaries.map((summary) => [summary.anchorMessageId, summary])
     );
     const tasks: TaskListItem[] = [];
-    for (const row of rows) {
-        if (row.chatKind !== 'channel' && row.chatKind !== 'dm') {
+    let backgroundCount = 0;
+    for (const row of visible) {
+        const task = taskByMessageId.get(row.task.messageId);
+        if (!task) {
             continue;
         }
-        const task = toMessageTaskWithLabels(row.task, labels.get(row.task.messageId));
-        const threadSummary = summaryByMessageId.get(row.task.messageId);
-        if (!threadSummary) {
-            throw new Error('A task must have its deterministic Thread.');
+        if (task.tier === 'background' && !input.includeBackground) {
+            backgroundCount += 1;
+            continue;
         }
         tasks.push({
-            chatKind: row.chatKind,
+            chatKind: row.chatKind as 'channel' | 'dm',
             chatName: row.chatName,
             chatPeerUserId: row.chatPeerUserId,
             message: { ...toChatMessage(row.message, { body: bodies.get(row.message.id) }), task },
             task,
-            threadSummary,
+            threadSummary:
+                summaryByMessageId.get(row.task.messageId) ??
+                emptyThreadSummary(row.task.messageId),
         });
     }
-    return tasks;
+    return { backgroundCount, tasks };
+}
+
+/**
+ * A task whose Thread nobody has replied in yet has no Thread row, and its work
+ * surface reads as exactly that: no replies, nothing unread, nothing followed.
+ */
+function emptyThreadSummary(anchorMessageId: string): ThreadSummary {
+    return {
+        anchorMessageId,
+        followed: false,
+        latestReplyAt: null,
+        recentReplies: [],
+        replyCount: 0,
+        threadChatId: threadChatIdForAnchor(anchorMessageId),
+        unreadCount: 0,
+    };
 }

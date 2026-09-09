@@ -7,6 +7,7 @@ import type {
     CloudAgentWorkAttention,
     ReminderScriptCommand,
     ReminderScriptResult,
+    ServerDurableEvent,
 } from '@grotto/api';
 import { agentActionAttentionSchema } from '@grotto/api';
 import type { EffectRuntime } from '@grotto/effect';
@@ -16,6 +17,7 @@ import {
     targetForChat as targetForAgentChat,
     toAgentMessages,
 } from '../agent-api/message-view.ts';
+import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { readCloudAgentWorkAttentions } from '../cloud-agents/read-cloud-agent-work-attentions.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -35,10 +37,18 @@ import { readActiveAgentActivity } from '../server-agents/agent-activity-history
 import type { AgentConfigurationRotation } from '../server-agents/configure-agent.ts';
 import { recordAgentTurnSummary } from '../server-agents/record-agent-turn.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { runLivenessTaskEvents, settleAgentBackgroundClaims } from '../tasks/background-claims.ts';
 import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
 import { canBeginAgentDrain, nextAgentChainTurns } from './chain-budget.ts';
 import { advanceSeenForRun, markCursorSubsumedSeen, recordExactMessagesServed } from './cursors.ts';
+import {
+    configureFrame,
+    type DeferredConfiguration,
+    isConfigured,
+    rotateDeferredConfiguration,
+    sendDeferredConfiguration,
+} from './deferred-configuration.ts';
 import { traceAgentDispatch } from './dispatch-telemetry.ts';
 import { shouldRetryFailure } from './failure-policy.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
@@ -62,6 +72,8 @@ interface DispatchPlan {
     frame: AgentCommand;
     serverId: string;
     suppressSend?: boolean;
+    /** `task.updated` for the tasks this run just made live. */
+    taskEvents?: ServerDurableEvent[];
 }
 
 interface DispatchOptions {
@@ -202,6 +214,7 @@ export class AgentDelivery {
                 agentId: input.agentId,
                 serverId: input.serverId,
             });
+            const taskEvents = await settleAgentBackgroundClaims(tx, killedRun(input, state));
             await store.clearActiveRun(tx, input.agentId);
             return {
                 activity,
@@ -209,9 +222,11 @@ export class AgentDelivery {
                 computerId: state.activeRunComputerId,
                 configuration,
                 runId: state.activeRunId,
+                taskEvents,
             };
         });
         if (kill) {
+            emitTaskEvents(kill.taskEvents);
             if (kill.activity) {
                 publishCommittedAgentActivity(kill.activity);
             }
@@ -256,6 +271,7 @@ export class AgentDelivery {
         }
         const interrupted = await this.interruptActiveRun(input);
         if (interrupted) {
+            emitTaskEvents(interrupted.taskEvents);
             if (interrupted.activity) {
                 publishCommittedAgentActivity(interrupted.activity);
             }
@@ -295,6 +311,7 @@ export class AgentDelivery {
             await lockServerRow(tx, input.serverId);
             const state = await store.readDeliveryState(tx, input.agentId);
             let activity: AgentActivityEvent | null = null;
+            let taskEvents: ServerDurableEvent[] = [];
             if (state?.activeRunId) {
                 await revokeRunnerCredentialsForRun(tx, {
                     agentId: input.agentId,
@@ -312,6 +329,7 @@ export class AgentDelivery {
                     runId: state.activeRunId,
                     serverId: input.serverId,
                 });
+                taskEvents = await settleAgentBackgroundClaims(tx, killedRun(input, state));
                 await store.clearActiveRun(tx, input.agentId);
             }
             await store.clearInboxNotices(tx, { agentId: input.agentId });
@@ -354,8 +372,10 @@ export class AgentDelivery {
                 configuration,
                 runId: state?.activeRunId ?? null,
                 sessionGeneration: rotated.sessionGeneration,
+                taskEvents,
             };
         });
+        emitTaskEvents(result.taskEvents);
         if (result.activity) {
             publishCommittedAgentActivity(result.activity);
         }
@@ -492,6 +512,11 @@ export class AgentDelivery {
                     runId: summary.runId,
                     serverId,
                 });
+                const taskEvents = await runLivenessTaskEvents(tx, {
+                    agentId: summary.agentId,
+                    runId: summary.runId,
+                    serverId,
+                });
                 await store.clearActiveRun(tx, summary.agentId);
                 const [rotated] = await tx
                     .update(agentsTable)
@@ -522,11 +547,13 @@ export class AgentDelivery {
                     chatId: state.activeRunChatId,
                     config,
                     plan: await this.planDispatch(tx, summary.agentId),
+                    taskEvents,
                 };
             });
             if (!recovery) {
                 return;
             }
+            emitTaskEvents(recovery.taskEvents);
             if (recovery.activity) {
                 publishCommittedAgentActivity(recovery.activity);
             }
@@ -547,6 +574,13 @@ export class AgentDelivery {
             this.emit(recovery.plan);
             return;
         }
+        const runScope = {
+            agentId: summary.agentId,
+            // Only a turn that ran to completion can close a claim it answered.
+            completed: summary.status === 'completed',
+            runId: summary.runId,
+            serverId,
+        };
         const settlement = await this.db.transaction(async (tx) => {
             await lockServerRow(tx, serverId);
             const state = await store.readDeliveryState(tx, summary.agentId);
@@ -611,12 +645,14 @@ export class AgentDelivery {
                     agentId: summary.agentId,
                     serverId,
                 });
+                const taskEvents = await settleAgentBackgroundClaims(tx, runScope);
                 await store.clearActiveRun(tx, summary.agentId);
                 return {
                     activity,
                     chatId,
                     configuration,
                     plan: await this.planDispatch(tx, summary.agentId),
+                    taskEvents,
                 };
             }
             // A failed turn that produced model-visible output must not requeue
@@ -664,6 +700,7 @@ export class AgentDelivery {
                 agentId: summary.agentId,
                 serverId,
             });
+            const taskEvents = await settleAgentBackgroundClaims(tx, runScope);
             await store.clearActiveRun(tx, summary.agentId);
             const retryable = shouldRetryFailure(summary.failureKind);
             const failures = retryable ? state.consecutiveFailures + 1 : maxDeliveryFailures;
@@ -673,11 +710,12 @@ export class AgentDelivery {
                 retryAfter:
                     retryable && failures < maxDeliveryFailures ? nextRetryAt(failures) : null,
             });
-            return { activity, chatId, configuration, plan: null };
+            return { activity, chatId, configuration, plan: null, taskEvents };
         });
         if (!settlement) {
             return;
         }
+        emitTaskEvents(settlement.taskEvents);
         if (settlement.activity) {
             publishCommittedAgentActivity(settlement.activity);
         }
@@ -951,10 +989,10 @@ export class AgentDelivery {
         if (isBackedOff(state)) {
             return null;
         }
-        const [unnoticed, concreteRows] = await Promise.all([
-            store.listUnnoticedQueuedItems(tx, agentId, maxDrainRows),
-            store.listQueuedConcreteItems(tx, agentId, maxDrainRows),
-        ]);
+        // Sequential: planning runs inside the transaction holding the Server
+        // row, and overlapping reads on its one connection wedge it.
+        const unnoticed = await store.listUnnoticedQueuedItems(tx, agentId, maxDrainRows);
+        const concreteRows = await store.listQueuedConcreteItems(tx, agentId, maxDrainRows);
         const candidates = [
             ...new Map([...unnoticed, ...concreteRows].map((row) => [row.id, row])).values(),
         ];
@@ -1016,6 +1054,11 @@ export class AgentDelivery {
         return {
             ...(activity ? { activities: [activity] } : {}),
             computerId: config.computerId,
+            taskEvents: await runLivenessTaskEvents(tx, {
+                agentId,
+                runId,
+                serverId: state.serverId,
+            }),
             frame: {
                 agentId,
                 ...(config.agentDescription ? { agentDescription: config.agentDescription } : {}),
@@ -1039,6 +1082,7 @@ export class AgentDelivery {
         if (!plan) {
             return;
         }
+        emitTaskEvents(plan.taskEvents ?? []);
         for (const activity of plan.activities ?? []) {
             if (activity.category === 'starting_work' && activity.phase === 'started') {
                 continue;
@@ -1099,6 +1143,7 @@ export class AgentDelivery {
                 agentId: input.agentId,
                 serverId: input.serverId,
             });
+            const taskEvents = await settleAgentBackgroundClaims(tx, killedRun(input, state));
             await store.clearActiveRun(tx, input.agentId);
             return {
                 activity,
@@ -1106,112 +1151,33 @@ export class AgentDelivery {
                 computerId: state.activeRunComputerId,
                 configuration,
                 runId: state.activeRunId,
+                taskEvents,
             };
         });
     }
 }
 
-interface DeferredConfiguration {
-    agentId: string;
-    config: ConfiguredAgent;
-}
-
-function sendDeferredConfiguration(
-    transport: DeliveryTransport,
-    agentId: string,
-    configuration: DeferredConfiguration
-): void {
-    transport.send(configuration.config.computerId, configureFrame(agentId, configuration.config));
-}
-
-/** Applies desired execution configuration only after the run using the old values settles. */
-async function rotateDeferredConfiguration(
-    db: GrottoDatabase,
-    input: {
-        activeRunModelId: string | null;
-        activeRunReasoningEffort: Agent['desiredReasoningEffort'] | null;
-        activeRunRuntimeId: string | null;
-        agentId: string;
-        serverId: string;
-    }
-): Promise<DeferredConfiguration | null> {
-    const config = await store.readAgentDispatchConfig(db, input.agentId);
-    if (
-        !isConfigured(config) ||
-        (config.desiredModelId === input.activeRunModelId &&
-            config.desiredRuntimeId === input.activeRunRuntimeId &&
-            config.desiredReasoningEffort === input.activeRunReasoningEffort)
-    ) {
-        return null;
-    }
-
-    const [rotated] = await db
-        .update(agentsTable)
-        .set({
-            sessionGeneration: sql`${agentsTable.sessionGeneration} + 1`,
-            sessionResetKind: 'session',
-        })
-        .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
-        .returning({ sessionGeneration: agentsTable.sessionGeneration });
-    if (!rotated) {
-        throw new Error('The Agent configuration session could not be rotated.');
-    }
-
-    await db
-        .delete(agentMessageDraftsTable)
-        .where(eq(agentMessageDraftsTable.agentId, input.agentId));
-    await recordSessionRotation(db, {
-        agentId: input.agentId,
-        generation: rotated.sessionGeneration,
-        reason: 'configuration',
-        serverId: input.serverId,
-    });
-    const latestConfig = await store.readAgentDispatchConfig(db, input.agentId);
-    if (!isConfigured(latestConfig)) {
-        return null;
-    }
-    return { agentId: input.agentId, config: latestConfig };
-}
-
-interface ConfiguredAgent {
-    agentDescription: string | null;
-    agentDisplayName: string;
-    agentName: string;
-    computerId: string;
-    desiredModelId: string;
-    desiredReasoningEffort: Agent['desiredReasoningEffort'];
-    desiredRuntimeId: string;
-    factoryAppliedAt: Date | null;
-    factoryKind: 'cove' | 'ordinary';
-    homeTimezone: string;
-    retiredAt: null;
-    sessionGeneration: number;
-    sessionResetKind: 'full' | 'session';
-}
-
-function isConfigured(config: AgentDispatchConfig | null): config is ConfiguredAgent {
-    return Boolean(
-        config?.computerId &&
-            config.desiredRuntimeId &&
-            config.desiredModelId &&
-            config.retiredAt === null &&
-            (config.factoryKind === 'ordinary' || config.factoryAppliedAt)
-    );
-}
-
-function configureFrame(agentId: string, config: ConfiguredAgent): AgentCommand {
+/**
+ * A run a human killed — Stop, Restart, or Reset — settles like a failed turn:
+ * nothing it managed to say counts as an answer, so the background claims it
+ * still holds are stamped tracked instead of closed.
+ */
+function killedRun(
+    input: { agentId: string; serverId: string },
+    state: { activeRunId: string | null }
+) {
     return {
-        agentDescription: config.agentDescription,
-        agentId,
-        agentName: config.agentDisplayName,
-        factoryKind: config.factoryKind,
-        modelId: config.desiredModelId,
-        reasoningEffort: config.desiredReasoningEffort,
-        runtimeId: config.desiredRuntimeId,
-        sessionGeneration: config.sessionGeneration,
-        sessionResetKind: config.sessionResetKind,
-        type: 'agent-configure',
+        agentId: input.agentId,
+        completed: false,
+        runId: state.activeRunId ?? '',
+        serverId: input.serverId,
     };
+}
+
+function emitTaskEvents(events: ServerDurableEvent[]): void {
+    for (const event of events) {
+        emitDurableChatEvent({ audienceUserId: null, event });
+    }
 }
 
 async function startFrame(

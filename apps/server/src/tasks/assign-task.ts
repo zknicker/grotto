@@ -7,6 +7,7 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
     agentThreadFollowsTable,
     chatMessagesTable,
+    chatsTable,
     messageTasksTable,
     serverMembershipsTable,
 } from '../postgres/schema.ts';
@@ -148,23 +149,37 @@ export async function assignTask(
         if (assignee.agentId) {
             // Follow first: thread delivery is gated on this row, so without it
             // the Agent would wake, claim, and then never see a single reply.
-            await tx
-                .insert(agentThreadFollowsTable)
-                .values({
-                    agentId: assignee.agentId,
-                    followed: true,
-                    serverId: input.serverId,
-                    threadChatId: task.threadChatId,
-                    updatedAt: new Date(),
-                })
-                .onConflictDoUpdate({
-                    set: { followed: true, updatedAt: new Date() },
-                    target: [
-                        agentThreadFollowsTable.serverId,
-                        agentThreadFollowsTable.agentId,
-                        agentThreadFollowsTable.threadChatId,
-                    ],
-                });
+            // A Thread nobody has replied in has no row to point at yet; the
+            // first reply materializes it and attaches the assignee's follow.
+            const [thread] = await tx
+                .select({ id: chatsTable.id })
+                .from(chatsTable)
+                .where(
+                    and(
+                        eq(chatsTable.serverId, input.serverId),
+                        eq(chatsTable.id, task.threadChatId)
+                    )
+                )
+                .limit(1);
+            if (thread) {
+                await tx
+                    .insert(agentThreadFollowsTable)
+                    .values({
+                        agentId: assignee.agentId,
+                        followed: true,
+                        serverId: input.serverId,
+                        threadChatId: task.threadChatId,
+                        updatedAt: new Date(),
+                    })
+                    .onConflictDoUpdate({
+                        set: { followed: true, updatedAt: new Date() },
+                        target: [
+                            agentThreadFollowsTable.serverId,
+                            agentThreadFollowsTable.agentId,
+                            agentThreadFollowsTable.threadChatId,
+                        ],
+                    });
+            }
 
             // The task's title is its canonical message's content.
             const [anchor] = await tx

@@ -12,8 +12,9 @@ import {
 import { readPreparedActionsForMessages } from '../prepared-actions/read.ts';
 import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
+import { requireThreadAccess } from '../threads/resolve-thread-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
-import { requireChatAccess } from './chat-access.ts';
+import { ChatNotFoundError, requireChatAccess } from './chat-access.ts';
 import { readMessageBodies } from './message-bodies.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
 
@@ -31,7 +32,20 @@ export async function listChatMessages(
     nextBeforeSequence: number | null;
     threads: Awaited<ReturnType<typeof listThreadSummaries>>;
 }> {
-    await requireChatAccess(db, member, input);
+    try {
+        await requireChatAccess(db, member, input);
+    } catch (cause) {
+        if (!(cause instanceof ChatNotFoundError)) {
+            throw cause;
+        }
+        // A task Thread nobody has replied in has no Chat row yet. It is still
+        // addressable by its derived id, and it reads as what it is: empty.
+        await requireThreadAccess(db, member, {
+            serverId: input.serverId,
+            threadChatId: input.chatId,
+        });
+        return { messages: [], nextBeforeSequence: null, threads: [] };
+    }
 
     const predicates = [
         eq(chatMessagesTable.serverId, input.serverId),

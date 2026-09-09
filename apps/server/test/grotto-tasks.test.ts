@@ -58,12 +58,18 @@ test('promotes one canonical Server message into its deterministic Thread work s
     expect(promotionEvents.map(({ messageId, type }) => ({ messageId, type }))).toEqual([
         { messageId: sent.message.id, type: 'task.created' },
     ]);
-    await expect(owner.trpc.task.list.query({ serverId: server.id })).resolves.toMatchObject([
+    const { tasks } = await owner.trpc.task.list.query({ serverId: server.id });
+    expect(tasks).toMatchObject([
         {
             message: { content: 'Audit the Server export', id: sent.message.id },
             task: { messageId: sent.message.id, number: 1 },
         },
     ]);
+    // Promotion only derives the Thread id: the first reply creates the Thread.
+    const promotedThread = (await harness.sql`
+        select id from chats where server_id = ${server.id} and id = ${promoted.task.threadChatId}
+    `) as { id: string }[];
+    expect(promotedThread).toEqual([]);
     const promotionMessages = await owner.trpc.chat.messages.query({ chatId, serverId: server.id });
     expect(promotionMessages.messages).toEqual(
         expect.arrayContaining([
@@ -77,9 +83,8 @@ test('promotes one canonical Server message into its deterministic Thread work s
             }),
         ])
     );
-    expect(promotionMessages.messages.some((message) => message.author.kind === 'system')).toBe(
-        false
-    );
+    const promotionAuthors = promotionMessages.messages.map((message) => message.author.kind);
+    expect(promotionAuthors).not.toContain('system');
 });
 
 test('does not promote a Thread reply into human work', async () => {
@@ -131,7 +136,8 @@ test('creates a task-message atomically and replays the same nonce idempotently'
         task: { messageId: created.task.messageId, number: 1, origin: 'composed' },
     });
     expect(replayed).toEqual({ ...created, idempotent: true });
-    await expect(owner.trpc.task.list.query({ serverId: server.id })).resolves.toHaveLength(1);
+    const createdList = await owner.trpc.task.list.query({ serverId: server.id });
+    expect(createdList.tasks).toHaveLength(1);
     const creationEvents = await owner.trpc.chat.events.query({
         afterCursor: '0',
         serverId: server.id,
@@ -174,7 +180,8 @@ test('lists the task Thread summary and DM peer identity', async () => {
         threadChatId: created.task.threadChatId,
     });
 
-    await expect(owner.trpc.task.list.query({ serverId: server.id })).resolves.toMatchObject([
+    const listed = await owner.trpc.task.list.query({ serverId: server.id });
+    expect(listed.tasks).toMatchObject([
         {
             chatKind: 'dm',
             chatName: null,
@@ -201,6 +208,14 @@ test('rejects task creation in a Thread as a bad request', async () => {
         content: 'Parent task',
         nonce: 'task-thread-parent',
         serverId: server.id,
+    });
+    // The Thread has to exist before it can be refused as a task's parent Chat.
+    await owner.trpc.chat.send.mutate({
+        chatId,
+        content: 'First reply',
+        nonce: 'task-thread-first-reply',
+        serverId: server.id,
+        thread: { anchorMessageId: created.task.messageId },
     });
 
     await expect(
@@ -242,8 +257,7 @@ test('allows self-claim during creation but reserves another member for admins',
     const chatId = server.channels[0].id;
     const peer = await addTaskPeer(server.id, chatId);
     const [{ userId: ownerUserId }] = (await harness.sql`
-        select user_id as "userId"
-        from server_memberships
+        select user_id as "userId" from server_memberships
         where server_id = ${server.id} and role = 'owner'
     `) as { userId: string }[];
 
@@ -278,8 +292,7 @@ test('rejects a revoked assignee during task creation', async () => {
     const chatId = server.channels[0].id;
     const peer = await addTaskPeer(server.id, chatId);
     await harness.sql`
-        update server_memberships
-        set revoked_at = now()
+        update server_memberships set revoked_at = now()
         where server_id = ${server.id} and user_id = ${peer.userId}
     `;
 
@@ -311,8 +324,7 @@ test('replays an existing task after its reserved assignee is revoked', async ()
     };
     const created = await owner.trpc.task.create.mutate(input);
     await harness.sql`
-        update server_memberships
-        set revoked_at = now()
+        update server_memberships set revoked_at = now()
         where server_id = ${server.id} and user_id = ${peer.userId}
     `;
 
@@ -352,7 +364,7 @@ test('serializes concurrent claims without double ownership', async () => {
 
     expect(claims.filter((claim) => claim.status === 'fulfilled')).toHaveLength(1);
     expect(claims.filter((claim) => claim.status === 'rejected')).toHaveLength(1);
-    const [task] = await owner.trpc.task.list.query({ serverId: server.id });
+    const [task] = (await owner.trpc.task.list.query({ serverId: server.id })).tasks;
     expect(task.task).toMatchObject({
         assigneeUserId: expect.stringMatching(/^usr_/u),
         status: 'in_progress',
@@ -458,9 +470,9 @@ test('serializes competing reservations at one expected task version', async () 
 
     expect(reservations.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
     expect(reservations.filter((result) => result.status === 'rejected')).toHaveLength(1);
-    const [listed] = await owner.trpc.task.list.query({ serverId: server.id });
-    expect([firstPeer.userId, secondPeer.userId]).toContain(listed.task.assigneeUserId);
-    expect(listed.task.version).toBe(2);
+    const [reserved] = (await owner.trpc.task.list.query({ serverId: server.id })).tasks;
+    expect([firstPeer.userId, secondPeer.userId]).toContain(reserved.task.assigneeUserId);
+    expect(reserved.task.version).toBe(2);
     firstPeer.client.close();
     secondPeer.client.close();
 });
@@ -497,8 +509,7 @@ test('rejects reservations for revoked members or members without parent Chat ac
         values (${server.id}, ${chatId}, ${peer.userId})
     `;
     await harness.sql`
-        update server_memberships
-        set revoked_at = now()
+        update server_memberships set revoked_at = now()
         where server_id = ${server.id} and user_id = ${peer.userId}
     `;
     await expect(
@@ -674,14 +685,8 @@ test('concurrent task-label creation converges on one Server label', async () =>
     });
 
     const labels = await Promise.all([
-        owner.trpc.taskLabel.create.mutate({
-            name: 'Backend',
-            serverId: server.id,
-        }),
-        owner.trpc.taskLabel.create.mutate({
-            name: 'backend',
-            serverId: server.id,
-        }),
+        owner.trpc.taskLabel.create.mutate({ name: 'Backend', serverId: server.id }),
+        owner.trpc.taskLabel.create.mutate({ name: 'backend', serverId: server.id }),
     ]);
 
     expect(labels[0]?.label?.id).toBe(labels[1]?.label?.id);
@@ -697,10 +702,7 @@ test('maps a case-insensitive task-label rename collision to a conflict', async 
         name: 'Backend',
         serverId: server.id,
     });
-    await owner.trpc.taskLabel.create.mutate({
-        name: 'Bug',
-        serverId: server.id,
-    });
+    await owner.trpc.taskLabel.create.mutate({ name: 'Bug', serverId: server.id });
 
     await expect(
         owner.trpc.taskLabel.update.mutate({
@@ -725,8 +727,7 @@ test('denies task reads and writes after Server membership is revoked', async ()
     });
 
     await harness.sql`
-        update server_memberships
-        set revoked_at = now()
+        update server_memberships set revoked_at = now()
         where server_id = ${server.id} and user_id = ${peer.userId}
     `;
 
@@ -772,7 +773,8 @@ test('does not resolve a task message through a different Server tenant', async 
             serverId: secondServer.id,
         })
     ).rejects.toThrow(/no task exists/i);
-    await expect(owner.trpc.task.list.query({ serverId: secondServer.id })).resolves.toEqual([]);
+    const crossServer = await owner.trpc.task.list.query({ serverId: secondServer.id });
+    expect(crossServer).toEqual({ backgroundCount: 0, tasks: [] });
 });
 
 test('requires every task event to identify its authorized parent Chat', async () => {
@@ -788,18 +790,9 @@ test('requires every task event to identify its authorized parent Chat', async (
     });
     const insertInvalidEvent = async () => {
         await harness.sql`
-            insert into chat_events (
-                cursor, id, server_id, chat_id, event_type, message_id, sequence
-            )
-            values (
-                999999,
-                ${`evt_${crypto.randomUUID()}`},
-                ${server.id},
-                null,
-                'task.updated',
-                ${created.task.messageId},
-                1
-            )
+            insert into chat_events (cursor, id, server_id, chat_id, event_type, message_id, sequence)
+            values (999999, ${`evt_${crypto.randomUUID()}`}, ${server.id}, null, 'task.updated',
+                ${created.task.messageId}, 1)
         `;
     };
 
@@ -831,7 +824,8 @@ test('recovers task state and exact invalidation events after a Server restart',
     await harness.restart();
     owner = createGrottoClient(harness, await harness.clerk.mintSessionToken('user_task_owner'));
 
-    await expect(owner.trpc.task.list.query({ serverId: server.id })).resolves.toMatchObject([
+    const recovered = await owner.trpc.task.list.query({ serverId: server.id });
+    expect(recovered.tasks).toMatchObject([
         {
             task: {
                 assigneeUserId: claimed.task.assigneeUserId,
@@ -908,12 +902,22 @@ test('assigns a task to an Agent, wakes it with typed work, and writes no messag
     });
 
     // The Agent is subscribed to the task thread, or it would wake, claim, and
-    // then silently miss every reply.
-    const follows = (await harness.sql`
-        select followed from agent_thread_follows
-        where server_id = ${server.id} and agent_id = ${agent.agentId}
-    `) as { followed: boolean }[];
-    expect([...follows].map((row) => row.followed)).toEqual([true]);
+    // then silently miss every reply. Reservation has no Thread to point at
+    // yet; the first reply materializes it and attaches the follow.
+    const readFollows = async () =>
+        (await harness.sql`
+            select followed from agent_thread_follows
+            where server_id = ${server.id} and agent_id = ${agent.agentId}
+        `) as { followed: boolean }[];
+    expect([...(await readFollows())]).toEqual([]);
+    await owner.trpc.chat.send.mutate({
+        chatId,
+        content: 'First reply',
+        nonce: 'task-agent-assignment-reply',
+        serverId: server.id,
+        thread: { anchorMessageId: created.task.messageId },
+    });
+    expect([...(await readFollows())].map((row) => row.followed)).toEqual([true]);
 
     // The handoff is typed pending work keyed by the assignment identity, not a
     // hidden Chat message. It wakes the assignee alongside the canonical task
@@ -1007,14 +1011,10 @@ async function addTaskAgent(serverId: string, chatId: null | string) {
         values (${computerId}, ${serverId}, ${attachedByUserId}, ${randomBytes(32).toString('hex')})
     `;
     await harness.sql`
-        insert into agents (
-            id, server_id, computer_id, handle, display_name, role,
-            desired_model_id, desired_runtime_id, home_timezone
-        )
-        values (
-            ${agentId}, ${serverId}, ${computerId}, ${handle}, 'Ada', 'member',
-            'fake-model', 'fake', 'UTC'
-        )
+        insert into agents (id, server_id, computer_id, handle, display_name, role,
+            desired_model_id, desired_runtime_id, home_timezone)
+        values (${agentId}, ${serverId}, ${computerId}, ${handle}, 'Ada', 'member',
+            'fake-model', 'fake', 'UTC')
     `;
     if (chatId) {
         await harness.sql`

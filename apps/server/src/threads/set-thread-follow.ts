@@ -6,6 +6,8 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, threadFollowsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
+import { ensureThread } from './ensure-thread.ts';
+import { requireThreadAccess } from './resolve-thread-access.ts';
 
 export async function setThreadFollow(
     db: GrottoDatabase,
@@ -14,6 +16,17 @@ export async function setThreadFollow(
 ) {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
+
+        // Deliberately following a Thread nobody has replied in is a real act of
+        // attention, so it is one of the few writes that materializes the Thread.
+        const pending = await requireThreadAccess(tx, member, input);
+        if (!pending.materialized) {
+            await ensureThread(tx, member, {
+                anchorMessageId: pending.anchorMessageId,
+                parentChatId: pending.parentChatId,
+                serverId: input.serverId,
+            });
+        }
 
         const thread = await requireChatAccess(tx, member, {
             chatId: input.threadChatId,

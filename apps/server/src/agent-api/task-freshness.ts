@@ -7,13 +7,14 @@ import {
     chatMessagesTable,
     chatsTable,
 } from '../postgres/schema.ts';
+import { threadChatIdForAnchor } from '../threads/thread-id.ts';
 
 export async function hasUnseenTaskThreadContext(
     db: GrottoDatabase,
     runner: ResolvedRunner,
     messageId: string
 ) {
-    const threadChatId = `cht_thr_${messageId.replace(/^msg_/u, '')}`;
+    const threadChatId = threadChatIdForAnchor(messageId);
     const [thread] = await db
         .select({ latest: chatsTable.lastMessageSequence })
         .from(chatsTable)

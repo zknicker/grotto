@@ -246,6 +246,13 @@
       "when": 1788876000000,
       "tag": "0034_proposal_notes_are_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1788899367704,
+      "tag": "0035_background_claims",
+      "breakpoints": true
     }
   ]
 }

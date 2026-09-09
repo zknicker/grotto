@@ -2,8 +2,18 @@ import type { MessageTask, TaskLabel } from '@grotto/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { messageTaskLabelsTable, messageTasksTable, taskLabelsTable } from '../postgres/schema.ts';
+import { threadChatIdForAnchor } from '../threads/thread-id.ts';
+import { loadLiveTaskMessageIds } from './task-liveness.ts';
+import { loadTaskTierEvidence, resolveTaskTier, taskTierEvidenceFor } from './task-tier.ts';
 
 export type MessageTaskRow = typeof messageTasksTable.$inferSelect;
+
+/** What a task row cannot answer alone: its lens and whether a run holds it. */
+export interface TaskDerivation {
+    labels: TaskLabel[];
+    live: boolean;
+    tier: MessageTask['tier'];
+}
 
 export async function findMessageTask(
     db: Pick<GrottoDatabase, 'select'>,
@@ -41,8 +51,7 @@ export async function listMessageTaskMap(
                 inArray(messageTasksTable.messageId, messageIds)
             )
         );
-    const labels = await listTaskLabelMap(db, serverId, messageIds);
-    const tasks = rows.map((row) => toMessageTaskWithLabels(row, labels.get(row.messageId)));
+    const tasks = await projectMessageTasks(db, serverId, rows);
 
     return new Map(tasks.map((task) => [task.messageId, task]));
 }
@@ -51,13 +60,44 @@ export async function toMessageTask(
     db: Pick<GrottoDatabase, 'select'>,
     row: MessageTaskRow
 ): Promise<MessageTask> {
-    const labels = await listTaskLabels(db, row.serverId, row.messageId);
-    return toMessageTaskWithLabels(row, labels);
+    const [task] = await projectMessageTasks(db, row.serverId, [row]);
+    return task;
 }
 
-export function toMessageTaskWithLabels(
+/**
+ * Reads labels, tier evidence, and liveness once for a whole batch of rows.
+ *
+ * Sequential, never `Promise.all`: every task write projects its result before
+ * committing, so `db` is usually the caller's transaction, and overlapping
+ * reads on that one reserved connection wedge it — the transaction goes idle
+ * still holding the Server row lock it took first, and every later durable
+ * write queues behind it forever.
+ */
+export async function projectMessageTasks(
+    db: Pick<GrottoDatabase, 'select'>,
+    serverId: string,
+    rows: MessageTaskRow[],
+    knownLabels?: Map<string, TaskLabel[]>
+): Promise<MessageTask[]> {
+    if (rows.length === 0) {
+        return [];
+    }
+    const messageIds = rows.map((row) => row.messageId);
+    const labels = knownLabels ?? (await listTaskLabelMap(db, serverId, messageIds));
+    const evidence = await loadTaskTierEvidence(db, serverId, rows);
+    const live = await loadLiveTaskMessageIds(db, serverId, rows);
+    return rows.map((row) =>
+        toMessageTaskWithDerivation(row, {
+            labels: labels.get(row.messageId) ?? [],
+            live: live.has(row.messageId),
+            tier: resolveTaskTier(row, taskTierEvidenceFor(evidence, row.messageId)),
+        })
+    );
+}
+
+export function toMessageTaskWithDerivation(
     row: MessageTaskRow,
-    labels: TaskLabel[] = []
+    derivation: TaskDerivation
 ): MessageTask {
     return {
         assigneeAgentId: row.assigneeAgentId,
@@ -67,13 +107,15 @@ export function toMessageTaskWithLabels(
         createdAt: row.createdAt.toISOString(),
         createdByAgentId: row.createdByAgentId,
         createdByUserId: row.createdByUserId,
-        labels,
+        labels: derivation.labels,
+        live: derivation.live,
         messageId: row.messageId,
         number: row.number,
         origin: row.origin,
         priority: row.priority,
         status: row.status,
-        threadChatId: `cht_thr_${stripMessagePrefix(row.messageId)}`,
+        threadChatId: threadChatIdForAnchor(row.messageId),
+        tier: derivation.tier,
         updatedAt: row.updatedAt.toISOString(),
         version: row.version,
     };
@@ -116,16 +158,4 @@ export async function listTaskLabelMap(
         labels.set(row.messageId, current);
     }
     return labels;
-}
-
-async function listTaskLabels(
-    db: Pick<GrottoDatabase, 'select'>,
-    serverId: string,
-    messageId: string
-): Promise<TaskLabel[]> {
-    return (await listTaskLabelMap(db, serverId, [messageId])).get(messageId) ?? [];
-}
-
-function stripMessagePrefix(messageId: string) {
-    return messageId.startsWith('msg_') ? messageId.slice(4) : messageId;
 }

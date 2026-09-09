@@ -3,7 +3,9 @@ import { and, eq } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, threadFollowsTable } from '../postgres/schema.ts';
+import { followMaterializedTaskThread } from '../tasks/task-thread-follows.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
+import { threadChatIdForAnchor } from './thread-id.ts';
 
 type ThreadWriter = Pick<GrottoDatabase, 'insert' | 'select'>;
 
@@ -91,9 +93,9 @@ export async function ensureThreadRecord(
         throw new InvalidThreadAnchorError();
     }
 
-    const threadChatId = idSchema.parse(`cht_thr_${stripMessagePrefix(input.anchorMessageId)}`);
+    const threadChatId = idSchema.parse(threadChatIdForAnchor(input.anchorMessageId));
 
-    await db
+    const [materialized] = await db
         .insert(chatsTable)
         .values({
             anchorMessageId: input.anchorMessageId,
@@ -103,7 +105,15 @@ export async function ensureThreadRecord(
             parentChatKind: parent.kind,
             serverId: input.serverId,
         })
-        .onConflictDoNothing();
+        .onConflictDoNothing()
+        .returning({ id: chatsTable.id });
+    if (materialized) {
+        await followMaterializedTaskThread(db, {
+            anchorMessageId: input.anchorMessageId,
+            serverId: input.serverId,
+            threadChatId,
+        });
+    }
 
     const [thread] = await db
         .select({
@@ -125,8 +135,4 @@ export async function ensureThreadRecord(
     }
 
     return { id: threadChatId, parentChatId: input.parentChatId };
-}
-
-function stripMessagePrefix(messageId: string) {
-    return messageId.startsWith('msg_') ? messageId.slice(4) : messageId;
 }

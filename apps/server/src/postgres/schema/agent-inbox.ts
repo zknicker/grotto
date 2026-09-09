@@ -193,6 +193,11 @@ export const agentInboxTable = pgTable(
         index('agent_inbox_run_idx')
             .on(table.agentId, table.runId)
             .where(sql`${table.state} <> 'seen'`),
+        // The notice lane's equivalent: a run that was only told about a row
+        // still holds it, and task liveness reads that edge on every dispatch.
+        index('agent_inbox_notice_run_idx')
+            .on(table.agentId, table.noticeRunId)
+            .where(sql`${table.state} <> 'seen'`),
         check('agent_inbox_id_shape', sql`${table.id} ~ '^inb_[A-Za-z0-9_-]{16}$'`),
         check('agent_inbox_state', sql`${table.state} in ('queued', 'accepted', 'served', 'seen')`),
     ]

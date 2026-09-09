@@ -28,7 +28,7 @@ export const messageTasksTable = pgTable(
         createdByUserId: text('created_by_user_id'),
         messageId: text('message_id').notNull(),
         number: integer('number').notNull(),
-        origin: text('origin').notNull().$type<'composed' | 'converted'>(),
+        origin: text('origin').notNull().$type<'claimed' | 'composed' | 'converted'>(),
         priority: text('priority')
             .notNull()
             .default('none')
@@ -38,6 +38,13 @@ export const messageTasksTable = pgTable(
             .notNull()
             .default('todo')
             .$type<'todo' | 'in_progress' | 'in_review' | 'done' | 'closed'>(),
+        /**
+         * When this task stopped being a background claim for a reason its
+         * current row cannot show: the Agent asked for review, or its claiming
+         * run settled with the work unfinished. Tier is otherwise derived, so
+         * this one stamp is all that has to survive.
+         */
+        trackedAt: timestamp('tracked_at', { withTimezone: true }),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
         version: integer('version').notNull().default(1),
     },
@@ -96,12 +103,18 @@ export const messageTasksTable = pgTable(
             'message_tasks_priority',
             sql`${table.priority} in ('none', 'urgent', 'high', 'medium', 'low')`
         ),
-        check('message_tasks_origin', sql`${table.origin} in ('composed', 'converted')`),
+        check('message_tasks_origin', sql`${table.origin} in ('claimed', 'composed', 'converted')`),
         check(
             'message_tasks_claim_shape',
             sql`${table.claimedAt} is null or num_nonnulls(${table.assigneeUserId}, ${table.assigneeAgentId}) = 1`
         ),
         index('message_tasks_chat_status_idx').on(table.serverId, table.chatId, table.status),
+        // Every Agent turn settles by asking for that Agent's open claims. The
+        // predicate is the settle query's, so the index stays proportional to
+        // live claims rather than to task history.
+        index('message_tasks_open_claim_idx')
+            .on(table.serverId, table.assigneeAgentId)
+            .where(sql`${table.origin} = 'claimed' and ${table.trackedAt} is null`),
     ]
 );
 

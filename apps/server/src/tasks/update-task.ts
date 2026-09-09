@@ -8,6 +8,7 @@ import { TaskConflictError, type TaskMutationResult, TaskNotFoundError } from '.
 import { insertTaskEvent } from './task-events.ts';
 import { requireTaskLabelIds } from './task-labels.ts';
 import { findMessageTask } from './task-shape.ts';
+import { stampsTaskTracked } from './task-tier.ts';
 
 export async function updateTask(
     db: GrottoDatabase,
@@ -84,12 +85,7 @@ export async function updateTask(
         }
         await tx
             .update(messageTasksTable)
-            .set({
-                ...(input.patch.priority ? { priority: input.patch.priority } : {}),
-                ...(input.patch.status ? { status: input.patch.status } : {}),
-                updatedAt: sql`now()`,
-                version: sql`${messageTasksTable.version} + 1`,
-            })
+            .set(taskPatchColumns(input.patch))
             .where(
                 and(
                     eq(messageTasksTable.serverId, input.serverId),
@@ -108,4 +104,23 @@ export async function updateTask(
         }
         return { event, task };
     });
+}
+
+/**
+ * Moving a task out of the claim's own `in_progress`/`done` lifecycle — asking
+ * for review, closing it, reopening it — is a person's cue to look, so it also
+ * stamps the task tracked. That stamp is what keeps the tier one-way: it stays
+ * off the background lens however its status moves afterwards.
+ */
+function taskPatchColumns(patch: {
+    priority?: 'none' | 'urgent' | 'high' | 'medium' | 'low';
+    status?: 'todo' | 'in_progress' | 'in_review' | 'done' | 'closed';
+}) {
+    return {
+        ...(patch.priority ? { priority: patch.priority } : {}),
+        ...(patch.status ? { status: patch.status } : {}),
+        ...(stampsTaskTracked(patch.status) ? { trackedAt: sql`now()` } : {}),
+        updatedAt: sql`now()`,
+        version: sql`${messageTasksTable.version} + 1`,
+    };
 }

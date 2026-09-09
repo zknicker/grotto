@@ -799,10 +799,15 @@ test('mute and explicit unfollow purge ordinary work while preserving exact ment
         nonce: 'attention_thread_fixture',
         serverId,
     });
-    await harness.sql`
-        insert into agent_thread_follows (server_id, agent_id, thread_chat_id, followed)
-        values (${serverId}, ${agentId}, ${task.task.threadChatId}, true)
-    `;
+    // The Thread exists only once someone replies in it, and an exact mention in
+    // that first reply is what makes the Agent follow it.
+    await owner.trpc.chat.send.mutate({
+        chatId: channelId,
+        content: '@sage take this thread.',
+        nonce: 'attention_thread_follow_seed',
+        serverId,
+        thread: { anchorMessageId: task.task.messageId },
+    });
     const threadOrdinary = await owner.trpc.chat.send.mutate({
         chatId: channelId,
         content: 'Routine child update.',
@@ -869,10 +874,15 @@ test('a followed Thread stays active when its parent Channel is muted', async ()
         nonce: 'followed_thread_parent_mute_anchor',
         serverId,
     });
-    await harness.sql`
-        insert into agent_thread_follows (server_id, agent_id, thread_chat_id, followed)
-        values (${serverId}, ${agentId}, ${task.task.threadChatId}, true)
-    `;
+    // The first reply materializes the Thread; the exact mention in it is what
+    // makes the Agent follow.
+    await owner.trpc.chat.send.mutate({
+        chatId: channel.id,
+        content: '@sage take this thread.',
+        nonce: 'followed_thread_parent_mute_seed',
+        serverId,
+        thread: { anchorMessageId: task.task.messageId },
+    });
     const beforeMute = await owner.trpc.chat.send.mutate({
         chatId: channel.id,
         content: 'Queued before the parent mute.',
@@ -1233,12 +1243,7 @@ test('the ported Agent CLI read surface can read, search, and resolve visible me
     });
     expect(search.status).toBe(200);
     expect(search.body.messages).toEqual(
-        expect.arrayContaining([
-            expect.objectContaining({
-                id: messageId,
-                target: 'dm:@ada',
-            }),
-        ])
+        expect.arrayContaining([expect.objectContaining({ id: messageId, target: 'dm:@ada' })])
     );
 
     const resolved = await agentGet(
@@ -1413,11 +1418,7 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         number: 1,
         target: '#dispatch',
     });
-    expect(unclaimed.body.task).toMatchObject({
-        assignee: null,
-        status: 'in_review',
-        version: 4,
-    });
+    expect(unclaimed.body.task).toMatchObject({ assignee: null, status: 'in_review', version: 4 });
 
     const [row] = (await harness.sql`
         select created_by_agent_id, created_by_user_id, assignee_agent_id
@@ -1510,7 +1511,7 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
     expect(convertedRow).toEqual({
         assignee_agent_id: agentId,
         message_id: regular.message.id,
-        origin: 'converted',
+        origin: 'claimed',
     });
     const convertedEvents = (await harness.sql`
         select event_type
@@ -1598,11 +1599,7 @@ test('concurrent Agent claims choose one owner and the losing Agent cannot proce
     });
     const [coveRunner, rivalRunner] = await Promise.all([
         mintRunner({ chatId: channelId, runId: 'run_concurrent_cove' }),
-        mintRunner({
-            agentId: peer.agent.id,
-            chatId: channelId,
-            runId: 'run_concurrent_rival',
-        }),
+        mintRunner({ agentId: peer.agent.id, chatId: channelId, runId: 'run_concurrent_rival' }),
     ]);
     const claimBody = {
         numbers: [created.task.number],
@@ -1851,11 +1848,7 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
     expect(appMessages.messages).toHaveLength(1);
     expect(appMessages.messages[0]?.id).toBe(messageId);
     await expect(
-        owner.trpc.chat.search.query({
-            chatId: channelId,
-            query: 'Assigned scout',
-            serverId,
-        })
+        owner.trpc.chat.search.query({ chatId: channelId, query: 'Assigned scout', serverId })
     ).resolves.toEqual([]);
     const channel = (await owner.trpc.chat.list.query({ serverId })).find(
         (candidate) => candidate.id === channelId
@@ -1983,12 +1976,26 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
             target: '#task-delegation',
         },
     ]);
+    // Reservation had no Thread to point at; the first reply materializes it and
+    // attaches the assignee's follow.
+    const threadChatId = `cht_thr_${messageId.slice(4)}`;
+    const reservedThread = (await harness.sql`
+        select id from chats where server_id = ${serverId} and id = ${threadChatId}
+    `) as Array<{ id: string }>;
+    expect(reservedThread).toEqual([]);
+    await owner.trpc.chat.send.mutate({
+        chatId: channelId,
+        content: 'First reply on the assigned task.',
+        nonce: 'agent_task_peer_assignment_reply',
+        serverId,
+        thread: { anchorMessageId: messageId },
+    });
     const follows = (await harness.sql`
         select followed
         from agent_thread_follows
         where server_id = ${serverId}
           and agent_id = ${peer.agent.id}
-          and thread_chat_id = ${`cht_thr_${messageId.slice(4)}`}
+          and thread_chat_id = ${threadChatId}
     `) as Array<{ followed: boolean }>;
     expect(follows).toEqual([{ followed: true }]);
     await owner.trpc.agent.delete.mutate({
@@ -2240,11 +2247,7 @@ test('an Owner imports a Computer-reported host skill into exactly one assigned 
     );
     await sent;
     const requestId = String(frames[0]?.requestId);
-    expect(frames[0]).toMatchObject({
-        agentId,
-        sourceId,
-        type: 'agent-skill-import',
-    });
+    expect(frames[0]).toMatchObject({ agentId, sourceId, type: 'agent-skill-import' });
     computers.acceptSkillImport(computerId, {
         agentId,
         requestId,
@@ -2619,10 +2622,7 @@ test('MCP invocation distinguishes revoked access, timeout, and upstream auth', 
             args: {},
             toolName: modelToolName(authId, 'reauthorize'),
         });
-        expect(authResponse).toMatchObject({
-            body: { code: 'MCP_AUTH_REQUIRED' },
-            status: 502,
-        });
+        expect(authResponse).toMatchObject({ body: { code: 'MCP_AUTH_REQUIRED' }, status: 502 });
     } finally {
         await runtime.close();
         timeout.stop(true);

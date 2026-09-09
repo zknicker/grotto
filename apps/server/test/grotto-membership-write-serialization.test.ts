@@ -221,7 +221,7 @@ test('task claim queued behind removal reauthorizes before it writes', async () 
             expect.stringMatching(/not a member/i)
         );
     }
-    const listed = (await owner.trpc.task.list.query({ serverId })).find(
+    const listed = (await owner.trpc.task.list.query({ serverId })).tasks.find(
         (candidate) => candidate.task.messageId === created.task.messageId
     );
     expect(listed?.task).toMatchObject({

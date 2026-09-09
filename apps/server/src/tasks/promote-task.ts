@@ -4,7 +4,6 @@ import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { ensureThread } from '../threads/ensure-thread.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { insertTaskEvent } from './task-events.ts';
 import { findMessageTask } from './task-shape.ts';
@@ -91,11 +90,9 @@ export async function promoteMessageTask(
             throw new TaskMessageNotFoundError();
         }
 
-        await ensureThread(tx, member, {
-            anchorMessageId: message.id,
-            parentChatId: message.chatId,
-            serverId: input.serverId,
-        });
+        // Promotion does not create the Thread. Tasks never own Threads: a
+        // message gets a task, a message gets a Thread, and they meet only
+        // because they share the anchor. The first reply materializes it.
         await tx.insert(messageTasksTable).values({
             chatId: message.chatId,
             createdByUserId: member.id,

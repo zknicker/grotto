@@ -1,4 +1,4 @@
-import type { AgentActivityEvent, ServerDurableEvent } from '@grotto/api';
+import type { AgentActivityEvent, ServerDurableEvent, TaskClaimConflict } from '@grotto/api';
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { readAgentSessionGeneration } from '../agent-delivery/cursors.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
@@ -10,7 +10,6 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
-    agentThreadFollowsTable,
     channelAgentParticipantsTable,
     chatEventsTable,
     chatMessagesTable,
@@ -20,10 +19,11 @@ import {
 } from '../postgres/schema.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { buildTaskClaimConflict } from '../tasks/claim-conflict.ts';
 import { taskAssignmentEnvelope, taskAssignmentKey } from '../tasks/task-assignment-envelope.ts';
 import { insertTaskEvent } from '../tasks/task-events.ts';
 import { agentOwnsTask, taskHasOtherOwnerForAgent } from '../tasks/task-ownership.ts';
-import { ensureThreadRecord } from '../threads/ensure-thread.ts';
+import { stampsTaskTracked } from '../tasks/task-tier.ts';
 import { resolveAgentMessage } from './message-read.ts';
 import {
     type MessageRow,
@@ -100,6 +100,7 @@ export async function createAgentTasks(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
         await requireChatWritable(tx, { chatId, serverId: runner.serverId });
+        await requireTopLevelTaskChat(tx, runner, chatId);
         const replay = await replayAgentTasks(tx, runner, chatId, titles, nonces, assigneeAgentId);
         if (replay) {
             return { activities: [], events: [], tasks: replay, wakes: [] };
@@ -170,13 +171,6 @@ export async function createAgentTasks(
                 serverId: runner.serverId,
                 status: selfClaim ? 'in_progress' : 'todo',
             });
-            await createAgentTaskThread(
-                tx,
-                runner,
-                chatId,
-                message.id,
-                assigneeAgentId ?? runner.agentId
-            );
             // The handoff is a private Agent delivery: a typed inbox item keyed
             // by the assignment identity, never a hidden Chat message.
             const assignmentEnvelope =
@@ -357,6 +351,21 @@ async function mutateAgentTask(
                 );
             return { event: null, task: await taskRow(tx, runner, message, current) };
         }
+        // The holder is the authoritative answer to a claim, whatever version
+        // the caller read: two Agents racing for the same lock both read the
+        // task before either wrote it, so checking the version first would
+        // hand the loser of the real race a refresh notice instead of the
+        // structured conflict that says who holds it.
+        if (action === 'claim' && taskHasOtherOwnerForAgent(current, runner.agentId)) {
+            throw new AgentTaskError('That task is already owned by another assignee.', {
+                claimConflict: await buildTaskClaimConflict(
+                    tx,
+                    runner.serverId,
+                    current,
+                    new Date()
+                ),
+            });
+        }
         if (current.version !== expectedVersion) {
             throw new AgentTaskError('That task changed; refresh it before updating.');
         }
@@ -367,9 +376,6 @@ async function mutateAgentTask(
             throw new AgentTaskError(
                 'New context exists in this task thread. Run grotto message check before retrying.'
             );
-        }
-        if (action === 'claim' && taskHasOtherOwnerForAgent(current, runner.agentId)) {
-            throw new AgentTaskError('That task is already owned by another assignee.');
         }
         if (action === 'unclaim' && current.assigneeAgentId !== runner.agentId) {
             throw new AgentTaskError('Only the current assignee may unclaim this task.');
@@ -397,7 +403,11 @@ async function mutateAgentTask(
                 ...(action === 'unclaim'
                     ? { assigneeAgentId: null, assigneeUserId: null, claimedAt: null }
                     : {}),
-                ...(action === 'update' ? { status } : {}),
+                // Leaving the claim's own `in_progress`/`done` lifecycle is the
+                // Agent saying a human has to look: tracked from here on.
+                ...(action === 'update'
+                    ? { status, ...(stampsTaskTracked(status) ? { trackedAt: sql`now()` } : {}) }
+                    : {}),
                 updatedAt: sql`now()`,
                 version: sql`${messageTasksTable.version} + 1`,
             })
@@ -481,6 +491,7 @@ async function promoteAgentMessageTask(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
         await requireChatWritable(tx, { chatId, serverId: runner.serverId });
+        await requireTopLevelTaskChat(tx, runner, chatId);
         const [message] = await tx
             .select({
                 chatId: chatMessagesTable.chatId,
@@ -517,11 +528,10 @@ async function promoteAgentMessageTask(
             createdByAgentId: runner.agentId,
             messageId,
             number: numberedChat.number,
-            origin: 'converted',
+            origin: 'claimed',
             serverId: runner.serverId,
             status: 'in_progress',
         });
-        await createAgentTaskThread(tx, runner, chatId, messageId);
         const [created] = await queryAgentTasks(tx, runner, chatId, { messageId });
         if (!created) {
             throw new Error('Task conversion did not persist.');
@@ -595,12 +605,15 @@ async function insertAgentMessageCreatedEvent(
     };
 }
 
-async function createAgentTaskThread(
+/**
+ * Tasks live on top-level messages only. Promotion validates that here and
+ * stops: the Thread is not created until someone actually replies, so a claim
+ * an Agent resolves inside one turn leaves no work surface behind.
+ */
+async function requireTopLevelTaskChat(
     db: GrottoDatabase,
     runner: ResolvedRunner,
-    parentChatId: string,
-    messageId: string,
-    followingAgentId = runner.agentId
+    parentChatId: string
 ) {
     const [parent] = await db
         .select({ kind: chatsTable.kind })
@@ -608,48 +621,6 @@ async function createAgentTaskThread(
         .where(and(eq(chatsTable.serverId, runner.serverId), eq(chatsTable.id, parentChatId)));
     if (!parent || parent.kind === 'thread') {
         throw new AgentTaskError('Tasks require a top-level Channel or DM.');
-    }
-    const thread = await ensureThreadRecord(db, {
-        anchorMessageId: messageId,
-        parentChatId,
-        serverId: runner.serverId,
-    });
-    const threadChatId = thread.id;
-    await db
-        .insert(agentThreadFollowsTable)
-        .values({
-            agentId: runner.agentId,
-            followed: true,
-            serverId: runner.serverId,
-            threadChatId,
-            updatedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-            set: { followed: true, updatedAt: new Date() },
-            target: [
-                agentThreadFollowsTable.serverId,
-                agentThreadFollowsTable.agentId,
-                agentThreadFollowsTable.threadChatId,
-            ],
-        });
-    if (followingAgentId !== runner.agentId) {
-        await db
-            .insert(agentThreadFollowsTable)
-            .values({
-                agentId: followingAgentId,
-                followed: true,
-                serverId: runner.serverId,
-                threadChatId,
-                updatedAt: new Date(),
-            })
-            .onConflictDoUpdate({
-                set: { followed: true, updatedAt: new Date() },
-                target: [
-                    agentThreadFollowsTable.serverId,
-                    agentThreadFollowsTable.agentId,
-                    agentThreadFollowsTable.threadChatId,
-                ],
-            });
     }
 }
 
@@ -794,4 +765,16 @@ function stripAt(value: string) {
     return value.startsWith('@') ? value.slice(1) : value;
 }
 
-export class AgentTaskError extends Error {}
+/**
+ * A task refusal. A lost claim also carries the structured conflict the Agent
+ * CLI renders: who holds the lock, when that was observed, what the lock
+ * actually blocks, and what it does not.
+ */
+export class AgentTaskError extends Error {
+    readonly claimConflict: TaskClaimConflict | null;
+
+    constructor(message: string, options: { claimConflict?: TaskClaimConflict } = {}) {
+        super(message);
+        this.claimConflict = options.claimConflict ?? null;
+    }
+}

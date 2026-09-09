@@ -9,12 +9,14 @@ export * from './message-body.ts';
 import * as z from 'zod';
 import { attachmentMetadataSchema } from './attachments.ts';
 import { messageCauseSchema } from './automation.ts';
+import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
+import * as reactionContracts from './chat-message-reactions.ts';
+import * as receiptContracts from './chat-message-receipts.ts';
 import { preparedActionSchema, preparedActionStatusSchema } from './prepared-actions.ts';
 import { messageTaskSchema } from './task-shared.ts';
 
-export const idSchema = z.string().trim().min(1);
-const timestampSchema = z.iso.datetime({ offset: true });
-
+export { idSchema } from './chat-contract-primitives.ts';
+export * from './chat-message-reactions.ts';
 export const chatMessageAuthorSchema = z.discriminatedUnion('kind', [
     z
         .object({
@@ -61,6 +63,7 @@ export const chatMessageSchema = z
         id: idSchema,
         nonce: z.string().trim().min(1).max(128),
         preparedAction: preparedActionSchema.optional(),
+        reactions: z.array(reactionContracts.chatMessageReactionSchema).default([]),
         /** The real Server-assigned Agent run; human messages are null. */
         runId: idSchema.nullable(),
         sequence: z.number().int().positive(),
@@ -275,16 +278,12 @@ export const chatListInputSchema = z.object({ serverId: idSchema }).strict();
 
 export const chatListSchema = z.array(chatSchema);
 
-export const chatMessageReceiptSchema = z
-    .object({
-        eventCursor: z.string().regex(/^[1-9]\d*$/u),
-        idempotent: z.boolean(),
-        message: chatMessageSchema,
-        threadChatId: idSchema.nullable(),
-    })
-    .strict();
+const messageReceipts = receiptContracts.createChatMessageReceipts(chatMessageSchema);
 
+export const chatMessageReceiptSchema = messageReceipts.message;
 export type ChatMessageReceipt = z.infer<typeof chatMessageReceiptSchema>;
+export const chatMessageReactionReceiptSchema = messageReceipts.reaction;
+export type ChatMessageReactionReceipt = z.infer<typeof chatMessageReactionReceiptSchema>;
 
 export const chatMessagesInputSchema = z
     .object({
@@ -532,6 +531,7 @@ export const chatLifecycleEventSchema = z
 
 export const serverdurableeventSchema = z.discriminatedUnion('type', [
     messageCreatedEventSchema,
+    reactionContracts.messageReactionUpdatedEventSchema,
     askUpdatedEventSchema,
     cloudAgentWorkUpdatedEventSchema,
     preparedActionUpdatedEventSchema,

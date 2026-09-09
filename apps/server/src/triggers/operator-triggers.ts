@@ -68,7 +68,8 @@ export async function listOperatorTriggers(
             and(
                 eq(triggersTable.serverId, input.serverId),
                 input.agentId ? eq(triggersTable.ownerAgentId, input.agentId) : undefined,
-                input.status ? eq(triggersTable.status, input.status) : undefined
+                input.status ? eq(triggersTable.status, input.status) : undefined,
+                isNull(triggersTable.deletedAt)
             )
         )
         .orderBy(asc(triggersTable.createdAt), asc(triggersTable.id));
@@ -121,13 +122,14 @@ export async function rotateOperatorTriggerSecret(
     return await rotateTriggerSecretRow(db, input, operatorCheck(member, input), clock);
 }
 
-/** Deletes the trigger and cascades its fire history. Chat receipts remain. */
+/** Removes the trigger from active use while retaining its recent fire history. */
 export async function deleteOperatorTrigger(
     db: GrottoDatabase,
     member: GrottoUser | null,
-    input: OperatorTriggerInput
+    input: OperatorTriggerInput,
+    clock: TriggerClock
 ): Promise<{ deleted: true; id: string }> {
-    await deleteTriggerRow(db, input, operatorCheck(member, input));
+    await deleteTriggerRow(db, input, operatorCheck(member, input), clock);
     return { deleted: true, id: input.triggerId };
 }
 

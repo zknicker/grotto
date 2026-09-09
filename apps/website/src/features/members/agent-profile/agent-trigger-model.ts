@@ -97,10 +97,18 @@ export function formatTriggerPayloadSize(bytes: number) {
 }
 
 export function formatTriggerFireTime(fire: Pick<TriggerFire, 'receivedAt'>) {
+    return formatTriggerDate(fire.receivedAt);
+}
+
+export function formatTriggerHistoryTime(value: string) {
+    return formatTriggerDate(value);
+}
+
+function formatTriggerDate(value: string) {
     return new Intl.DateTimeFormat(undefined, {
         dateStyle: 'medium',
         timeStyle: 'short',
-    }).format(new Date(fire.receivedAt));
+    }).format(new Date(value));
 }
 
 /**

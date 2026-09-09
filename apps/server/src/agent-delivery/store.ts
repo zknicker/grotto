@@ -11,6 +11,7 @@ import {
     messageTasksTable,
 } from '../postgres/schema.ts';
 import { bodilessInboxSources, concreteInboxSources } from './inbox-lanes.ts';
+import { retireRemovedTriggerItemsForRun } from './retire-removed-trigger-items.ts';
 
 export interface AgentDeliveryRow {
     acceptedAt: Date | null;
@@ -810,7 +811,6 @@ export async function markInboxItemsSeenForRun(
             )
         );
 }
-
 /** Returns a failed or stopped run's claimed work to the queue so it is redelivered. */
 export async function requeueInboxItemsForRun(
     db: GrottoDatabase,
@@ -826,8 +826,8 @@ export async function requeueInboxItemsForRun(
                 ne(agentInboxTable.state, 'seen')
             )
         );
+    await retireRemovedTriggerItemsForRun(db, input.agentId);
 }
-
 /** Agents assigned to one Computer, for reconnect reconciliation. */
 export async function listComputerAgents(
     db: GrottoDatabase,

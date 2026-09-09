@@ -12,6 +12,7 @@ export function useTriggerTestFire(serverId: string, agentId: string, triggerId:
         onSuccess: async () => {
             await Promise.all([
                 utils.trigger.list.invalidate({ agentId, serverId }),
+                utils.trigger.history.invalidate({ agentId, serverId }),
                 utils.trigger.runs.invalidate({ serverId, triggerId }),
             ]);
         },

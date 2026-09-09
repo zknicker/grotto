@@ -1,7 +1,7 @@
 import type { TriggerFireErrorCode } from '@grotto/api';
 import type { EffectRuntime } from '@grotto/effect';
 import { tracePromise } from '@grotto/effect';
-import { and, eq, isNotNull, sql } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { ChatArchivedError, ChatNotFoundError, requireChatWritable } from '../chats/chat-access.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -67,7 +67,8 @@ export async function authenticateTrigger(
         .where(
             and(
                 eq(triggersTable.id, input.triggerId),
-                eq(triggersTable.secretHash, hashTriggerSecret(input.secret))
+                eq(triggersTable.secretHash, hashTriggerSecret(input.secret)),
+                isNull(triggersTable.deletedAt)
             )
         )
         .limit(1);
@@ -117,7 +118,8 @@ async function fireTriggerTransaction(
             .where(
                 and(
                     eq(triggersTable.serverId, request.trigger.serverId),
-                    eq(triggersTable.id, request.trigger.id)
+                    eq(triggersTable.id, request.trigger.id),
+                    isNull(triggersTable.deletedAt)
                 )
             )
             .for('update');

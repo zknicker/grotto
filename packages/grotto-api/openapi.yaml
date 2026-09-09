@@ -1097,7 +1097,7 @@ paths:
     delete:
       operationId: deleteAgentTrigger
       tags: [Agent CLI]
-      summary: Delete one owned trigger and its fire history.
+      summary: Remove one owned trigger while retaining recent fire history.
       parameters:
         - $ref: '#/components/parameters/TriggerId'
       responses:

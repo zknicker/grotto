@@ -751,7 +751,7 @@ export interface paths {
         get: operations["readAgentTrigger"];
         put?: never;
         post?: never;
-        /** Delete one owned trigger and its fire history. */
+        /** Remove one owned trigger while retaining recent fire history. */
         delete: operations["deleteAgentTrigger"];
         options?: never;
         head?: never;

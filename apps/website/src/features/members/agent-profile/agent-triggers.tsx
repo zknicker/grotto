@@ -1,7 +1,7 @@
 import type { Agent, Trigger } from '@grotto/api';
-import { Button, Chip, Separator } from '@heroui/react';
+import { Button, Chip, Separator, Tooltip } from '@heroui/react';
 import { ItemCard, PressableFeedback } from '@heroui-pro/react';
-import { Add01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Add01Icon, HistoryIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -15,6 +15,7 @@ import {
     triggerStatusChip,
 } from './agent-trigger-model.ts';
 import { ProfileListSection } from './profile-list-section.tsx';
+import { TriggerHistoryDrawer } from './trigger-history-drawer.tsx';
 import { TriggerSheet } from './trigger-sheet.tsx';
 
 /** The Agent's inbound webhook wakes, authored here or from the `grotto` CLI. */
@@ -24,6 +25,7 @@ export function AgentTriggers({ agent, server }: { agent: Agent; server: ServerD
     // One clock for the section, not one interval per row.
     const now = useRelativeNow();
     const [sheet, setSheet] = React.useState<TriggerSheetState | null>(null);
+    const [isHistoryOpen, setHistoryOpen] = React.useState(false);
     const rows = triggers.data ?? [];
     // Resolving the open drawer against the list the section renders keeps it
     // on the same record — and closes it when a delete removes that row.
@@ -38,15 +40,34 @@ export function AgentTriggers({ agent, server }: { agent: Agent; server: ServerD
             <ProfileListSection
                 action={
                     canManage ? (
-                        <Button
-                            onPress={() => setSheet({ kind: 'create' })}
-                            size="sm"
-                            type="button"
-                            variant="secondary"
-                        >
-                            <Icon aria-hidden="true" icon={Add01Icon} />
-                            New Trigger
-                        </Button>
+                        <div className="flex shrink-0 items-center gap-2">
+                            <Tooltip delay={0}>
+                                <Button
+                                    aria-label="New Trigger"
+                                    isIconOnly
+                                    onPress={() => setSheet({ kind: 'create' })}
+                                    size="sm"
+                                    type="button"
+                                    variant="secondary"
+                                >
+                                    <Icon aria-hidden="true" icon={Add01Icon} size={16} />
+                                </Button>
+                                <Tooltip.Content>New Trigger</Tooltip.Content>
+                            </Tooltip>
+                            <Tooltip delay={0}>
+                                <Button
+                                    aria-label="View trigger history"
+                                    isIconOnly
+                                    onPress={() => setHistoryOpen(true)}
+                                    size="sm"
+                                    type="button"
+                                    variant="secondary"
+                                >
+                                    <Icon aria-hidden="true" icon={HistoryIcon} size={16} />
+                                </Button>
+                                <Tooltip.Content>View trigger history</Tooltip.Content>
+                            </Tooltip>
+                        </div>
                     ) : null
                 }
                 count={rows.length}
@@ -82,6 +103,15 @@ export function AgentTriggers({ agent, server }: { agent: Agent; server: ServerD
                 }}
                 serverId={server.id}
             />
+            {canManage ? (
+                <TriggerHistoryDrawer
+                    agentId={agent.id}
+                    isOpen={isHistoryOpen}
+                    onOpenChange={setHistoryOpen}
+                    serverId={server.id}
+                    serverSlug={server.slug}
+                />
+            ) : null}
         </>
     );
 }

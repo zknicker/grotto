@@ -43,6 +43,7 @@ import { ServerPostCommitWork } from './server-post-commit-work.ts';
 import { makeServerRuntime } from './server-runtime.ts';
 import { purgeDeletedServers } from './servers/delete-server.ts';
 import { startStaleTaskSweep } from './tasks/close-stale-tasks.ts';
+import { startTriggerRetentionSweep } from './triggers/retention-sweep.ts';
 import { TriggerRateLimiter } from './triggers/trigger-rate-limit.ts';
 import { registerTriggerRoutes } from './triggers/trigger-route.ts';
 
@@ -222,7 +223,11 @@ export async function createGrottoServerApplication(
         );
         computerSocket = startedComputerSocket;
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
-        for (const startSweep of [startReminderRetentionSweep, startStaleTaskSweep]) {
+        for (const startSweep of [
+            startReminderRetentionSweep,
+            startTriggerRetentionSweep,
+            startStaleTaskSweep,
+        ]) {
             await settle(
                 runtime,
                 Scope.extend(
@@ -242,7 +247,6 @@ export async function createGrottoServerApplication(
             reminderTick: () => tickReminders(connectedGrotto.db, reminderClock, agentDelivery),
             runtime,
         });
-
         registerGrottoHealth(startedApp, runtime, connectedGrotto.health, 5000, () => {
             return (
                 recurringWork?.reminderHealth() ?? {

@@ -200,7 +200,7 @@ export function TriggerDetailPanel({
                 onOpenChange={(open) => !open && setConfirm(null)}
             />
             <TriggerConfirmDialog
-                body="This removes the trigger and its fire history. Receipts already posted in chat stay."
+                body="This removes the trigger immediately. Recent fire history stays in Agent history for 30 days, and messages already posted keep their provenance mark."
                 confirmLabel="Delete Trigger"
                 heading={`Delete ${trigger.title}?`}
                 isOpen={confirm === 'delete'}

@@ -129,11 +129,16 @@ export async function deleteAgentTrigger(
     request: FastifyRequest,
     triggerId: string
 ) {
-    await deleteTrigger(db, runner.agentId, {
-        origin: publicOrigin(request),
-        serverId: runner.serverId,
-        triggerId,
-    });
+    await deleteTrigger(
+        db,
+        runner.agentId,
+        {
+            origin: publicOrigin(request),
+            serverId: runner.serverId,
+            triggerId,
+        },
+        clock
+    );
     return { deleted: true as const, id: triggerId };
 }
 

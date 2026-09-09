@@ -4,6 +4,9 @@ import * as z from 'zod';
 const idSchema = z.string().trim().min(1);
 const timestampSchema = z.iso.datetime({ offset: true });
 
+/** Fire history is retained for the same bounded window across automations. */
+export const AUTOMATION_HISTORY_RETENTION_DAYS = 30;
+
 /** Largest trigger payload the thread context card carries. */
 export const automationPayloadExcerptMaxChars = 8192;
 /** Largest instruction, script, and anchor snippet the provenance surfaces carry. */

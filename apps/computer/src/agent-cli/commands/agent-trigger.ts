@@ -107,7 +107,7 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
         name: 'delete',
         positionals: [],
         run: (args) => runTriggerDelete(args, defaultTriggerDeps()),
-        summary: 'Delete a trigger nobody uses, along with its fire history',
+        summary: 'Remove a trigger while retaining its recent fire history',
         usage: 'grotto trigger delete --id <id>',
     },
     {

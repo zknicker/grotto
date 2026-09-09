@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { AUTOMATION_HISTORY_RETENTION_DAYS } from './automation.ts';
 import { idSchema, reminderChangedEventSchema } from './chat.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -30,7 +31,7 @@ export type Reminder = z.infer<typeof reminderSchema>;
  * days after it happened, and deletes fired one-shot and canceled reminders
  * this many days after they settled.
  */
-export const REMINDER_HISTORY_RETENTION_DAYS = 30;
+export const REMINDER_HISTORY_RETENTION_DAYS = AUTOMATION_HISTORY_RETENTION_DAYS;
 
 export const reminderListInputSchema = z
     .object({

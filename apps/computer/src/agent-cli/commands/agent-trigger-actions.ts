@@ -112,7 +112,7 @@ export async function runTriggerDelete(args: ParsedArgs, deps: TriggerDeps): Pro
         { method: 'DELETE' }
     );
     deps.write(
-        `Deleted trigger ${response.id}. Its fire history is gone; the chat receipts stay.\n`
+        `Removed trigger ${response.id}. Recent fire history stays in the Agent profile for 30 days; provenance marks stay with their messages.\n`
     );
     return 0;
 }

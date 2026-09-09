@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { AUTOMATION_HISTORY_RETENTION_DAYS } from './automation.ts';
 import { idSchema } from './chat.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -14,6 +15,10 @@ export const triggerDedupeKeyMaxLength = 200;
 /** Fire history page size: the default and the ceiling for `log --limit`. */
 export const triggerLogLimitDefault = 50;
 export const triggerLogLimitMax = 100;
+/** Agent-profile history page size and shared fire-history retention window. */
+export const TRIGGER_HISTORY_LIMIT_DEFAULT = 200;
+export const TRIGGER_HISTORY_LIMIT_MAX = 500;
+export const TRIGGER_HISTORY_RETENTION_DAYS = AUTOMATION_HISTORY_RETENTION_DAYS;
 /** Minted secret prefix. The rest is 32 random bytes, base64url. */
 export const triggerSecretPrefix = 'grtt_';
 
@@ -85,7 +90,6 @@ export const triggerFireSchema = z
         dedupeKey: z.string().nullable(),
         id: idSchema,
         payloadBytes: z.number().int().nonnegative(),
-        /** The legacy chat receipt; fires stopped writing one. */
         receivedAt: timestampSchema,
         triggerId: idSchema,
     })
@@ -119,6 +123,40 @@ export const triggerIdInputSchema = z
 export const triggerRunsInputSchema = triggerIdInputSchema;
 
 export const triggerRunsSchema = z.array(triggerFireSchema);
+
+export const triggerHistoryInputSchema = z
+    .object({
+        agentId: idSchema,
+        limit: z
+            .number()
+            .int()
+            .min(1)
+            .max(TRIGGER_HISTORY_LIMIT_MAX)
+            .default(TRIGGER_HISTORY_LIMIT_DEFAULT),
+        serverId: idSchema,
+    })
+    .strict();
+
+/** One retained Trigger fire as shown in the Agent profile history drawer. */
+export const triggerHistoryEntrySchema = z
+    .object({
+        /** The Agent's marked answer to this fire, when it has posted one. */
+        answer: z.object({ chatId: idSchema, messageId: idSchema }).strict().nullable(),
+        contentType: z.string().nullable(),
+        dedupeKey: z.string().nullable(),
+        fireId: idSchema,
+        firedAt: timestampSchema,
+        payloadBytes: z.number().int().nonnegative(),
+        /** Non-null while the retained Trigger is a deletion tombstone. */
+        triggerDeletedAt: timestampSchema.nullable(),
+        title: z.string().min(1).max(triggerTitleMaxLength),
+        triggerId: idSchema,
+    })
+    .strict();
+
+export type TriggerHistoryEntry = z.infer<typeof triggerHistoryEntrySchema>;
+
+export const triggerHistorySchema = z.array(triggerHistoryEntrySchema);
 
 /** Rotate, delete, and test each address one existing trigger and nothing else. */
 export const triggerRotateInputSchema = triggerIdInputSchema;

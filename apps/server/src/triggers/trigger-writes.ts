@@ -1,5 +1,5 @@
 import type { ServerDurableEvent, Trigger, TriggerKind, TriggerStatus } from '@grotto/api';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { retireQueuedItemsByDedupeKeys } from '../agent-delivery/store.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -164,18 +164,35 @@ export async function rotateTriggerSecretRow(
 }
 
 /**
- * Deletes one trigger and its fire history, and retires the owner's queued
- * fires with it: a fire envelope lives only in the delivery queue, so a fire
- * left queued for a deleted trigger would wake its Agent forever.
+ * Tombstones one trigger and retires the owner's queued fires with it. The
+ * fire rows remain history until the retention sweep removes the tombstone;
+ * a fire envelope lives only in the delivery queue, so a queued fire for a
+ * removed trigger must not wake its Agent forever.
  */
 export async function deleteTriggerRow(
     db: GrottoDatabase,
     input: { serverId: string; triggerId: string },
-    authorize: TriggerAuthorization
+    authorize: TriggerAuthorization,
+    clock: TriggerClock
 ): Promise<void> {
+    const now = clock.now();
     await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await authorize(tx);
+        const [current] = await tx
+            .select()
+            .from(triggersTable)
+            .where(
+                and(
+                    eq(triggersTable.serverId, input.serverId),
+                    eq(triggersTable.id, input.triggerId),
+                    isNull(triggersTable.deletedAt)
+                )
+            )
+            .for('update');
+        if (!current) {
+            throw new TriggerNotFoundError();
+        }
         const fires = await tx
             .select({ id: triggerFiresTable.id })
             .from(triggerFiresTable)
@@ -190,11 +207,19 @@ export async function deleteTriggerRow(
             serverId: input.serverId,
         });
         const deleted = await tx
-            .delete(triggersTable)
+            .update(triggersTable)
+            .set({
+                deletedAt: now,
+                disabledAt: current.disabledAt ?? now,
+                status: 'disabled',
+                updatedAt: now,
+                version: current.version + 1,
+            })
             .where(
                 and(
                     eq(triggersTable.serverId, input.serverId),
-                    eq(triggersTable.id, input.triggerId)
+                    eq(triggersTable.id, input.triggerId),
+                    isNull(triggersTable.deletedAt)
                 )
             )
             .returning({ id: triggersTable.id });

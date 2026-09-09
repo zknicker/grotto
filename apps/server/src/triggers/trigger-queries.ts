@@ -22,7 +22,8 @@ export async function listOwnedTriggers(
         .where(
             and(
                 eq(triggersTable.serverId, input.serverId),
-                eq(triggersTable.ownerAgentId, input.agentId)
+                eq(triggersTable.ownerAgentId, input.agentId),
+                isNull(triggersTable.deletedAt)
             )
         )
         .orderBy(asc(triggersTable.createdAt), asc(triggersTable.id));
@@ -43,7 +44,8 @@ export async function readOwnedTrigger(
             and(
                 eq(triggersTable.serverId, input.serverId),
                 eq(triggersTable.id, input.triggerId),
-                eq(triggersTable.ownerAgentId, input.agentId)
+                eq(triggersTable.ownerAgentId, input.agentId),
+                isNull(triggersTable.deletedAt)
             )
         )
         .limit(1);
@@ -66,7 +68,11 @@ export async function readTrigger(
 ): Promise<Trigger> {
     const [row] = await triggerRows(db)
         .where(
-            and(eq(triggersTable.serverId, input.serverId), eq(triggersTable.id, input.triggerId))
+            and(
+                eq(triggersTable.serverId, input.serverId),
+                eq(triggersTable.id, input.triggerId),
+                isNull(triggersTable.deletedAt)
+            )
         )
         .limit(1);
     if (!row) {

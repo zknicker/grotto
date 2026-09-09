@@ -1,7 +1,9 @@
 import type { Agent } from '@grotto/api';
-import { Button, Separator } from '@heroui/react';
+import { Button, Separator, Tooltip } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
+import { HistoryIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentReminders } from '../../../hooks/members/use-agent-reminders.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { AgentLoading } from './agent-loading.tsx';
@@ -34,14 +36,19 @@ export function AgentReminders({ agent, server }: { agent: Agent; server: Server
             <ProfileListSection
                 action={
                     canView ? (
-                        <Button
-                            onPress={() => setHistoryOpen(true)}
-                            size="sm"
-                            type="button"
-                            variant="secondary"
-                        >
-                            History
-                        </Button>
+                        <Tooltip delay={0}>
+                            <Button
+                                aria-label="View reminder history"
+                                isIconOnly
+                                onPress={() => setHistoryOpen(true)}
+                                size="sm"
+                                type="button"
+                                variant="secondary"
+                            >
+                                <Icon aria-hidden="true" icon={HistoryIcon} size={16} />
+                            </Button>
+                            <Tooltip.Content>View reminder history</Tooltip.Content>
+                        </Tooltip>
                     ) : null
                 }
                 count={scheduled.length}

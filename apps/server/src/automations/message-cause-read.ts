@@ -42,6 +42,7 @@ export async function readMessageCauses(
             .select({
                 ...snapshot,
                 automationId: messageCausesTable.triggerId,
+                deletedAt: triggersTable.deletedAt,
                 fireCount: triggersTable.fireCount,
                 fireId: messageCausesTable.triggerFireId,
                 firePresent: triggerFiresTable.id,
@@ -103,7 +104,7 @@ export async function readMessageCauses(
             continue;
         }
         const live: MessageCauseLive | null =
-            row.firePresent && row.status
+            row.firePresent && row.status && !row.deletedAt
                 ? {
                       fireCount: Math.max(row.fireCount ?? 1, 1),
                       instruction: snippet(row.instruction),

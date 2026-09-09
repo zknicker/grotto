@@ -87,13 +87,14 @@ export async function rotateTriggerSecret(
     return await rotateTriggerSecretRow(db, input, ownedBy(agentId, input), clock);
 }
 
-/** Deletes one trigger and its fire history. Chat receipts remain. */
+/** Removes one Trigger from active use while retaining its recent fire history. */
 export async function deleteTrigger(
     db: GrottoDatabase,
     agentId: string,
-    input: { origin: string; serverId: string; triggerId: string }
+    input: { origin: string; serverId: string; triggerId: string },
+    clock: TriggerClock
 ): Promise<void> {
-    await deleteTriggerRow(db, input, ownedBy(agentId, input));
+    await deleteTriggerRow(db, input, ownedBy(agentId, input), clock);
 }
 
 /** The Agent authorization every verb shares: it owns the row and can still reach the anchor. */

@@ -36,6 +36,8 @@ export const triggersTable = pgTable(
         createdByUserId: text('created_by_user_id').references(() => usersTable.id, {
             onDelete: 'set null',
         }),
+        /** Deletion tombstone; retained until Trigger history retention expires. */
+        deletedAt: timestamp('deleted_at', { withTimezone: true }),
         disabledAt: timestamp('disabled_at', { withTimezone: true }),
         fireCount: integer('fire_count').notNull().default(0),
         id: text('id').primaryKey(),
@@ -55,6 +57,7 @@ export const triggersTable = pgTable(
     (table) => [
         unique('triggers_server_id_key').on(table.serverId, table.id),
         index('triggers_owner_idx').on(table.serverId, table.ownerAgentId),
+        index('triggers_deleted_idx').on(table.serverId, table.deletedAt),
         foreignKey({
             columns: [table.serverId, table.ownerAgentId],
             foreignColumns: [agentsTable.serverId, agentsTable.id],
@@ -76,6 +79,10 @@ export const triggersTable = pgTable(
         }),
         check('triggers_kind', sql`${table.kind} in ('webhook')`),
         check('triggers_status', sql`${table.status} in ('armed', 'disabled')`),
+        check(
+            'triggers_deleted_status',
+            sql`${table.deletedAt} is null or ${table.status} = 'disabled'`
+        ),
         check('triggers_positive_version', sql`${table.version} > 0`),
         check('triggers_nonnegative_fire_count', sql`${table.fireCount} >= 0`),
         check('triggers_title_length', sql`char_length(${table.title}) between 1 and 200`),

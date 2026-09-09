@@ -260,6 +260,13 @@
       "when": 1788969603780,
       "tag": "0036_durable_message_reactions",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1788976325744,
+      "tag": "0037_trigger_history_retention",
+      "breakpoints": true
     }
   ]
 }

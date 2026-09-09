@@ -1,10 +1,14 @@
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 
-/** Saves the editable half of one Trigger and refreshes the list it appears in. */
+/** Saves one Trigger and refreshes both its active row and history label. */
 export function useTriggerUpdate(serverId: string, agentId: string) {
     const utils = grottoTrpc.useUtils();
     const mutation = grottoTrpc.trigger.update.useMutation({
-        onSuccess: () => utils.trigger.list.invalidate({ agentId, serverId }),
+        onSuccess: async () =>
+            await Promise.all([
+                utils.trigger.history.invalidate({ agentId, serverId }),
+                utils.trigger.list.invalidate({ agentId, serverId }),
+            ]),
     });
 
     return {

@@ -362,7 +362,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/agent/actions/prepare": {
+    "/api/agent/agents": {
         parameters: {
             query?: never;
             header?: never;
@@ -371,8 +371,42 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Prepare a native action card from the calling Agent. */
-        post: operations["prepareAgentAction"];
+        /** Create a Grotto Agent and post the Message that carries it. */
+        post: operations["createAgentFromAgent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/agents/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update another Agent's description. */
+        post: operations["updateAgentFromAgent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/agents/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate and set another Agent's avatar. */
+        post: operations["setAgentAvatarFromAgent"];
         delete?: never;
         options?: never;
         head?: never;
@@ -509,6 +543,23 @@ export interface paths {
         get: operations["getAgentChannelMembers"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/channels/add": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put another Agent in a channel. */
+        post: operations["addAgentToChannel"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1094,95 +1145,85 @@ export interface components {
             nonce?: string;
             cause?: string;
         };
-        AgentActionPrepareRequest: {
-            action: components["schemas"]["ActionCardAction"];
-            avatar: {
-                bytesBase64: string;
-                /** @enum {string} */
-                mediaType: "image/jpeg" | "image/png" | "image/webp";
-            };
+        AgentCreateAgentRequest: {
+            /** @default null */
+            avatarConcept: string | null;
+            /** @default null */
+            brief: string | null;
+            /** @default [] */
+            channels: string[];
+            content: string;
+            description: string;
+            displayName: string;
             nonce: string;
             target: string;
         };
-        ActionCardAction: components["schemas"]["AgentCreateAction"];
-        AgentCreateAction: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            kind: "agent:create";
-            name: string;
-            /** @default null */
+        CreatedAgentSummary: {
+            agentId: string;
+            avatarUrl: string | null;
             description: string | null;
-            /** @default null */
-            computer: null | components["schemas"]["PreparedActionComputer"];
+            displayName: string;
+            handle: string;
+            retired: boolean;
         };
-        PreparedActionComputer: {
-            /** @enum {string} */
-            kind: "required" | "suggested";
-            computerId: string;
-            label?: string | null;
-        };
-        PreparedActionMedia: {
-            byteSize: number;
-            id: string;
-            /** @enum {string} */
-            mediaType: "image/jpeg" | "image/png" | "image/webp";
-            sha256: string;
-            url: string;
-        };
-        AgentCreatePreparedAction: {
-            chatId: string;
-            createdAt: components["schemas"]["Timestamp"];
-            /** Format: date-time */
-            executedAt: string | null;
-            executedByUserId: string | null;
-            id: string;
+        AgentCreatedAvatarOutcome: {
             /** @constant */
-            kind: "agent:create";
-            messageId: string;
-            proposerAgentId: string;
-            proposal: {
-                /** @constant */
-                kind: "agent:create";
-                name: string;
-                /** @default null */
-                description: string | null;
-                /** @default null */
-                computer: null | components["schemas"]["PreparedActionComputer"];
-                avatar: components["schemas"]["PreparedActionMedia"];
-            };
-            /** @enum {string} */
-            status: "pending" | "executed" | "superseded";
-            /** Format: date-time */
-            supersededAt: string | null;
-            supersededByActionId: string | null;
+            status: "none";
+        } | {
+            byteSize: number;
+            /** @constant */
+            status: "generated";
+        } | {
+            /** @constant */
+            code: "AVATAR_PROVIDER_UNAVAILABLE";
+            note: string;
+            /** @constant */
+            status: "unavailable";
         };
-        UnknownPreparedAction: {
+        AgentCreateAgentResponse: {
+            agent: components["schemas"]["CreatedAgentSummary"];
+            avatar: components["schemas"]["AgentCreatedAvatarOutcome"];
+            channels: string[];
             chatId: string;
-            createdAt: components["schemas"]["Timestamp"];
-            /** Format: date-time */
-            executedAt: string | null;
-            executedByUserId: string | null;
-            id: string;
-            kind: string;
-            messageId: string;
-            proposerAgentId: string;
-            proposal: components["schemas"]["JsonObject"];
-            /** @enum {string} */
-            status: "pending" | "executed" | "superseded";
-            /** Format: date-time */
-            supersededAt: string | null;
-            supersededByActionId: string | null;
-        };
-        PreparedAction: components["schemas"]["AgentCreatePreparedAction"] | components["schemas"]["UnknownPreparedAction"];
-        AgentActionPrepareResponse: {
-            action: components["schemas"]["PreparedAction"];
-            chatId: string;
+            computerId: string;
             idempotent: boolean;
             messageId: string;
+            modelId: string;
+            /** @enum {string} */
+            reasoningEffort: "low" | "medium" | "high";
+            runtimeId: string;
             sequence: number;
             target: string;
+        };
+        AgentAddChannelAgentRequest: {
+            agent: string;
+            target: string;
+        };
+        AgentAddChannelAgentResponse: {
+            added: boolean;
+            handle: string;
+            target: string;
+        };
+        AgentUpdateAgentRequest: {
+            agent: string;
+            description: string;
+        };
+        AgentUpdateAgentResponse: {
+            agent: components["schemas"]["CreatedAgentSummary"];
+        };
+        AgentSetAgentAvatarRequest: {
+            agent: string;
+            concept: string;
+        };
+        AgentSetAgentAvatarResponse: {
+            agent: components["schemas"]["CreatedAgentSummary"];
+            avatar: {
+                byteSize: number;
+                height: number;
+                /** @enum {string} */
+                mediaType: "image/jpeg" | "image/png" | "image/webp";
+                width: number;
+            };
         };
         AgentSentMessage: {
             /**
@@ -1719,7 +1760,7 @@ export interface components {
             role: "user" | "assistant" | "system";
             content: string;
             /** @enum {string} */
-            body_kind: "text" | "ask" | "cloud-agent-work";
+            body_kind: "text" | "ask" | "cloud-agent-work" | "agent-created";
             attachments: components["schemas"]["JsonObject"][];
             nonce: string | null;
             delivery_id: components["schemas"]["DeliveryId"] | null;
@@ -1729,8 +1770,8 @@ export interface components {
             task?: components["schemas"]["MessageTask"] | null;
             ask?: components["schemas"]["MessageAsk"] | null;
             cloud_agent_work?: components["schemas"]["MessageCloudAgentWork"] | null;
+            agent_created?: components["schemas"]["MessageAgentCreated"] | null;
             reactions?: components["schemas"]["MessageReaction"][];
-            preparedAction?: components["schemas"]["PreparedAction"];
         };
         MessageAsk: {
             id: string;
@@ -1739,6 +1780,13 @@ export interface components {
             addressee_handle: string | null;
             title: string;
             recommended_step: string;
+        };
+        MessageAgentCreated: {
+            agent_id: string;
+            handle: string;
+            display_name: string;
+            description: string | null;
+            retired: boolean;
         };
         MessageCloudAgentWork: {
             id: string;
@@ -2750,7 +2798,7 @@ export interface operations {
             default: components["responses"]["AgentSendError"];
         };
     };
-    prepareAgentAction: {
+    createAgentFromAgent: {
         parameters: {
             query?: never;
             header?: never;
@@ -2759,17 +2807,67 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentActionPrepareRequest"];
+                "application/json": components["schemas"]["AgentCreateAgentRequest"];
             };
         };
         responses: {
-            /** @description Prepared or idempotently replayed action card. */
+            /** @description Created or idempotently replayed Agent. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentActionPrepareResponse"];
+                    "application/json": components["schemas"]["AgentCreateAgentResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    updateAgentFromAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentUpdateAgentRequest"];
+            };
+        };
+        responses: {
+            /** @description The Agent after the update. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentUpdateAgentResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    setAgentAvatarFromAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentSetAgentAvatarRequest"];
+            };
+        };
+        responses: {
+            /** @description The Agent and the avatar now set on it. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentSetAgentAvatarResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
@@ -2988,6 +3086,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentChannelMembers"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    addAgentToChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentAddChannelAgentRequest"];
+            };
+        };
+        responses: {
+            /** @description The channel and the Agent now in it. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentAddChannelAgentResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

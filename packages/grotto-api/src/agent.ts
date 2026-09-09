@@ -5,14 +5,12 @@ export * from './computer-inventory.ts';
 import * as z from 'zod';
 import { agentTurnActivitySummarySchema } from './agent-activity.ts';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
-import { workspacePathSchema } from './agent-runner.ts';
+import { workspacePathSchema } from './agent-workspace-files.ts';
 import { avatarBytesInputSchema } from './avatar.ts';
 import { idSchema } from './chat.ts';
 import { participantHandleSchema } from './participant-handle.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
-
-export const agentRoleSchema = z.enum(['admin', 'member']);
 
 export { agentReasoningEffortSchema } from './agent-execution.ts';
 
@@ -79,6 +77,7 @@ export const agentSchema = z
         avatarUrl: z.string().nullable(),
         computerId: idSchema,
         createdAt: timestampSchema,
+        createdByAgentId: z.string().nullable(),
         createdByUserId: z.string().nullable(),
         description: z.string().max(500).nullable(),
         desiredModelId: z.string(),
@@ -95,15 +94,12 @@ export const agentSchema = z
         handle: z.string(),
         id: idSchema,
         missingResources: z.array(z.string()),
-        role: agentRoleSchema,
         serverId: idSchema,
         status: agentStatusSchema,
     })
     .strict();
 
 export type Agent = z.infer<typeof agentSchema>;
-
-export const agentHandleSchema = participantHandleSchema;
 
 /** Creating an Agent binds it to exactly one reported Computer, runtime, and model. */
 export const createAgentInputSchema = z
@@ -112,10 +108,9 @@ export const createAgentInputSchema = z
         computerId: idSchema,
         description: z.string().trim().min(1).max(500).nullable().optional(),
         displayName: z.string().trim().min(1).max(80),
-        handle: agentHandleSchema,
+        handle: participantHandleSchema,
         modelId: z.string().trim().min(1).max(128),
         reasoningEffort: agentReasoningEffortSchema.default('medium'),
-        role: agentRoleSchema.default('member'),
         runtimeId: z.string().trim().min(1).max(64),
         serverId: idSchema,
     })
@@ -383,16 +378,15 @@ export type AgentSessionRotation = z.infer<typeof agentSessionRotationSchema>;
  * One durable delivery of one unit of work to one Agent. `seen` rows are
  * retained after settlement with the `turnId` that consumed them, so an
  * observer can tell "the Agent never received it" from "the Agent received it
- * and said nothing". Non-Chat action work identifies its action explicitly.
+ * and said nothing".
  */
 export const agentDeliveryRecordSchema = z
     .object({
         acceptedAt: timestampSchema.nullable(),
-        actionId: idSchema.nullable(),
         agentId: idSchema,
         chatId: idSchema,
         createdAt: timestampSchema,
-        /** Null for non-Chat work such as a committed action attention. */
+        /** Null for typed work that carries no Chat message. */
         messageId: z.string().trim().min(1).max(128).nullable(),
         source: z.string().trim().min(1).max(64),
         seenAt: timestampSchema.nullable(),

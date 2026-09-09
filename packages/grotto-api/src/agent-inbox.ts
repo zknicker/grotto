@@ -8,23 +8,9 @@ import {
     cloudAgentSummaryMaxLength,
     cloudAgentTitleSchema,
 } from './cloud-agent-shared.ts';
-import { agentCreateActionResultSchema } from './prepared-actions.ts';
 import { messageTaskSchema } from './task-shared.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
-
-/** A committed prepared action's terminal result, addressed by action identity. */
-export const agentActionAttentionSchema = z
-    .object({
-        actionId: idSchema,
-        chatId: idSchema,
-        createdAgentId: idSchema,
-        executedResult: agentCreateActionResultSchema,
-        kind: z.literal('agent:create'),
-    })
-    .strict();
-
-export type AgentActionAttention = z.infer<typeof agentActionAttentionSchema>;
 
 /**
  * A settled Cloud Agent Run's terminal attention for the Agent that delegated
@@ -65,9 +51,8 @@ export const agentInboxItemSchema = z
         content: z.string().max(32_000),
         createdAt: timestampSchema,
         id: idSchema,
-        /** Typed Server attention; unlike a Chat message, it has no message cursor. */
-        actionAttention: agentActionAttentionSchema.optional(),
         ask: inboxAskSchema.optional(),
+        /** Typed Server attention; unlike a Chat message, it has no message cursor. */
         cloudAgentWork: cloudAgentWorkAttentionSchema.optional(),
         /** Canonical Agent API shape cached for Computer-local message checks. */
         message: z.record(z.string(), z.unknown()).optional(),
@@ -82,22 +67,13 @@ export const agentInboxItemSchema = z
         threadFollowReactivated: z.boolean().optional(),
     })
     .strict()
-    .refine((item) => !(item.actionAttention && item.cloudAgentWork), {
-        message: 'An inbox item carries at most one typed attention.',
-        path: ['cloudAgentWork'],
-    })
     .refine(
         (item) =>
-            item.actionAttention
+            item.cloudAgentWork
                 ? item.sequence === 0 &&
-                  item.id === item.actionAttention.actionId &&
-                  item.chatId === item.actionAttention.chatId &&
+                  item.id === item.cloudAgentWork.runId &&
                   item.senderType === 'system'
-                : item.cloudAgentWork
-                  ? item.sequence === 0 &&
-                    item.id === item.cloudAgentWork.runId &&
-                    item.senderType === 'system'
-                  : item.sequence > 0,
+                : item.sequence > 0,
         {
             message: 'Typed attentions use their own identity and zero Chat sequence.',
             path: ['sequence'],

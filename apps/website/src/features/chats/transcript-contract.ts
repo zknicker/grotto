@@ -85,7 +85,7 @@ export interface TranscriptMessageMetadata extends Record<string, unknown> {
 }
 
 export interface TranscriptMessageReaction {
-    actors: Array<{ handle: string | null; id: string }>;
+    actors: Array<{ handle: string | null; id: string; kind: 'agent' | 'human' }>;
     emoji: string;
 }
 

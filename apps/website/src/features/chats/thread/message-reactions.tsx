@@ -27,9 +27,9 @@ export function MessageReactionPills({ row }: { row: TranscriptMessageRow }) {
     return (
         <>
             {reactions.map((reaction) => {
-                const own = hasOwnReaction(row, reaction.emoji);
+                const own = hasOwnReaction(row, reaction.emoji, context?.viewerUserId);
                 const handles = reaction.actors
-                    .map(({ handle, id }) => handle ?? (id === 'usr_grotto' ? 'you' : id))
+                    .map(({ handle, id }) => handle ?? (id === context?.viewerUserId ? 'you' : id))
                     .join(', ');
 
                 return (
@@ -89,7 +89,7 @@ export function MessageReactionActions({
                             toggle({
                                 emoji,
                                 messageId: row.message.id,
-                                remove: hasOwnReaction(row, emoji),
+                                remove: hasOwnReaction(row, emoji, context?.viewerUserId),
                             })
                         }
                     >
@@ -130,7 +130,7 @@ export function MessageReactionPicker({
                         toggle({
                             emoji: key,
                             messageId: row.message.id,
-                            remove: hasOwnReaction(row, key),
+                            remove: hasOwnReaction(row, key, context?.viewerUserId),
                         });
                     }
                 }}
@@ -184,7 +184,7 @@ export function QuickReactionStrip({ row }: { row: TranscriptMessageRow }) {
                         toggle({
                             emoji,
                             messageId: row.message.id,
-                            remove: hasOwnReaction(row, emoji),
+                            remove: hasOwnReaction(row, emoji, context?.viewerUserId),
                         })
                     }
                     size="sm"
@@ -197,11 +197,13 @@ export function QuickReactionStrip({ row }: { row: TranscriptMessageRow }) {
     );
 }
 
-export function hasOwnReaction(row: TranscriptMessageRow, emoji: string) {
+export function hasOwnReaction(row: TranscriptMessageRow, emoji: string, viewerUserId?: string) {
     return (
-        row.message.reactions
+        viewerUserId !== undefined &&
+        (row.message.reactions
             ?.find((reaction) => reaction.emoji === emoji)
-            ?.actors.some(({ id }) => id === 'usr_grotto') ?? false
+            ?.actors.some(({ id }) => id === viewerUserId) ??
+            false)
     );
 }
 

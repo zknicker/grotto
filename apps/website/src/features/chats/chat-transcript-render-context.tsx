@@ -110,6 +110,7 @@ export interface TranscriptRenderContextValue {
         access: 'journal' | 'summary';
         serverId: string;
     };
+    viewerUserId?: string;
 }
 
 const TranscriptRenderContext = React.createContext<TranscriptRenderContextValue | null>(null);

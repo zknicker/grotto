@@ -53,7 +53,7 @@ export function MessageContextMenu({
             context?.onToggleReaction?.({
                 emoji,
                 messageId: row.message.id,
-                remove: hasOwnReaction(row, emoji),
+                remove: hasOwnReaction(row, emoji, context?.viewerUserId),
             });
         }
     };

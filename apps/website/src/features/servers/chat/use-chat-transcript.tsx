@@ -2,6 +2,7 @@ import type { ChatMessage, ThreadSummary } from '@grotto/api';
 import * as React from 'react';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';
+import { useChatMessageReaction } from '../../../hooks/servers/use-chat-message-reaction.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useChatCloudAgentWork } from '../../../hooks/servers/use-cloud-agent-work.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
@@ -19,7 +20,6 @@ import { deriveSessionMarks } from '../../chats/session/session-mark-model.ts';
 import { indexCloudAgentWorkByThreadAnchor } from '../../cloud-agents/hoisted-cloud-agent-work.ts';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { useResolveActorProfile } from './chat-actor-profiles.ts';
-import { applyLocalReactions, useLocalChatReactions } from './chat-local-reactions.ts';
 import {
     emptyChatAgents,
     emptyChatMessages,
@@ -82,24 +82,29 @@ export function useChatTranscript({
     const chats = useChats(serverId);
     const download = useAttachmentDownload();
     const humans = useHumanDirectory(serverId);
-    const { onToggleReaction, reactions } = useLocalChatReactions();
+    const reaction = useChatMessageReaction(chatId);
+    const toggleReaction = React.useCallback(
+        (input: { emoji: string; messageId: string; remove: boolean }) => {
+            if (viewerUserId) {
+                reaction.mutate({ ...input, serverId });
+            }
+        },
+        [reaction.mutate, serverId, viewerUserId]
+    );
+    const onToggleReaction = viewerUserId ? toggleReaction : undefined;
     const projectedRows = useStableChatMessageRows({
         agents: agentList,
         humans,
         messages: messageList,
         threads,
     });
-    const durableRows = React.useMemo(
-        () => applyLocalReactions(projectedRows, reactions),
-        [projectedRows, reactions]
-    );
     const pendingRows = React.useMemo(
         () => (viewerUserId ? projectPendingChatMessageRows(pendingMessages, viewerUserId) : []),
         [pendingMessages, viewerUserId]
     );
     const rows = React.useMemo(
-        () => (pendingRows.length === 0 ? durableRows : [...durableRows, ...pendingRows]),
-        [durableRows, pendingRows]
+        () => (pendingRows.length === 0 ? projectedRows : [...projectedRows, ...pendingRows]),
+        [pendingRows, projectedRows]
     );
     const agentsById = React.useMemo(
         () => new Map(agentList.map((agent) => [agent.id, agent])),
@@ -255,6 +260,7 @@ export function useChatTranscript({
                 shouldAnimateItemEnter: () => false,
                 taskChipHiddenMessageId,
                 threadActionsEnabled: Boolean(onOpenThread),
+                viewerUserId,
             }) satisfies TranscriptRenderContextValue,
         [
             agentList,
@@ -278,6 +284,7 @@ export function useChatTranscript({
             sessionMarks,
             taskChipHiddenMessageId,
             turnDetailsAccess,
+            viewerUserId,
         ]
     );
 

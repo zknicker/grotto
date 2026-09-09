@@ -41,25 +41,49 @@ public struct TaskListItem: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
+/// The `task.list` result. `backgroundCount` is how many background-tier tasks
+/// the same query hid, so a lens can say "N background" without a second round
+/// trip; it is 0 whenever `includeBackground` already widened the lens.
+public struct TaskList: Decodable, Equatable, Sendable {
+    public let backgroundCount: Int
+    public let tasks: [TaskListItem]
+
+    public init(backgroundCount: Int, tasks: [TaskListItem]) {
+        self.backgroundCount = backgroundCount
+        self.tasks = tasks
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case backgroundCount
+        case tasks
+    }
+}
+
 /// Input for `task.list`. `chatId` is omitted when the Tasks lens spans the
 /// Server; the Server contract treats it as an optional filter.
+/// `includeBackground` is omitted unless a caller wants the background tier the
+/// Board and List hide; the Server defaults it to `false`.
 public struct TaskListInput: Encodable, Equatable, Sendable {
     public let chatID: String?
+    public let includeBackground: Bool?
     public let serverID: String
 
-    public init(serverID: String, chatID: String? = nil) {
+    public init(serverID: String, chatID: String? = nil, includeBackground: Bool? = nil) {
         self.chatID = chatID
+        self.includeBackground = includeBackground
         self.serverID = serverID
     }
 
     enum CodingKeys: String, CodingKey {
         case chatID = "chatId"
+        case includeBackground
         case serverID = "serverId"
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(chatID, forKey: .chatID)
+        try container.encodeIfPresent(includeBackground, forKey: .includeBackground)
         try container.encode(serverID, forKey: .serverID)
     }
 }

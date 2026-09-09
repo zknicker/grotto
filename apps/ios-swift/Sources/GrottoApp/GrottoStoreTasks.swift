@@ -7,14 +7,18 @@ import GrottoModels
 /// maintaining a second task cache. A parent surface can keep the returned
 /// snapshot in its own view state and replace it after each mutation.
 extension GrottoStore {
+    /// The tracked tasks a lens shows. Background-tier tasks stay hidden, so
+    /// the result's `backgroundCount` is dropped here rather than threaded
+    /// through the UI.
     func loadTasks(chatID: String? = nil) async throws -> [TaskListItem] {
         guard let serverID = activeServer?.id else {
             throw GrottoStoreError.serverUnavailable
         }
-        return try await client.query(
+        let list: TaskList = try await client.query(
             "task.list",
             input: TaskListInput(serverID: serverID, chatID: chatID)
         )
+        return list.tasks
     }
 
     @discardableResult

@@ -806,7 +806,11 @@ under the mark. Two things about it are the phone's own. The dot is a shade thin
 paragraph's `1.6` leading on the room under its words and the phone has none to spend: the text view
 clips to the height the row was measured at, so a rule below the line's descent would be cut in half
 on the last line of a message. A dot that would not fit whole inside the label is dropped rather
-than drawn clipped.
+than drawn clipped. Both ends of the rule are the label's own selection geometry — the rects
+`NSLayoutManager.enumerateEnclosingRects` reports for those characters — rather than a union of the
+label's per-glyph boxes, because a glyph's box is measured to wherever the next glyph starts, and
+across a bidi level boundary that is the neighbouring word: a Latin name inside a Hebrew sentence
+drew a rule running from the word before the mention, under the mark, and into the word after it.
 
 The mark's horizontal room is bought in the text itself. `RichMessageAttributedText` writes the
 reference as a run of two pieces — a zero-height `NSTextAttachment` wide enough for the mark and the

@@ -133,6 +133,31 @@ tokens stay plain text. For example, `@blippy` becomes
 - Ordinary web links use the same chip shell with the site's favicon and a
   globe fallback. Activating one opens the original URL. Agent and chat chips
   are interactive: they open the referenced Agent profile or channel.
+- The native iPhone app renders every chip kind above — Agent, human, Channel,
+  Skill, app, plugin, file, directory, pull request, and web link — through its
+  own TextKit capsule, with the same target precedence, the same label shaping
+  including the Skill and capability names the App spells out by hand, and
+  equivalent marks. Its composer offers the same three triggers the App
+  offers — `@` for Agents and humans, `#` for Channels, `$` for Skills — and a
+  Skill selection writes `[$name](skill://name)` into the draft. A chat preview
+  line reads a reference by its display label, so a preview says `Product` and
+  `Agent Browser` rather than `#product` and `$agent-browser`. A link the phone
+  does not chip — a `grotto://` workspace resource, a `mailto:` address, a
+  target naming no scheme — reads as its own underlined words rather than as
+  raw Markdown, the way the App renders it as an ordinary anchor. Tapping a
+  website or pull-request chip opens its URL, as does tapping a link whose
+  scheme the system routes; a tap on any other chip does nothing, where the App
+  opens an Agent or Channel or shows a hover card. Everything that opens is a
+  real link to the text engine, so VoiceOver lists it in the links rotor.
+  Copying a selection yields the labels and link words it crosses, which is
+  what copying the App's anchor text yields too. Two differences are
+  deliberate. It has no icon bytes to draw, so an app or a web link wears the
+  plug or the globe rather than a bundled icon or a favicon; the App's GitHub
+  and Chrome marks carry over, and Chrome's brand color inks its whole chip —
+  mark and label alike. It autolinks only explicit `http`/`https` addresses written in
+  prose, where the App's Markdown also autolinks `www.` prefixes and email
+  addresses. And no chip is a hover or preview surface.
+  See [iPhone App](../internals/ios.md).
 
 See [Rich References](../../specs/mentions.md) for the normative implementation
 contract.

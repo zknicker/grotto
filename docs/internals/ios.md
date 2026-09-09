@@ -694,20 +694,86 @@ resolve their current name, handle, and avatar from the member directory, with a
 when the directory no longer carries them.
 
 Native composers query `chat.mentionOptions` against either that durable Chat or the implicit Agent-DM
-target. `@` offers Agents and humans and `#` offers channels; selecting one writes the shared
-`agent://`, `user://`, or `chat://` markdown reference into the draft. The iPhone picker is a card
-standing on the composer input — the composer's own glass and horizontal inset, its resting corner,
-and rows grouped under a muted header naming the kind (Agents, then Humans, then Channels) so no row
-has to caption itself. The first row carries a soft highlight, the list caps at four and a half rows
+target. `@` offers Agents and humans, `#` offers channels, and `$` offers the Skills the chat's Agents
+carry; selecting one writes the shared `agent://`, `user://`, `chat://`, or `skill://` markdown
+reference into the draft. The Server sends a Skill's `insertText` bare where every other kind arrives
+with its sigil, so the composer adds the `$` and a Skill selection serializes as
+`[$agent-browser](skill://agent-browser)`, matching what the App compiles at submit. An option whose
+kind this build does not model drops that single row rather than failing the whole roster's decode.
+The iPhone picker is a card standing on the composer input — the composer's own glass and horizontal
+inset, its resting corner, and rows grouped under a muted header naming the kind (Agents, then Humans,
+then Channels, then Skills) so no row has to caption itself. A Skill row wears the sparkles glyph in
+the transcript chip's own purple ink, inside the neutral box and `box / 3` corner a channel row's
+`ChannelIconBox` uses. The first row carries a soft highlight, the list caps at four and a half rows
 and dissolves its bottom edge over the cut row, and the whole card springs up out of the composer
 edge on arrival and fades quickly on the way out (opacity only under Reduce Motion). Chat and Thread rows parse that
 markdown into chips and resolve live identity by immutable id — an Agent or human by avatar and current
 name, a channel by its `ChannelIconBox` glyph and configured color from the Chat list — falling back to
-the persisted label when the target is unresolvable. Chip and picker labels carry no `@` or `#`: the mark
+the persisted label when the target is unresolvable. Chip and picker labels carry no `@`, `#`, or `$`: the mark
 already says what the reference is, so `ReferenceLabel` strips the sigil from resolved and fallback labels
 alike and reads a channel's stored slug as a title, `onboarding-owner` as `Onboarding Owner`. The inserted
-markdown and the reference target are untouched. Human references remain visual and do not create
+markdown and the reference target are untouched, and a one-line chat or thread preview reads its
+references through the same labels — `Product` and `Agent Browser`, never `#product` or
+`$agent-browser` — while an ordinary web link keeps its own link text. Human references remain visual and do not create
 attention or notification behavior.
+
+The phone chips every kind the App chips, not just the three the picker offers. `RichReferenceWireForm`
+reads a link target in the App's own precedence — `agent://`, `user://`, `chat://`, `plugin://`,
+`app://computer-use/`, `skill://`, then a leading-`/` path split into a file or a directory by its final
+segment, then an `http(s)` link read as a pull request when the URL names one and as an ordinary site
+otherwise — and a target that matches none of them is still a link. The App renders one as an ordinary
+anchor, so the phone does too: `[report.html](grotto://workspace/out/report.html)`, the form the Agent
+system prompt tells Agents to write, reads as `report.html` underlined in the system link ink, never as
+its raw Markdown. A bare address in prose is chipped too, because the App's Markdown autolinks one
+before its chip renderer ever sees it; only explicit `http`/`https` addresses qualify, so a `www.`
+prefix or an email address stays prose on the phone where the App would link it. A leading `/` is the
+shared contract's whole path test, so a protocol-relative `//host` target reads as a path reference on
+both clients rather than as an address. `RichReferencePresentation.mark` names what the capsule draws — an
+avatar, a Channel's colored box, or a flat `GrottoIconName` glyph (sparkles for a Skill, a plug for an
+app or plugin, a file, a folder, a pull request, a globe) — and `ReferenceLabel` shapes what it says:
+a Skill id through the App's `formatSkillName` rules, a pull request as `#<n>`, a web link as its own
+words or, when those words are the URL, as its host. Skill labels take the App's `--skill-reference`
+purple; every other kind that carries no identity color reads in foreground ink, which is what the
+App's default chip foreground resolves to in both themes. `ReferenceLabel` also carries the label half
+of the App's `skillAppearanceOverrides` and `capabilityAppearanceOverrides` — `gh-issues` reads as
+`GitHub Issues`, `github` as `GitHub`, and every Chrome key as `Chrome` — read before the skill-name
+formatter, the way `getMentionDisplayLabel` reads them, and keyed the way `getMentionLookupKeys` keys
+them: a Mac app on its label alone, so `app://computer-use/com.google.Chrome` written as `Chrome` takes
+the Chrome name and mark while the same bundle id written as `Google Chrome` keeps its words and the
+plug; every other kind on its own target ahead of its words. The Skill mark is drawn smaller than the rest,
+mirroring the App's 16px against 18px.
+
+The glyph half of those overrides carries over with the labels: a GitHub Skill wears the GitHub mark
+in the Skill's own purple, and every Chrome key wears the Chrome mark in the App's `--success` brand
+ink. A brand ink takes the whole chip foreground, mark and label both, because the App's `brandColor`
+lands on `--chip-fg`. A picker row shows only the marks the composer's own triggers reach, which for an
+override means a Skill, and no Skill override names a brand ink: a `$gh-issues` row swaps the sparkles
+for the GitHub mark and keeps the Skill's purple, as it does on the App.
+
+Two gaps are deliberate. The App fetches a favicon for a web link and a bundled icon for a Mac app,
+and the wire form carries neither, so the phone draws the globe and the plug instead. And the App's
+`image` kind has no wire scheme at all — it is a composer attachment there — so nothing can persist one
+and the phone does not model it.
+
+A chip is not a hover surface, so activation is the phone's only interaction and it is deliberately
+narrow. What opens is a real `.link` attribute, written by `RichMessageAttributedText` over a link
+run's words and over a chip's whole run, spacers included, so the capsule's padding is live rather
+than a dead margin. Only the schemes the system routes qualify, which is `http`, `https`, `mailto`,
+and `tel`: a website or pull-request chip opens its address, a `grotto://` resource draws as a link
+and stays inert because nothing on the phone routes one yet, and an Agent or Channel chip carries no
+`.link` at all, where the App opens a profile or a channel. UIKit's own link machinery decides the
+tap, and `RichMessageLinkCoordinator` — the representable's `UITextViewDelegate` — decides only what
+it means: `textView(_:primaryActionFor:defaultAction:)` returns a `UIAction` that hands the address
+to `UIApplication.open`, and `textView(_:menuConfigurationFor:defaultMenu:)` returns nil so a link
+offers no menu of its own against the row's. The long press still belongs to the row's context menu,
+which this view refuses for `UILongPressGestureRecognizer`; word selection, its handles, and its
+edit menu are the text view's own and untouched, which is what a recognizer of ours could not manage
+— UITextView's word selection is a `UITextMultiTapRecognizer`, not a `UITapGestureRecognizer`, so
+`require(toFail:)` never bound to it and a double-tap on a link opened it instead of selecting the
+word. A run's ink and underline are its own: the text view clears `linkTextAttributes` rather than
+setting them, because an anchor draws in the App's link color and a chip in its own tint, and one
+overlay dictionary cannot say both. Being real links is also the accessibility route — VoiceOver
+lists them in the links rotor, which a private attribute gave nothing to.
 
 A chip is a run inside the message body, not a box beside it, and not a picture of one. The label is
 set in the body's own font at the body's own point size on the body's own baseline; the capsule and
@@ -740,7 +806,9 @@ replaced — made a long label one unbreakable token, and at an accessibility Dy
 token wider than the column left the engine nothing to do but wrap it by character, rendering
 "Product Design Team" as "Product Desig" / "n Team". A run that does break wears one capsule per
 line fragment, and the mark is drawn only on the fragment carrying the run's first glyph. Copying
-resolves all of it back to the sentence. The mark is a channel's glyph in its `ChannelIconBox`
+resolves all of it back to the sentence: the spacers and joiners come out, and a chip or a link
+contributes the words it draws, never its target — which is what copying the App's own anchor text
+yields. The mark is a channel's glyph in its `ChannelIconBox`
 colors from `ChannelIconCatalog`, or an Agent's or human's avatar from `AvatarImageCache` over
 `AvatarView`'s initials.
 

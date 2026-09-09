@@ -26,10 +26,10 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   content-free notice in its live turn. Bodies remain Computer-local until an
   explicit pull. Chain budgets follow model-visible Agent traffic
   ([inbox.md](inbox.md)).
-- A committed prepared action is the typed concrete exception: its proposer gets a
-  distinct continuation with the originating Chat, created Agent identity, and executed
-  result. A busy proposer receives only the notice at the safe boundary and gets the
-  concrete action on the next turn. The action has no Chat cursor or visible Chat receipt.
+- A settled Cloud Agent Run is the typed concrete exception: the Agent that delegated
+  it gets a distinct continuation carrying the Run's status, summary, and branches. A
+  busy Agent receives only the notice at the safe boundary and gets the concrete item on
+  the next turn. The item has no Chat cursor or visible Chat receipt.
 - A fresh session with no pending delivery starts with bare `Start.`. After a
   reset, the recovery line precedes either `Start.` or the pending notice/typed
   attention that becomes the first prompt. Creating an Agent configures its

@@ -30,7 +30,6 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | Kind (`source`) | What it is | Identity | Lane |
 | --- | --- | --- | --- |
 | `human` | An ordinary Chat delivery of a durable message | The message id | Notice |
-| `action` | A committed prepared action's terminal attention for its proposer | The action id | Concrete |
 | `cloud_agent_work` | One settled Cloud Agent Run's terminal attention for the Agent that delegated it | The Run id | Concrete |
 | `task_assignment` | A direct task assignment to this Agent | The assignment identity | Concrete |
 | `reminder` | One reminder fire | The fire id | Concrete |
@@ -90,17 +89,15 @@ A durable `message.created` is planned once by Server delivery
   other eligible Channel participants retain ambient visibility without that attention flag.
 - A direct task assignment to another Agent keeps the canonical task message as ordinary work and
   adds one `task_assignment` item to only the assignee's inbox. It is `mentioned=true` so it stays
-  actionable through a mute, and renders in Agent inbox envelopes the way a committed action's
-  attention does. The human's representation of that fact is the task chip on the message.
-- A successfully committed prepared action creates one terminal attention for only its proposer,
-  carrying the originating Chat, action identity, created Agent identity, and executed result.
+  actionable through a mute, and renders in Agent inbox envelopes the way a reminder fire does. The
+  human's representation of that fact is the task chip on the message.
 - A settled Cloud Agent Run creates one terminal attention for only the Agent that delegated it,
   keyed by the Run id and carrying the work's title, repository, provider URL, and the Run's status,
   summary, error code, and reported branches ([Cloud Agents](cloud-agents.md)). It settles like the
   other concrete kinds; the result the human sees is whatever ordinary Message the woken Agent
   decides to post.
 - After planning, ordinary Chat work gives an idle Agent a notice turn and a busy Agent receives the
-  same notice in its live turn. Concrete work — a committed action attention, an automation fire, a
+  same notice in its live turn. Concrete work — a settled Cloud Agent Run, an automation fire, a
   task assignment — is the typed exception: an idle recipient receives the item's own envelope as
   the prompt of a distinct turn; a busy recipient receives only the content-free notice at a safe
   boundary, then the still-queued item in the next turn. One drain never mixes the lanes, and a
@@ -113,7 +110,7 @@ A durable `message.created` is planned once by Server delivery
 
 Transport debt is the exact queued set in `agent_inbox`; delivery never advances a scalar
 high-water mark. Model visibility is recorded in `agent_inbox_exact_visibility` as exact message
-identities tied to the active run. Typed action attentions use their action identity in the durable
+identities tied to the active run. Concrete items use their own stable identity in the durable
 delivery ledger and intentionally have no Chat cursor. Freshness treats an identity as visible when it settled in this
 session generation or was served to the current run. A verified contiguous boundary in
 `agent_inbox_cursors` is only an optional compaction/baseline; exact identities beyond it never
@@ -135,19 +132,18 @@ Restart, Start, or session reset explicitly offers pending work again. Chain
 budget follows rows made model-visible, not notice-only turns.
 
 Non-Chat system attention is a separate typed concrete lane. Cove's one-shot
-bootstrap instruction, a committed action's terminal attention, a settled Cloud Agent Run's terminal
-attention, reminder and Trigger fires, and task assignments use that lane, settle against their own stable identities, and never enter Chat message
+bootstrap instruction, a settled Cloud Agent Run's terminal attention, reminder and Trigger fires,
+and task assignments use that lane, settle against their own stable identities, and never enter Chat message
 resolution or Chat cursor accounting. Each of those exists nowhere but its inbox row, so its
 envelope rides the wake instead of waiting behind a pull the Agent may never make. The
-Computer suppresses an already-consumed action identity on accepted-run replay; a failed unsettled
-new run explicitly reoffers it so a terminal result is model-visible at most once per committed
-attention.
+Computer suppresses an already-consumed identity on accepted-run replay; a failed unsettled
+new run explicitly reoffers it so a terminal result is model-visible at most once per item.
 
 ## Notices (I2)
 
 Idle and busy agents receive only the content-free inbox notice (turn-shapes §4):
 batched target rows with counts, first/latest short ids, latest sender, and
-`· thread / · dm / · task #N / · ask <status> to=@handle / · action attention /
+`· thread / · dm / · task #N / · ask <status> to=@handle /
 · you were mentioned` tags — never bodies. The Ask tag reads the same status and
 addressee as the `[ask status=… to=@handle]` envelope suffix and the drain
 envelope's compressed `ask=<status>[:@handle]` marker (grotto-cli.md §4), from
@@ -205,21 +201,10 @@ is not a request; exact exposure is not settled consumption; and only settled `s
 work from catch-up. An unpulled row remains pending without immediately waking
 the Agent again. A pull followed by a crash replays from canonical Server state.
 
-For a committed prepared action, the typed terminal attention follows the concrete lane:
-
-```text
-Server commits the action attention for its proposer
-  -> Server materializes one action-identity work row
-  -> Computer durably accepts the concrete run
-  -> Agent sees the originating Chat, created Agent, and executed result
-  -> turn settlement records served/seen for that action identity
-```
-
-The action row is proposer-only, has no Chat message or cursor, and does not create a
-receipt in the Chat transcript. A busy proposer gets a notice at the current safe boundary,
-then a distinct concrete continuation. The Computer suppresses the same action result on
-accepted-run replay and reoffers it only when Server explicitly starts a new unsettled run.
-Creating the target Agent configures it without scheduling an empty bootstrap turn.
+Creating an Agent produces no inbox item at all. `grotto agent create` returns its receipt in the
+same command, the announcement Message reaches humans as an ordinary Chat message naming the new
+Agent by `@handle`, and the new Agent is configured without an empty bootstrap turn. Its first
+turn starts when its creator sends the working brief.
 
 ## Regression guards
 
@@ -231,9 +216,8 @@ Creating the target Agent configures it without scheduling an empty bootstrap tu
 | Stale notices cannot resurrect identities already made visible | `apps/computer/src/inbox-store.test.ts` |
 | Accepted work and pull evidence survive reconnect or replay correctly | `apps/computer/src/delivery.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Unpulled work is offered once; new identities wake again; subsets and targets settle independently | `apps/server/test/agent-delivery.test.ts` |
-| Committed action attentions are proposer-only typed work with concrete continuation, durable lifecycle, retry/reconnect dedupe, and retirement gating | `apps/server/test/agent-delivery.test.ts`, `apps/computer/src/inbox-store.test.ts`, `packages/grotto-api/src/agent-runner.test.ts` |
 | Notices inject only at safe tool boundaries or remain durable for the next turn | `apps/computer/src/harness/executor.test.ts`, `apps/server/test/agent-delivery.test.ts` |
-| Committing an action creates no empty bootstrap turn for the new Agent | `apps/server/test/grotto-prepared-action-commit.test.ts` |
+| Creating an Agent creates no inbox item and no empty bootstrap turn for the new Agent | `apps/server/test/grotto-agent-creation.test.ts` |
 | Agent instructions teach notice, pull, silence, and deferral semantics without losing required capabilities | `apps/computer/src/harness/managed-instructions.test.ts` |
 
 ## Presentation split (I1/I4)

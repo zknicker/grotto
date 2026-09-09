@@ -44,31 +44,15 @@ and [Agent Inbox](../../specs/inbox.md).
   way out to a record that is no longer there. See
   [automation provenance](../../specs/automation-provenance.md) and
   [sessions](../../specs/sessions.md#generation-in-the-transcript).
-* **Native action cards.** A managed Agent can prepare a typed `agent:create`
-  proposal with `grotto action prepare`. The Server posts an empty canonical
-  Agent anchor and projects its immutable proposal and exact avatar media
-  through `preparedAction`. The proposal's note to the human renders as that
-  message's body, and the card mounts as its own block beneath it — a bordered,
-  width-capped chat object card in the same family as the attachment row and the
-  artifact card, built from a header (face, name, and description), zero or
-  more meta rows, and a bottom row of actions. It carries the proposed Agent's
-  face and name in the header, the proposal's own description beneath the name
-  (omitted when the proposal has none), and one action beneath; a status chip,
-  when the kind has one, sits
-  at the right end of the title line rather than pinned to the header's
-  corner. An executed card's bottom row carries the actions and, at its right,
-  who committed it and when. A current Owner or Admin can open the ordinary
-  Create Agent modal from a pending card with a **Create Agent** button, edit
-  the human-owned fields, and commit one Member Agent after current Computer
-  inventory validation. A superseded proposal leaves the timeline entirely: a
-  card on screen when its proposal is superseded animates out instead of
-  popping away, and a proposal that arrives already superseded never renders
-  one; the Agent's note above it still reads as history. The App renders the
-  native card and its pending or done state; it never treats the proposal as a
-  Widget, visual fence, artifact, or model-authored form. Unknown kinds render
-  an inert fallback. A successful commit names the human and does not add a
-  Chat receipt. Dropped realtime
-  events recover through the ordinary message snapshot on reconnect.
+* **Agent-created announcements.** When an Agent creates an Agent with
+  `grotto agent create`, its `--say` text is the Message body and nothing is
+  rendered beneath it. The announcement must name the new teammate by `@handle`,
+  and that mention is the way to the profile — the same inline chip every other
+  Agent mention gets, opening the Agent profile pane. The `agent-created` body
+  kind stays as provenance; it is terminal, with no pending state, no approval
+  control, and no second Chat receipt. The App never treats it as a Widget,
+  visual fence, artifact, or model-authored form. Dropped realtime events
+  recover through the ordinary message snapshot on reconnect.
 * **The Thread surface header.** Everything under a Message that carries a
   lifecycle a reader tracks reads in the header of the one recessed Thread
   surface beneath it, in a single chip grammar at annotation scale, with the
@@ -163,7 +147,7 @@ and [Agent Inbox](../../specs/inbox.md).
   row keeps its Agent identity as the Chat materializes, preserving an open menu. View agent
   profile works immediately; chat-scoped Tasks and Files remain disabled until
   the Chat exists. Opening these menus or the profile does not create a Chat. The
-  first human send, Agent `dm:@handle` send, or Server activity that needs a
+  first human send, Agent `dm:@<human-handle>` send, or Server activity that needs a
   durable message atomically materializes the canonical human-stint↔Agent Chat
   and message. Every materialized chat's name is a dropdown menu offering its chat-scoped
   surfaces: View tasks opens the Tasks page filtered to the chat, and Files

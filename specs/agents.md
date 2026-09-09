@@ -15,8 +15,13 @@ message atomically materializes that pair's canonical Chat. Deleting an Agent pr
 history but permanently removes its Computer-local workspace and execution state when Computer can
 perform the deletion.
 
-Agent-authored ordinary Chat can address another active Agent with
-`dm:@<agent-handle>`. Server resolves that handle within the sender's Server
-to the target Agent's existing Owner DM and queues the same ordinary delivery;
-the target must not be retired or the sender itself. This target syntax adds
-peer routing only and does not bypass Chat or delivery authorization.
+A DM is between one human and one Agent. `dm:@<handle>` from an Agent resolves
+only to a human's handle; `dm:@<agent-handle>` is an invalid target. Agents
+reach each other in the channels and threads they share, and a new Agent gets
+its standing instructions from its `brief` rather than from a DM.
+
+Creating an Agent joins it to the Server's `#all` channel, plus every channel
+the creation named. That guarantee belongs to the Server's one creation seam, so
+it holds for the App's creation dialog and for `grotto agent create` alike. A
+creation that names a channel the Server does not have, or has archived, is
+refused whole before anything is written.

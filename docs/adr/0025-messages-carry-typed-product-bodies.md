@@ -3,7 +3,7 @@ status: accepted
 summary: Decision to keep meaningful immutable content on every Message while typed product bodies project lifecycle-rich Server records.
 read_when:
   - changing Message storage, contracts, search, delivery, or rendering
-  - adding an Agent creation proposal, Cloud Agent work, or another native Message presentation
+  - adding an agent-created body, Cloud Agent work, or another native Message presentation
   - deciding whether a card, Task, reference, or product record is a Message
 ---
 
@@ -14,7 +14,7 @@ its avatar-generation and human-commit decisions remain intact.
 
 Every Chat transcript item remains one authored Message with stable identity, placement, sequence,
 and meaningful immutable content. A Server-validated body kind may project one lifecycle-rich
-record such as an Agent creation proposal or Cloud Agent work, while a card remains presentation
+record such as a created Agent or Cloud Agent work, while a card remains presentation
 with no durable identity or state. This preserves Raft's message-first semantics without embedding
 mutable feature state in the Message or asking clients to merge parallel transcript stores.
 
@@ -33,7 +33,7 @@ Grotto acts rather than generic actions, UI cards, or provider-specific implemen
 - One Server Message reader owns typed record projection for every consumer.
 - A related record owns mutable lifecycle and is unique to its Message; lifecycle events refetch
   the Message instead of creating receipt Messages.
-- Agent creation uses `agent-creation-proposal`; delegated hosted work uses `cloud-agent-work`; a
+- Agent creation uses `agent-created` (ADR 0028); delegated hosted work uses `cloud-agent-work`; a
   human decision request uses `ask`. Grotto adds another body kind only when a distinct authored
   product act requires one.
 - The canonicalization ships as one breaking release against a fresh production database; Grotto

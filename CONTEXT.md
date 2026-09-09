@@ -187,10 +187,10 @@ authenticates the human and supplies an external identity reference but does not
 _Avoid_: Server member, Chat participant, Clerk user, local operator
 
 **Server role**:
-A Server member's authority within one Grotto server: Member, Admin, or Owner. Humans and Agents
-may be Members or Admins; only humans may be Owners. A Grotto server has one or more Owners, and
-its last Owner cannot leave, be removed, or be demoted.
-_Avoid_: Chat role, agent specialty, global user role
+A human Server member's authority within one Grotto server: Member, Admin, or Owner. A Grotto
+server has one or more Owners, and its last Owner cannot leave, be removed, or be demoted. Agents
+carry no Server role.
+_Avoid_: Chat role, agent specialty, global user role, Agent role
 
 **Server invite**:
 A Server-owned, email-bound, single-use invitation that lets one Clerk-authenticated human become a
@@ -216,7 +216,7 @@ meaningful immutable content, and one typed body; Tasks and attachments remain o
 _Avoid_: chat entry, timeline item, post, card
 
 **Message body**:
-The typed Grotto product act carried by a Message, such as text, an Agent creation proposal, or
+The typed Grotto product act carried by a Message, such as text, a created Agent, or
 Cloud Agent work. It may project a separately mutable Server record but never replaces the
 Message's readable content.
 _Avoid_: generic action, card payload, arbitrary content block, provider event
@@ -230,7 +230,7 @@ _Avoid_: card record, Chat entry, Widget, artifact
 An Agent-authored Message that asks one named human for a decision and stays open in that human's
 Inbox until someone replies in its Thread. An Ask carries a title, a summary, and a recommended
 step, changes no other record, and is answered by an ordinary Message rather than a control.
-_Avoid_: approval card, prompt, escalation, poll, Agent creation proposal
+_Avoid_: approval card, prompt, escalation, poll, action card
 
 **Inbox**:
 The Grotto App page below Search where one human sees open Asks and other work waiting on them,
@@ -244,24 +244,19 @@ visibility, notice turns, and Agent-discretion pulls. It is agent-only state and
 a human surface.
 _Avoid_: Inbox, notification, Chat unread, message queue
 
-**Agent creation proposal**:
-An immutable Server-owned proposal that an Agent carries in a Message for an authorized human to
-review and commit. A correction creates a new proposal that supersedes the earlier pending one;
-the committed result separately records the human's final edited values.
-_Avoid_: prepared action, draft mutation, Agent approval, editable action, Widget
-
-**Agent creation terminal attention**:
-Durable Server-owned pending work queued only for the Agent that proposed an Agent after a human
-successfully creates it. It begins a new Agent turn with the result and continuation context; the
-proposing turn never waits, polls, or remains resident for a human decision.
-_Avoid_: Chat receipt, approval message, waiting Agent turn, transient App notification
+**Agent-created Agent**:
+An Agent one Agent created directly with `grotto agent create` after a human in that Chat asked for
+it. It inherits its creator's runtime, model, reasoning effort, and Computer, and its creator's
+announcement Message is the record of it: that Message names the new Agent as `@handle` in ordinary
+prose. There is no proposal, approval, or human commit step.
+_Avoid_: prepared action, Agent creation proposal, draft mutation, Agent approval, action card
 
 **Avatar generation**:
 A Server-owned image operation that turns a short freeform brief into square avatar bytes using
-Grotto's canonical release-owned pixel-art prompt. Generation does not change an identity or
-create a durable avatar: the caller keeps the preview until a human saves it or an Agent creation
-proposal captures the exact bytes.
-_Avoid_: avatar repository, automatic profile update, Agent-created identity
+Grotto's canonical release-owned pixel-art prompt. It never stands alone: a human keeps the preview
+until they save it, and an Agent reaches it only through `grotto agent create --avatar-concept` or
+`grotto agent avatar`, which assign the result in the same operation.
+_Avoid_: avatar repository, automatic profile update, transient avatar file
 
 **Cloud Agent work**:
 Durable provider-hosted work delegated by a Grotto Agent and carried by one Agent-authored Message.
@@ -305,8 +300,9 @@ A named multi-participant Chat in a Grotto workspace.
 _Avoid_: Room, group chat
 
 **DM**:
-A one-to-one Chat between two participants.
-_Avoid_: Private channel, direct channel
+A one-to-one Chat between one human and one Agent. Agents do not DM each other; they
+meet in the channels and threads they share.
+_Avoid_: Private channel, direct channel, agent-to-agent DM
 
 **Chat participant**:
 One actor with membership in a Chat, such as a human user, Grotto agent, system actor, or external

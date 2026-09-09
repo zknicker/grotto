@@ -1,19 +1,23 @@
 ---
-summary: Agents may compose human-approved product mutations from independent capabilities, including Server-owned avatar generation.
+summary: Superseded decision that Agents compose human-approved product mutations from prepared action cards; its Server-owned avatar generation decision remains current.
 read_when:
-  - adding Agent-prepared action cards or changing their approval lifecycle
-  - adding generated Agent avatars or changing avatar generation ownership
-  - changing Cove's Agent-creation guidance or privileges
+  - changing avatar generation ownership, its provider credential, or the shared Server service
+  - reading the history behind ADR 0028 (Agents create Agents directly)
 ---
 
 # ADR 0024: Agents Prepare Actions; Avatar Generation Is Composable
 
-## Status
+## Decision History
 
-Accepted 2026-08-25. Amended by ADR 0025: Agent creation proposals now use a concrete typed Message
-body with meaningful immutable content; the generic prepared-action and empty-anchor model is
-retired. The avatar-generation and human-commit decisions below remain intact; their original
-terminology is retained as historical context.
+Accepted 2026-08-25. Amended by ADR 0025 (Agent creation proposals became a concrete typed Message
+body). **Superseded 2026-09-09 by ADR 0028**: prepared actions, action cards, the human commit step,
+and the Agent-role clause are retired — an Agent now creates an Agent directly with
+`grotto agent create`, and the created Agent inherits its creator's execution configuration.
+
+The avatar-generation decision below remains current: avatar generation is a Server-owned service,
+its provider credential never leaves Grotto Server, and execution-runtime-native image generation
+stays an independent Agent capability. Everything about preparation, commit, and action attention is
+historical context.
 
 ## Decision
 

@@ -147,7 +147,7 @@ Status values:
 
 | ID | Grotto behavior | Coverage | Status |
 | --- | --- | --- | --- |
-| P6 | Cove answers a natural Agent proposal in its parent DM without an action, then a separate approved creation request prepares an avatar-backed action in that same DM; after human commit, typed attention enables an ordinary starter Chat. | `test:agents --include-opt-in --only cove-composes-agent-creation` + factory-playbook/Manual/tool contracts | opt-in |
+| P6 | Cove answers a natural Agent proposal in its parent DM without creating anything, then a separate creation request creates exactly one Agent inheriting Cove's runtime, model, reasoning effort, and Computer, announced by one `agent-created` Message in that same DM; repeating the request creates no second Agent. | `test:agents --include-opt-in --only cove-composes-agent-creation` + factory-playbook/Manual/tool contracts | opt-in |
 
 ## Existing executable lanes
 

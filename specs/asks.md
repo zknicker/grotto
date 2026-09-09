@@ -3,7 +3,7 @@ summary: Asks — Agent-authored Messages that request one human's decision and 
 read_when:
   - adding or changing Asks, their settlement, Inbox rows, Thread markers, or the `grotto ask` command
   - changing typed Message bodies or record-backed Message rendering
-  - deciding whether a human decision belongs in an Ask, an Agent creation proposal, or a Task
+  - deciding whether a human decision belongs in an Ask or a Task
 ---
 
 # Asks
@@ -125,7 +125,8 @@ the Thread it anchored, so it wakes through existing [Agent inbox](inbox.md) del
 
 ## Relationship to other Message bodies
 
-An Agent creation proposal stays its own body kind because a human commits a mutation there. Cloud
+An `agent-created` body is a record of something that already happened, not a decision — Agent
+creation needs no Ask, because the human's request in that Chat is the consent (ADR 0028). Cloud
 Agent launch approval is Server policy rather than a card: when a Server wants it, the Agent posts an
 Ask and proceeds on the answer ([Cloud Agents](cloud-agents.md)). Human mentions remain visual-only
 ([Rich References](mentions.md)); the Ask is the record that says a specific human must act, so

@@ -35,9 +35,9 @@ or that no participant said, is not a message.
 
 **The agent inbox is the only agent-only lane, and it is named that.** The table
 is `agent_inbox` and its rows are inbox items; `agent_delivery` keeps its own
-name for per-Agent run state. Five item kinds ride it — ordinary Chat
-deliveries, committed action attentions, task assignments, reminder fires, and
-Trigger fires — plus Cove's one-shot bootstrap. Every item has a stable identity
+name for per-Agent run state. Four item kinds ride it — ordinary Chat
+deliveries, task assignments, reminder fires, and Trigger fires — plus Cove's
+one-shot bootstrap. Every item has a stable identity
 (the message id for ordinary Chat work, a non-message identity for everything
 else), carries its rendered envelope as content, and moves through one
 queued → accepted → served → seen lifecycle. A kind that skips that
@@ -131,8 +131,8 @@ the hover card, and the Thread context card all read from.
   transcript. It changes only when the Agent's session rotates, so the App
   derives the mark from the messages it already has and reads the rotation
   record only to fill the hover card.
-- Inbox items with no backing Chat message — action attentions, automation
-  fires, task assignments — share the message-backed lifecycle. They ride the
+- Inbox items with no backing Chat message — automation fires, task
+  assignments — share the message-backed lifecycle. They ride the
   concrete lane: the item's envelope is the prompt the wake carries rather than a
   body behind a discretionary pull, because an unpulled fire leaves the answer it
   provoked with no provable cause. A delivered item

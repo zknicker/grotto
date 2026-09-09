@@ -17,7 +17,7 @@ clients recover through durable reads.
 
 | Component | Owner | Role |
 | --- | --- | --- |
-| Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for messages, reactions, reads, follows, Chat lifecycle, prepared-action changes, Ask changes, and reminder changes |
+| Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for messages, reactions, reads, follows, Chat lifecycle, Ask changes, Cloud Agent work changes, and reminder changes |
 | Hosted durable subscription | Grotto Server | Live notification after commit; membership rechecked at delivery |
 | Hosted composition hub | Grotto Server | In-memory, membership-checked, no persistence or replay |
 | Hosted Agent activity journal | Grotto Server | Durable semantic execution metadata plus live current-state projection |
@@ -50,7 +50,7 @@ from durable `chat_events`.
 ## Hosted Server Realtime
 
 `chat.send`, `chat.react`, an advancing `chat.markRead`, `thread.setFollow`, Chat lifecycle
-mutations, prepared-action mutations, Ask creation and settlement, task mutations, and reminder
+mutations, Ask creation and settlement, task mutations, and reminder
 mutations insert their durable event in
 the same PostgreSQL transaction as the owned row. `chat.events` lists accessible
 events after a cursor in ascending order. `chat.onEvent` does not replay; it
@@ -107,17 +107,11 @@ Replay applies the same rule — a member walks a lifecycle event while the Chat
 is still visible to them, or once the Chat row is gone because a delete purged
 it.
 
-`prepared-action.updated` is a participant-gated durable event carrying the
-action id, message id, Chat sequence, and lifecycle status (`pending`,
-`executed`, or `superseded`). A prepared Agent commit inserts the `executed`
-event in the same PostgreSQL transaction as the Agent, Owner DM, copied avatar,
-executed result, and proposer attention record. The App invalidates the affected
-Chat message reads, Chat search, and the child Thread snapshot when applicable;
-the Server Agent event also refreshes the Agent list. Its payload never carries
-proposal text or media bytes; those are recovered through the focused message
-read and action-owned media URL. Reconnect recovery therefore refetches the
-same durable message snapshot and cannot lose a pending or completed card when
-a notification was dropped. The commit creates no extra Chat receipt.
+Creating an Agent from an Agent (ADR 0028) emits no dedicated event. The
+announcement Message's `message.created` refreshes the transcript, and
+`server.updated{scope:'agent'}` refreshes the Agent list, Agent detail, Server
+detail, and Chat list. The `agent-created` body is terminal, so reconnect
+replay of that one `message.created` recovers the whole state.
 
 `chat.markRead` does not invalidate anything from its mutation result. Its
 durable `chat.read` event reaches the reader's own subscription and owns the
@@ -181,7 +175,6 @@ and, for the Inbox, `cloudAgentWork.listActive`. A duplicate or stale observatio
 and therefore emits nothing, so reconnect replay of these events is idempotent.
 
 Hosted durable event kinds are `message.created`, `message.reaction.updated`, `ask.updated`, `cloud-agent-work.updated`,
-`prepared-action.updated`,
 `chat.read`, `chat.lifecycle`, the reader-private `thread.follow.updated`,
 `task.created`, `task.updated`, and `task.label.updated`, plus `reminder.changed`.
 

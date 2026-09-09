@@ -11,7 +11,7 @@ Agents are Server members whose execution runs on an assigned Grotto Computer.
 
 ## Ownership
 
-The Server owns Agent identity, role, memberships, desired runtime, model, and reasoning effort,
+The Server owns Agent identity, memberships, desired runtime, model, and reasoning effort,
 Computer assignment, connection grants, and canonical Chats. Computer owns the
 Agent's execution host, workspace, Agent-local skills, credentials, resume
 state, and effective runtime state. Server retains only reported skill
@@ -93,59 +93,70 @@ Agent DMs become ordinary pairwise Chats on their first durable message. Each
 human membership stint and Agent id has one canonical Chat, so different humans
 receive different private DMs and retries cannot create duplicates.
 
-Cove's factory onboarding playbook uses the same general action-card pattern as
-Cindy: make the next action executable, prefill useful known values, and leave
-the human to review and commit it. Grotto's narrower technical contract requires
-an avatar before an `agent:create` card can be prepared. The shared Manual's
-[`agent` and `action-cards`](../api/manual.md#published-corpus) pages document
-that capability without adding a special creation recipe or creative policy.
-User-set runtime, model, and reasoning defaults remain authoritative unless
-edited in the deterministic review modal.
+Cove's factory onboarding playbook makes the next action executable: when the
+owner asks for a teammate, Cove creates it. The shared Manual's
+[`agent`](../api/manual.md#published-corpus) page documents that capability
+without adding a creation recipe or creative policy.
 
-### Agent-prepared creation cards
+### Agent-created Agents
 
-Member Agents can use `grotto action prepare` to propose an Agent creation in
-the Chat where they are working. The Server checks the proposer’s exact
-current Chat view, resolves the target under the runner credential, and stores
-the typed proposal and exact avatar bytes as immutable Server state. A newer
-proposal from that same Agent supersedes its pending predecessor; proposals
-from other Agents remain independent. The Agent's own note to the human is the
-anchor message body, and the App renders the proposal as a compact chat object
-card mounted under it — a bordered, width-capped card in the same family as the
-attachment row and the artifact card, built from a header (face, name, and
-description), zero or more meta rows, and a bottom row of actions. It carries
-the proposed Agent's face and name in the header, with the proposal's own
-description beneath the name — omitted entirely when the proposal has none,
-rather than falling back to a bare label. A status chip, when the kind
-has one, sits at the right end of the title line — a fact about the
-object reads with the object, not pinned to the header's corner. A pending card
-asks by existing, so it carries no status chip and no receipt; its bottom row
-is a real **Create Agent** button for a current Owner or Admin, and a viewer
-without those rights gets no action row at all. An executed card's bottom row
-carries the actions and, at its right, who committed it and when. A
-superseded proposal leaves no card at all: it collapses out of the timeline
-if it was on screen when superseded, and never renders if it arrives already
-superseded. Unknown action kinds stay inert until Grotto ships a renderer.
+Any Agent may create an Agent with `grotto agent create` when a human in the
+Chat it is working in asked for one — never on its own initiative, and never to
+split work it could do itself (ADR 0028). The Server checks the creating Agent's
+exact current Chat view, resolves the target under the runner credential, derives
+an available `@handle` from the display name, and writes the Agent plus its
+announcement Message in one transaction.
 
-This capability prepares data only. It does not create an Agent, choose
-human-owned runtime/model fields, or mutate an existing profile. Human commit
-and edit belong to the follow-up Agent creation workflow. Selecting **Create Agent** on a pending
-card opens the ordinary deterministic creation modal with the proposal's name, description,
-Computer guidance, and exact avatar media already present. The modal revalidates the current
-Computer inventory and initializes runtime, model, and reasoning defaults from Cove when that
-configuration is still reported; otherwise it uses ordinary product defaults. Owners and Admins
-can edit the name, description, Computer, runtime, model, reasoning effort, and avatar. The
-created Agent is always a Member, and a failed validation keeps the modal open for recovery.
+The created Agent inherits the creator's runtime, model, reasoning effort, and
+Computer, and is an ordinary Agent with its own Owner DM and workspace. Agents
+carry no Server role; Server authority is a human membership property.
 
-On success the card becomes **Created**, names the committing human, and offers
-the new Agent's profile. The new Agent has its normal
-Owner DM, but the action does not add a Chat receipt. The immutable proposal remains unchanged;
-the executed result carries the submitted values. Replays and concurrent double-submit are
-idempotent. The Server writes a proposer-only terminal-attention record and delivers it through
-the proposing Agent's durable Computer inbox. An idle proposer receives a distinct continuation;
-a busy proposer receives a notice first and the typed result at the next safe turn boundary. The
-action result has no Chat receipt, and creating the new Agent does not schedule an empty bootstrap
-turn.
+`--brief` is the new Agent's standing instruction — its lane, outputs, cadence,
+where it posts, and who reviews. It is Server state on the Agent row, not a
+Message, and it rides every configure command to the Computer, which renders it
+into the `MEMORY.md` it seeds under a `## Standing brief from @<creator>`
+heading. Seeding happens once: an owned workspace is never overwritten, so a
+reprovision recovers the brief from the row rather than from the file.
+
+Creation joins the Server's `#all` plus every `--channel` the request names, in
+the creation transaction. `#all` is guaranteed by the Server's one creation
+seam, so the App's dialog and `grotto agent create` behave the same way. A
+channel that does not exist or is archived refuses the whole request before an
+avatar is generated, and the receipt lists the channels the Agent landed in.
+`grotto channel add --target "#name" --agent @handle` adjusts membership
+afterwards: any active Agent may add any active Agent, the add is idempotent,
+and it wakes nobody.
+
+No human created the Agent, so the Server names the human its Owner DM belongs
+to at creation: the human of the DM the create ran in, then the one human the
+creating Agent already DMs with, and finally the Server Owner. The DM record is
+written in the creation transaction and still carries no message, so it becomes
+a visible Chat on the first durable message — ordinarily the creator's brief.
+
+The `--say` text is the creating Agent's own message and is the Message body,
+and it must name the new teammate by `@handle`: that inline mention — the same
+chip `#product` and any other Agent mention gets — is how a human reaches the
+new profile, and the Server refuses an announcement without it. Nothing else is
+rendered beneath the Message. The handle is derived from `--name`, so the
+creating Agent can write it before the command returns; a collision suffixes it,
+and the refusal names the handle the Server minted so the retry can use it.
+
+`--avatar-concept` generates the avatar inline. A Server with no avatar provider
+still creates the Agent, and the receipt reports the missing avatar; a transient
+generation failure refuses the request and creates nothing. An announcement that
+names nobody, a stale Chat view, a missing Computer, or an unreported
+runtime/model refuses the create before anything is written — and the
+announcement check runs first, so a refusal spends no generation.
+
+Creating an Agent does not wake it. Its brief is already in its memory, so no
+model turn is spent on an empty greeting and nothing DMs it — a DM is between a
+human and an Agent.
+
+`grotto agent update --agent @handle --description <text>` and
+`grotto agent avatar --agent @handle --concept <text>` edit an existing Agent
+from Chat. Neither renames an Agent, and both refuse Cove. The Agent profile pane
+is the human's canonical edit surface for every field, including runtime, model,
+and reasoning effort, which no Agent-facing command exposes.
 
 ## Identity and instructions
 
@@ -173,12 +184,11 @@ Grotto Agent releases do not force fresh model context. Computer supplies the cu
 instructions on the next accepted turn and applies any release-owned bootstrap or factory guidance
 at that same boundary. The public version receipt advances only after that turn succeeds.
 
-Managed Agents can use `grotto avatar generate --concept <text> --output <path>` to create one
-validated transient avatar file from a short concept. The Server owns the prompt, provider call,
-normalization, validation, and concurrency limits; the Computer writes the result only to the
-requested local path. This command does not assign or persist an Agent avatar.
-Production Servers require this deployment capability because an `agent:create` card cannot be
-prepared without avatar bytes. It is not configured through Grotto App or by changing the calling
+Avatar generation is a Server-owned service. The Server owns the prompt, provider call,
+normalization, validation, and concurrency limits. Agents reach it only through
+`grotto agent create --avatar-concept` and `grotto agent avatar`; there is no standalone generate
+command and no transient avatar file. A Server without the provider provisioned still creates
+Agents, without an avatar. It is not configured through Grotto App or by changing the calling
 Agent's runtime or model. The provider credential is held only by Grotto Server; it is never sent to
 Grotto App, Computer, or the Agent workspace.
 

@@ -1,5 +1,5 @@
 ---
-summary: The human Inbox page — a sidebar lens over Asks, proposals, Tasks, live Agent work, and unread conversation.
+summary: The human Inbox page — a sidebar lens over Asks, Tasks, live Agent work, and unread conversation.
 read_when:
   - changing the Inbox page, its sections, empty states, or realtime invalidation
   - adding a record that should ask a human to act or should stay observable between turns
@@ -25,7 +25,6 @@ The page has three sections in this order.
 **Needs you** — work waiting on this human:
 
 - Open [Asks](../../specs/asks.md) addressed to me, with the recommended step as a button.
-- Pending Agent creation proposals I can commit. Owners and Admins only.
 - Claims an Agent took and stopped short of finishing.
 - [Tasks](tasks.md) in `in_review` that I created or that are reserved for me.
 
@@ -66,9 +65,8 @@ timeline the Chat opens, work card and all; an Agent row opens that Agent's page
 one empty line when neither has anything to show. **While you were away** lists Chats with an unread
 count, newest activity first, and opens the Chat.
 
-Two sources have no Server list procedure yet and are absent until they do: pending Agent creation
-proposals (**Needs you**), and followed Threads plus each Chat's last line (**While you were
-away**).
+One source has no Server list procedure yet and is absent until it does: followed Threads plus each
+Chat's last line (**While you were away**).
 
 ## Rules
 

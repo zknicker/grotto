@@ -98,10 +98,14 @@ presentation plus a Server-scoped handle for addressing and mentions.
 
 ```
 #channel                 channel by handle
-dm:@peer                 the caller's DM with peer (auto-created on first send)
+dm:@human                the caller's DM with that human (auto-created on first send)
 #channel:<shortId>       thread anchored at message <shortId> in channel   (WS3)
-dm:@peer:<shortId>       thread anchored in the DM                         (WS3)
+dm:@human:<shortId>      thread anchored in the DM                         (WS3)
 ```
+
+- **A DM is human ↔ Agent.** `dm:@<agent-handle>` does not resolve; it fails
+  closed as `INVALID_TARGET` like any other unknown target. Agents reach each
+  other in the channels and threads they share.
 
 - **Short message ids** are the first 8 hex chars of the id body: new message
   ids are minted `msg_<uuid-hex>`; `shortId = body[0:8]`. Server-side
@@ -165,9 +169,8 @@ Rules:
   error code, and branches) so a reader can act without a second call.
 - A settled Cloud Agent Run arrives as its own bodiless attention envelope —
   `[Grotto cloud agent attention status=… work=… run=… target=…]` with the
-  title, repository, summary, error code, branches, and provider URL — the way
-  a committed action's attention does. Its `msg=` prints `-`: a Run id
-  addresses no Chat message.
+  title, repository, summary, error code, branches, and provider URL. Its `msg=`
+  prints `-`: a Run id addresses no Chat message.
 
 ## 5. Output and error contract (AX law)
 
@@ -338,6 +341,7 @@ per family:
 | channel | `info <target>` | WS1 | Existence, joined state, description, member count |
 | | `members <target>` | WS1 | Handles + descriptions + role labels |
 | | `join` `leave` | WS3/4 | Membership verbs; need attention rules to be honest |
+| | `add` | ADR 0028 (landed) | `add --target <t> --agent @handle` puts another active Agent in a channel; idempotent, wakes nothing, refuses Cove |
 | | `mute` `unmute` | WS4 | Attention stores land with the inbox |
 | thread | `unfollow` | WS3 | T1 follows model |
 | task | `list create claim unclaim update` | WS5 (landed) | D8 model: claim by `--number` (repeatable) or `--message-id` (converts + claims); `create` takes repeatable `--title` or a stdin body; `--assignee` self-only on the agent surface |
@@ -347,7 +351,7 @@ per family:
 | trigger | `create list show enable disable rotate delete log` | ADR 0027 (landed) | Inbound webhook wakes: `create --title --message-id [--instruction] [--kind webhook]`; `--kind` defaults to `webhook` and any other value is `INVALID_ARG` naming the supported kinds; `list`/`show` print the kind with the status; message anchors only and never a schedule; `create` and `rotate` print the bearer secret once with a ready `curl` line; `delete` removes active use while retaining recent fire history for 30 days; mutations are not idempotent |
 | ask | one verb, no subcommand | Asks (landed) | `ask --target <target> --to @<handle> --title <text> --summary <text> --step <text>`, question body on stdin; one named human's decision ([Asks](asks.md)) |
 | cloud-agent | `start cancel` | Cloud Agents (landed) | `start --target <target> --repo <owner/name> [--ref <ref>] --title <text> --say <text>` with the provider instructions on stdin, and `cancel --work <workId>`; the Computer checks provider readiness before Server records anything and the instructions never leave it ([Cloud Agents](cloud-agents.md)) |
-| action | `prepare` | PRD-260 (landed) | `prepare --target <target> --avatar-file <path>` with one strict `agent:create` JSON action on stdin; stores a native pending card only |
+| agent | `create update avatar` | ADR 0028 (landed) | `create --target <target> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] --say <text>` creates the Agent and returns its `@handle` and channels, inheriting the caller's runtime, model, reasoning effort, and Computer; `--brief` is the standing instruction seeded into its memory, `--channel` repeats and always comes on top of `#all`; `update --agent @handle --description <text>` and `avatar --agent @handle --concept <text>` edit an existing Agent and refuse Cove. Flags only, no stdin ([Agents](../docs/features/agents.md)) |
 | skill | `list view create patch write-file` | WS5 (landed) | Replaces `skills_*` tools; hash-guarded patch/write-file, stdin bodies |
 | manual | `get <topic>`, `search <keywords>` | PRD-187 (landed) | Authenticated, read-only Server-hosted topics; `--intent`/`--reason`; optional `--scope recipes` |
 
@@ -379,8 +383,13 @@ GET  /api/agent/channels/info      ?target=
 GET  /api/agent/channels/members   ?target=
 GET  /api/agent/events             (message check drain — WS4)
 GET  /api/agent/inbox              (inbox check — WS4)
-POST /api/agent/actions/prepare    { action, avatar, nonce, target }
-                                   → { action, chatId, idempotent, messageId, sequence, target }
+POST /api/agent/agents             { avatarConcept?, content, description, displayName,
+                                     nonce, target }
+                                   → { agent, avatar, chatId, computerId, idempotent,
+                                       messageId, modelId, reasoningEffort, runtimeId,
+                                       sequence, target }
+POST /api/agent/agents/update      { agent, description } → { agent }
+POST /api/agent/agents/avatar      { agent, concept } → { agent, avatar }
 POST /api/agent/asks               { addresseeHandle, content, nonce, recommendedStep,
                                      summary, target, title }
                                    → { ask, chatId, idempotent, messageId, sequence, target }

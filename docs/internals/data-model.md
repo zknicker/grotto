@@ -15,7 +15,7 @@ the migration command.
 
 | Store | Owner | Contents |
 | --- | --- | --- |
-| Server PostgreSQL | Grotto Server | Users, Servers, membership, Chats, Messages, message reactions, threads, Tasks, Reminders, Agents, prepared action cards and their media, desired execution configuration, Computer attachments and reports, MCP connections, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
+| Server PostgreSQL | Grotto Server | Users, Servers, membership, Chats, Messages, message reactions, threads, Tasks, Reminders, Agents, desired execution configuration, Computer attachments and reports, MCP connections, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
 | Computer data root | Grotto Computer | Attachment credentials, delivery queues, logs, Agent homes, skills, workspaces, runtime state, cached provider-usage snapshots, and effective execution evidence. |
 | Browser/App storage | Grotto App | Cache, local preferences, desktop presentation state, and optimistic rows. |
 
@@ -78,22 +78,12 @@ the nullable `cloud_agent_work_id` column. Provider prompts, credentials, transc
 workspace files never reach Server. A settled Run creates one `agent_inbox` row keyed by that Run id for the delegating
 Agent, in the same transaction that settles it.
 
-`prepared_actions` is the immutable Server record for an Agent-authored proposal. It is anchored
-to one canonical Agent message and carries the narrow action kind, validated proposal, proposer,
-nonce, and lifecycle fields. `prepared_action_media` stores the exact avatar bytes owned by that
-action; it is never replaced in place and is served through an immutable media URL. A correction
-is a new action row that records `superseded_by_action_id`; a partial unique pending index and the
-Server lock make same-proposer supersession atomic while leaving other proposers independent.
-Prepared rows and media are deleted with their Chat/action, while the canonical message and event
-cursor remain the recovery boundary for App clients. A successful commit stores the submitted
-execution values and committing human in `prepared_actions.executed_result`,
-`executed_by_user_id`, and `executed_at`; the proposal JSON and action-owned media never change.
-`agent_action_attentions` stores one record-only proposer handoff keyed by `(server_id, action_id)`
-with the originating Chat, executed result, created Agent, and dedupe key. PRD-261 writes that row
-atomically; PRD-262 materializes it as one `agent_inbox` row and owns the
-Server-to-Computer delivery, exact action identity, and execution settlement. The
-pending row uses the action id as its durable work identity and remains in the
-retained delivery ledger after `seen`.
+An Agent created by another Agent (ADR 0028) is an ordinary `agents` row plus two nullable
+columns: `created_by_agent_id` (the creator, beside the existing `created_by_user_id`) and
+`creation_message_id`, the announcement Message the create wrote in the same transaction. That
+second column is unique per Server, so a Message projects at most one created Agent, and it is
+`ON DELETE SET NULL` — deleting the Chat loses the anchor, never the Agent. `agents` carries no
+`role`; Server authority is a human membership property.
 
 `triggers` is the Agent-owned inbound wake: owner Agent, `kind` (checked against `webhook`),
 anchor Chat and nullable anchor message, `created_by_user_id` for a Trigger a human created from
@@ -129,7 +119,7 @@ migrations deleted the `reminder`, `trigger`, `task`, and `session` rows written
 the `schedule_receipt_message_id` column on `reminders` and the `receipt_message_id` columns on
 `reminder_fires`, `trigger_fires`, and `reminder_agent_attention`, and nulled the Trigger anchors
 that pointed at deleted creation receipts. An agent-only delivery is an `agent_inbox` row keyed by a
-non-message identity — an action id, a fire id, a task assignment identity — not a message with a
+non-message identity — a fire id, a task assignment identity — not a message with a
 filter over it; `agent_inbox` is the renamed `agent_pending_work` and `agent_delivery` keeps its own
 name for per-Agent run state.
 

@@ -48,7 +48,6 @@ Cove is created exactly once with these factory profile values:
 - name `Cove`
 - handle `@cove`
 - description `Onboarding Assistant`
-- Server role `Admin`
 
 Setup is not skippable. Completed steps persist, failures identify the exact
 step that needs repair, and restart or reconnection resumes from that point.
@@ -113,7 +112,7 @@ The initial Manual contains:
 
 - `index`;
 - `grotto-cli-overview`;
-- `agent` and `action-cards` product reference topics;
+- `agent`, `asks`, and `cloud-agents` product reference topics;
 - `recipes/index`;
 - `recipes/seeded`; and
 - thirty-two full recipe cards.
@@ -126,10 +125,10 @@ capability. Unsupported claims are removed rather than approximated. The
 twenty query-tier cards include all seven archetype cards; those remain
 reference guidance available to every Agent.
 
-The Agent and action-card pages are product references, not additional recipe
-cards. They carry Grotto's narrower supported schema and human-commit boundary
-without adding a Grotto-only decision policy to the captured Raft recipe
-corpus.
+The product pages are references, not additional recipe cards. They carry
+Grotto's own capability contracts — since ADR 0028, the `agent` page carries the
+direct `grotto agent create` path and its consent norm — without adding a
+Grotto-only decision policy to the captured Raft recipe corpus.
 
 `grotto-cli-overview` is the expandable operating guide. The universal Agent
 prompt retains only mandatory operating rules and points Agents to this Manual

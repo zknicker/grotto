@@ -3,7 +3,7 @@ summary: Provider-hosted Cloud Agents as Agent-delegated work carried by durable
 read_when:
   - adding or changing Cloud Agent tools, providers, lifecycle, cards, results, or completion delivery
   - changing Cursor runtime discovery, Cursor Cloud Agent authentication, or Cursor usage reporting
-  - changing typed Message bodies, Agent creation proposals, or record-backed Message rendering
+  - changing typed Message bodies, the `agent-created` body, or record-backed Message rendering
   - deciding whether delegated work belongs to a Grotto Agent, Harness subagent, Task, or provider-hosted Cloud Agent
 ---
 
@@ -94,7 +94,7 @@ content; it never replaces the Message's authored meaning.
 ```ts
 type MessageBody =
     | { kind: 'text' }
-    | { kind: 'agent-creation-proposal'; proposal: AgentCreationProposal }
+    | { kind: 'agent-created'; agent: CreatedAgentSummary }
     | { kind: 'cloud-agent-work'; work: CloudAgentWork }
     | { kind: 'ask'; ask: Ask };
 
@@ -115,7 +115,7 @@ An `ask` body carries one human decision request; see [Asks](asks.md).
 
 Body kinds name concrete Grotto product acts, not generic mechanisms, rendered entities, or
 providers. Grotto has no generic `prepared-action`, `cards[]`, or arbitrary JSON-block body. Agent
-creation uses `agent-creation-proposal`; delegated hosted work uses `cloud-agent-work`; Cursor is a
+creation uses `agent-created`; delegated hosted work uses `cloud-agent-work`; Cursor is a
 provider field on that work. A pull request becomes a Message body only when a real workflow needs
 to author a pull-request Message independently.
 
@@ -185,11 +185,10 @@ no per-kind schema version, and readers do not retain historical variants indefi
 The prerequisite Message migration:
 
 1. Adds `body_kind` to `chat_messages`, defaulting existing Messages to `text`.
-2. Renames the Agent-creation proposal domain, tables, routes, events, shared contracts, App and iOS
-   types, and documentation away from the legacy generic action terminology.
-3. Backfills Agent-creation Message rows to `agent-creation-proposal` and replaces historical empty
-   content with a deterministic description derived from the immutable proposal. New proposal and
-   Cloud Agent tools require Agent-authored Message content.
+2. Renames the Agent-creation domain, tables, routes, events, shared contracts, App and iOS types,
+   and documentation away from the legacy generic action terminology.
+3. Backfills Agent-creation Message rows and replaces historical empty content with Agent-authored
+   content. Agent-creation and Cloud Agent tools require Agent-authored Message content.
 4. Introduces the exhaustive `Message.body` contract and one Server Message reader, and deletes
    the old top-level proposal field in the same change.
 5. Moves web and iOS to the body union and removes every client-side empty-content or copy
@@ -490,10 +489,8 @@ administrative integration and is outside this Computer capability.
    Server Message reader. Cloud Agent work blocks on this step. This landed with
    [Asks](asks.md): `body_kind` defaults to `text`, the shipped union is `text | ask`, and
    `toChatMessage` projects the typed record for every consumer that returns a Message.
-2. Rename Agent creation proposals away from the legacy generic action terminology. The proposal
-   still rides the separate top-level `preparedAction` field; the rename folds
-   `agent-creation-proposal` into the same body union and drops that field. This runs after step 1
-   and may share a migration with step 5.
+2. **Landed.** ADR 0028 retired prepared actions entirely: Agents create Agents directly, the
+   `agent-created` body joined this union, and the top-level `preparedAction` field is gone.
 3. Add Cursor runtime discovery and AI SDK harness support.
 4. Add Cursor Cloud Agent readiness, SDK bootstrap guidance, and truthful usage reporting.
 5. **Landed.** The `grotto cloud-agent` verbs, the `CloudAgentProvider` boundary with an in-memory

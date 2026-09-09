@@ -112,13 +112,12 @@ PostgreSQL owns the hosted collaboration tables
 | `chats` | Server-owned Channels, canonical sorted two-human DMs, Owner↔Agent DMs (`dm_agent_id`), and hidden child Threads |
 | `channel_participants` | One human's participation in one Channel |
 | `thread_follows` | Per-human Thread attention; never membership |
-| `agents` / `channel_agent_participants` | Hosted Agent identity and uploaded avatar (`avatar_id`), immutable Computer assignment, Server-owned desired runtime/model, the Computer-reported effective snapshot, and Channel access for reminder authorship |
-| `agent_delivery` / `agent_inbox` | One-row-per-Agent Stop flag and single in-flight run (the per-Agent serialization boundary), and the agent inbox drained into runs — the only agent-only lane, including the items with no backing message: action attentions, automation fires, and task assignments |
+| `agents` / `channel_agent_participants` | Hosted Agent identity and uploaded avatar (`avatar_id`), immutable Computer assignment, Server-owned desired runtime/model, the Computer-reported effective snapshot, the creating human or Agent plus the announcement Message an Agent-created Agent anchors to, and Channel access for reminder authorship |
+| `agent_delivery` / `agent_inbox` | One-row-per-Agent Stop flag and single in-flight run (the per-Agent serialization boundary), and the agent inbox drained into runs — the only agent-only lane, including the items with no backing message: automation fires and task assignments |
 | `agent_turns` | Compact per-run turn summary reported by a Computer after a launch settles |
 | `agent_session_rotations` | One row per Agent session rotation: the generation it started, when, and why |
 | `chat_messages` | Immutable human and Agent messages ordered by per-Chat sequence and nonce, stamped with the sending run's `session_generation`; there is no `system_author`, and every row is readable by every human who can read the Chat |
 | `message_causes` | The automation fire one message answers, whether that attribution was explicit or inferred, and the snapshot the mark keeps for good — title, summary, fire time, owning Agent, anchor Chat — at most one per message |
-| `prepared_actions` / `prepared_action_media` | Immutable Agent-prepared action proposals, lifecycle/supersession state, and exact action-owned avatar bytes |
 | `chat_reads` | One monotonic reader high-water mark per Chat |
 | `chat_events` | Durable message/read/task/reminder-change events ordered by PostgreSQL cursor |
 | `attachments` | Server/Chat-scoped metadata, upload state, content digest, and optional message association |
@@ -269,13 +268,8 @@ restart-durable per-run marker under `~/.grotto/computer`, replaying a settled
 run's stored summary instead of re-running it. A busy Agent accumulates queued
 work and receives a content-free `notice`, recorded in the running turn's runtime
 directory. Idle ordinary work also starts with a notice; full envelopes stay in
-Computer-local pending state until `grotto message check` returns them. A committed
-prepared-action attention is the typed concrete exception: it is materialized only
-for its proposer, carries the originating Chat, created Agent, and executed result,
-and starts a distinct continuation when the proposer is idle. A busy proposer
-receives the content-free notice first and the action on the next turn. It has no
-Chat message or cursor. The Computer records those exact visible identities against
-the active run and suppresses an already-consumed action on same-run replay; the
+Computer-local pending state until `grotto message check` returns them. The Computer records those exact visible identities against
+the active run and suppresses an already-consumed item on same-run replay; the
 Server advances `seen` only at settlement. Unread identities stay pending but an
 unchanged offered set does not start another turn; a new identity wakes the Agent
 again. A failed or Stopped turn requeues visible work when no durable output proves

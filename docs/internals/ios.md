@@ -99,7 +99,7 @@ it converts hugeicons' SVG elements into path data, and `SVGPathData` parses tha
 main actor and caches each glyph's parsed `Path` on first use. Until it lands — and for any name the
 catalog does not carry — the box renders the hash, so the glyph never changes size or position.
 
-A stored body's edge whitespace is never layout. `MessagePresentation.body(content:preparedAction:)`
+A stored body's edge whitespace is never layout. `MessagePresentation.body(content:)`
 is the single presentation boundary that decides what a row says, and it trims leading and trailing
 whitespace and newlines there, so both the row's `content` and its `richSegments` derive from the
 same trimmed body — an Agent reply ending in a newline no longer pays a blank text line of gap
@@ -295,48 +295,16 @@ row at its new height. The clamps are the web's: 240pt reserved until the first 
 after it, collapse past 420pt behind a fade and a Show all footer. The first measurement is never
 animated — it is layout, not a transition — and later ones ease over 200ms.
 
-A prepared action reaches the transcript as two things, not one. The Server posts an empty body for
-the anchor message, so the proposal's note to the human *is* that message's text:
-`MessagePresentation.body(content:preparedAction:)` substitutes it whenever the Server body is
-blank, which keeps the surfaces that render a message body — the Chat transcript and a Thread's
-anchor — on one text. A superseded proposal, which leaves no card behind, falls back to a short
-replacement line so its row is not blank; a pending proposal with no note is carried by its card
-alone. The adapter resolves that substitution itself and parses the result with the mention resolver
-every other body gets, so an `@mention` inside a proposal's note renders as a chip rather than raw
-markdown. The card itself then mounts as its own block beneath that text, the way the Thread preview
-does. `ActionCardView` is the shell every kind composes — mark, title with an optional status
-capsule, description, and a bottom row of real controls with the finished action's receipt at its
-right — and a part with nothing to say is omitted rather than drawn empty. Where the web keeps the
-receipt on the button row, the phone's narrower column drops it to its own line through
-`ViewThatFits` rather than truncating away the time.
+An Agent-created Agent reaches the transcript as the creating Agent's own sentence and nothing else.
+The `--say` text is the Message body, so every surface that renders a body — the Chat transcript and
+a Thread's anchor — reads the same trimmed text with the ordinary mention resolver, and the `@handle`
+the announcement is required to carry resolves through `RichMessageParser` into the same reference
+chip any other Agent mention gets. There is no provenance row and no `Open` control: the way to the
+new Agent is its mention, and an Agent profile on the phone is reached through that Agent's own Chat,
+whose details sheet pushes the profile.
 
-The card is a summary, not the record. Its description is the Agent's own, given two wrapped lines
-and a tail ellipsis, and pressing the card anywhere outside its controls opens
-`PreparedActionDetailView` — the whole proposal on a sheet, at the phone's usual grouped-list
-detents. The sheet grows rather than the card: a card that expanded in place would push the
-transcript around under the finger, and every other detail on this phone is already a sheet. The
-card's reading band — the mark, the title, the description, and the padding around them, including
-the gap below — is itself one `Button`, so the only part of the card that is not that target is the
-row of controls that has its own. Two shapes were tried and rejected: a button drawn in the card's
-`.background` is never hit-tested (the card swallowed every tap in Simulator while its own controls
-answered normally), and one button wrapping the whole card folds `Create Agent` and `Open` into its
-label, where they stop being separate elements to VoiceOver. `PreparedActionDetail` resolves the one
-action a proposal offers — create, open, or none — and both the card's bottom row and the sheet's
-footer read it, so the two surfaces cannot disagree.
-Choosing `Create Agent` on the sheet dismisses it and presents `PreparedAgentCreateSheet` from that
-dismissal, because two sheets on one host are mutually exclusive; this is the order Chat details
-already uses to reach Settings.
-
-A superseded `agent.create` proposal shows no card at all: `ActionCardVisibility` decides between
-live, collapsing out, and gone, so a card on screen when its proposal is superseded collapses over
-200ms (instantly under Reduce Motion) and one that arrives already superseded never renders. Only
-that kind leaves — `leavesWhenSuperseded` is false for an unsupported kind, whose row carries no
-note of its own and would otherwise collapse to nothing. That collapse is per-action state living
-in a recycled cell, so both call sites key the card on the action id and the exit's timer is
-cancelled on disappear; without either, a collapsed card's latch blanks the next message's live one.
-`Open` on an executed card leads to the created Agent's own Chat, which is where the phone shows an
-Agent profile — its details sheet pushes the profile of the Agent it is a Chat with — and stands
-down when the Server no longer reports that Agent. Transcript rows are hosted in
+The `.agentCreated` body case stays as provenance, and `GrottoStoreMessageLoading` uses it to notice
+an Agent the directory does not list yet and refetch. Transcript rows are hosted in
 `UIHostingConfiguration` cells, which do not inherit the enclosing SwiftUI hierarchy's custom
 environment values, so row-level actions travel as explicit closures through `MessageTimelineView`
 and `ThreadMessageRow`, never through `@Environment`.
@@ -594,17 +562,32 @@ the walk completes, so events arriving during recovery are not missed. A cold st
 from `chat.eventHead` after refreshing the Server snapshot;
 cursor state is intentionally process-memory only for this prototype.
 
-Prepared actions stay inside that same canonical message pipeline. `GrottoModels` decodes the
-Server's prepared-action projection on each message, and native Chat and Thread timelines render its
-pending, committed, superseded, or unsupported lifecycle state. A pending `agent.create` action opens
-an editable SwiftUI review sheet whose Computer, runtime, model, and reasoning choices come from the
-Store's existing Server snapshots, reached from either the card or its detail sheet. Confirming the sheet calls `preparedAction.commit`; the client does
-not create an Agent locally. A `prepared-action.updated` event refetches the affected loaded message
-page, and an executed action also refreshes the Agent directory, so the action card itself becomes the
-committed receipt and the new Agent appears from Server state. The card's subject is the created
-Agent once one exists and the proposal until then — one record or the other, never a field-by-field
-merge, so a description cleared while creating the Agent stays cleared. Suggested Computers remain editable;
-a required Computer stays locked to the proposal and blocks creation while its inventory is unavailable.
+Agent creation stays inside that same canonical message pipeline. `GrottoModels` decodes the
+`agent-created` body on each message, but the timelines draw nothing for it: the announcement's own
+`@handle` mention is the way to the new Agent, so the body is provenance and a directory-refresh
+trigger. There is no review sheet and no client-side creation: the Agent already exists by the time
+the message arrives. An unknown body kind degrades to `.unsupported` and reads as its plain content.
+
+The directory refresh is the one place the phone differs from the App. This client subscribes to
+`chat.onEvent`, `agent.onLifecycle`, and `agent.onActivity` only — it has never consumed
+`server.updated`, so the event the App uses to invalidate `agent.list` after a creation does not
+reach it. The body itself is the notice instead: `message.created` refetches the affected loaded
+page, and `applyChatEvents` then scans those pages for an `agent-created` body naming an Agent the
+directory does not hold and refetches the directory once when it finds one
+(`GrottoStoreMessageLoading.swift`). What keeps that from becoming a standing refetch is that a body
+reading retired is skipped: the body is projected from the live `agents` row on every message read,
+and the pages scanned here were refetched moments earlier in the same batch, so a retired Agent's
+body already says retired and is never mistaken for a stale directory. The one case that does repeat
+is an Agent whose Computer was removed — `computers/service.ts` nulls `computerId` without retiring,
+which drops the Agent from `agent.list` while it is still live — and that costs one extra directory
+read per batch touching its Chat until the Computer returns.
+
+The mark reads from whichever of its two sources currently knows the Agent. Server projects the live
+`agents` row into the body on every message read, so the body is true when the page is fetched and
+then ages with it; the directory is refetched on its own schedule. `PresentationAdapters` therefore
+prefers the directory entry for the name, the face, and liveness, and falls back to the body when the
+directory does not hold the Agent — absence is not evidence of retirement, for the removed-Computer
+reason above.
 
 Utility navigation stays on the same Server contracts and Store cache. One search surface serves the
 active Server, reachable from the Chat header and from the sidebar's own chrome button. Like the

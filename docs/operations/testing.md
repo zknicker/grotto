@@ -306,11 +306,11 @@ GROTTO_AGENT_E2E_AVATAR_REQUEST_LOG=/tmp/grotto-cove-avatar-requests.jsonl \
 bun run test:agents --include-opt-in --only cove-composes-agent-creation --lanes 1
 ```
 
-It proves one provider request, one pending avatar-backed action, a completed
-preparation turn, one committed Agent, a distinct typed Cove continuation, and
-one substantive Cove-authored starter delivered through ordinary Chat. The
-scenario never uses browser E2E or asserts model wording, selected name,
-character, aesthetics, or acknowledgment. Its report is written under
+It proves a prose proposal that creates nothing, then exactly one Agent created
+by `grotto agent create` with Cove's own runtime, model, reasoning effort, and
+Computer, announced by one `agent-created` Message in the same DM, and no second
+Agent when the request is repeated. The scenario never uses browser E2E or
+asserts model wording, selected name, character, aesthetics, or acknowledgment. Its report is written under
 `.context/agent-tests/<run>/`; if the required Cove/Computer/provider setup is
 unavailable, record that exact precondition gap rather than running a partial
 substitute.

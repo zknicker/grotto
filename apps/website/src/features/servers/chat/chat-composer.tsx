@@ -12,9 +12,7 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useChatMessageSend } from '../../../hooks/servers/use-chat-message-send.ts';
 import { useUploadServerAttachment } from '../../../hooks/servers/use-upload-server-attachment.ts';
-import { buildChatComposerSubmission } from '../../chats/chat-composer-submission.ts';
 import { buildAgentMentionOption } from '../../mentions/mention-options.ts';
-import type { Mention } from '../../mentions/mention-types.ts';
 import {
     MentionComposerEditor,
     MentionComposerPicker,
@@ -24,20 +22,19 @@ import {
     hasChatComposerPayload,
     resolveChatComposerPlaceholder,
 } from './chat-composer-presentation.ts';
+import { ChatComposerRecovery } from './chat-composer-recovery.tsx';
+import { discardFailedChatDraft, restoreFailedChatDraft } from './chat-draft-store.ts';
 import { ComposerAttachments } from './composer-attachments.tsx';
+import { submitChatComposer } from './submit-chat-composer.ts';
+import { useChatDraft } from './use-chat-draft.ts';
 import { useCompactComposerLayout } from './use-compact-composer-layout.ts';
-import { type ComposerAttachment, useComposerAttachments } from './use-composer-attachments.ts';
-import {
-    addPendingChatMessage,
-    dropPendingChatMessage,
-    settlePendingChatMessage,
-} from './use-pending-messages.ts';
 
 const emptyAgents: Agent[] = [];
 
 export function ServerChatComposer({
     chatId,
     chatName,
+    draftKey,
     onMaterialized,
     onThreadCreated,
     pendingChatId,
@@ -49,6 +46,7 @@ export function ServerChatComposer({
 }: {
     chatId?: string;
     chatName: string;
+    draftKey: string;
     onMaterialized?: (chatId: string) => void;
     onThreadCreated?: (threadChatId: string) => void;
     /**
@@ -70,25 +68,23 @@ export function ServerChatComposer({
 }) {
     const agents = useAgents(serverId);
     const agentList = agents.data ?? emptyAgents;
-    const [draft, setDraft] = React.useState('');
-    const [mentions, setMentions] = React.useState<Mention[]>([]);
     const {
-        add: addAttachments,
+        addAttachments,
+        attachmentError,
+        attachmentInput,
         attachments,
-        clear: clearAttachments,
-        error: attachmentError,
-        inputRef: attachmentInput,
-        remove: removeAttachment,
-    } = useComposerAttachments();
+        clearAttachmentError,
+        content: draft,
+        failed: failedDrafts,
+        mentions,
+        removeAttachment,
+        updateContent,
+        updateMentions,
+    } = useChatDraft(draftKey);
     const { editorSlotRef, isExpanded } = useCompactComposerLayout({
         content: draft,
         isForcedExpanded: attachments.length > 0,
     });
-    // Guard two handlers firing before React re-renders the cleared draft.
-    const submissionRef = React.useRef({ attachments, draft, mentions });
-    submissionRef.current = { attachments, draft, mentions };
-    const send = useChatMessageSend();
-    const upload = useUploadServerAttachment();
     const mentionableAgentIds = React.useMemo(
         () => agentList.map((agent) => agent.id),
         [agentList]
@@ -97,18 +93,22 @@ export function ServerChatComposer({
         agents: agentList,
         chatTarget: target,
         content: draft,
+        initialMentions: mentions,
         mentionableAgentIds,
-        onMentionsChange: setMentions,
+        onMentionsChange: updateMentions,
         onSubmit: () => {
             void handleSubmit();
         },
-        onTextChange: setDraft,
+        onTextChange: updateContent,
         serverId,
     });
 
+    const send = useChatMessageSend();
+    const upload = useUploadServerAttachment();
+
     useChatComposerFocusRequest(!thread, mentionComposer.focusTextEditor);
     useChatComposerInsertRequest(!thread, (text) => {
-        setDraft((current) => appendComposerInsert(current, text));
+        updateContent((current) => appendComposerInsert(current, text));
         requestAnimationFrame(mentionComposer.focusTextEditor);
     });
     useChatComposerMentionRequest(thread ? null : (chatId ?? null), ({ agentId }) => {
@@ -126,85 +126,24 @@ export function ServerChatComposer({
 
     // Sending is optimistic: the draft leaves the editor immediately and the
     // transcript's pending row carries it, so nothing here waits on a round
-    // trip. A failed send puts the whole draft back, ready to retry.
-    async function handleSubmit(event?: React.FormEvent) {
-        event?.preventDefault();
-        const submitted = submissionRef.current;
-        const { content } = buildChatComposerSubmission({
-            content: submitted.draft,
-            mentions: submitted.mentions,
+    // trip. A failed send becomes a recoverable draft without replacing newer work.
+    function handleSubmit(event?: React.FormEvent) {
+        return submitChatComposer({
+            attachmentInput,
+            chatId,
+            clearAttachmentError,
+            draftKey,
+            event,
+            focusTextEditor: mentionComposer.focusTextEditor,
+            onMaterialized,
+            onThreadCreated,
+            pendingChatId,
+            send,
+            serverId,
+            target,
+            thread,
+            upload,
         });
-        if (content.length === 0 && submitted.attachments.length === 0) {
-            return;
-        }
-
-        const nonce = crypto.randomUUID();
-        submissionRef.current = { attachments: [], draft: '', mentions: [] };
-        setDraft('');
-        setMentions([]);
-        clearAttachments();
-
-        try {
-            if (pendingChatId) {
-                addPendingChatMessage(pendingChatId, {
-                    attachments: submitted.attachments.map(pendingAttachment),
-                    content,
-                    nonce,
-                });
-            }
-            const uploaded = await Promise.all(
-                submitted.attachments.map((attachment) =>
-                    upload.mutateAsync({
-                        chatId: chatId ?? '',
-                        file: attachment.file,
-                        nonce: attachment.nonce,
-                        serverId,
-                    })
-                )
-            );
-            const receipt = await send.mutateAsync(
-                target.kind === 'agent-dm'
-                    ? {
-                          agentId: target.agentId,
-                          attachmentIds: [],
-                          content,
-                          nonce,
-                          serverId,
-                          targetKind: 'agent-dm',
-                      }
-                    : {
-                          attachmentIds: uploaded.map((attachment) => attachment.id),
-                          chatId: target.chatId,
-                          content,
-                          nonce,
-                          serverId,
-                          thread,
-                      }
-            );
-            onMaterialized?.(receipt.message.chatId);
-            if (pendingChatId) {
-                settlePendingChatMessage({
-                    chatId: pendingChatId,
-                    messageId: receipt.message.id,
-                    nonce,
-                });
-            }
-            if (receipt.threadChatId) {
-                onThreadCreated?.(receipt.threadChatId);
-            }
-        } catch {
-            // The mutation hooks own the error text below; this restores the
-            // draft so the send can be retried without retyping it.
-            if (pendingChatId) {
-                dropPendingChatMessage(pendingChatId, nonce);
-            }
-            setDraft(submitted.draft);
-            setMentions(submitted.mentions);
-            if (submitted.attachments.length > 0) {
-                addAttachments(submitted.attachments.map((attachment) => attachment.file));
-            }
-            mentionComposer.focusTextEditor();
-        }
     }
 
     const errorMessage = attachmentError ?? upload.error?.message ?? send.error?.message;
@@ -216,6 +155,14 @@ export function ServerChatComposer({
 
     return (
         <div className="shrink-0 px-5 pb-4">
+            <ChatComposerRecovery
+                drafts={failedDrafts}
+                onDiscard={(id) => discardFailedChatDraft(draftKey, id)}
+                onRestore={(id) => {
+                    restoreFailedChatDraft(draftKey, id);
+                    requestAnimationFrame(mentionComposer.focusTextEditor);
+                }}
+            />
             <PromptInput
                 data-expanded={isExpanded || undefined}
                 layout="compact"
@@ -244,6 +191,8 @@ export function ServerChatComposer({
                                 ariaLabel={`Message ${chatName}`}
                                 autoFocus={!thread}
                                 composer={mentionComposer}
+                                key={draftKey}
+                                mentions={mentions}
                                 name="chat-message"
                                 placeholder={resolveChatComposerPlaceholder(chatName, placeholder)}
                             />
@@ -302,15 +251,4 @@ export function ServerChatComposer({
         event.preventDefault();
         mentionComposer.focusTextEditor();
     }
-}
-
-// The pending row names the files while their bytes are still uploading, so it
-// describes the local File rather than a reserved attachment.
-function pendingAttachment(attachment: ComposerAttachment) {
-    return {
-        filename: attachment.file.name,
-        id: attachment.nonce,
-        mediaType: attachment.file.type || 'application/octet-stream',
-        sizeBytes: attachment.file.size,
-    };
 }

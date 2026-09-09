@@ -1,5 +1,5 @@
 import { ChatAttachment, ChatAttachmentGroup, PromptInput } from '@heroui-pro/react';
-import type { ComposerAttachment } from './use-composer-attachments.ts';
+import type { ComposerAttachment } from './chat-draft-attachments.ts';
 
 export function ComposerAttachments({
     attachments,

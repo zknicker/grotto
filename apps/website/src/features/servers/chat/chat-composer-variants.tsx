@@ -1,6 +1,8 @@
 import { ServerChatComposer } from './chat-composer.tsx';
+import { agentDmDraftKey, chatDraftKey, threadDraftKey } from './chat-draft-store.ts';
 
 export function ChatComposer(props: {
+    agentDmId?: string;
     chatId: string;
     chatName: string;
     onThreadCreated?: (threadChatId: string) => void;
@@ -10,7 +12,20 @@ export function ChatComposer(props: {
     thread?: { anchorMessageId: string };
     variant?: 'primary' | 'secondary';
 }) {
-    return <ServerChatComposer {...props} target={{ chatId: props.chatId, kind: 'chat' }} />;
+    const draftKey = props.thread
+        ? threadDraftKey(props.serverId, props.chatId, props.thread.anchorMessageId)
+        : props.agentDmId
+          ? agentDmDraftKey(props.serverId, props.agentDmId)
+          : chatDraftKey(props.serverId, props.chatId);
+
+    return (
+        <ServerChatComposer
+            {...props}
+            draftKey={draftKey}
+            key={draftKey}
+            target={{ chatId: props.chatId, kind: 'chat' }}
+        />
+    );
 }
 
 export function ImplicitAgentDmComposer({
@@ -24,9 +39,13 @@ export function ImplicitAgentDmComposer({
     onMaterialized: (chatId: string) => void;
     serverId: string;
 }) {
+    const draftKey = agentDmDraftKey(serverId, agentId);
+
     return (
         <ServerChatComposer
             chatName={chatName}
+            draftKey={draftKey}
+            key={draftKey}
             onMaterialized={onMaterialized}
             serverId={serverId}
             target={{ agentId, kind: 'agent-dm' }}

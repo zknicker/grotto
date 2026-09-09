@@ -1,13 +1,14 @@
 import { baseKeymap, splitBlock } from 'prosemirror-commands';
 import { history } from 'prosemirror-history';
 import { keymap } from 'prosemirror-keymap';
-import { DOMParser, Fragment, type Node as ProseMirrorNode, Schema } from 'prosemirror-model';
+import { Fragment, type Node as ProseMirrorNode } from 'prosemirror-model';
 import { AllSelection, EditorState, TextSelection } from 'prosemirror-state';
 import { EditorView, type NodeView } from 'prosemirror-view';
 import * as React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { isSelectAllShortcut } from '../../lib/select-all.ts';
 import { cn } from '../../lib/utils.ts';
+import { contentToDoc, mentionSchema } from './mention-document.ts';
 import { getActiveMentionQuery } from './mention-text.ts';
 import type { ActiveMentionQuery, Mention, MentionKind, MentionOption } from './mention-types.ts';
 import { ReferenceChip } from './reference-chip.tsx';
@@ -29,6 +30,7 @@ export function MentionEditor({
     onFocus,
     onKeyDown,
     placeholder,
+    mentions = [],
     ref,
     value,
 }: {
@@ -43,11 +45,13 @@ export function MentionEditor({
     onFocus?: () => void;
     onKeyDown: (event: KeyboardEvent) => boolean;
     placeholder?: string;
+    mentions?: readonly Mention[];
     ref?: React.Ref<MentionEditorHandle>;
     value: string;
 }) {
     const editorRef = React.useRef<HTMLDivElement | null>(null);
     const initialValueRef = React.useRef(value);
+    const initialMentionsRef = React.useRef(mentions);
     const onActiveQueryChangeRef = React.useRef(onActiveQueryChange);
     const onChangeRef = React.useRef(onChange);
     const onFocusRef = React.useRef(onFocus);
@@ -144,7 +148,7 @@ export function MentionEditor({
                 mention: (node) => new MentionNodeView(node),
             },
             state: EditorState.create({
-                doc: contentToDoc(initialValueRef.current),
+                doc: contentToDoc(initialValueRef.current, initialMentionsRef.current),
                 plugins: [
                     history(),
                     keymap({ Backspace: deleteMentionBeforeCaret }),
@@ -176,12 +180,12 @@ export function MentionEditor({
             return;
         }
 
-        const doc = contentToDoc(value);
+        const doc = contentToDoc(value, mentions);
         const transaction = view.state.tr.replaceWith(0, view.state.doc.content.size, doc.content);
 
         transaction.setSelection(TextSelection.atEnd(transaction.doc));
         view.dispatch(transaction);
-    }, [value]);
+    }, [mentions, value]);
 
     return (
         <div className={cn('relative', className)}>
@@ -223,49 +227,6 @@ export function isMentionEditorLineBreakShortcut(
     return event.key === 'Enter' && event.shiftKey && !event.isComposing;
 }
 
-const mentionSchema = new Schema({
-    marks: {},
-    nodes: {
-        doc: { content: 'paragraph+' },
-        paragraph: {
-            content: 'inline*',
-            group: 'block',
-            parseDOM: [{ tag: 'p' }],
-            toDOM: () => ['p', 0],
-        },
-        text: { group: 'inline' },
-        mention: {
-            atom: true,
-            attrs: {
-                id: {},
-                kind: {},
-                label: {},
-                metadata: { default: null },
-                projection: {},
-                text: {},
-            },
-            group: 'inline',
-            inline: true,
-            leafText: (node) => node.attrs.text,
-            selectable: false,
-            toDOM: (node) => [
-                'span',
-                {
-                    'data-mention-id': node.attrs.id,
-                    'data-mention-kind': node.attrs.kind,
-                    'data-mention-label': node.attrs.label,
-                    'data-mention-metadata': node.attrs.metadata
-                        ? JSON.stringify(node.attrs.metadata)
-                        : '',
-                    'data-mention-projection': node.attrs.projection,
-                    'data-mention-text': node.attrs.text,
-                },
-                node.attrs.text,
-            ],
-        },
-    },
-});
-
 class MentionNodeView implements NodeView {
     dom: HTMLElement;
     readonly #root: Root;
@@ -306,20 +267,6 @@ class MentionNodeView implements NodeView {
             />
         );
     }
-}
-
-function contentToDoc(content: string) {
-    const document = window.document.implementation.createHTMLDocument();
-    const body = document.body;
-    const paragraphs = content.split('\n');
-
-    for (const paragraph of paragraphs.length > 0 ? paragraphs : ['']) {
-        const element = document.createElement('p');
-        element.textContent = paragraph;
-        body.appendChild(element);
-    }
-
-    return DOMParser.fromSchema(mentionSchema).parse(body);
 }
 
 function getActiveQuery(doc: ProseMirrorNode, position: number) {

@@ -157,9 +157,8 @@ export function ChatView({
         );
         setChatSidePane(chat.id, 'artifact');
     }, [chat.id, setSearchParams]);
-    // The transcript's render context reaches every row through React context,
-    // so these handlers stay referentially stable: a fresh callback per render
-    // would rebuild that context and re-render the whole transcript.
+    // The transcript's render context reaches rows through React context; fresh
+    // callbacks would rebuild it and re-render the whole transcript.
     const openThread = React.useCallback(
         (anchor: ChatMessage, initialSummary: ThreadSummary | null) => {
             threadCloseRequestedRef.current = false;
@@ -302,6 +301,7 @@ export function ChatView({
                             </p>
                         ) : (
                             <ChatComposer
+                                agentDmId={chat.peerAgentId ?? undefined}
                                 chatId={chat.id}
                                 chatName={chatName}
                                 pendingChatId={chat.id}

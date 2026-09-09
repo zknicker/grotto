@@ -3,6 +3,10 @@ import { parseAgentReferenceTarget } from '@grotto/api/rich-references';
 import * as React from 'react';
 import { grottoTrpc } from '../../lib/grotto-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
+import {
+    type MentionComposerScaffold,
+    useMentionComposerScaffold,
+} from './mention-composer-scaffold.ts';
 import { MentionEditor, type MentionEditorHandle } from './mention-editor.tsx';
 import {
     buildAgentMentionOption,
@@ -12,6 +16,11 @@ import {
 import { MentionPicker } from './mention-picker.tsx';
 import type { ActiveMentionQuery, Mention, MentionOption } from './mention-types.ts';
 import { selectVisibleOptions } from './mention-visible-options.ts';
+
+export {
+    resolveSkillScopeAgentIds,
+    resolveSkillScopeAgentIdsKey,
+} from './mention-composer-scaffold.ts';
 
 export interface MentionComposerState {
     activeIndex: number;
@@ -23,6 +32,7 @@ export interface MentionComposerState {
     hasQuery: boolean;
     isPathSearchActive: boolean;
     isPathSearchLoading: boolean;
+    mentions: Mention[];
     onActiveQueryChange: (query: ActiveMentionQuery | null) => void;
     options: MentionOption[];
     prefetchMentionOptions: () => void;
@@ -33,6 +43,7 @@ export function useServerMentionComposer({
     agents,
     chatTarget,
     content,
+    initialMentions,
     mentionableAgentIds,
     onMentionsChange,
     onSubmit,
@@ -42,6 +53,7 @@ export function useServerMentionComposer({
     agents: Agent[];
     chatTarget: { agentId: string; kind: 'agent-dm' } | { chatId: string; kind: 'chat' };
     content: string;
+    initialMentions?: readonly Mention[];
     mentionableAgentIds: readonly string[];
     onMentionsChange?: (mentions: Mention[]) => void;
     onSubmit?: () => void;
@@ -59,6 +71,7 @@ export function useServerMentionComposer({
     );
     const scaffold = useMentionComposerScaffold({
         agentId: mentionableAgentIds[0] ?? '',
+        initialMentions,
         mentionableAgentIds,
     });
     const targetAgentId = chatTarget.kind === 'agent-dm' ? chatTarget.agentId : null;
@@ -119,47 +132,6 @@ export function useServerMentionComposer({
         prefetchMentionOptions,
         scaffold,
     });
-}
-
-interface MentionComposerScaffold {
-    activeQuery: ActiveMentionQuery | null;
-    mentions: Mention[];
-    setActiveQuery: React.Dispatch<React.SetStateAction<ActiveMentionQuery | null>>;
-    setMentions: React.Dispatch<React.SetStateAction<Mention[]>>;
-    skillScopeAgentIds: string[];
-}
-
-export function useMentionComposerScaffold({
-    agentId,
-    mentionableAgentIds,
-}: {
-    agentId: string;
-    mentionableAgentIds: readonly string[];
-}): MentionComposerScaffold {
-    const [mentions, setMentions] = React.useState<Mention[]>([]);
-    const [activeQuery, setActiveQuery] = React.useState<ActiveMentionQuery | null>(null);
-    // The editor emits a fresh `mentions` array on every keystroke, so an
-    // identity-keyed memo here produces a new scope array per render and
-    // invalidates every downstream query input and prefetch callback. Key the
-    // memo on the resolved scope value instead.
-    const skillScopeAgentIdsKey = resolveSkillScopeAgentIdsKey({
-        agentId,
-        mentionableAgentIds,
-        mentions,
-    });
-    const skillScopeAgentIds = React.useMemo(
-        () =>
-            skillScopeAgentIdsKey === '' ? [] : skillScopeAgentIdsKey.split(SCOPE_KEY_SEPARATOR),
-        [skillScopeAgentIdsKey]
-    );
-
-    return {
-        activeQuery,
-        mentions,
-        setActiveQuery,
-        setMentions,
-        skillScopeAgentIds,
-    };
 }
 
 export function useMentionComposerController({
@@ -324,58 +296,12 @@ export function useMentionComposerController({
             trigger !== '$' &&
             trigger !== '#' &&
             mentionOptionsState.isPathSearchLoading,
+        mentions,
         onActiveQueryChange: handleActiveQueryChange,
         options: visibleMentionOptions,
         prefetchMentionOptions,
         value: content,
     } satisfies MentionComposerState;
-}
-
-export function resolveSkillScopeAgentIds({
-    agentId,
-    mentionableAgentIds = [],
-    mentions,
-}: {
-    agentId: string;
-    mentionableAgentIds?: readonly string[];
-    mentions: readonly Mention[];
-}) {
-    const mentionable = new Set(mentionableAgentIds);
-    const taggedAgentIds = mentions.flatMap((mention) => {
-        if (mention.kind !== 'agent' || mention.projection !== 'agent-reference') {
-            return [];
-        }
-
-        const parsed = parseAgentReferenceTarget(mention.id);
-        if (!parsed) {
-            return [];
-        }
-
-        if (mentionable.size > 0 && !mentionable.has(parsed)) {
-            return [];
-        }
-
-        return [parsed];
-    });
-    const fallbackAgentIds = mentionableAgentIds.length > 0 ? mentionableAgentIds : [agentId];
-    const scopedAgentIds = taggedAgentIds.length > 0 ? taggedAgentIds : fallbackAgentIds;
-
-    return [...new Set(scopedAgentIds.map((id) => id.trim()).filter(Boolean))];
-}
-
-const SCOPE_KEY_SEPARATOR = '\n';
-
-/**
- * Value key for the resolved skill scope. Two renders that resolve the same
- * agent ids produce the same key, which keeps the scope array, query inputs,
- * and prefetch callbacks referentially stable across unrelated re-renders.
- */
-export function resolveSkillScopeAgentIdsKey(params: {
-    agentId: string;
-    mentionableAgentIds?: readonly string[];
-    mentions: readonly Mention[];
-}) {
-    return resolveSkillScopeAgentIds(params).join(SCOPE_KEY_SEPARATOR);
 }
 
 function isSameMentionQuery(left: ActiveMentionQuery, right: ActiveMentionQuery | null) {
@@ -394,6 +320,7 @@ export function MentionComposerEditor({
     composer,
     disabled,
     id,
+    mentions,
     name,
     placeholder,
 }: {
@@ -402,6 +329,7 @@ export function MentionComposerEditor({
     composer: MentionComposerState;
     disabled?: boolean;
     id?: string;
+    mentions?: readonly Mention[];
     name: string;
     placeholder?: string;
 }) {
@@ -411,6 +339,7 @@ export function MentionComposerEditor({
             autoFocus={autoFocus}
             disabled={disabled}
             id={id}
+            mentions={mentions ?? composer.mentions}
             name={name}
             onActiveQueryChange={composer.onActiveQueryChange}
             onChange={composer.handleTextChange}

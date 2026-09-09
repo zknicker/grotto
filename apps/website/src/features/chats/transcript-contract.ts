@@ -31,7 +31,6 @@ export interface TranscriptActiveReply {
 
 interface TranscriptActorProfileBase {
     avatarUrl: string | null;
-    bio: string | null;
     id: string;
     isSelf: boolean;
     name: string;

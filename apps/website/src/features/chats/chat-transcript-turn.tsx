@@ -241,10 +241,14 @@ function UserTurnPresentation({
                                 ? () => context.onActorClick?.(entry.actor)
                                 : undefined
                         }
-                        taskMark={<TranscriptTurnTaskClaimMark items={entry.items} />}
                         timestamp={entry.timestamp}
                     />
                 ) : null}
+                {/* Between the name and the words: what this message is about,
+                    the way a reply states what it is replying to. It renders
+                    nothing when no task touches the turn, so an ordinary
+                    message reserves no room for it. */}
+                <TranscriptTurnTaskClaimMark items={entry.items} />
                 {entry.items.map((item) => (
                     <UserTurnItem from="user" item={item} key={getTranscriptItemKey(item)} />
                 ))}
@@ -480,7 +484,6 @@ function AgentTurnPresentation({
                 <ChatMessage.Body className={transcriptTurnGeometry.body}>
                     {showIdentity ? (
                         <TurnHeader
-                            bio={actorProfile?.bio}
                             cause={causeMarkHidden ? null : getTurnCause(items)}
                             composerId={composerId}
                             deleted={actorProfile?.deleted}
@@ -495,20 +498,14 @@ function AgentTurnPresentation({
                                 sessionMarks,
                                 turnDetails?.serverId
                             )}
-                            taskMark={
-                                <>
-                                    {/* An Agent can claim another Agent's
-                                        message, so a turn can wear a claim of
-                                        its own and a receipt for someone
-                                        else's; both are absent on almost
-                                        every turn. */}
-                                    <TranscriptTurnTaskClaimMark items={items} />
-                                    <TranscriptTurnTaskHandledMark items={items} />
-                                </>
-                            }
                             timestamp={entry.timestamp}
                         />
                     ) : null}
+                    {/* An Agent can claim another Agent's message, so a turn can
+                        wear a claim of its own and a receipt for someone
+                        else's; both are absent on almost every turn. */}
+                    <TranscriptTurnTaskClaimMark items={items} />
+                    <TranscriptTurnTaskHandledMark items={items} />
                     {visibleSegments.map((segment, index) => (
                         <AgentTurnSegment
                             chatId={chatId}

@@ -94,7 +94,6 @@ test('ChatTranscript mutes deleted authors and labels their historical messages'
             actor?.kind === 'agent'
                 ? {
                       avatarUrl: '/avatars/cove.png',
-                      bio: 'Onboarding Assistant',
                       deleted: true,
                       id: actor.id,
                       isSelf: false,
@@ -1567,12 +1566,9 @@ test('ChatTranscript marks a message an automation provoked, in the header besid
 
     assert.match(markup, /Deploy finished/);
     assert.match(markup, /text-trigger-mark/);
-    // The bio yields the header slot to the mark: why an Agent spoke outranks
-    // what it is generally for.
-    assert.doesNotMatch(markup, /Keeps the plan tight/);
 });
 
-test('ChatTranscript leaves an ordinary message unmarked and keeps the bio', () => {
+test('ChatTranscript keeps an ordinary Agent header to a name and a time', () => {
     const row = causedRow();
     const markup = renderTranscript(
         [{ ...row, message: { ...row.message, cause: null } }],
@@ -1581,7 +1577,10 @@ test('ChatTranscript leaves an ordinary message unmarked and keeps the bio', () 
 
     assert.doesNotMatch(markup, /Deploy finished/);
     assert.doesNotMatch(markup, /text-trigger-mark/);
-    assert.match(markup, /Keeps the plan tight/);
+    // No description tagline: what an Agent is generally for belongs to its
+    // hover card and profile, not to every message it writes.
+    const header = /max-w-full items-center gap-2[^>]*>(.*?)<\/div>/.exec(markup)?.[1] ?? '';
+    assert.equal(header.replace(/<[^>]*>/g, ''), 'Blippy12:00 pm');
 });
 
 test('ChatTranscript marks a message an Agent wrote after starting a new session', () => {
@@ -1633,7 +1632,6 @@ function causedOverrides(): Partial<TranscriptRenderContextValue> {
         resolveActorProfile: () => ({
             availability: { kind: 'none' },
             avatarUrl: null,
-            bio: 'Keeps the plan tight and surfaces decisions early.',
             deleted: false,
             id: 'blippy',
             isSelf: false,

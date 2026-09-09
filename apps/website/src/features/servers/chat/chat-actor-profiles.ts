@@ -50,7 +50,6 @@ export function useResolveActorProfile({
 
             return {
                 avatarUrl: humans.avatarUrl(actor.id),
-                bio: member?.description ?? null,
                 deleted: false,
                 id: actor.id,
                 isSelf: humans.isSelf(actor.id),
@@ -66,7 +65,6 @@ export function useResolveActorProfile({
 export function liveAgentActorProfile(agent: Agent): TranscriptActorProfile {
     return {
         avatarUrl: agent.avatarUrl,
-        bio: agent.description,
         deleted: false,
         id: agent.id,
         isSelf: false,
@@ -118,7 +116,6 @@ function useHistoricalActorProfiles(messages: readonly ChatMessage[], humans: Hu
                 source.kind === 'agent'
                     ? {
                           avatarUrl: source.profile.avatarUrl,
-                          bio: source.profile.description,
                           deleted: source.profile.deleted,
                           id: source.id,
                           isSelf: false,
@@ -128,7 +125,6 @@ function useHistoricalActorProfiles(messages: readonly ChatMessage[], humans: Hu
                       }
                     : {
                           avatarUrl: source.profile.avatarUrl,
-                          bio: source.profile.description,
                           deleted: source.profile.deleted,
                           id: source.id,
                           isSelf: humans.isSelf(source.id),

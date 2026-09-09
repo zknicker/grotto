@@ -1,17 +1,26 @@
+import { CornerDownRightIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { motion, useReducedMotion } from 'framer-motion';
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
+import { Icon } from '../../components/ui/icon.tsx';
 import { springs } from '../../lib/springs.ts';
-import { type HandledTaskMark, handledTaskHoverRows } from './task-mark-model.ts';
+import { taskContextLineClassName } from './task-claim-mark.tsx';
+import {
+    formatTaskDuration,
+    type HandledTaskMark,
+    handledTaskHoverRows,
+    taskClaimDurationMs,
+} from './task-mark-model.ts';
 import { formatTaskNumber } from './task-presentation.ts';
 import { TaskStatusDisc } from './task-status-disc.tsx';
 
 /**
  * The receipt for a claim this message answered.
  *
- * When a background claim finishes, its mark leaves the human's message — the
- * question is answered, so nothing there is still pending — and lands here, on
- * the reply that answered it. It is deliberately quiet: the reply is the
- * result, and this only says which piece of asked-for work it closed.
+ * When a background claim finishes, its context line leaves the human's
+ * message — the question is answered, so nothing there is still pending — and
+ * lands here, above the reply that answered it, in the same "replying to"
+ * position. It is deliberately quiet: the reply is the result, and this only
+ * says which piece of asked-for work it closed and how long it took.
  */
 export function TaskHandledMark({
     mark,
@@ -31,13 +40,21 @@ export function TaskHandledMark({
         >
             <motion.span
                 animate={{ opacity: 1, scale: 1 }}
-                className="inline-flex shrink-0 items-center gap-1 font-semibold text-muted text-xs leading-5"
+                className={taskContextLineClassName}
                 data-testid="task-handled-mark"
                 initial={reduceMotion ? false : { opacity: 0, scale: 0.85 }}
                 transition={springs.moderate}
             >
-                <TaskStatusDisc className="size-3" status="done" />
-                <span className="tabular-nums">handled {formatTaskNumber(mark)}</span>
+                <Icon
+                    aria-hidden="true"
+                    className="size-3.5 shrink-0"
+                    icon={CornerDownRightIcon}
+                    strokeWidth={2}
+                />
+                <span className="truncate tabular-nums">
+                    Task {formatTaskNumber(mark)}
+                    {handledDuration(mark)}
+                </span>
             </motion.span>
         </CursorHoverCard>
     );
@@ -81,4 +98,11 @@ export function TaskHandledHoverContent({
             ) : null}
         </div>
     );
+}
+
+/** How long the claim was held, when both ends of it are known. */
+function handledDuration(mark: HandledTaskMark): string {
+    const held = taskClaimDurationMs(mark.claimedAt, mark.doneAt);
+
+    return held === null ? '' : ` · ${formatTaskDuration(held)}`;
 }

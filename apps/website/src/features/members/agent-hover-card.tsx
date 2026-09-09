@@ -101,6 +101,14 @@ function AgentHoverCardContent({
                             · {availabilityLabel(value.availability)}
                         </span>
                     </div>
+                    {/* What the Agent is generally for. It sat in the
+                        transcript header until the header went back to a name
+                        and a time; this is where a reader asks for it. */}
+                    {value.description ? (
+                        <span className="min-w-0 truncate text-muted text-sm">
+                            {value.description}
+                        </span>
+                    ) : null}
                     {effectiveExecution.kind === 'effective' && execution ? (
                         <AgentExecutionChips
                             modelLabel={execution.model}

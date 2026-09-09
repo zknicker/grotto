@@ -1,6 +1,5 @@
 import type { MessageCause } from '@grotto/api';
 import { Chip } from '@heroui/react';
-import type * as React from 'react';
 import { requestChatComposerMention } from '../../commands/chat-composer-mention.ts';
 import { formatShortTime } from '../../lib/format.ts';
 import { cn } from '../../lib/utils.ts';
@@ -10,12 +9,14 @@ import { transcriptTurnGeometry } from './chat-transcript-turn-geometry.ts';
 import { MessageSessionMark } from './session/message-session-mark.tsx';
 import type { SessionMark } from './session/session-mark-model.ts';
 
-// Bios stay one quiet line: hard-capped well past any reasonable blurb, then
-// CSS-truncated to whatever width the row actually has.
-const turnHeaderBioMaxChars = 165;
-
+/**
+ * The author's line: who spoke, when, and — for an Agent — the provenance that
+ * explains how the message came to be said. Nothing else. What an Agent is
+ * generally for belongs to its hover card and profile, and a task moving on
+ * this message states itself on the context line below, where a reader looks
+ * for what a message is about rather than who wrote it.
+ */
 export function TurnHeader({
-    bio,
     cause,
     composerId,
     deleted = false,
@@ -23,10 +24,8 @@ export function TurnHeader({
     mentionAgentId,
     onClick,
     sessionMark,
-    taskMark,
     timestamp,
 }: {
-    bio?: string | null;
     cause?: MessageCause | null;
     composerId?: string;
     deleted?: boolean;
@@ -34,13 +33,6 @@ export function TurnHeader({
     mentionAgentId?: string;
     onClick?: () => void;
     sessionMark?: TurnSessionMark | null;
-    /**
-     * The task mark for this turn: a background claim on the message, or the
-     * receipt for one this turn answered. It trails the time — provenance
-     * explains a message that already exists, while a claim is work still
-     * moving, and the reader's eye should land on the message first.
-     */
-    taskMark?: React.ReactNode;
     timestamp: string | null;
 }) {
     return (
@@ -58,15 +50,10 @@ export function TurnHeader({
                 </Chip>
             ) : null}
             {/*
-             * The marks take the slot the bio would have used. Both are the
-             * quiet middle of the header line, and a name, a blurb, a mark and
-             * a time is one fact too many for it — when an Agent spoke because
-             * something fired, or spoke having just started over, that outranks
-             * what it is generally for. Cause first when both apply: why it
-             * spoke comes before what it had already forgotten. Only provenance
-             * lives here; what the message *is* — a Task, an Ask, delegated
-             * work — states itself in the recessed surface beneath it, where
-             * its lifecycle can be followed.
+             * Only provenance lives here. Cause first when both apply: why the
+             * Agent spoke comes before what it had already forgotten. What the
+             * message *is* — a Task, an Ask, delegated work — states itself
+             * below the header, where its lifecycle can be followed.
              */}
             {cause ? <MessageCauseMark cause={cause} /> : null}
             {sessionMark ? (
@@ -76,19 +63,11 @@ export function TurnHeader({
                     serverId={sessionMark.serverId}
                 />
             ) : null}
-            {!(cause || sessionMark) && bio ? (
-                <span className="min-w-0 truncate text-muted text-xs leading-5">
-                    {bio.length > turnHeaderBioMaxChars
-                        ? `${bio.slice(0, turnHeaderBioMaxChars).trimEnd()}…`
-                        : bio}
-                </span>
-            ) : null}
             {timestamp ? (
                 <time className="shrink-0 text-muted text-xs tabular-nums" dateTime={timestamp}>
                     {formatShortTime(timestamp)}
                 </time>
             ) : null}
-            {taskMark}
         </div>
     );
 }

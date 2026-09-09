@@ -1,17 +1,19 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { TaskClaimHoverContent, TaskClaimMark } from './task-claim-mark.tsx';
-import { TaskHandledHoverContent } from './task-handled-mark.tsx';
+import { TaskClaimHoverContent } from './task-claim-hover-card.tsx';
+import { TaskClaimMark } from './task-claim-mark.tsx';
+import { TaskHandledHoverContent, TaskHandledMark } from './task-handled-mark.tsx';
 import type { TaskMarkFacts } from './task-mark-model.ts';
 
 const blippy = { avatarUrl: null, name: 'Blippy' };
 
-test('a live claim shows its claimant and the working ellipsis', () => {
+test('a live claim names its claimant and keeps the working ellipsis', () => {
     const markup = renderToStaticMarkup(
         <TaskClaimMark assignee={blippy} task={facts({ live: true })} />
     );
 
     expect(markup).toContain('task-live-ellipsis');
+    expect(markup).toContain('Blippy is on it');
     expect(markup).toContain('Task #4 claimed by Blippy, working now');
     // Not a status: a claim in flight is not a caution.
     expect(markup).not.toContain('text-warning');
@@ -22,7 +24,17 @@ test('an idle claim keeps the in-progress glyph and stops moving', () => {
 
     expect(markup).toContain('task-claim-mark');
     expect(markup).not.toContain('task-live-ellipsis');
+    expect(markup).toContain('Blippy is on it');
     expect(markup).toContain('Task #4 claimed by Blippy');
+});
+
+test('the context line is muted and unbolded, whatever the claim is doing', () => {
+    const markup = renderToStaticMarkup(
+        <TaskClaimMark assignee={blippy} task={facts({ live: true })} />
+    );
+
+    expect(markup).toContain('text-muted text-xs');
+    expect(markup).not.toContain('font-semibold');
 });
 
 test('an interrupted claim wears the caution tone', () => {
@@ -31,6 +43,7 @@ test('an interrupted claim wears the caution tone', () => {
     );
 
     expect(markup).toContain('text-warning');
+    expect(markup).toContain('Blippy stopped');
     expect(markup).toContain('run interrupted');
 });
 
@@ -58,7 +71,9 @@ test('a task waiting on review or on somebody wears its status disc', () => {
         <TaskClaimMark assignee={null} task={facts({ status: 'todo' })} />
     );
 
+    expect(review).toContain('Task #4 · in review');
     expect(review).toContain('Task #4 in review');
+    expect(todo).toContain('Task #4 · unclaimed');
     expect(todo).toContain('Task #4 todo');
     expect(todo).not.toContain('task-live-ellipsis');
 });
@@ -77,6 +92,25 @@ test('the claim card names the claimant and offers the one honest way in', () =>
     expect(markup).toContain('Claimed by Blippy');
     expect(markup).toContain('Working on it now.');
     expect(markup).toContain('Open task');
+});
+
+test('the receipt reads as a task number and the time it took', () => {
+    const markup = renderToStaticMarkup(
+        <TaskHandledMark
+            mark={{
+                anchorMessageId: 'msg_ask',
+                claimedAt: '2026-09-08T12:00:00.000Z',
+                doneAt: '2026-09-08T12:01:45.000Z',
+                number: 4,
+            }}
+        />
+    );
+
+    expect(markup).toContain('Task #4 · 1m 45s');
+    expect(markup).toContain('text-muted text-xs');
+    // Quiet: no bold, and no green disc claiming an outcome the reply states.
+    expect(markup).not.toContain('font-semibold');
+    expect(markup).not.toContain('label-green-fg');
 });
 
 test('the receipt card states when the claim was taken, held, and finished', () => {

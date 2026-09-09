@@ -2,9 +2,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { formatRelativeTime } from '../../lib/format.ts';
 import { springs } from '../../lib/springs.ts';
-import { cn } from '../../lib/utils.ts';
+import { TaskClaimHoverContent } from './task-claim-hover-card.tsx';
 import { TaskLiveEllipsis } from './task-live-ellipsis.tsx';
 import {
     type TaskClaimMarkState,
@@ -20,14 +19,18 @@ export interface TaskClaimAssignee {
     name: string;
 }
 
+/** The shared footprint of a task context line, on either message it lands on. */
+export const taskContextLineClassName =
+    'flex min-w-0 items-center gap-1.5 text-muted text-xs leading-5';
+
 /**
  * The task on this message, while its Thread is empty.
  *
  * A task with nothing said in its Thread has no card to live in, so it says the
- * whole of itself here, in the header of the message it was claimed or promoted
- * against, after the time: a face and an ellipsis while a run holds it, the
- * status disc when nobody is on it, and nothing once the work lands and the
- * Agent's own reply carries the receipt.
+ * whole of itself on a context line between the header and the body — the same
+ * place a reply states what it is replying to. Who is on it and where the work
+ * stands belong to the message, not to the author's identity line, so the
+ * header stays name and time.
  */
 export function TaskClaimMark({
     assignee,
@@ -61,20 +64,92 @@ export function TaskClaimMark({
             triggerClassName="min-w-0"
         >
             <span
-                className="inline-flex shrink-0 items-center gap-1.5 leading-5"
+                className={taskContextLineClassName}
                 data-state={state}
                 data-testid="task-claim-mark"
             >
-                {assignee ? (
-                    <EntityAvatar name={assignee.name} size={14} src={assignee.avatarUrl} />
-                ) : null}
-                <TaskClaimGlyph reduceMotion={reduceMotion} state={state} />
+                {/* The line says in words what the label says for a reader who
+                    cannot see it, so only one of them is announced. */}
+                <span aria-hidden="true" className={taskContextLineClassName}>
+                    <TaskClaimLine
+                        assignee={assignee}
+                        reduceMotion={reduceMotion}
+                        state={state}
+                        task={task}
+                    />
+                </span>
                 <span className="sr-only">{claimMarkLabel(state, task, assignee)}</span>
             </span>
         </CursorHoverCard>
     );
 }
 
+/**
+ * The claim in one line. A run standing on the task is named — a person reads
+ * "Blippy is on it" and stops asking — while a task nobody holds is a number
+ * and a status, because there is nobody to name.
+ */
+function TaskClaimLine({
+    assignee,
+    reduceMotion,
+    state,
+    task,
+}: {
+    assignee: TaskClaimAssignee | null;
+    reduceMotion: boolean;
+    state: TaskClaimMarkState;
+    task: TaskMarkFacts;
+}) {
+    if (state === 'todo' || state === 'in_review') {
+        return (
+            <>
+                <TaskStatusDisc className="size-3.5" status={state} />
+                <TaskLineLabel suffix={state === 'todo' ? 'unclaimed' : 'in review'} task={task} />
+            </>
+        );
+    }
+
+    if (state === 'interrupted') {
+        return (
+            <>
+                <TaskStatusDisc className="size-3.5 text-warning" status="in_progress" />
+                {assignee ? (
+                    <span className="truncate">{assignee.name} stopped</span>
+                ) : (
+                    <TaskLineLabel suffix="stopped" task={task} />
+                )}
+            </>
+        );
+    }
+
+    if (!assignee) {
+        return (
+            <>
+                <TaskStatusDisc className="size-3.5" status="in_progress" />
+                <TaskLineLabel suffix="claimed" task={task} />
+            </>
+        );
+    }
+
+    return (
+        <>
+            <EntityAvatar name={assignee.name} size={14} src={assignee.avatarUrl} />
+            <span className="truncate">{assignee.name} is on it</span>
+            <TaskClaimGlyph reduceMotion={reduceMotion} state={state} />
+        </>
+    );
+}
+
+/** `Task #4 · <where it stands>`, with the number tabular wherever it lands. */
+function TaskLineLabel({ suffix, task }: { suffix: string; task: TaskMarkFacts }) {
+    return (
+        <span className="truncate tabular-nums">
+            Task {formatTaskNumber(task)} · {suffix}
+        </span>
+    );
+}
+
+/** What trails a named claimant: motion while a run holds it, a disc otherwise. */
 function TaskClaimGlyph({
     reduceMotion,
     state,
@@ -88,7 +163,7 @@ function TaskClaimGlyph({
 
     if (state === 'done') {
         // The settle: the ellipsis stops and the outcome lands in its place,
-        // once, before the mark leaves the message for the Agent's reply.
+        // once, before the line leaves the message for the Agent's reply.
         return (
             <motion.span
                 animate={{ opacity: 1, scale: 1 }}
@@ -101,74 +176,7 @@ function TaskClaimGlyph({
         );
     }
 
-    if (state === 'in_review' || state === 'todo') {
-        return <TaskStatusDisc className="size-3.5" status={state} />;
-    }
-
-    return (
-        <TaskStatusDisc
-            className={cn('size-3.5', state === 'interrupted' && 'text-warning')}
-            status="in_progress"
-        />
-    );
-}
-
-/**
- * The task in words: who holds it, since when, and the one way in.
- *
- * There is no "convert to tracked task" action here. Tier is inferred from
- * evidence rather than declared, and no first-party mutation stamps a task
- * tracked without also moving its status — so the card offers the honest door
- * instead: open the task, and saying anything in its Thread tracks it.
- */
-export function TaskClaimHoverContent({
-    assignee,
-    onOpenTask,
-    state,
-    task,
-}: {
-    assignee: TaskClaimAssignee | null;
-    onOpenTask?: () => void;
-    state: TaskClaimMarkState;
-    task: TaskMarkFacts;
-}) {
-    const claimedAt = task.claimedAt;
-
-    return (
-        <div className="flex min-w-0 flex-col gap-3">
-            <header className="flex min-w-0 items-center gap-2.5">
-                {assignee ? (
-                    <EntityAvatar name={assignee.name} size={24} src={assignee.avatarUrl} />
-                ) : (
-                    <TaskStatusDisc className="size-5" status={task.status} />
-                )}
-                <strong className="min-w-0 truncate font-semibold text-foreground text-sm">
-                    Task {formatTaskNumber(task)}
-                </strong>
-            </header>
-            <p className="text-muted text-sm leading-snug">
-                {claimOwnerLine(assignee, task)}
-                {claimedAt === null ? null : (
-                    <>
-                        {' · '}
-                        <span className="tabular-nums">{formatRelativeTime(claimedAt)}</span>
-                    </>
-                )}
-            </p>
-            <p className="text-muted text-xs leading-snug">{claimStateNote(state)}</p>
-            {onOpenTask ? (
-                <div className="border-separator border-t pt-3">
-                    <button
-                        className="inline-flex w-fit cursor-[var(--cursor-interactive)] items-center gap-1 font-semibold text-accent text-xs"
-                        onClick={onOpenTask}
-                        type="button"
-                    >
-                        Open task
-                    </button>
-                </div>
-            ) : null}
-        </div>
-    );
+    return <TaskStatusDisc className="size-3.5" status="in_progress" />;
 }
 
 /**
@@ -195,31 +203,6 @@ function useClaimSettle(state: TaskClaimMarkState, settleMs: number) {
     }, [settleMs, state]);
 
     return settling && state === 'done';
-}
-
-/** Who holds the task, without claiming somebody does when nobody has. */
-function claimOwnerLine(assignee: TaskClaimAssignee | null, task: TaskMarkFacts): string {
-    if (assignee) {
-        return `Claimed by ${assignee.name}`;
-    }
-    return task.status === 'todo' ? 'Unclaimed' : 'Claimed';
-}
-
-function claimStateNote(state: TaskClaimMarkState): string {
-    switch (state) {
-        case 'live':
-            return 'Working on it now.';
-        case 'interrupted':
-            return 'The run holding this claim stopped before it finished.';
-        case 'done':
-            return 'Finished.';
-        case 'in_review':
-            return 'Waiting on a look.';
-        case 'todo':
-            return 'Nobody has taken this yet.';
-        default:
-            return 'Claimed, waiting on its next turn.';
-    }
 }
 
 function claimMarkLabel(

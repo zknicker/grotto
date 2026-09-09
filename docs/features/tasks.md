@@ -164,25 +164,30 @@ running [Cloud Agent work](../../specs/cloud-agents.md), that work's status trai
 same header.
 
 Until that card exists the task has nowhere to live, so it states the whole of itself as one **task
-mark** in the header of the message it was claimed or promoted against, after the time — whatever
-its tier. The mark reads status and liveness: the claimant's face and the same working ellipsis
-while their run holds it, the in-progress glyph when nobody is on it, that glyph in the caution tone
-when a run stopped while still holding the claim, the in-review or todo disc for a task waiting on a
-look or on somebody to take it, and nothing at all once a task is closed. Hovering names the task,
-who holds it and since when, and offers **Open task**; there is no convert action, because tier is
-inferred from evidence and no mutation stamps a task tracked without also moving its status — the
-claimant working in the task's Thread is what promotes it. When the task finishes, the mark settles
-into the done glyph and then leaves the anchor: the question is answered, so nothing there is still
-pending. The assignee's own reply carries `handled #N` from then on, hovering to when the task was
-claimed, how long it was held, and when it landed. No first-party read links a finished task to the
-message that answered it, so the App marks the first message that Agent wrote after taking it; an
-Agent that finishes a task and stays silent until some later turn marks that later message.
+context line** between the header of the message it was claimed or promoted against and that
+message's body — whatever its tier. The header itself stays the author's name, the time, and the
+provenance marks: who spoke and why, never what is moving on what they said. The line borrows the
+grammar of a reply stating what it is replying to, in the muted token at 12px: the claimant's face
+and `Blippy is on it` with the same working ellipsis while their run holds it, the in-progress glyph
+in the ellipsis's place when nobody is on it, that glyph in the caution tone with `Blippy stopped`
+when a run stopped while still holding the claim, `Task #4 · unclaimed` or `Task #4 · in review`
+behind the matching disc for a task waiting on somebody or on a look, and nothing at all once a task
+is closed — a message with no task reserves no room for the line. Hovering names the task, who holds
+it and since when, and offers **Open task**; there is no convert action, because tier is inferred
+from evidence and no mutation stamps a task tracked without also moving its status — the claimant
+working in the task's Thread is what promotes it. When the task finishes, the line settles into the
+done glyph and then leaves the anchor: the question is answered, so nothing there is still pending.
+The assignee's own reply carries the receipt from then on, on its own context line — a
+corner-down-right glyph and `Task #4 · 1m 45s` — hovering to when the task was claimed, how long it
+was held, and when it landed. No first-party read links a finished task to the message that answered
+it, so the App marks the first message that Agent wrote after taking it; an Agent that finishes a
+task and stays silent until some later turn marks that later message.
 
 A **background claim** never takes the chip on that surface: only its own claimant posting there
 makes it tracked, so peers and bystanders can fill the Thread while the task stays bookkeeping —
 their replies read as the ordinary recessed card, without the task's title, which would be a
-commitment nobody made. Because that card never states the claim, the claim keeps its header mark
-and its `handled #N` receipt however full its Thread is. Tier decides that one title, and otherwise
+commitment nobody made. Because that card never states the claim, the claim keeps its context line
+and its receipt however full its Thread is. Tier decides that one title, and otherwise
 stays a lens on the Board and List rather than a mark in Chat.
 
 Opening the task's Thread states it in full in the metadata panel above the anchor, so the anchor

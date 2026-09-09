@@ -26,7 +26,7 @@ test('every promoted message in a run keeps its own task mark', () => {
     assert.match(markup, /Task #2/);
 });
 
-test('a live background claim with an empty Thread is a header mark and nothing else', () => {
+test('a live background claim with an empty Thread is a context line and nothing else', () => {
     const markup = renderTranscript([
         taskRow('msg_1', 'Rename the deploy script', {
             live: true,
@@ -38,9 +38,29 @@ test('a live background claim with an empty Thread is a header mark and nothing 
 
     assert.match(markup, /task-claim-mark/);
     assert.match(markup, /task-live-ellipsis/);
+    assert.match(markup, /@blippy is on it/);
     // Nothing has been said yet, so a recessed card would be an empty frame.
     assert.doesNotMatch(markup, /message-task-chip/);
     assert.doesNotMatch(markup, /Open thread/);
+});
+
+test('the claim reads between the header and the words it is about', () => {
+    const markup = renderTranscript([
+        taskRow('msg_1', 'Rename the deploy script', {
+            live: true,
+            origin: 'claimed',
+            status: 'in_progress',
+            tier: 'background',
+        }),
+    ]);
+
+    // The author line is who spoke and when; the claim is what the message is
+    // about, so it reads with the body rather than with the identity.
+    assert.doesNotMatch(turnHeaderMarkup(markup), /task-claim-mark/);
+    assert.ok(
+        markup.indexOf('task-claim-mark') < markup.indexOf('Rename the deploy script'),
+        'the context line should render above the message body'
+    );
 });
 
 test('a background claim a peer replied in gets the ordinary replies surface', () => {
@@ -61,7 +81,7 @@ test('a background claim a peer replied in gets the ordinary replies surface', (
     assert.match(markup, /task-claim-mark/);
 });
 
-test('a background claim nobody is running keeps the glyph and drops the motion', () => {
+test('a background claim nobody is running keeps the claimant and drops the motion', () => {
     const markup = renderTranscript([
         taskRow('msg_1', 'Rename the deploy script', {
             origin: 'claimed',
@@ -71,6 +91,7 @@ test('a background claim nobody is running keeps the glyph and drops the motion'
     ]);
 
     assert.match(markup, /task-claim-mark/);
+    assert.match(markup, /@blippy is on it/);
     assert.doesNotMatch(markup, /task-live-ellipsis/);
 });
 
@@ -88,11 +109,12 @@ test('a finished background claim leaves the message it was claimed against', ()
     assert.doesNotMatch(markup, /message-task-chip/);
 });
 
-test('a tracked task with an empty Thread is a header mark and nothing else', () => {
+test('a tracked task with an empty Thread is a context line and nothing else', () => {
     const markup = renderTranscript([taskRow('msg_1', 'Ship the board', { number: 3 })]);
 
     // Tier is a lens, not a mark: an empty Thread has nothing to put in a card.
     assert.match(markup, /task-claim-mark/);
+    assert.match(markup, /Task #3 · unclaimed/);
     assert.match(markup, /Task #3 todo/);
     assert.doesNotMatch(markup, /message-task-chip/);
     assert.doesNotMatch(markup, /Open thread/);
@@ -104,7 +126,7 @@ test('a tracked task waiting on review wears the in-review disc', () => {
     ]);
 
     assert.match(markup, /task-claim-mark/);
-    assert.match(markup, /Task #3 in review/);
+    assert.match(markup, /Task #3 · in review/);
     assert.match(markup, /--label-purple-fg/);
 });
 
@@ -136,12 +158,12 @@ test('a finished tracked task leaves the anchor for its reply’s receipt', () =
         }
     );
 
-    assert.match(markup, /handled #4/);
+    assert.match(markup, /Task #4 · 20s/);
     assert.doesNotMatch(markup, /task-claim-mark/);
     assert.doesNotMatch(markup, /Open thread/);
 });
 
-test('the reply that answered a task carries its receipt', () => {
+test('the reply that answered a task carries its receipt above its own words', () => {
     const markup = renderTranscript([agentRow('msg_reply')], {
         handledTaskMarks: new Map([
             [
@@ -156,8 +178,20 @@ test('the reply that answered a task carries its receipt', () => {
         ]),
     });
 
-    assert.match(markup, /handled #4/);
+    assert.match(markup, /Task #4 · 20s/);
+    // The reply's header is its author and its time; the receipt sits with the
+    // reply, in the place a reply states what it is answering.
+    assert.doesNotMatch(turnHeaderMarkup(markup), /task-handled-mark/);
+    assert.ok(
+        markup.indexOf('task-handled-mark') < markup.indexOf('Renamed it and pushed'),
+        'the receipt should render above the reply body'
+    );
 });
+
+/** The turn's author line on its own, so a placement claim can be checked. */
+function turnHeaderMarkup(markup: string): string {
+    return /max-w-full items-center gap-2[^>]*>(.*?)<\/div>/.exec(markup)?.[1] ?? '';
+}
 
 function taskRow(
     id: string,

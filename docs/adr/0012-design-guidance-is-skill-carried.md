@@ -47,9 +47,10 @@ never appears in plain reply text. External integrations self-document their
 granted tools through MCP rather than injecting integration-specific rendering
 guidance into the shared prompt.
 
-The prompt contract suite guards both sides: prompt requirements for the
-pointer, skill-side requirements (`VISUALS_SKILL_REQUIREMENTS`) for every
-capability that moved. Skill sources are real markdown files under
+Two suites guard both sides: `packages/agent-workspace/src/managed-skills.test.ts`
+pins the skill text and the vocabulary it teaches, and
+`apps/computer/src/harness/managed-instructions.test.ts` pins the prompt
+pointer. Skill sources are real markdown files under
 `packages/agent-workspace/src/visuals-skill/`, inlined at build time, so
 the design-tuning loop (`bun run eval:design`) edits markdown and reseeds.
 

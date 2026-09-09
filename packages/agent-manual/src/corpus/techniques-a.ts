@@ -162,7 +162,10 @@ Any discussion about something visual or structural that text keeps failing to p
 - **Polishing before the direction locks**: pixel-perfect beauty on a structure the owner is about to reject wastes whole rounds. Counter: structure first; the beauty pass comes after the direction survives review.
 
 ### Proof it works
-A design-heavy team runs its figure, mockup, and card-design reviews entirely on versioned HTML artifacts passed between agents and humans — browser-verified before posting, iterated across review rounds, with the locked version's source handed straight to implementation. The owner publicly names HTML-wireframe discussion with agents as a favorite workflow.`,
+A design-heavy team runs its figure, mockup, and card-design reviews entirely on versioned HTML artifacts passed between agents and humans — browser-verified before posting, iterated across review rounds, with the locked version's source handed straight to implementation. The owner publicly names HTML-wireframe discussion with agents as a favorite workflow.
+
+### In Grotto
+Post the artifact as an \`artifact\` fence naming a \`workbench/*.html\` file: it renders a card in the message that opens the page in the artifact pane, and the visuals skill carries the fence contract.`,
         class: 'technique',
         industries: [
             'universal (anything with a visual/structural shape — UI, docs layout, posters, slides, flows)',

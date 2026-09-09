@@ -116,6 +116,8 @@ enum RichMessageAttributedText {
                 body.append(
                     referenceRun(reference, geometry: geometry, font: referenceFont)
                 )
+            case .link(let text, let target):
+                body.append(linkRun(text: text, target: target, font: font))
             }
         }
         return body
@@ -130,6 +132,8 @@ enum RichMessageAttributedText {
                 run
             case .reference(let reference):
                 "\(reference.kind.referenceKindLabel) reference, \(reference.label)"
+            case .link(let text, _):
+                text
             }
         }
         .joined()
@@ -141,6 +145,33 @@ enum RichMessageAttributedText {
         rendered
             .replacingOccurrences(of: "\u{FFFC}", with: "")
             .replacingOccurrences(of: wordJoiner, with: "")
+    }
+
+    /// A link this client does not chip: no capsule, no mark, just the words it
+    /// was written with, underlined in the system link ink the way the App's
+    /// own anchors read.
+    ///
+    /// A run the system can route carries a real `.link`, which is what makes
+    /// the text engine treat it as a link: the tap that opens it, the long
+    /// press the text view refuses, and the VoiceOver links rotor all come from
+    /// that one attribute. The run keeps its own ink and underline because the
+    /// text view clears `linkTextAttributes`. A `grotto://` resource names an
+    /// in-app target nothing on the phone opens yet, so it draws the same way
+    /// and stays inert.
+    private static func linkRun(
+        text: String,
+        target: String,
+        font: PlatformFont
+    ) -> NSAttributedString {
+        var attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: RichReferenceChipInk.linkText,
+            .underlineStyle: NSUnderlineStyle.single.rawValue,
+        ]
+        if let url = RichReferenceWireForm.activationURL(for: target) {
+            attributes[.link] = url
+        }
+        return NSAttributedString(string: text, attributes: attributes)
     }
 
     private static func referenceRun(
@@ -176,6 +207,13 @@ enum RichMessageAttributedText {
             ),
             range: NSRange(location: 0, length: run.length)
         )
+        // A chip whose target is a real address is a link like any other. The
+        // attribute covers the spacers as well as the label, so the capsule's
+        // padding opens it too rather than leaving a dead margin inside the
+        // chip.
+        if let url = reference.activationURL {
+            run.addAttribute(.link, value: url, range: NSRange(location: 0, length: run.length))
+        }
         return run
     }
 
@@ -217,8 +255,15 @@ extension MentionPresentationKind {
     var referenceKindLabel: String {
         switch self {
         case .agent: "Agent"
+        case .app: "App"
         case .channel: "Channel"
+        case .directory: "Directory"
+        case .file: "File"
         case .human: "Human"
+        case .plugin: "Plugin"
+        case .pullRequest: "Pull request"
+        case .skill: "Skill"
+        case .website: "Website"
         }
     }
 }

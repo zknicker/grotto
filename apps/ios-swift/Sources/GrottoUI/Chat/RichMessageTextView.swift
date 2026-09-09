@@ -26,6 +26,8 @@ struct RichMessageTextView: UIViewRepresentable {
     /// to be asked for by hand.
     let markRevision: Int
 
+    func makeCoordinator() -> RichMessageLinkCoordinator { RichMessageLinkCoordinator() }
+
     func makeUIView(context: Context) -> RichMessageUITextView {
         let storage = NSTextStorage()
         let layoutManager = RichReferenceLayoutManager()
@@ -40,11 +42,19 @@ struct RichMessageTextView: UIViewRepresentable {
         let view = RichMessageUITextView(frame: .zero, textContainer: container)
         layoutManager.claimLineBreaking()
         view.isEditable = false
+        // Selection is what makes a link interactive as well as copyable, so
+        // it stays on.
         view.isSelectable = true
         view.isScrollEnabled = false
         view.backgroundColor = .clear
         view.textContainerInset = .zero
         view.dataDetectorTypes = []
+        view.delegate = context.coordinator
+        // A link run already carries the ink and the underline it should draw
+        // in — the App's link color for an anchor, the chip's own tint for a
+        // capsule — so UIKit's blue-and-underlined overlay is cleared rather
+        // than replaced.
+        view.linkTextAttributes = [:]
         // Dynamic Type is answered by rebuilding the body from the
         // environment's size, so the text view must not scale it a second time.
         view.adjustsFontForContentSizeCategory = false
@@ -99,7 +109,7 @@ struct RichMessageTextView: UIViewRepresentable {
     }
 }
 
-/// The text view itself, which owns two pieces of behavior the transcript
+/// The text view itself, which owns the pieces of behavior the transcript
 /// depends on.
 final class RichMessageUITextView: UITextView {
     var content: RichMessageTextView.Content?
@@ -108,9 +118,9 @@ final class RichMessageUITextView: UITextView {
     /// A long press on a row opens the transcript's own menu, which
     /// `TranscriptListView` vends from `UITableViewDelegate`. A selectable text
     /// view's loupe gesture sits on a nearer view and would swallow that press,
-    /// so it is refused here. Double-tap word selection, its handles, and the
-    /// edit menu they bring are untouched — only the press that belongs to the
-    /// row is given back.
+    /// so it is refused here. The tap that opens a link, double-tap word
+    /// selection, its handles, and the edit menu they bring are untouched —
+    /// only the press that belongs to the row is given back.
     override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         if gestureRecognizer is UILongPressGestureRecognizer {
             return false
@@ -134,6 +144,36 @@ final class RichMessageUITextView: UITextView {
     override var accessibilityValue: String? {
         get { nil }
         set { super.accessibilityValue = newValue }
+    }
+}
+
+/// What the body's links do when they are touched.
+///
+/// The text engine finds the link and decides the tap; this only says what the
+/// tap means. A single tap hands the address to the system — a website or
+/// pull-request chip, an ordinary anchor, a `mailto:` or `tel:` — and a long
+/// press offers no menu of its own, because the press belongs to the row's
+/// context menu, which `RichMessageUITextView` already refuses its own
+/// recognizers for.
+@MainActor
+final class RichMessageLinkCoordinator: NSObject, UITextViewDelegate {
+    func textView(
+        _ textView: UITextView,
+        primaryActionFor textItem: UITextItem,
+        defaultAction: UIAction
+    ) -> UIAction? {
+        guard case .link(let url) = textItem.content else { return defaultAction }
+        return UIAction { _ in
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        }
+    }
+
+    func textView(
+        _ textView: UITextView,
+        menuConfigurationFor textItem: UITextItem,
+        defaultMenu: UIMenu
+    ) -> UITextItem.MenuConfiguration? {
+        nil
     }
 }
 #endif

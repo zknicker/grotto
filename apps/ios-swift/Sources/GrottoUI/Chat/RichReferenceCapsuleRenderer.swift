@@ -82,9 +82,12 @@ final class RichReferenceLayoutManager: NSLayoutManager {
             // The mark rides the run's leading edge, so only the fragment that
             // carries the run's first glyph draws one.
             if piece.location == glyphs.location {
-                RichReferenceMark.draw(
+                RichReferenceMarkPainter.draw(
                     reference: run.reference,
-                    in: run.geometry.markRect(in: capsule),
+                    in: run.geometry.markRect(
+                        in: capsule,
+                        scale: run.reference.mark.sizeScale
+                    ),
                     context: context
                 )
             }
@@ -92,9 +95,10 @@ final class RichReferenceLayoutManager: NSLayoutManager {
     }
 }
 
-/// The identity mark inside a capsule: a channel's glyph in its colored box, or
-/// an Agent's or human's avatar, falling back to `AvatarView`'s initials.
-enum RichReferenceMark {
+/// Paints a reference's mark: a channel's glyph in its colored box, an Agent's
+/// or human's avatar falling back to `AvatarView`'s initials, or the flat glyph
+/// every other kind wears, in that reference's own label ink.
+enum RichReferenceMarkPainter {
     /// `NSLayoutManager` draws on the main thread, but it is not main-actor
     /// isolated in the SDK and the avatar and glyph caches the mark reads are.
     /// The hop is asserted rather than awaited, and the one value crossing it
@@ -116,11 +120,25 @@ enum RichReferenceMark {
         in rect: CGRect,
         context: CGContext
     ) {
-        switch reference.kind {
-        case .channel:
-            drawChannel(appearance: reference.channelAppearance ?? .default, in: rect, context: context)
-        case .agent, .human:
+        switch reference.mark {
+        case .channel(let appearance):
+            drawChannel(appearance: appearance, in: rect, context: context)
+        case .avatar:
             drawIdentity(reference: reference, in: rect, context: context)
+        case .glyph(let name):
+            drawGlyph(
+                UIIconCatalog.shared.subpaths(for: name, weight: 2),
+                in: rect,
+                tint: RichReferenceChipInk.labelTint(for: reference),
+                context: context
+            )
+        case .brandGlyph(let name, let brand):
+            drawGlyph(
+                UIIconCatalog.shared.subpaths(for: name, weight: 2),
+                in: rect,
+                tint: RichReferenceChipInk.brandTint(brand),
+                context: context
+            )
         }
     }
 

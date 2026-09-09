@@ -6,6 +6,21 @@ import UIKit
 import AppKit
 #endif
 
+/// The brand ink an appearance override gives a reference's mark, mirroring the
+/// App's `brandColor`.
+///
+/// One case, because the App names one brand: Chrome, in the `--success` token,
+/// which resolves to the same green under both themes.
+public enum ReferenceBrandInk: Hashable, Sendable {
+    case success
+
+    public var color: Color {
+        switch self {
+        case .success: Color(red: 0x17 / 255, green: 0xC9 / 255, blue: 0x64 / 255)
+        }
+    }
+}
+
 /// The capsule drawn behind a reference run, in the body font's own metrics.
 ///
 /// Nothing here may change the line. The capsule is exactly the line's own box
@@ -57,13 +72,16 @@ struct RichReferenceCapsuleGeometry: Equatable {
     }
 
     /// The mark's box, inset from the capsule's leading edge and centered on
-    /// its height.
-    func markRect(in capsule: CGRect) -> CGRect {
-        CGRect(
-            x: capsule.minX + leadingInset,
-            y: capsule.midY - markSize / 2,
-            width: markSize,
-            height: markSize
+    /// its height. `scale` shrinks a mark that the App draws smaller than the
+    /// rest — the three-sparkle Skill glyph — around the same center, so the
+    /// label still starts where every other reference's does.
+    func markRect(in capsule: CGRect, scale: CGFloat = 1) -> CGRect {
+        let size = markSize * scale
+        return CGRect(
+            x: capsule.minX + leadingInset + (markSize - size) / 2,
+            y: capsule.midY - size / 2,
+            width: size,
+            height: size
         )
     }
 
@@ -74,9 +92,10 @@ struct RichReferenceCapsuleGeometry: Equatable {
     /// A point and a half, so the smallest type sizes keep a visible inset.
     private static let minimumInset: CGFloat = 1.5
     private static let markGapScale: CGFloat = 0.18
-    /// Wider than the leading inset: the mark's own round edge already reads
-    /// as space, where the label's last glyph does not.
-    private static let trailingInsetScale: CGFloat = 0.3
+    /// A hair wider than the leading inset, and well under a word space: the
+    /// web chip carries no inline padding at all, so punctuation must hug the
+    /// capsule rather than read as a stray space after the label.
+    private static let trailingInsetScale: CGFloat = 0.15
 }
 
 /// The chip's ink.
@@ -86,6 +105,10 @@ struct RichReferenceCapsuleGeometry: Equatable {
 enum RichReferenceChipInk {
     #if canImport(UIKit)
     static var bodyText: UIColor { .label }
+
+    /// A link this client does not chip reads in the system's own link ink, the
+    /// nearest thing iOS has to the App's anchor color.
+    static var linkText: UIColor { .link }
 
     /// A translucent wash of the foreground, never an opaque grey, so the chip
     /// composites over whatever it sits on. Light stays under the neutral
@@ -98,13 +121,27 @@ enum RichReferenceChipInk {
         }
     }
 
-    /// A channel reads in its own configured color. A channel with no preset,
-    /// and every other kind, reads as ordinary ink.
+    /// A brand reads in its brand's ink, a channel in its own configured color,
+    /// and a skill in the App's dedicated purple. A channel with no preset, and
+    /// every other kind, reads as ordinary ink — which is what the App's
+    /// default chip foreground resolves to in both themes.
     static func labelTint(for reference: RichReferencePresentation) -> UIColor {
+        if case .brandGlyph(_, let brand) = reference.mark { return brandTint(brand) }
+        if reference.kind == .skill { return skillReference }
         guard reference.kind == .channel, let preset = preset(for: reference) else {
             return .label
         }
         return dynamic(light: preset.light, dark: preset.dark)
+    }
+
+    /// A brand mark's own ink. The App's `brandColor` lands on `--chip-fg`, so
+    /// it inks the whole chip foreground — the mark and the label both.
+    static func brandTint(_ brand: ReferenceBrandInk) -> UIColor { UIColor(brand.color) }
+
+    /// The App's `--skill-reference` product token, whose two ramp stops
+    /// `SkillReferenceInk` names once for every surface that draws a Skill.
+    static var skillReference: UIColor {
+        dynamic(light: SkillReferenceInk.light, dark: SkillReferenceInk.dark)
     }
 
     /// The App derives the mark's box from the glyph tint at 11% light / 13%
@@ -146,8 +183,15 @@ enum RichReferenceChipInk {
     // labels without a capsule, so these are the light values, flat.
     static var bodyText: NSColor { .labelColor }
     static var ground: NSColor { NSColor.labelColor.withAlphaComponent(0.055) }
+    static var linkText: NSColor { .linkColor }
+
+    static func brandTint(_ brand: ReferenceBrandInk) -> NSColor { NSColor(brand.color) }
 
     static func labelTint(for reference: RichReferencePresentation) -> NSColor {
+        if case .brandGlyph(_, let brand) = reference.mark { return brandTint(brand) }
+        if reference.kind == .skill {
+            return NSColor(SkillReferenceInk.light)
+        }
         guard reference.kind == .channel, let preset = preset(for: reference) else {
             return .labelColor
         }

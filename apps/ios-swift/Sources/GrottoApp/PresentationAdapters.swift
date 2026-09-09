@@ -161,8 +161,7 @@ extension GrottoStore {
             case .agent:
                 guard let agent = agentsByID[id] else { return nil }
                 return RichReferencePresentation(
-                    id: id,
-                    kind: .agent,
+                    id: id, kind: .agent,
                     label: ReferenceLabel.display(agent.displayName, kind: .agent),
                     avatarURL: resolvedAvatarURL(agent.avatarURL)
                 )
@@ -170,8 +169,7 @@ extension GrottoStore {
                 guard let member = membersByID[id] else { return nil }
                 let name = member.displayName ?? member.handle ?? fallback
                 return RichReferencePresentation(
-                    id: id,
-                    kind: .human,
+                    id: id, kind: .human,
                     label: ReferenceLabel.display(name, kind: .human),
                     avatarURL: resolvedAvatarURL(member.avatarURL)
                 )
@@ -184,6 +182,8 @@ extension GrottoStore {
                     avatarURL: nil,
                     channelAppearance: ChannelAppearance(icon: chat.icon, color: chat.color)
                 )
+            // No other kind names Server state, so the parser's own chip stands.
+            default: return nil
             }
         }
     }

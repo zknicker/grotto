@@ -69,6 +69,8 @@ struct RichMessageContentView: View {
                     text + Text(verbatim: run)
                 case .reference(let reference):
                     text + Text(verbatim: reference.label).fontWeight(.medium)
+                case .link(let words, _):
+                    text + Text(verbatim: words).underline()
                 }
             }
             .font(.system(textStyle))

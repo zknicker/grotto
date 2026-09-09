@@ -1,5 +1,5 @@
 ---
-summary: Agent-owned webhook Triggers — secret-authenticated inbound wakes anchored to a Chat, created from the Agent profile's Automations tab or by the Agent itself, answered by the Agent's own marked message, with bounded payloads and fire history.
+summary: Agent-owned webhook Triggers — secret-authenticated inbound wakes anchored to a Chat, created from the Agent profile's Automations tab or by the Agent itself, answered by the Agent's own marked message, with bounded payloads and retained Agent-wide fire history.
 read_when:
   - changing Trigger creation, secrets, firing, payload bounds, or fire history
   - changing the Automations tab's Trigger walkthrough, detail view, or controls
@@ -53,10 +53,15 @@ Opening a Trigger from the Automations tab shows its detail:
   secret needed. It is how you check the wiring before handing the URL out.
 - **Fire history** lists what has arrived, newest first, with the time, payload
   size, and idempotency key.
-- **Delete** removes the Trigger and its history. Messages the Agent already
-  sent stay in their conversation and keep their lightning mark — the Trigger's
-  title and kind are snapshotted onto the message — but their hover card and
-  context card lose everything that was read live.
+- **History** opens the Agent-wide fire log. It includes fires from every
+  Trigger, links to an Agent answer when one exists, and labels a retained fire
+  whose Trigger was removed. It remains the history path after a Trigger's
+  detail disappears.
+- **Delete** removes the Trigger from active use immediately, retires queued
+  wakes, and retains its recent fire history for 30 days. Messages the Agent
+  already sent stay in their conversation and keep their lightning mark — the
+  Trigger's title and kind are snapshotted onto the message — but their hover
+  card and context card lose everything that was read live.
 
 Each row shows who created it — a person's handle, or the owning Agent.
 
@@ -87,11 +92,11 @@ Each row shows who created it — a person's handle, or the owning Agent.
   type. The mark and its hover preview work the same for every automation — see
   [Chat](chat.md#in-the-box).
 - **An archived Trigger keeps its mark.** Once the Trigger or the fire itself is
-  gone — deleted, or swept after 30 days — the mark still names what woke the
-  Agent, and both provenance surfaces state the snapshot (title, kind, fire
-  time) plus "This trigger has been archived." The status chip, the fire's place
-  in the history, the payload block, and the link into Automations go with the
-  record rather than pointing at something that is not there.
+  gone — removed and later swept after 30 days, or a fire swept after 30 days —
+  the mark still names what woke the Agent, and both provenance surfaces state
+  the snapshot (title, kind, fire time) plus "This trigger has been archived."
+  A removed fire remains in the Agent-wide History drawer until retention ends;
+  the active detail and live management link do not pretend it still exists.
 - **Bounded input.** A body is at most 64 KiB of storable text — valid UTF-8 with
   no NUL byte — under any content type, and may be empty. Anything else answers
   `415`. The Server stores the body verbatim and never interprets, filters, or
@@ -105,18 +110,20 @@ Each row shows who created it — a person's handle, or the owning Agent.
   fires while the Computer is offline is delivered on reconnect.
 - **Kill switch.** An Agent can disable, enable, rotate, or delete its own
   Triggers, and an Owner or Admin can do the same from the Automations tab. A
-  disabled Trigger stops answering immediately and keeps everything it recorded.
+  disabled Trigger stops answering immediately and keeps everything it recorded;
+  deletion stops it permanently while its recent history remains bounded and
+  readable.
 - **Self-healing status.** A fire whose owning Agent is retired or whose anchor
   is no longer writable is refused and disables the Trigger on the spot.
-- **History.** Every fire is recorded, answered or not. The Automations tab
-  lists them, and `grotto trigger log` returns the full payload for any one of
-  them.
+- **History.** Every fire is recorded, answered or not. The Agent profile's
+  History drawer lists retained fires across all Triggers, and `grotto trigger
+  log` returns the full payload for a still-addressable Trigger's fire.
 
 ## Who can do what
 
 - **Server Owners and Admins** hold the whole lifecycle for every Agent's
   Triggers: create, edit, arm and disable, rotate, test fire, read history, and
-  delete.
+  delete. History includes retained fires from removed Triggers.
 - **Members** do not see Triggers on an Agent profile and cannot change one. In
   a conversation they are in, they see the Agent's messages with the Trigger's
   mark, its hover preview, and the Thread context card — reading why a message

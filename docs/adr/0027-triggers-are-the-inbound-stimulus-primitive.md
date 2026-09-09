@@ -12,7 +12,8 @@ read_when:
 
 Accepted 2026-09-02, amended 2026-09-03 to give people an authoring path and to
 name each Trigger's `kind`, and amended by ADR 0026, which removes the fire
-receipt and, on 2026-09-04, the creation receipt as well. Complements ADR 0016,
+receipt and, on 2026-09-04, the creation receipt as well, and on 2026-09-09 to
+retain bounded fire history across Trigger removal. Complements ADR 0016,
 which keeps reminders the scheduling primitive, and ADR 0017, which keeps MCP
 connections the outbound integration axis. Neither is superseded.
 
@@ -64,6 +65,14 @@ hash, and never readable afterwards. A test fire deliberately needs no secret: i
 runs the same fire path, transaction, and rate limiter as a real POST, and an
 operator who can rotate the secret can already fire the Trigger.
 
+Removing a Trigger is a logical delete: the Server stamps `deleted_at`, disables
+the row, removes it from active reads and secret authentication, and retires
+queued wakes. The Trigger's fire rows remain in the Agent-wide history surface
+until each fire's own 30-day retention clock expires, while the removal
+tombstone remains for 30 days from removal. A non-seen inbox row is unfinished work and blocks expiry; physical
+deletion of the tombstone then cascades any remaining fires. This keeps recent
+history reachable without treating execution history as a Chat mark.
+
 Triggers are not MCP connections. ADR 0017 governs outbound tool calls the Agent
 makes; a Trigger is an inbound stimulus an outside system makes. They share no
 credential, registry, or grant model.
@@ -79,7 +88,8 @@ credential, registry, or grant model.
   is the fire history on the Automations tab (ADR 0026).
 - A fire whose owning Agent is inactive or whose anchor is no longer writable
   disables the Trigger lazily on that request, mirroring reminder lazy cancel.
-  Nothing sweeps Triggers in the background.
+  A separate hourly retention sweep bounds removed Trigger and fire history; it
+  never changes an active Trigger's status.
 - Status is one operator procedure, `trigger.setStatus`, which arms and disables.
   The one-way `trigger.disable` it replaces no longer exists.
 - Grotto deliberately does not build: a provider registry or provider flavors; a

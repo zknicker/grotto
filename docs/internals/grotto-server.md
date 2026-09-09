@@ -330,8 +330,9 @@ script attention clears after the matching Computer result settles.
 
 ## Retention and lifecycle sweeps
 
-Two hourly sweeps run beside the delivery retry sweep, each once on boot and on
-its own interval, each idempotent, and neither on the request path.
+Three hourly maintenance sweeps run beside the delivery retry sweep, each once
+on boot and on its own interval, each idempotent, and neither on the request
+path.
 
 **Reminder history retention** (`REMINDER_HISTORY_RETENTION_DAYS`, 30) expires
 two things on two clocks. Reminders go first: every row whose status is `fired`
@@ -365,6 +366,24 @@ Agent's answer marked and archived: the mark still names what woke the Agent,
 `cause.live` reads null, and `automation.fireContext` answers from the snapshot
 with null counters instead of faulting. `reminder.runs` still answers
 `NOT_FOUND` for the gone reminder.
+
+**Trigger history retention** (`TRIGGER_HISTORY_RETENTION_DAYS`, 30) uses the
+same bounded window with the Trigger's two lifecycle clocks. A deleted Trigger
+is first tombstoned with `deleted_at`, disabled, removed from active reads and
+secret authentication, and kept for 30 days from removal. Its fire rows remain
+available to the Agent-wide `trigger.history` procedure, including after the
+active Trigger detail has disappeared, subject to each fire's own 30-day clock.
+Each fire expires independently 30 days after `received_at`, whether its parent
+is armed, disabled, or tombstoned; the parent's physical delete cascades any
+remaining fires.
+
+The Trigger sweep deletes a tombstone only when none of its fire ids has a
+non-seen `agent_inbox` row. It deletes an old fire only when that fire has no
+non-seen Trigger inbox row. `queued`, `accepted`, and `served` all mean the
+Agent still has unfinished work; `seen` is the settled boundary. Trigger delete
+retires queued rows immediately, and failed-run requeue removes a wake whose
+parent is now tombstoned, so a removed Trigger cannot keep waking an Agent while
+an in-flight turn still settles safely.
 
 **Stale `in_review` task close** (`TASK_IN_REVIEW_STALE_DAYS`, 7) closes each
 `in_review` task whose own row has not changed and whose Thread — the one

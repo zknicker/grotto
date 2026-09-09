@@ -27,11 +27,13 @@ the owning Agent is always the one woken.
   has no hidden Chat rows, so a Chat message exists only where a human wants to
   read one (ADR 0026).
 - `triggers` holds `owner_agent_id`, `kind`, `anchor_chat_id`, a nullable
-  `anchor_message_id`, `created_by_user_id`, a `title` of at most 200 characters,
-  an optional `instruction` of at most 4,096 bytes, `secret_hash` (SHA-256 hex of
-  the bearer secret), `status` of `armed` or `disabled`, `version`, and the
-  `created_at`, `updated_at`, `disabled_at`, `last_fired_at`, and `fire_count`
-  lifecycle fields. `(server_id, owner_agent_id)` is indexed.
+  `anchor_message_id`, `created_by_user_id`, a nullable `deleted_at` removal
+  tombstone, a `title` of at most 200 characters, an optional `instruction` of
+  at most 4,096 bytes, `secret_hash` (SHA-256 hex of the bearer secret),
+  `status` of `armed` or `disabled`, `version`, and the `created_at`,
+  `updated_at`, `disabled_at`, `last_fired_at`, and `fire_count` lifecycle
+  fields. A non-null `deleted_at` requires `status = 'disabled'`.
+  `(server_id, owner_agent_id)` is indexed.
 - `kind` is `NOT NULL` and checked against `('webhook')`. It has no default;
   every writer states it, so adding a second kind is a new allowed value rather
   than a reinterpretation of old rows.
@@ -50,7 +52,8 @@ the owning Agent is always the one woken.
   `dedupe_key` of at most 200 characters, the optional `content_type`, and the
   verbatim `payload` with its `payload_bytes`.
   `(server_id, trigger_id, dedupe_key)` is unique where the key is present.
-  Deleting a Trigger cascades to its fires. There is no `receipt_message_id`
+  Logical deletion retains these rows for bounded history; physical deletion of
+  a Trigger cascades to its remaining fires. There is no `receipt_message_id`
   column; the one that existed was dropped with the receipts it named.
 - `message_causes` is the provenance table shared with reminders: one row per
   caused message, naming the `kind` (`trigger_fire` or `reminder_fire`), the
@@ -133,8 +136,8 @@ depends on a Trigger requires it and an unknown trigger id answers `401`, never
 `404`; then an `Idempotency-Key` replay, answered from history for free; then
 the rate limit; then `trigger_disabled`; and only then the fire transaction.
 `trigger_unavailable` also sets the Trigger to `disabled` on that request. This
-lazy auto-disable is the only automatic status change; nothing sweeps Triggers in
-the background.
+lazy auto-disable is the only automatic status change; the separate retention
+sweep only removes already-deleted history after its bounded window.
 
 ## Fire semantics
 
@@ -262,6 +265,7 @@ Trigger with `CONFLICT`, and a malformed input with `BAD_REQUEST`.
 | --- | --- | --- |
 | `trigger.list` | `{ serverId, agentId?, status? }` | `Trigger[]`, oldest first |
 | `trigger.runs` | `{ serverId, triggerId }` | `TriggerFire[]`, newest first, no payloads |
+| `trigger.history` | `{ serverId, agentId, limit? }` | retained `TriggerHistoryEntry[]`, newest first |
 | `trigger.create` | `{ serverId, agentId, kind: 'webhook', title, instruction? }` | `{ trigger, secret, url, curl }` |
 | `trigger.update` | `{ serverId, triggerId, title?, instruction? }` | `{ trigger }` |
 | `trigger.setStatus` | `{ serverId, triggerId, status: 'armed' \| 'disabled' }` | `{ trigger }` |
@@ -281,8 +285,16 @@ and leaves the kind, anchor, owner, and secret untouched.
 is bumped by every mutation and by every fire, and no mutation accepts an
 expected version.
 
-`trigger.delete` cascades to the Trigger's fires and retires the queued pending
-work those fires created. Provenance is not part of that cascade: the Agent's own
+`trigger.delete` removes the Trigger from active use immediately by setting its
+`deleted_at` tombstone and `status = 'disabled'`. It retires queued inbox rows
+whose dedupe keys are its fires. Accepted or served rows remain attached to an
+in-flight run; if that run fails, requeue cleanup drops the wake because the
+Trigger is no longer live. The Trigger and fire rows remain available to
+`trigger.history` for 30 days. A retention sweep deletes a removed Trigger
+after 30 days from `deleted_at` when none of its fires has a non-seen inbox row,
+and expires each fire independently after 30 days from `received_at`; a
+non-seen inbox row blocks either delete. Physical parent deletion cascades any
+remaining fires. Provenance is not part of that lifecycle: the Agent's own
 messages stay in canonical history and keep their mark, now archived — it still
 names the Trigger that woke the Agent and drops only the live half.
 
@@ -312,13 +324,16 @@ Trigger for real.
   one fire with its full payload.
 - The Agent profile's Automations tab shows that Agent's Triggers to Owners and
   Admins, with title, kind, armed or disabled status, last fired time, and fire
-  count, and carries the whole operator lifecycle above. A secret is displayed
-  only in the create and rotate response that mints it, once. Because a fire
-  writes nothing to a Chat, this history is the only place every fire is
-  observable, including the ones the Agent had nothing to say about.
-- A disabled Trigger keeps its fire history. Deleting one removes its fires; the
-  Agent's own messages stay in the transcript and keep their mark, which reads
-  archived from the snapshot the message carries.
+  count, and carries the whole operator lifecycle above. Its History drawer
+  lists every retained fire across active, disabled, and removed Triggers, and
+  remains available when the active list is empty. A secret is displayed only
+  in the create and rotate response that mints it, once. Because a fire writes
+  nothing to a Chat, this history is the only place every fire is observable,
+  including the ones the Agent had nothing to say about.
+- A disabled Trigger keeps its fire history. Deleting one removes it from active
+  views but retains its fires for 30 days; the Agent's own messages stay in the
+  transcript and keep their mark, which reads archived from the snapshot the
+  message carries.
 
 ## Not built
 

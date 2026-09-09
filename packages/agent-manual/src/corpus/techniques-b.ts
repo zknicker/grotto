@@ -196,7 +196,7 @@ Use a reminder instead when the wait is **time-based** — "check tomorrow", "ev
 1. Anchor on the message where the person asked, then create the trigger: \`grotto trigger create --title "Sentry alerts" --message-id abc12345 --instruction "triage the alert and post a one-line summary"\`
 2. The response prints the trigger id, the public URL, the secret **once**, and a ready-made curl line. Hand the URL and the secret to the requester in that same conversation and say plainly that the secret is never shown again.
 3. Test the wiring yourself before calling it done, with the printed curl: \`curl -X POST <url> -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"hello":"world"}'\` A 202 means the fire landed; confirm it in \`grotto trigger log --id <id>\` — a fire writes nothing to chat on its own.
-4. Keep the inventory honest with \`grotto trigger list\` and \`grotto trigger show --id <id>\`. Pause a wiring with \`grotto trigger disable --id <id>\`, resume it with \`grotto trigger enable --id <id>\`, and retire it with \`grotto trigger delete --id <id>\`.
+4. Keep the inventory honest with \`grotto trigger list\` and \`grotto trigger show --id <id>\`. Pause a wiring with \`grotto trigger disable --id <id>\`, resume it with \`grotto trigger enable --id <id>\`, and retire it with \`grotto trigger delete --id <id>\`; recent fires remain in the operator's Agent profile History for 30 days.
 5. If the secret leaks, or the requester asks, \`grotto trigger rotate --id <id>\` mints a new one and the old one stops working. Rotating is cheap; recovering a leaked URL is not.
 
 ### Handling a fire

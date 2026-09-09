@@ -4,6 +4,7 @@ read_when:
   - changing the inbound Trigger route, its status codes, headers, or limits
   - changing managed Agent Trigger routes, secrets, or fire log reads
   - changing operator Trigger creation, editing, status, rotation, test fires, or deletion
+  - changing Agent-wide Trigger history or fire retention
   - changing message provenance, the `cause` field, or `automation.fireContext`
 ---
 
@@ -87,6 +88,10 @@ DELETE /api/agent/triggers/{id}         → { deleted: true, id }
 GET    /api/agent/triggers/{id}/log[?fire=<fireId>][&limit=<1-100>]
 ```
 
+After deletion, the Trigger leaves `list`, `show`, and `log` immediately. Its
+recent fire rows remain available through the operator's Agent-wide
+`trigger.history` procedure until the retention sweep removes them.
+
 `kind` defaults to `webhook` and `webhook` is the only accepted value; anything
 else is `400 INVALID_ARG` naming the supported kinds. `messageId` is the asking
 message the Trigger anchors to, which is what distinguishes Agent authoring from
@@ -128,6 +133,7 @@ tab. Only Server Owners and Admins may call it.
 
 - `trigger.list({ serverId, agentId?, status? })` → Triggers, oldest first
 - `trigger.runs({ serverId, triggerId })` → up to 100 fires, newest first, no payloads
+- `trigger.history({ serverId, agentId, limit? })` → retained fires across the Agent's Triggers, newest first
 - `trigger.create({ serverId, agentId, kind: 'webhook', title, instruction? })` → `{ trigger, secret, url, curl }`
 - `trigger.update({ serverId, triggerId, title?, instruction? })` → `{ trigger }`
 - `trigger.setStatus({ serverId, triggerId, status: 'armed' | 'disabled' })` → `{ trigger }`
@@ -152,6 +158,21 @@ it leaves it alone. Every mutation bumps `version`,
 which is a change counter rather than an expected-version token — these
 procedures carry no idempotency key and no concurrency check, so a repeated call
 applies again.
+
+`trigger.delete` tombstones the Trigger, removes it from active reads and secret
+authentication, and retires queued pending work those fires created. Its fire
+rows remain in `trigger.history` for 30 days, then the retention sweep deletes
+the tombstone and any remaining fire rows. A non-seen inbox row is unfinished
+work and blocks expiry; an in-flight row is requeued only while its Trigger is
+still live. Provenance is not part of that lifecycle: the Agent's own messages
+stay in canonical history and keep their mark, now archived — it still names
+the Trigger that woke the Agent and drops only the live half.
+
+`trigger.history` is operator-only and returns one row per retained fire:
+`fireId`, `triggerId`, `title`, `firedAt`, `payloadBytes`, `contentType`,
+`dedupeKey`, an optional earliest answer `{ chatId, messageId }`, and a
+`triggerDeletedAt` tombstone marker. It is the durable Agent-profile history
+path, so deleting a Trigger never makes its recent fires unreachable.
 
 `trigger.test` fires through the same path as the public route: same
 transaction, same envelope, and the same per-Trigger rate limiter, so a test
@@ -181,7 +202,7 @@ contract.
 `POST /api/agent/messages/send` (behind `grotto message send`) accepts an
 optional `cause`, the id of the fire the message answers. The Server checks that
 the fire exists in this Server, that its automation is owned by the sending
-Agent, and, for a Trigger fire, that the Trigger still exists; a failure is
+Agent, and, for a Trigger fire, that the retained Trigger row still exists; a failure is
 `INVALID_ARG` naming the reason. On success the provenance row is written in the
 message's own transaction. A send without `cause` is an ordinary message.
 

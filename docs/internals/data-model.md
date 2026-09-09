@@ -97,14 +97,19 @@ retained delivery ledger after `seen`.
 
 `triggers` is the Agent-owned inbound wake: owner Agent, `kind` (checked against `webhook`),
 anchor Chat and nullable anchor message, `created_by_user_id` for a Trigger a human created from
-the App and null for one an Agent created (it clears if that human is removed), title, optional
-instruction, the SHA-256 hash of its bearer secret, armed or disabled status, and fire counters.
+the App and null for one an Agent created (it clears if that human is removed), a nullable
+`deleted_at` removal tombstone, title, optional instruction, the SHA-256 hash of its bearer secret,
+armed or disabled status, and fire counters. A tombstoned row is disabled and remains only long
+enough to keep recent fire history reachable.
 `anchor_message_id` is the message someone asked on and is null for a human-created Trigger,
 which anchors on that human's DM with the owning Agent and writes no Chat message; the Chat is
 then the whole access check. Grotto never stores a Trigger secret in plaintext.
 `trigger_fires` stores one row per accepted inbound request with the verbatim payload bounded at
-65,536 bytes, its byte count, and its optional content type and idempotency key. Deleting a
-Trigger cascades to its fires. Server bounds and relays those payloads and never interprets them.
+65,536 bytes, its byte count, and its optional content type and idempotency key. A Trigger delete
+first tombstones the parent so the rows remain available to Agent-wide history; the hourly
+retention sweep expires fires on `received_at` and later removes the tombstone. Physical parent
+deletion cascades to any remaining fires. Server bounds and relays those payloads and never
+interprets them.
 A fire wakes the owning Agent through the ordinary `agent_inbox` ledger; no
 Trigger-specific attention table exists.
 

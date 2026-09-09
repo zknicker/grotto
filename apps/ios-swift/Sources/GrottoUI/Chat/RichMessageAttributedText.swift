@@ -14,7 +14,7 @@ extension NSAttributedString.Key {
 }
 
 /// One mention as the text engine sees it: the identity the mark is drawn from
-/// and the capsule geometry that reserved its room.
+/// and the geometry that reserved its room.
 ///
 /// Value equality is the point of the overrides. `NSAttributedString` equality
 /// falls back to object identity for custom attributes, so an identical body
@@ -22,15 +22,15 @@ extension NSAttributedString.Key {
 /// throw away the text view's layout.
 final class RichReferenceRun: NSObject {
     let reference: RichReferencePresentation
-    let geometry: RichReferenceCapsuleGeometry
-    /// What the whole run — both spacers and the label — measures on one line,
+    let geometry: RichReferenceMarkGeometry
+    /// What the whole run — the spacer and the label — measures on one line,
     /// taken once here so `RichReferenceLineBreaker` can answer a break
     /// opportunity without measuring anything.
     let naturalWidth: CGFloat
 
     init(
         reference: RichReferencePresentation,
-        geometry: RichReferenceCapsuleGeometry,
+        geometry: RichReferenceMarkGeometry,
         naturalWidth: CGFloat
     ) {
         self.reference = reference
@@ -48,7 +48,7 @@ final class RichReferenceRun: NSObject {
     override var hash: Int {
         var hasher = Hasher()
         hasher.combine(reference)
-        hasher.combine(geometry.height)
+        hasher.combine(geometry.lineBox)
         hasher.combine(naturalWidth)
         return hasher.finalize()
     }
@@ -59,9 +59,9 @@ final class RichReferenceRun: NSObject {
 ///
 /// A mention is ordinary text — no baseline offset, no smaller size, no
 /// attachment standing in for the label — so it wraps, selects, and reads with
-/// the sentence. The only thing it adds is a pair of zero-height spacer
-/// attachments that buy the capsule's horizontal padding and the mark's room;
-/// `RichReferenceCapsuleRenderer` paints the capsule behind the whole run.
+/// the sentence. The only thing it adds is one zero-height spacer attachment
+/// that buys the mark's room before the label; `RichReferenceLayoutManager`
+/// paints the mark there and the dotted rule under the label.
 enum RichMessageAttributedText {
     static func make(
         segments: [RichMessageSegment],
@@ -81,6 +81,8 @@ enum RichMessageAttributedText {
                 dynamicTypeSize: dynamicTypeSize,
                 legibilityWeight: legibilityWeight
             ),
+            // Medium, not the App's 700: bold read as distracting in running text on
+            // the phone. Bold Text still adds a step above it.
             referenceWeight: legibilityWeight == .bold ? .bold : .medium
         )
     }
@@ -92,7 +94,7 @@ enum RichMessageAttributedText {
         metrics: PlatformFontMetrics,
         referenceWeight: PlatformFont.Weight = .medium
     ) -> NSAttributedString {
-        let geometry = RichReferenceCapsuleGeometry(metrics: metrics)
+        let geometry = RichReferenceMarkGeometry(metrics: metrics)
         // The same point size as the body, only heavier: SF's ascent and
         // descent do not move with weight, so the line box is untouched.
         let referenceFont = PlatformFont.systemFont(
@@ -176,7 +178,7 @@ enum RichMessageAttributedText {
 
     private static func referenceRun(
         _ reference: RichReferencePresentation,
-        geometry: RichReferenceCapsuleGeometry,
+        geometry: RichReferenceMarkGeometry,
         font: PlatformFont
     ) -> NSAttributedString {
         // The label keeps its own spaces and hyphens: a name is held together
@@ -191,26 +193,22 @@ enum RichMessageAttributedText {
             ]
         )
         let run = NSMutableAttributedString()
-        run.append(spacer(width: geometry.leadingSpacer, font: font, leading: true))
+        run.append(spacer(width: geometry.leadingSpacer, font: font))
         run.append(label)
-        run.append(spacer(width: geometry.trailingSpacer, font: font, leading: false))
         run.addAttribute(
             .grottoReference,
             value: RichReferenceRun(
                 reference: reference,
                 geometry: geometry,
-                // The spacers advance by their attachment bounds, so the run's
-                // single-line width is the label's plus both of them.
-                naturalWidth: label.size().width
-                    + geometry.leadingSpacer
-                    + geometry.trailingSpacer
+                // The spacer advances by its attachment bounds, so the run's
+                // single-line width is the label's plus that.
+                naturalWidth: label.size().width + geometry.leadingSpacer
             ),
             range: NSRange(location: 0, length: run.length)
         )
         // A chip whose target is a real address is a link like any other. The
-        // attribute covers the spacers as well as the label, so the capsule's
-        // padding opens it too rather than leaving a dead margin inside the
-        // chip.
+        // attribute covers the spacer as well as the label, so the mark opens
+        // it too rather than leaving a dead margin before the words.
         if let url = reference.activationURL {
             run.addAttribute(.link, value: url, range: NSRange(location: 0, length: run.length))
         }
@@ -219,26 +217,20 @@ enum RichMessageAttributedText {
 
     /// A zero-height attachment: it advances the line by `width` and adds
     /// nothing to the line's own box, which is what keeps a mention's line at
-    /// the pitch of a plain one. The word joiner beside it is what stops the
+    /// the pitch of a plain one. The word joiner after it is what stops the
     /// engine breaking there — an attachment character is a break opportunity,
-    /// and a capsule may not be split from its own padding.
-    private static func spacer(
-        width: CGFloat,
-        font: PlatformFont,
-        leading: Bool
-    ) -> NSAttributedString {
+    /// and a label may not come away from its own mark.
+    ///
+    /// There is one, before the label. The App's chip carries no inline padding
+    /// at all, so nothing is bought after the label either: punctuation hugs
+    /// the last word and the next word is separated by its own space, exactly
+    /// as in plain prose.
+    private static func spacer(width: CGFloat, font: PlatformFont) -> NSAttributedString {
         let attachment = NSTextAttachment()
         attachment.bounds = CGRect(x: 0, y: 0, width: width, height: 0)
         let spacer = NSMutableAttributedString()
-        // The joiner always faces the label, which is the edge that may not
-        // come away from its padding.
-        if leading {
-            spacer.append(NSAttributedString(attachment: attachment))
-            spacer.append(NSAttributedString(string: Self.wordJoiner))
-        } else {
-            spacer.append(NSAttributedString(string: Self.wordJoiner))
-            spacer.append(NSAttributedString(attachment: attachment))
-        }
+        spacer.append(NSAttributedString(attachment: attachment))
+        spacer.append(NSAttributedString(string: Self.wordJoiner))
         spacer.addAttribute(
             .font,
             value: font,

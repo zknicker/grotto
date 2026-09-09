@@ -21,84 +21,18 @@ public enum ReferenceBrandInk: Hashable, Sendable {
     }
 }
 
-/// The capsule drawn behind a reference run, in the body font's own metrics.
+/// The App's `--accent-soft-foreground`, the ink its Agent chips read in.
 ///
-/// Nothing here may change the line. The capsule is exactly the line's own box
-/// — the font's ascent above the baseline and its descent below — so the label
-/// sits on the same baseline as the words beside it, at the same size, and a
-/// line carrying a mention keeps the pitch of a line of plain words. The mark
-/// and the insets are fractions of that box, so the whole chip scales with
-/// Dynamic Type, and the horizontal room they need is bought inside the text
-/// itself by the two spacer runs `RichMessageAttributedText` writes around the
-/// label.
-struct RichReferenceCapsuleGeometry: Equatable {
-    /// The body font's ascent and descent, both positive.
-    let ascent: CGFloat
-    let descent: CGFloat
-    /// The identity mark's edge, and its distance from the capsule's top,
-    /// bottom, and leading edges.
-    let markSize: CGFloat
-    let leadingInset: CGFloat
-    /// The gap between the mark and the label.
-    let markGap: CGFloat
-    let trailingInset: CGFloat
-
-    /// The capsule's height: the line's own box.
-    var height: CGFloat { ascent + descent }
-    /// The same `box / 3` curve `ChannelIconBox` gives the mark, which keeps
-    /// the two corners concentric at any Dynamic Type size.
-    var cornerRadius: CGFloat { height / 3 }
-    /// Blank advance written before the label, holding the leading inset, the
-    /// mark, and the gap after it.
-    var leadingSpacer: CGFloat { leadingInset + markSize + markGap }
-    /// Blank advance written after the label, so the next word does not sit on
-    /// the capsule's trailing edge.
-    var trailingSpacer: CGFloat { trailingInset }
-
-    init(metrics: PlatformFontMetrics) {
-        ascent = metrics.ascent
-        descent = metrics.descent
-        let box = metrics.ascent + metrics.descent
-        leadingInset = max(Self.minimumInset, box * Self.insetScale)
-        markSize = max(1, box - leadingInset * 2)
-        markGap = box * Self.markGapScale
-        trailingInset = box * Self.trailingInsetScale
-    }
-
-    /// The capsule behind a run whose leading edge is `leadingX` and whose
-    /// baseline is `baselineY`, both in the text container's coordinates.
-    func capsuleRect(leadingX: CGFloat, baselineY: CGFloat, width: CGFloat) -> CGRect {
-        CGRect(x: leadingX, y: baselineY - ascent, width: width, height: height)
-    }
-
-    /// The mark's box, inset from the capsule's leading edge and centered on
-    /// its height. `scale` shrinks a mark that the App draws smaller than the
-    /// rest — the three-sparkle Skill glyph — around the same center, so the
-    /// label still starts where every other reference's does.
-    func markRect(in capsule: CGRect, scale: CGFloat = 1) -> CGRect {
-        let size = markSize * scale
-        return CGRect(
-            x: capsule.minX + leadingInset + (markSize - size) / 2,
-            y: capsule.midY - size / 2,
-            width: size,
-            height: size
-        )
-    }
-
-    /// A tenth of the box, which leaves a ~16pt mark inside 17pt body text —
-    /// twice the font's x-height, near enough, the way the App pairs an 18px
-    /// mark with 16px text.
-    private static let insetScale: CGFloat = 0.1
-    /// A point and a half, so the smallest type sizes keep a visible inset.
-    private static let minimumInset: CGFloat = 1.5
-    private static let markGapScale: CGFloat = 0.18
-    /// A hair wider than the leading inset, and well under a word space: the
-    /// web chip carries no inline padding at all, so punctuation must hug the
-    /// capsule rather than read as a stray space after the label.
-    private static let trailingInsetScale: CGFloat = 0.15
+/// iOS has no semantic color for it, so the two stops the token resolves to are
+/// named here: `--accent` mixed with `--foreground` in oklab, 70/30 on a light
+/// page and 80/30 on a dark one (HeroUI's dark theme weights the accent more),
+/// which is a deepened blue in light and a lightened one in dark.
+enum AgentReferenceInk {
+    static let light = Color(red: 0x1E / 255, green: 0x63 / 255, blue: 0xAE / 255)
+    static let dark = Color(red: 0x61 / 255, green: 0xA8 / 255, blue: 0xFB / 255)
 }
 
-/// The chip's ink.
+/// A reference's ink.
 ///
 /// Every iOS value is a dynamic color, so a color-scheme change repaints the
 /// body without rebuilding its attributed string.
@@ -110,28 +44,30 @@ enum RichReferenceChipInk {
     /// nearest thing iOS has to the App's anchor color.
     static var linkText: UIColor { .link }
 
-    /// A translucent wash of the foreground, never an opaque grey, so the chip
-    /// composites over whatever it sits on. Light stays under the neutral
-    /// `ChannelIconBox` fill so the chip reads quieter than its own mark.
-    static var ground: UIColor {
-        UIColor { traits in
-            UIColor.label
-                .resolvedColor(with: traits)
-                .withAlphaComponent(traits.userInterfaceStyle == .dark ? 0.12 : 0.055)
-        }
-    }
-
-    /// A brand reads in its brand's ink, a channel in its own configured color,
-    /// and a skill in the App's dedicated purple. A channel with no preset, and
-    /// every other kind, reads as ordinary ink — which is what the App's
-    /// default chip foreground resolves to in both themes.
+    /// A brand reads in its brand's ink, an Agent in the App's accent, a channel
+    /// in its own configured color, and a skill in the App's dedicated purple.
+    /// A channel with no preset, and every other kind, reads as ordinary ink —
+    /// which is what the App's default chip foreground resolves to in both
+    /// themes.
+    ///
+    /// This is the whole reference now: the App's chip is the transparent
+    /// `tertiary` shell, so the ink and the dotted rule under it carry the
+    /// identity that a ground used to.
     static func labelTint(for reference: RichReferencePresentation) -> UIColor {
         if case .brandGlyph(_, let brand) = reference.mark { return brandTint(brand) }
+        if reference.kind == .agent { return accentReference }
         if reference.kind == .skill { return skillReference }
         guard reference.kind == .channel, let preset = preset(for: reference) else {
             return .label
         }
         return dynamic(light: preset.light, dark: preset.dark)
+    }
+
+    /// The App's `--accent-soft-foreground`, which its Agent chips take from
+    /// `color="accent"`: the accent mixed 70/30 with the page's foreground, so
+    /// it darkens on a light page and lightens on a dark one.
+    static var accentReference: UIColor {
+        dynamic(light: AgentReferenceInk.light, dark: AgentReferenceInk.dark)
     }
 
     /// A brand mark's own ink. The App's `brandColor` lands on `--chip-fg`, so
@@ -180,15 +116,17 @@ enum RichReferenceChipInk {
     }
     #elseif canImport(AppKit)
     // macOS hosts the package for `swift test` only; the stand-in body draws
-    // labels without a capsule, so these are the light values, flat.
+    // labels without their marks, so these are the light values, flat.
     static var bodyText: NSColor { .labelColor }
-    static var ground: NSColor { NSColor.labelColor.withAlphaComponent(0.055) }
     static var linkText: NSColor { .linkColor }
 
     static func brandTint(_ brand: ReferenceBrandInk) -> NSColor { NSColor(brand.color) }
 
     static func labelTint(for reference: RichReferencePresentation) -> NSColor {
         if case .brandGlyph(_, let brand) = reference.mark { return brandTint(brand) }
+        if reference.kind == .agent {
+            return NSColor(AgentReferenceInk.light)
+        }
         if reference.kind == .skill {
             return NSColor(SkillReferenceInk.light)
         }

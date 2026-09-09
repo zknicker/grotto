@@ -15,7 +15,8 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
-import { AgentTargetError, resolveAgentSendTarget } from './resolve-target.ts';
+import { resolveAgentSendTarget } from './resolve-send-target.ts';
+import { AgentTargetError } from './resolve-target.ts';
 import { AgentSendModeError, clearAgentDraft, prepareAgentSend } from './send-hold.ts';
 
 export function registerAgentMessageSendRoute(

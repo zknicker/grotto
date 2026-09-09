@@ -9,7 +9,6 @@ import type {
     ReminderScriptResult,
     ServerDurableEvent,
 } from '@grotto/api';
-import { agentActionAttentionSchema } from '@grotto/api';
 import type { EffectRuntime } from '@grotto/effect';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
@@ -22,12 +21,7 @@ import { readCloudAgentWorkAttentions } from '../cloud-agents/read-cloud-agent-w
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import {
-    agentActionAttentionsTable,
-    agentMessageDraftsTable,
-    agentsTable,
-    chatMessagesTable,
-} from '../postgres/schema.ts';
+import { agentMessageDraftsTable, agentsTable, chatMessagesTable } from '../postgres/schema.ts';
 import {
     listReminderScriptCommands,
     settleReminderScript,
@@ -49,6 +43,13 @@ import {
     rotateDeferredConfiguration,
     sendDeferredConfiguration,
 } from './deferred-configuration.ts';
+import {
+    type AgentConfigureRequest,
+    type AgentDispatchConfig,
+    listComputerAgents,
+    readAgentDispatchConfig,
+    reconcileConfigureFrame,
+} from './dispatch-config.ts';
 import { traceAgentDispatch } from './dispatch-telemetry.ts';
 import { shouldRetryFailure } from './failure-policy.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
@@ -56,7 +57,7 @@ import { inboxSender } from './inbox-sender.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import { isBackedOff, maxDeliveryFailures, nextRetryAt } from './retry-policy.ts';
 import { recordSessionRotation } from './session-rotation.ts';
-import type { AgentDeliveryRow, AgentDispatchConfig } from './store.ts';
+import type { AgentDeliveryRow } from './store.ts';
 import * as store from './store.ts';
 
 /** The Server→Computer wire, narrowed to what durable delivery needs. */
@@ -171,7 +172,6 @@ export class AgentDelivery {
             this.db.transaction(async (tx) => {
                 await lockServerRow(tx, serverId);
                 await store.ensureDeliveryState(tx, { agentId, serverId });
-                await store.materializeActionAttentions(tx, { agentId, serverId });
                 return this.planDispatch(tx, agentId, options);
             })
         );
@@ -265,7 +265,7 @@ export class AgentDelivery {
 
     /** Restarts the executor while preserving the Agent's current session. */
     async restart(input: { agentId: string; serverId: string }): Promise<void> {
-        const config = await store.readAgentDispatchConfig(this.db, input.agentId);
+        const config = await readAgentDispatchConfig(this.db, input.agentId);
         if (!(config?.computerId && this.transport.isOnline(config.computerId))) {
             throw new Error('The assigned Computer must be online to restart this Agent.');
         }
@@ -350,7 +350,7 @@ export class AgentDelivery {
             await tx
                 .delete(agentMessageDraftsTable)
                 .where(eq(agentMessageDraftsTable.agentId, input.agentId));
-            const config = await store.readAgentDispatchConfig(tx, input.agentId);
+            const config = await readAgentDispatchConfig(tx, input.agentId);
             const configuration =
                 state?.activeRunId &&
                 isConfigured(config) &&
@@ -535,7 +535,7 @@ export class AgentDelivery {
                     .delete(agentMessageDraftsTable)
                     .where(eq(agentMessageDraftsTable.agentId, summary.agentId));
                 await store.clearDeliveryFailures(tx, summary.agentId);
-                const config = await store.readAgentDispatchConfig(tx, summary.agentId);
+                const config = await readAgentDispatchConfig(tx, summary.agentId);
                 await recordSessionRotation(tx, {
                     agentId: summary.agentId,
                     generation: rotated.sessionGeneration,
@@ -743,7 +743,7 @@ export class AgentDelivery {
         for (const command of await listReminderScriptCommands(this.db, computerId)) {
             this.transport.send(computerId, command);
         }
-        const agents = await store.listComputerAgents(this.db, computerId);
+        const agents = await listComputerAgents(this.db, computerId);
         for (const agent of agents) {
             if (agent.retiredAt) {
                 this.transport.send(computerId, {
@@ -761,19 +761,12 @@ export class AgentDelivery {
                 (state?.activeRunModelId !== agent.desiredModelId ||
                     state?.activeRunRuntimeId !== agent.desiredRuntimeId ||
                     state?.activeRunReasoningEffort !== agent.desiredReasoningEffort);
-            if (!activeConfigurationChanged && agent.desiredModelId && agent.desiredRuntimeId) {
-                this.transport.send(computerId, {
-                    agentDescription: agent.agentDescription,
-                    agentId: agent.agentId,
-                    agentName: agent.agentName,
-                    modelId: agent.desiredModelId,
-                    reasoningEffort: agent.desiredReasoningEffort,
-                    runtimeId: agent.desiredRuntimeId,
-                    sessionGeneration: agent.sessionGeneration,
-                    sessionResetKind: agent.sessionResetKind,
-                    factoryKind: agent.factoryKind,
-                    type: 'agent-configure',
-                });
+            const { desiredModelId, desiredRuntimeId } = agent;
+            if (!activeConfigurationChanged && desiredModelId && desiredRuntimeId) {
+                this.transport.send(
+                    computerId,
+                    reconcileConfigureFrame({ ...agent, desiredModelId, desiredRuntimeId })
+                );
             }
             await this.dispatchAgent(agent.agentId, agent.serverId, { resendActive: true });
         }
@@ -837,16 +830,8 @@ export class AgentDelivery {
     }
 
     /** Best-effort immediate apply; reconnect reconciliation resends the full snapshot. */
-    async configureAgent(input: {
-        agentDescription: string | null;
-        agentId: string;
-        agentName: string;
-        computerId: string;
-        modelId: string;
-        reasoningEffort: Agent['desiredReasoningEffort'];
-        runtimeId: string;
-    }): Promise<void> {
-        const config = await store.readAgentDispatchConfig(this.db, input.agentId);
+    async configureAgent(input: AgentConfigureRequest): Promise<void> {
+        const config = await readAgentDispatchConfig(this.db, input.agentId);
         if (!config) {
             return;
         }
@@ -854,6 +839,10 @@ export class AgentDelivery {
             agentDescription: input.agentDescription,
             agentId: input.agentId,
             agentName: input.agentName,
+            // The brief is durable Agent state, so it rides every configure
+            // rather than only the one that follows creation.
+            brief: config.brief,
+            briefAuthorHandle: config.briefAuthorHandle,
             modelId: input.modelId,
             reasoningEffort: input.reasoningEffort,
             runtimeId: input.runtimeId,
@@ -901,7 +890,7 @@ export class AgentDelivery {
         options?: DispatchOptions
     ): Promise<DispatchPlan | null> {
         const state = await store.readDeliveryState(tx, agentId);
-        const config = await store.readAgentDispatchConfig(tx, agentId);
+        const config = await readAgentDispatchConfig(tx, agentId);
         if (!(state && isConfigured(config)) || state.stopped) {
             return null;
         }
@@ -1223,7 +1212,7 @@ async function startFrame(
 
 /**
  * One drain never mixes the lanes, and a concrete drain never mixes kinds: a
- * fire, a task assignment, an action result, and Cove's bootstrap each earn
+ * fire, a task assignment, a Cloud Agent result, and Cove's bootstrap each earn
  * their own dedicated wake, which is also what keeps the sole-fire cause
  * inference readable (specs/inbox.md).
  */
@@ -1347,36 +1336,6 @@ async function buildInboxItems(
                       .map((row) => row.dedupeKey)
               )
             : new Map<string, CloudAgentWorkAttention>();
-    const actionIds = rows.filter((row) => row.source === 'action').map((row) => row.dedupeKey);
-    const actionRows =
-        serverId && actionIds.length > 0
-            ? await db
-                  .select({
-                      actionId: agentActionAttentionsTable.actionId,
-                      chatId: agentActionAttentionsTable.chatId,
-                      createdAgentId: agentActionAttentionsTable.createdAgentId,
-                      executedResult: agentActionAttentionsTable.executedResult,
-                  })
-                  .from(agentActionAttentionsTable)
-                  .where(
-                      and(
-                          eq(agentActionAttentionsTable.serverId, serverId),
-                          inArray(agentActionAttentionsTable.actionId, actionIds)
-                      )
-                  )
-            : [];
-    const actionById = new Map(
-        actionRows.map((row) => [
-            row.actionId,
-            agentActionAttentionSchema.parse({
-                actionId: row.actionId,
-                chatId: row.chatId,
-                createdAgentId: row.createdAgentId,
-                executedResult: row.executedResult,
-                kind: 'agent:create',
-            }),
-        ])
-    );
     const sequenceByMessageId = new Map(
         messageRows.map((message) => [message.id, message.sequence])
     );
@@ -1395,19 +1354,12 @@ async function buildInboxItems(
         );
     }
     return rows.map((row) => {
-        const actionAttention = row.source === 'action' ? actionById.get(row.dedupeKey) : undefined;
-        if (row.source === 'action' && !actionAttention) {
-            throw new Error(`Action attention ${row.dedupeKey} is missing.`);
-        }
         const cloudAgentWork =
             row.source === 'cloud_agent_work' ? cloudAgentWorkByRun.get(row.dedupeKey) : undefined;
         if (row.source === 'cloud_agent_work' && !cloudAgentWork) {
             throw new Error(`Cloud Agent attention ${row.dedupeKey} is missing.`);
         }
-        const attention = actionAttention ?? cloudAgentWork;
-        if (actionAttention && actionAttention.chatId !== row.chatId) {
-            throw new Error(`Action attention ${row.dedupeKey} targets the wrong Chat.`);
-        }
+        const attention = cloudAgentWork;
         const target = targetByChatId.get(row.chatId) ?? '#unknown';
         const apiMessage = apiMessageById.get(row.dedupeKey);
         const sender = inboxSender({
@@ -1421,7 +1373,6 @@ async function buildInboxItems(
             content: attention ? '' : row.content,
             createdAt: row.createdAt.toISOString(),
             id: row.dedupeKey,
-            ...(actionAttention ? { actionAttention } : {}),
             ...(cloudAgentWork ? { cloudAgentWork } : {}),
             ...(apiMessage?.ask
                 ? {

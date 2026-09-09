@@ -8,6 +8,7 @@ import {
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable } from '../postgres/schema.ts';
+import { readBareReferenceTokens } from './bare-reference-tokens.ts';
 
 export interface AgentReferenceTarget {
     handle: string;
@@ -19,20 +20,24 @@ export interface ChatReferenceTarget {
     name: string;
 }
 
-interface ReferenceRange {
-    end: number;
-    start: number;
-}
-
 /**
  * Resolves the live Server directory once, then stores only immutable targets
  * in the Agent-authored message. Retired Agents and deleted Channels are not
  * eligible. Channel lookup is Server-wide label resolution; target routing and
  * delivery still enforce the Agent's Chat access separately.
+ *
+ * `additionalAgents` names an Agent the directory cannot know yet — the one
+ * being created in this same transaction, whose announcement is the Message
+ * being written.
  */
 export async function canonicalizeAgentMessageContentForPersistence(
     db: GrottoDatabase,
-    input: { content: string; existingContent?: string; serverId: string }
+    input: {
+        additionalAgents?: AgentReferenceTarget[];
+        content: string;
+        existingContent?: string;
+        serverId: string;
+    }
 ): Promise<string> {
     const preferred = readExistingReferenceTargets(input.existingContent);
     if (input.existingContent !== undefined) {
@@ -64,7 +69,7 @@ export async function canonicalizeAgentMessageContentForPersistence(
     ]);
 
     return canonicalizeAgentMessageContent(input.content, {
-        agents,
+        agents: [...agents, ...(input.additionalAgents ?? [])],
         channels,
     });
 }
@@ -79,39 +84,20 @@ export function canonicalizeAgentMessageContent(
 ): string {
     const agentIds = uniqueTargetMap(input.agents, (agent) => agent.handle);
     const channelIds = uniqueTargetMap(input.channels, (channel) => channel.name);
-    const protectedRanges = readProtectedRanges(content);
     const replacements: Array<{ end: number; start: number; text: string }> = [];
-    const tokenPattern = /[@#][A-Za-z0-9][A-Za-z0-9_-]{0,31}/gu;
 
-    for (const match of content.matchAll(tokenPattern)) {
-        const token = match[0];
-        const start = match.index;
-        if (!(token && start !== undefined)) {
-            continue;
-        }
-        const end = start + token.length;
-        if (
-            isProtectedRange(protectedRanges, start, end) ||
-            isInsidePlainUrl(content, start) ||
-            !hasTokenBoundary(content[start - 1]) ||
-            !hasTokenBoundary(content[end])
-        ) {
-            continue;
-        }
-
-        const key = token.slice(1).toLocaleLowerCase('en-US');
-        const id = token.startsWith('@') ? agentIds.get(key) : channelIds.get(key);
+    for (const token of readBareReferenceTokens(content)) {
+        const id = token.sigil === '@' ? agentIds.get(token.key) : channelIds.get(token.key);
         if (!id) {
             continue;
         }
 
-        const target = token.startsWith('@')
-            ? formatAgentReferenceTarget(id)
-            : formatChatReferenceTarget(id);
+        const target =
+            token.sigil === '@' ? formatAgentReferenceTarget(id) : formatChatReferenceTarget(id);
         replacements.push({
-            end,
-            start,
-            text: `[${token}](${target})`,
+            end: token.end,
+            start: token.start,
+            text: `[${token.text}](${target})`,
         });
     }
 
@@ -152,125 +138,23 @@ function readExistingReferenceTargets(content: string | undefined) {
     return { agents, channels };
 }
 
+/**
+ * One label to one target, `null` when the label is genuinely ambiguous.
+ *
+ * A stored Message that names the same teammate twice yields the same target
+ * twice, and a repeat of one target is not ambiguity: only two different ids
+ * under one label disqualify it.
+ */
 function uniqueTargetMap<T extends { id: string }>(targets: T[], keyOf: (target: T) => string) {
     const result = new Map<string, string | null>();
     for (const target of targets) {
         const key = keyOf(target).toLocaleLowerCase('en-US');
-        if (result.has(key)) {
+        const seen = result.get(key);
+        if (seen !== undefined && seen !== target.id) {
             result.set(key, null);
             continue;
         }
         result.set(key, target.id);
     }
     return result;
-}
-
-function hasTokenBoundary(character: string | undefined) {
-    return !(character && /[-A-Za-z0-9_@#]/u.test(character));
-}
-
-function isInsidePlainUrl(content: string, start: number) {
-    return /(?:https?:\/\/|www\.)[^\s]*$/iu.test(content.slice(0, start));
-}
-
-function readProtectedRanges(content: string): ReferenceRange[] {
-    const ranges = readMarkdownLinkRanges(content);
-    const fences = readFenceRanges(content);
-    ranges.push(...fences);
-    ranges.push(...readInlineCodeRanges(content, fences));
-    return mergeRanges(ranges);
-}
-
-function readMarkdownLinkRanges(content: string): ReferenceRange[] {
-    const ranges: ReferenceRange[] = [];
-    const linkPattern = /!?\[[^\]\n]*\]\([^)\n]*\)/gu;
-    for (const match of content.matchAll(linkPattern)) {
-        if (match[0] && match.index !== undefined) {
-            ranges.push({ end: match.index + match[0].length, start: match.index });
-        }
-    }
-    return ranges;
-}
-
-function readFenceRanges(content: string): ReferenceRange[] {
-    const ranges: ReferenceRange[] = [];
-    let fence: { character: string; length: number; start: number } | null = null;
-    let lineStart = 0;
-
-    while (lineStart <= content.length) {
-        const newline = content.indexOf('\n', lineStart);
-        const lineEnd = newline === -1 ? content.length : newline;
-        const line = content.slice(lineStart, lineEnd);
-        const marker = line.match(/^[ \t]{0,3}(`{3,}|~{3,})/u)?.[1];
-
-        if (marker) {
-            if (!fence) {
-                fence = { character: marker[0], length: marker.length, start: lineStart };
-            } else if (marker[0] === fence.character && marker.length >= fence.length) {
-                ranges.push({
-                    end: newline === -1 ? content.length : newline + 1,
-                    start: fence.start,
-                });
-                fence = null;
-            }
-        }
-
-        if (newline === -1) {
-            break;
-        }
-        lineStart = newline + 1;
-    }
-
-    if (fence) {
-        ranges.push({ end: content.length, start: fence.start });
-    }
-    return ranges;
-}
-
-function readInlineCodeRanges(content: string, fences: ReferenceRange[]): ReferenceRange[] {
-    const ranges: ReferenceRange[] = [];
-    let index = 0;
-    while (index < content.length) {
-        if (isProtectedRange(fences, index, index + 1)) {
-            index += 1;
-            continue;
-        }
-        if (content[index] !== '`') {
-            index += 1;
-            continue;
-        }
-
-        const start = index;
-        while (content[index] === '`') {
-            index += 1;
-        }
-        const length = index - start;
-        const closing = content.indexOf('`'.repeat(length), index);
-        const lineEnd = content.indexOf('\n', index);
-        if (closing === -1 || (lineEnd !== -1 && closing > lineEnd)) {
-            continue;
-        }
-        const end = closing + length;
-        ranges.push({ end, start });
-        index = end;
-    }
-    return ranges;
-}
-
-function isProtectedRange(ranges: ReferenceRange[], start: number, end: number) {
-    return ranges.some((range) => start >= range.start && end <= range.end);
-}
-
-function mergeRanges(ranges: ReferenceRange[]) {
-    const sorted = [...ranges].sort((left, right) => left.start - right.start);
-    const merged: ReferenceRange[] = [];
-    for (const range of sorted) {
-        const previous = merged.at(-1);
-        if (previous && range.start <= previous.end) {
-            previous.end = Math.max(previous.end, range.end);
-        } else {
-            merged.push({ ...range });
-        }
-    }
-    return merged;
 }

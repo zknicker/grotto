@@ -205,7 +205,6 @@ test('creates and applies one immutable Cove through a replayable Computer opera
             dmChatId: null,
             factoryKind: 'cove',
             handle: 'cove',
-            role: 'admin',
         },
         channelId: created.onboarding.channelId,
         phase: 'applying',
@@ -474,7 +473,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
     expect(await countInboxItems(first.agent.id)).toBe(0);
 
     const [agentRow] = await harness.sql`
-        select a.handle, a.display_name, a.description, a.role, a.computer_id,
+        select a.handle, a.display_name, a.description, a.computer_id,
                a.desired_runtime_id, a.desired_model_id, a.factory_kind,
                av.sha256, av.bytes
         from agents a
@@ -489,7 +488,6 @@ test('creates and applies one immutable Cove through a replayable Computer opera
         display_name: 'Cove',
         factory_kind: 'cove',
         handle: 'cove',
-        role: 'admin',
         sha256: '73edd5cb230228272dafa65ce2aa1481bf4911afa9e3ca577ebf28d2e247509e',
     });
     expect(Buffer.from(agentRow?.bytes as Uint8Array).byteLength).toBe(1_459_587);

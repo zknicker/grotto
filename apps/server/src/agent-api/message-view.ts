@@ -12,9 +12,10 @@ import {
     serverMembershipsTable,
     usersTable,
 } from '../postgres/schema.ts';
-import { readPreparedActionsForMessages } from '../prepared-actions/read.ts';
+import { readCreatedAgentsForMessages } from '../server-agents/agent-created-shape.ts';
 import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { readMessageReactions } from './message-reactions.ts';
+import { agentMessageBodies } from './message-view-bodies.ts';
 
 export interface MessageRow {
     authorAgentId: string | null;
@@ -50,9 +51,9 @@ export async function toAgentMessages(
     // overlapping reads on that one connection deadlocked Agent delivery
     // against the Server row lock its own transaction already held.
     const tasksByMessage = await listMessageTaskMap(db, serverId, messageIds);
-    const preparedActionsByMessage = await readPreparedActionsForMessages(db, serverId, messageIds);
     const asksByMessage = await readAsksForMessages(db, serverId, messageIds);
     const cloudAgentWorkByMessage = await readCloudAgentWorkForMessages(db, serverId, messageIds);
+    const createdAgentByMessage = await readCreatedAgentsForMessages(db, serverId, messageIds);
     const agentIds = [
         ...new Set(
             rows
@@ -112,6 +113,7 @@ export async function toAgentMessages(
         const task = tasksByMessage.get(row.id);
         const ask = asksByMessage.get(row.id);
         const cloudAgentWork = cloudAgentWorkByMessage.get(row.id);
+        const createdAgent = createdAgentByMessage.get(row.id);
         const taskAssigneeAgent = task?.assigneeAgentId
             ? agentById.get(task.assigneeAgentId)
             : undefined;
@@ -154,36 +156,7 @@ export async function toAgentMessages(
                       },
                   }
                 : {}),
-            ...(cloudAgentWork
-                ? {
-                      cloud_agent_work: {
-                          activity: cloudAgentWork.activity?.summary ?? null,
-                          id: cloudAgentWork.id,
-                          latest_run: cloudAgentWork.runs[0]
-                              ? {
-                                    branches: cloudAgentWork.runs[0].branches.map((branch) => ({
-                                        branch: branch.branch,
-                                        pull_request_url: branch.pullRequestUrl,
-                                        repository: branch.repository,
-                                    })),
-                                    error_code: cloudAgentWork.runs[0].errorCode,
-                                    run_id: cloudAgentWork.runs[0].runId,
-                                    status: cloudAgentWork.runs[0].status,
-                                    summary: cloudAgentWork.runs[0].summary,
-                                }
-                              : null,
-                          provider: cloudAgentWork.provider,
-                          provider_url: cloudAgentWork.providerUrl,
-                          repository: cloudAgentWork.repository,
-                          starting_ref: cloudAgentWork.startingRef,
-                          status: cloudAgentWork.status,
-                          title: cloudAgentWork.title,
-                      },
-                  }
-                : {}),
-            ...(preparedActionsByMessage.has(row.id)
-                ? { preparedAction: preparedActionsByMessage.get(row.id) }
-                : {}),
+            ...agentMessageBodies({ cloudAgentWork, createdAgent }),
             ...(task
                 ? {
                       task: {

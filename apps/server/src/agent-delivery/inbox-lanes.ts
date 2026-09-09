@@ -9,7 +9,6 @@
  */
 export const concreteInboxSources = [
     'onboarding',
-    'action',
     'cloud_agent_work',
     'trigger',
     'reminder',
@@ -25,4 +24,4 @@ export function isConcreteInboxSource(source: string): boolean {
  * message, so a message pull can never return their bodies and the message
  * lanes exclude them by source.
  */
-export const bodilessInboxSources = ['onboarding', 'action', 'cloud_agent_work'] as const;
+export const bodilessInboxSources = ['onboarding', 'cloud_agent_work'] as const;

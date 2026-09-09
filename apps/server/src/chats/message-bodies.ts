@@ -2,6 +2,7 @@ import type { MessageBody } from '@grotto/api';
 import { readAsksForMessages } from '../asks/ask-shape.ts';
 import { readCloudAgentWorkForMessages } from '../cloud-agents/cloud-agent-shape.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
+import { readCreatedAgentsForMessages } from '../server-agents/agent-created-shape.ts';
 
 /**
  * Projects every typed Message body for one page of Messages. This is the one
@@ -13,9 +14,10 @@ export async function readMessageBodies(
     serverId: string,
     messageIds: string[]
 ): Promise<Map<string, MessageBody>> {
-    const [asks, cloudAgentWork] = await Promise.all([
+    const [asks, cloudAgentWork, createdAgents] = await Promise.all([
         readAsksForMessages(db, serverId, messageIds),
         readCloudAgentWorkForMessages(db, serverId, messageIds),
+        readCreatedAgentsForMessages(db, serverId, messageIds),
     ]);
     return new Map<string, MessageBody>([
         ...[...asks].map(
@@ -24,6 +26,10 @@ export async function readMessageBodies(
         ...[...cloudAgentWork].map(
             ([messageId, work]) =>
                 [messageId, { kind: 'cloud-agent-work', work }] as [string, MessageBody]
+        ),
+        ...[...createdAgents].map(
+            ([messageId, agent]) =>
+                [messageId, { agent, kind: 'agent-created' }] as [string, MessageBody]
         ),
     ]);
 }

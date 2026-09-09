@@ -1,4 +1,5 @@
 import { and, asc, eq, ilike, isNull, sql } from 'drizzle-orm';
+import { joinChannelAgents } from '../chats/channel-agent-membership.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import {
@@ -141,14 +142,11 @@ export async function changeAgentChannelMembership(
 ) {
     const channel = await findChannel(db, runner.serverId, target);
     if (action === 'join') {
-        await db
-            .insert(channelAgentParticipantsTable)
-            .values({
-                agentId: runner.agentId,
-                chatId: channel.id,
-                serverId: runner.serverId,
-            })
-            .onConflictDoNothing();
+        await joinChannelAgents(db, {
+            agentIds: [runner.agentId],
+            chatId: channel.id,
+            serverId: runner.serverId,
+        });
         return { joined: true, target: `#${channel.name}` };
     }
     await db

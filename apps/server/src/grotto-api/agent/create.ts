@@ -1,6 +1,7 @@
 import { agentCreatedSchema, createAgentInputSchema } from '@grotto/api';
 import { TRPCError } from '@trpc/server';
 import { AvatarRejectedError } from '../../avatars/avatar-errors.ts';
+import { emitDurableChatEvent } from '../../chats/durable-events.ts';
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
 import { createAgent } from '../../server-agents/create-agent.ts';
 import { memberProcedure } from '../server/procedure.ts';
@@ -11,7 +12,11 @@ export const createAgentProcedure = memberProcedure
     .output(agentCreatedSchema)
     .mutation(async ({ ctx, input }) => {
         try {
-            const created = await createAgent(ctx.grottoDb, ctx.member, input);
+            const { event, ...created } = await createAgent(ctx.grottoDb, ctx.member, input);
+            if (event) {
+                // The new Agent is in #all now, so that channel's member list moved.
+                emitDurableChatEvent({ audienceUserId: null, event });
+            }
             await ctx.agentDelivery.configureAgent({
                 agentDescription: created.agent.description,
                 agentId: created.agent.id,

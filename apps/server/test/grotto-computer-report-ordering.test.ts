@@ -31,17 +31,17 @@ beforeAll(async () => {
     `;
     await harness.sql`
         insert into agents (
-            id, server_id, handle, display_name, home_timezone, role,
+            id, server_id, handle, display_name, home_timezone,
             computer_id, desired_runtime_id, desired_model_id
         )
         values
             (
-                ${agentId}, ${serverId}, 'report-cove', 'Cove', 'America/New_York', 'member',
+                ${agentId}, ${serverId}, 'report-cove', 'Cove', 'America/New_York',
                 ${computerId}, 'codex', 'gpt-5.6-sol'
             ),
             (
                 ${omittedAgentId}, ${serverId}, 'report-scout', 'Scout', 'America/New_York',
-                'member', ${computerId}, 'codex', 'gpt-5.6-sol'
+                ${computerId}, 'codex', 'gpt-5.6-sol'
             )
     `;
 });

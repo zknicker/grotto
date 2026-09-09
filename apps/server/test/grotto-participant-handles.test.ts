@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { readAgentServerDirectory } from '../src/agent-api/directory.ts';
 import { messageSelection, targetForChat, toAgentMessages } from '../src/agent-api/message-view.ts';
-import { resolveAgentSendTarget, resolveAgentTarget } from '../src/agent-api/resolve-target.ts';
+import { resolveAgentSendTarget } from '../src/agent-api/resolve-send-target.ts';
+import { resolveAgentTarget } from '../src/agent-api/resolve-target.ts';
 import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
 import { chatMessagesTable } from '../src/postgres/schema.ts';
 import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
@@ -66,7 +67,6 @@ beforeAll(async () => {
         displayName: 'Wren',
         handle: 'wren',
         modelId: 'gpt-test',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });
@@ -110,7 +110,6 @@ test('rejects human-Agent collisions case-insensitively in both claim directions
             displayName: 'Other Ada',
             handle: 'ADA-LOVELACE',
             modelId: 'gpt-test',
-            role: 'member',
             runtimeId: 'codex',
             serverId,
         })

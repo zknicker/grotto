@@ -73,6 +73,39 @@ describe('canonicalizeAgentMessageContent', () => {
         );
     });
 
+    // A replay canonicalizes the retry against the targets already stored in the
+    // announcement, so a Message that names one teammate twice hands this the
+    // same target twice. Treating that as an ambiguous label left the retry
+    // uncanonicalized and refused the idempotent create as a conflict.
+    it('treats a target repeated under one label as that target, not ambiguity', () => {
+        expect(
+            canonicalizeAgentMessageContent('Meet @orbit. @orbit owns notes in #product.', {
+                agents: [
+                    { handle: 'orbit', id: 'agt_orbit' },
+                    { handle: 'orbit', id: 'agt_orbit' },
+                ],
+                channels: [
+                    { id: 'cht_product', name: 'product' },
+                    { id: 'cht_product', name: 'product' },
+                ],
+            })
+        ).toBe(
+            `Meet [@orbit](${formatAgentReferenceTarget('agt_orbit')}). [@orbit](${formatAgentReferenceTarget('agt_orbit')}) owns notes in [#product](${formatChatReferenceTarget('cht_product')}).`
+        );
+    });
+
+    it('leaves a label genuinely claimed by two targets alone', () => {
+        expect(
+            canonicalizeAgentMessageContent('See #product.', {
+                agents: [],
+                channels: [
+                    { id: 'cht_one', name: 'product' },
+                    { id: 'cht_two', name: 'product' },
+                ],
+            })
+        ).toBe('See #product.');
+    });
+
     it('never rebinds an existing stable link when a handle is reused', () => {
         const content = 'Historical [@blippy](agent://agt_old) and current @blippy are distinct.';
 

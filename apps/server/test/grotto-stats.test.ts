@@ -90,10 +90,10 @@ beforeAll(async () => {
     await harness.sql`
         insert into agents (
             id, server_id, computer_id, desired_runtime_id, desired_model_id,
-            display_name, handle, home_timezone, role
+            display_name, handle, home_timezone
         ) values (
             'agt_1234567890abcdef', ${serverId}, ${computerId}, 'codex', 'gpt-5.6-sol',
-            'Cove', 'stats-cove', 'UTC', 'member'
+            'Cove', 'stats-cove', 'UTC'
         )
     `;
     await harness.sql`

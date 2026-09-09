@@ -9,7 +9,6 @@ import {
     serverMembershipsTable,
     usersTable,
 } from '../postgres/schema.ts';
-import { readPreparedActionsForMessages } from '../prepared-actions/read.ts';
 import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
 import { requireThreadAccess } from '../threads/resolve-thread-access.ts';
@@ -94,14 +93,12 @@ export async function listChatMessages(
     const [
         attachmentsByMessageId,
         taskByMessageId,
-        actionByMessageId,
         causeByMessageId,
         bodyByMessageId,
         reactionsByMessageId,
     ] = await Promise.all([
         readMessageAttachments(db, input.serverId, messageIds),
         listMessageTaskMap(db, input.serverId, messageIds),
-        readPreparedActionsForMessages(db, input.serverId, messageIds),
         readMessageCauses(db, input.serverId, messageIds),
         readMessageBodies(db, input.serverId, messageIds),
         readChatMessageReactions(db, input.serverId, messageIds),
@@ -112,7 +109,6 @@ export async function listChatMessages(
             authorProfile: readStoredAuthorProfile(message),
             body: bodyByMessageId.get(message.id),
             cause: causeByMessageId.get(message.id),
-            preparedAction: actionByMessageId.get(message.id),
             reactions: reactionsByMessageId.get(message.id),
         }),
         task: taskByMessageId.get(message.id) ?? null,

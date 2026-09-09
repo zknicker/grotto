@@ -3,9 +3,8 @@ import { and, eq, sql } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentMessageDraftsTable, agentsTable } from '../postgres/schema.ts';
 import type { DeliveryTransport } from './delivery.ts';
+import { type AgentDispatchConfig, readAgentDispatchConfig } from './dispatch-config.ts';
 import { recordSessionRotation } from './session-rotation.ts';
-import type { AgentDispatchConfig } from './store.ts';
-import * as store from './store.ts';
 
 export interface DeferredConfiguration {
     agentId: string;
@@ -31,7 +30,7 @@ export async function rotateDeferredConfiguration(
         serverId: string;
     }
 ): Promise<DeferredConfiguration | null> {
-    const config = await store.readAgentDispatchConfig(db, input.agentId);
+    const config = await readAgentDispatchConfig(db, input.agentId);
     if (
         !isConfigured(config) ||
         (config.desiredModelId === input.activeRunModelId &&
@@ -62,7 +61,7 @@ export async function rotateDeferredConfiguration(
         reason: 'configuration',
         serverId: input.serverId,
     });
-    const latestConfig = await store.readAgentDispatchConfig(db, input.agentId);
+    const latestConfig = await readAgentDispatchConfig(db, input.agentId);
     if (!isConfigured(latestConfig)) {
         return null;
     }
@@ -73,6 +72,8 @@ export interface ConfiguredAgent {
     agentDescription: string | null;
     agentDisplayName: string;
     agentName: string;
+    brief: string | null;
+    briefAuthorHandle: string | null;
     computerId: string;
     desiredModelId: string;
     desiredReasoningEffort: Agent['desiredReasoningEffort'];
@@ -100,6 +101,8 @@ export function configureFrame(agentId: string, config: ConfiguredAgent): AgentC
         agentDescription: config.agentDescription,
         agentId,
         agentName: config.agentDisplayName,
+        brief: config.brief,
+        briefAuthorHandle: config.briefAuthorHandle,
         factoryKind: config.factoryKind,
         modelId: config.desiredModelId,
         reasoningEffort: config.desiredReasoningEffort,

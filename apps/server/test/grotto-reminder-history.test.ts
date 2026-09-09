@@ -48,10 +48,10 @@ beforeAll(async () => {
     agentId = 'agt_history_cove';
     otherAgentId = 'agt_history_moss';
     await harness.sql`
-        insert into agents (id, server_id, handle, display_name, home_timezone, role)
+        insert into agents (id, server_id, handle, display_name, home_timezone)
         values
-            (${agentId}, ${serverId}, 'history-cove', 'Cove', 'America/New_York', 'member'),
-            (${otherAgentId}, ${serverId}, 'history-moss', 'Moss', 'America/New_York', 'member')
+            (${agentId}, ${serverId}, 'history-cove', 'Cove', 'America/New_York'),
+            (${otherAgentId}, ${serverId}, 'history-moss', 'Moss', 'America/New_York')
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)

@@ -15,6 +15,7 @@ export interface ConfiguredAgentRow {
     computerId: string | null;
     consecutiveFailures: number;
     createdAt: Date;
+    createdByAgentId: string | null;
     createdByUserId: string | null;
     description: string | null;
     desiredModelId: string | null;
@@ -33,7 +34,6 @@ export interface ConfiguredAgentRow {
     factoryKind: 'cove' | 'ordinary';
     handle: string;
     id: string;
-    role: 'admin' | 'member';
     serverId: string;
     stopped: boolean;
 }
@@ -87,6 +87,7 @@ export function toAgent(row: ConfiguredAgentRow): Agent {
         avatarUrl: avatarUrlFor(row.avatarId),
         computerId: row.computerId,
         createdAt: row.createdAt.toISOString(),
+        createdByAgentId: row.createdByAgentId ?? null,
         createdByUserId: row.createdByUserId ?? null,
         description: row.description,
         desiredModelId: row.desiredModelId,
@@ -113,7 +114,6 @@ export function toAgent(row: ConfiguredAgentRow): Agent {
         handle: row.handle,
         id: row.id,
         missingResources: row.effectiveMissing ?? [],
-        role: row.role,
         serverId: row.serverId,
         status: deriveAgentStatus(row),
     };

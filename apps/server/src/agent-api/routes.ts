@@ -1,28 +1,17 @@
-import { avatarGenerationRequestSchema } from '@grotto/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
-import {
-    AvatarGenerationBusyError,
-    AvatarGenerationProviderError,
-    AvatarGenerationUnavailableError,
-    AvatarImageOutputError,
-    type AvatarImageService,
-} from '../avatar-generation/service.ts';
+import type { AvatarImageService } from '../avatar-generation/service.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
-import { registerAgentActionRoutes } from './action-routes.ts';
+import { registerAgentAgentRoutes } from './agent-routes.ts';
 import { registerAgentAskRoutes } from './ask-routes.ts';
 import { registerAgentAttachmentRoutes } from './attachment-routes.ts';
-import { changeAgentChannelMute, unfollowAgentThread } from './attention.ts';
+import { unfollowAgentThread } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
+import { registerAgentChannelRoutes } from './channel-routes.ts';
 import { registerAgentCloudAgentRoutes } from './cloud-agent-routes.ts';
-import {
-    changeAgentChannelMembership,
-    readAgentChannelInfo,
-    readAgentChannelMembers,
-    readAgentServerDirectory,
-} from './directory.ts';
+import { readAgentServerDirectory } from './directory.ts';
 import { registerAgentInboxRoutes } from './inbox-routes.ts';
 import { registerAgentManualRoutes } from './manual.ts';
 import { registerAgentMcpRoutes } from './mcp-routes.ts';
@@ -81,12 +70,14 @@ export function registerAgentApiRoutes(
     }
 ) {
     registerAgentAttachmentRoutes(app, { db: options.db, root: options.attachmentRoot });
-    registerAgentActionRoutes(app, {
+    registerAgentAgentRoutes(app, {
         agentDelivery: options.agentDelivery,
+        avatarImageService: options.avatarImageService,
         db: options.db,
         postCommitWork: options.postCommitWork,
     });
     registerAgentAskRoutes(app, options);
+    registerAgentChannelRoutes(app, { db: options.db });
     registerAgentCloudAgentRoutes(app, {
         agentDelivery: options.agentDelivery,
         computers: options.computers,
@@ -104,83 +95,6 @@ export function registerAgentApiRoutes(
         postCommitWork: options.postCommitWork,
     });
     registerAgentTriggerRoutes(app, options.db);
-
-    app.post('/api/agent/avatar/generate', async (request, reply) => {
-        const runner = await authorizeAgentRunner(options.db, request);
-        const parsed = avatarGenerationRequestSchema.safeParse(request.body);
-        if (!(runner && parsed.success)) {
-            return sendAgentApiError(
-                reply,
-                runner ? 400 : 401,
-                runner ? 'INVALID_ARG' : 'MISSING_TOKEN',
-                runner
-                    ? 'The avatar generation request was invalid.'
-                    : 'A valid runner credential is required.'
-            );
-        }
-        try {
-            const generated = await options.avatarImageService.generate({
-                agentId: runner.agentId,
-                concept: parsed.data.concept,
-                serverId: runner.serverId,
-            });
-            return {
-                avatar: {
-                    bytesBase64: Buffer.from(generated.bytes).toString('base64'),
-                    byteSize: generated.byteSize,
-                    height: generated.height,
-                    mediaType: generated.mediaType,
-                    width: generated.width,
-                },
-            };
-        } catch (cause) {
-            if (cause instanceof AvatarGenerationBusyError) {
-                return sendAgentApiError(
-                    reply,
-                    429,
-                    'AVATAR_GENERATION_BUSY',
-                    'Avatar generation is at capacity. Retry shortly.',
-                    { nextAction: 'Retry the avatar command shortly.', retryable: true }
-                );
-            }
-            if (cause instanceof AvatarGenerationUnavailableError) {
-                return sendAgentApiError(
-                    reply,
-                    503,
-                    'AVATAR_PROVIDER_UNAVAILABLE',
-                    'Avatar generation is not configured on this Server.',
-                    {
-                        nextAction:
-                            'Tell the user avatar generation is unavailable on this Server; there is no App setting to change. The Grotto deployment operator must provision it before this action can be prepared.',
-                    }
-                );
-            }
-            if (cause instanceof AvatarGenerationProviderError) {
-                return sendAgentApiError(
-                    reply,
-                    502,
-                    'AVATAR_PROVIDER_FAILED',
-                    'The image provider could not generate an avatar.',
-                    { nextAction: 'Retry the avatar command.', retryable: true }
-                );
-            }
-            if (cause instanceof AvatarImageOutputError) {
-                return sendAgentApiError(
-                    reply,
-                    502,
-                    'AVATAR_OUTPUT_INVALID',
-                    'The image provider returned an unusable avatar.',
-                    { nextAction: 'Retry the avatar command.', retryable: true }
-                );
-            }
-            return sendAgentApiError(
-                reply,
-                500,
-                'SERVER_5XX',
-                'The Server could not generate an avatar.'
-            );
-        }
-    });
 
     app.get('/api/agent/profile', async (request, reply) => {
         const runner = await authorizeAgentRunner(options.db, request);
@@ -231,82 +145,6 @@ export function registerAgentApiRoutes(
         }
         return await readAgentServerDirectory(options.db, runner, parsed.data);
     });
-
-    app.get('/api/agent/channels/info', async (request, reply) => {
-        const runner = await authorizeAgentRunner(options.db, request);
-        const parsed = targetQuerySchema.safeParse(request.query);
-        if (!(runner && parsed.success)) {
-            return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The channel request was invalid.');
-        }
-        try {
-            return await readAgentChannelInfo(options.db, runner, parsed.data.target);
-        } catch (cause) {
-            return sendAgentReadError(reply, cause);
-        }
-    });
-
-    app.get('/api/agent/channels/members', async (request, reply) => {
-        const runner = await authorizeAgentRunner(options.db, request);
-        const parsed = targetQuerySchema.safeParse(request.query);
-        if (!(runner && parsed.success)) {
-            return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The channel request was invalid.');
-        }
-        try {
-            return await readAgentChannelMembers(options.db, runner, parsed.data.target);
-        } catch (cause) {
-            return sendAgentReadError(reply, cause);
-        }
-    });
-
-    for (const action of ['join', 'leave'] as const) {
-        app.post(`/api/agent/channels/${action}`, async (request, reply) => {
-            const runner = await authorizeAgentRunner(options.db, request);
-            const parsed = targetQuerySchema.safeParse(request.body);
-            if (!(runner && parsed.success)) {
-                return sendAgentApiError(
-                    reply,
-                    400,
-                    'INVALID_ARG',
-                    'The channel request was invalid.'
-                );
-            }
-            try {
-                return await changeAgentChannelMembership(
-                    options.db,
-                    runner,
-                    parsed.data.target,
-                    action
-                );
-            } catch (cause) {
-                return sendAgentReadError(reply, cause);
-            }
-        });
-    }
-
-    for (const action of ['mute', 'unmute'] as const) {
-        app.post(`/api/agent/channels/${action}`, async (request, reply) => {
-            const runner = await authorizeAgentRunner(options.db, request);
-            const parsed = targetQuerySchema.safeParse(request.body);
-            if (!(runner && parsed.success)) {
-                return sendAgentApiError(
-                    reply,
-                    400,
-                    'INVALID_ARG',
-                    'The channel request was invalid.'
-                );
-            }
-            try {
-                return await changeAgentChannelMute(
-                    options.db,
-                    runner,
-                    parsed.data.target,
-                    action === 'mute'
-                );
-            } catch (cause) {
-                return sendAgentReadError(reply, cause);
-            }
-        });
-    }
 
     app.post('/api/agent/threads/unfollow', async (request, reply) => {
         const runner = await authorizeAgentRunner(options.db, request);

@@ -1,5 +1,12 @@
-import type { AgentCreated, AvatarMediaType, CreateAgentInput } from '@grotto/api';
+import type {
+    AgentCreated,
+    AvatarMediaType,
+    CreateAgentInput,
+    ServerDurableEvent,
+} from '@grotto/api';
 import { type AvatarBytes, createAvatarId, readAvatarBytes } from '../avatars/avatar-bytes.ts';
+import { findAllChannel, joinChannelAgents } from '../chats/channel-agent-membership.ts';
+import { insertLifecycleEvent } from '../chats/lifecycle-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -12,20 +19,16 @@ import { AgentConfigDeniedError } from './agent-config-errors.ts';
 import { assertRuntimeModelReported, resolveAssignedComputer } from './agent-inventory.ts';
 import { toAgent } from './agent-shape.ts';
 
-/** Authorizes the ordinary and prepared Agent-creation boundaries. */
-export async function requireAgentCreationAuthority(
-    db: Pick<GrottoDatabase, 'select'>,
-    member: GrottoUser | null,
-    serverId: string
-) {
-    const server = await requireServerMembership(db, member, serverId);
-    if (!member) {
-        throw new AgentConfigDeniedError('Sign in to create an Agent.');
-    }
-    if (server.role !== 'owner' && server.role !== 'admin') {
-        throw new AgentConfigDeniedError('Only a Server Owner or Admin can create an Agent.');
-    }
-    return server;
+/**
+ * Who is creating an Agent. The App path carries a signed-in human and is
+ * authorized by their Server role; the Agent path's authority is the runner
+ * credential itself, which already proves an active managed Agent of the Server.
+ */
+export type AgentCreator = { agentId: string; kind: 'agent' } | { kind: 'human'; user: GrottoUser };
+
+export interface CreatedAgentFromApp extends AgentCreated {
+    /** The `#all` membership change, for the App's channel member lists. */
+    event: ServerDurableEvent | null;
 }
 
 /** Creates one Agent; its per-human DMs remain implicit until first use. */
@@ -33,30 +36,49 @@ export async function createAgent(
     db: GrottoDatabase,
     member: GrottoUser | null,
     input: CreateAgentInput
-): Promise<AgentCreated> {
+): Promise<CreatedAgentFromApp> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
-        await requireAgentCreationAuthority(tx, member, input.serverId);
+        const creator = await requireAgentCreationAuthority(tx, member, input.serverId);
         const avatar = input.avatar
             ? {
                   ...readAvatarBytes(input.avatar.bytesBase64, input.avatar.mediaType),
                   mediaType: input.avatar.mediaType,
               }
             : null;
-        return await createAgentInTransaction(tx, member, input, avatar);
+        const created = await createAgentInTransaction(
+            tx,
+            { kind: 'human', user: creator },
+            input,
+            avatar
+        );
+        return {
+            agent: created.agent,
+            event: created.allChannelId
+                ? await insertLifecycleEvent(
+                      tx,
+                      { chatId: created.allChannelId, serverId: input.serverId },
+                      'updated',
+                      new Date()
+                  )
+                : null,
+        };
     });
 }
 
-/** Shared write seam for ordinary creation and prepared-action commit. */
+/** Shared write seam for the App's creation flow and one Agent creating another. */
 export async function createAgentInTransaction(
     db: GrottoDatabase,
-    member: GrottoUser | null,
-    input: CreateAgentInput,
+    creator: AgentCreator,
+    input: CreateAgentInput & {
+        agentId?: string;
+        brief?: string | null;
+        creationMessageId?: string;
+    },
     avatar: (AvatarBytes & { mediaType: AvatarMediaType }) | null
-): Promise<AgentCreated> {
-    if (!member) {
-        throw new AgentConfigDeniedError('Sign in to create an Agent.');
-    }
+): Promise<AgentCreated & { allChannelId: string | null }> {
+    const createdByAgentId = creator.kind === 'agent' ? creator.agentId : null;
+    const createdByUserId = creator.kind === 'human' ? creator.user.id : null;
 
     const { health: computerHealth, inventory } = await resolveAssignedComputer(db, {
         computerId: input.computerId,
@@ -75,12 +97,17 @@ export async function createAgentInTransaction(
         });
     }
 
-    const agentId = createOpaqueId('agt');
+    // The caller may mint the id first when it has to appear in something else
+    // written in this same transaction, such as a creation announcement.
+    const agentId = input.agentId ?? createOpaqueId('agt');
     try {
         await db.insert(agentsTable).values({
             avatarId,
+            brief: input.brief ?? null,
             computerId: input.computerId,
-            createdByUserId: member.id,
+            createdByAgentId,
+            createdByUserId,
+            creationMessageId: input.creationMessageId ?? null,
             description: input.description ?? null,
             desiredModelId: input.modelId,
             desiredReasoningEffort: input.reasoningEffort,
@@ -89,7 +116,6 @@ export async function createAgentInTransaction(
             handle: input.handle,
             homeTimezone: 'UTC',
             id: agentId,
-            role: input.role,
             serverId: input.serverId,
         });
     } catch (cause) {
@@ -102,7 +128,20 @@ export async function createAgentInTransaction(
         throw cause;
     }
 
+    // Every Agent belongs to `#all`, whoever made it. The Server owns that
+    // guarantee here, at the one seam both creation paths share, rather than in
+    // the App dialog and the Agent route separately.
+    const allChannel = await findAllChannel(db, input.serverId);
+    if (allChannel) {
+        await joinChannelAgents(db, {
+            agentIds: [agentId],
+            chatId: allChannel.id,
+            serverId: input.serverId,
+        });
+    }
+
     return {
+        allChannelId: allChannel?.id ?? null,
         agent: toAgent({
             activeRunId: null,
             avatarId,
@@ -110,7 +149,8 @@ export async function createAgentInTransaction(
             computerHealth,
             consecutiveFailures: 0,
             createdAt: new Date(),
-            createdByUserId: member.id,
+            createdByAgentId,
+            createdByUserId,
             description: input.description ?? null,
             desiredModelId: input.modelId,
             desiredReasoningEffort: input.reasoningEffort,
@@ -128,9 +168,24 @@ export async function createAgentInTransaction(
             factoryKind: 'ordinary',
             handle: input.handle,
             id: agentId,
-            role: input.role,
             serverId: input.serverId,
             stopped: false,
         }),
     };
+}
+
+/** Authorizes the App's Agent-creation boundary and names the human creator. */
+async function requireAgentCreationAuthority(
+    db: Pick<GrottoDatabase, 'select'>,
+    member: GrottoUser | null,
+    serverId: string
+): Promise<GrottoUser> {
+    const server = await requireServerMembership(db, member, serverId);
+    if (!member) {
+        throw new AgentConfigDeniedError('Sign in to create an Agent.');
+    }
+    if (server.role !== 'owner' && server.role !== 'admin') {
+        throw new AgentConfigDeniedError('Only a Server Owner or Admin can create an Agent.');
+    }
+    return member;
 }

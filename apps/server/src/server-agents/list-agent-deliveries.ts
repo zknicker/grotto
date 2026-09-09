@@ -1,5 +1,5 @@
 import type { AgentDeliveriesInput, AgentDeliveryRecord } from '@grotto/api';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { agentInboxTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -22,14 +22,9 @@ export async function listAgentDeliveries(
     const rows = await db
         .select({
             acceptedAt: agentInboxTable.acceptedAt,
-            actionId: sql<
-                string | null
-            >`case when ${agentInboxTable.source} = 'action' then ${agentInboxTable.dedupeKey} else null end`,
             chatId: agentInboxTable.chatId,
             createdAt: agentInboxTable.createdAt,
-            messageId: sql<
-                string | null
-            >`case when ${agentInboxTable.source} = 'action' then null else ${agentInboxTable.dedupeKey} end`,
+            messageId: agentInboxTable.dedupeKey,
             source: agentInboxTable.source,
             seenAt: agentInboxTable.seenAt,
             servedAt: agentInboxTable.servedAt,

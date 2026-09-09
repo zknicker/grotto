@@ -60,6 +60,7 @@ export async function configureAgent(
         const [agent] = await tx
             .select({
                 computerId: agentsTable.computerId,
+                createdByAgentId: agentsTable.createdByAgentId,
                 createdByUserId: agentsTable.createdByUserId,
                 desiredModelId: agentsTable.desiredModelId,
                 desiredReasoningEffort: agentsTable.desiredReasoningEffort,
@@ -148,6 +149,7 @@ export async function configureAgent(
                 activeRunId: agentDeliveryTable.activeRunId,
                 avatarId: agentsTable.avatarId,
                 computerId: agentsTable.computerId,
+                createdByAgentId: agentsTable.createdByAgentId,
                 createdByUserId: agentsTable.createdByUserId,
                 consecutiveFailures: agentDeliveryTable.consecutiveFailures,
                 createdAt: agentsTable.createdAt,
@@ -168,7 +170,6 @@ export async function configureAgent(
                 factoryKind: agentsTable.factoryKind,
                 handle: agentsTable.handle,
                 id: agentsTable.id,
-                role: agentsTable.role,
                 serverId: agentsTable.serverId,
                 stopped: agentDeliveryTable.stopped,
             })

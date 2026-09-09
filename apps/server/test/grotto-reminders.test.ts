@@ -45,8 +45,8 @@ beforeAll(async () => {
     anchorMessageId = anchor.message.id;
     agentId = 'agt_reminder_author';
     await harness.sql`
-        insert into agents (id, server_id, handle, display_name, home_timezone, role)
-        values (${agentId}, ${serverId}, 'reminder-cove', 'Cove', 'America/New_York', 'member')
+        insert into agents (id, server_id, handle, display_name, home_timezone)
+        values (${agentId}, ${serverId}, 'reminder-cove', 'Cove', 'America/New_York')
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)
@@ -892,8 +892,8 @@ describe('reminders', () => {
 async function addAgent(id: string) {
     const handle = id.replaceAll('_', '-');
     await harness.sql`
-        insert into agents (id, server_id, handle, display_name, home_timezone, role)
-        values (${id}, ${serverId}, ${handle}, ${id}, 'America/New_York', 'member')
+        insert into agents (id, server_id, handle, display_name, home_timezone)
+        values (${id}, ${serverId}, ${handle}, ${id}, 'America/New_York')
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)

@@ -4,7 +4,6 @@ import type {
     MessageBody,
     MessageBodyKind,
     MessageCause,
-    PreparedAction,
 } from '@grotto/api';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
@@ -73,7 +72,6 @@ export interface StoredChatMessageRelations {
     body?: MessageBody;
     /** Why an Agent wrote this: the Trigger or Reminder fire it answered. */
     cause?: MessageCause;
-    preparedAction?: PreparedAction;
     reactions?: ChatMessage['reactions'];
 }
 
@@ -81,14 +79,7 @@ export function toChatMessage(
     message: StoredChatMessage,
     related: StoredChatMessageRelations = {}
 ): ChatMessage {
-    const {
-        attachments = [],
-        authorProfile,
-        body,
-        cause,
-        preparedAction,
-        reactions = [],
-    } = related;
+    const { attachments = [], authorProfile, body, cause, reactions = [] } = related;
     return {
         attachments,
         author: readAuthor(message, authorProfile),
@@ -104,7 +95,6 @@ export function toChatMessage(
         sequence: message.sequence,
         serverId: message.serverId,
         sessionGeneration: message.sessionGeneration,
-        ...(preparedAction ? { preparedAction } : {}),
     };
 }
 

@@ -9,7 +9,7 @@ import { createAvatarId, readAvatarBytes } from './avatar-bytes.ts';
 import { AvatarDeniedError, AvatarOwnerNotFoundError } from './avatar-errors.ts';
 import { avatarUrlFor } from './avatar-url.ts';
 
-type AvatarWriter = Pick<GrottoDatabase, 'delete' | 'select' | 'update'>;
+export type AvatarWriter = Pick<GrottoDatabase, 'delete' | 'select' | 'update'>;
 
 /**
  * Replaces the avatar an Agent or the signed-in human wears. The previous row
@@ -54,7 +54,7 @@ export async function clearAvatar(
     });
 }
 
-interface AvatarOwner {
+export interface AvatarOwner {
     id: string;
     kind: AvatarTarget['kind'];
     serverId: string;
@@ -84,7 +84,8 @@ async function authorizeAvatarWrite(
     return { id: target.agentId, kind: 'agent', serverId };
 }
 
-async function assignAvatar(tx: AvatarWriter, owner: AvatarOwner, avatarId: null | string) {
+/** Points one identity at an avatar row and drops whatever it wore before. */
+export async function assignAvatar(tx: AvatarWriter, owner: AvatarOwner, avatarId: null | string) {
     const previousAvatarId =
         owner.kind === 'agent'
             ? await assignAgentAvatar(tx, owner, avatarId)

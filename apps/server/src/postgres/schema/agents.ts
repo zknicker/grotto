@@ -4,6 +4,7 @@ import {
     check,
     foreignKey,
     integer,
+    type PgTableExtraConfigValue,
     pgTable,
     text,
     timestamp,
@@ -12,6 +13,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { avatarsTable } from './avatars.ts';
 import { bunJsonb } from './bun-jsonb.ts';
+import { chatMessagesTable } from './chat-messages.ts';
 import { computersTable } from './computers.ts';
 import { serversTable } from './servers.ts';
 
@@ -24,9 +26,18 @@ export const agentsTable = pgTable(
     'agents',
     {
         avatarId: text('avatar_id').references(() => avatarsTable.id, { onDelete: 'set null' }),
+        /**
+         * The standing instruction the creating Agent wrote for this Agent. The
+         * Computer renders it into the workspace memory it seeds, so the row is
+         * what survives a reprovision, not the seeded file.
+         */
+        brief: text('brief'),
         computerId: text('computer_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        createdByAgentId: text('created_by_agent_id'),
         createdByUserId: text('created_by_user_id'),
+        /** The Agent-authored Message that carries this Agent's creation. */
+        creationMessageId: text('creation_message_id'),
         desiredModelId: text('desired_model_id'),
         desiredReasoningEffort: text('desired_reasoning_effort')
             .notNull()
@@ -56,7 +67,6 @@ export const agentsTable = pgTable(
         homeTimezone: text('home_timezone').notNull(),
         id: text('id').primaryKey(),
         retiredAt: timestamp('retired_at', { withTimezone: true }),
-        role: text('role').notNull().$type<'admin' | 'member'>(),
         sessionGeneration: integer('session_generation').notNull().default(1),
         sessionResetKind: text('session_reset_kind')
             .notNull()
@@ -66,7 +76,9 @@ export const agentsTable = pgTable(
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
     },
-    (table) => [
+    // The explicit return type breaks the type cycle with `chat_messages`,
+    // which references this table back for its author foreign key.
+    (table): PgTableExtraConfigValue[] => [
         unique('agents_server_id_key').on(table.serverId, table.id),
         uniqueIndex('agents_server_handle_key')
             .on(table.serverId, sql`lower(${table.handle})`)
@@ -76,7 +88,17 @@ export const agentsTable = pgTable(
             foreignColumns: [computersTable.serverId, computersTable.id],
             name: 'agents_computer_fk',
         }),
-        check('agents_role', sql`${table.role} in ('admin', 'member')`),
+        foreignKey({
+            columns: [table.serverId, table.createdByAgentId],
+            foreignColumns: [table.serverId, table.id],
+            name: 'agents_created_by_agent_fk',
+        }),
+        foreignKey({
+            columns: [table.serverId, table.creationMessageId],
+            foreignColumns: [chatMessagesTable.serverId, chatMessagesTable.id],
+            name: 'agents_creation_message_fk',
+        }).onDelete('set null'),
+        unique('agents_creation_message_key').on(table.serverId, table.creationMessageId),
         check(
             'agents_reasoning_effort',
             sql`${table.desiredReasoningEffort} in ('low', 'medium', 'high')`
@@ -99,6 +121,10 @@ export const agentsTable = pgTable(
         check(
             'agents_description_length',
             sql`${table.description} is null or char_length(${table.description}) between 1 and 500`
+        ),
+        check(
+            'agents_brief_length',
+            sql`${table.brief} is null or char_length(${table.brief}) between 1 and 4000`
         ),
         check(
             'agents_configuration',

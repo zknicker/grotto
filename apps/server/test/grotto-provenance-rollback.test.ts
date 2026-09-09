@@ -21,8 +21,8 @@ beforeAll(async () => {
     serverId = server.id;
     chatId = server.channels[0].id;
     anchorId = await message('anchor');
-    await harness.sql`INSERT INTO agents (id, server_id, handle, display_name, home_timezone, role)
-        VALUES (${agentId}, ${serverId}, 'rollback-agent', 'Rollback Agent', 'UTC', 'member')`;
+    await harness.sql`INSERT INTO agents (id, server_id, handle, display_name, home_timezone)
+        VALUES (${agentId}, ${serverId}, 'rollback-agent', 'Rollback Agent', 'UTC')`;
     await harness.sql`INSERT INTO triggers
         (id, server_id, owner_agent_id, anchor_chat_id, kind, status, title, secret_hash, created_at, updated_at)
         VALUES ('trg_rollback', ${serverId}, ${agentId}, ${chatId}, 'webhook', 'armed',

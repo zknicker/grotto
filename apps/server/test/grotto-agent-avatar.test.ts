@@ -66,7 +66,6 @@ beforeAll(async () => {
         displayName: 'Avatar Agent',
         handle: 'avatar-agent',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId,
     });
@@ -80,8 +79,8 @@ afterAll(async () => {
 });
 
 test('requires a managed runner and validates the concept before calling the provider', async () => {
-    const missingToken = await fetch(new URL('/api/agent/avatar/generate', harness.url), {
-        body: JSON.stringify({ concept: 'a fox' }),
+    const missingToken = await fetch(new URL('/api/agent/agents/avatar', harness.url), {
+        body: JSON.stringify({ agent: '@avatar-agent', concept: 'a fox' }),
         headers: { 'content-type': 'application/json' },
         method: 'POST',
     });
@@ -94,20 +93,21 @@ test('requires a managed runner and validates the concept before calling the pro
     expect(requests).toHaveLength(0);
 });
 
-test('returns one normalized avatar and redacted operational logging', async () => {
+test('sets one normalized avatar and keeps operational logging redacted', async () => {
     const runner = await mintRunner('avatar_success');
     const concept = 'a moonlit raccoon cartographer';
     const response = await generate(runner.runnerToken, { concept });
 
     expect(response.status).toBe(200);
-    expect(response.body.avatar).toMatchObject({
-        height: 256,
-        mediaType: 'image/png',
-        width: 256,
+    expect(response.body).toMatchObject({
+        agent: { agentId, handle: 'avatar-agent', retired: false },
+        avatar: { height: 256, mediaType: 'image/png', width: 256 },
     });
-    expect(Buffer.from(response.body.avatar.bytesBase64, 'base64').byteLength).toBe(
-        response.body.avatar.byteSize
-    );
+    expect(response.body.agent.avatarUrl).not.toBeNull();
+    const [row] = (await harness.sql`
+        select avatar_id from agents where id = ${agentId}
+    `) as { avatar_id: string | null }[];
+    expect(row?.avatar_id).not.toBeNull();
     expect(requests).toHaveLength(1);
     expect(requests[0]).not.toHaveProperty('referenceImage');
     expect(logs.at(-1)).toMatchObject({
@@ -116,7 +116,6 @@ test('returns one normalized avatar and redacted operational logging', async () 
         serverId,
     });
     expect(JSON.stringify(logs)).not.toContain(concept);
-    expect(JSON.stringify(logs)).not.toContain(response.body.avatar.bytesBase64);
 });
 
 test('maps provider failure to a safe retryable API error', async () => {
@@ -157,8 +156,8 @@ async function mintRunner(runId: string) {
 }
 
 async function generate(token: string, body: { concept: string }) {
-    const response = await fetch(new URL('/api/agent/avatar/generate', harness.url), {
-        body: JSON.stringify(body),
+    const response = await fetch(new URL('/api/agent/agents/avatar', harness.url), {
+        body: JSON.stringify({ agent: '@avatar-agent', ...body }),
         headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
         method: 'POST',
     });

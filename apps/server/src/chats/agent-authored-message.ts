@@ -1,7 +1,7 @@
 import type { MessageBodyKind, ServerDurableEvent } from '@grotto/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { followAgentThread } from '../agent-api/attention.ts';
-import { resolveAgentSendTarget } from '../agent-api/resolve-target.ts';
+import { resolveAgentSendTarget } from '../agent-api/resolve-send-target.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';

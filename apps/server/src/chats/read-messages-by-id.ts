@@ -9,7 +9,6 @@ import {
     serverMembershipsTable,
     usersTable,
 } from '../postgres/schema.ts';
-import { readPreparedActionsForMessages } from '../prepared-actions/read.ts';
 import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { readMessageBodies } from './message-bodies.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
@@ -17,9 +16,9 @@ import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
 
 /**
  * Reads named Messages the way the Chat transcript reads a page: the same
- * author profile, typed body, cause, attachment, task, and prepared-action
- * projections. Callers that already hold a Message use it to pull in one more
- * a surface needs — the Thread anchor an Inbox Ask row answers, for instance.
+ * author profile, typed body, cause, attachment, and task projections. Callers
+ * that already hold a Message use it to pull in one more a surface needs — the
+ * Thread anchor an Inbox Ask row answers, for instance.
  * Authorization belongs to the caller, which is why this takes explicit ids.
  */
 export async function readMessagesById(
@@ -62,10 +61,9 @@ export async function readMessagesById(
             and(eq(chatMessagesTable.serverId, serverId), inArray(chatMessagesTable.id, messageIds))
         );
     const foundIds = rows.map((row) => row.id);
-    const [attachments, tasks, actions, causes, bodies, reactions] = await Promise.all([
+    const [attachments, tasks, causes, bodies, reactions] = await Promise.all([
         readMessageAttachments(db, serverId, foundIds),
         listMessageTaskMap(db, serverId, foundIds),
-        readPreparedActionsForMessages(db, serverId, foundIds),
         readMessageCauses(db, serverId, foundIds),
         readMessageBodies(db, serverId, foundIds),
         readChatMessageReactions(db, serverId, foundIds),
@@ -79,7 +77,6 @@ export async function readMessagesById(
                     authorProfile: readStoredAuthorProfile(row),
                     body: bodies.get(row.id),
                     cause: causes.get(row.id),
-                    preparedAction: actions.get(row.id),
                     reactions: reactions.get(row.id),
                 }),
                 task: tasks.get(row.id) ?? null,

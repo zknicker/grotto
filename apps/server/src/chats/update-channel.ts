@@ -6,6 +6,7 @@ import { agentsTable, channelAgentParticipantsTable, chatsTable } from '../postg
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
+import { joinChannelAgents } from './channel-agent-membership.ts';
 import { requireChatWritable } from './chat-access.ts';
 import { ChannelAgentNotFoundError, ChannelNameTakenError } from './create-channel.ts';
 import { insertLifecycleEvent } from './lifecycle-events.ts';
@@ -114,16 +115,7 @@ export async function updateChannel(
                     notInArray(channelAgentParticipantsTable.agentId, agentIds)
                 )
             );
-        await tx
-            .insert(channelAgentParticipantsTable)
-            .values(
-                agentIds.map((agentId) => ({
-                    agentId,
-                    chatId: input.chatId,
-                    serverId: input.serverId,
-                }))
-            )
-            .onConflictDoNothing();
+        await joinChannelAgents(tx, { agentIds, chatId: input.chatId, serverId: input.serverId });
 
         return changed ? await insertLifecycleEvent(tx, input, 'updated', new Date()) : null;
     });

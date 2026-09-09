@@ -99,8 +99,8 @@ describe('dev.cleanupEvalChats', () => {
         const agentId = 'agt_eval_cleanup';
         const reminderId = 'rem_eval_cleanup';
         await harness.sql`
-            insert into agents (id, server_id, handle, display_name, home_timezone, role)
-            values (${agentId}, ${server.id}, 'eval-cleanup', 'Eval Cleanup', 'UTC', 'member')
+            insert into agents (id, server_id, handle, display_name, home_timezone)
+            values (${agentId}, ${server.id}, 'eval-cleanup', 'Eval Cleanup', 'UTC')
         `;
         await harness.sql`
             insert into reminders (

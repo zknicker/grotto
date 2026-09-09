@@ -48,8 +48,8 @@ beforeAll(async () => {
     anchorMessageId = anchor.message.id;
     agentId = 'agt_retention_author';
     await harness.sql`
-        insert into agents (id, server_id, handle, display_name, home_timezone, role)
-        values (${agentId}, ${serverId}, 'retention-cove', 'Cove', 'America/New_York', 'member')
+        insert into agents (id, server_id, handle, display_name, home_timezone)
+        values (${agentId}, ${serverId}, 'retention-cove', 'Cove', 'America/New_York')
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)

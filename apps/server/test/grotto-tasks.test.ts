@@ -1011,9 +1011,9 @@ async function addTaskAgent(serverId: string, chatId: null | string) {
         values (${computerId}, ${serverId}, ${attachedByUserId}, ${randomBytes(32).toString('hex')})
     `;
     await harness.sql`
-        insert into agents (id, server_id, computer_id, handle, display_name, role,
+        insert into agents (id, server_id, computer_id, handle, display_name,
             desired_model_id, desired_runtime_id, home_timezone)
-        values (${agentId}, ${serverId}, ${computerId}, ${handle}, 'Ada', 'member',
+        values (${agentId}, ${serverId}, ${computerId}, ${handle}, 'Ada',
             'fake-model', 'fake', 'UTC')
     `;
     if (chatId) {

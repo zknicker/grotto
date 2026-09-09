@@ -25,6 +25,7 @@ export async function queryAgents(
             activeRunId: agentDeliveryTable.activeRunId,
             avatarId: agentsTable.avatarId,
             computerId: agentsTable.computerId,
+            createdByAgentId: agentsTable.createdByAgentId,
             createdByUserId: agentsTable.createdByUserId,
             computerHealth: computersTable.health,
             consecutiveFailures: agentDeliveryTable.consecutiveFailures,
@@ -46,7 +47,6 @@ export async function queryAgents(
             factoryKind: agentsTable.factoryKind,
             handle: agentsTable.handle,
             id: agentsTable.id,
-            role: agentsTable.role,
             serverId: agentsTable.serverId,
             stopped: agentDeliveryTable.stopped,
         })

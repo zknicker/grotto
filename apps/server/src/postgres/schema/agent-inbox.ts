@@ -127,7 +127,7 @@ export const agentMessageDraftsTable = pgTable(
 
 /**
  * The Agent inbox: the durable ledger of everything offered to one Agent.
- * Ordinary Chat deliveries, action attentions, task assignments, and Trigger
+ * Ordinary Chat deliveries, Cloud Agent attentions, task assignments, and Trigger
  * and Reminder fires all ride these rows, each keyed by its own identity.
  * `state` is the live-queue gate: only a `queued` row is deliverable, and every
  * queue read filters on it. `noticeRunId` records

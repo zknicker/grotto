@@ -28,7 +28,7 @@ test('the hover card previews the automation and links out to manage it', () => 
     expect(markup).toContain('Armed');
     expect(markup).toContain('4m ago');
     expect(markup).toContain('Summarize the deploy in this DM; flag failures.');
-    expect(markup).toContain('/s/dev/settings/members/agents/agt_blippy/automations');
+    expect(markup).toContain('/s/dev/agents/agt_blippy/automations');
 });
 
 test('a hover card says when Grotto inferred the link rather than the Agent naming it', () => {
@@ -67,7 +67,7 @@ test('a Reminder context card carries its anchoring note and no payload', () => 
     expect(markup).toContain('Every Monday at 09:00');
     expect(markup).toContain('Anchored on:');
     expect(markup).not.toContain('Payload');
-    expect(markup).toContain('/s/dev/settings/members/agents/agt_blippy/automations');
+    expect(markup).toContain('/s/dev/agents/agt_blippy/automations');
 });
 
 test('an archived automation keeps its mark exactly as a live one has it', () => {

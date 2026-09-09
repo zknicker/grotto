@@ -24,7 +24,7 @@ test('the hover card states why, when, and what the restart replaced', () => {
     expect(markup).toContain('Settings changed');
     expect(markup).toContain('Previous session');
     expect(markup).toContain('3h');
-    expect(markup).toContain('/s/dev/settings/members/agents/agt_blippy/activity');
+    expect(markup).toContain('/s/dev/agents/agt_blippy/activity');
 });
 
 test('the hover card says only what it knows while the rotation is unread', () => {
@@ -34,7 +34,7 @@ test('the hover card says only what it knows while the rotation is unread', () =
     // No shell of empty rows: the labels arrive with their values or not at all.
     expect(markup).not.toContain('Reason');
     expect(markup).not.toContain('Previous session');
-    expect(markup).toContain('/s/dev/settings/members/agents/agt_blippy/activity');
+    expect(markup).toContain('/s/dev/agents/agt_blippy/activity');
 });
 
 /** Rendered where the transcript lives, so the activity link resolves a real slug. */

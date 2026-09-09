@@ -438,8 +438,8 @@ test('Agent-authored typed references render as interactive Agent and Chat chips
 
     await blippyChip.click();
     const profile = page.getByRole('complementary', { name: 'Agent profile' });
-    await expect(profile).toBeVisible();
     await expect(profile.getByText('Blippy', { exact: true })).toBeVisible();
+    await expect(profile.getByRole('button', { name: 'Open profile' })).toBeVisible();
     await profile.getByRole('button', { name: 'Close', exact: true }).click();
     await expect(profile).toHaveCount(0);
 

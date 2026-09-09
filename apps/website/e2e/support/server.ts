@@ -3,7 +3,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { appProtocolHeaders, appProtocolVersion } from '@grotto/api/app-protocol';
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { createTRPCClient, httpLink } from '@trpc/client';
 import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
 import {
@@ -50,6 +50,19 @@ export function completeOnboarding(databaseUrl: string, serverId: string) {
 
 export async function openChannel(page: Page, name: string) {
     await page.getByRole('row', { exact: true, name }).click();
+}
+
+/**
+ * An Agent's lifecycle verbs live in one overflow menu on its profile header,
+ * so every spec reaches Stop, Restart, Start fresh session, Full reset, and
+ * Delete Agent the same way.
+ */
+export async function runAgentAction(page: Page, agentName: string, action: string) {
+    await page.getByRole('button', { name: `${agentName} — Agent actions` }).click();
+    const item = page.getByRole('menuitem', { exact: true, name: action });
+    // Every item is inert while a lifecycle mutation is still in flight.
+    await expect(item).toBeEnabled();
+    await item.click();
 }
 
 export async function openSection(page: Page, name: string) {

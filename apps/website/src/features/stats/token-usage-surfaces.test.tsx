@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { TokenConfigurationGrid } from './token-configuration-grid.tsx';
 import { TokenTotalKpis } from './token-total-kpis.tsx';
 import { TokenUsageChart } from './token-usage-chart.tsx';
-import { AgentTokenUsage, TokenUsageDashboard } from './token-usage-module.tsx';
+import { TokenUsageDashboard } from './token-usage-module.tsx';
 import type { TokenUsageView } from './token-usage-view.ts';
 
 const totals = {
@@ -61,33 +61,6 @@ test('Usage dashboard keeps its filters on the content cluster', () => {
     expect(toolbar).toBeGreaterThan(-1);
     expect(toolbar).toBeLessThan(kpis);
     expect(kpis).toBeLessThan(html.indexOf('data-slot="widget"'));
-});
-
-test('Agent profile retains its local usage heading and range', () => {
-    const html = renderToStaticMarkup(
-        <AgentTokenUsage
-            agent={{
-                agentAvatarUrl: null,
-                agentHandle: 'blippy',
-                agentId: 'blippy',
-                agentName: 'Blippy',
-            }}
-            usage={{ breakdown: [], days: 90, totals }}
-        />
-    );
-
-    expect(html).toContain('>Usage<');
-    // Section titles carry no descriptions — the title and range picker share
-    // the header line.
-    expect(html).not.toContain('Token volume across this Agent');
-    // The range scopes this one section, so it rides the section header.
-    expect(html).toContain('aria-label="Usage filters"');
-    // No KPI totals on the profile — the chart and the configuration table
-    // already carry that data.
-    expect(html).not.toContain('data-slot="kpi-group"');
-    expect(html.indexOf('data-slot="item-card-group-header"')).toBeLessThan(
-        html.indexOf('data-slot="widget"')
-    );
 });
 
 test('Token chart follows the Widget chart composition', () => {

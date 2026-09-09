@@ -11,11 +11,13 @@ test('search stays inside the current Server route', () => {
     expect(serverSearchRoute('dev')).toBe('/s/dev/search');
 });
 
-test('Agent usage links carry removable Computer and runtime filters', () => {
+test('Agent usage links carry removable Agent, Computer, and runtime filters', () => {
     expect(
         usageRoute('dev', {
             computerId: 'cmp_one',
             runtimeId: 'pi',
         })
     ).toBe('/s/dev/usage?computer=cmp_one&runtime=pi');
+    expect(usageRoute('dev', { agentId: 'agt_one' })).toBe('/s/dev/usage?agent=agt_one');
+    expect(usageRoute('dev')).toBe('/s/dev/usage');
 });

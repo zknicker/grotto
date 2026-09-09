@@ -5,6 +5,7 @@ import {
     resolveChatSectionRoute,
     resolveSelectedChatId,
     resolveSettingsSection,
+    resolveSidebarPage,
 } from './server-route-state.ts';
 
 describe('Server route state', () => {
@@ -29,6 +30,13 @@ describe('Server route state', () => {
     test('reads the selected Chat and settings section from the current Server path', () => {
         expect(resolveSelectedChatId('/s/dev/chats/chat%2Fone', 'dev')).toBe('chat/one');
         expect(resolveSettingsSection('/s/dev/settings/preferences', 'dev')).toBe('preferences');
+    });
+
+    test("keeps the chat navigation on an Agent's own page", () => {
+        expect(resolveActiveSection('/s/dev/agents/agt_blippy/overview', 'dev')).toBe('agent');
+        expect(
+            resolveSidebarPage(resolveActiveSection('/s/dev/agents/agt_blippy/tools', 'dev'))
+        ).toBe('server');
     });
 
     test('routes legacy computers paths to the settings section', () => {

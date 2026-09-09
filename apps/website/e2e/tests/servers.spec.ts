@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@grotto/api';
 import { WebSocket } from 'ws';
 import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
-import { createClient } from '../support/server.ts';
+import { createClient, runAgentAction } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('a fresh Server stays gated until a Computer reports usable inventory', async ({
@@ -214,7 +214,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
 
         const restartFramePromise = socketMessage(reconnected, 'agent-restart');
         const retryStartPromise = socketMessage(reconnected, 'start');
-        await page.getByRole('button', { name: 'Restart', exact: true }).click();
+        await runAgentAction(page, 'Cove', 'Restart');
         expect(await restartFramePromise).toMatchObject({
             agentId: command.agentId,
             type: 'agent-restart',
@@ -284,7 +284,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         await expect(page.getByText('Getting Cove ready…')).toHaveCount(0);
         await page.goto('/s/grotto-hq/members');
         await page.getByRole('link', { name: 'Cove' }).click();
-        await page.getByRole('button', { name: 'Full Reset' }).click();
+        await runAgentAction(page, 'Cove', 'Full reset');
         const resetDialog = page.getByRole('alertdialog', { name: 'Full Reset?' });
         await expect(resetDialog).toContainText("Cove's factory onboarding workspace");
         const resetFramePromise = socketMessage(reconnected, 'agent-reset');
@@ -295,7 +295,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
             type: 'agent-reset',
         });
 
-        await page.getByRole('button', { name: 'Delete Agent' }).click();
+        await runAgentAction(page, 'Cove', 'Delete Agent');
         const deleteDialog = page.getByRole('alertdialog', { name: 'Delete Agent' });
         await deleteDialog.getByLabel(/Type Cove to confirm/iu).fill('Cove');
         await deleteDialog.getByRole('button', { name: 'Delete Agent' }).click();

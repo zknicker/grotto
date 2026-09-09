@@ -1,6 +1,6 @@
 import type { TokenUsageOverview } from '@grotto/api';
 import { expect, test } from 'vitest';
-import { buildAgentTokenUsageView, buildTokenUsageView } from './token-usage-view.ts';
+import { buildTokenUsageView } from './token-usage-view.ts';
 
 const zero = {
     cacheReadTokens: 0,
@@ -208,24 +208,6 @@ test('assigns distinct stable colors to each visible Agent and model configurati
     expect(Object.fromEntries(view.configurations.map((item) => [item.id, item.color]))).toEqual(
         Object.fromEntries(reversedView.configurations.map((item) => [item.id, item.color]))
     );
-});
-
-test('keeps an Agent profile scoped when that Agent has no usage yet', () => {
-    const view = buildAgentTokenUsageView(
-        usage,
-        7,
-        {
-            agentAvatarUrl: '/api/avatars/new',
-            agentHandle: 'new',
-            agentId: 'agt_new',
-            agentName: 'New Agent',
-        },
-        new Date('2026-08-13T18:00:00.000Z')
-    );
-
-    expect(view.selectedAgent?.agentName).toBe('New Agent');
-    expect(view.totals.totalTokens).toBe(0);
-    expect(view.configurations).toEqual([]);
 });
 
 test('rolls configurations beyond the chart limit into a reconciled Other series', () => {

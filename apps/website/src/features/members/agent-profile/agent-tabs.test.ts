@@ -7,8 +7,13 @@ test('Reminders and Triggers share one routable Automations tab', () => {
     expect(isAgentTab('triggers')).toBe(false);
 });
 
-// The Segment strip is a five-word budget; a sixth label overflows the
-// chat-side profile pane. See the comment on `tabOptions` in agent-profile.tsx.
-test('the profile tab strip stays within its five-word budget', () => {
-    expect(agentTabs).toHaveLength(5);
+// Connections, Skills, identity, and execution configuration are one
+// destination now, so the old `tools` path is gone rather than aliased.
+test('configuration lives on Setup, and the old Tools path is not routable', () => {
+    expect(isAgentTab('setup')).toBe(true);
+    expect(isAgentTab('tools')).toBe(false);
+});
+
+test('the profile has one tab per section, in reading order', () => {
+    expect([...agentTabs]).toEqual(['overview', 'setup', 'automations', 'activity', 'workspace']);
 });

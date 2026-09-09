@@ -1,6 +1,6 @@
 import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@grotto/api';
 import { WebSocket } from 'ws';
-import { attachComputer, createTestServer } from '../support/server.ts';
+import { attachComputer, createTestServer, runAgentAction } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 const computerCredential = 'agent-e2e-credential-0000000000000000';
@@ -41,24 +41,35 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await createDialog.getByRole('button', { name: 'Create Agent' }).click();
 
     await expect(page.getByRole('heading', { level: 1, name: 'Scout' })).toBeVisible();
-    await expect(page.getByText('Applies when Computer reconnects')).toBeVisible();
+    // A new Agent lands on its own page outside Settings, on the Overview tab.
+    await expect(page).toHaveURL(/\/s\/agent-hq\/agents\/[^/]+\/overview$/u);
 
     // The current hosted profile owns the same lifecycle and configuration
     // contracts the retired local profile exposed.
-    for (const section of ['Overview', 'Activity', 'Automations', 'Workspace']) {
+    for (const section of ['Overview', 'Setup', 'Automations', 'Activity', 'Workspace']) {
         await expect(page.getByRole('radio', { name: section })).toBeVisible();
     }
-    const restart = page.getByRole('button', { name: 'Restart', exact: true });
-    await expect(restart).toBeVisible();
-    await restart.click();
-    await expect(restart).toBeEnabled();
-    await expect(page.getByRole('button', { name: 'Start Fresh Session' })).toBeVisible();
-    await page.getByRole('button', { name: 'Full Reset' }).click();
+
+    // Every lifecycle verb is a menu item on the header now. Stop is the one
+    // that needs something to stop, so it is inert on an idle Agent.
+    await page.getByRole('button', { name: 'Scout — Agent actions' }).click();
+    await expect(page.getByRole('menuitem', { exact: true, name: 'Stop' })).toBeDisabled();
+    await expect(
+        page.getByRole('menuitem', { exact: true, name: 'Start fresh session' })
+    ).toBeEnabled();
+    await page.getByRole('menuitem', { exact: true, name: 'Restart' }).click();
+
+    await runAgentAction(page, 'Scout', 'Full reset');
     const resetConfirmation = page.getByRole('alertdialog', { name: 'Full Reset?' });
     await expect(resetConfirmation).toContainText('MEMORY.md');
     await expect(resetConfirmation).toContainText('kept');
     await resetConfirmation.getByRole('button', { name: 'Cancel' }).click();
+    await expect(resetConfirmation).toBeHidden();
 
+    // Execution configuration is a Setup fact, and Setup owns its Edit dialog.
+    await page.getByRole('radio', { name: 'Setup' }).click();
+    await expect(page).toHaveURL(/\/agents\/[^/]+\/setup$/u);
+    await expect(page.getByText('Applies when Computer reconnects')).toBeVisible();
     await page.getByRole('button', { name: 'Edit', exact: true }).click();
     const runtimeDialog = page.getByRole('dialog', { name: 'Runtime Config' });
     await runtimeDialog.getByLabel('Model').click();
@@ -66,12 +77,13 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await runtimeDialog.getByRole('button', { name: 'Save' }).click();
     await expect(runtimeDialog).toBeHidden();
     await expect(page.getByText('GPT-5.6 Terra', { exact: true })).toBeVisible();
+    // The tab is in the URL, so a reload comes back to Setup rather than Overview.
     await page.reload();
     await expect(page.getByText('GPT-5.6 Terra', { exact: true })).toBeVisible();
 
     // Deletion requires the exact Agent name. Cancel leaves this isolated
     // e2e Agent intact for the adjacent DM and contract assertions.
-    await page.getByRole('button', { name: 'Delete Agent' }).click();
+    await runAgentAction(page, 'Scout', 'Delete Agent');
     const confirmation = page.getByRole('alertdialog');
     await expect(confirmation).toContainText('permanently destroys');
     const deleteButton = confirmation.getByRole('button', { name: 'Delete Agent' });

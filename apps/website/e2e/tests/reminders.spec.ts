@@ -37,7 +37,8 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({ page }) =>
     await expect(page.getByText('Deploy check', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Weekly digest', { exact: true })).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'History' }).click();
+    // Reminders and Triggers each carry their own history, so name the one.
+    await page.getByRole('button', { name: 'View reminder history' }).click();
     const drawer = page.getByRole('dialog');
     await expect(drawer.getByRole('heading', { name: 'History' })).toBeVisible();
 
@@ -79,7 +80,7 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({ page }) =>
     await page.getByRole('radio', { name: 'Automations' }).click();
     await expect(page.getByText(/Nothing scheduled\./u)).toBeVisible();
     await expect(page.getByText('Local watchdog', { exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'History' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /view .* history/iu })).toHaveCount(0);
 });
 
 function seedReminderState(input: {

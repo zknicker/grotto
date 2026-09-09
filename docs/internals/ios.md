@@ -728,11 +728,15 @@ its raw Markdown. A bare address in prose is chipped too, because the App's Mark
 before its chip renderer ever sees it; only explicit `http`/`https` addresses qualify, so a `www.`
 prefix or an email address stays prose on the phone where the App would link it. A leading `/` is the
 shared contract's whole path test, so a protocol-relative `//host` target reads as a path reference on
-both clients rather than as an address. `RichReferencePresentation.mark` names what the capsule draws — an
+both clients rather than as an address. `RichReferencePresentation.mark` names what a reference draws before its
+label — an
 avatar, a Channel's colored box, or a flat `GrottoIconName` glyph (sparkles for a Skill, a plug for an
 app or plugin, a file, a folder, a pull request, a globe) — and `ReferenceLabel` shapes what it says:
 a Skill id through the App's `formatSkillName` rules, a pull request as `#<n>`, a web link as its own
-words or, when those words are the URL, as its host. Skill labels take the App's `--skill-reference`
+words or, when those words are the URL, as its host. Agent labels take the App's accent — its
+Agent chip is the only one the App colors, `chipColor === 'accent'`, which resolves to
+`--accent-soft-foreground`, the accent mixed with the page's own foreground (70/30 in light, 80/30 in dark). Skill labels take
+the App's `--skill-reference`
 purple; every other kind that carries no identity color reads in foreground ink, which is what the
 App's default chip foreground resolves to in both themes. `ReferenceLabel` also carries the label half
 of the App's `skillAppearanceOverrides` and `capabilityAppearanceOverrides` — `gh-issues` reads as
@@ -757,8 +761,8 @@ and the phone does not model it.
 
 A chip is not a hover surface, so activation is the phone's only interaction and it is deliberately
 narrow. What opens is a real `.link` attribute, written by `RichMessageAttributedText` over a link
-run's words and over a chip's whole run, spacers included, so the capsule's padding is live rather
-than a dead margin. Only the schemes the system routes qualify, which is `http`, `https`, `mailto`,
+run's words and over a chip's whole run, the mark's spacer included, so the mark opens the reference
+rather than sitting in a dead margin before it. Only the schemes the system routes qualify, which is `http`, `https`, `mailto`,
 and `tel`: a website or pull-request chip opens its address, a `grotto://` resource draws as a link
 and stays inert because nothing on the phone routes one yet, and an Agent or Channel chip carries no
 `.link` at all, where the App opens a profile or a channel. UIKit's own link machinery decides the
@@ -775,38 +779,56 @@ setting them, because an anchor draws in the App's link color and a chip in its 
 overlay dictionary cannot say both. Being real links is also the accessibility route — VoiceOver
 lists them in the links rotor, which a private attribute gave nothing to.
 
-A chip is a run inside the message body, not a box beside it, and not a picture of one. The label is
-set in the body's own font at the body's own point size on the body's own baseline; the capsule and
-the identity mark are painted behind it. So the words after a mention keep their rhythm, a selection
+A chip is a run inside the message body, not a box beside it, and not a picture of one — and it has
+no ground, because the App's has none either: its chip is the transparent `tertiary` shell at
+`padding: 0` and `font-size: inherit`, so a reference is enhanced inline text rather than a badge
+sitting in a sentence. The phone draws the same two enhancements. The label is
+set in the body's own font at the body's own point size on the body's own baseline; the identity
+mark is painted at the run's leading edge, and a dotted rule under the label's own glyphs. So the
+words after a mention keep their rhythm, a selection
 drags straight through it, and a line carrying a mention keeps the pitch of a line of plain words —
 asserted directly, as identical line-fragment heights for a wrapped paragraph with and without a
 mention. The body is a non-editable, non-scrolling `UITextView` (`RichMessageTextView`) over a
 TextKit 1 stack the app builds by hand rather than letting `UITextView` pick one, and
 `RichReferenceLayoutManager` paints in `drawBackground(forGlyphRange:at:)`, the hook the engine
-already calls with the text container's origin in view coordinates. `RichReferenceCapsuleGeometry`
-owns the arithmetic: the capsule is exactly the line's own box — the font's ascent above the
-baseline and its descent below — with the `box / 3` corner `ChannelIconBox` gives the mark, and the
-mark and insets are fractions of that box, so a ~16pt mark sits about two points from the top,
-bottom, and leading edges inside 17pt body text and the whole chip scales with Dynamic Type.
+already calls with the text container's origin in view coordinates. `RichReferenceMarkGeometry`
+owns the arithmetic, all of it a fraction of the line's own box — the font's ascent above the
+baseline and its descent below. The mark is four fifths of that box, centered on it, which leaves a
+~16pt mark inside 17pt body text; the Channel glyph's box keeps the `box / 3` corner `ChannelIconBox`
+gives it, taken from the mark's own edge. The gap after the
+mark is a quarter of the point size, the App's own `--spacing` step beside its body text. So the
+whole reference scales with Dynamic Type.
 
-The capsule's horizontal room is bought in the text itself. `RichMessageAttributedText` writes the
-reference as a run of three pieces — a zero-height `NSTextAttachment` wide enough for the leading
-inset, the mark, and the gap after it; the label; a second attachment for the trailing inset — all
+The dotted rule is the App's, in the label's ink: a dot every other dot's width, tiled from the
+label's leading edge with each dot centered in its tile, under the label's glyphs alone and never
+under the mark. Two things about it are the phone's own. The dot is a shade thinner than the App's
+`0.12em`, and it hangs on the line's floor rather than below it, because the App spends its
+paragraph's `1.6` leading on the room under its words and the phone has none to spend: the text view
+clips to the height the row was measured at, so a rule below the line's descent would be cut in half
+on the last line of a message. A dot that would not fit whole inside the label is dropped rather
+than drawn clipped.
+
+The mark's horizontal room is bought in the text itself. `RichMessageAttributedText` writes the
+reference as a run of two pieces — a zero-height `NSTextAttachment` wide enough for the mark and the
+gap after it, then the label — both
 carrying one `.grottoReference` attribute. Zero height is what keeps the line box untouched, and
-each attachment is held against the label by a word joiner because an attachment character is
-otherwise a line-break opportunity and a capsule may not come away from its own padding.
+the attachment is held against the label by a word joiner because an attachment character is
+otherwise a line-break opportunity and a label may not come away from its own mark. Nothing is
+bought after the label, mirroring the App's `padding: 0`: punctuation hugs the last word and a
+following word is separated by its own space, exactly as in plain prose.
 
 The label itself is written verbatim, spaces and hyphens intact, and whether its words may come
 apart is decided per break opportunity by `RichReferenceLineBreaking` through the layout manager's
-delegate. A label keeps together whenever the whole run — both spacers and the label — fits within
+delegate. A label keeps together whenever the whole run — the spacer and the label — fits within
 the container's usable width, so a mention moves whole to the next line rather than splitting. Only
 a run too wide for any line may break, and then only at the label's own word boundaries; it is never
 hyphenated. Sealing those boundaries shut instead — the non-breaking spaces and joiners this
 replaced — made a long label one unbreakable token, and at an accessibility Dynamic Type size a
 token wider than the column left the engine nothing to do but wrap it by character, rendering
-"Product Design Team" as "Product Desig" / "n Team". A run that does break wears one capsule per
-line fragment, and the mark is drawn only on the fragment carrying the run's first glyph. Copying
-resolves all of it back to the sentence: the spacers and joiners come out, and a chip or a link
+"Product Design Team" as "Product Desig" / "n Team". A run that does break wears one dotted rule per
+line fragment, and the mark is drawn only on the fragment carrying the run's first glyph — which is
+also the only fragment whose rule starts past the mark's spacer. Copying
+resolves all of it back to the sentence: the spacer and joiner come out, and a chip or a link
 contributes the words it draws, never its target — which is what copying the App's own anchor text
 yields. The mark is a channel's glyph in its `ChannelIconBox`
 colors from `ChannelIconCatalog`, or an Agent's or human's avatar from `AvatarImageCache` over

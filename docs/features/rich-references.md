@@ -134,10 +134,15 @@ tokens stay plain text. For example, `@blippy` becomes
   globe fallback. Activating one opens the original URL. Agent and chat chips
   are interactive: they open the referenced Agent profile or channel.
 - The native iPhone app renders every chip kind above — Agent, human, Channel,
-  Skill, app, plugin, file, directory, pull request, and web link — through its
-  own TextKit capsule, with the same target precedence, the same label shaping
-  including the Skill and capability names the App spells out by hand, and
-  equivalent marks. Its composer offers the same three triggers the App
+  Skill, app, plugin, file, directory, pull request, and web link — as runs of
+  the message body's own text through TextKit, with the same target precedence,
+  the same label shaping including the Skill and capability names the App spells
+  out by hand, and equivalent marks. A reference there carries no ground either:
+  the identity mark sits inline before the label, the label reads in its own
+  identity ink — accent for an Agent, purple for a Skill, the Channel's own
+  color, brand ink for Chrome — and a dotted rule runs under the label's glyphs.
+  The dots sit on the line's own floor rather than in leading the phone's
+  paragraph does not have. Its composer offers the same three triggers the App
   offers — `@` for Agents and humans, `#` for Channels, `$` for Skills — and a
   Skill selection writes `[$name](skill://name)` into the draft. A chat preview
   line reads a reference by its display label, so a preview says `Product` and

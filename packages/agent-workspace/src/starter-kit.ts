@@ -29,9 +29,7 @@ export async function seedAgentWorkspace(input: SeedAgentWorkspaceInput): Promis
 }
 
 function renderStarterMemory(input: SeedAgentWorkspaceInput): string {
-    const role =
-        input.bio?.trim() ||
-        'Not defined yet — your role emerges from the work your owner gives you. Once you know what you own, write it here.';
+    const role = input.bio?.trim() || 'No role defined yet.';
 
     return `# ${input.agentName}
 
@@ -41,11 +39,11 @@ ${role}
 
 ## Key Knowledge
 
-No accumulated knowledge yet. Add durable facts here as you learn them through work.
+- No notes yet.
 
 ## Active Context
 
-- Newly created; no work yet. When someone first messages you, introduce yourself briefly, learn what you own, and record it here.
+- First startup.
 `;
 }
 

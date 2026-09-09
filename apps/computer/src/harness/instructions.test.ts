@@ -175,57 +175,48 @@ test('fingerprint is stable per composed text', () => {
     expect(a.fingerprint).toBe(b.fingerprint);
 });
 
-// Promotion is narrow on purpose: a one-turn conversational request that
-// happens to call a tool used to become a task that sat in `in_progress`
-// forever. A message becomes a task only when the work outlives the turn AND
-// needs a human before it can be called finished.
-test('promotes only multi-turn work that needs a human, and self-closes the rest', () => {
+// Raft parity (`buildTasksSection`, Computer 1.0.16): the claim gate is the
+// decision rule again. Anything that needs action beyond a reply is claimed
+// before the first tool call, so a second Agent cannot start work another
+// Agent already holds. Grotto keeps `closed` and the stale-close window, and
+// diverges in exactly one place: same-turn completion is answered in the chat
+// that asked and goes straight to `done` instead of parking in `in_review`.
+test('claims before acting and closes same-turn work without parking it', () => {
     const { instructions } = composeAgentInstructions(facts);
 
-    // Positive: both conditions are required, plus the explicit-ask escape hatch.
+    // Raft's claim gate, verbatim apart from the product noun.
     expect(instructions).toContain(
-        'promote a message to a task only when both hold — the work **outlives this turn** **and** it'
+        'if fulfilling a message requires you to take action beyond just replying (running tools, writing code, making changes), claim the message first'
     );
     expect(instructions).toContain(
-        "**needs a human's approval or feedback** before it can be called finished"
+        "If you're only answering a question or having a conversation, no claim needed."
     );
-    expect(instructions).toContain(
-        'Treat it as a task regardless when the human explicitly asks for a task, or when the message already carries a `[task #N ...]` suffix.'
-    );
+    expect(instructions).toContain('that is work. Claim it before you start.');
+    expect(instructions).toContain('Receive a message that requires action → claim it first');
 
-    // Negative: a same-turn reply is never promoted, and tool use alone is not
-    // the trigger — the retired broad "requires action" rule must stay gone.
-    expect(instructions).toContain(
-        'if you can finish the work and answer in the same turn, just do it and reply — never claim, never promote'
-    );
-    expect(instructions).toContain('a same-turn request is never claimed or promoted');
-    expect(instructions).toContain(
-        'Using tools, writing code, or changing things does not by itself make a message a task:'
-    );
-    expect(instructions).not.toContain(
-        'if fulfilling a message requires you to take action beyond just replying'
-    );
-    expect(instructions).not.toContain('Receive a message that requires action → claim it first');
+    // The retired "never claim a same-turn request" carve-out must stay gone:
+    // it let an unaddressed Agent execute work another Agent was asked to do.
+    expect(instructions).not.toContain('never claim, never promote');
+    expect(instructions).not.toContain('**Promotion rule:**');
+    expect(instructions).not.toContain('a same-turn request is never claimed or promoted');
 
-    // Claim-before-work remains the concurrency lock for real tasks.
+    // Claim-before-work remains the concurrency lock.
     expect(instructions).toContain(
         'Claiming is the concurrency lock and moves the task to `in_progress`'
     );
 
-    // Self-done: finished work that needed no feedback does not park in `in_review`,
-    // while a human-created or human-assigned task keeps its review handoff.
-    expect(instructions).toContain('`done` yourself when the work turned out to need none');
-    expect(instructions).toContain('Do not park finished work in `in_review` out of habit.');
+    // Grotto's own status set and stale window survive as additive text.
+    expect(instructions).toContain('Grotto adds `closed` (reversible)');
+    expect(instructions).toContain('When done, set status to `in_review` so a human can validate');
+    // The same-turn reply lands in the chat that asked, which overrides workflow
+    // step 3's "post updates in the task's thread" for work that ends this turn.
     expect(instructions).toContain(
-        'A task a human created or assigned to you always goes to `in_review`'
-    );
-
-    // A quiet `in_review` task is closed as stale by the Server, so waiting
-    // Agents nudge the thread instead of going silent.
-    expect(instructions).toContain(
-        `An \`in_review\` task whose thread stays silent for ${TASK_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server.`
+        'Grotto diverges once: for a message you claimed and fully finished in the same turn, reply in the chat where the request was made, not its thread, and set it `done` rather than parking it in `in_review`'
     );
     expect(instructions).toContain(
-        "If you are still waiting on someone, nudge in the task's thread rather than letting it go quiet."
+        'the thread and `in_review` are for progress notes, questions, and work that outlives the turn'
+    );
+    expect(instructions).toContain(
+        `An \`in_review\` task whose thread stays silent for ${TASK_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server, so if you are still waiting on someone, nudge in the task's thread rather than letting it go quiet.`
     );
 });

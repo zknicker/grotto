@@ -26,17 +26,20 @@ describe('ordinary Agent workspace seed', () => {
         const memory = await fs.readFile(path.join(workspaceDir, 'MEMORY.md'), 'utf8');
         expect(memory).toMatch(/^# scout\n/u);
         expect(memory).toContain('Operator — ships scoped, verified changes end to end');
-        expect(memory).toContain('## Key Knowledge\n\nNo accumulated knowledge yet.');
-        expect(memory).toContain('## Active Context');
+        expect(memory).toContain('## Key Knowledge\n\n- No notes yet.');
+        expect(memory).toContain('## Active Context\n\n- First startup.');
         expect(memory).not.toContain('notes/');
         expect(await fs.readdir(workspaceDir)).toEqual(['MEMORY.md']);
     });
 
-    it('falls back to an undefined-role line when the agent has no bio', async () => {
+    // Raft parity (`buildInitialMemoryMd`, Computer 1.0.16): the seed is inert.
+    // It states the absence of a role instead of instructing a first turn.
+    it('falls back to the inert no-role line when the agent has no bio', async () => {
         await seedAgentWorkspace({ agentName: 'blank', workspaceDir });
 
         const memory = await fs.readFile(path.join(workspaceDir, 'MEMORY.md'), 'utf8');
-        expect(memory).toContain('Not defined yet — your role emerges from the work');
+        expect(memory).toContain('## Role\n\nNo role defined yet.');
+        expect(memory).not.toContain('introduce yourself');
     });
 
     it('never touches a workspace that already has a MEMORY.md', async () => {

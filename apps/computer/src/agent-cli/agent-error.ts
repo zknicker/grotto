@@ -1,3 +1,6 @@
+import type { TaskClaimConflict } from '@grotto/api';
+import { formatTaskClaimConflict } from './agent-claim-conflict.ts';
+
 export type AgentCliErrorCode =
     | 'AMBIGUOUS_ID'
     | 'CONTENT_FLAG_UNSUPPORTED'
@@ -31,15 +34,28 @@ export class AgentCliError extends Error {
     constructor(
         readonly code: AgentCliErrorCode | string,
         message: string,
-        readonly options: { draftSaved?: boolean; nextAction?: string; retryable?: boolean } = {}
+        readonly options: {
+            claimConflict?: TaskClaimConflict;
+            draftSaved?: boolean;
+            nextAction?: string;
+            retryable?: boolean;
+        } = {}
     ) {
         super(message);
         this.name = 'AgentCliError';
     }
 }
 
+/**
+ * A claim conflict states itself — the structured block already names the
+ * holder and the refusal — so it replaces the generic `Error:` line rather
+ * than repeating it.
+ */
 export function renderAgentCliError(error: AgentCliError): string {
-    const lines = [`Error: ${error.message}`, `Code: ${error.code}`];
+    const lead = error.options.claimConflict
+        ? formatTaskClaimConflict(error.options.claimConflict)
+        : `Error: ${error.message}`;
+    const lines = [lead, `Code: ${error.code}`];
     if (error.options.draftSaved !== undefined) {
         lines.push(`Draft saved: ${error.options.draftSaved ? 'yes' : 'no'}`);
     }

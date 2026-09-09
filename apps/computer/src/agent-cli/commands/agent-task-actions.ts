@@ -134,12 +134,12 @@ export async function runTaskClaim(args: ParsedArgs, deps: TaskDeps): Promise<nu
     const claims = response.claimed.map(
         (task) => `#${task.number} (msg:${shortMessageId(task.message.id)}): claimed`
     );
-    const threadTargets = response.claimed.map(
-        (task) =>
-            `#${task.number} → grotto message send --target "${task.target ?? target}:${shortMessageId(task.message.id)}"`
-    );
+    const followUps = response.claimed.map((task) => {
+        const taskTarget = task.target ?? target;
+        return `#${task.number} → reply in ${taskTarget} when done (same-turn work); use the thread "${taskTarget}:${shortMessageId(task.message.id)}" for progress notes, questions, or work that outlives this turn.`;
+    });
     deps.write(
-        `Claim results (${response.claimed.length} claimed):\n${claims.join('\n')}\nFollow up in each task's thread:\n${threadTargets.join('\n')}\n`
+        `Claim results (${response.claimed.length} claimed):\n${claims.join('\n')}\nFollow up on each task:\n${followUps.join('\n')}\n`
     );
     return 0;
 }

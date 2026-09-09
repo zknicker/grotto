@@ -54,6 +54,36 @@ test('the Agent prompt preserves the notice-to-pull contract', () => {
     expect(prompt).toContain('`grotto message check` reads locally cached bodies');
     expect(prompt).toContain('Deferral needs no visible reply');
     expect(prompt).toContain('Your process stays alive across turns');
+
+    // Raft parity (startup step 3, Computer 1.0.16): the honest-deferral clause
+    // and the stay-alive delivery sentence are load-bearing, not decoration.
+    expect(prompt).toContain('their bodies are withheld to avoid flooding you, not absent');
+    expect(prompt).toContain(
+        'if you choose not to read, that is a deferral to report honestly, not a conclusion that nothing is pending'
+    );
+    expect(prompt).toContain(
+        'New messages may be delivered to you automatically while your process stays alive.'
+    );
+
+    // Raft parity (startup step 4): processing and replying are one act; the
+    // FYI carve-out is Grotto's single documented divergence there
+    // (specs/inbox.md silence semantics, scripts/agent-tests fyi-silence-*).
+    expect(prompt).toContain(
+        'When you receive a message, process it and reply with `grotto message send`.'
+    );
+    expect(prompt).toContain(
+        'an explicit FYI / no-response-needed message settles silently, with no send at all'
+    );
+});
+
+test('the @Mentions section separates display name from the stable name', () => {
+    // Raft parity (`buildMentionsSection`, Computer 1.0.16). Grotto renders one
+    // name today, so the bullet reads as a tautology per-agent — it still has to
+    // teach that identity reasoning uses the stable name, not the presentation.
+    expect(efficiencyPrompt).toContain('Your stable Grotto @mention handle is `@Marlow`.');
+    expect(efficiencyPrompt).toContain(
+        'Your display name is `Marlow`. Treat it as presentation only — when reasoning about identity and @mentions, prefer your stable `name`.'
+    );
 });
 
 test('replies keep the received target while Task updates use the Task Thread', () => {

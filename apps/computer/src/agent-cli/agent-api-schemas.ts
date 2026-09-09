@@ -5,6 +5,7 @@ import {
     type GrottoAgentMessage,
     type GrottoAgentSendResponse,
     preparedActionSchema,
+    taskOrigins,
 } from '@grotto/api';
 import * as z from 'zod';
 
@@ -45,7 +46,7 @@ const messageTaskSchema = z.object({
         })
     ),
     number: z.number().int().positive(),
-    origin: z.enum(['composed', 'converted']),
+    origin: z.enum(taskOrigins),
     priority: z.enum(['none', 'urgent', 'high', 'medium', 'low']),
     status: z.enum(['todo', 'in_progress', 'in_review', 'done', 'closed']),
     updated_at: z.string(),

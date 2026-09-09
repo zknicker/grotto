@@ -2,7 +2,9 @@
 
 Scoping research and **resolved decisions** for evolving Grotto's agent chat to Raft's model
 (raft.build). Research produced 2026-07-20 from: Raft's system prompt and per-turn envelopes
-recovered verbatim from the local install ([raft-system-prompt.md](raft-system-prompt.md)), the
+recovered verbatim from the local install ([raft-system-prompt.md](raft-system-prompt.md); the
+live field-by-field comparison against Grotto's composed prompt is
+[prompt-divergences.md](prompt-divergences.md)), the
 full `raft` CLI surface ([raft-cli-surface.md](raft-cli-surface.md)), all 38 docs pages
 ([raft-docs-notes.md](raft-docs-notes.md)), all 8 blog posts
 ([raft-blog-notes.md](raft-blog-notes.md)), and the complete Raft Manual recipe set —

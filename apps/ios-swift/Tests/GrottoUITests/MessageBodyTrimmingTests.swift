@@ -27,7 +27,7 @@ struct MessageBodyTrimmingTests {
     /// avatar and reverts to the persisted fallback label.
     @Test func keepsResolvedSegmentsWhenTrimmingChangesTheBody() {
         let stored = "Handing this to [@Cove](agent://agt_cove)\n\n"
-        let body = MessagePresentation.body(content: stored, preparedAction: nil)
+        let body = MessagePresentation.body(content: stored)
         let resolved = RichMessageParser.parse(body) { kind, id, _ in
             RichReferencePresentation(
                 id: id,
@@ -48,11 +48,8 @@ struct MessageBodyTrimmingTests {
         #expect(reference.avatarURL != nil)
     }
 
-    @Test func trimsAuthoredTextAboveAPreparedAction() {
-        let message = presentation(
-            content: "Meet Tiny.\n",
-            preparedAction: preparedAction()
-        )
+    @Test func trimsTrailingWhitespaceFromAnAuthoredBody() {
+        let message = presentation(content: "Meet Tiny.\n")
 
         #expect(message.content == "Meet Tiny.")
         #expect(message.richSegments == [.text("Meet Tiny.")])
@@ -80,7 +77,6 @@ struct MessageBodyTrimmingTests {
 
     private func presentation(
         content: String,
-        preparedAction: PreparedActionPresentation? = nil,
         richSegments: [RichMessageSegment]? = nil
     ) -> MessagePresentation {
         MessagePresentation(
@@ -88,26 +84,8 @@ struct MessageBodyTrimmingTests {
             author: MessageAuthorPresentation(id: "agt_cove", name: "Cove", avatarURL: nil),
             content: content,
             createdAt: Date(timeIntervalSince1970: 0),
-            preparedAction: preparedAction,
             richSegments: richSegments
         )
     }
 
-    private func preparedAction() -> PreparedActionPresentation {
-        .createAgent(
-            PreparedCreateAgentActionPresentation(
-                avatarURL: nil,
-                chatID: "cht_1",
-                computerDetail: nil,
-                createdAt: Date(timeIntervalSince1970: 0),
-                description: nil,
-                executedByDisplayName: nil,
-                id: "prepared_1",
-                name: "Tiny",
-                proposedComputerID: nil,
-                requiredComputerID: nil,
-                status: .pending
-            )
-        )
-    }
 }

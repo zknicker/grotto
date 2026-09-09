@@ -23,20 +23,17 @@ public struct AgentProfileField: Identifiable, Hashable, Sendable {
 public struct AgentProfilePresentation: Hashable, Sendable {
     public let handle: String
     public let description: String
-    public let role: String
     public let runtime: String
     public let model: String
 
     public init(
         handle: String = "",
         description: String = "",
-        role: String = "",
         runtime: String = "",
         model: String = ""
     ) {
         self.handle = handle
         self.description = description
-        self.role = role
         self.runtime = runtime
         self.model = model
     }
@@ -52,10 +49,10 @@ public struct AgentProfilePresentation: Hashable, Sendable {
         Self.cleaned(description)
     }
 
-    /// Role and execution read as one list: the hero already carries presence,
-    /// so a separate status row would say the same thing twice.
+    /// Execution reads as one list: the hero already carries presence, so a
+    /// separate status row would say the same thing twice.
     public var detailFields: [AgentProfileField] {
-        [("Role", role), ("Runtime", runtime), ("Model", model)].compactMap { title, value in
+        [("Runtime", runtime), ("Model", model)].compactMap { title, value in
             Self.cleaned(value).map { AgentProfileField(title: title, value: $0) }
         }
     }

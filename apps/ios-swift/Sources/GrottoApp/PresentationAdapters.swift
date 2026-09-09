@@ -89,12 +89,10 @@ extension GrottoStore {
                         recentReplies: []
                     )
                 }
-            let preparedAction = message.preparedAction.map(preparedActionPresentation)
-            // A prepared-action anchor's body is the proposal's note, and it is
-            // written with the same mention markdown as any other message. The
-            // substitution is resolved here so the note goes through the parser
-            // that knows the Server's Agents and members.
-            let (body, fenced) = MessagePresentation.resolvedBody(content: message.content, preparedAction: preparedAction)
+            // Resolved here so the body goes through the parser that knows the
+            // Server's Agents and members, and the trimmed string and its
+            // segments always describe each other.
+            let (body, fenced) = MessagePresentation.resolvedBody(content: message.content)
             return MessagePresentation(
                 id: message.id,
                 author: author,
@@ -103,7 +101,6 @@ extension GrottoStore {
                 attachments: message.attachments.map(attachmentPresentation),
                 thread: thread,
                 task: message.task.map(taskPresentation),
-                preparedAction: preparedAction,
                 cloudAgents: cloudAgentPresentation(message.body).map { [$0] } ?? [],
                 threadCloudAgents: cloudAgentPresentations(cloudAgentWork.filter { $0.anchorMessageId == message.id }),
                 richSegments: richMessageSegments(fenced.prose),
@@ -131,7 +128,7 @@ extension GrottoStore {
             // An optimistic row goes through the same body resolution as a
             // durable one, so its mentions survive the trust check even when
             // trimming changes the string the composer staged.
-            let (body, fenced) = MessagePresentation.resolvedBody(content: message.content, preparedAction: nil)
+            let (body, fenced) = MessagePresentation.resolvedBody(content: message.content)
             return MessagePresentation(
                 id: message.id,
                 author: viewer,
@@ -184,57 +181,6 @@ extension GrottoStore {
             // No other kind names Server state, so the parser's own chip stands.
             default: return nil
             }
-        }
-    }
-
-    private func preparedActionPresentation(_ action: PreparedAction) -> PreparedActionPresentation {
-        switch action {
-        case let .createAgent(action):
-            let guidance = action.proposal.computer
-            let computerDetail = guidance.map {
-                "\($0.label ?? $0.computerID) (\($0.kindLabel.lowercased()))"
-            }
-            let committer = action.executedByUserID.flatMap { userID in
-                members?.members.first(where: { $0.userID == userID })
-            }
-            let requiredComputerID: String? = switch guidance {
-            case let .required(computerID, _): computerID
-            case .suggested, .none: nil
-            }
-            // An executed action names a real Agent, so the card shows the
-            // Agent that exists rather than the proposal it came from; a
-            // pending one has only the proposal.
-            let result = action.result
-            return .createAgent(
-                PreparedCreateAgentActionPresentation(
-                    avatarURL: resolvedAvatarURL(result?.avatarURL ?? action.proposal.avatar.url),
-                    chatID: action.chatID,
-                    computerDetail: computerDetail,
-                    createdAgentID: result?.agentID,
-                    createdAt: action.createdAt,
-                    // One subject, not two: once the Agent exists it is the
-                    // one being described, so a description cleared at
-                    // creation stays cleared rather than falling back to the
-                    // proposal's forever.
-                    description: result.map(\.description) ?? action.proposal.description,
-                    executedAt: action.executedAt,
-                    executedByDisplayName: committer?.displayName ?? committer?.email,
-                    id: action.id,
-                    name: result?.displayName ?? action.proposal.name,
-                    proposedComputerID: guidance?.computerID,
-                    requiredComputerID: requiredComputerID,
-                    status: action.status
-                )
-            )
-        case let .unsupported(action):
-            return .unsupported(
-                UnsupportedPreparedActionPresentation(
-                    createdAt: action.createdAt,
-                    id: action.id,
-                    kind: action.kind,
-                    status: action.status
-                )
-            )
         }
     }
 

@@ -19,7 +19,7 @@ public struct ChatDetailsView: View {
     @State private var detent = PresentationDetent.medium
 
     /// - Parameter agentProfile: the Server facts the Chat itself does not
-    ///   carry — handle, description, role, runtime, model. Absent, the pushed
+    ///   carry — handle, description, runtime, model. Absent, the pushed
     ///   profile still shows identity and presence.
     /// - Parameter onOpenAgentProfile: hands the Agent id to the shell, which
     ///   dismisses this sheet and opens Settings on that Agent's profile. Only
@@ -261,7 +261,6 @@ private extension AgentActivityState {
             AgentProfilePresentation(
                 handle: "cove",
                 description: "Onboards new Servers and keeps the plan tight.",
-                role: "Owner",
                 runtime: "Claude Code",
                 model: "claude-opus-4"
             )

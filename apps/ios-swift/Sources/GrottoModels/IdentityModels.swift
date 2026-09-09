@@ -143,9 +143,10 @@ public enum AgentAvailability: String, Codable, Sendable {
     case working
 }
 
-public enum AgentRole: String, Codable, Sendable {
-    case admin
-    case member
+public enum AgentReasoningEffort: String, Codable, CaseIterable, Sendable, Equatable {
+    case low
+    case medium
+    case high
 }
 
 public enum AgentStatus: String, Codable, Sendable {
@@ -183,7 +184,6 @@ public struct AgentSummary: Codable, Identifiable, Sendable, Equatable {
     public let handle: String
     public let id: String
     public let missingResources: [String]
-    public let role: AgentRole
     public let serverID: String
     public let status: AgentStatus
 
@@ -206,7 +206,6 @@ public struct AgentSummary: Codable, Identifiable, Sendable, Equatable {
         case handle
         case id
         case missingResources
-        case role
         case serverID = "serverId"
         case status
     }

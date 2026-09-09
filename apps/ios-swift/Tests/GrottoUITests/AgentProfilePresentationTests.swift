@@ -2,23 +2,22 @@
 import XCTest
 
 final class AgentProfilePresentationTests: XCTestCase {
-    func testProjectsRoleRuntimeAndModelAsOneDetailList() {
+    func testProjectsRuntimeAndModelAsOneDetailList() {
         let profile = AgentProfilePresentation(
             handle: "cove",
             description: "Onboards new Servers.",
-            role: "Owner",
             runtime: "Claude Code",
             model: "claude-opus-4"
         )
 
-        XCTAssertEqual(profile.detailFields.map(\.title), ["Role", "Runtime", "Model"])
-        XCTAssertEqual(profile.detailFields.map(\.value), ["Owner", "Claude Code", "claude-opus-4"])
+        XCTAssertEqual(profile.detailFields.map(\.title), ["Runtime", "Model"])
+        XCTAssertEqual(profile.detailFields.map(\.value), ["Claude Code", "claude-opus-4"])
     }
 
     func testFieldsTheServerNeverFilledInDropTheirRow() {
-        let profile = AgentProfilePresentation(role: "Agent", runtime: "   ", model: "")
+        let profile = AgentProfilePresentation(runtime: "   ", model: "")
 
-        XCTAssertEqual(profile.detailFields.map(\.title), ["Role"])
+        XCTAssertTrue(profile.detailFields.isEmpty)
         XCTAssertNil(profile.about)
         XCTAssertNil(profile.displayHandle)
     }

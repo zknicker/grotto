@@ -13,15 +13,6 @@ struct AuthenticatedGrottoView: View {
     /// the Store's read acknowledgements always name the same Chat.
     @State private var selectedDestinationID: ChatDestination.ID?
     @State private var path: [GrottoRootRoute] = []
-    @State private var preparedActionReview: PreparedCreateAgentActionPresentation?
-    /// The proposal opened for reading. The card is a summary, so its whole
-    /// surface leads here.
-    @State private var preparedActionDetail: PreparedCreateAgentActionPresentation?
-    /// The creation form asked for from the detail sheet. The two are mutually
-    /// exclusive presentations, so the detail sheet dismisses first and this
-    /// presents from its dismissal — the same order Chat details uses to reach
-    /// Settings.
-    @State private var queuedPreparedActionReview: PreparedCreateAgentActionPresentation?
     /// iOS reaches `.active` through `.inactive` from both a real suspension and
     /// a Control Center pull or app-switcher peek. Only the first is a stale
     /// cache, so the refresh waits for a phase run that actually backgrounded.
@@ -177,9 +168,6 @@ struct AuthenticatedGrottoView: View {
                     loadAgentActivity: { agentID in
                         try await store.agentActivityPresentations(agentID: agentID)
                     },
-                    canManagePreparedActions: store.canManagePreparedActions,
-                    onReviewPreparedCreateAgent: { preparedActionReview = $0 },
-                    onShowPreparedActionDetails: { preparedActionDetail = $0 },
                     agentProfile: { store.agentProfilePresentation(agentID: $0) },
                     mentionOptions: { store.mentionOptions(for: $0) },
                     loadMentionOptions: { await store.loadMentionOptions(for: $0) },
@@ -228,30 +216,6 @@ struct AuthenticatedGrottoView: View {
                 )
             }
         }
-        .sheet(item: $preparedActionDetail, onDismiss: presentQueuedPreparedActionReview) { action in
-            PreparedActionDetailView(
-                action: action,
-                canManage: store.canManagePreparedActions,
-                onCreateAgent: { proposal in
-                    queuedPreparedActionReview = proposal
-                    preparedActionDetail = nil
-                },
-                onOpenAgent: openAgentFromThread
-            )
-        }
-        .sheet(item: $preparedActionReview) { action in
-            PreparedAgentCreateSheet(
-                action: action,
-                configuration: store.preparedAgentCreationConfiguration
-            )
-        }
-    }
-
-    @MainActor
-    private func presentQueuedPreparedActionReview() {
-        guard let queued = queuedPreparedActionReview else { return }
-        queuedPreparedActionReview = nil
-        preparedActionReview = queued
     }
 
     /// A Thread is a pushed screen above the canvas, so opening an Agent from a
@@ -379,11 +343,8 @@ struct AuthenticatedGrottoView: View {
                 guard let chatID = resolvedThreadChatID(for: thread) else { return false }
                 return await store.loadOlderMessages(chatID: chatID)
             },
-            canManagePreparedActions: store.canManagePreparedActions,
-            onReviewPreparedCreateAgent: { preparedActionReview = $0 },
-            onShowPreparedActionDetails: { preparedActionDetail = $0 },
             onOpenAgent: openAgentFromThread,
-            onCancelCloudAgent: store.canManagePreparedActions ? { workID in
+            onCancelCloudAgent: store.canManageServer ? { workID in
                 try await store.cancelCloudAgent(workID: workID)
             } : nil
         )

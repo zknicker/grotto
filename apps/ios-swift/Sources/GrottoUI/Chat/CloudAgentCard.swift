@@ -18,7 +18,7 @@ struct CloudAgentCard: View {
                 }
                 Spacer(minLength: 0)
                 TimelineView(.animation(minimumInterval: 1, paused: !agent.work.status.isActive)) { context in
-                    ActionCardStatusCapsule(status: ActionCardStatus(
+                    CloudAgentCardStatusCapsule(status: CloudAgentCardStatus(
                         label: agent.statusText(at: context.date), tint: statusColor
                     ))
                 }
@@ -58,11 +58,11 @@ struct CloudAgentCard: View {
                 }
             }
         }
-        .padding(ActionCardMetrics.padding)
+        .padding(CloudAgentCardMetrics.padding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(GrottoPlatformColor.inputSurface, in: .rect(cornerRadius: ActionCardMetrics.cornerRadius))
+        .background(GrottoPlatformColor.inputSurface, in: .rect(cornerRadius: CloudAgentCardMetrics.cornerRadius))
         .overlay {
-            RoundedRectangle(cornerRadius: ActionCardMetrics.cornerRadius)
+            RoundedRectangle(cornerRadius: CloudAgentCardMetrics.cornerRadius)
                 .strokeBorder(.secondary.opacity(0.18), lineWidth: 0.5)
         }
         .accessibilityElement(children: .contain)
@@ -148,5 +148,35 @@ struct CloudAgentCard: View {
 
     private var canCancel: Bool {
         onCancel != nil && agent.work.status.isActive && agent.work.cancelRequestedAt == nil
+    }
+}
+
+/// The card's box: the inset its contents sit in and the corner that inset is
+/// cut with, kept together so the two stay in step when either moves.
+enum CloudAgentCardMetrics {
+    static let padding: CGFloat = 12
+    static let cornerRadius: CGFloat = 13
+}
+
+/// A finished-state fact about the run, drawn as a soft capsule. Work still
+/// running carries a live one; work still waiting on a human carries none.
+struct CloudAgentCardStatus: Equatable {
+    let label: String
+    let tint: Color
+}
+
+/// A finished-state fact, drawn the same size wherever it appears.
+struct CloudAgentCardStatusCapsule: View {
+    let status: CloudAgentCardStatus
+
+    var body: some View {
+        Text(status.label)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(status.tint)
+            .lineLimit(1)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(status.tint.opacity(0.14), in: .capsule)
+            .fixedSize()
     }
 }

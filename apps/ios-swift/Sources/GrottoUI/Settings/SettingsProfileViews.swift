@@ -224,8 +224,7 @@ struct AgentProfileView: View {
 
                 SettingsSection("Details") {
                     SettingsListGroup {
-                        ValueRow("Handle", value: "@\(agent.handle)", icon: .handle)
-                        ValueRow("Role", value: agent.role, icon: .permissions, showsDivider: false)
+                        ValueRow("Handle", value: "@\(agent.handle)", icon: .handle, showsDivider: false)
                     }
                 }
 
@@ -288,7 +287,6 @@ struct AgentProfileView: View {
                 displayName: trimmedName,
                 handle: agent.handle,
                 description: agent.description,
-                role: agent.role,
                 runtime: agent.runtime,
                 model: agent.model,
                 status: agent.status,

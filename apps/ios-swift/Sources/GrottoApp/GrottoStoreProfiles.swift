@@ -4,6 +4,26 @@ import GrottoTransport
 import GrottoUI
 
 extension GrottoStore {
+    /// Whether the viewer may act on Server-owned records rather than only read
+    /// them. The Server is the authority; this is the App's local read of the
+    /// same membership role, so a control is not offered where it would be
+    /// refused.
+    var canManageServer: Bool {
+        guard let role = members?.viewerRole else { return false }
+        return role == .owner || role == .admin
+    }
+
+    /// Refetches the Agent directory. Presence is an overlay on top of it, so a
+    /// fresh directory drops the stale overlay rather than merging into it.
+    func reloadAgents(serverID: String) async throws {
+        let refreshed: [AgentSummary] = try await client.query(
+            "agent.list",
+            input: ServerScopedInput(serverId: serverID)
+        )
+        agents = refreshed
+        lifecycleAvailability.removeAll()
+    }
+
     func syncHumanIdentity(serverID: String) async throws {
         let user = clerk.user
         let name = [user?.firstName, user?.lastName]

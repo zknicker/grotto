@@ -89,7 +89,6 @@ extension GrottoStore {
 
         var affectedChatIDs: Set<String> = []
         var shouldReloadChats = false
-        var shouldReloadAgents = false
         for event in events {
             guard event.serverID == serverID else { continue }
             guard chatEventReplay.receive(event) else { continue }
@@ -103,15 +102,12 @@ extension GrottoStore {
                     affectedChatIDs.insert(parentChatID)
                 }
                 shouldReloadChats = true
-            case .preparedActionUpdated, .cloudAgentWorkUpdated:
+            case .cloudAgentWorkUpdated:
                 if let chatID = event.chatID {
                     affectedChatIDs.insert(chatID)
                 }
                 if let parentChatID = event.parentChatID {
                     affectedChatIDs.insert(parentChatID)
-                }
-                if event.status == .executed {
-                    shouldReloadAgents = true
                 }
             case .chatRead:
                 // Server addresses this event to the reader alone, so every one
@@ -143,8 +139,34 @@ extension GrottoStore {
         if shouldReloadChats {
             try? await reloadChats(serverID: serverID)
         }
-        if shouldReloadAgents {
+        // An Agent creating an Agent reaches this client as an ordinary
+        // `message.created`, and that message's `agent-created` body is the only
+        // notice the directory gets: this client does not consume
+        // `server.updated`. So a created Agent the directory has never seen is
+        // itself the refresh trigger, read from the pages just loaded.
+        if namesUnlistedLiveCreatedAgent(in: affectedChatIDs) {
             try? await reloadAgents(serverID: serverID)
+        }
+    }
+
+    /// Whether a page just loaded names a live Agent the directory does not
+    /// hold — the one gap a directory refetch can close.
+    ///
+    /// A body reading retired is skipped, and that is what keeps this from
+    /// standing: the body is projected from the live Agent row on every read,
+    /// and the pages scanned here were refetched moments ago in this same
+    /// batch, so a retired Agent's body already says so and is never mistaken
+    /// for a stale directory. What remains is an Agent whose Computer was
+    /// removed, which drops it from `agent.list` without retiring it; that
+    /// costs one extra directory read per batch touching its Chat until the
+    /// Computer comes back, and asks for nothing this client can cache away.
+    private func namesUnlistedLiveCreatedAgent(in chatIDs: Set<String>) -> Bool {
+        let listed = Set(agents.map(\.id))
+        return chatIDs.contains { chatID in
+            messagesByChatID[chatID]?.messages.contains { message in
+                guard case let .agentCreated(agent) = message.body else { return false }
+                return !(agent.retired || listed.contains(agent.agentID))
+            } ?? false
         }
     }
 

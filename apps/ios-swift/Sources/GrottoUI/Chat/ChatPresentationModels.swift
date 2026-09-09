@@ -95,7 +95,6 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let thread: ThreadPreviewPresentation?
     public let task: TaskPresentation?
     public let isPending: Bool
-    public let preparedAction: PreparedActionPresentation?
     public let cloudAgents: [CloudAgentPresentation]
     public let threadCloudAgents: [CloudAgentPresentation]
     public let richSegments: [RichMessageSegment]
@@ -115,14 +114,13 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         thread: ThreadPreviewPresentation? = nil,
         task: TaskPresentation? = nil,
         isPending: Bool = false,
-        preparedAction: PreparedActionPresentation? = nil,
         cloudAgents: [CloudAgentPresentation] = [],
         threadCloudAgents: [CloudAgentPresentation] = [],
         richSegments: [RichMessageSegment]? = nil,
         visualBody: VisualMessageBody? = nil
     ) {
-        // Resolve the superseded-card fallback consistently for Chat and Thread bodies.
-        let body = Self.body(content: content, preparedAction: preparedAction)
+        // Trim consistently for Chat and Thread bodies.
+        let body = Self.body(content: content)
         // Fences are split off the resolved body before anything renders it:
         // the message content IS the visual, and the prose above the cards is
         // what the text surfaces get. An adapter that needed the prose to parse
@@ -137,15 +135,14 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         self.thread = thread
         self.task = task
         self.isPending = isPending
-        self.preparedAction = preparedAction
         self.cloudAgents = cloudAgents
         self.threadCloudAgents = threadCloudAgents
         // Segments handed in were parsed from whatever body the caller resolved,
-        // so they are trusted when they describe this one; a substitution made
-        // here has none and falls back to a parse with no identity to resolve.
-        // An adapter that can resolve mentions calls `body(content:)` itself
-        // and hands both in, so a note that mentions an Agent renders like any
-        // other body.
+        // so they are trusted when they describe this one; a trim that changes
+        // the string leaves them describing a body that no longer exists, so it
+        // falls back to a parse with no identity to resolve. An adapter that can
+        // resolve mentions calls `body(content:)` itself and hands both in, so a
+        // trimmed body still renders its mentions as chips.
         self.prose = fenced.prose
         self.visuals = fenced.visuals
         self.richSegments = body == content
@@ -156,28 +153,20 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     /// The resolved body together with its fence split. An adapter that needs
     /// the prose to parse mentions resolves both here and hands the split back
     /// to `init`, so the fence grammar runs once per message.
-    public static func resolvedBody(
-        content: String,
-        preparedAction: PreparedActionPresentation?
-    ) -> (body: String, visuals: VisualMessageBody) {
-        let resolved = body(content: content, preparedAction: preparedAction)
+    public static func resolvedBody(content: String) -> (body: String, visuals: VisualMessageBody) {
+        let resolved = body(content: content)
         return (resolved, VisualFence.body(resolved))
     }
 
-    /// A superseded proposal with no Message content leaves a short replacement line.
+    /// The Message body as the transcript draws it.
     ///
     /// Edge whitespace is never layout. An Agent's reply routinely ends in a
     /// newline, and a `Text` that keeps it paints a blank line under the body —
     /// a whole text line of phantom gap before the next row and before the
     /// thread card. Trimming here is presentation only; the stored Markdown is
     /// untouched, and interior blank lines stay as they were written.
-    public static func body(
-        content: String,
-        preparedAction: PreparedActionPresentation?
-    ) -> String {
-        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.isEmpty else { return trimmed }
-        return (preparedAction?.messageText ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    public static func body(content: String) -> String {
+        content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

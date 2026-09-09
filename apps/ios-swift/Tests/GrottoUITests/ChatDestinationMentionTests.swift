@@ -77,7 +77,12 @@ import Testing
         #expect(mentionQuery.trigger == "@")
         #expect(mentionQuery.value == "ad")
 
+        let skillQuery = try #require(ComposerMentionQuery.active(in: "use $agent"))
+        #expect(skillQuery.trigger == "$")
+        #expect(skillQuery.value == "agent")
+
         #expect(ComposerMentionQuery.active(in: "issue#3") == nil)
+        #expect(ComposerMentionQuery.active(in: "cost$5") == nil)
     }
 
     @Test func channelSelectionSerializesSharedMarkdownSyntax() throws {
@@ -94,6 +99,24 @@ import Testing
         )
 
         #expect(query.inserting(option, into: text) == "Ask [#product](chat://cht_product) ")
+    }
+
+    @Test func skillSelectionAddsTheSigilTheServerLeavesOffTheInsertText() throws {
+        let text = "Use $agent"
+        let query = try #require(ComposerMentionQuery.active(in: text))
+        let option = MentionOptionPresentation(
+            id: "skill://agent-browser",
+            insertText: "agent-browser",
+            label: "agent-browser",
+            detail: "Browser automation CLI for AI agents.",
+            kind: .skill,
+            avatarURL: nil
+        )
+
+        #expect(
+            query.inserting(option, into: text)
+                == "Use [$agent-browser](skill://agent-browser) "
+        )
     }
 
     @Test func richParserResolvesChannelReferencesByImmutableChatID() {
@@ -165,7 +188,15 @@ import Testing
             "Ask [@Blippy](agent://agt_blippy) and [@Ada](user://usr_ada)\nabout the [#product](chat://cht_product) review"
         )
 
-        #expect(preview == "Ask @Blippy and @Ada about the #product review")
+        #expect(preview == "Ask Blippy and Ada about the Product review")
+    }
+
+    @Test func oneLinePreviewReadsASkillAsItsProductName() {
+        let preview = RichMessageParser.oneLinePreview(
+            "Run [$agent-browser](skill://agent-browser) on it"
+        )
+
+        #expect(preview == "Run Agent Browser on it")
     }
 
     @Test func oneLinePreviewCollapsesAWebLinkToItsText() {

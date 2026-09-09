@@ -87,7 +87,9 @@ struct RichMessageInlineFlowTests {
             #expect(abs(geometry.markSize + geometry.leadingInset * 2 - geometry.height) < 0.001)
             #expect(geometry.leadingInset > 0)
             #expect(geometry.markGap > geometry.leadingInset)
-            #expect(geometry.trailingInset > geometry.markGap)
+            // Trailing padding stays under a word space so punctuation hugs the capsule.
+            #expect(geometry.trailingInset > geometry.leadingInset)
+            #expect(geometry.trailingInset < geometry.markGap)
         }
     }
 

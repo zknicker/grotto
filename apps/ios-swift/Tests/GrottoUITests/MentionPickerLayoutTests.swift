@@ -4,16 +4,17 @@ import Testing
 
 @Suite("Mention picker layout")
 struct MentionPickerLayoutTests {
-    @Test("Sections read Agents, then Humans, then Channels")
+    @Test("Sections read Agents, then Humans, then Channels, then Skills")
     func sectionsFollowKindOrder() {
         let sections = MentionPickerLayout.sections(for: [
+            option(id: "skill://ui", kind: .skill),
             option(id: "chat://c", kind: .channel),
             option(id: "user://u", kind: .human),
             option(id: "agent://a", kind: .agent),
         ])
 
-        #expect(sections.map(\.kind) == [.agent, .human, .channel])
-        #expect(sections.map(\.title) == ["Agents", "Humans", "Channels"])
+        #expect(sections.map(\.kind) == [.agent, .human, .channel, .skill])
+        #expect(sections.map(\.title) == ["Agents", "Humans", "Channels", "Skills"])
     }
 
     @Test("A kind with nothing to offer gets no header")
@@ -46,10 +47,17 @@ struct MentionPickerLayoutTests {
         let roster = [
             option(id: "agent://a", kind: .agent),
             option(id: "chat://product", kind: .channel, label: "product"),
+            option(
+                id: "skill://agent-browser",
+                kind: .skill,
+                label: "agent-browser",
+                insertText: "agent-browser"
+            ),
         ]
 
         #expect(MentionPickerLayout.sections(text: "@", options: roster).map(\.kind) == [.agent])
         #expect(MentionPickerLayout.sections(text: "#", options: roster).map(\.kind) == [.channel])
+        #expect(MentionPickerLayout.sections(text: "$", options: roster).map(\.kind) == [.skill])
         #expect(MentionPickerLayout.sections(text: "no query", options: roster).isEmpty)
     }
 
@@ -129,11 +137,12 @@ struct MentionPickerLayoutTests {
     private func option(
         id: String,
         kind: MentionPresentationKind,
-        label: String = "Name"
+        label: String = "Name",
+        insertText: String? = nil
     ) -> MentionOptionPresentation {
         MentionOptionPresentation(
             id: id,
-            insertText: label,
+            insertText: insertText ?? label,
             label: label,
             detail: nil,
             kind: kind,

@@ -5,12 +5,7 @@ import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@grotto/api';
 import { runAgentCli } from './agent-cli.ts';
-import {
-    applyAgentConfiguration,
-    applyCoveConfiguration,
-    parseAgentConfigureCommand,
-    parseCoveApplyCommand,
-} from './agent-configuration.ts';
+import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.ts';
 import { applyAuthoritativeSession } from './agent-session-authority.ts';
@@ -55,6 +50,7 @@ import { cliColorsEnabled, createCliRenderer, stdoutRenderer } from './cli/rende
 import { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { readComputerName } from './computer-name.ts';
 import { reportStateError, sendEffectiveComputerReport } from './computer-report.ts';
+import { applyCoveConfiguration, parseCoveApplyCommand } from './cove-configuration.ts';
 import { type DaemonRuntime, withDaemonRuntime } from './daemon-runtime.ts';
 import { decideStart, purgeServerPartition, readRunMarker, writeRunMarker } from './delivery.ts';
 import {

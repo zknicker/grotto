@@ -49,8 +49,8 @@ test('preserves retryable structured errors from a Server 5xx response', async (
     const client = new AgentApiClient(context, fetcher);
 
     await expect(
-        client.request('/api/agent/avatar/generate', z.object({ ok: z.boolean() }), {
-            body: { concept: 'fox' },
+        client.request('/api/agent/agents/avatar', z.object({ ok: z.boolean() }), {
+            body: { agent: '@orbit', concept: 'fox' },
             method: 'POST',
         })
     ).rejects.toMatchObject({

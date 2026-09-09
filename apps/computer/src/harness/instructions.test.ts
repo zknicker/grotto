@@ -28,8 +28,7 @@ test('composes the CLI-only Grotto collaboration contract', () => {
     // The critical message verbs the Agent needs to receive and reply.
     expect(instructions).toContain('grotto message check');
     expect(instructions).toContain('grotto message send');
-    expect(instructions).toContain('grotto action prepare');
-    expect(instructions).toContain('grotto avatar generate');
+    expect(instructions).toContain('grotto agent create');
     expect(instructions).toContain(
         '**Manual** — `grotto manual get`, `grotto manual search`. Both require `--intent`'
     );
@@ -165,14 +164,33 @@ test('composes the CLI-only Grotto collaboration contract', () => {
     expect(instructions).toContain('the operator’s right hand');
 });
 
-test('advertises action capabilities without inventing an Agent-creation policy', () => {
+test('advertises the Agent family without inventing an Agent-creation policy', () => {
     const { instructions } = composeAgentInstructions(facts);
 
-    expect(instructions).toContain('**Action cards** — `grotto action prepare`.');
-    expect(instructions).toContain('**Avatar generation** — `grotto avatar generate`.');
+    // The prompt names the verbs and routes creation policy to the Manual. Consent,
+    // inheritance, the avatar fallback, and Cove's protected identity live in the
+    // `agent` topic, so the prompt must not restate — or contradict — them.
+    expect(instructions).toContain(
+        '**Agents** — `grotto agent create`, `grotto agent update`, `grotto agent avatar`. Read the `agent` Manual topic before the first one.'
+    );
+    expect(instructions).not.toContain('grotto action prepare');
+    expect(instructions).not.toContain('grotto avatar generate');
     expect(instructions).not.toContain('recipes/playbook/agent-creation');
-    expect(instructions).not.toContain('### Preparing native action cards');
     expect(instructions).not.toMatch(/playful character|fun name|exactly one generation/iu);
+    expect(instructions).not.toMatch(/--avatar-concept|inherit|a human in this Chat asked/u);
+});
+
+test('tells every Agent to welcome a new teammate once, in its own voice', () => {
+    const { instructions } = composeAgentInstructions(facts);
+
+    // A creation announcement lands in #all and every Agent there reads it. The
+    // etiquette rule is what keeps that from being either silence or a pile-on.
+    expect(instructions).toContain(
+        "- **Welcome new teammates.** When someone introduces a new teammate in #all, say hi once, like a person would: short, warm, in your own voice, plus what you'd hand them if your lanes touch. Skip it only if the room already welcomed them. Do not start work on their behalf."
+    );
+    expect(instructions.indexOf('Skip idle narration')).toBeLessThan(
+        instructions.indexOf('Welcome new teammates')
+    );
 });
 
 test('does not append retired model-family operational instructions', () => {

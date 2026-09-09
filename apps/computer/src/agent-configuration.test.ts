@@ -4,11 +4,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
     applyAgentConfiguration,
-    applyCoveConfiguration,
     parseAgentConfigureCommand,
     readAgentSeedConfiguration,
     readAppliedAgentConfiguration,
 } from './agent-configuration.ts';
+import { applyCoveConfiguration } from './cove-configuration.ts';
 import { readEffectiveAgentStates } from './effective-state.ts';
 
 let dataRoot: string;
@@ -111,6 +111,54 @@ test('applies desired runtime and model without waiting for the first turn', asy
     await expect(readFile(join(skills, 'visuals', 'SKILL.md'), 'utf8')).resolves.toContain(
         'name: visuals'
     );
+});
+
+test('renders the standing brief into the memory it seeds, and keeps it on reprovision', async () => {
+    const command = parseAgentConfigureCommand({
+        agentDescription: 'Watches competitor launches.',
+        agentId: 'agt_briefseedxxxxxxx',
+        agentName: 'Orbit',
+        brief: 'Own competitor intel. Post a Friday digest in #product; @ada reviews it.',
+        briefAuthorHandle: 'cove',
+        factoryKind: 'ordinary',
+        modelId: 'gpt-5.6-sol',
+        reasoningEffort: 'medium',
+        runtimeId: 'codex',
+        sessionGeneration: 1,
+        sessionResetKind: 'full',
+        type: 'agent-configure',
+    });
+    if (!command) {
+        throw new Error('Fixture command did not parse.');
+    }
+    const inventory = {
+        runtimes: [{ id: 'codex', label: 'Codex', models: [{ id: 'gpt-5.6-sol', label: 'Sol' }] }],
+    };
+    const apply = async () =>
+        await applyAgentConfiguration({
+            command,
+            dataRoot,
+            inventory,
+            serverId: 'srv_configuration',
+        });
+
+    await apply();
+
+    const agentRoot = join(dataRoot, 'servers', 'srv_configuration', 'agents', command.agentId);
+    const memoryPath = join(agentRoot, 'workspace', 'MEMORY.md');
+    const seeded = await readFile(memoryPath, 'utf8');
+    expect(seeded).toContain('## Standing brief from @cove');
+    expect(seeded).toContain('Own competitor intel. Post a Friday digest in #product');
+    expect(seeded).toContain('say hello in #all in your own voice');
+    // The Server row is the durable copy, so a reprovision re-sends it — and the
+    // Agent's own edits to the seeded file still win.
+    await writeFile(memoryPath, `${seeded}\n- Learned something.\n`);
+    await apply();
+    expect(await readFile(memoryPath, 'utf8')).toContain('- Learned something.');
+    await expect(readAgentSeedConfiguration(agentRoot)).resolves.toMatchObject({
+        brief: 'Own competitor intel. Post a Friday digest in #product; @ada reviews it.',
+        briefAuthorHandle: 'cove',
+    });
 });
 
 test('reports a missing desired model instead of substituting one', async () => {

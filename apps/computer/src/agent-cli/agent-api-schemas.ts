@@ -1,10 +1,7 @@
 import {
-    agentActionPrepareReceiptSchema,
     agentAutomationEventSchema,
-    avatarGenerationResponseSchema,
     type GrottoAgentMessage,
     type GrottoAgentSendResponse,
-    preparedActionSchema,
     taskOrigins,
 } from '@grotto/api';
 import * as z from 'zod';
@@ -78,7 +75,17 @@ const messageCloudAgentWorkSchema = z.object({
     title: z.string(),
 });
 
+/** The Agent one Agent created, as the creating Message carries it. */
+const messageAgentCreatedSchema = z.object({
+    agent_id: z.string(),
+    description: z.string().nullable(),
+    display_name: z.string(),
+    handle: z.string(),
+    retired: z.boolean(),
+});
+
 export const agentMessageSchema = z.object({
+    agent_created: messageAgentCreatedSchema.nullable().optional(),
     ask: messageAskSchema.nullable().optional(),
     cloud_agent_work: messageCloudAgentWorkSchema.nullable().optional(),
     attachments: z.array(jsonObjectSchema),
@@ -88,7 +95,7 @@ export const agentMessageSchema = z.object({
         label: z.string().nullable(),
         metadata: jsonObjectSchema,
     }),
-    body_kind: z.enum(['text', 'ask', 'cloud-agent-work']),
+    body_kind: z.enum(['text', 'ask', 'cloud-agent-work', 'agent-created']),
     chat_id: z.string().min(1),
     content: z.string(),
     created_at: z.string().min(1),
@@ -97,7 +104,6 @@ export const agentMessageSchema = z.object({
     id: z.string().min(1),
     metadata: jsonObjectSchema,
     nonce: z.string().nullable(),
-    preparedAction: preparedActionSchema.optional(),
     reactions: z
         .array(z.object({ actors: z.array(taskActorSchema), emoji: z.string() }))
         .optional(),
@@ -115,8 +121,6 @@ export const agentMessageSchema = z.object({
 }) satisfies z.ZodType<GrottoAgentMessage>;
 
 export type AgentCliMessage = GrottoAgentMessage;
-
-export const agentActionPrepareResponseSchema = agentActionPrepareReceiptSchema;
 
 export const agentSendResponseSchema: z.ZodType<GrottoAgentSendResponse> = z.discriminatedUnion(
     'state',
@@ -244,8 +248,6 @@ export const agentProfileSchema = z.object({
 });
 
 export const agentProfileResponseSchema = z.object({ profile: agentProfileSchema });
-
-export const agentAvatarGenerationResponseSchema = avatarGenerationResponseSchema;
 
 export const agentAttachmentSchema = z.object({
     byteSize: z.number().int().nonnegative(),

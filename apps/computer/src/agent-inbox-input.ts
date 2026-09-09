@@ -1,8 +1,4 @@
-import {
-    type AgentActionAttention,
-    agentActionAttentionSchema,
-    cloudAgentWorkAttentionSchema,
-} from '@grotto/api';
+import { cloudAgentWorkAttentionSchema } from '@grotto/api';
 import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './launch.ts';
 
 export function parseInbox(value: unknown): AgentInboxItem[] | null {
@@ -40,40 +36,23 @@ function parseInboxItem(item: unknown): AgentInboxItem | null {
     ) {
         return null;
     }
-    const actionAttention = parseActionAttention(item.actionAttention);
-    if (item.actionAttention !== undefined && !actionAttention) {
-        return null;
-    }
     const cloudAgentWork = parseCloudAgentWorkAttention(item.cloudAgentWork);
     if (item.cloudAgentWork !== undefined && !cloudAgentWork) {
         return null;
     }
-    if (actionAttention && cloudAgentWork) {
-        return null;
-    }
-    if (invalidAttentionIdentity(item, actionAttention, cloudAgentWork)) {
+    if (invalidAttentionIdentity(item, cloudAgentWork)) {
         return null;
     }
     return {
         ...item,
-        ...(actionAttention ? { actionAttention } : {}),
         ...(cloudAgentWork ? { cloudAgentWork } : {}),
     } as unknown as AgentInboxItem;
 }
 
 function invalidAttentionIdentity(
     item: Record<string, unknown>,
-    action: AgentActionAttention | null | undefined,
     work: AgentCloudAgentWorkAttention | null | undefined
 ): boolean {
-    if (action) {
-        return (
-            item.sequence !== 0 ||
-            item.id !== action.actionId ||
-            item.chatId !== action.chatId ||
-            item.senderType !== 'system'
-        );
-    }
     if (work) {
         return item.sequence !== 0 || item.id !== work.runId || item.senderType !== 'system';
     }
@@ -87,14 +66,6 @@ function parseCloudAgentWorkAttention(
         return undefined;
     }
     const parsed = cloudAgentWorkAttentionSchema.safeParse(value);
-    return parsed.success ? parsed.data : null;
-}
-
-function parseActionAttention(value: unknown): AgentActionAttention | undefined | null {
-    if (value === undefined) {
-        return undefined;
-    }
-    const parsed = agentActionAttentionSchema.safeParse(value);
     return parsed.success ? parsed.data : null;
 }
 

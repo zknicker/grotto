@@ -4,12 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import type { ToolSet } from '@ai-sdk/provider-utils';
-import {
-    applyAgentConfiguration,
-    applyCoveConfiguration,
-    parseAgentConfigureCommand,
-} from './agent-configuration.ts';
+import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
+import { applyCoveConfiguration } from './cove-configuration.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';
 import type { HarnessAgentFactory } from './harness/executor.ts';
 import {
@@ -37,32 +34,26 @@ let state: FakeServerState;
 const runtime = makeDaemonRuntime();
 afterAll(() => runtime.dispose());
 
-test('rejects a typed action whose envelope identity does not match its attention', () => {
+test('rejects a typed attention whose envelope identity does not match it', () => {
     expect(
         parseStartCommand({
             agentId: 'agt_launchtest',
             chatId: 'cht_origin',
             inbox: [
                 {
-                    actionAttention: {
-                        actionId: 'act_create_agent',
-                        chatId: 'cht_origin',
-                        createdAgentId: 'agt_created',
-                        executedResult: {
-                            agentId: 'agt_created',
-                            avatarUrl: null,
-                            computerId: 'cmp_local',
-                            description: null,
-                            displayName: 'Scout',
-                            handle: 'scout',
-                            modelId: 'gpt-5',
-                            reasoningEffort: 'medium',
-                            role: 'member',
-                            runtimeId: 'codex',
-                        },
-                        kind: 'agent:create',
-                    },
                     chatId: 'cht_origin',
+                    cloudAgentWork: {
+                        branches: [],
+                        errorCode: null,
+                        provider: 'cursor',
+                        providerUrl: null,
+                        repository: 'grotto/grotto',
+                        runId: 'car_1234567890abcdef',
+                        status: 'completed',
+                        summary: 'Opened a pull request.',
+                        title: 'Fix the flaky delivery test',
+                        workId: 'caw_1234567890abcdef',
+                    },
                     content: '',
                     createdAt: '2026-08-26T12:00:00.000Z',
                     id: 'msg_wrong_identity',

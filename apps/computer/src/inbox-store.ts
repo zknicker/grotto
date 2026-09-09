@@ -32,21 +32,14 @@ export async function acceptRunInbox(
     items: AgentInboxItem[]
 ): Promise<AgentInboxItem[]> {
     return await withInboxWrite(location, async () => {
-        const current = await readPendingState(location);
-        const consumed = new Set(current.consumedMessageIds);
-        // A terminal action result is identity-addressed and must not be exposed
-        // again when the same accepted run is replayed after reconnect.
-        const modelItems = items.filter(
-            (item) => !(item.actionAttention && consumed.has(item.actionAttention.actionId))
-        );
         const root = inboxRoot(location);
         await mkdir(join(root, 'runs'), { mode: 0o700, recursive: true });
-        await writeJsonAtomic(join(root, 'runs', `${runId}.json`), modelItems);
+        await writeJsonAtomic(join(root, 'runs', `${runId}.json`), items);
         await consumeVisibleIdsLocked(
             location,
             items.map((item) => item.id)
         );
-        return modelItems;
+        return items;
     });
 }
 
@@ -144,13 +137,11 @@ export async function consumeVisibleMessages(
  * A bodiless inbox item mirrored into the local inbox: a Trigger or Reminder
  * fire, or a task assignment, which speaks as `@grotto`. None has a backing
  * Chat message, so the Server alone can serve it and mark it served, and its
- * key must never enter message-visibility attestation. An action attention also
- * speaks as `@grotto` but carries its own payload, so the message/attention
- * guard keeps it out.
+ * key must never enter message-visibility attestation.
  */
 export function isAutomationInboxItem(item: AgentInboxItem): boolean {
     return (
-        !(item.actionAttention || item.message) &&
+        !item.message &&
         (item.senderHandle === 'trigger' ||
             item.senderHandle === 'reminder' ||
             item.senderHandle === 'grotto')

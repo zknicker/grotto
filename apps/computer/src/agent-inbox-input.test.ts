@@ -1,14 +1,10 @@
 import { expect, test } from 'bun:test';
-import {
-    type AgentActionAttention,
-    agentStartCommandSchema,
-    agentTurnSummarySchema,
-} from '@grotto/api';
+import { agentStartCommandSchema, agentTurnSummarySchema } from '@grotto/api';
 import { dispatchAgentStart } from './agent-start-dispatch.ts';
 import { type AgentStartCommand, type AgentTurnFrame, parseStartCommand } from './launch.ts';
 
-test('dispatches the Server creation continuation without a created Agent chat id', async () => {
-    const command = creationContinuation();
+test('dispatches a typed attention continuation on its own identity', async () => {
+    const command = attentionContinuation();
     const started: AgentStartCommand[] = [];
     const failures: AgentTurnFrame[] = [];
     await dispatchAgentStart(command, {
@@ -27,7 +23,7 @@ test('dispatches the Server creation continuation without a created Agent chat i
 });
 
 test('reports a terminal failure for a rejected start without leaking its payload', async () => {
-    const command = { ...creationContinuation(), inbox: [{ content: 'private payload' }] };
+    const command = { ...attentionContinuation(), inbox: [{ content: 'private payload' }] };
     const started: AgentStartCommand[] = [];
     const failures: AgentTurnFrame[] = [];
     await dispatchAgentStart(command, {
@@ -53,35 +49,29 @@ test('reports a terminal failure for a rejected start without leaking its payloa
     expect(JSON.stringify(failures)).not.toContain('private payload');
 });
 
-function creationContinuation() {
-    const actionAttention: AgentActionAttention = {
-        actionId: 'act_create_agent',
-        chatId: 'cht_origin',
-        createdAgentId: 'agt_created',
-        executedResult: {
-            agentId: 'agt_created',
-            avatarUrl: null,
-            computerId: 'cmp_local',
-            description: null,
-            displayName: 'Scout',
-            handle: 'scout',
-            modelId: 'gpt-5.6-sol',
-            reasoningEffort: 'medium',
-            role: 'member',
-            runtimeId: 'codex',
-        },
-        kind: 'agent:create',
+function attentionContinuation() {
+    const cloudAgentWork = {
+        branches: [],
+        errorCode: null,
+        provider: 'cursor',
+        providerUrl: null,
+        repository: 'grotto/grotto',
+        runId: 'car_1234567890abcdef',
+        status: 'completed',
+        summary: 'Opened a pull request.',
+        title: 'Fix the flaky delivery test',
+        workId: 'caw_1234567890abcdef',
     };
     return agentStartCommandSchema.parse({
         agentId: 'agt_cove',
         chatId: 'cht_origin',
         inbox: [
             {
-                actionAttention,
                 chatId: 'cht_origin',
+                cloudAgentWork,
                 content: '',
                 createdAt: '2026-09-08T03:47:39.214Z',
-                id: actionAttention.actionId,
+                id: cloudAgentWork.runId,
                 senderHandle: 'grotto',
                 senderType: 'system',
                 sequence: 0,

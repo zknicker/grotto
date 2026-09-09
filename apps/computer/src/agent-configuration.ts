@@ -1,19 +1,12 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import {
-    seedAgentWorkspace,
-    seedCoveWorkspace,
-    seedFactoryManagedSkills,
-    validateCoveWorkspace,
-} from '@grotto/agent-workspace';
+import { seedAgentWorkspace, seedFactoryManagedSkills } from '@grotto/agent-workspace';
 import {
     type AgentConfigureCommand,
     type AgentReasoningEffort,
     agentConfigureCommandSchema,
     type ComputerInventory,
     type CoveApplyCommand,
-    type CoveApplyResult,
-    coveApplyCommandSchema,
 } from '@grotto/api';
 
 export interface AppliedAgentConfiguration {
@@ -26,14 +19,13 @@ export interface AppliedAgentConfiguration {
 export interface AgentSeedConfiguration {
     agentDescription: string | null;
     agentName: string;
+    /** The standing brief the Server holds for this Agent, and whose it is. */
+    brief: string | null;
+    briefAuthorHandle: string | null;
     factoryKind: 'cove' | 'ordinary';
 }
 export function parseAgentConfigureCommand(frame: unknown): AgentConfigureCommand | null {
     const parsed = agentConfigureCommandSchema.safeParse(frame);
-    return parsed.success ? parsed.data : null;
-}
-export function parseCoveApplyCommand(frame: unknown): CoveApplyCommand | null {
-    const parsed = coveApplyCommandSchema.safeParse(frame);
     return parsed.success ? parsed.data : null;
 }
 export async function applyAgentConfiguration(input: {
@@ -56,11 +48,7 @@ export async function applyAgentConfiguration(input: {
             mkdir(join(agentRoot, directory), { mode: 0o700, recursive: true })
         )
     );
-    await seedAgentWorkspace({
-        agentName: input.command.agentName,
-        bio: input.command.agentDescription,
-        workspaceDir: join(agentRoot, 'workspace'),
-    });
+    await seedOrdinaryWorkspace(input.command, join(agentRoot, 'workspace'));
     await seedFactoryManagedSkills(join(agentRoot, 'skills'));
     const destination = join(agentRoot, 'configuration.json');
     const temporary = `${destination}.${process.pid}.tmp`;
@@ -71,6 +59,8 @@ export async function applyAgentConfiguration(input: {
             seed: {
                 agentDescription: input.command.agentDescription,
                 agentName: input.command.agentName,
+                brief: input.command.brief,
+                briefAuthorHandle: input.command.briefAuthorHandle,
                 factoryKind: input.command.factoryKind,
             },
         })}\n`,
@@ -79,81 +69,7 @@ export async function applyAgentConfiguration(input: {
     await rename(temporary, destination);
     return applied;
 }
-export async function applyCoveConfiguration(input: {
-    command: CoveApplyCommand;
-    dataRoot: string;
-    inventory: ComputerInventory;
-    serverId: string;
-}): Promise<CoveApplyResult> {
-    const { command } = input;
-    try {
-        const applied = resolveConfiguration(command, input.inventory);
-        if (applied.missingResources.length > 0) {
-            throw new Error(
-                `Cove configuration is unavailable: ${applied.missingResources.join(', ')}`
-            );
-        }
-        const agentRoot = await ensureAgentRoot(input.dataRoot, input.serverId, command.agentId);
-        const receiptPath = join(agentRoot, 'cove-application.json');
-        await seedFactoryManagedSkills(join(agentRoot, 'skills'));
-        const existing = await readCoveReceipt(receiptPath);
-        if (existing) {
-            assertMatchingCoveReceipt(existing, command);
-            const manifestSha256 = await validateCoveWorkspace(join(agentRoot, 'workspace'));
-            if (manifestSha256 !== existing.manifestSha256) {
-                throw new Error('Cove workspace no longer matches its durable factory receipt.');
-            }
-            await assertMatchingCoveConfiguration(agentRoot, command);
-        } else {
-            const manifestSha256 = await seedCoveWorkspace(join(agentRoot, 'workspace'));
-            await writeJsonAtomic(join(agentRoot, 'configuration.json'), {
-                ...applied,
-                seed: {
-                    agentDescription: command.agentDescription,
-                    agentName: command.agentName,
-                    factoryKind: command.factoryKind,
-                },
-            });
-            await writeJsonAtomic(receiptPath, {
-                agentId: command.agentId,
-                applicationId: command.applicationId,
-                factoryKind: command.factoryKind,
-                manifestSha256,
-                modelId: command.modelId,
-                runtimeId: command.runtimeId,
-            });
-        }
-        return {
-            agentId: command.agentId,
-            applicationId: command.applicationId,
-            factoryKind: 'cove',
-            status: 'applied',
-            type: 'cove-apply-result',
-        };
-    } catch (error) {
-        return {
-            agentId: command.agentId,
-            applicationId: command.applicationId,
-            error: safeCoveError(error),
-            factoryKind: 'cove',
-            status: 'failed',
-            type: 'cove-apply-result',
-        };
-    }
-}
-async function assertMatchingCoveConfiguration(agentRoot: string, command: CoveApplyCommand) {
-    const configuration = await readAppliedAgentConfiguration(agentRoot);
-    const seed = await readAgentSeedConfiguration(agentRoot);
-    if (
-        configuration?.runtimeId !== command.runtimeId ||
-        configuration.modelId !== command.modelId ||
-        configuration.missingResources.length > 0 ||
-        seed?.agentName !== command.agentName ||
-        seed.agentDescription !== command.agentDescription
-    ) {
-        throw new Error('Cove configuration no longer matches its durable factory receipt.');
-    }
-}
+
 export async function readAppliedAgentConfiguration(
     agentRoot: string
 ): Promise<AppliedAgentConfiguration | null> {
@@ -186,6 +102,8 @@ export async function readAgentSeedConfiguration(
             ? {
                   agentDescription: value.seed.agentDescription,
                   agentName: value.seed.agentName,
+                  brief: value.seed.brief ?? null,
+                  briefAuthorHandle: value.seed.briefAuthorHandle ?? null,
                   factoryKind: value.seed.factoryKind === 'cove' ? 'cove' : 'ordinary',
               }
             : null;
@@ -194,7 +112,26 @@ export async function readAgentSeedConfiguration(
     }
 }
 
-function resolveConfiguration(
+/**
+ * The one place a Server-owned seed becomes workspace bytes, shared by the
+ * configure path and by the full reset that re-seeds from the stored record.
+ */
+export async function seedOrdinaryWorkspace(
+    seed: Pick<AgentSeedConfiguration, 'agentName' | 'brief' | 'briefAuthorHandle'> & {
+        agentDescription: string | null;
+    },
+    workspaceDir: string
+): Promise<void> {
+    await seedAgentWorkspace({
+        agentName: seed.agentName,
+        bio: seed.agentDescription,
+        brief: seed.brief,
+        briefAuthorHandle: seed.briefAuthorHandle,
+        workspaceDir,
+    });
+}
+
+export function resolveConfiguration(
     command: AgentConfigureCommand | CoveApplyCommand,
     inventory: ComputerInventory
 ): AppliedAgentConfiguration {
@@ -229,69 +166,6 @@ function reasoningEffortFor(
     return 'reasoningEffort' in command ? command.reasoningEffort : 'medium';
 }
 
-interface CoveReceipt {
-    agentId: string;
-    applicationId: string;
-    factoryKind: 'cove';
-    manifestSha256: string;
-    modelId: string;
-    runtimeId: string;
-}
-
-async function ensureAgentRoot(dataRoot: string, serverId: string, agentId: string) {
-    const agentRoot = join(dataRoot, 'servers', serverId, 'agents', agentId);
-    await mkdir(agentRoot, { mode: 0o700, recursive: true });
-    await Promise.all(
-        ['home', 'runtime', 'skills', 'workspace'].map((directory) =>
-            mkdir(join(agentRoot, directory), { mode: 0o700, recursive: true })
-        )
-    );
-    return agentRoot;
-}
-
-async function writeJsonAtomic(destination: string, value: unknown) {
-    const temporary = `${destination}.${process.pid}.tmp`;
-    await writeFile(temporary, `${JSON.stringify(value)}\n`, { mode: 0o600 });
-    await rename(temporary, destination);
-}
-
-async function readCoveReceipt(path: string): Promise<CoveReceipt | null> {
-    try {
-        const value = JSON.parse(await readFile(path, 'utf8')) as CoveReceipt;
-        if (value?.factoryKind !== 'cove') {
-            throw new Error('The durable Cove factory receipt is invalid.');
-        }
-        return value;
-    } catch (error) {
-        if (isMissingFile(error)) {
-            return null;
-        }
-        throw new Error('The durable Cove factory receipt is invalid.', { cause: error });
-    }
-}
-
-function isMissingFile(error: unknown): boolean {
-    return (
-        typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT'
-    );
-}
-
-function assertMatchingCoveReceipt(receipt: CoveReceipt, command: CoveApplyCommand) {
-    if (
-        receipt.agentId !== command.agentId ||
-        receipt.applicationId !== command.applicationId ||
-        receipt.runtimeId !== command.runtimeId ||
-        receipt.modelId !== command.modelId
-    ) {
-        throw new Error('A conflicting Cove factory application is already durable.');
-    }
-}
-
-function safeCoveError(error: unknown): string {
-    const message = error instanceof Error ? error.message : 'Cove application failed.';
-    return message.slice(0, 300);
-}
-
 function isAppliedConfiguration(value: unknown): value is AppliedAgentConfiguration {
     return (
         isRecord(value) &&
@@ -319,7 +193,18 @@ function isAgentSeedConfiguration(value: unknown): value is AgentSeedConfigurati
         (value.agentDescription === null ||
             (typeof value.agentDescription === 'string' &&
                 value.agentDescription.length > 0 &&
-                value.agentDescription.length <= 500))
+                value.agentDescription.length <= 500)) &&
+        isOptionalText(value.brief, 4000) &&
+        isOptionalText(value.briefAuthorHandle, 64)
+    );
+}
+
+/** A seeded field the Server may not have sent at all, or sent as null. */
+function isOptionalText(value: unknown, maximum: number): boolean {
+    return (
+        value === undefined ||
+        value === null ||
+        (typeof value === 'string' && value.length > 0 && value.length <= maximum)
     );
 }
 

@@ -1,3 +1,4 @@
+import { agentAddChannelAgentReceiptSchema } from '@grotto/api';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import {
     agentChannelActionResponseSchema,
@@ -63,6 +64,18 @@ export const CHANNEL_SUBCOMMANDS: SubCommand[] = [
         summary: 'List one channel’s members and role labels',
         usage: 'grotto channel members <target>',
     },
+    {
+        examples: ['grotto channel add --target "#product" --agent @orbit'],
+        flags: [
+            { name: '--target', valueName: '<t>', description: 'Channel target (#name)' },
+            { name: '--agent', valueName: '<@handle>', description: 'The Agent to put in it' },
+        ],
+        name: 'add',
+        positionals: [],
+        run: (args) => runChannelAdd(args, defaultDeps()),
+        summary: 'Put another Agent in a channel',
+        usage: 'grotto channel add --target <t> --agent <@handle>',
+    },
     channelActionSubcommand('join', {
         confirmation: (target) => `Joined ${target}. Channel messages now reach your inbox.`,
         example: 'grotto channel join --target "#general"',
@@ -107,16 +120,34 @@ async function runChannelAction(
     deps: DirectoryDeps,
     confirmation: (target: string) => string
 ): Promise<number> {
-    const target = args.values['--target'];
-    if (!(target && /^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u.test(target))) {
-        throw new AgentCliError('INVALID_TARGET', 'A #channel target is required.');
-    }
+    const target = requiredChannelFlag(args);
     const response = await deps.client.request(
         `/api/agent/channels/${action}`,
         agentChannelActionResponseSchema,
         { body: { target }, method: 'POST' }
     );
     deps.write(`${confirmation(response.target)}\n`);
+    return 0;
+}
+
+export async function runChannelAdd(args: ParsedArgs, deps: DirectoryDeps): Promise<number> {
+    const target = requiredChannelFlag(args);
+    const agent = args.values['--agent']?.trim();
+    if (!(agent && /^@?[a-z0-9][a-z0-9-]{1,30}$/u.test(agent))) {
+        throw new AgentCliError('INVALID_ARG', '--agent must name one Agent as @handle.', {
+            nextAction: 'Run grotto server info --agents to list them.',
+        });
+    }
+    const response = await deps.client.request(
+        '/api/agent/channels/add',
+        agentAddChannelAgentReceiptSchema,
+        { body: { agent, target }, method: 'POST' }
+    );
+    deps.write(
+        response.added
+            ? `Added @${response.handle} to ${response.target}.\n`
+            : `@${response.handle} was already in ${response.target}.\n`
+    );
     return 0;
 }
 
@@ -159,6 +190,14 @@ export async function runChannelMembers(args: ParsedArgs, deps: DirectoryDeps): 
     );
     deps.write(renderChannelMembers(response));
     return 0;
+}
+
+function requiredChannelFlag(args: ParsedArgs): string {
+    const target = args.values['--target'];
+    if (!(target && /^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u.test(target))) {
+        throw new AgentCliError('INVALID_TARGET', 'A #channel target is required.');
+    }
+    return target;
 }
 
 function channelTarget(args: ParsedArgs): string {

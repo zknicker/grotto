@@ -1,18 +1,15 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-    seedAgentWorkspace,
-    seedCoveWorkspace,
-    seedFactoryManagedSkills,
-} from '@grotto/agent-workspace';
-import type { AgentActionAttention, AgentTurnActivitySummary, CloudAgentBranch } from '@grotto/api';
+import { seedCoveWorkspace, seedFactoryManagedSkills } from '@grotto/agent-workspace';
+import type { AgentTurnActivitySummary, CloudAgentBranch } from '@grotto/api';
 import type { TraceCarrier } from '@grotto/effect';
 import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 import { AgentActivityRun } from './agent-activity-run.ts';
 import {
     readAgentSeedConfiguration,
     readAppliedAgentConfiguration,
+    seedOrdinaryWorkspace,
 } from './agent-configuration.ts';
 import { parseInbox } from './agent-inbox-input.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
@@ -67,7 +64,6 @@ export interface AgentStartCommand {
 }
 
 export interface AgentInboxItem {
-    actionAttention?: AgentActionAttention;
     ask?: AgentInboxAsk;
     chatId: string;
     cloudAgentWork?: AgentCloudAgentWorkAttention;
@@ -513,11 +509,7 @@ export async function resetAgentState(input: {
             await Promise.all([
                 seed.factoryKind === 'cove'
                     ? seedCoveWorkspace(join(agentRoot, 'workspace'))
-                    : seedAgentWorkspace({
-                          agentName: seed.agentName,
-                          bio: seed.agentDescription,
-                          workspaceDir: join(agentRoot, 'workspace'),
-                      }),
+                    : seedOrdinaryWorkspace(seed, join(agentRoot, 'workspace')),
                 seedFactoryManagedSkills(join(agentRoot, 'skills')),
             ]);
         }

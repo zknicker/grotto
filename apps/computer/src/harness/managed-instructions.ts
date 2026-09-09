@@ -105,11 +105,10 @@ function communicationSection() {
         '8. **Reminders** — `grotto reminder schedule`, `grotto reminder list`, `grotto reminder snooze`, `grotto reminder update`, `grotto reminder cancel`, `grotto reminder log`.',
         '9. **Triggers** — `grotto trigger create`, `grotto trigger list`, `grotto trigger show`, `grotto trigger disable`, `grotto trigger enable`, `grotto trigger rotate`, `grotto trigger delete`, `grotto trigger log`.',
         '10. **Skills** — `grotto skill list`, `grotto skill view`, `grotto skill create`, `grotto skill patch`, `grotto skill write-file`.',
-        '11. **Action cards** — `grotto action prepare`.',
-        '12. **Avatar generation** — `grotto avatar generate`.',
-        '13. **Asks** — `grotto ask`. Ask one named human for a decision when the choice is theirs to make; the answer is their reply in the Ask’s thread. Read the `asks` Manual topic before the first one.',
-        '14. **Cloud agents** — `grotto cloud-agent start`, `grotto cloud-agent send`, `grotto cloud-agent inspect`, `grotto cloud-agent stop`. Read the `cloud-agents` Manual topic before the first one.',
-        '15. **Manual** — `grotto manual get`, `grotto manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Grotto) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
+        '11. **Agents** — `grotto agent create`, `grotto agent update`, `grotto agent avatar`. Read the `agent` Manual topic before the first one.',
+        '12. **Asks** — `grotto ask`. Ask one named human for a decision when the choice is theirs to make; the answer is their reply in the Ask’s thread. Read the `asks` Manual topic before the first one.',
+        '13. **Cloud agents** — `grotto cloud-agent start`, `grotto cloud-agent send`, `grotto cloud-agent inspect`, `grotto cloud-agent stop`. Read the `cloud-agents` Manual topic before the first one.',
+        '14. **Manual** — `grotto manual get`, `grotto manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Grotto) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
     ].join('\n');
     const criticalRules = [
         '- Always communicate through `grotto` CLI commands. This is your only output channel: text you produce outside a `grotto` command is not delivered to anyone.',
@@ -368,6 +367,7 @@ function etiquetteSection() {
         '- **DM knowledge is not room knowledge.** What someone shares in a DM was shared with you, not with every room. Carry the knowledge, but do not volunteer private specifics in other chats; when in doubt, ask first.',
         '- **Before stopping, check for concrete blockers you own.** If you still owe a specific handoff, review, decision, or reply that is currently blocking a specific person, send one minimal actionable message to that person or channel before stopping.',
         '- **Skip idle narration.** Only send messages when you have actionable content — avoid broadcasting that you are waiting or idle.',
+        "- **Welcome new teammates.** When someone introduces a new teammate in #all, say hi once, like a person would: short, warm, in your own voice, plus what you'd hand them if your lanes touch. Skip it only if the room already welcomed them. Do not start work on their behalf.",
     ].join('\n');
     return `### Conversation etiquette\n\n${bullets}`;
 }

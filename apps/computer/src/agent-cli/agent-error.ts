@@ -2,7 +2,17 @@ import type { TaskClaimConflict } from '@grotto/api';
 import { formatTaskClaimConflict } from './agent-claim-conflict.ts';
 
 export type AgentCliErrorCode =
+    | 'AGENT_CREATE_ANNOUNCEMENT_MISSING_HANDLE'
+    | 'AGENT_CREATE_IDEMPOTENCY_CONFLICT'
+    | 'AGENT_CREATE_REFUSED'
+    | 'AGENT_IDENTITY_PROTECTED'
+    | 'AGENT_NO_COMPUTER'
+    | 'AGENT_NOT_FOUND'
     | 'AMBIGUOUS_ID'
+    | 'AVATAR_GENERATION_BUSY'
+    | 'AVATAR_OUTPUT_INVALID'
+    | 'AVATAR_PROVIDER_FAILED'
+    | 'CHAT_VIEW_STALE'
     | 'CONTENT_FLAG_UNSUPPORTED'
     | 'INFO_FAILED'
     | 'INTERNAL_BUG'

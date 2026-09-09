@@ -440,33 +440,27 @@ test('uses a concrete cold inbox as the first prompt without mid-turn injection'
     expect(streamedPrompts[0]).toContain('Hello Cove');
     expect(sentUserMessages).toEqual([]);
 });
-test('projects a concrete action attention into the first prompt by action identity', async () => {
+test('projects a concrete typed attention into the first prompt by its own identity', async () => {
     await runHarnessTurn(
         turnInput({
             inbox: [
                 {
-                    actionAttention: {
-                        actionId: 'act_create_agent',
-                        chatId: 'cht_origin',
-                        createdAgentId: 'agt_created',
-                        executedResult: {
-                            agentId: 'agt_created',
-                            avatarUrl: null,
-                            computerId: 'cmp_local',
-                            description: 'A new teammate',
-                            displayName: 'Scout',
-                            handle: 'scout',
-                            modelId: 'gpt-5',
-                            reasoningEffort: 'medium',
-                            role: 'member',
-                            runtimeId: 'codex',
-                        },
-                        kind: 'agent:create',
-                    },
                     chatId: 'cht_origin',
+                    cloudAgentWork: {
+                        branches: [],
+                        errorCode: null,
+                        provider: 'cursor',
+                        providerUrl: null,
+                        repository: 'grotto/grotto',
+                        runId: 'car_1234567890abcdef',
+                        status: 'completed',
+                        summary: 'Opened a pull request.',
+                        title: 'Fix the flaky delivery test',
+                        workId: 'caw_1234567890abcdef',
+                    },
                     content: '',
                     createdAt: '2026-07-27T00:00:00.000Z',
-                    id: 'act_create_agent',
+                    id: 'car_1234567890abcdef',
                     senderHandle: 'grotto',
                     senderType: 'system',
                     sequence: 0,
@@ -477,9 +471,9 @@ test('projects a concrete action attention into the first prompt by action ident
         })
     );
 
-    expect(streamedPrompts[0]).toContain('act_create_agent');
-    expect(streamedPrompts[0]).toContain('agt_created');
-    expect(streamedPrompts[0]).toContain('"handle":"scout"');
+    expect(streamedPrompts[0]).toContain('work=caw_1234567890abcdef');
+    expect(streamedPrompts[0]).toContain('run=car_1234567890abcdef');
+    expect(streamedPrompts[0]).toContain('Opened a pull request.');
 });
 
 test('projects a concrete fire and a task assignment into the first prompt', async () => {
@@ -889,12 +883,10 @@ test('Cove guidance drift migrates a warm session once and is current when the r
         'owner progress\n'
     );
     expect(await readFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'utf8')).toContain(
-        'post an **action card** rather than a copyable spec'
+        'grotto agent create'
     );
-    expect(streamedCovePlaybooks[1]).toContain(
-        'post an **action card** rather than a copyable spec'
-    );
-    expect(streamedCoveFaqs[1]).toContain('prepare a native action card');
+    expect(streamedCovePlaybooks[1]).toContain('grotto agent create');
+    expect(streamedCoveFaqs[1]).toContain('grotto agent create');
     expect(streamedPrompts[1]).toContain('re-read notes/onboarding_playbook.md');
     expect(updateActivity).toEqual([
         { category: 'updating_instructions', phase: 'started' },
@@ -1039,7 +1031,7 @@ test('retries Cove guidance consumption after a refreshed turn fails', async () 
         phase: 'failed',
     });
     expect(await readFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'utf8')).toContain(
-        'post an **action card** rather than a copyable spec'
+        'grotto agent create'
     );
 
     streamFails = false;

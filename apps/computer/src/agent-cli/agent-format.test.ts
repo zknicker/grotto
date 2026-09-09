@@ -141,3 +141,31 @@ test('work with no pull request yet reads exactly as it always did', () => {
         )
     ).toEndWith('[cloud-agent-work status=queued title=Fix the flaky delivery test]');
 });
+
+test('a creating Message names the Agent it created, and says when that Agent is gone', () => {
+    const created = {
+        agent_id: 'agt_scout',
+        description: 'Keeps release notes current.',
+        display_name: 'Scout',
+        handle: 'scout',
+        retired: false,
+    };
+    const creation = message({
+        agent_created: created,
+        body_kind: 'agent-created',
+        content: 'Scout is on the team now; they own release notes.',
+    });
+
+    expect(formatHistoryLine(creation)).toEndWith(
+        'Scout is on the team now; they own release notes. [created @scout]'
+    );
+    expect(formatDeliveryEnvelope('#product', creation)).toEndWith('[created @scout]');
+    expect(
+        formatHistoryLine(
+            message({
+                agent_created: { ...created, retired: true },
+                body_kind: 'agent-created',
+            })
+        )
+    ).toEndWith('[created @scout (retired)]');
+});

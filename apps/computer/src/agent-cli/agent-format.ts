@@ -83,10 +83,11 @@ export function shortMessageId(messageId: string): string {
 
 /**
  * Every product record a Message carries rides its line in one fixed order:
- * attachments, then the task metadata, then the Ask lifecycle.
+ * attachments, the task metadata, the Ask lifecycle, delegated Cloud Agent
+ * work, then the Agent this Message created.
  */
 function messageSuffixes(message: AgentCliMessage): string {
-    return `${attachmentSuffix(message)}${taskSuffix(message)}${askSuffix(message)}${cloudAgentWorkSuffix(message)}`;
+    return `${attachmentSuffix(message)}${taskSuffix(message)}${askSuffix(message)}${cloudAgentWorkSuffix(message)}${agentCreatedSuffix(message)}`;
 }
 
 function attachmentSuffix(message: AgentCliMessage): string {
@@ -144,6 +145,19 @@ function cloudAgentWorkSuffix(message: AgentCliMessage): string {
         ...work,
         pullRequestNumber: url ? cloudAgentPullRequestNumber(url) : null,
     });
+}
+
+/**
+ * The Agent this Message created, so a history read answers "where did @orbit
+ * come from?" without a second command. A retired Agent says so; the row is
+ * never deleted.
+ */
+function agentCreatedSuffix(message: AgentCliMessage): string {
+    const created = message.agent_created;
+    if (!created) {
+        return '';
+    }
+    return ` [created @${created.handle}${created.retired ? ' (retired)' : ''}]`;
 }
 
 function pad(value: number): string {

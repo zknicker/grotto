@@ -66,9 +66,6 @@ function plural(count: number, singular: string): string {
 }
 
 function formatEnvelope(item: AgentInboxItem, homeTimezone: string): string {
-    if (item.actionAttention) {
-        return formatActionAttention(item);
-    }
     if (item.cloudAgentWork) {
         return formatCloudAgentWorkAttention(item.cloudAgentWork, item.target);
     }
@@ -86,18 +83,6 @@ function formatEnvelope(item: AgentInboxItem, homeTimezone: string): string {
     return item.threadFollowReactivated
         ? `${formatThreadFollowRestoration(item.target)}\n${envelope}`
         : envelope;
-}
-
-function formatActionAttention(item: AgentInboxItem): string {
-    const attention = item.actionAttention;
-    if (!attention) {
-        throw new Error('Action attention is required.');
-    }
-    return [
-        `[Grotto action attention kind=${attention.kind} action=${attention.actionId} target=${item.target}]`,
-        `The committed action completed. createdAgentId=${attention.createdAgentId}`,
-        `executedResult=${JSON.stringify(attention.executedResult)}`,
-    ].join('\n');
 }
 
 /**
@@ -196,7 +181,6 @@ function noticeTag(target: string, items: AgentInboxItem[]): string {
         target.startsWith('dm:') ? 'dm' : target.includes(':') ? 'thread' : null,
         latest?.task ? `task #${latest.task.number}` : null,
         latest?.ask ? formatAskTag(latest.ask) : null,
-        items.some((item) => item.actionAttention) ? 'action attention' : null,
         items.some((item) => item.cloudAgentWork) ? 'cloud agent result' : null,
         items.some((item) => item.mentioned) ? 'you were mentioned' : null,
     ].filter(Boolean);
@@ -233,7 +217,7 @@ export function shortInboxId(id: string): string {
 
 /** A bodiless typed attention: work to act on, not a message to read. */
 function isAttention(item: AgentInboxItem): boolean {
-    return Boolean(item.actionAttention ?? item.cloudAgentWork);
+    return Boolean(item.cloudAgentWork);
 }
 
 function compareItems(left: AgentInboxItem, right: AgentInboxItem): number {

@@ -37,10 +37,14 @@ extension GrottoStore {
     }
 
     private func mentionPresentation(_ option: MentionOption) -> MentionOptionPresentation? {
+        // A kind this build does not model drops its own row and leaves the rest
+        // of the roster standing.
+        guard let optionKind = option.kind else { return nil }
         let kind: MentionPresentationKind
+        var detail = option.description
         var avatarURL: URL?
         var channelAppearance: ChannelAppearance?
-        switch option.kind {
+        switch optionKind {
         case .agent:
             kind = .agent
             let agentID = referenceID(option.id, scheme: "agent")
@@ -57,13 +61,16 @@ extension GrottoStore {
             kind = .human
             avatarURL = resolvedAvatarURL(option.metadata?.userAvatarURL)
         case .skill:
-            return nil
+            kind = .skill
+            // The Server sends a Skill's own sentence in its metadata; the
+            // top-level description restates it and stands in if it is missing.
+            detail = option.metadata?.description ?? option.description
         }
         return MentionOptionPresentation(
             id: option.id,
             insertText: option.insertText,
             label: option.label,
-            detail: option.description,
+            detail: detail,
             kind: kind,
             avatarURL: avatarURL,
             channelAppearance: channelAppearance

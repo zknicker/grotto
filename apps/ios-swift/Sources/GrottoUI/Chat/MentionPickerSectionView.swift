@@ -69,6 +69,12 @@ struct MentionPickerRow: View {
         }
     }
 
+    /// The name and mark the App writes by hand for a few Skills, looked up the
+    /// way the row's own label is.
+    private var appearance: ReferenceAppearance? {
+        ReferenceLabel.appearance(option.label, kind: option.kind)
+    }
+
     @ViewBuilder
     private var mark: some View {
         switch option.kind {
@@ -77,7 +83,31 @@ struct MentionPickerRow: View {
                 appearance: option.channelAppearance ?? .default,
                 size: MentionPickerLayout.markSize
             )
-        case .agent, .human:
+        case .skill:
+            // The transcript chip's Skill mark, in `ChannelIconBox`'s own box: the
+            // same neutral ground, the same `box / 3` corner, the same glyph
+            // fraction, so a Skill row lines up with a channel row above it. A
+            // Skill the App names by hand swaps in its own mark, so a
+            // `$gh-issues` row reads GitHub in the picker and in the chip. The
+            // ink does not travel with it: the App names a brand color for no
+            // Skill, so a row's mark stays the Skill's own purple.
+            GrottoIcon(
+                appearance?.glyph ?? .skill,
+                size: (MentionPickerLayout.markSize * 2 / 3).rounded(),
+                weight: 2
+            )
+            .foregroundStyle(SkillReferenceInk.tint(colorScheme))
+            .frame(width: MentionPickerLayout.markSize, height: MentionPickerLayout.markSize)
+            .background(
+                Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.075),
+                in: RoundedRectangle(
+                    cornerRadius: MentionPickerLayout.markSize / 3,
+                    style: .continuous
+                )
+            )
+        // Reference-only kinds never reach a picker row; an identity mark is
+        // the safe stand-in if one ever does.
+        default:
             AvatarView(
                 name: option.label,
                 url: option.avatarURL,

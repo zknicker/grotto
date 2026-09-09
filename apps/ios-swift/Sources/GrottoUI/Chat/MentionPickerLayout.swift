@@ -12,9 +12,9 @@ struct MentionPickerSection: Identifiable, Equatable {
 
 /// How the mention card is built and measured.
 ///
-/// The trigger chooses the roster — `@` addresses Agents and humans, `#` addresses channels — and
-/// the typed term filters within it. What survives is grouped by kind, because a card that names
-/// its groups no longer has to repeat the kind on every row.
+/// The trigger chooses the roster — `@` addresses Agents and humans, `#` addresses channels, `$`
+/// addresses Skills — and the typed term filters within it. What survives is grouped by kind,
+/// because a card that names its groups no longer has to repeat the kind on every row.
 ///
 /// Everything here is pure: the view reads the sections and the heights it should lay out to.
 enum MentionPickerLayout {
@@ -38,9 +38,10 @@ enum MentionPickerLayout {
     /// How far up the card's bottom edge dissolves that cut row.
     static let fadeHeight: CGFloat = 30
 
-    /// Sections in the order the card renders them. Agents lead because the `@` roster is mostly
-    /// theirs; channels are alone under `#`.
-    static let kindOrder: [MentionPresentationKind] = [.agent, .human, .channel]
+    /// Sections in the order the card renders them, which is the Server's own roster order. Agents
+    /// lead because the `@` roster is mostly theirs; channels are alone under `#` and Skills under
+    /// `$`.
+    static let kindOrder: [MentionPresentationKind] = [.agent, .human, .channel, .skill]
 
     static var maxContentHeight: CGFloat { (maxVisibleRows * rowHeight) + headerHeight }
 
@@ -108,6 +109,9 @@ enum MentionPickerLayout {
         case .agent: "Agents"
         case .channel: "Channels"
         case .human: "Humans"
+        case .skill: "Skills"
+        // Reference-only kinds never reach a picker section.
+        default: ""
         }
     }
 
@@ -115,6 +119,9 @@ enum MentionPickerLayout {
         switch kind {
         case .channel: trigger == "#"
         case .agent, .human: trigger == "@"
+        case .skill: trigger == "$"
+        // Reference-only kinds never reach a picker section.
+        default: false
         }
     }
 }

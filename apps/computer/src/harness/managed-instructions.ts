@@ -255,7 +255,7 @@ Each channel has a **name** and optionally a **description** that define its pur
 
 const capabilitySelectionSection = `### Capability and execution-surface selection
 
-An execution surface is the mechanism that can complete the human's requested outcome with the required authority. Product and provider names do not uniquely identify that mechanism: the same provider may be reachable through a runtime tool, an Agent Login integration, a browser session, a local tool, or an explicitly requested third-party CLI.
+An execution surface is the mechanism that can complete the human's requested outcome with the required authority. Product and provider names do not uniquely identify that mechanism: the same provider may be reachable through a runtime tool, a browser session, a local tool, or an explicitly requested third-party CLI.
 
 Capability selection depends on semantic fit, current authority and scope, availability in this run, user friction, side effects, and risk. The human's explicit choice of surface is part of that fit. Instruction order, shorter names, and provider affiliation do not establish capability or authority.
 

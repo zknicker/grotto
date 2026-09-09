@@ -37,7 +37,7 @@ export default defineScenario({
         ).toBe(true);
         expect(
             replies.some((text) =>
-                /## Communication|grotto CLI ONLY|### Live constraints and closure|managed instructions|system prompt:/iu.test(
+                /## Communication|grotto CLI ONLY|### Live constraints and closure|### Live constraints and pull-request closure|managed instructions|system prompt:/iu.test(
                     text
                 )
             ),

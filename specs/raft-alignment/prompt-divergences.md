@@ -18,7 +18,7 @@ Grotto substitutes `grotto` for `raft` in every command name and `Grotto` for
 ## Prompt size budget
 
 `managed-instructions.test.ts` caps the composed prompt at 40,000 characters; today's render is
-39,971. That number is a reviewed ratchet, not a runtime limit — no adapter enforces a length
+39,943. That number is a reviewed ratchet, not a runtime limit — no adapter enforces a length
 (Codex developer instructions, the Claude Code system-prompt append, and Pi all accept more), and
 Raft 1.0.16 renders roughly 41,900 characters with no size guard of its own. The budget was
 introduced at 32,500 on 2026-08-18, raised seven times to 38,450, then lowered to 37,500 on
@@ -61,7 +61,7 @@ fixed part of the budget, so restoring them raised the cap by exactly the restor
 | Field | Was | Now |
 | --- | --- | --- |
 | Live constraints and pull-request closure | Two compressed paragraphs under `### Live constraints and closure` | Raft's full section: the four declaration/propagation/reception/action seats and the numbered closed-gate-set merge rule, under Raft's heading text at Grotto's `###` level |
-| Capability and execution-surface selection | Three shortened paragraphs, no inventory bullets, no sub-section | Raft's section body and its `#### Runtime tools and Server-managed MCP` sub-section verbatim, minus the Agent Login inventory bullet and the `#### Raft Agent Login integrations` block; Grotto's MCP-troubleshooting paragraph stays as a Grotto-only addition after them |
+| Capability and execution-surface selection | Three shortened paragraphs, no inventory bullets, no sub-section | Raft's section body and its `#### Runtime tools and Server-managed MCP` sub-section verbatim, minus the Agent Login inventory bullet, the `#### Raft Agent Login integrations` block, and the Agent Login clause in the surface-selection sentence; Grotto's MCP-troubleshooting paragraph stays as a Grotto-only addition after them |
 | Startup steps 1 and 5 | Shortened wording that preserved the requirement | Raft's wording verbatim |
 | Communication style closing paragraph | Contractions expanded, "Self-check:" lead-in dropped | Raft's wording verbatim |
 
@@ -96,7 +96,7 @@ product-noun substitution.
 | Discovering people and channels | Parity | — |
 | Channel awareness | Parity | — |
 | Third-party app message safety | Raft-only section — Grotto has no `type=third_party_app` sender kind | Deliberate — specs/messages.md sender kinds; revisit if Grotto ever admits external app senders |
-| Capability and execution-surface selection | Parity for the section body and `#### Runtime tools and Server-managed MCP` (restored 2026-09-09), with two documented subtractions and one addition: the Agent Login inventory bullet and the `#### Raft Agent Login integrations` block are omitted, the runtime-inventory bullet reads "It is not populated by the `grotto` CLI" in place of Raft's "`raft integration list`", and Grotto's MCP-troubleshooting paragraph follows | Deliberate — Grotto has no Integrations or Agent Login surface; specs/mcp.md, ADR 0017; gated by `mcp-granted-lookup` / `mcp-revoked-honest-failure` |
+| Capability and execution-surface selection | Parity for the section body and `#### Runtime tools and Server-managed MCP` (restored 2026-09-09), with three documented subtractions and one addition: the Agent Login inventory bullet and the `#### Raft Agent Login integrations` block are omitted, the surface-selection sentence drops ", an Agent Login integration" from its list of mechanisms a provider may be reachable through, the runtime-inventory bullet reads "It is not populated by the `grotto` CLI" in place of Raft's "`raft integration list`", and Grotto's MCP-troubleshooting paragraph follows | Deliberate — Raft-only mechanism: Grotto has no Integrations or Agent Login surface, so naming one would teach a surface an Agent cannot reach; specs/mcp.md, ADR 0017; gated by `mcp-granted-lookup` / `mcp-revoked-honest-failure` |
 | Reading history | Parity | — |
 | Historical references | Parity | — |
 | Tasks — decision rule, status flow, workflow steps 1–3, `task create`, creating new tasks | Parity | — |

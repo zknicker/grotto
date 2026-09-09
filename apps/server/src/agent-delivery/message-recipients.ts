@@ -86,25 +86,26 @@ export async function planAgentMessageRecipients(
     if (agentIds.length === 0) {
         return [];
     }
-    const [agents, mutes, follows] = await Promise.all([
-        db
-            .select({ handle: agentsTable.handle, id: agentsTable.id })
-            .from(agentsTable)
-            .where(
-                and(eq(agentsTable.serverId, input.serverId), inArray(agentsTable.id, agentIds))
-            ),
-        db
-            .select({ agentId: agentChannelMutesTable.agentId })
-            .from(agentChannelMutesTable)
-            .where(
-                and(
-                    eq(agentChannelMutesTable.serverId, input.serverId),
-                    eq(agentChannelMutesTable.chatId, parentChatId),
-                    inArray(agentChannelMutesTable.agentId, agentIds)
-                )
-            ),
+    // Sequential, not Promise.all: `db` is often the caller's transaction, and
+    // overlapping reads on that one connection deadlocked the send against the
+    // Server row lock the same transaction already held.
+    const agents = await db
+        .select({ handle: agentsTable.handle, id: agentsTable.id })
+        .from(agentsTable)
+        .where(and(eq(agentsTable.serverId, input.serverId), inArray(agentsTable.id, agentIds)));
+    const mutes = await db
+        .select({ agentId: agentChannelMutesTable.agentId })
+        .from(agentChannelMutesTable)
+        .where(
+            and(
+                eq(agentChannelMutesTable.serverId, input.serverId),
+                eq(agentChannelMutesTable.chatId, parentChatId),
+                inArray(agentChannelMutesTable.agentId, agentIds)
+            )
+        );
+    const follows =
         chat.kind === 'thread'
-            ? db
+            ? await db
                   .select({
                       agentId: agentThreadFollowsTable.agentId,
                       followed: agentThreadFollowsTable.followed,
@@ -117,8 +118,7 @@ export async function planAgentMessageRecipients(
                           inArray(agentThreadFollowsTable.agentId, agentIds)
                       )
                   )
-            : Promise.resolve([]),
-    ]);
+            : [];
     const muted = new Set(mutes.map((row) => row.agentId));
     const followByAgent = new Map(follows.map((row) => [row.agentId, row.followed]));
     const mentioned = mentionedAgentIds(input.content, agents);

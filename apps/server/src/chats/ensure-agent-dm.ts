@@ -18,30 +18,31 @@ export async function ensureAgentDmRecord(
 ) {
     await lockServerRow(db, input.serverId);
 
-    const [[standing], [agent]] = await Promise.all([
-        db
-            .select({ stint: serverMembershipsTable.stint })
-            .from(serverMembershipsTable)
-            .where(
-                and(
-                    eq(serverMembershipsTable.serverId, input.serverId),
-                    eq(serverMembershipsTable.userId, input.userId),
-                    isNull(serverMembershipsTable.revokedAt)
-                )
+    // Sequential, not Promise.all: `db` is often the caller's transaction, and
+    // overlapping reads on that one connection deadlocked the send against the
+    // Server row lock this function's own transaction already held.
+    const [standing] = await db
+        .select({ stint: serverMembershipsTable.stint })
+        .from(serverMembershipsTable)
+        .where(
+            and(
+                eq(serverMembershipsTable.serverId, input.serverId),
+                eq(serverMembershipsTable.userId, input.userId),
+                isNull(serverMembershipsTable.revokedAt)
             )
-            .limit(1),
-        db
-            .select({ id: agentsTable.id })
-            .from(agentsTable)
-            .where(
-                and(
-                    eq(agentsTable.serverId, input.serverId),
-                    eq(agentsTable.id, input.agentId),
-                    isNull(agentsTable.retiredAt)
-                )
+        )
+        .limit(1);
+    const [agent] = await db
+        .select({ id: agentsTable.id })
+        .from(agentsTable)
+        .where(
+            and(
+                eq(agentsTable.serverId, input.serverId),
+                eq(agentsTable.id, input.agentId),
+                isNull(agentsTable.retiredAt)
             )
-            .limit(1),
-    ]);
+        )
+        .limit(1);
 
     if (!(standing && agent)) {
         throw new AgentDmPeerNotFoundError();

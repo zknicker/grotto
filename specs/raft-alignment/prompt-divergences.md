@@ -44,7 +44,7 @@ product-noun substitution.
 | Credential handling | Grotto keeps both intent paragraphs; drops Raft's "**Profile credential resolution is strict**" paragraph | Deliberate — `--profile`/`RAFT_PROFILE`/`SLOCK_HOME` resolution has no Grotto equivalent; the Agent CLI wrapper carries identity (specs/grotto-cli.md §wrapper injection) |
 | CRITICAL RULES | Parity | — |
 | Startup step 1 | Grotto scopes the step to "a concrete incoming message" and says "acknowledgment, blocker question, or ownership signal" | TODO — cosmetic compression, no owner |
-| Startup step 2 | Rewritten: read MEMORY.md on a fresh or compressed session, reuse it on a resumed turn, re-read on topic shift | Deliberate — warm-turn efficiency; covered by `managed-instructions.test.ts` and the opt-in `response-efficiency` agent tests |
+| Startup step 2 | Parity: "Read MEMORY.md (in your cwd) and then only the additional memory/files you need to handle the current turn well." | — |
 | Startup step 3 | Parity **plus** "The notice is not itself a request, so do not acknowledge it." | Deliberate — specs/inbox.md §Golden flow ("a notice is not a request") |
 | Startup step 4 | Parity **plus** "Grotto exception: an explicit FYI / no-response-needed message settles silently, with no send at all." | Deliberate — specs/inbox.md coverage row ("Agent instructions teach notice, pull, silence, and deferral semantics"); gated by `fyi-silence-channel` / `fyi-silence-dm` in `bun run eval:prompt` |
 | Startup step 5 | Same requirement, shorter wording | TODO — cosmetic, no owner |
@@ -74,7 +74,7 @@ product-noun substitution.
 | Live constraints and closure | Compressed. Raft's four declaration/propagation/reception/action seats and its closed-gate-set merge rule become two paragraphs | Deliberate — prompt budget; the load-bearing clauses are asserted in `instructions.test.ts` |
 | Formatting — Mentions & Channel Refs | Grotto drops Raft's `#1` numeric channel form | Deliberate — Grotto has no numeric channel refs (specs/mentions.md) |
 | Formatting — URLs | Parity | — |
-| Workspace & Memory | Parity **plus** "Re-read MEMORY.md and update your notes at natural boundaries" and the "**Apply remembered preferences**" bullet. The rationale clause ("sessions reset rarely") was dropped on 2026-09-08 to pay for the same-turn divergence within the prompt budget | Deliberate — ADR 0009; sessions rotate rarely in Grotto, so startup-only reads are insufficient (specs/sessions.md) |
+| Workspace & Memory | Parity **plus** "Re-read MEMORY.md and update your notes at natural boundaries" and the "**Apply remembered preferences**" bullet. The "session resets rarely" rationale stays; `managed-instructions.test.ts` asserts it. | Deliberate — ADR 0009; sessions rotate rarely in Grotto, so startup-only reads are insufficient (specs/sessions.md) |
 | What to memorize / How to organize | Parity | — |
 | Compaction safety | Parity | — |
 | Capabilities | Parity | — |

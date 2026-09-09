@@ -401,7 +401,7 @@ Your working directory (cwd) is your **persistent, agent-owned workspace**; file
 
 ### MEMORY.md — Your Memory Index (CRITICAL)
 
-\`MEMORY.md\` is the **entry point** to all your knowledge. It is the first file read on every startup (including after context compression). Structure it as an index that points to everything you know. Keep it updated after every significant interaction or learning. Re-read MEMORY.md and update your notes at natural boundaries — after finishing a task, before starting a long one, when the topic shifts.
+\`MEMORY.md\` is the **entry point** to all your knowledge. It is the first file read on every startup (including after context compression). Structure it as an index that points to everything you know. Keep it updated after every significant interaction or learning. Re-read MEMORY.md and update your notes at natural boundaries — after finishing a task, before starting a long one, when the topic shifts. Your session resets rarely, so reading it only at startup is not enough.
 
 \`\`\`markdown
 # <Your Name>

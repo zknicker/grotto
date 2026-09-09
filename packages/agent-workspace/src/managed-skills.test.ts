@@ -41,11 +41,92 @@ test('restores visuals without removing authored or stale factory skills', async
 });
 
 /**
- * The design system teaches the app's own type scale and the published token
- * names from `agent-html/tokens.ts`. Both drift silently — an agent keeps
- * emitting 16px text or a retired token name long after the app moved.
+ * The taught vocabulary is a published contract: `agent-html/tokens.ts` emits
+ * these names into every frame, and the skill is the only place an agent
+ * learns them. A name that drifts out of one side and not the other is
+ * invisible until a visual renders unstyled.
  */
-test('visuals design system teaches the app type scale and published token names', () => {
+const taughtTokens = [
+    '--font-sans',
+    '--font-mono',
+    '--app-ui-font-size',
+    '--background',
+    '--surface',
+    '--surface-secondary',
+    '--surface-tertiary',
+    '--foreground',
+    '--muted-foreground',
+    '--foreground-tertiary',
+    '--border',
+    '--border-strong',
+    '--accent',
+    '--accent-foreground',
+    '--accent-bg',
+    '--success',
+    '--success-foreground',
+    '--success-bg',
+    '--warning',
+    '--warning-foreground',
+    '--warning-bg',
+    '--error',
+    '--error-foreground',
+    '--error-bg',
+    '--chart-1',
+    '--chart-5',
+    '--chart-grid',
+    '--chart-label',
+    '--radius',
+    '--radius-card',
+    '--pad-sm',
+    '--pad-md',
+    '--pad-lg',
+    '--gap-xs',
+    '--gap-sm',
+    '--gap-md',
+    '--gap-lg',
+];
+
+/**
+ * Retired names still resolve for content authored months ago, but teaching
+ * one keeps agents writing a vocabulary the design system no longer owns.
+ */
+const retiredTokens = [
+    '--brand',
+    '--info',
+    '--primary',
+    '--secondary',
+    '--card',
+    '--popover',
+    '--subtle',
+    '--destructive',
+    '--input',
+    '--ring',
+    '--foreground-quaternary',
+    '--font-heading',
+    '--app-code-font-size',
+    '--t-micro',
+    '--t-fast',
+    '--t-normal',
+    '--t-slow',
+    '--ease-out',
+    '--ease-in',
+    '--ease-standard',
+    '--radius-sm',
+    '--radius-md',
+    '--radius-lg',
+    '--radius-xl',
+    '--radius-2xl',
+    '--label-blue-fg',
+    '--label-gray-fg',
+    '--surface-shadow',
+    '--overlay-shadow',
+    '--ease-in-out-quad',
+    '--surface-2',
+    '--surface-3',
+    '--surface-4',
+];
+
+test('visuals design system teaches the app type scale', () => {
     const designSystem = visualsSkillFiles['references/design-system.md'] ?? '';
 
     expect(designSystem).toContain('The base body size is **14px**');
@@ -56,25 +137,33 @@ test('visuals design system teaches the app type scale and published token names
         'Metadata and compact labels: 11–12px. No font-size below 11px.'
     );
     expect(designSystem).not.toContain('16px, line-height 1.5');
+});
 
-    for (const token of [
-        '--app-ui-font-size',
-        '--app-code-font-size',
-        '--surface-secondary',
-        '--surface-tertiary',
-        '--ease-out',
-        '--ease-in',
-        '--ease-standard',
-    ]) {
+test('visuals design system teaches every published token name', () => {
+    const designSystem = visualsSkillFiles['references/design-system.md'] ?? '';
+
+    for (const token of taughtTokens) {
         expect(designSystem).toContain(token);
-    }
-
-    for (const retired of ['--ease-in-out-quad', '--surface-2', '--surface-3', '--surface-4']) {
-        expect(designSystem).not.toContain(retired);
     }
 });
 
-test('visuals skill states the 14px visual frame text size', () => {
+test('no visuals skill file teaches a retired token name', () => {
+    const taught = [
+        defaultVisualsSkill,
+        visualsSkillFiles['references/design-system.md'] ?? '',
+        visualsSkillFiles['references/icons.md'] ?? '',
+    ];
+
+    for (const source of taught) {
+        for (const retired of retiredTokens) {
+            expect(source).not.toContain(retired);
+        }
+    }
+});
+
+test('visuals skill states the visual frame facts', () => {
+    expect(defaultVisualsSkill).toContain('16px padding');
+    expect(defaultVisualsSkill).toContain('the app font');
     expect(defaultVisualsSkill).toContain('14px text');
     expect(defaultVisualsSkill).not.toContain('Tavern');
 });

@@ -77,12 +77,11 @@ around the ceiling by drawing a "bigger custom icon".
 ## Color
 
 - Default: `currentColor`, inheriting the text color of the context
-  (`--foreground` for high-emphasis, `--muted-foreground` /
-  `--foreground-tertiary` for supporting icons)
-- Semantic overrides only: destructive `--error`, success `--success`,
-  warning `--warning`, disabled `--foreground-quaternary`
-- Icons are UI chrome under the ink-first rule — never a chart series color
-  or `--brand` for a generic icon
+  (`--foreground` for high-emphasis, `--muted-foreground` for supporting
+  icons, `--foreground-tertiary` for disabled)
+- Semantic overrides only: `--error`, `--success`, `--warning`
+- Icons are UI chrome under the ink-over-hue rule — never a chart series
+  color, never `--accent` for a generic icon
 
 ## Accessibility
 

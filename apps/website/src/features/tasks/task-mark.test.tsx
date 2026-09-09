@@ -42,12 +42,25 @@ test('a claim that was already finished never marks the message', () => {
     expect(markup).toBe('');
 });
 
-test('a tracked task carries no claim mark at all', () => {
+test('a task whose Thread surface already states it carries no mark at all', () => {
     const markup = renderToStaticMarkup(
-        <TaskClaimMark assignee={blippy} task={facts({ live: true, tier: 'tracked' })} />
+        <TaskClaimMark assignee={blippy} task={facts({ live: true, threadStatesTask: true })} />
     );
 
     expect(markup).toBe('');
+});
+
+test('a task waiting on review or on somebody wears its status disc', () => {
+    const review = renderToStaticMarkup(
+        <TaskClaimMark assignee={blippy} task={facts({ status: 'in_review' })} />
+    );
+    const todo = renderToStaticMarkup(
+        <TaskClaimMark assignee={null} task={facts({ status: 'todo' })} />
+    );
+
+    expect(review).toContain('Task #4 in review');
+    expect(todo).toContain('Task #4 todo');
+    expect(todo).not.toContain('task-live-ellipsis');
 });
 
 test('the claim card names the claimant and offers the one honest way in', () => {
@@ -91,7 +104,7 @@ function facts(overrides: Partial<TaskMarkFacts>): TaskMarkFacts {
         live: false,
         number: 4,
         status: 'in_progress',
-        tier: 'background',
+        threadStatesTask: false,
         updatedAt: '2026-09-08T12:00:20.000Z',
         ...overrides,
     };

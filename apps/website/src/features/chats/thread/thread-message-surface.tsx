@@ -62,7 +62,8 @@ export function ThreadMessageSurface({
     // one turn. Only its own claimant speaking in its Thread makes it tracked,
     // so a claim can carry a whole conversation of peers and bystanders and
     // still be bookkeeping: the surface holds their replies but withholds the
-    // task's title, which would read as a commitment nobody made.
+    // task's title, which would read as a commitment nobody made. Tier decides
+    // that title alone; whether the surface appears at all is the Thread's.
     const surfaceTask = task?.tier === 'background' ? null : task;
     const marks = (
         <ThreadSurfaceMarks row={row} task={surfaceTask} work={canOpenThread ? work : null} />
@@ -74,7 +75,6 @@ export function ThreadMessageSurface({
         ask: Boolean(row.message.ask),
         hoisted: hoisted.length > 0,
         threadHasMessages: (getTranscriptMessageThread(row)?.replyCount ?? 0) > 0,
-        tracked: Boolean(surfaceTask),
         work: Boolean(work),
     });
 
@@ -155,26 +155,25 @@ function ThreadSurfaceMarks({
  *
  * The surface is the Thread's own card, so a Thread that holds anything gets
  * one whatever the anchor's task is: a peer or a bystander replying under a
- * background claim is exactly the chatter a Thread exists to hold, and it
- * reads as an ordinary conversation. Before the first reply the card appears
- * only for a mark that needs somewhere to sit — a tracked task, an Ask, Cloud
- * Agent work — so a background claim with an empty Thread renders no surface
- * at all, its claim mark in the message header saying the whole of it.
+ * claim is exactly the chatter a Thread exists to hold, and it reads as an
+ * ordinary conversation. Before the first reply the card appears only for a
+ * mark with nowhere else to sit — an Ask, Cloud Agent work — so a task with an
+ * empty Thread renders no surface at all, whatever its tier, its mark in the
+ * message header saying the whole of it. An empty card announcing "0 replies"
+ * is the one thing the surface must never be.
  */
 export function threadSurfaceVisible({
     ask,
     hoisted,
     threadHasMessages,
-    tracked,
     work,
 }: {
     ask: boolean;
     hoisted: boolean;
     threadHasMessages: boolean;
-    tracked: boolean;
     work: boolean;
 }): boolean {
-    return threadHasMessages || tracked || ask || work || hoisted;
+    return threadHasMessages || ask || work || hoisted;
 }
 
 /**

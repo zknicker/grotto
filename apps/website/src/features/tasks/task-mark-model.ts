@@ -1,21 +1,28 @@
 import { formatRelativeTime } from '../../lib/format.ts';
-import type { TaskStatus, TaskTier } from './task-presentation.ts';
+import type { TaskStatus } from './task-presentation.ts';
 
 /**
- * What a background claim looks like on the messages it touched.
+ * What a task looks like on the messages it touched, while its Thread is empty.
  *
- * A background claim is an Agent's lock on work it means to finish inside one
- * turn. Only its own claimant speaking in its Thread makes it tracked, so it
- * stays background however much its peers say there, and it never takes the
- * task chip on a Thread surface — the whole of it reads as one mark in a
- * message header, and this module is the one place those marks are decided.
- * Nothing here reads the Thread: a claim with replies wears the same marks as
- * a claim with none.
+ * A Thread that holds anything states its task in the chip on its own recessed
+ * surface, where the lifecycle can be followed. Until somebody says something
+ * there, that surface would be an empty frame — so the whole of the task reads
+ * as one mark in the header of the message it was claimed or promoted against,
+ * and this module is the one place those marks are decided.
  *
- * A tracked task is deliberately absent from this vocabulary: it states itself
- * in the task chip on its Thread surface, where its lifecycle can be followed.
+ * Tier says nothing here. An Agent's own background claim and a task a person
+ * promoted wear the same mark for the same status, because what leaves the
+ * header the only place to say it is the empty Thread, not the lens the task
+ * belongs to.
  */
-export type TaskClaimMarkState = 'done' | 'idle' | 'interrupted' | 'live' | 'none';
+export type TaskClaimMarkState =
+    | 'done'
+    | 'idle'
+    | 'in_review'
+    | 'interrupted'
+    | 'live'
+    | 'none'
+    | 'todo';
 
 /** The task facts the marks read, however a surface spells its task. */
 export interface TaskMarkFacts {
@@ -29,7 +36,14 @@ export interface TaskMarkFacts {
      */
     runFailed?: boolean;
     status: TaskStatus;
-    tier: TaskTier;
+    /**
+     * Whether the task's own Thread surface states it. A Thread with replies
+     * carries the task's chip in its header, so the message header stays
+     * quiet; an empty Thread renders no surface at all, and a background
+     * claim's surface withholds the title however full its Thread is, so both
+     * leave the message header the only place the task can say itself.
+     */
+    threadStatesTask: boolean;
     /** Last write to the task row; for a finished claim, when it finished. */
     updatedAt: string;
 }
@@ -37,19 +51,18 @@ export interface TaskMarkFacts {
 /**
  * The mark on the human's anchor message.
  *
- * `done` is the settling frame, not a resting state: the claim's mark leaves
- * the human's message once the work lands, and the Agent's own reply carries
- * the receipt from then on.
+ * The status says which glyph, and liveness says whether anybody is standing
+ * there now. `done` is the settling frame, not a resting state: the mark leaves
+ * the anchor once the work lands, and the Agent's own reply carries the receipt
+ * from then on. A closed task says nothing — nothing about it is still moving —
+ * and neither does a task whose Thread surface already speaks for it.
  */
 export function taskClaimMarkState(task: TaskMarkFacts): TaskClaimMarkState {
-    if (task.tier !== 'background') {
+    if (task.threadStatesTask || task.status === 'closed') {
         return 'none';
-    }
-    if (task.status === 'done') {
-        return 'done';
     }
     if (task.status !== 'in_progress') {
-        return 'none';
+        return task.status;
     }
     if (task.live) {
         return 'live';
@@ -85,15 +98,15 @@ export interface HandledTaskMark {
 }
 
 /**
- * Which reply closed which background claim, across the loaded transcript.
+ * Which reply closed which task, across the loaded transcript.
  *
- * The wire carries no link from a finished claim back to the message that
+ * The wire carries no link from a finished task back to the message that
  * answered it: `message_tasks` names the assignee and when the row last
  * changed, and nothing on a Chat message names a task it resolved. So the rule
- * is nearest-following: a done background claim attaches to the first later
- * message its assignee Agent wrote in this Chat, and a message already
- * carrying a claim of its own is skipped, so one header never speaks for two
- * tasks. Claims are matched in order, so an Agent that closed two claims in
+ * is nearest-following: a done task no Thread surface states attaches to the
+ * first later message its assignee Agent wrote in this Chat, and a message already
+ * carrying a task of its own is skipped, so one header never speaks for two
+ * tasks. Tasks are matched in order, so an Agent that closed two of them in
  * one visit puts a receipt on each of its next two messages.
  *
  * That is a heuristic, and it is wrong in exactly one shape: an Agent that
@@ -129,7 +142,11 @@ export function deriveHandledTaskMarks(
     return marks;
 }
 
-/** The claim this message anchors, if it is a finished background claim. */
+/**
+ * The task this message anchors, if it finished with no Thread surface stating
+ * it. A surface that carries the task's chip carries its outcome too, so no
+ * reply elsewhere in the transcript claims it.
+ */
 function claimAwaitingReceipt(
     message: HandledTaskMarkMessage
 ): { agentId: string; mark: HandledTaskMark } | null {
@@ -138,7 +155,7 @@ function claimAwaitingReceipt(
     if (!task || task.assigneeAgentId === null) {
         return null;
     }
-    if (task.tier !== 'background' || task.status !== 'done') {
+    if (task.threadStatesTask || task.status !== 'done') {
         return null;
     }
 
@@ -191,8 +208,8 @@ export function taskClaimDurationMs(claimedAt: string | null, doneAt: string): n
 
 /**
  * How long a claim was held. Seconds matter here in a way they never do for a
- * session: the whole point of a background claim is that the work fit inside
- * one turn, so "18s" is the answer and "under a minute" is not.
+ * session: a task answered inside one turn is measured in them, so "18s" is
+ * the answer and "under a minute" is not.
  */
 export function formatTaskDuration(durationMs: number): string {
     const seconds = Math.round(durationMs / 1000);

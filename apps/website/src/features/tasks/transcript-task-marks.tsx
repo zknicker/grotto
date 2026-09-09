@@ -1,14 +1,17 @@
 import type { TranscriptItem } from '../chats/chat-transcript-model.ts';
-import { useTranscriptRenderContextOptional } from '../chats/chat-transcript-render-context.tsx';
+import {
+    getTranscriptMessageThread,
+    useTranscriptRenderContextOptional,
+} from '../chats/chat-transcript-render-context.tsx';
 import type { TranscriptMessageRow } from '../chats/transcript-contract.ts';
 import { type TaskClaimAssignee, TaskClaimMark } from './task-claim-mark.tsx';
 import { TaskHandledMark } from './task-handled-mark.tsx';
-import { messageTaskAssigneeLabel } from './task-presentation.ts';
+import { messageTaskAssigneeLabel, type TaskTier } from './task-presentation.ts';
 
 /**
- * The claim mark as a transcript row renders it: the claim on this message, if
- * it is a background one, with its claimant resolved through the same actor
- * resolver every other row reads.
+ * The task mark as a transcript row renders it: the task on this message while
+ * nothing has been said in its Thread, with its claimant resolved through the
+ * same actor resolver every other row reads.
  */
 export function TranscriptTaskClaimMark({ row }: { row: TranscriptMessageRow }) {
     const context = useTranscriptRenderContextOptional();
@@ -28,7 +31,7 @@ export function TranscriptTaskClaimMark({ row }: { row: TranscriptMessageRow }) 
                 live: task.live,
                 number: task.number,
                 status: task.status,
-                tier: task.tier,
+                threadStatesTask: threadStatesTask(row, task.tier),
                 updatedAt: task.updated_at,
             }}
         />
@@ -60,6 +63,19 @@ export function TranscriptTaskHandledMark({ messageId }: { messageId: string }) 
     );
 }
 
+/**
+ * Whether the recessed surface under this message carries the task's chip. It
+ * appears only once the Thread holds something, and a background claim's
+ * surface withholds the title however full its Thread is — so in both cases
+ * the message header is the only place left to state the task.
+ */
+function threadStatesTask(row: TranscriptMessageRow, tier: TaskTier): boolean {
+    if (tier === 'background') {
+        return false;
+    }
+    return (getTranscriptMessageThread(row)?.replyCount ?? 0) > 0;
+}
+
 function resolveClaimAssignee(
     task: NonNullable<TranscriptMessageRow['message']['task']>,
     context: ReturnType<typeof useTranscriptRenderContextOptional>
@@ -86,9 +102,9 @@ function resolveClaimAssignee(
 }
 
 /**
- * The turn's own background claim, if it carries one. A message with a task
- * always stands as its own row, so a turn header speaks for at most one claim
- * and never puts a second message's mark on the first message's line.
+ * The turn's own task mark, if it carries one. A message with a task always
+ * stands as its own row, so a turn header speaks for at most one task and
+ * never puts a second message's mark on the first message's line.
  */
 export function TranscriptTurnTaskClaimMark({ items }: { items: TranscriptItem[] }) {
     for (const item of items) {
@@ -100,7 +116,7 @@ export function TranscriptTurnTaskClaimMark({ items }: { items: TranscriptItem[]
     return null;
 }
 
-/** The receipt for a claim one of this turn's messages answered. */
+/** The receipt for a task one of this turn's messages answered. */
 export function TranscriptTurnTaskHandledMark({ items }: { items: TranscriptItem[] }) {
     const marks = useTranscriptRenderContextOptional()?.handledTaskMarks;
 

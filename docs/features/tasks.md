@@ -154,30 +154,36 @@ session marks explain how the message came to be said
 ([ADR 0026](../adr/0026-automation-provenance-rides-the-agents-message.md)).
 
 The chip is a label, not a second target: the whole surface is one button into the Thread, named for
-what it opens (`Open thread, Task #1, 2 replies`). Because the chip lives there, the surface appears
-as soon as a tracked task does, and replies fill in beneath it rather than changing the card. While
+what it opens (`Open thread, Task #1, 2 replies`). The surface is the Thread's own card, so it
+appears once that Thread holds a reply and never as an empty frame announcing `0 replies`; the chip
+states the task there from the first reply on. While
 the task's assignee Agent is running a turn on it (`live`), the chip's status disc gives way to a
 breathing ellipsis — the one moving thing in that header — because a disc says a task is unfinished
 and only the ellipsis says somebody is on it right now. When the task's Thread contains queued or
 running [Cloud Agent work](../../specs/cloud-agents.md), that work's status trails the chip in the
 same header.
 
-A **background claim** never takes the chip on that surface, and gets no surface at all until its
-Thread holds something: only its own claimant posting there makes it tracked, so peers and
-bystanders can fill the Thread while the task stays bookkeeping — their replies read as the ordinary
-recessed card, without the task's title, and an empty Thread renders no card at all.
-It states the whole of itself as one mark in the header of the message it was claimed against,
-after the time: the claimant's face and the same working ellipsis while their run holds it, the
-ordinary in-progress glyph when nobody is on it, and that glyph in the caution tone when a run
-stopped while still holding the claim. Hovering names the task, who claimed it and when, and offers
-**Open task**; there is no convert action, because tier is inferred from evidence and no mutation
-stamps a task tracked without also moving its status — the claimant working in the task's Thread is
-what promotes it. When the claim finishes, the mark settles into the done glyph and then
-leaves the anchor: the question is answered, so nothing there is still pending. The Agent's own
-reply carries `handled #N` from then on, hovering to when the claim was taken, how long it was
-held, and when it landed. No first-party read links a finished claim to the message that answered
-it, so the App marks the first message that Agent wrote after taking the claim; an Agent that
-finishes a claim and stays silent until some later turn marks that later message.
+Until that card exists the task has nowhere to live, so it states the whole of itself as one **task
+mark** in the header of the message it was claimed or promoted against, after the time — whatever
+its tier. The mark reads status and liveness: the claimant's face and the same working ellipsis
+while their run holds it, the in-progress glyph when nobody is on it, that glyph in the caution tone
+when a run stopped while still holding the claim, the in-review or todo disc for a task waiting on a
+look or on somebody to take it, and nothing at all once a task is closed. Hovering names the task,
+who holds it and since when, and offers **Open task**; there is no convert action, because tier is
+inferred from evidence and no mutation stamps a task tracked without also moving its status — the
+claimant working in the task's Thread is what promotes it. When the task finishes, the mark settles
+into the done glyph and then leaves the anchor: the question is answered, so nothing there is still
+pending. The assignee's own reply carries `handled #N` from then on, hovering to when the task was
+claimed, how long it was held, and when it landed. No first-party read links a finished task to the
+message that answered it, so the App marks the first message that Agent wrote after taking it; an
+Agent that finishes a task and stays silent until some later turn marks that later message.
+
+A **background claim** never takes the chip on that surface: only its own claimant posting there
+makes it tracked, so peers and bystanders can fill the Thread while the task stays bookkeeping —
+their replies read as the ordinary recessed card, without the task's title, which would be a
+commitment nobody made. Because that card never states the claim, the claim keeps its header mark
+and its `handled #N` receipt however full its Thread is. Tier decides that one title, and otherwise
+stays a lens on the Board and List rather than a mark in Chat.
 
 Opening the task's Thread states it in full in the metadata panel above the anchor, so the anchor
 drops its own chip there.

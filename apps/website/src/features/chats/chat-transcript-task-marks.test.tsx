@@ -13,7 +13,7 @@ import type { TranscriptRow } from './chat-transcript-model.ts';
 import type { TranscriptRenderContextValue } from './chat-transcript-render-context.tsx';
 import type { TranscriptMessageRow } from './transcript-contract.ts';
 
-test('every promoted message in a run keeps its own task chip', () => {
+test('every promoted message in a run keeps its own task mark', () => {
     // A turn's header speaks for one task, so a promoted message must open a
     // turn of its own. Let two consecutive promotions merge and the second
     // task loses its mark while the first header speaks for both.
@@ -88,15 +88,60 @@ test('a finished background claim leaves the message it was claimed against', ()
     assert.doesNotMatch(markup, /message-task-chip/);
 });
 
-test('a tracked task states itself in its Thread surface before the first reply', () => {
+test('a tracked task with an empty Thread is a header mark and nothing else', () => {
     const markup = renderTranscript([taskRow('msg_1', 'Ship the board', { number: 3 })]);
+
+    // Tier is a lens, not a mark: an empty Thread has nothing to put in a card.
+    assert.match(markup, /task-claim-mark/);
+    assert.match(markup, /Task #3 todo/);
+    assert.doesNotMatch(markup, /message-task-chip/);
+    assert.doesNotMatch(markup, /Open thread/);
+});
+
+test('a tracked task waiting on review wears the in-review disc', () => {
+    const markup = renderTranscript([
+        taskRow('msg_1', 'Ship the board', { number: 3, status: 'in_review' }),
+    ]);
+
+    assert.match(markup, /task-claim-mark/);
+    assert.match(markup, /Task #3 in review/);
+    assert.match(markup, /--label-purple-fg/);
+});
+
+test('a tracked task hands the surface its title once somebody replies', () => {
+    const row = taskRow('msg_1', 'Ship the board', { number: 3, status: 'in_progress' });
+    const markup = renderTranscript([{ ...row, thread: threadSummary('msg_1', 1) }]);
 
     assert.match(markup, /message-task-chip/);
     assert.match(markup, /Open thread/);
+    // The card states the task, so the message header stops repeating it.
     assert.doesNotMatch(markup, /task-claim-mark/);
 });
 
-test('the reply that answered a claim carries its receipt', () => {
+test('a finished tracked task leaves the anchor for its reply’s receipt', () => {
+    const markup = renderTranscript(
+        [taskRow('msg_1', 'Ship the board', { number: 4, status: 'done' }), agentRow('msg_reply')],
+        {
+            handledTaskMarks: new Map([
+                [
+                    'msg_reply',
+                    {
+                        anchorMessageId: 'msg_1',
+                        claimedAt: '2026-09-08T12:00:00.000Z',
+                        doneAt: '2026-09-08T12:00:20.000Z',
+                        number: 4,
+                    },
+                ],
+            ]),
+        }
+    );
+
+    assert.match(markup, /handled #4/);
+    assert.doesNotMatch(markup, /task-claim-mark/);
+    assert.doesNotMatch(markup, /Open thread/);
+});
+
+test('the reply that answered a task carries its receipt', () => {
     const markup = renderTranscript([agentRow('msg_reply')], {
         handledTaskMarks: new Map([
             [

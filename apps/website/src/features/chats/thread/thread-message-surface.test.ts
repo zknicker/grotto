@@ -20,11 +20,10 @@ describe('thread surface visibility', () => {
         ask: false,
         hoisted: false,
         threadHasMessages: false,
-        tracked: false,
         work: false,
     };
 
-    test('a background claim with an empty Thread renders no surface', () => {
+    test('a task with an empty Thread renders no surface, whatever its tier', () => {
         expect(threadSurfaceVisible(nothing)).toBe(false);
     });
 
@@ -33,7 +32,6 @@ describe('thread surface visibility', () => {
     });
 
     test('a mark that needs somewhere to sit opens the surface before the first reply', () => {
-        expect(threadSurfaceVisible({ ...nothing, tracked: true })).toBe(true);
         expect(threadSurfaceVisible({ ...nothing, ask: true })).toBe(true);
         expect(threadSurfaceVisible({ ...nothing, work: true })).toBe(true);
         expect(threadSurfaceVisible({ ...nothing, hoisted: true })).toBe(true);

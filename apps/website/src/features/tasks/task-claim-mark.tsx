@@ -12,7 +12,7 @@ import {
     taskClaimMarkState,
     taskMarkMotion,
 } from './task-mark-model.ts';
-import { formatTaskNumber, taskStatusDiscClasses } from './task-presentation.ts';
+import { formatTaskNumber, taskStatusDiscClasses, taskStatusLabels } from './task-presentation.ts';
 import { TaskStatusDisc } from './task-status-disc.tsx';
 
 export interface TaskClaimAssignee {
@@ -21,13 +21,13 @@ export interface TaskClaimAssignee {
 }
 
 /**
- * An Agent has taken this message and is working on it.
+ * The task on this message, while its Thread is empty.
  *
- * A background claim never takes the task chip on a recessed surface, whether
- * or not its Thread has replies — it says the whole of itself here, in the
- * header of the message it was claimed against, after the time: a face and an
- * ellipsis while the run holds it, the ordinary in-progress glyph when nobody
- * is on it, and nothing once the Agent's own reply carries the receipt.
+ * A task with nothing said in its Thread has no card to live in, so it says the
+ * whole of itself here, in the header of the message it was claimed or promoted
+ * against, after the time: a face and an ellipsis while a run holds it, the
+ * status disc when nobody is on it, and nothing once the work lands and the
+ * Agent's own reply carries the receipt.
  */
 export function TaskClaimMark({
     assignee,
@@ -101,6 +101,10 @@ function TaskClaimGlyph({
         );
     }
 
+    if (state === 'in_review' || state === 'todo') {
+        return <TaskStatusDisc className="size-3.5" status={state} />;
+    }
+
     return (
         <TaskStatusDisc
             className={cn('size-3.5', state === 'interrupted' && 'text-warning')}
@@ -110,7 +114,7 @@ function TaskClaimGlyph({
 }
 
 /**
- * The claim in words: who holds it, since when, and the one way in.
+ * The task in words: who holds it, since when, and the one way in.
  *
  * There is no "convert to tracked task" action here. Tier is inferred from
  * evidence rather than declared, and no first-party mutation stamps a task
@@ -136,14 +140,14 @@ export function TaskClaimHoverContent({
                 {assignee ? (
                     <EntityAvatar name={assignee.name} size={24} src={assignee.avatarUrl} />
                 ) : (
-                    <TaskStatusDisc className="size-5" status="in_progress" />
+                    <TaskStatusDisc className="size-5" status={task.status} />
                 )}
                 <strong className="min-w-0 truncate font-semibold text-foreground text-sm">
                     Task {formatTaskNumber(task)}
                 </strong>
             </header>
             <p className="text-muted text-sm leading-snug">
-                {assignee ? `Claimed by ${assignee.name}` : 'Claimed'}
+                {claimOwnerLine(assignee, task)}
                 {claimedAt === null ? null : (
                     <>
                         {' · '}
@@ -193,6 +197,14 @@ function useClaimSettle(state: TaskClaimMarkState, settleMs: number) {
     return settling && state === 'done';
 }
 
+/** Who holds the task, without claiming somebody does when nobody has. */
+function claimOwnerLine(assignee: TaskClaimAssignee | null, task: TaskMarkFacts): string {
+    if (assignee) {
+        return `Claimed by ${assignee.name}`;
+    }
+    return task.status === 'todo' ? 'Unclaimed' : 'Claimed';
+}
+
 function claimStateNote(state: TaskClaimMarkState): string {
     switch (state) {
         case 'live':
@@ -201,6 +213,10 @@ function claimStateNote(state: TaskClaimMarkState): string {
             return 'The run holding this claim stopped before it finished.';
         case 'done':
             return 'Finished.';
+        case 'in_review':
+            return 'Waiting on a look.';
+        case 'todo':
+            return 'Nobody has taken this yet.';
         default:
             return 'Claimed, waiting on its next turn.';
     }
@@ -221,6 +237,9 @@ function claimMarkLabel(
     }
     if (state === 'interrupted') {
         return `Task ${formatTaskNumber(task)} claimed${owner}, run interrupted`;
+    }
+    if (state === 'in_review' || state === 'todo') {
+        return `Task ${formatTaskNumber(task)} ${taskStatusLabels[state].toLowerCase()}${owner}`;
     }
     return `Task ${formatTaskNumber(task)} claimed${owner}`;
 }

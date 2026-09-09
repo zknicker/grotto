@@ -105,7 +105,7 @@ export function useChatTranscript({
         () => new Map(agentList.map((agent) => [agent.id, agent])),
         [agentList]
     );
-    const { handledTaskMarks, sessionMarks } = useTranscriptMarks(messageList);
+    const { handledTaskMarks, sessionMarks } = useTranscriptMarks(messageList, threads);
     // All work delegated inside a Thread, indexed by that Thread's anchor: the
     // transcript surface owns this read, and each row only looks its own
     // Message up. `cloud-agent-work.updated` already invalidates the list.

@@ -10,29 +10,36 @@ import {
     taskMarkMotion,
 } from './task-mark-model.ts';
 
-test('a live background claim reads as work happening now', () => {
+test('a live claim reads as work happening now', () => {
     expect(taskClaimMarkState(facts({ live: true }))).toBe('live');
 });
 
-test('a background claim nobody is running reads as idle', () => {
+test('a claim nobody is running reads as idle', () => {
     expect(taskClaimMarkState(facts({}))).toBe('idle');
     expect(taskClaimMarkState(facts({ runFailed: true }))).toBe('interrupted');
 });
 
-test('a finished background claim settles and then leaves the anchor', () => {
+test('a finished claim settles and then leaves the anchor', () => {
     expect(taskClaimMarkState(facts({ status: 'done' }))).toBe('done');
     // Liveness cannot outrank the outcome: a settled claim is settled.
     expect(taskClaimMarkState(facts({ live: true, status: 'done' }))).toBe('done');
 });
 
-test('a tracked task states itself in its Thread surface, never as a claim mark', () => {
-    expect(taskClaimMarkState(facts({ tier: 'tracked' }))).toBe('none');
-    expect(taskClaimMarkState(facts({ live: true, tier: 'tracked' }))).toBe('none');
+test('a task with an empty Thread wears its mark whatever its tier', () => {
+    // Tier is a lens, not a mark: the empty Thread is what leaves the header
+    // the only place the task can state itself.
+    expect(taskClaimMarkState(facts({ live: true }))).toBe('live');
+    expect(taskClaimMarkState(facts({ status: 'in_review' }))).toBe('in_review');
+    expect(taskClaimMarkState(facts({ status: 'todo' }))).toBe('todo');
 });
 
-test('a status outside the claim lifecycle carries no claim mark', () => {
-    expect(taskClaimMarkState(facts({ status: 'in_review' }))).toBe('none');
-    expect(taskClaimMarkState(facts({ status: 'todo' }))).toBe('none');
+test('a task its Thread surface states carries no header mark', () => {
+    expect(taskClaimMarkState(facts({ live: true, threadStatesTask: true }))).toBe('none');
+    expect(taskClaimMarkState(facts({ status: 'done', threadStatesTask: true }))).toBe('none');
+    expect(taskClaimMarkState(facts({ status: 'todo', threadStatesTask: true }))).toBe('none');
+});
+
+test('a closed task has nothing left moving to mark', () => {
     expect(taskClaimMarkState(facts({ status: 'closed' }))).toBe('none');
 });
 
@@ -42,7 +49,7 @@ test('only in-progress liveness replaces a status glyph with the ellipsis', () =
     expect(isTaskWorkingNow({ live: true, status: 'done' })).toBe(false);
 });
 
-test('a finished claim hands its receipt to the assignee’s next message', () => {
+test('a finished task hands its receipt to the assignee’s next message', () => {
     const marks = deriveHandledTaskMarks([
         human('msg_ask', { assigneeAgentId: 'agt_blippy', status: 'done' }),
         human('msg_unrelated', null),
@@ -60,7 +67,7 @@ test('a finished claim hands its receipt to the assignee’s next message', () =
     });
 });
 
-test('two claims closed in one visit take the next two replies, in order', () => {
+test('two tasks closed in one visit take the next two replies, in order', () => {
     const marks = deriveHandledTaskMarks([
         human('msg_first', { assigneeAgentId: 'agt_blippy', number: 1, status: 'done' }),
         human('msg_second', { assigneeAgentId: 'agt_blippy', number: 2, status: 'done' }),
@@ -72,10 +79,14 @@ test('two claims closed in one visit take the next two replies, in order', () =>
     expect(marks.get('msg_reply_two')?.number).toBe(2);
 });
 
-test('an unfinished, tracked, or unassigned claim hands out no receipt', () => {
+test('an unfinished, discussed, or unassigned task hands out no receipt', () => {
     const open = deriveHandledTaskMarks([
         human('msg_open', { assigneeAgentId: 'agt_blippy' }),
-        human('msg_tracked', { assigneeAgentId: 'agt_blippy', status: 'done', tier: 'tracked' }),
+        human('msg_discussed', {
+            assigneeAgentId: 'agt_blippy',
+            status: 'done',
+            threadStatesTask: true,
+        }),
         human('msg_unassigned', { status: 'done' }),
         agent('msg_answer', 'agt_blippy'),
     ]);
@@ -83,7 +94,16 @@ test('an unfinished, tracked, or unassigned claim hands out no receipt', () => {
     expect(open.size).toBe(0);
 });
 
-test('a reply that is itself a claim keeps its own mark instead of a receipt', () => {
+test('a tracked task that finished with an empty Thread still hands out a receipt', () => {
+    const marks = deriveHandledTaskMarks([
+        human('msg_ask', { assigneeAgentId: 'agt_blippy', status: 'done' }),
+        agent('msg_answer', 'agt_blippy'),
+    ]);
+
+    expect(marks.get('msg_answer')?.number).toBe(4);
+});
+
+test('a reply that is itself a task keeps its own mark instead of a receipt', () => {
     const marks = deriveHandledTaskMarks([
         human('msg_ask', { assigneeAgentId: 'agt_blippy', status: 'done' }),
         {
@@ -152,7 +172,7 @@ function taskFacts(overrides: Partial<TaskMarkFacts & { assigneeAgentId: string 
         live: false,
         number: 4,
         status: 'in_progress' as const,
-        tier: 'background' as const,
+        threadStatesTask: false,
         updatedAt: '2026-09-08T12:00:20.000Z',
         ...overrides,
     };

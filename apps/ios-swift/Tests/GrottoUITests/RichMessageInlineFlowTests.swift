@@ -10,22 +10,24 @@ import AppKit
 #endif
 
 /// A mention is a run of the sentence: the same font, the same size, the same
-/// baseline, with the capsule painted behind it. Everything asserted here is
-/// what keeps that true — the runs the text engine is handed, the room the
-/// capsule reserves inside them, and the line box neither may touch.
+/// baseline, with the mark painted before it and the dotted rule under it.
+/// Everything asserted here is what keeps that true — the runs the text engine
+/// is handed, the room the mark reserves inside them, and the line box neither
+/// the mark nor the rule may touch.
 @MainActor
 struct RichMessageInlineFlowTests {
     private let lead = "Can you finish the Merchbase MCP connection for"
     private let tail = ", then ping me and we can ship it today and tomorrow."
 
-    @Test func writesTheLabelAsTextBetweenTwoSpacers() {
-        let metrics = sanFrancisco(pointSize: 17)
+    @Test func writesTheLabelAsTextAfterOneSpacer() {
+        let metrics = RichReferenceMetricsFixture.sanFrancisco(pointSize: 17)
         let body = attributedString([.text("Ping "), .reference(marlow), .text(" today.")], metrics: metrics)
-        let geometry = RichReferenceCapsuleGeometry(metrics: metrics)
+        let geometry = RichReferenceMarkGeometry(metrics: metrics)
 
-        // "Ping " + spacer + "Marlow" + spacer + " today.", each spacer an
-        // attachment held against the label by a word joiner.
-        #expect(body.string == "Ping \u{FFFC}\u{2060}Marlow\u{2060}\u{FFFC} today.")
+        // "Ping " + spacer + "Marlow" + " today.": one spacer, before the
+        // label, held against it by a word joiner. The App's chip carries no
+        // padding, so nothing is bought after the words.
+        #expect(body.string == "Ping \u{FFFC}\u{2060}Marlow today.")
         // And read back as the sentence it draws.
         #expect(RichMessageAttributedText.plainText(body.string) == "Ping Marlow today.")
 
@@ -37,24 +39,29 @@ struct RichMessageInlineFlowTests {
             in: NSRange(location: 0, length: body.length)
         ) as? RichReferenceRun
         #expect(run?.reference == marlow)
-        #expect(referenceRange == NSRange(location: 5, length: 10))
+        #expect(referenceRange == NSRange(location: 5, length: 8))
 
         #expect(attachmentWidth(body, at: 5) == geometry.leadingSpacer)
-        #expect(attachmentWidth(body, at: 14) == geometry.trailingSpacer)
-        // The spacers buy room, never height.
+        // The spacer buys room, never height.
         #expect(attachmentBounds(body, at: 5)?.height == 0)
-        #expect(attachmentBounds(body, at: 14)?.height == 0)
+        // The space before "today" is the sentence's own, outside the run.
+        #expect(body.attribute(.attachment, at: 13, effectiveRange: nil) == nil)
         // Nothing outside the reference claims to be one.
         #expect(body.attribute(.grottoReference, at: 4, effectiveRange: nil) == nil)
-        #expect(body.attribute(.grottoReference, at: 15, effectiveRange: nil) == nil)
+        #expect(body.attribute(.grottoReference, at: 13, effectiveRange: nil) == nil)
+
+        // And punctuation after a mention hugs the label, the way it hugs any
+        // other word: there is nothing between them to advance the line.
+        let punctuated = attributedString([.reference(marlow), .text(", ping me.")], metrics: metrics)
+        #expect(punctuated.string == "\u{FFFC}\u{2060}Marlow, ping me.")
     }
 
     /// The defect the whole approach exists to remove: a chip that is a picture
     /// can only sit on the baseline, so its label rode above the words and its
     /// capsule had to be shrunk to the ascent to stay inside the line.
     @Test func setsAMentionOnTheSameBaselineAndSizeAsTheWords() {
-        for pointSize in Self.bodyPointSizes {
-            let metrics = sanFrancisco(pointSize: pointSize)
+        for pointSize in RichReferenceMetricsFixture.bodyPointSizes {
+            let metrics = RichReferenceMetricsFixture.sanFrancisco(pointSize: pointSize)
             let body = attributedString([.text("Ping "), .reference(marlow)], metrics: metrics)
             let words = body.attribute(.font, at: 0, effectiveRange: nil) as? PlatformFont
             let label = body.attribute(.font, at: 7, effectiveRange: nil) as? PlatformFont
@@ -67,53 +74,6 @@ struct RichMessageInlineFlowTests {
             for index in 0..<body.length {
                 #expect(body.attribute(.baselineOffset, at: index, effectiveRange: nil) == nil)
             }
-        }
-    }
-
-    /// The capsule is the line's own box and nothing more, and everything
-    /// inside it is a fraction of that box, so the chip scales with Dynamic
-    /// Type without ever reaching past its line.
-    @Test func sizesTheCapsuleToTheLinesOwnBox() {
-        for pointSize in Self.bodyPointSizes {
-            let metrics = sanFrancisco(pointSize: pointSize)
-            let geometry = RichReferenceCapsuleGeometry(metrics: metrics)
-
-            #expect(geometry.height == metrics.ascent + metrics.descent)
-            #expect(geometry.cornerRadius == geometry.height / 3)
-            // Roughly twice the font's x-height: ~16pt inside 17pt body text.
-            #expect(geometry.markSize >= metrics.xHeight * 2 * 0.85)
-            #expect(geometry.markSize <= metrics.xHeight * 2 * 1.05)
-            // The mark fills what the insets leave, and nothing spills out.
-            #expect(abs(geometry.markSize + geometry.leadingInset * 2 - geometry.height) < 0.001)
-            #expect(geometry.leadingInset > 0)
-            #expect(geometry.markGap > geometry.leadingInset)
-            // Trailing padding stays under a word space so punctuation hugs the capsule.
-            #expect(geometry.trailingInset > geometry.leadingInset)
-            #expect(geometry.trailingInset < geometry.markGap)
-        }
-    }
-
-    /// The capsule hangs off the baseline, and the mark is centered on the
-    /// capsule — the two placements the renderer asks this geometry for.
-    @Test func anchorsTheCapsuleToTheBaselineAndCentersTheMark() {
-        for pointSize in Self.bodyPointSizes {
-            let metrics = sanFrancisco(pointSize: pointSize)
-            let geometry = RichReferenceCapsuleGeometry(metrics: metrics)
-            let capsule = geometry.capsuleRect(leadingX: 12, baselineY: 40, width: 90)
-
-            #expect(capsule.minY == 40 - metrics.ascent)
-            #expect(abs(capsule.maxY - (40 + metrics.descent)) < 0.001)
-            #expect(capsule.minX == 12)
-            #expect(capsule.width == 90)
-
-            let mark = geometry.markRect(in: capsule)
-            #expect(mark.minX == capsule.minX + geometry.leadingInset)
-            #expect(abs(mark.midY - capsule.midY) < 0.001)
-            #expect(mark.width == geometry.markSize)
-            #expect(mark.height == geometry.markSize)
-            // The mark and the label both clear the capsule's edges.
-            #expect(mark.minY > capsule.minY)
-            #expect(mark.maxX + geometry.markGap < capsule.maxX)
         }
     }
 
@@ -180,9 +140,9 @@ struct RichMessageInlineFlowTests {
     /// The label is the name itself. Its spaces and hyphens used to be sealed
     /// shut with non-breaking spaces and word joiners, which made a long label
     /// one token wider than the column at an accessibility size and left the
-    /// engine no way to wrap it but by character. Only the two joiners holding
-    /// each spacer against the label remain.
-    @Test func writesAHyphenatedLabelVerbatimBetweenItsSpacers() {
+    /// engine no way to wrap it but by character. Only the joiner holding the
+    /// spacer against the label remains.
+    @Test func writesAHyphenatedLabelVerbatimAfterItsSpacer() {
         let label = "Jean-Luc / Ops"
         let body = attributedString(
             [.reference(
@@ -193,34 +153,15 @@ struct RichMessageInlineFlowTests {
                     avatarURL: nil
                 )
             )],
-            metrics: sanFrancisco(pointSize: 17)
+            metrics: RichReferenceMetricsFixture.sanFrancisco(pointSize: 17)
         )
 
-        #expect(body.string == "\u{FFFC}\u{2060}Jean-Luc / Ops\u{2060}\u{FFFC}")
+        #expect(body.string == "\u{FFFC}\u{2060}Jean-Luc / Ops")
         #expect(!body.string.contains("\u{00A0}"))
-        // Two joiners, one per spacer, and none inside the label.
-        #expect(body.string.filter { $0 == "\u{2060}" }.count == 2)
+        // One joiner, holding the label against its spacer, and none inside it.
+        #expect(body.string.filter { $0 == "\u{2060}" }.count == 1)
         // And a copy of it still reads as the label itself.
         #expect(RichMessageAttributedText.plainText(body.string) == label)
-    }
-
-    /// A default body size and the size an accessibility setting reaches.
-    private static let bodyPointSizes: [CGFloat] = [17, 40]
-
-    /// SF's vertical metrics at a point size, as UIKit reports them: no
-    /// leading, and ascent, descent, cap height, and x-height in fixed
-    /// proportion to the size. The geometry is asked for numbers, not for a
-    /// platform, so driving it from these exercises it at two genuinely
-    /// different sizes wherever these tests run.
-    private func sanFrancisco(pointSize: CGFloat) -> PlatformFontMetrics {
-        PlatformFontMetrics(
-            pointSize: pointSize,
-            ascent: pointSize * 0.956,
-            descent: pointSize * 0.2406,
-            leading: 0,
-            xHeight: pointSize * 0.5273,
-            capHeight: pointSize * 0.7132
-        )
     }
 
     private var marlow: RichReferencePresentation {

@@ -113,7 +113,8 @@ struct RichReferenceLineBreakingTests {
             run = range
             stop.pointee = true
         }
-        return NSRange(location: run.location + 2, length: run.length - 4)
+        // The run is one spacer attachment and one word joiner, then the label.
+        return NSRange(location: run.location + 2, length: run.length - 2)
     }
 
     /// The label's characters as the text engine splits them across line

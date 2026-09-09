@@ -79,8 +79,8 @@
   },
   "overrides": {
     "@hono/node-server": "1.19.13",
-    "@tiptap/extension-bubble-menu": "3.30.4",
-    "@tiptap/extension-floating-menu": "3.30.4",
+    "@tiptap/extension-bubble-menu": "3.30.5",
+    "@tiptap/extension-floating-menu": "3.30.5",
     "brace-expansion": "5.0.6",
     "esbuild": "0.27.4",
     "fast-uri": "3.1.2",

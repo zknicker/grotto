@@ -61,7 +61,7 @@
     "apps/ios-swift/Sources/GrottoUI/Settings/SettingsModels.swift": 311,
     "apps/ios-swift/Sources/GrottoUI/Settings/SettingsProfileViews.swift": 308,
     "apps/ios-swift/Sources/GrottoUI/Tasks/TaskListLensView.swift": 359,
-    "apps/ios-swift/Tests/GrottoModelsTests/GrottoModelsTests.swift": 434,
+    "apps/ios-swift/Tests/GrottoModelsTests/GrottoModelsTests.swift": 395,
     "apps/ios-swift/Tests/GrottoTransportTests/TRPCClientTests.swift": 443,
     "apps/server/src/agent-api/routes.ts": 393,
     "apps/server/src/agent-api/send-hold.ts": 341,

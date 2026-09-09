@@ -93,7 +93,7 @@
     "apps/server/test/grotto-reminders.test.ts": 902,
     "apps/server/test/grotto-server-onboarding.test.ts": 785,
     "apps/server/test/grotto-tasks.test.ts": 1026,
-    "apps/server/test/grotto-trigger-api.test.ts": 624,
+    "apps/server/test/grotto-trigger-api.test.ts": 598,
     "apps/server/test/grotto-triggers.test.ts": 472,
     "apps/server/test/prepared-actions.test.ts": 346,
     "apps/website/e2e/tests/messaging.spec.ts": 583,

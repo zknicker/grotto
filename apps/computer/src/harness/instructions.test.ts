@@ -56,10 +56,24 @@ test('composes the CLI-only Grotto collaboration contract', () => {
     expect(instructions).toContain('Default every message to the shortest useful form');
     expect(instructions).toContain('Do not paste execution logs into chat');
     expect(instructions).toContain('A completion message should lead with the outcome');
+    // Raft parity (`buildLiveConstraintsSection`, Computer 1.0.16): the four
+    // live seats and the closed gate set are the load-bearing clauses.
+    expect(instructions).toContain('### Live constraints and pull-request closure');
     expect(instructions).toContain(
-        'Fresh-read it immediately before acting — or continuing to withhold — (Grotto: current message/task; PR: current repo/PR)'
+        'A constraint that makes you delay or withhold an otherwise authorized action needs four live seats'
     );
-    expect(instructions).toContain('checks on the exact head');
+    expect(instructions).toContain(
+        '**Reception:** immediately before withholding action, fresh-read the authoritative machine surface and the latest accountable directive.'
+    );
+    expect(instructions).toContain(
+        "use the repository or team's current written merge rule as a **closed gate set**"
+    );
+    expect(instructions).toContain(
+        '1. required hosted checks are terminal green on the exact head,'
+    );
+    expect(instructions).toContain(
+        'all four passing means: mark the PR Ready, execute the ordinary protected merge, and report the actual merge SHA.'
+    );
     expect(instructions).toContain(
         'explicit FYI / no-response-needed messages should settle with zero sends'
     );

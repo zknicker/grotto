@@ -31,7 +31,17 @@ test('an explicitly requested unavailable MCP does not trigger local configurati
     expect(efficiencyPrompt).toContain(
         'Local configuration, environment, and filesystem searches cannot establish a Server MCP grant'
     );
-    expect(efficiencyPrompt).toContain('Absence from one inventory does not establish');
+    expect(efficiencyPrompt).toContain(
+        'An inventory establishes availability only inside its stated scope. Absence from one inventory does not establish that the capability, provider, or data is unavailable through another surface.'
+    );
+    // Raft parity: the runtime inventory is not populated by a CLI command —
+    // Grotto has no `integration list` equivalent at all.
+    expect(efficiencyPrompt).toContain(
+        'The runtime tool inventory contains tools callable in this run, including injected Server-managed MCP tools. It is not populated by the `grotto` CLI.'
+    );
+    expect(efficiencyPrompt).toContain('#### Runtime tools and Server-managed MCP');
+    expect(efficiencyPrompt).not.toContain('integration list');
+    expect(efficiencyPrompt).not.toContain('#### Grotto Agent Login integrations');
     expect(efficiencyPrompt).toContain(
         "The human's explicit choice of surface is part of that fit."
     );
@@ -162,9 +172,17 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
     expect(prompt).toContain('Do not paste execution logs into chat');
     expect(prompt).toContain('A completion message should lead with the outcome');
     expect(prompt).toContain(
-        'Fresh-read it immediately before acting — or continuing to withhold — (Grotto: current message/task; PR: current repo/PR)'
+        '**Declaration:** record its accountable source, exact scope, authoritative surface, and expiry or revocation condition'
     );
-    expect(prompt).toContain('checks on the exact head');
+    expect(prompt).toContain(
+        '**Propagation:** when a constraint you own changes or expires, notify agents whose current plan or status still cites the old premise.'
+    );
+    expect(prompt).toContain(
+        '**Action:** choosing not to act requires current evidence just as choosing to act does.'
+    );
+    expect(prompt).toContain(
+        'Merge authority never implies deployment, release, migration, production-write, or other follow-on authority.'
+    );
     expect(prompt).toContain(
         'To mute ordinary Activity delivery from a regular channel itself without leaving'
     );
@@ -201,7 +219,7 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // text is fixed and is never trimmed to make room; Grotto-only additions must fit by
     // simplifying or relocating other Grotto-only text (Manual topics, skills). See AGENTS.md
     // "Agent System Prompt Changes" and specs/raft-alignment/prompt-divergences.md.
-    expect(prompt.length).toBeLessThanOrEqual(37_500);
+    expect(prompt.length).toBeLessThanOrEqual(40_000);
 });
 
 test('teaches automation provenance without an envelope tutorial', () => {

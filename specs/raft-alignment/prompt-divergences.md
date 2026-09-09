@@ -3,7 +3,7 @@
 Field-by-field diff of Grotto's composed Agent system prompt
 (`apps/computer/src/harness/managed-instructions.ts`) against the prompt builder in
 **Raft Computer 1.0.16** (`/Users/zknicker/.local/bin/raft-computer`, Node SEA binary dated
-2026-08-10; extracted with `strings -n 6`). Diffed 2026-09-08.
+2026-08-10; extracted with `strings -n 6`). Diffed 2026-09-08; parity restore pass 2026-09-09.
 
 Raft's builder is `buildPrompt` with per-section helpers (`buildCommunicationSection`,
 `buildTasksSection`, `buildMentionsSection`, `buildConversationEtiquetteSection`, …) plus
@@ -17,13 +17,15 @@ Grotto substitutes `grotto` for `raft` in every command name and `Grotto` for
 
 ## Prompt size budget
 
-`managed-instructions.test.ts` caps the composed prompt at 37,500 characters; today's render is
-37,406. That number is a reviewed ratchet, not a runtime limit — no adapter enforces a length
+`managed-instructions.test.ts` caps the composed prompt at 40,000 characters; today's render is
+39,971. That number is a reviewed ratchet, not a runtime limit — no adapter enforces a length
 (Codex developer instructions, the Claude Code system-prompt append, and Pi all accept more), and
 Raft 1.0.16 renders roughly 41,900 characters with no size guard of its own. The budget was
 introduced at 32,500 on 2026-08-18, raised seven times to 38,450, then lowered to 37,500 on
 2026-09-07. It exists because prompt text changes the behavior of every Agent and the easiest fix
-for any behavior is one more sentence.
+for any behavior is one more sentence. It was raised to 40,000 on 2026-09-09 — the render went
+37,406 → 39,971 — because restoring the four Raft clauses in the table below is fixed-part growth
+under the rule in the next paragraph, not new Grotto-only text.
 
 The budget is split by origin. **Raft-verbatim text is the fixed part**: it is never trimmed,
 paraphrased, or reordered to make room, and restoring a Raft clause that Grotto had replaced with
@@ -32,10 +34,10 @@ commit rationale. **Grotto-only text is the variable part**: an addition must fi
 current budget by simplifying or relocating other Grotto-only text into Manual topics or skills
 (ADR 0012), never by cutting Raft text; raising the budget for Grotto-only growth needs an
 explicit operator decision. Measured against Raft 1.0.16, Grotto's Raft-verbatim text is roughly
-19,900 characters and its Grotto-only product text roughly 5,100.
+22,500 characters and its Grotto-only product text roughly 5,100.
 
 Every change to the composed prompt adds, changes, or removes a row here and runs the prompt
-contract suite. The `TODO — no owner` rows are the current debt.
+contract suite. Any `TODO — no owner` row is debt; there are none today.
 
 ## Restored to parity on 2026-09-08
 
@@ -50,6 +52,19 @@ Agent starting work another Agent had been asked to do:
 | @Mentions | Display-name bullet dropped | Raft's bullet restored: display name is presentation, identity reasoning uses the stable name |
 | Workspace seed (`packages/agent-workspace/src/starter-kit.ts`) | An instruction to the Agent's first turn ("introduce yourself briefly, learn what you own") | Raft's inert `buildInitialMemoryMd` template: `No role defined yet.` / `- No notes yet.` / `- First startup.` |
 
+## Restored to parity on 2026-09-09
+
+Four Raft-verbatim clauses Grotto had replaced with shorter analogues. Raft-verbatim text is the
+fixed part of the budget, so restoring them raised the cap by exactly the restored amount
+(37,406 → 39,971 characters, budget 37,500 → 40,000).
+
+| Field | Was | Now |
+| --- | --- | --- |
+| Live constraints and pull-request closure | Two compressed paragraphs under `### Live constraints and closure` | Raft's full section: the four declaration/propagation/reception/action seats and the numbered closed-gate-set merge rule, under Raft's heading text at Grotto's `###` level |
+| Capability and execution-surface selection | Three shortened paragraphs, no inventory bullets, no sub-section | Raft's section body and its `#### Runtime tools and Server-managed MCP` sub-section verbatim, minus the Agent Login inventory bullet and the `#### Raft Agent Login integrations` block; Grotto's MCP-troubleshooting paragraph stays as a Grotto-only addition after them |
+| Startup steps 1 and 5 | Shortened wording that preserved the requirement | Raft's wording verbatim |
+| Communication style closing paragraph | Contractions expanded, "Self-check:" lead-in dropped | Raft's wording verbatim |
+
 ## Section-by-section register
 
 Sections are in Grotto's render order. "Parity" means the text matches Raft 1.0.16 apart from the
@@ -61,18 +76,19 @@ product-noun substitution.
 | Who you are | Parity | — |
 | Current Runtime Context | Grotto renders `- Agent: @handle (id)`, Hostname, OS, Runtime, Workspace, Home timezone. Raft renders Agent ID, Server ID, `Computer: name (id)`, Hostname, OS, Daemon, Workspace, and has no timezone line | Deliberate — ADR 0019 (Server owns collaboration, Computer owns execution); the home timezone is load-bearing for the `time=` header (specs/messages.md) |
 | How these instructions apply | Parity | — |
-| Communication — CLI ONLY | Command families differ: Grotto drops Raft's admin channel/server management, Integrations, Wiki bridge, `raft version`, and `task assign/unassign/convert/delete`; Grotto adds Inbox, Triggers, Skills, Avatar generation, Asks, Cloud agents, and `channel info` | Deliberate — specs/grotto-cli.md is the CLI contract; ADRs 0021/0024/0027, specs/asks.md, specs/cloud-agents.md, specs/skills.md |
+| Communication — CLI ONLY | Command families differ: Grotto drops Raft's admin channel/server management, Integrations, Wiki bridge, `raft version`, and `task assign/unassign/convert/delete`; Grotto adds Inbox, Triggers, Skills, Avatar generation, Asks, Cloud agents, and `channel info` | Deliberate — Raft-only mechanism: none of those commands exist in Grotto's CLI, so listing them would teach a surface an Agent cannot reach. `grotto --version` does exist but stays unlisted (no daemon-query `grotto version` to pair it with, and the prompt is not a version-reporting surface). specs/grotto-cli.md is the CLI contract; ADRs 0021/0024/0027, specs/asks.md, specs/cloud-agents.md, specs/skills.md |
 | Communication — error taxonomy | Grotto adds `INVALID_*`, `*_NOT_FOUND`, `AMBIGUOUS_ID`; drops Raft's "Command-syntax errors are emitted by the parser" sentence | Deliberate — specs/grotto-cli.md error contract |
-| Credential handling | Grotto keeps both intent paragraphs; drops Raft's "**Profile credential resolution is strict**" paragraph | Deliberate — `--profile`/`RAFT_PROFILE`/`SLOCK_HOME` resolution has no Grotto equivalent; the Agent CLI wrapper carries identity (specs/grotto-cli.md §wrapper injection) |
+| Credential handling | Grotto keeps both intent paragraphs; drops Raft's "**Profile credential resolution is strict**" paragraph | Deliberate — Raft-only mechanism: `--profile`/`RAFT_PROFILE`/`$RAFT_HOME`/`~/.slock/profiles/` resolution has no Grotto equivalent, and the Agent CLI wrapper carries identity instead (specs/grotto-cli.md §wrapper injection) |
 | CRITICAL RULES | Parity | — |
-| Startup step 1 | Grotto scopes the step to "a concrete incoming message" and says "acknowledgment, blocker question, or ownership signal" | TODO — cosmetic compression, no owner |
+| Startup step 1 | Parity (restored 2026-09-09) | — |
 | Startup step 2 | Parity: "Read MEMORY.md (in your cwd) and then only the additional memory/files you need to handle the current turn well." | — |
 | Startup step 3 | Parity **plus** "The notice is not itself a request, so do not acknowledge it." | Deliberate — specs/inbox.md §Golden flow ("a notice is not a request") |
 | Startup step 4 | Parity **plus** "Grotto exception: an explicit FYI / no-response-needed message settles silently, with no send at all." | Deliberate — specs/inbox.md coverage row ("Agent instructions teach notice, pull, silence, and deferral semantics"); gated by `fyi-silence-channel` / `fyi-silence-dm` in `bun run eval:prompt` |
-| Startup step 5 | Same requirement, shorter wording | TODO — cosmetic, no owner |
+| Startup step 5 | Parity (restored 2026-09-09) | — |
 | Post-startup IMPORTANT note | Parity | — |
 | Messaging header spec | Grotto adds `type=trigger`, the `@sender — <description>:` suffix, home-timezone `time=` semantics, and the assignee-receipt paragraph. Raft's `time=` is a bare timestamp and its `type=` set is `human`/`agent`/`system` | Deliberate — ADR 0027 (triggers), specs/agent-profile.md (description rides the envelope), specs/messages.md (local wall clock), ADR 0015 + ADR 0026 (assignment receipt) |
 | Sending messages | Parity, including the draft-recovery paths | — |
+| Sending messages — blind-review seat | Raft-only paragraph dropped: `--reviewer-isolation` on `raft message send` / `task claim` / `task update`, `RAFT_REVIEWER_ISOLATION=1`, and the content-free held-state disclosure it implies | Deliberate — Raft-only mechanism: Grotto's CLI has no such flag or env var and no blind-review seat to assign, so the paragraph would name an unreachable surface. `managed-instructions.test.ts` asserts the string never appears in the render |
 | Reminders | Grotto drops Raft's "the receipt/fire system message is visible in that surface"; adds `--cause`, script reminders, and the `recipes/technique/reminder-cron` Manual pointer | Deliberate — ADR 0026 (a fire writes nothing to chat), ADR 0016, specs/automation-provenance.md |
 | Triggers | Grotto-only section | Deliberate — ADR 0027, specs/triggers.md |
 | Cloud agents | Grotto-only section | Deliberate — specs/cloud-agents.md |
@@ -80,7 +96,7 @@ product-noun substitution.
 | Discovering people and channels | Parity | — |
 | Channel awareness | Parity | — |
 | Third-party app message safety | Raft-only section — Grotto has no `type=third_party_app` sender kind | Deliberate — specs/messages.md sender kinds; revisit if Grotto ever admits external app senders |
-| Capability and execution-surface selection | Rewritten. Raft's section is about Raft Integrations and Agent Login; Grotto's is about Server-managed MCP grants and inventory separation | Deliberate — specs/mcp.md, ADR 0017; gated by `mcp-granted-lookup` / `mcp-revoked-honest-failure` |
+| Capability and execution-surface selection | Parity for the section body and `#### Runtime tools and Server-managed MCP` (restored 2026-09-09), with two documented subtractions and one addition: the Agent Login inventory bullet and the `#### Raft Agent Login integrations` block are omitted, the runtime-inventory bullet reads "It is not populated by the `grotto` CLI" in place of Raft's "`raft integration list`", and Grotto's MCP-troubleshooting paragraph follows | Deliberate — Grotto has no Integrations or Agent Login surface; specs/mcp.md, ADR 0017; gated by `mcp-granted-lookup` / `mcp-revoked-honest-failure` |
 | Reading history | Parity | — |
 | Historical references | Parity | — |
 | Tasks — decision rule, status flow, workflow steps 1–3, `task create`, creating new tasks | Parity | — |
@@ -91,10 +107,10 @@ product-noun substitution.
 | Tasks — `--assignee @peer`, receipts, Owners/Admins | Grotto replaces Raft's "A server owner/admin may use `--assignee @someone-else`" with peer assignment plus receipt semantics | Deliberate — ADR 0015 amended by ADR 0026 |
 | Splitting tasks | Parity | — |
 | @Mentions | Parity. Grotto renders one name, so the display-name bullet interpolates the same value twice | Deliberate — specs/identity.md has no separate Agent display name in the prompt render input |
-| Communication style | Parity apart from contractions and the dropped "Self-check:" lead-in | TODO — cosmetic, no owner |
+| Communication style | Parity (closing paragraph restored 2026-09-09) | — |
 | Conversation etiquette | Parity **plus** two Grotto bullets: "**Silence is deliberate.**" and "**DM knowledge is not room knowledge.**" | Deliberate — specs/inbox.md coverage row (silence) and specs/sessions.md §"Knowledge and discretion" ("the prompt teaches discretion") |
-| Live constraints and closure | Compressed. Raft's four declaration/propagation/reception/action seats and its closed-gate-set merge rule become two paragraphs | Deliberate — prompt budget; the load-bearing clauses are asserted in `instructions.test.ts` |
-| Formatting — Mentions & Channel Refs | Grotto drops Raft's `#1` numeric channel form | Deliberate — Grotto has no numeric channel refs (specs/mentions.md) |
+| Live constraints and pull-request closure | Parity (restored 2026-09-09), rendered at `###` because Grotto nests it under Communication style; Raft renders it as `##` | Deliberate heading level only — ADR 0021 section ordering; the four seats and the closed gate set are asserted in `instructions.test.ts` and `managed-instructions.test.ts` |
+| Formatting — Mentions & Channel Refs | Grotto drops Raft's `#1` numeric channel form | Deliberate — Raft-only mechanism: Grotto has no numeric channel refs to link (specs/mentions.md) |
 | Formatting — URLs | Parity | — |
 | Workspace & Memory | Parity **plus** "Re-read MEMORY.md and update your notes at natural boundaries" and the "**Apply remembered preferences**" bullet. The "session resets rarely" rationale stays; `managed-instructions.test.ts` asserts it. | Deliberate — ADR 0009; sessions rotate rarely in Grotto, so startup-only reads are insufficient (specs/sessions.md) |
 | What to memorize / How to organize | Parity | — |
@@ -120,10 +136,10 @@ behaviours and is diffed here when it mirrors a Raft helper.
 
 ## Open TODOs
 
-Three cosmetic rewrites carry no owner: startup steps 1 and 5, and the closing paragraph of
-Communication style. They preserve every Raft requirement and cost nothing, so they are recorded
-rather than reverted — but a future parity pass should either adopt Raft's wording or give them a
-spec.
+None. The last three unowned rewrites — startup steps 1 and 5 and the closing paragraph of
+Communication style — were restored to Raft's wording on 2026-09-09. Every remaining divergence is
+*Deliberate* with a named owner: a Grotto product decision, or a Raft-only mechanism that has no
+Grotto surface to point at.
 
 ## Keeping this current
 

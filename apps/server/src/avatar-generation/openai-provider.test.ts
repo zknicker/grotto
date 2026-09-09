@@ -32,6 +32,7 @@ test('sends one canonical gpt-image-2 request without a reference image', async 
     expect(received.method).toBe('POST');
     expect(received.headers?.get('authorization')).toBe('Bearer test-key');
     expect(JSON.parse(received.body ?? '')).toEqual({
+        background: 'opaque',
         model: 'gpt-image-2',
         n: 1,
         output_format: 'png',

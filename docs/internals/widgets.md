@@ -76,20 +76,18 @@ registration), with optional info-string text as the title:
   token list (`apps/website/src/agent-html/tokens.ts`) off computed styles and
   injects it as `:root`, re-snapshotting on theme change. The taught vocabulary
   is 40 role names in eight groups — type, surfaces, text, borders, emphasis,
-  status, charts, layout — one name per role, and it is all the skill teaches.
-  Beside it the snapshot emits a **legacy alias list** (`--brand`, `--primary`,
-  `--info`, `--card`, `--radius-sm..2xl`, motion steps, label colors) taught to
-  nobody: visuals already in chat history reference those names and must keep
-  rendering. Each maps onto a taught role, and the list only shrinks when stored
-  content is migrated. Names resolve through
+  status, charts, layout — one name per role, and it is all the skill teaches
+  and all the snapshot emits: there is no alias tail. Renaming or removing a
+  name is a breaking change, and a stored visual that references a removed name
+  must be reauthored. Names resolve through
   `apps/website/src/styles/artifact-tokens.css`, mostly as aliases onto HeroUI
   roles; the exceptions are the text tiers, the categorical `--chart-1..5`
   (global, shared with the app's own usage chart), and the layout group, which
   derives `--radius` from HeroUI's fields tier and the pads and gaps from
   `--spacing`. A few names read a different host role in the snapshot only:
   `--accent-foreground`, `--success-foreground` and `--warning-foreground` take
-  HeroUI's `-soft-foreground` values, and the radius names read the
-  artifact-owned `--radius-control` / `--radius-card`. Font sizes track the
+  HeroUI's `-soft-foreground` values, and `--radius` reads the artifact-owned
+  `--radius-control`. Font sizes track the
   app's type scale (14px body), not a frozen value. Generated visuals reference
   only the taught names — never HeroUI names, never hardcoded colors — which is
   what makes them wear Grotto's look in both schemes.

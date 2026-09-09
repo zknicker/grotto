@@ -269,20 +269,18 @@ hold on to — so a table's label stays readable while its columns pan. There is
 the three feature sheets (`slot-text`, `chat.css`, `shell.css`) declare no published token and are
 named as exclusions in the generator — folds `var()`, `oklch()`,
 `color-mix()` and `calc()` down to literal values, and writes `AgentHtmlTokens.generated.swift` —
-74 entries per scheme, the 72 published names plus the two derived chart-chrome declarations, with
-the two host-role remaps already applied. A bun test regenerates in memory and fails on any drift,
+40 entries per scheme, the 38 published names plus the two derived chart-chrome declarations, with
+the host-role remaps already applied. A bun test regenerates in memory and fails on any drift,
 so the table cannot fall behind the stylesheets unnoticed. The card picks its scheme from
 `@Environment(\.colorScheme)`, so a theme flip rebuilds the document and the frame reloads.
 
-Two of those 74 values are then deliberately overridden, and they are the only place the iOS card
+One of those 40 values is then deliberately overridden, and it is the only place the iOS card
 diverges from the web's. The web ties `--app-ui-font-size` to the web chat's own 14px body, so a
 card reads at the size of the transcript around it; the iOS transcript is SF `.body`, 17pt at the
 default Dynamic Type size, and the snapshotted 14px reads visibly small beside it. So
 `VisualTypography` resolves `--app-ui-font-size` from `UIFont.preferredFont(forTextStyle: .body)`
-and `--app-code-font-size` from `.callout` — the closest iOS style to the web's 13:14 ratio, 16/17 =
-0.94 against 0.93, where `.subheadline`'s 0.88 is nearly four times further off — for the card's
-current `dynamicTypeSize`, and `VisualSandboxDocument` emits them after the generated table so
-source order settles the conflict. An accessibility size therefore scales the card with the
+for the card's current `dynamicTypeSize`, and `VisualSandboxDocument` emits it after the generated
+table so source order settles the conflict. An accessibility size therefore scales the card with the
 transcript, and changing it rebuilds the document and reloads the frame the same way a theme flip
 does.
 

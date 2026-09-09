@@ -400,13 +400,10 @@ Four of those groups are more than an alias:
   `p-4`), `md` ×3 (ItemCard block pad, Card `gap-3`), `sm` ×2 (Input `py-2`),
   `xs` ×1.
 
-Everything else the frame emits is a **legacy alias**: `--brand`, `--primary`,
-`--info`, `--card`, `--radius-sm..2xl`, the motion steps, the label colors and
-the rest. They are emitted so visuals already in chat history keep rendering
-and are taught to nobody; each maps onto a taught role, and the list only
-shrinks when stored content is migrated. The two lists live in
-`agent-html/tokens.ts` as `agentHtmlTokenNames` and
-`agentHtmlLegacyTokenNames`.
+The taught vocabulary is the whole contract — `agentHtmlTokenNames` in
+`agent-html/tokens.ts` is all the frame emits, with no alias tail behind it.
+Renaming or removing a name is a breaking change: a stored visual that
+references a removed name must be reauthored.
 
 The frame's base stylesheet pre-styles bare `input`, `select`, `textarea`,
 `button` and `input[type=range]` on HeroUI's field and outline-button metrics,
@@ -419,10 +416,9 @@ own usage chart (`features/stats/use-usage-spend.ts`) draws the same five
 series. A few published names resolve through a host role the frame reads
 instead: `--accent-foreground`, `--success-foreground` and
 `--warning-foreground` take HeroUI's `-soft-foreground` values (HeroUI declares
-the base names in `@layer base` for solid chips), and `--radius` plus the legacy
-radius ramp read the artifact-owned `--radius-control` / `--radius-card` so
-redeclaring Tailwind's scale cannot reshape the product. That remapping lives in
-`agent-html/tokens.ts`.
+the base names in `@layer base` for solid chips), and `--radius` reads the
+artifact-owned `--radius-control` so publishing a corner cannot reshape
+Tailwind's own scale. That remapping lives in `agent-html/tokens.ts`.
 
 ## Typography
 Use the generated font and text scale through HeroUI components and Tailwind text utilities. The raw values below are normalized to px for design handoff.

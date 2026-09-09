@@ -27,12 +27,13 @@ iterate on, and big surfaces stay out of the chat column.
   `--foreground`, `--surface-secondary`, `--border`, `--muted-foreground`,
   `--accent-bg`, `--radius`, `--pad-md`, ...) — is injected into the page as
   CSS variables resolved for the current app scheme, so a token-styled page
-  wears the Grotto look in light and dark. A separate legacy alias list ships
-  beside it, emitted so pages authored against the old vocabulary keep
-  rendering and taught to nobody. `styles/artifact-tokens.css` owns both —
-  mostly aliases onto HeroUI roles, with named exceptions such as the text
-  tiers, the layout group, and the chart palette — and pages write only the
-  taught names, never a HeroUI name. Use the tokens
+  wears the Grotto look in light and dark. That vocabulary is the whole
+  contract — nothing else is emitted, renaming or removing a name is a breaking
+  change, and a stored page that references a removed name must be reauthored.
+  `styles/artifact-tokens.css` owns it — mostly aliases onto HeroUI roles, with
+  named exceptions such as the text tiers, the layout group, and the chart
+  palette — and pages write only the taught names, never a HeroUI name. Use the
+  tokens
   with fallbacks and do not depend on any other host styling. The seeded
   `visuals` skill owns the authoring guidance — the full token vocabulary,
   page layout discipline, and self-containment rules — and the prompt only
@@ -61,11 +62,10 @@ the same merge-or-focus flow `grotto://workspace` links and the agent
 `pane_open` tool use. In the pane, the workspace HTML preview
 (`apps/website/src/features/chats/chat-artifact-workspace-preview.tsx`)
 renders the page with host tokens injected
-(`agent-html/tokens.ts`): the taught names and the legacy aliases are read off
-the live document with `getComputedStyle` at render time and re-injected when
-the app scheme flips, with `--accent-foreground`, `--success-foreground` and
-`--warning-foreground` reading HeroUI's `-soft-foreground` values in the frame
-and the radius names reading the artifact-owned `--radius-control` /
-`--radius-card`. External-asset policy
+(`agent-html/tokens.ts`): the taught names are read off the live document with
+`getComputedStyle` at render time and re-injected when the app scheme flips,
+with `--accent-foreground`, `--success-foreground` and `--warning-foreground`
+reading HeroUI's `-soft-foreground` values in the frame and `--radius` reading
+the artifact-owned `--radius-control`. External-asset policy
 is self-contained-only; if a CDN allowlist lands for in-chat visuals, artifact
 rendering should mirror it.

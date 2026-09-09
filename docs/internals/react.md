@@ -340,15 +340,16 @@ identity is the change signal** — hosted chat messages carry no version or
   HeroUI part is the bug that role table exists to prevent.
 * `styles/product-tokens.css` owns only cross-feature product concepts HeroUI
   cannot provide, currently sender differentiation and task-label colors.
-* `styles/artifact-tokens.css` is the stable compatibility boundary for
-  durable agent-authored HTML: a taught vocabulary of 40 role names plus a
-  legacy alias list kept alive for visuals already in chat history. Product
-  components must not use either. Some published names read a different host
-  role in the frame snapshot (`agent-html/tokens.ts`) rather than in that file
-  — `--accent-foreground`, `--success-foreground` and `--warning-foreground`
-  take HeroUI's `-soft-foreground` values, and `--radius` plus the legacy
-  radius ramp read the artifact-owned `--radius-control` / `--radius-card`, so
-  publishing a corner cannot reshape Tailwind's own scale. `--chart-1..5` is
+* `styles/artifact-tokens.css` is the stable boundary for durable
+  agent-authored HTML: a taught vocabulary of 40 role names, and nothing else.
+  It is the only contract — renaming or removing a name is a breaking change,
+  and a stored visual that references a removed name must be reauthored.
+  Product components must not use it. Some published names read a different
+  host role in the frame snapshot (`agent-html/tokens.ts`) rather than in that
+  file — `--accent-foreground`, `--success-foreground` and
+  `--warning-foreground` take HeroUI's `-soft-foreground` values, and
+  `--radius` reads the artifact-owned `--radius-control`, so publishing a
+  corner cannot reshape Tailwind's own scale. `--chart-1..5` is
   the one deliberate crossover: it is declared globally so `features/stats` and
   agent-authored visuals draw the same categorical palette.
 * Feature behavior CSS stays beside its owner, such as chat motion and the

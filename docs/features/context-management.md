@@ -71,6 +71,13 @@ model session. Per-turn message delivery is an inbox concern; see
   history. Full reset restores an ordinary Agent's minimal `MEMORY.md` and
   factory-managed skills.
 
+The composed instructions are bounded by a reviewed size budget asserted in
+`apps/computer/src/harness/managed-instructions.test.ts`. It is a review gate, not a runtime limit:
+no adapter enforces a prompt length. Raft-verbatim text is the fixed part and is never trimmed to
+make room; Grotto-only additions must fit inside the current budget by simplifying or relocating
+other Grotto-only text into Manual topics or skills. See AGENTS.md and
+[the divergence register](../../specs/raft-alignment/prompt-divergences.md).
+
 Durable Agent knowledge lives in the Agent-owned workspace (`MEMORY.md` and
 notes), not an injected memory system. Agents read older canonical Chat history
 through the `grotto` CLI when inbox delivery is insufficient.

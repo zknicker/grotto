@@ -208,7 +208,26 @@ so `docs:list` routes future agents correctly.
 ## Agent System Prompt Changes
 
 The composed agent system prompt is a guarded contract. Its sources live under
-`apps/computer/src/harness/`, with focused coverage in `instructions.test.ts`.
+`apps/computer/src/harness/`, with focused coverage in `instructions.test.ts` and
+`managed-instructions.test.ts`.
+
+Every sentence here changes the behavior of every Agent, so the prompt must stay deliberate,
+reviewed, and bounded. `managed-instructions.test.ts` asserts a reviewed size budget (currently
+37,500 characters) that ratchets down and never drifts up. It is a review gate, not a runtime
+limit: no adapter enforces a prompt length. Prefer moving guidance out of the prompt over adding
+to it — the prompt is a pointer to the
+[Grotto Manual](docs/adr/0021-cove-onboards-and-agents-share-a-manual.md) for mechanics, and a
+change should move things around and simplify rather than expand.
+
+Two kinds of text share that budget:
+
+- **Raft-verbatim text is the fixed part.** It is never trimmed, paraphrased, or reordered to make
+  room. Restoring a Raft clause that Grotto had replaced with an analogue may raise the budget by
+  exactly the restored amount, with the register row and a one-line commit rationale.
+- **Grotto-only text is the variable part.** A Grotto-only addition must fit inside the current
+  budget by simplifying or relocating other Grotto-only text — Manual topics and skills, per
+  [ADR 0012](docs/adr/0012-design-guidance-is-skill-carried.md) — never by cutting Raft text.
+  Raising the budget for Grotto-only growth needs an explicit operator decision.
 
 When changing prompt text or that contract test:
 
@@ -216,6 +235,9 @@ When changing prompt text or that contract test:
 2. Never delete or weaken a requirement merely to make tests pass. Name intentional capability
    removals explicitly to the operator.
 3. Add or update executable coverage with every prompt-taught capability change.
+4. Update the [divergence register](specs/raft-alignment/prompt-divergences.md) with a new,
+   changed, or removed row, and run `bun run test:prompt-contract`. The register's
+   "TODO — no owner" rows are the current debt.
 
 ## Agent skills
 

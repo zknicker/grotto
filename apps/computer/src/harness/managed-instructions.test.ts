@@ -197,7 +197,10 @@ test('keeps the managed prompt within its reviewed size budget', () => {
         workspacePath: '/workbench',
     });
 
-    // Reminder/trigger mechanics live in the manual; preserve the reduced prompt budget.
+    // A reviewed ratchet, not a runtime limit: no adapter enforces a prompt length. Raft-verbatim
+    // text is fixed and is never trimmed to make room; Grotto-only additions must fit by
+    // simplifying or relocating other Grotto-only text (Manual topics, skills). See AGENTS.md
+    // "Agent System Prompt Changes" and specs/raft-alignment/prompt-divergences.md.
     expect(prompt.length).toBeLessThanOrEqual(37_500);
 });
 

@@ -15,6 +15,28 @@ so section text recovered this way is exact per line but not per paragraph break
 Grotto substitutes `grotto` for `raft` in every command name and `Grotto` for
 `Raft (former Slock)` in prose; that substitution is assumed everywhere and not listed per row.
 
+## Prompt size budget
+
+`managed-instructions.test.ts` caps the composed prompt at 37,500 characters; today's render is
+37,406. That number is a reviewed ratchet, not a runtime limit — no adapter enforces a length
+(Codex developer instructions, the Claude Code system-prompt append, and Pi all accept more), and
+Raft 1.0.16 renders roughly 41,900 characters with no size guard of its own. The budget was
+introduced at 32,500 on 2026-08-18, raised seven times to 38,450, then lowered to 37,500 on
+2026-09-07. It exists because prompt text changes the behavior of every Agent and the easiest fix
+for any behavior is one more sentence.
+
+The budget is split by origin. **Raft-verbatim text is the fixed part**: it is never trimmed,
+paraphrased, or reordered to make room, and restoring a Raft clause that Grotto had replaced with
+an analogue may raise the budget by exactly the restored amount, with the row below and a one-line
+commit rationale. **Grotto-only text is the variable part**: an addition must fit inside the
+current budget by simplifying or relocating other Grotto-only text into Manual topics or skills
+(ADR 0012), never by cutting Raft text; raising the budget for Grotto-only growth needs an
+explicit operator decision. Measured against Raft 1.0.16, Grotto's Raft-verbatim text is roughly
+19,900 characters and its Grotto-only product text roughly 5,100.
+
+Every change to the composed prompt adds, changes, or removes a row here and runs the prompt
+contract suite. The `TODO — no owner` rows are the current debt.
+
 ## Restored to parity on 2026-09-08
 
 These four were unowned drifts, not decisions, and each plausibly contributed to an unaddressed

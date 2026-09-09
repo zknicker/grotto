@@ -7,8 +7,8 @@ import {
 import { useChatSidePane } from '../../hooks/pane/use-chat-side-pane.ts';
 import type { ServerDetail } from '../../lib/grotto-server.tsx';
 import { ChatSidePaneShell } from '../chats/chat-side-pane-shell.tsx';
+import { AgentPeek } from '../members/agent-peek/agent-peek.tsx';
 import { AgentLoading } from '../members/agent-profile/agent-loading.tsx';
-import { AgentProfilePane } from '../members/agent-profile/agent-profile.tsx';
 
 export function AgentProfilePanel({
     chatId,
@@ -55,7 +55,7 @@ export function AgentProfilePanel({
                         className="flex h-full min-h-0 min-w-0 flex-1 flex-col"
                         style={{ width: width ?? undefined }}
                     >
-                        <AgentProfilePane
+                        <AgentPeek
                             agent={agent.data}
                             key={agent.data.id}
                             onClose={() => closeAgentProfilePane(chatId)}

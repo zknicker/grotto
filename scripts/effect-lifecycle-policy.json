@@ -559,6 +559,17 @@
         "manualPromise": 1,
         "timer": 1
       }
+    },
+    "apps/server/src/identity/clerk-sessions.ts": {
+      "disposition": "external-adapter",
+      "reason": "Clerk session verification is the Server's only await on a third-party key set. The deadline timer bounds one jose JWKS fetch, the abandoned fetch's rejection is observed so a late failure cannot become an unhandled rejection, and a missed deadline discards that key set so the next request builds a fresh one.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 1,
+        "finallyBlock": 1,
+        "manualPromise": 1,
+        "timer": 2
+      }
     }
   },
   "staticRuntimeCeilings": {}

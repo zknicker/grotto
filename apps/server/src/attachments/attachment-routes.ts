@@ -4,7 +4,7 @@ import {
     ChatArchivedError,
     ChatNotFoundError,
 } from '../chats/chat-access.ts';
-import type { ClerkSessions } from '../identity/clerk-sessions.ts';
+import { type ClerkSessions, ClerkSessionUnavailableError } from '../identity/clerk-sessions.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import type { ServerRuntime } from '../server-runtime.ts';
 import { ServerAccessDeniedError, ServerNotFoundError } from '../servers/server-access.ts';
@@ -104,6 +104,11 @@ async function authenticate(sessions: ClerkSessions, authorization: string | und
     try {
         return (await sessions.verify(authorization.slice(7))).clerkUserId;
     } catch (cause) {
+        // The signing keys never resolved, so this token was never judged.
+        if (cause instanceof ClerkSessionUnavailableError) {
+            throw new RouteError(cause.message, 503, { cause });
+        }
+
         throw new RouteError('Sign in to upload attachments.', 401, { cause });
     }
 }
@@ -170,7 +175,7 @@ function requestLog(reply: FastifyReply, error: unknown) {
 class RouteError extends Error {
     constructor(
         message: string,
-        readonly status: 400 | 401 | 413 | 415,
+        readonly status: 400 | 401 | 413 | 415 | 503,
         options?: ErrorOptions
     ) {
         super(message, options);

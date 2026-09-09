@@ -1,5 +1,6 @@
 import { appProtocolVersion } from '@grotto/api';
 import { initTRPC, TRPCError } from '@trpc/server';
+import { ClerkSessionUnavailableError } from '../identity/clerk-sessions.ts';
 import type { GrottoContext } from './context.ts';
 
 const t = initTRPC.context<GrottoContext>().create();
@@ -37,6 +38,17 @@ export const humanProcedure = appProcedure.use(async ({ ctx, next }) => {
     try {
         ({ clerkUserId } = await ctx.clerkSessions.verify(ctx.clerkSessionToken));
     } catch (cause) {
+        // The signing keys never resolved, so this token was never judged.
+        // Reporting it as a refusal would sign the human out over a Server
+        // availability failure.
+        if (cause instanceof ClerkSessionUnavailableError) {
+            throw new TRPCError({
+                cause,
+                code: 'SERVICE_UNAVAILABLE',
+                message: cause.message,
+            });
+        }
+
         throw unauthorized(cause);
     }
 

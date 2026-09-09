@@ -1,18 +1,40 @@
-import type * as React from 'react';
+import * as React from 'react';
+import { useMessageScrollerVisibility } from '../../../components/chats/message-scroller.tsx';
+import {
+    getHighestVisibleSequence,
+    getTranscriptEntrySequences,
+} from '../../chats/chat-read-visibility.ts';
 import { ChatTranscriptPresentation } from '../../chats/chat-transcript.tsx';
+import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
 import { type ChatTranscriptInput, useChatTranscript } from './use-chat-transcript.tsx';
 
 export { useChatTranscript } from './use-chat-transcript.tsx';
 
 export function ChatTranscript({
     composition,
+    onVisibleSequenceChange,
     scrollContentRef,
     ...input
 }: ChatTranscriptInput & {
     composition?: React.ReactNode;
+    onVisibleSequenceChange?: (sequence: number | undefined) => void;
     scrollContentRef?: React.RefObject<HTMLDivElement | null>;
 }) {
     const { downloadError, renderContext, rows } = useChatTranscript(input);
+    const visibility = useMessageScrollerVisibility();
+    const transcriptEntries = React.useMemo(() => buildTranscriptEntries({ rows }), [rows]);
+    const sequenceByEntryId = React.useMemo(
+        () => getTranscriptEntrySequences(transcriptEntries, input.messages ?? []),
+        [input.messages, transcriptEntries]
+    );
+    const visibleSequence = getHighestVisibleSequence(
+        visibility.visibleMessageIds,
+        sequenceByEntryId
+    );
+
+    React.useEffect(() => {
+        onVisibleSequenceChange?.(visibleSequence);
+    }, [onVisibleSequenceChange, visibleSequence]);
 
     if (!input.messages) {
         return null;

@@ -40,9 +40,10 @@ is no per-token churn.
   no relative-time or "no activity yet" text.
   - Every chat kind shows an unread pill when the operator's read receipt
     (runtime `chat_reads`, reader `usr_grotto`) trails the newest message
-    the operator did not author. Viewing a chat marks it read — on open and
-    on each new message while open — via `chat.markRead`, which the runtime
-    resolves read-to-latest at write time.
+    the operator did not author. Viewing a chat marks it read only while the
+    App is foregrounded and the relevant message rows are visible. The App
+    sends the highest visible message sequence through `chat.markRead`; the
+    runtime clamps that target to the current latest sequence at write time.
   - Agent DM rows anchor a presence dot to the agent face: green while the
     agent is idle, easing to amber while it is busy anywhere. No spinner — motion
     at rest in the sidebar reads as distraction — and the dot stays off

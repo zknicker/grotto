@@ -30,6 +30,7 @@ import { useChatArtifactPanel } from './use-artifact-panel.ts';
 import { useChatFilesPane } from './use-chat-files-pane.ts';
 import { useChatReferenceActivation } from './use-chat-reference-activation.ts';
 import { usePendingChatMessages } from './use-pending-messages.ts';
+import { useVisibleChatSequence } from './use-visible-chat-sequence.ts';
 
 export function ChatView({
     chat,
@@ -79,11 +80,11 @@ export function ChatView({
         () => mergeTaskAnchor(sourceMessages, anchorMessage),
         [anchorMessage, sourceMessages]
     );
-    const lastSequence = messages.data?.messages.at(-1)?.sequence ?? 0;
+    const visibleRead = useVisibleChatSequence(chat.id);
     const read = useChatRead({
         chatId: messages.data ? chat.id : undefined,
         enabled: !(threadSelection && threadTakeover && activeSidePane === 'thread'),
-        sequence: messages.data ? lastSequence : undefined,
+        sequence: messages.data ? visibleRead.sequence : undefined,
         serverId: messages.data ? chat.serverId : undefined,
     });
     const ensureDm = useDmEnsure(onOpenChat);
@@ -144,7 +145,6 @@ export function ChatView({
         setThreadSelection({ anchor, initialSummary: null });
         setChatSidePane(chat.id, 'thread');
     }, [chat.id, threadAnchorId, threadSelection?.anchor.id, transcriptMessages]);
-
     const closeThread = React.useCallback(() => {
         threadCloseRequestedRef.current = true;
         setSearchParams(
@@ -246,7 +246,6 @@ export function ChatView({
                 activeSidePane === 'profile' ||
                 (activeSidePane === 'thread' && threadPanel))
     );
-
     return (
         <section
             aria-label={chatName}
@@ -329,6 +328,7 @@ export function ChatView({
                         onOpenThread={openThread}
                         onReferenceActivate={handleReferenceActivate}
                         onStartDm={startDm}
+                        onVisibleSequenceChange={visibleRead.onSequenceChange}
                         pendingMessages={pendingMessages}
                         scrollContentRef={scrollContentRef}
                         serverId={chat.serverId}

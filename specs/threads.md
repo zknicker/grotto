@@ -52,9 +52,10 @@ per-message redaction.
 
 ## Read/unread
 
-Thread chats reuse `chat_reads` unchanged: opening a thread pane marks it read; the anchor's
-preview block shows an inline unread qualifier ("3 replies · 2 new") computed from the viewer's
-thread read receipt. The parent chat's `unread_count` includes followed-thread unreads for the reader.
+Thread chats reuse `chat_reads` unchanged: a foregrounded thread pane marks visible replies read;
+the parent anchor is not part of the child Thread sequence. The anchor's preview block shows an
+inline unread qualifier ("3 replies · 2 new") computed from the viewer's thread read receipt. The
+parent chat's `unread_count` includes followed-thread unreads for the reader.
 
 ## Surfaces (T3/U5)
 

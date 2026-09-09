@@ -1,12 +1,24 @@
 import type { Chat, ChatMessage, ThreadSummary } from '@grotto/api';
 import { Button } from '@heroui/react';
 import * as React from 'react';
+import {
+    MessageScroller,
+    MessageScrollerContent,
+    MessageScrollerItem,
+    MessageScrollerProvider,
+    MessageScrollerViewport,
+    useMessageScrollerVisibility,
+} from '../../../components/chats/message-scroller.tsx';
 import { useChatRead } from '../../../hooks/servers/use-chat-read.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';
 import { useThreadFollow } from '../../../hooks/servers/use-thread-follow.ts';
 import { useThreadMessages } from '../../../hooks/servers/use-thread-messages.ts';
 import { AutomationFireContextCard } from '../../chats/automation/automation-fire-context-card.tsx';
+import {
+    getHighestVisibleSequence,
+    getTranscriptEntrySequences,
+} from '../../chats/chat-read-visibility.ts';
 import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
 import { TranscriptRenderProvider } from '../../chats/chat-transcript-render-context.tsx';
 import { TranscriptEntryView } from '../../chats/chat-transcript-turn.tsx';
@@ -72,7 +84,6 @@ export function ThreadContent({
         summary?.threadChatId ?? createdThreadChatId ?? initialThreadChatId ?? undefined;
     const messages = useThreadMessages(chat.serverId, threadChatId);
     const replies = messages.messages;
-    const lastSequence = replies.at(-1)?.sequence ?? 0;
     const replyCount = Math.max(summary?.replyCount ?? 0, replies.length);
     const follow = useThreadFollow(chat.id);
     const humans = useHumanDirectory(chat.serverId);
@@ -112,13 +123,10 @@ export function ThreadContent({
         () => buildTranscriptEntries({ rows: rows.slice(1) }),
         [rows]
     );
-
-    useChatRead({
-        chatId: messages.data ? threadChatId : undefined,
-        enabled: active,
-        sequence: messages.data ? lastSequence : undefined,
-        serverId: messages.data ? chat.serverId : undefined,
-    });
+    const replySequenceByEntryId = React.useMemo(
+        () => getTranscriptEntrySequences(replyEntries, replies),
+        [replies, replyEntries]
+    );
 
     return (
         <div
@@ -156,58 +164,87 @@ export function ThreadContent({
                         />
                     ) : null}
                 </div>
-                {/* px-5 matches the main chat viewport gutter so the
+                <MessageScrollerProvider autoScroll={false} defaultScrollPosition="start">
+                    <ThreadReadTracker
+                        active={active}
+                        chatId={messages.data ? threadChatId : undefined}
+                        sequenceByEntryId={replySequenceByEntryId}
+                        serverId={messages.data ? chat.serverId : undefined}
+                    />
+                    <MessageScroller>
+                        {/* px-5 matches the main chat viewport gutter so the
                             rows' full-width hover bleed stays contained. */}
-                <div
-                    className="min-h-0 flex-1 overflow-y-auto px-5 py-4"
-                    data-testid="thread-conversation"
-                >
-                    {/*
-                     * Why the anchor was sent, above the anchor itself. A fire
-                     * writes no transcript row, so this card is where the
-                     * payload, the fire's place in the automation's history,
-                     * and the automation's own state are read.
-                     */}
-                    {anchor.cause ? (
-                        <AutomationFireContextCard messageId={anchor.id} serverId={chat.serverId} />
-                    ) : null}
-                    {anchorEntries.map((entry) => (
-                        <TranscriptEntryView
-                            activeReply={null}
-                            conversationLayout={renderContext.conversationLayout}
-                            entry={entry}
-                            key={entry.id}
-                        />
-                    ))}
-                    {replyCount === 0 ? (
-                        <div className="py-8 text-center text-muted text-sm">No replies yet</div>
-                    ) : null}
-                    {messages.hasOlderHistory ? (
-                        <div className="mb-5 flex justify-center">
-                            <Button
-                                isDisabled={messages.isFetchingOlderHistory}
-                                onPress={() => void messages.fetchOlderHistory()}
-                                size="sm"
-                                variant="ghost"
-                            >
-                                {messages.isFetchingOlderHistory
-                                    ? 'Loading older replies…'
-                                    : 'Load older replies'}
-                            </Button>
-                        </div>
-                    ) : null}
-                    <div className="flex min-w-0 flex-col">
-                        {replyEntries.map((entry) => (
-                            <TranscriptEntryView
-                                activeReply={null}
-                                conversationLayout={renderContext.conversationLayout}
-                                entry={entry}
-                                key={entry.id}
-                            />
-                        ))}
-                        <ChatAgentComposition chatId={threadChatId} serverId={chat.serverId} />
-                    </div>
-                </div>
+                        <MessageScrollerViewport
+                            aria-label="Thread messages"
+                            className="px-5 py-4"
+                            data-testid="thread-conversation"
+                        >
+                            <MessageScrollerContent className="w-full gap-0">
+                                {/*
+                                 * Why the anchor was sent, above the anchor itself. A fire
+                                 * writes no transcript row, so this card is where the
+                                 * payload, the fire's place in the automation's history,
+                                 * and the automation's own state are read.
+                                 */}
+                                {anchor.cause ? (
+                                    <AutomationFireContextCard
+                                        messageId={anchor.id}
+                                        serverId={chat.serverId}
+                                    />
+                                ) : null}
+                                {anchorEntries.map((entry) => (
+                                    <MessageScrollerItem
+                                        className="![content-visibility:visible]"
+                                        key={entry.id}
+                                        messageId={entry.id}
+                                    >
+                                        <TranscriptEntryView
+                                            activeReply={null}
+                                            conversationLayout={renderContext.conversationLayout}
+                                            entry={entry}
+                                        />
+                                    </MessageScrollerItem>
+                                ))}
+                                {replyCount === 0 ? (
+                                    <div className="py-8 text-center text-muted text-sm">
+                                        No replies yet
+                                    </div>
+                                ) : null}
+                                {messages.hasOlderHistory ? (
+                                    <div className="mb-5 flex justify-center">
+                                        <Button
+                                            isDisabled={messages.isFetchingOlderHistory}
+                                            onPress={() => void messages.fetchOlderHistory()}
+                                            size="sm"
+                                            variant="ghost"
+                                        >
+                                            {messages.isFetchingOlderHistory
+                                                ? 'Loading older replies…'
+                                                : 'Load older replies'}
+                                        </Button>
+                                    </div>
+                                ) : null}
+                                {replyEntries.map((entry) => (
+                                    <MessageScrollerItem
+                                        className="![content-visibility:visible]"
+                                        key={entry.id}
+                                        messageId={entry.id}
+                                    >
+                                        <TranscriptEntryView
+                                            activeReply={null}
+                                            conversationLayout={renderContext.conversationLayout}
+                                            entry={entry}
+                                        />
+                                    </MessageScrollerItem>
+                                ))}
+                                <ChatAgentComposition
+                                    chatId={threadChatId}
+                                    serverId={chat.serverId}
+                                />
+                            </MessageScrollerContent>
+                        </MessageScrollerViewport>
+                    </MessageScroller>
+                </MessageScrollerProvider>
             </TranscriptRenderProvider>
             {readOnly ? (
                 <p className="shrink-0 border-separator border-t px-4 py-3 text-muted text-sm">
@@ -227,4 +264,31 @@ export function ThreadContent({
             )}
         </div>
     );
+}
+
+function ThreadReadTracker({
+    active,
+    chatId,
+    sequenceByEntryId,
+    serverId,
+}: {
+    active: boolean;
+    chatId: string | undefined;
+    sequenceByEntryId: ReadonlyMap<string, number>;
+    serverId: string | undefined;
+}) {
+    const visibility = useMessageScrollerVisibility();
+    const visibleSequence = getHighestVisibleSequence(
+        visibility.visibleMessageIds,
+        sequenceByEntryId
+    );
+
+    useChatRead({
+        chatId,
+        enabled: active,
+        sequence: visibleSequence,
+        serverId,
+    });
+
+    return null;
 }

@@ -39,11 +39,10 @@ export async function getComputerBrowserSettings(
         service?.root === root ? [service.application] : await detectChromeApplications();
 
     return agentRuntimeBrowserSettingsSchema.parse({
-        affectedAgents: [],
         application: application ? { path: application.path, version: application.version } : null,
+        configured: config.updatedAt !== null,
         enabled: config.enabled,
         profileName: config.profileName,
-        skillConflict: null,
         status:
             service?.root === root && service.profileName === config.profileName
                 ? await service.supervisor.status()

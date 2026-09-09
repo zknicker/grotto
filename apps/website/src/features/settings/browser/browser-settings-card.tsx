@@ -1,14 +1,8 @@
 import type { AgentRuntimeBrowserSettings, AgentRuntimeSaveBrowserSettings } from '@grotto/api';
-import { Button, Chip } from '@heroui/react';
+import { Button } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
-import { BrowserIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { Icon } from '../../../components/ui/icon.tsx';
-import { BrowserEnablementSwitch } from './browser-enablement-switch.tsx';
-import {
-    BrowserDisableConfirmationDialog,
-    BrowserSkillConflictConfirmationDialog,
-} from './browser-settings-confirmation-dialogs.tsx';
+import { browserCapabilityView } from '../../computers/browser-capability-model.ts';
 import { BrowserSettingsDialog } from './browser-settings-dialog.tsx';
 import {
     type BrowserSettingsDraft,
@@ -17,6 +11,7 @@ import {
     normalizeDraft,
     toSaveInput,
 } from './browser-settings-model.ts';
+import { BrowserRow, BrowserStatusChip } from './browser-settings-row.tsx';
 
 type BrowserSettings = AgentRuntimeBrowserSettings;
 type BrowserSettingsControlRender = (control: {
@@ -26,6 +21,7 @@ type BrowserSettingsControlRender = (control: {
 
 export function BrowserSettingsCard({
     error,
+    isActionPending = false,
     isLoading = false,
     isSaving = false,
     onOpenBrowser,
@@ -34,6 +30,7 @@ export function BrowserSettingsCard({
     settings,
 }: {
     error?: string | null;
+    isActionPending?: boolean;
     isLoading?: boolean;
     isSaving?: boolean;
     onOpenBrowser: () => Promise<unknown> | undefined;
@@ -46,13 +43,15 @@ export function BrowserSettingsCard({
     }
 
     if (!settings) {
+        const view = browserCapabilityView({ error, settings: null });
         return (
             <ItemCard>
                 <ItemCard.Content>
-                    <ItemCard.Title>Browser</ItemCard.Title>
-                    <ItemCard.Description>
-                        {error ?? 'Grotto Computer unavailable.'}
-                    </ItemCard.Description>
+                    <ItemCard.Title>
+                        Chrome
+                        <BrowserStatusChip view={view} />
+                    </ItemCard.Title>
+                    <ItemCard.Description>{view.description}</ItemCard.Description>
                 </ItemCard.Content>
                 <ItemCard.Action>
                     <Button isDisabled size="sm" variant="secondary">
@@ -74,14 +73,21 @@ export function BrowserSettingsCard({
             onSave={onSave}
             settings={currentSettings}
         >
-            {({ openSettingsDialog, requestSave }) => (
-                <BrowserRow
-                    isSaving={isSaving}
-                    onEnabledChange={(enabled) => requestSave({ enabled })}
-                    onSelect={openSettingsDialog}
-                    settings={currentSettings}
-                />
-            )}
+            {({ openSettingsDialog, requestSave }) => {
+                const view = browserCapabilityView({ error, settings: currentSettings });
+                return (
+                    <BrowserRow
+                        isActionPending={isActionPending}
+                        isSaving={isSaving}
+                        onConfigure={openSettingsDialog}
+                        onOpenBrowser={onOpenBrowser}
+                        onRestartBrowser={onRestartBrowser}
+                        onToggle={(enabled) => requestSave({ enabled })}
+                        settings={currentSettings}
+                        view={view}
+                    />
+                );
+            }}
         </BrowserSettingsControl>
     );
 }
@@ -104,50 +110,27 @@ export function BrowserSettingsControl({
     settings: BrowserSettings;
 }) {
     const [draft, setDraft] = React.useState<BrowserSettingsDraft>(() => createDraft(settings));
-    const [disableDialogOpen, setDisableDialogOpen] = React.useState(false);
     const [settingsDialogOpen, setSettingsDialogOpen] = React.useState(false);
-    const [replaceDialogOpen, setReplaceDialogOpen] = React.useState(false);
-    const [pendingSave, setPendingSave] = React.useState<AgentRuntimeSaveBrowserSettings | null>(
-        null
-    );
 
     React.useEffect(() => {
-        setDraft(createDraft(settings));
-        setDisableDialogOpen(false);
-        setPendingSave(null);
-        setReplaceDialogOpen(false);
-    }, [settings]);
+        if (!settingsDialogOpen) {
+            setDraft(createDraft(settings));
+        }
+    }, [settings, settingsDialogOpen]);
 
     const currentSettings = settings;
     const normalized = normalizeDraft(draft);
     const hasChanges = hasDraftChanges(currentSettings, normalized);
-    const needsReplaceConfirmation = Boolean(currentSettings.skillConflict && normalized.enabled);
     const missingProfileName = normalized.profileName.length === 0;
-    const canSave = !missingProfileName && (hasChanges || needsReplaceConfirmation);
+    const canSave = !missingProfileName && (hasChanges || !currentSettings.configured);
     const setupError = missingProfileName ? 'Set a profile name before saving.' : null;
 
     function openSettingsDialog(nextDraft?: Partial<BrowserSettingsDraft>) {
         setDraft({ ...createDraft(currentSettings), ...nextDraft });
-        setPendingSave(null);
-        setReplaceDialogOpen(false);
         setSettingsDialogOpen(true);
     }
 
     function requestSave(input: AgentRuntimeSaveBrowserSettings) {
-        if (
-            currentSettings.enabled &&
-            input.enabled === false &&
-            currentSettings.affectedAgents.length > 0
-        ) {
-            setPendingSave(input);
-            setDisableDialogOpen(true);
-            return;
-        }
-        if (currentSettings.skillConflict && input.enabled === true) {
-            setPendingSave(input);
-            setReplaceDialogOpen(true);
-            return;
-        }
         void onSave(input);
     }
 
@@ -169,83 +152,7 @@ export function BrowserSettingsControl({
                 settings={currentSettings}
                 setupError={setupError}
             />
-
-            <BrowserSkillConflictConfirmationDialog
-                isSaving={isSaving}
-                onCancel={() => setReplaceDialogOpen(false)}
-                onOpenChange={setReplaceDialogOpen}
-                onReplace={() => {
-                    if (!pendingSave) {
-                        return;
-                    }
-                    void onSave(pendingSave);
-                    setPendingSave(null);
-                    setReplaceDialogOpen(false);
-                }}
-                open={replaceDialogOpen}
-            />
-
-            <BrowserDisableConfirmationDialog
-                affectedAgentNames={currentSettings.affectedAgents.map((agent) => agent.name)}
-                onConfirm={() => {
-                    if (pendingSave) {
-                        void onSave(pendingSave);
-                    }
-                    setPendingSave(null);
-                }}
-                onOpenChange={setDisableDialogOpen}
-                open={disableDialogOpen}
-            />
         </>
-    );
-}
-
-function BrowserRow({
-    isSaving,
-    onEnabledChange,
-    onSelect,
-    settings,
-}: {
-    isSaving: boolean;
-    onEnabledChange: (enabled: boolean) => void;
-    onSelect: () => void;
-    settings: BrowserSettings;
-}) {
-    return (
-        <ItemCard>
-            <ItemCard.Icon>
-                <Icon icon={BrowserIcon} />
-            </ItemCard.Icon>
-            <ItemCard.Content>
-                <ItemCard.Title>
-                    <span className="flex min-w-0 items-center gap-2">
-                        <span className="truncate">Browser</span>
-                        {settings.skillConflict ? (
-                            <Chip color="warning" size="sm" variant="soft">
-                                Skill Conflict
-                            </Chip>
-                        ) : null}
-                    </span>
-                </ItemCard.Title>
-                <ItemCard.Description>
-                    Let agents use a managed Chrome profile for browser automation.
-                </ItemCard.Description>
-            </ItemCard.Content>
-            <ItemCard.Action>
-                <div className="flex items-center gap-2">
-                    <Button isDisabled={isSaving} onPress={onSelect} size="sm" variant="secondary">
-                        Configure
-                    </Button>
-                    <BrowserEnablementSwitch
-                        aria-label={`${settings.enabled ? 'Disable' : 'Enable'} Browser`}
-                        checked={settings.enabled}
-                        disabled={isSaving}
-                        lockReason={null}
-                        onCheckedChange={onEnabledChange}
-                    />
-                </div>
-            </ItemCard.Action>
-        </ItemCard>
     );
 }
 

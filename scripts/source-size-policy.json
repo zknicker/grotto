@@ -77,7 +77,7 @@
     "apps/server/src/server-mcp/icons.test.ts": 317,
     "apps/server/test/agent-activity.test.ts": 367,
     "apps/server/test/agent-delivery.test.ts": 2982,
-    "apps/server/test/computer-connections.test.ts": 332,
+    "apps/server/test/computer-connections.test.ts": 330,
     "apps/server/test/grotto-agent-run.test.ts": 2882,
     "apps/server/test/grotto-agents.test.ts": 728,
     "apps/server/test/grotto-asks.test.ts": 582,

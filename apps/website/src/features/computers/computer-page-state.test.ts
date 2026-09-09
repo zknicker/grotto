@@ -16,7 +16,7 @@ test('presents the attach flow only for a settled empty list', () => {
     });
 });
 
-test('selects the requested Computer or falls back to the first one', () => {
+test('selects the requested Computer without falling back to another target', () => {
     const computers = [{ id: 'computer-1' }, { id: 'computer-2' }] as Computer[];
 
     expect(resolveComputerPageState({ computers, requestedId: 'computer-2' })).toEqual({
@@ -24,7 +24,7 @@ test('selects the requested Computer or falls back to the first one', () => {
         status: 'ready',
     });
     expect(resolveComputerPageState({ computers, requestedId: 'missing' })).toEqual({
-        computerId: 'computer-1',
-        status: 'ready',
+        requestedId: 'missing',
+        status: 'not-found',
     });
 });

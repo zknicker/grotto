@@ -9,7 +9,7 @@ export interface BrowserSettingsDraft {
 
 export function createDraft(settings: BrowserSettings | null): BrowserSettingsDraft {
     return {
-        enabled: settings?.enabled ?? false,
+        enabled: settings?.configured ? settings.enabled : true,
         profileName: settings?.profileName ?? '',
     };
 }

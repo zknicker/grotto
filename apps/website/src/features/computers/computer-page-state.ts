@@ -5,6 +5,7 @@ type Computer = GrottoOutputs['computer']['list'][number];
 export type ComputerPageState =
     | { status: 'loading' }
     | { status: 'empty' }
+    | { requestedId: string; status: 'not-found' }
     | { computerId: string; status: 'ready' };
 
 export function resolveComputerPageState(input: {
@@ -16,8 +17,13 @@ export function resolveComputerPageState(input: {
     }
 
     const items = input.computers;
-    const computerId =
-        items.find((computer) => computer.id === input.requestedId)?.id ?? items[0]?.id;
+    if (input.requestedId !== null) {
+        return items.some((computer) => computer.id === input.requestedId)
+            ? { computerId: input.requestedId, status: 'ready' }
+            : { requestedId: input.requestedId, status: 'not-found' };
+    }
+
+    const computerId = items[0]?.id;
 
     return computerId ? { computerId, status: 'ready' } : { status: 'empty' };
 }

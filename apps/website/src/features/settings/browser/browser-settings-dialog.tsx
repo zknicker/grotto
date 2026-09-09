@@ -45,7 +45,7 @@ export function BrowserSettingsDialog({
 
     return (
         <BrowserDialog
-            description="Let agents use a managed Chrome profile for browser automation."
+            description="Grotto manages Google Chrome on this Computer with one shared profile. The profile name selects the local identity; it does not install Chrome or create an account."
             footer={
                 <Button
                     form={BROWSER_DIALOG_FORM_ID}
@@ -53,7 +53,7 @@ export function BrowserSettingsDialog({
                     isPending={isSaving}
                     type="submit"
                 >
-                    Save
+                    {settings.configured ? 'Save' : 'Set up Browser'}
                 </Button>
             }
             icon={BrowserIcon}
@@ -74,16 +74,18 @@ export function BrowserSettingsDialog({
                             aria-label={`${draft.enabled ? 'Disable' : 'Enable'} Browser`}
                             checked={draft.enabled}
                             disabled={isSaving}
-                            locked={false}
+                            locked={!(settings.application || draft.enabled)}
+                            lockTooltip="Install Google Chrome on this Computer before enabling Browser."
                             onCheckedChange={(enabled) =>
                                 onDraftChange((current) => ({ ...current, enabled }))
                             }
                         />
                     }
+                    description="Turning off Browser closes the managed browser and may interrupt Agents using it."
                     title="Enable Browser"
                 />
                 <BrowserSection
-                    description="Choose a durable, signed-in browser identity for this tool."
+                    description="This durable Chrome profile keeps the cookies and signed-in accounts shared by Agents on this Computer."
                     title="Profile"
                 >
                     <BrowserConfigFields
@@ -92,19 +94,11 @@ export function BrowserSettingsDialog({
                         fields={[browserFields.profileName]}
                         onDraftChange={onDraftChange}
                     />
-
-                    {settings.skillConflict ? (
-                        <BrowserNotice title="Skill Conflict">
-                            Existing skill at{' '}
-                            <span className="font-mono">{settings.skillConflict.skillPath}</span>.
-                            Enabling Browser will replace it after confirmation.
-                        </BrowserNotice>
-                    ) : null}
                 </BrowserSection>
 
                 <BrowserSection
                     description="The Chrome install Grotto manages."
-                    title="Managed Chrome"
+                    title="Chrome installation"
                 >
                     {settings.application ? (
                         <BrowserNotice title="Detected">
@@ -114,8 +108,9 @@ export function BrowserSettingsDialog({
                                 : null}
                         </BrowserNotice>
                     ) : (
-                        <BrowserNotice title="Not Installed" variant="error">
-                            Install Google Chrome to enable Browser.
+                        <BrowserNotice title="Not detected">
+                            Google Chrome was not detected on this Computer. Browser currently
+                            supports Google Chrome on macOS.
                         </BrowserNotice>
                     )}
                 </BrowserSection>

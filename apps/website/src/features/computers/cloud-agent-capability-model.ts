@@ -92,10 +92,11 @@ export function reportedCloudAgentCapability(
 
 function connectedDescription(state: CloudAgentCapabilityState): string {
     const account = state.accountEmail ? `Connected as ${state.accountEmail}.` : 'Connected.';
+    const assignment = 'Agents assigned to this Computer use this connection.';
     if (!state.expiresAt) {
-        return `${account} Cloud Agent work bills to that Cursor plan.`;
+        return `${account} ${assignment} Cloud Agent work bills to that Cursor plan.`;
     }
-    return `${account} The key renews by ${new Intl.DateTimeFormat(undefined, {
+    return `${account} ${assignment} The key renews by ${new Intl.DateTimeFormat(undefined, {
         dateStyle: 'medium',
     }).format(new Date(state.expiresAt))}.`;
 }

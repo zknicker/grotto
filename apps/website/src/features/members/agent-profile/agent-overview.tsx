@@ -31,6 +31,8 @@ export function AgentOverview({
     const computer = computers.data?.find((candidate) => candidate.id === agent.computerId);
     const inventory = computer?.reportedInventory;
     const canEdit = server.role === 'owner' || server.role === 'admin';
+    const computerRoute = `${serverComputersRoute(server.slug)}?computer=${encodeURIComponent(agent.computerId)}`;
+    const computerUnavailable = !(computer || computers.isPending);
 
     return (
         <PageColumn>
@@ -47,10 +49,7 @@ export function AgentOverview({
                             <Chip.Label className="capitalize">{agent.role}</Chip.Label>
                         </Chip>
                         {computer ? (
-                            <Link
-                                className="block min-w-0"
-                                to={`${serverComputersRoute(server.slug)}?computer=${encodeURIComponent(computer.id)}`}
-                            >
+                            <Link className="block min-w-0" to={computerRoute}>
                                 <Chip
                                     className="max-w-full"
                                     color={computerHealthColor(computer.health)}
@@ -69,6 +68,21 @@ export function AgentOverview({
                                     </Chip.Label>
                                 </Chip>
                             </Link>
+                        ) : computerUnavailable && canEdit ? (
+                            <Link className="block min-w-0" to={computerRoute}>
+                                <Chip color="warning" size="sm" variant="soft">
+                                    <Icon
+                                        className="size-4 shrink-0 text-muted"
+                                        icon={ComputerIcon}
+                                    />
+                                    <Chip.Label>Assigned Computer unavailable</Chip.Label>
+                                </Chip>
+                            </Link>
+                        ) : computerUnavailable ? (
+                            <Chip color="default" size="sm" variant="soft">
+                                <Icon className="size-4 shrink-0 text-muted" icon={ComputerIcon} />
+                                <Chip.Label>Assigned Computer</Chip.Label>
+                            </Chip>
                         ) : null}
                     </>
                 }

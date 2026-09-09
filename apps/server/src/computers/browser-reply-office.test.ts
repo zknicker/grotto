@@ -113,11 +113,10 @@ function browserSettings(
         result: {
             kind: 'settings',
             value: {
-                affectedAgents: [],
                 application: null,
+                configured: false,
                 enabled: false,
                 profileName: 'default',
-                skillConflict: null,
                 status: null,
                 updatedAt: null,
             },

@@ -226,11 +226,10 @@ test('Browser relay accepts a response only from the requested Computer', async 
     const result = {
         kind: 'settings' as const,
         value: {
-            affectedAgents: [],
             application: null,
+            configured: false,
             enabled: false,
             profileName: 'default',
-            skillConflict: null,
             status: null,
             updatedAt: null,
         },
@@ -297,7 +296,6 @@ test('execution journal relay is paired to the assigned Computer, Agent, and run
     expect(connections.acceptExecutionJournalResult(computerId, available)).toBe(true);
     expect(await pending).toEqual(available);
 });
-
 test('execution journal detail is explicitly unavailable when its Computer is offline', async () => {
     const connections = makeConnections();
     await expect(

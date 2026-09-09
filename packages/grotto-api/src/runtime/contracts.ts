@@ -385,12 +385,6 @@ export const agentRuntimeBrowserStatusSchema = z
 
 export const agentRuntimeBrowserSettingsSchema = z
     .object({
-        affectedAgents: z.array(
-            z.object({
-                id: z.string(),
-                name: z.string(),
-            })
-        ),
         application: z
             .object({
                 path: z.string().trim().min(1),
@@ -398,15 +392,9 @@ export const agentRuntimeBrowserSettingsSchema = z
             })
             .strict()
             .nullable(),
+        configured: z.boolean(),
         enabled: z.boolean(),
         profileName: agentRuntimeBrowserProfileNameSchema,
-        skillConflict: z
-            .object({
-                skillName: z.literal('browser'),
-                skillPath: z.string().trim().min(1),
-            })
-            .strict()
-            .nullable(),
         status: agentRuntimeBrowserStatusSchema.nullable(),
         updatedAt: z.string().datetime().nullable(),
     })

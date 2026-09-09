@@ -53,6 +53,8 @@ export function ComputerPage({ serverId, serverSlug }: { serverId: string; serve
                         serverId={serverId}
                         serverSlug={serverSlug}
                     />
+                ) : state.status === 'not-found' ? (
+                    <ComputerNotFound />
                 ) : (
                     <ComputerEmpty onAdd={() => setAdding(true)} />
                 )}
@@ -153,6 +155,25 @@ function ComputerEmpty({ onAdd }: { onAdd: () => void }) {
                 <EmptyState.Content>
                     <Button onPress={onAdd}>Add Computer</Button>
                 </EmptyState.Content>
+            </EmptyState>
+        </div>
+    );
+}
+
+function ComputerNotFound() {
+    return (
+        <div className="flex min-h-full items-center justify-center p-6">
+            <EmptyState>
+                <EmptyState.Header>
+                    <EmptyState.Media variant="icon">
+                        <Icon icon={ComputerIcon} />
+                    </EmptyState.Media>
+                    <EmptyState.Title>Computer unavailable</EmptyState.Title>
+                    <EmptyState.Description>
+                        This Computer is no longer attached to the Server. Choose an attached
+                        Computer from the list; Grotto will not redirect you to another machine.
+                    </EmptyState.Description>
+                </EmptyState.Header>
             </EmptyState>
         </div>
     );

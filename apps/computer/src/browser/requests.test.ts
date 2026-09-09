@@ -37,9 +37,13 @@ test('Browser settings stay isolated to one Computer attachment', async () => {
 
         expect(saved.result?.kind).toBe('settings');
         expect(saved.result?.kind === 'settings' && saved.result.value.profileName).toBe('work');
+        expect(saved.result?.kind === 'settings' && saved.result.value.configured).toBe(true);
         expect(untouched.result?.kind).toBe('settings');
         expect(untouched.result?.kind === 'settings' && untouched.result.value.profileName).toBe(
             'default'
+        );
+        expect(untouched.result?.kind === 'settings' && untouched.result.value.configured).toBe(
+            false
         );
     } finally {
         await stopBrowserService();

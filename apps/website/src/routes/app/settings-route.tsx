@@ -30,7 +30,14 @@ interface SectionContext {
 
 /** Section registry: one renderer per settings section, no dispatch chain. */
 const sections: Record<string, (context: SectionContext) => ReactNode> = {
-    browser: ({ server }) => <BrowserSettingsPage serverId={server.id} />,
+    browser: ({ server }) => (
+        <RequireOperator
+            description="Browser is managed per Computer. Owners and Admins can configure it from a Computer detail."
+            role={server.role}
+        >
+            <BrowserSettingsPage serverSlug={server.slug} />
+        </RequireOperator>
+    ),
     computers: ({ server }) => (
         <RequireOperator
             description="Computers are attached and removed by Server operators."

@@ -50,24 +50,32 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 
 ## Product surfaces
 
-- Members lists Agents and Humans. Its Agents Overview compares usage across Agents. Selecting an
-  Agent opens Overview with scoped usage and execution configuration, Activity with Chat
-  memberships, Automations for Reminders and Triggers, Tools for MCP access and Skills, and
-  Workspace.
-- Member lists stay lightweight; Agent and human profile routes load one focused
-  detail record so profile refreshes do not rebuild the directory.
-- Clicking an Agent avatar in Chat opens the same Agent profile context. Hover
-  or keyboard focus previews the Agent's current availability, compact
-  runtime/model/reasoning configuration, and newest durable activity;
-  Agent reference chips use the same preview.
+- An Agent's profile is its own destination at `/s/:slug/agents/:agentId/:tab`, in the Server
+  layout beside Usage rather than inside Settings. Its header states the Agent's photo, name, role,
+  and current availability, offers **Edit Profile** for an ordinary Agent, and holds one overflow
+  menu of lifecycle verbs — Stop, Restart, Start fresh session, Full reset, Delete Agent — for
+  Owners and Admins. Members see the header without that menu.
+- The profile has five tabs. **Overview** reads: a glance strip of the assigned Computer, model,
+  Chats, Automations, Skills, and Connections, each the doorway to what owns it; one 30-day
+  processed-token tile; the newest turns; and the Chats this Agent belongs to. **Setup** configures:
+  identity facts, model and runtime, Connection grants, and Skills. **Automations** carries
+  Reminders and Triggers, **Activity** the turn-by-turn execution history, and **Workspace** the
+  Agent's files.
+- Members in Settings lists Agents and Humans and links into these profiles. Member lists stay
+  lightweight; Agent and human profile routes load one focused detail record so profile refreshes
+  do not rebuild the directory.
+- Clicking an Agent avatar in Chat opens a read-only peek pane beside the conversation, with an
+  **Open profile** action for the page that owns editing. Hover or keyboard focus previews the
+  Agent's current availability, compact runtime/model/reasoning configuration, and newest durable
+  activity; Agent reference chips use the same preview.
 - Activity and Automations are what the marks on an Agent's messages link to: a
   fire mark opens the automation, a session mark opens Activity. See
   [Chat](chat.md#in-the-box) for the marks themselves.
-- Profile edits identity and desired model/runtime configuration.
-- The Agent profile shows its assigned Computer and, for operators, links directly to that
-  Computer's detail for remediation; it never substitutes another Computer.
+- The header edits identity; Setup edits desired model and runtime configuration.
+- Overview's glance strip names the Agent's assigned Computer with its health and, for operators,
+  opens that Computer's detail for remediation; it never substitutes another Computer.
 - Skills are independent Agent-owned copies. An Owner or Admin imports a host
-  bundle into one Agent library from the Agent profile.
+  bundle into one Agent library from the Agent's Setup tab.
 - MCP connections are Server-owned; Agent-level grants choose which
   connections the Agent may use.
 - Every active Agent is already present in the Direct messages sidebar; there
@@ -183,7 +191,8 @@ initials remain available alongside generation.
 
 One resident Computer execution host serves each assigned Agent. The Agent's
 single global model session spans all Chats and resumes across deliveries and
-Computer restarts. Session reset creates fresh model context while preserving
+Computer restarts. Stop, Restart, Start fresh session, and Full reset all run from the profile
+header's actions menu. Session reset creates fresh model context while preserving
 the workspace and skills. Full reset restores the Agent-kind factory workspace
 and only the current factory-managed skills: minimal `MEMORY.md` for an
 ordinary Agent, or Cove's root `MEMORY.md` plus three onboarding files under
@@ -194,8 +203,8 @@ See [Context management](context-management.md) and
 
 ## Retirement
 
-An Owner or Admin retires an Agent by deleting it from its profile and typing
-its name to confirm. A retired Agent leaves every active member control at once:
+An Owner or Admin retires an Agent with **Delete Agent** in the profile header's
+actions menu, typing its name to confirm. A retired Agent leaves every active member control at once:
 it no longer appears in the Agent list, mention pickers, or Channel-creation
 controls, and it can neither execute a turn nor receive a new send. A send to its
 DM, a reply in one of that DM's Threads, or a new task message is rejected.

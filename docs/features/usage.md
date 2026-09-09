@@ -13,11 +13,14 @@ Agent or Computer that owns its meaning.
 
 ## Product surfaces
 
-* **Agents Overview.** The Members index shows 7-, 30-, or 90-day processed-token volume across
-  all Grotto Agents. Agent KPI cards scope the chart and configuration grid. URL-backed Computer
-  and runtime filters keep contextual drill-downs visible and removable.
-* **Agent Overview.** Each Agent profile shows the same token view already scoped to that Agent,
-  above runtime, model, and session configuration.
+* **Agents Overview.** `/s/:slug/usage` shows 7-, 30-, or 90-day processed-token volume across all
+  Grotto Agents. An Agent scope picker narrows the chart and configuration grid, and that scope is
+  URL-backed under `agent` alongside the Computer and runtime filters, so a contextual drill-down
+  stays visible, shareable, and removable.
+* **Agent Overview.** An Agent profile carries one compact tile instead of a second dashboard: its
+  processed-token total for the last 30 days and a sparkline of daily volume, with **See in Usage**
+  opening Agents Overview already scoped to that Agent. Ranges, per-configuration breakdown, and
+  cross-Agent comparison belong to Agents Overview.
 * **Computer detail.** Owners and Admins see equal-size capacity cards for detected Codex, Claude
   Code, Grok Build, and Pi runtimes. Supported runtimes that are absent sit in compact,
   low-contrast **Not Detected** Chips in the section header instead of occupying card-sized space.

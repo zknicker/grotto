@@ -134,21 +134,18 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   is you belongs in Account even when it is reached through a Server-scoped URL
   (Settings is mounted under `/s/:slug`, so device and user settings repeat per
   Server; that is a known wart, not a licence to file them under Server).
-* **A member has one page, and it lives in Settings.** Agents and humans are
-  Server members, the roster is Settings → Members, and a record's page hangs
-  off it: `settings/members/agents/:agentId/:tab` and
-  `settings/members/humans/:userId`. There is no second route for the same
-  record. When you are working rather than administering, you *peek* instead —
-  the Agent profile pane (`hooks/pane/use-agent-profile-pane.ts`) opens beside a
-  chat and takes you nowhere. The rule is one line: **navigating goes to
-  Settings, peeking opens a pane.**
-
-  The pane is keyed by chat id today because it shares the chat's right-pane
-  slot, so surfaces outside chat — the activity strip, the chat-rail context
-  menu, the Computer page's Agent table, the command palette — navigate to the
-  record page instead. Giving the pane a host outside that arbitration is the
-  change that would let them peek too; until then, navigation is the honest
-  fallback, not a second home for the record.
+* **An Agent has its own page; a human is a record in Settings.** Agents are
+  first-class product records, so an Agent's page renders in the Server layout
+  at `/s/:slug/agents/:agentId/:tab` (`routes/app/agent-page.tsx`) and keeps the
+  app's own navigation. Humans stay roster records under Settings → Members at
+  `settings/members/humans/:userId`. The old `settings/members/agents/…`
+  addresses redirect to the page; there is no second route for the same record.
+* **Navigating goes to the page, peeking opens a pane.** Clicking an Agent's
+  avatar in chat opens a read-only peek pane beside the message
+  (`hooks/pane/use-agent-profile-pane.ts`): one column, no tabs, and its only
+  path to editing is its **Open profile** action. Every other surface — the
+  activity strip, the chat-rail context menu, the Computer page's Agent table,
+  the command palette — navigates to the page.
 * Usage is a dashboard, not a member. It lives at `/s/:slug/usage` — it was the
   index of the deleted `/members` browser, which made a dashboard wear a
   roster's URL.

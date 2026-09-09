@@ -11,6 +11,8 @@ import {
 export const taskListInputSchema = z
     .object({
         chatId: idSchema.optional(),
+        /** Widen the lens to the background tier the Board and List hide. */
+        includeBackground: z.boolean().default(false),
         serverId: idSchema,
     })
     .strict();
@@ -26,7 +28,17 @@ export const taskListItemSchema = z
     })
     .strict();
 
-export const taskListSchema = z.array(taskListItemSchema);
+/**
+ * The Board and List lens. `backgroundCount` is how many background-tier tasks
+ * this same query hid, so the App can offer "N background" without a second
+ * round trip; it is 0 whenever `includeBackground` widened the lens.
+ */
+export const taskListSchema = z
+    .object({
+        backgroundCount: z.number().int().nonnegative(),
+        tasks: z.array(taskListItemSchema),
+    })
+    .strict();
 
 export const taskAssigneesInputSchema = z
     .object({
@@ -149,5 +161,6 @@ export const taskLabelMutationSchema = z
     })
     .strict();
 
+export type TaskList = z.infer<typeof taskListSchema>;
 export type TaskListItem = z.infer<typeof taskListItemSchema>;
 export type TaskAssignee = z.infer<typeof taskAssigneeSchema>;

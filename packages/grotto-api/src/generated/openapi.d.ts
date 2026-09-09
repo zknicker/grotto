@@ -1775,7 +1775,7 @@ export interface components {
             priority: "none" | "urgent" | "high" | "medium" | "low";
             labels: components["schemas"]["TaskLabel"][];
             /** @enum {string} */
-            origin: "composed" | "converted";
+            origin: "composed" | "converted" | "claimed";
             created_at: components["schemas"]["Timestamp"];
             updated_at: components["schemas"]["Timestamp"];
         };

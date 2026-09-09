@@ -6,7 +6,7 @@ import type * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { settingsAgentRoute, tasksRoute } from '../server-routes.ts';
+import { agentProfileRoute, tasksRoute } from '../server-routes.ts';
 import { ChatContextSurfaceItems, ChatSurfaceItems } from './chat-surface-items.tsx';
 
 export function DmActions({
@@ -23,7 +23,7 @@ export function DmActions({
     const navigate = useNavigate();
     const runAction = (key: React.Key) => {
         if (key === 'profile' && peerAgent) {
-            navigate(settingsAgentRoute(slug, peerAgent.id));
+            navigate(agentProfileRoute(slug, peerAgent.id));
             return;
         }
         if (key === 'tasks' && content) {

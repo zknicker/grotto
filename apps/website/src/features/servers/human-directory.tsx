@@ -20,7 +20,7 @@ import {
     ServerMemberConfirmDialog,
 } from './server-member-confirm-dialog.tsx';
 import { ServerMemberList } from './server-member-list.tsx';
-import { settingsAgentRoute } from './server-routes.ts';
+import { agentProfileRoute } from './server-routes.ts';
 
 export function HumanDirectory({
     canManage,
@@ -107,7 +107,7 @@ export function HumanDirectory({
                 agents={agents.data ?? []}
                 onCreated={(agentId) => {
                     setCreatingAgent(false);
-                    navigate(settingsAgentRoute(serverSlug, agentId));
+                    navigate(agentProfileRoute(serverSlug, agentId));
                 }}
                 onOpenChange={setCreatingAgent}
                 open={creatingAgent}

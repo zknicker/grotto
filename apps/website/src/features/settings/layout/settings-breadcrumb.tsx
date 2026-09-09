@@ -2,7 +2,6 @@ import { Breadcrumbs } from '@heroui/react';
 import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { useAgent } from '../../../hooks/members/use-agent.ts';
 import { useMember } from '../../../hooks/members/use-member.ts';
 import { humanDisplayName } from '../../servers/human-identity.ts';
 import { serverSettingsSectionRoute } from '../../servers/server-routes.ts';
@@ -75,36 +74,28 @@ export function SettingsBreadcrumb({
 }
 
 /**
- * The record a Members sub-route is showing: its name and identity mark.
+ * The human a Members sub-route is showing: their name and identity mark.
+ * Agents have their own page outside Settings, so only humans reach here.
  *
- * Read here rather than pushed up from the detail page: both queries are the
- * ones that page already runs, so React Query serves them from the same cache
- * entry and nothing has to plumb a name back through context.
+ * Read here rather than pushed up from the detail page: this is the query that
+ * page already runs, so React Query serves it from the same cache entry and
+ * nothing has to plumb a name back through context.
  */
 function useLeafCrumb(
     pathname: string,
     serverId: string
 ): { avatarUrl: string | null; name: string } | undefined {
-    const agentId = matchMemberId(pathname, 'agents');
-    const userId = matchMemberId(pathname, 'humans');
-    const agent = useAgent(serverId, agentId);
+    const userId = matchHumanId(pathname);
     const member = useMember(serverId, userId);
 
-    if (agentId) {
-        return agent.data
-            ? { avatarUrl: agent.data.avatarUrl, name: agent.data.displayName }
-            : undefined;
+    if (!(userId && member.data)) {
+        return undefined;
     }
-    if (userId) {
-        return member.data
-            ? { avatarUrl: member.data.avatarUrl, name: humanDisplayName(member.data) }
-            : undefined;
-    }
-    return undefined;
+    return { avatarUrl: member.data.avatarUrl, name: humanDisplayName(member.data) };
 }
 
-function matchMemberId(pathname: string, kind: 'agents' | 'humans'): string | undefined {
-    const marker = `/settings/members/${kind}/`;
+function matchHumanId(pathname: string): string | undefined {
+    const marker = '/settings/members/humans/';
     const start = pathname.indexOf(marker);
     if (start === -1) {
         return undefined;

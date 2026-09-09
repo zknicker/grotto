@@ -9,7 +9,7 @@ import {
 import type * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
-import { settingsAgentRoute, tasksRoute } from '../servers/server-routes.ts';
+import { agentProfileRoute, tasksRoute } from '../servers/server-routes.ts';
 
 export function DmNavigationContextMenu({
     agent,
@@ -31,7 +31,7 @@ export function DmNavigationContextMenu({
         if (key === 'open') {
             navigate(href);
         } else if (key === 'profile' && agent) {
-            navigate(settingsAgentRoute(slug, agent.id));
+            navigate(agentProfileRoute(slug, agent.id));
         } else if (key === 'tasks' && chatId) {
             navigate(`${tasksRoute(slug)}?chat=${encodeURIComponent(chatId)}`);
         }

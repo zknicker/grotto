@@ -13,6 +13,7 @@ export function cachedRouteModule<TModule>(load: () => Promise<TModule>) {
 }
 
 export const serverRouteModules = {
+    agent: cachedRouteModule(() => import('./agent-page.tsx')),
     archivedChats: cachedRouteModule(() => import('./archived-chats-route.tsx')),
     chat: cachedRouteModule(() => import('./chat-route.tsx')),
     default: cachedRouteModule(() => import('./server-default-page.tsx')),
@@ -28,6 +29,7 @@ const routeModulesBySection: Record<
     AppSection,
     ReadonlyArray<() => Promise<Record<string, unknown>>>
 > = {
+    agent: [serverRouteModules.agent],
     chat: [serverRouteModules.chat, serverRouteModules.archivedChats],
     inbox: [serverRouteModules.inbox],
     usage: [serverRouteModules.usage],

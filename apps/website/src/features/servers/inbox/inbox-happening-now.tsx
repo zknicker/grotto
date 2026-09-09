@@ -17,7 +17,7 @@ import { useCloudAgentWorkView } from '../../cloud-agents/use-cloud-agent-work-v
 import { AgentAvatar } from '../../members/agent-avatar.tsx';
 import { useAgentLifecycle } from '../agent-lifecycle.tsx';
 import { useServerContext } from '../server-context.ts';
-import { settingsAgentRoute } from '../server-routes.ts';
+import { agentProfileRoute } from '../server-routes.ts';
 import { toHappeningNowWork } from './happening-now-work.ts';
 import { HappeningNowWorkList } from './happening-now-work-list.tsx';
 import { InboxSection, InboxSectionEmpty, InboxSectionPending } from './inbox-section.tsx';
@@ -85,7 +85,7 @@ export function InboxHappeningNow() {
                             aria-label="Agents working now"
                             items={rows}
                             onAction={(key) =>
-                                navigate(settingsAgentRoute(server.slug, String(key)))
+                                navigate(agentProfileRoute(server.slug, String(key)))
                             }
                             variant="secondary"
                         >

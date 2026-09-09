@@ -11,13 +11,10 @@ import { useLayoutContext } from '../../shell/use-layout-context.ts';
 export function SettingsLayout() {
     const layoutContext = useLayoutContext();
     const location = useLocation();
-    // Full-height browser surfaces own their internal scroll, so the frame
-    // must pass real height through instead of page-scrolling: the global
-    // Skills library, and an Agent's Workspace tab. Every other settings
-    // route is a normal padded scrolling page.
-    const isFullContentRoute =
-        location.pathname === appRoutes.settingsSkills ||
-        /\/settings\/members\/agents\/[^/]+\/workspace$/.test(location.pathname);
+    // The Skills library is a full-height browser that owns its internal
+    // scroll, so the frame passes real height through instead of
+    // page-scrolling. Every other settings route is a normal padded page.
+    const isFullContentRoute = location.pathname === appRoutes.settingsSkills;
 
     return (
         <SettingsContentFrame isFullContentRoute={isFullContentRoute}>

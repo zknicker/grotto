@@ -1,16 +1,14 @@
 import type { ReactNode } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { ComputerPage } from '../../features/computers/computer-page.tsx';
 import { AgentLoading } from '../../features/members/agent-profile/agent-loading.tsx';
-import { AgentProfilePage } from '../../features/members/agent-profile/agent-profile.tsx';
-import { isAgentTab } from '../../features/members/agent-profile/agent-tabs.ts';
 import { HumanProfile } from '../../features/members/human-profile/human-profile.tsx';
 import { HumanDirectory } from '../../features/servers/human-directory.tsx';
 import { RequireOperator } from '../../features/servers/require-operator.tsx';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import {
+    agentProfileRoute,
     serverSettingsSectionRoute,
-    settingsAgentRoute,
 } from '../../features/servers/server-routes.ts';
 import { BrowserSettingsPage } from '../../features/settings/browser/page.tsx';
 import { ConnectionsPage } from '../../features/settings/mcp/connections-page.tsx';
@@ -19,7 +17,6 @@ import { PreferencesSettings } from '../../features/settings/preferences/page.ts
 import { ProfileSettings } from '../../features/settings/profile/page.tsx';
 import { ServerSettings } from '../../features/settings/server/page.tsx';
 import { SkillsSettings } from '../../features/skills/skills-settings.tsx';
-import { useAgent } from '../../hooks/members/use-agent.ts';
 import { useMember } from '../../hooks/members/use-member.ts';
 import { useMembers } from '../../hooks/servers/use-members.ts';
 import type { ServerSummary } from '../../lib/grotto-server.tsx';
@@ -93,45 +90,12 @@ function MembersSection({ server }: { server: ServerSummary }) {
 }
 
 /**
- * A Member's detail, still inside Settings.
+ * A human member's detail, inside Settings.
  *
- * These were reachable only through the members browser, which replaces the
- * whole navigation rail — so opening a row in the Members directory threw the
- * reader out of Settings entirely. The breadcrumb carries the extra level.
+ * Humans are records in the Members directory, which is a settings section, so
+ * opening one of its rows stays in Settings; the breadcrumb carries the extra
+ * level. An Agent is a first-class record and has its own page instead.
  */
-export function SettingsAgentRoute() {
-    const { agentId = '', tab } = useParams();
-    const navigate = useNavigate();
-    const { server } = useServerContext();
-    const agent = useAgent(server.id, agentId);
-    const membersRoute = serverSettingsSectionRoute(server.slug, 'members');
-
-    if (!isAgentTab(tab)) {
-        return <Navigate replace to={settingsAgentRoute(server.slug, agentId)} />;
-    }
-    if (agent.isPending) {
-        return (
-            <div className="mx-auto w-full max-w-3xl px-6 pt-8">
-                <AgentLoading label="Loading Agent" />
-            </div>
-        );
-    }
-    if (!agent.data) {
-        return <Navigate replace to={membersRoute} />;
-    }
-
-    return (
-        <AgentProfilePage
-            agent={agent.data}
-            key={agent.data.id}
-            onDeleted={() => navigate(membersRoute, { replace: true })}
-            onTabChange={(nextTab) => navigate(settingsAgentRoute(server.slug, agentId, nextTab))}
-            server={server}
-            tab={tab}
-        />
-    );
-}
-
 export function SettingsHumanRoute() {
     const { userId = '' } = useParams();
     const { server } = useServerContext();
@@ -150,7 +114,7 @@ export function SettingsHumanRoute() {
 
     return (
         <HumanProfile
-            agentHref={(agentId) => settingsAgentRoute(server.slug, agentId)}
+            agentHref={(agentId) => agentProfileRoute(server.slug, agentId)}
             key={member.data.userId}
             member={member.data}
             server={server}

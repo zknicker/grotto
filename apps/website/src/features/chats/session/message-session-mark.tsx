@@ -5,7 +5,7 @@ import { CursorHoverCard } from '../../../components/ui/cursor-hover-card.tsx';
 import { identityMarkRadius } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentSessionRotation } from '../../../hooks/agents/use-agent-session-rotation.ts';
-import { settingsAgentRoute } from '../../servers/server-routes.ts';
+import { agentProfileRoute } from '../../servers/server-routes.ts';
 import { sessionRotationHoverRows } from './session-mark-model.ts';
 
 /**
@@ -118,7 +118,7 @@ function ViewAgentActivityLink({ agentId }: { agentId: string }) {
     return (
         <Link
             className="inline-flex w-fit items-center gap-1 font-semibold text-accent text-xs"
-            to={settingsAgentRoute(slug, agentId, 'activity')}
+            to={agentProfileRoute(slug, agentId, 'activity')}
         >
             View activity
             <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={11} />

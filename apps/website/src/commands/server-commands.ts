@@ -10,6 +10,7 @@ import {
     UserCircleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import {
+    agentProfileRoute,
     inboxRoute,
     serverArchivedChatsRoute,
     serverChatRoute,
@@ -17,7 +18,6 @@ import {
     serverRoute,
     serverSearchRoute,
     serverSettingsSectionRoute,
-    settingsAgentRoute,
     tasksRoute,
     usageRoute,
 } from '../features/servers/server-routes.ts';
@@ -211,7 +211,7 @@ function buildCurrentChatGroup(context: CommandContext, currentChat: Chat): AppC
                           id: 'current-chat.open-agent-profile',
                           keywords: ['chat', 'agent', 'profile', 'assistant'],
                           run: () =>
-                              context.navigate(settingsAgentRoute(context.serverSlug, agent.id)),
+                              context.navigate(agentProfileRoute(context.serverSlug, agent.id)),
                           title: 'Agent Profile',
                       } satisfies AppCommand,
                   ]

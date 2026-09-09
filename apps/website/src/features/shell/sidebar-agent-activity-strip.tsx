@@ -14,7 +14,7 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { springs } from '../../lib/springs.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { useAgentLifecycle } from '../servers/agent-lifecycle.tsx';
-import { settingsAgentRoute } from '../servers/server-routes.ts';
+import { agentProfileRoute } from '../servers/server-routes.ts';
 
 type ActivityAgent =
     | { kind: 'live'; value: Agent }
@@ -144,7 +144,7 @@ function AgentActivityRow({
             <Link
                 aria-label={`${agent.displayName}: ${label}`}
                 className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1 text-left text-muted text-sm outline-none hover:bg-background-hover focus-visible:ring-2 focus-visible:ring-focus"
-                to={settingsAgentRoute(slug, row.activity.agentId)}
+                to={agentProfileRoute(slug, row.activity.agentId)}
             >
                 {row.agent.kind === 'live' ? (
                     <AgentAvatar agent={row.agent.value} size={24} />

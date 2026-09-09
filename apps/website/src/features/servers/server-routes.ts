@@ -35,12 +35,18 @@ export function tasksRoute(slug: string) {
  * Server-wide token usage. This lived at the `/members` index, which made a
  * dashboard wear a roster's URL; a member is a record in Settings, and this is
  * neither a member nor a setting.
+ *
+ * Every scope the dashboard reads back off the URL is a filter here, so an
+ * Agent, a Computer, and a runtime are all built the same way.
  */
 export function usageRoute(
     slug: string,
-    filters: { computerId?: string; runtimeId?: string } = {}
+    filters: { agentId?: string; computerId?: string; runtimeId?: string } = {}
 ) {
     const query = new URLSearchParams();
+    if (filters.agentId) {
+        query.set('agent', filters.agentId);
+    }
     if (filters.computerId) {
         query.set('computer', filters.computerId);
     }
@@ -61,14 +67,19 @@ export function serverSettingsRoute(slug: string) {
 }
 
 /**
- * A Member's detail inside Settings. The Members directory is a settings
+ * An Agent's own page, outside Settings. Agents are first-class product
+ * records, so their profile renders in the Server layout like Usage does
+ * rather than as a Members row inside the settings rail.
+ */
+export function agentProfileRoute(slug: string, agentId: string, tab = 'overview') {
+    return `${serverRoute(slug)}/agents/${encodeURIComponent(agentId)}/${tab}`;
+}
+
+/**
+ * A human's detail inside Settings. The Members directory is a settings
  * section, so opening one of its rows stays in Settings rather than handing the
  * reader to the members browser and replacing the whole navigation rail.
  */
-export function settingsAgentRoute(slug: string, agentId: string, tab = 'overview') {
-    return `${serverSettingsSectionRoute(slug, 'members')}/agents/${encodeURIComponent(agentId)}/${tab}`;
-}
-
 export function settingsHumanRoute(slug: string, userId: string) {
     return `${serverSettingsSectionRoute(slug, 'members')}/humans/${encodeURIComponent(userId)}`;
 }

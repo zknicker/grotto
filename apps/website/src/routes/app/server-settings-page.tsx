@@ -10,13 +10,11 @@ export function ServerSettingsPage() {
     const context = useOutletContext<ServerContextValue>();
     useWindowTitle('Settings');
     const location = useLocation();
-    // Skills is the full-bleed library browser; Computers manages its own
-    // split layout and scrolling; an Agent's Workspace tab is a full-height
-    // file browser that owns its internal scroll.
+    // Skills is the full-bleed library browser, and Computers manages its own
+    // split layout and scrolling.
     const isFullContentRoute =
         location.pathname.endsWith('/settings/skills') ||
-        location.pathname.endsWith('/settings/computers') ||
-        /\/settings\/members\/agents\/[^/]+\/workspace$/.test(location.pathname);
+        location.pathname.endsWith('/settings/computers');
 
     return (
         <>

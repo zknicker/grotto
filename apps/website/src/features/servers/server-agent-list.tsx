@@ -3,7 +3,7 @@ import { Chip, Separator } from '@heroui/react';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { AgentAvatar, availabilityLabel } from '../members/agent-avatar.tsx';
-import { settingsAgentRoute } from './server-routes.ts';
+import { agentProfileRoute } from './server-routes.ts';
 
 /**
  * The Agents on one Server, in the Members directory beside the humans.
@@ -26,7 +26,7 @@ export function ServerAgentList({ agents, serverSlug }: { agents: Agent[]; serve
                     {index > 0 ? <Separator /> : null}
                     <Link
                         className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 outline-none hover:bg-default/40 focus-visible:ring-2 focus-visible:ring-focus"
-                        to={settingsAgentRoute(serverSlug, agent.id)}
+                        to={agentProfileRoute(serverSlug, agent.id)}
                     >
                         <span className="flex min-w-0 items-center gap-2.5">
                             <AgentAvatar agent={agent} size={24} />

@@ -1,20 +1,11 @@
 import * as React from 'react';
-import {
-    createBrowserRouter,
-    createHashRouter,
-    Navigate,
-    useLocation,
-    useParams,
-} from 'react-router-dom';
+import { createBrowserRouter, createHashRouter, Navigate, useParams } from 'react-router-dom';
 import { AppFrame } from './components/app-frame.tsx';
 import { ComputerLoginRoutes } from './features/computers/computer-login-routes.tsx';
 import { GrottoServerRoutes } from './features/servers/grotto-server-routes.tsx';
-import {
-    serverRoute,
-    settingsAgentRoute,
-    settingsHumanRoute,
-} from './features/servers/server-routes.ts';
+import { serverRoute } from './features/servers/server-routes.ts';
 import { isElectronDesktopApp } from './lib/desktop-bridge.ts';
+import { LegacyComputersRedirect, LegacyMemberRedirect } from './routes/app/legacy-redirects.tsx';
 import { serverRouteModules } from './routes/app/server-route-modules.ts';
 
 const ServerErrorPage = React.lazy(async () => {
@@ -147,8 +138,24 @@ export function createAppRouter() {
                                                     ),
                                                 },
                                                 {
-                                                    // The members browser is gone: an Agent or a
-                                                    // human is a record under Settings > Members.
+                                                    // An Agent is a first-class
+                                                    // record, so its page lives
+                                                    // beside Usage rather than
+                                                    // inside the settings rail.
+                                                    path: 'agents/:agentId',
+                                                    element: <Navigate replace to="overview" />,
+                                                },
+                                                {
+                                                    path: 'agents/:agentId/:tab',
+                                                    lazy: lazyRoute(
+                                                        serverRouteModules.agent,
+                                                        'AgentProfileRoute'
+                                                    ),
+                                                },
+                                                {
+                                                    // The members browser is gone: an Agent has
+                                                    // its own page, and a human is a record
+                                                    // under Settings > Members.
                                                     path: 'members/agents/:agentId/*',
                                                     element: <LegacyMemberRedirect kind="agents" />,
                                                 },
@@ -197,16 +204,12 @@ export function createAppRouter() {
                                                             ),
                                                         },
                                                         {
-                                                            path: 'members/agents/:agentId',
+                                                            // An Agent left Settings; its old
+                                                            // deep links (tab included) still
+                                                            // resolve.
+                                                            path: 'members/agents/:agentId/*',
                                                             element: (
-                                                                <Navigate replace to="overview" />
-                                                            ),
-                                                        },
-                                                        {
-                                                            path: 'members/agents/:agentId/:tab',
-                                                            lazy: lazyRoute(
-                                                                serverRouteModules.settingsSection,
-                                                                'SettingsAgentRoute'
+                                                                <LegacyMemberRedirect kind="agents" />
                                                             ),
                                                         },
                                                         {
@@ -259,37 +262,6 @@ export function createAppRouter() {
             ],
         },
     ]);
-}
-
-/** Computers moved into Settings; keep old deep links (and their ?computer=…) working. */
-function LegacyComputersRedirect() {
-    const location = useLocation();
-    return <Navigate replace to={`../settings/computers${location.search}`} />;
-}
-
-/**
- * Members moved into Settings, so an Agent or human deep link keeps working —
- * including the Agent's tab, which is the segment after the id.
- */
-function LegacyMemberRedirect({ kind }: { kind: 'agents' | 'humans' }) {
-    const { agentId, userId } = useParams();
-    const location = useLocation();
-    if (kind === 'humans') {
-        return (
-            <Navigate replace to={settingsHumanRoute(slugFrom(location.pathname), userId ?? '')} />
-        );
-    }
-    const tab = location.pathname.split(`/agents/${agentId}/`)[1]?.split('/')[0];
-    return (
-        <Navigate
-            replace
-            to={settingsAgentRoute(slugFrom(location.pathname), agentId ?? '', tab || 'overview')}
-        />
-    );
-}
-
-function slugFrom(pathname: string) {
-    return pathname.split('/')[2] ?? '';
 }
 
 function ServerUnknownPage() {

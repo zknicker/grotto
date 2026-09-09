@@ -17,10 +17,9 @@ import { messagePreviewLine } from '../message-preview-line.ts';
 /**
  * A Thread as it reads from its anchor: a reply count and the last few
  * replies with their faces, so the conversation is legible without opening
- * the panel. A plain Thread with no replies shows nothing at all — a task says
- * what it is with its header mark, so an empty card would only add noise. A
- * surface that brings its own header, such as Cloud Agent work, keeps the card
- * before the first reply.
+ * the panel. Whether an anchor gets a card at all is the caller's call —
+ * `threadSurfaceVisible` in `thread-message-surface.tsx` owns that rule — so
+ * this renders whatever it is handed, empty reply list included.
  */
 export function ThreadPreviewBlock({
     detail,
@@ -50,7 +49,7 @@ export function ThreadPreviewBlock({
     const now = useRelativeNow();
     const thread = getTranscriptMessageThread(row);
 
-    if (!context || (!headerLeading && (!thread || thread.replyCount === 0))) {
+    if (!context) {
         return null;
     }
 

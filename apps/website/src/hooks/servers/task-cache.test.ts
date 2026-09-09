@@ -6,13 +6,16 @@ test('replaces both task projections with the authoritative mutation result', ()
     const item = taskItem();
     const task = { ...item.task, status: 'in_progress' as const, version: 2 };
 
-    expect(replaceTask([item], task)).toEqual([
-        {
-            ...item,
-            message: { ...item.message, task },
-            task,
-        },
-    ]);
+    expect(replaceTask({ backgroundCount: 2, tasks: [item] }, task)).toEqual({
+        backgroundCount: 2,
+        tasks: [
+            {
+                ...item,
+                message: { ...item.message, task },
+                task,
+            },
+        ],
+    });
 });
 
 function taskItem(): TaskListItem {
@@ -25,12 +28,14 @@ function taskItem(): TaskListItem {
         createdByAgentId: null,
         createdByUserId: 'user_one',
         labels: [],
+        live: false,
         messageId: 'message_one',
         number: 1,
         origin: 'composed',
         priority: 'none',
         status: 'todo',
         threadChatId: 'thread_one',
+        tier: 'tracked',
         updatedAt: '2026-07-26T12:00:00.000Z',
         version: 1,
     };

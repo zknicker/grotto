@@ -7,6 +7,7 @@ import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts
 import { useTaskLabels } from '../../../hooks/servers/use-task-labels.ts';
 import { useServerContext } from '../server-context.ts';
 import { NewTaskDialog } from './new-task-dialog.tsx';
+import { TaskBackgroundToggle } from './task-background-toggle.tsx';
 import { TaskDisplayMenu } from './task-display-menu.tsx';
 import { TaskFilterMenu } from './task-filter-menu.tsx';
 import type { TaskFilterField } from './task-filters.tsx';
@@ -42,6 +43,7 @@ export function TaskControls({
 
     return (
         <>
+            <TaskBackgroundToggle />
             <TaskFilterMenu fields={fields} icon={FilterIcon} label="Filter" />
             <TaskDisplayMenu />
             {canManage ? (

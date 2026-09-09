@@ -117,7 +117,7 @@ export interface TranscriptMessage {
               claimed_at: string | null;
               created_at: string;
               labels: TaskLabel[];
-              origin: 'composed' | 'converted';
+              origin: 'claimed' | 'composed' | 'converted';
               priority: 'none' | 'urgent' | 'high' | 'medium' | 'low';
               updated_at: string;
           })

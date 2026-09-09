@@ -3,6 +3,7 @@ import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import {
     type TaskPriority,
     type TaskStatus,
+    type TaskTier,
     taskStatusLabels,
 } from '../../tasks/task-presentation.ts';
 import type { HumanDirectory } from '../human-identity.ts';
@@ -27,6 +28,8 @@ export interface TaskItem {
     status: TaskStatus;
     threadChatId: string;
     threadSummary: TaskListItem['threadSummary'];
+    /** Which lens this task belongs to; `background` shows only when widened. */
+    tier: TaskTier;
     /** The canonical message as one line; the Thread renders the message itself. */
     title: string;
     updatedAt: string;
@@ -124,6 +127,7 @@ export function toTaskItem(
         status: item.task.status,
         threadChatId: item.task.threadChatId,
         threadSummary: item.threadSummary,
+        tier: item.task.tier,
         title: messagePreviewLine(item.message.content),
         updatedAt: item.task.updatedAt,
         version: item.task.version,

@@ -1,5 +1,6 @@
 import type { CloudAgentWork } from '@grotto/api';
 import * as React from 'react';
+import type { HandledTaskMark } from '../tasks/task-mark-model.ts';
 import type { TranscriptMessage } from './chat-transcript-message.tsx';
 import type { ConversationMessageLayout, TranscriptActor } from './chat-transcript-model.ts';
 import type { SessionMark } from './session/session-mark-model.ts';
@@ -10,6 +11,16 @@ import type {
 } from './transcript-contract.ts';
 
 export type { TranscriptMessageRow } from './transcript-contract.ts';
+
+/**
+ * Enough of a row to open a Thread. The host resolves the anchor message from
+ * its own snapshot, so the id is all it ever needs — which lets a mark that
+ * knows only an anchor id, such as a finished claim's receipt, open the same
+ * Thread a row can.
+ */
+export interface TranscriptThreadTarget {
+    message: { id: string };
+}
 
 export function getTranscriptMessageThread(
     row: TranscriptMessageRow
@@ -51,6 +62,12 @@ export interface TranscriptRenderContextValue {
     currentSessionKey?: string | null;
     defaultOpenWorkGroups: boolean;
     flashMessageId: string | null;
+    /**
+     * Agent messages that answered a background claim, by message id. Which
+     * reply closed which claim is a difference across the whole loaded
+     * transcript, so no single row can see it.
+     */
+    handledTaskMarks?: ReadonlyMap<string, HandledTaskMark>;
     hiddenCount: number;
     /**
      * Cloud Agent work by Thread anchor, including completed delegations.
@@ -65,7 +82,7 @@ export interface TranscriptRenderContextValue {
      */
     messageCopyText?: (message: TranscriptMessage) => string;
     onActorClick?: (actor: TranscriptActor) => void;
-    onOpenThread: (row: TranscriptMessageRow) => void;
+    onOpenThread: (target: TranscriptThreadTarget) => void;
     /**
      * Toggles the viewer's emoji reaction on a message. Absent when the
      * surface has no reaction support; all reaction UI hides with it.

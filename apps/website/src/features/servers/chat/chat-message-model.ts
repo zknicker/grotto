@@ -107,10 +107,14 @@ function messageTask(
         claimed_at: task.claimedAt,
         created_at: task.createdAt,
         labels: task.labels,
+        // Tier and liveness are what the transcript's marks read: whether this
+        // task has a Thread surface at all, and whether anyone is on it now.
+        live: task.live,
         number: task.number,
         origin: task.origin,
         priority: task.priority,
         status: task.status,
+        tier: task.tier,
         updated_at: task.updatedAt,
     };
 }

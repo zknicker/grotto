@@ -17,9 +17,14 @@ export function ChatPage({ chatId, server }: { chatId: string; server: ServerDet
         isPending: chatQuery.isPending,
         listed: chats.data?.find((candidate) => candidate.id === chatId),
     });
-    const tasks = useTasks(server.id, chatId);
     const taskMessageId = searchParams.get('task');
-    const initialTask = tasks.data?.find((item) => item.task.messageId === taskMessageId);
+    // A `?task=` link addresses one task by id, so it reads the widened lens:
+    // a background-tier task is hidden from the Board, never from its own link.
+    const tasks = useTasks(server.id, chatId, {
+        enabled: taskMessageId !== null,
+        includeBackground: true,
+    });
+    const initialTask = tasks.data?.tasks.find((item) => item.task.messageId === taskMessageId);
 
     if (!chat && chatQuery.isPending) {
         return null;

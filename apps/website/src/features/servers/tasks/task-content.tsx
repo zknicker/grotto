@@ -13,10 +13,15 @@ export function TaskContent({ onOpenTask }: { onOpenTask: (task: TaskItem) => vo
     const agents = useAgents(server.id);
     const humans = useHumanDirectory(server.id);
     const { filters, layout } = useTaskView();
-    const { assignee, chatId, labelId, priority, status, view } = filters;
-    const tasksQuery = useTasks(server.id, chatId ?? undefined);
+    const { assignee, background, chatId, labelId, priority, status, view } = filters;
+    // The Board and List read the narrow lens; the background tier joins it
+    // only when the reader asks for it in the topbar.
+    const tasksQuery = useTasks(server.id, chatId ?? undefined, {
+        includeBackground: background,
+    });
     const tasks = React.useMemo(
-        () => tasksQuery.data?.map((item) => toTaskItem(item, humans, agents.data ?? [])) ?? [],
+        () =>
+            tasksQuery.data?.tasks.map((item) => toTaskItem(item, humans, agents.data ?? [])) ?? [],
         [agents.data, humans, tasksQuery.data]
     );
     const filtered = React.useMemo(

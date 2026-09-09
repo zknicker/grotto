@@ -37,7 +37,9 @@ export function InboxNeedsYou() {
     const taskRows = React.useMemo(
         () =>
             selectNeedsYouTasks(
-                (tasks.data ?? []).map((item) => toTaskItem(item, humans, agents.data ?? [])),
+                (tasks.data?.tasks ?? []).map((item) =>
+                    toTaskItem(item, humans, agents.data ?? [])
+                ),
                 viewerUserId
             ),
         [agents.data, humans, tasks.data, viewerUserId]

@@ -13,10 +13,15 @@ import { useTaskView } from './task-view.ts';
 export function TaskThreadDialog() {
     const { server } = useServerContext();
     const { closeTask, openTaskId } = useTaskView();
-    const tasks = useTasks(server.id);
+    // The peek addresses one task by id, so it reads past the Board's lens: a
+    // background-tier task the Board hides still opens from `?task=`.
+    const tasks = useTasks(server.id, undefined, {
+        enabled: openTaskId !== null,
+        includeBackground: true,
+    });
     const chats = useChats(server.id);
     const item = openTaskId
-        ? tasks.data?.find((candidate) => candidate.task.messageId === openTaskId)
+        ? tasks.data?.tasks.find((candidate) => candidate.task.messageId === openTaskId)
         : undefined;
     const chat = item
         ? chats.data?.find((candidate) => candidate.id === item.task.chatId)

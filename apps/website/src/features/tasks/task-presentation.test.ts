@@ -10,5 +10,5 @@ test('labels known task owners without guessing a handle-less actor kind', () =>
 });
 
 function task(assignee: NonNullable<MessageTask['assignee']>): MessageTask {
-    return { assignee, number: 1, status: 'todo' };
+    return { assignee, live: false, number: 1, status: 'todo', tier: 'tracked' };
 }

@@ -1,6 +1,13 @@
 export type TaskStatus = 'todo' | 'in_progress' | 'in_review' | 'done' | 'closed';
 export type TaskPriority = 'none' | 'urgent' | 'high' | 'medium' | 'low';
 
+/**
+ * Which lens a task belongs to. `background` is an Agent's own claim on work
+ * it finished inside one turn — a lock and a record, kept off the Board and
+ * the List. Everything else is `tracked`.
+ */
+export type TaskTier = 'background' | 'tracked';
+
 export const taskStatusOrder: TaskStatus[] = ['todo', 'in_progress', 'in_review', 'done', 'closed'];
 
 export const taskStatusLabels: Record<TaskStatus, string> = {
@@ -55,8 +62,11 @@ export interface MessageTask {
         id: string;
         kind?: 'agent' | 'human';
     } | null;
+    /** The assignee Agent is running a turn on this task right now. */
+    live: boolean;
     number: number;
     status: TaskStatus;
+    tier: TaskTier;
 }
 
 /**

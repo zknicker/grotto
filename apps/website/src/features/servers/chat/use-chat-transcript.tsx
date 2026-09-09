@@ -7,15 +7,14 @@ import { useChatCloudAgentWork } from '../../../hooks/servers/use-cloud-agent-wo
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type {
-    TranscriptMessageRow,
     TranscriptRenderContextValue,
+    TranscriptThreadTarget,
 } from '../../chats/chat-transcript-render-context.tsx';
 import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
 import {
     PreparedActionCard,
     preparedActionMessageText,
 } from '../../chats/prepared-action-card.tsx';
-import { deriveSessionMarks } from '../../chats/session/session-mark-model.ts';
 import { indexCloudAgentWorkByThreadAnchor } from '../../cloud-agents/hoisted-cloud-agent-work.ts';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { useResolveActorProfile } from './chat-actor-profiles.ts';
@@ -30,6 +29,7 @@ import { MessageAttachments } from './message-attachments.tsx';
 import { PendingMessageAttachments, projectPendingChatMessageRows } from './pending-messages.tsx';
 import { ServerChatMessageContent } from './server-chat-message-content.tsx';
 import type { PendingChatMessage } from './use-pending-messages.ts';
+import { useTranscriptMarks } from './use-transcript-marks.ts';
 
 const conversationLayout = {
     showAgentIdentity: true,
@@ -105,20 +105,7 @@ export function useChatTranscript({
         () => new Map(agentList.map((agent) => [agent.id, agent])),
         [agentList]
     );
-    // Derived across the whole loaded page, not per row: whether a message
-    // opened a new session is a difference from that Agent's previous message,
-    // which no single row can see.
-    const sessionMarks = React.useMemo(
-        () =>
-            deriveSessionMarks(
-                messageList.map((message) => ({
-                    agentId: message.author.kind === 'agent' ? message.author.agentId : null,
-                    id: message.id,
-                    sessionGeneration: message.sessionGeneration,
-                }))
-            ),
-        [messageList]
-    );
+    const { handledTaskMarks, sessionMarks } = useTranscriptMarks(messageList);
     // All work delegated inside a Thread, indexed by that Thread's anchor: the
     // transcript surface owns this read, and each row only looks its own
     // Message up. `cloud-agent-work.updated` already invalidates the list.
@@ -180,8 +167,8 @@ export function useChatTranscript({
         [downloadAttachment, downloadPending, lookupRef]
     );
     const handleOpenThread = React.useCallback(
-        (row: TranscriptMessageRow) => {
-            const message = lookupRef.current.messagesById.get(row.message.id);
+        (target: TranscriptThreadTarget) => {
+            const message = lookupRef.current.messagesById.get(target.message.id);
 
             if (!message) {
                 return;
@@ -249,6 +236,7 @@ export function useChatTranscript({
                     />
                 ),
                 causeMarkHidden,
+                handledTaskMarks,
                 repliedRunIds: new Set<string>(),
                 resolveActorProfile,
                 sessionMarks,
@@ -264,6 +252,7 @@ export function useChatTranscript({
             chatId,
             chatsById,
             conversationChatId,
+            handledTaskMarks,
             handleOpenThread,
             hoistedCloudAgentWork,
             humans,

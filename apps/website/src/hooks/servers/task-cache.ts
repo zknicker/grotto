@@ -1,16 +1,19 @@
-import type { MessageTask, TaskListItem } from '@grotto/api';
+import type { MessageTask, TaskList } from '@grotto/api';
 
-export function replaceTask(
-    items: TaskListItem[] | undefined,
-    task: MessageTask
-): TaskListItem[] | undefined {
-    return items?.map((item) =>
-        item.task.messageId === task.messageId
-            ? {
-                  ...item,
-                  message: { ...item.message, task },
-                  task,
-              }
-            : item
-    );
+export function replaceTask(list: TaskList | undefined, task: MessageTask): TaskList | undefined {
+    if (!list) {
+        return list;
+    }
+    return {
+        ...list,
+        tasks: list.tasks.map((item) =>
+            item.task.messageId === task.messageId
+                ? {
+                      ...item,
+                      message: { ...item.message, task },
+                      task,
+                  }
+                : item
+        ),
+    };
 }

@@ -38,13 +38,7 @@ test('a task title reads references by label, not by target', () => {
 
 test('filters tasks by lifecycle without a second content store', () => {
     const todo = toTaskItem(item(), humans);
-    const done = {
-        ...todo,
-        id: 'message_two',
-        number: 2,
-        status: 'done' as const,
-        title: 'Write docs',
-    };
+    const done = { ...todo, id: 'message_two', number: 2, status: 'done' as const, title: 'Docs' };
 
     expect(filterTasks([todo, done], { view: 'active' })).toEqual([todo]);
     expect(filterTasks([todo, done], { view: 'all' })).toEqual([todo, done]);
@@ -344,12 +338,14 @@ function item(overrides: { content?: string } = {}): TaskListItem {
             createdByAgentId: null,
             createdByUserId: 'user_one',
             labels: [],
+            live: false,
             messageId: 'message_one',
             number: 1,
             origin: 'composed',
             priority: 'none',
             status: 'todo',
             threadChatId: 'thread_one',
+            tier: 'tracked',
             updatedAt: '2026-07-26T12:00:00.000Z',
             version: 1,
         },

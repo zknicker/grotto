@@ -30,7 +30,7 @@ export function TaskThreadMetadata({
     const tasks = useTasks(server.id, chatId);
     const update = useTaskUpdate();
     const task =
-        tasks.data?.find((item) => item.task.messageId === messageId)?.task ?? fallbackTask;
+        tasks.data?.tasks.find((item) => item.task.messageId === messageId)?.task ?? fallbackTask;
     const agentDirectory = agents.data ?? [];
     const assigneeLabel = taskAssigneeName(task, agentDirectory, humans);
     const canAssign = server.role === 'owner' || server.role === 'admin';

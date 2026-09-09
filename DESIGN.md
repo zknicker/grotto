@@ -633,6 +633,16 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   take the same small muted role as the trace's own labels, because this page has no all-caps
   tier. And the Turn details drawer carries code blocks and diffs, so `drawer__dialog--turn-details`
   widens the right drawer to 32rem, capped at the viewport; every other drawer keeps the stock measure.
+- **Task marks:** A background claim has no card to live in, so it reads as one header mark after
+  the time — the claimant's 14px identity mark and a three-dot ellipsis while a run holds it, the
+  in-progress status disc when none does, that disc in `warning` when a run stopped still holding
+  it, and the done disc for one 200ms settle before the mark leaves the message for the Agent's
+  reply, which then carries a muted `handled #N`. The ellipsis is the only animated element in the
+  row, at `3px` dots on a `0.16s` stagger; reduced motion keeps the dots and stops them. Marks are
+  buttons only because they carry hover cards, so nothing else in the row takes hover feedback, and
+  every duration and task number is tabular. Provenance marks stay before the time and lifecycle
+  marks after it: why a message was said explains a message that already exists, while a claim is
+  work still moving.
 - **Charts:** Use `--chart-1` through `--chart-5` for multi-series charts; `--chart-3` aligns to the accent baseline.
 
 ## Do's and Don'ts

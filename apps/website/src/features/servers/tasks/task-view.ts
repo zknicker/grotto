@@ -22,6 +22,12 @@ export function useTaskView() {
         },
         filters: {
             assignee: searchParams.get('assignee'),
+            /**
+             * Widens the lens past the background tier. Off by default, so an
+             * Agent's own bookkeeping never crowds the surface a person reads;
+             * carried in the URL because it is a deliberate widening.
+             */
+            background: searchParams.get('background') === 'on',
             chatId: searchParams.get('chat'),
             labelId: searchParams.get('label'),
             priority: searchParams.get('priority'),
@@ -45,6 +51,20 @@ export function useTaskView() {
                         next.set('assignee', assignee);
                     } else {
                         next.delete('assignee');
+                    }
+                    return next;
+                },
+                { replace: true }
+            );
+        },
+        setBackground: (background: boolean) => {
+            setSearchParams(
+                (params) => {
+                    const next = new URLSearchParams(params);
+                    if (background) {
+                        next.set('background', 'on');
+                    } else {
+                        next.delete('background');
                     }
                     return next;
                 },

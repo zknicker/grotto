@@ -14,11 +14,8 @@ import { groupAgentItems } from './chat-transcript-item-utils.ts';
 import type { TranscriptRow } from './chat-transcript-model.ts';
 import type { TranscriptRenderContextValue } from './chat-transcript-render-context.tsx';
 import { SystemStep } from './chat-transcript-system-step.tsx';
-import {
-    filterPaneSegments,
-    getActiveReplyDisplayText,
-    resolveMentionAgentId,
-} from './chat-transcript-turn.tsx';
+import { filterPaneSegments, getActiveReplyDisplayText } from './chat-transcript-turn.tsx';
+import { resolveMentionAgentId } from './chat-transcript-turn-header.tsx';
 import { withLocalTimelineMessageMetadata } from './local-timeline-message.ts';
 import { ToolStep } from './tool-steps/registry.tsx';
 import type { TranscriptMessageRow } from './transcript-contract.ts';
@@ -1630,50 +1627,6 @@ test('ChatTranscript drops the mark where a context card already states it', () 
 
     assert.doesNotMatch(markup, /text-trigger-mark/);
 });
-
-test('ChatTranscript gives every promoted message in a run its own task mark', () => {
-    // A turn's header speaks for one task, so a promoted message must open a
-    // turn of its own. Let two consecutive promotions merge and the second
-    // task loses its mark while the first header speaks for both.
-    const markup = renderTranscript([
-        promotedRow('message-1', 'Ship the board', 1),
-        promotedRow('message-2', 'Write the docs', 2),
-    ]);
-
-    assert.match(markup, /Task #1/);
-    assert.match(markup, /Task #2/);
-});
-
-function promotedRow(id: string, content: string, number: number): TranscriptMessageRow {
-    return {
-        actor: null,
-        connectsToNext: false,
-        connectsToPrevious: false,
-        id,
-        isFirstInGroup: true,
-        kind: 'message',
-        message: {
-            content,
-            id,
-            sender: 'You',
-            senderType: 'user',
-            sourceSessionId: null,
-            sourceSessionKey: 'session-1',
-            task: {
-                assignee: null,
-                claimed_at: null,
-                created_at: '2026-09-03T12:00:00.000Z',
-                labels: [],
-                number,
-                origin: 'composed',
-                priority: 'none',
-                status: 'todo',
-                updated_at: '2026-09-03T12:00:00.000Z',
-            },
-            timestamp: '2026-09-03T12:00:00.000Z',
-        },
-    };
-}
 
 function causedOverrides(): Partial<TranscriptRenderContextValue> {
     return {

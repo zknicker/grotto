@@ -167,6 +167,7 @@ function TaskListRow({
                     {task.title}
                 </span>
                 <div className="hidden shrink-0 items-center gap-1.5 lg:flex">
+                    <TaskBackgroundLabel tier={task.tier} />
                     {task.labels.map((label) => (
                         <LabelChip color={label.color} key={label.id} name={label.name} />
                     ))}
@@ -193,7 +194,21 @@ function TaskListRow({
 function rowAriaLabel(task: TaskItem, assigneeLabel: string) {
     const priority =
         task.priority === 'none' ? '' : `, ${taskPriorityLabels[task.priority]} priority`;
-    return `Open task #${task.number} ${task.title}, ${assigneeLabel}${priority}`;
+    const tier = task.tier === 'background' ? ', background' : '';
+    return `Open task #${task.number} ${task.title}, ${assigneeLabel}${priority}${tier}`;
+}
+
+/**
+ * What a widened lens is showing that the resting one was not. It is a plain
+ * word rather than a chip: a background task is an ordinary task seen from a
+ * lens the reader opened, not a task with a special status.
+ */
+function TaskBackgroundLabel({ tier }: { tier: TaskItem['tier'] }) {
+    if (tier !== 'background') {
+        return null;
+    }
+
+    return <span className="shrink-0 font-normal text-muted text-xs">background</span>;
 }
 
 // The task's own open affordance. Board cards and list rows both carry inline
@@ -211,8 +226,11 @@ function TaskSummary({ onOpen, task }: { onOpen: (task: TaskItem) => void; task:
             onClick={() => onOpen(task)}
             type="button"
         >
-            <span className="block font-mono text-muted text-xs">
-                #{task.number} · {task.chatLabel}
+            <span className="flex min-w-0 items-center gap-1.5 font-mono text-muted text-xs">
+                <span className="truncate">
+                    #{task.number} · {task.chatLabel}
+                </span>
+                <TaskBackgroundLabel tier={task.tier} />
             </span>
             <span className="mt-1 block font-medium text-foreground text-sm">{task.title}</span>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">

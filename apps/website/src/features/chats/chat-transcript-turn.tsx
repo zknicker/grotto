@@ -1,21 +1,21 @@
-import type { MessageCause } from '@grotto/api';
 import { splitVisualFences } from '@grotto/api/widgets/visual';
-import { Chip, Separator } from '@heroui/react';
+import { Separator } from '@heroui/react';
 import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
 import { Activity01Icon, AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
-import { requestChatComposerMention } from '../../commands/chat-composer-mention.ts';
 import { RelativeTime } from '../../components/time/relative-time.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { openAgentProfilePane } from '../../hooks/pane/use-agent-profile-pane.ts';
 import { writeClipboardText } from '../../lib/clipboard.ts';
-import { formatShortTime } from '../../lib/format.ts';
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { AgentHoverCard } from '../members/agent-hover-card.tsx';
-import { MessageCauseMark } from './automation/message-cause-mark.tsx';
+import {
+    TranscriptTurnTaskClaimMark,
+    TranscriptTurnTaskHandledMark,
+} from '../tasks/transcript-task-marks.tsx';
 import { ActionTooltip } from './chat-action-tooltip.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import { useStreamingTextRanges } from './chat-streaming-text-ranges.ts';
@@ -59,11 +59,15 @@ import {
 import type { SessionNoticeRow } from './chat-transcript-row-model.ts';
 import { RuntimeNoticeEntry, SessionNoticeAction } from './chat-transcript-system-step.tsx';
 import { transcriptTurnGeometry } from './chat-transcript-turn-geometry.ts';
+import {
+    getTurnCause,
+    getTurnSessionMark,
+    resolveMentionAgentId,
+    TurnHeader,
+} from './chat-transcript-turn-header.tsx';
 import { AgentWidget } from './legacy-widget-row.tsx';
 import { isLocalTimelineMessageMetadata } from './local-timeline-message.ts';
 import { ServerTurnDetailsDrawer } from './server-turn-details-drawer.tsx';
-import { MessageSessionMark } from './session/message-session-mark.tsx';
-import type { SessionMark } from './session/session-mark-model.ts';
 import { MessageContextActionsProvider } from './thread/message-context-actions.tsx';
 import { MessageReactionActions } from './thread/message-reactions.tsx';
 import { ThreadMessageActions, ThreadMessageSurface } from './thread/thread-message-surface.tsx';
@@ -237,6 +241,7 @@ function UserTurnPresentation({
                                 ? () => context.onActorClick?.(entry.actor)
                                 : undefined
                         }
+                        taskMark={<TranscriptTurnTaskClaimMark items={entry.items} />}
                         timestamp={entry.timestamp}
                     />
                 ) : null}
@@ -328,118 +333,6 @@ function AgentTurnAvatar({
     }
 
     return <TurnAvatar avatarUrl={profile?.avatarUrl} deleted={profile?.deleted} name={name} />;
-}
-
-// Bios stay one quiet line: hard-capped well past any reasonable blurb, then
-// CSS-truncated to whatever width the row actually has.
-const turnHeaderBioMaxChars = 165;
-
-function TurnHeader({
-    bio,
-    cause,
-    composerId,
-    deleted = false,
-    displayName,
-    mentionAgentId,
-    onClick,
-    sessionMark,
-    timestamp,
-}: {
-    bio?: string | null;
-    cause?: MessageCause | null;
-    composerId?: string;
-    deleted?: boolean;
-    displayName: string;
-    mentionAgentId?: string;
-    onClick?: () => void;
-    sessionMark?: TurnSessionMark | null;
-    timestamp: string | null;
-}) {
-    return (
-        <div className={transcriptTurnGeometry.header}>
-            {mentionAgentId && composerId ? (
-                <button
-                    aria-label={`Mention ${displayName}`}
-                    className={cn(
-                        transcriptTurnGeometry.name,
-                        'cursor-(--cursor-interactive) hover:underline',
-                        deleted ? 'text-muted' : 'text-foreground'
-                    )}
-                    onClick={() =>
-                        requestChatComposerMention({ agentId: mentionAgentId, composerId })
-                    }
-                    type="button"
-                >
-                    {displayName}
-                </button>
-            ) : onClick ? (
-                <button
-                    className={cn(
-                        transcriptTurnGeometry.name,
-                        'cursor-(--cursor-interactive) hover:underline',
-                        deleted ? 'text-muted' : 'text-foreground'
-                    )}
-                    onClick={onClick}
-                    type="button"
-                >
-                    {displayName}
-                </button>
-            ) : (
-                <span
-                    className={cn(
-                        transcriptTurnGeometry.name,
-                        deleted ? 'text-muted' : 'text-foreground'
-                    )}
-                >
-                    {displayName}
-                </span>
-            )}
-            {deleted ? (
-                <Chip size="sm" variant="secondary">
-                    DELETED
-                </Chip>
-            ) : null}
-            {/*
-             * The marks take the slot the bio would have used. Both are the
-             * quiet middle of the header line, and a name, a blurb, a mark and
-             * a time is one fact too many for it — when an Agent spoke because
-             * something fired, or spoke having just started over, that outranks
-             * what it is generally for. Cause first when both apply: why it
-             * spoke comes before what it had already forgotten. Only provenance
-             * lives here; what the message *is* — a Task, an Ask, delegated
-             * work — states itself in the recessed surface beneath it, where
-             * its lifecycle can be followed.
-             */}
-            {cause ? <MessageCauseMark cause={cause} /> : null}
-            {sessionMark ? (
-                <MessageSessionMark
-                    agentId={sessionMark.agentId}
-                    generation={sessionMark.generation}
-                    serverId={sessionMark.serverId}
-                />
-            ) : null}
-            {!(cause || sessionMark) && bio ? (
-                <span className="min-w-0 truncate text-muted text-xs leading-5">
-                    {bio.length > turnHeaderBioMaxChars
-                        ? `${bio.slice(0, turnHeaderBioMaxChars).trimEnd()}…`
-                        : bio}
-                </span>
-            ) : null}
-            {timestamp ? (
-                <time className="shrink-0 text-muted text-xs tabular-nums" dateTime={timestamp}>
-                    {formatShortTime(timestamp)}
-                </time>
-            ) : null}
-        </div>
-    );
-}
-
-export function resolveMentionAgentId(
-    actorId: null | string,
-    actorKind: 'agent' | 'participant' | 'profile' | undefined,
-    canRequestMention: boolean
-) {
-    return canRequestMention && actorKind === 'agent' ? (actorId ?? undefined) : undefined;
 }
 
 function AgentTurn({
@@ -602,6 +495,17 @@ function AgentTurnPresentation({
                                 sessionMarks,
                                 turnDetails?.serverId
                             )}
+                            taskMark={
+                                <>
+                                    {/* An Agent can claim another Agent's
+                                        message, so a turn can wear a claim of
+                                        its own and a receipt for someone
+                                        else's; both are absent on almost
+                                        every turn. */}
+                                    <TranscriptTurnTaskClaimMark items={items} />
+                                    <TranscriptTurnTaskHandledMark items={items} />
+                                </>
+                            }
                             timestamp={entry.timestamp}
                         />
                     ) : null}
@@ -1259,50 +1163,6 @@ function TranscriptMessageActions({
  * one caused message, and its cause is the turn's. Scans forward so that if a
  * turn ever did hold two, the header names the one that opened it.
  */
-function getTurnCause(items: TranscriptItem[]): MessageCause | null {
-    for (const item of items) {
-        if (item.kind === 'row' && item.row.kind === 'message' && item.row.message.cause) {
-            return item.row.message.cause;
-        }
-    }
-
-    return null;
-}
-
-interface TurnSessionMark extends SessionMark {
-    serverId: string;
-}
-
-/**
- * The turn's own restart, if the transcript-wide rule marked one of its
- * messages. A turn runs inside one session, so the first marked message in it
- * is the turn's — and without a Server to read the rotation against there is
- * nothing to hover, so the mark stays off.
- */
-function getTurnSessionMark(
-    items: TranscriptItem[],
-    sessionMarks: ReadonlyMap<string, SessionMark> | undefined,
-    serverId: string | undefined
-): TurnSessionMark | null {
-    if (!(sessionMarks && serverId)) {
-        return null;
-    }
-
-    for (const item of items) {
-        if (item.kind !== 'row' || item.row.kind !== 'message') {
-            continue;
-        }
-
-        const mark = sessionMarks.get(item.row.message.id);
-
-        if (mark) {
-            return { ...mark, serverId };
-        }
-    }
-
-    return null;
-}
-
 function getLastMessageRow(items: TranscriptItem[]) {
     for (let index = items.length - 1; index >= 0; index -= 1) {
         const item = items[index];

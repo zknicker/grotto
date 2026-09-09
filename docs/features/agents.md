@@ -64,6 +64,8 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   fire mark opens the automation, a session mark opens Activity. See
   [Chat](chat.md#in-the-box) for the marks themselves.
 - Profile edits identity and desired model/runtime configuration.
+- The Agent profile shows its assigned Computer and, for operators, links directly to that
+  Computer's detail for remediation; it never substitutes another Computer.
 - Skills are independent Agent-owned copies. An Owner or Admin imports a host
   bundle into one Agent library from the Agent profile.
 - MCP connections are Server-owned; Agent-level grants choose which

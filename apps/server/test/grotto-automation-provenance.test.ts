@@ -236,9 +236,9 @@ test('keeps the mark after the Trigger is deleted, reading archived', async () =
     });
     const messageId = sent.body.message?.id ?? '';
 
-    await harness.sql`delete from triggers where id = ${triggerId}`;
+    await owner.trpc.trigger.delete.mutate({ serverId, triggerId });
 
-    // The provenance row stays behind the deleted Trigger and still says what
+    // The provenance row stays behind the removed Trigger and still says what
     // provoked the message; only the live half of the mark goes.
     const transcript = await owner.trpc.chat.messages.query({
         chatId: channelId,

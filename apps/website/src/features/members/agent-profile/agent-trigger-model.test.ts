@@ -7,6 +7,8 @@ import {
     formatTriggerActivity,
     formatTriggerCreator,
     formatTriggerFireDetail,
+    formatTriggerFireTime,
+    formatTriggerHistoryTime,
     formatTriggerPayloadSize,
     formatTriggerRowDetail,
     resolveTriggerSheetMode,
@@ -94,6 +96,11 @@ test('a fire states only the facts its sender actually supplied', () => {
     expect(
         formatTriggerFireDetail({ contentType: null, dedupeKey: 'build-19', payloadBytes: 2048 })
     ).toBe('2 KB · key build-19');
+});
+
+test('history and detail use the same execution timestamp format', () => {
+    const receivedAt = '2026-09-02T11:00:00.000Z';
+    expect(formatTriggerHistoryTime(receivedAt)).toBe(formatTriggerFireTime({ receivedAt }));
 });
 
 test('Create waits for a name and a kind, and the instruction stays optional', () => {

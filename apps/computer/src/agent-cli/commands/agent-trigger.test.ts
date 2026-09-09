@@ -211,7 +211,7 @@ describe('Agent trigger CLI', () => {
         expect(output).toContain('Disabled. trg_test [webhook · disabled]');
         expect(output).toContain('Armed. trg_test [webhook · armed]');
         expect(output).toContain('Rotated. The previous secret no longer works.');
-        expect(output).toContain('Deleted trigger trg_test.');
+        expect(output).toContain('Recent fire history stays in the Agent profile for 30 days');
     });
 
     test('lists fires without payloads and reads one fire verbatim', async () => {

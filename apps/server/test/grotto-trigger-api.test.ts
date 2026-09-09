@@ -373,33 +373,6 @@ test('rotating from the App retires the previous secret immediately', async () =
     await expect(fire(created.trigger.id, rotated.secret)).resolves.toBe(202);
 });
 
-test('deleting cascades the fire history and stops the secret working', async () => {
-    const created = await createOperatorTrigger('Doomed');
-    await fire(created.trigger.id, created.secret, 'bye');
-
-    const deleted = await owner.trpc.trigger.delete.mutate({
-        serverId,
-        triggerId: created.trigger.id,
-    });
-
-    expect(deleted).toEqual({ deleted: true, id: created.trigger.id });
-    const fires = (await harness.sql`
-        select id from trigger_fires where trigger_id = ${created.trigger.id}
-    `) as { id: string }[];
-    expect(fires).toHaveLength(0);
-    // A fire never wrote a transcript row, so deleting the Trigger removes the
-    // whole fire history and leaves the transcript untouched.
-    const receipts = (await harness.sql`
-        select id from chat_messages
-        where server_id = ${serverId} and content = ${'⚡ Trigger: Doomed'}
-    `) as { id: string }[];
-    expect(receipts).toEqual([]);
-    await expect(fire(created.trigger.id, created.secret)).resolves.toBe(401);
-    await expect(
-        owner.trpc.trigger.runs.query({ serverId, triggerId: created.trigger.id })
-    ).rejects.toThrow(/does not exist/i);
-});
-
 test('a test fire rides the same path a real delivery takes', async () => {
     const created = await createOperatorTrigger('Testable', 'Post the failing job.');
 
@@ -469,6 +442,7 @@ test('keeps every operator Trigger procedure to Owners and Admins', async () => 
 
     for (const call of [
         () => member.trpc.trigger.list.query({ serverId }),
+        () => member.trpc.trigger.history.query({ agentId: sageAgentId, serverId }),
         () => member.trpc.trigger.runs.query({ serverId, triggerId }),
         () =>
             member.trpc.trigger.create.mutate({

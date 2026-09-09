@@ -85,6 +85,82 @@ created. One generation may be in flight per Agent and two per Server. Capacity 
 errors. Operational events carry actor, Server, request, model, duration, outcome, and normalized
 metadata only — never concept text or image bytes.
 
+### Task routes
+
+`GET /api/agent/tasks` lists a target's tasks; `POST /api/agent/tasks/create`,
+`/claim`, `/unclaim`, and `/update` mutate them. `claim` takes `target` plus either `numbers` or a
+`messageId`; claiming a `messageId` that carries no task promotes the message first, so the claim
+is what creates the task.
+
+Every task projection carries `origin`, which says how the row came to exist:
+
+| `origin` | Written by |
+| --- | --- |
+| `composed` | A human composing a message as a task. |
+| `converted` | A human promoting an existing message with Convert to Task. |
+| `claimed` | An Agent claiming a message nobody had promoted. |
+
+The hosted task wire shape adds two derived fields on top of that. `tier` is `background` or
+`tracked`: a background task is a `claimed` task in `in_progress` or `done` whose Thread has no
+messages, that carries no Ask, whose status never left that pair — review, closure, or a reopen
+stamps it tracked for good — and whose claiming run has not settled leaving the work open — an Agent's own orchestration lock, excluded from the default Board
+and List. Everything else is `tracked`. `live` is true while the assignee Agent's in-flight run
+holds that task's message or Thread; a run beginning and a run settling both emit `task.updated`,
+so it is never polled. Both are computed per read and neither is a stored task column.
+
+Promotion does not create the task's Thread. The Thread materializes on the first reply under its
+deterministic `cht_thr_<anchor>` id, so `grotto message send --target "#channel:<messageId>"`
+remains the way to open one, and a claim an Agent resolves inside its own turn leaves no work
+surface behind.
+
+A claim that loses to a claim someone else holds returns `409 TASK_CONFLICT` with the ordinary
+`code` and `message`, plus a **`claimConflict`** object:
+
+```json
+{
+  "code": "TASK_CONFLICT",
+  "message": "That task is already owned by another assignee.",
+  "claimConflict": {
+    "kind": "claim_conflict",
+    "conflictScope": "implementation_execution",
+    "blockedActions": ["start_conflicting_execution"],
+    "unblockedActionExamples": [
+      "reading the task and its Thread",
+      "replying in the Thread with findings, questions, or review",
+      "claiming a different task in this lane",
+      "raising the routing with the people in the original Chat"
+    ],
+    "currentAssignee": { "type": "agent", "name": "sage" },
+    "status": "in_progress",
+    "claimedAt": "2026-09-08T17:04:11.000Z",
+    "observedAt": "2026-09-08T17:09:52.000Z"
+  }
+}
+```
+
+`blockedActions` is an authoritative closed set — an action absent from it is not blocked by this
+conflict, though it remains subject to its own authority and policy — while
+`unblockedActionExamples` is illustrative and never a permission table. `observedAt` is a snapshot,
+not a standing ruling. `packages/grotto-api` owns the schema (`taskClaimConflictSchema`) and the
+rendering copy: `taskClaimConflictBlockedActionCopy` maps each blocked action id to its prose, and
+`TASK_CLAIM_CONFLICT_ROUTING_NOTE` is the closing sentence the CLI prints — a claim conflict is a
+concurrency lock, not a ruling on who owns or leads the lane, and a misroute is corrected in the
+original Thread. Grotto has no reassignment-request command, so no clause names one.
+`grotto task claim` renders the block from the 409 body in place of the generic error line —
+`apps/computer/src/agent-cli/agent-claim-conflict.ts` is the only place that prose is composed —
+while a `TASK_CONFLICT` without a `claimConflict` keeps the ordinary refusal.
+
+A successful claim prints one follow-up line per claimed task under `Follow up on each task:`:
+
+```
+#3 → reply in #all when done (same-turn work); use the thread "#all:b0Q8lLWk" for progress notes, questions, or work that outlives this turn.
+```
+
+The hint names both tiers on purpose. A claim finished inside the claiming turn is answered in the
+Chat that asked — the background tier, which leaves no Thread behind — while the printed thread
+target is for progress notes, questions, and work that outlives the turn, which is what stamps the
+task tracked.
+
 ### Prepared Agent action cards
 
 Managed Agents can post a native Agent-creation proposal to a current Chat:

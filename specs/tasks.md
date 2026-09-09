@@ -8,8 +8,26 @@ all views are projections, never another conversation or content store.
 
 `message_tasks` keys metadata by `(server_id, message_id)` and also binds the canonical
 `chat_id`: monotonic per-Chat task number, status, optional human or Agent assignee and claim time,
-priority, origin, creator, and monotonic version. The work-surface Thread id is derived
-deterministically from the message id; it is not stored on the task row.
+priority, origin, creator, monotonic version, and a nullable `tracked_at`. The work-surface Thread
+id is derived deterministically from the message id; it is not stored on the task row, and the
+Thread itself does not exist until someone replies in it.
+
+`origin` is `composed` (a human composed the message as a task), `converted` (a human promoted an
+existing message), or `claimed` (an Agent claimed a message nobody had promoted). Reads derive two
+more fields. `tier` is `background` for a `claimed` task in `in_progress` or `done` whose assignee
+has said nothing in its Thread, that carries no Ask, and that has no `tracked_at` — anyone else's
+Thread replies are chatter and leave the tier alone; everything else is `tracked`,
+and only the default Board and List lenses distinguish them. `live` is true while the assignee
+Agent's in-flight run holds the task's message or Thread. `tracked_at` records what the current row
+cannot show — the status left `in_progress`/`done`, or the claiming run settled with the work open
+— so the tier predicate stays a pure function of one row plus two queried facts, and only ever
+moves a task from background to tracked.
+
+When the claiming run completes having posted at least one top-level message in the task's anchor
+Chat, Server sets the task `done` through the ordinary update path. Same-turn claimed work resolves
+without passing through `in_review`; a claim the run did not answer — and every claim held by a run
+that failed, was interrupted, or was stopped, restarted, or reset — stays `in_progress` and is
+stamped tracked.
 
 `task_labels` is the small Server task-label catalog; `message_task_labels` links catalog entries
 to tasks. Composite foreign keys keep task, message, Chat, assignee, and labels in one
@@ -17,8 +35,12 @@ Server tenant. `chat_messages.task` and task-list reads project the same row.
 
 Only top-level Channel or DM messages can be promoted. Promotion is idempotent by canonical
 message identity. Atomic create uses the message nonce for replay and creates the message, task,
-Thread, and durable events in one transaction. Creation and promotion do not append a user-visible
-state-change message; the canonical task message and deterministic Thread remain the work surface.
+and durable events in one transaction — not the Thread. Creation and promotion do not append a
+user-visible state-change message; the canonical task message is the record, and the Thread becomes
+the work surface once anyone replies. A task whose Thread was never needed still answers
+`thread.get`, `chat.messages`, and its `threadSummary` as an empty Thread, so deep links keep
+working; deliberately following such a Thread materializes it, and the claimant's follow attaches
+the moment it appears.
 A direct Agent-to-Agent assignment writes no Chat message at all. It enqueues one `agent_inbox`
 item for the assignee — kind `task_assignment`, keyed by the assignment identity, carrying
 `mentioned=true` — which reaches that Agent through the ordinary inbox ([inbox.md](inbox.md)) and
@@ -63,12 +85,16 @@ event targeting for live delivery and cursor catch-up after reconnect.
 
 ## Surfaces
 
-- Hosted App: Server Board and List lenses with create, claim, unclaim, human assignment, status,
+- Hosted App: Server Board and List lenses, which exclude background-tier tasks by default and
+  report how many they hid (`includeBackground` widens them), with create, claim, unclaim, human assignment, status,
   priority, and task-label controls. Opening a task opens the canonical message's hosted Thread,
   where a task metadata header projects the number, status, assignee, and creator. Status and
   authorized human-assignment edits use the same versioned task mutations as the other lenses.
 - Managed CLI: `grotto task list|create|claim|unclaim|update` uses the Computer's scoped runner
-  authority and hosted Server task API. Agent identity comes from that runner credential.
+  authority and hosted Server task API. Agent identity comes from that runner credential. An Agent
+  claims a message before any tool-using work on it, and a claim that loses to a standing claim is
+  refused with the structured `claimConflict` documented in
+  [Agents API](../docs/api/agents.md#task-routes).
 
 The App has no calendar or scheduling fields. The word “calendar” in PRD-140's original acceptance
 text is stale relative to ADR 0015, D8, and the accepted WS6 plan; reminder/scheduling work belongs

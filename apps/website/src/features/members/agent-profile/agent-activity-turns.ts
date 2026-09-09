@@ -111,6 +111,16 @@ export function groupAgentActivityTurns(
         .sort((left, right) => Date.parse(right.startedAt) - Date.parse(left.startedAt));
 }
 
+/** One turn's start, at the density both the journal and its summary rows use. */
+export function formatActivityTurnTime(value: string): string {
+    return new Date(value).toLocaleString([], {
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        month: 'short',
+    });
+}
+
 export function formatActivityTurnDuration(durationMs: number): string {
     const seconds = Math.max(0, Math.round(durationMs / 1000));
     if (seconds < 60) {

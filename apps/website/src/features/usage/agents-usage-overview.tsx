@@ -1,8 +1,6 @@
-import { Button, Skeleton } from '@heroui/react';
-import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Skeleton } from '@heroui/react';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Icon } from '../../components/ui/icon.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useUsage } from '../../hooks/servers/use-usage.ts';
@@ -14,6 +12,7 @@ import { AgentUsageScopePicker } from '../stats/agent-usage-scope.tsx';
 import { TokenUsageDashboard, TokenUsageRangePicker } from '../stats/token-usage-module.tsx';
 import { buildTokenUsageView, type TokenUsageRange } from '../stats/token-usage-view.ts';
 import { UsageEmptyCard } from './usage-empty.tsx';
+import { ActiveUsageFilters, usageFilterChips } from './usage-filters.tsx';
 
 export function AgentsUsageOverview({ serverId }: { serverId: string }) {
     const usage = useUsage(serverId);
@@ -22,15 +21,11 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
     const [searchParams, setSearchParams] = useSearchParams();
     const requestedComputerId = searchParams.get('computer');
     const runtimeId = searchParams.get('runtime') || undefined;
+    // Agent scope is URL-backed like the Computer and runtime filters, so an
+    // Agent profile can link here already scoped to itself.
+    const selectedAgentId = searchParams.get('agent');
     const computer = computers.data?.find((item) => item.id === requestedComputerId);
     const computerId = computer?.id;
-    const computerFilterLabel = requestedComputerId
-        ? computer
-            ? computerLabel(computer)
-            : computers.isPending
-              ? 'Loading…'
-              : 'Unavailable'
-        : undefined;
     const scope = useMemo(
         () => ({
             agentIds: requestedComputerId
@@ -50,11 +45,35 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
         }),
         [agents.data, computerId, requestedComputerId, runtimeId]
     );
+    // A scoped link must not paint Server-wide totals on its way to the scope
+    // it asked for, so every roster the scope depends on has to settle first.
     const isFilterPending =
-        Boolean(requestedComputerId) &&
-        ((!agents.data && agents.isPending) || (!computers.data && computers.isPending));
+        (Boolean(requestedComputerId) &&
+            ((!agents.data && agents.isPending) || (!computers.data && computers.isPending))) ||
+        (Boolean(selectedAgentId) && agents.isPending);
+    const filterChips = usageFilterChips({
+        agentsPending: agents.isPending,
+        computerLabel: computer ? computerLabel(computer) : undefined,
+        computersPending: computers.isPending,
+        requestedAgentId: selectedAgentId,
+        requestedComputerId,
+        resolvedAgent: (agents.data ?? []).some((agent) => agent.id === selectedAgentId),
+        runtimeId,
+    });
     const [days, setDays] = useState<TokenUsageRange>(30);
-    const [selectedAgentId, setSelectedAgentId] = useState<null | string>(null);
+    const selectAgent = (agentId: null | string) =>
+        setSearchParams(
+            (params) => {
+                const next = new URLSearchParams(params);
+                if (agentId) {
+                    next.set('agent', agentId);
+                } else {
+                    next.delete('agent');
+                }
+                return next;
+            },
+            { replace: true }
+        );
     const tokenUsage = usage.data?.tokenUsage;
     const view = useMemo(
         () =>
@@ -75,9 +94,9 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
                 <SectionHeader title="Usage" />
             </PageTopbar>
             <PageColumn>
-                {computerFilterLabel || runtimeId ? (
+                {filterChips.length > 0 ? (
                     <ActiveUsageFilters
-                        computerLabel={computerFilterLabel}
+                        chips={filterChips}
                         onRemove={(key) =>
                             setSearchParams(
                                 (params) => {
@@ -88,7 +107,6 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
                                 { replace: true }
                             )
                         }
-                        runtimeLabel={runtimeId ? runtimeLabel(runtimeId) : undefined}
                     />
                 ) : null}
                 {isFilterPending ? (
@@ -100,7 +118,7 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
                                 {view.agents.length > 0 ? (
                                     <AgentUsageScopePicker
                                         agents={view.agents}
-                                        onSelect={setSelectedAgentId}
+                                        onSelect={selectAgent}
                                         selectedAgentId={view.selectedAgent?.agentId ?? null}
                                     />
                                 ) : null}
@@ -127,49 +145,6 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
             </PageColumn>
         </>
     );
-}
-
-function ActiveUsageFilters({
-    computerLabel: activeComputerLabel,
-    onRemove,
-    runtimeLabel: activeRuntimeLabel,
-}: {
-    computerLabel?: string;
-    onRemove: (key: 'computer' | 'runtime') => void;
-    runtimeLabel?: string;
-}) {
-    return (
-        <fieldset className="flex flex-wrap items-center gap-2 px-1">
-            <legend className="sr-only">Active usage filters</legend>
-            {activeComputerLabel ? (
-                <Button onPress={() => onRemove('computer')} size="sm" variant="secondary">
-                    Computer: {activeComputerLabel}
-                    <Icon aria-hidden="true" icon={Cancel01Icon} size={14} />
-                </Button>
-            ) : null}
-            {activeRuntimeLabel ? (
-                <Button onPress={() => onRemove('runtime')} size="sm" variant="secondary">
-                    Runtime: {activeRuntimeLabel}
-                    <Icon aria-hidden="true" icon={Cancel01Icon} size={14} />
-                </Button>
-            ) : null}
-        </fieldset>
-    );
-}
-
-function runtimeLabel(runtimeId: string) {
-    switch (runtimeId) {
-        case 'claude-code':
-            return 'Claude Code';
-        case 'grok-build':
-            return 'Grok Build';
-        case 'codex':
-            return 'Codex';
-        case 'pi':
-            return 'Pi';
-        default:
-            return runtimeId;
-    }
 }
 
 function TokenUsageSkeleton() {

@@ -15,7 +15,10 @@ export function AgentTools({
     serverId: string;
 }) {
     const grant = useAgentGrant(serverId, agent.id);
-    const available = connections.filter(
+    // Every connection a human can toggle here, granted or not — a different
+    // set from `grantedAgentConnections`, which is what this Agent can actually
+    // call and is the number the Overview tile and the peek carry.
+    const toggleable = connections.filter(
         (connection) => connection.connected && connection.tools.length > 0
     );
 
@@ -24,17 +27,16 @@ export function AgentTools({
             <ItemCardGroup.Header>
                 {/* "Connections", the same noun as the Settings section these
                     rows come from — "Agent MCP Access" named the one concept
-                    two ways. */}
-                <ItemCardGroup.Title>
-                    Connections
-                    <span className="ms-2 text-muted tabular-nums">{available.length}</span>
-                </ItemCardGroup.Title>
+                    two ways. No count: a number beside a section title reads as
+                    "this Agent has N", which is what the switches below already
+                    say row by row, and the Overview tile owns that fact. */}
+                <ItemCardGroup.Title>Connections</ItemCardGroup.Title>
                 <ItemCardGroup.Description>
                     Choose which of this Server's MCP connections this Agent can use.
                 </ItemCardGroup.Description>
             </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
-                {available.length === 0 ? (
+                {toggleable.length === 0 ? (
                     // The quiet single-row empty every sibling section uses,
                     // not a centered EmptyState mid-list.
                     <ItemCard>
@@ -45,7 +47,7 @@ export function AgentTools({
                         </ItemCard.Content>
                     </ItemCard>
                 ) : (
-                    available.map((connection, index) => {
+                    toggleable.map((connection, index) => {
                         const checked = connection.grants.some(
                             (grant) => grant.agentId === agent.id
                         );

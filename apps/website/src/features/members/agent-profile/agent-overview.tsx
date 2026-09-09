@@ -1,112 +1,43 @@
 import type { Agent } from '@grotto/api';
-import { Chip } from '@heroui/react';
-import { ComputerIcon, ShieldUserIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { Link } from 'react-router-dom';
-import { Icon } from '../../../components/ui/icon.tsx';
-import { useComputers } from '../../../hooks/servers/use-computers.ts';
+import * as React from 'react';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
-import {
-    computerHealthColor,
-    computerHealthLabel,
-    computerLabel,
-} from '../../computers/presentation.ts';
-import { serverComputersRoute } from '../../servers/server-routes.ts';
-import { PageColumn } from '../../shell/page-column.tsx';
-import { AgentUsageOverview } from '../../usage/agent-usage-overview.tsx';
-import { AgentDanger } from './agent-danger.tsx';
-import { AgentIdentity } from './agent-identity.tsx';
-import { AgentRuntime } from './agent-runtime.tsx';
-import { AgentSession } from './agent-session.tsx';
+import { AgentUsageTile } from '../../usage/agent-usage-tile.tsx';
+import { AgentChats } from './agent-chats.tsx';
+import { AgentGlance } from './agent-glance.tsx';
+import { AgentRecentActivity } from './agent-recent-activity.tsx';
 
-export function AgentOverview({
-    agent,
-    onDeleted,
-    server,
-}: {
-    agent: Agent;
-    onDeleted: () => void;
-    server: ServerDetail;
-}) {
-    const computers = useComputers(server.id);
-    const computer = computers.data?.find((candidate) => candidate.id === agent.computerId);
-    const inventory = computer?.reportedInventory;
-    const canEdit = server.role === 'owner' || server.role === 'admin';
-    const computerRoute = `${serverComputersRoute(server.slug)}?computer=${encodeURIComponent(agent.computerId)}`;
-    const computerUnavailable = !(computer || computers.isPending);
+/**
+ * What the Agent is doing and where to go next: the glance tiles, its token
+ * volume, its newest turns, then the Chats it belongs to.
+ *
+ * Execution configuration, identity facts, Skills, and Connections moved to
+ * Setup, and the lifecycle verbs moved into the header's menu — this tab reads
+ * rather than configures.
+ */
+export function AgentOverview({ agent, server }: { agent: Agent; server: ServerDetail }) {
+    const chatsRef = React.useRef<HTMLDivElement>(null);
 
     return (
-        <PageColumn>
-            <AgentIdentity
+        <>
+            <AgentGlance
                 agent={agent}
-                badges={
-                    <>
-                        <Chip
-                            color={agent.role === 'member' ? 'default' : 'accent'}
-                            size="sm"
-                            variant="soft"
-                        >
-                            <Icon className="size-4 shrink-0" icon={ShieldUserIcon} />
-                            <Chip.Label className="capitalize">{agent.role}</Chip.Label>
-                        </Chip>
-                        {computer ? (
-                            <Link className="block min-w-0" to={computerRoute}>
-                                <Chip
-                                    className="max-w-full"
-                                    color={computerHealthColor(computer.health)}
-                                    size="sm"
-                                    variant="soft"
-                                >
-                                    <Icon
-                                        className="size-4 shrink-0 text-muted"
-                                        icon={ComputerIcon}
-                                    />
-                                    <Chip.Label className="min-w-0 truncate">
-                                        {computerLabel(computer)}
-                                        <span className="ms-2 font-normal text-muted">
-                                            {computerHealthLabel(computer.health)}
-                                        </span>
-                                    </Chip.Label>
-                                </Chip>
-                            </Link>
-                        ) : computerUnavailable && canEdit ? (
-                            <Link className="block min-w-0" to={computerRoute}>
-                                <Chip color="warning" size="sm" variant="soft">
-                                    <Icon
-                                        className="size-4 shrink-0 text-muted"
-                                        icon={ComputerIcon}
-                                    />
-                                    <Chip.Label>Assigned Computer unavailable</Chip.Label>
-                                </Chip>
-                            </Link>
-                        ) : computerUnavailable ? (
-                            <Chip color="default" size="sm" variant="soft">
-                                <Icon className="size-4 shrink-0 text-muted" icon={ComputerIcon} />
-                                <Chip.Label>Assigned Computer</Chip.Label>
-                            </Chip>
-                        ) : null}
-                    </>
+                onOpenChats={() =>
+                    chatsRef.current?.scrollIntoView({
+                        behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+                        block: 'start',
+                    })
                 }
-                canEdit={canEdit}
-                generationAvailable={server.avatarGenerationAvailable}
-                serverId={server.id}
-                trailing={
-                    <span className="tabular-nums">Created {formatDate(agent.createdAt)}</span>
-                }
+                server={server}
             />
-            <AgentUsageOverview agent={agent} serverId={server.id} />
-            <AgentRuntime
-                agent={agent}
-                canEdit={canEdit}
-                computerHealth={computer?.health}
-                runtimes={inventory?.runtimes ?? []}
-                serverId={server.id}
-            />
-            {canEdit ? <AgentSession agent={agent} server={server} /> : null}
-            <AgentDanger agent={agent} onDeleted={onDeleted} server={server} />
-        </PageColumn>
+            <AgentUsageTile agent={agent} server={server} />
+            <AgentRecentActivity agent={agent} server={server} />
+            <div ref={chatsRef}>
+                <AgentChats agent={agent} server={server} />
+            </div>
+        </>
     );
 }
 
-function formatDate(value: Date | string) {
-    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value));
+function prefersReducedMotion() {
+    return globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 }

@@ -69,7 +69,7 @@ export function buildTokenUsageView(
     now: Date = new Date(),
     scope: TokenUsageScope = {}
 ): TokenUsageView {
-    const rangeDates = datesThroughToday(days, now);
+    const rangeDates = usageDatesThroughToday(days, now);
     const startDate = rangeDates[0] ?? '';
     const endDate = rangeDates.at(-1) ?? '';
     const agentIds = scope.agentIds ? new Set(scope.agentIds) : null;
@@ -116,7 +116,7 @@ export function buildTokenUsageView(
         );
     }
     const chartData = rangeDates.map((date) => {
-        const point: Record<string, number | string> = { date, label: formatDay(date) };
+        const point: Record<string, number | string> = { date, label: formatUsageDay(date) };
         for (const config of chartConfigurations) {
             point[config.id] = chartLookup.get(`${date}\u0000${config.id}`) ?? 0;
         }
@@ -124,28 +124,6 @@ export function buildTokenUsageView(
     });
 
     return { agents, chartConfigurations, chartData, configurations, selectedAgent, totals };
-}
-
-export function buildAgentTokenUsageView(
-    usage: TokenUsageOverview,
-    days: TokenUsageRange,
-    agent: TokenUsageAgentIdentity,
-    now: Date = new Date()
-): TokenUsageView {
-    const view = buildTokenUsageView(usage, days, agent.agentId, now, {
-        agentIds: [agent.agentId],
-    });
-    if (view.selectedAgent) {
-        return view;
-    }
-    return {
-        ...view,
-        selectedAgent: {
-            ...agent,
-            color: 'var(--color-accent)',
-            ...emptyTotals(),
-        },
-    };
 }
 
 function buildAgents(
@@ -246,7 +224,8 @@ function configurationId(agentId: string, runtimeId: string, modelId: string) {
     return `${agentId}:${runtimeId}:${modelId}`;
 }
 
-function datesThroughToday(days: number, now: Date) {
+/** The inclusive UTC day range a usage window covers, oldest first. */
+export function usageDatesThroughToday(days: number, now: Date) {
     const end = new Date(now);
     end.setUTCHours(0, 0, 0, 0);
     return Array.from({ length: days }, (_, index) => {
@@ -256,7 +235,8 @@ function datesThroughToday(days: number, now: Date) {
     });
 }
 
-function formatDay(date: string) {
+/** One axis label for a UTC usage day. */
+export function formatUsageDay(date: string) {
     return new Intl.DateTimeFormat(undefined, {
         day: 'numeric',
         month: 'short',

@@ -14,6 +14,7 @@ export function MemberProfileHeader({
     badges,
     children,
     description,
+    headingLevel = 1,
     name,
     subtitle,
     trailing,
@@ -23,10 +24,19 @@ export function MemberProfileHeader({
     badges?: React.ReactNode;
     children?: React.ReactNode;
     description?: React.ReactNode;
+    /**
+     * `2` where the page's shell band already states this record's name as the
+     * page's `h1` — the Agent page, whose band carries the name and the tabs.
+     * A profile under a band that only shows breadcrumbs keeps the default and
+     * owns the page's one `h1`.
+     */
+    headingLevel?: 1 | 2;
     name: React.ReactNode;
     subtitle?: React.ReactNode;
     trailing?: React.ReactNode;
 }) {
+    const Heading = headingLevel === 1 ? 'h1' : 'h2';
+
     return (
         <header className="flex min-w-0 flex-col gap-4">
             <div className="flex min-w-0 items-center gap-4">
@@ -38,9 +48,9 @@ export function MemberProfileHeader({
                             same as `SettingsPageHeader`. At `text-xl` it
                             sat between the section headings below it and
                             the title every sibling settings page uses. */}
-                        <h1 className="min-w-0 truncate font-semibold text-2xl text-foreground tracking-tight">
+                        <Heading className="min-w-0 truncate font-semibold text-2xl text-foreground tracking-tight">
                             {name}
-                        </h1>
+                        </Heading>
                         {badges}
                     </div>
                     {subtitle || description ? (

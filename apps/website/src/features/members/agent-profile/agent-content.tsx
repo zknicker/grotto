@@ -5,30 +5,27 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
 import { WorkspaceBrowserContent } from '../../chats/chat-artifact-workspace-content.tsx';
-import { PageColumn } from '../../shell/page-column.tsx';
 import { AgentOverview } from './agent-overview.tsx';
 import { AgentReminders } from './agent-reminders.tsx';
 import { AgentTriggers } from './agent-triggers.tsx';
 
 export { AgentActivity } from './agent-activity.tsx';
 export { AgentOverview };
-export { AgentTools } from './agent-tools.tsx';
+export { AgentSetup } from './agent-setup.tsx';
 
 /**
  * Both of an Agent's standing automations on one tab: Reminders answer "at this
- * time", Triggers answer "when this outside thing happens". They share a tab
- * because the profile's Segment strip is a five-word budget — measured, a sixth
- * label overflows the strip inside the chat-side profile pane and pushes its
- * Close button past the pane edge. See `agent-profile.tsx`.
+ * time", Triggers answer "when this outside thing happens". One tab, because a
+ * reader asking "what wakes this Agent on its own?" is asking one question.
  *
  * Each section owns its own query, so a slow one never blanks the other.
  */
 export function AgentAutomations({ agent, server }: { agent: Agent; server: ServerDetail }) {
     return (
-        <PageColumn>
+        <>
             <AgentReminders agent={agent} server={server} />
             <AgentTriggers agent={agent} server={server} />
-        </PageColumn>
+        </>
     );
 }
 

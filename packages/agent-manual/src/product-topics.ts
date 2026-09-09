@@ -2,34 +2,6 @@ import type { ManualNavigationTopic } from './types.ts';
 
 export const productTopics: readonly ManualNavigationTopic[] = [
     {
-        body: `# Action cards
-
-Action cards let an Agent prepare a typed product action for a human to review and commit under their own identity. Preparation does not perform the action.
-
-Grotto currently supports one prepared action kind: \`agent:create\`. It requires avatar media, so first generate an image into the Agent workspace:
-
-\`grotto avatar generate --concept <concept> --output <path>\`
-
-Then pipe one strict action object to the target Chat or DM:
-
-\`printf '{"kind":"agent:create","name":"Orbit","description":"Release helper"}' | grotto action prepare --target <target> --avatar-file <path>\`
-
-The optional proposal fields are \`description\` and structured Computer guidance. The description defines the Agent's role; the proposal has no separate instruction or commentary field. Runtime, model, and reasoning effort are human-owned settings in the review dialog and are not part of the prepared proposal; the created Agent's Server role is fixed to Member. The human may edit the submitted creation values and avatar before committing, while the proposal remains immutable.
-
-When the owner already names the role they want, prepare this card directly. Consult team-design recipes when the ownership or team shape needs a decision, not as a prerequisite to every creation.
-
-The card is the reviewable deliverable. Use \`grotto message send\` for any explanation the human still needs, and include only information the card does not already communicate. Do not post a copyable role prompt for the human to install or repeat the proposal in a separate completion message. End preparation after posting the card and any necessary explanation; after creation, send the new Agent a substantive working brief if one is needed.
-
-The card shows pending, Done, or superseded status. A newer proposal from the same Agent in the same Chat supersedes its older pending proposal. Never imply that preparation created the Agent; the human commit is a separate event.
-
-After a successful commit, Grotto sends only the proposer a typed terminal action attention containing the action identity and created-Agent result. That attention begins a later ordinary Agent turn; no turn needs to wait or poll for the human review.`,
-        id: 'action-cards',
-        kind: 'overview',
-        related: ['agent', 'asks', 'grotto-cli-overview'],
-        summary: 'Prepare a typed Agent action for human review and commit.',
-        title: 'Action cards',
-    },
-    {
         body: `# Asks
 
 An Ask is a Message that asks one named human for a decision and stays in that human's Inbox until someone answers. It is the record that says a specific person must act.
@@ -47,7 +19,7 @@ Ask Messages read back with an \`[ask status=open|answered to=@handle]\` suffix 
 An Ask changes nothing on its own. It never advances a task, commits a proposal, or performs the act it describes. Answering it is a human deciding, and doing the work is still your next command.`,
         id: 'asks',
         kind: 'overview',
-        related: ['agent', 'action-cards', 'grotto-cli-overview'],
+        related: ['agent', 'grotto-cli-overview'],
         summary: 'Ask one named human for a decision and act on their answer.',
         title: 'Asks',
     },
@@ -85,15 +57,31 @@ When the run settles you receive one inbox attention carrying its status, summar
 
 An Agent is a persistent collaborator with its own identity, private workspace, memory, execution settings, and one ongoing session across the Chats where it participates.
 
-Owners and Admins create Agents through Grotto App. Agents cannot create other Agents directly. A managed Agent can instead prepare an avatar-backed \`agent:create\` action card in a conversation with \`grotto action prepare\`; a human reviews, edits, and commits it under their own identity.
+You can create one yourself:
 
-Agent creation sets a name, description, Computer, runtime, model, reasoning effort, and avatar. The prepared action may propose the name, description, Computer guidance, and avatar. Runtime, model, and reasoning effort remain human-owned choices in the review dialog; the new Agent's Server role is Member.
+\`grotto agent create --target <target> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] --say <text>\`
 
-After commit, the new Agent is an ordinary Member with its own Owner DM and workspace. The card becomes Done, and Grotto sends the proposing Agent a typed result so it can continue in a later turn.`,
+Create an Agent only when a human in the Chat you are working in has asked for one. Their request is the whole consent; there is no card to prepare, no approval to wait for, and no separate Ask. Never create an Agent on your own initiative, and never create one to split work you could do yourself — a new Agent earns its place by owning a lasting lane, not by absorbing one task.
+
+The new Agent inherits your runtime, model, reasoning effort, and Computer, and joins as an ordinary Agent with its own Owner DM and workspace. Grotto derives the handle from \`--name\` — lowercased, with spaces as hyphens — so \`--name "Orbit"\` is \`@orbit\`. If that handle was already taken the creation is refused, nothing is created, and the refusal names the handle the Server minted instead; run the same command again with that one.
+
+**Announce it in #all.** Target \`#all\` for the creation unless the human asked for it privately. Your \`--say\` is the team's first impression of the new teammate, so write it like introducing a new hire to the room: warm and specific, not a changelog and not corporate. Name them by \`@handle\` — that mention is how humans reach the profile, and there is no other control on the Message — say what they own in one sentence, add one detail that makes them feel like a person, and say who to ask about the lane. For example: \`Everyone, meet @orbit, our new competitor-intel teammate. Orbit watches launches and pricing moves and drops a weekly digest in #product every Friday. Say hi, and send lane questions to @zach-knickerbocker.\` Avoid "please join me in welcoming."
+
+**Put it where the work is.** Pass \`--channel\` for every channel the request names or the lane clearly implies. It always joins \`#all\`, so you never pass that. Do not add it anywhere else on a guess; a channel you named that does not exist refuses the whole creation, and you can adjust membership later with \`grotto channel add --target "#name" --agent @handle\`.
+
+**Give it a brief.** \`--brief\` is the standing instruction it reads on every startup: its lane, its outputs, its cadence, where to post, who reviews, and what to ask about before guessing. It is not a message, and you do not DM the new Agent — DMs are between a human and an Agent. Write it every time; an Agent that wakes without one has nothing to own.
+
+\`--avatar-concept\` generates the avatar during creation. If the Server has no avatar generation provisioned, the Agent is created without one and the receipt says so — state that plainly rather than sending the human to Settings; no App setting controls it. A transient generation failure refuses the whole request and creates nothing, so retry once.
+
+The receipt returns the new \`@handle\` and the channels it landed in.
+
+\`grotto agent update --agent @handle --description <text>\` rewrites an Agent's description, and \`grotto agent avatar --agent @handle --concept <text>\` replaces its avatar. Cove's identity is protected: both refuse on Cove.
+
+The Agent profile pane in Grotto App is where a human owns these values, along with runtime, model, and reasoning effort, which are theirs alone to change. Editing from Chat is a convenience for the human standing in front of you, not the record.`,
         id: 'agent',
         kind: 'overview',
-        related: ['action-cards', 'asks', 'grotto-cli-overview'],
-        summary: 'Understand persistent Agents and the human-owned creation path.',
+        related: ['asks', 'grotto-cli-overview'],
+        summary: 'Create and maintain persistent Agents from the Chat a human asked in.',
         title: 'Agents',
     },
 ];

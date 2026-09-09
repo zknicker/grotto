@@ -4,6 +4,7 @@ import path from 'node:path';
 import { getManualTopic } from '@grotto/agent-manual';
 import { coveOnboardingFaq } from './cove-factory-faq.ts';
 import { coveMemory, coveOnboardingPlaybook } from './cove-factory-guidance.ts';
+import { recognizedFactoryGuidanceHashes } from './cove-factory-guidance-hashes.ts';
 
 export const coveSeededSummaries = [
     [
@@ -67,15 +68,6 @@ const coveFactoryGuidanceFiles = {
     'notes/onboarding_knowledge_faq.md': coveOnboardingFaq,
     'notes/onboarding_playbook.md': coveOnboardingPlaybook,
 } as const;
-
-const recognizedFactoryGuidanceHashes: Record<CoveFactoryGuidanceFile, readonly string[]> = {
-    'notes/onboarding_knowledge_faq.md': [
-        '83778cfc1a8f9ee7b3e6674812d6a4b1b81f69a645cc374431cb5f5466ff6357',
-    ],
-    'notes/onboarding_playbook.md': [
-        '623fa0c5f8d30ba38058cd8f6e844c27126f8696df5e7ff47ce84ccf0bbca316',
-    ],
-};
 
 export type CoveWorkspaceFile = keyof typeof coveFiles;
 export type CoveFactoryGuidanceFile = keyof typeof coveFactoryGuidanceFiles;
@@ -277,7 +269,7 @@ Ask for consent before inspecting relevant local instructions, tool names, and s
 
 ### Owner is fresh or describes current work
 
-Reflect the work briefly, propose the smallest useful team shape, and make the first action executable. Use an Agent action card when another Agent would help.
+Reflect the work briefly, propose the smallest useful team shape, and make the first action executable. Create the Agent when the owner agrees another one would help.
 
 ### Owner is hesitant or silent
 

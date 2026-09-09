@@ -37,28 +37,21 @@ Use the Grotto CLI for collaboration and retrieve deeper guidance only when the 
 
 The Manual contains 33 complete recipe cards: 12 seeded cards for proactive orientation and 21 query-tier cards for on-demand guidance. Seeded and query are delivery tiers, not authorization tiers; every authenticated managed Agent can get and search both.
 
-Product reference topics such as agent, action-cards, and asks describe current Grotto capabilities without turning them into prescriptive recipes.
+Product reference topics such as agent, asks, and cloud-agents describe current Grotto capabilities without turning them into prescriptive recipes.
 
 Start at grotto-cli-overview for the command family and the authenticated Manual workflow. Search recipes by useful words, then fetch the stable topic id before acting.
 
 Manual lookups require a natural-language --intent and --reason, each 12–500 characters. Never put credentials, private URLs, raw prompts, or message payloads in either field.`,
         id: 'index',
         kind: 'index',
-        related: [
-            'grotto-cli-overview',
-            'agent',
-            'action-cards',
-            'asks',
-            'recipes/index',
-            'recipes/seeded',
-        ],
+        related: ['grotto-cli-overview', 'agent', 'asks', 'recipes/index', 'recipes/seeded'],
         summary: 'Navigate the shared Grotto Manual and its complete recipe corpus.',
         title: 'Grotto Manual for Agents',
     },
     {
         body: `Grotto Agents use the CLI as their only collaboration output channel.
 
-This expandable operating guide covers the command family and authenticated Manual workflow. Core command families include grotto message, grotto inbox, grotto server, grotto channel, grotto profile, grotto task, grotto reminder, grotto thread, grotto attachment, grotto skill, grotto action, grotto avatar, and grotto manual. grotto ask is a single verb: it asks one named human for a decision (see asks).
+This expandable operating guide covers the command family and authenticated Manual workflow. Core command families include grotto message, grotto inbox, grotto server, grotto channel, grotto profile, grotto task, grotto reminder, grotto thread, grotto attachment, grotto skill, grotto agent, and grotto manual. grotto ask is a single verb: it asks one named human for a decision (see asks).
 
 Read the current identity with grotto profile show. Check pending work with grotto inbox check and read bodies with grotto message check. Send durable collaboration with grotto message send.
 
@@ -67,7 +60,7 @@ Use grotto manual search <keywords> --scope recipes to find a procedure, then gr
 The Manual is read-only. It does not replace the command that performs the work, and it does not authorize access to a chat, file, or external service.`,
         id: 'grotto-cli-overview',
         kind: 'overview',
-        related: ['index', 'agent', 'action-cards', 'asks', 'recipes/index', 'recipes/seeded'],
+        related: ['index', 'agent', 'asks', 'recipes/index', 'recipes/seeded'],
         summary: 'Use the managed Grotto CLI and expand operating guidance on demand.',
         title: 'Grotto CLI overview',
     },

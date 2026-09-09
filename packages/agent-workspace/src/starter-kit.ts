@@ -10,6 +10,10 @@ import path from 'node:path';
 export interface SeedAgentWorkspaceInput {
     agentName: string;
     bio?: string | null;
+    /** The standing instruction the Agent that made this one wrote for it. */
+    brief?: string | null;
+    /** Whose brief it is, so the new Agent knows who to go back to. */
+    briefAuthorHandle?: string | null;
     workspaceDir: string;
 }
 
@@ -36,7 +40,7 @@ function renderStarterMemory(input: SeedAgentWorkspaceInput): string {
 ## Role
 
 ${role}
-
+${renderBriefSection(input)}
 ## Key Knowledge
 
 - No notes yet.
@@ -45,6 +49,23 @@ ${role}
 
 - First startup.
 `;
+}
+
+/**
+ * The brief its creator wrote, as a durable memory fact rather than a message.
+ * It is seeded once, with the rest of this file, so the Agent owns it from
+ * there: later edits are the Agent's own, and an owned workspace is never
+ * overwritten.
+ */
+function renderBriefSection(input: SeedAgentWorkspaceInput): string {
+    const brief = input.brief?.trim();
+    const author = input.briefAuthorHandle?.trim();
+    if (!(brief && author)) {
+        return '';
+    }
+    const firstTurn =
+        'On your first turn, say hello in #all in your own voice: who you are, what you own, and what your first output will be and when.';
+    return `\n## Standing brief from @${author}\n\n${brief}\n\n${firstTurn}\n`;
 }
 
 async function pathExists(filePath: string): Promise<boolean> {

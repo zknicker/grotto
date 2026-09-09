@@ -59,14 +59,20 @@ test('seeds Cove exact inventory and 12 valid separately authored Manual summari
         /integration login|local chat history|save-as-a-skill|grotto-agent/iu
     );
     expect(corpus.join('\n')).not.toContain('recipes/playbook/agent-creation');
-    expect(corpus.join('\n')).toContain('grotto action prepare');
-    expect(corpus.join('\n')).toContain(
-        'Do not just describe or list copyable specs once action cards are available'
-    );
+    expect(corpus.join('\n')).toContain('grotto agent create');
+    expect(corpus.join('\n')).toContain('Do not announce the Agent before the command returns');
+    expect(corpus.join('\n')).toContain('name them by `@handle`');
+    // The three creation rules Cove has to carry: where the announcement goes,
+    // where the new Agent lives, and the standing brief that replaces a DM.
+    expect(corpus.join('\n')).toContain('**Announce it in #all.**');
+    expect(corpus.join('\n')).toContain('**Put it where the work is.**');
+    expect(corpus.join('\n')).toContain('**Give it a brief.**');
+    expect(corpus.join('\n')).not.toContain('grotto message send --target dm:@handle');
+    expect(corpus.join('\n')).not.toMatch(/Created @handle|Open control/u);
     expect(corpus.join('\n')).toContain(
         'Only ask one blocking question first if the answer is required'
     );
-    expect(corpus.join('\n')).toContain('AVATAR_PROVIDER_UNAVAILABLE');
+    expect(corpus.join('\n')).toContain('the Agent is created without an avatar');
     expect(corpus.join('\n')).toContain('do not send the owner to Settings');
     expect(corpus.join('\n')).toMatch(
         /real-work[\s\S]*starter-team[\s\S]*workstream-chats[\s\S]*effective-collaboration/u
@@ -117,8 +123,8 @@ test('preserves the Cindy factory guidance shape with only supported Grotto acti
     ]) {
         expect(playbook).toContain(heading);
     }
-    expect(playbook).toContain('Grotto action-card v1 supports Agent creation only');
-    expect(playbook).toContain('let an Owner or Admin perform the unsupported mutation');
+    expect(playbook).toContain('Their request in this Chat is the consent');
+    expect(playbook).toContain('let an Owner or Admin perform the mutation in Grotto App');
     expect(faq.match(/^## /gmu)).toHaveLength(15);
     expect(faq).toContain('How do I create Agents or Chats?');
     expect(objectives).toContain(
@@ -162,10 +168,10 @@ test('refreshes factory guidance without overwriting Cove-owned memory or object
     expect(await fs.readFile(path.join(workspaceDir, 'owner-note.md'), 'utf8')).toBe('keep me\n');
     expect(
         await fs.readFile(path.join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'utf8')
-    ).toContain('post an **action card** rather than a copyable spec');
+    ).toContain('When the owner agrees another Agent would help, create it yourself');
     expect(
         await fs.readFile(path.join(workspaceDir, 'notes', 'onboarding_knowledge_faq.md'), 'utf8')
-    ).toContain('prepare a native action card');
+    ).toContain('create it with `grotto agent create`');
 });
 
 test('refuses to replace missing or Agent-edited factory guidance', async () => {

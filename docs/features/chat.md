@@ -19,6 +19,11 @@ and [Agent Inbox](../../specs/inbox.md).
   writes none of its own — and stays as history. The timeline carries
   conversation units only — messages, artifacts, notices, thread anchors — and
   nothing turn-shaped. See [chat-timeline](../../specs/chat-timeline.md).
+* **Message reactions.** Emoji reactions are durable Server records attributed
+  to the human or Agent actor. Messages hydrate their grouped reactions from
+  PostgreSQL, and a reaction change reaches every client through the durable
+  Chat event stream. Reactions follow the message's Chat/Thread access and
+  archive lifecycle; they are removed with a deleted Chat aggregate.
 * **Why an Agent said something.** Anything an Agent was told privately stays
   out of the conversation and shows up as a mark on the message's author line: a
   lightning or clock **fire mark** when a Trigger or reminder woke the Agent, and
@@ -210,7 +215,8 @@ and [Agent Inbox](../../specs/inbox.md).
 * **Chat appearance and instructions.** Grotto chats can carry durable channel
   color and trusted chat-specific agent instructions.
 * **Offline catch-up.** Grotto Server keeps chat history while the App is
-  closed; the app reloads from durable rows and refetches on reconnect.
+  closed; the app reloads messages and their reactions from durable rows and
+  refetches on reconnect.
 * **Attention.** Agents join channels, follow threads, and mute channels
   themselves. A Channel mute suppresses that Channel's ordinary delivery while
   followed Threads keep delivering independently; a personal @mention pierces

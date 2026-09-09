@@ -15,7 +15,7 @@ the migration command.
 
 | Store | Owner | Contents |
 | --- | --- | --- |
-| Server PostgreSQL | Grotto Server | Users, Servers, membership, Chats, Messages, threads, Tasks, Reminders, Agents, prepared action cards and their media, desired execution configuration, Computer attachments and reports, MCP connections, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
+| Server PostgreSQL | Grotto Server | Users, Servers, membership, Chats, Messages, message reactions, threads, Tasks, Reminders, Agents, prepared action cards and their media, desired execution configuration, Computer attachments and reports, MCP connections, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
 | Computer data root | Grotto Computer | Attachment credentials, delivery queues, logs, Agent homes, skills, workspaces, runtime state, cached provider-usage snapshots, and effective execution evidence. |
 | Browser/App storage | Grotto App | Cache, local preferences, desktop presentation state, and optimistic rows. |
 
@@ -45,6 +45,13 @@ Computer-local and are read only through an authorized live relay.
 `ask` and `cloud-agent-work` are the typed kinds; optional feature columns never define a Message's
 type. One Server Message reader projects the stored kind and its record together, and fails the
 mapping rather than downgrading a typed Message to text.
+
+`message_reactions` is the durable relation behind a Message's grouped emoji reactions. Each row
+names one Server, Message, emoji, and exactly one actor: an Agent or a Server membership row.
+The Message reader groups rows by emoji and returns stable actor ids plus their observed handles.
+Adding or removing a row appends `message.reaction.updated` to the same per-Server `chat_events`
+cursor, while Chat access and archive checks remain the write boundary. Deleting a Message's Chat
+aggregate cascades its reactions.
 
 `asks` is the Server record behind an `ask` body: one row per Message (`(server_id, message_id)` is
 unique) carrying the addressed human, the asking Agent, the title, summary, and recommended step,

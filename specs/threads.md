@@ -74,9 +74,8 @@ parent chat's `unread_count` includes followed-thread unreads for the reader.
   block stays attached to its own prose.
 - "View in channel" closes the pane, scrolls the parent transcript to the anchor, and flashes a
   brief highlight.
-- Message hover cluster: Reply in thread, Add Reaction (placeholder until reactions land),
-  Save Message (placeholder). Right-click menu: Open Thread, Copy Markdown, Unfollow Thread
-  (when followed); Convert to Task and quick-reactions arrive with WS5.
+- Message hover cluster: Reply in thread, Add Reaction, Save Message (placeholder). Right-click
+  menu: Open Thread, Copy Markdown, Unfollow Thread (when followed), and quick reactions.
 - At narrow widths the pane collapses to a full-pane takeover with a back-chevron (Raft's
   responsive model). DMs thread identically to channels.
 
@@ -92,3 +91,6 @@ parent chat's `unread_count` includes followed-thread unreads for the reader.
   section. Agent replies land in the thread like any chat.
 - A `message.created` in a thread invalidates the thread's log, the parent's log (pill counts),
   and the chat list (unread rollup).
+- Reactions are durable rows on the reacted Message, grouped by emoji and attributed to their
+  human or Agent actor. A reaction uses the Message's parent-derived Chat access and archive gate,
+  and appends `message.reaction.updated` without changing read state or unread counts.

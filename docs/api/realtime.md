@@ -17,7 +17,7 @@ clients recover through durable reads.
 
 | Component | Owner | Role |
 | --- | --- | --- |
-| Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for messages, reads, follows, Chat lifecycle, prepared-action changes, Ask changes, and reminder changes |
+| Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for messages, reactions, reads, follows, Chat lifecycle, prepared-action changes, Ask changes, and reminder changes |
 | Hosted durable subscription | Grotto Server | Live notification after commit; membership rechecked at delivery |
 | Hosted composition hub | Grotto Server | In-memory, membership-checked, no persistence or replay |
 | Hosted Agent activity journal | Grotto Server | Durable semantic execution metadata plus live current-state projection |
@@ -49,7 +49,7 @@ from durable `chat_events`.
 
 ## Hosted Server Realtime
 
-`chat.send`, an advancing `chat.markRead`, `thread.setFollow`, Chat lifecycle
+`chat.send`, `chat.react`, an advancing `chat.markRead`, `thread.setFollow`, Chat lifecycle
 mutations, prepared-action mutations, Ask creation and settlement, task mutations, and reminder
 mutations insert their durable event in
 the same PostgreSQL transaction as the owned row. `chat.events` lists accessible
@@ -86,6 +86,9 @@ invalidates the task-label catalog and the task list, whose rows embed label
 records. The Chat lane registers no `reminder.changed` listener: it is
 participant-gated on both live delivery and replay, so it cannot reliably
 refresh the operator-only reminder snapshot on an Agent profile.
+`message.reaction.updated` invalidates the affected message Chat, its parent
+Chat when the message belongs to a Thread, the Thread snapshot, and Server
+search. It does not alter read state, Chat ordering, or unread counts.
 `chat.lifecycle` carries `created`, `updated`, `archived`,
 `unarchived`, or `deleted` plus the stable Chat id, and invalidates active and
 archived lists, the focused Chat query, and the Server's Agent chat lists, whose
@@ -177,7 +180,7 @@ clients refetch the affected Message — whose `body` projects the current work 
 and, for the Inbox, `cloudAgentWork.listActive`. A duplicate or stale observation applies nothing
 and therefore emits nothing, so reconnect replay of these events is idempotent.
 
-Hosted durable event kinds are `message.created`, `ask.updated`, `cloud-agent-work.updated`,
+Hosted durable event kinds are `message.created`, `message.reaction.updated`, `ask.updated`, `cloud-agent-work.updated`,
 `prepared-action.updated`,
 `chat.read`, `chat.lifecycle`, the reader-private `thread.follow.updated`,
 `task.created`, `task.updated`, and `task.label.updated`, plus `reminder.changed`.

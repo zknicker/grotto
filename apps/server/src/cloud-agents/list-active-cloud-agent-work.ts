@@ -2,6 +2,7 @@ import type { ActiveCloudAgentWork, ChatMessage } from '@grotto/api';
 import { and, asc, eq, getTableColumns, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { visibleChats } from '../chats/chat-visibility.ts';
+import { readChatMessageReactions } from '../chats/message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from '../chats/message-shape.ts';
 import { readMessagesById } from '../chats/read-messages-by-id.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -108,11 +109,18 @@ export async function listActiveCloudAgentWork(
         )
         .orderBy(asc(cloudAgentWorkTable.createdAt));
 
-    const runs = await readRuns(
-        db,
-        input.serverId,
-        rows.map((row) => row.work.id)
-    );
+    const [runs, reactions] = await Promise.all([
+        readRuns(
+            db,
+            input.serverId,
+            rows.map((row) => row.work.id)
+        ),
+        readChatMessageReactions(
+            db,
+            input.serverId,
+            rows.map((row) => row.id)
+        ),
+    ]);
     // Work posted inside a Thread opens on that Thread's own anchor, which this
     // list has not read. One batched read keeps every row able to open it.
     const anchorMessages = await readMessagesById(
@@ -171,6 +179,7 @@ export async function listActiveCloudAgentWork(
                     authorUserRevokedAt: null,
                 }),
                 body: { kind: 'cloud-agent-work', work },
+                reactions: reactions.get(row.id),
             }),
             threadAnchorMessage,
             threadChatId,

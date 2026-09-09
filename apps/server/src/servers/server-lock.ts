@@ -16,7 +16,7 @@ import { serversTable } from '../postgres/schema.ts';
  *
  * Transactions that take it: Server rename, message send, read marking, Thread
  * following, DM creation, task writes, invitation creation/acceptance/revocation,
- * role change, removal, leaving, Computer attachment, reminder
+ * role change, removal, leaving, Computer attachment, message reactions, reminder
  * scheduling/mutation/firing, and operator reminder cancellation.
  */
 export async function lockServerRow(

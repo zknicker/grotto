@@ -2,6 +2,7 @@ import type { ChatMessage, OpenAsk } from '@grotto/api';
 import { and, asc, eq, getTableColumns } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { visibleChats } from '../chats/chat-visibility.ts';
+import { readChatMessageReactions } from '../chats/message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from '../chats/message-shape.ts';
 import { readMessagesById } from '../chats/read-messages-by-id.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -107,15 +108,22 @@ export async function listOpenAsks(
     // An Ask posted inside a Thread answers on that Thread's own anchor, which
     // is a Message this list has not read. One batched read keeps every row
     // able to open its conversation.
-    const anchorMessages = await readMessagesById(
-        db,
-        input.serverId,
-        rows.flatMap((row) =>
-            row.askChatKind === 'thread' && row.askChatAnchorMessageId
-                ? [row.askChatAnchorMessageId]
-                : []
-        )
-    );
+    const [anchorMessages, reactions] = await Promise.all([
+        readMessagesById(
+            db,
+            input.serverId,
+            rows.flatMap((row) =>
+                row.askChatKind === 'thread' && row.askChatAnchorMessageId
+                    ? [row.askChatAnchorMessageId]
+                    : []
+            )
+        ),
+        readChatMessageReactions(
+            db,
+            input.serverId,
+            rows.map((row) => row.id)
+        ),
+    ]);
 
     return rows.map((row) => {
         const ask = toAsk(row.ask);
@@ -166,6 +174,7 @@ export async function listOpenAsks(
                     authorUserRevokedAt: null,
                 }),
                 body: { ask, kind: 'ask' },
+                reactions: reactions.get(row.id),
             }),
             threadAnchorMessage,
             threadChatId,

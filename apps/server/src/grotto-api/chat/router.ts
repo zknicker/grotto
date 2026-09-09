@@ -15,6 +15,7 @@ import { listChatMessagesProcedure } from './messages.ts';
 import { onCompositionProcedure } from './on-composition.ts';
 import { onChatEventProcedure } from './on-event.ts';
 import { publishCompositionProcedure } from './publish-composition.ts';
+import { reactToChatMessageProcedure } from './react.ts';
 import { searchChatMessagesProcedure } from './search.ts';
 import { sendChatMessageProcedure } from './send.ts';
 import { unarchiveChannelProcedure } from './unarchive-channel.ts';
@@ -37,6 +38,7 @@ export const chatRouter = createRouter({
     onComposition: onCompositionProcedure,
     onEvent: onChatEventProcedure,
     publishComposition: publishCompositionProcedure,
+    react: reactToChatMessageProcedure,
     search: searchChatMessagesProcedure,
     send: sendChatMessageProcedure,
     updateChannel: updateChannelProcedure,

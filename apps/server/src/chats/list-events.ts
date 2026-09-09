@@ -65,6 +65,7 @@ export async function listChatEvents(
                             eq(chatEventsTable.type, 'ask.updated'),
                             eq(chatEventsTable.type, 'cloud-agent-work.updated'),
                             eq(chatEventsTable.type, 'message.created'),
+                            eq(chatEventsTable.type, 'message.reaction.updated'),
                             eq(chatEventsTable.type, 'prepared-action.updated'),
                             eq(chatEventsTable.type, 'task.created'),
                             eq(chatEventsTable.type, 'task.updated'),
@@ -138,14 +139,14 @@ export async function listChatEvents(
             };
         }
 
-        if (event.type === 'message.created') {
+        if (event.type === 'message.created' || event.type === 'message.reaction.updated') {
             return {
                 ...common,
                 chatId: event.chatId as string,
                 messageId: event.messageId as string,
                 parentChatId: event.parentChatId,
                 sequence: event.sequence,
-                type: 'message.created' as const,
+                type: event.type,
             };
         }
 

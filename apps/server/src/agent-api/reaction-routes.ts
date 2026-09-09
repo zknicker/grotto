@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
+import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import { changeAgentReaction } from './reactions.ts';
@@ -24,7 +25,11 @@ export function registerAgentReactionRoutes(app: FastifyInstance, db: GrottoData
             );
         }
         try {
-            return await changeAgentReaction(db, runner, parsed.data);
+            const result = await changeAgentReaction(db, runner, parsed.data);
+            if (result.event) {
+                emitDurableChatEvent({ audienceUserId: null, event: result.event });
+            }
+            return { message: result.message };
         } catch (cause) {
             return sendAgentReadError(reply, cause);
         }

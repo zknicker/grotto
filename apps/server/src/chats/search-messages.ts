@@ -16,6 +16,7 @@ import type { GrottoUser } from '../users/grotto-user.ts';
 import { requireChatAccess } from './chat-access.ts';
 import { visibleChats } from './chat-visibility.ts';
 import { readMessageBodies } from './message-bodies.ts';
+import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
 
 export async function searchChatMessages(
@@ -113,11 +114,12 @@ export async function searchChatMessages(
         .limit(input.limit);
 
     const messageIds = rows.map((message) => message.id);
-    const [attachments, actions, causes, bodies] = await Promise.all([
+    const [attachments, actions, causes, bodies, reactions] = await Promise.all([
         readMessageAttachments(db, input.serverId, messageIds),
         readPreparedActionsForMessages(db, input.serverId, messageIds),
         readMessageCauses(db, input.serverId, messageIds),
         readMessageBodies(db, input.serverId, messageIds),
+        readChatMessageReactions(db, input.serverId, messageIds),
     ]);
 
     return rows.map((message) => ({
@@ -127,6 +129,7 @@ export async function searchChatMessages(
             body: bodies.get(message.id),
             cause: causes.get(message.id),
             preparedAction: actions.get(message.id),
+            reactions: reactions.get(message.id),
         }),
         chatArchivedAt: message.chatArchivedAt?.toISOString() ?? null,
     }));

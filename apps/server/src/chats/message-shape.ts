@@ -74,13 +74,21 @@ export interface StoredChatMessageRelations {
     /** Why an Agent wrote this: the Trigger or Reminder fire it answered. */
     cause?: MessageCause;
     preparedAction?: PreparedAction;
+    reactions?: ChatMessage['reactions'];
 }
 
 export function toChatMessage(
     message: StoredChatMessage,
     related: StoredChatMessageRelations = {}
 ): ChatMessage {
-    const { attachments = [], authorProfile, body, cause, preparedAction } = related;
+    const {
+        attachments = [],
+        authorProfile,
+        body,
+        cause,
+        preparedAction,
+        reactions = [],
+    } = related;
     return {
         attachments,
         author: readAuthor(message, authorProfile),
@@ -92,6 +100,7 @@ export function toChatMessage(
         id: message.id,
         nonce: message.nonce,
         runId: message.runId,
+        reactions,
         sequence: message.sequence,
         serverId: message.serverId,
         sessionGeneration: message.sessionGeneration,

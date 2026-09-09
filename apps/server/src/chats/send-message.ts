@@ -6,7 +6,6 @@ import { settleAskForReply } from '../asks/settle-ask.ts';
 import {
     associateMessageAttachments,
     attachmentMetadata,
-    readMessageAttachments,
     requireMessageAttachments,
 } from '../attachments/message-attachments.ts';
 import type { GrottoDatabase } from '../postgres/connection.ts';
@@ -26,6 +25,7 @@ import { allocateEventCursor } from './allocate-event-cursor.ts';
 import { requireChatWriteAccess } from './chat-access.ts';
 import { ensureAgentDmRecord } from './ensure-agent-dm.ts';
 import { toChatMessage } from './message-shape.ts';
+import { readMessageRelations } from './read-message-relations.ts';
 
 export class ChatNonceConflictError extends Error {
     constructor() {
@@ -132,15 +132,13 @@ export async function sendChatMessage(
             .limit(1);
 
         if (existing) {
-            const existingAttachments =
-                (await readMessageAttachments(tx, input.serverId, [existing.id])).get(
-                    existing.id
-                ) ?? [];
+            const existingRelations = await readMessageRelations(tx, input.serverId, existing.id);
+
             if (
                 existing.authorUserId !== member.id ||
                 existing.content !== input.content ||
                 !sameIds(
-                    existingAttachments.map((attachment) => attachment.id),
+                    existingRelations.attachments.map((attachment) => attachment.id),
                     input.attachmentIds
                 )
             ) {
@@ -152,13 +150,12 @@ export async function sendChatMessage(
                 receipt: {
                     eventCursor: existing.eventCursor.toString(),
                     idempotent: true,
-                    message: toChatMessage(existing, { attachments: existingAttachments }),
+                    message: toChatMessage(existing, existingRelations),
                     threadChatId: thread?.id ?? null,
                 },
                 wakes: [],
             };
         }
-
         await requireActiveDmPeer(tx, writeChat);
 
         const attachments = await requireMessageAttachments(tx, member, {

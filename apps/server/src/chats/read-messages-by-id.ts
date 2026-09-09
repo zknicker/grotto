@@ -12,6 +12,7 @@ import {
 import { readPreparedActionsForMessages } from '../prepared-actions/read.ts';
 import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { readMessageBodies } from './message-bodies.ts';
+import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
 
 /**
@@ -61,12 +62,13 @@ export async function readMessagesById(
             and(eq(chatMessagesTable.serverId, serverId), inArray(chatMessagesTable.id, messageIds))
         );
     const foundIds = rows.map((row) => row.id);
-    const [attachments, tasks, actions, causes, bodies] = await Promise.all([
+    const [attachments, tasks, actions, causes, bodies, reactions] = await Promise.all([
         readMessageAttachments(db, serverId, foundIds),
         listMessageTaskMap(db, serverId, foundIds),
         readPreparedActionsForMessages(db, serverId, foundIds),
         readMessageCauses(db, serverId, foundIds),
         readMessageBodies(db, serverId, foundIds),
+        readChatMessageReactions(db, serverId, foundIds),
     ]);
     return new Map(
         rows.map((row) => [
@@ -78,6 +80,7 @@ export async function readMessagesById(
                     body: bodies.get(row.id),
                     cause: causes.get(row.id),
                     preparedAction: actions.get(row.id),
+                    reactions: reactions.get(row.id),
                 }),
                 task: tasks.get(row.id) ?? null,
             },

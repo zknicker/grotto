@@ -50,6 +50,7 @@ export const chatEventsTable = pgTable(
                 | 'cloud-agent-work.updated'
                 | 'chat.lifecycle'
                 | 'message.created'
+                | 'message.reaction.updated'
                 | 'prepared-action.updated'
                 | 'reminder.changed'
                 | 'task.created'
@@ -131,6 +132,19 @@ export const chatEventsTable = pgTable(
                     AND ${table.sequence} > 0)
                 OR
                 (${table.type} = 'message.created'
+                    AND ${table.chatId} IS NOT NULL
+                    AND ${table.messageId} IS NOT NULL
+                    AND ${table.actionId} IS NULL
+                    AND ${table.actionStatus} IS NULL
+                    AND ${table.labelId} IS NULL
+                    AND ${table.readerUserId} IS NULL
+                    AND ${table.reminderId} IS NULL
+                    AND ${table.reminderAction} IS NULL
+                    AND ${table.askId} IS NULL
+                    AND ${table.cloudAgentWorkId} IS NULL
+                    AND ${table.sequence} > 0)
+                OR
+                (${table.type} = 'message.reaction.updated'
                     AND ${table.chatId} IS NOT NULL
                     AND ${table.messageId} IS NOT NULL
                     AND ${table.actionId} IS NULL

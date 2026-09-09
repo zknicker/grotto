@@ -16,6 +16,7 @@ import { requireThreadAccess } from '../threads/resolve-thread-access.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
 import { ChatNotFoundError, requireChatAccess } from './chat-access.ts';
 import { readMessageBodies } from './message-bodies.ts';
+import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
 
 export async function listChatMessages(
@@ -96,12 +97,14 @@ export async function listChatMessages(
         actionByMessageId,
         causeByMessageId,
         bodyByMessageId,
+        reactionsByMessageId,
     ] = await Promise.all([
         readMessageAttachments(db, input.serverId, messageIds),
         listMessageTaskMap(db, input.serverId, messageIds),
         readPreparedActionsForMessages(db, input.serverId, messageIds),
         readMessageCauses(db, input.serverId, messageIds),
         readMessageBodies(db, input.serverId, messageIds),
+        readChatMessageReactions(db, input.serverId, messageIds),
     ]);
     const messages = messageRows.map((message) => ({
         ...toChatMessage(message, {
@@ -110,6 +113,7 @@ export async function listChatMessages(
             body: bodyByMessageId.get(message.id),
             cause: causeByMessageId.get(message.id),
             preparedAction: actionByMessageId.get(message.id),
+            reactions: reactionsByMessageId.get(message.id),
         }),
         task: taskByMessageId.get(message.id) ?? null,
     }));

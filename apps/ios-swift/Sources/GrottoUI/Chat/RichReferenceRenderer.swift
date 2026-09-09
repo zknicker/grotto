@@ -203,35 +203,59 @@ extension NSLayoutManager {
         )
     }
 
-    /// The fragment's label glyphs alone, unioned one glyph at a time.
+    /// The fragment's label glyphs alone, in the geometry a selection is drawn
+    /// with.
     ///
-    /// The glyph range for a character range is a min-to-max span, so in a
-    /// paragraph that runs right to left it swallows whatever the engine
-    /// reordered between the label's first and last glyph — the mark's spacer,
-    /// and the neighbouring words past it. Asking each glyph which character it
-    /// drew instead, and keeping only the ones the label owns, gives the same
-    /// answer running either way. The spacer, its joiner, and the space a
-    /// wrapped label ends its line with are never the label's ink; a space
-    /// *inside* the label needs no rect of its own, since the words on both
-    /// sides of it are already in the union.
+    /// A glyph's own `boundingRect` is measured to wherever the next glyph
+    /// starts, so across a bidi level boundary — a Latin label inside a
+    /// paragraph that runs right to left — it reaches back over the mark's
+    /// spacer and into the neighbouring word. `enumerateEnclosingRects` reports
+    /// what the engine paints when those characters are selected, which is
+    /// tight running either way.
     private func referenceLabelBounds(
         glyphs piece: NSRange,
         characters run: NSRange,
         in container: NSTextContainer
     ) -> CGRect? {
+        guard let characters = referenceLabelCharacters(glyphs: piece, characters: run)
+        else { return nil }
+        let glyphs = glyphRange(forCharacterRange: characters, actualCharacterRange: nil)
+        guard glyphs.length > 0 else { return nil }
+        var label: CGRect?
+        enumerateEnclosingRects(
+            forGlyphRange: glyphs,
+            withinSelectedGlyphRange: glyphs,
+            in: container
+        ) { rect, _ in
+            label = label.map { $0.union(rect) } ?? rect
+        }
+        return label
+    }
+
+    /// The label characters this fragment drew.
+    ///
+    /// The glyph range for a character range is a min-to-max span, so under
+    /// bidi reordering it swallows whatever the engine put between the label's
+    /// first and last glyph. Asking each glyph which character it drew instead
+    /// gives the same answer running either way. The spacer, its joiner, and
+    /// the space a wrapped label ends its line with are never the label's ink;
+    /// a space *inside* it stays, the words on both sides being in the span.
+    private func referenceLabelCharacters(glyphs piece: NSRange, characters run: NSRange) -> NSRange? {
         guard let storage = textStorage else { return nil }
         let text = storage.string as NSString
-        var label: CGRect?
+        var first: Int?
+        var last: Int?
         for glyph in piece.location..<piece.upperBound {
             let character = characterIndexForGlyph(at: glyph)
             guard NSLocationInRange(character, run), character < text.length else { continue }
             let unit = text.character(at: character)
             guard !RichReferenceRunPiece.spacerCharacters.contains(unit), !isWhitespace(unit)
             else { continue }
-            let rect = boundingRect(forGlyphRange: NSRange(location: glyph, length: 1), in: container)
-            label = label.map { $0.union(rect) } ?? rect
+            first = min(first ?? character, character)
+            last = max(last ?? character, character)
         }
-        return label
+        guard let first, let last else { return nil }
+        return NSRange(location: first, length: last - first + 1)
     }
 
     private func isWhitespace(_ unit: unichar) -> Bool {

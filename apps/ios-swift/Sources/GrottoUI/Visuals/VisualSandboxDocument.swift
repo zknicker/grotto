@@ -44,8 +44,8 @@ public enum VisualSandboxDocument {
         ].joined(separator: "\n")
     }
 
-    /// The generated token table, then the two Dynamic Type overrides. Source
-    /// order is what settles the conflict, so the overrides come last — see
+    /// The generated token table, then the Dynamic Type override. Source
+    /// order is what settles the conflict, so the override comes last — see
     /// `VisualTypography` for why iOS diverges here and nowhere else.
     static func rootDeclarations(
         _ scheme: AgentHtmlColorScheme,

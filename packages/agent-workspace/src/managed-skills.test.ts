@@ -87,8 +87,8 @@ const taughtTokens = [
 ];
 
 /**
- * Retired names still resolve for content authored months ago, but teaching
- * one keeps agents writing a vocabulary the design system no longer owns.
+ * Retired names are no longer published at all, so teaching one would have
+ * agents writing a vocabulary the frame does not emit.
  */
 const retiredTokens = [
     '--brand',

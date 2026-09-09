@@ -6,18 +6,12 @@
  * snapshots the resolved values off `document.documentElement` and injects them
  * into the frame as `:root`; this file is where those names resolve.
  *
- * TWO LISTS, ONE FILE.
- *
- *   The TAUGHT vocabulary is 40 role names in eight groups — type, surfaces,
- *   text, borders, emphasis, status, charts, layout. It is what the seeded
- *   `visuals` skill teaches and the only thing new agent HTML should reference.
- *   It is deliberately small: one name per role, no synonyms, so a page reads
- *   as one system rather than a grab bag.
- *
- *   The LEGACY aliases below it are emitted into every frame but taught to
- *   nobody. Visuals authored months ago sit in chat history referencing them
- *   and must keep rendering, so each one is mapped onto a taught role. That
- *   list only ever shrinks, and only when stored content is migrated.
+ * ONE LIST. The taught vocabulary is 40 role names in eight groups — type,
+ * surfaces, text, borders, emphasis, status, charts, layout. It is what the
+ * seeded `visuals` skill teaches, the only thing agent HTML may reference, and
+ * the whole of what the frame emits: there is no alias tail. It is deliberately
+ * small — one name per role, no synonyms — so a page reads as one system rather
+ * than a grab bag.
  *
  * Agents deliberately do NOT write HeroUI's internal names. An artifact is
  * durable — it re-renders months later — so it must be insulated from HeroUI
@@ -30,15 +24,13 @@
  * carries light. The snapshot resolves against `documentElement`, so a value
  * scoped any deeper would never reach a frame.
  *
- * Adding, renaming, or removing a taught name changes a published contract.
- * Pair it with an update to the skill in the same change.
+ * Adding a name changes a published contract; renaming or removing one is a
+ * breaking change, because a visual already stored in chat history that
+ * references it must be reauthored. Pair either with an update to the skill in
+ * the same change.
  */
 
 :root {
-    /* ---------------------------------------------------------------- *
-     * Taught vocabulary
-     * ---------------------------------------------------------------- */
-
     /*
      * Type. A visual sits inline in the transcript, so its body has to be the
      * size of the message around it: chat prose is `text-base`, which this
@@ -149,81 +141,12 @@
     --gap-sm: calc(var(--spacing) * 2);
     --gap-md: calc(var(--spacing) * 3);
     --gap-lg: calc(var(--spacing) * 4);
-
-    /* ---------------------------------------------------------------- *
-     * Legacy aliases — emitted for durability, taught to nobody.
-     *
-     * Every name below appears in visuals already stored in chat history.
-     * Each maps onto a taught role above so an old page keeps rendering in
-     * the current system rather than freezing an old one. Remove a name only
-     * after stored content stops referencing it.
-     * ---------------------------------------------------------------- */
-
-    --font-heading: var(--font-sans);
-    --app-code-font-size: var(--text-sm);
-
-    /* Panels. All three collapsed into the surface ladder. */
-    --card: var(--surface);
-    --card-foreground: var(--surface-foreground);
-    --popover: var(--overlay);
-    --popover-foreground: var(--overlay-foreground);
-    --secondary: var(--surface-secondary);
-    --secondary-foreground: var(--surface-secondary-foreground);
-    --subtle: var(--surface-secondary);
-
-    /* The ink pair a filled control used to wear. */
-    --primary: var(--foreground);
-    --primary-foreground: var(--background);
-
-    /* A fourth text tier, one step under tertiary. Never running prose. */
-    --foreground-quaternary: color-mix(in oklab, var(--muted) 67%, var(--background));
-
-    /*
-     * Brand was a separate Grotto violet, held off the accent so a highlight
-     * could not read as a link. Emphasis is one role now, so the whole family
-     * folds onto the accent trio.
-     */
-    --brand: var(--accent);
-    --brand-foreground: var(--accent-foreground);
-    --brand-muted: var(--accent-bg);
-    --brand-muted-foreground: var(--accent-soft-foreground);
-
-    /* The solid danger pair, beside the `--error` callout trio. */
-    --destructive: var(--error);
-    --destructive-foreground: var(--danger-foreground);
-
-    /* Informational callouts are emphasis callouts. */
-    --info: var(--accent);
-    --info-foreground: var(--accent-soft-foreground);
-    --info-bg: var(--accent-bg);
-
-    /* A control edge is the hairline the frame's own fields draw with. */
-    --input: var(--border);
-    --ring: var(--focus);
-
-    /*
-     * Motion. Real values rather than aliases, because the snapshot injected
-     * into a frame has to be self-contained.
-     */
-    --t-micro: 90ms;
-    --t-fast: 140ms;
-    --t-normal: 220ms;
-    --t-slow: 360ms;
-    --ease-standard: var(--ease-in-out-quad);
-
-    /*
-     * The old five-step radius ramp. Remapped onto the two published corners
-     * in `agent-html/tokens.ts` rather than declared here: `--radius-sm`
-     * through `--radius-2xl` are Tailwind's own scale, and redeclaring them
-     * would reshape every `rounded-*` utility in the product.
-     */
 }
 
 :root[data-theme='light'] {
     /* Light has ~4.6:1 of headroom under `--muted`, against dark's ~7.7:1, so
-       both metadata tiers take a smaller step off the ground. */
+       the metadata tier takes a smaller step off the ground. */
     --foreground-tertiary: color-mix(in oklab, var(--muted) 89%, var(--background));
-    --foreground-quaternary: color-mix(in oklab, var(--muted) 75%, var(--background));
 
     /* The same five hues carried down the ramp: a near-white page needs the
        denser end to hold a 2px line or a small swatch. */

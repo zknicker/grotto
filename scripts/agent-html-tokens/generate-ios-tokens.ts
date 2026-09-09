@@ -8,7 +8,7 @@
  * drift-tested, so a theme change that is not regenerated fails CI.
  */
 
-import { agentHtmlSnapshotNames } from '../../apps/website/src/agent-html/tokens.ts';
+import { agentHtmlTokenNames } from '../../apps/website/src/agent-html/tokens.ts';
 import { type Cascade, collectCascade, type Scheme } from './css-cascade.ts';
 import { resolveExpression, resolveVariable } from './resolve-token.ts';
 
@@ -45,11 +45,6 @@ export const OUTPUT_PATH = `${REPO}apps/ios-swift/Sources/GrottoUI/Visuals/Agent
 const HOST_ROLES: Record<string, string> = {
     '--accent-foreground': '--accent-soft-foreground',
     '--radius': '--radius-control',
-    '--radius-2xl': '--radius-card',
-    '--radius-lg': '--radius-control',
-    '--radius-md': '--radius-control',
-    '--radius-sm': '--radius-control',
-    '--radius-xl': '--radius-control',
     '--success-foreground': '--success-soft-foreground',
     '--warning-foreground': '--warning-soft-foreground',
 };
@@ -71,12 +66,12 @@ export interface ResolvedToken {
 }
 
 /**
- * Every name the web snapshot emits — the taught vocabulary then the legacy
- * aliases — plus the derived chart chrome, in contract order.
+ * Every name the web snapshot emits — the taught vocabulary plus the derived
+ * chart chrome — in contract order.
  */
 export function resolveTokens(scheme: Scheme): ResolvedToken[] {
     const cascade: Cascade = collectCascade(SOURCES, scheme);
-    const published = agentHtmlSnapshotNames.map((name) => ({
+    const published = agentHtmlTokenNames.map((name) => ({
         name,
         value: resolveVariable(cascade, HOST_ROLES[name] ?? name),
     }));
@@ -96,14 +91,14 @@ export function renderSwiftSource(): string {
 
 /// Resolved values of the published agent-HTML token contract
 /// (apps/website/src/agent-html/tokens.ts), snapshotted per color scheme:
-/// the taught vocabulary, then the legacy aliases kept alive for visuals
-/// already in chat history, then the derived chart chrome.
+/// the taught vocabulary, then the derived chart chrome. That list is the
+/// whole contract — there is no alias tail.
 ///
 /// Every value here is the web's, with one deliberate exception the sandbox
-/// document applies on top: \`--app-ui-font-size\` and \`--app-code-font-size\`
-/// are re-declared from the current Dynamic Type size, because the web ties
-/// them to the web chat's 14px body and the iOS transcript is SF \`.body\` at
-/// 17pt. See \`VisualTypography\`.
+/// document applies on top: \`--app-ui-font-size\` is re-declared from the
+/// current Dynamic Type size, because the web ties it to the web chat's 14px
+/// body and the iOS transcript is SF \`.body\` at 17pt. See
+/// \`VisualTypography\`.
 public enum AgentHtmlTokens {
 ${tables}
 }

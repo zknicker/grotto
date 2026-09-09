@@ -6,10 +6,19 @@ import Testing
 /// on the TypeScript side. These assertions guard the Swift shape the sandbox
 /// document depends on.
 @Suite struct AgentHtmlTokensTests {
-    /// 38 snapshotted taught names, 46 legacy aliases kept alive for visuals
-    /// already in chat history, and the two derived chart-chrome declarations
-    /// that complete the 40-name taught vocabulary.
-    private let expectedCount = 86
+    /// 38 snapshotted taught names plus the two derived chart-chrome
+    /// declarations that complete the 40-name taught vocabulary. That is the
+    /// whole contract: there is no alias tail.
+    private let expectedCount = 40
+
+    /// Names the contract used to publish as aliases. Nothing emits them any
+    /// more; a stored visual that references one must be reauthored.
+    private let retiredNames = [
+        "--brand", "--info-bg", "--primary", "--radius-2xl", "--label-teal-fg", "--card",
+        "--popover", "--subtle", "--destructive", "--input", "--ring", "--font-heading",
+        "--app-code-font-size", "--t-normal", "--ease-standard", "--radius-lg",
+        "--foreground-quaternary", "--surface-shadow", "--overlay-shadow",
+    ]
 
     @Test func bothSchemesCarryTheWholeContract() {
         #expect(AgentHtmlTokens.dark.count == expectedCount)
@@ -34,12 +43,12 @@ import Testing
         }
     }
 
-    /// Legacy aliases are taught to nobody and emitted to everybody: a visual
-    /// stored before the vocabulary shrank still has to render.
-    @Test func keepsTheLegacyAliasesAliveForStoredVisuals() {
-        let names = Set(AgentHtmlTokens.dark.map(\.name))
-        for name in ["--brand", "--info-bg", "--primary", "--radius-2xl", "--label-teal-fg"] {
-            #expect(names.contains(name), "dropped legacy \(name)")
+    /// The taught vocabulary is the only contract: a retired name is gone from
+    /// the table rather than kept alive as an alias.
+    @Test func emitsNoRetiredName() {
+        let names = Set(AgentHtmlTokens.dark.map(\.name) + AgentHtmlTokens.light.map(\.name))
+        for name in retiredNames {
+            #expect(!names.contains(name), "still emitting retired \(name)")
         }
     }
 

@@ -102,13 +102,12 @@ struct VisualSandboxDocumentTests {
 
     /// The one deliberate divergence from the generated table: the card's body
     /// text matches the transcript around it rather than the web chat's 14px.
-    @Test func overridesTheTwoFontSizeTokensAfterTheGeneratedTable() {
-        let document = makeDocument(typography: VisualTypography(uiFontSize: 17, codeFontSize: 16))
+    @Test func overridesTheBodyFontSizeAfterTheGeneratedTable() {
+        let document = makeDocument(typography: VisualTypography(uiFontSize: 17))
 
         #expect(document.contains("--app-ui-font-size: 17px;"))
-        #expect(document.contains("--app-code-font-size: 16px;"))
-        // The generated 14px/13px values still ship; source order is what
-        // settles the conflict, so the overrides must come last.
+        // The generated 14px value still ships; source order is what settles
+        // the conflict, so the override must come last.
         let generated = document.range(of: "--app-ui-font-size: 0.875rem;")!
         let override = document.range(of: "--app-ui-font-size: 17px;")!
         #expect(generated.upperBound < override.lowerBound)
@@ -116,29 +115,23 @@ struct VisualSandboxDocumentTests {
     }
 
     @Test func keepsEveryOtherTokenExactlyAsGenerated() {
-        let document = makeDocument(scheme: .dark, typography: VisualTypography(uiFontSize: 17, codeFontSize: 16))
+        let document = makeDocument(scheme: .dark, typography: VisualTypography(uiFontSize: 17))
 
-        for token in AgentHtmlTokens.dark
-        where token.name != "--app-ui-font-size" && token.name != "--app-code-font-size" {
+        for token in AgentHtmlTokens.dark where token.name != "--app-ui-font-size" {
             #expect(document.contains("\(token.name): \(token.value);"), "dropped \(token.name)")
         }
     }
 
-    @Test func resolvesBothSizesFromTheDynamicTypeSize() {
+    @Test func resolvesTheBodySizeFromTheDynamicTypeSize() {
         let small = VisualTypography.resolved(for: .large)
         let huge = VisualTypography.resolved(for: .accessibility5)
 
         #expect(small.uiFontSize > 0)
-        #expect(small.codeFontSize > 0)
-        // Code is the smaller of the pair at every size, the way 13 is to 14.
-        #expect(small.codeFontSize < small.uiFontSize)
-        #expect(huge.codeFontSize < huge.uiFontSize)
         #if canImport(UIKit)
         // An accessibility size has to actually scale the card, or the visual
         // stays small while the transcript around it grows.
         #expect(huge.uiFontSize > small.uiFontSize)
         #expect(small.uiFontSize == 17)
-        #expect(small.codeFontSize == 16)
         #endif
     }
 

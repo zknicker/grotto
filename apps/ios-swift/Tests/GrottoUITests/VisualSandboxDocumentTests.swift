@@ -14,18 +14,42 @@ struct VisualSandboxDocumentTests {
         VisualSandboxDocument.make(html: html, scheme: scheme, typography: typography)
     }
 
-    /// The web's newest base rule: native controls inherit the frame's ink
-    /// instead of painting the browser accent.
-    @Test func paintsNativeControlsWithTheFrameInkNotTheBrowserAccent() {
+    /// Native controls take the frame's emphasis role rather than the browser
+    /// accent, matching HeroUI's own Checkbox and Slider fill.
+    @Test func paintsNativeControlsWithTheFrameAccentNotTheBrowserOne() {
         let document = makeDocument(html: "<input type=\"range\">")
 
-        #expect(document.contains("accent-color: var(--primary, currentColor)"))
+        #expect(document.contains("accent-color: var(--accent, currentColor)"))
         // Same position as the web: immediately after the box-sizing reset.
         let reset = document.range(of: "* { box-sizing: border-box; }")!
-        let accent = document.range(of: "body { accent-color: var(--primary, currentColor); }")!
+        let accent = document.range(of: "body { accent-color: var(--accent, currentColor); }")!
         let margin = document.range(of: "body { margin: 0;")!
         #expect(reset.upperBound < accent.lowerBound)
         #expect(accent.upperBound < margin.lowerBound)
+    }
+
+    // MARK: - pre-styled form controls
+
+    /// Bare controls carry HeroUI's field and outline-button metrics in
+    /// published tokens, byte-for-byte the same rules the web card emits.
+    @Test func preStylesBareFormControlsInPublishedTokens() {
+        let document = makeDocument(html: "<input><select></select><button>Go</button>")
+
+        #expect(document.contains(
+            "input, select, textarea { font: inherit; color: var(--foreground); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--pad-sm) var(--pad-md); }"
+        ))
+        #expect(document.contains(
+            "button { font: inherit; font-weight: 500; color: var(--foreground); background: transparent; border: 1px solid var(--border); border-radius: var(--radius); padding: var(--pad-sm) var(--pad-md); cursor: pointer; }"
+        ))
+        #expect(document.contains("button:hover { background: var(--surface-secondary); }"))
+        #expect(document.contains(
+            "input[type=\"range\"] { width: 100%; padding: 0; border: none; background: transparent; }"
+        ))
+        #expect(document.contains(
+            ":is(input, select, textarea, button):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+        ))
+        // Focus is restyled, never suppressed.
+        #expect(!document.contains("outline: none"))
     }
 
     // MARK: - overflowing tables

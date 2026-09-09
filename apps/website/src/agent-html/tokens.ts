@@ -1,59 +1,57 @@
 /**
- * The one set of CSS variables Grotto hands to agent-authored HTML.
+ * The CSS variables Grotto hands to agent-authored HTML.
  *
  * Agent HTML renders in a frame with an opaque origin (see sandbox.ts), so it
  * cannot read the app's stylesheets. Instead each surface snapshots the
  * resolved values of these tokens off the live document and injects them as a
  * `:root` block — that is what makes an agent-written page wear the app theme
- * in light and dark.
+ * in light and dark. Values resolve through `styles/artifact-tokens.css`,
+ * mostly as aliases onto HeroUI so they track the app without an agent ever
+ * writing a HeroUI name.
  *
- * This list is a PUBLISHED CONTRACT. The seeded `visuals` skill teaches these
- * names and pages written months ago still reference them. Most of them
- * resolve through `styles/artifact-tokens.css`, which aliases them onto HeroUI
- * so values track the app without agents ever writing a HeroUI name. Adding or
- * removing one changes what already-authored pages render as — pair it with a
- * skill update.
+ * There are two lists and they do different jobs.
  *
- * Deliberately one list rather than per-surface subsets: a few extra
+ * `agentHtmlTokenNames` is the PUBLISHED CONTRACT: the role vocabulary the
+ * seeded `visuals` skill teaches and the only thing new agent HTML should
+ * reference. It is 38 names here plus the two derived chart-chrome names
+ * appended by `agentHtmlTokenDeclarations` below — 40 taught names in eight
+ * groups: type, surfaces, text, borders, emphasis, status, charts, layout.
+ * Adding or removing one changes what already-authored pages render as; pair
+ * it with a skill update.
+ *
+ * `agentHtmlLegacyTokenNames` is emitted into every frame and taught to
+ * nobody. Visuals written before the vocabulary shrank sit in chat history
+ * referencing these names, and a stored page that loses a token renders
+ * broken forever. The list only shrinks when stored content is migrated.
+ *
+ * Deliberately one snapshot rather than per-surface subsets: a few extra
  * declarations per frame cost nothing next to a surface silently losing a
  * token because only one copy got updated.
  */
 
+/** The taught vocabulary: 38 snapshotted names, plus 2 derived below. */
 export const agentHtmlTokenNames = [
+    // Type
     '--font-sans',
-    '--font-heading',
     '--font-mono',
     '--app-ui-font-size',
-    '--app-code-font-size',
+    // Surfaces
     '--background',
-    '--foreground',
-    '--card',
-    '--card-foreground',
-    '--popover',
-    '--popover-foreground',
-    '--primary',
-    '--primary-foreground',
-    '--secondary',
-    '--secondary-foreground',
-    '--muted-foreground',
-    '--foreground-tertiary',
-    '--foreground-quaternary',
-    '--subtle',
-    '--brand',
-    '--brand-foreground',
-    '--brand-muted',
-    '--brand-muted-foreground',
-    '--destructive',
-    '--destructive-foreground',
-    '--border',
-    '--border-strong',
-    '--input',
-    '--ring',
     '--surface',
     '--surface-secondary',
     '--surface-tertiary',
-    '--surface-shadow',
-    '--overlay-shadow',
+    // Text
+    '--foreground',
+    '--muted-foreground',
+    '--foreground-tertiary',
+    // Borders
+    '--border',
+    '--border-strong',
+    // Emphasis
+    '--accent',
+    '--accent-foreground',
+    '--accent-bg',
+    // Status
     '--success',
     '--success-foreground',
     '--success-bg',
@@ -63,14 +61,58 @@ export const agentHtmlTokenNames = [
     '--error',
     '--error-foreground',
     '--error-bg',
-    '--info',
-    '--info-foreground',
-    '--info-bg',
+    // Charts (--chart-grid and --chart-label are derived, not snapshotted)
     '--chart-1',
     '--chart-2',
     '--chart-3',
     '--chart-4',
     '--chart-5',
+    // Layout
+    '--radius',
+    '--radius-card',
+    '--pad-sm',
+    '--pad-md',
+    '--pad-lg',
+    '--gap-xs',
+    '--gap-sm',
+    '--gap-md',
+    '--gap-lg',
+] as const;
+
+/**
+ * Emitted for durability, taught to nobody.
+ *
+ * Every name here is mapped onto a taught role in `artifact-tokens.css` or by
+ * `hostRoleOverrides` below, so a page written against the old vocabulary
+ * renders in the current system rather than freezing an old one. This list
+ * only shrinks, and only once stored content no longer references the name.
+ */
+export const agentHtmlLegacyTokenNames = [
+    '--font-heading',
+    '--app-code-font-size',
+    '--card',
+    '--card-foreground',
+    '--popover',
+    '--popover-foreground',
+    '--primary',
+    '--primary-foreground',
+    '--secondary',
+    '--secondary-foreground',
+    '--subtle',
+    '--foreground-quaternary',
+    '--brand',
+    '--brand-foreground',
+    '--brand-muted',
+    '--brand-muted-foreground',
+    '--destructive',
+    '--destructive-foreground',
+    '--info',
+    '--info-foreground',
+    '--info-bg',
+    '--input',
+    '--ring',
+    '--surface-shadow',
+    '--overlay-shadow',
     '--t-micro',
     '--t-fast',
     '--t-normal',
@@ -94,20 +136,40 @@ export const agentHtmlTokenNames = [
     '--label-teal-fg',
 ] as const;
 
+/** Every name the snapshot emits, taught first. */
+export const agentHtmlSnapshotNames = [
+    ...agentHtmlTokenNames,
+    ...agentHtmlLegacyTokenNames,
+] as const;
+
 /**
  * The host variable a published name reads from, where the two differ.
  *
  * `styles/artifact-tokens.css` is the home for this mapping and owns every
- * other name. These two it cannot: HeroUI declares `--success-foreground` and
+ * other name. These it cannot, for two reasons:
+ *
+ * HeroUI declares `--accent-foreground`, `--success-foreground` and
  * `--warning-foreground` in `@layer base` — above the theme layer that file
- * imports into — and spends them as the text on solid success and warning
- * Chips and Badges, where near-black on a saturated fill is correct. The skill
- * teaches the opposite job for the same names: text sitting on the matching
- * `-bg` tint, which in dark mode puts near-black on near-black. Rebinding them
- * for the frame keeps the artifact contract readable without repainting the
- * app's components.
+ * imports into — and spends them as the text on solid accent, success and
+ * warning Chips and Badges, where near-black or near-white on a saturated fill
+ * is correct. The contract gives the same names the opposite job: text sitting
+ * on the matching `-bg` tint, where those values are invisible. Rebinding them
+ * for the frame keeps the contract readable without repainting the app.
+ *
+ * `--radius` and the legacy `--radius-*` ramp are Tailwind's and HeroUI's own
+ * scale. Declaring them in `artifact-tokens.css` would either lose to
+ * `default-theme.css` or reshape every `rounded-*` utility in the product, so
+ * the frame reads the artifact-owned `--radius-control` and `--radius-card`
+ * under the published names instead.
  */
 const hostRoleOverrides: Record<string, string> = {
+    '--accent-foreground': '--accent-soft-foreground',
+    '--radius': '--radius-control',
+    '--radius-2xl': '--radius-card',
+    '--radius-lg': '--radius-control',
+    '--radius-md': '--radius-control',
+    '--radius-sm': '--radius-control',
+    '--radius-xl': '--radius-control',
     '--success-foreground': '--success-soft-foreground',
     '--warning-foreground': '--warning-soft-foreground',
 };
@@ -135,13 +197,12 @@ export function agentHtmlTokenDeclarations(): string {
     const read = (name: string) => computed.getPropertyValue(name).trim();
 
     return [
-        ...agentHtmlTokenNames
+        ...agentHtmlSnapshotNames
             .map((name) => ({ name, value: read(hostRoleFor(name)) }))
             .filter((token) => token.value.length > 0)
             .map((token) => `${token.name}: ${token.value};`),
-        // Chart chrome is derived rather than snapshotted; the skill teaches
-        // these to every agent-HTML surface, so both artifacts and inline
-        // visuals get them.
+        // Chart chrome is derived rather than snapshotted; it is part of the
+        // taught vocabulary and reaches every agent-HTML surface.
         '--chart-grid: color-mix(in srgb, var(--border-strong) 58%, transparent);',
         '--chart-label: color-mix(in srgb, var(--muted-foreground) 86%, transparent);',
     ].join('\n');

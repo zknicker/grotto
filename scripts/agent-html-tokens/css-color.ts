@@ -5,7 +5,7 @@
  */
 
 import { hexToRgba, type MixSpace, mix, oklabToRgba, type Rgba } from './color.ts';
-import { functionArguments, splitTop } from './css-expression.ts';
+import { functionArguments, splitTop } from './css-syntax.ts';
 
 const TRAILING_PERCENT = /\s(\d*\.?\d+)%$/;
 

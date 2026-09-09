@@ -7,7 +7,12 @@
 import { toHex } from './color.ts';
 import type { Cascade } from './css-cascade.ts';
 import { parseColor } from './css-color.ts';
-import { collapseCalc, expandVariables, normalizeWhitespace } from './css-expression.ts';
+import {
+    collapseCalc,
+    collapseRange,
+    expandVariables,
+    normalizeWhitespace,
+} from './css-expression.ts';
 
 /** The literal value of `name`, resolved against `cascade`. */
 export function resolveVariable(cascade: Cascade, name: string): string {
@@ -26,7 +31,7 @@ export function resolveExpression(cascade: Cascade, label: string, expression: s
 }
 
 function literal(label: string, expanded: string): string {
-    const folded = collapseCalc(normalizeWhitespace(expanded));
+    const folded = collapseRange(collapseCalc(normalizeWhitespace(expanded)));
 
     if (folded.includes('UNRESOLVED(')) {
         throw new Error(`${label} still references an undeclared variable: ${folded}`);

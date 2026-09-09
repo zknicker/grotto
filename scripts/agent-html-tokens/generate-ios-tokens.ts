@@ -8,7 +8,7 @@
  * drift-tested, so a theme change that is not regenerated fails CI.
  */
 
-import { agentHtmlTokenNames } from '../../apps/website/src/agent-html/tokens.ts';
+import { agentHtmlSnapshotNames } from '../../apps/website/src/agent-html/tokens.ts';
 import { type Cascade, collectCascade, type Scheme } from './css-cascade.ts';
 import { resolveExpression, resolveVariable } from './resolve-token.ts';
 
@@ -43,6 +43,13 @@ export const OUTPUT_PATH = `${REPO}apps/ios-swift/Sources/GrottoUI/Visuals/Agent
 
 /** Mirrors `hostRoleOverrides` in `apps/website/src/agent-html/tokens.ts`. */
 const HOST_ROLES: Record<string, string> = {
+    '--accent-foreground': '--accent-soft-foreground',
+    '--radius': '--radius-control',
+    '--radius-2xl': '--radius-card',
+    '--radius-lg': '--radius-control',
+    '--radius-md': '--radius-control',
+    '--radius-sm': '--radius-control',
+    '--radius-xl': '--radius-control',
     '--success-foreground': '--success-soft-foreground',
     '--warning-foreground': '--warning-soft-foreground',
 };
@@ -63,10 +70,13 @@ export interface ResolvedToken {
     value: string;
 }
 
-/** Every published token plus the derived chart chrome, in contract order. */
+/**
+ * Every name the web snapshot emits — the taught vocabulary then the legacy
+ * aliases — plus the derived chart chrome, in contract order.
+ */
 export function resolveTokens(scheme: Scheme): ResolvedToken[] {
     const cascade: Cascade = collectCascade(SOURCES, scheme);
-    const published = agentHtmlTokenNames.map((name) => ({
+    const published = agentHtmlSnapshotNames.map((name) => ({
         name,
         value: resolveVariable(cascade, HOST_ROLES[name] ?? name),
     }));
@@ -85,7 +95,9 @@ export function renderSwiftSource(): string {
 // Regenerate with \`bun run gen:ios-tokens\`.
 
 /// Resolved values of the published agent-HTML token contract
-/// (apps/website/src/agent-html/tokens.ts), snapshotted per color scheme.
+/// (apps/website/src/agent-html/tokens.ts), snapshotted per color scheme:
+/// the taught vocabulary, then the legacy aliases kept alive for visuals
+/// already in chat history, then the derived chart chrome.
 ///
 /// Every value here is the web's, with one deliberate exception the sandbox
 /// document applies on top: \`--app-ui-font-size\` and \`--app-code-font-size\`

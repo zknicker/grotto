@@ -106,9 +106,9 @@ export function buildVisualSrcDoc(html: string, tokensCss: string): string {
         '* { box-sizing: border-box; }',
         // Native controls (range, checkbox, radio, progress) otherwise paint
         // the browser's default accent, the one thing in a visual that looks
-        // like another product. The skill teaches ink, not a hue, for generic
-        // controls, so they inherit the frame's ink pair.
-        'body { accent-color: var(--primary, currentColor); }',
+        // like another product. HeroUI's own Checkbox and Slider fill with
+        // `--accent`, so the frame's emphasis role is what they inherit.
+        'body { accent-color: var(--accent, currentColor); }',
         'body { margin: 0; padding: 16px; background: transparent; color: var(--foreground, inherit); font-family: var(--font-sans, system-ui, sans-serif); font-size: var(--app-ui-font-size, 14px); line-height: 1.5; -webkit-font-smoothing: antialiased; }',
         // Plain <table> markup wears the app's ui/table.tsx look, so agents
         // render tabular data as bare HTML tables and get native theming.
@@ -123,6 +123,18 @@ export function buildVisualSrcDoc(html: string, tokensCss: string): string {
         // once it stops being table-wide: a caption box as wide as the table has
         // nothing left to offset. Both halves verified in WebKit and Chromium.
         'caption { position: sticky; left: 0; width: max-content; max-width: 100%; margin-top: 12px; color: var(--muted-foreground); text-align: left; }',
+        // Bare form controls otherwise render as the browser's, which reads as
+        // another product inside a Grotto card. These five carry HeroUI's field
+        // and outline-button metrics in published tokens — the field radius
+        // tier, a hairline edge, the surface behind it, the control pad — so an
+        // agent gets native-looking controls out of plain markup and never
+        // hand-rolls chrome. Range is the exception: it keeps its own track and
+        // takes the frame's accent from the body rule above.
+        'input, select, textarea { font: inherit; color: var(--foreground); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--pad-sm) var(--pad-md); }',
+        'button { font: inherit; font-weight: 500; color: var(--foreground); background: transparent; border: 1px solid var(--border); border-radius: var(--radius); padding: var(--pad-sm) var(--pad-md); cursor: pointer; }',
+        'button:hover { background: var(--surface-secondary); }',
+        'input[type="range"] { width: 100%; padding: 0; border: none; background: transparent; }',
+        ':is(input, select, textarea, button):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }',
         '</style>',
         `<script>${sizeReporterScript}</script>`,
         '</head><body>',

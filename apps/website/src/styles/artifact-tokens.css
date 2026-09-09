@@ -1,66 +1,168 @@
 /*
  * Artifact tokens — the vocabulary Grotto publishes to agent-authored pages.
  *
- * This is a deliberately small, stable public API, not a compatibility shim.
- * Agents write self-contained HTML that renders in a sandboxed iframe; the
- * seeded `visuals` skill teaches these names, and `agent-html/tokens.ts`
- * (`agentHtmlTokenNames`) snapshots their resolved values off
- * `document.documentElement` and injects them into the frame as `:root`.
+ * Agents write self-contained HTML that renders in a sandboxed frame with an
+ * opaque origin, so it can never read these stylesheets. `agent-html/tokens.ts`
+ * snapshots the resolved values off `document.documentElement` and injects them
+ * into the frame as `:root`; this file is where those names resolve.
+ *
+ * TWO LISTS, ONE FILE.
+ *
+ *   The TAUGHT vocabulary is 40 role names in eight groups — type, surfaces,
+ *   text, borders, emphasis, status, charts, layout. It is what the seeded
+ *   `visuals` skill teaches and the only thing new agent HTML should reference.
+ *   It is deliberately small: one name per role, no synonyms, so a page reads
+ *   as one system rather than a grab bag.
+ *
+ *   The LEGACY aliases below it are emitted into every frame but taught to
+ *   nobody. Visuals authored months ago sit in chat history referencing them
+ *   and must keep rendering, so each one is mapped onto a taught role. That
+ *   list only ever shrinks, and only when stored content is migrated.
  *
  * Agents deliberately do NOT write HeroUI's internal names. An artifact is
- * durable — it sits in chat history and re-renders months later — so it must
- * be insulated from HeroUI renaming a token, from a theme swap, and from us
- * changing our minds about which HeroUI role a thing maps to. This file is
- * that insulation layer: re-point an alias here and every artifact ever
+ * durable — it re-renders months later — so it must be insulated from HeroUI
+ * renaming a token, from a theme swap, and from us changing our minds about
+ * which HeroUI role a thing maps to. Re-point an alias here and every page ever
  * written follows, with no reauthoring.
  *
- * Most colors here are aliases onto HeroUI semantics, so artifacts wear the
- * palette the app wears. They are not *only* aliases: the skill teaches four
- * text tiers, a brand hue that is not the interactive blue, and a categorical
- * chart series, and HeroUI's palette carries none of those distinctions. Each
- * real value below says why it is not an alias. Font sizes track the app's
- * type scale, so an artifact's prose sits at the size the chat around it sits
- * at; motion steps are real values, because the snapshot injected into an
- * iframe has to be self-contained.
- *
- * Scheme convention follows product-tokens.css: bare `:root` carries dark
- * (the app's default when `data-theme` is unset) and `:root[data-theme='light']`
+ * Scheme convention follows product-tokens.css: bare `:root` carries dark (the
+ * app's default when `data-theme` is unset) and `:root[data-theme='light']`
  * carries light. The snapshot resolves against `documentElement`, so a value
- * scoped any deeper would never reach an artifact.
+ * scoped any deeper would never reach a frame.
  *
- * Adding, renaming, or removing a name here changes a published contract.
+ * Adding, renaming, or removing a taught name changes a published contract.
  * Pair it with an update to the skill in the same change.
  */
 
 :root {
-    /* Published compatibility alias for durable agent-authored HTML. */
-    --font-heading: var(--font-sans);
+    /* ---------------------------------------------------------------- *
+     * Taught vocabulary
+     * ---------------------------------------------------------------- */
 
     /*
-     * Type. An artifact sits inline in the transcript, so its body has to be
-     * the size of the message around it: chat prose is `text-base`, which this
-     * theme sets to 14px, and a fenced code block in that prose renders at
-     * HeroUI CodeBlock's 13px — `--text-sm`. Aliasing both onto the scale
-     * rather than pinning them means an artifact follows the app if the scale
-     * ever moves, instead of drifting a step larger than its own chat.
+     * Type. A visual sits inline in the transcript, so its body has to be the
+     * size of the message around it: chat prose is `text-base`, which this
+     * theme sets to 14px. Aliasing onto the scale rather than pinning a pixel
+     * means a page follows the app if the scale moves. `--font-sans` and
+     * `--font-mono` are HeroUI's own and need no declaration here.
      */
     --app-ui-font-size: var(--text-base);
-    --app-code-font-size: var(--text-sm);
-
-    --t-micro: 90ms;
-    --t-fast: 140ms;
-    --t-normal: 220ms;
-    --t-slow: 360ms;
-
-    /* Simple public name for HeroUI's default curve; July's visuals use it. */
-    --ease-standard: var(--ease-in-out-quad);
 
     /*
-     * Surfaces are pure aliases. HeroUI's ladder is already a real ladder in
-     * both schemes — dark 12% → 21% → 26% → 27% L, light 98.2% page under a
-     * 100% card with 93.4%/92.2% nested plates — so an artifact panel sits at
-     * exactly the depth an app panel sits at.
+     * Text tiers. HeroUI has exactly one step below `--foreground`; the taught
+     * vocabulary teaches two, so `--foreground-tertiary` is derived by walking
+     * `--muted` back toward the ground it sits on. That keeps the ladder
+     * correct on either scheme's background without a literal per-scheme gray.
+     *
+     * The ratio differs per scheme on purpose: near-black needs a much larger
+     * lightness step to read than near-white (the same reason
+     * `--background-hover` is mode-aware in product-tokens.css), and light has
+     * far less headroom. Tertiary is metadata contrast — chart chrome,
+     * timestamps, axis labels — never running prose.
      */
+    --muted-foreground: var(--muted);
+    --foreground-tertiary: color-mix(in oklab, var(--muted) 83%, var(--background));
+
+    /*
+     * Borders. `--border` is the hairline; `--border-strong` is HeroUI's next
+     * step up (dark 28% → 38% L, light 90% → 83% L), which diagram nodes and
+     * connectors are drawn with.
+     */
+    --border-strong: var(--border-secondary);
+
+    /*
+     * Emphasis. One role, the app's own accent, in the same three-part shape
+     * as every status group: the hue, the ink that reads on its tint, and the
+     * tint. Emphasis and informational callouts are the same job, so there is
+     * one name for it rather than a separate brand hue and a separate info
+     * trio. `--accent` is HeroUI's own and needs no declaration;
+     * `--accent-foreground` is remapped for the frame in `agent-html/tokens.ts`
+     * because HeroUI declares it in `@layer base` as the near-white text on a
+     * solid accent fill, which is invisible on the tint.
+     */
+    --accent-bg: var(--accent-soft);
+
+    /*
+     * Status. Each hue publishes the same trio, and the `-foreground` is only
+     * ever text ON the matching `-bg` tint — so the tone is HeroUI's
+     * `-soft-foreground`, mixed for exactly that job, not the on-solid
+     * `-foreground`, which is near-white.
+     *
+     * `--success-foreground` and `--warning-foreground` want that treatment and
+     * cannot get it here: HeroUI declares both in `@layer base` and spends them
+     * on solid Chips and Badges, so this file's `theme` layer loses, and
+     * winning would repaint those app components. They are remapped for the
+     * frame only, in `agent-html/tokens.ts`.
+     */
+    --error: var(--danger);
+    --error-foreground: var(--danger-soft-foreground);
+    --error-bg: var(--danger-soft);
+    --success-bg: var(--success-soft);
+    --warning-bg: var(--warning-soft);
+
+    /*
+     * Chart series. HeroUI Pro ships `--chart-1..5` as five lightness steps of
+     * the accent, which is a sequential ramp wearing a categorical name — five
+     * blues cannot separate independent series. Defined here rather than
+     * aliased because there is nothing to alias onto.
+     *
+     * These are global, not frame-scoped: the snapshot reads
+     * `documentElement`, so an iframe-only scope is not expressible in CSS, and
+     * the app's own usage chart (features/stats) reads the same names.
+     *
+     * Ordered to survive grayscale and the red/green pairing rule: sky and red
+     * first (the positive/negative pair), emerald and violet next, stone last
+     * for baselines and "no data".
+     */
+    --chart-1: var(--color-sky-400);
+    --chart-2: var(--color-red-400);
+    --chart-3: var(--color-emerald-400);
+    --chart-4: var(--color-violet-400);
+    --chart-5: var(--color-stone-400);
+
+    /*
+     * Layout. Two corners and two spacing ramps, all derived from HeroUI so a
+     * page keeps the app's rhythm when `--radius` or `--spacing` moves.
+     *
+     * `--radius-control` is what the frame publishes as `--radius`: the fields
+     * tier (`×1.5`, 9px today), because almost everything inside a visual is
+     * control-sized — an input, a chip, a swatch, a small panel — and the
+     * frame's own pre-styled `input`/`select`/`button` wear it. The items tier
+     * (`×2`) would over-round a 20px box. It cannot be declared as `--radius`
+     * directly: that name is HeroUI's global corner basis, and redeclaring it
+     * would either lose to `default-theme.css` or reshape the whole product.
+     * `--radius-card` is the shell tier the app's own `.card-shell` uses,
+     * cap included, so a panel inside a visual corners like a Card outside it.
+     *
+     * Pads and gaps are the steps HeroUI actually pads with, at `--spacing`
+     * 3.75px: Card is `p-4` / `gap-3`, ItemCard is `px-4 py-3` with a `gap-3`
+     * row, KPI is `p-4` with a `gap-2` header over a `×1` lead, and Input is
+     * `px-3 py-2`. So `lg` ×4 is the shell pad, `md` ×3 the item pad and the
+     * standard gap, `sm` ×2 the control pad, `xs` ×1 the label-to-value lead.
+     */
+    --radius-control: calc(var(--radius) * 1.5);
+    --radius-card: min(32px, calc(var(--radius) * 3));
+    --pad-sm: calc(var(--spacing) * 2);
+    --pad-md: calc(var(--spacing) * 3);
+    --pad-lg: calc(var(--spacing) * 4);
+    --gap-xs: calc(var(--spacing) * 1);
+    --gap-sm: calc(var(--spacing) * 2);
+    --gap-md: calc(var(--spacing) * 3);
+    --gap-lg: calc(var(--spacing) * 4);
+
+    /* ---------------------------------------------------------------- *
+     * Legacy aliases — emitted for durability, taught to nobody.
+     *
+     * Every name below appears in visuals already stored in chat history.
+     * Each maps onto a taught role above so an old page keeps rendering in
+     * the current system rather than freezing an old one. Remove a name only
+     * after stored content stops referencing it.
+     * ---------------------------------------------------------------- */
+
+    --font-heading: var(--font-sans);
+    --app-code-font-size: var(--text-sm);
+
+    /* Panels. All three collapsed into the surface ladder. */
     --card: var(--surface);
     --card-foreground: var(--surface-foreground);
     --popover: var(--overlay);
@@ -69,119 +171,52 @@
     --secondary-foreground: var(--surface-secondary-foreground);
     --subtle: var(--surface-secondary);
 
-    /*
-     * Text tiers. HeroUI has exactly one step below `--foreground`, and the
-     * skill teaches three: secondary body text, then metadata, then chart
-     * chrome and timestamps. Tertiary and quaternary are therefore derived
-     * here by walking `--muted` back toward the ground it sits on, which
-     * keeps the ladder correct on either scheme's background without a
-     * literal per-scheme gray.
-     *
-     * The ratios differ per scheme on purpose: near-black needs a much larger
-     * lightness step to read than near-white (the same reason
-     * `--background-hover` is mode-aware in product-tokens.css), and light
-     * has far less headroom — HeroUI's light `--muted` is already only 4.6:1
-     * on `--background`, so the two tiers under it are metadata contrast, not
-     * body contrast. Keep quaternary at or above ~3:1 and never put running
-     * prose in it.
-     */
-    --muted-foreground: var(--muted);
-    --foreground-tertiary: color-mix(in oklab, var(--muted) 83%, var(--background));
-    --foreground-quaternary: color-mix(in oklab, var(--muted) 67%, var(--background));
-
-    /*
-     * Interaction emphasis is the ink, not a hue. The skill is explicit that
-     * Grotto does not read blue as "this is interactive", so `--primary` is
-     * the foreground/background pair a primary button, active tab or selected
-     * row wears — the same pairing the app's own dark-ink buttons use. It was
-     * aliased to HeroUI's `--accent`, which taught every artifact the exact
-     * blue-means-clickable habit the skill forbids.
-     */
+    /* The ink pair a filled control used to wear. */
     --primary: var(--foreground);
     --primary-foreground: var(--background);
 
-    /*
-     * Brand. One deliberate moment of emphasis per output, and it has to be
-     * unmistakably *not* a link — so it cannot be the interactive blue, which
-     * is also what `--info` and `--chart-1` are made of. This is the tuned
-     * Grotto violet (#7b51cc), the same family the app already spends on
-     * skill references and session marks, so a highlighted node reads as
-     * native rather than foreign. Held at one hue across both schemes; only
-     * the tint strength and the readable text tone move.
-     */
-    --brand: oklch(54.38% 0.1824 295.4);
-    --brand-foreground: oklch(97.26% 0.0149 298.6);
-    --brand-muted: color-mix(in oklab, var(--brand) 18%, transparent);
-    --brand-muted-foreground: color-mix(in oklab, var(--brand) 55%, var(--foreground));
+    /* A fourth text tier, one step under tertiary. Never running prose. */
+    --foreground-quaternary: color-mix(in oklab, var(--muted) 67%, var(--background));
 
     /*
-     * Status. Two shapes, deliberately kept apart:
-     *
-     *   `--destructive` / `--destructive-foreground` is the solid pair — a
-     *   filled danger button, white on red.
-     *   `--error` / `--error-foreground` / `--error-bg` is the callout trio,
-     *   and the skill only ever uses the `-foreground` as text *on* the
-     *   matching `-bg` tint. So the callout tone is HeroUI's
-     *   `-soft-foreground` (mixed for exactly that job), not the on-solid
-     *   `-foreground`, which is near-white — invisible on its own tint.
-     *
-     * `--success-foreground` and `--warning-foreground` want the same
-     * treatment and cannot get it here: HeroUI declares both in `@layer base`
-     * and spends them on solid Chips and Badges, so this file's `theme` layer
-     * loses, and winning would repaint those app components. They are
-     * remapped for the frame only, in `agent-html/tokens.ts` — the two
-     * published names this file does not own.
+     * Brand was a separate Grotto violet, held off the accent so a highlight
+     * could not read as a link. Emphasis is one role now, so the whole family
+     * folds onto the accent trio.
      */
-    --destructive: var(--danger);
+    --brand: var(--accent);
+    --brand-foreground: var(--accent-foreground);
+    --brand-muted: var(--accent-bg);
+    --brand-muted-foreground: var(--accent-soft-foreground);
+
+    /* The solid danger pair, beside the `--error` callout trio. */
+    --destructive: var(--error);
     --destructive-foreground: var(--danger-foreground);
-    --error: var(--danger);
-    --error-foreground: var(--danger-soft-foreground);
-    --error-bg: var(--danger-soft);
-    --success-bg: var(--success-soft);
-    --warning-bg: var(--warning-soft);
 
-    /*
-     * Info stays on HeroUI's `--accent`: it is the app's own blue, so an
-     * informational callout matches the product. It is only safe to spend the
-     * accent here because `--primary` and `--brand` above no longer claim it.
-     */
+    /* Informational callouts are emphasis callouts. */
     --info: var(--accent);
     --info-foreground: var(--accent-soft-foreground);
-    --info-bg: var(--accent-soft);
+    --info-bg: var(--accent-bg);
 
-    /*
-     * Structure. `--border` is the hairline; `--border-strong` is HeroUI's
-     * next step up (dark 28% → 38% L, light 90% → 83% L), which the skill
-     * spends on diagram nodes and connectors. `--input` sits between the two:
-     * a control's edge should read a shade firmer than a divider, and
-     * aliasing it straight to `--border` collapsed that difference.
-     */
-    --border-strong: var(--border-secondary);
-    --input: color-mix(in oklab, var(--border) 55%, var(--border-secondary));
+    /* A control edge is the hairline the frame's own fields draw with. */
+    --input: var(--border);
     --ring: var(--focus);
 
     /*
-     * Chart series. HeroUI Pro ships `--chart-1..5` as five lightness steps
-     * of the accent, which is a sequential ramp wearing a categorical name —
-     * five blues cannot separate independent series, and the skill documents
-     * this slot as blue / red / green / purple / neutral. Defined here rather
-     * than aliased because there is nothing to alias onto.
-     *
-     * These are global, not artifact-scoped: the snapshot reads
-     * `documentElement`, so an iframe-only scope is not expressible in CSS,
-     * and the app's own usage chart (features/stats) reads the same names —
-     * which is the point. It currently draws every OpenRouter key in a
-     * different shade of one blue.
-     *
-     * Ordered to survive grayscale and the red/green pairing rule: sky and
-     * red first (the positive/negative pair), emerald and violet next, stone
-     * last for baselines and "no data".
+     * Motion. Real values rather than aliases, because the snapshot injected
+     * into a frame has to be self-contained.
      */
-    --chart-1: var(--color-sky-400);
-    --chart-2: var(--color-red-400);
-    --chart-3: var(--color-emerald-400);
-    --chart-4: var(--color-violet-400);
-    --chart-5: var(--color-stone-400);
+    --t-micro: 90ms;
+    --t-fast: 140ms;
+    --t-normal: 220ms;
+    --t-slow: 360ms;
+    --ease-standard: var(--ease-in-out-quad);
+
+    /*
+     * The old five-step radius ramp. Remapped onto the two published corners
+     * in `agent-html/tokens.ts` rather than declared here: `--radius-sm`
+     * through `--radius-2xl` are Tailwind's own scale, and redeclaring them
+     * would reshape every `rounded-*` utility in the product.
+     */
 }
 
 :root[data-theme='light'] {
@@ -189,12 +224,6 @@
        both metadata tiers take a smaller step off the ground. */
     --foreground-tertiary: color-mix(in oklab, var(--muted) 89%, var(--background));
     --foreground-quaternary: color-mix(in oklab, var(--muted) 75%, var(--background));
-
-    /* Same violet; a lighter ground needs a thinner tint under it and a
-       denser text tone on top, so the mix runs toward the ink instead of
-       away from it — `--foreground` flips, the formula does not. */
-    --brand-muted: color-mix(in oklab, var(--brand) 13%, transparent);
-    --brand-muted-foreground: color-mix(in oklab, var(--brand) 88%, var(--foreground));
 
     /* The same five hues carried down the ramp: a near-white page needs the
        denser end to hold a 2px line or a small swatch. */

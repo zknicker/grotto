@@ -6,8 +6,10 @@ import Testing
 /// on the TypeScript side. These assertions guard the Swift shape the sandbox
 /// document depends on.
 @Suite struct AgentHtmlTokensTests {
-    /// 72 published names plus the two derived chart-chrome declarations.
-    private let expectedCount = 74
+    /// 38 snapshotted taught names, 46 legacy aliases kept alive for visuals
+    /// already in chat history, and the two derived chart-chrome declarations
+    /// that complete the 40-name taught vocabulary.
+    private let expectedCount = 86
 
     @Test func bothSchemesCarryTheWholeContract() {
         #expect(AgentHtmlTokens.dark.count == expectedCount)
@@ -20,11 +22,37 @@ import Testing
         #expect(AgentHtmlTokens.dark.map(\.name) == AgentHtmlTokens.light.map(\.name))
     }
 
+    /// One name from each of the eight taught groups.
     @Test func carriesTheNamesTheSkillTeaches() {
         let names = Set(AgentHtmlTokens.dark.map(\.name))
-        for name in ["--chart-1", "--ease-standard", "--chart-grid", "--chart-label", "--font-sans"] {
+        for name in [
+            "--font-sans", "--surface-secondary", "--muted-foreground", "--border-strong",
+            "--accent-bg", "--warning-bg", "--chart-grid", "--chart-label", "--radius-card",
+            "--pad-md", "--gap-sm",
+        ] {
             #expect(names.contains(name), "missing \(name)")
         }
+    }
+
+    /// Legacy aliases are taught to nobody and emitted to everybody: a visual
+    /// stored before the vocabulary shrank still has to render.
+    @Test func keepsTheLegacyAliasesAliveForStoredVisuals() {
+        let names = Set(AgentHtmlTokens.dark.map(\.name))
+        for name in ["--brand", "--info-bg", "--primary", "--radius-2xl", "--label-teal-fg"] {
+            #expect(names.contains(name), "dropped legacy \(name)")
+        }
+    }
+
+    /// The layout group is derived from HeroUI's own steps: the fields radius
+    /// tier off a 6px `--radius`, the capped shell tier, and pads on `--spacing`.
+    @Test func resolvesTheLayoutGroupToTheHeroUISteps() {
+        let dark = Dictionary(
+            uniqueKeysWithValues: AgentHtmlTokens.dark.map { ($0.name, $0.value) }
+        )
+        #expect(dark["--radius"] == "9px")
+        #expect(dark["--radius-card"] == "18px")
+        #expect(dark["--pad-lg"] == "15px")
+        #expect(dark["--gap-xs"] == "3.75px")
     }
 
     /// Values ship self-contained: the frame has no app stylesheet to resolve
@@ -33,6 +61,7 @@ import Testing
         for token in AgentHtmlTokens.dark + AgentHtmlTokens.light {
             #expect(!token.value.contains("var("), "\(token.name) kept a var()")
             #expect(!token.value.contains("calc("), "\(token.name) kept a calc()")
+            #expect(!token.value.contains("min("), "\(token.name) kept a min()")
             #expect(!token.value.isEmpty, "\(token.name) is empty")
         }
     }

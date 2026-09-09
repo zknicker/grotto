@@ -51,10 +51,34 @@ test('malformed html still renders inside the sandbox instead of failing', () =>
     expect(markup).toContain('Broken');
 });
 
-test('the sandbox paints native controls with the frame ink, not the browser accent', () => {
+test('the sandbox paints native controls with the frame accent, not the browser one', () => {
     const doc = buildVisualSrcDoc('<input type="range">', '');
 
-    expect(doc).toContain('accent-color: var(--primary, currentColor)');
+    expect(doc).toContain('accent-color: var(--accent, currentColor)');
+});
+
+test('the sandbox pre-styles bare form controls in published tokens', () => {
+    const doc = buildVisualSrcDoc('<input><select></select><button>Go</button>', '');
+
+    // Field metrics: the control radius tier, a hairline edge, the surface
+    // behind it, the control pad — every value a published name.
+    expect(doc).toContain(
+        'input, select, textarea { font: inherit; color: var(--foreground); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--pad-sm) var(--pad-md); }'
+    );
+    // A button is HeroUI's outline variant: transparent over a hairline.
+    expect(doc).toContain(
+        'button { font: inherit; font-weight: 500; color: var(--foreground); background: transparent; border: 1px solid var(--border); border-radius: var(--radius); padding: var(--pad-sm) var(--pad-md); cursor: pointer; }'
+    );
+    expect(doc).toContain('button:hover { background: var(--surface-secondary); }');
+    // Range keeps its own track and takes the accent from the body rule.
+    expect(doc).toContain(
+        'input[type="range"] { width: 100%; padding: 0; border: none; background: transparent; }'
+    );
+    expect(doc).toContain(
+        ':is(input, select, textarea, button):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }'
+    );
+    // Never suppressed, only restyled.
+    expect(doc).not.toContain('outline: none');
 });
 
 test('the sandbox gives every table its own scroller before the first size report', () => {

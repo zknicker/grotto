@@ -72,14 +72,16 @@ public enum VisualSandboxDocument {
     ].joined(separator: "; ")
 
     // Plain <table> markup wears the app's table look, so agents render tabular
-    // data as bare HTML and get native theming. Kept identical to the web card
-    // — including the accent-color rule that keeps native controls on the
-    // frame's ink instead of the browser default, and the sticky caption that
-    // survives the scroller the size reporter wraps a wide table in — plus the
-    // text-size-adjust WebKit needs to stop inflating the body font.
+    // data as bare HTML and get native theming; bare form controls wear HeroUI's
+    // field and outline-button metrics for the same reason. Kept identical to
+    // the web card — including the accent-color rule that keeps native controls
+    // on the frame's emphasis role instead of the browser default, and the
+    // sticky caption that survives the scroller the size reporter wraps a wide
+    // table in — plus the text-size-adjust WebKit needs to stop inflating the
+    // body font.
     private static let baseStyles = """
     * { box-sizing: border-box; }
-    body { accent-color: var(--primary, currentColor); }
+    body { accent-color: var(--accent, currentColor); }
     body { margin: 0; padding: 16px; background: transparent; color: var(--foreground, inherit); font-family: var(--font-sans, system-ui, sans-serif); font-size: var(--app-ui-font-size, 14px); line-height: 1.5; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; }
     table { width: 100%; border-collapse: collapse; caption-side: bottom; font-size: var(--app-ui-font-size, 14px); }
     th { padding: 8px 12px; text-align: left; vertical-align: middle; font-weight: 500; color: var(--foreground); line-height: 1.1; }
@@ -88,6 +90,11 @@ public enum VisualSandboxDocument {
     tbody tr:hover { background: color-mix(in srgb, var(--foreground) 5%, transparent); }
     tfoot { font-weight: 500; } tfoot tr { border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); border-bottom: none; }
     caption { position: sticky; left: 0; width: max-content; max-width: 100%; margin-top: 12px; color: var(--muted-foreground); text-align: left; }
+    input, select, textarea { font: inherit; color: var(--foreground); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--pad-sm) var(--pad-md); }
+    button { font: inherit; font-weight: 500; color: var(--foreground); background: transparent; border: 1px solid var(--border); border-radius: var(--radius); padding: var(--pad-sm) var(--pad-md); cursor: pointer; }
+    button:hover { background: var(--surface-secondary); }
+    input[type="range"] { width: 100%; padding: 0; border: none; background: transparent; }
+    :is(input, select, textarea, button):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     """
 
     // Host-owned plumbing, not a fence capability: reports the document height

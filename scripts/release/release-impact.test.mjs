@@ -150,23 +150,21 @@ test('Agent actions and their Server implementation require a Grotto Agent relea
             })[tag] ?? null,
         listChangedFiles: async () => [
             'apps/computer/src/agent-cli.ts',
-            'apps/server/src/agent-api/action-routes.ts',
-            'apps/server/src/prepared-actions/prepare.ts',
+            'apps/server/src/agent-api/agent-routes.ts',
         ],
     });
 
     assert.equal(impact.targets.agent.status, 'required');
     assert.deepEqual(impact.targets.agent.requiredFiles, [
         'apps/computer/src/agent-cli.ts',
-        'apps/server/src/agent-api/action-routes.ts',
-        'apps/server/src/prepared-actions/prepare.ts',
+        'apps/server/src/agent-api/agent-routes.ts',
     ]);
 });
 
 const requiredAgentContractFiles = [
     'packages/grotto-api/src/agent-activity.ts',
     'packages/grotto-api/src/agent-execution.ts',
-    'packages/grotto-api/src/agent-prepared-actions.ts',
+    'packages/grotto-api/src/agent-creation.ts',
     'packages/grotto-api/src/agent-runner.ts',
     'packages/grotto-api/src/agent.ts',
     'packages/grotto-api/src/grotto-agent-version.ts',

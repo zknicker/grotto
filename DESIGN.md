@@ -633,19 +633,9 @@ behavior HeroUI cannot express, but must not recreate component appearance.
   take the same small muted role as the trace's own labels, because this page has no all-caps
   tier. And the Turn details drawer carries code blocks and diffs, so `drawer__dialog--turn-details`
   widens the right drawer to 32rem, capped at the viewport; every other drawer keeps the stock measure.
-- **Task marks:** A task whose Thread surface does not state it has no card to live in, so it reads
-  as a muted 12px **context line between the message header and its body** — the place a reply
-  states what it is replying to. A run standing on the claim is named: the claimant's 14px identity
-  mark, `Blippy is on it`, and a three-dot ellipsis while the run holds it; the in-progress disc
-  takes the ellipsis's place when nobody is on it. A run that stopped still holding the claim reads
-  as that disc in `warning` and `Blippy stopped`; a task waiting on somebody or on a look leads with
-  its todo or in-review disc and reads `Task #4 · unclaimed` or `Task #4 · in review`. The done disc
-  settles in for one 200ms beat before the line leaves the message for the Agent's reply, which
-  carries a corner-down-right glyph and `Task #4 · 1m 45s`. Every line is the muted token at regular
-  weight, with color only in the status glyph itself. The ellipsis is the only animated element, at
-  `3px` dots on a `0.16s` stagger; reduced motion keeps the dots and stops them. Lines are buttons
-  only because they carry hover cards, so nothing else takes hover feedback, and every duration and
-  task number is tabular. A message with no task reserves no room for the line.
+- **Tasks in Chat:** A task states itself in the header of the recessed Thread surface beneath its
+  message and nowhere else; a task an Agent claimed for itself states nothing there at all unless
+  the reader has turned **Show tasks in chat** on.
 - **Turn headers:** The author line is the name, the time, and the ADR 0026 provenance marks when a
   message has them — nothing else. What an Agent is generally for belongs to its hover card and
   profile, not to every message it writes, and what a message *is* states itself below the header,

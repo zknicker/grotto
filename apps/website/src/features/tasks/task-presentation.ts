@@ -2,6 +2,13 @@ export type TaskStatus = 'todo' | 'in_progress' | 'in_review' | 'done' | 'closed
 export type TaskPriority = 'none' | 'urgent' | 'high' | 'medium' | 'low';
 
 /**
+ * How the task row came to exist: a human composed a message as a task or
+ * converted an existing one, or an Agent claimed the message before working
+ * on it. Chat reads this to tell a person's task from an Agent's bookkeeping.
+ */
+export type TaskOrigin = 'claimed' | 'composed' | 'converted';
+
+/**
  * Which lens a task belongs to. `background` is an Agent's own claim on work
  * it finished inside one turn — a lock and a record, kept off the Board and
  * the List. Everything else is `tracked`.

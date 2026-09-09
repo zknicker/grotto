@@ -15,10 +15,10 @@ import {
     TranscriptCloudAgentWorkMenu,
     useHoistedCloudAgentWork,
 } from '../../cloud-agents/transcript-cloud-agent-work.tsx';
+import { taskVisibleInChat, useShowTasksInChat } from '../../tasks/show-tasks-in-chat.ts';
 import { TranscriptTaskChip } from '../../tasks/transcript-task-chip.tsx';
 import { ActionTooltip } from '../chat-action-tooltip.tsx';
 import {
-    getTranscriptMessageThread,
     type TranscriptMessageRow,
     useTranscriptRenderContextOptional,
 } from '../chat-transcript-render-context.tsx';
@@ -48,6 +48,7 @@ export function ThreadMessageSurface({
     row: TranscriptMessageRow;
 }) {
     const context = useTranscriptRenderContextOptional();
+    const showTasks = useShowTasksInChat();
     const canOpenThread = Boolean(context?.threadActionsEnabled && isThreadAnchorRow(row));
     const work = row.message.cloudAgentWork ?? null;
     const works = useHoistedCloudAgentWork(row);
@@ -56,27 +57,17 @@ export function ThreadMessageSurface({
     const messageBlock = context?.renderMessageBlock?.(row.message) ?? null;
     // A Thread opened on a Task states it in full in the metadata panel above
     // the anchor, so the anchor's own chip would repeat every word of it.
-    const task =
+    const anchored =
         context?.taskChipHiddenMessageId === row.message.id ? null : (row.message.task ?? null);
-    // A background claim is an Agent's own lock on work it means to finish in
-    // one turn. Only its own claimant speaking in its Thread makes it tracked,
-    // so a claim can carry a whole conversation of peers and bystanders and
-    // still be bookkeeping: the surface holds their replies but withholds the
-    // task's title, which would read as a commitment nobody made. Tier decides
-    // that title alone; whether the surface appears at all is the Thread's.
-    const surfaceTask = task?.tier === 'background' ? null : task;
-    const marks = (
-        <ThreadSurfaceMarks row={row} task={surfaceTask} work={canOpenThread ? work : null} />
-    );
-    // The card exists for the marks even before the first reply, so whether
-    // there are any decides whether the header carries anything.
-    const hasMarks = Boolean(surfaceTask || row.message.ask || work || hoisted.length);
-    const showsSurface = threadSurfaceVisible({
-        ask: Boolean(row.message.ask),
-        hoisted: hoisted.length > 0,
-        threadHasMessages: (getTranscriptMessageThread(row)?.replyCount ?? 0) > 0,
-        work: Boolean(work),
-    });
+    // An Agent's own claim is bookkeeping it keeps on itself, so unless the
+    // reader has asked to see tasks in Chat it states nothing here: no chip, no
+    // title on the surface, no room reserved. A Thread that filled up under one
+    // anyway keeps its card and reads as the ordinary conversation it is.
+    const task = anchored && taskVisibleInChat(anchored.origin, showTasks) ? anchored : null;
+    const marks = <ThreadSurfaceMarks row={row} task={task} work={canOpenThread ? work : null} />;
+    // The preview card exists for the marks even before the first reply, so
+    // whether there are any decides whether it appears at all.
+    const hasMarks = Boolean(task || row.message.ask || work || hoisted.length);
 
     return (
         <MessageContextMenu className={cn(flashing && 'chat-thread-flash')} row={row}>
@@ -87,13 +78,13 @@ export function ThreadMessageSurface({
             </div>
             {messageBlock}
             {work && !canOpenThread ? <CloudAgentWorkCard work={work} /> : null}
-            {canOpenThread && showsSurface ? (
+            {canOpenThread ? (
                 <ThreadPreviewBlock
                     detail={<ThreadSurfaceWorkDetail hoisted={hoisted} work={work} />}
                     headerLabel={threadSurfaceLabel({
                         ask: Boolean(row.message.ask),
                         hoisted: hoisted.length > 0,
-                        taskNumber: surfaceTask?.number,
+                        taskNumber: task?.number,
                         workTitle: work?.title,
                     })}
                     headerLeading={
@@ -148,32 +139,6 @@ function ThreadSurfaceMarks({
             {work ? <CloudAgentWorkHeader work={work} /> : null}
         </>
     );
-}
-
-/**
- * Whether the recessed surface appears under a message at all.
- *
- * The surface is the Thread's own card, so a Thread that holds anything gets
- * one whatever the anchor's task is: a peer or a bystander replying under a
- * claim is exactly the chatter a Thread exists to hold, and it reads as an
- * ordinary conversation. Before the first reply the card appears only for a
- * mark with nowhere else to sit — an Ask, Cloud Agent work — so a task with an
- * empty Thread renders no surface at all, whatever its tier, its mark in the
- * message header saying the whole of it. An empty card announcing "0 replies"
- * is the one thing the surface must never be.
- */
-export function threadSurfaceVisible({
-    ask,
-    hoisted,
-    threadHasMessages,
-    work,
-}: {
-    ask: boolean;
-    hoisted: boolean;
-    threadHasMessages: boolean;
-    work: boolean;
-}): boolean {
-    return threadHasMessages || ask || work || hoisted;
 }
 
 /**

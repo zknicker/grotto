@@ -156,39 +156,28 @@ session marks explain how the message came to be said
 The chip is a label, not a second target: the whole surface is one button into the Thread, named for
 what it opens (`Open thread, Task #1, 2 replies`). The surface is the Thread's own card, so it
 appears once that Thread holds a reply and never as an empty frame announcing `0 replies`; the chip
-states the task there from the first reply on. While
-the task's assignee Agent is running a turn on it (`live`), the chip's status disc gives way to a
-breathing ellipsis — the one moving thing in that header — because a disc says a task is unfinished
-and only the ellipsis says somebody is on it right now. When the task's Thread contains queued or
-running [Cloud Agent work](../../specs/cloud-agents.md), that work's status trails the chip in the
-same header.
+states the task there from the first reply on. When the task's Thread contains queued or running
+[Cloud Agent work](../../specs/cloud-agents.md), that work's status trails the chip in the same
+header.
 
-Until that card exists the task has nowhere to live, so it states the whole of itself as one **task
-context line** between the header of the message it was claimed or promoted against and that
-message's body — whatever its tier. The header itself stays the author's name, the time, and the
-provenance marks: who spoke and why, never what is moving on what they said. The line borrows the
-grammar of a reply stating what it is replying to, in the muted token at 12px: the claimant's face
-and `Blippy is on it` with the same working ellipsis while their run holds it, the in-progress glyph
-in the ellipsis's place when nobody is on it, that glyph in the caution tone with `Blippy stopped`
-when a run stopped while still holding the claim, `Task #4 · unclaimed` or `Task #4 · in review`
-behind the matching disc for a task waiting on somebody or on a look, and nothing at all once a task
-is closed — a message with no task reserves no room for the line. Hovering names the task, who holds
-it and since when, and offers **Open task**; there is no convert action, because tier is inferred
-from evidence and no mutation stamps a task tracked without also moving its status — the claimant
-working in the task's Thread is what promotes it. When the task finishes, the line settles into the
-done glyph and then leaves the anchor: the question is answered, so nothing there is still pending.
-The assignee's own reply carries the receipt from then on, on its own context line — a
-corner-down-right glyph and `Task #4 · 1m 45s` — hovering to when the task was claimed, how long it
-was held, and when it landed. No first-party read links a finished task to the message that answered
-it, so the App marks the first message that Agent wrote after taking it; an Agent that finishes a
-task and stays silent until some later turn marks that later message.
+**Chat hides the tasks Agents claim for themselves.** A claim is bookkeeping an Agent keeps on its
+own work, and almost every one is over inside the turn that opened it, so by default a task with
+`origin` `claimed` states nothing in Chat: no chip, no card, no room reserved. Its Thread is still
+a Thread — replies under one read as the ordinary recessed card, without the task's title — and the
+task itself is unchanged on the Tasks page and its `?task=` link. A task a human made (`composed` or
+`converted`) always shows its chip and surface, whatever the setting says, because a person made it
+on purpose. Tier changes nothing here: it stays a lens on the Board and List.
 
-A **background claim** never takes the chip on that surface: only its own claimant posting there
-makes it tracked, so peers and bystanders can fill the Thread while the task stays bookkeeping —
-their replies read as the ordinary recessed card, without the task's title, which would be a
-commitment nobody made. Because that card never states the claim, the claim keeps its context line
-and its receipt however full its Thread is. Tier decides that one title, and otherwise
-stays a lens on the Board and List rather than a mark in Chat.
+The **Show tasks in chat** preference (Settings → Preferences → Chat) turns the claims back on, and
+with it every task reads the way a human-made one does. It is off by default and per device, stored
+in `localStorage` under `grotto.chat.showTasks`. The command palette carries the same switch as one
+entry that reads as what pressing it does — `Show tasks in chat` while they are hidden, `Hide tasks
+in chat` while they are showing.
+
+A claim nobody finished is the one case a person needs told, and it is told in the
+[Inbox](inbox.md) rather than in Chat: a `claimed` task still `in_progress`, stamped tracked because
+its run settled without answering, and not `live`, appears under **Needs you** as the Agent that
+stopped, what was asked, and the way into the task.
 
 Opening the task's Thread states it in full in the metadata panel above the anchor, so the anchor
 drops its own chip there.

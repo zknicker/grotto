@@ -1,6 +1,7 @@
 import type { Agent, Chat, ChatMessage, TaskLabel, TaskListItem } from '@grotto/api';
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import {
+    type TaskOrigin,
     type TaskPriority,
     type TaskStatus,
     type TaskTier,
@@ -22,8 +23,12 @@ export interface TaskItem {
     createdByUserId: string | null;
     id: string;
     labels: TaskLabel[];
+    /** The assignee Agent is running a turn on this task right now. */
+    live: boolean;
     message: ChatMessage;
     number: number;
+    /** Who made the task: a human composed or converted it, or an Agent claimed it. */
+    origin: TaskOrigin;
     priority: TaskPriority;
     status: TaskStatus;
     threadChatId: string;
@@ -121,8 +126,10 @@ export function toTaskItem(
         createdByUserId: item.task.createdByUserId,
         id: item.message.id,
         labels: item.task.labels,
+        live: item.task.live,
         message: item.message,
         number: item.task.number,
+        origin: item.task.origin,
         priority: item.task.priority,
         status: item.task.status,
         threadChatId: item.task.threadChatId,

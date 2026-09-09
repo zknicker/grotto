@@ -1,7 +1,8 @@
-import { Label, ListBox, Select } from '@heroui/react';
+import { Label, ListBox, Select, Switch } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { type ThemePreference, useTheme } from '../../../components/theme-provider.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
+import { setShowTasksInChat, useShowTasksInChat } from '../../tasks/show-tasks-in-chat.ts';
 import { GrottoVersionSummary } from '../../updates/grotto-version-summary.tsx';
 import { useGrottoUpdate } from '../../updates/use-grotto-update.ts';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
@@ -16,6 +17,7 @@ export function PreferencesSettings() {
             />
             <GrottoVersionSummary view={update.view} />
             <AppearanceSection />
+            <ChatSection />
         </PageColumn>
     );
 }
@@ -63,6 +65,41 @@ function AppearanceSection() {
                                 </ListBox>
                             </Select.Popover>
                         </Select>
+                    </ItemCard.Action>
+                </ItemCard>
+            </ItemCardGroup>
+        </ItemCardGroup>
+    );
+}
+
+function ChatSection() {
+    const showTasksInChat = useShowTasksInChat();
+
+    return (
+        <ItemCardGroup variant="transparent">
+            <ItemCardGroup.Header>
+                <ItemCardGroup.Title>Chat</ItemCardGroup.Title>
+            </ItemCardGroup.Header>
+            <ItemCardGroup className="overflow-hidden">
+                <ItemCard>
+                    <ItemCard.Content>
+                        <ItemCard.Title>Show tasks in chat</ItemCard.Title>
+                        <ItemCard.Description>
+                            Agents claim tasks as they work. Off, those stay on the Tasks page.
+                        </ItemCard.Description>
+                    </ItemCard.Content>
+                    <ItemCard.Action>
+                        <Switch
+                            aria-label="Show tasks in chat"
+                            isSelected={showTasksInChat}
+                            onChange={setShowTasksInChat}
+                        >
+                            <Switch.Content>
+                                <Switch.Control>
+                                    <Switch.Thumb />
+                                </Switch.Control>
+                            </Switch.Content>
+                        </Switch>
                     </ItemCard.Action>
                 </ItemCard>
             </ItemCardGroup>

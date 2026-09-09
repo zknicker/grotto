@@ -83,6 +83,11 @@ same-turn work `done` is the primary path; this auto-resolve is a backstop, and
 every one of its edges deliberately errs toward leaving a claim open and tracked
 rather than closing work that may still be live.
 
+**Chat shows an Agent's own claims only behind a setting.** A `claimed` task states nothing under
+its message by default — Chat is a conversation, and a claim is bookkeeping — while a task a human
+composed or converted always shows; the per-device **Show tasks in chat** preference turns the
+claims back on, and a claim whose run stopped without finishing is surfaced in the Inbox instead.
+
 A task also carries `live`: true while the assignee Agent's in-flight run
 holds the task's message or Thread. It is derived at read time from the
 delivery ledger, never stored, and a run beginning or settling emits

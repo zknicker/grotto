@@ -12,13 +12,19 @@ import { InboxSection, InboxSectionEmpty, InboxSectionPending } from './inbox-se
 import { useInboxView } from './inbox-view.ts';
 import { NeedsYouAskList } from './needs-you-ask-list.tsx';
 import { toNeedsYouAsks } from './needs-you-asks.ts';
+import { NeedsYouStalledClaimList } from './needs-you-stalled-claim-list.tsx';
 import { NeedsYouTaskList } from './needs-you-task-list.tsx';
 import { selectNeedsYouTasks } from './needs-you-tasks.ts';
+import { selectStalledClaims } from './stalled-claims.ts';
 
 /**
- * Work waiting on this human: open Asks addressed to them, then Tasks in
- * review that they own. Pending Agent creation proposals join it once the
- * Server can list them.
+ * Work waiting on this human: open Asks addressed to them, then claims an
+ * Agent took and stopped short of finishing, then Tasks in review that they
+ * own. Pending Agent creation proposals join it once the Server can list them.
+ *
+ * The stalled claims read the same default lens the Board does: a claim whose
+ * run settled unfinished is stamped tracked by then, so widening past the
+ * background tier would only fetch rows this section discards.
  */
 export function InboxNeedsYou() {
     const { server } = useServerContext();
@@ -34,16 +40,17 @@ export function InboxNeedsYou() {
         () => toNeedsYouAsks(asks.data ?? [], humans, agents.data ?? []),
         [agents.data, asks.data, humans]
     );
-    const taskRows = React.useMemo(
-        () =>
-            selectNeedsYouTasks(
-                (tasks.data?.tasks ?? []).map((item) =>
-                    toTaskItem(item, humans, agents.data ?? [])
-                ),
-                viewerUserId
-            ),
-        [agents.data, humans, tasks.data, viewerUserId]
+    const taskItems = React.useMemo(
+        () => (tasks.data?.tasks ?? []).map((item) => toTaskItem(item, humans, agents.data ?? [])),
+        [agents.data, humans, tasks.data]
     );
+    const stalledClaims = React.useMemo(() => selectStalledClaims(taskItems), [taskItems]);
+    const taskRows = React.useMemo(
+        () => selectNeedsYouTasks(taskItems, viewerUserId),
+        [taskItems, viewerUserId]
+    );
+    const openTask = (messageId: string) =>
+        navigate(`${tasksRoute(server.slug)}?task=${encodeURIComponent(messageId)}`);
     // Both reads are the same claim — that nothing needs you — so the section
     // stays neutral until both have settled rather than emptying, then filling.
     const settled = Boolean(asks.data && tasks.data && members.data);
@@ -51,7 +58,7 @@ export function InboxNeedsYou() {
     return (
         <InboxSection title="Needs you">
             {settled ? (
-                askRows.length === 0 && taskRows.length === 0 ? (
+                askRows.length === 0 && stalledClaims.length === 0 && taskRows.length === 0 ? (
                     <InboxSectionEmpty description="Nothing needs you." />
                 ) : (
                     <>
@@ -62,15 +69,14 @@ export function InboxNeedsYou() {
                                 serverId={server.id}
                             />
                         ) : null}
-                        {taskRows.length > 0 ? (
-                            <NeedsYouTaskList
-                                onOpenTask={(messageId) =>
-                                    navigate(
-                                        `${tasksRoute(server.slug)}?task=${encodeURIComponent(messageId)}`
-                                    )
-                                }
-                                tasks={taskRows}
+                        {stalledClaims.length > 0 ? (
+                            <NeedsYouStalledClaimList
+                                claims={stalledClaims}
+                                onOpenTask={openTask}
                             />
+                        ) : null}
+                        {taskRows.length > 0 ? (
+                            <NeedsYouTaskList onOpenTask={openTask} tasks={taskRows} />
                         ) : null}
                     </>
                 )

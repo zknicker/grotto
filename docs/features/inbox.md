@@ -26,6 +26,7 @@ The page has three sections in this order.
 
 - Open [Asks](../../specs/asks.md) addressed to me, with the recommended step as a button.
 - Pending Agent creation proposals I can commit. Owners and Admins only.
+- Claims an Agent took and stopped short of finishing.
 - [Tasks](tasks.md) in `in_review` that I created or that are reserved for me.
 
 **Happening now** — work running right now, whether or not this human started it:
@@ -45,9 +46,19 @@ read from the existing read state.
 The page is live at `/s/:slug/inbox` with all three sections and their empty states. **Needs you**
 leads with open [Asks](../../specs/asks.md) addressed to the viewer — title, summary, Chat and
 asking Agent, and the recommended step as a button that sends that exact text into the Ask's Thread
-as the viewer's own Message — then lists Tasks in `in_review` that the viewer created or that are
-reserved for them. An Ask row peeks its Thread over the Inbox at `?ask=<messageId>`; a Task row
-opens the Task on the Tasks page. **Happening now** leads with queued and running
+as the viewer's own Message — then the claims an Agent stopped before finishing, then Tasks in
+`in_review` that the viewer created or that are reserved for them. An Ask row peeks its Thread over
+the Inbox at `?ask=<messageId>`; a Task row opens the Task on the Tasks page.
+
+A **stalled claim** row is where a person learns that an Agent took work and dropped it, because
+[Chat hides an Agent's own claims by default](tasks.md). It is composed from the same `task.list`
+read the section already makes — a task with `origin` `claimed`, status `in_progress`, tier
+`tracked`, and `live` false, meaning its run settled without answering and no reply is coming — and
+reads as the Agent's avatar, `Blippy stopped before finishing`, what was asked, and the Chat and
+task number. It opens the task the way the review rows do, and refreshes on the `task.updated`
+invalidation those rows already ride.
+
+**Happening now** leads with queued and running
 [Cloud Agent work](../../specs/cloud-agents.md) — cloud glyph, title, status with elapsed time,
 Chat, and the delegating Agent — above the Agents currently in a turn, read from the Agent activity
 provider. A work row peeks its conversation over the Inbox at `?work=<messageId>` — the same Thread

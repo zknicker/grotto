@@ -108,7 +108,7 @@
     "apps/website/src/features/chats/chat-transcript-row-model.ts": 306,
     "apps/website/src/features/chats/chat-transcript-system-step.tsx": 371,
     "apps/website/src/features/chats/chat-transcript-tool-intents.ts": 305,
-    "apps/website/src/features/chats/chat-transcript-turn.tsx": 1238,
+    "apps/website/src/features/chats/chat-transcript-turn.tsx": 1224,
     "apps/website/src/features/chats/chat-transcript.test.tsx": 1753,
     "apps/website/src/features/chats/thinking-steps.tsx": 306,
     "apps/website/src/features/computers/computer-login-view.tsx": 322,

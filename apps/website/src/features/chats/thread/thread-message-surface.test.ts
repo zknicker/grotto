@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { isThreadAnchorRow, threadSurfaceVisible } from './thread-message-surface.tsx';
+import { isThreadAnchorRow } from './thread-message-surface.tsx';
 
 describe('thread message surface', () => {
     test('offers thread actions only for durable, settled message rows', () => {
@@ -12,29 +12,6 @@ describe('thread message surface', () => {
             isThreadAnchorRow(messageRow('msg_streaming', { runtime: { streaming: true } }))
         ).toBe(false);
         expect(isThreadAnchorRow(messageRow('external-message-id'))).toBe(false);
-    });
-});
-
-describe('thread surface visibility', () => {
-    const nothing = {
-        ask: false,
-        hoisted: false,
-        threadHasMessages: false,
-        work: false,
-    };
-
-    test('a task with an empty Thread renders no surface, whatever its tier', () => {
-        expect(threadSurfaceVisible(nothing)).toBe(false);
-    });
-
-    test('a Thread with anything in it gets a surface, background claim or not', () => {
-        expect(threadSurfaceVisible({ ...nothing, threadHasMessages: true })).toBe(true);
-    });
-
-    test('a mark that needs somewhere to sit opens the surface before the first reply', () => {
-        expect(threadSurfaceVisible({ ...nothing, ask: true })).toBe(true);
-        expect(threadSurfaceVisible({ ...nothing, work: true })).toBe(true);
-        expect(threadSurfaceVisible({ ...nothing, hoisted: true })).toBe(true);
     });
 });
 

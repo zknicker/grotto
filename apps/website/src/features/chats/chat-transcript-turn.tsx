@@ -12,10 +12,6 @@ import { writeClipboardText } from '../../lib/clipboard.ts';
 import { cn } from '../../lib/utils.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { AgentHoverCard } from '../members/agent-hover-card.tsx';
-import {
-    TranscriptTurnTaskClaimMark,
-    TranscriptTurnTaskHandledMark,
-} from '../tasks/transcript-task-marks.tsx';
 import { ActionTooltip } from './chat-action-tooltip.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import { useStreamingTextRanges } from './chat-streaming-text-ranges.ts';
@@ -244,11 +240,6 @@ function UserTurnPresentation({
                         timestamp={entry.timestamp}
                     />
                 ) : null}
-                {/* Between the name and the words: what this message is about,
-                    the way a reply states what it is replying to. It renders
-                    nothing when no task touches the turn, so an ordinary
-                    message reserves no room for it. */}
-                <TranscriptTurnTaskClaimMark items={entry.items} />
                 {entry.items.map((item) => (
                     <UserTurnItem from="user" item={item} key={getTranscriptItemKey(item)} />
                 ))}
@@ -501,11 +492,6 @@ function AgentTurnPresentation({
                             timestamp={entry.timestamp}
                         />
                     ) : null}
-                    {/* An Agent can claim another Agent's message, so a turn can
-                        wear a claim of its own and a receipt for someone
-                        else's; both are absent on almost every turn. */}
-                    <TranscriptTurnTaskClaimMark items={items} />
-                    <TranscriptTurnTaskHandledMark items={items} />
                     {visibleSegments.map((segment, index) => (
                         <AgentTurnSegment
                             chatId={chatId}

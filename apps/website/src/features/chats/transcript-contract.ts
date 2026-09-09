@@ -6,7 +6,7 @@ import type {
     PreparedAction,
     TaskLabel,
 } from '@grotto/api';
-import type { MessageTask } from '../tasks/task-presentation.ts';
+import type { MessageTask, TaskOrigin } from '../tasks/task-presentation.ts';
 import type { TranscriptSystemRow } from './transcript-system-row.ts';
 
 export type { TranscriptDelivery, TranscriptSystemRow } from './transcript-system-row.ts';
@@ -116,7 +116,7 @@ export interface TranscriptMessage {
               claimed_at: string | null;
               created_at: string;
               labels: TaskLabel[];
-              origin: 'claimed' | 'composed' | 'converted';
+              origin: TaskOrigin;
               priority: 'none' | 'urgent' | 'high' | 'medium' | 'low';
               updated_at: string;
           })

@@ -1,31 +1,28 @@
 import type { Agent } from '@grotto/api';
-import type {
-    AgentCreationInitialValues,
-    AgentCreationSubmitValues,
-    ReportedComputer,
-} from './agent-creation-contract.ts';
+import type { AgentCreationSubmitValues, ReportedComputer } from './agent-creation-contract.ts';
 
+/**
+ * Where a new Agent starts: Cove's own execution configuration when the Server
+ * has Cove and the Computer still reports it, and the first reported option
+ * otherwise. Cove is the Agent every Server has, so its Computer, runtime, and
+ * model are the one setup already known to work here.
+ */
 export function resolveAgentCreationDefaults(
     reported: readonly ReportedComputer[],
-    agents: readonly Agent[],
-    initialValues?: AgentCreationInitialValues
+    agents: readonly Agent[]
 ) {
     const cove = agents.find((agent) => agent.factoryKind === 'cove');
-    const preferredComputerId = initialValues?.computerId ?? cove?.computerId;
-    const computer =
-        reported.find((entry) => entry.id === preferredComputerId) ?? reported[0] ?? null;
-    const preferredRuntimeId = initialValues?.runtimeId ?? cove?.desiredRuntimeId;
+    const computer = reported.find((entry) => entry.id === cove?.computerId) ?? reported[0] ?? null;
     const runtime =
-        computer?.inventory.runtimes.find((entry) => entry.id === preferredRuntimeId) ??
+        computer?.inventory.runtimes.find((entry) => entry.id === cove?.desiredRuntimeId) ??
         computer?.inventory.runtimes[0];
-    const preferredModelId = initialValues?.modelId ?? cove?.desiredModelId;
     const model =
-        runtime?.models.find((entry) => entry.id === preferredModelId) ?? runtime?.models[0];
+        runtime?.models.find((entry) => entry.id === cove?.desiredModelId) ?? runtime?.models[0];
 
     return {
         computerId: computer?.id ?? '',
         modelId: model?.id ?? '',
-        reasoningEffort: initialValues?.reasoningEffort ?? cove?.desiredReasoningEffort ?? 'medium',
+        reasoningEffort: cove?.desiredReasoningEffort ?? 'medium',
         runtimeId: runtime?.id ?? '',
     } satisfies Pick<
         AgentCreationSubmitValues,

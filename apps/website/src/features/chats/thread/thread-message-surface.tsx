@@ -29,7 +29,7 @@ import { ThreadPreviewBlock } from './thread-preview-block.tsx';
 
 /**
  * One message's Thread surroundings: the marks for whatever it is, its
- * reactions, any surface-owned block, and the Thread preview.
+ * reactions, and the Thread preview.
  *
  * Everything under a Message that carries a lifecycle a reader tracks — the
  * Task it is, the Ask it asks, the Cloud Agent work it launched, and any live
@@ -37,6 +37,10 @@ import { ThreadPreviewBlock } from './thread-preview-block.tsx';
  * surface beneath it, in one chip grammar. Provenance stays on the author line:
  * a trigger or reminder fire and a session restart explain how the message came
  * to be said, and neither has a status to follow.
+ *
+ * A finished act with no lifecycle at all — the Agent this Message created —
+ * gets no surface here at all: the Agent's own announcement names the new
+ * teammate by `@handle`, and that mention chip is the way to the profile.
  *
  * Inside a Thread, full Cloud Agent cards follow their delegation Message.
  */
@@ -54,7 +58,6 @@ export function ThreadMessageSurface({
     const works = useHoistedCloudAgentWork(row);
     const hoisted = canOpenThread ? works.filter((item) => item.id !== work?.id) : [];
     const flashing = context?.flashMessageId === row.message.id;
-    const messageBlock = context?.renderMessageBlock?.(row.message) ?? null;
     // A Thread opened on a Task states it in full in the metadata panel above
     // the anchor, so the anchor's own chip would repeat every word of it.
     const anchored =
@@ -76,7 +79,6 @@ export function ThreadMessageSurface({
                 {canOpenThread ? null : marks}
                 <MessageReactionPills row={row} />
             </div>
-            {messageBlock}
             {work && !canOpenThread ? <CloudAgentWorkCard work={work} /> : null}
             {canOpenThread ? (
                 <ThreadPreviewBlock

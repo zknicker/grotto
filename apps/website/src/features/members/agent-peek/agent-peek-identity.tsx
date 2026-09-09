@@ -1,5 +1,4 @@
 import type { Agent, ComputerInventory } from '@grotto/api';
-import { Chip } from '@heroui/react';
 import { Link } from 'react-router-dom';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
@@ -50,13 +49,6 @@ export function AgentPeekIdentity({ agent, server }: { agent: Agent; server: Ser
                         <strong className="min-w-0 truncate font-semibold text-base text-foreground">
                             {agent.displayName}
                         </strong>
-                        <Chip
-                            color={agent.role === 'member' ? 'default' : 'accent'}
-                            size="sm"
-                            variant="soft"
-                        >
-                            <Chip.Label className="capitalize">{agent.role}</Chip.Label>
-                        </Chip>
                         <span className="shrink-0 text-muted text-sm">
                             {availabilityLabel(agent.availability)}
                         </span>

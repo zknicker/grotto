@@ -1,12 +1,10 @@
 import * as React from 'react';
 import { cn } from '../../lib/utils.ts';
-import { identityMarkRadius } from '../ui/entity-avatar.tsx';
-import { Icon } from '../ui/icon.tsx';
 
 /**
- * The transcript card for a prepared action — an Agent proposal today, a
- * background cloud run or a pull request next. It is an object that arrived in
- * the chat, so it reads like the other objects that do: the attachment row and
+ * The transcript card for a piece of work that arrived in the chat — Cloud
+ * Agent work today, a pull request next. It is an object that arrived in the
+ * chat, so it reads like the other objects that do: the attachment row and
  * the artifact card. Bordered surface, capped measure, a header of mark plus
  * title/description content — the title carries a status chip at the right
  * end of the title line, when the kind has one — one or more muted meta rows,
@@ -29,7 +27,7 @@ import { Icon } from '../ui/icon.tsx';
  * <ActionCard actionKind="pull-request" actionStatus="open" aria-label="Pull request #482">
  *   <ActionCard.Header>
  *     <ActionCard.Mark>
- *       <ActionCardGlyphMark icon={GitPullRequestIcon} />
+ *       <EntityAvatar name="Orbit" size={48} src={avatarUrl} />
  *     </ActionCard.Mark>
  *     <ActionCard.Content>
  *       <ActionCard.Title>
@@ -88,7 +86,7 @@ function ActionCardHeader({ className, ...props }: React.ComponentProps<'div'>) 
     );
 }
 
-/** The identity box: an `EntityAvatar`, or an `ActionCardGlyphMark`. Canonical size is 48px. */
+/** The identity box: an `EntityAvatar`, or a glyph in the same 48px box. */
 function ActionCardMark({ className, ...props }: React.ComponentProps<'div'>) {
     return <div className={cn('shrink-0', className)} data-slot="mark" {...props} />;
 }
@@ -209,23 +207,6 @@ function ActionCardReceipt({ className, ...props }: React.ComponentProps<'span'>
             data-slot="receipt"
             {...props}
         />
-    );
-}
-
-/**
- * The leading mark for a kind with no face of its own — a cloud run, a pull
- * request, an action this release cannot render. Same 48px box as the avatar
- * beside it in another card, so the family keeps one left edge, and the same
- * radius curve, so the corner tracks the box instead of drifting.
- */
-export function ActionCardGlyphMark({ icon }: { icon: React.ComponentProps<typeof Icon>['icon'] }) {
-    return (
-        <span
-            className="flex size-12 items-center justify-center border border-separator bg-surface-secondary"
-            style={{ borderRadius: identityMarkRadius(48) }}
-        >
-            <Icon aria-hidden className="size-5 text-muted" icon={icon} />
-        </span>
     );
 }
 

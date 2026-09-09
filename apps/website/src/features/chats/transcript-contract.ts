@@ -1,11 +1,4 @@
-import type {
-    AgentAvailability,
-    Ask,
-    CloudAgentWork,
-    MessageCause,
-    PreparedAction,
-    TaskLabel,
-} from '@grotto/api';
+import type { AgentAvailability, Ask, CloudAgentWork, MessageCause, TaskLabel } from '@grotto/api';
 import type { MessageTask, TaskOrigin } from '../tasks/task-presentation.ts';
 import type { TranscriptSystemRow } from './transcript-system-row.ts';
 
@@ -105,7 +98,6 @@ export interface TranscriptMessage {
     grottoAgentId?: string | null;
     id: string;
     metadata?: TranscriptMessageMetadata;
-    preparedAction?: PreparedAction;
     reactions?: TranscriptMessageReaction[];
     sender: string;
     senderType: 'agent' | 'system' | 'user';

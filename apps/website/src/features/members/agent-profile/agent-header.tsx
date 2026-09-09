@@ -1,9 +1,7 @@
 import type { Agent } from '@grotto/api';
 import { Chip } from '@heroui/react';
-import { ShieldUserIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
-import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentAvatar } from '../../../hooks/members/use-agent-avatar.ts';
 import { useAgentIdentity } from '../../../hooks/members/use-agent-identity.ts';
 import type { ServerDetail } from '../../../lib/grotto-server.tsx';
@@ -112,23 +110,9 @@ export function AgentHeader({
                 )
             }
             badges={
-                <>
-                    <Chip
-                        color={agent.role === 'member' ? 'default' : 'accent'}
-                        size="sm"
-                        variant="soft"
-                    >
-                        <Icon className="size-4 shrink-0" icon={ShieldUserIcon} />
-                        <Chip.Label className="capitalize">{agent.role}</Chip.Label>
-                    </Chip>
-                    <Chip
-                        color={agentAvailabilityColor(agent.availability)}
-                        size="sm"
-                        variant="soft"
-                    >
-                        <Chip.Label>{availabilityLabel(agent.availability)}</Chip.Label>
-                    </Chip>
-                </>
+                <Chip color={agentAvailabilityColor(agent.availability)} size="sm" variant="soft">
+                    <Chip.Label>{availabilityLabel(agent.availability)}</Chip.Label>
+                </Chip>
             }
             description={agent.description}
             // The shell band above already titles this page with the Agent's

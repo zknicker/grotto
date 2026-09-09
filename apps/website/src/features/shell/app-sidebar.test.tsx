@@ -3,6 +3,7 @@ import type { Agent, Chat } from '@grotto/api';
 import { Sidebar } from '@heroui-pro/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { testAgent } from '../members/agent-fixtures.ts';
 import { ChatNavigation } from './chat-navigation.tsx';
 import { CommandMenuProvider } from './command-menu-provider.tsx';
 import { ShellSidebar, ShellSidebarPage } from './shell-sidebar.tsx';
@@ -256,36 +257,7 @@ test('keeps unread count chips circular until the number needs a pill', () => {
 });
 
 function agent(overrides: Pick<Agent, 'availability' | 'displayName' | 'id'>): Agent {
-    return {
-        availability: overrides.availability,
-        avatarUrl: null,
-        computerId: 'cmp_one',
-        createdAt: '2026-07-29T12:00:00.000Z',
-        createdByUserId: 'user_one',
-        description: null,
-        desiredModelId: 'model_one',
-        desiredReasoningEffort: 'medium',
-        desiredRuntimeId: 'runtime_one',
-        displayName: overrides.displayName,
-        dmChatId: null,
-        effectiveModelId: 'model_one',
-        effectiveReasoningEffort: 'medium',
-        effectiveReportedAt: '2026-07-29T12:00:00.000Z',
-        effectiveRuntimeId: 'runtime_one',
-        factoryKind: 'ordinary',
-        grottoAgent: {
-            appliedAt: '2026-07-29T12:00:00.000Z',
-            appliedVersion: '1.0.0',
-            currentVersion: '1.0.0',
-            status: 'current',
-        },
-        handle: overrides.displayName.toLowerCase(),
-        id: overrides.id,
-        missingResources: [],
-        role: 'member',
-        serverId: 'server_one',
-        status: 'applied',
-    };
+    return testAgent({ ...overrides, handle: overrides.displayName.toLowerCase() });
 }
 
 function dm(id: string, peer: Agent): Chat {

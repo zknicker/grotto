@@ -59,9 +59,9 @@ export interface TranscriptRenderContextValue {
     /**
      * The text a message's Copy action writes to the clipboard. Absent by
      * default, in which case `getMessageCopyText` falls back to the raw
-     * `message.content` — correct for an ordinary message, but not for a
-     * prepared-action anchor, whose Server-stored content is empty because
-     * `renderMessageBlock` renders its real body instead.
+     * `message.content` — which is what every Message the Server stores now
+     * carries (ADR 0025), so an override is only for a surface that composes
+     * copyable text the Message itself does not hold.
      */
     messageCopyText?: (message: TranscriptMessage) => string;
     onActorClick?: (actor: TranscriptActor) => void;
@@ -76,11 +76,11 @@ export interface TranscriptRenderContextValue {
     renderMessageAttachments?: (message: TranscriptMessage) => React.ReactNode;
     /**
      * A surface-owned block that belongs to one message but is not its body —
-     * a prepared-action card today. It mounts under the message and its
+     * the Agent-created mark today. It mounts under the message and its
      * attachments, beside the thread preview, so the transcript layer never
-     * learns what any one block is.
+     * learns what any one block is, and so a block that needs Server data the
+     * transcript never reads can still resolve it at the surface that does.
      */
-    renderMessageBlock?: (message: TranscriptMessage) => React.ReactNode;
     renderMessageContent?: (message: TranscriptMessage) => React.ReactNode;
     /** Runs whose final reply is present anywhere in the transcript. */
     repliedRunIds: ReadonlySet<string>;

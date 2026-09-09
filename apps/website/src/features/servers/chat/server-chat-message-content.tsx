@@ -3,7 +3,6 @@ import type { useHumanDirectory } from '../../../hooks/servers/use-human-directo
 import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
-import { preparedActionMessageText } from '../../chats/prepared-action-card.tsx';
 import {
     applyAgentMentionAppearance,
     applyChatMentionAppearance,
@@ -30,15 +29,11 @@ export function ServerChatMessageContent({
     onOpenArtifact: (target: GrottoResourceTarget) => void;
     onReferenceActivate?: ReferenceActivation;
 }) {
-    // The prepared-action card is its own transcript block below this row.
-    // Here the anchor renders like any other agent message.
-    const content = preparedActionMessageText(message);
-
-    // The Server stores an empty anchor body; with no note either, the card
-    // below is the whole row.
-    if (message.preparedAction && !content) {
-        return null;
-    }
+    // Every Message the Server stores carries its own authored content (ADR
+    // 0025), including the ones that also carry a typed body — so this row
+    // renders that content and nothing else, and whatever the body projects
+    // renders as its own block below.
+    const content = message.content;
 
     const mentions = applyHumanMentionAppearance(
         applyChatMentionAppearance(

@@ -1,9 +1,23 @@
 import { expect, test } from 'bun:test';
+import type { Agent } from '@grotto/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { ReportedComputer } from './agent-creation-contract.ts';
 import { AgentCreationForm } from './agent-creation-form.tsx';
 
 const reported: ReportedComputer[] = [
+    {
+        id: 'cmp_laptop',
+        inventory: {
+            runtimes: [
+                {
+                    id: 'claude-code',
+                    label: 'Claude Code',
+                    models: [{ id: 'opus', label: 'Opus' }],
+                },
+            ],
+        },
+        label: 'Laptop',
+    },
     {
         id: 'cmp_cove',
         inventory: {
@@ -19,17 +33,19 @@ const reported: ReportedComputer[] = [
     },
 ];
 
-test('prefills the prepared proposal while exposing editable execution controls', () => {
+const cove = {
+    computerId: 'cmp_cove',
+    desiredModelId: 'gpt-5.6-sol',
+    desiredReasoningEffort: 'high',
+    desiredRuntimeId: 'codex',
+    factoryKind: 'cove',
+} as unknown as Agent;
+
+test('a fresh form starts empty on the setup Cove already runs on', () => {
     const markup = renderToStaticMarkup(
         <AgentCreationForm
-            agents={[]}
+            agents={[cove]}
             error={null}
-            initialValues={{
-                avatarUrl: '/api/prepared-action-media/pam_1234567890abcdef',
-                computerId: 'cmp_cove',
-                description: 'Prepared description.',
-                displayName: 'Orbit',
-            }}
             isPending={false}
             onCreated={() => undefined}
             onSubmit={async () => ({ agentId: 'agt_1234567890abcdef' })}
@@ -37,23 +53,35 @@ test('prefills the prepared proposal while exposing editable execution controls'
         />
     );
 
-    expect(markup).toContain('value="Orbit"');
-    expect(markup).toContain('Prepared description.');
     expect(markup).toContain('Cove Computer');
+    expect(markup).toContain('Codex');
+    expect(markup).toContain('Sol');
     expect(markup).toContain('Reasoning effort');
-    expect(markup).toContain('aria-label="Change avatar"');
+    expect(markup).toContain('aria-label="Upload avatar"');
+    expect(markup).toContain('value=""');
 });
 
-test('keeps the form mounted with a recoverable commit error', () => {
+test('a Server without Cove falls back to the first Computer that reports an inventory', () => {
+    const markup = renderToStaticMarkup(
+        <AgentCreationForm
+            agents={[]}
+            error={null}
+            isPending={false}
+            onCreated={() => undefined}
+            onSubmit={async () => ({ agentId: 'agt_1234567890abcdef' })}
+            reported={reported}
+        />
+    );
+
+    expect(markup).toContain('Laptop');
+    expect(markup).toContain('Claude Code');
+});
+
+test('keeps the form mounted with a recoverable creation error', () => {
     const markup = renderToStaticMarkup(
         <AgentCreationForm
             agents={[]}
             error={{ message: 'The Computer no longer reports this model.' }}
-            initialValues={{
-                avatarUrl: null,
-                description: null,
-                displayName: 'Orbit',
-            }}
             isPending={false}
             onCreated={() => undefined}
             onSubmit={async () => ({ agentId: 'agt_1234567890abcdef' })}
@@ -63,5 +91,4 @@ test('keeps the form mounted with a recoverable commit error', () => {
 
     expect(markup).toContain('The Computer no longer reports this model.');
     expect(markup).toContain('Create Agent');
-    expect(markup).toContain('value="Orbit"');
 });

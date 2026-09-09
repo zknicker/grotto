@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { Agent, TaskListItem } from '@grotto/api';
+import { testAgent } from '../../members/agent-fixtures.ts';
 import { humanDirectory } from '../human-identity.ts';
 import {
     filterTasks,
@@ -277,36 +278,22 @@ test('a task in an Agent DM reads as a DM without inventing a human peer', () =>
 });
 
 function agent(): Agent {
-    return {
-        availability: 'idle',
+    return testAgent({
         avatarUrl: '/api/avatars/avt_fen',
-        computerId: 'cmp_one',
         createdAt: '2026-07-26T12:00:00.000Z',
-        createdByUserId: 'user_one',
-        description: null,
-        desiredModelId: 'model_one',
-        desiredReasoningEffort: 'medium',
-        desiredRuntimeId: 'runtime_one',
-        displayName: 'Fen',
-        dmChatId: null,
         effectiveModelId: null,
         effectiveReasoningEffort: null,
         effectiveReportedAt: null,
         effectiveRuntimeId: null,
-        factoryKind: 'ordinary',
         grottoAgent: {
             appliedAt: null,
             appliedVersion: null,
             currentVersion: '1.0.0',
             status: 'pending',
         },
-        handle: 'fen',
         id: 'agent_owner',
-        missingResources: [],
-        role: 'member',
-        serverId: 'server_one',
         status: 'pending',
-    };
+    });
 }
 
 function item(overrides: { content?: string } = {}): TaskListItem {

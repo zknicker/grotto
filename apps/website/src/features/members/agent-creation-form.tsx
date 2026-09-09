@@ -13,25 +13,16 @@ import {
 import * as React from 'react';
 import { AvatarPicker } from '../avatars/avatar-picker.tsx';
 import type { AvatarImage } from '../avatars/resize-avatar-image.ts';
-import type {
-    AgentCreationInitialValues,
-    AgentCreationSubmitValues,
-    ReportedComputer,
-} from './agent-creation-contract.ts';
+import type { AgentCreationSubmitValues, ReportedComputer } from './agent-creation-contract.ts';
 import { resolveAgentCreationDefaults } from './agent-creation-defaults.ts';
 import { createAgentHandle } from './agent-handle.ts';
 import { InventorySelect } from './inventory-select.tsx';
 
-export type {
-    AgentCreationInitialValues,
-    AgentCreationSubmitValues,
-    ReportedComputer,
-} from './agent-creation-contract.ts';
+export type { AgentCreationSubmitValues, ReportedComputer } from './agent-creation-contract.ts';
 
 interface AgentCreationFormProps {
     agents: readonly Agent[];
     error: { message: string } | null;
-    initialValues?: AgentCreationInitialValues;
     isPending: boolean;
     onCreated: (agentId: string) => void;
     onSubmit: (values: AgentCreationSubmitValues) => Promise<{ agentId: string }>;
@@ -41,15 +32,14 @@ interface AgentCreationFormProps {
 export function AgentCreationForm({
     agents,
     error,
-    initialValues,
     isPending,
     onCreated,
     onSubmit,
     reported,
 }: AgentCreationFormProps) {
     const defaults = React.useMemo(
-        () => resolveAgentCreationDefaults(reported, agents, initialValues),
-        [agents, initialValues, reported]
+        () => resolveAgentCreationDefaults(reported, agents),
+        [agents, reported]
     );
     const defaultsKey = JSON.stringify(defaults);
     const initializedKey = React.useRef<string | null>(null);
@@ -59,8 +49,8 @@ export function AgentCreationForm({
     const [reasoningEffort, setReasoningEffort] = React.useState<AgentReasoningEffort>(
         defaults.reasoningEffort
     );
-    const [displayName, setDisplayName] = React.useState(initialValues?.displayName ?? '');
-    const [description, setDescription] = React.useState(initialValues?.description ?? '');
+    const [displayName, setDisplayName] = React.useState('');
+    const [description, setDescription] = React.useState('');
     const [avatar, setAvatar] = React.useState<AvatarImage | null>(null);
     const [avatarError, setAvatarError] = React.useState<string | null>(null);
     const formId = React.useId();
@@ -74,11 +64,11 @@ export function AgentCreationForm({
         setRuntimeId(defaults.runtimeId);
         setModelId(defaults.modelId);
         setReasoningEffort(defaults.reasoningEffort);
-        setDisplayName(initialValues?.displayName ?? '');
-        setDescription(initialValues?.description ?? '');
+        setDisplayName('');
+        setDescription('');
         setAvatar(null);
         setAvatarError(null);
-    }, [defaults, defaultsKey, initialValues]);
+    }, [defaults, defaultsKey]);
 
     const computer = reported.find((entry) => entry.id === computerId) ?? reported[0];
     const runtimes = computer?.inventory.runtimes ?? [];
@@ -87,7 +77,7 @@ export function AgentCreationForm({
     const model = models.find((entry) => entry.id === modelId) ?? models[0];
     const name = displayName.trim();
     const canSubmit = Boolean(name && computer && runtime && model && !isPending && !avatarError);
-    const avatarSrc = avatar?.dataUrl ?? initialValues?.avatarUrl ?? null;
+    const avatarSrc = avatar?.dataUrl ?? null;
 
     const handleSubmit = React.useEffectEvent(async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -138,7 +128,7 @@ export function AgentCreationForm({
                             <p className="text-muted text-sm">
                                 {avatar
                                     ? 'New image selected.'
-                                    : 'The prepared image stays unchanged unless you replace it.'}
+                                    : 'Optional — initials stand in until you choose one.'}
                             </p>
                         </div>
                     </div>

@@ -110,7 +110,7 @@ export function createAgentTestKit(
             if (direct) {
                 return { container: 'chat', message: direct, threadChatId: null };
             }
-            const tasks = await trpc('task.list', { serverId });
+            const { tasks } = await trpc('task.list', { serverId });
             for (const entry of tasks.filter((item) => item.task.chatId === chatId)) {
                 const inThread = record(await harness.readMessages(entry.task.threadChatId)).find(
                     matches
@@ -135,7 +135,7 @@ export function createAgentTestKit(
     }
 
     async function readTask(messageId) {
-        const tasks = await trpc('task.list', { serverId });
+        const { tasks } = await trpc('task.list', { serverId });
         const found = tasks.find((entry) => entry.task.messageId === messageId);
         if (!found) {
             throw new Error(`Task ${messageId} is no longer listed on Server ${serverId}.`);

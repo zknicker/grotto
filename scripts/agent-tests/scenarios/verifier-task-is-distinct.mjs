@@ -59,7 +59,10 @@ export default defineScenario({
         log('checking gates');
         // A coordinator may split its own bookkeeping across several tasks; the
         // contract is who reviews, not how many tasks it took to get there.
-        const tasks = await kit.trpc('task.list', { chatId: channel.id, serverId: kit.serverId });
+        const { tasks } = await kit.trpc('task.list', {
+            chatId: channel.id,
+            serverId: kit.serverId,
+        });
         const created = tasks.filter((item) => item.task.messageId !== authorTask.messageId);
         expect(created.length > 0, 'tasks created by the coordinator').toBe(true);
 

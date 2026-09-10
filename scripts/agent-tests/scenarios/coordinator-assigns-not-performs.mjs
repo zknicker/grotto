@@ -34,7 +34,10 @@ export default defineScenario({
         expect(turn.failureKind ?? 'none', 'coordinator turn failure kind').toBe('none');
 
         log('checking gates');
-        const tasks = await kit.trpc('task.list', { chatId: channel.id, serverId: kit.serverId });
+        const { tasks } = await kit.trpc('task.list', {
+            chatId: channel.id,
+            serverId: kit.serverId,
+        });
         const lanes = [findLane(tasks, laneA), findLane(tasks, laneB)].filter(Boolean);
         expect(lanes, 'lane tasks created in the channel').toHaveLength(2);
         expect(lanes[0].task.assigneeAgentId, `${laneA} assignee`).toBe(first.id);

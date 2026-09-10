@@ -121,7 +121,7 @@
     "packages/grotto-api/src/chat.ts": 572,
     "packages/grotto-sdk/src/client.ts": 431,
     "scripts/agent-tests/kit.mjs": 309,
-    "scripts/agent-tests/kit.test.mjs": 552,
+    "scripts/agent-tests/kit.test.mjs": 498,
     "scripts/dev-stack-controller.mjs": 580,
     "scripts/dev-stack-shared.mjs": 348,
     "scripts/env-contract-check.ts": 327,

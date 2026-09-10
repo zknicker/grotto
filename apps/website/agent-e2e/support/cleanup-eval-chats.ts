@@ -5,6 +5,11 @@ export interface EvalCleanupTask {
     };
 }
 
+/** `task.list` answers with the page wrapper, not a bare array. */
+export interface EvalCleanupTaskList {
+    tasks: readonly EvalCleanupTask[];
+}
+
 interface EvalCleanupChatPage {
     threads: Array<{ threadChatId: string }>;
 }
@@ -49,11 +54,11 @@ export async function cleanupEvalChats(
         return;
     }
 
-    const tasks = (await runOperation(
+    const listed = (await runOperation(
         harness.trpc('task.list', { serverId: harness.serverId }),
         `list task Threads for cleanup of ${requestedChatIds.join(', ')}`
-    )) as EvalCleanupTask[];
-    const exactChatIds = new Set(expandEvalCleanupChatIds(requestedChatIds, tasks));
+    )) as EvalCleanupTaskList;
+    const exactChatIds = new Set(expandEvalCleanupChatIds(requestedChatIds, listed.tasks));
     for (const chatId of requestedChatIds) {
         const page = (await runOperation(
             harness.trpc('chat.messages', {

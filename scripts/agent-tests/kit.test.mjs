@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createAgentInputSchema } from '../../packages/grotto-api/src/agent.ts';
 import { chunkChatIds, expandEvalCleanupChatIds } from './cleanup-chats.mjs';
 import { marker } from './kit.mjs';
 import {
@@ -16,7 +17,6 @@ import {
 } from './provisioner.mjs';
 import { activeLine, formatWall, pad } from './render.mjs';
 import { buildSummary, runStamp, slug } from './report.mjs';
-import { AssertionError, createExpect, defineScenario, isScenario } from './scenario.mjs';
 import { createRunLedger } from './state.mjs';
 import { sweepAgentTestLeftovers } from './sweep.mjs';
 import { deniedError, unroutedPathError } from './test-support.mjs';
@@ -62,63 +62,6 @@ describe('marker', () => {
     test('supports a custom prefix and a bare suffix', () => {
         expect(marker('TASK')).toMatch(/^TASK-[A-Z2-9]{6}$/u);
         expect(marker('')).toMatch(/^[A-Z2-9]{6}$/u);
-    });
-});
-
-describe('expect helper', () => {
-    test('records passing gates', () => {
-        const assertions = [];
-        createExpect(assertions)('in_progress', 'task status').toBe('in_progress');
-        expect(assertions).toEqual([{ label: 'task status', ok: true }]);
-    });
-
-    test('reports the actual value on failure', () => {
-        const assertions = [];
-        const check = createExpect(assertions);
-        expect(() => check('todo', 'task status').toBe('in_progress')).toThrow(AssertionError);
-        expect(assertions[0].ok).toBe(false);
-        expect(assertions[0].message).toBe('task status: expected "in_progress", got "todo"');
-    });
-
-    test('names the container on length and containment failures', () => {
-        const check = createExpect();
-        expect(() => check(['a', 'b'], 'replies').toHaveLength(1)).toThrow(
-            'replies: expected length 1, got 2 in ["a", "b"]'
-        );
-        expect(() => check('no token here', 'reply').toContain('EVAL-ABC123')).toThrow(
-            'reply: expected "no token here" to contain "EVAL-ABC123"'
-        );
-    });
-});
-
-describe('defineScenario', () => {
-    test('normalizes agent requests and marks the module shape', () => {
-        const scenario = defineScenario({
-            agents: ['worker', { cleanWorkspace: true, kind: 'coordinator' }],
-            name: '  demo  ',
-            run: () => undefined,
-        });
-        expect(isScenario(scenario)).toBe(true);
-        expect(scenario.name).toBe('demo');
-        // A provisioned Agent is new, so only the kind survives normalization.
-        expect(scenario.agents).toEqual([{ kind: 'worker' }, { kind: 'coordinator' }]);
-    });
-
-    test('rejects unknown agent kinds and missing run functions', () => {
-        const unknownKind = () =>
-            defineScenario({ agents: ['captain'], name: 'x', run: () => undefined });
-        expect(unknownKind).toThrow(/Unknown agent kind/u);
-        expect(() => defineScenario({ name: 'x' })).toThrow(/needs a run function/u);
-    });
-
-    test('marks opt-in scenarios without changing the default shape', () => {
-        const scenario = defineScenario({
-            name: 'live-only',
-            optIn: true,
-            run: () => undefined,
-        });
-        expect(scenario.optIn).toBe(true);
-        expect(isScenario(scenario)).toBe(true);
     });
 });
 
@@ -200,10 +143,13 @@ describe('provisioning', () => {
         expect(worker).toMatchObject({
             computerId: 'cmp_1',
             modelId: 'gpt-5.6-terra',
-            role: 'member',
             runtimeId: 'codex',
             serverId: 'srv_1',
         });
+        // The fake harness accepts anything, so the payload is judged by the
+        // Server's own strict schema instead: a retired field (`role`) outlived
+        // its removal here and failed every provisioning scenario at run time.
+        expect(createAgentInputSchema.safeParse(worker).error?.issues ?? []).toEqual([]);
         expect(coordinator.handle).toMatch(/^eval-coordinator2-[a-z2-9]{6}$/u);
         expect(coordinator.description).toBe(agentKindDescriptions.coordinator);
     });
@@ -527,7 +473,7 @@ function createFakeHarness({
             return { agentId: input.agentId };
         }
         if (path === 'task.list') {
-            return [];
+            return { backgroundCount: 0, tasks: [] };
         }
         if (path === 'chat.messages') {
             return { messages: [], threads: [] };

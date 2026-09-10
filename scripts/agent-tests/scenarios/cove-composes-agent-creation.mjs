@@ -73,9 +73,9 @@ export default defineScenario({
                         message.author.agentId === cove.id
                 );
                 expect(
-                    proposalMessages.filter((message) => message.content.trim().length > 0),
+                    proposalMessages.filter((message) => message.content.trim().length > 0).length,
                     'a substantive proposal in the parent DM'
-                ).not.toHaveLength(0);
+                ).toBeGreaterThan(0);
                 expect(
                     proposalMessages.filter((message) => message.body?.kind === 'agent-created'),
                     'no creation before the owner asks for it'

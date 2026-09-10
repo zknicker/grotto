@@ -60,7 +60,7 @@ export default defineScenario({
 
         // The Agent may answer inline or promote the prompt to a task Thread;
         // both are valid containers for this contract.
-        const tasks = await kit.trpc('task.list', { serverId: kit.serverId });
+        const { tasks } = await kit.trpc('task.list', { serverId: kit.serverId });
         const promoted = tasks.find(
             (entry) => entry.task.chatId === channel.id && entry.message.content === prompt
         );
@@ -93,7 +93,7 @@ async function sendOnceClaimed(kit, { agentId, channelId, color, log, prompt }) 
 async function waitForClaimedTask(kit, { agentId, channelId, prompt, timeoutMs = 120_000 }) {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
-        const tasks = await kit.trpc('task.list', { serverId: kit.serverId });
+        const { tasks } = await kit.trpc('task.list', { serverId: kit.serverId });
         const claimed = tasks.find(
             (entry) =>
                 entry.task.chatId === channelId &&

@@ -146,7 +146,6 @@ async function provisionAgent(harness, request, position, { onCreated, onPhase }
             displayName,
             handle,
             modelId: target.modelId,
-            role: 'member',
             runtimeId: target.runtimeId,
             serverId: harness.serverId,
         });

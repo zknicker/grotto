@@ -59,7 +59,7 @@ export async function cleanupEvalChats({ serverId, trpc }, chatIds) {
         return [];
     }
 
-    const tasks = await trpc('task.list', { serverId });
+    const { tasks } = await trpc('task.list', { serverId });
     const expansion = expandEvalCleanupChatIds(requestedChatIds, tasks);
     const exactChatIds = new Set(expansion.chatIds);
     for (const chatId of expansion.chatIds) {

@@ -48,7 +48,7 @@ test('deletes ordinary message Threads with their requested parent Chat', async 
         trpc: async (path: string, input: Record<string, unknown>) => {
             calls.push({ input, path });
             if (path === 'task.list') {
-                return [];
+                return { backgroundCount: 0, tasks: [] };
             }
             if (path === 'chat.messages') {
                 return { threads: [{ threadChatId: 'cht_thr_message' }] };

@@ -86,7 +86,7 @@ export default defineScenario({
 
 async function readAgentReplies(kit, chatId, agentId) {
     const direct = await kit.readMessages(chatId);
-    const tasks = await kit.trpc('task.list', { serverId: kit.serverId });
+    const { tasks } = await kit.trpc('task.list', { serverId: kit.serverId });
     const threads = await Promise.all(
         tasks
             .filter((entry) => entry.task.chatId === chatId)

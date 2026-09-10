@@ -1,18 +1,18 @@
 ---
-summary: Build, install, supervise, back up, restore, cut over, and roll back the single-node Grotto Server at grotto.sh.
+summary: Build, install, supervise, back up, restore, cut over, and roll back the single-node Haus Server at grotto.sh.
 read_when:
-  - deploying or operating the hosted Grotto Server
+  - deploying or operating the hosted Haus Server
   - changing grotto.sh ingress, PostgreSQL roles, or the delivered Server environment
-  - preparing a Grotto Server release artifact
+  - preparing a Haus Server release artifact
 ---
 
-# Grotto Server deployment
+# Haus Server deployment
 
-`grotto.sh` is one Server on the Mac mini. Cloudflare provides DNS, TLS, and a
-named Tunnel only. The Tunnel sends `https://grotto.sh` to
-`http://127.0.0.1:18791`; the Server serves Grotto App, tRPC HTTP, WebSocket, and
+`haus.chat` is one Server on the Mac mini. Cloudflare provides DNS, TLS, and a
+named Tunnel only. The Tunnel sends `https://haus.chat` to
+`http://127.0.0.1:18791`; the Server serves Haus App, tRPC HTTP, WebSocket, and
 `/healthz` from that origin. A Cloudflare Redirect Rule sends
-`www.grotto.sh/*` to the matching apex path and preserves the query string.
+`www.haus.chat/*` to the matching apex path and preserves the query string.
 PostgreSQL, attachments, and jobs stay on the mini. There is no public inbound
 port, managed database, object store in the request path, or Cloudflare compute
 for the apex. Vercel remains the domain registrar only; no production request
@@ -27,9 +27,9 @@ address outside callers cannot reach.
 
 ## Release artifact
 
-The Server and web Grotto App are one `server` target. Merging the release PR
+The Server and web Haus App are one `server` target. Merging the release PR
 starts one `Release` workflow; its Server job publishes the exact artifact and
-source identity needed for deployment. The graph then calls `Deploy Grotto
+source identity needed for deployment. The graph then calls `Deploy Haus
 Server` automatically through the protected `production` Environment. The
 reusable workflow resolves production credentials and rewrites the Server's
 delivered environment. Manual dispatch remains available for recovery and
@@ -46,15 +46,15 @@ The `Grotto Operations` dashboard is the operator-facing confirmation that the
 new process actually started with that identity; `/healthz` remains the direct
 availability check.
 
-The self-hosted `Deploy Grotto Server` workflow:
+The self-hosted `Deploy Haus Server` workflow:
 
-1. accepts the Release workflow's exact published Grotto `vX.Y.Z`, Server artifact `X.Y.Z`, and
+1. accepts the Release workflow's exact published Haus `vX.Y.Z`, Server artifact `X.Y.Z`, and
    source SHA, or those same exact values from a manual `deploy` or `activate`
 2. rejects drafts, prereleases, lightweight tags, branches, and arbitrary SHAs
 3. resolves the annotated tag to a full commit SHA through the authenticated
    GitHub API
 4. in `deploy` mode, requires the exact Server archive and sidecar whose Server version and short
-   SHA match that Grotto release
+   SHA match that Haus release
 5. verifies the existing private PostgreSQL service without mutating it
 6. in `deploy` mode, downloads and checksum-verifies those two assets, extracts
    only the compiled deploy operation, and uses it to verify and install the
@@ -77,7 +77,7 @@ The self-hosted `Deploy Grotto Server` workflow:
 10. reads the delivered environment back names-only and fails on a name outside
     the delivered set, or on a production-required name of that set arriving
     missing or empty
-11. verifies public `/healthz`, the hosted Grotto App shell, and the App's exact product version
+11. verifies public `/healthz`, the hosted Haus App shell, and the App's exact product version
 12. rolls back to the exact previous SHA on failure; a failed first activation
     boots out the label it introduced before removing `current`
 
@@ -100,7 +100,7 @@ in `config/server.env`. See [environment.md](environment.md).
 The Apple Silicon archive and SHA-256 file are built under
 `apps/server/release/`, verified by the publisher, and attached to the GitHub
 Release. The archive contains the compiled deploy operation, Server operations,
-Grotto App, PostgreSQL migration runner and files, two Grotto launchd jobs, one
+Haus App, PostgreSQL migration runner and files, two Haus launchd jobs, one
 narrow activation sudoers rule, and shared Colima boot assets. It ships no
 environment example of any kind: `config/server.env` is rendered from the
 schema at deploy time. The mini verifies the
@@ -174,7 +174,7 @@ configuration, and migrations remain the unprivileged deployer's responsibility.
 This does not create another application root: checkout, releases,
 configuration, data, and logs remain under `/Users/zknicker/srv/grotto`.
 
-PostgreSQL is the only Grotto container. The canonical definition is the
+PostgreSQL is the only Haus container. The canonical definition is the
 repository's `apps/server/compose.yml`; the deploy job verifies the running
 container and brings it up from that file under `varlock run` only when it is
 absent or unhealthy, so the admin password is interpolated from 1Password and
@@ -258,7 +258,7 @@ sudo /Users/zknicker/srv/grotto/current/operations/rollback-colima-boot
 Rollback returns Colima to login-scoped recovery. Because automatic login is
 disabled, a cold boot then needs an interactive `zknicker` login before the
 preserved LaunchAgent can start Colima. Do not couple this host-level rollback
-to an ordinary Grotto release rollback. The no-reboot installation check proves
+to an ordinary Haus release rollback. The no-reboot installation check proves
 the daemon can run the existing healthy profile, but full no-login boot recovery
 remains unproven until the separately approved reboot drill.
 
@@ -287,7 +287,7 @@ The Server returns only `{"status":"ok"}` or the redacted
 ## Off-machine backup
 
 There is none, deliberately. The scheduled `restic` backup and its isolated
-restore drill were retired: they never completed a working cycle, and Grotto is
+restore drill were retired: they never completed a working cycle, and Haus is
 a greenfield product with no data worth the operational surface. The
 `com.grotto.backup` LaunchDaemon, the `_grotto_backup` service account, and the
 restic repository and password are host state to remove; the `grotto_backup`
@@ -302,12 +302,12 @@ before the first scheduled run.
 Resolve and record every exact path, identity, database, Tunnel id, DNS route,
 secret source, and rollback release before changing the host.
 
-1. Initialize or fetch the Grotto repository in place at
+1. Initialize or fetch the Haus repository in place at
    `/Users/zknicker/srv/grotto`. Add every host-only root named above to
    `.git/info/exclude`; preserve existing files and never use `git clean`. The
    deploy root must hold no `.env`.
 2. Confirm the self-hosted runner can read this repository and invoke the
-   `Deploy Grotto Server` workflow. Do not grant it general root authority.
+   `Deploy Haus Server` workflow. Do not grant it general root authority.
 3. Verify the artifact checksum, host architecture, free loopback ports, and
    current service inventory.
 4. Install approved PostgreSQL client and cloudflared versions without enabling
@@ -328,8 +328,8 @@ secret source, and rollback release before changing the host.
 9. Own `config/` as `zknicker`, mode `0755`, so the deploy job can write
    `config/server.env` and `_grotto_server` can traverse to it. That file is
    rendered by the deploy job, never by hand: it carries the production
-   database URL, the `https://grotto.sh` origin, the Grotto Clerk issuer, and
-   the Grotto production `GROTTO_CLERK_SECRET_KEY`, which invitation acceptance needs
+   database URL, the `https://haus.chat` origin, the Haus Clerk issuer, and
+   the Haus production `GROTTO_CLERK_SECRET_KEY`, which invitation acceptance needs
    for verified-email lookup. Every one of those values lives in 1Password and
    reaches the host only through `varlock run`.
 10. Build the approved release once, then install its
@@ -344,7 +344,7 @@ secret source, and rollback release before changing the host.
     these privileged assets. The helper owns only the contained path switch,
     system-service restart, health check, and rollback. Reinstall it through
     this operator gate only when that narrow activation contract changes.
-11. Manually dispatch the exact published Grotto `vX.Y.Z`, its Server artifact `X.Y.Z`, and the
+11. Manually dispatch the exact published Haus `vX.Y.Z`, its Server artifact `X.Y.Z`, and the
     release source SHA in `deploy` mode. This seeds
     the first immutable release through the same download, verification,
     install, helper-owned Server bootstrap, health, and rollback path used by
@@ -354,7 +354,7 @@ secret source, and rollback release before changing the host.
    only to `127.0.0.1:18791`.
 14. Verify the helper-loaded Server through the local App, `/healthz`,
     authenticated API, and WebSocket.
-15. Load the Tunnel, approve the `grotto.sh` DNS route, then verify canonical
+15. Load the Tunnel, approve the `haus.chat` DNS route, then verify canonical
     sign-in, Server creation, and reopen from a remote client.
 16. Reboot once and prove PostgreSQL, Server, Tunnel, and the canonical flow
     recovered.

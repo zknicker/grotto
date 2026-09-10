@@ -1,14 +1,14 @@
 ---
-summary: App Store Connect setup and the durable TestFlight contract for the Grotto iPhone target.
+summary: App Store Connect setup and the durable TestFlight contract for the Haus iPhone target.
 read_when:
-  - preparing or promoting a Grotto iOS target
-  - signing, archiving, or uploading a Grotto iOS build
+  - preparing or promoting a Haus iOS target
+  - signing, archiving, or uploading a Haus iOS build
   - changing the iOS bundle identifier, entitlements, version, build number, or App Store metadata
 ---
 
 # iOS TestFlight
 
-Grotto iOS uses bundle identifier `build.grotto.ios`, independent SemVer, and a positive integer
+Haus iOS uses bundle identifier `chat.haus.ios`, independent SemVer, and a positive integer
 build number that increases for every upload. The checked-in XcodeGen project is canonical. The
 shared `assets/mac-icon.icon` Icon Composer source supplies the iPhone and App Store icon.
 
@@ -17,18 +17,19 @@ shared `assets/mac-icon.icon` Icon Composer source supplies the iPhone and App S
 Before the first upload, an Account Holder, Admin, or App Manager must:
 
 1. Accept pending App Store Connect agreements.
-2. Register the explicit App ID `build.grotto.ios` and enable Associated Domains for
-   `webcredentials:clerk.grotto.sh`.
-3. Create or verify the **Grotto Chat** app record (Apple ID `6802799165`) with that bundle ID and
-   SKU `grotto-ios`.
-4. Create the active App Store provisioning profile **Grotto CI App Store** for the Grotto App ID
+2. Register the explicit App ID `chat.haus.ios` and enable Associated Domains for
+   `webcredentials:clerk.haus.chat`.
+3. Create or verify the **Haus Chat** app record (Apple ID `6810799017`) with that bundle ID and
+   SKU `haus-ios`. The installed display name is Haus; Apple has already allocated the bare
+   Haus store name to another application. Existing Grotto installations require a fresh install.
+4. Create the active App Store provisioning profile **Haus CI App Store** for the Haus App ID
    and Apple Distribution certificate.
 5. Configure a team App Store Connect API key with Developer access and Certificates, Identifiers &
    Profiles access. CI uses it to read the existing profile and upload builds, never to create or
    mutate signing resources.
 6. Add TestFlight beta details, including feedback contact, sign-in/review instructions, and what
    testers should exercise.
-7. Create or verify the **Grotto Internal** TestFlight group and its automatic distribution.
+7. Create or verify the **Haus Internal** TestFlight group and its automatic distribution.
 
 The App Store product page also needs a privacy policy URL and age rating before public App Review.
 Internal TestFlight does not require screenshots; a public submission does.
@@ -62,7 +63,7 @@ The canonical Info.plist owns the matching icon metadata so Xcode's later plist 
 erase it. The artifact remains a compiled form of the canonical source, not a flattened fallback.
 
 The stable job signs, archives, and uploads the exact version/build pair. Automatic signing uses
-Apple Development for the archive. CI then downloads the one active **Grotto CI App Store** profile,
+Apple Development for the archive. CI then downloads the one active **Haus CI App Store** profile,
 exports the archive with that profile and Apple Distribution, and uploads the resulting IPA with
 Apple's `altool`. This avoids cloud-signing mutation permissions and requires no local Mac or
 TestFlight browser login. After upload, the job polls Apple's read-only build API for up to five
@@ -73,7 +74,7 @@ If the read-only status probe is temporarily unavailable after upload, do not re
 the build number is already consumed. Retry only `bun run ios:status <version> --build-number
 <number>` through the approved Tooling environment and record the resulting evidence.
 
-The **Grotto Internal** group automatically distributes new processed builds. Routine internal
+The **Haus Internal** group automatically distributes new processed builds. Routine internal
 releases therefore require no per-build group assignment or **What to Test** edit. `VALID` proves
 that Apple processed the uploaded build; it does not prove tester distribution, and the Developer
 API key intentionally cannot mutate or inspect beta-group membership.

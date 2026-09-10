@@ -82,8 +82,9 @@ An Agent created by another Agent (ADR 0028) is an ordinary `agents` row plus tw
 columns: `created_by_agent_id` (the creator, beside the existing `created_by_user_id`) and
 `creation_message_id`, the announcement Message the create wrote in the same transaction. That
 second column is unique per Server, so a Message projects at most one created Agent, and it is
-`ON DELETE SET NULL` — deleting the Chat loses the anchor, never the Agent. `agents` carries no
-`role`; Server authority is a human membership property.
+`ON DELETE SET NULL (creation_message_id)` — the column list is what keeps the composite key from
+nulling the tenant's own `server_id`, so deleting the Chat loses the anchor, never the Agent.
+`agents` carries no `role`; Server authority is a human membership property.
 
 `triggers` is the Agent-owned inbound wake: owner Agent, `kind` (checked against `webhook`),
 anchor Chat and nullable anchor message, `created_by_user_id` for a Trigger a human created from

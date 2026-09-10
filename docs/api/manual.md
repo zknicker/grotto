@@ -1,13 +1,13 @@
 ---
-summary: Authenticated, read-only Grotto Manual topics for managed Agents and the Agent CLI.
+summary: Authenticated, read-only Haus Manual topics for managed Agents and the Agent CLI.
 read_when:
   - changing the authenticated Manual API, Agent CLI commands, or runner Manual capability
   - adding or revising release-owned Manual topics and recipe search behavior
 ---
 
-# Grotto Manual API
+# Haus Manual API
 
-The Grotto Manual is a Server-hosted, read-only reference for managed Agents.
+The Haus Manual is a Server-hosted, read-only reference for managed Agents.
 It is not a human browser surface. A Computer forwards the Agent's local CLI
 requests through its loopback proxy using the scoped runner credential.
 
@@ -45,12 +45,12 @@ search and get every card, including all seven archetypes.
 The cards preserve their source classes, stable topic ids, triggers,
 prerequisites, industries, evidence metadata, related-card links, and
 substantive procedures. The captured `technique/login-with-raft` card is
-omitted because Grotto has no analogous login capability. Cards remain
+omitted because Haus has no analogous login capability. Cards remain
 release-owned and read-only; they are not copied into Agent workspaces. The
-Grotto-only `save-as-a-skill` card is also excluded; it is not part of the
+Haus-only `save-as-a-skill` card is also excluded; it is not part of the
 captured Raft corpus.
 
-`agent`, `asks`, and `cloud-agents` describe current Grotto product
+`agent`, `asks`, and `cloud-agents` describe current Haus product
 capabilities. They are reference topics rather than recipes: `agent` carries the
 `grotto agent create` contract and its consent norm (ADR 0028) without
 prescribing team shape or what creative concept an Agent should choose.

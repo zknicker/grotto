@@ -1,5 +1,5 @@
 ---
-summary: Expand/contract release ordering and production smoke for reusable Grotto Computer login.
+summary: Expand/contract release ordering and production smoke for reusable Haus Computer login.
 read_when:
   - releasing a login, setup, attachment, or device-authorization change
   - removing a temporary Computer protocol compatibility path
@@ -15,10 +15,10 @@ Reusable Computer login uses three ordered checkpoints:
 3. final Server removes the temporary path.
 
 Never activate the contracted Server before the new Computer is publicly available and the
-production Computer has upgraded. Grotto App and the hosted Server are one artifact, so the final
+production Computer has upgraded. Haus App and the hosted Server are one artifact, so the final
 Server checkpoint activates both together.
 
-Use the [Grotto release skill](../../.agents/skills/release-grotto/SKILL.md) for each distinct
+Use the [Haus release skill](../../.agents/skills/release-grotto/SKILL.md) for each distinct
 checkpoint's append-only release record, one release PR, one post-merge `Release` workflow, and
 manual Server promotion. This document owns the sequence, rollback order, and smoke evidence. A
 three-checkpoint cutover is three sequential release decisions when the versions differ; it is not
@@ -44,21 +44,21 @@ Computer version, protocol, source identity, and the expanded Server prerequisit
 must prove the signed standalone artifact and public descriptor from the
 [Computer release and update spec](../../specs/raft-alignment/computer-release-and-update.md).
 
-Upgrade the production Computer through Grotto App or the local recovery command:
+Upgrade the production Computer through Haus App or the local recovery command:
 
 ```sh
-grotto-computer upgrade
+haus-computer upgrade
 ```
 
 Verify the new version, every pre-existing Server attachment, and an existing Agent workspace:
 
 ```sh
-$HOME/.local/bin/grotto-computer version
-$HOME/.local/bin/grotto-computer status
-$HOME/.local/bin/grotto-computer doctor
+$HOME/.local/bin/haus-computer version
+$HOME/.local/bin/haus-computer status
+$HOME/.local/bin/haus-computer doctor
 ```
 
-While the expanded Server remains active, rollback is `grotto-computer upgrade --rollback` followed
+While the expanded Server remains active, rollback is `haus-computer upgrade --rollback` followed
 by status and workspace checks. Do not roll the Computer back by itself after the contracted Server
 activates.
 
@@ -71,7 +71,7 @@ attachments, and workspaces remain in place.
 Record the already-published Computer version as the prerequisite. Do not republish Computer for
 the final Server checkpoint. Mark only the final Server target for publication unless the diff
 proves another target changed. Promote the final Server manually, then confirm public health,
-Grotto App loading, and Computer reconnect.
+Haus App loading, and Computer reconnect.
 
 Rollback order is strict: reactivate the expanded Server release first, wait for successful health,
 then roll Computer back only if needed. Never reset PostgreSQL, delete the Computer data root, or
@@ -79,22 +79,22 @@ replace production attachment files as rollback.
 
 ## Production smoke from a clean data root
 
-Run the smoke from a dedicated macOS account or separate host that does not own an existing Grotto
+Run the smoke from a dedicated macOS account or separate host that does not own an existing Haus
 Computer service. A temporary data root isolates files, but `logout` stops the account-wide
 `com.grotto.computer` service; never run this smoke as the production Computer account.
 
 Prove the smoke account has no service plist and uses the published executable, then create a fresh
-Server in the production Grotto App and record its exact slug and Server id. Run setup against that
+Server in the production Haus App and record its exact slug and Server id. Run setup against that
 recorded Server with an isolated `GROTTO_COMPUTER_DATA_ROOT`.
 
 Verify device-code prefill, explicit account approval, **Signed in — finishing the connection**,
-and **Computer connected** only after the CLI stores the attachment. In Grotto App, verify the
+and **Computer connected** only after the CLI stores the attachment. In Haus App, verify the
 Server observes the Computer, onboarding advances only after runtime/model inventory, the Owner
 selects Cove's model, and the App unlocks into the retained onboarding Channel. Verify Cove's
 implicit DM behavior and, when enabled, exactly one canonical greeting DM/message.
 
 Record the Computer id, isolated attachment path, Cove id, DM/message ids, release versions, and
 timestamps before cleanup. Inspect status and log out with the isolated root. Delete only the
-confirmed smoke Server through its Grotto App flow when cleanup is authorized, then move only the
+confirmed smoke Server through its Haus App flow when cleanup is authorized, then move only the
 recorded temporary root to Trash. Never sweep Servers, Computers, attachments, or local roots by
 prefix or age.

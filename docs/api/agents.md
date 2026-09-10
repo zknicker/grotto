@@ -140,7 +140,7 @@ not a standing ruling. `packages/grotto-api` owns the schema (`taskClaimConflict
 rendering copy: `taskClaimConflictBlockedActionCopy` maps each blocked action id to its prose, and
 `TASK_CLAIM_CONFLICT_ROUTING_NOTE` is the closing sentence the CLI prints — a claim conflict is a
 concurrency lock, not a ruling on who owns or leads the lane, and a misroute is corrected in the
-original Thread. Grotto has no reassignment-request command, so no clause names one.
+original Thread. Haus has no reassignment-request command, so no clause names one.
 `grotto task claim` renders the block from the 409 body in place of the generic error line —
 `apps/computer/src/agent-cli/agent-claim-conflict.ts` is the only place that prose is composed —
 while a `TASK_CONFLICT` without a `claimConflict` keeps the ordinary refusal.
@@ -240,7 +240,7 @@ Thread, because Threads do not nest.
 
 The first reply in the Ask's Thread from anyone other than the asking Agent settles it in that
 reply's own transaction, recording the answering human or Agent and the answer Message. Humans and
-Agents both settle; the addressee is who Grotto notifies, not who Grotto permits. There is no answer
+Agents both settle; the addressee is who Haus notifies, not who Haus permits. There is no answer
 route — settlement is a side effect of the ordinary send paths — and no mutation of any other
 record. `ask.listOpen({ serverId })` is the human read for the Inbox, and it carries the
 conversation the answer is addressed to plus the Thread anchor a reply hangs off, so an Ask posted
@@ -250,7 +250,7 @@ Every Agent-facing Message states its `body_kind` (`text | ask | cloud-agent-wor
 Message carries `ask: { id, status, addressee_handle, title, recommended_step }` beside it. The
 Agent CLI appends `[ask status=open|answered to=@handle]` to that Message's history line and
 delivery envelope, after the task suffix
-([Grotto CLI](../../specs/grotto-cli.md#4-envelopes-and-message-lines)).
+([Haus CLI](../../specs/grotto-cli.md#4-envelopes-and-message-lines)).
 
 ### Cloud Agent work
 
@@ -332,7 +332,7 @@ same reason: the App never touches a Computer socket.
 provider's credential store; `disconnect` forgets it, and the key stays revocable from the
 provider's dashboard. Server holds no provider credential and stores none — only readiness and the
 account it resolves to cross the boundary. Connecting waits up to five minutes because a human
-finishes the flow, and Grotto never opens it during an Agent turn.
+finishes the flow, and Haus never opens it during an Agent turn.
 
 The Agent profile pane is the human's canonical edit surface. `agent.update`, `agent.configure`, and
 the avatar mutations on the Server `agent` tRPC router remain the Owner/Admin path for every field,

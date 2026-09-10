@@ -7,7 +7,7 @@ read_when:
 
 # Agents
 
-Agents are Server members whose execution runs on an assigned Grotto Computer.
+Agents are Server members whose execution runs on an assigned Haus Computer.
 
 ## Ownership
 
@@ -41,7 +41,7 @@ Computer seeds an ordinary Agent's fresh workspace with only a minimal
 `MEMORY.md`: identity, description-derived role, empty knowledge, and initial
 active context. Practice files, recipe summaries, onboarding notes, and
 archetype notes come from neither creation nor reset. Shared guidance belongs
-in the Grotto Manual, while the Agent's own work may add files later.
+in the Haus Manual, while the Agent's own work may add files later.
 
 The skill system remains Agent-owned and writable, but there is no factory
 `grotto-agent` skill. Mandatory operating rules live in managed instructions,
@@ -81,8 +81,8 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 - Every active Agent is already present in the Direct messages sidebar; there
   is no Create DM action or Agent picker.
 
-Computer retains an internal per-Agent **Grotto Agent** version receipt for release evidence and
-diagnostics. That version covers Grotto-managed behavior delivered through instructions, actions,
+Computer retains an internal per-Agent **Haus Agent** version receipt for release evidence and
+diagnostics. That version covers Haus-managed behavior delivered through instructions, actions,
 recipes and Manual content, Harness bootstrap, and factory guidance; it does not version
 Agent-owned memory, skills, or workspace edits. The ordinary App does not present the receipt as an
 update state because an Agent has no independent update action. Instruction refresh attempts remain
@@ -173,14 +173,14 @@ Computer composes managed product instructions, the Agent description, the
 Agent's local skills, and tool guidance when a fresh model session starts.
 Durable learned knowledge lives in the Agent's own `MEMORY.md` and any files it
 creates.
-Grotto does not generate an `AGENTS.md`, `SOUL.md`, or injected memory layer
+Haus does not generate an `AGENTS.md`, `SOUL.md`, or injected memory layer
 inside the workspace.
 
 Computer does not suppress image-generation capabilities native to an Agent's selected execution
-runtime. Availability follows that runtime and model; it is separate from Grotto's avatar service
+runtime. Availability follows that runtime and model; it is separate from Haus's avatar service
 and is not controlled by an App setting.
 
-Grotto Agent releases do not force fresh model context. Computer supplies the current managed
+Haus Agent releases do not force fresh model context. Computer supplies the current managed
 instructions on the next accepted turn and applies any release-owned bootstrap or factory guidance
 at that same boundary. The public version receipt advances only after that turn succeeds.
 
@@ -188,9 +188,9 @@ Avatar generation is a Server-owned service. The Server owns the prompt, provide
 normalization, validation, and concurrency limits. Agents reach it only through
 `grotto agent create --avatar-concept` and `grotto agent avatar`; there is no standalone generate
 command and no transient avatar file. A Server without the provider provisioned still creates
-Agents, without an avatar. It is not configured through Grotto App or by changing the calling
-Agent's runtime or model. The provider credential is held only by Grotto Server; it is never sent to
-Grotto App, Computer, or the Agent workspace.
+Agents, without an avatar. It is not configured through Haus App or by changing the calling
+Agent's runtime or model. The provider credential is held only by Haus Server; it is never sent to
+Haus App, Computer, or the Agent workspace.
 
 Owners and Admins can also choose **Generate avatar** on an ordinary Agent's profile. The profile
 requires a short concept, previews one transient result, and only applies it after an explicit Save;

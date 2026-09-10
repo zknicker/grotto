@@ -7,7 +7,7 @@ read_when:
 
 # Connections API
 
-The App uses the Grotto Server `mcp` tRPC router:
+The App uses the Haus Server `mcp` tRPC router:
 
 - `mcp.add`
 - `mcp.addPresetAccount`
@@ -59,7 +59,7 @@ failures do not disconnect the account or erase its connection-level Agent grant
 ## Connection Icons
 
 `icon` on a connection is `{ light, dark }`, each an inline `data:` image URI or `null`, or the
-whole field is `null`. It is identity-derived state: Grotto Server resolves it during discovery
+whole field is `null`. It is identity-derived state: Haus Server resolves it during discovery
 beside `accountLabel`, and clears it wherever identity is cleared.
 
 Resolution order is the MCP server's advertised `serverInfo.icons` (SEP-973), then the favicon of

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Always-on Grotto guidance for AI coding assistants.
+Always-on Haus guidance for AI coding assistants.
 
 ## Start Here
 
@@ -12,15 +12,15 @@ Always-on Grotto guidance for AI coding assistants.
 
 ## Architecture Map
 
-Grotto has three first-party product surfaces. Grotto is the product; execution runtimes are
+Haus has three first-party product surfaces. Haus is the product; execution runtimes are
 Computer-local implementation choices.
 
 | Layer | Owns |
 | --- | --- |
-| Grotto Server | Canonical collaboration state, identity, authorization, chats, messages, tasks, reminders, connections, and Computer coordination. |
-| Grotto App | The React product surface, Electron shell, local presentation, app cache, settings, optimistic UI, and tRPC client behavior. |
-| Grotto Computer | Machine attachment state, Agent workspaces, delivery queues, execution-runtime discovery, and Agent execution. |
-| Grotto API | Stable first-party contracts shared by Server, App, Computer, and the Agent CLI. |
+| Haus Server | Canonical collaboration state, identity, authorization, chats, messages, tasks, reminders, connections, and Computer coordination. |
+| Haus App | The React product surface, Electron shell, local presentation, app cache, settings, optimistic UI, and tRPC client behavior. |
+| Haus Computer | Machine attachment state, Agent workspaces, delivery queues, execution-runtime discovery, and Agent execution. |
+| Haus API | Stable first-party contracts shared by Server, App, Computer, and the Agent CLI. |
 
 Use product nouns directly:
 
@@ -28,7 +28,7 @@ Use product nouns directly:
 - A `session` is one agent's single ongoing global execution context spanning
   every chat it participates in (specs/sessions.md).
 - A `turn` is one execution inside a session.
-- Grotto chat history is canonical Grotto Server state.
+- Haus chat history is canonical Haus Server state.
 - Agent execution traces are execution evidence, not the product timeline.
 
 ## Docs Routing
@@ -57,7 +57,7 @@ so `docs:list` routes future agents correctly.
 8. Avoid unnecessary barrel files. Use them only for clear package or domain entrypoints.
 9. Prefer immutable patterns and explicit validation at boundaries.
 10. Handle edge cases and external failures explicitly; do not swallow errors.
-11. Use Grotto in product prose. Preserve literal internal `grotto` identifiers such as package
+11. Use Haus in product prose. Preserve literal internal `grotto` identifiers such as package
     names, env vars, API fields, paths, and wire names until an explicit contract migration renames
     them. Frame internal engine abilities as the agent's or assistant's abilities; use
     "agent engine" only on technical surfaces.
@@ -82,7 +82,7 @@ so `docs:list` routes future agents correctly.
 - App event hooks should own their tRPC subscription and the exact React Query invalidation or cache
   update.
 
-## Grotto App UI
+## Haus App UI
 
 - React structure, behavior, data flow, or state: before editing, use
   `architect-react-features` and read `docs/internals/react.md`. Also use
@@ -114,7 +114,7 @@ so `docs:list` routes future agents correctly.
 - After changing a browser-runtime dependency, restart the worktree dev stack so Vite rebuilds its
   optimized dependencies before browser verification.
 - `DESIGN.md` and `apps/website/src/styles/default-theme.css` started as exports from the
-  [saved Grotto design system](https://heroui.pro/ds/9e70cb0a-050a-4aca-8cc4-4d38eafb56ad)
+  [saved Haus design system](https://heroui.pro/ds/9e70cb0a-050a-4aca-8cc4-4d38eafb56ad)
   in HeroUI Pro and are now owned in code. The saved design system is stale; the repo is the
   source of truth. Edit both directly and keep them consistent.
 - `default-theme.css` is the whole design system, in HeroUI's own theme shape: tokens in
@@ -198,9 +198,9 @@ so `docs:list` routes future agents correctly.
   routes existing telemetry and creates a Luna-max Raft partner when useful. Pure visual or
   layout bugs follow the App UI workflow instead.
 
-- Grotto Computer owns runtime discovery, model inventory, instruction composition, tools, and the
+- Haus Computer owns runtime discovery, model inventory, instruction composition, tools, and the
   chat-to-Agent turn runner under `apps/computer/src/`.
-- Codex, Claude Code, and Pi are execution runtimes inside Computer. Do not use “Grotto Runtime” as
+- Codex, Claude Code, and Pi are execution runtimes inside Computer. Do not use “Haus Runtime” as
   a product, service, release, compatibility, or ownership term.
 - After a coherent execution change, select deterministic and live verification from
   [Change Routing](docs/operations/testing.md#change-routing).
@@ -216,18 +216,18 @@ reviewed, and bounded. `managed-instructions.test.ts` asserts a reviewed size bu
 40,000 characters) that ratchets down and never drifts up. It is a review gate, not a runtime
 limit: no adapter enforces a prompt length. Prefer moving guidance out of the prompt over adding
 to it — the prompt is a pointer to the
-[Grotto Manual](docs/adr/0021-cove-onboards-and-agents-share-a-manual.md) for mechanics, and a
+[Haus Manual](docs/adr/0021-cove-onboards-and-agents-share-a-manual.md) for mechanics, and a
 change should move things around and simplify rather than expand.
 
 Two kinds of text share that budget:
 
 - **Raft-verbatim text is the fixed part.** It is never trimmed, paraphrased, or reordered to make
-  room. Restoring a Raft clause that Grotto had replaced with an analogue may raise the budget by
+  room. Restoring a Raft clause that Haus had replaced with an analogue may raise the budget by
   exactly the restored amount, with the register row and a one-line commit rationale.
-- **Grotto-only text is the variable part.** A Grotto-only addition must fit inside the current
-  budget by simplifying or relocating other Grotto-only text — Manual topics and skills, per
+- **Haus-only text is the variable part.** A Haus-only addition must fit inside the current
+  budget by simplifying or relocating other Haus-only text — Manual topics and skills, per
   [ADR 0012](docs/adr/0012-design-guidance-is-skill-carried.md) — never by cutting Raft text.
-  Raising the budget for Grotto-only growth needs an explicit operator decision.
+  Raising the budget for Haus-only growth needs an explicit operator decision.
 
 When changing prompt text or that contract test:
 
@@ -243,7 +243,7 @@ When changing prompt text or that contract test:
 
 ### Issue tracker
 
-Issues live in the Linear `PRD` team with the `Grotto` label. See `docs/agents/issue-tracker.md`.
+Issues live in the Linear `PRD` team with the `Haus` label. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
@@ -258,7 +258,7 @@ Single-context repo: use root `CONTEXT.md` and `docs/adr/`. See `docs/agents/dom
 For release target decisions, `releases.json` preparation, the single release PR, post-merge
 target-job monitoring, or the operator handoff, use `.agents/skills/release-grotto/SKILL.md`.
 Route durable artifact and target contracts through `docs/operations/releases.md`; production
-Grotto Server promotion remains a separate manual operation in
+Haus Server promotion remains a separate manual operation in
 `docs/operations/grotto-server-deploy.md`.
 
 ## Cursor Cloud specific instructions
@@ -277,9 +277,9 @@ artifact download). `start.sh` seeds fleet agents on every boot. The full stack
  See [docs/operations/environment.md](docs/operations/environment.md).
 - `.cursor/start.sh` seeds the shared fleet skill library from the private
  `zknicker/agents` repository on every boot, using the account-level Runtime Secret
- `CURSOR_CLOUD_AGENTS_GH_READ_TOKEN`. That credential is agent tooling, not part of Grotto's
+ `CURSOR_CLOUD_AGENTS_GH_READ_TOKEN`. That credential is agent tooling, not part of Haus's
  environment contract, so it lives in Cursor's own secret store and never touches the schema.
- Grotto's own product skills stay in the committed `.agents/skills`.
+ Haus's own product skills stay in the committed `.agents/skills`.
 - PostgreSQL 16 lives at `/usr/lib/postgresql/16/bin`, and `.cursor/install.sh` symlinks its
  binaries into `/usr/local/bin` so every PostgreSQL-backed lane finds them on `PATH`
  (`bun run test:app`, `apps/server` tests, evals, and the dev stack). `scripts/dev-postgres.mjs` and
@@ -287,7 +287,7 @@ artifact download). `start.sh` seeds fleet agents on every boot. The full stack
  16 from a non-standard location, set `GROTTO_POSTGRES_BIN` to its bin directory (the `dev-stack`
  terminal already exports it explicitly). Do not start a system PostgreSQL service; each lane owns a
  throwaway/worktree-isolated cluster.
-- The web app auto signs in (`VITE_DEV_CLERK_AUTO_SIGN_IN=true`) against Grotto's development Clerk
+- The web app auto signs in (`VITE_DEV_CLERK_AUTO_SIGN_IN=true`) against Haus's development Clerk
  instance; the first Server boot seeds a demo Server (agents Blippy and Tiny, `#all`/`#product`
  channels, starter messages). No manual login is required in dev.
 - `bun run dev` renders a live TUI whose "Services" banner prints the resolved Server, Computer, and

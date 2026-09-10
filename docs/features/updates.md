@@ -8,7 +8,7 @@ read_when:
 
 # Updates and Computer attention
 
-The sidebar updater is a one-click control for release work Grotto knows is needed and can act on
+The sidebar updater is a one-click control for release work Haus knows is needed and can act on
 now. It is not a compliance report for every attached machine. The desktop App contributes its
 native updater state; each connected Computer contributes its own installed version and update
 state. An offline Computer contributes neither because its last report may no longer describe the
@@ -16,7 +16,7 @@ installed software.
 
 The anchored update tooltip lists only surfaces that still need attention. A current App or
 Computer stays out of the tooltip. Every Computer row includes its user-facing name, such as
-**Computer · Home**, so simultaneous updates remain unambiguous. Grotto Agent receipts are internal
+**Computer · Home**, so simultaneous updates remain unambiguous. Haus Agent receipts are internal
 diagnostics, not update targets. Version drift, live progress, and failures remain attached to
 their own rows. A failure includes the safe reported detail and one concrete recovery suggestion.
 The compact button represents the next useful action: download, live progress, App restart, or

@@ -16,7 +16,7 @@ model session. Per-turn message delivery is an inbox concern; see
 - Computer composes managed product instructions, the Agent description,
   assigned skills, and tool guidance for every accepted turn. It persists the
   applied instruction and Harness bootstrap fingerprints with the resumed session.
-- Computer does not append Grotto-specific model-family steering. Every model receives the same
+- Computer does not append Haus-specific model-family steering. Every model receives the same
   managed product contract; executor-native instructions remain owned by that executor.
 - Instructions include current time, home timezone, and the rule that old
   context and prior data reads must be rechecked.
@@ -43,7 +43,7 @@ model session. Per-turn message delivery is an inbox concern; see
   A bootstrap or turn failure keeps the previous receipt and session generation so a later delivery
   can retry. Only rejection of the stored native resume state enters Server-authorized session
   recovery; Computer never silently discards conversation context.
-- The independently released Grotto Agent version is the public receipt for this managed behavior,
+- The independently released Haus Agent version is the public receipt for this managed behavior,
   including instructions, actions, recipes and Manual content, Harness bootstrap, and factory
   guidance. Version drift uses the same next-turn refresh path. Computer marks the version current
   only after a successful turn, preserves the previous applied version on failure, and reports the
@@ -74,8 +74,8 @@ model session. Per-turn message delivery is an inbox concern; see
 The composed instructions are bounded by a reviewed size budget asserted in
 `apps/computer/src/harness/managed-instructions.test.ts`. It is a review gate, not a runtime limit:
 no adapter enforces a prompt length. Raft-verbatim text is the fixed part and is never trimmed to
-make room; Grotto-only additions must fit inside the current budget by simplifying or relocating
-other Grotto-only text into Manual topics or skills. See AGENTS.md and
+make room; Haus-only additions must fit inside the current budget by simplifying or relocating
+other Haus-only text into Manual topics or skills. See AGENTS.md and
 [the divergence register](../../specs/raft-alignment/prompt-divergences.md).
 
 Durable Agent knowledge lives in the Agent-owned workspace (`MEMORY.md` and

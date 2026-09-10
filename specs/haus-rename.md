@@ -57,6 +57,29 @@ do not upgrade to this bundle. The App Store listing is Haus Chat (Apple ID `681
 display name is Haus. The `Haus Internal` tester group distributes builds
 automatically to the operator.
 
+## Computer and history migration
+
+Computer protocol 18 uses `haus` for Server-authored inbox senders. Publish the
+compatible Computer before activating Server so older Computers enter the
+existing signed-update flow before receiving the renamed sender.
+
+Saved attachments and login sessions for the exact origin `https://grotto.sh`
+connect directly to `https://haus.chat`. Custom Server origins do not change.
+Attachment reads preserve the original credential file for rollback; refreshed
+login sessions persist the canonical origin through the existing atomic writer.
+No credential is forwarded through an HTTP redirect.
+
+New installations use `haus-computer`. Existing standalone installations expose
+that command as an alias and continue updating the executable they already run.
+The managed Agent command is `haus`; the old command remains an alias for resumed
+histories. New workspace links use `haus://`, with legacy link parsing retained
+for messages already stored on Server. Historical factory-guidance fixtures and
+fingerprints retain their exact bytes so owned guidance can migrate without
+overwriting owner edits.
+
+`support@haus.chat` routes to the operator's verified Gmail destination through
+Cloudflare Email Routing. Clerk's separate mail and DKIM CNAMEs remain intact.
+
 ## Completion evidence
 
 Completion requires a source-name inventory with every remaining old name

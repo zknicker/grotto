@@ -3,7 +3,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const defaultOrigin = 'https://grotto.sh';
+const defaultOrigin = 'https://haus.chat';
 
 export async function verifyHostedGrotto({
     expectedVersion,
@@ -14,7 +14,7 @@ export async function verifyHostedGrotto({
     sleepImpl = sleep,
 }) {
     if (!/^\d+\.\d+\.\d+$/u.test(expectedVersion)) {
-        throw new Error('expected hosted Grotto version must be X.Y.Z');
+        throw new Error('expected hosted Haus version must be X.Y.Z');
     }
     const baseUrl = new URL(origin);
     let lastError;
@@ -29,7 +29,7 @@ export async function verifyHostedGrotto({
             }
         }
     }
-    throw new Error(`hosted Grotto did not serve ${expectedVersion}: ${errorMessage(lastError)}`);
+    throw new Error(`hosted Haus did not serve ${expectedVersion}: ${errorMessage(lastError)}`);
 }
 
 async function verifyAttempt({ baseUrl, expectedVersion, fetchImpl }) {
@@ -42,16 +42,16 @@ async function verifyAttempt({ baseUrl, expectedVersion, fetchImpl }) {
     const app = await fetchResponse(fetchImpl, new URL('/', baseUrl));
     const html = await app.text();
     if (!html.includes('id="root"')) {
-        throw new Error('hosted Grotto App root is missing');
+        throw new Error('hosted Haus App root is missing');
     }
     const assetPath = html.match(/\bsrc=["']([^"']*\/assets\/index-[^"']+\.js)["']/u)?.[1];
     if (!assetPath) {
-        throw new Error('hosted Grotto App entry asset is missing');
+        throw new Error('hosted Haus App entry asset is missing');
     }
     const asset = await fetchResponse(fetchImpl, new URL(assetPath, baseUrl));
     const source = await asset.text();
     if (!(source.includes(`"${expectedVersion}"`) || source.includes(`'${expectedVersion}'`))) {
-        throw new Error(`hosted Grotto App does not contain version ${expectedVersion}`);
+        throw new Error(`hosted Haus App does not contain version ${expectedVersion}`);
     }
 }
 
@@ -80,12 +80,12 @@ async function main() {
         expectedVersion: process.argv[2] ?? '',
         origin: process.argv[3] ?? defaultOrigin,
     });
-    console.log(`Public Grotto Server and hosted App verified at ${process.argv[2]}.`);
+    console.log(`Public Haus Server and hosted App verified at ${process.argv[2]}.`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
     main().catch((error) => {
-        console.error(`hosted Grotto verification error: ${errorMessage(error)}`);
+        console.error(`hosted Haus verification error: ${errorMessage(error)}`);
         process.exitCode = 1;
     });
 }

@@ -5,7 +5,7 @@ import {
     loadAppReleaseEnvironment,
 } from './app-release-environment.mjs';
 
-const productionKey = 'pk_live_Y2xlcmsuZ3JvdHRvLnNoJA';
+const productionKey = 'pk_live_Y2xlcmsuaGF1cy5jaGF0JA';
 const developmentKey = 'pk_test_d29ydGh5LXBlYWNvY2stMTEuY2xlcmsuYWNjb3VudHMuZGV2JA';
 
 test('uses the Clerk publishable key varlock resolved from the schema', () => {

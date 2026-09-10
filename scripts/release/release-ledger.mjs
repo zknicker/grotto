@@ -8,7 +8,7 @@ const targetLabels = {
     app: 'App',
     ios: 'iOS',
     computer: 'Computer',
-    agent: 'Grotto Agent',
+    agent: 'Haus Agent',
 };
 
 export function assertReleaseLedger(value, options = {}) {
@@ -32,7 +32,7 @@ export function assertReleaseLedger(value, options = {}) {
             entry.version &&
             compareVersions(entry.version, previousVersion) <= 0
         ) {
-            throw new Error('release ledger Grotto versions must be oldest-first');
+            throw new Error('release ledger Haus versions must be oldest-first');
         }
         if (!isDraftRelease(entry)) {
             assertCompleteRelease(entry);
@@ -48,7 +48,7 @@ export function assertReleaseLedger(value, options = {}) {
                 agentVersion &&
                 compareVersions(agentVersion, previousAgentVersion) <= 0
             ) {
-                throw new Error('Grotto Agent versions must be oldest-first');
+                throw new Error('Haus Agent versions must be oldest-first');
             }
             if (agentVersion) {
                 previousAgentVersion = agentVersion;
@@ -101,7 +101,7 @@ export function appendReleaseDraft(value, version) {
     const previousVersion = latestProductVersion(value);
     if (previousVersion && compareVersions(version, previousVersion) <= 0) {
         throw new Error(
-            `release draft version ${version} must be greater than latest Grotto version ${previousVersion}`
+            `release draft version ${version} must be greater than latest Haus version ${previousVersion}`
         );
     }
 
@@ -180,7 +180,7 @@ function assertReleaseEntry(
 ) {
     assertExactObject(entry, ['version', 'date', 'targets']);
     if (!(isSemver(entry.version) || (allowLegacyVersionless && entry.version === null))) {
-        throw new Error('release ledger Grotto version must be SemVer');
+        throw new Error('release ledger Haus version must be SemVer');
     }
     if (entry.date !== null && !/^\d{4}-\d{2}-\d{2}$/u.test(entry.date)) {
         throw new Error('release ledger date must be YYYY-MM-DD or null');
@@ -203,7 +203,7 @@ function assertTargets(targets, allowUndecided) {
         legacyTargetNames.every((targetName) => Object.hasOwn(targets, targetName));
     if (!(isCurrent || isLegacy)) {
         throw new Error(
-            'release ledger targets must contain exactly Server, App, iOS, Computer, and Grotto Agent'
+            'release ledger targets must contain exactly Server, App, iOS, Computer, and Haus Agent'
         );
     }
 
@@ -248,7 +248,7 @@ function assertCompleteRelease(entry) {
         releasePublishesTarget(entry, 'agent') &&
         !(releasePublishesTarget(entry, 'server') && releasePublishesTarget(entry, 'computer'))
     ) {
-        throw new Error('Grotto Agent publication requires Server and Computer publication');
+        throw new Error('Haus Agent publication requires Server and Computer publication');
     }
 }
 

@@ -28,10 +28,10 @@ const impact = await calculateReleaseImpact({ ledger, candidateRef });
 console.log('# Release preparation context');
 console.log('');
 console.log(`- Candidate: ${candidateRef}`);
-console.log(`- Latest Grotto version: ${latestProductVersion(ledger)}`);
+console.log(`- Latest Haus version: ${latestProductVersion(ledger)}`);
 console.log(`- Latest Server version: ${latestTargetVersion(ledger, 'server') ?? 'unversioned'}`);
 console.log(
-    `- Latest Grotto Agent version: ${latestTargetVersion(ledger, 'agent') ?? 'unversioned'}`
+    `- Latest Haus Agent version: ${latestTargetVersion(ledger, 'agent') ?? 'unversioned'}`
 );
 console.log('');
 console.log(formatReleaseImpact(impact));

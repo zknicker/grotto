@@ -1,9 +1,9 @@
 export const APP_RELEASE_ASSETS = Object.freeze([
     'latest-mac.yml',
-    'Grotto_{version}_arm64.dmg',
-    'Grotto_{version}_arm64.zip',
-    'Grotto_{version}_arm64.dmg.blockmap',
-    'Grotto_{version}_arm64.zip.blockmap',
+    'Haus_{version}_arm64.dmg',
+    'Haus_{version}_arm64.zip',
+    'Haus_{version}_arm64.dmg.blockmap',
+    'Haus_{version}_arm64.zip.blockmap',
 ]);
 
 const fullShaPattern = /^[0-9a-f]{40}$/u;
@@ -85,7 +85,7 @@ export async function verifyProductRelease({ repository, sourceRevision, release
     assertPublishedRelease(release, tagName, { requireAssets: false });
     return {
         mode: 'product',
-        message: `verified Grotto tag ${tagName}, merged SHA, and published GitHub Release`,
+        message: `verified Haus tag ${tagName}, merged SHA, and published GitHub Release`,
         tagName,
     };
 }

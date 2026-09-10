@@ -11,14 +11,14 @@ afterEach(async () => {
     await Promise.all(temporaryRoots.splice(0).map((root) => rm(root, { recursive: true })));
 });
 
-test('appends the Grotto draft without changing component versions', async () => {
+test('appends the Haus draft without changing component versions', async () => {
     const root = await mkdtemp(join(tmpdir(), 'grotto-release-bump-'));
     temporaryRoots.push(root);
     await Promise.all(
         [
             'apps/computer',
             'apps/website',
-            'apps/ios-swift/Grotto.xcodeproj',
+            'apps/ios-swift/Haus.xcodeproj',
             'packages/grotto-api',
             'scripts/release',
         ].map((directory) => mkdir(join(root, directory), { recursive: true }))
@@ -40,7 +40,7 @@ test('appends the Grotto draft without changing component versions', async () =>
         'settings:\n  base:\n    CURRENT_PROJECT_VERSION: "1"\n    MARKETING_VERSION: 1.8.19\n'
     );
     await writeFile(
-        join(root, 'apps/ios-swift/Grotto.xcodeproj/project.pbxproj'),
+        join(root, 'apps/ios-swift/Haus.xcodeproj/project.pbxproj'),
         'Debug { CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 1.8.19; }\nRelease { CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 1.8.19; }\n'
     );
     await writeFile(join(root, 'CHANGELOG.md'), '## v1.8.19 - 2026-08-19\n');
@@ -93,7 +93,7 @@ test('appends the Grotto draft without changing component versions', async () =>
         'MARKETING_VERSION: 1.0.5'
     );
     expect(
-        await readFile(join(root, 'apps/ios-swift/Grotto.xcodeproj/project.pbxproj'), 'utf8')
+        await readFile(join(root, 'apps/ios-swift/Haus.xcodeproj/project.pbxproj'), 'utf8')
     ).toBe(
         'Debug { CURRENT_PROJECT_VERSION = 6; MARKETING_VERSION = 1.0.5; }\nRelease { CURRENT_PROJECT_VERSION = 6; MARKETING_VERSION = 1.0.5; }\n'
     );

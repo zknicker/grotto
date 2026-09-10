@@ -44,7 +44,7 @@ const main = async () => {
     const serverVersion = releaseTargetVersion(release, 'server');
     const appVersion = releaseTargetVersion(release, 'app');
     const computerRelease = await checkComputerReleasePrerequisite().catch((error) => {
-        fail('compatible Grotto Computer must be published before Server', {
+        fail('compatible Haus Computer must be published before Server', {
             message: error instanceof Error ? error.message : String(error),
         });
     });
@@ -135,10 +135,10 @@ async function readPublishedRelease(version) {
         const ledger = await readJson('releases.json');
         const result = assertReleaseLedger(ledger, { requireComplete: true });
         if (result.latest.version !== version) {
-            throw new Error(`latest release ledger entry is not Grotto ${version}`);
+            throw new Error(`latest release ledger entry is not Haus ${version}`);
         }
         if (!releasePublishesTarget(result.latest, 'server')) {
-            throw new Error(`Grotto ${version} does not publish Server`);
+            throw new Error(`Haus ${version} does not publish Server`);
         }
         return result.latest;
     } catch (error) {
@@ -196,7 +196,7 @@ async function findReleaseArtifacts({ appVersion, includeDesktop, serverVersion,
 }
 
 async function findDesktopArtifacts(version) {
-    const expectedPrefix = `Grotto_${version}_`;
+    const expectedPrefix = `Haus_${version}_`;
     return await findFiles(
         bundleRoot,
         (entry) =>

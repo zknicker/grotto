@@ -11,7 +11,7 @@ const bundleRoot = path.join(repoRoot, 'apps', 'website', 'electron-dist');
 
 const main = async () => {
     const { version } = await readJson('apps/website/package.json');
-    const artifactPrefix = `Grotto_${version}_arm64`;
+    const artifactPrefix = `Haus_${version}_arm64`;
     const desktopArtifacts = includeDesktop
         ? [
               ...(await findFiles(bundleRoot, (entry) => entry === 'latest-mac.yml')),

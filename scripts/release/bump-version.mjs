@@ -31,7 +31,7 @@ const main = async () => {
 
     if (latestChangelogVersion !== currentVersion) {
         fail(
-            `latest changelog version (${latestChangelogVersion}) must match current Grotto version (${currentVersion}) before bumping`
+            `latest changelog version (${latestChangelogVersion}) must match current Haus version (${currentVersion}) before bumping`
         );
     }
 
@@ -50,7 +50,7 @@ const main = async () => {
         assertReleaseLedger(ledger, { requireComplete: true });
         if (latestProductVersion(ledger) !== currentVersion) {
             fail(
-                `latest release ledger Grotto version (${latestProductVersion(ledger)}) must match current Grotto version (${currentVersion}) before bumping`
+                `latest release ledger Haus version (${latestProductVersion(ledger)}) must match current Haus version (${currentVersion}) before bumping`
             );
         }
     } catch (error) {

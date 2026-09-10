@@ -21,10 +21,11 @@ test('redirects Computer releases directly to the public S3 prefix', () => {
     expect(response.headers.get('cache-control')).toBe('no-store');
 });
 
-test('redirects the public Grotto release snapshot', () => {
-    const response = handleReleaseRequest(
-        new Request('https://releases.grotto.sh/grotto/latest.json?proof=1')
-    );
+test.each([
+    'https://releases.haus.chat/haus/',
+    'https://releases.grotto.sh/grotto/',
+])('preserves published snapshot storage through %s', (baseUrl) => {
+    const response = handleReleaseRequest(new Request(`${baseUrl}latest.json?proof=1`));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(

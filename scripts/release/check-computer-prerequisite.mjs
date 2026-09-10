@@ -6,7 +6,7 @@ import { readComputerReleasePublicKey } from './computer-release-keys.mjs';
 
 export async function checkComputerReleasePrerequisite(
     manifestUrl = process.env.GROTTO_COMPUTER_RELEASE_MANIFEST_URL ??
-        'https://releases.grotto.sh/computer/latest.json',
+        'https://releases.haus.chat/computer/latest.json',
     publicKey = requiredReleasePublicKey()
 ) {
     const response = await fetch(manifestUrl, { cache: 'no-store' });

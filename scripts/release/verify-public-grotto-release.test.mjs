@@ -68,7 +68,7 @@ test('requires a final 2xx response and reports the failing endpoint', async () 
                         ? jsonResponse(null, 307)
                         : jsonResponse(expected),
             }),
-        /immutable public Grotto release snapshot returned HTTP 307 after redirects/
+        /immutable public Haus release snapshot returned HTTP 307 after redirects/
     );
 
     await assert.rejects(
@@ -82,7 +82,7 @@ test('requires a final 2xx response and reports the failing endpoint', async () 
                     status: 302,
                 }),
             }),
-        /public Grotto release snapshot returned HTTP 302 after redirects/
+        /public Haus release snapshot returned HTTP 302 after redirects/
     );
 });
 
@@ -139,7 +139,7 @@ for (const [field, mutate] of [
                             ? jsonResponse(expected)
                             : jsonResponse(actual),
                 }),
-            /immutable public Grotto release snapshot/
+            /immutable public Haus release snapshot/
         );
     });
 }
@@ -159,7 +159,7 @@ test('rejects extra fields and malformed endpoint JSON with endpoint context', a
                         ? jsonResponse(expected)
                         : jsonResponse(extraField),
             }),
-        /immutable public Grotto release snapshot verification failed: immutable public Grotto release snapshot has unexpected fields/
+        /immutable public Haus release snapshot verification failed: immutable public Haus release snapshot has unexpected fields/
     );
 
     await assert.rejects(
@@ -178,7 +178,7 @@ test('rejects extra fields and malformed endpoint JSON with endpoint context', a
                     status: 200,
                 }),
             }),
-        /immutable public Grotto release snapshot returned malformed JSON/
+        /immutable public Haus release snapshot returned malformed JSON/
     );
 });
 
@@ -196,7 +196,7 @@ test('validates the canonical expected object before making requests', async () 
                     return jsonResponse(expected);
                 },
             }),
-        /expected public Grotto release iOS component buildNumber must be a positive integer/
+        /expected public Haus release iOS component buildNumber must be a positive integer/
     );
     assert.equal(requests, 0);
 });

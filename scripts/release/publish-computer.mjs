@@ -48,7 +48,7 @@ const args = process.argv.slice(2).filter((arg) => arg !== '--');
 const dryRun = args.includes('--dry-run');
 const version = args.find((arg) => !arg.startsWith('-'));
 const releaseBaseUrl = (
-    process.env.GROTTO_COMPUTER_RELEASE_BASE_URL ?? 'https://releases.grotto.sh/computer'
+    process.env.GROTTO_COMPUTER_RELEASE_BASE_URL ?? 'https://releases.haus.chat/computer'
 ).replace(/\/+$/u, '');
 
 await main();
@@ -75,7 +75,7 @@ async function main() {
         ? (process.env.APPLE_TEAM_ID ?? 'DRYRUN0000')
         : requiredEnv('APPLE_TEAM_ID');
     const appleSigningIdentity = dryRun
-        ? (configuredSigningIdentity() ?? 'Developer ID Application: Grotto (DRYRUN0000)')
+        ? (configuredSigningIdentity() ?? 'Developer ID Application: Haus (DRYRUN0000)')
         : requiredSigningIdentity();
     assertSource(sourceRevision);
     const s3Root = dryRun ? null : requiredEnv('GROTTO_RELEASE_S3_URI').replace(/\/+$/u, '');

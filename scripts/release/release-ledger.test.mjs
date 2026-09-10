@@ -63,10 +63,10 @@ test('allows historical versionless records but rejects a versionless latest rel
     ).toBe(true);
     expect(() =>
         assertReleaseLedger([normalRelease, historical], { requireComplete: true })
-    ).toThrow('release ledger Grotto version must be SemVer');
+    ).toThrow('release ledger Haus version must be SemVer');
 });
 
-test('validates component-only releases under monotonic public Grotto versions', () => {
+test('validates component-only releases under monotonic public Haus versions', () => {
     const ledger = [
         normalRelease,
         {
@@ -89,7 +89,7 @@ test('requires every release target key', () => {
     };
 
     expect(() => assertReleaseLedger([incomplete], { requireComplete: true })).toThrow(
-        'release ledger targets must contain exactly Server, App, iOS, Computer, and Grotto Agent'
+        'release ledger targets must contain exactly Server, App, iOS, Computer, and Haus Agent'
     );
 });
 
@@ -104,7 +104,7 @@ test('allows undecided targets only in the latest draft', () => {
     expect(formatReleaseTargets(draft)).toContain('- App: Undecided');
 });
 
-test('appends one higher Grotto draft without rewriting history', () => {
+test('appends one higher Haus draft without rewriting history', () => {
     const ledger = appendReleaseDraft([normalRelease], '1.2.4');
 
     expect(ledger).toHaveLength(2);
@@ -115,7 +115,7 @@ test('appends one higher Grotto draft without rewriting history', () => {
     );
 });
 
-test('Grotto Agent versions increase and publish through Server and Computer', () => {
+test('Haus Agent versions increase and publish through Server and Computer', () => {
     const first = {
         ...normalRelease,
         targets: { ...normalRelease.targets, agent: '1.0.0' },
@@ -135,8 +135,8 @@ test('Grotto Agent versions increase and publish through Server and Computer', (
     expect(assertReleaseLedger([first, second], { requireComplete: true }).complete).toBe(true);
     expect(() =>
         assertReleaseLedger([first, { ...second, targets: { ...second.targets, agent: '1.0.0' } }])
-    ).toThrow('Grotto Agent versions must be oldest-first');
+    ).toThrow('Haus Agent versions must be oldest-first');
     expect(() =>
         assertReleaseLedger([first, { ...second, targets: { ...second.targets, computer: null } }])
-    ).toThrow('Grotto Agent publication requires Server and Computer publication');
+    ).toThrow('Haus Agent publication requires Server and Computer publication');
 });

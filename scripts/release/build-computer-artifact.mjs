@@ -67,7 +67,7 @@ export function verifyComputerReleaseAssets(artifactPath) {
     const output = execFileSync(artifactPath, ['__release-check'], {
         encoding: 'utf8',
     }).trim();
-    if (output !== 'Grotto Computer release assets are ready.') {
+    if (output !== 'Haus Computer release assets are ready.') {
         fail('compiled Computer is missing required release assets');
     }
 }

@@ -10,7 +10,7 @@ import {
 } from './release-snapshot.mjs';
 import { readJson } from './release-utils.mjs';
 
-const defaultOrigin = 'https://releases.grotto.sh';
+const defaultOrigin = 'https://releases.haus.chat';
 const defaultAttempts = 5;
 const defaultRetryDelayMs = 2000;
 const usage =
@@ -24,12 +24,12 @@ export async function verifyPublicGrottoRelease({
     fetchImpl = fetch,
     sleepImpl = sleep,
 }) {
-    assertPublicGrottoSnapshot(expected, expected, 'expected public Grotto release');
+    assertPublicGrottoSnapshot(expected, expected, 'expected public Haus release');
     if (!Number.isSafeInteger(attempts) || attempts < 1) {
-        throw new Error('public Grotto release verification attempts must be a positive integer');
+        throw new Error('public Haus release verification attempts must be a positive integer');
     }
     if (!Number.isSafeInteger(retryDelayMs) || retryDelayMs < 0) {
-        throw new Error('public Grotto release verification retry delay must be non-negative');
+        throw new Error('public Haus release verification retry delay must be non-negative');
     }
 
     const baseUrl = new URL(origin);
@@ -57,7 +57,7 @@ export async function verifyPublicGrottoRelease({
     }
 
     throw new Error(
-        `public Grotto ${expected.version} release snapshots did not verify: ${errorMessage(lastError)}`,
+        `public Haus ${expected.version} release snapshots did not verify: ${errorMessage(lastError)}`,
         { cause: lastError }
     );
 }
@@ -73,7 +73,7 @@ async function verifyEndpoint({ name, url, expected, fetchImpl }) {
         });
     } catch (error) {
         throw new Error(
-            `${name} public Grotto release snapshot request failed: ${errorMessage(error)}`,
+            `${name} public Haus release snapshot request failed: ${errorMessage(error)}`,
             { cause: error }
         );
     }
@@ -88,7 +88,7 @@ async function verifyEndpoint({ name, url, expected, fetchImpl }) {
         )
     ) {
         throw new Error(
-            `${name} public Grotto release snapshot returned HTTP ${String(response?.status ?? 'unknown')} after redirects`
+            `${name} public Haus release snapshot returned HTTP ${String(response?.status ?? 'unknown')} after redirects`
         );
     }
 
@@ -97,16 +97,16 @@ async function verifyEndpoint({ name, url, expected, fetchImpl }) {
         payload = await response.json();
     } catch (error) {
         throw new Error(
-            `${name} public Grotto release snapshot returned malformed JSON: ${errorMessage(error)}`,
+            `${name} public Haus release snapshot returned malformed JSON: ${errorMessage(error)}`,
             { cause: error }
         );
     }
 
     try {
-        assertPublicGrottoSnapshot(payload, expected, `${name} public Grotto release snapshot`);
+        assertPublicGrottoSnapshot(payload, expected, `${name} public Haus release snapshot`);
     } catch (error) {
         throw new Error(
-            `${name} public Grotto release snapshot verification failed: ${errorMessage(error)}`,
+            `${name} public Haus release snapshot verification failed: ${errorMessage(error)}`,
             { cause: error }
         );
     }
@@ -156,13 +156,13 @@ async function main() {
 
     await verifyPublicGrottoRelease({ expected });
     console.log(
-        `Verified public Grotto ${version} immutable and latest release snapshots for source ${sourceRevision} at ${defaultOrigin}.`
+        `Verified public Haus ${version} immutable and latest release snapshots for source ${sourceRevision} at ${defaultOrigin}.`
     );
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
     main().catch((error) => {
-        console.error(`public Grotto release verification error: ${errorMessage(error)}`);
+        console.error(`public Haus release verification error: ${errorMessage(error)}`);
         process.exitCode = 1;
     });
 }

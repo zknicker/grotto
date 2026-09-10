@@ -7,7 +7,7 @@ if [ -n "$server_path" ] && [ "${server_path#/}" = "$server_path" ]; then
     exit 64
 fi
 
-manifest_url="${GROTTO_COMPUTER_RELEASE_MANIFEST_URL:-https://releases.grotto.sh/computer/latest.json}"
+manifest_url="${GROTTO_COMPUTER_RELEASE_MANIFEST_URL:-https://releases.haus.chat/computer/latest.json}"
 install_path="${GROTTO_COMPUTER_INSTALL_PATH:-$HOME/.local/bin/grotto-computer}"
 expected_team_id="__GROTTO_APPLE_TEAM_ID__"
 expected_identity="__GROTTO_APPLE_SIGNING_IDENTITY__"
@@ -22,20 +22,20 @@ artifact_url="$(/usr/bin/plutil -extract release.artifactUrl raw -o - "$descript
 expected_sha256="$(/usr/bin/plutil -extract release.sha256 raw -o - "$descriptor")"
 case "$artifact_url" in
     https://*) ;;
-    *) echo "Grotto Computer artifact URL is not HTTPS." >&2; exit 1 ;;
+    *) echo "Haus Computer artifact URL is not HTTPS." >&2; exit 1 ;;
 esac
 case "$expected_sha256" in
-    *[!0-9a-f]*|'') echo "Grotto Computer descriptor digest is invalid." >&2; exit 1 ;;
+    *[!0-9a-f]*|'') echo "Haus Computer descriptor digest is invalid." >&2; exit 1 ;;
 esac
 if [ "${#expected_sha256}" -ne 64 ]; then
-    echo "Grotto Computer descriptor digest is invalid." >&2
+    echo "Haus Computer descriptor digest is invalid." >&2
     exit 1
 fi
 
 /usr/bin/curl --fail --silent --show-error --location "$artifact_url" --output "$artifact"
 actual_sha256="$(/usr/bin/shasum -a 256 "$artifact" | /usr/bin/awk '{print $1}')"
 if [ "$actual_sha256" != "$expected_sha256" ]; then
-    echo "Grotto Computer checksum verification failed." >&2
+    echo "Haus Computer checksum verification failed." >&2
     exit 1
 fi
 

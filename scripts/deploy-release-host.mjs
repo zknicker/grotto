@@ -38,7 +38,7 @@ const wranglerEnvironment = Object.fromEntries(
     ].flatMap((name) => (process.env[name] ? [[name, process.env[name]]] : []))
 );
 const deployed = spawnSync('bunx', ['wrangler@4.127.1', 'deploy', ...process.argv.slice(2)], {
-    cwd: path.join(repoRoot, 'site/releases.grotto.sh'),
+    cwd: path.join(repoRoot, 'site/releases.haus.chat'),
     env: { ...wranglerEnvironment, CLOUDFLARE_API_TOKEN: token.stdout.trim() },
     stdio: 'inherit',
 });

@@ -13,8 +13,8 @@ const macosBundleDir = path.join(bundleRoot, 'mac-arm64');
 const main = async () => {
     const websitePackage = await readJson('apps/website/package.json');
     const version = websitePackage.version;
-    const appPath = path.join(macosBundleDir, 'Grotto.app');
-    const artifactPrefix = `Grotto_${version}_arm64`;
+    const appPath = path.join(macosBundleDir, 'Haus.app');
+    const artifactPrefix = `Haus_${version}_arm64`;
     const dmgPath = await findSingleFile(bundleRoot, (entry) => entry === `${artifactPrefix}.dmg`);
     const zipPath = await findSingleFile(bundleRoot, (entry) => entry === `${artifactPrefix}.zip`);
     const latestYamlPath = path.join(bundleRoot, 'latest-mac.yml');
@@ -29,7 +29,7 @@ const main = async () => {
         'AppIcon.icns'
     );
 
-    await assertDirectory(appPath, 'Grotto.app');
+    await assertDirectory(appPath, 'Haus.app');
     await assertDoesNotExist(sidecarPath, 'retired grotto-server sidecar');
     await assertMatchingFiles(packagedIconPath, buildIconPath, 'packaged app icon');
     await assertFileHasContent(dmgPath, path.basename(dmgPath));

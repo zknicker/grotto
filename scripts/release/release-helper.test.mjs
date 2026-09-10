@@ -262,5 +262,5 @@ test('GitHub and Computer finalizers verify tags, assets, and descriptors', asyn
         },
     });
     assert.equal(computer.mode, 'computer-only');
-    assert.equal(requestedUrl, 'https://releases.grotto.sh/computer/1.2.3/release.json');
+    assert.equal(requestedUrl, 'https://releases.haus.chat/computer/1.2.3/release.json');
 });

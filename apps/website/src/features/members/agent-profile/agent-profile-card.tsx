@@ -73,6 +73,8 @@ export function agentCreatorName(
 }
 
 function formatCreatedAt(value: Date | string, creator: string | null) {
-    const date = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value));
+    const date = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(
+        new Date(value)
+    );
     return creator ? `${date} by ${creator}` : date;
 }

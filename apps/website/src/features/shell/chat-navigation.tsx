@@ -15,11 +15,13 @@ import { useCommandMenu } from './command-menu-provider.tsx';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
 import { sidebarActionIconSize } from './section-header.tsx';
 import { ShellSidebarPageContent } from './shell-sidebar.tsx';
+import { SidebarInboxRow } from './sidebar-inbox-row.tsx';
 import { SortableChannelList } from './sortable-channel-list.tsx';
 
 export function ChatNavigation({
     agents,
     chats,
+    needsYouCount = 0,
     onChangeChannelColor,
     onCreateAgent,
     onCreateChannel,
@@ -31,6 +33,8 @@ export function ChatNavigation({
 }: {
     agents: Agent[];
     chats: Chat[];
+    /** The Inbox's "Needs you" total; 0 while it is unknown, which shows no badge. */
+    needsYouCount?: number;
     onChangeChannelColor?: (chat: Chat, color: string) => void;
     onCreateAgent?: () => void;
     onCreateChannel: () => void;
@@ -60,9 +64,11 @@ export function ChatNavigation({
     return (
         <ShellSidebarPageContent>
             <Sidebar.Group>
-                {/* One menu so Search, Inbox, and Tasks share the row pitch exactly.
-                    Search opens the command palette rather than navigating,
-                    so it is an action item that names its own shortcut. */}
+                {/* One menu so Inbox, Search, and Tasks share the row pitch exactly.
+                    Inbox leads: it is the sidebar's top-left anchor, so the
+                    Grotto mark sits where a product's wordmark would. Search
+                    opens the command palette rather than navigating, so it is an
+                    action item that names its own shortcut. */}
                 <Sidebar.Menu
                     aria-label="Server"
                     onAction={(key) => {
@@ -71,6 +77,12 @@ export function ChatNavigation({
                         }
                     }}
                 >
+                    <SidebarInboxRow
+                        isCurrent={location.pathname.startsWith(inboxRoute(slug))}
+                        needsYouCount={needsYouCount}
+                        onPreload={() => onPreloadSection('inbox')}
+                        slug={slug}
+                    />
                     <Sidebar.MenuItem
                         id="search"
                         onHoverStart={() => onPreloadSection('search')}
@@ -81,20 +93,6 @@ export function ChatNavigation({
                         </Sidebar.MenuIcon>
                         <Sidebar.MenuItemContent>
                             <Sidebar.MenuLabel>Search</Sidebar.MenuLabel>
-                        </Sidebar.MenuItemContent>
-                    </Sidebar.MenuItem>
-                    <Sidebar.MenuItem
-                        href={inboxRoute(slug)}
-                        id="inbox"
-                        isCurrent={location.pathname.startsWith(inboxRoute(slug))}
-                        onHoverStart={() => onPreloadSection('inbox')}
-                        textValue="Inbox"
-                    >
-                        <Sidebar.MenuIcon>
-                            <RouteTabIcon size={16} tab="inbox" />
-                        </Sidebar.MenuIcon>
-                        <Sidebar.MenuItemContent>
-                            <Sidebar.MenuLabel>Inbox</Sidebar.MenuLabel>
                         </Sidebar.MenuItemContent>
                     </Sidebar.MenuItem>
                     <Sidebar.MenuItem

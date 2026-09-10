@@ -9,7 +9,8 @@ read_when:
 
 Usage turns Agent, runtime, and provider activity into contextual product views. It is not a
 Settings destination: configuration stays in Settings, while operational usage appears beside the
-Agent or Computer that owns its meaning.
+Agent or Computer that owns its meaning. Settings navigation carries a **Usage** entry that links
+out to `/s/:slug/usage`; the dashboard stays its own page rather than becoming a settings section.
 
 ## Product surfaces
 

@@ -11,6 +11,12 @@ the existing first Owner and `#all` guarantees while adding durable onboarding
 progress and private `#onboarding-owner`, initially containing only that Owner.
 No Computer, Agent, or execution configuration is created automatically.
 
+Creating or joining a Server starts at **Settings → Servers**, which lists the Servers you belong
+to, marks the one you are in, switches between them, and opens the Create and Join dialogs.
+Switching, creating, and joining are rare, so they are a settings destination rather than sidebar
+chrome. A human who belongs to no Server yet meets the same two choices on the activation screen at
+`/s`.
+
 The development bootstrap is the deliberate exception: `/dev` includes Cove alongside the demo
 Agents. Bootstrap idempotently reserves Cove with the development Computer and Terra model, then
 uses the same `cove-apply` factory command as production onboarding so Cove's workspace and recipes

@@ -89,9 +89,10 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     await expect(peerPage.getByRole('textbox', { name: 'Message all' })).toBeVisible();
     const peerListPage = await peerContext.newPage();
     await signInAsClerkHuman(peerListPage, 'peer');
-    await peerListPage.goto(`/s/${slug}`);
-    await peerListPage.getByRole('button', { name: `Switch Server (current: ${slug})` }).click();
-    await expect(peerListPage.getByRole('menuitem', { name: /Membership HQ/u })).toBeVisible();
+    // Settings > Servers is where switching lives now, so that list is what a
+    // second open page holds while membership changes underneath it.
+    await peerListPage.goto(`/s/${slug}/settings/servers`);
+    await expect(peerListPage.getByRole('link', { name: /Membership HQ/u })).toBeVisible();
 
     // Removal is destructive, so it takes the exact Server address.
     const adminRow = page.locator('[data-member-id]').filter({ hasText: 'admin' });
@@ -117,7 +118,7 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
 
     // The already-open list loses it too. This proves membership-loss listening
     // belongs to the hosted route rather than only an open Server page.
-    await expect(peerListPage.getByRole('menuitem', { name: /Membership HQ/u })).toHaveCount(0);
+    await expect(peerListPage.getByRole('link', { name: /Membership HQ/u })).toHaveCount(0);
 
     await peerContext.close();
 });

@@ -55,16 +55,18 @@ test('aligns the Settings escape row with the first Chat navigation row', async 
     await signInAsClerkHuman(page);
     await page.goto(`/s/${slug}`);
 
-    const searchBox = await page.getByRole('row', { exact: true, name: 'Search' }).boundingBox();
-    expect(searchBox).not.toBeNull();
+    // Inbox leads the chat navigation, so it is the line the escape row has to
+    // land on — both share the sidebar's top edge under the floating gear.
+    const inboxBox = await page.getByRole('row', { exact: true, name: 'Inbox' }).boundingBox();
+    expect(inboxBox).not.toBeNull();
 
     await page.goto(`/s/${slug}/settings/appearance`);
     const backBox = await page
         .getByRole('row', { exact: true, name: 'Back to chat' })
         .boundingBox();
     expect(backBox).not.toBeNull();
-    expect(backBox?.y).toBe(searchBox?.y);
-    expect(backBox?.height).toBe(searchBox?.height);
+    expect(backBox?.y).toBe(inboxBox?.y);
+    expect(backBox?.height).toBe(inboxBox?.height);
     const profileBox = await page.getByRole('row', { exact: true, name: 'Profile' }).boundingBox();
     expect(profileBox).not.toBeNull();
     expect(backBox?.x).toBe(profileBox?.x);
@@ -80,13 +82,17 @@ test('settings navigation names the page and reaches Server deletion', async ({
     await page.goto(`/s/${slug}/settings/profile`);
     const personal = page.getByRole('treegrid', { name: 'Preferences', exact: true });
     const shared = page.getByRole('treegrid', { name: 'Server', exact: true });
-    await expect(personal.getByRole('row')).toHaveCount(2);
-    await expect(shared.getByRole('row')).toHaveCount(5);
+    // Personal: Profile, Preferences, Servers. Server: the five pages that
+    // configure it, then Usage and Archived chats as link-outs.
+    await expect(personal.getByRole('row')).toHaveCount(3);
+    await expect(shared.getByRole('row')).toHaveCount(7);
+    await expect(personal.getByRole('row', { name: 'Servers', exact: true })).toBeVisible();
     await expect(shared.getByRole('row', { name: 'Connections', exact: true })).toBeVisible();
     await expect(shared.getByRole('row', { name: 'Skills', exact: true })).toBeVisible();
     for (const label of [
         'Profile',
         'Preferences',
+        'Servers',
         'Server',
         'Members',
         'Connections',
@@ -113,6 +119,22 @@ test('settings navigation names the page and reaches Server deletion', async ({
     await expect(
         page.getByRole('heading', { exact: true, level: 1, name: 'Settings Computer' })
     ).toBeVisible();
+});
+
+/**
+ * Usage is a dashboard and Archived chats is a chat list. The Server group is
+ * their way in now that the sidebar's Server menu is gone, so each row has to
+ * leave Settings rather than render a settings page.
+ */
+test('the Server group links out to Usage and Archived chats', async ({ page }) => {
+    await signInAsClerkHuman(page);
+    await page.goto(`/s/${slug}/settings/profile`);
+    await page.getByRole('row', { exact: true, name: 'Usage' }).click();
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/usage$`, 'u'));
+
+    await page.goto(`/s/${slug}/settings/profile`);
+    await page.getByRole('row', { exact: true, name: 'Archived chats' }).click();
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/archived$`, 'u'));
 });
 
 test('reads and updates the canonical human identity in Profile settings', async ({ page }) => {

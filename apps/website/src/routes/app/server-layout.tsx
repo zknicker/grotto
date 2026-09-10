@@ -4,21 +4,12 @@ import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppShell, AppShellDragRegion } from '../../components/ui/app-shell.tsx';
 import { AgentLifecycleProvider } from '../../features/servers/agent-lifecycle.tsx';
 import { ConnectionNotice } from '../../features/servers/connection-notice.tsx';
-import { CreateServerDialog } from '../../features/servers/create-server-dialog.tsx';
-import { JoinServerDialog } from '../../features/servers/join-server-dialog.tsx';
 import {
     readLastChatId,
     rememberLastChatId,
     rememberLastServerSlug,
 } from '../../features/servers/server-choice.ts';
-import {
-    serverArchivedChatsRoute,
-    serverRoute,
-    serverSearchRoute,
-    serverSettingsRoute,
-    serverSettingsSectionRoute,
-    usageRoute,
-} from '../../features/servers/server-routes.ts';
+import { serverSearchRoute, serverSettingsRoute } from '../../features/servers/server-routes.ts';
 import { AppSidebar } from '../../features/shell/app-sidebar.tsx';
 import { CommandMenuProvider } from '../../features/shell/command-menu-provider.tsx';
 import { CommandMenu } from '../../features/shell/server-command-menu.tsx';
@@ -27,7 +18,7 @@ import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pa
 import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sidebar.tsx';
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
 import { SidebarAgentActivityStrip } from '../../features/shell/sidebar-agent-activity-strip.tsx';
-import { SidebarServerBand } from '../../features/shell/sidebar-server-band.tsx';
+import { SidebarSettingsAction } from '../../features/shell/sidebar-settings-action.tsx';
 import { GrottoUpdateFooterContainer } from '../../features/updates/grotto-update-footer-container.tsx';
 import { GrottoUpdateProvider } from '../../features/updates/use-grotto-update.ts';
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
@@ -37,7 +28,6 @@ import { ChatEventListeners } from '../../hooks/servers/chat-events/chat-event-l
 import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
-import { useServerList } from '../../hooks/servers/use-server-list.ts';
 import { useAppSidebarWidth } from '../../hooks/shell/use-app-sidebar-width.ts';
 import { useUnfocusableAppMain } from '../../hooks/shell/use-unfocusable-app-main.ts';
 import { cn } from '../../lib/utils.ts';
@@ -56,12 +46,10 @@ export function ServerLayout() {
     const location = useLocation();
     const navigate = useNavigate();
     const server = useServer(slug);
-    const servers = useServerList();
     const chats = useChats(server.data?.id);
     const currentServerSlug = server.data?.slug;
     const selectedChatId = resolveSelectedChatId(location.pathname, slug);
     const selectedAgentDmId = resolveSelectedAgentDmId(location.pathname, slug);
-    const [serverDialog, setServerDialog] = React.useState<'create' | 'join' | null>(null);
 
     useDesktopMenuNavigation({
         searchRoute: serverSearchRoute(slug),
@@ -112,7 +100,6 @@ export function ServerLayout() {
 
     const active = resolveActiveSection(location.pathname, slug);
     const settingsSection = resolveSettingsSection(location.pathname, slug);
-    const serverChoices = servers.data ?? [server.data];
     const canOperate = server.data.role === 'owner' || server.data.role === 'admin';
     const activeSidebarPage = resolveSidebarPage(active);
     const chatSectionRoute = resolveChatSectionRoute(
@@ -138,6 +125,16 @@ export function ServerLayout() {
                                             sidebar={
                                                 <ShellSidebar
                                                     activePage={activeSidebarPage}
+                                                    chrome={
+                                                        <SidebarSettingsAction
+                                                            onOpenSettings={() =>
+                                                                navigate(serverSettingsRoute(slug))
+                                                            }
+                                                            onPreloadSettings={() =>
+                                                                preloadServerSection('settings')
+                                                            }
+                                                        />
+                                                    }
                                                     footer={
                                                         <div className="flex w-full flex-col gap-2">
                                                             <SidebarAgentActivityStrip
@@ -148,43 +145,6 @@ export function ServerLayout() {
                                                                 slug={slug}
                                                             />
                                                         </div>
-                                                    }
-                                                    identity={
-                                                        <SidebarServerBand
-                                                            currentServer={server.data}
-                                                            onCreateServer={() =>
-                                                                setServerDialog('create')
-                                                            }
-                                                            onJoinServer={() =>
-                                                                setServerDialog('join')
-                                                            }
-                                                            onOpenArchived={() =>
-                                                                navigate(
-                                                                    serverArchivedChatsRoute(slug)
-                                                                )
-                                                            }
-                                                            onOpenMembers={() =>
-                                                                navigate(
-                                                                    serverSettingsSectionRoute(
-                                                                        slug,
-                                                                        'members'
-                                                                    )
-                                                                )
-                                                            }
-                                                            onOpenSettings={() =>
-                                                                navigate(serverSettingsRoute(slug))
-                                                            }
-                                                            onOpenUsage={() =>
-                                                                navigate(usageRoute(slug))
-                                                            }
-                                                            onPreloadSettings={() =>
-                                                                preloadServerSection('settings')
-                                                            }
-                                                            onSwitchServer={(serverSlug) =>
-                                                                navigate(serverRoute(serverSlug))
-                                                            }
-                                                            servers={serverChoices}
-                                                        />
                                                     }
                                                 >
                                                     <ShellSidebarPage
@@ -225,14 +185,6 @@ export function ServerLayout() {
                                     </AgentActivityProvider>
                                 </AgentLifecycleProvider>
                             </div>
-                            <CreateServerDialog
-                                isOpen={serverDialog === 'create'}
-                                onOpenChange={(isOpen) => setServerDialog(isOpen ? 'create' : null)}
-                            />
-                            <JoinServerDialog
-                                isOpen={serverDialog === 'join'}
-                                onOpenChange={(isOpen) => setServerDialog(isOpen ? 'join' : null)}
-                            />
                         </AppShell>
                     </CommandMenuProvider>
                 </TopbarProvider>

@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { Sidebar } from '@heroui-pro/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ShellSidebar, ShellSidebarPage, ShellSidebarPageContent } from './shell-sidebar.tsx';
-import { SidebarBackToChatRow } from './sidebar-server-band.tsx';
+import { SidebarBackToChatRow, SidebarSettingsAction } from './sidebar-settings-action.tsx';
 
 test('renders only the active sidebar page so route changes are instant', () => {
     const markup = renderToStaticMarkup(
@@ -27,7 +27,7 @@ test('renders only the active sidebar page so route changes are instant', () => 
 test('keeps shared header and footer presentation outside the active sidebar page', () => {
     const markup = renderToStaticMarkup(
         <Sidebar.Provider>
-            <ShellSidebar activePage="tasks" footer="Working" identity="Search">
+            <ShellSidebar activePage="tasks" chrome="Settings" footer="Working">
                 <ShellSidebarPage ariaLabel="Server" value="server">
                     Server
                 </ShellSidebarPage>
@@ -39,7 +39,7 @@ test('keeps shared header and footer presentation outside the active sidebar pag
     );
 
     expect(markup).toContain('Tasks');
-    expect(markup).toContain('Search');
+    expect(markup).toContain('Settings');
     expect(markup).toContain('Working');
 });
 
@@ -71,4 +71,24 @@ test('renders back navigation with the shared sidebar menu anatomy', () => {
     expect(markup).toContain('data-slot="sidebar-menu-label"');
     expect(markup).toContain('>Back</span>');
     expect(markup).not.toContain('Back to chat</span>');
+});
+
+test('floats Settings as the sidebar\u2019s only chrome, with no row of its own', () => {
+    const markup = renderToStaticMarkup(
+        <Sidebar.Provider>
+            <Sidebar>
+                <SidebarSettingsAction
+                    onOpenSettings={() => undefined}
+                    onPreloadSettings={() => undefined}
+                />
+            </Sidebar>
+        </Sidebar.Provider>
+    );
+
+    expect(markup).toContain('aria-label="Settings"');
+    expect(markup).toContain('app-shell-titlebar-action');
+    // The band it used to stand in is gone on every platform, not just macOS:
+    // the gear is taken out of flow so the navigation leads the column.
+    expect(markup).not.toContain('app-shell-settings-band');
+    expect(markup).not.toContain('Switch Server');
 });

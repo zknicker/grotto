@@ -16,19 +16,19 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
 }) => {
     test.setTimeout(120_000);
     await signInAsClerkHuman(page);
-    await page.goto('/s');
 
-    const nameField = page.getByLabel('Name');
-    const serverSwitcher = page.getByRole('button', { name: /^Switch Server \(current:/u });
-    const createServerStep = page.getByRole('button', { name: 'Create a Server' });
-    await expect(createServerStep.or(serverSwitcher)).toBeVisible();
-    if (await serverSwitcher.isVisible()) {
-        await serverSwitcher.click();
-        await expect(page.getByRole('menuitem', { name: 'Join server' })).toBeVisible();
-        await page.getByRole('menuitem', { name: 'Create server' }).click();
+    // Creating and joining live in Settings > Servers now; only an identity
+    // with no Server still meets them on the activation screen.
+    const owner = createClient(readClerkSessionFixture().token);
+    const [joined] = await owner.server.list.query();
+    if (joined) {
+        await page.goto(`/s/${joined.slug}/settings/servers`);
+        await expect(page.getByRole('button', { name: 'Join a Server' })).toBeVisible();
     } else {
-        await createServerStep.click();
+        await page.goto('/s');
     }
+    const nameField = page.getByLabel('Name');
+    await page.getByRole('button', { name: 'Create a Server' }).click();
     await expect(nameField).toBeVisible();
 
     await nameField.fill('Grotto HQ');
@@ -53,7 +53,6 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     await expect(page.getByRole('heading', { level: 1, name: 'Connect a Computer' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 1, name: 'Members' })).toHaveCount(0);
 
-    const owner = createClient(readClerkSessionFixture().token);
     const server = await owner.server.bySlug.query({ slug: 'grotto-hq' });
     const computer = await startComputerSetup({ serverId: server.id, slug: 'grotto-hq' });
     try {
@@ -210,7 +209,6 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         await expect(page.getByRole('heading', { level: 1, name: 'Cove' })).toBeVisible();
         // The profile reads the handle and the description on one line.
         await expect(page.getByText('@cove · Onboarding Assistant', { exact: true })).toBeVisible();
-        await expect(page.getByText('admin', { exact: true })).toBeVisible();
 
         const restartFramePromise = socketMessage(reconnected, 'agent-restart');
         const retryStartPromise = socketMessage(reconnected, 'start');

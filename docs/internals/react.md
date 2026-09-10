@@ -91,10 +91,18 @@ reuses the latest local snapshot while realtime invalidations refresh it.
 ## Shell
 
 * `ServerLayout` owns the stable `AppLayout` scaffold and one persistent
-  `ShellSidebar` — there is no icon rail. The sidebar leads with the server
-  identity row (server switcher plus the settings entry), then Search and
-  Tasks rows, then chat navigation; the footer holds live Agent activity above
-  the bottom-pinned desktop update status. Sections compose `ShellSidebarPage` slots; route state
+  `ShellSidebar` — there is no icon rail. The sidebar leads with the Inbox row,
+  first in the Inbox/Search/Tasks menu and marked by the Grotto ghost where a
+  product's wordmark would sit; the mark carries a slowly drifting mesh
+  gradient that moves a little faster while any Agent is working. Chat navigation follows; the footer holds live Agent activity above
+  the bottom-pinned desktop update status. The settings gear is the sidebar's
+  only other chrome, and it takes no row: it floats at the sidebar's top-right
+  corner over the trailing end of the lead row's line, which reserves the gear's
+  box at its own trailing end. On the macOS desktop the same box lands in the
+  titlebar strip beside the traffic lights, and the navigation starts below the
+  strip with one breath of clearance. Switching,
+  creating, and joining Servers live under Settings → Servers, not in the
+  sidebar. Sections compose `ShellSidebarPage` slots; route state
   selects one slot without replacing the sidebar root, and non-chat pages
   render a shared back-to-chat row. The sidebar is persistent — every routed
   destination, search included, keeps it mounted.
@@ -125,10 +133,15 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   second by `lib/heroui-composition-contract.test.ts`. Neither sees a `className`
   built through `cn()` or a variable, so read the component's anatomy before
   reaching for a wrapper.
-* One Settings page separates **Preferences** (Profile and Preferences)
-  from **Server** (Server, Members, Connections, Models, Skills),
-  followed by the roster-driven **Computers**. Agent capabilities belong to
-  the shared Server scope, not a separate settings category. Browser controls live on each
+* One Settings page separates **Preferences** (Profile, Preferences, Servers)
+  from **Server** (Server, Members, Connections, Models, Skills, then Usage and
+  Archived chats), followed by the roster-driven **Computers**. Agent
+  capabilities belong to the shared Server scope, not a separate settings
+  category. Which Servers you belong to is about you, so switching, creating,
+  and joining sit in the personal scope. Usage and Archived chats are
+  link-outs, not settings pages: they keep their own standalone routes and the
+  rail hands off to them (`settingsNavLinkItems`, resolved by
+  `SettingsSectionRoute`). Browser controls live on each
   Computer; the former Browser URL redirects there. Back is a stock
   `Sidebar.Group` inside the same `Sidebar.Content` as the settings rows.
   `features/settings/layout/navigation.ts` is the source of that grouping and

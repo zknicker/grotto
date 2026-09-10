@@ -6,7 +6,6 @@ import { useMemo } from 'react';
 import type { AppCommand, AppCommandGroup } from '../../commands/types.ts';
 import { getCommandSearchText } from '../../commands/types.ts';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
-import { HausGlyph } from '../../components/haus-logo.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useCommandMenu } from './command-menu-provider.tsx';
@@ -128,10 +127,6 @@ function CommandMenuIcon({
     command: AppCommand;
     lookupAgentAvatarUrl: AgentAvatarLookup;
 }) {
-    if (command.icon === 'grotto') {
-        return <HausGlyph aria-hidden="true" />;
-    }
-
     if (typeof command.icon === 'object' && 'kind' in command.icon) {
         if (command.icon.kind === 'channel') {
             return (

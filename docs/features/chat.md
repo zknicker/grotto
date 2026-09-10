@@ -168,8 +168,8 @@ and [Agent Inbox](../../specs/inbox.md).
   a search field adds one Agent at a time, and the roster below it lists only
   the chosen Agents, each with its own remove control.
   Archive channel is an Owner/Admin action for a regular channel. It hides the
-  channel from the active sidebar without deleting history. The Server menu's
-  Archived chats entry opens the archived channel view (`/s/:slug/archived`), where
+  channel from the active sidebar without deleting history. Settings carries an
+  Archived chats entry that opens the archived channel view (`/s/:slug/archived`), where
   a channel can be reopened or restored. An open archived channel shows an
   Archived badge and a restore bar in place of the composer. Its history,
   search results, deep link, and child Threads remain readable, but new

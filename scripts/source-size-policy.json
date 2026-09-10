@@ -91,7 +91,7 @@
     "apps/server/test/grotto-trigger-api.test.ts": 597,
     "apps/server/test/grotto-triggers.test.ts": 471,
     "apps/website/e2e/tests/messaging.spec.ts": 583,
-    "apps/website/e2e/tests/servers.spec.ts": 592,
+    "apps/website/e2e/tests/servers.spec.ts": 590,
     "apps/website/electron/main.cjs": 639,
     "apps/website/scripts/generate-channel-icon-catalog.ts": 1703,
     "apps/website/src/features/chats/chat-rendering-geometry.browser.test.tsx": 779,

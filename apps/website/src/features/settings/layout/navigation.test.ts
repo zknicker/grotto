@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { settingsNavItems, settingsNavSections } from './navigation.ts';
+import {
+    settingsNavItems,
+    settingsNavLinkIds,
+    settingsNavSections,
+    staticSettingsNavItems,
+} from './navigation.ts';
 
 test('settings navigation uses current agent configuration vocabulary', () => {
     const labels: string[] = settingsNavItems.map((item) => item.label);
@@ -19,6 +24,13 @@ test('settings navigation uses current agent configuration vocabulary', () => {
 test('settings navigation exposes Server administration', () => {
     assert.ok(settingsNavItems.some((item) => item.id === 'server' && item.label === 'Server'));
     assert.ok(settingsNavItems.some((item) => item.id === 'members' && item.label === 'Members'));
+});
+
+test('switching, creating, and joining Servers live in Settings', () => {
+    assert.ok(settingsNavItems.some((item) => item.id === 'servers' && item.label === 'Servers'));
+    const personal = settingsNavSections.find((section) => section.id === 'personal');
+    // Which Servers you belong to is about you, not about this Server.
+    assert.ok((personal?.itemIds as readonly string[]).includes('servers'));
 });
 
 /**
@@ -46,11 +58,29 @@ test('device and Server settings are not filed together', () => {
     const account = itemIds('personal');
     assert.ok(account.includes('preferences'));
     assert.ok(!account.includes('server'));
-    assert.deepEqual(itemIds('server'), ['connections', 'members', 'models', 'server', 'skills']);
+    assert.deepEqual(itemIds('server'), [
+        'archived',
+        'connections',
+        'members',
+        'models',
+        'server',
+        'skills',
+        'usage',
+    ]);
     assert.ok(!settingsNavItems.some((item) => (item.id as string) === 'browser'));
 });
 
-test('settings navigation keeps operational usage out of configuration', () => {
+/**
+ * Usage is a dashboard and Archived chats is a chat list. Both keep their own
+ * standalone routes; the rail is only their way in, so neither becomes a
+ * settings page.
+ */
+test('Usage and Archived chats are entry points, not settings pages', () => {
+    assert.deepEqual([...settingsNavLinkIds].sort(), ['archived', 'usage']);
+    const staticIds: string[] = staticSettingsNavItems.map((item) => item.id);
+    assert.ok(!staticIds.includes('usage'));
+    assert.ok(!staticIds.includes('archived'));
+    // The dashboard never came back as a settings section under its old name.
     const ids: string[] = settingsNavItems.map((item) => item.id);
     assert.ok(!ids.includes('stats'));
 });

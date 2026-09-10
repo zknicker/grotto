@@ -1,6 +1,6 @@
 import type * as React from 'react';
 import { cn } from '../../lib/utils.ts';
-import { GrottoLogo } from '../grotto-logo.tsx';
+import { GrottoGhost } from '../grotto-ghost.tsx';
 import { AppShell, AppShellDragRegion } from '../ui/app-shell.tsx';
 import './activation.css';
 
@@ -13,7 +13,15 @@ import './activation.css';
 export function ActivationShell({
     children,
     end,
-    mark = <GrottoLogo animated aria-hidden="true" className="activation-mark" />,
+    mark = (
+        <GrottoGhost
+            animated
+            aria-hidden="true"
+            className="activation-mark"
+            fill="iridescent"
+            size={56}
+        />
+    ),
     progress,
 }: {
     children: React.ReactNode;

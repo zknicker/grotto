@@ -61,10 +61,24 @@
     padding-block: 0 4rem;
 }
 
+/*
+ * The mark breathes while a step is up. The rise is a share of the mark's own
+ * height, so the motion reads the same whatever size the mark is rendered at.
+ */
 .activation-mark {
-    width: 3.5rem;
-    height: 3.5rem;
     margin-bottom: 1.5rem;
+    animation: activation-mark-float 5.6s ease-in-out infinite;
+}
+
+@keyframes activation-mark-float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-6.25%) scale(1.01);
+    }
 }
 
 .activation-step {
@@ -113,6 +127,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .activation-mark,
     .activation-step {
         animation: none;
     }

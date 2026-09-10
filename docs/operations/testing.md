@@ -308,12 +308,24 @@ bun run test:agents --include-opt-in --only cove-composes-agent-creation --lanes
 
 It proves a prose proposal that creates nothing, then exactly one Agent created
 by `grotto agent create` with Cove's own runtime, model, reasoning effort, and
-Computer, announced by one `agent-created` Message in the same DM, and no second
-Agent when the request is repeated. The scenario never uses browser E2E or
+Computer, announced by one `agent-created` Message in `#all` that mentions the
+new handle, joined to `#all` and the requested `#product`, carrying its standing
+brief in the workspace `MEMORY.md`, and no second Agent when the request is
+repeated. The scenario never uses browser E2E or
 asserts model wording, selected name, character, aesthetics, or acknowledgment. Its report is written under
 `.context/agent-tests/<run>/`; if the required Cove/Computer/provider setup is
 unavailable, record that exact precondition gap rather than running a partial
 substitute.
+
+Cove is the seeded factory Agent rather than a provisioned fixture, so the
+scenario owns its own starting state: it retires the Agents an earlier run had
+Cove create and runs a Full Reset (`agent.reset` with `kind: 'full'`) so Cove's
+session, workspace, and `MEMORY.md` are factory again. The Owner asks in a
+channel the run creates rather than in Cove's standing Owner DM, which
+accumulates — Cove reads its own earlier creation announcement there and repeats
+it in that chat instead of `#all`, and the DM cannot be cleared because a chat
+holding an Agent's creation Message cannot be deleted. Rerunning the scenario
+against one dev stack therefore needs no restart.
 
 A scenario is one file under `scripts/agent-tests/scenarios/`, exporting a
 `name`, a one-sentence `contract` stating exactly what must be true, and a

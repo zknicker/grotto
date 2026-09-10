@@ -8,13 +8,17 @@ import { RequireOperator } from '../../features/servers/require-operator.tsx';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import {
     agentProfileRoute,
+    serverArchivedChatsRoute,
     serverSettingsSectionRoute,
+    usageRoute,
 } from '../../features/servers/server-routes.ts';
+import type { SettingsNavLinkId } from '../../features/settings/layout/navigation.ts';
 import { ConnectionsPage } from '../../features/settings/mcp/connections-page.tsx';
 import { ModelsSettings } from '../../features/settings/models/page.tsx';
 import { PreferencesSettings } from '../../features/settings/preferences/page.tsx';
 import { ProfileSettings } from '../../features/settings/profile/page.tsx';
 import { ServerSettings } from '../../features/settings/server/page.tsx';
+import { ServersSettings } from '../../features/settings/servers/page.tsx';
 import { SkillsSettings } from '../../features/skills/skills-settings.tsx';
 import { useMember } from '../../hooks/members/use-member.ts';
 import { useMembers } from '../../hooks/servers/use-members.ts';
@@ -40,8 +44,24 @@ const sections: Record<string, (context: SectionContext) => ReactNode> = {
     preferences: () => <PreferencesSettings />,
     profile: ({ server }) => <ProfileSettings serverId={server.id} />,
     server: ({ server }) => <ServerSettings server={server} />,
+    servers: () => <ServersSettings />,
     skills: ({ server }) => <SkillsSettings serverId={server.id} />,
 };
+
+/**
+ * Entry points, not sections. Usage is a dashboard and Archived chats is a chat
+ * list; both keep their standalone routes, and the settings rail links out to
+ * them. The rail builds every row's href from its id, so the click lands here
+ * and hands off.
+ */
+const linkedSectionRoutes: Record<SettingsNavLinkId, (server: ServerSummary) => string> = {
+    archived: (server) => serverArchivedChatsRoute(server.slug),
+    usage: (server) => usageRoute(server.slug),
+};
+
+const linkedSections = new Map<string, (server: ServerSummary) => string>(
+    Object.entries(linkedSectionRoutes)
+);
 
 /** Sections that moved; old links still resolve. */
 const renamedSections: Record<string, string> = {
@@ -56,6 +76,10 @@ export function SettingsSectionRoute() {
     const renamed = renamedSections[section];
     if (renamed) {
         return <Navigate replace to={`../${renamed}`} />;
+    }
+    const linkedTo = linkedSections.get(section);
+    if (linkedTo) {
+        return <Navigate replace to={linkedTo(server)} />;
     }
     const render = sections[section];
     if (!render) {

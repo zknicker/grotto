@@ -15,6 +15,9 @@ test('publishes the Agent reference topic as the Agent-creation contract', () =>
     );
     expect(agent?.body).toContain('never create one to split work you could do yourself');
     expect(agent?.body).toContain('inherits your runtime, model, reasoning effort, and Computer');
+    expect(agent?.body).toContain(
+        'The identical command returns the teammate the first run created and creates nothing new'
+    );
     expect(agent?.body).toContain('Name them by `@handle`');
     expect(agent?.body).toContain('the refusal names the handle the Server minted instead');
     expect(agent?.body).not.toMatch(/Created @handle|Open control/u);

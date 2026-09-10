@@ -182,10 +182,20 @@ Server row lock. `AVATAR_PROVIDER_UNAVAILABLE` (no provider provisioned) creates
 with `avatar.status = "unavailable"`; a busy, provider, or output failure refuses the whole request
 as retryable and creates nothing.
 
-The same `(Server, calling Agent, nonce)` with identical values returns the original receipt;
-reusing that nonce for different values returns `AGENT_CREATE_IDEMPOTENCY_CONFLICT`. A target the
-Agent has not read since it changed returns `CHAT_VIEW_STALE`. An Agent with no assigned Computer
-returns `AGENT_NO_COMPUTER`.
+The nonce is the idempotency key, and the Agent CLI derives it from the request rather than minting
+one: a SHA-256 over the calling Agent, target, display name, description, announcement, avatar
+concept, brief, and the de-duplicated sorted channel list. Re-issuing the identical command therefore
+replays the original creation instead of creating a second Agent, and changing any field asks for a
+different Agent and gets one. On a request that never got an answer — a timeout or a dropped
+connection, never an answered refusal — the CLI retries once on that same nonce.
+
+The same `(Chat, nonce)` from the same calling Agent with identical values returns the original
+receipt; reusing that nonce for different values returns `AGENT_CREATE_IDEMPOTENCY_CONFLICT`. The
+replay is read under the Server row lock and before the freshness check, so a retry that reached the
+Server while the first attempt was still generating its avatar replays too; that receipt carries
+`avatar.status = "none"`, because the image it generated was dropped and the Agent still wears the
+first one. A target the Agent has not read since it changed returns `CHAT_VIEW_STALE`. An Agent with
+no assigned Computer returns `AGENT_NO_COMPUTER`.
 
 `POST /api/agent/agents/update` rewrites an Agent's `description`; `POST /api/agent/agents/avatar`
 generates and applies a replacement avatar from a `concept`. Both resolve `@handle` within the

@@ -103,3 +103,69 @@ test('a replayed create spends no second avatar generation', async () => {
     });
     expect(fixture.avatarRequests.length, 'no generation is spent on a replay').toBe(spent);
 });
+
+test('two identical creates make one Agent, one announcement, and one avatar', async () => {
+    const runner = await fixture.mintRunner('run_create_identical');
+    const body = fixture.createBody({
+        avatarConcept: 'a folded map',
+        displayName: 'Atlas',
+        nonce: 'create-identical',
+    });
+    const spent = fixture.avatarRequests.length;
+
+    const first = await fixture.postCreate(runner, body);
+    const second = await fixture.postCreate(runner, body);
+
+    expect(first.status).toBe(200);
+    expect(first.body).toMatchObject({ avatar: { status: 'generated' }, idempotent: false });
+    expect(second.status).toBe(200);
+    expect(second.body).toMatchObject({
+        agent: { agentId: first.body.agent?.agentId },
+        idempotent: true,
+        messageId: first.body.messageId,
+    });
+    // The replay illustrated nothing, and the Agent still wears the first image.
+    expect(second.body.avatar).toEqual({ status: 'none' });
+    expect(second.body.agent?.avatarUrl).toBe(first.body.agent?.avatarUrl ?? null);
+    expect(await countAgentsNamed('Atlas')).toBe(1);
+    expect(await countAnnouncements('create-identical')).toBe(1);
+    expect(fixture.avatarRequests.length - spent).toBe(1);
+});
+
+// The retry a client-side timeout provokes can reach the Server while the first
+// attempt is still generating its avatar: it passes the pre-check, generates
+// again, and only then blocks on the Server row lock. It must still find the
+// nonce and replay rather than mint a second teammate.
+test('a create that races its own retry still yields one Agent and one announcement', async () => {
+    const runner = await fixture.mintRunner('run_create_race');
+    const body = fixture.createBody({
+        avatarConcept: 'a brass sextant',
+        displayName: 'Sextant',
+        nonce: 'create-race',
+    });
+
+    const [first, second] = await Promise.all([
+        fixture.postCreate(runner, body),
+        fixture.postCreate(runner, body),
+    ]);
+
+    expect([first.status, second.status]).toEqual([200, 200]);
+    const replay = first.body.idempotent ? first.body : second.body;
+    const original = first.body.idempotent ? second.body : first.body;
+    expect(original.idempotent).toBe(false);
+    expect(replay.idempotent).toBe(true);
+    expect(replay.agent?.agentId).toBe(original.agent?.agentId ?? '');
+    // A racing replay generated an image it never applied; reporting it would
+    // claim this request illustrated an Agent it never touched.
+    expect(replay.avatar).toEqual({ status: 'none' });
+    expect(await countAgentsNamed('Sextant')).toBe(1);
+    expect(await countAnnouncements('create-race')).toBe(1);
+});
+
+async function countAnnouncements(nonce: string) {
+    const [row] = (await fixture.harness.sql`
+        select count(*)::int as total from chat_messages
+        where server_id = ${fixture.serverId} and nonce = ${nonce}
+    `) as { total: number }[];
+    return row.total;
+}

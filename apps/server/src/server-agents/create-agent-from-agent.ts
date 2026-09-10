@@ -78,7 +78,7 @@ export async function createAgentFromAgent(
         await lockServerRow(tx, runner.serverId);
         const plan = await planAgentAuthoredMessage(tx, runner, input.target);
 
-        const replay = await readReplay(tx, runner, plan.chatId, input, avatar.outcome);
+        const replay = await readReplay(tx, runner, plan.chatId, input);
         if (replay) {
             return { configure: null, events: [], receipt: replay, wakes: [] };
         }
@@ -197,13 +197,18 @@ export async function createAgentFromAgent(
 /**
  * A retried create must find the same Message carrying the same Agent, or the
  * nonce is being reused for a different creation and the request is refused.
+ *
+ * The replay reports no avatar of its own. A retry that raced the first attempt
+ * passed the route's pre-check before that attempt committed, so it generated an
+ * image and then found the nonce here; those bytes are dropped, and reporting
+ * them would claim this request illustrated an Agent it never touched. The
+ * Agent summary already carries the avatar it actually wears.
  */
 async function readReplay(
     db: GrottoDatabase,
     runner: ResolvedRunner,
     chatId: string,
-    input: AgentCreateAgentInput,
-    avatar: AgentCreatedAvatarOutcome
+    input: AgentCreateAgentInput
 ): Promise<AgentCreateAgentReceipt | null> {
     const message = await findAgentMessageByNonce(db, {
         chatId,
@@ -233,7 +238,7 @@ async function readReplay(
     const execution = await requireCallerExecution(db, runner);
     return {
         agent,
-        avatar,
+        avatar: { status: 'none' },
         channels: (await readAgentChannels(db, runner.serverId, agent.agentId)).map(
             (channel) => `#${channel.name}`
         ),

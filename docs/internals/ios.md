@@ -929,7 +929,7 @@ this remains future work.
 Settings stay inside one native sheet and `NavigationStack`. Settings is entered from the sidebar's
 floating gear control, pinned bottom-trailing over the scrolling chat list. The sidebar navigation
 carries the App's own order: Server-wide destinations lead, then Channels, then DMs. The sidebar's
-Server header is the Server menu, as the App's sidebar band is; archived chats open from there
+Server header is the Server menu; archived chats open from there
 rather than spending a navigation row. That header carries the Server's name and nothing else —
 Agent and member counts are a Settings readout, not standing sidebar chrome — so `ServerPresentation`
 carries only the identity the Chat surfaces render.

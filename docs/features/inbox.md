@@ -8,8 +8,11 @@ read_when:
 
 # Inbox
 
-The Inbox is a Grotto App page in the sidebar, directly below Search. It shows one human what they
-need to know right now.
+The Inbox is a Grotto App page in the sidebar. Its row is the sidebar's anchor — first in the
+Inbox/Search/Tasks menu, wearing the Grotto ghost mark, which turns iridescent while any Agent is
+working. The row badges the **Needs you** total in the same count chip the Channel and DM rows wear
+for unread messages, and shows nothing when nothing needs you. It shows one human what they need to
+know right now.
 
 The Inbox is a lens, not a store. It owns no state of its own, creates no records, and duplicates no
 lifecycle. Every row projects an existing Server record and links to that record's canonical place —

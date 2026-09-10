@@ -37,6 +37,7 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0036_durable_message_reactions',
             '0037_trigger_history_retention',
             '0038_agents_create_agents',
+            '0039_agent_creation_message_detach',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },
@@ -53,6 +54,13 @@ test('upgrades the preceding production schema without replaying migrations', as
         for (const constraint of constraints) {
             expect(constraint.definition).toContain('interrupted');
         }
+        const [creationMessageFk] = await upgraded`SELECT pg_get_constraintdef(oid) AS definition
+            FROM pg_constraint WHERE conname = 'agents_creation_message_fk'`;
+        expect(creationMessageFk.definition).toContain('ON DELETE SET NULL (creation_message_id)');
+        const [createdByAgentFk] = await upgraded`SELECT pg_get_constraintdef(oid) AS definition,
+                condeferrable, condeferred
+            FROM pg_constraint WHERE conname = 'agents_created_by_agent_fk'`;
+        expect(createdByAgentFk).toMatchObject({ condeferrable: true, condeferred: true });
         expect(await migrateGrottoDatabase(url.toString(), 'grotto', 'grotto')).toEqual([]);
     } finally {
         await upgraded?.close();

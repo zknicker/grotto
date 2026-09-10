@@ -6,7 +6,7 @@ import type { ServerSummary } from './contracts.ts';
 import { requireServerMembership } from './server-access.ts';
 import { lockServerRow } from './server-lock.ts';
 
-/** Renames a Grotto server. The slug is its permanent address and never moves. */
+/** Renames a Haus server. The slug is its permanent address and never moves. */
 export async function renameServer(
     db: GrottoDatabase,
     member: GrottoUser | null,

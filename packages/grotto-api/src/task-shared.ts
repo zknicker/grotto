@@ -95,7 +95,7 @@ export const taskClaimConflictBlockedActionCopy: Record<string, string> = {
 
 /**
  * The sentence that keeps a claim conflict a concurrency lock rather than a
- * verdict. Grotto has no reassignment-request command, so the routing fix is
+ * verdict. Haus has no reassignment-request command, so the routing fix is
  * the original Thread; the clause naming one is deliberately absent.
  */
 export const TASK_CLAIM_CONFLICT_ROUTING_NOTE =

@@ -12,7 +12,7 @@ export function PreferencesSettings() {
     return (
         <PageColumn>
             <SettingsPageHeader
-                description="How Grotto looks and behaves on this device."
+                description="How Haus looks and behaves on this device."
                 title="Preferences"
             />
             <AppearanceSection />
@@ -35,7 +35,7 @@ function AppearanceSection() {
                     <ItemCard.Content>
                         <ItemCard.Title>Theme</ItemCard.Title>
                         <ItemCard.Description>
-                            Applies to Grotto on this device only.
+                            Applies to Haus on this device only.
                         </ItemCard.Description>
                     </ItemCard.Content>
                     <ItemCard.Action>

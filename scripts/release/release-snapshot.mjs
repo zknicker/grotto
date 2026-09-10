@@ -37,13 +37,13 @@ export function resolveReleaseSnapshot(ledger, { sourceRevision }) {
 
 export function resolveExpectedPublicGrottoRelease(ledger, { version, sourceRevision }) {
     if (!isSemver(version)) {
-        throw new Error('expected public Grotto version must be X.Y.Z');
+        throw new Error('expected public Haus version must be X.Y.Z');
     }
 
     const snapshot = resolveReleaseSnapshot(ledger, { sourceRevision });
     if (snapshot.version !== version) {
         throw new Error(
-            `expected public Grotto version ${version} does not match latest release ${snapshot.version}`
+            `expected public Haus version ${version} does not match latest release ${snapshot.version}`
         );
     }
     return snapshot;
@@ -51,7 +51,7 @@ export function resolveExpectedPublicGrottoRelease(ledger, { version, sourceRevi
 
 export function grottoSnapshotKeys(version) {
     if (!isSemver(version)) {
-        throw new Error(`invalid Grotto release version ${version}`);
+        throw new Error(`invalid Haus release version ${version}`);
     }
     return {
         immutable: `grotto/${version}.json`,
@@ -59,7 +59,7 @@ export function grottoSnapshotKeys(version) {
     };
 }
 
-export function parsePublicGrottoSnapshot(value, endpoint = 'public Grotto release snapshot') {
+export function parsePublicGrottoSnapshot(value, endpoint = 'public Haus release snapshot') {
     assertExactObject(value, snapshotKeys, endpoint);
     if (!isSemver(value.version)) {
         throw new Error(`${endpoint} version must be X.Y.Z`);
@@ -81,12 +81,12 @@ export function parsePublicGrottoSnapshot(value, endpoint = 'public Grotto relea
 export function assertPublicGrottoSnapshot(
     actual,
     expected,
-    endpoint = 'public Grotto release snapshot'
+    endpoint = 'public Haus release snapshot'
 ) {
     const parsed = parsePublicGrottoSnapshot(actual, endpoint);
     if (!isDeepStrictEqual(parsed, expected)) {
         throw new Error(
-            `${endpoint} does not match expected Grotto ${expected.version} release ` +
+            `${endpoint} does not match expected Haus ${expected.version} release ` +
                 `at source ${expected.sourceRevision}`
         );
     }

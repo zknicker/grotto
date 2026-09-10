@@ -23,7 +23,7 @@ import { assertReleaseLedger } from './release-ledger.mjs';
 import { fail, readJson, repoRoot } from './release-utils.mjs';
 
 const iosRoot = path.join(repoRoot, 'apps', 'ios-swift');
-const projectPath = path.join(iosRoot, 'Grotto.xcodeproj');
+const projectPath = path.join(iosRoot, 'Haus.xcodeproj');
 const args = parseArgs();
 
 if (args.help) {
@@ -60,7 +60,7 @@ async function main(input) {
     inspectIOSIconArtifact(iconArtifactDirectory);
     const provisioningProfile = await installIOSProvisioningProfile();
     const outputRoot = mkdtempSync(path.join(tmpdir(), 'grotto-ios-release-'));
-    const archivePath = path.join(outputRoot, 'Grotto.xcarchive');
+    const archivePath = path.join(outputRoot, 'Haus.xcarchive');
     const exportPath = path.join(outputRoot, 'export');
     const exportOptionsPath = path.join(outputRoot, 'ExportOptions.plist');
     assertProvisioningProfileReadable(provisioningProfile.path);
@@ -74,7 +74,7 @@ async function main(input) {
         '-project',
         projectPath,
         '-scheme',
-        'Grotto',
+        'Haus',
         '-configuration',
         'Release',
         '-destination',
@@ -92,7 +92,7 @@ async function main(input) {
         `GROTTO_PRECOMPILED_IOS_ICON_DIR=${iconArtifactDirectory}`,
     ]);
     assertInstalledIOSIcon({
-        appDirectory: path.join(archivePath, 'Products', 'Applications', 'Grotto.app'),
+        appDirectory: path.join(archivePath, 'Products', 'Applications', 'Haus.app'),
         artifactDirectory: iconArtifactDirectory,
     });
     run('xcodebuild', [
@@ -191,7 +191,7 @@ function buildArguments(input) {
         '-project',
         projectPath,
         '-scheme',
-        'Grotto',
+        'Haus',
         '-configuration',
         'Release',
         '-destination',
@@ -206,7 +206,7 @@ function buildArguments(input) {
 }
 
 function verifyGeneratedProject() {
-    const generatedPaths = ['apps/ios-swift/Config/Info.plist', 'apps/ios-swift/Grotto.xcodeproj'];
+    const generatedPaths = ['apps/ios-swift/Config/Info.plist', 'apps/ios-swift/Haus.xcodeproj'];
     assertGeneratedPathsClean(generatedPaths);
     run('xcodegen', ['generate', '--spec', 'project.yml', '--quiet'], { cwd: iosRoot });
     if (

@@ -34,7 +34,7 @@ const commandGroups = {
     trigger: TRIGGER_SUBCOMMANDS,
 } satisfies Record<string, SubCommand[]>;
 
-/** Commands that are one verb, not a family. `grotto ask` is the only one. */
+/** Commands that are one verb, not a family. `haus ask` is the only one. */
 const flatCommands = {
     ask: ASK_COMMAND,
 } satisfies Record<string, SubCommand>;
@@ -66,8 +66,8 @@ export async function runAgentCli(argv: string[]): Promise<number> {
     if (!subcommands) {
         process.stderr.write(
             `${errorBlock(
-                `'grotto ${group}' is not available in an Agent launch.`,
-                "Run 'grotto help' for the Agent command list."
+                `'haus ${group}' is not available in an Agent launch.`,
+                "Run 'haus help' for the Agent command list."
             )}\n`
         );
         return 2;
@@ -99,7 +99,7 @@ function reportAgentCliFailure(error: unknown): number {
 function printHelp() {
     process.stdout.write(
         [
-            'Grotto Agent CLI',
+            'Haus Agent CLI',
             '',
             'Commands:',
             ...Object.entries(commandGroups).map(
@@ -110,7 +110,7 @@ function printHelp() {
                 ([name, command]) => `  ${name.padEnd(12)} ${command.summary}`
             ),
             '',
-            "Run 'grotto <command> --help' for command help.",
+            "Run 'haus <command> --help' for command help.",
             '',
         ].join('\n')
     );
@@ -119,7 +119,7 @@ function printHelp() {
 function printGroupHelp(group: string, subcommands: SubCommand[]) {
     process.stdout.write(
         [
-            `grotto ${group}`,
+            `haus ${group}`,
             '',
             ...subcommands.map(
                 (subcommand) => `  ${subcommand.name.padEnd(12)} ${subcommand.summary}`

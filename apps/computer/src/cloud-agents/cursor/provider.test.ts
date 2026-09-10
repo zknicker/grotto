@@ -22,7 +22,7 @@ const ref = {
     workId: 'caw_1234567890abcdef',
 };
 
-test('every Cursor Run status maps to one Grotto status', () => {
+test('every Cursor Run status maps to one Haus status', () => {
     expect(
         (
             ['QUEUED', 'CREATING', 'RUNNING', 'FINISHED', 'ERROR', 'CANCELLED', 'EXPIRED'] as const
@@ -143,7 +143,7 @@ test('a long Run result is bounded before it reaches Server', async () => {
     expect(parse(await provider.read(ref)).summary?.length).toBe(2000);
 });
 
-test('cancelling addresses the provider Run Grotto recorded', async () => {
+test('cancelling addresses the provider Run Haus recorded', async () => {
     const transport = createRecordedCursorTransport();
     const provider = createCursorCloudAgentProvider(transport);
     await provider.cancel(ref);

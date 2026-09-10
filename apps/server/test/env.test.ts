@@ -4,7 +4,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { getDefaultAppOrigin, parseEnvironment } from '../src/config/env.ts';
 
-test('getDefaultAppOrigin uses the Grotto website port when present', () => {
+test('getDefaultAppOrigin uses the Haus website port when present', () => {
     const previousPort = process.env.GROTTO_WEBSITE_PORT;
 
     process.env.GROTTO_WEBSITE_PORT = '4242';

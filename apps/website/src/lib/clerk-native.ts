@@ -44,7 +44,7 @@ export async function getNativeClerkSessionToken(): Promise<string | null> {
 function getRequiredDesktopBridge() {
     const bridge = getDesktopBridge();
     if (!bridge) {
-        throw new Error('Native Clerk requires the Grotto desktop bridge.');
+        throw new Error('Native Clerk requires the Haus desktop bridge.');
     }
     return bridge;
 }

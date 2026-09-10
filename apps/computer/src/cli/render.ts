@@ -1,7 +1,7 @@
 import type { ComputerUpdateStatus } from './update-check.ts';
 
 /**
- * Dependency-free terminal styling for the grotto-computer command surface.
+ * Dependency-free terminal styling for the haus-computer command surface.
  * Glyph prefixes (✓ ✗ ● ·) always print so piped output stays legible;
  * ANSI colors are gated on TTY plus the NO_COLOR/FORCE_COLOR conventions.
  */
@@ -46,11 +46,11 @@ export function createCliRenderer(options: { colors: boolean }): CliRenderer {
         banner: (identity) =>
             [
                 `  ${tint('accent', '╭─◠◠◠─╮')}`,
-                ` ${tint('accent', '╱')} ${tint('accent', '◆')}     ${tint('accent', '╲')}   ${tint('bold', 'Grotto Computer')} ${tint('dim', `v${identity.version}`)}`,
+                ` ${tint('accent', '╱')} ${tint('accent', '◆')}     ${tint('accent', '╲')}   ${tint('bold', 'Haus Computer')} ${tint('dim', `v${identity.version}`)}`,
             ].join('\n'),
         fail: (message) => `${tint('red', '✗')} ${message}`,
         header: (identity) =>
-            `${tint('accent', '◆')} ${tint('bold', 'Grotto Computer')} ${tint('dim', `v${identity.version}`)}`,
+            `${tint('accent', '◆')} ${tint('bold', 'Haus Computer')} ${tint('dim', `v${identity.version}`)}`,
         heading: (text) => tint('bold', text),
         hint: (text) => tint('dim', text),
         ok: (message) => `${tint('green', '✓')} ${message}`,
@@ -80,7 +80,7 @@ function updateStatusLine(
         case 'up-to-date':
             return `${tint('green', '✓')} ${tint('dim', 'Up to date')}`;
         case 'update-available':
-            return `${tint('yellow', '●')} Update available: v${status.latestVersion} — run ${tint('bold', 'grotto-computer upgrade')}`;
+            return `${tint('yellow', '●')} Update available: v${status.latestVersion} — run ${tint('bold', 'haus-computer upgrade')}`;
         default:
             return statusNever(status);
     }

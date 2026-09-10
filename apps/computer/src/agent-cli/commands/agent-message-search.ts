@@ -13,8 +13,8 @@ interface SearchDeps {
 
 export const messageSearchSubcommand: SubCommand = {
     examples: [
-        'grotto message search --query "release notes"',
-        'grotto message search --query deploy --target "#general" --sort recent',
+        'haus message search --query "release notes"',
+        'haus message search --query deploy --target "#general" --sort recent',
     ],
     flags: [
         { name: '--query', valueName: '<text>', description: 'Text to find' },
@@ -34,7 +34,7 @@ export const messageSearchSubcommand: SubCommand = {
     positionals: [],
     run: (args) => runSearch(args, defaultDeps()),
     summary: 'Search messages across joined channels and DMs',
-    usage: 'grotto message search --query <text> [--target <t>] [--sender <handle>] [--sort relevance|recent] [--before <time>] [--after <time>] [--limit <n>] [--offset <n>]',
+    usage: 'haus message search --query <text> [--target <t>] [--sender <handle>] [--sort relevance|recent] [--before <time>] [--after <time>] [--limit <n>] [--offset <n>]',
 };
 
 export async function runSearch(args: ParsedArgs, deps: SearchDeps): Promise<number> {

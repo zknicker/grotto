@@ -29,7 +29,7 @@ export function resolveAgentContext(
         throw bootstrapError(
             'MISSING_AGENT_ID',
             'GROTTO_AGENT_ID is required.',
-            'Run this command from a Grotto Computer Agent shell.'
+            'Run this command from a Haus Computer Agent shell.'
         );
     }
     // Agent ids are opaque in the public contract; require only a single
@@ -46,7 +46,7 @@ export function resolveAgentContext(
         throw bootstrapError(
             'MISSING_SERVER_URL',
             'GROTTO_SERVER_URL is required.',
-            'Run this command from a Grotto Computer Agent shell.'
+            'Run this command from a Haus Computer Agent shell.'
         );
     }
     assertServerUrl(serverUrl);

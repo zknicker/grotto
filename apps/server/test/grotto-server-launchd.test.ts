@@ -54,7 +54,7 @@ test('ships valid supervised services without checked-in secret values', () => {
     expect(JSON.stringify(plists)).not.toContain('postgres://');
     expect(JSON.stringify(plists)).not.toContain('hc-ping.com');
     expect(JSON.stringify(plists)).not.toContain('/opt/grotto-server');
-    expect(JSON.stringify(plists)).not.toContain('/Library/Application Support/Grotto');
+    expect(JSON.stringify(plists)).not.toContain('/Library/Application Support/Haus');
 });
 
 test('retires the backup and monitor services entirely', () => {
@@ -107,7 +107,7 @@ test('keeps production state and credentials inside the canonical srv root', () 
     expect(source).toContain('/Users/zknicker/srv/grotto/config');
     expect(source).toContain('/Users/zknicker/srv/grotto/logs');
     expect(source).not.toContain('/opt/grotto-server');
-    expect(source).not.toContain('/Library/Application Support/Grotto');
+    expect(source).not.toContain('/Library/Application Support/Haus');
     expect(source).not.toContain('/var/db/grotto-server');
     expect(source).not.toContain('/var/log/grotto-server');
 });

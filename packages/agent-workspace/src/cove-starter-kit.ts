@@ -250,7 +250,7 @@ status: todo
 updated_at:
 refusal_note:
 
-Make it clear that the owner can ask Cove for practical Grotto help at any time.
+Make it clear that the owner can ask Cove for practical Haus help at any time.
 
 ## Hard Rules
 

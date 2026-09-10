@@ -2,7 +2,7 @@ import { grottoReleaseSnapshotSchema } from '@grotto/api';
 import type { FastifyInstance } from 'fastify';
 import type { GrottoReleaseIdentity } from './grotto-release-identity.ts';
 
-const productionSnapshotUrl = 'https://releases.grotto.sh/grotto/latest.json';
+const productionSnapshotUrl = 'https://releases.haus.chat/haus/latest.json';
 type FetchSnapshot = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
 export function registerGrottoReleaseRoute(

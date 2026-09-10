@@ -55,19 +55,19 @@ export async function runTaskList(args: ParsedArgs, deps: TaskDeps): Promise<num
     );
     if (response.tasks.length === 0) {
         deps.write(
-            'No tasks found. A task is a message with task metadata — claim work with grotto task claim, or create new work with grotto task create.\n'
+            'No tasks found. A task is a message with task metadata — claim work with haus task claim, or create new work with haus task create.\n'
         );
         return 0;
     }
     const lines = response.tasks.map((task) => taskLine(task));
     deps.write(
-        `${lines.join('\n')}\n\nClaim before you work: grotto task claim --target <target> --number <n>\n`
+        `${lines.join('\n')}\n\nClaim before you work: haus task claim --target <target> --number <n>\n`
     );
     return 0;
 }
 
 export async function runTaskCreate(args: ParsedArgs, deps: TaskDeps): Promise<number> {
-    const target = requireTarget(args, 'grotto task create --target "#channel"');
+    const target = requireTarget(args, 'haus task create --target "#channel"');
     const titles = args.valueLists?.['--title'] ?? [];
     let content: string | undefined;
     if (titles.length === 0) {
@@ -77,7 +77,7 @@ export async function runTaskCreate(args: ParsedArgs, deps: TaskDeps): Promise<n
                 'Task create needs --title flags or a heredoc body on stdin.',
                 {
                     nextAction:
-                        'grotto task create --target "#channel" <<\'GROTTOMSG\'\n<task body>\nGROTTOMSG',
+                        'haus task create --target "#channel" <<\'GROTTOMSG\'\n<task body>\nGROTTOMSG',
                 }
             );
         }
@@ -111,12 +111,12 @@ export async function runTaskCreate(args: ParsedArgs, deps: TaskDeps): Promise<n
 }
 
 export async function runTaskClaim(args: ParsedArgs, deps: TaskDeps): Promise<number> {
-    const target = requireTarget(args, 'grotto task claim --target "#channel" --number 1');
+    const target = requireTarget(args, 'haus task claim --target "#channel" --number 1');
     const numbers = (args.valueLists?.['--number'] ?? []).map((value) => parseTaskNumber(value));
     const messageId = args.values['--message-id'];
     if (numbers.length === 0 && !messageId) {
         throw new AgentCliError('INVALID_ARG', 'Pass --number (repeatable) or --message-id.', {
-            nextAction: 'grotto task claim --target <target> --number <n>',
+            nextAction: 'haus task claim --target <target> --number <n>',
         });
     }
     const response = await deps.client.request(
@@ -145,7 +145,7 @@ export async function runTaskClaim(args: ParsedArgs, deps: TaskDeps): Promise<nu
 }
 
 export async function runTaskUnclaim(args: ParsedArgs, deps: TaskDeps): Promise<number> {
-    const target = requireTarget(args, 'grotto task unclaim --target "#channel" --number 1');
+    const target = requireTarget(args, 'haus task unclaim --target "#channel" --number 1');
     const response = await deps.client.request(
         '/api/agent/tasks/unclaim',
         taskSingleResponseSchema,
@@ -163,7 +163,7 @@ export async function runTaskUnclaim(args: ParsedArgs, deps: TaskDeps): Promise<
 export async function runTaskUpdate(args: ParsedArgs, deps: TaskDeps): Promise<number> {
     const target = requireTarget(
         args,
-        'grotto task update --target "#channel" --number 1 --status in_review'
+        'haus task update --target "#channel" --number 1 --status in_review'
     );
     const status = args.values['--status'];
     if (!status) {

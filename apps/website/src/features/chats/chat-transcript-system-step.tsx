@@ -315,8 +315,8 @@ function RuntimeNoticeDrawer({
                                             Raw engine notice
                                         </h3>
                                         <p className="max-w-[58ch] text-pretty text-muted text-sm">
-                                            Original engine text captured before Grotto rendered it
-                                            as a runtime notice.
+                                            Original engine text captured before Haus rendered it as
+                                            a runtime notice.
                                         </p>
                                     </div>
                                     <div className="card-shell border border-separator bg-surface-secondary px-3 py-2">

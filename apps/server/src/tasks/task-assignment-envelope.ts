@@ -15,7 +15,7 @@ export function taskAssignmentEnvelope(input: {
     // A member without a Server handle has no name to attribute this to, and
     // inventing one would misreport who reassigned the task.
     const assignedBy = input.assignedByHandle ? ` assignedBy=@${input.assignedByHandle}` : '';
-    const header = `[Grotto task assignment task=#${input.number} target=${input.target}${assignedBy}]`;
+    const header = `[Haus task assignment task=#${input.number} target=${input.target}${assignedBy}]`;
     return `${header} ${envelopeTitle(input.title)}`;
 }
 

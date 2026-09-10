@@ -11,14 +11,14 @@ import type { ServerDetail, ServerRole, ServerSummary } from './contracts.ts';
 
 export class ServerNotFoundError extends Error {
     constructor(address: string) {
-        super(`No Grotto server exists at ${address}.`);
+        super(`No Haus server exists at ${address}.`);
         this.name = 'ServerNotFoundError';
     }
 }
 
 export class ServerAccessDeniedError extends Error {
     constructor() {
-        super('You are not a member of this Grotto server.');
+        super('You are not a member of this Haus server.');
         this.name = 'ServerAccessDeniedError';
     }
 }
@@ -26,7 +26,7 @@ export class ServerAccessDeniedError extends Error {
 /**
  * The one authorization gate for Server-scoped work. Every query, mutation, and
  * subscription resolves membership through here before touching Server state.
- * A human with no Grotto User yet is simply not a member.
+ * A human with no Haus User yet is simply not a member.
  */
 export async function requireServerMembership(
     db: Pick<GrottoDatabase, 'select'>,
@@ -63,7 +63,7 @@ export async function requireServerMembership(
     return { ...server, role: server.role as ServerRole };
 }
 
-/** Opens one Grotto server at its human-facing address, with its Channels. */
+/** Opens one Haus server at its human-facing address, with its Channels. */
 export async function openServerBySlug(
     db: GrottoDatabase,
     member: GrottoUser | null,

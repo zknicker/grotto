@@ -22,26 +22,26 @@ interface SkillDeps {
 
 export const SKILL_SUBCOMMANDS: SubCommand[] = [
     {
-        examples: ['grotto skill list'],
+        examples: ['haus skill list'],
         flags: [],
         name: 'list',
         positionals: [],
         run: () => runSkillList(defaultDeps()),
         summary: 'List skills in your Agent library',
-        usage: 'grotto skill list',
+        usage: 'haus skill list',
     },
     {
-        examples: ['grotto skill view release-checks'],
+        examples: ['haus skill view release-checks'],
         flags: [],
         name: 'view',
         positionals: ['<skillId>'],
         run: (args) => runSkillView(args, defaultDeps()),
         summary: 'Read a skill and the hashes needed to edit it',
-        usage: 'grotto skill view <skillId>',
+        usage: 'haus skill view <skillId>',
     },
     {
         examples: [
-            `grotto skill create --name release-checks --description "Verify releases" ${CONTENT_RECIPE}`,
+            `haus skill create --name release-checks --description "Verify releases" ${CONTENT_RECIPE}`,
         ],
         flags: [
             { description: 'Skill name; becomes its id', name: '--name', valueName: '<name>' },
@@ -55,20 +55,20 @@ export const SKILL_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runSkillCreate(args, defaultDeps()),
         summary: 'Create a skill from SKILL.md on stdin; prefer patching an existing skill',
-        usage: 'grotto skill create --name <name> --description <text> < SKILL.md',
+        usage: 'haus skill create --name <name> --description <text> < SKILL.md',
     },
     {
-        examples: [`grotto skill patch release-checks --hash <hash> ${CONTENT_RECIPE}`],
+        examples: [`haus skill patch release-checks --hash <hash> ${CONTENT_RECIPE}`],
         flags: [{ description: 'Hash from skill view', name: '--hash', valueName: '<hash>' }],
         name: 'patch',
         positionals: ['<skillId>'],
         run: (args) => runSkillPatch(args, defaultDeps()),
         summary: 'Replace SKILL.md from stdin using its current hash',
-        usage: 'grotto skill patch <skillId> --hash <hash> < SKILL.md',
+        usage: 'haus skill patch <skillId> --hash <hash> < SKILL.md',
     },
     {
         examples: [
-            `grotto skill write-file release-checks --file-path references/checklist.md ${CONTENT_RECIPE}`,
+            `haus skill write-file release-checks --file-path references/checklist.md ${CONTENT_RECIPE}`,
         ],
         flags: [
             {
@@ -86,16 +86,16 @@ export const SKILL_SUBCOMMANDS: SubCommand[] = [
         positionals: ['<skillId>'],
         run: (args) => runSkillWriteFile(args, defaultDeps()),
         summary: 'Write a support file from stdin with hash checking',
-        usage: 'grotto skill write-file <skillId> --file-path <path> [--hash <hash>] < file',
+        usage: 'haus skill write-file <skillId> --file-path <path> [--hash <hash>] < file',
     },
     {
-        examples: ['grotto skill delete release-checks'],
+        examples: ['haus skill delete release-checks'],
         flags: [],
         name: 'delete',
         positionals: ['<skillId>'],
         run: (args) => runSkillDelete(args, defaultDeps()),
         summary: 'Delete a skill from your library; this cannot be undone',
-        usage: 'grotto skill delete <skillId>',
+        usage: 'haus skill delete <skillId>',
     },
 ];
 
@@ -104,7 +104,7 @@ export async function runSkillList(deps: SkillDeps): Promise<number> {
     const lines = response.skills.map((skill) => `${skill.id} — ${skill.description}`);
     deps.write(`${lines.length > 0 ? lines.join('\n') : 'No skills found.'}\n`);
     deps.write(
-        'View before editing: grotto skill view <skillId>; prefer grotto skill patch. Changes take effect next turn.\n'
+        'View before editing: haus skill view <skillId>; prefer haus skill patch. Changes take effect next turn.\n'
     );
     return 0;
 }
@@ -123,7 +123,7 @@ export async function runSkillView(args: ParsedArgs, deps: SkillDeps): Promise<n
             deps.write(`- ${file.path} (hash: ${file.hash})\n`);
         }
     }
-    deps.write(`Patch it: grotto skill patch ${skillId} --hash ${response.hash} < SKILL.md\n`);
+    deps.write(`Patch it: haus skill patch ${skillId} --hash ${response.hash} < SKILL.md\n`);
     return 0;
 }
 
@@ -133,7 +133,7 @@ export async function runSkillCreate(args: ParsedArgs, deps: SkillDeps): Promise
     if (!(name && description)) {
         throw new AgentCliError('INVALID_ARG', 'Provide --name and --description.');
     }
-    const content = await requiredStdin(deps, 'grotto skill create');
+    const content = await requiredStdin(deps, 'haus skill create');
     const response = await deps.client.request(
         '/api/agent/skills/create',
         agentSkillCreateResponseSchema,
@@ -147,9 +147,9 @@ export async function runSkillPatch(args: ParsedArgs, deps: SkillDeps): Promise<
     const skillId = requireSkillId(args);
     const expectedHash = args.values['--hash'];
     if (!expectedHash) {
-        throw new AgentCliError('INVALID_ARG', 'Provide --hash from grotto skill view.');
+        throw new AgentCliError('INVALID_ARG', 'Provide --hash from haus skill view.');
     }
-    const content = await requiredStdin(deps, `grotto skill patch ${skillId}`);
+    const content = await requiredStdin(deps, `haus skill patch ${skillId}`);
     const response = await deps.client.request(
         '/api/agent/skills/patch',
         agentSkillChangeResponseSchema,
@@ -167,7 +167,7 @@ export async function runSkillWriteFile(args: ParsedArgs, deps: SkillDeps): Prom
     if (!filePath) {
         throw new AgentCliError('INVALID_ARG', 'Provide --file-path.');
     }
-    const content = await stdin(deps, `grotto skill write-file ${skillId}`);
+    const content = await stdin(deps, `haus skill write-file ${skillId}`);
     const response = await deps.client.request(
         '/api/agent/skills/write-file',
         agentSkillChangeResponseSchema,

@@ -1,13 +1,13 @@
 ---
-summary: First-party Grotto contracts shared by Server, App, Computer, and the Agent CLI.
+summary: First-party Haus contracts shared by Server, App, Computer, and the Agent CLI.
 read_when:
-  - looking for Grotto API capability contracts
+  - looking for Haus API capability contracts
   - changing client-facing API docs or shared wire types
 ---
 
-# Grotto API
+# Haus API
 
-`packages/grotto-api` defines the first-party contracts used by Grotto Server, App, Computer, and
+`packages/grotto-api` defines the first-party contracts used by Haus Server, App, Computer, and
 the managed Agent CLI. The App uses Server tRPC routers. Computer uses the authenticated attachment
 protocol plus scoped runner routes. Managed Agents call `/api/agent/*` through Computer's loopback
 proxy.

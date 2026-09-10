@@ -10,7 +10,7 @@ import { useSignOut } from './use-sign-out.ts';
 /**
  * Mandatory sign-in (specs/identity.md): with Clerk configured, the app
  * renders only for a signed-in user. Keyless test builds skip the gate, but a
- * configured Grotto App never falls through to authenticated Server routes
+ * configured Haus App never falls through to authenticated Server routes
  * without a Clerk session.
  */
 export function SignInGate({ children }: { children: ReactNode }) {
@@ -173,7 +173,7 @@ export async function readClerkSessionToken(
 }
 
 export function SignInGateFrame({
-    message = 'Sign in to open your Grotto.',
+    message = 'Sign in to open your Haus.',
     recovery,
     signIn = false,
 }: {
@@ -193,7 +193,7 @@ export function SignInGateFrame({
                         <Spinner aria-label="Opening your session" size="sm" />
                     ))
                 }
-                title="Welcome to Grotto"
+                title="Welcome to Haus"
             />
         </ActivationShell>
     );

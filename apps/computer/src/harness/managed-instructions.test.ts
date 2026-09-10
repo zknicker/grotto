@@ -35,13 +35,13 @@ test('an explicitly requested unavailable MCP does not trigger local configurati
         'An inventory establishes availability only inside its stated scope. Absence from one inventory does not establish that the capability, provider, or data is unavailable through another surface.'
     );
     // Raft parity: the runtime inventory is not populated by a CLI command —
-    // Grotto has no `integration list` equivalent at all.
+    // Haus has no `integration list` equivalent at all.
     expect(efficiencyPrompt).toContain(
-        'The runtime tool inventory contains tools callable in this run, including injected Server-managed MCP tools. It is not populated by the `grotto` CLI.'
+        'The runtime tool inventory contains tools callable in this run, including injected Server-managed MCP tools. It is not populated by the `haus` CLI.'
     );
     expect(efficiencyPrompt).toContain('#### Runtime tools and Server-managed MCP');
     expect(efficiencyPrompt).not.toContain('integration list');
-    expect(efficiencyPrompt).not.toContain('#### Grotto Agent Login integrations');
+    expect(efficiencyPrompt).not.toContain('#### Haus Agent Login integrations');
     expect(efficiencyPrompt).toContain(
         "The human's explicit choice of surface is part of that fit."
     );
@@ -61,7 +61,7 @@ test('the Agent prompt preserves the notice-to-pull contract', () => {
     });
 
     expect(prompt).toContain('The notice is not itself a request');
-    expect(prompt).toContain('`grotto message check` reads locally cached bodies');
+    expect(prompt).toContain('`haus message check` reads locally cached bodies');
     expect(prompt).toContain('Deferral needs no visible reply');
     expect(prompt).toContain('Your process stays alive across turns');
 
@@ -76,10 +76,10 @@ test('the Agent prompt preserves the notice-to-pull contract', () => {
     );
 
     // Raft parity (startup step 4): processing and replying are one act; the
-    // FYI carve-out is Grotto's single documented divergence there
+    // FYI carve-out is Haus's single documented divergence there
     // (specs/inbox.md silence semantics, scripts/agent-tests fyi-silence-*).
     expect(prompt).toContain(
-        'When you receive a message, process it and reply with `grotto message send`.'
+        'When you receive a message, process it and reply with `haus message send`.'
     );
     expect(prompt).toContain(
         'an explicit FYI / no-response-needed message settles silently, with no send at all'
@@ -87,10 +87,10 @@ test('the Agent prompt preserves the notice-to-pull contract', () => {
 });
 
 test('the @Mentions section separates display name from the stable name', () => {
-    // Raft parity (`buildMentionsSection`, Computer 1.0.16). Grotto renders one
+    // Raft parity (`buildMentionsSection`, Computer 1.0.16). Haus renders one
     // name today, so the bullet reads as a tautology per-agent — it still has to
     // teach that identity reasoning uses the stable name, not the presentation.
-    expect(efficiencyPrompt).toContain('Your stable Grotto @mention handle is `@Marlow`.');
+    expect(efficiencyPrompt).toContain('Your stable Haus @mention handle is `@Marlow`.');
     expect(efficiencyPrompt).toContain(
         'Your display name is `Marlow`. Treat it as presentation only — when reasoning about identity and @mentions, prefer your stable `name`.'
     );
@@ -142,7 +142,7 @@ test('keeps current Raft instruction precedence without an Agent-creation policy
     expect(prompt).not.toContain('## Security');
 
     expect(prompt.indexOf('## How these instructions apply')).toBeLessThan(
-        prompt.indexOf('## Communication — grotto CLI ONLY')
+        prompt.indexOf('## Communication — haus CLI ONLY')
     );
 });
 
@@ -165,9 +165,7 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
     expect(prompt).toContain('correct the routing in the original thread');
     expect(prompt).toContain('An assignee-only receipt that names you is actionable');
     expect(prompt).toContain('It is context, not a second task');
-    expect(prompt).toContain(
-        'run `grotto message read --target "#channel:shortid"` before replying'
-    );
+    expect(prompt).toContain('run `haus message read --target "#channel:shortid"` before replying');
     expect(prompt).toContain('Default every message to the shortest useful form');
     expect(prompt).toContain('Do not paste execution logs into chat');
     expect(prompt).toContain('A completion message should lead with the outcome');
@@ -194,10 +192,10 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
         'A parent channel mute already suppresses ordinary delivery from its threads'
     );
 
-    expect(prompt).toContain('**Asks** — `grotto ask`');
+    expect(prompt).toContain('**Asks** — `haus ask`');
     expect(prompt).toContain('the answer is their reply in the Ask’s thread');
 
-    // These Raft-only surfaces must not leak into the Grotto prompt.
+    // These Raft-only surfaces must not leak into the Haus prompt.
     expect(prompt).not.toContain('reviewer-isolation');
     expect(prompt).not.toContain('raft wiki');
 });
@@ -216,8 +214,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     });
 
     // A reviewed ratchet, not a runtime limit: no adapter enforces a prompt length. Raft-verbatim
-    // text is fixed and is never trimmed to make room; Grotto-only additions must fit by
-    // simplifying or relocating other Grotto-only text (Manual topics, skills). See AGENTS.md
+    // text is fixed and is never trimmed to make room; Haus-only additions must fit by
+    // simplifying or relocating other Haus-only text (Manual topics, skills). See AGENTS.md
     // "Agent System Prompt Changes" and specs/raft-alignment/prompt-divergences.md.
     //
     // Raised from 40,000 to buy the new-teammate welcome etiquette bullet. It has no Manual
@@ -289,7 +287,7 @@ test('pins the rendered visuals and artifact fence contract', () => {
 
     expect(prompt).toContain('## Outputs');
     expect(prompt).toContain(
-        '- Fences render only inside messages you send: write visual and artifact fences directly in the body of a `grotto message send`.'
+        '- Fences render only inside messages you send: write visual and artifact fences directly in the body of a `haus message send`.'
     );
     expect(prompt).toContain(
         'Artifact fences render a card the reader clicks to open in the artifact pane; nothing auto-opens.'

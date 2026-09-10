@@ -77,7 +77,7 @@ const reviewPrefixes = {
     ios: [
         'packages/grotto-api/',
         'apps/ios-swift/project.yml',
-        'apps/ios-swift/Grotto.xcodeproj/project.pbxproj',
+        'apps/ios-swift/Haus.xcodeproj/project.pbxproj',
     ],
     computer: ['packages/grotto-api/', 'bun.lock', 'package.json', 'patches/'],
     agent: [
@@ -292,7 +292,7 @@ function targetLabel(target) {
         app: 'App',
         ios: 'iOS',
         computer: 'Computer',
-        agent: 'Grotto Agent',
+        agent: 'Haus Agent',
     }[target];
 }
 

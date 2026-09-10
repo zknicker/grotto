@@ -98,7 +98,7 @@ export function SkillsBrowserUnavailable() {
                 <EmptyState.Header>
                     <EmptyState.Title>Skills unavailable</EmptyState.Title>
                     <EmptyState.Description>
-                        Grotto couldn’t load the Computer skill inventory. Try opening this page
+                        Haus couldn’t load the Computer skill inventory. Try opening this page
                         again.
                     </EmptyState.Description>
                 </EmptyState.Header>

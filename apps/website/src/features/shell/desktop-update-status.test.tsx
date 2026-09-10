@@ -28,7 +28,7 @@ describe('desktop update footer', () => {
         expect(renderFooterStatus({ phase: 'idle' })).toBe('');
         expect(renderFooterStatus({ phase: 'checking' })).toBe('');
         expect(renderFooterStatus({ phase: 'available', version: '1.9.0' })).toContain(
-            'aria-label="Grotto app update"'
+            'aria-label="Haus app update"'
         );
     });
 

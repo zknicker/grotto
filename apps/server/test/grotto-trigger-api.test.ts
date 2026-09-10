@@ -404,7 +404,7 @@ test('a test fire rides the same path a real delivery takes', async () => {
     expect(pending.content).toContain('Instruction: Post the failing job.');
     expect(pending.content).toContain('"test":true');
     expect(pending.content.split('\n').at(-1)).toBe(
-        `reply with: grotto message send --cause ${fireId}`
+        `reply with: haus message send --cause ${fireId}`
     );
     await expect(
         admin.trpc.trigger.runs.query({ serverId, triggerId: created.trigger.id })
@@ -469,7 +469,7 @@ test('keeps every operator Trigger procedure to Owners and Admins', async () => 
     expect(survivor.status).toBe('armed');
 });
 
-test('refuses a kind Grotto does not have, on both authoring paths', async () => {
+test('refuses a kind Haus does not have, on both authoring paths', async () => {
     await expect(
         owner.trpc.trigger.create.mutate({
             agentId: sageAgentId,

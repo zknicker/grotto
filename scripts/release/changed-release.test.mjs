@@ -53,7 +53,7 @@ test('one appended release returns its target publication plan', async () => {
     );
 });
 
-test('a Computer-only component release still carries a public Grotto version', async () => {
+test('a Computer-only component release still carries a public Haus version', async () => {
     const appended = {
         version: '1.8.24',
         date: '2026-08-27',
@@ -100,7 +100,7 @@ test('a newly appended entry cannot use the historical four-target shape', async
             readLedger: async (ref) =>
                 ref === beforeSha ? [baseRelease] : [baseRelease, appended],
         })
-    ).rejects.toThrow('new release ledger entries must include the Grotto Agent target');
+    ).rejects.toThrow('new release ledger entries must include the Haus Agent target');
 });
 
 test('history edits fail even when the entry count is unchanged', async () => {

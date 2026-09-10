@@ -16,7 +16,7 @@ interface StoredSession {
 }
 
 test('login reuses a usable access token without opening device authorization', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-login-reuse-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-login-reuse-'));
     const requests: string[] = [];
     const peer = Bun.serve({
         fetch(request) {
@@ -42,7 +42,7 @@ test('login reuses a usable access token without opening device authorization', 
         });
 
         expect(result.exitCode, result.stderr).toBe(0);
-        expect(result.stdout).toContain('Reused the saved Grotto Computer login.');
+        expect(result.stdout).toContain('Reused the saved Haus Computer login.');
         expect(requests).toEqual([]);
         expect(JSON.parse(await readFile(join(dataRoot, 'login.json'), 'utf8'))).toEqual(session);
     } finally {
@@ -52,7 +52,7 @@ test('login reuses a usable access token without opening device authorization', 
 }, 15_000);
 
 test('login rotates an expired access token through the saved refresh session', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-login-refresh-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-login-refresh-'));
     const received: unknown[] = [];
     const peer = Bun.serve({
         async fetch(request) {
@@ -90,7 +90,7 @@ test('login rotates an expired access token through the saved refresh session', 
         });
 
         expect(result.exitCode, result.stderr).toBe(0);
-        expect(result.stdout).toContain('Reused the saved Grotto Computer login.');
+        expect(result.stdout).toContain('Reused the saved Haus Computer login.');
         expect(received).toEqual([
             {
                 refreshToken: previous.refreshToken,
@@ -111,7 +111,7 @@ test('login rotates an expired access token through the saved refresh session', 
 }, 15_000);
 
 test('login does not forward an origin-bound refresh token through redirects', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-login-redirect-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-login-redirect-'));
     const redirectedBodies: string[] = [];
     const sink = Bun.serve({
         async fetch(request) {
@@ -160,7 +160,7 @@ test('login does not forward an origin-bound refresh token through redirects', a
 }, 15_000);
 
 test('login requires explicit replacement before changing the saved origin', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-login-replace-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-login-replace-'));
     const requests: string[] = [];
     let polls = 0;
     const peer = Bun.serve({
@@ -223,7 +223,7 @@ test('login requires explicit replacement before changing the saved origin', asy
             GROTTO_SERVER_ORIGIN: replacementOrigin,
         });
         expect(replaced.exitCode, `${replaced.stderr}\nRequests: ${requests.join(', ')}`).toBe(0);
-        expect(replaced.stdout).toContain('Grotto Computer signed in.');
+        expect(replaced.stdout).toContain('Haus Computer signed in.');
         expect(JSON.parse(await readFile(join(dataRoot, 'login.json'), 'utf8'))).toMatchObject({
             origin: replacementOrigin,
             sessionId: 'cls_6543210987654321',
@@ -235,7 +235,7 @@ test('login requires explicit replacement before changing the saved origin', asy
 }, 15_000);
 
 test('status reports the login origin and attached Servers without secrets', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-status-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-status-'));
     const origin = 'https://server.example.test';
     const secret = `gcl_at_${'c'.repeat(43)}`;
     try {
@@ -268,7 +268,7 @@ test('status reports the login origin and attached Servers without secrets', asy
         expect(result.stdout).toContain('✓ signed in');
         expect(result.stdout).toContain(origin);
         expect(result.stdout).toContain('/hq');
-        expect(result.stdout).toContain('● stopped — run grotto-computer start /hq');
+        expect(result.stdout).toContain('● stopped — run haus-computer start /hq');
         expect(result.stdout).not.toContain(secret);
         expect(result.stdout).not.toContain('gcl_rt_');
     } finally {

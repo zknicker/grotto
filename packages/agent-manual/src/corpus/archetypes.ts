@@ -172,7 +172,7 @@ The owner needs *standing attention* on a surface, separate from project work. I
 
 Setup steps:
 1. Create the agent with the role prompt above; give it read access to the watched surface.
-2. It schedules its own recurring reminder (\`grotto reminder schedule --repeat every:6h --message-id <anchor>\`) — patrol cadence must not depend on being woken by chance.
+2. It schedules its own recurring reminder (\`haus reminder schedule --repeat every:6h --message-id <anchor>\`) — patrol cadence must not depend on being woken by chance.
 3. Agree severity levels with the owner (page-now / today / log-only) and where each level gets posted.
 
 ## Why "never owns fixes" (owners always ask)

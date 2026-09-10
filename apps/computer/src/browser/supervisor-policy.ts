@@ -83,7 +83,7 @@ export function evaluateBrowserHealth(input: {
     if (!input.observation.lockHeld) {
         return {
             evidence,
-            reason: 'Chrome is running without the Grotto profile lock.',
+            reason: 'Chrome is running without the Haus profile lock.',
             state: 'degraded',
         };
     }

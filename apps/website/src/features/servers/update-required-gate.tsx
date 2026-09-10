@@ -10,10 +10,10 @@ import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 
 /**
  * Watches every Server query and mutation for the Server's protocol-mismatch
- * rejection. The gate covers the whole Grotto App because `server.list` and the
+ * rejection. The gate covers the whole Haus App because `server.list` and the
  * open Server run on load, so a stale client trips it before showing product
  * data. Hosted browser tabs and the current thin desktop shell reload the
- * canonical Grotto App. Older releases with a bundled renderer are
+ * canonical Haus App. Older releases with a bundled renderer are
  * taught to install a desktop update.
  */
 export function UpdateRequiredGate({
@@ -86,7 +86,7 @@ function ReloadBody() {
     return (
         <>
             <p className="text-muted text-sm">
-                Grotto was updated. Reload this tab to continue with the current version.
+                Haus was updated. Reload this tab to continue with the current version.
             </p>
             <Button onPress={() => window.location.reload()}>Reload</Button>
         </>
@@ -104,7 +104,7 @@ function DesktopUpdateBody() {
     return (
         <>
             <p className="text-muted text-sm">
-                This version of the Grotto desktop app no longer matches the Server. Install the
+                This version of the Haus desktop app no longer matches the Server. Install the
                 latest desktop update to continue.
             </p>
             <Button

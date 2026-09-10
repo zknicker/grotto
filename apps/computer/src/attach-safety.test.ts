@@ -51,7 +51,7 @@ test('setup preserves a missing-Server attach error without trying another proto
                 return Response.json(
                     {
                         code: 'computer_attachment_server_not_found',
-                        error: 'No Grotto server exists at /missing-server.',
+                        error: 'No Haus server exists at /missing-server.',
                     },
                     { status: 404 }
                 );
@@ -66,7 +66,7 @@ test('setup preserves a missing-Server attach error without trying another proto
         const result = await runCli(['setup', '/missing-server'], dataRoot, origin);
 
         expect(result.exitCode).not.toBe(0);
-        expect(result.stderr).toContain('No Grotto server exists at /missing-server.');
+        expect(result.stderr).toContain('No Haus server exists at /missing-server.');
         expect(requests).toEqual(['/computer/attach']);
     } finally {
         peer.stop(true);

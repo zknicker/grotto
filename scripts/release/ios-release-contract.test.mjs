@@ -29,7 +29,7 @@ test('preserves the coordinated version and build during App Store export', () =
     expect(options).toContain(
         '<key>signingCertificate</key>\n    <string>Apple Distribution</string>'
     );
-    expect(options).toContain('<key>build.grotto.ios</key>\n        <string>PROFILE-UUID</string>');
+    expect(options).toContain('<key>chat.haus.ios</key>\n        <string>PROFILE-UUID</string>');
     expect(options).toContain('<key>destination</key>\n    <string>export</string>');
     expect(() => appStoreConnectExportOptions('TEAM<bad', 'PROFILE-UUID')).toThrow(
         'team ID contains unsupported characters'
@@ -71,7 +71,7 @@ test('uses App Store Connect authentication only as a complete set', () => {
 });
 
 test('uploads the exported IPA separately with the same API key', () => {
-    const args = appStoreConnectUploadArgs('/tmp/Grotto.ipa', {
+    const args = appStoreConnectUploadArgs('/tmp/Haus.ipa', {
         APPLE_API_ISSUER: 'issuer',
         APPLE_API_KEY_ID: 'KEY',
         APPLE_API_KEY_PATH: '/tmp/AuthKey.p8',
@@ -80,7 +80,7 @@ test('uploads the exported IPA separately with the same API key', () => {
         'altool',
         '--upload-app',
         '-f',
-        '/tmp/Grotto.ipa',
+        '/tmp/Haus.ipa',
         '-t',
         'ios',
         '--api-key',

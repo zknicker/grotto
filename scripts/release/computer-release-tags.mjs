@@ -34,7 +34,7 @@ export function ensureComputerGithubRelease(version, input) {
         '--title',
         tag,
         '--notes',
-        `Signed Grotto Computer ${version} (protocol ${computerProtocolVersion}, ${input.sourceRevision}).`,
+        `Signed Haus Computer ${version} (protocol ${computerProtocolVersion}, ${input.sourceRevision}).`,
     ]);
 }
 

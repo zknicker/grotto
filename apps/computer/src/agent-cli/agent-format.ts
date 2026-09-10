@@ -54,7 +54,7 @@ export function formatDeliveryEnvelope(
 }
 
 /**
- * A bodiless inbox item served on `grotto message check`: a Trigger or Reminder
+ * A bodiless inbox item served on `haus message check`: a Trigger or Reminder
  * fire, or a task assignment. None of them has a Chat message, so the item's own
  * identity fills the envelope: `msg=` is its short id, `type=` is `trigger` or
  * `system`, and the sender is `@trigger`, `@reminder`, or `@grotto` — the exact
@@ -106,7 +106,7 @@ function attachmentSuffix(message: AgentCliMessage): string {
     if (described.length !== count) {
         return ` [${count} ${noun}]`;
     }
-    return ` [${count} ${noun}: ${described.join(', ')} — use grotto attachment view to download]`;
+    return ` [${count} ${noun}: ${described.join(', ')} — use haus attachment view to download]`;
 }
 
 /** Task-messages ride every surface with their metadata suffix (D8). */

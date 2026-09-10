@@ -9,13 +9,13 @@ interface InboxDeps {
 
 export const INBOX_SUBCOMMANDS: SubCommand[] = [
     {
-        examples: ['grotto inbox check'],
+        examples: ['haus inbox check'],
         flags: [],
         name: 'check',
         positionals: [],
         run: () => runInboxCheck(defaultDeps()),
         summary: 'List pending targets without draining them',
-        usage: 'grotto inbox check',
+        usage: 'haus inbox check',
     },
 ];
 
@@ -33,7 +33,7 @@ export async function runInboxCheck(deps: InboxDeps): Promise<number> {
         ].join('');
         return `${row.target}  pending: ${row.pendingCount} message${row.pendingCount === 1 ? '' : 's'} · first msg=${row.firstShortId} · latest sender @${row.latestSender} · latest msg=${row.latestShortId}${tags}`;
     });
-    lines.push('Read pending bodies with grotto message check.');
+    lines.push('Read pending bodies with haus message check.');
     deps.write(`${lines.join('\n')}\n`);
     return 0;
 }

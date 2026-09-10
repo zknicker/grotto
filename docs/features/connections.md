@@ -10,7 +10,7 @@ read_when:
 
 Server Settings -> Connections manages remote MCP server accounts.
 
-**Add MCP** saves an MCP entry in Grotto. For OAuth MCPs, **Sign in** then opens the remote
+**Add MCP** saves an MCP entry in Haus. For OAuth MCPs, **Sign in** then opens the remote
 account's authorization flow; until that completes, the entry says **Sign in required**. Header
 authentication uses **Add credentials** instead. Adding an MCP does not grant Agents access.
 
@@ -30,7 +30,7 @@ into their cached snapshot (title, state, additions, deletions, files changed) f
 Agents reach GitHub through their own Computer tooling or an ordinary MCP connection.
 
 **Disconnect account** warns which Agents lose access, then clears active credentials, discovered
-tools, and grants while keeping the MCP entry. **Remove from Grotto** deletes that entry and its
+tools, and grants while keeping the MCP entry. **Remove from Haus** deletes that entry and its
 saved credentials, including for preset accounts. Signing in again uses the same connection and
 can reuse its configured OAuth client and previously approved authorization-server origins.
 
@@ -39,7 +39,7 @@ tools exposed by the connection. The tool names are read-only context, not indiv
 controls.
 
 Each connection shows the MCP server's own icon when one can be resolved, and a tinted monogram
-otherwise. Grotto Server resolves and stores the image during discovery, so the settings page makes
+otherwise. Haus Server resolves and stores the image during discovery, so the settings page makes
 no third-party image requests. See [Connections API](../api/connections.md#connection-icons).
 
 A connection's detail dialog leads with the server's name, its connection status, and the server's

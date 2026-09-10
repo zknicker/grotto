@@ -131,7 +131,7 @@ test('incompatible and invalid Computer reports stay actionable', async () => {
             computerId: setup.computerId,
             failure: {
                 code: 'computer-incompatible',
-                detail: 'Update Grotto Computer before continuing setup.',
+                detail: 'Update Haus Computer before continuing setup.',
             },
             phase: 'awaiting-computer',
         })
@@ -139,7 +139,7 @@ test('incompatible and invalid Computer reports stay actionable', async () => {
         computerId: setup.computerId,
         failure: {
             code: 'computer-incompatible',
-            detail: 'Update Grotto Computer before continuing setup.',
+            detail: 'Update Haus Computer before continuing setup.',
         },
         phase: 'awaiting-computer',
     });

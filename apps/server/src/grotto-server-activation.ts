@@ -54,7 +54,7 @@ export async function activateGrottoRelease(input: ActivateGrottoReleaseInput) {
         introducedLabel = activation.introducedLabel;
         const { previousPid } = activation;
         if (!(await input.serverHealthy(previousPid))) {
-            throw new Error('Activated Grotto Server did not become healthy.');
+            throw new Error('Activated Haus Server did not become healthy.');
         }
     } catch (error) {
         if (previousRelease) {
@@ -63,7 +63,7 @@ export async function activateGrottoRelease(input: ActivateGrottoReleaseInput) {
         } else {
             if (!introducedLabel) {
                 throw new Error(
-                    'Grotto Server activation failed without proving the Server label stopped; current remains on the failed release.',
+                    'Haus Server activation failed without proving the Server label stopped; current remains on the failed release.',
                     { cause: error }
                 );
             }
@@ -71,7 +71,7 @@ export async function activateGrottoRelease(input: ActivateGrottoReleaseInput) {
                 await input.stopServer();
             } catch (stopError) {
                 throw new Error(
-                    'Grotto Server rollback could not stop the introduced Server label; current remains on the failed release.',
+                    'Haus Server rollback could not stop the introduced Server label; current remains on the failed release.',
                     {
                         cause: new AggregateError(
                             [error, stopError],
@@ -82,7 +82,7 @@ export async function activateGrottoRelease(input: ActivateGrottoReleaseInput) {
             }
             await rm(currentPath, { force: true });
         }
-        throw new Error('Grotto Server activation failed and rolled back.', { cause: error });
+        throw new Error('Haus Server activation failed and rolled back.', { cause: error });
     }
 
     return input.sourceRevision;
@@ -99,7 +99,7 @@ async function readCurrentRelease(deployRoot: string, currentPath: string) {
         throw error;
     }
     if (!isAbsolute(target)) {
-        throw new Error('Current Grotto release must use an absolute release path.');
+        throw new Error('Current Haus release must use an absolute release path.');
     }
     const sourceRevision = basename(target);
     assertActivationRevision(sourceRevision);
@@ -121,16 +121,16 @@ async function assertContainedRelease(
 ) {
     const expectedReleaseRoot = join(deployRoot, 'releases', sourceRevision);
     if (releaseRoot !== expectedReleaseRoot) {
-        throw new Error('Grotto release resolves outside the production release root.');
+        throw new Error('Haus release resolves outside the production release root.');
     }
     const releaseStat = await lstat(releaseRoot);
     if (!releaseStat.isDirectory() || releaseStat.isSymbolicLink()) {
-        throw new Error('Grotto activation target must be a real release directory.');
+        throw new Error('Haus activation target must be a real release directory.');
     }
     const canonicalDeployRoot = await realpath(deployRoot);
     const canonicalReleaseRoot = await realpath(releaseRoot);
     if (canonicalReleaseRoot !== join(canonicalDeployRoot, 'releases', sourceRevision)) {
-        throw new Error('Grotto release resolves outside the production release root.');
+        throw new Error('Haus release resolves outside the production release root.');
     }
 }
 
@@ -188,7 +188,7 @@ export async function assertPrivilegedActivationHelper(
     inspect: (path: string) => Promise<ActivationPathStat> = lstat
 ) {
     if (actualPath !== privilegedActivationHelper) {
-        throw new Error('Grotto activation must run from the exact root-owned path.');
+        throw new Error('Haus activation must run from the exact root-owned path.');
     }
 
     await assertRootOwnedComponents(
@@ -258,7 +258,7 @@ function parseServerPid(output: string) {
 
 function assertActivationRevision(value: string) {
     if (!revisionPattern.test(value)) {
-        throw new Error('Grotto activation requires a full lowercase Git SHA.');
+        throw new Error('Haus activation requires a full lowercase Git SHA.');
     }
 }
 
@@ -302,7 +302,7 @@ async function main() {
         startServer: startProductionServer,
         stopServer: stopProductionServer,
     });
-    console.log(`Activated Grotto Server release ${activatedRevision}.`);
+    console.log(`Activated Haus Server release ${activatedRevision}.`);
 }
 
 if (import.meta.main) {

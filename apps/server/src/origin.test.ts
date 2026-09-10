@@ -6,7 +6,7 @@ describe('isAllowedAppOrigin', () => {
         expect(isAllowedAppOrigin('file://', 'https://app.grotto.test')).toBe(true);
         expect(
             isAllowedAppOrigin(
-                'file:///Applications/Grotto.app/index.html',
+                'file:///Applications/Haus.app/index.html',
                 'https://app.grotto.test'
             )
         ).toBe(true);

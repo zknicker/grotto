@@ -6,7 +6,7 @@ test('plain rendering keeps glyphs and drops ANSI codes', () => {
     expect(render.ok('done')).toBe('✓ done');
     expect(render.fail('broken')).toBe('✗ broken');
     expect(render.warn('careful')).toBe('● careful');
-    expect(render.header({ version: '1.2.3' })).toBe('◆ Grotto Computer v1.2.3');
+    expect(render.header({ version: '1.2.3' })).toBe('◆ Haus Computer v1.2.3');
     expect(render.header({ version: '1.2.3' })).not.toContain('\u001B[');
 });
 
@@ -20,7 +20,7 @@ test('colored rendering wraps text in ANSI codes', () => {
 test('the banner carries the arch, wordmark, and version', () => {
     const banner = createCliRenderer({ colors: false }).banner({ version: '1.2.3' });
     expect(banner).toContain('╭─◠◠◠─╮');
-    expect(banner).toContain('Grotto Computer');
+    expect(banner).toContain('Haus Computer');
     expect(banner).toContain('v1.2.3');
     expect(banner.split('\n')).toHaveLength(2);
 });
@@ -34,7 +34,7 @@ test('update status lines cover every freshness state', () => {
             kind: 'update-available',
             latestVersion: '1.3.0',
         })
-    ).toBe('● Update available: v1.3.0 — run grotto-computer upgrade');
+    ).toBe('● Update available: v1.3.0 — run haus-computer upgrade');
     expect(render.updateStatusLine({ kind: 'development' })).toContain('Development build');
     expect(render.updateStatusLine({ kind: 'unknown' })).toContain('Update check unavailable');
 });

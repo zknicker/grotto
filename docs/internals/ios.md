@@ -1,27 +1,27 @@
 ---
-summary: Ownership, dependency, navigation, and rendering boundaries for the native Grotto iPhone app.
+summary: Ownership, dependency, navigation, and rendering boundaries for the native Haus iPhone app.
 read_when:
   - changing the iPhone app, mobile navigation, or native rendering architecture
   - deciding whether mobile behavior belongs in shared logic, native UI, or an artifact web canvas
   - adding a dependency to apps/ios-swift
 ---
 
-# Grotto for iPhone
+# Haus for iPhone
 
-`apps/ios-swift` is Grotto's native iPhone client. It is a SwiftUI application, not a wrapper around
-the website. Android is not a supported target. The app reuses the same production Grotto Server,
+`apps/ios-swift` is Haus's native iPhone client. It is a SwiftUI application, not a wrapper around
+the website. Android is not a supported target. The app reuses the same production Haus Server,
 Computer, Clerk instance, and tRPC procedures; it does not add a mobile backend.
 
 ## Architecture
 
 The app is split into four focused layers:
 
-- `GrottoModels` owns small Codable projections of the existing first-party wire contracts.
-- `GrottoTransport` owns authenticated tRPC HTTP operations, SSE subscriptions, app protocol headers,
+- `HausModels` owns small Codable projections of the existing first-party wire contracts.
+- `HausTransport` owns authenticated tRPC HTTP operations, SSE subscriptions, app protocol headers,
   and Clerk session-token access.
-- `GrottoUI` owns reusable SwiftUI shell, Chat, thread, and settings presentation with stock semantic
+- `HausUI` owns reusable SwiftUI shell, Chat, thread, and settings presentation with stock semantic
   controls.
-- `GrottoApp` composes authentication, Server state, event streams, cache-like snapshots, navigation,
+- `HausApp` composes authentication, Server state, event streams, cache-like snapshots, navigation,
   and presentation adapters.
 
 The transport intentionally calls the existing tRPC procedures directly rather than introducing an
@@ -33,7 +33,7 @@ state. The app separately subscribes to semantic Agent activity and presents cur
 from the existing `agent.activeActivity`, `agent.onActivity`, and `agent.activityHistory` contracts.
 
 Debug builds mirror the web App's local authentication flow. When launched with
-`GROTTO_DEV_SERVER_ORIGIN` and `GROTTO_CLERK_PUBLISHABLE_KEY`, the app requests the existing
+`HAUS_DEV_SERVER_ORIGIN` and `HAUS_CLERK_PUBLISHABLE_KEY`, the app requests the existing
 localhost-only `dev.createClerkSignInToken` ticket, activates it through Clerk's native SDK, and calls
 the idempotent `server.developmentBootstrap` procedure before loading the ordinary Server list. This
 avoids a browser dependency in Simulator without adding fixture auth or shipping a development path in
@@ -91,7 +91,7 @@ the archived list. There is no appearance editor on iPhone. The color presets li
 `ChannelColorPalette` and mirror the App's `channel-color-options.ts`, which stays the source of
 truth; a channel stores the preset id, so an unknown id renders the muted default rather than an
 invented tint. The glyph geometry is a bundled JSON resource,
-`Sources/GrottoUI/Resources/channel-icons.json`, regenerated with
+`Sources/HausUI/Resources/channel-icons.json`, regenerated with
 `bun apps/ios-swift/scripts/generate-channel-icon-paths.ts`. That script reads the icon *names* back
 out of the App's generated catalog rather than re-curating, so the two clients cannot drift apart;
 it converts hugeicons' SVG elements into path data, and `SVGPathData` parses that into a SwiftUI
@@ -122,8 +122,8 @@ Concurrent opens of one attachment share a single download, and the finished fil
 place so a partial write is never observable at the cache path. The cache bounds itself to roughly
 256 MB, evicting least-recently-used attachments after inserts; a hit stamps the file's date, so
 attachments people reopen outlive ones nobody returns to, and a system purge of Caches costs only
-the next open a download. It lives in `GrottoTransport` beside the filename sanitizer and download
-it wraps, while `GrottoStore` owns the instance: what to cache and when to consult it is app state.
+the next open a download. It lives in `HausTransport` beside the filename sanitizer and download
+it wraps, while `HausStore` owns the instance: what to cache and when to consult it is app state.
 An async decode that lands
 after first paint must arrive through `@State` the body actually reads — SwiftUI invalidates a view
 only for state its body reads, so bumping a side-channel marker leaves a finished decode painted as
@@ -303,7 +303,7 @@ chip any other Agent mention gets. There is no provenance row and no `Open` cont
 new Agent is its mention, and an Agent profile on the phone is reached through that Agent's own Chat,
 whose details sheet pushes the profile.
 
-The `.agentCreated` body case stays as provenance, and `GrottoStoreMessageLoading` uses it to notice
+The `.agentCreated` body case stays as provenance, and `HausStoreMessageLoading` uses it to notice
 an Agent the directory does not list yet and refetch. Transcript rows are hosted in
 `UIHostingConfiguration` cells, which do not inherit the enclosing SwiftUI hierarchy's custom
 environment values, so row-level actions travel as explicit closures through `MessageTimelineView`
@@ -333,14 +333,14 @@ a flipped `UITableView`, and the system effect derives its paint region from saf
 table does not carry — enabling it washed the entire viewport, so the list hides both UIKit edge
 effects explicitly. A mask keeps the one property the system effect was prized for: it dissolves
 rows to transparency over the real backdrop, so dark mode needs no re-tuning. The ramp still runs
-across `GrottoChrome.scrollEdgeRunway` below the chrome row — the runway is tuned so the first row
+across `HausChrome.scrollEdgeRunway` below the chrome row — the runway is tuned so the first row
 below the chrome stays fully crisp. `chromeBar` remains the one place that decides bar-versus-inset
 for the chrome itself (`safeAreaBar` on iOS 26, a plain inset before it) and other scrolling
 surfaces still earn the system effect through it.
 
 The composer keeps the plain inset and a hard edge on purpose: the clearance it reserves is the
 transcript's own scroll bound, so no sharp row ever reaches past it, and the rows that reach its
-glass are already being refracted. `GrottoChrome.transcriptBottomRunway` is the breathing room the
+glass are already being refracted. `HausChrome.transcriptBottomRunway` is the breathing room the
 transcript holds above that clearance — a scroll bound too, not composer padding — and it runs wider
 than the inter-message rhythm because the composer's glass rim sits inside the region it reserves. The Thread transcript wears the same mask under its system
 navigation bar.
@@ -366,10 +366,10 @@ the back chevron of every screen it pushes.
 
 App iconography is hugeicons stroke-rounded, the same family the App's React surfaces import, so the
 two clients draw one vocabulary. It renders through the machinery the channel glyphs already used:
-`hugeicon-paths.ts` converts a family's SVG elements to path data, `GrottoIcon` draws a name at a
+`hugeicon-paths.ts` converts a family's SVG elements to path data, `HausIcon` draws a name at a
 point size, and `HugeiconGlyph` strokes or fills the normalized unit square. The two resources differ
 only in family and in which names they ask for. `generate-ui-icon-paths.ts` reads the names the App
-imports *and* the raw values of `GrottoIconName`, and fails if a name the phone asks for is not in
+imports *and* the raw values of `HausIconName`, and fails if a name the phone asks for is not in
 the family — without that check a typo renders an invisible icon. `ui-icons.json` is small enough to
 decode on first use, unlike the 1.8 MiB channel catalog, so an icon never appears after its row has
 drawn.
@@ -378,7 +378,7 @@ SF Symbols stay wherever the system owns the grammar: inside `ContentUnavailable
 and `Label`, and for navigation backs, disclosure chevrons, picker chevrons, and selection
 checkmarks. Those read as platform affordances rather than product iconography, and a custom glyph
 among a system menu's own rows looks foreign. Two things an SF Symbol does for free that a path does
-not: track the text baseline, and scale with Dynamic Type. `GrottoIcon` does neither, so every caller
+not: track the text baseline, and scale with Dynamic Type. `HausIcon` does neither, so every caller
 hands it a box, and that box is what aligns it beside text.
 
 A hugeicons name describes a shape, not a concept, and does not map onto an SF Symbol name — the
@@ -397,7 +397,7 @@ amount to land the drawn circle back on the shared diameter. The pre-26 fallback
 A chrome button's shadow spills past the edges of whatever contains it. The sidebar is composited
 with `.mask()`, which rasterizes into a buffer sized to the sidebar's own resolved height, so that
 spill survives only inside real layout height: `ChatSidebarView` reserves `shadowBleedHeight` of
-inert space at both ends and `GrottoShellView` grows and re-anchors the proposed height to match.
+inert space at both ends and `HausShellView` grows and re-anchors the proposed height to match.
 Without the leading reservation the search button's shadow ended at a hard line on the sidebar's
 top edge.
 
@@ -411,7 +411,7 @@ Dark mode cannot use the canvas shadow to separate an open drawer from the sideb
 canvas over a black sidebar has no edge. The veil painted over the slid-aside canvas therefore
 reverses by scheme: light mode fades the canvas toward the background and reads its edge from the
 shadow, while dark mode lifts the canvas to an elevated surface so the sidebar stays the recessed
-plane. `GrottoDrawerVeil` owns that rule.
+plane. `HausDrawerVeil` owns that rule.
 
 The sidebar drawer tracks the finger. A horizontal drag anywhere on the Chat canvas attaches the
 canvas to the finger, moves it one to one inside its travel, and stops at both ends because nothing
@@ -442,15 +442,15 @@ reading as a beat is the veil: the veil leaves by removal, never by animating to
 transaction the removal lands in decides what the user sees. An interactive close (drag, veil tap,
 header button) removes it inside the closing spring — the fade that reads as the canvas lifting off
 the same Chat — while a Chat selection drops it unanimated in the frame the new screen mounts, so
-the incoming Chat arrives fully lit and the slide is the whole transition. `GrottoDrawerClose`
-carries that distinction and `GrottoDrawerVeil.isPainted` applies it. Anything that must survive a switch — the composer draft,
+the incoming Chat arrives fully lit and the slide is the whole transition. `HausDrawerClose`
+carries that distinction and `HausDrawerVeil.isPainted` applies it. Anything that must survive a switch — the composer draft,
 the staged attachments and their in-flight preparation, a pending message reveal — is owned by the
 shell per destination and reaches the screen as a binding or by reference; a remount resets only
 presentation state (an open portal, a frozen keyboard inset, an error notice). A page arriving for a Chat that was showing nothing is that Chat's first paint and settles
 at the bottom without animation; only genuine appends animate.
 
 Both transcripts — the Chat timeline and a Thread's replies — sit on `TranscriptListView`, the
-flipped-table substrate in `GrottoUI/Platform`: a `UITableView` scaled by `-1` vertically, each
+flipped-table substrate in `HausUI/Platform`: a `UITableView` scaled by `-1` vertically, each
 cell's `contentView` scaled back, data reversed so the newest item is row zero. This is the
 mechanism production chat clients use instead of SwiftUI's scroll-position primitives, and it was
 adopted after those primitives lost three device regressions in a row. SwiftUI's
@@ -547,7 +547,7 @@ refetch fan-out rather than one per frame.
 
 The Chat projections the shell renders every frame — message rows and the destination list — are
 memoized in the Store behind a structural invalidation contract: their input fields are stored
-privately in `GrottoStore` and published through accessors whose setters drop equal-value writes and
+privately in `HausStore` and published through accessors whose setters drop equal-value writes and
 retire exactly the cached projections that field feeds. A new field a projection reads must join
 that "Projected Server state" block, and a projection must read its observable inputs before its
 cache check so a cached answer leaves the calling view subscribed to exactly what a rebuilt one
@@ -562,7 +562,7 @@ the walk completes, so events arriving during recovery are not missed. A cold st
 from `chat.eventHead` after refreshing the Server snapshot;
 cursor state is intentionally process-memory only for this prototype.
 
-Agent creation stays inside that same canonical message pipeline. `GrottoModels` decodes the
+Agent creation stays inside that same canonical message pipeline. `HausModels` decodes the
 `agent-created` body on each message, but the timelines draw nothing for it: the announcement's own
 `@handle` mention is the way to the new Agent, so the body is provenance and a directory-refresh
 trigger. There is no review sheet and no client-side creation: the Agent already exists by the time
@@ -574,7 +574,7 @@ The directory refresh is the one place the phone differs from the App. This clie
 reach it. The body itself is the notice instead: `message.created` refetches the affected loaded
 page, and `applyChatEvents` then scans those pages for an `agent-created` body naming an Agent the
 directory does not hold and refetches the directory once when it finds one
-(`GrottoStoreMessageLoading.swift`). What keeps that from becoming a standing refetch is that a body
+(`HausStoreMessageLoading.swift`). What keeps that from becoming a standing refetch is that a body
 reading retired is skipped: the body is projected from the live `agents` row on every message read,
 and the pages scanned here were refetched moments earlier in the same batch, so a retired Agent's
 body already says retired and is never mistaken for a stale directory. The one case that does repeat
@@ -602,7 +602,7 @@ through `chat.listArchived` and restore through `chat.unarchiveChannel`, and a s
 dismisses the sheet and selects the restored channel through the same pending-selection wait a newly
 created channel uses, because both reappear only on the next Server chat list. Channel creation uses
 the live Agent directory and `chat.createChannel`. These sheets receive narrow async closures from
-`GrottoApp` so `GrottoUI` remains independent of tRPC and does not invent mobile-only ids or records.
+`HausApp` so `HausUI` remains independent of tRPC and does not invent mobile-only ids or records.
 
 Swift Chat and Thread composers use the system inline Photos picker and Files importer plus a focused
 AVFoundation camera surface on physical iPhones. Photos and Camera expand from the composer into one
@@ -708,14 +708,14 @@ client enforces the Server's 50 MiB limit before reservation.
 
 ## Ownership
 
-Grotto Server remains the canonical owner of collaboration state. Grotto Computer does not know whether
+Haus Server remains the canonical owner of collaboration state. Haus Computer does not know whether
 a request came from desktop or iPhone. The iPhone app owns only presentation state, settings, optimistic
 UI, and its in-memory Store cache. When connectivity is lost, persistent UI renders only server data
 already present in that cache.
 
-Shared wire contracts and model projections belong in `GrottoModels`; authenticated operations,
-realtime delivery, and recovery belong in `GrottoTransport`. `GrottoUI` receives narrow models and
-closures from `GrottoApp` rather than owning Server transport or inventing mobile-only records.
+Shared wire contracts and model projections belong in `HausModels`; authenticated operations,
+realtime delivery, and recovery belong in `HausTransport`. `HausUI` receives narrow models and
+closures from `HausApp` rather than owning Server transport or inventing mobile-only records.
 
 The Chat timeline uses cursor-based pages. Reconnect catch-up walks missed Server events before live
 delivery continues, and loaded affected Chat pages are refetched in sequence order. Optimistic sends
@@ -768,7 +768,7 @@ prefix or an email address stays prose on the phone where the App would link it.
 shared contract's whole path test, so a protocol-relative `//host` target reads as a path reference on
 both clients rather than as an address. `RichReferencePresentation.mark` names what a reference draws before its
 label — an
-avatar, a Channel's colored box, or a flat `GrottoIconName` glyph (sparkles for a Skill, a plug for an
+avatar, a Channel's colored box, or a flat `HausIconName` glyph (sparkles for a Skill, a plug for an
 app or plugin, a file, a folder, a pull request, a globe) — and `ReferenceLabel` shapes what it says:
 a Skill id through the App's `formatSkillName` rules, a pull request as `#<n>`, a web link as its own
 words or, when those words are the URL, as its host. Agent labels take the App's accent — its
@@ -911,10 +911,10 @@ the mounted parent timeline and scroll position. Task metadata renders on its ca
 the native timeline does not invent a second task receipt row.
 
 Clerk owns native authentication. The production instance uses Google as its only sign-in strategy, so
-Grotto starts Clerk's direct Google SSO flow from a native SwiftUI action instead of routing through the
+Haus starts Clerk's direct Google SSO flow from a native SwiftUI action instead of routing through the
 hosted Account Portal. The provider browser returns through the production-authorized
-`grotto://sso-callback` product URL. `GrottoTransport` asks the native Clerk session for a fresh token
-for every request, while `GrottoStore` keeps the active user's in-memory Server snapshots. A user
+`grotto://sso-callback` product URL. `HausTransport` asks the native Clerk session for a fresh token
+for every request, while `HausStore` keeps the active user's in-memory Server snapshots. A user
 change therefore discards the previous user's cache. Cold-start offline access needs an explicit secure
 auth bootstrap contract before persisted query data can be enabled safely.
 

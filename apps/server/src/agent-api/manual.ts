@@ -37,7 +37,7 @@ export function registerAgentManualRoutes(app: FastifyInstance, db: GrottoDataba
                 reply,
                 403,
                 'MANUAL_CAPABILITY_REQUIRED',
-                'This runner is not authorized to read the Grotto Manual.'
+                'This runner is not authorized to read the Haus Manual.'
             );
         }
         const parsed = agentManualGetQuerySchema.safeParse(request.query);
@@ -54,7 +54,7 @@ export function registerAgentManualRoutes(app: FastifyInstance, db: GrottoDataba
         } catch (cause) {
             if (cause instanceof ManualTopicNotFoundError) {
                 return sendAgentApiError(reply, 404, 'MANUAL_TOPIC_NOT_FOUND', cause.message, {
-                    nextAction: "Run 'grotto manual get index' to browse available topics.",
+                    nextAction: "Run 'haus manual get index' to browse available topics.",
                 });
             }
             return sendAgentApiError(
@@ -81,7 +81,7 @@ export function registerAgentManualRoutes(app: FastifyInstance, db: GrottoDataba
                 reply,
                 403,
                 'MANUAL_CAPABILITY_REQUIRED',
-                'This runner is not authorized to read the Grotto Manual.'
+                'This runner is not authorized to read the Haus Manual.'
             );
         }
         const parsed = agentManualSearchQuerySchema.safeParse(request.query);

@@ -37,8 +37,8 @@ const main = async () => {
     const releaseVersion = assertReleaseVersion(product.version);
 
     assert(
-        electronBuilderConfig.appId === 'build.grotto.desktop',
-        'desktop app identifier must be build.grotto.desktop'
+        electronBuilderConfig.appId === 'chat.haus.desktop',
+        'desktop app identifier must be chat.haus.desktop'
     );
     await assertElectronMainRequiresPackaged({
         electronBuilderConfig,
@@ -54,7 +54,7 @@ const main = async () => {
 
     assert(
         latestRelease.version === releaseVersion,
-        'latest changelog version must match Grotto version'
+        'latest changelog version must match Haus version'
     );
 
     if (expectedVersion) {
@@ -71,7 +71,7 @@ const main = async () => {
         await assertReleaseVersionMetadata(ledger);
         assert(
             latestProductVersion(ledger) === releaseVersion,
-            'latest release ledger Grotto version must match product metadata'
+            'latest release ledger Haus version must match product metadata'
         );
         if (result.complete && result.latest.version !== null) {
             assert(
@@ -82,7 +82,7 @@ const main = async () => {
         if (expectedVersion) {
             assert(
                 result.latest.version === expectedVersion,
-                'latest release ledger entry must match the expected Grotto version'
+                'latest release ledger entry must match the expected Haus version'
             );
         }
         if (result.complete) {

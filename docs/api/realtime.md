@@ -17,16 +17,16 @@ clients recover through durable reads.
 
 | Component | Owner | Role |
 | --- | --- | --- |
-| Hosted `chat_events` | Grotto Server | PostgreSQL cursor log for messages, reactions, reads, follows, Chat lifecycle, Ask changes, Cloud Agent work changes, and reminder changes |
-| Hosted durable subscription | Grotto Server | Live notification after commit; membership rechecked at delivery |
-| Hosted composition hub | Grotto Server | In-memory, membership-checked, no persistence or replay |
-| Hosted Agent activity journal | Grotto Server | Durable semantic execution metadata plus live current-state projection |
-| Hosted Agent lifecycle hub | Grotto Server | Volatile working/reading/sending/settled projection for presence and send composition |
-| App subscriptions | Grotto App | tRPC notification transport, catch-up cursors, and focused query invalidation |
+| Hosted `chat_events` | Haus Server | PostgreSQL cursor log for messages, reactions, reads, follows, Chat lifecycle, Ask changes, Cloud Agent work changes, and reminder changes |
+| Hosted durable subscription | Haus Server | Live notification after commit; membership rechecked at delivery |
+| Hosted composition hub | Haus Server | In-memory, membership-checked, no persistence or replay |
+| Hosted Agent activity journal | Haus Server | Durable semantic execution metadata plus live current-state projection |
+| Hosted Agent lifecycle hub | Haus Server | Volatile working/reading/sending/settled projection for presence and send composition |
+| App subscriptions | Haus App | tRPC notification transport, catch-up cursors, and focused query invalidation |
 
 `server.updated` is Server-scoped: `server.onUpdate` takes a Server id, checks
 membership before the subscription starts, and delivers only that Server's
-events. See [Grotto Server](../internals/grotto-server.md).
+events. See [Haus Server](../internals/grotto-server.md).
 
 Its wire shape is `serverUpdatedEventSchema` in `@grotto/api`. `scope`
 (`agent`, `computer`, `mcp`, or `server`) selects the family of reads a listener
@@ -42,7 +42,7 @@ human's profile edit or identity sync, which announces to every Server that
 human belongs to.
 
 App websocket events are not the durable event source. Missed App notifications
-recover through focused Grotto Server reads.
+recover through focused Haus Server reads.
 
 The event list does not own a second event log. App notifications are derived
 from durable `chat_events`.
@@ -215,7 +215,7 @@ Examples:
 Clients do not rebuild state from missed websocket events. They refetch durable
 resources and let React Query reconcile active views.
 
-The Grotto App keeps one tRPC client and React provider mounted for the signed-in
+The Haus App keeps one tRPC client and React provider mounted for the signed-in
 human. Clerk token rotation reconnects only that client's websocket; the reconnect
 reads fresh connection parameters and resumes its pending subscriptions. Credential
 rotation must not replace the tRPC provider, remount the Server shell, clear composer
@@ -253,7 +253,7 @@ resource.
 
 ## App Stream Boundary
 
-Grotto App can expose its own websocket or tRPC subscriptions for UI
+Haus App can expose its own websocket or tRPC subscriptions for UI
 invalidation. Those subscriptions are app notifications.
 
 Product state still comes from focused Server tRPC reads for Chats, Agents, Computers, reminders,

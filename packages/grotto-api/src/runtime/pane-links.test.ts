@@ -5,15 +5,21 @@ import {
     parseChatPaneTargetLink,
 } from './pane-links.ts';
 
+test('historical resource links resolve to the same target as Haus links', () => {
+    expect(parseChatPaneTargetLink('grotto://workspace/notes.md')).toEqual(
+        parseChatPaneTargetLink('haus://workspace/notes.md')
+    );
+});
+
 test('parseChatPaneTargetLink parses workspace file links', () => {
-    expect(parseChatPaneTargetLink('grotto://workspace/out/preview.html')).toEqual({
+    expect(parseChatPaneTargetLink('haus://workspace/out/preview.html')).toEqual({
         kind: 'workspaceFile',
         path: 'out/preview.html',
     });
 });
 
 test('parseChatPaneTargetLink parses empty paths as directory targets', () => {
-    expect(parseChatPaneTargetLink('grotto://workspace/')).toEqual({
+    expect(parseChatPaneTargetLink('haus://workspace/')).toEqual({
         kind: 'workspaceDirectory',
         path: '',
     });
@@ -21,16 +27,16 @@ test('parseChatPaneTargetLink parses empty paths as directory targets', () => {
 
 test('parseChatPaneTargetLink rejects unsafe or unsupported links', () => {
     expect(parseChatPaneTargetLink('https://example.com')).toBeNull();
-    expect(parseChatPaneTargetLink('grotto://settings/agents')).toBeNull();
-    expect(parseChatPaneTargetLink('grotto://workspace/../secret.md')).toBeNull();
-    expect(parseChatPaneTargetLink('grotto://workspace//secret.md')).toBeNull();
-    expect(parseChatPaneTargetLink('grotto://workspace/docs/page.md?mode=raw')).toBeNull();
+    expect(parseChatPaneTargetLink('haus://settings/agents')).toBeNull();
+    expect(parseChatPaneTargetLink('haus://workspace/../secret.md')).toBeNull();
+    expect(parseChatPaneTargetLink('haus://workspace//secret.md')).toBeNull();
+    expect(parseChatPaneTargetLink('haus://workspace/docs/page.md?mode=raw')).toBeNull();
 });
 
 test('parseChatPaneTargetLink resolves encoded dot segments inside the root', () => {
     // URL normalization consumes %2e%2e against the root before parsing, so
     // encoded traversal can never surface a `..` segment in the parsed path.
-    expect(parseChatPaneTargetLink('grotto://workspace/%2e%2e/secret.md')).toEqual({
+    expect(parseChatPaneTargetLink('haus://workspace/%2e%2e/secret.md')).toEqual({
         kind: 'workspaceFile',
         path: 'secret.md',
     });
@@ -74,7 +80,7 @@ test('formatChatPaneTargetLink formats clickable artifact links', () => {
         path: 'Demos/Artifact Panel Brief.md',
     });
 
-    expect(href).toBe('grotto://workspace/Demos/Artifact%20Panel%20Brief.md');
+    expect(href).toBe('haus://workspace/Demos/Artifact%20Panel%20Brief.md');
     expect(parseChatPaneTargetLink(href)).toEqual({
         kind: 'workspaceFile',
         path: 'Demos/Artifact Panel Brief.md',

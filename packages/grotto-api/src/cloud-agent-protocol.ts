@@ -40,7 +40,7 @@ export type CloudAgentReconcileCommand = z.infer<typeof cloudAgentReconcileComma
  * App never touches a Computer socket, and provider credentials never leave
  * the machine. `connect` runs the provider's own browser login on the
  * Computer and stores the key in the provider's credential store; `disconnect`
- * forgets it. Grotto never opens that flow during an Agent turn.
+ * forgets it. Haus never opens that flow during an Agent turn.
  */
 export const cloudAgentCapabilityRequestSchema = z
     .object({

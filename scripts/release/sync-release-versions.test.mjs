@@ -18,7 +18,7 @@ test('synchronizes every target-owned version from the latest release decision',
         [
             'apps/computer',
             'apps/website',
-            'apps/ios-swift/Grotto.xcodeproj',
+            'apps/ios-swift/Haus.xcodeproj',
             'packages/grotto-api',
             'scripts/release',
         ].map((directory) => mkdir(join(root, directory), { recursive: true }))
@@ -42,7 +42,7 @@ test('synchronizes every target-owned version from the latest release decision',
         'CURRENT_PROJECT_VERSION: "1"\nMARKETING_VERSION: 0.0.1\n'
     );
     await writeFile(
-        join(root, 'apps/ios-swift/Grotto.xcodeproj/project.pbxproj'),
+        join(root, 'apps/ios-swift/Haus.xcodeproj/project.pbxproj'),
         'CURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 0.0.1;\n'
     );
     await writeFile(

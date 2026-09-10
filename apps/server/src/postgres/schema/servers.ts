@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import { bigint, check, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 /**
- * A Grotto server: an opaque id every relationship points at, a globally
+ * A Haus server: an opaque id every relationship points at, a globally
  * unique immutable slug used only as the human-facing address, and an
  * editable display name.
  *

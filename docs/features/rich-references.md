@@ -7,14 +7,14 @@ read_when:
 
 # Rich References
 
-Grotto messages can include typed rich references. A rich reference is a normal
-Markdown link whose target tells Grotto what the link points at. Settled chat
+Haus messages can include typed rich references. A rich reference is a normal
+Markdown link whose target tells Haus what the link points at. Settled chat
 messages render through HeroUI Markdown; the stored Markdown remains the
 portable fallback.
 
 Examples:
 
-- `[@Grotto](agent://agt_primary)` addresses an Agent in a channel.
+- `[@Haus](agent://agt_primary)` addresses an Agent in a channel.
 - `[@Ada Lovelace](user://usr_ada)` references a human by immutable user id.
 - `[$ui](skill://ui)` references a skill for the turn.
 - `[@Chrome](app://computer-use/com.google.Chrome)` references a Mac app.

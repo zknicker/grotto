@@ -48,7 +48,7 @@ export function openAskThreadAnchor(row: OpenAsk): ChatMessage {
     return row.threadAnchorMessage ?? row.message;
 }
 
-/** `grotto ask` — the Agent-scoped creation request. */
+/** `haus ask` — the Agent-scoped creation request. */
 export const agentAskInputSchema = z
     .object({
         addresseeHandle: participantHandleSchema,

@@ -264,7 +264,7 @@ function bootstrapFrame() {
         protocolVersion: computerProtocolVersion,
         type: 'bootstrap',
         update: {
-            detail: 'Grotto Computer updated successfully.',
+            detail: 'Haus Computer updated successfully.',
             phase: 'complete',
             targetVersion: '1.1.2',
             updatedAt: '2026-07-29T16:53:27.328Z',

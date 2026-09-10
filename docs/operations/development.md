@@ -164,7 +164,7 @@ xcrun simctl boot "iPhone 17 Pro"; xcrun simctl bootstatus "iPhone 17 Pro"
 ```
 
 ```bash
-xcodebuild -project apps/ios-swift/Grotto.xcodeproj -scheme Grotto -destination 'name=iPhone 17 Pro' -derivedDataPath build/ios build
+xcodebuild -project apps/ios-swift/Haus.xcodeproj -scheme Haus -destination 'name=iPhone 17 Pro' -derivedDataPath build/ios build
 ```
 
 ```bash
@@ -172,7 +172,7 @@ xcrun simctl install booted build/ios/Build/Products/Debug-iphonesimulator/Grott
 ```
 
 ```bash
-SIMCTL_CHILD_GROTTO_DEV_SERVER_ORIGIN="http://localhost:$(($(dev-port) + 3))" SIMCTL_CHILD_GROTTO_CLERK_PUBLISHABLE_KEY="$(bunx varlock@1.16.1 printenv VITE_CLERK_PUBLISHABLE_KEY)" xcrun simctl launch booted build.grotto.ios
+SIMCTL_CHILD_HAUS_DEV_SERVER_ORIGIN="http://localhost:$(($(dev-port) + 3))" SIMCTL_CHILD_HAUS_CLERK_PUBLISHABLE_KEY="$(bunx varlock@1.16.1 printenv VITE_CLERK_PUBLISHABLE_KEY)" xcrun simctl launch booted chat.haus.ios
 ```
 
 `SIMCTL_CHILD_` prefixes pass an environment variable through to the launched
@@ -183,7 +183,7 @@ schema literal the App already uses. A Debug build accepts a development origin 
 `dev.createClerkSignInToken` ticket, activates it through Clerk's native SDK, and
 calls `server.developmentBootstrap` before loading the Server list. It caches the
 last validated configuration, so a later plain `xcrun simctl launch booted
-build.grotto.ios` reuses the same development Server and Clerk instance without
+chat.haus.ios` reuses the same development Server and Clerk instance without
 the environment. Release builds carry no development path and always use the
 production Server.
 

@@ -107,7 +107,7 @@ export function formatComputerStatus(
     ];
     if (status.attachments.length === 0) {
         lines.push(
-            `  ${render.hint('· No Servers attached — run grotto-computer setup /server-slug')}`
+            `  ${render.hint('· No Servers attached — run haus-computer setup /server-slug')}`
         );
         return lines.join('\n');
     }
@@ -141,25 +141,25 @@ function loginLine(login: LoginStatus, render: CliRenderer) {
         return `${render.ok('signed in')}${login.origin ? ` — ${login.origin}` : ''}`;
     }
     if (login.state === 'expired') {
-        return render.warn('expired — run grotto-computer login');
+        return render.warn('expired — run haus-computer login');
     }
-    return render.warn('signed out — run grotto-computer login');
+    return render.warn('signed out — run haus-computer login');
 }
 
 function serviceLine(service: 'running' | 'stopped', render: CliRenderer) {
     return service === 'running'
         ? render.ok('running')
-        : render.warn('stopped — run grotto-computer start');
+        : render.warn('stopped — run haus-computer start');
 }
 
 function attachmentLine(item: AttachmentStatus, render: CliRenderer) {
     if (item.daemon === 'setup-required') {
-        return render.fail(`setup required — run grotto-computer setup /${item.slug}`);
+        return render.fail(`setup required — run haus-computer setup /${item.slug}`);
     }
     const state =
         item.daemon === 'running'
             ? render.ok('running')
-            : render.warn(`stopped — run grotto-computer start /${item.slug}`);
+            : render.warn(`stopped — run haus-computer start /${item.slug}`);
     return `${state} ${render.hint(`(${item.serverId})`)}`;
 }
 

@@ -22,7 +22,7 @@ import { triggerRouter } from './trigger/router.ts';
 import { createRouter } from './trpc.ts';
 
 /**
- * The whole Grotto Server contract.
+ * The whole Haus Server contract.
  */
 export const grottoRouter = createRouter({
     agent: agentRouter,

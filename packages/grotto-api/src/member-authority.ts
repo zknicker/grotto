@@ -1,7 +1,7 @@
 import * as z from 'zod';
 
 /**
- * Human standing on a Grotto server. Only humans hold Owner, a Server may have
+ * Human standing on a Haus server. Only humans hold Owner, a Server may have
  * several, and it must always keep one.
  */
 export const serverRoleSchema = z.enum(['owner', 'admin', 'member']);
@@ -54,7 +54,7 @@ export function canManageServerInvitations(role: ServerRole): boolean {
 
 /**
  * Granting authority and taking access away both ask the human to type the
- * Server's immutable address, matching the danger-zone interaction Grotto
+ * Server's immutable address, matching the danger-zone interaction Haus
  * already uses. That covers every elevation — Member to Admin as much as
  * Member or Admin to Owner — plus removal, leaving, and revoking Owner.
  *

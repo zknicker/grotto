@@ -10,7 +10,7 @@ import type { CloudAgentProviderObservation } from '../provider.ts';
 import type { CursorBranchReading, CursorRunReading, CursorRunStatus } from './transport.ts';
 
 /**
- * The one place Cursor's Run vocabulary becomes Grotto's. Cursor Agent state
+ * The one place Cursor's Run vocabulary becomes Haus's. Cursor Agent state
  * (`ACTIVE`/`IDLE`/`ARCHIVED`) never appears here: an idle Agent does not prove
  * a Run finished, so only the Run's own status settles work.
  */
@@ -38,7 +38,7 @@ export function cursorAgentUrl(agentId: string): string {
 }
 
 /**
- * One Cursor Run reading as a bounded Grotto observation. Everything Server
+ * One Cursor Run reading as a bounded Haus observation. Everything Server
  * stores is here; prompts, transcripts, tool traces, and the API key are not.
  */
 export function observationOf(
@@ -72,7 +72,7 @@ export function activityOf(summary: string, at: string): { at: string; summary: 
 /**
  * Cursor's terminal Run report, retained as evidence. A branch whose reported
  * repository cannot be read back as a repository label at all is dropped
- * rather than reshaped: Grotto stores no branch entity and invents no
+ * rather than reshaped: Haus stores no branch entity and invents no
  * repository.
  */
 export function branchesOf(readings: CursorBranchReading[]): CloudAgentBranch[] {

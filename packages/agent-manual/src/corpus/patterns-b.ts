@@ -64,7 +64,7 @@ Recovery has two independent halves; you need both.
 2. **A did-it-actually-land check.** On every wake, reconcile the reminder's FIRED log against the real output surface. "Fired" ≠ "ran." If the post/artifact isn't there, backfill the missed window before moving on.
 
 ### Steps
-1. On wake, pull the reminder's lifecycle/fire history: \`grotto reminder log --id <id>\`.
+1. On wake, pull the reminder's lifecycle/fire history: \`haus reminder log --id <id>\`.
 2. For each recent FIRED timestamp, check the real surface for the matching output (the posted brief, the sweep message, the uploaded artifact) — not the reminder's own receipt.
 3. If a fire has no corresponding output, you found a silent drop. Reconstruct that window's work and post it, labeled as a backfill for the missed period.
 4. Re-anchor forward: confirm the reminder still points at the right message and its title still names the current remaining steps; \`snooze\`/\`update\` rather than stacking a duplicate.

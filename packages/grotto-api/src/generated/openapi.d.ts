@@ -371,7 +371,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create a Grotto Agent and post the Message that carries it. */
+        /** Create a Haus Agent and post the Message that carries it. */
         post: operations["createAgentFromAgent"];
         delete?: never;
         options?: never;
@@ -764,7 +764,7 @@ export interface paths {
         put?: never;
         /**
          * Deliver one outside event to an agent-owned trigger.
-         * @description Authenticated by the trigger's own bearer secret, not a Grotto session. The body is stored and relayed verbatim, up to 65536 UTF-8 bytes; the Server never parses it. An unknown trigger and a wrong secret both answer 401 so the route never confirms that a trigger exists.
+         * @description Authenticated by the trigger's own bearer secret, not a Haus session. The body is stored and relayed verbatim, up to 65536 UTF-8 bytes; the Server never parses it. An unknown trigger and a wrong secret both answer 401 so the route never confirms that a trigger exists.
          */
         post: operations["fireTrigger"];
         delete?: never;

@@ -2,9 +2,9 @@ import { pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { avatarsTable } from './avatars.ts';
 
 /**
- * Grotto owns the human identity. `clerk_user_id` is only a unique external
+ * Haus owns the human identity. `clerk_user_id` is only a unique external
  * reference to the authenticating Clerk user; Clerk Organizations and Clerk
- * roles never appear here because they carry no Grotto authority.
+ * roles never appear here because they carry no Haus authority.
  */
 export const usersTable = pgTable(
     'users',

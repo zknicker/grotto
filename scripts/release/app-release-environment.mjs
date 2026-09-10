@@ -3,7 +3,7 @@ const releaseSwitchName = 'GROTTO_RESOLVE_RELEASE_TOKENS';
 const productionKeyPrefix = 'pk_live_';
 
 /**
- * The Grotto App bundle inlines the Clerk publishable key at build time. It is
+ * The Haus App bundle inlines the Clerk publishable key at build time. It is
  * a public value with one owner: the committed `.env.schema`, which carries the
  * production literal. Release commands run under `varlock run`, so it is always
  * present — the throw exists to catch a release started outside varlock rather

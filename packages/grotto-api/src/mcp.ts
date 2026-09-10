@@ -15,7 +15,7 @@ export const mcpGrantSchema = z
     .strict();
 
 /**
- * A connection's icon, already resolved and inlined by Grotto Server.
+ * A connection's icon, already resolved and inlined by Haus Server.
  *
  * The contract stores bytes, never a remote URL: the App renders this straight
  * into an `img` tag, and a third-party URL there would beacon the viewer's IP

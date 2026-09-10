@@ -20,7 +20,7 @@ export interface CloudAgentRunRef {
 }
 
 export interface CloudAgentStartInput {
-    /** Grotto's own Run id, handed to the provider as its idempotency key. */
+    /** Haus's own Run id, handed to the provider as its idempotency key. */
     idempotencyKey: string;
     /** The work the provider-hosted agent performs. It never reaches Server. */
     instructions: string;
@@ -42,7 +42,7 @@ export interface CloudAgentSendInput {
     providerAgentId: string;
 }
 
-/** One bounded provider reading, before Grotto's own work and Run identities. */
+/** One bounded provider reading, before Haus's own work and Run identities. */
 export interface CloudAgentProviderObservation {
     activity?: { at: string; summary: string };
     branches?: CloudAgentBranch[];
@@ -63,7 +63,7 @@ export interface CloudAgentProviderObservation {
  * provider-neutral; everything below it, including credentials, prompts, and
  * raw provider status mapping, belongs to the adapter.
  *
- * `subscribe` is the live edge and `read` is reconciliation: Grotto reads a Run
+ * `subscribe` is the live edge and `read` is reconciliation: Haus reads a Run
  * on reconnect, restart, and after a missed event, and never polls a Run it has
  * already settled.
  */

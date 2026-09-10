@@ -15,7 +15,7 @@ import {
 } from './startup-log.ts';
 
 async function start() {
-    logStartupBanner('🟠 Grotto Server', 'Booting the Grotto Server');
+    logStartupBanner('🟠 Haus Server', 'Booting the Haus Server');
     const release = env.GROTTO_RELEASE_MANIFEST
         ? readGrottoReleaseIdentity(env.GROTTO_RELEASE_MANIFEST)
         : null;
@@ -38,7 +38,7 @@ async function start() {
 
     registerShutdown(application);
 
-    logStartupSection('Grotto Server');
+    logStartupSection('Haus Server');
     if (release) {
         logStartupDetail('🏷️', 'Product', release.productVersion);
         logStartupDetail('📦', 'Server', release.serverVersion);
@@ -55,10 +55,10 @@ async function start() {
             ? 'verified-email lookup configured'
             : 'disabled — set GROTTO_CLERK_SECRET_KEY to accept invitations'
     );
-    logStartupDetail('🌐', 'Grotto App origin', env.GROTTO_APP_ORIGIN);
+    logStartupDetail('🌐', 'Haus App origin', env.GROTTO_APP_ORIGIN);
     logStartupDetail('📡', 'HTTP', `http://127.0.0.1:${env.GROTTO_SERVER_PORT}`);
     logStartupDetail('🔌', 'WebSocket', `ws://127.0.0.1:${env.GROTTO_SERVER_PORT}/trpc`);
-    logStartupComplete('Grotto Server is ready');
+    logStartupComplete('Haus Server is ready');
 }
 
 function createAvatarImageProvider() {
@@ -79,13 +79,13 @@ function createAvatarImageProvider() {
 function registerShutdown(application: GrottoServerApplication) {
     process.once('SIGTERM', () => {
         void application.close().catch((error) => {
-            console.error('[grotto] failed to close the Grotto Server', error);
+            console.error('[grotto] failed to close the Haus Server', error);
         });
     });
 }
 
 start().catch((error) => {
-    logStartupFailure('Grotto Server boot failed');
+    logStartupFailure('Haus Server boot failed');
     console.error(error);
     process.exitCode = 1;
 });

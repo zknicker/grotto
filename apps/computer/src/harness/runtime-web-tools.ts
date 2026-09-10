@@ -1,5 +1,5 @@
 /**
- * Web reach is a product decision — Grotto serves web fetching through its own
+ * Web reach is a product decision — Haus serves web fetching through its own
  * `web_fetch` host tool, and builtin web search only when the Agent has web
  * access — but runtime builtin tool tables name their tools inconsistently:
  * Claude Code exposes `webSearch` beside `WebFetch`. A hardcoded deny name that
@@ -7,7 +7,7 @@
  * resolve what we disable against the names the runtime actually exposes.
  */
 
-/** Logical web tools Grotto gates, in the casing product code talks about. */
+/** Logical web tools Haus gates, in the casing product code talks about. */
 export const webToolNames = {
     fetch: 'webFetch',
     search: 'webSearch',

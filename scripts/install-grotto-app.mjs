@@ -4,7 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 if (process.platform !== 'darwin') {
-    console.error('Grotto desktop release install is only supported on macOS.');
+    console.error('Haus desktop release install is only supported on macOS.');
     process.exit(1);
 }
 
@@ -16,9 +16,9 @@ const sourceAppPath = join(
     'website',
     'electron-dist',
     'mac-arm64',
-    'Grotto.app'
+    'Haus.app'
 );
-const destinationAppPath = '/Applications/Grotto.app';
+const destinationAppPath = '/Applications/Haus.app';
 
 if (!existsSync(sourceAppPath)) {
     console.error(`Built app not found at ${sourceAppPath}.`);
@@ -28,4 +28,4 @@ if (!existsSync(sourceAppPath)) {
 rmSync(destinationAppPath, { force: true, recursive: true });
 execFileSync('/usr/bin/ditto', ['--rsrc', '--extattr', sourceAppPath, destinationAppPath]);
 
-console.log(`Installed Grotto.app to ${destinationAppPath}`);
+console.log(`Installed Haus.app to ${destinationAppPath}`);

@@ -34,7 +34,7 @@ async function createFixture() {
         [
             'apps/computer',
             'apps/website/electron',
-            'apps/ios-swift/Grotto.xcodeproj',
+            'apps/ios-swift/Haus.xcodeproj',
             'packages/grotto-api',
             'scripts/release',
         ].map((directory) => mkdir(join(root, directory), { recursive: true }))
@@ -59,7 +59,7 @@ async function createFixture() {
     );
     await writeFile(
         join(root, 'apps/website/electron-builder.config.cjs'),
-        "module.exports = { appId: 'build.grotto.desktop', files: [] };\n"
+        "module.exports = { appId: 'chat.haus.desktop', files: [] };\n"
     );
     await writeFile(join(root, 'apps/website/electron/main.cjs'), "console.log('test');\n");
     await writeFile(join(root, 'CHANGELOG.md'), '## v1.8.39 - 2026-08-28\n\nRelease.\n');
@@ -68,7 +68,7 @@ async function createFixture() {
         'CURRENT_PROJECT_VERSION: "6"\nMARKETING_VERSION: 1.0.5\n'
     );
     await writeFile(
-        join(root, 'apps/ios-swift/Grotto.xcodeproj/project.pbxproj'),
+        join(root, 'apps/ios-swift/Haus.xcodeproj/project.pbxproj'),
         'CURRENT_PROJECT_VERSION = 6;\nMARKETING_VERSION = 1.0.5;\n'
     );
     await writeFile(

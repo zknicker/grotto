@@ -13,9 +13,9 @@ if (!(databaseUrl && backupRole && runtimeRole)) {
 
 try {
     await bootstrapGrottoDatabase(databaseUrl, runtimeRole, backupRole);
-    console.log(`Fresh Grotto PostgreSQL schema ready for ${runtimeRole}.`);
+    console.log(`Fresh Haus PostgreSQL schema ready for ${runtimeRole}.`);
 } catch (error) {
     const reason = error instanceof Error ? error.message : 'Unknown PostgreSQL error.';
-    console.error(`Fresh Grotto PostgreSQL bootstrap failed: ${reason}`);
+    console.error(`Fresh Haus PostgreSQL bootstrap failed: ${reason}`);
     process.exit(1);
 }

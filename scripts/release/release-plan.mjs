@@ -68,7 +68,7 @@ export function projectLedgerValues({ ledger, plan }) {
     if (plan.targets.agent) {
         values.agentVersion = readSemver(latest.targets, ['agent'], 'targets.agent');
         if (!(plan.targets.server && plan.targets.computer)) {
-            throw new Error('Grotto Agent publication requires Server and Computer publication');
+            throw new Error('Haus Agent publication requires Server and Computer publication');
         }
     }
     if (plan.targets.ios) {

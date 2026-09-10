@@ -48,7 +48,7 @@ test('summary and Apple lifecycle helpers expose outcomes and clean temporary fi
         });
         const summary = readFileSync(summaryPath, 'utf8');
         assert.match(summary, /\| Computer \| published \|/);
-        assert.match(summary, /\| Grotto Agent \| unchanged \|/);
+        assert.match(summary, /\| Haus Agent \| unchanged \|/);
         assert.match(summary, /\| App \| unchanged \|/);
         assert.match(summary, /Production Server deployed and publicly verified/);
 
@@ -151,7 +151,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
         'Upload iOS',
         'Publish Server',
         'Promote Server',
-        'Publish immutable and latest Grotto snapshots',
+        'Publish immutable and latest Haus snapshots',
         'Finalize release',
     ]) {
         assert.match(workflow, new RegExp(`name: ${jobName}`));
@@ -194,7 +194,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(workflow, /AGENT_VERSION: \$\{\{ needs\.plan\.outputs\.agent_version \}\}/);
     assert.match(workflow, /PUBLISH_AGENT: \$\{\{ needs\.plan\.outputs\.publish_agent \}\}/);
     assert.match(deployWorkflow, /workflow_call:/);
-    assert.match(deployWorkflow, /environment:\s+name: production\s+url: https:\/\/grotto\.sh/);
+    assert.match(deployWorkflow, /environment:\s+name: production\s+url: https:\/\/haus\.chat/);
     assert.match(deployWorkflow, /EXPECTED_SOURCE_REVISION: \$\{\{ inputs\.source_revision \}\}/);
     assert.match(deployWorkflow, /REQUESTED_SERVER_VERSION: \$\{\{ inputs\.server_version \}\}/);
     assert.match(
@@ -213,7 +213,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
             workflow.indexOf('run: bun run release:publish')
     );
     assert.match(workflow, /path: apps\/website\/electron-dist/);
-    assert.match(workflow, /Grotto_\$\{\{ needs\.plan\.outputs\.app_version \}\}_arm64\.dmg/);
+    assert.match(workflow, /Haus_\$\{\{ needs\.plan\.outputs\.app_version \}\}_arm64\.dmg/);
     assert.match(workflow, /node scripts\/release\/publish-grotto-snapshot\.mjs/);
     assert.ok(
         workflow.indexOf('node scripts/release/verify-release.mjs --preflight') <
@@ -223,7 +223,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
         workflow.indexOf('node scripts/release/publish-grotto-snapshot.mjs') <
             workflow.lastIndexOf('run: node scripts/release/verify-release.mjs')
     );
-    assert.doesNotMatch(workflow, /Grotto_\*_arm64/);
+    assert.doesNotMatch(workflow, /Haus_\*_arm64/);
     assert.match(setupAppleSource, /base64 -D/);
     assert.match(publishIOSSource, /installIOSProvisioningProfile/);
     assert.match(publishIOSSource, /appStoreConnectUploadArgs/);

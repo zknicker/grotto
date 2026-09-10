@@ -4,7 +4,7 @@ import { appProtocolHeaders, appProtocolVersion } from '@grotto/api';
 import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
 
 /**
- * The Server exposes the Grotto Server contract plus its localhost-only
+ * The Server exposes the Haus Server contract plus its localhost-only
  * dev sign-in bootstrap. Legacy local-owner procedures remain unreachable here.
  */
 let harness: GrottoServerHarness;

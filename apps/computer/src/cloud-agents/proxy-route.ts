@@ -21,7 +21,7 @@ const cloudAgentSendSchema = z.object({
 });
 
 /**
- * `grotto cloud-agent start` runs here, not upstream: the Computer owns the
+ * `haus cloud-agent start` runs here, not upstream: the Computer owns the
  * provider access, so it checks readiness before Server records anything and
  * keeps the provider instructions local. Cancellation needs none of that and
  * forwards to Server, which rides the cancel back down this Computer's socket.

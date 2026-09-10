@@ -17,27 +17,27 @@ describe('prepareNativeClerkRequest', () => {
             prepareNativeClerkRequest({
                 requestHeaders: {
                     Authorization: 'Bearer client-jwt',
-                    Origin: 'https://grotto.sh',
-                    'User-Agent': 'Grotto',
+                    Origin: 'https://haus.chat',
+                    'User-Agent': 'Haus',
                 },
-                url: 'https://clerk.grotto.sh/v1/client?_is_native=1',
+                url: 'https://clerk.haus.chat/v1/client?_is_native=1',
             })
         ).toEqual({
             Authorization: 'Bearer client-jwt',
-            'User-Agent': 'Grotto',
+            'User-Agent': 'Haus',
         });
     });
 
     test('preserves ordinary hosted Clerk requests', () => {
         const headers = {
-            Origin: 'https://grotto.sh',
-            'User-Agent': 'Grotto',
+            Origin: 'https://haus.chat',
+            'User-Agent': 'Haus',
         };
 
         expect(
             prepareNativeClerkRequest({
                 requestHeaders: headers,
-                url: 'https://clerk.grotto.sh/v1/client',
+                url: 'https://clerk.haus.chat/v1/client',
             })
         ).toBe(headers);
     });
@@ -47,9 +47,9 @@ describe('prepareNativeClerkRequest', () => {
             prepareNativeClerkRequest({
                 requestHeaders: {
                     authorization: 'Bearer client-jwt',
-                    origin: 'https://grotto.sh',
+                    origin: 'https://haus.chat',
                 },
-                url: 'https://clerk.grotto.sh/v1/client?_is_native=1',
+                url: 'https://clerk.haus.chat/v1/client?_is_native=1',
             })
         ).toEqual({
             authorization: 'Bearer client-jwt',
@@ -59,7 +59,7 @@ describe('prepareNativeClerkRequest', () => {
     test('preserves native-marked requests to other origins', () => {
         const headers = {
             Authorization: 'Bearer private',
-            Origin: 'https://grotto.sh',
+            Origin: 'https://haus.chat',
         };
 
         expect(
@@ -72,22 +72,22 @@ describe('prepareNativeClerkRequest', () => {
 });
 
 describe('prepareNativeClerkResponse', () => {
-    test('permits only Grotto App to read native Clerk responses', () => {
+    test('permits only Haus App to read native Clerk responses', () => {
         expect(
             prepareNativeClerkResponse(
                 {
                     responseHeaders: {
                         'content-type': ['application/json'],
                     },
-                    url: 'https://clerk.grotto.sh/v1/client?_is_native=1',
+                    url: 'https://clerk.haus.chat/v1/client?_is_native=1',
                 },
-                'https://clerk.grotto.sh',
-                'https://grotto.sh'
+                'https://clerk.haus.chat',
+                'https://haus.chat'
             )
         ).toEqual({
             'Access-Control-Allow-Headers': ['authorization', 'content-type'],
             'Access-Control-Allow-Methods': ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-            'Access-Control-Allow-Origin': ['https://grotto.sh'],
+            'Access-Control-Allow-Origin': ['https://haus.chat'],
             'content-type': ['application/json'],
         });
     });
@@ -99,10 +99,10 @@ describe('prepareNativeClerkResponse', () => {
             prepareNativeClerkResponse(
                 {
                     responseHeaders: headers,
-                    url: 'https://clerk.grotto.sh/v1/client',
+                    url: 'https://clerk.haus.chat/v1/client',
                 },
-                'https://clerk.grotto.sh',
-                'https://grotto.sh'
+                'https://clerk.haus.chat',
+                'https://haus.chat'
             )
         ).toBe(headers);
     });

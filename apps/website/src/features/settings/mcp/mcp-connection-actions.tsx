@@ -29,12 +29,12 @@ export function ConnectionDestructiveDialog({
                             <AlertDialog.Icon status="danger" />
                             <AlertDialog.Heading>
                                 {label} {connection.name}
-                                {action === 'delete' ? ' from Grotto' : ''}?
+                                {action === 'delete' ? ' from Haus' : ''}?
                             </AlertDialog.Heading>
                         </AlertDialog.Header>
                         <AlertDialog.Body>
                             {action === 'delete'
-                                ? 'Removes this MCP entry and its saved credentials from this Grotto Server. '
+                                ? 'Removes this MCP entry and its saved credentials from this Haus Server. '
                                 : null}
                             {connection.affectedAgents.length === 0
                                 ? 'No Agents currently use this connection.'

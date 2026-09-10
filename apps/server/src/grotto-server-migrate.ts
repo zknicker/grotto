@@ -20,6 +20,6 @@ try {
     );
 } catch (error) {
     const reason = error instanceof Error ? error.message : 'Unknown PostgreSQL error.';
-    console.error(`Grotto PostgreSQL migration failed: ${reason}`);
+    console.error(`Haus PostgreSQL migration failed: ${reason}`);
     process.exit(1);
 }

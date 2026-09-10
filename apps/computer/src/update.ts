@@ -16,7 +16,7 @@ import {
 } from './update-install.ts';
 import { tryAcquirePidLock, withUpdateLock } from './update-locks.ts';
 
-export const productionComputerManifestUrl = 'https://releases.grotto.sh/computer/latest.json';
+export const productionComputerManifestUrl = 'https://releases.haus.chat/computer/latest.json';
 
 export async function readUpdateProgress(dataRoot: string): Promise<ComputerUpdateProgress> {
     try {
@@ -125,7 +125,7 @@ export async function runSignedUpdate(input: {
     let failedPhase: Exclude<ComputerUpdateProgress['phase'], 'failed'> = 'requested';
     try {
         if (!isNewerVersion(targetVersion, input.currentVersion ?? computerVersion)) {
-            throw new Error(`Grotto Computer ${targetVersion} is not a newer release.`);
+            throw new Error(`Haus Computer ${targetVersion} is not a newer release.`);
         }
         if (release.release.protocolVersion < computerProtocolVersion) {
             throw new Error('Computer release protocol is older than this Computer.');
@@ -140,7 +140,7 @@ export async function runSignedUpdate(input: {
                     progress(
                         'downloading',
                         targetVersion,
-                        `Downloading Grotto Computer ${targetVersion}.`,
+                        `Downloading Haus Computer ${targetVersion}.`,
                         { downloadedBytes, totalBytes }
                     )
                 );
@@ -165,7 +165,7 @@ export async function runSignedUpdate(input: {
             await rm(dirname(artifactPath), { force: true, recursive: true });
         }
         failedPhase = 'restarting';
-        await publish(progress('restarting', targetVersion, 'Restarting Grotto Computer.'));
+        await publish(progress('restarting', targetVersion, 'Restarting Haus Computer.'));
         await input.restart();
         return { status: 'updated', version: targetVersion };
     } catch (cause) {

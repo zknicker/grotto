@@ -43,7 +43,7 @@ copy. Content travels only through the authenticated live Computer connection.
 The Server authorizes the request but does not store the bytes.
 
 Save and delete use the hash from the opened copy. If the Agent or another
-operator changed the bundle, Grotto asks the operator to reload instead of
+operator changed the bundle, Haus asks the operator to reload instead of
 overwriting it. Successful changes refresh from a Computer event, not a timer.
 
 ## Agent authoring
@@ -73,4 +73,4 @@ it automatically.
 - A generic toolset or skill marketplace.
 - The retired factory `grotto-agent` skill. Mandatory product rules live in
   managed instructions and expandable operating guidance lives in the shared
-  Grotto Manual; Agent-authored and imported skills remain fully supported.
+  Haus Manual; Agent-authored and imported skills remain fully supported.

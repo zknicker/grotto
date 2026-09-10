@@ -103,7 +103,7 @@ test('direct shipping paths require their owning targets', async () => {
     const files = [
         'apps/server/src/grotto-server.ts',
         'apps/website/electron/main.cjs',
-        'apps/ios-swift/Sources/Grotto/App.swift',
+        'apps/ios-swift/Sources/Haus/App.swift',
         'packages/agent-workspace/src/starter-kit.ts',
     ];
     const impact = await calculateReleaseImpact({
@@ -139,7 +139,7 @@ test('shared Icon Composer source requires both installed App targets', async ()
     assert.equal(impact.targets.server.status, 'unchanged');
 });
 
-test('Agent actions and their Server implementation require a Grotto Agent release', async () => {
+test('Agent actions and their Server implementation require a Haus Agent release', async () => {
     const impact = await calculateReleaseImpact({
         ledger,
         resolveTag: async (tag) =>
@@ -171,7 +171,7 @@ const requiredAgentContractFiles = [
 ];
 
 for (const file of requiredAgentContractFiles) {
-    test(`${file} requires a Grotto Agent release`, async () => {
+    test(`${file} requires a Haus Agent release`, async () => {
         const impact = await calculateReleaseImpact({
             ledger,
             resolveTag,
@@ -196,7 +196,7 @@ const agentLifecycleReviewFiles = [
 ];
 
 for (const file of agentLifecycleReviewFiles) {
-    test(`${file} requests Grotto Agent review`, async () => {
+    test(`${file} requests Haus Agent review`, async () => {
         const impact = await calculateReleaseImpact({
             ledger,
             resolveTag,
@@ -216,7 +216,7 @@ const nonAgentControlFiles = [
 ];
 
 for (const file of nonAgentControlFiles) {
-    test(`${file} does not classify as Grotto Agent impact`, async () => {
+    test(`${file} does not classify as Haus Agent impact`, async () => {
         const impact = await calculateReleaseImpact({
             ledger,
             resolveTag,
@@ -289,7 +289,7 @@ test('legacy targets without tags use the last historical release commit, not th
             return version === '1.8.25' ? sha('d') : null;
         },
         listChangedFiles: async (before) =>
-            before === sha('d') ? ['apps/ios-swift/Sources/Grotto/App.swift'] : [],
+            before === sha('d') ? ['apps/ios-swift/Sources/Haus/App.swift'] : [],
     });
 
     assert.equal(impact.targets.ios.baseline.tag, 'release:v1.8.25');

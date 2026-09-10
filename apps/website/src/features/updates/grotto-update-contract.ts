@@ -81,7 +81,7 @@ export interface DesktopUpdateStep {
     detail: string | null;
     id: 'desktop-app';
     kind: 'desktop-app';
-    label: 'Grotto App';
+    label: 'Haus App';
     phase:
         | 'available'
         | 'checking'

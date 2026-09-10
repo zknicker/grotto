@@ -7,7 +7,7 @@ const { assertTrustedRenderer, isTrustedRendererUrl } = require('./trusted-rende
 
 const callbackChannel = 'desktop:auth:sso-callback';
 const callbackMarker = 'sso-callback';
-const protocolScheme = 'grotto';
+const protocolScheme = 'haus';
 let memoryToken = null;
 
 function registerClerkAuth({
@@ -64,7 +64,7 @@ function registerClerkAuth({
     });
     ipcMain.handle('desktop:auth:sso-callback-prepare', async (event) => {
         assertTrustedRenderer(event, appUrl);
-        return app.isPackaged ? 'grotto://sso-callback' : await loopbackCallback.prepare();
+        return app.isPackaged ? 'haus://sso-callback' : await loopbackCallback.prepare();
     });
     ipcMain.handle('desktop:auth:sso-callback-cancel', async (event) => {
         assertTrustedRenderer(event, appUrl);

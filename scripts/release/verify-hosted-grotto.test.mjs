@@ -52,7 +52,7 @@ test('retries stale hosted App assets and reports the expected version', async (
                     return response('const productVersion="1.2.2";');
                 },
             }),
-        /did not serve 1\.2\.3: hosted Grotto App does not contain version 1\.2\.3/
+        /did not serve 1\.2\.3: hosted Haus App does not contain version 1\.2\.3/
     );
     assert.equal(assetAttempts, 2);
 });

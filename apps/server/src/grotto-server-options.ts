@@ -4,7 +4,7 @@ import type { GrottoReleaseIdentity } from './grotto-release-identity.ts';
 import type { ClerkUsers } from './identity/clerk-users.ts';
 import type { ReminderClock } from './reminders/reminder-model.ts';
 
-/** PostgreSQL- and Clerk-backed Grotto Server HTTP and WebSocket application. */
+/** PostgreSQL- and Clerk-backed Haus Server HTTP and WebSocket application. */
 export interface GrottoServerApplicationOptions {
     appOrigin: string;
     /** Absolute private root for Server-owned attachment bytes. */
@@ -31,7 +31,7 @@ export interface GrottoServerApplicationOptions {
     releaseIdentity?: GrottoReleaseIdentity | null;
     /** Controlled time seam for deterministic reminder and sweep lifecycle tests. */
     reminderClock?: ReminderClock;
-    /** Built Grotto App assets. Omit only when another process serves the App in development. */
+    /** Built Haus App assets. Omit only when another process serves the App in development. */
     staticAppRoot?: string;
     /** Interval seam for the boot sweeps; tests pass inert timers. */
     sweepTimers?: SweepTimers;

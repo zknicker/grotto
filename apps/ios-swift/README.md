@@ -1,7 +1,7 @@
-# Grotto iPhone — SwiftUI prototype
+# Haus iPhone — SwiftUI prototype
 
 This directory is the native SwiftUI prototype for the iPhone client. It keeps
-the existing Grotto Server, Computer, Clerk instance, and tRPC API intact. It
+the existing Haus Server, Computer, Clerk instance, and tRPC API intact. It
 does not introduce a mobile backend.
 
 The prototype currently proves production Google sign-in, Server discovery,
@@ -14,15 +14,15 @@ settings navigation stack backed by Server profile data.
 The package targets iOS 18 and uses Swift 6. The XcodeGen app specification
 adds the official Clerk iOS package at the exact, reviewed `1.2.0` release and
 links only `ClerkKit` into the application target. It intentionally does not
-add an OpenAPI generator or a community tRPC client. `GrottoTransport` sends
+add an OpenAPI generator or a community tRPC client. `HausTransport` sends
 the existing app protocol headers and performs typed tRPC HTTP operations and
 SSE subscriptions directly.
 
 ## Run in Simulator
 
-A Debug build signs in automatically against a local Grotto Server, so Simulator
+A Debug build signs in automatically against a local Haus Server, so Simulator
 needs no browser OAuth. See
-[Grotto For iPhone In Simulator](../../docs/operations/development.md#grotto-for-iphone-in-simulator)
+[Haus For iPhone In Simulator](../../docs/operations/development.md#grotto-for-iphone-in-simulator)
 for the stack, build, install, and launch commands. Release builds always use the
 production Server and its Google sign-in.
 
@@ -34,8 +34,8 @@ Run the complete package test suite from this directory:
 swift test
 ```
 
-`GrottoJSON.decoder()` and `GrottoJSON.encoder()` are the production coding
-factories. Grotto timestamps are ISO-8601 strings with an explicit offset and
+`HausJSON.decoder()` and `HausJSON.encoder()` are the production coding
+factories. Haus timestamps are ISO-8601 strings with an explicit offset and
 optional fractional seconds; the custom strategy accepts both forms and emits
 UTC timestamps with fractional seconds.
 
@@ -45,7 +45,7 @@ Generate the app project with:
 xcodegen generate --spec project.yml
 ```
 
-`Grotto.xcodeproj/project.pbxproj` is checked in and the iOS release lane fails
+`Haus.xcodeproj/project.pbxproj` is checked in and the iOS release lane fails
 when a fresh generation does not match it. XcodeGen derives its reference IDs
 from element names, so regeneration is byte-identical from any checkout or
 worktree and a diff always means a real `project.yml` change worth committing.
@@ -55,9 +55,9 @@ named after the checkout directory and every ID under it churns per worktree.
 
 ## Generated resources
 
-`Sources/GrottoUI/Resources/channel-icons.json` carries the channel icon
+`Sources/HausUI/Resources/channel-icons.json` carries the channel icon
 geometry and `ui-icons.json` carries the app icon set. Regenerate them after the
-App's icon catalog changes, or after adding a `GrottoIconName` case:
+App's icon catalog changes, or after adding a `HausIconName` case:
 
 ```bash
 bun apps/ios-swift/scripts/generate-channel-icon-paths.ts
@@ -71,11 +71,11 @@ Both share the converter in `scripts/hugeicon-paths.ts` and differ only in which
 hugeicons family and which names they ask for. The channel script reads its
 names from `apps/website/src/components/chats/channel-icon-catalog.generated.ts`
 and the app icon script reads the names the App's own source imports plus the
-raw values of `GrottoIconName`, so the curation lives in one place and the two
+raw values of `HausIconName`, so the curation lives in one place and the two
 clients cannot offer different icons. The app icon script fails if a name
-`GrottoIconName` asks for is not in the stroke-rounded family.
+`HausIconName` asks for is not in the stroke-rounded family.
 
-The application target under `Sources/GrottoApp` consumes the local
-`GrottoModels`, `GrottoTransport`, and `GrottoUI` products. SwiftUI previews can
-use `GrottoPreviewFixtures` and `SettingsFixtures` without a Server or Clerk
+The application target under `Sources/HausApp` consumes the local
+`HausModels`, `HausTransport`, and `HausUI` products. SwiftUI previews can
+use `HausPreviewFixtures` and `SettingsFixtures` without a Server or Clerk
 session.

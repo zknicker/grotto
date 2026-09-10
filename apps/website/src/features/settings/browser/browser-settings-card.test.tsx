@@ -42,7 +42,7 @@ test('explains shared Browser ownership and renders disable as an ordinary opera
     expect(html).toContain('Chrome');
     expect(html).not.toContain('Managed Chrome');
     expect(html).toContain('Ready');
-    expect(html).toContain('Grotto manages Chrome with the “default” profile.');
+    expect(html).toContain('Haus manages Chrome with the “default” profile.');
     expect(html).toContain(
         'Turning Browser off closes the managed browser and may interrupt Agents.'
     );

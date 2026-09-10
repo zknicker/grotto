@@ -17,7 +17,7 @@ test('reads the authored frontmatter description, not the frontmatter fence', as
             '---',
             'name: visuals',
             'description: >',
-            '  Grotto design system for everything you render — inline visuals',
+            '  Haus design system for everything you render — inline visuals',
             '  and artifact pages. Read this BEFORE emitting any fence.',
             '---',
             '',
@@ -32,7 +32,7 @@ test('reads the authored frontmatter description, not the frontmatter fence', as
     expect(skills).toHaveLength(1);
     expect(skills[0]?.name).toBe('visuals');
     expect(skills[0]?.description).toBe(
-        'Grotto design system for everything you render — inline visuals and artifact pages. Read this BEFORE emitting any fence.'
+        'Haus design system for everything you render — inline visuals and artifact pages. Read this BEFORE emitting any fence.'
     );
     // The whole file stays the skill content; adapters add their own frontmatter.
     expect(skills[0]?.content).toContain('description: >');
@@ -118,7 +118,7 @@ test('the seeded visuals skill lists its authored description', async () => {
 
     const skills = await readAgentSkills(skillsDir);
 
-    expect(skills[0]?.description.startsWith('Grotto design system')).toBe(true);
+    expect(skills[0]?.description.startsWith('Haus design system')).toBe(true);
     expect(skills[0]?.description).not.toContain('---');
 });
 

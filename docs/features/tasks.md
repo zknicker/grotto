@@ -10,7 +10,7 @@ read_when:
 
 A task is a canonical hosted Chat message promoted with task metadata. The message body is the
 task title verbatim, the child Thread anchored on that message is the work surface once anyone
-replies in it, and board/list views are lenses over the same message. Grotto does not keep a
+replies in it, and board/list views are lenses over the same message. Haus does not keep a
 second task conversation or content store.
 
 Tasks never own Threads. A message gets a task, a message gets a Thread, and they meet only
@@ -142,7 +142,7 @@ lens the reader opened, not a task with a special status. Finished background cl
 outside the resting `active` view, so widening the tier does not also widen the lifecycle.
 
 Concrete durable events (`message.created` for a newly composed task, `task.created`, `task.updated`, and
-`task.label.updated`) notify the Grotto App. The hosted realtime hook owns exact task-list, label-catalog,
+`task.label.updated`) notify the Haus App. The hosted realtime hook owns exact task-list, label-catalog,
 and affected-message invalidation; cursor catch-up applies the same invalidations after reconnect.
 
 In Chat, a task's identity is a **task chip** in the header of the recessed Thread surface beneath

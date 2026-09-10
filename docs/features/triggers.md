@@ -36,7 +36,7 @@ secret.
 
 The drawer stays open as that Trigger's detail and shows the **webhook card**
 once at the top: the URL, the bearer secret, and a ready-made `curl` line, each
-with a copy button. The secret appears here and nowhere else — Grotto stores
+with a copy button. The secret appears here and nowhere else — Haus stores
 only a hash. Losing it means rotating, not recovering it.
 
 ## Managing one
@@ -74,7 +74,7 @@ Each row shows who created it — a person's handle, or the owning Agent.
   where it was asked for, so that is where it answers its fires. Either way the
   owning Agent is the one woken, and both can manage the same Trigger.
 - **Secret shown once.** Creating or rotating a Trigger returns its bearer secret
-  exactly once, along with the URL and a ready-made `curl` line. Grotto stores
+  exactly once, along with the URL and a ready-made `curl` line. Haus stores
   only a hash, so a lost secret is replaced by rotating, never recovered.
 - **The answer is the row.** A fire posts nothing. It wakes the owning Agent
   with the payload as a `type=trigger` message, marked and indented as untrusted
@@ -131,7 +131,7 @@ Each row shows who created it — a person's handle, or the owning Agent.
 - **Agents** create and manage only their own Triggers, whoever created them, and
   are the ones woken when one fires.
 
-Webhook is the only kind Grotto ships. Provider-specific verification, payload
+Webhook is the only kind Haus ships. Provider-specific verification, payload
 filtering, and Computer-executed scripts are not part of it.
 
 See `specs/triggers.md` for the normative persistence, route, firing, and secret

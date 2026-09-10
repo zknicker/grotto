@@ -12,16 +12,16 @@ interface ProfileDeps {
 export const PROFILE_SUBCOMMANDS: SubCommand[] = [
     {
         allowExtraPositionals: true,
-        examples: ['grotto profile show', 'grotto profile show @Wren'],
+        examples: ['haus profile show', 'haus profile show @Wren'],
         flags: [],
         name: 'show',
         positionals: [],
         run: (args) => runProfileShow(args, defaultDeps()),
         summary: 'Show your profile or another participant profile',
-        usage: 'grotto profile show [@handle]',
+        usage: 'haus profile show [@handle]',
     },
     {
-        examples: ['grotto profile update --description "Resident systems investigator"'],
+        examples: ['haus profile update --description "Resident systems investigator"'],
         flags: [
             {
                 description: 'One-line description (1–500 characters)',
@@ -33,7 +33,7 @@ export const PROFILE_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runProfileUpdate(args, defaultDeps()),
         summary: 'Update your self-authored description; your name remains your handle',
-        usage: 'grotto profile update --description <text>',
+        usage: 'haus profile update --description <text>',
     },
 ];
 
@@ -50,7 +50,7 @@ export async function runProfileShow(args: ParsedArgs, deps: ProfileDeps): Promi
     });
     deps.write(renderProfile(response.profile));
     if (response.profile.isSelf) {
-        deps.write('Update it with: grotto profile update --description <text>\n');
+        deps.write('Update it with: haus profile update --description <text>\n');
     }
     return 0;
 }

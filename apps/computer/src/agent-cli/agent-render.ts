@@ -67,7 +67,7 @@ export function renderSearchResult(
 }
 
 export function renderSearchFooter(): string {
-    return 'Use grotto message read --target <target> --around <id> to read surrounding context.';
+    return 'Use haus message read --target <target> --around <id> to read surrounding context.';
 }
 
 export function renderServerInfo(
@@ -109,7 +109,7 @@ export function renderChannelInfo(channel: AgentChannel): string {
         `Description: ${channel.description ?? 'No description.'}`,
         `Members: ${channel.memberCount}`,
         '',
-        `Use grotto channel members "#${channel.handle}" to list members.`,
+        `Use haus channel members "#${channel.handle}" to list members.`,
         '',
     ].join('\n');
 }
@@ -160,7 +160,7 @@ function renderHeld(
     ];
     if (response.omittedMessageCount > 0) {
         lines.push(
-            `${response.omittedMessageCount} earlier newer messages were omitted. Use grotto message read --target "${target}" to review them.`
+            `${response.omittedMessageCount} earlier newer messages were omitted. Use haus message read --target "${target}" to review them.`
         );
     }
     lines.push(
@@ -174,12 +174,12 @@ function renderHeld(
     lines.push('', ...response.shownMessages.map(formatHistoryLine), '', 'Choose one path:');
     lines.push(
         `- Revise: send a new plain message to ${target}; it replaces the saved draft.`,
-        `- Send unchanged: grotto message send --send-draft --target "${target}"`,
+        `- Send unchanged: haus message send --send-draft --target "${target}"`,
         '- Stay silent: do nothing.'
     );
     if (response.continueAnywaySuggested) {
         lines.push(
-            `- After repeated holds, send unchanged anyway: grotto message send --send-draft --anyway --target "${target}"`
+            `- After repeated holds, send unchanged anyway: haus message send --send-draft --anyway --target "${target}"`
         );
     }
     return `${lines.join('\n')}\n`;
@@ -241,7 +241,7 @@ function serverInfoNextCommands(
             return [];
         }
         const command = [
-            'grotto server info',
+            'haus server info',
             flag,
             ...(filters.joined ? ['--joined'] : []),
             ...(filters.query ? ['--query', quoteCommandValue(filters.query)] : []),

@@ -1,7 +1,7 @@
 import type { ComputerUpdateProgress } from './update-contract.ts';
 
 /**
- * Dependency-free progress rendering for the synchronous `grotto-computer
+ * Dependency-free progress rendering for the synchronous `haus-computer
  * upgrade` command. A TTY gets one live line per phase (rewritten in place,
  * finalized on phase change); anything else gets sparse plain lines with no
  * ANSI codes and no carriage returns.
@@ -63,7 +63,7 @@ export function createUpgradeRenderer(output: UpgradeOutput): UpgradeRenderer {
 /** One-sentence outcome when another process already holds the update job. */
 export function describeConcurrentUpdate(progress: ComputerUpdateProgress): string {
     const target = progress.targetVersion ? ` to ${progress.targetVersion}` : '';
-    return `Another Grotto Computer update${target} is already in progress (${concurrentState(progress)}). Re-run grotto-computer upgrade to check on it.`;
+    return `Another Haus Computer update${target} is already in progress (${concurrentState(progress)}). Re-run haus-computer upgrade to check on it.`;
 }
 
 function ttyLine(progress: ComputerUpdateProgress): string | null {
@@ -100,7 +100,7 @@ function plainLine(progress: ComputerUpdateProgress): string | null {
         case 'installing':
             return `Installing ${target(progress)}…`;
         case 'restarting':
-            return 'Restarting Grotto Computer…';
+            return 'Restarting Haus Computer…';
         default:
             return progress.detail;
     }
@@ -120,7 +120,7 @@ const failedStepLabels: Record<Exclude<ComputerUpdateProgress['phase'], 'failed'
     idle: 'preparing the update',
     installing: 'installing the update',
     requested: 'requesting the update',
-    restarting: 'restarting Grotto Computer',
+    restarting: 'restarting Haus Computer',
     verifying: 'verifying the release',
     'waiting-for-agents': 'waiting for active Agents',
 };
@@ -137,7 +137,7 @@ function concurrentState(progress: ComputerUpdateProgress): string {
 }
 
 function target(progress: ComputerUpdateProgress): string {
-    return progress.targetVersion ? `Grotto Computer ${progress.targetVersion}` : 'Grotto Computer';
+    return progress.targetVersion ? `Haus Computer ${progress.targetVersion}` : 'Haus Computer';
 }
 
 function formatBytes(bytes: number): string {

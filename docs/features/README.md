@@ -1,13 +1,13 @@
 ---
-summary: Feature docs index for Grotto product capabilities.
+summary: Feature docs index for Haus product capabilities.
 read_when:
-  - looking for Grotto's user-facing product capabilities
+  - looking for Haus's user-facing product capabilities
   - adding, renaming, or reorganizing feature docs
 ---
 
 # Features
 
-Feature docs describe what Grotto exposes as a product. Architecture,
+Feature docs describe what Haus exposes as a product. Architecture,
 implementation ownership, and runtime details live under
 [internals](../internals/).
 

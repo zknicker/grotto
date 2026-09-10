@@ -1761,7 +1761,7 @@ test('task status updates wait for newer exact-thread context', async () => {
     expect(held).toMatchObject({
         body: {
             code: 'TASK_CONFLICT',
-            message: expect.stringMatching(/grotto message check/u),
+            message: expect.stringMatching(/haus message check/u),
         },
         status: 409,
     });
@@ -1960,10 +1960,10 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
     expect(events.automations).toEqual([
         {
             content:
-                '[Grotto task assignment task=#1 target=#task-delegation assignedBy=@sage] Scout the release notes.',
+                '[Haus task assignment task=#1 target=#task-delegation assignedBy=@sage] Scout the release notes.',
             createdAt: expect.any(String),
             id: `task-assign:${messageId}:1`,
-            senderHandle: 'grotto',
+            senderHandle: 'haus',
             senderType: 'system',
             target: '#task-delegation',
         },

@@ -21,12 +21,12 @@ test('atomically creates a Server, its first Owner, #all, and private onboarding
     const client = await signIn('user_clerk_owner');
 
     const created = await client.trpc.server.create.mutate({
-        displayName: 'Grotto HQ',
+        displayName: 'Haus HQ',
         slug: 'grotto-hq',
     });
 
     expect(created.slug).toBe('grotto-hq');
-    expect(created.displayName).toBe('Grotto HQ');
+    expect(created.displayName).toBe('Haus HQ');
     expect(created.role).toBe('owner');
     expect(created.id).not.toBe(created.slug);
     expect(created.id).toMatch(/^srv_[A-Za-z0-9_-]{16,}$/);
@@ -60,11 +60,11 @@ test('atomically creates a Server, its first Owner, #all, and private onboarding
     ]);
 
     await expect(client.trpc.server.list.query()).resolves.toEqual([
-        { displayName: 'Grotto HQ', id: created.id, role: 'owner', slug: 'grotto-hq' },
+        { displayName: 'Haus HQ', id: created.id, role: 'owner', slug: 'grotto-hq' },
     ]);
 });
 
-test('maps every Clerk session of one human to the same Grotto User', async () => {
+test('maps every Clerk session of one human to the same Haus User', async () => {
     const other = await signIn('user_clerk_second', {
         org_id: 'org_ignored',
         org_role: 'org:admin',

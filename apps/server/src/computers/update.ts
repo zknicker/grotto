@@ -12,7 +12,7 @@ import type { GrottoUser } from '../users/grotto-user.ts';
 import type { ComputerConnections } from './connections.ts';
 import { ComputerSetupDeniedError } from './service.ts';
 
-export const productionComputerManifestUrl = 'https://releases.grotto.sh/computer/latest.json';
+export const productionComputerManifestUrl = 'https://releases.haus.chat/computer/latest.json';
 
 export async function checkComputerUpdate(input: {
     computerId: string;
@@ -31,7 +31,7 @@ export async function checkComputerUpdate(input: {
             .update(computersTable)
             .set({
                 updateDetail: available
-                    ? `Grotto Computer ${release.release.version} is available.`
+                    ? `Haus Computer ${release.release.version} is available.`
                     : currentVersionDetail(release.release.version),
                 updatePhase: available ? 'available' : 'idle',
                 updateTargetVersion: release.release.version,
@@ -64,7 +64,7 @@ export async function startComputerUpdate(input: {
         assertCompatibleProductionRelease(release);
         if (input.targetVersion && release.release.version !== input.targetVersion) {
             throw new Error(
-                `Grotto Computer release ${release.release.version} does not match selected target ${input.targetVersion}.`
+                `Haus Computer release ${release.release.version} does not match selected target ${input.targetVersion}.`
             );
         }
         if (!isNewer(release.release.version, computer.productVersion)) {
@@ -195,7 +195,7 @@ function isNewer(candidate: string, installed: string | null): boolean {
 }
 
 function currentVersionDetail(version: string): string {
-    return `Grotto Computer ${version} is the latest version.`;
+    return `Haus Computer ${version} is the latest version.`;
 }
 
 function parseVersion(version: string): number[] {
@@ -209,7 +209,7 @@ function parseVersion(version: string): number[] {
 function assertCompatibleProductionRelease(release: SignedComputerRelease) {
     if (release.release.protocolVersion !== computerProtocolVersion) {
         throw new Error(
-            `Production Grotto Computer ${release.release.version} does not satisfy protocol ${computerProtocolVersion}.`
+            `Production Haus Computer ${release.release.version} does not satisfy protocol ${computerProtocolVersion}.`
         );
     }
 }

@@ -5,10 +5,10 @@ import path from 'node:path';
 
 export async function findGrottoServerReleaseAssets({ releaseRoot, sourceRevision, version }) {
     if (!/^[0-9a-f]{40}$/u.test(sourceRevision)) {
-        throw new Error('Grotto Server release revision must be a full lowercase Git SHA.');
+        throw new Error('Haus Server release revision must be a full lowercase Git SHA.');
     }
     if (!/^\d+\.\d+\.\d+$/u.test(version)) {
-        throw new Error('Grotto Server release version must be exact SemVer.');
+        throw new Error('Haus Server release version must be exact SemVer.');
     }
 
     const releaseId = `${version}+git.${sourceRevision.slice(0, 12)}`;
@@ -19,10 +19,10 @@ export async function findGrottoServerReleaseAssets({ releaseRoot, sourceRevisio
     const match = checksum.match(/^([0-9a-f]{64}) {2}([^/\n]+)\n$/u);
 
     if (!(match && match[2] === artifactName)) {
-        throw new Error('Grotto Server release checksum file is invalid.');
+        throw new Error('Haus Server release checksum file is invalid.');
     }
     if ((await sha256(artifactPath)) !== match[1]) {
-        throw new Error('Grotto Server release checksum does not match.');
+        throw new Error('Haus Server release checksum does not match.');
     }
 
     return [artifactPath, checksumPath];

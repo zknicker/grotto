@@ -17,7 +17,7 @@ export * from './agent-trigger-actions.ts';
 // scheduled — time-based follow-up work stays with reminders.
 
 const idFlag = {
-    description: 'Trigger id from grotto trigger list',
+    description: 'Trigger id from haus trigger list',
     name: '--id',
     valueName: '<id>',
 };
@@ -25,8 +25,8 @@ const idFlag = {
 export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
-            'grotto trigger create --title "deploy finished" --message-id 1a2b3c4d',
-            'grotto trigger create --title "sentry alert" --message-id 1a2b3c4d --instruction "Summarize the error in this thread and open a task when it is new."',
+            'haus trigger create --title "deploy finished" --message-id 1a2b3c4d',
+            'haus trigger create --title "sentry alert" --message-id 1a2b3c4d --instruction "Summarize the error in this thread and open a task when it is new."',
         ],
         flags: [
             {
@@ -54,67 +54,67 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runTriggerCreate(args, defaultTriggerDeps()),
         summary: 'Create an inbound webhook that wakes you when an outside system posts to it',
-        usage: 'grotto trigger create --title <text> --message-id <id> [--instruction <text>] [--kind <kind>]',
+        usage: 'haus trigger create --title <text> --message-id <id> [--instruction <text>] [--kind <kind>]',
     },
     {
-        examples: ['grotto trigger list'],
+        examples: ['haus trigger list'],
         flags: [],
         name: 'list',
         positionals: [],
         run: (args) => runTriggerList(args, defaultTriggerDeps()),
         summary: 'List your triggers, their kinds, and their public URLs',
-        usage: 'grotto trigger list',
+        usage: 'haus trigger list',
     },
     {
-        examples: ['grotto trigger show --id trg_1a2b3c4d5e6f'],
+        examples: ['haus trigger show --id trg_1a2b3c4d5e6f'],
         flags: [idFlag],
         name: 'show',
         positionals: [],
         run: (args) => runTriggerShow(args, defaultTriggerDeps()),
         summary: 'Show one trigger, including its standing instruction',
-        usage: 'grotto trigger show --id <id>',
+        usage: 'haus trigger show --id <id>',
     },
     {
-        examples: ['grotto trigger disable --id trg_1a2b3c4d5e6f'],
+        examples: ['haus trigger disable --id trg_1a2b3c4d5e6f'],
         flags: [idFlag],
         name: 'disable',
         positionals: [],
         run: (args) => runTriggerStatus(args, defaultTriggerDeps(), 'disable'),
         summary: 'Stop a trigger from firing without deleting its history',
-        usage: 'grotto trigger disable --id <id>',
+        usage: 'haus trigger disable --id <id>',
     },
     {
-        examples: ['grotto trigger enable --id trg_1a2b3c4d5e6f'],
+        examples: ['haus trigger enable --id trg_1a2b3c4d5e6f'],
         flags: [idFlag],
         name: 'enable',
         positionals: [],
         run: (args) => runTriggerStatus(args, defaultTriggerDeps(), 'enable'),
         summary: 'Arm a disabled trigger again',
-        usage: 'grotto trigger enable --id <id>',
+        usage: 'haus trigger enable --id <id>',
     },
     {
-        examples: ['grotto trigger rotate --id trg_1a2b3c4d5e6f'],
+        examples: ['haus trigger rotate --id trg_1a2b3c4d5e6f'],
         flags: [idFlag],
         name: 'rotate',
         positionals: [],
         run: (args) => runTriggerRotate(args, defaultTriggerDeps()),
         summary: 'Mint a new secret and invalidate the old one immediately',
-        usage: 'grotto trigger rotate --id <id>',
+        usage: 'haus trigger rotate --id <id>',
     },
     {
-        examples: ['grotto trigger delete --id trg_1a2b3c4d5e6f'],
+        examples: ['haus trigger delete --id trg_1a2b3c4d5e6f'],
         flags: [idFlag],
         name: 'delete',
         positionals: [],
         run: (args) => runTriggerDelete(args, defaultTriggerDeps()),
         summary: 'Remove a trigger while retaining its recent fire history',
-        usage: 'grotto trigger delete --id <id>',
+        usage: 'haus trigger delete --id <id>',
     },
     {
         examples: [
-            'grotto trigger log --id trg_1a2b3c4d5e6f',
-            'grotto trigger log --id trg_1a2b3c4d5e6f --limit 10',
-            'grotto trigger log --id trg_1a2b3c4d5e6f --fire fir_9f8e7d6c5b4a',
+            'haus trigger log --id trg_1a2b3c4d5e6f',
+            'haus trigger log --id trg_1a2b3c4d5e6f --limit 10',
+            'haus trigger log --id trg_1a2b3c4d5e6f --fire fir_9f8e7d6c5b4a',
         ],
         flags: [
             idFlag,
@@ -133,6 +133,6 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runTriggerLog(args, defaultTriggerDeps()),
         summary: 'Read fire history, or one fire with the payload it carried',
-        usage: 'grotto trigger log --id <id> [--fire <fireId>] [--limit <n>]',
+        usage: 'haus trigger log --id <id> [--fire <fireId>] [--limit <n>]',
     },
 ];

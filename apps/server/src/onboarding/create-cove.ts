@@ -236,7 +236,7 @@ export async function recordCoveApplyResult(
                     agentId: result.agentId,
                     chatId: row.channelId,
                     content:
-                        'Greet the owner in this onboarding Channel. Introduce yourself as Cove and help them begin real work in Grotto.',
+                        'Greet the owner in this onboarding Channel. Introduce yourself as Cove and help them begin real work in Haus.',
                     dedupeKey: result.applicationId,
                     serverId: row.serverId,
                     source: 'onboarding',

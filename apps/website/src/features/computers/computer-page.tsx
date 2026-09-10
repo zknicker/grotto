@@ -171,7 +171,7 @@ function ComputerNotFound() {
                     <EmptyState.Title>Computer unavailable</EmptyState.Title>
                     <EmptyState.Description>
                         This Computer is no longer attached to the Server. Choose an attached
-                        Computer from the list; Grotto will not redirect you to another machine.
+                        Computer from the list; Haus will not redirect you to another machine.
                     </EmptyState.Description>
                 </EmptyState.Header>
             </EmptyState>

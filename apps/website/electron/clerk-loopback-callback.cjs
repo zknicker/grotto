@@ -13,7 +13,7 @@ function createLoopbackSsoCallback(onCallback) {
         const nextServer = http.createServer((request, response) => {
             const address = nextServer.address();
             if (!address || typeof address === 'string') {
-                respond(response, 500, 'Grotto could not complete sign-in.');
+                respond(response, 500, 'Haus could not complete sign-in.');
                 return;
             }
 
@@ -24,11 +24,7 @@ function createLoopbackSsoCallback(onCallback) {
                 return;
             }
 
-            respond(
-                response,
-                200,
-                'Sign-in complete. Return to Grotto; you can close this window.'
-            );
+            respond(response, 200, 'Sign-in complete. Return to Haus; you can close this window.');
             onCallback(requestUrl.toString());
             void close();
         });
@@ -46,7 +42,7 @@ function createLoopbackSsoCallback(onCallback) {
         const address = nextServer.address();
         if (!address || typeof address === 'string') {
             await close();
-            throw new Error('Grotto could not start its sign-in callback.');
+            throw new Error('Haus could not start its sign-in callback.');
         }
 
         return `http://127.0.0.1:${address.port}${callbackPath}`;

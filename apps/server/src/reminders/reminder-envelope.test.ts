@@ -8,7 +8,7 @@ const base = {
 };
 
 /** Every fire envelope ends with the command that answers it with provenance. */
-const replyLine = 'reply with: grotto message send --cause rmf_fire';
+const replyLine = 'reply with: haus message send --cause rmf_fire';
 
 describe('reminder envelope', () => {
     test('names the reminder, the fire, and the command that answers it', () => {

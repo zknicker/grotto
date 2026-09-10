@@ -516,10 +516,10 @@ async function executeHarnessTurn(
 }
 
 const coveGuidanceRefreshNotice =
-    "Grotto updated Cove's factory-managed onboarding guidance. Before acting on this request, re-read notes/onboarding_playbook.md and notes/onboarding_knowledge_faq.md. Their current guidance supersedes earlier assumptions from this session.";
+    "Haus updated Cove's factory-managed onboarding guidance. Before acting on this request, re-read notes/onboarding_playbook.md and notes/onboarding_knowledge_faq.md. Their current guidance supersedes earlier assumptions from this session.";
 
 function coveGuidanceConflictNotice(files: readonly string[]): string {
-    return `Grotto could not update Cove's factory-managed onboarding guidance because these files were changed or removed: ${files.join(', ')}. Do not overwrite them. Retrieve the relevant Grotto Manual topic before claiming a capability is unavailable.`;
+    return `Haus could not update Cove's factory-managed onboarding guidance because these files were changed or removed: ${files.join(', ')}. Do not overwrite them. Retrieve the relevant Haus Manual topic before claiming a capability is unavailable.`;
 }
 
 async function hasPendingCoveGuidanceRefresh(agentRoot: string): Promise<boolean> {

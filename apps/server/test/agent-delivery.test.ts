@@ -2711,7 +2711,7 @@ test('wakes an idle Agent concretely for a Reminder fire and a task assignment',
     expect(assignmentStart?.inbox[0]).toMatchObject({
         content: 'Assigned to you: #4 Ship the upload flow',
         mentioned: true,
-        senderHandle: 'grotto',
+        senderHandle: 'haus',
         senderType: 'system',
     });
     await delivery.onAck({ agentId: seed.agentId, runId: assignmentStart?.runId ?? '' });

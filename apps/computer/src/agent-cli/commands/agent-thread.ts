@@ -17,8 +17,8 @@ const unfollowResponseSchema = z.object({
 export const THREAD_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
-            'grotto thread unfollow --target "#general:1a2b3c4d"',
-            'grotto thread unfollow --target "dm:@zach:1a2b3c4d" --reason "handed off to Wren"',
+            'haus thread unfollow --target "#general:1a2b3c4d"',
+            'haus thread unfollow --target "dm:@zach:1a2b3c4d" --reason "handed off to Wren"',
         ],
         flags: [
             {
@@ -36,7 +36,7 @@ export const THREAD_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runThreadUnfollow(args, defaultDeps()),
         summary: 'Remove a thread from your followed attention state',
-        usage: 'grotto thread unfollow --target <target> [--reason <text>]',
+        usage: 'haus thread unfollow --target <target> [--reason <text>]',
     },
 ];
 
@@ -44,7 +44,7 @@ export async function runThreadUnfollow(args: ParsedArgs, deps: ThreadDeps): Pro
     const target = args.values['--target'];
     if (!target) {
         throw new AgentCliError('INVALID_ARG', 'Provide --target with a thread target.', {
-            nextAction: 'grotto thread unfollow --target "#channel:<shortId>"',
+            nextAction: 'haus thread unfollow --target "#channel:<shortId>"',
         });
     }
     const response = await deps.client.request(

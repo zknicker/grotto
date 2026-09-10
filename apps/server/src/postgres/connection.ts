@@ -43,7 +43,7 @@ export async function connectGrottoDatabase(databaseUrl: string): Promise<Grotto
     } catch (cause) {
         await Promise.allSettled([queryClient.close(), transactionClient.close()]);
         throw new Error(
-            `Failed to connect to Grotto PostgreSQL at ${describeDatabaseUrl(databaseUrl)}.`,
+            `Failed to connect to Haus PostgreSQL at ${describeDatabaseUrl(databaseUrl)}.`,
             { cause }
         );
     }

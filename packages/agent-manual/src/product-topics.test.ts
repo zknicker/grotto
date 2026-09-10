@@ -8,7 +8,7 @@ test('publishes the Agent reference topic as the Agent-creation contract', () =>
     expect(getManualTopic('action-cards')).toBeNull();
     expect(agent?.kind).toBe('overview');
     expect(agent?.body).toContain(
-        'grotto agent create --target <target> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] --say <text>'
+        'haus agent create --target <target> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] --say <text>'
     );
     expect(agent?.body).toContain(
         'Create an Agent only when a human in the Chat you are working in has asked for one'
@@ -28,13 +28,13 @@ test('publishes the Agent reference topic as the Agent-creation contract', () =>
     expect(agent?.body).toContain('**Put it where the work is.**');
     expect(agent?.body).toContain('**Give it a brief.**');
     expect(agent?.body).toContain('you do not DM the new Agent');
-    expect(agent?.body).toContain('grotto channel add --target "#name" --agent @handle');
-    expect(agent?.body).not.toContain('grotto message send --target dm:@handle');
-    expect(agent?.body).toContain('grotto agent update --agent @handle --description <text>');
-    expect(agent?.body).toContain('grotto agent avatar --agent @handle --concept <text>');
+    expect(agent?.body).toContain('haus channel add --target "#name" --agent @handle');
+    expect(agent?.body).not.toContain('haus message send --target dm:@handle');
+    expect(agent?.body).toContain('haus agent update --agent @handle --description <text>');
+    expect(agent?.body).toContain('haus agent avatar --agent @handle --concept <text>');
     expect(agent?.body).toContain("Cove's identity is protected");
-    expect(agent?.body).toContain('The Agent profile pane in Grotto App');
-    expect(agent?.body).not.toMatch(/action card|grotto action prepare|Server role/iu);
+    expect(agent?.body).toContain('The Agent profile pane in Haus App');
+    expect(agent?.body).not.toMatch(/action card|haus action prepare|Server role/iu);
     expect(
         searchManualTopics('create a new agent', { limit: 5, scope: 'all' }).map(
             (topic) => topic.id
@@ -47,13 +47,13 @@ test('publishes the Ask reference topic without turning it into a procedure', ()
 
     expect(asks?.kind).toBe('overview');
     expect(asks?.body).toContain(
-        'grotto ask --target <target> --to @<handle> --title <text> --summary <text> --step <text>'
+        'haus ask --target <target> --to @<handle> --title <text> --summary <text> --step <text>'
     );
     expect(asks?.body).toContain('one named human for a decision');
     expect(asks?.body).toContain('The question text arrives on stdin');
     expect(asks?.body).toContain('settles the Ask');
     expect(asks?.body).toContain('An Ask changes nothing on its own');
-    expect(getManualTopic('grotto-cli-overview')?.body).toContain('grotto ask');
+    expect(getManualTopic('haus-cli-overview')?.body).toContain('haus ask');
     expect(
         searchManualTopics('ask a human for a decision', { limit: 5, scope: 'all' }).map(
             (topic) => topic.id

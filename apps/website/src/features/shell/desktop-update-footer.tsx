@@ -33,7 +33,7 @@ export function DesktopUpdateFooterStatus({
 
     return (
         <section
-            aria-label="Grotto app update"
+            aria-label="Haus app update"
             aria-live="polite"
             className="flex w-full flex-col items-start px-2"
         >

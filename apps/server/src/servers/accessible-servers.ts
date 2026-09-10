@@ -3,7 +3,7 @@ import type { GrottoDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable, serversTable } from '../postgres/schema.ts';
 import type { ServerSummary } from './contracts.ts';
 
-/** The Grotto servers one human may open, newest membership last. */
+/** The Haus servers one human may open, newest membership last. */
 export async function listAccessibleServers(
     db: GrottoDatabase,
     userId: string

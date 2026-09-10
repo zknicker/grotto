@@ -5,7 +5,7 @@ import computerProtocol from '../../packages/grotto-api/computer-protocol.json' 
 };
 
 export const computerProtocolVersion = computerProtocol.version;
-export const computerArtifactName = 'grotto-computer-aarch64-apple-darwin';
+export const computerArtifactName = 'haus-computer-aarch64-apple-darwin';
 
 export function computerReleaseSigningPayload(release) {
     return JSON.stringify({

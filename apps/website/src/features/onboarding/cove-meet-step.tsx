@@ -51,7 +51,7 @@ export function CoveMeetStep({
     return (
         <ActivationStep
             className="activation-step--wide activation-step--tall"
-            description="Your Server’s onboarding assistant that knows Grotto inside and out."
+            description="Your Server’s onboarding assistant that knows Haus inside and out."
             footer={
                 <>
                     <SwitchServerButton onPress={onSwitchServer} />

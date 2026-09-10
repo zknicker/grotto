@@ -12,7 +12,7 @@ interface ManualDeps {
 export const MANUAL_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
-            'grotto manual get grotto-cli-overview --intent "I need the operating guide" --reason "I am orienting this Agent"',
+            'haus manual get haus-cli-overview --intent "I need the operating guide" --reason "I am orienting this Agent"',
         ],
         flags: [
             {
@@ -30,11 +30,11 @@ export const MANUAL_SUBCOMMANDS: SubCommand[] = [
         positionals: ['<topic>'],
         run: (args) => runManualGet(args, defaultDeps()),
         summary: 'Read one complete Manual topic',
-        usage: 'grotto manual get <topic> --intent <text> --reason <text>',
+        usage: 'haus manual get <topic> --intent <text> --reason <text>',
     },
     {
         examples: [
-            'grotto manual search "claim task" --intent "I need matching guidance" --reason "I am choosing a safe procedure"',
+            'haus manual search "claim task" --intent "I need matching guidance" --reason "I am choosing a safe procedure"',
         ],
         flags: [
             {
@@ -59,7 +59,7 @@ export const MANUAL_SUBCOMMANDS: SubCommand[] = [
         positionals: ['<keywords>'],
         run: (args) => runManualSearch(args, defaultDeps()),
         summary: 'Find Manual topics by keywords',
-        usage: 'grotto manual search <keywords> --intent <text> --reason <text> [--scope recipes]',
+        usage: 'haus manual search <keywords> --intent <text> --reason <text> [--scope recipes]',
     },
 ];
 

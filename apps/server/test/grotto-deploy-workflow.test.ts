@@ -7,7 +7,7 @@ import { parse } from 'yaml';
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 const workflowPath = join(repoRoot, '.github/workflows/deploy-grotto-server.yml');
 
-test('promotes a published Grotto version through an explicit dispatch or protected release call', () => {
+test('promotes a published Haus version through an explicit dispatch or protected release call', () => {
     const source = readFileSync(workflowPath, 'utf8');
     const workflow = parse(source) as {
         concurrency: { 'cancel-in-progress': boolean; group: string };
@@ -185,7 +185,7 @@ test('promotes a published Grotto version through an explicit dispatch or protec
     // The deploy proves both the delivered environment and public artifact.
     expect(job.steps.at(-2)?.name).toBe('Verify the delivered environment');
     expect(job.steps.at(-2)?.run).toContain('verify-deployed-secrets.ts');
-    expect(job.steps.at(-1)?.name).toBe('Prove public Server and hosted Grotto App');
+    expect(job.steps.at(-1)?.name).toBe('Prove public Server and hosted Haus App');
     expect(job.steps.at(-1)?.run).toContain('verify-hosted-grotto.mjs');
     // No notification step: it read two repository secrets that never existed,
     // so it could only ever have been a silent no-op.
@@ -204,6 +204,6 @@ test('documents version publication as the only production promotion', () => {
     expect(releaseDocs).toContain('`activate` verifies and switches');
     expect(deployDocs).toContain('/Users/zknicker/srv/grotto');
     expect(deployDocs).toContain('never run `git clean`');
-    expect(deployDocs).toContain('Grotto production `GROTTO_CLERK_SECRET_KEY`');
+    expect(deployDocs).toContain('Haus production `GROTTO_CLERK_SECRET_KEY`');
     expect(deployDocs).not.toContain('/opt/grotto-server');
 });

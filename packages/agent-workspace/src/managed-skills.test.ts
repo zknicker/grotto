@@ -37,7 +37,7 @@ test('restores visuals without removing authored or stale factory skills', async
     );
     await expect(
         readFile(join(skillsDir, 'visuals', 'references', 'design-system.md'), 'utf8')
-    ).resolves.toContain('# Grotto visuals — design system');
+    ).resolves.toContain('# Haus visuals — design system');
 });
 
 /**

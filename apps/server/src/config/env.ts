@@ -27,7 +27,7 @@ export function getDefaultGrottoAttachmentRoot() {
 }
 
 export function getDefaultClerkIssuerUrl() {
-    return 'https://clerk.grotto.sh';
+    return 'https://clerk.haus.chat';
 }
 
 function resolveHomePath(value: string) {
@@ -89,7 +89,7 @@ const envSchema = z
         ) {
             context.addIssue({
                 code: 'custom',
-                message: 'GROTTO_CLERK_SECRET_KEY is required for a production Grotto release.',
+                message: 'GROTTO_CLERK_SECRET_KEY is required for a production Haus release.',
                 path: ['GROTTO_CLERK_SECRET_KEY'],
             });
         }

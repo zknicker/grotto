@@ -56,7 +56,7 @@ export async function attachComputer(db: GrottoDatabase, input: AttachComputerIn
         if (!server) {
             throw new ComputerAttachmentError(
                 'computer_attachment_server_not_found',
-                `No Grotto server exists at /${input.slug}. Check the Server address and try again.`,
+                `No Haus server exists at /${input.slug}. Check the Server address and try again.`,
                 404
             );
         }
@@ -68,7 +68,7 @@ export async function attachComputer(db: GrottoDatabase, input: AttachComputerIn
             if (cause instanceof ServerNotFoundError) {
                 throw new ComputerAttachmentError(
                     'computer_attachment_server_not_found',
-                    `No Grotto server exists at /${input.slug}. Check the Server address and try again.`,
+                    `No Haus server exists at /${input.slug}. Check the Server address and try again.`,
                     404
                 );
             }
@@ -171,7 +171,7 @@ function finishAttachment(
 function wrongAccount(slug: string) {
     return new ComputerAttachmentError(
         'computer_attachment_wrong_account',
-        `The signed-in Grotto account cannot attach a Computer to /${slug}. Run "grotto-computer login --replace" and choose "Use another account".`,
+        `The signed-in Haus account cannot attach a Computer to /${slug}. Run "grotto-computer login --replace" and choose "Use another account".`,
         403
     );
 }

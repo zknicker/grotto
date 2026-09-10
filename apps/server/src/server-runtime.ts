@@ -7,7 +7,7 @@ import { Layer, ManagedRuntime } from 'effect';
 
 export type ServerRuntime = EffectRuntime<never>;
 
-/** Create the one Effect runtime owned by a Grotto Server application. */
+/** Create the one Effect runtime owned by a Haus Server application. */
 export function makeServerRuntime(options?: {
     readonly releaseId?: string;
     readonly serviceRevision?: string;

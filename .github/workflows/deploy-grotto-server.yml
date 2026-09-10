@@ -1,4 +1,4 @@
-name: Deploy Grotto Server
+name: Deploy Haus Server
 
 # After the release PR merges, Release calls this workflow automatically through
 # the production Environment. Manual dispatch remains available for recovery.
@@ -6,7 +6,7 @@ on:
   workflow_call:
     inputs:
       version:
-        description: Published Grotto version (vX.Y.Z)
+        description: Published Haus version (vX.Y.Z)
         required: true
         type: string
       server_version:
@@ -27,7 +27,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Published Grotto version (vX.Y.Z)
+        description: Published Haus version (vX.Y.Z)
         required: true
         type: string
       server_version:
@@ -52,11 +52,11 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy published Grotto version
+    name: Deploy published Haus version
     runs-on: [self-hosted, grotto]
     environment:
       name: production
-      url: https://grotto.sh
+      url: https://haus.chat
     timeout-minutes: 30
     permissions:
       contents: read
@@ -197,7 +197,7 @@ jobs:
               --jq ".assets[] | select(.name == \"${archive_name}.sha256\") | .id"
           )"
           if [[ ! "${archive_asset_id}" =~ ^[0-9]+$ || ! "${checksum_asset_id}" =~ ^[0-9]+$ ]]; then
-            echo "published release must contain the exact Grotto Server archive and checksum" >&2
+            echo "published release must contain the exact Haus Server archive and checksum" >&2
             exit 1
           fi
 
@@ -306,5 +306,5 @@ jobs:
       - name: Verify the delivered environment
         run: bun scripts/verify-deployed-secrets.ts
 
-      - name: Prove public Server and hosted Grotto App
+      - name: Prove public Server and hosted Haus App
         run: bun scripts/release/verify-hosted-grotto.mjs "${GROTTO_RELEASE_VERSION#v}"

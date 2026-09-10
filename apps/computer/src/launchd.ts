@@ -6,9 +6,9 @@ export function replaceLaunchdService(input: {
 }) {
     const bootoutExitCode = input.run(['bootout', input.domain, input.plistPath]);
     if (bootoutExitCode !== 0 && input.run(['print', `${input.domain}/${input.label}`]) === 0) {
-        throw new Error('Could not replace Grotto Computer service.');
+        throw new Error('Could not replace Haus Computer service.');
     }
     if (input.run(['bootstrap', input.domain, input.plistPath]) !== 0) {
-        throw new Error('Could not start Grotto Computer service.');
+        throw new Error('Could not start Haus Computer service.');
     }
 }

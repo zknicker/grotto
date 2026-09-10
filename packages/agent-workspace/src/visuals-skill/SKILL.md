@@ -1,7 +1,7 @@
 ---
 name: visuals
 description: >
-  Grotto design system for everything you render — inline visuals and artifact
+  Haus design system for everything you render — inline visuals and artifact
   pages. Read this BEFORE emitting any visual or artifact fence. Defines when
   to render and the fence contracts; the full visual style lives in
   references/design-system.md. Reach for it when a reply would be clearer as a
@@ -14,7 +14,7 @@ description: >
 
 # Visuals
 
-Managed by Grotto. Do not edit this skill directory; Grotto refreshes it on
+Managed by Haus. Do not edit this skill directory; Haus refreshes it on
 startup.
 
 You render two kinds of visual output in chat:
@@ -66,7 +66,7 @@ fence containing exactly one JSON object — no comments, no trailing commas:
 
 Rules:
 
-- Grotto strips fences from your visible reply and renders them in place.
+- Haus strips fences from your visible reply and renders them in place.
 - Raw HTML belongs only in a `visual` fence body or an artifact file. Never
   output HTML, JSX, CSS, imports, or class names in plain reply text.
 - Text goes in your reply, visuals go in the fence. Prose adds context, never
@@ -76,7 +76,7 @@ Rules:
 
 ## Visual runtime contract
 
-- The `visual` fence body renders in a sandboxed iframe with Grotto's theme
+- The `visual` fence body renders in a sandboxed iframe with Haus's theme
   tokens preloaded as CSS variables. Content width is about 700px; the body
   has 16px padding, the app font, 14px text, a card background, and native
   styling for bare form controls and `<table>` markup. Height is measured

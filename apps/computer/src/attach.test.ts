@@ -43,8 +43,8 @@ test('attach requires an existing usable Computer login and never launches login
         });
 
         expect(result.exitCode).not.toBe(0);
-        expect(result.stderr).toContain('Grotto Computer is not signed in');
-        expect(result.stderr).toContain('grotto-computer login');
+        expect(result.stderr).toContain('Haus Computer is not signed in');
+        expect(result.stderr).toContain('haus-computer login');
         expect(requests).toEqual([]);
     } finally {
         peer.stop(true);

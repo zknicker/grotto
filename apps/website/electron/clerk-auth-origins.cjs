@@ -1,7 +1,7 @@
 'use strict';
 
-const productionAppOrigin = 'https://grotto.sh';
-const productionClerkOrigin = 'https://clerk.grotto.sh';
+const productionAppOrigin = 'https://haus.chat';
+const productionClerkOrigin = 'https://clerk.haus.chat';
 
 function resolveClerkAuthOrigins({ appUrl, clerkIssuerUrl, isPackaged }) {
     if (isPackaged) {

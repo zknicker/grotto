@@ -165,8 +165,7 @@ test('a Server refusal reaches the Agent with its own code and next action', asy
         request() {
             return Promise.reject(
                 new AgentCliError('CHAT_VIEW_STALE', 'New messages arrived in #product.', {
-                    nextAction:
-                        'Run grotto message read --target "#product" before creating again.',
+                    nextAction: 'Run haus message read --target "#product" before creating again.',
                 })
             );
         },
@@ -255,7 +254,7 @@ test('a create that got no answer is retried once with the identical body', asyn
             if (attempts === 1) {
                 seen.push(input ?? {});
                 return Promise.reject(
-                    new AgentApiTransportError('SERVER_5XX', 'The Grotto server is unavailable.')
+                    new AgentApiTransportError('SERVER_5XX', 'The Haus server is unavailable.')
                 );
             }
             return inner.request(path, schema, input);

@@ -50,7 +50,7 @@ export async function clearPersonalWork(
     return departed.map((chat) => chat.id);
 }
 
-/** Joins one human to the Channel every Grotto server creates for everyone. */
+/** Joins one human to the Channel every Haus server creates for everyone. */
 export async function joinAllChannel(
     db: Pick<GrottoDatabase, 'insert' | 'select'>,
     serverId: string,
@@ -63,7 +63,7 @@ export async function joinAllChannel(
         .limit(1);
 
     if (!allChannel) {
-        throw new Error('This Grotto server has no #all Channel to join.');
+        throw new Error('This Haus server has no #all Channel to join.');
     }
 
     await db

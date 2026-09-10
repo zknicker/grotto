@@ -2,7 +2,7 @@
 /**
  * A deterministic runtime that executes the real managed CLI. It stands in for
  * a model provider — no network model call — while exercising the genuine path:
- * it reads the composed turn prompt and replies through the `grotto` wrapper on
+ * it reads the composed turn prompt and replies through the `haus` wrapper on
  * PATH, which reaches the Server via the loopback proxy. Real harness/CLI,
  * fake model.
  */
@@ -11,13 +11,13 @@ async function main(): Promise<number> {
     const ask = readLatestHumanMessage(prompt);
     const reply = ask ? `Acknowledged: ${ask.content}` : 'Acknowledged.';
 
-    const grotto = Bun.which('grotto') ?? process.env.GROTTO_WRAPPER;
-    if (!grotto) {
-        process.stderr.write('The grotto wrapper was not found on PATH.\n');
+    const haus = Bun.which('haus') ?? process.env.GROTTO_WRAPPER;
+    if (!haus) {
+        process.stderr.write('The haus wrapper was not found on PATH.\n');
         return 1;
     }
 
-    const child = Bun.spawn([grotto, 'message', 'send', '--target', ask?.target ?? '#all'], {
+    const child = Bun.spawn([haus, 'message', 'send', '--target', ask?.target ?? '#all'], {
         stderr: 'inherit',
         stdin: new TextEncoder().encode(reply),
         stdout: 'inherit',

@@ -10,13 +10,13 @@ export type { McpIconFetch } from './icon-loader.ts';
  *
  * Two sources, in order: the icons an MCP server advertises in `serverInfo`
  * (SEP-973), then the favicon of the site behind its host. Both are fetched
- * here, by Grotto Server, once per refresh — never by the App. An `img` in the
+ * here, by Haus Server, once per refresh — never by the App. An `img` in the
  * App pointed at a connection's own host would report the viewer's IP and page
  * views back to that operator, which is exactly the tracking channel this
  * module exists to close.
  *
  * The upstream `Icon` shape stays local to this file: it is a third-party
- * protocol shape, not a Grotto contract. What crosses `@grotto/api` is the
+ * protocol shape, not a Haus contract. What crosses `@grotto/api` is the
  * validated, inlined result.
  */
 

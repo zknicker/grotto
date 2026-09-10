@@ -3,7 +3,7 @@
  *
  * The two clients share one icon vocabulary and this script keeps it that way
  * mechanically: it reads the hugeicons names the App's own React source
- * imports, rather than curating a second list that could drift. `GrottoIconName`
+ * imports, rather than curating a second list that could drift. `HausIconName`
  * on the Swift side then picks which of those names the phone actually shows.
  *
  * App iconography is the stroke-rounded family, not the solid-rounded one the
@@ -24,8 +24,8 @@ const iconDistPath = join(
     repoRoot,
     'apps/website/node_modules/@hugeicons-pro/core-stroke-rounded/dist/esm'
 );
-const outputPath = join(iosRoot, 'Sources/GrottoUI/Resources/ui-icons.json');
-const swiftIconSource = join(iosRoot, 'Sources/GrottoUI/Icon/GrottoIcon.swift');
+const outputPath = join(iosRoot, 'Sources/HausUI/Resources/ui-icons.json');
+const swiftIconSource = join(iosRoot, 'Sources/HausUI/Icon/HausIcon.swift');
 
 const imported = [...new Set(collectImportedNames(appSource))];
 
@@ -33,7 +33,7 @@ if (imported.length === 0) {
     throw new Error(`No hugeicons imports found under ${appSource}.`);
 }
 
-// The phone draws what `GrottoIconName` names, so those are read back out the
+// The phone draws what `HausIconName` names, so those are read back out the
 // same way and are the ones that must resolve. Anything the App imports comes
 // along for free, which is what keeps a later Swift call site from having to
 // pick a second icon for a concept the App has already named.
@@ -47,7 +47,7 @@ const available = new Set(
 const unavailable = required.filter((name) => !available.has(name));
 if (unavailable.length > 0) {
     throw new Error(
-        `GrottoIconName asks for ${unavailable.join(', ')}, which the stroke-rounded family does not carry.`
+        `HausIconName asks for ${unavailable.join(', ')}, which the stroke-rounded family does not carry.`
     );
 }
 
@@ -70,7 +70,7 @@ console.log(
     `  App names not in the stroke-rounded family: ${imported.filter((name) => !available.has(name)).join(', ') || 'none'}`
 );
 
-/** Every hugeicons name `GrottoIconName` carries as a raw value. */
+/** Every hugeicons name `HausIconName` carries as a raw value. */
 function collectSwiftNames(path: string): string[] {
     const source = readFileSync(path, 'utf8');
     return [...source.matchAll(/case\s+\w+\s*=\s*"([A-Z][A-Za-z0-9]*Icon)"/gu)].map(

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## v2.0.0 - 2026-09-10
+
+- Grotto becomes Haus at haus.chat, with renamed web, desktop, and iPhone apps,
+  sign-in, and release downloads. Existing chats and Agent workspaces stay in place.
+- Inbox leads the sidebar with the Haus ghost. Switch and manage Servers in
+  Settings → Servers.
+- Haus Agent 1.5.0 uses the `haus` command and `haus://` workspace links. Existing
+  commands and links remain usable for saved conversations and resumed work.
+- Update Computer to 1.10.0 for protocol 18 and automatic migration of the saved
+  production Server address. The setup command is now `haus-computer`.
+- Install Haus 2.0.0 for Mac and Haus Chat 2.0.0 (28) from TestFlight as new apps,
+  then sign in again. Their new app identities do not replace existing Grotto
+  installations. Reload open web sessions.
+
 ## v1.16.0 - 2026-09-10
 
 - Grotto Agents create teammates directly when asked, announce them in #all, and give them a

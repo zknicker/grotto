@@ -22,7 +22,7 @@ test('Server requests keep the Clerk session on the request context', () => {
     const createContext = createGrottoContextFactory({
         clerkSessions: unavailable('Clerk session verification'),
         avatarImageService: unavailable('avatar image generation'),
-        grottoDb: unavailable('the Grotto PostgreSQL database'),
+        grottoDb: unavailable('the Haus PostgreSQL database'),
     });
 
     const context = createContext({

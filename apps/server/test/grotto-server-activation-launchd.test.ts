@@ -33,7 +33,7 @@ test('bootstraps the exact Server plist when launchd reports the label is unload
     ]);
 });
 
-test('boots out only the Grotto Server label', () => {
+test('boots out only the Haus Server label', () => {
     const commands: string[][] = [];
 
     stopProductionServer((args) => {

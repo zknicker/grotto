@@ -1,12 +1,12 @@
 import { Sidebar } from '@heroui-pro/react';
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
-import { GrottoGhost } from '../../components/grotto-ghost.tsx';
+import { HausGhost } from '../../components/haus-ghost.tsx';
 import { useOptionalCurrentAgentActivity } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { inboxRoute } from '../servers/server-routes.ts';
 import { resolveAgentActivityGhostTempo } from './agent-activity-ghost-tempo.ts';
 
 /**
- * The sidebar's top-left anchor: Inbox, marked by the Grotto ghost.
+ * The sidebar's top-left anchor: Inbox, marked by the Haus ghost.
  *
  * The mark stands where a product's wordmark would and always wears the
  * app-icon mesh. Its drift speed is the Server's live-work tell: a slow
@@ -49,13 +49,7 @@ export function SidebarInboxRow({
             textValue="Inbox"
         >
             <Sidebar.MenuIcon>
-                <GrottoGhost
-                    animated
-                    aria-hidden="true"
-                    fill="iridescent"
-                    size={22}
-                    tempo={tempo}
-                />
+                <HausGhost animated aria-hidden="true" fill="iridescent" size={22} tempo={tempo} />
             </Sidebar.MenuIcon>
             <Sidebar.MenuItemContent>
                 <Sidebar.MenuLabel>Inbox</Sidebar.MenuLabel>

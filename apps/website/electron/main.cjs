@@ -37,7 +37,7 @@ for (const stream of [process.stdout, process.stderr]) {
 
 const updateCheckIntervalMs = 10 * 60 * 1000;
 const openDevtoolsMenuId = 'open-devtools';
-const productionAppUrl = 'https://grotto.sh';
+const productionAppUrl = 'https://haus.chat';
 // Matches --topbar-height in the renderer so the traffic lights center in
 // the shell's headroom band.
 // Matches --app-shell-band-height in src/features/shell/shell.css, the height
@@ -73,11 +73,11 @@ if (process.env.GROTTO_ELECTRON_DEV_URL) {
         /[^a-zA-Z0-9._-]/gu,
         '-'
     );
-    app.setPath('userData', path.join(app.getPath('appData'), 'Grotto Dev', stackId));
+    app.setPath('userData', path.join(app.getPath('appData'), 'Haus Dev', stackId));
 }
 
-app.setName('Grotto');
-app.setAppUserModelId('build.grotto.desktop');
+app.setName('Haus');
+app.setAppUserModelId('chat.haus.desktop');
 
 registerClerkAuth({ app, appUrl, BrowserWindow, ipcMain, safeStorage, shell, webContents });
 
@@ -98,7 +98,7 @@ if (useMockUpdater) {
 function createWindow({ route, openerBounds } = {}) {
     const bounds = initialWindowBounds(openerBounds);
     const window = new BrowserWindow({
-        title: 'Grotto',
+        title: 'Haus',
         width: bounds.width,
         height: bounds.height,
         x: bounds.x,
@@ -361,7 +361,7 @@ function installAppMenu() {
             submenu: [
                 {
                     click: () => shell.openExternal(productionAppUrl),
-                    label: 'Grotto Website',
+                    label: 'Haus Website',
                 },
             ],
         },
@@ -591,7 +591,7 @@ function getErrorMessage(error) {
         return error;
     }
 
-    return 'Grotto could not check for updates.';
+    return 'Haus could not check for updates.';
 }
 
 app.whenReady().then(() => {

@@ -71,7 +71,7 @@ export function CreateServerFields({ form }: { form: CreateServerFormState }) {
                 variant="secondary"
             >
                 <Label htmlFor="server-display-name">Name</Label>
-                <Input autoComplete="off" id="server-display-name" placeholder="Grotto HQ" />
+                <Input autoComplete="off" id="server-display-name" placeholder="Haus HQ" />
             </TextField>
             <TextField
                 fullWidth

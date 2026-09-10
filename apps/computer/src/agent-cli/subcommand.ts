@@ -33,7 +33,7 @@ export interface SubCommand {
  * Dispatch a group's raw argv to one of its subcommands. Validates flags against
  * the subcommand spec (UsageError → exit 2 with that subcommand's help) and
  * handles `--help` and unknown-subcommand suggestions. `groupName` prefixes
- * error/help copy ('grotto wiki ...').
+ * error/help copy ('haus wiki ...').
  */
 export async function dispatchSubcommand(
     groupName: string,
@@ -66,7 +66,7 @@ export async function dispatchSubcommand(
 }
 
 /**
- * Dispatch a command that has no subcommand of its own (`grotto ask …`). Flag
+ * Dispatch a command that has no subcommand of its own (`haus ask …`). Flag
  * validation, `--help`, and arity behave exactly as they do inside a group.
  */
 export async function dispatchCommand(command: SubCommand, raw: string[]): Promise<number> {
@@ -127,7 +127,7 @@ function reportUnknownSub(groupName: string, name: string | undefined, subs: Sub
             name ? `Unknown ${groupName} command '${name}'.` : `Missing ${groupName} command.`,
             hint
                 ? `Did you mean '${groupName} ${hint}'?`
-                : `Run 'grotto ${groupName} --help' for the command list.`
+                : `Run 'haus ${groupName} --help' for the command list.`
         )}\n`
     );
     return 2;

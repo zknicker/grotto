@@ -11,7 +11,7 @@ export interface JoinableChannel {
 /**
  * The single write seam for channel Agent membership. Every path that puts an
  * Agent in a channel — a human editing the channel, an Agent joining one,
- * `grotto channel add`, and Agent creation — goes through here, so membership
+ * `haus channel add`, and Agent creation — goes through here, so membership
  * is one insert with one conflict rule rather than four spellings of it.
  * Returns the Agents that were not already members.
  */

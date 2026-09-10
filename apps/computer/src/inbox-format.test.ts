@@ -226,7 +226,7 @@ test('reads the Ask notice tag and the Ask envelope suffix off one formatting so
 test('renders a task assignment as a bodiless @grotto item keyed to its task message', () => {
     const assignment = item({
         content:
-            '[Grotto task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes',
+            '[Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes',
         id: 'task-assign:msg_1a2b3c4d5e6f:3',
         mentioned: true,
         senderHandle: 'grotto',
@@ -236,7 +236,7 @@ test('renders a task assignment as a bodiless @grotto item keyed to its task mes
     // The assignment key shortens to the task message it hands over, so `msg=`
     // stays an id the Agent can read, thread on, or react to.
     expect(composeInboxDrain([assignment], 'UTC')).toContain(
-        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 type=system mentioned=true] @grotto: [Grotto task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes'
+        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 type=system mentioned=true] @grotto: [Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes'
     );
     const notice = composeInboxNotice([assignment]);
     expect(notice).toContain('1 unread message total');
@@ -254,8 +254,8 @@ test('renders a restored Thread follow as recipient-only delivery guidance', () 
 
     expect(composeInboxDrain([restored], 'UTC')).toContain(
         [
-            '[Grotto thread follow restored: this @mention re-subscribed you to ordinary replies in #general:deadbeef.]',
-            'To stop those replies again: grotto thread unfollow --target "#general:deadbeef"',
+            '[Haus thread follow restored: this @mention re-subscribed you to ordinary replies in #general:deadbeef.]',
+            'To stop those replies again: haus thread unfollow --target "#general:deadbeef"',
             '[target=#general:deadbeef msg=first time=2026-07-27 00:00:00 type=human mentioned=true] @zach: @sage please come back to this discussion.',
         ].join('\n')
     );

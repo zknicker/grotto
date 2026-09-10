@@ -39,7 +39,7 @@ export function ComputerUpdateControls({
             if (result.available) {
                 showUpdateAvailableToast(result.version);
             } else {
-                toast.success('Grotto Computer is up to date', {
+                toast.success('Haus Computer is up to date', {
                     description: `Version ${result.version} is the latest production release.`,
                 });
             }
@@ -57,10 +57,10 @@ export function ComputerUpdateControls({
             const result = await update.mutateAsync({ computerId: computer.id, serverId });
             if (result.started) {
                 toast.success('Update started', {
-                    description: `Installing Grotto Computer ${result.version}.`,
+                    description: `Installing Haus Computer ${result.version}.`,
                 });
             } else {
-                toast.info('Grotto Computer is up to date', {
+                toast.info('Haus Computer is up to date', {
                     description: `Version ${result.version} is already installed.`,
                 });
             }
@@ -87,7 +87,7 @@ function errorMessage(error: unknown) {
 function showUpdateAvailableToast(version: string | null) {
     toast.info('Update available', {
         description: version
-            ? `Grotto Computer ${version} is ready to install.`
-            : 'A new Grotto Computer release is ready to install.',
+            ? `Haus Computer ${version} is ready to install.`
+            : 'A new Haus Computer release is ready to install.',
     });
 }

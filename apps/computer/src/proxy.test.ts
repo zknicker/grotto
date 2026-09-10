@@ -623,7 +623,7 @@ test('a pending task assignment routes the whole pull upstream like a fire', asy
     const location = { agentId: 'agt_assign', dataRoot, serverId: 'srv_assign' };
     const assignment: AgentInboxItem = {
         chatId: 'cht_proxy',
-        content: '[Grotto task assignment task=#7 target=#general assignedBy=@operator] Ship it',
+        content: '[Haus task assignment task=#7 target=#general assignedBy=@operator] Ship it',
         createdAt: new Date(Date.UTC(2026, 7, 4, 0, 0, 1)).toISOString(),
         id: 'task-assign:msg_1a2b3c4d5e6f:3',
         mentioned: true,

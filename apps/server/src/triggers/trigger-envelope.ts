@@ -29,9 +29,9 @@ export function triggerReceipt(title: string): string {
  *
  * Every payload line is indented by two spaces. That is the neutralization: an
  * indented line can never start with `[target=` or any other envelope header,
- * so a body cannot forge a message from a Grotto human, agent, or system actor.
+ * so a body cannot forge a message from a Haus human, agent, or system actor.
  * Line breaks are normalized to `\n` first, so a `\r` cannot start an
- * unindented line either. The stored payload `grotto trigger log --fire`
+ * unindented line either. The stored payload `haus trigger log --fire`
  * returns is unchanged.
  */
 export function triggerEnvelope(input: TriggerEnvelopeInput): string {
@@ -50,7 +50,7 @@ export function triggerEnvelope(input: TriggerEnvelopeInput): string {
         ...indentPayload(excerpt),
         ...(truncated
             ? [
-                  `  … [truncated; full payload: grotto trigger log --id ${input.triggerId} --fire ${input.fireId}]`,
+                  `  … [truncated; full payload: haus trigger log --id ${input.triggerId} --fire ${input.fireId}]`,
               ]
             : []),
         automationReplyLine(input.fireId),

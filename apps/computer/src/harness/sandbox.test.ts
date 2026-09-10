@@ -120,7 +120,7 @@ test('restores native Codex image generation without changing other Codex config
     expect(await readFile(join(codexHome, 'config.toml'), 'utf8')).toBe(restored);
 });
 
-test('preserves an explicit Codex image-generation preference not owned by Grotto', async () => {
+test('preserves an explicit Codex image-generation preference not owned by Haus', async () => {
     const root = await mkdtemp(join(tmpdir(), 'grotto-sandbox-codex-config-'));
     roots.push(root);
     const hostHomeDir = join(root, 'host');

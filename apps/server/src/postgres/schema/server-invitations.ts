@@ -12,7 +12,7 @@ import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';
 
 /**
- * One email-bound, single-use invitation to one Grotto server. Only the token's
+ * One email-bound, single-use invitation to one Haus server. Only the token's
  * SHA-256 hash is stored, so the raw token exists in exactly one response and
  * nowhere else.
  */

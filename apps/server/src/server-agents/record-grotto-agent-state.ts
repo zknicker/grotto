@@ -14,7 +14,7 @@ export async function clearGrottoAgentState(db: GrottoDatabase, computerId: stri
         .where(eq(agentsTable.computerId, computerId));
 }
 
-/** Applies one Computer's complete Grotto Agent version snapshot to its assigned Agents. */
+/** Applies one Computer's complete Haus Agent version snapshot to its assigned Agents. */
 export async function recordGrottoAgentState(
     db: GrottoDatabase,
     computerId: string,

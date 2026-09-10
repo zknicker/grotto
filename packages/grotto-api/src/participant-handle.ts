@@ -8,6 +8,7 @@ export const reservedParticipantHandles = [
     'cove',
     'everyone',
     'grotto',
+    'haus',
     'here',
     'human',
     'humans',
@@ -25,7 +26,7 @@ export const participantHandleSchema = z
     .regex(/^[a-z0-9][a-z0-9-]{1,30}$/u, 'A handle is 2-31 lowercase letters, numbers, or hyphens.')
     .refine(
         (handle) => !reservedParticipantHandleSet.has(handle),
-        'That handle is reserved by Grotto.'
+        'That handle is reserved by Haus.'
     );
 
 export type ParticipantHandle = z.infer<typeof participantHandleSchema>;

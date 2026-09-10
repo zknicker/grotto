@@ -38,7 +38,7 @@ test('fails closed when bootout leaves the service loaded', () => {
                 return exitCodes.shift() ?? 1;
             },
         })
-    ).toThrow('Could not replace Grotto Computer service.');
+    ).toThrow('Could not replace Haus Computer service.');
     expect(calls).toEqual([
         ['bootout', service.domain, service.plistPath],
         ['print', `${service.domain}/${service.label}`],

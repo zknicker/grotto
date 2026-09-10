@@ -13,7 +13,7 @@ describe('createLoopbackSsoCallback', () => {
         const response = await fetch(`${redirectUrl}?rotating_token_nonce=nonce_123`);
 
         expect(response.status).toBe(200);
-        expect(await response.text()).toContain('Return to Grotto');
+        expect(await response.text()).toContain('Return to Haus');
         expect(receivedCallback).toBe(`${redirectUrl}?rotating_token_nonce=nonce_123`);
 
         await callback.close();

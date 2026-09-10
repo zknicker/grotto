@@ -169,11 +169,11 @@ test('ChatMarkdownText gives non-navigable references preview controls in both r
 test('ChatMarkdownText renders Grotto resource links', () => {
     const markup = renderToStaticMarkup(
         <ArtifactPanelOpenProvider onOpen={() => undefined}>
-            <ChatMarkdownText content="[preview.html](grotto://workspace/out/preview.html)" />
+            <ChatMarkdownText content="[preview.html](haus://workspace/out/preview.html)" />
         </ArtifactPanelOpenProvider>
     );
 
-    expect(markup).toContain('href="grotto://workspace/out/preview.html"');
+    expect(markup).toContain('href="haus://workspace/out/preview.html"');
     expect(markup).toContain('preview.html');
 });
 

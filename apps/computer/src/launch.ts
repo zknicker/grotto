@@ -33,7 +33,7 @@ import { mintRunner, revokeRunner } from './runner-authority.ts';
 import { resolveRuntimeById, runtimeSearchPath } from './runtime-discovery.ts';
 import { classifyRuntimeFailure, type RuntimeFailureKind } from './runtime-failure.ts';
 import { createServerMcpTools } from './server-mcp-tools.ts';
-import { writeGrottoWrapper } from './wrapper.ts';
+import { writeHausWrapper } from './wrapper.ts';
 
 export interface Attachment {
     computerId: string;
@@ -277,7 +277,7 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
     const binDir = join(dirs.runtime, 'bin');
     await mkdir(binDir, { mode: 0o700, recursive: true });
     await writeFile(tokenFile, proxyToken, { mode: 0o600 });
-    const wrapperPath = await writeGrottoWrapper({
+    const wrapperPath = await writeHausWrapper({
         binDir,
         entrypoint: computerEntrypoint(),
         identity: {

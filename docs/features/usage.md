@@ -15,7 +15,7 @@ out to `/s/:slug/usage`; the dashboard stays its own page rather than becoming a
 ## Product surfaces
 
 * **Agents Overview.** `/s/:slug/usage` shows 7-, 30-, or 90-day processed-token volume across all
-  Grotto Agents. An Agent scope picker narrows the chart and configuration grid, and that scope is
+  Haus Agents. An Agent scope picker narrows the chart and configuration grid, and that scope is
   URL-backed under `agent` alongside the Computer and runtime filters, so a contextual drill-down
   stays visible, shareable, and removable.
 * **Agent Overview.** An Agent profile carries one compact tile instead of a second dashboard: its
@@ -32,13 +32,13 @@ out to `/s/:slug/usage`; the dashboard stays its own page rather than becoming a
 * **Cloud Agents.** Beside the runtime capacity cards, the same Computer page carries one **Cursor
   Cloud Agents** row: Not connected, Connecting, Expired, Ready, or Unavailable, with **Connect** on
   the row and **Disconnect** behind its overflow menu once connected. Connecting runs Cursor's own
-  browser sign-in on that Computer; Grotto never opens it during an Agent turn, and no provider
+  browser sign-in on that Computer; Haus never opens it during an Agent turn, and no provider
   credential reaches Server. Cloud Agent access is separate from the Cursor runtime because the
   Cursor CLI and the Cursor SDK use different credential stores even for one account.
 
-The atomic Grotto token reporting unit is Agent × runtime × model, with input, output, cache-read,
+The atomic Haus token reporting unit is Agent × runtime × model, with input, output, cache-read,
 and cache-write counts. Computer-local Claude Code and Grok Build ledgers are runtime × model
-because those runtime transcripts do not carry a Grotto Agent id.
+because those runtime transcripts do not carry a Haus Agent id.
 
 ## Hosted data flow
 
@@ -68,7 +68,7 @@ comparative surface. Authentication and raw provider responses remain Computer-l
 
 Cloud Agent usage is per-Run rather than per-window. Each terminal Run observation carries the
 input and output tokens Cursor reports plus its optional cost, which is eventually consistent and
-can lag a settled Run. Grotto makes no claim about a Cursor plan's capacity, remaining allowance, or
+can lag a settled Run. Haus makes no claim about a Cursor plan's capacity, remaining allowance, or
 reset time: Cursor exposes no supported public personal-account surface for them, so the Cloud
 Agents row shows readiness only and never a meter.
 
@@ -81,7 +81,7 @@ while the file fingerprint and UTC day are unchanged. The one-minute report ther
 metadata without repeatedly parsing or aggregating an unchanged ledger. Raw logs never leave the
 Computer.
 
-Computer also records normalized token counts from each completed Grotto Agent turn. The compact
+Computer also records normalized token counts from each completed Haus Agent turn. The compact
 turn summary carries the Agent, runtime, model, input, output, and cache counts to Server; prompts,
 transcripts, and raw provider events remain Computer-local. Codex exposes session-cumulative
 counters, so Computer stores a per-session baseline and reports only each turn's delta.

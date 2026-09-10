@@ -13,14 +13,14 @@ export async function publishGrottoSnapshotInOrder(operations, content) {
     if (existing === null) {
         await operations.publishImmutable();
     } else if (existing !== content) {
-        throw new Error('immutable Grotto release snapshot already contains different bytes');
+        throw new Error('immutable Haus release snapshot already contains different bytes');
     }
     if ((await operations.readImmutable()) !== content) {
-        throw new Error('immutable Grotto release snapshot did not verify byte-for-byte');
+        throw new Error('immutable Haus release snapshot did not verify byte-for-byte');
     }
     await operations.promoteLatest();
     if ((await operations.readLatest()) !== content) {
-        throw new Error('latest Grotto release snapshot did not verify byte-for-byte');
+        throw new Error('latest Haus release snapshot did not verify byte-for-byte');
     }
 }
 
@@ -46,7 +46,7 @@ async function main() {
         content
     );
     await verifyPublicGrottoRelease({ expected: snapshot });
-    console.log(`Published Grotto ${snapshot.version} release snapshot.`);
+    console.log(`Published Haus ${snapshot.version} release snapshot.`);
 }
 
 function gitHead() {

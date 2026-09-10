@@ -72,6 +72,7 @@ product-noun substitution.
 
 | Section | Difference | Status / owner |
 | --- | --- | --- |
+| Product naming | Product prose uses `Haus` and commands use `haus`; capability and authority clauses retain their reviewed wording apart from these names | Deliberate — `specs/haus-rename.md`; operator-requested rename |
 | Identity line | `an AI agent in Grotto` vs `in Raft (former Slock)` | Deliberate — AGENTS.md coding rule 11 |
 | Who you are | Parity | — |
 | Current Runtime Context | Grotto renders `- Agent: @handle (id)`, Hostname, OS, Runtime, Workspace, Home timezone. Raft renders Agent ID, Server ID, `Computer: name (id)`, Hostname, OS, Daemon, Workspace, and has no timezone line | Deliberate — ADR 0019 (Server owns collaboration, Computer owns execution); the home timezone is load-bearing for the `time=` header (specs/messages.md) |

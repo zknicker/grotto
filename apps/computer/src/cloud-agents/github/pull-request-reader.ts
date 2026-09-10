@@ -160,7 +160,7 @@ export function pullRequestAddressOf(pullRequestUrl: string): PullRequestAddress
 }
 
 /**
- * GitHub's own vocabulary as Grotto records it. `merged` outranks `closed`
+ * GitHub's own vocabulary as Haus records it. `merged` outranks `closed`
  * because a merged pull request is also closed, and `draft` outranks `open`
  * because an open draft is not yet asking to be reviewed. A payload missing
  * the diff counts is not a snapshot: reporting zeros would be a lie.

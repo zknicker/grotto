@@ -105,7 +105,7 @@ function capitalize(value) {
         return 'iOS';
     }
     if (value === 'agent') {
-        return 'Grotto Agent';
+        return 'Haus Agent';
     }
     return value[0].toUpperCase() + value.slice(1);
 }
@@ -161,7 +161,7 @@ async function main() {
         server: booleanEnvironment('PUBLISH_SERVER'),
     };
     if (targets.agent && !/^\d+\.\d+\.\d+$/u.test(requiredEnvironment('AGENT_VERSION'))) {
-        throw new Error('AGENT_VERSION must be exact SemVer when Grotto Agent publishes');
+        throw new Error('AGENT_VERSION must be exact SemVer when Haus Agent publishes');
     }
     let jobResults;
     try {

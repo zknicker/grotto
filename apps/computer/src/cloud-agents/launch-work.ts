@@ -44,7 +44,7 @@ export class CloudAgentLaunchUnconfirmedError extends Error {
 }
 
 /**
- * Runs one `grotto cloud-agent start`. Readiness is checked before Server is
+ * Runs one `haus cloud-agent start`. Readiness is checked before Server is
  * asked for anything, so an unavailable capability creates no Message. Once
  * Server has accepted the launch the work exists: a provider refusal is
  * reported as a failed observation against that same work rather than erased.

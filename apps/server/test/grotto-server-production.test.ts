@@ -26,11 +26,11 @@ beforeAll(async () => {
     staticAppRoot = mkdtempSync(join(tmpdir(), 'grotto-static-app-'));
     writeFileSync(
         join(staticAppRoot, 'index.html'),
-        '<!doctype html><title>Grotto</title><script src="/assets/app.js"></script>'
+        '<!doctype html><title>Haus</title><script src="/assets/app.js"></script>'
     );
     writeFileSync(
         join(staticAppRoot, 'privacy.html'),
-        '<!doctype html><title>Privacy · Grotto</title><h1>Privacy</h1>'
+        '<!doctype html><title>Privacy · Haus</title><h1>Privacy</h1>'
     );
     mkdirSync(join(staticAppRoot, 'assets'));
     writeFileSync(join(staticAppRoot, 'assets', 'app.js'), 'window.__grotto = true;');
@@ -45,7 +45,7 @@ beforeAll(async () => {
     await application.listen(0);
 });
 
-test('serves Grotto App assets from the same origin', async () => {
+test('serves Haus App assets from the same origin', async () => {
     const address = application.app.server.address() as AddressInfo;
     const response = await fetch(`http://127.0.0.1:${address.port}/assets/app.js`);
 
@@ -64,12 +64,12 @@ test('serves the public privacy page with its security policy', async () => {
     expect(await response.text()).toContain('<h1>Privacy</h1>');
 });
 
-test('serves the trailing-slash privacy URL instead of the Grotto App shell', async () => {
+test('serves the trailing-slash privacy URL instead of the Haus App shell', async () => {
     const address = application.app.server.address() as AddressInfo;
     const response = await fetch(`http://127.0.0.1:${address.port}/privacy/`);
 
     expect(response.status).toBe(200);
-    expect(await response.text()).toContain('<title>Privacy · Grotto</title>');
+    expect(await response.text()).toContain('<title>Privacy · Haus</title>');
 });
 
 afterAll(async () => {
@@ -80,7 +80,7 @@ afterAll(async () => {
     rmSync(staticAppRoot, { force: true, recursive: true });
 });
 
-test('serves Grotto App history routes from a loopback-only Server', async () => {
+test('serves Haus App history routes from a loopback-only Server', async () => {
     const address = application.app.server.address() as AddressInfo;
     const response = await fetch(`http://127.0.0.1:${address.port}/s/grotto-hq`, {
         headers: { accept: 'text/html' },
@@ -88,5 +88,5 @@ test('serves Grotto App history routes from a loopback-only Server', async () =>
 
     expect(address.address).toBe('127.0.0.1');
     expect(response.status).toBe(200);
-    expect(await response.text()).toContain('<title>Grotto</title>');
+    expect(await response.text()).toContain('<title>Haus</title>');
 });

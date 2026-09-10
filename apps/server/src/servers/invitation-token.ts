@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 
 /**
  * Invitation tokens are bearer secrets, not record ids: they are wider than an
- * opaque id and never stored in the clear. Grotto keeps only the hash, so the
+ * opaque id and never stored in the clear. Haus keeps only the hash, so the
  * raw token exists in exactly one response.
  */
 const tokenByteLength = 32;

@@ -2,11 +2,16 @@ import { createHash } from 'node:crypto';
 import { chmod, copyFile, mkdir, mkdtemp, open, rename, rm, stat } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { computerAppleSigningIdentity, computerAppleTeamId } from './build-identity.ts';
+import {
+    computerAppleSigningIdentity,
+    computerAppleTeamId,
+    computerStandalone,
+} from './build-identity.ts';
 import type { SignedComputerRelease } from './update-contract.ts';
 
 const installedPath =
-    process.env.GROTTO_COMPUTER_INSTALL_PATH ?? join(homedir(), '.local', 'bin', 'grotto-computer');
+    process.env.GROTTO_COMPUTER_INSTALL_PATH ??
+    (computerStandalone ? process.execPath : join(homedir(), '.local', 'bin', 'haus-computer'));
 
 export async function downloadAndVerifyArtifact(input: {
     onProgress(progress: { downloadedBytes: number; totalBytes: number | null }): Promise<void>;
@@ -102,7 +107,7 @@ export async function rollbackStandaloneExecutable(
     const previousNext = `${previous}.next`;
     const staged = `${destination}.rollback`;
     if (!(await exists(previous))) {
-        throw new Error('No previous verified Grotto Computer executable is available.');
+        throw new Error('No previous verified Haus Computer executable is available.');
     }
     await (options.verify ?? verifyAppleExecutable)(previous);
     await rm(previousNext, { force: true });
@@ -117,7 +122,7 @@ export async function rollbackStandaloneExecutable(
     } catch (cause) {
         await rm(staged, { force: true });
         await rm(previousNext, { force: true });
-        throw new Error('Grotto Computer rollback failed.', { cause });
+        throw new Error('Haus Computer rollback failed.', { cause });
     }
 }
 
@@ -126,7 +131,7 @@ export async function verifyAppleExecutable(path: string): Promise<void> {
         if (process.env.NODE_ENV === 'test') {
             return;
         }
-        throw new Error('Grotto Computer releases require Apple Silicon macOS.');
+        throw new Error('Haus Computer releases require Apple Silicon macOS.');
     }
     if (!(computerAppleTeamId && computerAppleSigningIdentity)) {
         throw new Error('This Computer does not contain its Apple signing identity.');

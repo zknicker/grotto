@@ -27,7 +27,7 @@ export async function verifyComputerOnlyRelease({
     }
 
     const url =
-        descriptorUrl ?? `https://releases.grotto.sh/computer/${computerVersion}/release.json`;
+        descriptorUrl ?? `https://releases.haus.chat/computer/${computerVersion}/release.json`;
     const response = await fetchImpl(url, { cache: 'no-store' });
     if (!response || response.ok !== true) {
         throw new Error(

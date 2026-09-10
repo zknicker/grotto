@@ -62,12 +62,12 @@ export function connectionStatusLabel(
 
 export function connectionSetupDescription(connection: Pick<McpConnection, 'auth'>): string {
     if (connection.auth === 'oauth') {
-        return 'This MCP is added to Grotto. Sign in to your account to authorize access and load its tools.';
+        return 'This MCP is added to Haus. Sign in to your account to authorize access and load its tools.';
     }
     if (connection.auth === 'headers') {
-        return 'This MCP is added to Grotto. Add credentials to authorize access and load its tools.';
+        return 'This MCP is added to Haus. Add credentials to authorize access and load its tools.';
     }
-    return 'This MCP is added to Grotto, but its tools are unavailable.';
+    return 'This MCP is added to Haus, but its tools are unavailable.';
 }
 
 export function createConnectionDraft(): McpConnectionDraft {

@@ -12,7 +12,7 @@ const paths = {
     product: 'packages/grotto-api/grotto-product.json',
     computer: 'apps/computer/package.json',
     iosProject: 'apps/ios-swift/project.yml',
-    iosGeneratedProject: 'apps/ios-swift/Grotto.xcodeproj/project.pbxproj',
+    iosGeneratedProject: 'apps/ios-swift/Haus.xcodeproj/project.pbxproj',
     lockfile: 'bun.lock',
     website: 'apps/website/package.json',
 };
@@ -51,7 +51,7 @@ export async function syncReleaseVersionMetadata(ledger) {
 export async function assertReleaseVersionMetadata(ledger) {
     const expected = releaseVersionMetadata(ledger);
     const product = await readJson(paths.product);
-    assertEqual(product.version, expected.product, 'Grotto product version');
+    assertEqual(product.version, expected.product, 'Haus product version');
 
     const lockfile = await readText(paths.lockfile);
     if (expected.app) {
@@ -76,7 +76,7 @@ export async function assertReleaseVersionMetadata(ledger) {
 
     if (expected.agent) {
         const agent = await readJson(paths.agent);
-        assertEqual(agent.version, expected.agent, 'Grotto Agent manifest version');
+        assertEqual(agent.version, expected.agent, 'Haus Agent manifest version');
     }
 
     if (expected.ios) {

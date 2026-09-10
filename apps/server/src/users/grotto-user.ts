@@ -11,7 +11,7 @@ export interface GrottoUser {
 type UserReader = Pick<GrottoDatabase, 'select'>;
 type UserWriter = UserReader & Pick<GrottoDatabase, 'insert'>;
 
-/** The Grotto User behind an authenticated Clerk session, if one exists yet. */
+/** The Haus User behind an authenticated Clerk session, if one exists yet. */
 export async function findUserByClerkId(
     db: UserReader,
     clerkUserId: string
@@ -26,10 +26,10 @@ export async function findUserByClerkId(
 }
 
 /**
- * Mints the stable Grotto User for one Clerk user. Only Server creation calls
+ * Mints the stable Haus User for one Clerk user. Only Server creation calls
  * this, inside its own transaction, so a rolled-back creation leaves no User
  * behind. The unique `clerk_user_id` constraint settles concurrent first
- * writes, so the same Clerk user always resolves to the same Grotto User id.
+ * writes, so the same Clerk user always resolves to the same Haus User id.
  */
 export async function ensureUserByClerkId(
     db: UserWriter,
@@ -43,7 +43,7 @@ export async function ensureUserByClerkId(
     const user = await findUserByClerkId(db, clerkUserId);
 
     if (!user) {
-        throw new Error('Failed to resolve the Grotto User for the authenticated Clerk user.');
+        throw new Error('Failed to resolve the Haus User for the authenticated Clerk user.');
     }
 
     return user;

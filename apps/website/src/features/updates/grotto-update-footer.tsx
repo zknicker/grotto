@@ -35,7 +35,7 @@ export function GrottoUpdateFooter({
 
     return (
         <section
-            aria-label="Grotto status"
+            aria-label="Haus status"
             aria-live="polite"
             className="flex w-full items-center gap-2"
         >
@@ -162,14 +162,14 @@ function FooterMark({
 function buttonLabel(view: GrottoUpdateView) {
     switch (view.phase) {
         case 'current':
-            return 'Grotto is up to date';
+            return 'Haus is up to date';
         case 'available':
-            return `Update Grotto to ${view.version}`;
+            return `Update Haus to ${view.version}`;
         case 'updating':
-            return `Updating Grotto. ${view.detail}`;
+            return `Updating Haus. ${view.detail}`;
         case 'restart-required':
-            return 'Restart Grotto to finish updating';
+            return 'Restart Haus to finish updating';
         case 'failed':
-            return `Grotto update failed. ${view.detail}`;
+            return `Haus update failed. ${view.detail}`;
     }
 }

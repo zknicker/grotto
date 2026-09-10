@@ -9,8 +9,8 @@ describe('desktopGoogleOAuthRequest', () => {
         });
     });
 
-    it('keeps older packaged shells on the canonical Grotto callback', async () => {
-        expect(await getDesktopOAuthCallbackUrl({})).toBe('grotto://sso-callback');
+    it('keeps older packaged shells on the canonical Haus callback', async () => {
+        expect(await getDesktopOAuthCallbackUrl({})).toBe('haus://sso-callback');
     });
 
     it('uses a callback prepared by a current development shell', async () => {

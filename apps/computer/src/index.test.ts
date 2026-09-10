@@ -250,7 +250,7 @@ test('login exchanges a device grant and atomically stores an origin-bound sessi
         expect(exitCode, stderr).toBe(0);
         expect(stdout).toContain('Verification URL:');
         expect(stdout).toContain('User code: ABCD-EFGH');
-        expect(stdout).toContain('Grotto Computer signed in.');
+        expect(stdout).toContain('Haus Computer signed in.');
         expect(stdout).not.toContain('press Enter');
         expect(requests).toEqual([
             'POST /computer/login',

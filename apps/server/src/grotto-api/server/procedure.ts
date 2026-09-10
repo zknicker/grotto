@@ -38,7 +38,7 @@ export const serverProcedure = humanProcedure.use(async ({ next }) => {
 });
 
 /**
- * Reads and Server-scoped mutations resolve the existing Grotto User. A human
+ * Reads and Server-scoped mutations resolve the existing Haus User. A human
  * who has never created or joined a Server has none yet, and asking never
  * mints one.
  */

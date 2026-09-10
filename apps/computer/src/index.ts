@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@grotto/api';
@@ -32,6 +32,7 @@ import {
     readPendingAttachment,
     removePendingAttachment,
 } from './attachment-state.ts';
+import { createAttachmentStore } from './attachment-store.ts';
 import {
     readAttachmentManagementEvents,
     recordAttachmentManagementEvent,
@@ -42,6 +43,7 @@ import {
     computerAttachmentDaemonEntrypoint,
     computerEntrypoint,
     computerSourceRevision,
+    computerStandalone,
     computerVersion,
 } from './build-identity.ts';
 import { printComputerHeader, printComputerHelpPage } from './cli/chrome.ts';
@@ -67,6 +69,8 @@ import {
 import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
 import { createBridgePrewarmer } from './harness/bridge-prewarm.ts';
 import { requestSessionRestart } from './harness/session-restart.ts';
+import { exposeHausComputerCommand } from './haus-command.ts';
+import { hausOrigin } from './haus-origin.ts';
 import {
     acceptHostSkillImport,
     finishHostSkillImport,
@@ -142,7 +146,8 @@ interface AttachResponse {
 
 const dataRoot = process.env.GROTTO_COMPUTER_DATA_ROOT ?? join(homedir(), '.grotto', 'computer');
 const readCachedComputerUsage = createComputerUsageCache({ dataRoot });
-const serverOrigin = process.env.GROTTO_SERVER_ORIGIN ?? 'https://grotto.sh';
+const serverOrigin = hausOrigin(process.env.GROTTO_SERVER_ORIGIN ?? 'https://haus.chat');
+const { findAttachment, listAttachments, readAttachment } = createAttachmentStore(dataRoot);
 const attachmentDaemonProcesses = new AttachmentDaemonProcessRegistry();
 
 // TTY commands with the one-line header; freshness appears only when relevant.
@@ -171,13 +176,16 @@ async function main(args: string[]) {
     }
     if (command === '__release-check') {
         await validateComputerBridgeAssets();
-        console.log('Grotto Computer release assets are ready.');
+        console.log('Haus Computer release assets are ready.');
         return;
     }
     const helpRequest = resolveComputerHelpRequest(args);
     if (helpRequest) {
         await printComputerHelpPage(helpRequest, { dataRoot });
         return;
+    }
+    if (computerStandalone && ['start', 'install', '__attachment-daemon'].includes(command ?? '')) {
+        await exposeHausComputerCommand({ executable: process.execPath, home: homedir() });
     }
     const headerPrinted =
         command !== undefined && command in headerCommands
@@ -188,7 +196,7 @@ async function main(args: string[]) {
             : false;
     if (command === 'install') {
         await installResidentService();
-        console.log(stdoutRenderer.ok('Grotto Computer resident service installed.'));
+        console.log(stdoutRenderer.ok('Haus Computer resident service installed.'));
         return;
     }
     if (command === 'upgrade') {
@@ -197,25 +205,23 @@ async function main(args: string[]) {
                 onPhase: (phase) => {
                     console.log(
                         phase === 'restoring'
-                            ? 'Restoring the previous verified Grotto Computer executable…'
-                            : 'Restarting Grotto Computer…'
+                            ? 'Restoring the previous verified Haus Computer executable…'
+                            : 'Restarting Haus Computer…'
                     );
                 },
                 restart: restartAfterUpdate,
             });
             await recordManagementCommandForAttachments('rollback');
             console.log(
-                stdoutRenderer.ok('Grotto Computer restored the previous verified executable.')
+                stdoutRenderer.ok('Haus Computer restored the previous verified executable.')
             );
             return;
         }
-        console.log('Checking for the latest Grotto Computer release…');
+        console.log('Checking for the latest Haus Computer release…');
         const release = await readProductionRelease();
         if (!isNewerVersion(release.release.version, computerVersion)) {
             console.log(
-                stdoutRenderer.ok(
-                    `Grotto Computer ${computerVersion} is already the latest release.`
-                )
+                stdoutRenderer.ok(`Haus Computer ${computerVersion} is already the latest release.`)
             );
             return;
         }
@@ -237,7 +243,7 @@ async function main(args: string[]) {
         await recordManagementCommandForAttachments('upgrade');
         console.log(
             stdoutRenderer.ok(
-                `Grotto Computer ${outcome.version} is installed. The Computer service is restarting.`
+                `Haus Computer ${outcome.version} is installed. The Computer service is restarting.`
             )
         );
         return;
@@ -286,7 +292,7 @@ async function main(args: string[]) {
     if (command === 'configure-openrouter') {
         await saveOpenRouterManagementKey(dataRoot, await Bun.stdin.text());
         console.log(
-            stdoutRenderer.ok('OpenRouter account usage is configured on this Grotto Computer.')
+            stdoutRenderer.ok('OpenRouter account usage is configured on this Haus Computer.')
         );
         return;
     }
@@ -316,10 +322,10 @@ async function main(args: string[]) {
                     ? revocationFailure.message
                     : String(revocationFailure);
             throw new Error(
-                `Grotto Computer logged out locally, but Server-side revocation failed: ${detail}`
+                `Haus Computer logged out locally, but Server-side revocation failed: ${detail}`
             );
         }
-        console.log(stdoutRenderer.ok('Grotto Computer logged out.'));
+        console.log(stdoutRenderer.ok('Haus Computer logged out.'));
         return;
     }
     if (command === 'start') {
@@ -347,7 +353,7 @@ async function main(args: string[]) {
                 }
             }
         }
-        console.log(stdoutRenderer.ok(target ? `Started ${target}.` : 'Grotto Computer started.'));
+        console.log(stdoutRenderer.ok(target ? `Started ${target}.` : 'Haus Computer started.'));
         return;
     }
     if (command === 'stop') {
@@ -360,7 +366,7 @@ async function main(args: string[]) {
         }
         await stopComputerService();
         await recordManagementCommandForAttachments('stop');
-        console.log(stdoutRenderer.ok('Grotto Computer stopped.'));
+        console.log(stdoutRenderer.ok('Haus Computer stopped.'));
         return;
     }
     if (command === 'restart') {
@@ -381,7 +387,7 @@ async function main(args: string[]) {
     if (command === '__attachment-daemon') {
         const attachment = await readAttachment(target);
         if (!attachment) {
-            throw new Error('This Server is not attached to this Grotto Computer.');
+            throw new Error('This Server is not attached to this Haus Computer.');
         }
         const prewarm = createBridgePrewarmer({
             agentsRoot: join(dataRoot, 'servers', attachment.serverId, 'agents'),
@@ -461,7 +467,7 @@ async function main(args: string[]) {
             }
             await removePendingAttachment(dataRoot, slug);
             await startAttachmentDaemon(current);
-            console.log(stdoutRenderer.ok(`Grotto Computer resumed /${slug}.`));
+            console.log(stdoutRenderer.ok(`Haus Computer resumed /${slug}.`));
             return;
         } catch (error) {
             if (!isComputerMachineUnlinked(error)) {
@@ -482,7 +488,7 @@ async function reportUnlinkedAttachment(attachment: Attachment): Promise<boolean
     }
     console.log(
         stdoutRenderer.fail(
-            `/${attachment.slug} needs setup — run grotto-computer setup /${attachment.slug}.`
+            `/${attachment.slug} needs setup — run haus-computer setup /${attachment.slug}.`
         )
     );
     process.exitCode = 1;
@@ -520,14 +526,14 @@ async function attachServer(slug: string) {
         await clearTerminalUnlinked(dataRoot, current);
         await removePendingAttachment(dataRoot, slug);
         await startAttachmentDaemon(current);
-        console.log(stdoutRenderer.ok(`Grotto Computer resumed /${slug}.`));
+        console.log(stdoutRenderer.ok(`Haus Computer resumed /${slug}.`));
         return;
     }
     const issued = await issueAttachment(slug, session);
     await writeAttachment(issued.attachment);
     await removePendingAttachment(dataRoot, slug);
     await startAttachmentDaemon(issued.attachment);
-    console.log(stdoutRenderer.ok(`Grotto Computer attached to /${slug}.`));
+    console.log(stdoutRenderer.ok(`Haus Computer attached to /${slug}.`));
 }
 
 async function setupServer(slug: string, current: Attachment | null) {
@@ -565,7 +571,7 @@ async function setupServer(slug: string, current: Attachment | null) {
     await completeComputerLogin(session);
     await removePendingAttachment(dataRoot, slug);
     await startAttachmentDaemon(issued.attachment);
-    console.log(stdoutRenderer.ok(`Grotto Computer attached to /${slug}.`));
+    console.log(stdoutRenderer.ok(`Haus Computer attached to /${slug}.`));
 }
 
 async function issueAttachment(
@@ -631,67 +637,9 @@ async function requiredAttachment(target: string | undefined) {
     }
     const attachment = await findAttachment(target.slice(1));
     if (!attachment) {
-        throw new Error(`This Grotto Computer is not attached to ${target}.`);
+        throw new Error(`This Haus Computer is not attached to ${target}.`);
     }
     return attachment;
-}
-
-async function findAttachment(slug: string): Promise<Attachment | null> {
-    const root = join(dataRoot, 'servers');
-    let ids: string[];
-    try {
-        ids = await readdir(root);
-    } catch {
-        return null;
-    }
-    for (const id of ids) {
-        try {
-            const attachment = JSON.parse(
-                await readFile(join(root, id, 'attachment.json'), 'utf8')
-            ) as Attachment;
-            if (attachment.slug === slug) {
-                return attachment;
-            }
-        } catch {
-            // An incomplete attachment is never adopted.
-        }
-    }
-    return null;
-}
-
-async function listAttachments() {
-    const root = join(dataRoot, 'servers');
-    let ids: string[];
-    try {
-        ids = await readdir(root);
-    } catch {
-        return [];
-    }
-    const attachments = await Promise.all(
-        ids.map(async (id) => {
-            try {
-                return JSON.parse(
-                    await readFile(join(root, id, 'attachment.json'), 'utf8')
-                ) as Attachment;
-            } catch {
-                return null;
-            }
-        })
-    );
-    return attachments.filter((attachment): attachment is Attachment => attachment !== null);
-}
-
-async function readAttachment(serverId: string | undefined): Promise<Attachment | null> {
-    if (!(serverId && /^[A-Za-z0-9_-]+$/u.test(serverId))) {
-        return null;
-    }
-    try {
-        return JSON.parse(
-            await readFile(join(dataRoot, 'servers', serverId, 'attachment.json'), 'utf8')
-        ) as Attachment;
-    } catch {
-        return null;
-    }
 }
 
 async function validate(attachment: Attachment) {
@@ -880,7 +828,7 @@ async function stopResidentService() {
     }
     const result = Bun.spawnSync(['/bin/launchctl', 'bootout', `gui/${userInfo().uid}`, plistPath]);
     if (result.exitCode !== 0 && result.exitCode !== 3) {
-        throw new Error('Could not stop Grotto Computer service.');
+        throw new Error('Could not stop Haus Computer service.');
     }
 }
 
@@ -910,7 +858,7 @@ async function finishRestart() {
     }
     await writeUpdateProgress(
         dataRoot,
-        progress('complete', current.targetVersion, 'Grotto Computer updated successfully.')
+        progress('complete', current.targetVersion, 'Haus Computer updated successfully.')
     );
 }
 
@@ -924,7 +872,7 @@ export async function recoverInterruptedUpdate(root = dataRoot) {
         progress(
             'failed',
             current.targetVersion,
-            'Update was interrupted. Retry in Settings or run grotto-computer upgrade locally.',
+            'Update was interrupted. Retry in Settings or run haus-computer upgrade locally.',
             {
                 downloadedBytes: current.downloadedBytes,
                 failedPhase: current.phase,

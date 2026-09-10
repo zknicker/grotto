@@ -47,10 +47,10 @@ observes itself. The App pages through the retained history with the focused
 grows without bound. Keeping the report separate lets older peers ignore the capability without
 rejecting the ordinary inventory report.
 
-Cross-boundary types use Grotto product nouns and narrow discriminated unions. Do not add aliases
+Cross-boundary types use Haus product nouns and narrow discriminated unions. Do not add aliases
 for the retired standalone Runtime or SDK surfaces.
 
-Grotto 1.16 requires Computer protocol 17 for Agent configuration briefs and the current Browser
+Haus 1.16 requires Computer protocol 17 for Agent configuration briefs and the current Browser
 and task contracts. Older Computers retain bootstrap update control but cannot execute ordinary
 work. App protocol 5 gates the task-list envelope and the removal of Agent roles and prepared
 actions; the hosted App and iPhone 1.6 send that version. Older iPhone builds require an update,

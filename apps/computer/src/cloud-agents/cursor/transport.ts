@@ -1,6 +1,6 @@
 /**
  * The seam between the Cursor adapter and `@cursor/sdk`. Every SDK type stops
- * here: the adapter above works in these provider-native but Grotto-owned
+ * here: the adapter above works in these provider-native but Haus-owned
  * shapes, so status mapping, readiness, and observation bounding are testable
  * against recorded provider responses with no network and no SDK install.
  */
@@ -63,11 +63,11 @@ export interface CursorLaunchReading {
 }
 
 export interface CursorStartInput {
-    /** Grotto's own Run id, handed to Cursor as its Agent and Send idempotency key. */
+    /** Haus's own Run id, handed to Cursor as its Agent and Send idempotency key. */
     idempotencyKey: string;
     instructions: string;
     ref: string | null;
-    /** `owner/name`, as Grotto records it. The transport builds the clone URL. */
+    /** `owner/name`, as Haus records it. The transport builds the clone URL. */
     repository: string;
     title: string;
 }

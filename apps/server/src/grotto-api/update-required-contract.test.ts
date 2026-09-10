@@ -9,7 +9,7 @@ const serverSourceRoot = join(import.meta.dir, '..');
  * (apps/website/src/lib/app-update-required.ts): any procedure that throws it
  * puts the whole App behind the full-screen update gate. Only the protocol
  * check in grotto-api/trpc.ts may use it — an avatar procedure reusing the
- * code once turned "generation is not configured" into "reload Grotto".
+ * code once turned "generation is not configured" into "reload Haus".
  */
 test('only the protocol gate throws PRECONDITION_FAILED', () => {
     const offenders = sourceFiles(serverSourceRoot)

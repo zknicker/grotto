@@ -5,7 +5,7 @@ import { stdoutRenderer } from './render.ts';
 import { readComputerUpdateStatus } from './update-check.ts';
 
 /**
- * Shared page chrome for grotto-computer commands: the one-line header on
+ * Shared page chrome for haus-computer commands: the one-line header on
  * working commands, the arch banner on the global help page, and the
  * freshness status line. Headers and the status line only print on a TTY so
  * pipes, scripts, and the launchd log stay plain; help pages always carry

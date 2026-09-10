@@ -3,7 +3,7 @@ import manifest from '../grotto-agent.json' with { type: 'json' };
 import { agentEffectiveStateSchema, grottoAgentReportFrameSchema } from './agent.ts';
 import { grottoAgentVersion } from './grotto-agent-version.ts';
 
-test('exports the release-owned Grotto Agent version', () => {
+test('exports the release-owned Haus Agent version', () => {
     expect(grottoAgentVersion).toBe(manifest.version);
     expect(grottoAgentVersion).toMatch(/^\d+\.\d+\.\d+$/u);
 });

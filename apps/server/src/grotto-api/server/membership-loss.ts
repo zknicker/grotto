@@ -17,7 +17,7 @@ export function toMembershipLossError(cause: unknown): TRPCError | null {
         return new TRPCError({
             cause,
             code: 'FORBIDDEN',
-            message: 'You are no longer a member of this Grotto server.',
+            message: 'You are no longer a member of this Haus server.',
         });
     }
 
@@ -25,7 +25,7 @@ export function toMembershipLossError(cause: unknown): TRPCError | null {
         return new TRPCError({
             cause,
             code: 'NOT_FOUND',
-            message: 'This Grotto server is no longer available.',
+            message: 'This Haus server is no longer available.',
         });
     }
 

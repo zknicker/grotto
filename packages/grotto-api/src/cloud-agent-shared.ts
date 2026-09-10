@@ -46,7 +46,7 @@ export function isTerminalCloudAgentStatus(status: CloudAgentStatus): boolean {
     return (cloudAgentTerminalStatuses as readonly string[]).includes(status);
 }
 
-/** `owner/name`, the only repository shape Grotto records. There is no registry. */
+/** `owner/name`, the only repository shape Haus records. There is no registry. */
 export const cloudAgentRepositorySchema = z
     .string()
     .trim()
@@ -69,7 +69,7 @@ export const cloudAgentActivitySchema = z
 /**
  * The repository a reported branch belongs to. A provider names it in whatever
  * shape its own Git metadata carries, so this is wider than the repository
- * Grotto was asked to work in: `owner/name` on GitHub, and the host-qualified
+ * Haus was asked to work in: `owner/name` on GitHub, and the host-qualified
  * `host/owner/name` anywhere else, so branch evidence off GitHub survives
  * instead of being dropped for want of a shape.
  */
@@ -96,7 +96,7 @@ export const cloudAgentPullRequestStateSchema = z.enum(cloudAgentPullRequestStat
  * One GitHub reading of the pull request a Run opened, taken by the Computer
  * at observation time. Cursor's own API carries no diff statistics, so the
  * Computer reads them where they exist. This is provider-observation evidence
- * on the Run and not a Grotto product relation: Grotto still stores no
+ * on the Run and not a Haus product relation: Haus still stores no
  * pull-request entity and claims no GitHub lifecycle. `observedAt` dates the
  * reading, so a newer snapshot replaces an older one and a Run that could not
  * be read keeps the snapshot it already had.
@@ -113,7 +113,7 @@ export const cloudAgentPullRequestSchema = z
     .strict();
 
 /**
- * Cursor's own terminal Run report, retained as evidence. Grotto stores no
+ * Cursor's own terminal Run report, retained as evidence. Haus stores no
  * branch or pull-request entity and claims no GitHub lifecycle. `pullRequest`
  * is the Computer's own GitHub reading of `pullRequestUrl`; absent and `null`
  * both mean no snapshot was ever recorded for this branch.
@@ -191,7 +191,7 @@ export const cloudAgentWorkSchema = z
 /**
  * One Cloud Agent provider capability on one Computer: whether its credential
  * store currently resolves, and the account it resolves to. It carries no
- * credential — Grotto never copies a provider key into Server.
+ * credential — Haus never copies a provider key into Server.
  */
 export const cloudAgentCapabilityStateSchema = z
     .object({

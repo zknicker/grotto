@@ -298,7 +298,7 @@ const agentRuntimeAgentEnvNameSchema = z
     .min(1)
     .max(128)
     .regex(/^[A-Z_][A-Z0-9_]*$/u, 'Use uppercase letters, digits, and underscores.')
-    .refine((name) => !isAgentRuntimeReservedEnvName(name), 'This name is managed by Grotto.');
+    .refine((name) => !isAgentRuntimeReservedEnvName(name), 'This name is managed by Haus.');
 
 export const agentRuntimeAgentEnvVariableSchema = z.object({
     hasValue: z.boolean(),
@@ -749,13 +749,13 @@ export const agentRuntimeSkillSummarySchema = z.object({
     configChecks: z.array(agentRuntimeSkillConfigCheckSchema).default([]),
     description: z.string().nullable(),
     disabled: z.boolean().optional(),
-    // Local content differs from the last Grotto-written version.
+    // Local content differs from the last Haus-written version.
     edited: z.boolean().optional(),
     eligible: z.boolean().optional(),
     filePath: z.string().trim().min(1).nullable().optional(),
     id: z.string().trim().min(1),
     install: z.array(agentRuntimeSkillInstallOptionSchema).default([]),
-    // Managed source with a Grotto default that can be restored.
+    // Managed source with a Haus default that can be restored.
     managedSource: z.enum(['seeded', 'hub']).nullable().optional(),
     missing: agentRuntimeSkillRequirementsSchema,
     modelVisible: z.boolean().optional(),
@@ -765,7 +765,7 @@ export const agentRuntimeSkillSummarySchema = z.object({
     runtimeSource: z.string().trim().min(1).nullable().optional(),
     skillKey: z.string().trim().min(1).nullable().optional(),
     source: agentRuntimeSkillSourceSchema,
-    // The current Grotto version differs from the last written version.
+    // The current Haus version differs from the last written version.
     updateAvailable: z.boolean().optional(),
     updatedAt: z.string().datetime().nullable(),
     userInvocable: z.boolean().optional(),
@@ -1579,7 +1579,7 @@ export const agentRuntimeWidgetProgressSchema = z.object({
 });
 
 // Chat pane state: the Runtime-owned tab set of a chat's artifact pane.
-// Targets mirror the app's grotto:// link scheme; identity is kind + path.
+// Targets mirror the app's haus:// link scheme; identity is kind + path.
 export const chatPaneTargetSchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('workspaceDirectory'), path: z.string() }),
     z.object({ kind: z.literal('workspaceFile'), path: z.string().trim().min(1) }),
@@ -1704,7 +1704,7 @@ export const agentRuntimePaneUpdatedEventSchema = z.object({
 });
 
 // Ephemeral composition stream (I1): a provisional bubble for an in-flight
-// `grotto message send`. Volatile event class — never persisted, never
+// `haus message send`. Volatile event class — never persisted, never
 // replayed; the durable message's compositionId metadata echo is the commit
 // signal, `retracted` is the freshness-hold path, and clients TTL-fade a
 // composition that stops updating.

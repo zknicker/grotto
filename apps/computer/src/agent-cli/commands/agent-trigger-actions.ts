@@ -18,7 +18,7 @@ import { AgentCliError } from '../agent-error.ts';
 import { formatLocalTime } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
 
-// Request and render logic behind `grotto trigger`. Trigger mutations are
+// Request and render logic behind `haus trigger`. Trigger mutations are
 // deliberately not idempotent (no command ledger on the Server), so no request
 // here is ever retried on its own the way a reminder command is.
 
@@ -55,7 +55,7 @@ export async function runTriggerList(_args: ParsedArgs, deps: TriggerDeps): Prom
     });
     if (response.triggers.length === 0) {
         deps.write(
-            'No triggers. Create one with grotto trigger create when an outside event should reach you.\n'
+            'No triggers. Create one with haus trigger create when an outside event should reach you.\n'
         );
         return 0;
     }
@@ -137,7 +137,7 @@ export async function runTriggerLog(args: ParsedArgs, deps: TriggerDeps): Promis
     }
     const lines = fires.map((fire) => describeFire(fire));
     deps.write(
-        `${lines.join('\n')}\nRead one payload: grotto trigger log --id ${id} --fire <fireId>\n`
+        `${lines.join('\n')}\nRead one payload: haus trigger log --id ${id} --fire <fireId>\n`
     );
     return 0;
 }
@@ -152,7 +152,7 @@ function renderSecret(result: {
     return [
         describeTrigger(result.trigger),
         `Secret: ${result.secret}`,
-        `Shown once and never again — grotto trigger rotate --id ${result.trigger.id} replaces it. Hand it to the requester now.`,
+        `Shown once and never again — haus trigger rotate --id ${result.trigger.id} replaces it. Hand it to the requester now.`,
         `Test it: ${result.curl}`,
         '',
     ].join('\n');
@@ -247,7 +247,7 @@ function requireTriggerId(args: ParsedArgs): string {
     const id = args.values['--id']?.trim();
     if (!id) {
         throw new AgentCliError('INVALID_ARG', 'Provide --id with the trigger id.', {
-            nextAction: 'Run grotto trigger list to see your triggers and their ids.',
+            nextAction: 'Run haus trigger list to see your triggers and their ids.',
         });
     }
     return id;

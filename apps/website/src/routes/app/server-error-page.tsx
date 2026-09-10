@@ -20,7 +20,7 @@ export function ServerErrorPage() {
                         </EmptyState.Media>
                         <EmptyState.Title>Oops, Something Went Wrong</EmptyState.Title>
                         <EmptyState.Description className="max-w-sm text-pretty">
-                            This page ran into an unexpected problem. The rest of Grotto is still
+                            This page ran into an unexpected problem. The rest of Haus is still
                             available.
                         </EmptyState.Description>
                     </EmptyState.Header>

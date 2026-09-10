@@ -44,7 +44,7 @@ export async function detectChangedRelease({ before, after, readLedger = readLed
 
     const appended = afterLedger.at(-1);
     if (!Object.hasOwn(appended.targets, 'agent')) {
-        throw new Error('new release ledger entries must include the Grotto Agent target');
+        throw new Error('new release ledger entries must include the Haus Agent target');
     }
     if (isDraftRelease(appended)) {
         return emptyPlan(false);

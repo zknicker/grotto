@@ -338,7 +338,7 @@ test('idle progress does not erase Server-owned update state', async () => {
         update computers
         set update_phase = 'available',
             update_target_version = '1.1.2',
-            update_detail = 'Grotto Computer 1.1.2 is available.'
+            update_detail = 'Haus Computer 1.1.2 is available.'
         where id = ${idleComputerId}
     `;
 
@@ -364,7 +364,7 @@ test('idle progress does not erase Server-owned update state', async () => {
         update_target_version: string;
     }[];
     expect(row).toEqual({
-        update_detail: 'Grotto Computer 1.1.2 is available.',
+        update_detail: 'Haus Computer 1.1.2 is available.',
         update_phase: 'available',
         update_target_version: '1.1.2',
     });

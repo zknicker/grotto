@@ -121,7 +121,7 @@ test('manual commands reject short intent before making a request', async () => 
 test('manual get preserves the server recovery hint for an unknown topic', async () => {
     const client = requester(() => {
         throw new AgentCliError('MANUAL_TOPIC_NOT_FOUND', 'The topic was not found.', {
-            nextAction: "Run 'grotto manual get index' to browse available topics.",
+            nextAction: "Run 'haus manual get index' to browse available topics.",
         });
     });
 
@@ -135,7 +135,7 @@ test('manual get preserves the server recovery hint for an unknown topic', async
         )
     ).rejects.toMatchObject({
         code: 'MANUAL_TOPIC_NOT_FOUND',
-        options: { nextAction: expect.stringContaining('grotto manual get index') },
+        options: { nextAction: expect.stringContaining('haus manual get index') },
     });
 });
 

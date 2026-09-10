@@ -1,0 +1,15 @@
+{
+  "name": "haus-releases",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-28",
+  "routes": [
+    {
+      "pattern": "releases.haus.chat",
+      "custom_domain": true
+    },
+    {
+      "pattern": "releases.grotto.sh",
+      "custom_domain": true
+    }
+  ]
+}

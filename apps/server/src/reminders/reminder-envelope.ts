@@ -26,7 +26,7 @@ export interface ReminderEnvelopeInput {
  *
  * Script output is indented for the same reason a Trigger payload is: an
  * indented line can never start with `[target=`, so a command's output cannot
- * forge an envelope header and impersonate a Grotto human, agent, or system.
+ * forge an envelope header and impersonate a Haus human, agent, or system.
  */
 export function reminderEnvelope(input: ReminderEnvelopeInput): string {
     return [

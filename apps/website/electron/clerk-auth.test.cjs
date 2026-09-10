@@ -5,7 +5,7 @@ const { isSsoCallbackUrl } = require('./clerk-auth.cjs');
 
 describe('desktop OAuth callback URLs', () => {
     test('accepts the canonical Grotto callback', () => {
-        expect(isSsoCallbackUrl('grotto://sso-callback?rotating_token_nonce=nonce')).toBe(true);
+        expect(isSsoCallbackUrl('haus://sso-callback?rotating_token_nonce=nonce')).toBe(true);
     });
 
     test('accepts a process-owned development loopback callback', () => {

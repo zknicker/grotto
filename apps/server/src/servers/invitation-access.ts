@@ -46,7 +46,7 @@ export class InvitationEmailMismatchError extends Error {
 
 export class AlreadyServerMemberError extends Error {
     constructor() {
-        super('You are already a member of this Grotto server.');
+        super('You are already a member of this Haus server.');
         this.name = 'AlreadyServerMemberError';
     }
 }

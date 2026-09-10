@@ -3,13 +3,13 @@ import { appendComposerInsert } from '../../commands/chat-composer-insert.ts';
 import { buildQuoteInsert } from './selection-quote.tsx';
 
 describe('selection quote', () => {
-    test('quotes every selected line and appends the grotto:// source link', () => {
+    test('quotes every selected line and appends the haus:// source link', () => {
         const insert = buildQuoteInsert('first line\nsecond line', {
-            href: 'grotto://workspace/projects/alpha.md',
+            href: 'haus://workspace/projects/alpha.md',
             label: 'projects/alpha.md',
         });
         expect(insert).toBe(
-            '> first line\n> second line\n\n[projects/alpha.md](grotto://workspace/projects/alpha.md)\n\n'
+            '> first line\n> second line\n\n[projects/alpha.md](haus://workspace/projects/alpha.md)\n\n'
         );
     });
 

@@ -12,7 +12,7 @@ import {
     parseUserReferenceTarget,
 } from './rich-references.ts';
 
-describe('Grotto rich references', () => {
+describe('Haus rich references', () => {
     it('formats and parses stable agent, app, and skill targets', () => {
         expect(formatAgentReferenceTarget('agent:planner')).toBe('agent://agent%3Aplanner');
         expect(parseAgentReferenceTarget('agent://agent%3Aplanner')).toBe('agent:planner');

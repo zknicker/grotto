@@ -6,5 +6,5 @@
  * Every fire envelope ends with this line.
  */
 export function automationReplyLine(fireId: string): string {
-    return `reply with: grotto message send --cause ${fireId}`;
+    return `reply with: haus message send --cause ${fireId}`;
 }

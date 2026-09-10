@@ -9,17 +9,17 @@ export interface WrapperIdentity {
 }
 
 /**
- * Writes the managed `grotto` wrapper the Agent runs. It re-executes this
+ * Writes the managed `haus` wrapper the Agent runs. It re-executes this
  * Computer binary's embedded Agent CLI with the launch's identity env baked in,
  * so the Agent's only reachable authority is the per-launch loopback proxy
  * token — never the Server-valid runner credential the Computer holds.
  */
-export async function writeGrottoWrapper(input: {
+export async function writeHausWrapper(input: {
     binDir: string;
     entrypoint: { args: string[]; executable: string };
     identity: WrapperIdentity;
 }): Promise<string> {
-    const wrapperPath = join(input.binDir, 'grotto');
+    const wrapperPath = join(input.binDir, 'haus');
     const command = [input.entrypoint.executable, ...input.entrypoint.args, '__agent']
         .map(shellQuote)
         .join(' ');
@@ -33,8 +33,11 @@ export async function writeGrottoWrapper(input: {
         `exec ${command} "$@"`,
         '',
     ].join('\n');
-    await writeFile(wrapperPath, script, { mode: 0o755 });
-    await chmod(wrapperPath, 0o755);
+    // Resumed Agent histories may still invoke the former command name.
+    for (const path of [wrapperPath, join(input.binDir, 'grotto')]) {
+        await writeFile(path, script, { mode: 0o755 });
+        await chmod(path, 0o755);
+    }
     return wrapperPath;
 }
 

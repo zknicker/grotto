@@ -8,5 +8,5 @@ export function desktopGoogleOAuthRequest(redirectUrl: string) {
 export async function getDesktopOAuthCallbackUrl(bridge: {
     prepareSsoCallback?: () => Promise<string>;
 }) {
-    return bridge.prepareSsoCallback ? await bridge.prepareSsoCallback() : 'grotto://sso-callback';
+    return bridge.prepareSsoCallback ? await bridge.prepareSsoCallback() : 'haus://sso-callback';
 }

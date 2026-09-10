@@ -1,0 +1,202 @@
+/* Ghost geometry, motion, and the two things that depend on the ground it sits
+   on. Every color in the mark lives in the `GLASS` palette in
+   `grotto-ghost-glass-defs.tsx`; this file owns the stroke weights, the layer
+   opacities, and the drift.
+
+   Drift translations are in viewBox units — CSS lengths on an SVG shape are
+   user units — so they stay proportional at every rendered size. */
+
+.grotto-ghost {
+    --grotto-ghost-tempo: 1;
+
+    /* How much light the body scatters. On a light page the glass is nearly
+       clear and the ground reads straight through it. */
+    --grotto-ghost-scatter: 0.1;
+    --grotto-ghost-specular: 0.7;
+    --grotto-ghost-edge: 0.5;
+    --grotto-ghost-halo: 0.22;
+
+    /* The halo lies just outside the silhouette. */
+    overflow: visible;
+}
+
+.grotto-ghost__interior {
+    fill-opacity: var(--grotto-ghost-scatter);
+}
+
+/* On a near-black ground a nearly clear body is just a hole: the ghost goes
+   dark and smoky and the eyes vanish. Real glass scatters, so the interior
+   turns pale and luminous the way it does on the app icon's black tile, and
+   the highlight and outline lean brighter to keep it from flattening into a
+   white sticker. Matches the theme layer's own selector pair. */
+
+[data-theme='dark'] .grotto-ghost,
+.dark .grotto-ghost {
+    --grotto-ghost-scatter: 0.6;
+    --grotto-ghost-specular: 0.85;
+    --grotto-ghost-edge: 0.72;
+    --grotto-ghost-halo: 0.35;
+}
+
+.grotto-ghost--lively {
+    --grotto-ghost-tempo: 0.4;
+}
+
+/* Wide, soft strokes of the body path, clipped back to it: the visible half
+   is the inside one, which is what makes a glow hug the silhouette. */
+
+.grotto-ghost__rim-color {
+    stroke-width: 26;
+    opacity: 0.63;
+}
+
+.grotto-ghost__rim-light {
+    stroke-width: 12;
+    opacity: 0.22;
+}
+
+.grotto-ghost__rim-core {
+    stroke-width: 13;
+    opacity: 0.95;
+}
+
+.grotto-ghost__specular {
+    opacity: var(--grotto-ghost-specular);
+}
+
+/* Wide enough to be a glow, tight enough to stay a glow: at 22px this is well
+   under a pixel of spread, so it lifts the mark without fogging the row. */
+
+.grotto-ghost__halo {
+    stroke-width: 3;
+    opacity: var(--grotto-ghost-halo);
+}
+
+/* A constant hairline at every rendered size, in the mesh's own colors: on a
+   light ground it is what carries the upper-left silhouette, where the white
+   rim has nothing to say. */
+
+.grotto-ghost__edge {
+    stroke-width: 1;
+    stroke-opacity: var(--grotto-ghost-edge);
+    vector-effect: non-scaling-stroke;
+}
+
+/* Stepped, not continuous, and that is the whole performance story of this
+   mark. The blobs drift inside a Gaussian blur nested in two masks and a clip,
+   so every distinct transform re-runs that filter chain on the main thread: a
+   smooth 60fps drift cost 10% of a core, permanently, on every route that
+   renders the sidebar. `will-change` changes nothing — the work is the filter,
+   not the layer.
+
+   Six steps per keyframe segment is 24 positions per loop, one every 0.4-0.6s,
+   and at most 1.6px of travel per step on the largest instance (56px on the
+   activation screen) under a blur many times that wide. It is not visible, and
+   it drops the drift to ~1% of a core. */
+
+.grotto-ghost--animated .grotto-ghost__blob {
+    animation-iteration-count: infinite;
+    animation-timing-function: steps(6, end);
+}
+
+.grotto-ghost--animated .grotto-ghost__blob--azure {
+    animation-name: grotto-ghost-drift-azure;
+    animation-duration: calc(11s * var(--grotto-ghost-tempo));
+}
+
+.grotto-ghost--animated .grotto-ghost__blob--violet {
+    animation-name: grotto-ghost-drift-violet;
+    animation-duration: calc(14s * var(--grotto-ghost-tempo));
+}
+
+.grotto-ghost--animated .grotto-ghost__blob--rose {
+    animation-name: grotto-ghost-drift-rose;
+    animation-duration: calc(9s * var(--grotto-ghost-tempo));
+}
+
+/* Three closed loops of different shape, direction, and period, each about a
+   quarter of the mark wide. A blob this large and this blurred cannot read as
+   an object in motion, so travel that would be lurching on a hard shape reads
+   here as the color regions slowly trading places — which is the only way the
+   drift is visible at all at 22px. */
+
+@keyframes grotto-ghost-drift-azure {
+    0% {
+        transform: translate(0, 0);
+    }
+
+    25% {
+        transform: translate(-30px, 18px);
+    }
+
+    50% {
+        transform: translate(-44px, -8px);
+    }
+
+    75% {
+        transform: translate(-18px, -28px);
+    }
+
+    100% {
+        transform: translate(0, 0);
+    }
+}
+
+@keyframes grotto-ghost-drift-violet {
+    0% {
+        transform: translate(0, 0);
+    }
+
+    25% {
+        transform: translate(26px, -22px);
+    }
+
+    50% {
+        transform: translate(44px, 6px);
+    }
+
+    75% {
+        transform: translate(20px, 30px);
+    }
+
+    100% {
+        transform: translate(0, 0);
+    }
+}
+
+@keyframes grotto-ghost-drift-rose {
+    0% {
+        transform: translate(0, 0);
+    }
+
+    25% {
+        transform: translate(-24px, -26px);
+    }
+
+    50% {
+        transform: translate(-50px, -6px);
+    }
+
+    75% {
+        transform: translate(-28px, 22px);
+    }
+
+    100% {
+        transform: translate(0, 0);
+    }
+}
+
+/* Nobody is watching an unfocused window's sidebar, and the filter chain does
+   not know that. `main.tsx` toggles `window-blurred` from the native window's
+   own focus events. */
+
+html.window-blurred .grotto-ghost--animated .grotto-ghost__blob {
+    animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    /* Freeze where they stand rather than snapping back to the start. */
+    .grotto-ghost--animated .grotto-ghost__blob {
+        animation-play-state: paused;
+    }
+}

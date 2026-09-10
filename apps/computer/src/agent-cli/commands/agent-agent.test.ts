@@ -1,5 +1,9 @@
 import { expect, test } from 'bun:test';
-import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
+import {
+    type AgentApiRequest,
+    type AgentApiRequester,
+    AgentApiTransportError,
+} from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 import {
@@ -9,6 +13,7 @@ import {
     runAgentCreate,
     runAgentUpdate,
 } from './agent-agent.ts';
+import { deriveAgentCreateNonce } from './agent-create-request.ts';
 
 const createdAgent = {
     agentId: 'agt_orbit',
@@ -81,8 +86,8 @@ function requester(
 
 function deps(overrides: Partial<AgentAgentDeps> = {}): AgentAgentDeps {
     return {
+        callerAgentId: 'agt_caller',
         client: requester([]),
-        mintNonce: () => 'agent-create-nonce',
         write: () => undefined,
         ...overrides,
     };
@@ -194,4 +199,92 @@ test('the group exposes exactly the three Agent verbs', () => {
         'update',
         'avatar',
     ]);
+});
+
+test('the create nonce is the request itself, so an identical re-issue replays', () => {
+    const request = {
+        avatarConcept: 'a moonlit raccoon',
+        brief: 'Own release notes.',
+        channels: ['#product', '#design'],
+        content: '@orbit is on the team now.',
+        description: 'Keeps release notes current.',
+        displayName: 'Orbit',
+        target: '#product',
+    };
+    const nonce = deriveAgentCreateNonce('agt_caller', request);
+
+    expect(nonce).toMatch(/^agent-create-[0-9a-f]{64}$/u);
+    expect(deriveAgentCreateNonce('agt_caller', { ...request })).toBe(nonce);
+    // Channel order and repeats say nothing about which Agent this is.
+    expect(
+        deriveAgentCreateNonce('agt_caller', {
+            ...request,
+            channels: ['#design', '#product', '#product'],
+        })
+    ).toBe(nonce);
+
+    const changed = [
+        { ...request, avatarConcept: 'a brass compass' },
+        { ...request, avatarConcept: null },
+        { ...request, brief: 'Own the changelog.' },
+        { ...request, brief: null },
+        { ...request, channels: ['#product'] },
+        { ...request, content: '@orbit joins us today.' },
+        { ...request, description: 'Keeps the changelog current.' },
+        { ...request, displayName: 'Orbit II' },
+        { ...request, target: '#all' },
+    ];
+    for (const request_ of changed) {
+        expect(deriveAgentCreateNonce('agt_caller', request_)).not.toBe(nonce);
+    }
+    // Nonces are scoped to the Chat, not the Agent, so two Agents announcing the
+    // same teammate in one Chat must not collide.
+    expect(deriveAgentCreateNonce('agt_other', request)).not.toBe(nonce);
+});
+
+test('a create that got no answer is retried once with the identical body', async () => {
+    const seen: AgentApiRequest[] = [];
+    const output: string[] = [];
+    const inner = requester(seen, [], {
+        '/api/agent/agents': { ...createReceipt, idempotent: true },
+    });
+    let attempts = 0;
+    const dropping: AgentApiRequester = {
+        request(path, schema, input) {
+            attempts += 1;
+            if (attempts === 1) {
+                seen.push(input ?? {});
+                return Promise.reject(
+                    new AgentApiTransportError('SERVER_5XX', 'The Grotto server is unavailable.')
+                );
+            }
+            return inner.request(path, schema, input);
+        },
+    };
+
+    const exitCode = await runAgentCreate(
+        args(),
+        deps({ client: dropping, write: (text) => output.push(text) })
+    );
+
+    expect(exitCode).toBe(0);
+    expect(attempts).toBe(2);
+    // The same nonce is what makes the retry a replay rather than a second Agent.
+    expect(seen[1]?.body).toEqual(seen[0]?.body as Record<string, unknown>);
+    expect(output.join('')).toContain('This request repeated an earlier one');
+});
+
+test('an answered refusal is never retried', async () => {
+    let attempts = 0;
+    const refusing: AgentApiRequester = {
+        request() {
+            attempts += 1;
+            return Promise.reject(new AgentCliError('CHAT_VIEW_STALE', 'New messages arrived.'));
+        },
+    };
+
+    await expect(runAgentCreate(args(), deps({ client: refusing }))).rejects.toMatchObject({
+        code: 'CHAT_VIEW_STALE',
+    });
+    expect(attempts).toBe(1);
 });

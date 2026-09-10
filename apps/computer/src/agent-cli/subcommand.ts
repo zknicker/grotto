@@ -19,6 +19,8 @@ export interface SubCommand {
     examples: string[];
     flags: CliFlag[];
     name: string;
+    /** Behavior the flags cannot state on their own, e.g. what a repeated run does. */
+    notes?: string[];
     /** Positional names for usage/help and arity validation, e.g. `['<topic>']`. */
     positionals: string[];
     /** Run the subcommand with validated args. Returns the process exit code. */
@@ -143,6 +145,11 @@ export function printSubHelp(sub: SubCommand, stream: NodeJS.WriteStream): void 
             '  '
         );
         blocks.push(`${heading('Flags', stream)}\n${body}`);
+    }
+    if (sub.notes && sub.notes.length > 0) {
+        blocks.push(
+            `${heading('Notes', stream)}\n${sub.notes.map((note) => `  ${note}`).join('\n')}`
+        );
     }
     if (sub.examples.length > 0) {
         const body = sub.examples.map((example) => `  ${example}`).join('\n');

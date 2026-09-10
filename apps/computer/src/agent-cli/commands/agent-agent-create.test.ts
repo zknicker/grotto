@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { type AgentAgentDeps, runAgentCreate } from './agent-agent.ts';
+import { deriveAgentCreateNonce } from './agent-create-request.ts';
 
 const createdAgent = {
     agentId: 'agt_orbit',
@@ -74,8 +75,8 @@ function requester(
 
 function deps(overrides: Partial<AgentAgentDeps> = {}): AgentAgentDeps {
     return {
+        callerAgentId: 'agt_caller',
         client: requester([]),
-        mintNonce: () => 'agent-create-nonce',
         write: () => undefined,
         ...overrides,
     };
@@ -87,8 +88,8 @@ test('create posts the whole Agent and its authored message in one request', asy
     const output: string[] = [];
 
     const exitCode = await runAgentCreate(args({ '--avatar-concept': 'a moonlit raccoon' }), {
+        callerAgentId: 'agt_caller',
         client: requester(seen, routes),
-        mintNonce: () => 'agent-create-nonce',
         write: (text) => output.push(text),
     });
 
@@ -101,7 +102,15 @@ test('create posts the whole Agent and its authored message in one request', asy
         content: '@orbit is on the team now; I asked them to own release notes.',
         description: 'Keeps release notes current.',
         displayName: 'Orbit',
-        nonce: 'agent-create-nonce',
+        nonce: deriveAgentCreateNonce('agt_caller', {
+            avatarConcept: 'a moonlit raccoon',
+            brief: null,
+            channels: [],
+            content: '@orbit is on the team now; I asked them to own release notes.',
+            description: 'Keeps release notes current.',
+            displayName: 'Orbit',
+            target: '#product',
+        }),
         target: '#product',
     });
     // Avatar generation alone takes up to 75 s, so the request must outwait it.

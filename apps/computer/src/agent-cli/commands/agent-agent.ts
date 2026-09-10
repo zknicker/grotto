@@ -1,20 +1,16 @@
-import { randomUUID } from 'node:crypto';
-import {
-    agentCreateAgentReceiptSchema,
-    agentSetAgentAvatarReceiptSchema,
-    agentUpdateAgentReceiptSchema,
-} from '@grotto/api';
-import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
+import { agentSetAgentAvatarReceiptSchema, agentUpdateAgentReceiptSchema } from '@grotto/api';
+import { AgentApiClient, type AgentApiRequester } from '../agent-api-client.ts';
+import { resolveAgentContext } from '../agent-context.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { shortMessageId } from '../agent-format.ts';
 import { isThreadTarget } from '../agent-render.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 import { assertAgentTarget, requiredValue, valuesFor } from './agent-command-utils.ts';
+import { requestAgentCreate } from './agent-create-request.ts';
 
-/** Avatar generation alone takes up to 75 s; a create that waits on one needs the headroom. */
+/** Avatar generation alone takes up to 75 s; an avatar call has to outwait it. */
 const avatarTimeoutMs = 75_000;
-const createWithAvatarTimeoutMs = 120_000;
 const maxNameLength = 80;
 const maxDescriptionLength = 500;
 const maxConceptLength = 280;
@@ -32,8 +28,9 @@ const CREATE_RECIPE = `grotto agent create --target "#all" --name "Orbit" \\
   --say "Everyone, meet @orbit, our new release-notes teammate. Orbit drafts the notes from merged PRs and posts a digest in #product every Friday. Say hi, and send lane questions to @zach-knickerbocker."`;
 
 export interface AgentAgentDeps {
+    /** The Agent running the command; a create's idempotency key is derived from it. */
+    callerAgentId: string;
     client: AgentApiRequester;
-    mintNonce(): string;
     write(text: string): void;
 }
 
@@ -69,6 +66,11 @@ const CREATE_COMMAND: SubCommand = {
         },
     ],
     name: 'create',
+    notes: [
+        'Running the identical command again is safe: it returns the teammate the first run',
+        'created and creates nothing new. Change any flag and you are asking for a different',
+        'Agent, so you get one.',
+    ],
     positionals: [],
     run: (args) => runAgentCreate(args, defaultDeps()),
     summary: 'Create one Agent that inherits your runtime, model, reasoning effort, and Computer',
@@ -135,19 +137,14 @@ export async function runAgentCreate(args: ParsedArgs, deps: AgentAgentDeps): Pr
     const brief = rawBrief ? bounded(rawBrief, '--brief', maxBriefLength) : null;
     const channels = readChannels(args);
 
-    const receipt = await deps.client.request('/api/agent/agents', agentCreateAgentReceiptSchema, {
-        body: {
-            avatarConcept,
-            brief,
-            channels,
-            content,
-            description,
-            displayName,
-            nonce: deps.mintNonce(),
-            target,
-        },
-        method: 'POST',
-        ...(avatarConcept ? { timeoutMs: createWithAvatarTimeoutMs } : {}),
+    const receipt = await requestAgentCreate(deps.client, deps.callerAgentId, {
+        avatarConcept,
+        brief,
+        channels,
+        content,
+        description,
+        displayName,
+        target,
     });
 
     const { agent } = receipt;
@@ -245,9 +242,10 @@ function bounded(value: string, flag: string, maximum: number): string {
 }
 
 function defaultDeps(): AgentAgentDeps {
+    const context = resolveAgentContext();
     return {
-        client: createAgentApiClient(),
-        mintNonce: () => `agent-create-${randomUUID()}`,
+        callerAgentId: context.agentId,
+        client: new AgentApiClient(context),
         write: (text) => process.stdout.write(text),
     };
 }

@@ -27,6 +27,14 @@ export interface AgentApiRequester {
     request<T>(route: string, schema: z.ZodType<T>, input?: AgentApiRequest): Promise<T>;
 }
 
+/**
+ * The request got no answer at all — timed out, dropped, unreachable host — so
+ * the Server may still have acted on it. An answered failure is never one of
+ * these, which is what lets a caller with a stable idempotency key retry this
+ * and only this.
+ */
+export class AgentApiTransportError extends AgentCliError {}
+
 export class AgentApiClient implements AgentApiRequester {
     constructor(
         private readonly context: AgentContext,
@@ -57,7 +65,7 @@ export class AgentApiClient implements AgentApiRequester {
                     : AbortSignal.timeout(input.timeoutMs ?? REQUEST_TIMEOUT_MS),
             });
         } catch {
-            throw serverFailure();
+            throw transportFailure();
         }
         if (!response.ok) {
             let payload: unknown;
@@ -106,6 +114,12 @@ function invalidJson(): AgentCliError {
 
 function serverFailure(): AgentCliError {
     return new AgentCliError('SERVER_5XX', 'The Grotto server is unavailable.', {
+        nextAction: 'Retry after the Grotto Server is reachable.',
+    });
+}
+
+function transportFailure(): AgentApiTransportError {
+    return new AgentApiTransportError('SERVER_5XX', 'The Grotto server is unavailable.', {
         nextAction: 'Retry after the Grotto Server is reachable.',
     });
 }

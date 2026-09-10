@@ -80,6 +80,15 @@ overwriting owner edits.
 `support@haus.chat` routes to the operator's verified Gmail destination through
 Cloudflare Email Routing. Clerk's separate mail and DKIM CNAMEs remain intact.
 
+Google's public application homepage is `https://haus.chat/about/`, served by the
+static `haus-about` Worker. The main app remains at the apex. Google Search Console
+verifies ownership through a DNS TXT record. Clerk's native AASA document includes
+`XJ8RZZT99R.chat.haus.ios` for the fresh iPhone app.
+
+Old apex and www browser navigations redirect to Haus with their path and query
+preserved. The rule matches GET/HEAD requests for `/` or accepting `text/html`;
+Computer API and update requests continue reaching Server during migration.
+
 ## Completion evidence
 
 Completion requires a source-name inventory with every remaining old name

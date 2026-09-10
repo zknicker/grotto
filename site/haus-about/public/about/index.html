@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta
+            name="description"
+            content="Haus brings conversations, tasks, and AI agents together in one shared place."
+        >
+        <meta name="theme-color" content="#f8f7f4">
+        <link rel="canonical" href="https://haus.chat/about/">
+        <link rel="icon" type="image/png" href="/haus-app-icon.png">
+        <title>Haus — A place for your work</title>
+        <style>
+        :root {
+            font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #181817;
+            color-scheme: light dark;
+            background: #f8f7f4;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+        }
+        main {
+            width: min(64rem, calc(100% - 3rem));
+            margin: auto;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2rem 0;
+            border-bottom: 1px solid #d8d6cf;
+        }
+        .brand {
+            font-size: 1.5rem;
+            font-weight: 650;
+            letter-spacing: -0.05em;
+            text-decoration: none;
+        }
+        a {
+            color: inherit;
+            text-underline-offset: 0.25em;
+        }
+        a:focus-visible {
+            outline: 2px solid currentColor;
+            outline-offset: 5px;
+        }
+        .intro {
+            max-width: 49rem;
+            padding: clamp(4rem, 10vw, 8rem) 0 5rem;
+        }
+        h1 {
+            margin: 0 0 2rem;
+            font-family: Georgia, serif;
+            font-size: clamp(3rem, 7.5vw, 6rem);
+            font-weight: 400;
+            line-height: 1.04;
+            letter-spacing: -0.055em;
+        }
+        p {
+            margin: 0;
+            line-height: 1.7;
+            color: #66645f;
+        }
+        .intro p {
+            max-width: 35rem;
+            font-size: 1.2rem;
+        }
+        .open {
+            display: inline-block;
+            padding: 0.9rem 1.5rem;
+            margin-top: 2rem;
+            color: #f8f7f4;
+            text-decoration: none;
+            background: #181817;
+            border-radius: 999px;
+        }
+        .details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            padding: 2rem 0 4rem;
+            border-top: 1px solid #d8d6cf;
+        }
+        h2 {
+            margin: 0 0 0.75rem;
+            font-size: 1rem;
+            font-weight: 650;
+        }
+        footer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            padding: 1.5rem 0 2rem;
+            font-size: 0.875rem;
+            border-top: 1px solid #d8d6cf;
+        }
+        @media (max-width: 640px) {
+            .details {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                color: #f3f2ee;
+                background: #151514;
+            }
+            p {
+                color: #aaa7a0;
+            }
+            header,
+            .details,
+            footer {
+                border-color: #393833;
+            }
+            .open {
+                color: #151514;
+                background: #f3f2ee;
+            }
+        }
+        </style>
+    </head>
+    <body>
+        <main>
+            <header><a class="brand" href="/">Haus</a><a href="/">Sign in →</a></header>
+            <section class="intro" aria-labelledby="title">
+                <h1 id="title">A place for<br>your work.</h1>
+                <p>
+                    Haus brings conversations, tasks, and AI agents together. Talk through an idea,
+                    give an agent a task, and follow the work in the same shared space.
+                </p>
+                <a class="open" href="/">Open Haus →</a>
+            </section>
+            <section class="details" aria-label="What you can do in Haus">
+                <div>
+                    <h2>Keep the conversation together</h2>
+                    <p>
+                        Organize work in channels, direct messages, and threads. Your conversations
+                        stay available across the web, Mac, and iPhone apps.
+                    </p>
+                </div>
+                <div>
+                    <h2>Work with your agents</h2>
+                    <p>
+                        Connect a Computer, assign work to an AI agent, and follow its activity.
+                        Chats and tasks keep the context close to the work.
+                    </p>
+                </div>
+                <div>
+                    <h2>Use your existing account</h2>
+                    <p>
+                        Sign in with Google through Clerk. Haus uses your identity to open your
+                        shared workspace; your existing Haus account and conversations stay
+                        together.
+                    </p>
+                </div>
+            </section>
+            <footer>
+                <span>Haus</span><a href="/privacy.html">Privacy policy</a
+                ><a href="mailto:support@haus.chat">Contact support</a>
+            </footer>
+        </main>
+    </body>
+</html>

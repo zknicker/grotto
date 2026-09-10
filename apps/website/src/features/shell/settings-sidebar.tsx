@@ -8,7 +8,7 @@ import {
     settingsNavSections,
 } from '../settings/layout/navigation.ts';
 import { ShellSidebarPageContent } from './shell-sidebar.tsx';
-import { SidebarBackToChatRow } from './sidebar-server-band.tsx';
+import { SidebarBackToChatRow } from './sidebar-settings-action.tsx';
 
 /** Settings navigation sidebar for the Server settings routes. */
 export function SettingsSidebar({

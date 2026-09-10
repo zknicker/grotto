@@ -28,14 +28,18 @@ interface ShellSidebarPageProps {
 export function ShellSidebar({
     activePage,
     children,
+    chrome,
     footer,
-    identity,
 }: {
     activePage: ShellSidebarPageId;
     children: React.ReactNode;
+    /**
+     * Floating sidebar chrome, rendered before the navigation so it leads the
+     * tab order. It is positioned out of flow, so it costs the pages below it
+     * no vertical space.
+     */
+    chrome?: React.ReactNode;
     footer?: React.ReactNode;
-    /** Server identity row leading the sidebar on every page. */
-    identity?: React.ReactNode;
 }) {
     // The sidebar resizes like every pane: drag its trailing edge. The width
     // lives in a shared store because the token must be set above HeroUI's
@@ -72,7 +76,7 @@ export function ShellSidebar({
                 title="Resize sidebar"
                 width={sidebarWidth.width}
             />
-            {identity}
+            {chrome}
             {/* `contents` carries the scale to every navigation row without adding a box. */}
             <div
                 className="contents"

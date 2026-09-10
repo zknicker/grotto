@@ -9,6 +9,14 @@
          * that side cannot read the theme's density.
          */
         --app-shell-band-height: 3rem;
+
+        /*
+         * HeroUI's small icon-only Button box, which is what the Settings gear
+         * is. A literal rather than a spacing multiple because the row that has
+         * to clear it sits inside the sidebar's compact density scope, where
+         * the step is not the one the button was sized from.
+         */
+        --app-shell-settings-gear-size: 1.875rem;
         --cursor-interactive: default;
     }
 
@@ -129,8 +137,8 @@
          * The strip only has to clear the traffic lights, not stand as tall as
          * a band. electron/main.cjs seats them at `(band - 12) / 2 - 1`, so the
          * dots end 5px past the band's midpoint and a full 48 left a visible
-         * shelf of dead space above the Server row. Three quarters clears them
-         * with room to breathe and pulls the row up flush.
+         * shelf of dead space above the navigation. Three quarters clears them
+         * with room to breathe and pulls the first row up flush.
          */
         --app-shell-titlebar-inset: calc(var(--app-shell-band-height) * 0.75);
         --app-shell-traffic-light-gutter: 5rem;
@@ -150,7 +158,17 @@
      * sidebar is one unbroken column and the topbar's rule stops at it.
      */
     html.macos-electron .app-shell [data-slot='sidebar'] {
-        padding-block-start: var(--app-shell-titlebar-inset);
+        /*
+         * The strip's own clearance, then a breath before the first navigation
+         * row. Without it the row's top edge lands a few pixels under the light
+         * dots and the strip reads as crowding them rather than clearing them;
+         * three steps leave about as much air below the lights as the strip
+         * already leaves above them, so the lights sit centred in their band
+         * and the navigation starts on its own.
+         */
+        padding-block-start: calc(
+            var(--app-shell-titlebar-inset) + var(--spacing) * 3
+        );
     }
 
     html.macos-electron .app-shell [data-slot='sidebar']::before {
@@ -165,25 +183,33 @@
     }
 
     /*
-     * The titlebar strip is reserved space with one occupant: three native
-     * traffic lights on the leading edge. Settings lifts out of the row below
-     * into the space beside them, so the strip earns its height and the Server
-     * switcher gets the whole row it used to share.
+     * Settings is the sidebar's only chrome, and it never earned a row of its
+     * own. It floats at the sidebar's top-right corner, over the trailing end
+     * of the first navigation row's line, so the navigation leads the column
+     * flush at its top edge on every platform. The row underneath gives that
+     * end back rather than running under the gear — see
+     * `.app-shell-sidebar-lead-row` in the components layer.
      *
-     * The move is a shell concern, not the row's — the strip only exists on
-     * this platform — so the row keeps one markup shape and this rule takes the
-     * action out of flow. Above the ::before band, and `app-region: no-drag`
-     * already reaches it as a button, so the strip stays draggable around it.
+     * The sidebar root is already positioned, so this is one absolute box. On
+     * macOS the same box lands inside the titlebar strip beside the traffic
+     * lights, which is otherwise reserved space with nothing in it, and
+     * `app-region: no-drag` already reaches it as a button, so the strip stays
+     * draggable around it.
      */
-    html.macos-electron .app-shell [data-slot='sidebar'] .app-shell-titlebar-action {
+    .app-shell [data-slot='sidebar'] .app-shell-titlebar-action {
         position: absolute;
         z-index: 2;
         inset-block-start: 0;
         inset-inline-end: calc(var(--spacing) * 3);
+    }
+
+    html.macos-electron .app-shell [data-slot='sidebar'] .app-shell-titlebar-action {
         /*
          * Centred on the lights rather than on the strip: the same arithmetic
          * main.cjs uses puts their midline at `band / 2 - 1`, so a box of twice
-         * that lands the gear on their axis whatever the strip's height.
+         * that lands the gear on their axis whatever the strip's height. On the
+         * web the gear has no lights to answer to and centres itself on the row
+         * it shares a line with.
          */
         height: calc(var(--app-shell-band-height) - 2px);
     }
@@ -218,6 +244,25 @@
     .app-shell-band .button.button--icon-only svg:not([data-slot='spinner'] svg) {
         width: var(--app-shell-band-icon-size, 18px);
         height: var(--app-shell-band-icon-size, 18px);
+    }
+
+    /*
+     * The sidebar's lead navigation row shares its line with the floating
+     * Settings gear, so it reserves the gear's box plus a step at its trailing
+     * end: the label — and any trailing badge it grows — stops before the gear
+     * instead of sliding under it. The reserve is the row part's own padding,
+     * not the row's, so the hover and current fill still runs the full width
+     * and the row keeps the same pill as the ones below it.
+     *
+     * macOS has no overlap to answer for: the gear rides in the titlebar strip
+     * above the navigation, and the row keeps HeroUI's own padding.
+     */
+    html:not(.macos-electron)
+        .app-shell-sidebar-lead-row
+        .sidebar__menu-item-content {
+        padding-inline-end: calc(
+            var(--app-shell-settings-gear-size) + var(--spacing) * 2
+        );
     }
 
     /*

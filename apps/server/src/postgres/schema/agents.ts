@@ -8,6 +8,7 @@ import {
     pgTable,
     text,
     timestamp,
+    type UpdateDeleteAction,
     unique,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
@@ -93,11 +94,16 @@ export const agentsTable = pgTable(
             foreignColumns: [table.serverId, table.id],
             name: 'agents_created_by_agent_fk',
         }),
+        // A bare `set null` on a composite foreign key nulls every referencing
+        // column, including the not-null `server_id`, so deleting the creation
+        // message would fail instead of detaching the link. PostgreSQL 16 takes
+        // a column list on the action; Drizzle passes the action string through
+        // untouched but types it as the plain action union, hence the cast.
         foreignKey({
             columns: [table.serverId, table.creationMessageId],
             foreignColumns: [chatMessagesTable.serverId, chatMessagesTable.id],
             name: 'agents_creation_message_fk',
-        }).onDelete('set null'),
+        }).onDelete('set null (creation_message_id)' as UpdateDeleteAction),
         unique('agents_creation_message_key').on(table.serverId, table.creationMessageId),
         check(
             'agents_reasoning_effort',

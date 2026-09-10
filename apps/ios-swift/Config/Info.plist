@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Grotto</string>
+	<string>Haus</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIcons</key>
@@ -48,8 +48,8 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>grotto</string>
-				<string>build.grotto.ios</string>
+				<string>haus</string>
+				<string>chat.haus.ios</string>
 			</array>
 		</dict>
 	</array>
@@ -58,9 +58,9 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>Take photos to attach to Grotto messages.</string>
+	<string>Take photos to attach to Haus messages.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Choose photos to attach to Grotto messages.</string>
+	<string>Choose photos to attach to Haus messages.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiresFullScreen</key>

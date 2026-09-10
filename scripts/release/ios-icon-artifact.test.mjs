@@ -80,7 +80,7 @@ test('installs the compiled catalog before signing', () => {
     const root = mkdtempSync(path.join(tmpdir(), 'grotto-ios-icon-install-'));
     const artifact = path.join(root, 'artifact');
     const product = path.join(root, 'product');
-    const app = path.join(product, 'Grotto.app');
+    const app = path.join(product, 'Haus.app');
     mkdirSync(artifact, { recursive: true });
     mkdirSync(app, { recursive: true });
     for (const file of ['Assets.car', 'mac-icon60x60@2x.png', 'mac-icon76x76@2x~ipad.png']) {
@@ -93,7 +93,7 @@ test('installs the compiled catalog before signing', () => {
     writeIOSIconArtifactManifest(artifact, requiredIOSIconXcodeBuild);
     writeFileSync(
         path.join(app, 'Info.plist'),
-        '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleName</key><string>Grotto</string><key>CFBundleIcons</key><dict><key>CFBundlePrimaryIcon</key><dict><key>CFBundleIconName</key><string>mac-icon</string></dict></dict></dict></plist>'
+        '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleName</key><string>Haus</string><key>CFBundleIcons</key><dict><key>CFBundlePrimaryIcon</key><dict><key>CFBundleIconName</key><string>mac-icon</string></dict></dict></dict></plist>'
     );
 
     const result = spawnSync(
@@ -105,7 +105,7 @@ test('installs the compiled catalog before signing', () => {
                 ...process.env,
                 GROTTO_PRECOMPILED_IOS_ICON_DIR: artifact,
                 TARGET_BUILD_DIR: product,
-                UNLOCALIZED_RESOURCES_FOLDER_PATH: 'Grotto.app',
+                UNLOCALIZED_RESOURCES_FOLDER_PATH: 'Haus.app',
             },
         }
     );

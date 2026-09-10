@@ -84,7 +84,7 @@ export function appStoreConnectExportOptions(teamId, profileSpecifier) {
     <string>app-store-connect</string>
     <key>provisioningProfiles</key>
     <dict>
-        <key>build.grotto.ios</key>
+        <key>chat.haus.ios</key>
         <string>${profileSpecifier}</string>
     </dict>
     <key>signingCertificate</key>

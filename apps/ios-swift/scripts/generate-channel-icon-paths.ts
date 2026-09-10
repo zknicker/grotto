@@ -28,7 +28,7 @@ const iconDistPath = join(
     repoRoot,
     'apps/website/node_modules/@hugeicons-pro/core-solid-rounded/dist/esm'
 );
-const outputPath = join(iosRoot, 'Sources/GrottoUI/Resources/channel-icons.json');
+const outputPath = join(iosRoot, 'Sources/HausUI/Resources/channel-icons.json');
 
 const names = [...readFileSync(catalogPath, 'utf8').matchAll(/name: "([A-Za-z0-9]+)"/gu)].map(
     (match) => match[1]

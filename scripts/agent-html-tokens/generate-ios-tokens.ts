@@ -39,7 +39,7 @@ const SOURCES = [
     `${WEB}/src/styles/default-theme.css`,
 ];
 
-export const OUTPUT_PATH = `${REPO}apps/ios-swift/Sources/GrottoUI/Visuals/AgentHtmlTokens.generated.swift`;
+export const OUTPUT_PATH = `${REPO}apps/ios-swift/Sources/HausUI/Visuals/AgentHtmlTokens.generated.swift`;
 
 /** Mirrors `hostRoleOverrides` in `apps/website/src/agent-html/tokens.ts`. */
 const HOST_ROLES: Record<string, string> = {

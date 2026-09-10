@@ -3,8 +3,8 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os';
 import path from 'node:path';
 
-export const IOS_BUNDLE_ID = 'build.grotto.ios';
-export const IOS_PROVISIONING_PROFILE_NAME = 'Grotto CI App Store';
+export const IOS_BUNDLE_ID = 'chat.haus.ios';
+export const IOS_PROVISIONING_PROFILE_NAME = 'Haus CI App Store';
 
 const profilesEndpoint = 'https://api.appstoreconnect.apple.com/v1/profiles';
 

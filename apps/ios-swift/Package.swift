@@ -3,51 +3,51 @@
 import PackageDescription
 
 let package = Package(
-    name: "GrottoIOS",
+    name: "HausIOS",
     platforms: [
         .iOS(.v18),
         .macOS(.v15),
     ],
     products: [
-        .library(name: "GrottoModels", targets: ["GrottoModels"]),
-        .library(name: "GrottoTransport", targets: ["GrottoTransport"]),
-        .library(name: "GrottoUI", targets: ["GrottoUI"]),
+        .library(name: "HausModels", targets: ["HausModels"]),
+        .library(name: "HausTransport", targets: ["HausTransport"]),
+        .library(name: "HausUI", targets: ["HausUI"]),
     ],
     targets: [
         .target(
-            name: "GrottoModels",
-            path: "Sources/GrottoModels",
+            name: "HausModels",
+            path: "Sources/HausModels",
             swiftSettings: [.enableUpcomingFeature("StrictConcurrency")]
         ),
         .target(
-            name: "GrottoTransport",
-            dependencies: ["GrottoModels"],
-            path: "Sources/GrottoTransport",
+            name: "HausTransport",
+            dependencies: ["HausModels"],
+            path: "Sources/HausTransport",
             swiftSettings: [.enableUpcomingFeature("StrictConcurrency")]
         ),
         .target(
-            name: "GrottoUI",
-            dependencies: ["GrottoModels"],
-            path: "Sources/GrottoUI",
+            name: "HausUI",
+            dependencies: ["HausModels"],
+            path: "Sources/HausUI",
             resources: [.process("Resources")],
             swiftSettings: [.enableUpcomingFeature("StrictConcurrency")]
         ),
         .testTarget(
-            name: "GrottoModelsTests",
-            dependencies: ["GrottoModels"],
-            path: "Tests/GrottoModelsTests",
+            name: "HausModelsTests",
+            dependencies: ["HausModels"],
+            path: "Tests/HausModelsTests",
             swiftSettings: [.enableUpcomingFeature("StrictConcurrency")]
         ),
         .testTarget(
-            name: "GrottoTransportTests",
-            dependencies: ["GrottoTransport"],
-            path: "Tests/GrottoTransportTests",
+            name: "HausTransportTests",
+            dependencies: ["HausTransport"],
+            path: "Tests/HausTransportTests",
             swiftSettings: [.enableUpcomingFeature("StrictConcurrency")]
         ),
         .testTarget(
-            name: "GrottoUITests",
-            dependencies: ["GrottoUI"],
-            path: "Tests/GrottoUITests",
+            name: "HausUITests",
+            dependencies: ["HausUI"],
+            path: "Tests/HausUITests",
             swiftSettings: [.enableUpcomingFeature("StrictConcurrency")]
         ),
     ]

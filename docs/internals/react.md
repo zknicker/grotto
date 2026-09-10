@@ -133,10 +133,15 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   second by `lib/heroui-composition-contract.test.ts`. Neither sees a `className`
   built through `cn()` or a variable, so read the component's anatomy before
   reaching for a wrapper.
-* One Settings page separates **Preferences** (Profile and Preferences)
-  from **Server** (Server, Members, Connections, Models, Skills),
-  followed by the roster-driven **Computers**. Agent capabilities belong to
-  the shared Server scope, not a separate settings category. Browser controls live on each
+* One Settings page separates **Preferences** (Profile, Preferences, Servers)
+  from **Server** (Server, Members, Connections, Models, Skills, then Usage and
+  Archived chats), followed by the roster-driven **Computers**. Agent
+  capabilities belong to the shared Server scope, not a separate settings
+  category. Which Servers you belong to is about you, so switching, creating,
+  and joining sit in the personal scope. Usage and Archived chats are
+  link-outs, not settings pages: they keep their own standalone routes and the
+  rail hands off to them (`settingsNavLinkItems`, resolved by
+  `SettingsSectionRoute`). Browser controls live on each
   Computer; the former Browser URL redirects there. Back is a stock
   `Sidebar.Group` inside the same `Sidebar.Content` as the settings rows.
   `features/settings/layout/navigation.ts` is the source of that grouping and

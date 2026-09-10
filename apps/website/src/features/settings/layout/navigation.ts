@@ -123,15 +123,7 @@ export const settingsNavSections = [
         id: 'server',
         // Usage and Archived chats close the group as link-outs, after the
         // pages that configure the Server itself.
-        itemIds: [
-            'server',
-            'members',
-            'connections',
-            'models',
-            'skills',
-            'usage',
-            'archived',
-        ],
+        itemIds: ['server', 'members', 'connections', 'models', 'skills', 'usage', 'archived'],
         label: 'Server',
     },
 ] as const;

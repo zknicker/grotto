@@ -65,6 +65,54 @@ test('aligns the Settings escape row with the first Chat navigation row', async 
     expect(backBox).not.toBeNull();
     expect(backBox?.y).toBe(searchBox?.y);
     expect(backBox?.height).toBe(searchBox?.height);
+    const profileBox = await page.getByRole('row', { exact: true, name: 'Profile' }).boundingBox();
+    expect(profileBox).not.toBeNull();
+    expect(backBox?.x).toBe(profileBox?.x);
+    expect(backBox?.width).toBe(profileBox?.width);
+    await page.getByRole('row', { exact: true, name: 'Back to chat' }).click();
+    await expect(page).not.toHaveURL(/\/settings\//u);
+});
+
+test('settings navigation names the page and reaches Server deletion', async ({
+    page,
+}, testInfo) => {
+    await signInAsClerkHuman(page);
+    await page.goto(`/s/${slug}/settings/profile`);
+    const personal = page.getByRole('treegrid', { name: 'Preferences', exact: true });
+    const shared = page.getByRole('treegrid', { name: 'Server', exact: true });
+    await expect(personal.getByRole('row')).toHaveCount(2);
+    await expect(shared.getByRole('row')).toHaveCount(5);
+    await expect(shared.getByRole('row', { name: 'Connections', exact: true })).toBeVisible();
+    await expect(shared.getByRole('row', { name: 'Skills', exact: true })).toBeVisible();
+    for (const label of [
+        'Profile',
+        'Preferences',
+        'Server',
+        'Members',
+        'Connections',
+        'Models',
+        'Skills',
+    ]) {
+        await page.getByRole('row', { exact: true, name: label }).click();
+        await expect(
+            page.getByRole('heading', { exact: true, level: 1, name: label })
+        ).toBeVisible();
+        if (label === 'Preferences') {
+            await page.screenshot({ path: testInfo.outputPath('settings-preferences.png') });
+        }
+    }
+    await expect(page.getByRole('row', { exact: true, name: 'Browser' })).toHaveCount(0);
+    await page.getByRole('row', { exact: true, name: 'Server' }).click();
+    await expect(page.getByText(slug, { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Delete Server', exact: true })).toBeVisible();
+    await page.getByRole('row', { name: 'Back to chat', exact: true }).hover();
+    await page.screenshot({ path: testInfo.outputPath('settings-server.png') });
+
+    await page.goto(`/s/${slug}/settings/browser`);
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/settings/computers$`, 'u'));
+    await expect(
+        page.getByRole('heading', { exact: true, level: 1, name: 'Settings Computer' })
+    ).toBeVisible();
 });
 
 test('reads and updates the canonical human identity in Profile settings', async ({ page }) => {

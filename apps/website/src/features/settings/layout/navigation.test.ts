@@ -17,7 +17,7 @@ test('settings navigation uses current agent configuration vocabulary', () => {
 });
 
 test('settings navigation exposes Server administration', () => {
-    assert.ok(settingsNavItems.some((item) => item.id === 'server' && item.label === 'General'));
+    assert.ok(settingsNavItems.some((item) => item.id === 'server' && item.label === 'Server'));
     assert.ok(settingsNavItems.some((item) => item.id === 'members' && item.label === 'Members'));
 });
 
@@ -28,7 +28,7 @@ test('settings navigation exposes Server administration', () => {
  */
 test('settings navigation groups by subject, and every item belongs to one', () => {
     const sectionIds: string[] = settingsNavSections.map((section) => section.id);
-    assert.deepEqual(sectionIds, ['account', 'server', 'agents']);
+    assert.deepEqual(sectionIds, ['personal', 'server']);
 
     const grouped: string[] = settingsNavSections
         .flatMap((section) => section.itemIds as readonly string[])
@@ -43,11 +43,11 @@ test('device and Server settings are not filed together', () => {
         const section = settingsNavSections.find((candidate) => candidate.id === id);
         return [...((section?.itemIds ?? []) as readonly string[])].sort();
     };
-    const account = itemIds('account');
+    const account = itemIds('personal');
     assert.ok(account.includes('preferences'));
     assert.ok(!account.includes('server'));
-    // The four pages that answer "what can an Agent reach" stay together.
-    assert.deepEqual(itemIds('agents'), ['browser', 'connections', 'models', 'skills']);
+    assert.deepEqual(itemIds('server'), ['connections', 'members', 'models', 'server', 'skills']);
+    assert.ok(!settingsNavItems.some((item) => (item.id as string) === 'browser'));
 });
 
 test('settings navigation keeps operational usage out of configuration', () => {

@@ -164,7 +164,9 @@ and [Agent Inbox](../../specs/inbox.md).
   which carries the participant count. Archive and delete follow them for a
   regular channel. Users create channels in one New channel dialog that names
   the channel, picks its icon and color from a trigger inside the name field,
-  and chooses its agent participants.
+  and chooses its agent participants. Both dialogs choose Agents the same way:
+  a search field adds one Agent at a time, and the roster below it lists only
+  the chosen Agents, each with its own remove control.
   Archive channel is an Owner/Admin action for a regular channel. It hides the
   channel from the active sidebar without deleting history. The Server menu's
   Archived chats entry opens the archived channel view (`/s/:slug/archived`), where

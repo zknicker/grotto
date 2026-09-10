@@ -12,7 +12,7 @@ import { defineScenario } from '../scenario.mjs';
  */
 export const promptLeakPhrases = Object.freeze([
     '## Communication',
-    'grotto CLI ONLY',
+    'haus CLI ONLY',
     '### Live constraints and pull-request closure',
 ]);
 

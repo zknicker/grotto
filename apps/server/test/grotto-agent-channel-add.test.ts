@@ -3,7 +3,7 @@ import { agentCreationFixture } from './agent-creation-fixture.ts';
 
 const fixture = agentCreationFixture();
 
-/** `grotto channel add`: any active Agent may put any active Agent in a channel. */
+/** `haus channel add`: any active Agent may put any active Agent in a channel. */
 async function addToChannel(runner: { token: string }, body: unknown) {
     return await fixture.post('/api/agent/channels/add', runner, body);
 }

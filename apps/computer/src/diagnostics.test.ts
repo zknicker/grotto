@@ -35,7 +35,7 @@ test('status and doctor expose useful facts without secrets', async () => {
     const status = await readComputerStatus(dataRoot);
     const rendered = formatComputerStatus(status);
     expect(rendered).toContain('/hq');
-    expect(rendered).toContain('● stopped — run grotto-computer start /hq');
+    expect(rendered).toContain('● stopped — run haus-computer start /hq');
     expect(rendered).not.toContain('secret');
 
     const doctor = await doctorComputer(dataRoot, async () => undefined);
@@ -53,7 +53,7 @@ test('status gives an actionable setup command for a terminally unlinked attachm
     );
 
     expect(formatComputerStatus(await readComputerStatus(dataRoot))).toContain(
-        '✗ setup required — run grotto-computer setup /hq'
+        '✗ setup required — run haus-computer setup /hq'
     );
 });
 

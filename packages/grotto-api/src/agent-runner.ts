@@ -461,7 +461,7 @@ export const runnerRevokeRequestSchema = z
 export type RunnerRevokeRequest = z.infer<typeof runnerRevokeRequestSchema>;
 
 /**
- * `grotto message send` behind the loopback proxy. The runner credential fixes
+ * `haus message send` behind the loopback proxy. The runner credential fixes
  * the author and Server, so the Agent supplies the message body and grammar
  * target; the Server resolves that target and access before writing.
  */

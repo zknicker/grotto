@@ -1,0 +1,38 @@
+import { expect, test } from 'bun:test';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { writeHausWrapper } from './wrapper.ts';
+
+test('Haus and the historical command invoke the same scoped Agent authority', async () => {
+    const binDir = await mkdtemp(join(tmpdir(), 'haus-wrapper-'));
+    try {
+        const entrypoint = join(binDir, 'inspect.ts');
+        await writeFile(
+            entrypoint,
+            'console.log(JSON.stringify({args:process.argv.slice(2),agent:process.env.GROTTO_AGENT_ID,proxy:process.env.GROTTO_SERVER_URL}));'
+        );
+        const wrapper = await writeHausWrapper({
+            binDir,
+            entrypoint: { executable: process.execPath, args: [entrypoint] },
+            identity: {
+                agentId: 'agent_test',
+                proxyTokenFile: join(binDir, 'proxy-token'),
+                proxyUrl: 'http://127.0.0.1:32123',
+                serverUrl: 'https://haus.chat',
+            },
+        });
+        expect(wrapper).toBe(join(binDir, 'haus'));
+        for (const command of [wrapper, join(binDir, 'grotto')]) {
+            const result = Bun.spawnSync([command, 'message', 'check']);
+            expect(result.exitCode).toBe(0);
+            expect(JSON.parse(result.stdout.toString())).toEqual({
+                args: ['__agent', 'message', 'check'],
+                agent: 'agent_test',
+                proxy: 'http://127.0.0.1:32123',
+            });
+        }
+    } finally {
+        await rm(binDir, { force: true, recursive: true });
+    }
+});

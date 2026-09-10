@@ -20,9 +20,9 @@ interface DirectoryDeps {
 export const SERVER_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
-            'grotto server info',
-            'grotto server info --channels --joined',
-            'grotto server info --agents --query research',
+            'haus server info',
+            'haus server info --channels --joined',
+            'haus server info --agents --query research',
         ],
         flags: [
             { name: '--channels', description: 'List channels' },
@@ -41,31 +41,31 @@ export const SERVER_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runServerInfo(args, defaultDeps()),
         summary: 'Inspect bounded server channels and participant handles',
-        usage: 'grotto server info [--channels|--agents|--humans] [--joined] [--query <text>] [--limit <n>] [--offset <n>]',
+        usage: 'haus server info [--channels|--agents|--humans] [--joined] [--query <text>] [--limit <n>] [--offset <n>]',
     },
 ];
 
 export const CHANNEL_SUBCOMMANDS: SubCommand[] = [
     {
-        examples: ['grotto channel info "#general"'],
+        examples: ['haus channel info "#general"'],
         flags: [],
         name: 'info',
         positionals: ['<target>'],
         run: (args) => runChannelInfo(args, defaultDeps()),
         summary: 'Inspect one channel and its joined state',
-        usage: 'grotto channel info <target>',
+        usage: 'haus channel info <target>',
     },
     {
-        examples: ['grotto channel members "#general"'],
+        examples: ['haus channel members "#general"'],
         flags: [],
         name: 'members',
         positionals: ['<target>'],
         run: (args) => runChannelMembers(args, defaultDeps()),
         summary: 'List one channel’s members and role labels',
-        usage: 'grotto channel members <target>',
+        usage: 'haus channel members <target>',
     },
     {
-        examples: ['grotto channel add --target "#product" --agent @orbit'],
+        examples: ['haus channel add --target "#product" --agent @orbit'],
         flags: [
             { name: '--target', valueName: '<t>', description: 'Channel target (#name)' },
             { name: '--agent', valueName: '<@handle>', description: 'The Agent to put in it' },
@@ -74,27 +74,27 @@ export const CHANNEL_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runChannelAdd(args, defaultDeps()),
         summary: 'Put another Agent in a channel',
-        usage: 'grotto channel add --target <t> --agent <@handle>',
+        usage: 'haus channel add --target <t> --agent <@handle>',
     },
     channelActionSubcommand('join', {
         confirmation: (target) => `Joined ${target}. Channel messages now reach your inbox.`,
-        example: 'grotto channel join --target "#general"',
+        example: 'haus channel join --target "#general"',
         summary: 'Join a channel so ordinary delivery reaches you',
     }),
     channelActionSubcommand('leave', {
         confirmation: (target) => `Left ${target}.`,
-        example: 'grotto channel leave --target "#general"',
+        example: 'haus channel leave --target "#general"',
         summary: 'Leave a channel you have joined',
     }),
     channelActionSubcommand('mute', {
         confirmation: (target) =>
-            `Muted ${target}. Personal @mentions and DMs still reach you; reverse with grotto channel unmute.`,
-        example: 'grotto channel mute --target "#general"',
+            `Muted ${target}. Personal @mentions and DMs still reach you; reverse with haus channel unmute.`,
+        example: 'haus channel mute --target "#general"',
         summary: 'Mute ordinary delivery from a channel and its threads',
     }),
     channelActionSubcommand('unmute', {
         confirmation: (target) => `Unmuted ${target}. Ordinary delivery resumes.`,
-        example: 'grotto channel unmute --target "#general"',
+        example: 'haus channel unmute --target "#general"',
         summary: 'Reverse a channel mute',
     }),
 ];
@@ -110,7 +110,7 @@ function channelActionSubcommand(
         positionals: [],
         run: (args) => runChannelAction(action, args, defaultDeps(), copy.confirmation),
         summary: copy.summary,
-        usage: `grotto channel ${action} --target <t>`,
+        usage: `haus channel ${action} --target <t>`,
     };
 }
 
@@ -135,7 +135,7 @@ export async function runChannelAdd(args: ParsedArgs, deps: DirectoryDeps): Prom
     const agent = args.values['--agent']?.trim();
     if (!(agent && /^@?[a-z0-9][a-z0-9-]{1,30}$/u.test(agent))) {
         throw new AgentCliError('INVALID_ARG', '--agent must name one Agent as @handle.', {
-            nextAction: 'Run grotto server info --agents to list them.',
+            nextAction: 'Run haus server info --agents to list them.',
         });
     }
     const response = await deps.client.request(

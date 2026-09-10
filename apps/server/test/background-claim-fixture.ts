@@ -21,7 +21,7 @@ import { ensureThreadRecord } from '../src/threads/ensure-thread.ts';
 
 /**
  * One Agent, one Computer, one Channel message that Agent claimed: the exact
- * row `grotto task claim --message-id` leaves behind, with the delivery seams
+ * row `haus task claim --message-id` leaves behind, with the delivery seams
  * the background-claim tests drive around it.
  */
 export class FakeTransport implements DeliveryTransport {

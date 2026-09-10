@@ -25,7 +25,7 @@ export const threadCloudAgentWorkListSchema = z.array(threadCloudAgentWorkSchema
 export type ThreadCloudAgentWork = z.infer<typeof threadCloudAgentWorkSchema>;
 
 /**
- * `grotto cloud-agent start` — the Agent-scoped creation request the Computer
+ * `haus cloud-agent start` — the Agent-scoped creation request the Computer
  * forwards after its provider readiness check passes. The instructions the
  * provider runs never appear here: they stay on the Computer.
  */
@@ -58,7 +58,7 @@ export const agentCloudAgentReceiptSchema = z
 
 export type AgentCloudAgentReceipt = z.infer<typeof agentCloudAgentReceiptSchema>;
 
-/** `grotto cloud-agent cancel` — the delegating Agent's cancellation request. */
+/** `haus cloud-agent cancel` — the delegating Agent's cancellation request. */
 export const agentCloudAgentCancelInputSchema = z.object({ workId: idSchema }).strict();
 
 export const agentCloudAgentCancelReceiptSchema = z.object({ work: cloudAgentWorkSchema }).strict();

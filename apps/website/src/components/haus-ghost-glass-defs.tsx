@@ -8,7 +8,7 @@
  * Neither ever reaches black, so no layer stops at a line.
  */
 
-import { BODY_PATH, VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from './grotto-ghost-paths.ts';
+import { BODY_PATH, VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from './haus-ghost-paths.ts';
 
 export interface GhostGlassIds {
     clip: string;
@@ -27,7 +27,7 @@ export interface GhostGlassIds {
 
 /** One `useId`-unique name per def, so two marks on a page never collide. */
 export function ghostGlassIds(instanceId: string): GhostGlassIds {
-    const name = (part: string) => `grotto-ghost-${part}-${instanceId}`;
+    const name = (part: string) => `haus-ghost-${part}-${instanceId}`;
 
     return {
         clip: name('clip'),
@@ -239,7 +239,7 @@ const BLURS = [
 
 /** The *shape* of the interior scatter, not its strength: a peak under the
     dome falling away toward the silhouette, where the colored rim takes over.
-    `--grotto-ghost-scatter` scales the whole profile, so a light ground keeps
+    `--haus-ghost-scatter` scales the whole profile, so a light ground keeps
     a whisper of tint and a dark ground gets the icon's pale luminous body. */
 const SCATTER_PROFILE = [
     { offset: 0, opacity: 1 },
@@ -259,7 +259,7 @@ const RIM_COLOR_STOPS = [
 /** The outline runs upper-left to lower-right, so it walks the same colors the
     mesh does: cool lavender-gray where the highlight sits, then azure, violet
     and rose down the right and bottom. Never one color, and never ink — the
-    edge should read as glass catching light. `--grotto-ghost-edge` carries the
+    edge should read as glass catching light. `--haus-ghost-edge` carries the
     strength, so these are relative weights along the run. */
 const EDGE_STOPS = [
     { offset: 0, color: GLASS.edgeCool, opacity: 0.9 },

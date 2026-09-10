@@ -116,7 +116,7 @@ export const automationFireContextSchema = z
 export type AutomationFireContext = z.infer<typeof automationFireContextSchema>;
 
 /**
- * One typed delivery served on `grotto message check` that has no chat message
+ * One typed delivery served on `haus message check` that has no chat message
  * of its own: a Trigger or Reminder fire, or a task assignment. It cannot ride
  * the message array of `/api/agent/events`, so it carries its own envelope body
  * plus the identity the Agent CLI needs to render the same
@@ -128,7 +128,7 @@ export const agentAutomationEventSchema = z
         createdAt: timestampSchema,
         /** The fire id (`trf_…` or `rmf_…`) or assignment key. Fires render `msg=-`; an assignment renders its task message id. */
         id: idSchema,
-        senderHandle: z.enum(['grotto', 'reminder', 'trigger']),
+        senderHandle: z.enum(['haus', 'grotto', 'reminder', 'trigger']),
         senderType: z.enum(['system', 'trigger']),
         target: z.string().min(1),
     })

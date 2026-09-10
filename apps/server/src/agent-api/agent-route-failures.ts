@@ -73,7 +73,7 @@ export function sendAgentRouteFailure(
     }
     if (cause instanceof AgentChatViewStaleError) {
         return sendAgentApiError(reply, cause.status, cause.code, cause.message, {
-            nextAction: `Run grotto message read --target "${target ?? ''}" before creating again.`,
+            nextAction: `Run haus message read --target "${target ?? ''}" before creating again.`,
         });
     }
     if (cause instanceof AgentCreateConflictError) {

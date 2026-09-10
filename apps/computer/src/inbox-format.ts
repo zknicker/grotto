@@ -148,7 +148,7 @@ function askHandle(ask: AgentInboxAsk): string | null {
 export function formatThreadFollowRestoration(target: string): string {
     return [
         `[Haus thread follow restored: this @mention re-subscribed you to ordinary replies in ${target}.]`,
-        `To stop those replies again: grotto thread unfollow --target "${target}"`,
+        `To stop those replies again: haus thread unfollow --target "${target}"`,
     ].join('\n');
 }
 

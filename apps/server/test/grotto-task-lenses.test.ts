@@ -237,7 +237,7 @@ async function sendMessage(server: { chatId: string; id: string }, content: stri
     return sent.message.id;
 }
 
-/** The exact row `grotto task claim <messageId>` writes, without a Computer. */
+/** The exact row `haus task claim <messageId>` writes, without a Computer. */
 async function seedAgentClaim(
     server: { chatId: string; id: string },
     messageId: string

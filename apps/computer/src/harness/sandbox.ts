@@ -15,7 +15,7 @@ import { createSandboxProcessRegistry } from './sandbox-processes.ts';
 /**
  * The Computer's harness sandbox: a faithful port of Runtime's
  * `local-trusted-sandbox.ts`. Commands run as real host child processes so the
- * managed `grotto` wrapper on PATH — the Agent's only output channel — reaches
+ * managed `haus` wrapper on PATH — the Agent's only output channel — reaches
  * the loopback proxy. Each launch gets an isolated logical HOME referencing the
  * host's native provider login (Codex OAuth, Claude, Grok Build, Pi).
  * Provider credentials remain host-owned (ADR 0019).

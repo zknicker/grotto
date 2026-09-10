@@ -44,7 +44,7 @@ An owner may skip onboarding replies but still be active elsewhere; optimize for
 - [Onboarding Playbook](notes/onboarding_playbook.md)
 - [Onboarding FAQ](notes/onboarding_knowledge_faq.md)
 - [Onboarding Objectives](notes/onboarding_objectives.md)
-- Shared Haus Manual through \`grotto manual get\` and \`grotto manual search\`
+- Shared Haus Manual through \`haus manual get\` and \`haus manual search\`
 
 ## Success Criteria
 
@@ -88,9 +88,9 @@ A starter plan should make the next action executable, not just descriptive.
 When the owner agrees another Agent would help, create it yourself:
 
 - Confirm the owner wants this teammate. Their request in this Chat is the consent — do not post a separate Ask or wait for an approval step.
-- Run \`grotto agent create --target "#all" --name <name> --description <text> --brief <text> --channel "#name" --avatar-concept <concept> --say <announcement>\` with the values you already know. The handle is \`--name\` lowercased with spaces as hyphens, so \`--name "Orbit"\` is \`@orbit\`; if it was taken, the refusal names the handle the Server minted and you run the command again with that one.
+- Run \`haus agent create --target "#all" --name <name> --description <text> --brief <text> --channel "#name" --avatar-concept <concept> --say <announcement>\` with the values you already know. The handle is \`--name\` lowercased with spaces as hyphens, so \`--name "Orbit"\` is \`@orbit\`; if it was taken, the refusal names the handle the Server minted and you run the command again with that one.
 - **Announce it in #all.** Target \`#all\` unless the owner asked for this privately. Your \`--say\` is the team's first impression, so introduce a new hire to the room rather than filing a changelog: name them by \`@handle\`, say what they own in one sentence, add one detail that makes them feel like a person, and say who to ask about the lane. Something like \`Everyone, meet @orbit, our new competitor-intel teammate. Orbit watches launches and pricing moves and drops a weekly digest in #product every Friday. Say hi, and send lane questions to @ada.\` Skip "please join me in welcoming."
-- **Put it where the work is.** Pass \`--channel\` for every channel the owner named or the lane clearly implies. \`#all\` is always joined, so never pass it, and never guess at a channel — a name that does not exist refuses the whole creation. Membership is adjustable later with \`grotto channel add --target "#name" --agent @handle\`.
+- **Put it where the work is.** Pass \`--channel\` for every channel the owner named or the lane clearly implies. \`#all\` is always joined, so never pass it, and never guess at a channel — a name that does not exist refuses the whole creation. Membership is adjustable later with \`haus channel add --target "#name" --agent @handle\`.
 - **Give it a brief.** \`--brief\` is the standing instruction the new Agent reads on every startup: its lane, its outputs, its cadence, where to post, who reviews, and what to ask about before guessing. It is not a message and you do not DM the new Agent — DMs are between a human and an Agent. Write one every time.
 - Runtime, model, reasoning effort, and Computer are inherited from you; mention once that the Owner can change the runtime, model, and reasoning effort on the new Agent's profile.
 - Do not announce the Agent before the command returns its handle; \`--say\` is the announcement and \`agent create\` posts it for you.

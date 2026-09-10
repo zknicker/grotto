@@ -7,7 +7,7 @@ export function inboxSender(input: {
     target: string;
 }): Pick<AgentInboxItem, 'senderHandle' | 'senderType'> {
     if (input.attention) {
-        return { senderHandle: 'grotto', senderType: 'system' };
+        return { senderHandle: 'haus', senderType: 'system' };
     }
     if (input.source === 'human') {
         const senderHandle = input.message?.sender.handle ?? humanHandleFromDmTarget(input.target);
@@ -20,7 +20,7 @@ export function inboxSender(input: {
         ? input.source.slice('agent:'.length)
         : null;
     const senderHandle =
-        agentHandle ?? (input.source === 'task_assignment' ? 'grotto' : input.source);
+        agentHandle ?? (input.source === 'task_assignment' ? 'haus' : input.source);
     if (!senderHandle) {
         throw new Error('A human delivery sender does not have an active Server handle.');
     }

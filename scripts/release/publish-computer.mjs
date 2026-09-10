@@ -192,7 +192,7 @@ async function main() {
 
 async function renderInstaller(input) {
     const template = await readFile(
-        path.join(repoRoot, 'scripts', 'release', 'install-grotto-computer.sh'),
+        path.join(repoRoot, 'scripts', 'release', 'install-haus-computer.sh'),
         'utf8'
     );
     const rendered = template

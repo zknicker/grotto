@@ -21,7 +21,7 @@ interface AttachmentDeps {
 
 export const ATTACHMENT_SUBCOMMANDS: SubCommand[] = [
     {
-        examples: ['grotto attachment upload --path ./report.pdf --mime-type application/pdf'],
+        examples: ['haus attachment upload --path ./report.pdf --mime-type application/pdf'],
         flags: [
             { description: 'Local file to upload', name: '--path', valueName: '<file>' },
             { description: 'Optional media type', name: '--mime-type', valueName: '<type>' },
@@ -30,16 +30,16 @@ export const ATTACHMENT_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runAttachmentUpload(args, defaultDeps()),
         summary: 'Upload a local file for a later message send',
-        usage: 'grotto attachment upload --path <file> [--mime-type <mt>]',
+        usage: 'haus attachment upload --path <file> [--mime-type <mt>]',
     },
     {
-        examples: ['grotto attachment view att_1a2b3c --output ./report.pdf'],
+        examples: ['haus attachment view att_1a2b3c --output ./report.pdf'],
         flags: [{ description: 'Saved file path', name: '--output', valueName: '<path>' }],
         name: 'view',
         positionals: ['<id>'],
         run: (args) => runAttachmentView(args, defaultDeps()),
         summary: 'Download an attachment by id',
-        usage: 'grotto attachment view <id> [--output <path>]',
+        usage: 'haus attachment view <id> [--output <path>]',
     },
 ];
 
@@ -82,7 +82,7 @@ export async function runAttachmentUpload(args: ParsedArgs, deps: AttachmentDeps
     const attachment = response.attachment;
     deps.write(`Uploaded ${attachment.filename}. Attachment ID: ${attachment.id}\n`);
     deps.write(
-        `Attach it to a message: grotto message send --target <t> --attachment-id ${attachment.id}\n`
+        `Attach it to a message: haus message send --target <t> --attachment-id ${attachment.id}\n`
     );
     return 0;
 }

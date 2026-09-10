@@ -1,7 +1,7 @@
 import type { CliRenderer } from './render.ts';
 
 /**
- * The grotto-computer help surface: one command registry drives the global
+ * The haus-computer help surface: one command registry drives the global
  * help page, per-command pages, and incomplete/unknown command recovery.
  */
 
@@ -119,7 +119,7 @@ export const computerCommands: ComputerCommandHelp[] = [
     {
         group: 'Account',
         name: 'configure-openrouter',
-        notes: ['Pipe the key on stdin: pbpaste | grotto-computer configure-openrouter'],
+        notes: ['Pipe the key on stdin: pbpaste | haus-computer configure-openrouter'],
         summary: 'Save an OpenRouter management key from stdin',
         usage: 'configure-openrouter',
     },
@@ -170,7 +170,7 @@ function renderGlobalPage(render: CliRenderer): string {
         'Runs your Haus Agents on this machine and connects them to your Servers.',
         '',
         render.heading('Usage'),
-        '  grotto-computer <command> [arguments]',
+        '  haus-computer <command> [arguments]',
     ];
     const width = Math.max(...computerCommands.map((command) => command.usage.length));
     for (const group of commandGroups) {
@@ -179,13 +179,13 @@ function renderGlobalPage(render: CliRenderer): string {
             lines.push(`  ${command.usage.padEnd(width + 4)}${command.summary}`);
         }
     }
-    lines.push('', render.hint('Run grotto-computer help <command> for details.'));
+    lines.push('', render.hint('Run haus-computer help <command> for details.'));
     return lines.join('\n');
 }
 
 function renderCommandPage(command: ComputerCommandHelp, render: CliRenderer): string {
     const lines: string[] = [
-        `${render.heading('grotto-computer')} ${render.heading(command.usage)}`,
+        `${render.heading('haus-computer')} ${render.heading(command.usage)}`,
         '',
         `${command.summary}.`,
     ];
@@ -206,7 +206,7 @@ function renderCommandPage(command: ComputerCommandHelp, render: CliRenderer): s
         const width = Math.max(...command.related.map((entry) => entry.usage.length));
         lines.push('', render.heading('Related'));
         for (const entry of command.related) {
-            lines.push(`  grotto-computer ${entry.usage.padEnd(width + 4)}${entry.summary}`);
+            lines.push(`  haus-computer ${entry.usage.padEnd(width + 4)}${entry.summary}`);
         }
     }
     return lines.join('\n');

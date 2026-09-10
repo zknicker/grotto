@@ -59,7 +59,7 @@ test('seeds Cove exact inventory and 12 valid separately authored Manual summari
         /integration login|local chat history|save-as-a-skill|grotto-agent/iu
     );
     expect(corpus.join('\n')).not.toContain('recipes/playbook/agent-creation');
-    expect(corpus.join('\n')).toContain('grotto agent create');
+    expect(corpus.join('\n')).toContain('haus agent create');
     expect(corpus.join('\n')).toContain('Do not announce the Agent before the command returns');
     expect(corpus.join('\n')).toContain('name them by `@handle`');
     // The three creation rules Cove has to carry: where the announcement goes,
@@ -67,7 +67,7 @@ test('seeds Cove exact inventory and 12 valid separately authored Manual summari
     expect(corpus.join('\n')).toContain('**Announce it in #all.**');
     expect(corpus.join('\n')).toContain('**Put it where the work is.**');
     expect(corpus.join('\n')).toContain('**Give it a brief.**');
-    expect(corpus.join('\n')).not.toContain('grotto message send --target dm:@handle');
+    expect(corpus.join('\n')).not.toContain('haus message send --target dm:@handle');
     expect(corpus.join('\n')).not.toMatch(/Created @handle|Open control/u);
     expect(corpus.join('\n')).toContain(
         'Only ask one blocking question first if the answer is required'
@@ -171,7 +171,7 @@ test('refreshes factory guidance without overwriting Cove-owned memory or object
     ).toContain('When the owner agrees another Agent would help, create it yourself');
     expect(
         await fs.readFile(path.join(workspaceDir, 'notes', 'onboarding_knowledge_faq.md'), 'utf8')
-    ).toContain('create it with `grotto agent create`');
+    ).toContain('create it with `haus agent create`');
 });
 
 test('refuses to replace missing or Agent-edited factory guidance', async () => {

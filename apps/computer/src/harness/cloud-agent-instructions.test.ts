@@ -18,6 +18,6 @@ test('cloud work teaches automatic inbox delivery without a backup reminder', ()
     expect(section).toContain('automatically delivers an inbox item with the result and wakes you');
     expect(section).toContain('a later turn if you are busy');
     expect(section).toContain('You do not need to set a reminder or poll');
-    expect(section).toContain('grotto cloud-agent send --work <workId>');
+    expect(section).toContain('haus cloud-agent send --work <workId>');
     expect(section).toContain("Post useful results in the work's thread.");
 });

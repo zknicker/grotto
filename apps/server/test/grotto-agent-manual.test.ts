@@ -144,7 +144,7 @@ test('Manual rejects invalid metadata and suggests the index for an unknown topi
     expect(unknown.status).toBe(404);
     expect(unknown.body).toMatchObject({
         code: 'MANUAL_TOPIC_NOT_FOUND',
-        nextAction: expect.stringContaining('grotto manual get index'),
+        nextAction: expect.stringContaining('haus manual get index'),
     });
 });
 

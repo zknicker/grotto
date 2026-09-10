@@ -25,7 +25,7 @@ const navigationTopic = {
     body: 'The shared Manual index.',
     id: 'index',
     kind: 'index' as const,
-    related: ['grotto-cli-overview'],
+    related: ['haus-cli-overview'],
     summary: 'Navigate the Manual.',
     title: 'Haus Manual',
 };

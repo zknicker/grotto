@@ -39,26 +39,26 @@ The Manual contains 33 complete recipe cards: 12 seeded cards for proactive orie
 
 Product reference topics such as agent, asks, and cloud-agents describe current Haus capabilities without turning them into prescriptive recipes.
 
-Start at grotto-cli-overview for the command family and the authenticated Manual workflow. Search recipes by useful words, then fetch the stable topic id before acting.
+Start at haus-cli-overview for the command family and the authenticated Manual workflow. Search recipes by useful words, then fetch the stable topic id before acting.
 
 Manual lookups require a natural-language --intent and --reason, each 12–500 characters. Never put credentials, private URLs, raw prompts, or message payloads in either field.`,
         id: 'index',
         kind: 'index',
-        related: ['grotto-cli-overview', 'agent', 'asks', 'recipes/index', 'recipes/seeded'],
+        related: ['haus-cli-overview', 'agent', 'asks', 'recipes/index', 'recipes/seeded'],
         summary: 'Navigate the shared Haus Manual and its complete recipe corpus.',
         title: 'Haus Manual for Agents',
     },
     {
         body: `Haus Agents use the CLI as their only collaboration output channel.
 
-This expandable operating guide covers the command family and authenticated Manual workflow. Core command families include grotto message, grotto inbox, grotto server, grotto channel, grotto profile, grotto task, grotto reminder, grotto thread, grotto attachment, grotto skill, grotto agent, and grotto manual. grotto ask is a single verb: it asks one named human for a decision (see asks).
+This expandable operating guide covers the command family and authenticated Manual workflow. Core command families include haus message, haus inbox, haus server, haus channel, haus profile, haus task, haus reminder, haus thread, haus attachment, haus skill, haus agent, and haus manual. haus ask is a single verb: it asks one named human for a decision (see asks).
 
-Read the current identity with grotto profile show. Check pending work with grotto inbox check and read bodies with grotto message check. Send durable collaboration with grotto message send.
+Read the current identity with haus profile show. Check pending work with haus inbox check and read bodies with haus message check. Send durable collaboration with haus message send.
 
-Use grotto manual search <keywords> --scope recipes to find a procedure, then grotto manual get <topic> to read its complete body. Both Manual commands require --intent and --reason values of 12–500 characters. Keep those values concise and free of secrets or message content.
+Use haus manual search <keywords> --scope recipes to find a procedure, then haus manual get <topic> to read its complete body. Both Manual commands require --intent and --reason values of 12–500 characters. Keep those values concise and free of secrets or message content.
 
 The Manual is read-only. It does not replace the command that performs the work, and it does not authorize access to a chat, file, or external service.`,
-        id: 'grotto-cli-overview',
+        id: 'haus-cli-overview',
         kind: 'overview',
         related: ['index', 'agent', 'asks', 'recipes/index', 'recipes/seeded'],
         summary: 'Use the managed Haus CLI and expand operating guidance on demand.',
@@ -92,7 +92,7 @@ export const manualTopics: readonly ManualTopic[] = [
 const topicById = new Map(manualTopics.map((topic) => [topic.id, topic]));
 
 export function getManualTopic(topicId: string): ManualTopic | null {
-    return topicById.get(topicId) ?? null;
+    return topicById.get(topicId === 'grotto-cli-overview' ? 'haus-cli-overview' : topicId) ?? null;
 }
 
 export function searchManualTopics(
@@ -125,7 +125,7 @@ The complete corpus has 33 cards. Each card retains its source class, stable top
 
 ${lines.join('\n')}
 
-Recipe search results are bounded metadata. A result is a pointer to a later grotto manual get, not a substitute for the full procedure.`;
+Recipe search results are bounded metadata. A result is a pointer to a later haus manual get, not a substitute for the full procedure.`;
 }
 
 function seededIndexBody(): string {

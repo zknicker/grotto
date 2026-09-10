@@ -1,27 +1,27 @@
 /* Ghost geometry, motion, and the two things that depend on the ground it sits
    on. Every color in the mark lives in the `GLASS` palette in
-   `grotto-ghost-glass-defs.tsx`; this file owns the stroke weights, the layer
+   `haus-ghost-glass-defs.tsx`; this file owns the stroke weights, the layer
    opacities, and the drift.
 
    Drift translations are in viewBox units — CSS lengths on an SVG shape are
    user units — so they stay proportional at every rendered size. */
 
-.grotto-ghost {
-    --grotto-ghost-tempo: 1;
+.haus-ghost {
+    --haus-ghost-tempo: 1;
 
     /* How much light the body scatters. On a light page the glass is nearly
        clear and the ground reads straight through it. */
-    --grotto-ghost-scatter: 0.1;
-    --grotto-ghost-specular: 0.7;
-    --grotto-ghost-edge: 0.5;
-    --grotto-ghost-halo: 0.22;
+    --haus-ghost-scatter: 0.1;
+    --haus-ghost-specular: 0.7;
+    --haus-ghost-edge: 0.5;
+    --haus-ghost-halo: 0.22;
 
     /* The halo lies just outside the silhouette. */
     overflow: visible;
 }
 
-.grotto-ghost__interior {
-    fill-opacity: var(--grotto-ghost-scatter);
+.haus-ghost__interior {
+    fill-opacity: var(--haus-ghost-scatter);
 }
 
 /* On a near-black ground a nearly clear body is just a hole: the ghost goes
@@ -30,55 +30,55 @@
    the highlight and outline lean brighter to keep it from flattening into a
    white sticker. Matches the theme layer's own selector pair. */
 
-[data-theme='dark'] .grotto-ghost,
-.dark .grotto-ghost {
-    --grotto-ghost-scatter: 0.6;
-    --grotto-ghost-specular: 0.85;
-    --grotto-ghost-edge: 0.72;
-    --grotto-ghost-halo: 0.35;
+[data-theme='dark'] .haus-ghost,
+.dark .haus-ghost {
+    --haus-ghost-scatter: 0.6;
+    --haus-ghost-specular: 0.85;
+    --haus-ghost-edge: 0.72;
+    --haus-ghost-halo: 0.35;
 }
 
-.grotto-ghost--lively {
-    --grotto-ghost-tempo: 0.4;
+.haus-ghost--lively {
+    --haus-ghost-tempo: 0.4;
 }
 
 /* Wide, soft strokes of the body path, clipped back to it: the visible half
    is the inside one, which is what makes a glow hug the silhouette. */
 
-.grotto-ghost__rim-color {
+.haus-ghost__rim-color {
     stroke-width: 26;
     opacity: 0.63;
 }
 
-.grotto-ghost__rim-light {
+.haus-ghost__rim-light {
     stroke-width: 12;
     opacity: 0.22;
 }
 
-.grotto-ghost__rim-core {
+.haus-ghost__rim-core {
     stroke-width: 13;
     opacity: 0.95;
 }
 
-.grotto-ghost__specular {
-    opacity: var(--grotto-ghost-specular);
+.haus-ghost__specular {
+    opacity: var(--haus-ghost-specular);
 }
 
 /* Wide enough to be a glow, tight enough to stay a glow: at 22px this is well
    under a pixel of spread, so it lifts the mark without fogging the row. */
 
-.grotto-ghost__halo {
+.haus-ghost__halo {
     stroke-width: 3;
-    opacity: var(--grotto-ghost-halo);
+    opacity: var(--haus-ghost-halo);
 }
 
 /* A constant hairline at every rendered size, in the mesh's own colors: on a
    light ground it is what carries the upper-left silhouette, where the white
    rim has nothing to say. */
 
-.grotto-ghost__edge {
+.haus-ghost__edge {
     stroke-width: 1;
-    stroke-opacity: var(--grotto-ghost-edge);
+    stroke-opacity: var(--haus-ghost-edge);
     vector-effect: non-scaling-stroke;
 }
 
@@ -94,24 +94,24 @@
    activation screen) under a blur many times that wide. It is not visible, and
    it drops the drift to ~1% of a core. */
 
-.grotto-ghost--animated .grotto-ghost__blob {
+.haus-ghost--animated .haus-ghost__blob {
     animation-iteration-count: infinite;
     animation-timing-function: steps(6, end);
 }
 
-.grotto-ghost--animated .grotto-ghost__blob--azure {
-    animation-name: grotto-ghost-drift-azure;
-    animation-duration: calc(11s * var(--grotto-ghost-tempo));
+.haus-ghost--animated .haus-ghost__blob--azure {
+    animation-name: haus-ghost-drift-azure;
+    animation-duration: calc(11s * var(--haus-ghost-tempo));
 }
 
-.grotto-ghost--animated .grotto-ghost__blob--violet {
-    animation-name: grotto-ghost-drift-violet;
-    animation-duration: calc(14s * var(--grotto-ghost-tempo));
+.haus-ghost--animated .haus-ghost__blob--violet {
+    animation-name: haus-ghost-drift-violet;
+    animation-duration: calc(14s * var(--haus-ghost-tempo));
 }
 
-.grotto-ghost--animated .grotto-ghost__blob--rose {
-    animation-name: grotto-ghost-drift-rose;
-    animation-duration: calc(9s * var(--grotto-ghost-tempo));
+.haus-ghost--animated .haus-ghost__blob--rose {
+    animation-name: haus-ghost-drift-rose;
+    animation-duration: calc(9s * var(--haus-ghost-tempo));
 }
 
 /* Three closed loops of different shape, direction, and period, each about a
@@ -120,7 +120,7 @@
    here as the color regions slowly trading places — which is the only way the
    drift is visible at all at 22px. */
 
-@keyframes grotto-ghost-drift-azure {
+@keyframes haus-ghost-drift-azure {
     0% {
         transform: translate(0, 0);
     }
@@ -142,7 +142,7 @@
     }
 }
 
-@keyframes grotto-ghost-drift-violet {
+@keyframes haus-ghost-drift-violet {
     0% {
         transform: translate(0, 0);
     }
@@ -164,7 +164,7 @@
     }
 }
 
-@keyframes grotto-ghost-drift-rose {
+@keyframes haus-ghost-drift-rose {
     0% {
         transform: translate(0, 0);
     }
@@ -190,13 +190,13 @@
    not know that. `main.tsx` toggles `window-blurred` from the native window's
    own focus events. */
 
-html.window-blurred .grotto-ghost--animated .grotto-ghost__blob {
+html.window-blurred .haus-ghost--animated .haus-ghost__blob {
     animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {
     /* Freeze where they stand rather than snapping back to the start. */
-    .grotto-ghost--animated .grotto-ghost__blob {
+    .haus-ghost--animated .haus-ghost__blob {
         animation-play-state: paused;
     }
 }

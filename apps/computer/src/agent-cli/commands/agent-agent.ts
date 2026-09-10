@@ -20,7 +20,7 @@ const maxChannels = 20;
 const handlePattern = /^@?[a-z0-9][a-z0-9-]{1,30}$/u;
 const channelPattern = /^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u;
 
-const CREATE_RECIPE = `grotto agent create --target "#all" --name "Orbit" \\
+const CREATE_RECIPE = `haus agent create --target "#all" --name "Orbit" \\
   --description "Keeps release notes current and chases missing changelog entries." \\
   --channel "#product" \\
   --brief "You own release notes. Draft them from merged PRs, post a digest in #product every Friday, and ask @zach-knickerbocker before changing the format." \\
@@ -74,12 +74,12 @@ const CREATE_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runAgentCreate(args, defaultDeps()),
     summary: 'Create one Agent that inherits your runtime, model, reasoning effort, and Computer',
-    usage: 'grotto agent create --target <target> --name <name> --description <text> [--brief <text>] [--channel <#name>] [--avatar-concept <text>] --say <text>',
+    usage: 'haus agent create --target <target> --name <name> --description <text> [--brief <text>] [--channel <#name>] [--avatar-concept <text>] --say <text>',
 };
 
 const UPDATE_COMMAND: SubCommand = {
     examples: [
-        'grotto agent update --agent @orbit --description "Owns release notes and the changelog."',
+        'haus agent update --agent @orbit --description "Owns release notes and the changelog."',
     ],
     flags: [
         { description: 'The Agent to update, as @handle', name: '--agent', valueName: '<@handle>' },
@@ -93,11 +93,11 @@ const UPDATE_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runAgentUpdate(args, defaultDeps()),
     summary: "Replace an Agent's description; names and handles are not renamed here",
-    usage: 'grotto agent update --agent <@handle> --description <text>',
+    usage: 'haus agent update --agent <@handle> --description <text>',
 };
 
 const AVATAR_COMMAND: SubCommand = {
-    examples: ['grotto agent avatar --agent @orbit --concept "a moonlit raccoon cartographer"'],
+    examples: ['haus agent avatar --agent @orbit --concept "a moonlit raccoon cartographer"'],
     flags: [
         {
             description: 'The Agent to re-illustrate, as @handle',
@@ -114,7 +114,7 @@ const AVATAR_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runAgentAvatar(args, defaultDeps()),
     summary: 'Generate and set one Agent avatar from a concept',
-    usage: 'grotto agent avatar --agent <@handle> --concept <text>',
+    usage: 'haus agent avatar --agent <@handle> --concept <text>',
 };
 
 export const AGENT_SUBCOMMANDS: SubCommand[] = [CREATE_COMMAND, UPDATE_COMMAND, AVATAR_COMMAND];
@@ -226,7 +226,7 @@ function readAgentHandle(args: ParsedArgs): string {
     const raw = requiredValue(args, '--agent');
     if (!handlePattern.test(raw)) {
         throw new AgentCliError('INVALID_ARG', `Invalid Agent handle "${raw}".`, {
-            nextAction: 'Name one Agent as --agent @handle; run grotto server info to list them.',
+            nextAction: 'Name one Agent as --agent @handle; run haus server info to list them.',
         });
     }
     return raw;

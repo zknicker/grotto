@@ -133,7 +133,7 @@ test('keeps every published body faithful to its captured source card', async ()
         const body = source
             .slice(boundaries[1].index + 3, boundaries[2]?.index ?? source.length)
             .trim();
-        const adapted = body.replaceAll(/\bRaft\b/g, 'Haus').replaceAll(/\braft\b/g, 'grotto');
+        const adapted = body.replaceAll(/\bRaft\b/g, 'Haus').replaceAll(/\braft\b/g, 'haus');
 
         if (topic.id === 'recipes/technique/html-artifact-discussion') {
             // Haus adds the artifact fence the captured card predates.
@@ -183,10 +183,11 @@ test('search matches metadata and content while respecting recipe scope and limi
         searchManualTopics('seeded', { limit: 20, scope: 'recipes' }).map((topic) => topic.id)
     ).toContain('recipes/seeded');
     expect(claim.map((topic) => topic.id)).toEqual(['recipes/technique/task-claim-lock']);
-    expect(overview.map((topic) => topic.id)).toContain('grotto-cli-overview');
+    expect(overview.map((topic) => topic.id)).toContain('haus-cli-overview');
 });
 
 test('returns the complete topic and preserves stable unknown-topic behavior', () => {
+    expect(getManualTopic('grotto-cli-overview')).toBe(getManualTopic('haus-cli-overview'));
     const topic = getManualTopic('recipes/technique/task-claim-lock');
 
     expect(topic).toMatchObject({
@@ -224,19 +225,19 @@ test('publishes the trigger technique card with its CLI verbs and untrusted-payl
 
     // Every CLI verb the card teaches must be one the agent actually has.
     for (const verb of [
-        'grotto trigger create',
-        'grotto trigger list',
-        'grotto trigger show',
-        'grotto trigger disable',
-        'grotto trigger enable',
-        'grotto trigger rotate',
-        'grotto trigger delete',
-        'grotto trigger log',
+        'haus trigger create',
+        'haus trigger list',
+        'haus trigger show',
+        'haus trigger disable',
+        'haus trigger enable',
+        'haus trigger rotate',
+        'haus trigger delete',
+        'haus trigger log',
     ]) {
         expect(card?.body).toContain(verb);
     }
     // A trigger has no schedule; time-based work stays with reminders.
-    expect(card?.body).not.toMatch(/grotto trigger (schedule|repeat|cron)/u);
+    expect(card?.body).not.toMatch(/haus trigger (schedule|repeat|cron)/u);
 
     expect(card?.body).toContain('Its `msg=-` means there is no chat message');
     expect(card?.body).toContain('a reply command with the fire id');

@@ -153,7 +153,7 @@ function sourceHandle(source: string) {
     if (source.startsWith('agent:')) {
         return source.slice('agent:'.length);
     }
-    return source === 'task_assignment' ? 'grotto' : source;
+    return source === 'task_assignment' ? 'haus' : source;
 }
 
 /**
@@ -165,11 +165,11 @@ function typedSenderHandle(source: string): AgentAutomationEvent['senderHandle']
     if (source === 'trigger') {
         return 'trigger';
     }
-    return source === 'reminder' ? 'reminder' : 'grotto';
+    return source === 'reminder' ? 'reminder' : 'haus';
 }
 
 /**
- * The short id `grotto inbox` prints in a target's `first msg=`/`latest msg=`
+ * The short id `haus inbox` prints in a target's `first msg=`/`latest msg=`
  * slot. A Trigger or Reminder fire has no Chat message behind it, so it prints
  * `-` — the same slot the Agent's envelope header renders for a fire — instead
  * of a fire id the Agent would spend a failed `--message-id` command on.

@@ -93,7 +93,7 @@ test('a concurrent update reports its live state', () => {
             at('downloading', { downloadedBytes: 12_400_000, totalBytes: 48_200_000 })
         )
     ).toBe(
-        'Another Haus Computer update to 1.1.0 is already in progress (downloading, 12.4 MB of 48.2 MB). Re-run grotto-computer upgrade to check on it.'
+        'Another Haus Computer update to 1.1.0 is already in progress (downloading, 12.4 MB of 48.2 MB). Re-run haus-computer upgrade to check on it.'
     );
     expect(describeConcurrentUpdate(at('waiting-for-agents', { activeAgentCount: 1 }))).toContain(
         'waiting for 1 active Agent'

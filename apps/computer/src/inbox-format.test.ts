@@ -255,7 +255,7 @@ test('renders a restored Thread follow as recipient-only delivery guidance', () 
     expect(composeInboxDrain([restored], 'UTC')).toContain(
         [
             '[Haus thread follow restored: this @mention re-subscribed you to ordinary replies in #general:deadbeef.]',
-            'To stop those replies again: grotto thread unfollow --target "#general:deadbeef"',
+            'To stop those replies again: haus thread unfollow --target "#general:deadbeef"',
             '[target=#general:deadbeef msg=first time=2026-07-27 00:00:00 type=human mentioned=true] @zach: @sage please come back to this discussion.',
         ].join('\n')
     );

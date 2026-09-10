@@ -95,7 +95,7 @@ test('message check explains a restored Thread follow and its exact undo command
         '[Haus thread follow restored: this @mention re-subscribed you to ordinary replies in #general:deadbeef.]'
     );
     expect(outputs[0]).toContain(
-        'To stop those replies again: grotto thread unfollow --target "#general:deadbeef"'
+        'To stop those replies again: haus thread unfollow --target "#general:deadbeef"'
     );
 });
 
@@ -116,7 +116,7 @@ test('message check stops after Raft’s 50-round drain cap', async () => {
 
     expect(calls).toBe(50);
     expect(outputs[0]).toContain('body-msg_50');
-    expect(outputs[0]).toEndWith('More messages are pending — run grotto message check again.\n');
+    expect(outputs[0]).toEndWith('More messages are pending — run haus message check again.\n');
 });
 
 test('message check interleaves an automation fire with messages by createdAt', async () => {
@@ -320,7 +320,7 @@ test('history preserves restoration guidance when it is the first visible path',
         '[Haus thread follow restored: this @mention re-subscribed you to ordinary replies in #general:deadbeef.]'
     );
     expect(output).toContain(
-        'To stop those replies again: grotto thread unfollow --target "#general:deadbeef"'
+        'To stop those replies again: haus thread unfollow --target "#general:deadbeef"'
     );
 });
 

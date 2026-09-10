@@ -9,7 +9,7 @@ import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
 import { assertAgentTarget, requiredValue } from './agent-command-utils.ts';
 
-const ASK_RECIPE = `grotto ask --target "#product" --to @ada --title "Run the staged migration?" \\
+const ASK_RECIPE = `haus ask --target "#product" --to @ada --title "Run the staged migration?" \\
   --summary "The migration is staged and reversible for one hour." \\
   --step "Approve the staged migration" <<'GROTTOMSG'
 The migration is staged. Should I run it now, or wait for the release window?
@@ -36,7 +36,7 @@ export const ASK_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runAsk(args, defaultDeps()),
     summary: 'Ask one human for a decision; the question body comes from stdin',
-    usage: 'grotto ask --target <target> --to @<handle> --title <text> --summary <text> --step <text>',
+    usage: 'haus ask --target <target> --to @<handle> --title <text> --summary <text> --step <text>',
 };
 
 export async function runAsk(args: ParsedArgs, deps: AskDeps): Promise<number> {
@@ -87,7 +87,7 @@ function readHandle(args: ParsedArgs): string {
     const handle = raw.startsWith('@') ? raw.slice(1) : raw;
     if (!/^[A-Za-z0-9][A-Za-z0-9-]{1,30}$/u.test(handle)) {
         throw new AgentCliError('INVALID_ARG', `Invalid handle "${raw}".`, {
-            nextAction: 'Use --to @handle. Run grotto server info --humans to list handles.',
+            nextAction: 'Use --to @handle. Run haus server info --humans to list handles.',
         });
     }
     return handle.toLowerCase();

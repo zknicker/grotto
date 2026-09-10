@@ -268,7 +268,7 @@ describe('reminder scheduler lifecycle', () => {
                 `fire=${fire?.id}`,
                 '🔔 Reminder script output:',
                 '  changed',
-                `reply with: grotto message send --cause ${fire?.id}`,
+                `reply with: haus message send --cause ${fire?.id}`,
             ].join('\n')
         );
     });
@@ -375,7 +375,7 @@ describe('reminder scheduler lifecycle', () => {
             [
                 '🔔 Reminder: Recover me',
                 `fire=${fireId}`,
-                `reply with: grotto message send --cause ${fireId}`,
+                `reply with: haus message send --cause ${fireId}`,
             ].join('\n')
         );
 

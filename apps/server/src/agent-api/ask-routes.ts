@@ -53,7 +53,7 @@ export function registerAgentAskRoutes(
             }
             if (cause instanceof InvalidAskAddresseeError) {
                 return sendAgentApiError(reply, 404, 'ASK_ADDRESSEE_NOT_FOUND', cause.message, {
-                    nextAction: 'Run grotto server info --humans to see who can be addressed.',
+                    nextAction: 'Run haus server info --humans to see who can be addressed.',
                 });
             }
             if (cause instanceof AgentAuthorNotFoundError) {

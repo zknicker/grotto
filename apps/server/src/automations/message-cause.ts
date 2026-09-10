@@ -48,7 +48,7 @@ export class MessageCauseError extends Error {
 }
 
 /**
- * Resolves `grotto message send --cause <fireId>` to the fire it names. Fire ids
+ * Resolves `haus message send --cause <fireId>` to the fire it names. Fire ids
  * carry their own prefix, so the kind is decided before any lookup. The sending
  * Agent must own the automation: provenance is a claim about who was woken, and
  * one Agent may not attribute its message to another's Trigger or Reminder.

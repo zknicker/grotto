@@ -8,7 +8,7 @@
  *
  * How much light the interior scatters depends on the ground, the way it does
  * in the app icon — on a dark tile the body reads pale and luminous, not as a
- * hole cut in the sidebar. `--grotto-ghost-scatter` owns that, in the CSS.
+ * hole cut in the sidebar. `--haus-ghost-scatter` owns that, in the CSS.
  *
  * A soft colored halo sits outside the silhouette, then four layers clipped to
  * the body, painted back to front:
@@ -35,10 +35,10 @@
  * are opaque marks on top of the glass, not something it tints.
  */
 
-import { type GhostGlassIds, GLASS, GlassDefs } from './grotto-ghost-glass-defs.tsx';
-import { BODY_PATH, EYES_PATH, VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from './grotto-ghost-paths.ts';
+import { type GhostGlassIds, GLASS, GlassDefs } from './haus-ghost-glass-defs.tsx';
+import { BODY_PATH, EYES_PATH, VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from './haus-ghost-paths.ts';
 
-export function GrottoGhostGlass({ ids }: { ids: GhostGlassIds }) {
+export function HausGhostGlass({ ids }: { ids: GhostGlassIds }) {
     return (
         <>
             <GlassDefs ids={ids} />
@@ -46,7 +46,7 @@ export function GrottoGhostGlass({ ids }: { ids: GhostGlassIds }) {
                 mark's own color, which is what lifts it off both a white page
                 and a near-black sidebar. */}
             <path
-                className="grotto-ghost__halo"
+                className="haus-ghost__halo"
                 d={BODY_PATH}
                 fill="none"
                 filter={`url(#${ids.haloBlur})`}
@@ -54,7 +54,7 @@ export function GrottoGhostGlass({ ids }: { ids: GhostGlassIds }) {
             />
             <g clipPath={`url(#${ids.clip})`}>
                 <rect
-                    className="grotto-ghost__interior"
+                    className="haus-ghost__interior"
                     fill={`url(#${ids.interior})`}
                     height={VIEWBOX_HEIGHT}
                     width={VIEWBOX_WIDTH}
@@ -66,7 +66,7 @@ export function GrottoGhostGlass({ ids }: { ids: GhostGlassIds }) {
                         <g filter={`url(#${ids.meshBlur})`}>
                             {MESH_BLOBS.map((blob) => (
                                 <circle
-                                    className={`grotto-ghost__blob grotto-ghost__blob--${blob.id}`}
+                                    className={`haus-ghost__blob haus-ghost__blob--${blob.id}`}
                                     cx={blob.cx}
                                     cy={blob.cy}
                                     fill={blob.color}
@@ -78,7 +78,7 @@ export function GrottoGhostGlass({ ids }: { ids: GhostGlassIds }) {
                         </g>
                     </g>
                     <path
-                        className="grotto-ghost__rim-color"
+                        className="haus-ghost__rim-color"
                         d={BODY_PATH}
                         fill="none"
                         filter={`url(#${ids.rimBlur})`}
@@ -87,7 +87,7 @@ export function GrottoGhostGlass({ ids }: { ids: GhostGlassIds }) {
                 </g>
                 <g mask={`url(#${ids.domeMask})`}>
                     <path
-                        className="grotto-ghost__rim-light"
+                        className="haus-ghost__rim-light"
                         d={BODY_PATH}
                         fill="none"
                         filter={`url(#${ids.lightBlur})`}
@@ -97,7 +97,7 @@ export function GrottoGhostGlass({ ids }: { ids: GhostGlassIds }) {
                         catches a hard highlight, not a wash — without this the
                         soft glow alone just fogs the interior. */}
                     <path
-                        className="grotto-ghost__rim-core"
+                        className="haus-ghost__rim-core"
                         d={BODY_PATH}
                         fill="none"
                         filter={`url(#${ids.coreBlur})`}
@@ -106,7 +106,7 @@ export function GrottoGhostGlass({ ids }: { ids: GhostGlassIds }) {
                 </g>
                 {SPECULARS.map((spot) => (
                     <ellipse
-                        className="grotto-ghost__specular"
+                        className="haus-ghost__specular"
                         cx={spot.cx}
                         cy={spot.cy}
                         fill={GLASS.highlight}
@@ -122,12 +122,12 @@ export function GrottoGhostGlass({ ids }: { ids: GhostGlassIds }) {
                 ))}
             </g>
             <path
-                className="grotto-ghost__edge"
+                className="haus-ghost__edge"
                 d={BODY_PATH}
                 fill="none"
                 stroke={`url(#${ids.edge})`}
             />
-            <path className="grotto-ghost__eyes" d={EYES_PATH} fill={GLASS.eye} />
+            <path className="haus-ghost__eyes" d={EYES_PATH} fill={GLASS.eye} />
         </>
     );
 }

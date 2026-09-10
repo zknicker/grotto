@@ -2,11 +2,16 @@ import { createHash } from 'node:crypto';
 import { chmod, copyFile, mkdir, mkdtemp, open, rename, rm, stat } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { computerAppleSigningIdentity, computerAppleTeamId } from './build-identity.ts';
+import {
+    computerAppleSigningIdentity,
+    computerAppleTeamId,
+    computerStandalone,
+} from './build-identity.ts';
 import type { SignedComputerRelease } from './update-contract.ts';
 
 const installedPath =
-    process.env.GROTTO_COMPUTER_INSTALL_PATH ?? join(homedir(), '.local', 'bin', 'grotto-computer');
+    process.env.GROTTO_COMPUTER_INSTALL_PATH ??
+    (computerStandalone ? process.execPath : join(homedir(), '.local', 'bin', 'haus-computer'));
 
 export async function downloadAndVerifyArtifact(input: {
     onProgress(progress: { downloadedBytes: number; totalBytes: number | null }): Promise<void>;

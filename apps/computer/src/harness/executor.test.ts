@@ -482,7 +482,7 @@ test('projects a concrete fire and a task assignment into the first prompt', asy
         content: [
             '🔔 Reminder: Check the deploy',
             'fire=rmf_9a8b7c6d',
-            'reply with: grotto message send --cause rmf_9a8b7c6d',
+            'reply with: haus message send --cause rmf_9a8b7c6d',
         ].join('\n'),
         createdAt: '2026-07-27T00:00:00.000Z',
         id: 'rmf_9a8b7c6d',
@@ -500,7 +500,7 @@ test('projects a concrete fire and a task assignment into the first prompt', asy
     expect(streamedPrompts[0]).toContain(
         '[target=#general msg=- time=2026-07-27 00:00:00 type=system] @reminder: 🔔 Reminder: Check the deploy'
     );
-    expect(streamedPrompts[0]).toContain('reply with: grotto message send --cause rmf_9a8b7c6d');
+    expect(streamedPrompts[0]).toContain('reply with: haus message send --cause rmf_9a8b7c6d');
 
     streamedPrompts = [];
     const assignment = {
@@ -883,10 +883,10 @@ test('Cove guidance drift migrates a warm session once and is current when the r
         'owner progress\n'
     );
     expect(await readFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'utf8')).toContain(
-        'grotto agent create'
+        'haus agent create'
     );
-    expect(streamedCovePlaybooks[1]).toContain('grotto agent create');
-    expect(streamedCoveFaqs[1]).toContain('grotto agent create');
+    expect(streamedCovePlaybooks[1]).toContain('haus agent create');
+    expect(streamedCoveFaqs[1]).toContain('haus agent create');
     expect(streamedPrompts[1]).toContain('re-read notes/onboarding_playbook.md');
     expect(updateActivity).toEqual([
         { category: 'updating_instructions', phase: 'started' },
@@ -1031,7 +1031,7 @@ test('retries Cove guidance consumption after a refreshed turn fails', async () 
         phase: 'failed',
     });
     expect(await readFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'utf8')).toContain(
-        'grotto agent create'
+        'haus agent create'
     );
 
     streamFails = false;

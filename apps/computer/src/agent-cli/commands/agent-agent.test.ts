@@ -165,8 +165,7 @@ test('a Server refusal reaches the Agent with its own code and next action', asy
         request() {
             return Promise.reject(
                 new AgentCliError('CHAT_VIEW_STALE', 'New messages arrived in #product.', {
-                    nextAction:
-                        'Run grotto message read --target "#product" before creating again.',
+                    nextAction: 'Run haus message read --target "#product" before creating again.',
                 })
             );
         },

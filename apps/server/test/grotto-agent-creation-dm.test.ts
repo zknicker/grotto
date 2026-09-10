@@ -117,7 +117,7 @@ test('a thread target under another Agent’s handle is invalid too', async () =
     expect(sent.body.code).toBe('INVALID_TARGET');
 });
 
-/** `grotto message send`: the receipt names the Chat the message actually landed in. */
+/** `haus message send`: the receipt names the Chat the message actually landed in. */
 async function sendBrief(runner: { token: string }, target: string, nonce: string) {
     const response = await fetch(new URL('/api/agent/messages/send', fixture.harness.url), {
         body: JSON.stringify({ content: 'Here is your working brief.', nonce, target }),

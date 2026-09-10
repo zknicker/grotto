@@ -135,17 +135,12 @@ export async function consumeVisibleMessages(
 
 /**
  * A bodiless inbox item mirrored into the local inbox: a Trigger or Reminder
- * fire, or a task assignment, which speaks as `@grotto`. None has a backing
+ * fire, or a task assignment, which speaks as `@haus`. None has a backing
  * Chat message, so the Server alone can serve it and mark it served, and its
  * key must never enter message-visibility attestation.
  */
 export function isAutomationInboxItem(item: AgentInboxItem): boolean {
-    return (
-        !item.message &&
-        (item.senderHandle === 'trigger' ||
-            item.senderHandle === 'reminder' ||
-            item.senderHandle === 'grotto')
-    );
+    return !item.message && ['trigger', 'reminder', 'haus', 'grotto'].includes(item.senderHandle);
 }
 
 /** Retires bodiless items the Server just served on `/api/agent/events` from the mirror. */

@@ -1579,7 +1579,7 @@ export const agentRuntimeWidgetProgressSchema = z.object({
 });
 
 // Chat pane state: the Runtime-owned tab set of a chat's artifact pane.
-// Targets mirror the app's grotto:// link scheme; identity is kind + path.
+// Targets mirror the app's haus:// link scheme; identity is kind + path.
 export const chatPaneTargetSchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('workspaceDirectory'), path: z.string() }),
     z.object({ kind: z.literal('workspaceFile'), path: z.string().trim().min(1) }),
@@ -1704,7 +1704,7 @@ export const agentRuntimePaneUpdatedEventSchema = z.object({
 });
 
 // Ephemeral composition stream (I1): a provisional bubble for an in-flight
-// `grotto message send`. Volatile event class — never persisted, never
+// `haus message send`. Volatile event class — never persisted, never
 // replayed; the durable message's compositionId metadata echo is the commit
 // signal, `retracted` is the freshness-hold path, and clients TTL-fade a
 // composition that stops updating.

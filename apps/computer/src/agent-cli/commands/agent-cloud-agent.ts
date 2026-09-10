@@ -16,7 +16,7 @@ import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
 import { assertAgentTarget, requiredValue } from './agent-command-utils.ts';
 
-const START_RECIPE = `grotto cloud-agent start --target "#product" --repo grotto/grotto --ref main \\
+const START_RECIPE = `haus cloud-agent start --target "#product" --repo grotto/haus --ref main \\
   --title "Fix the flaky delivery test" \\
   --say "Handing the flaky delivery test to a cloud agent; I will report back." <<'GROTTOMSG'
 Reproduce apps/server/test/agent-delivery.test.ts locally, find the race, and open a pull request.
@@ -43,12 +43,12 @@ const START_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runCloudAgentStart(args, defaultDeps()),
     summary: 'Delegate bounded work to a cloud agent; the instructions come from stdin',
-    usage: 'grotto cloud-agent start --target <target> --repo <owner/name> --ref <ref> --title <text> --say <text>',
+    usage: 'haus cloud-agent start --target <target> --repo <owner/name> --ref <ref> --title <text> --say <text>',
 };
 
 const SEND_COMMAND: SubCommand = {
     examples: [
-        'printf "Address the review comments." | grotto cloud-agent send --work caw_9f2c1a0b7d4e6f81',
+        'printf "Address the review comments." | haus cloud-agent send --work caw_9f2c1a0b7d4e6f81',
     ],
     flags: [
         { description: 'Existing work to continue', name: '--work', valueName: '<workId>' },
@@ -58,14 +58,11 @@ const SEND_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runCloudAgentSend(args, defaultDeps()),
     summary: 'Send stdin instructions to the same cloud agent; queue while busy',
-    usage: 'grotto cloud-agent send --work <workId> [--interrupt]',
+    usage: 'haus cloud-agent send --work <workId> [--interrupt]',
 };
 
 const INSPECT_COMMAND: SubCommand = {
-    examples: [
-        'grotto cloud-agent inspect',
-        'grotto cloud-agent inspect --work caw_9f2c1a0b7d4e6f81',
-    ],
+    examples: ['haus cloud-agent inspect', 'haus cloud-agent inspect --work caw_9f2c1a0b7d4e6f81'],
     flags: [
         {
             description: 'Work to inspect; omit to list your work',
@@ -77,25 +74,25 @@ const INSPECT_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runCloudAgentInspect(args, defaultDeps()),
     summary: 'Inspect your cloud agent work and its recorded results',
-    usage: 'grotto cloud-agent inspect [--work <workId>]',
+    usage: 'haus cloud-agent inspect [--work <workId>]',
 };
 
 const STOP_COMMAND: SubCommand = {
-    examples: ['grotto cloud-agent stop --work caw_9f2c1a0b7d4e6f81'],
+    examples: ['haus cloud-agent stop --work caw_9f2c1a0b7d4e6f81'],
     flags: [{ description: 'The work to stop', name: '--work', valueName: '<workId>' }],
     name: 'stop',
     positionals: [],
     run: (args) => runCloudAgentCancel(args, defaultDeps()),
     summary: 'Ask the provider to stop work you delegated',
-    usage: 'grotto cloud-agent stop --work <workId>',
+    usage: 'haus cloud-agent stop --work <workId>',
 };
 
 const CANCEL_COMMAND: SubCommand = {
     ...STOP_COMMAND,
-    examples: ['grotto cloud-agent cancel --work caw_9f2c1a0b7d4e6f81'],
+    examples: ['haus cloud-agent cancel --work caw_9f2c1a0b7d4e6f81'],
     name: 'cancel',
     summary: 'Compatibility alias for cloud-agent stop',
-    usage: 'grotto cloud-agent cancel --work <workId>',
+    usage: 'haus cloud-agent cancel --work <workId>',
 };
 
 export const CLOUD_AGENT_SUBCOMMANDS: SubCommand[] = [
@@ -114,7 +111,7 @@ export async function runCloudAgentSend(args: ParsedArgs, deps: CloudAgentDeps):
             'MISSING_CONTENT',
             'Follow-up instructions are required on stdin.',
             {
-                nextAction: `printf "Address the review comments." | grotto cloud-agent send --work ${workId}`,
+                nextAction: `printf "Address the review comments." | haus cloud-agent send --work ${workId}`,
             }
         );
     }

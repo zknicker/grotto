@@ -34,7 +34,7 @@ test('update status lines cover every freshness state', () => {
             kind: 'update-available',
             latestVersion: '1.3.0',
         })
-    ).toBe('● Update available: v1.3.0 — run grotto-computer upgrade');
+    ).toBe('● Update available: v1.3.0 — run haus-computer upgrade');
     expect(render.updateStatusLine({ kind: 'development' })).toContain('Development build');
     expect(render.updateStatusLine({ kind: 'unknown' })).toContain('Update check unavailable');
 });

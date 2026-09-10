@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { GrottoGhost } from './grotto-ghost.tsx';
+import { HausGhost } from './haus-ghost.tsx';
 
-const iridescent = () => renderToStaticMarkup(<GrottoGhost fill="iridescent" />);
-const ghostCss = await Bun.file(new URL('./grotto-ghost.css', import.meta.url)).text();
+const iridescent = () => renderToStaticMarkup(<HausGhost fill="iridescent" />);
+const ghostCss = await Bun.file(new URL('./haus-ghost.css', import.meta.url)).text();
 
-describe('Grotto ghost', () => {
+describe('Haus ghost', () => {
     test('punches the eyes out of a single tintable path when solid', () => {
-        const markup = renderToStaticMarkup(<GrottoGhost />);
+        const markup = renderToStaticMarkup(<HausGhost />);
 
         expect(markup.match(/<path/g)).toHaveLength(1);
         expect(markup).toContain('fill-rule="evenodd"');
@@ -23,7 +23,7 @@ describe('Grotto ghost', () => {
         expect(markup).toContain(`clip-path="url(#${clipId})"`);
         // A bbox filter region would crop the blur off the drifting blobs.
         expect(markup.match(/filterUnits="userSpaceOnUse"/g)).toHaveLength(5);
-        expect(markup).toContain('class="grotto-ghost__eyes"');
+        expect(markup).toContain('class="haus-ghost__eyes"');
     });
 
     test('draws the silhouette with a colored rim, not with a fill', () => {
@@ -36,8 +36,8 @@ describe('Grotto ghost', () => {
         expect(markup).toContain('#ff43a6');
         // The rim is a stroke of the body path clipped back to it, so the mark
         // has no filled body at all beyond the interior tint.
-        expect(markup).toContain('class="grotto-ghost__rim-color"');
-        expect(markup).not.toContain('class="grotto-ghost__body"');
+        expect(markup).toContain('class="haus-ghost__rim-color"');
+        expect(markup).not.toContain('class="haus-ghost__body"');
     });
 
     test('lets the theme decide how much light the interior scatters', () => {
@@ -51,22 +51,21 @@ describe('Grotto ghost', () => {
         expect(stops[0]).toBe(1);
         expect(stops).toEqual([...stops].sort((a, b) => b - a));
         expect(stops.at(-1)).toBeLessThan(0.5);
-        expect(markup).toContain('class="grotto-ghost__interior"');
-        expect(ghostCss).toContain('fill-opacity: var(--grotto-ghost-scatter)');
-        expect(ghostCss).toContain('opacity: var(--grotto-ghost-specular)');
+        expect(markup).toContain('class="haus-ghost__interior"');
+        expect(ghostCss).toContain('fill-opacity: var(--haus-ghost-scatter)');
+        expect(ghostCss).toContain('opacity: var(--haus-ghost-specular)');
     });
 
     test("scales the ground-dependent layers on the app's own dark selector", () => {
-        const dark = ghostCss.slice(ghostCss.indexOf("[data-theme='dark'] .grotto-ghost"));
+        const dark = ghostCss.slice(ghostCss.indexOf("[data-theme='dark'] .haus-ghost"));
 
-        expect(dark).toContain('.dark .grotto-ghost');
+        expect(dark).toContain('.dark .haus-ghost');
         for (const variable of ['scatter', 'specular', 'edge', 'halo']) {
-            expect(dark).toContain(`--grotto-ghost-${variable}:`);
+            expect(dark).toContain(`--haus-ghost-${variable}:`);
         }
         // A dark ground has to scatter far more light than a light one, or the
         // ghost reads as a dark blob with faint colored edges.
-        const scatter = (css: string) =>
-            Number(css.match(/--grotto-ghost-scatter:\s*([\d.]+)/)?.[1]);
+        const scatter = (css: string) => Number(css.match(/--haus-ghost-scatter:\s*([\d.]+)/)?.[1]);
 
         expect(scatter(dark)).toBeGreaterThan(4 * scatter(ghostCss));
     });
@@ -77,7 +76,7 @@ describe('Grotto ghost', () => {
         const edge = markup.match(/<linearGradient[^>]*-edge-[^>]*>(.*?)<\/linearGradient>/s)?.[1];
 
         expect(edgeId).toBeTruthy();
-        expect(markup).toContain(`class="grotto-ghost__edge" d=`);
+        expect(markup).toContain(`class="haus-ghost__edge" d=`);
         expect(markup).toContain(`stroke="url(#${edgeId})"`);
         // Cool lavender-gray under the highlight, then the mesh colors down the
         // right and bottom: an outline catching light, not a hairline of ink.
@@ -85,22 +84,22 @@ describe('Grotto ghost', () => {
         expect(edge).toContain('#00baff');
         expect(edge).toContain('#ff43a6');
         expect(markup).not.toContain('#1a1630');
-        expect(ghostCss).toContain('stroke-opacity: var(--grotto-ghost-edge)');
+        expect(ghostCss).toContain('stroke-opacity: var(--haus-ghost-edge)');
     });
 
     test('lifts the mark off the ground with a colored halo outside the clip', () => {
         const markup = iridescent();
         const rimId = markup.match(/<linearGradient[^>]*\sid="([^"]*rim-color[^"]*)"/)?.[1];
         const clipIndex = markup.indexOf('<g clip-path=');
-        const haloIndex = markup.indexOf('class="grotto-ghost__halo"');
+        const haloIndex = markup.indexOf('class="haus-ghost__halo"');
 
         expect(haloIndex).toBeGreaterThan(-1);
         // Outside the body clip and beneath every other layer, or it would be
         // an inner glow rather than the ground picking up the mark's color.
         expect(haloIndex).toBeLessThan(clipIndex);
-        expect(markup).toContain(`class="grotto-ghost__halo" d=`);
+        expect(markup).toContain(`class="haus-ghost__halo" d=`);
         expect(markup.slice(haloIndex)).toContain(`stroke="url(#${rimId})"`);
-        expect(ghostCss).toContain('opacity: var(--grotto-ghost-halo)');
+        expect(ghostCss).toContain('opacity: var(--haus-ghost-halo)');
     });
 
     test('lights the upper-left dome in white and leaves the color to the right', () => {
@@ -109,9 +108,9 @@ describe('Grotto ghost', () => {
 
         expect(domeId).toBeTruthy();
         expect(markup).toContain(`mask="url(#${domeId})"`);
-        expect(markup).toContain('class="grotto-ghost__rim-light"');
-        expect(markup).toContain('class="grotto-ghost__rim-core"');
-        expect(markup.match(/class="grotto-ghost__specular"/g)).toHaveLength(2);
+        expect(markup).toContain('class="haus-ghost__rim-light"');
+        expect(markup).toContain('class="haus-ghost__rim-core"');
+        expect(markup.match(/class="haus-ghost__specular"/g)).toHaveLength(2);
     });
 
     test('drifts three blobs, weighted away from the upper left', () => {
@@ -129,8 +128,8 @@ describe('Grotto ghost', () => {
     test('scopes every def to the instance, so two marks never collide', () => {
         const pair = renderToStaticMarkup(
             <>
-                <GrottoGhost fill="iridescent" />
-                <GrottoGhost fill="iridescent" />
+                <HausGhost fill="iridescent" />
+                <HausGhost fill="iridescent" />
             </>
         );
         const ids = [...pair.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
@@ -140,10 +139,10 @@ describe('Grotto ghost', () => {
     });
 
     test('names the mark for assistive tech, but never when it is decorative', () => {
-        const labelled = renderToStaticMarkup(<GrottoGhost />);
-        const decorative = renderToStaticMarkup(<GrottoGhost aria-hidden="true" />);
+        const labelled = renderToStaticMarkup(<HausGhost />);
+        const decorative = renderToStaticMarkup(<HausGhost aria-hidden="true" />);
 
-        expect(labelled).toContain('<title>Grotto</title>');
+        expect(labelled).toContain('<title>Haus</title>');
         expect(labelled).toContain('role="img"');
         // `aria-hidden` hides the mark from assistive tech but not from the
         // browser's own `<title>` tooltip, so the title has to go with it.
@@ -152,20 +151,18 @@ describe('Grotto ghost', () => {
     });
 
     test('sizes by height and keeps the 192:204 aspect', () => {
-        const markup = renderToStaticMarkup(<GrottoGhost size={102} />);
+        const markup = renderToStaticMarkup(<HausGhost size={102} />);
 
         expect(markup).toContain('height:102px');
         expect(markup).toContain('width:96px');
     });
 
     test('drifts the mesh only for the animated iridescent fill', () => {
-        expect(renderToStaticMarkup(<GrottoGhost animated fill="iridescent" />)).toContain(
-            'grotto-ghost--animated'
+        expect(renderToStaticMarkup(<HausGhost animated fill="iridescent" />)).toContain(
+            'haus-ghost--animated'
         );
-        expect(iridescent()).not.toContain('grotto-ghost--animated');
-        expect(renderToStaticMarkup(<GrottoGhost animated />)).not.toContain(
-            'grotto-ghost--animated'
-        );
+        expect(iridescent()).not.toContain('haus-ghost--animated');
+        expect(renderToStaticMarkup(<HausGhost animated />)).not.toContain('haus-ghost--animated');
     });
 
     test('steps the drift, and stops it when the window is not being looked at', () => {
@@ -174,15 +171,11 @@ describe('Grotto ghost', () => {
         // main thread. A continuous drift cost 10% of a core on every route;
         // stepping it is what makes the mark affordable, and pausing it while
         // the window is blurred is what makes it free.
-        const drift = ghostCss.slice(
-            ghostCss.indexOf('.grotto-ghost--animated .grotto-ghost__blob')
-        );
+        const drift = ghostCss.slice(ghostCss.indexOf('.haus-ghost--animated .haus-ghost__blob'));
 
         expect(drift).toMatch(/animation-timing-function:\s*steps\(\d+,\s*end\)/);
         expect(drift).not.toContain('ease-in-out');
-        expect(ghostCss).toContain(
-            'html.window-blurred .grotto-ghost--animated .grotto-ghost__blob'
-        );
+        expect(ghostCss).toContain('html.window-blurred .haus-ghost--animated .haus-ghost__blob');
         expect(ghostCss.slice(ghostCss.indexOf('html.window-blurred'))).toContain(
             'animation-play-state: paused'
         );
@@ -190,10 +183,10 @@ describe('Grotto ghost', () => {
 
     test('quickens the drift only when a lively tempo is asked for', () => {
         expect(
-            renderToStaticMarkup(<GrottoGhost animated fill="iridescent" tempo="lively" />)
-        ).toContain('grotto-ghost--lively');
-        expect(renderToStaticMarkup(<GrottoGhost animated fill="iridescent" />)).not.toContain(
-            'grotto-ghost--lively'
+            renderToStaticMarkup(<HausGhost animated fill="iridescent" tempo="lively" />)
+        ).toContain('haus-ghost--lively');
+        expect(renderToStaticMarkup(<HausGhost animated fill="iridescent" />)).not.toContain(
+            'haus-ghost--lively'
         );
     });
 });

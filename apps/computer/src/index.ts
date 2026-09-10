@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@grotto/api';
@@ -32,6 +32,7 @@ import {
     readPendingAttachment,
     removePendingAttachment,
 } from './attachment-state.ts';
+import { createAttachmentStore } from './attachment-store.ts';
 import {
     readAttachmentManagementEvents,
     recordAttachmentManagementEvent,
@@ -42,6 +43,7 @@ import {
     computerAttachmentDaemonEntrypoint,
     computerEntrypoint,
     computerSourceRevision,
+    computerStandalone,
     computerVersion,
 } from './build-identity.ts';
 import { printComputerHeader, printComputerHelpPage } from './cli/chrome.ts';
@@ -67,6 +69,8 @@ import {
 import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
 import { createBridgePrewarmer } from './harness/bridge-prewarm.ts';
 import { requestSessionRestart } from './harness/session-restart.ts';
+import { exposeHausComputerCommand } from './haus-command.ts';
+import { hausOrigin } from './haus-origin.ts';
 import {
     acceptHostSkillImport,
     finishHostSkillImport,
@@ -142,7 +146,8 @@ interface AttachResponse {
 
 const dataRoot = process.env.GROTTO_COMPUTER_DATA_ROOT ?? join(homedir(), '.grotto', 'computer');
 const readCachedComputerUsage = createComputerUsageCache({ dataRoot });
-const serverOrigin = process.env.GROTTO_SERVER_ORIGIN ?? 'https://haus.chat';
+const serverOrigin = hausOrigin(process.env.GROTTO_SERVER_ORIGIN ?? 'https://haus.chat');
+const { findAttachment, listAttachments, readAttachment } = createAttachmentStore(dataRoot);
 const attachmentDaemonProcesses = new AttachmentDaemonProcessRegistry();
 
 // TTY commands with the one-line header; freshness appears only when relevant.
@@ -178,6 +183,9 @@ async function main(args: string[]) {
     if (helpRequest) {
         await printComputerHelpPage(helpRequest, { dataRoot });
         return;
+    }
+    if (computerStandalone && ['start', 'install', '__attachment-daemon'].includes(command ?? '')) {
+        await exposeHausComputerCommand({ executable: process.execPath, home: homedir() });
     }
     const headerPrinted =
         command !== undefined && command in headerCommands
@@ -480,7 +488,7 @@ async function reportUnlinkedAttachment(attachment: Attachment): Promise<boolean
     }
     console.log(
         stdoutRenderer.fail(
-            `/${attachment.slug} needs setup — run grotto-computer setup /${attachment.slug}.`
+            `/${attachment.slug} needs setup — run haus-computer setup /${attachment.slug}.`
         )
     );
     process.exitCode = 1;
@@ -632,64 +640,6 @@ async function requiredAttachment(target: string | undefined) {
         throw new Error(`This Haus Computer is not attached to ${target}.`);
     }
     return attachment;
-}
-
-async function findAttachment(slug: string): Promise<Attachment | null> {
-    const root = join(dataRoot, 'servers');
-    let ids: string[];
-    try {
-        ids = await readdir(root);
-    } catch {
-        return null;
-    }
-    for (const id of ids) {
-        try {
-            const attachment = JSON.parse(
-                await readFile(join(root, id, 'attachment.json'), 'utf8')
-            ) as Attachment;
-            if (attachment.slug === slug) {
-                return attachment;
-            }
-        } catch {
-            // An incomplete attachment is never adopted.
-        }
-    }
-    return null;
-}
-
-async function listAttachments() {
-    const root = join(dataRoot, 'servers');
-    let ids: string[];
-    try {
-        ids = await readdir(root);
-    } catch {
-        return [];
-    }
-    const attachments = await Promise.all(
-        ids.map(async (id) => {
-            try {
-                return JSON.parse(
-                    await readFile(join(root, id, 'attachment.json'), 'utf8')
-                ) as Attachment;
-            } catch {
-                return null;
-            }
-        })
-    );
-    return attachments.filter((attachment): attachment is Attachment => attachment !== null);
-}
-
-async function readAttachment(serverId: string | undefined): Promise<Attachment | null> {
-    if (!(serverId && /^[A-Za-z0-9_-]+$/u.test(serverId))) {
-        return null;
-    }
-    try {
-        return JSON.parse(
-            await readFile(join(dataRoot, 'servers', serverId, 'attachment.json'), 'utf8')
-        ) as Attachment;
-    } catch {
-        return null;
-    }
 }
 
 async function validate(attachment: Attachment) {
@@ -922,7 +872,7 @@ export async function recoverInterruptedUpdate(root = dataRoot) {
         progress(
             'failed',
             current.targetVersion,
-            'Update was interrupted. Retry in Settings or run grotto-computer upgrade locally.',
+            'Update was interrupted. Retry in Settings or run haus-computer upgrade locally.',
             {
                 downloadedBytes: current.downloadedBytes,
                 failedPhase: current.phase,

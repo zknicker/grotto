@@ -42,7 +42,7 @@ const reminderLogSchema = z.object({
 });
 
 const idFlag = {
-    description: 'Reminder id from grotto reminder list',
+    description: 'Reminder id from haus reminder list',
     name: '--id',
     valueName: '<id>',
 };
@@ -50,9 +50,9 @@ const idFlag = {
 export const REMINDER_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
-            'grotto reminder schedule --title "check if CI finished" --delay-seconds 1800 --message-id 1a2b3c4d',
-            'grotto reminder schedule --title "daily standup notes" --fire-at 2026-07-23T09:00:00 --repeat daily@09:00 --message-id 1a2b3c4d',
-            "grotto reminder schedule --title 'watch nightly export' --delay-seconds 3600 --repeat every:1h --message-id 1a2b3c4d --script 'check-export --quiet-when-ok'",
+            'haus reminder schedule --title "check if CI finished" --delay-seconds 1800 --message-id 1a2b3c4d',
+            'haus reminder schedule --title "daily standup notes" --fire-at 2026-07-23T09:00:00 --repeat daily@09:00 --message-id 1a2b3c4d',
+            "haus reminder schedule --title 'watch nightly export' --delay-seconds 3600 --repeat every:1h --message-id 1a2b3c4d --script 'check-export --quiet-when-ok'",
         ],
         flags: [
             { description: 'Action-language reminder text', name: '--title', valueName: '<text>' },
@@ -84,10 +84,10 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runReminderSchedule(args, defaultDeps()),
         summary: 'Schedule an author-owned wake signal anchored to a message',
-        usage: 'grotto reminder schedule --title <text> (--delay-seconds <n> | --fire-at <iso>) [--repeat <cadence>] --message-id <id> [--script <command>]',
+        usage: 'haus reminder schedule --title <text> (--delay-seconds <n> | --fire-at <iso>) [--repeat <cadence>] --message-id <id> [--script <command>]',
     },
     {
-        examples: ['grotto reminder list', 'grotto reminder list --status scheduled'],
+        examples: ['haus reminder list', 'haus reminder list --status scheduled'],
         flags: [
             {
                 description: 'Filter: scheduled, fired, canceled (comma-separated)',
@@ -99,10 +99,10 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runReminderList(args, defaultDeps()),
         summary: 'List your reminders',
-        usage: 'grotto reminder list [--status scheduled,fired,canceled]',
+        usage: 'haus reminder list [--status scheduled,fired,canceled]',
     },
     {
-        examples: ['grotto reminder snooze --id rem_1a2b3c4d5e6f --by 2h'],
+        examples: ['haus reminder snooze --id rem_1a2b3c4d5e6f --by 2h'],
         flags: [
             idFlag,
             { description: 'Push later by 30m, 2h, or 1d', name: '--by', valueName: '<duration>' },
@@ -111,11 +111,11 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runReminderSnooze(args, defaultDeps()),
         summary: 'Push a reminder later instead of stacking duplicates',
-        usage: 'grotto reminder snooze --id <id> --by <30m|2h|1d>',
+        usage: 'haus reminder snooze --id <id> --by <30m|2h|1d>',
     },
     {
         examples: [
-            'grotto reminder update --id rem_1a2b3c4d5e6f --title "check CI and update task #3"',
+            'haus reminder update --id rem_1a2b3c4d5e6f --title "check CI and update task #3"',
         ],
         flags: [
             idFlag,
@@ -136,19 +136,19 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runReminderUpdate(args, defaultDeps()),
         summary: 'Change one field of a reminder',
-        usage: 'grotto reminder update --id <id> (--title <text> | --fire-at <iso> | --repeat <cadence> | --script <command>)',
+        usage: 'haus reminder update --id <id> (--title <text> | --fire-at <iso> | --repeat <cadence> | --script <command>)',
     },
     {
-        examples: ['grotto reminder cancel --id rem_1a2b3c4d5e6f'],
+        examples: ['haus reminder cancel --id rem_1a2b3c4d5e6f'],
         flags: [idFlag],
         name: 'cancel',
         positionals: [],
         run: (args) => runReminderCancel(args, defaultDeps()),
         summary: 'Cancel a reminder that is truly no longer needed',
-        usage: 'grotto reminder cancel --id <id>',
+        usage: 'haus reminder cancel --id <id>',
     },
     {
-        examples: ['grotto reminder log', 'grotto reminder log --id rem_1a2b3c4d5e6f --limit 20'],
+        examples: ['haus reminder log', 'haus reminder log --id rem_1a2b3c4d5e6f --limit 20'],
         flags: [
             idFlag,
             { description: 'Max runs to show (default 50)', name: '--limit', valueName: '<n>' },
@@ -157,7 +157,7 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runReminderLog(args, defaultDeps()),
         summary: 'Read fire history, including quiet script ticks',
-        usage: 'grotto reminder log [--id <id>] [--limit <n>]',
+        usage: 'haus reminder log [--id <id>] [--limit <n>]',
     },
 ];
 
@@ -200,7 +200,7 @@ export async function runReminderSchedule(args: ParsedArgs, deps: ReminderDeps):
         reminderSingleSchema
     );
     deps.write(
-        `${describeReminder(response.reminder)}\nSnooze or cancel later: grotto reminder snooze --id ${response.reminder.id} --by 2h\n`
+        `${describeReminder(response.reminder)}\nSnooze or cancel later: haus reminder snooze --id ${response.reminder.id} --by 2h\n`
     );
     return 0;
 }
@@ -213,7 +213,7 @@ export async function runReminderList(args: ParsedArgs, deps: ReminderDeps): Pro
     });
     if (response.reminders.length === 0) {
         deps.write(
-            'No reminders. Schedule follow-up work with grotto reminder schedule when progress depends on future state.\n'
+            'No reminders. Schedule follow-up work with haus reminder schedule when progress depends on future state.\n'
         );
         return 0;
     }

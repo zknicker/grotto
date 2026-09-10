@@ -3,19 +3,19 @@ set -eu
 
 server_path="${1:-}"
 if [ -n "$server_path" ] && [ "${server_path#/}" = "$server_path" ]; then
-    echo "Usage: install-grotto-computer [/server-slug]" >&2
+    echo "Usage: install-haus-computer [/server-slug]" >&2
     exit 64
 fi
 
 manifest_url="${GROTTO_COMPUTER_RELEASE_MANIFEST_URL:-https://releases.haus.chat/computer/latest.json}"
-install_path="${GROTTO_COMPUTER_INSTALL_PATH:-$HOME/.local/bin/grotto-computer}"
+install_path="${GROTTO_COMPUTER_INSTALL_PATH:-$HOME/.local/bin/haus-computer}"
 expected_team_id="__GROTTO_APPLE_TEAM_ID__"
 expected_identity="__GROTTO_APPLE_SIGNING_IDENTITY__"
-temporary_root="$(mktemp -d "${TMPDIR:-/tmp}/grotto-computer-install.XXXXXX")"
+temporary_root="$(mktemp -d "${TMPDIR:-/tmp}/haus-computer-install.XXXXXX")"
 trap 'rm -rf "$temporary_root"' EXIT INT TERM
 
 descriptor="$temporary_root/latest.json"
-artifact="$temporary_root/grotto-computer"
+artifact="$temporary_root/haus-computer"
 /usr/bin/curl --fail --silent --show-error --location "$manifest_url" --output "$descriptor"
 
 artifact_url="$(/usr/bin/plutil -extract release.artifactUrl raw -o - "$descriptor")"

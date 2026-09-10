@@ -54,7 +54,7 @@ export function registerAgentManualRoutes(app: FastifyInstance, db: GrottoDataba
         } catch (cause) {
             if (cause instanceof ManualTopicNotFoundError) {
                 return sendAgentApiError(reply, 404, 'MANUAL_TOPIC_NOT_FOUND', cause.message, {
-                    nextAction: "Run 'grotto manual get index' to browse available topics.",
+                    nextAction: "Run 'haus manual get index' to browse available topics.",
                 });
             }
             return sendAgentApiError(

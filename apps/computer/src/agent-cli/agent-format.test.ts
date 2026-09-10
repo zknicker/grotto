@@ -75,7 +75,7 @@ test('an ordinary Message carries no Ask suffix, and the suffixes keep their ord
             })
         )
     ).toEndWith(
-        '[1 attachment: plan.md (id:att_1) — use grotto attachment view to download]' +
+        '[1 attachment: plan.md (id:att_1) — use haus attachment view to download]' +
             ' [task #3 status=in_progress assignee=@ada] [ask status=open to=@ada]'
     );
 });

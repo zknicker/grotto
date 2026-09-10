@@ -1,7 +1,7 @@
 import type { ComputerUpdateProgress } from './update-contract.ts';
 
 /**
- * Dependency-free progress rendering for the synchronous `grotto-computer
+ * Dependency-free progress rendering for the synchronous `haus-computer
  * upgrade` command. A TTY gets one live line per phase (rewritten in place,
  * finalized on phase change); anything else gets sparse plain lines with no
  * ANSI codes and no carriage returns.
@@ -63,7 +63,7 @@ export function createUpgradeRenderer(output: UpgradeOutput): UpgradeRenderer {
 /** One-sentence outcome when another process already holds the update job. */
 export function describeConcurrentUpdate(progress: ComputerUpdateProgress): string {
     const target = progress.targetVersion ? ` to ${progress.targetVersion}` : '';
-    return `Another Haus Computer update${target} is already in progress (${concurrentState(progress)}). Re-run grotto-computer upgrade to check on it.`;
+    return `Another Haus Computer update${target} is already in progress (${concurrentState(progress)}). Re-run haus-computer upgrade to check on it.`;
 }
 
 function ttyLine(progress: ComputerUpdateProgress): string | null {

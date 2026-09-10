@@ -27,21 +27,18 @@ const numberFlag = {
 export function createTaskSubcommands(resolveDeps: () => TaskDeps): SubCommand[] {
     return [
         {
-            examples: [
-                'grotto task list',
-                'grotto task list --target "#general" --status in_progress',
-            ],
+            examples: ['haus task list', 'haus task list --target "#general" --status in_progress'],
             flags: [targetFlag, statusFlag],
             name: 'list',
             positionals: [],
             run: (args) => runTaskList(args, resolveDeps()),
             summary: 'List task-messages across your chats or one target',
-            usage: 'grotto task list [--target <target>] [--status all|todo|in_progress|in_review|done|closed]',
+            usage: 'haus task list [--target <target>] [--status all|todo|in_progress|in_review|done|closed]',
         },
         {
             examples: [
-                'grotto task create --target "#general" <<\'GROTTOMSG\'\nInvestigate the failing nightly export.\nGROTTOMSG',
-                'grotto task create --target "#general" --title "Phase 1: audit" --title "Phase 2: fix"',
+                'haus task create --target "#general" <<\'GROTTOMSG\'\nInvestigate the failing nightly export.\nGROTTOMSG',
+                'haus task create --target "#general" --title "Phase 1: audit" --title "Phase 2: fix"',
             ],
             flags: [
                 targetFlag,
@@ -61,12 +58,12 @@ export function createTaskSubcommands(resolveDeps: () => TaskDeps): SubCommand[]
             positionals: [],
             run: (args) => runTaskCreate(args, resolveDeps()),
             summary: 'Post a new message and publish it as a task',
-            usage: 'grotto task create --target <target> [--title <text>]... [--assignee @agent]',
+            usage: 'haus task create --target <target> [--title <text>]... [--assignee @agent]',
         },
         {
             examples: [
-                'grotto task claim --target "#general" --number 1 --number 2',
-                'grotto task claim --target "#general" --message-id 1a2b3c4d',
+                'haus task claim --target "#general" --number 1 --number 2',
+                'haus task claim --target "#general" --message-id 1a2b3c4d',
             ],
             flags: [
                 targetFlag,
@@ -81,26 +78,26 @@ export function createTaskSubcommands(resolveDeps: () => TaskDeps): SubCommand[]
             positionals: [],
             run: (args) => runTaskClaim(args, resolveDeps()),
             summary: 'Claim tasks before working — the claim is the concurrency lock',
-            usage: 'grotto task claim --target <target> (--number <n>... | --message-id <id>)',
+            usage: 'haus task claim --target <target> (--number <n>... | --message-id <id>)',
         },
         {
-            examples: ['grotto task unclaim --target "#general" --number 1'],
+            examples: ['haus task unclaim --target "#general" --number 1'],
             flags: [targetFlag, numberFlag],
             name: 'unclaim',
             positionals: [],
             run: (args) => runTaskUnclaim(args, resolveDeps()),
             summary: 'Release a task you claimed',
-            usage: 'grotto task unclaim --target <target> --number <n>',
+            usage: 'haus task unclaim --target <target> --number <n>',
         },
         {
-            examples: ['grotto task update --target "#general" --number 1 --status in_review'],
+            examples: ['haus task update --target "#general" --number 1 --status in_review'],
             flags: [targetFlag, numberFlag, statusFlag],
             name: 'update',
             positionals: [],
             run: (args) => runTaskUpdate(args, resolveDeps()),
             summary:
                 'Move a task through todo → in_progress → in_review → done (closed is reversible)',
-            usage: 'grotto task update --target <target> --number <n> --status <status>',
+            usage: 'haus task update --target <target> --number <n> --status <status>',
         },
     ];
 }

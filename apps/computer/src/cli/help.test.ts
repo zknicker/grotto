@@ -42,8 +42,8 @@ test('the global page lists every registered command with its summary', () => {
         expect(page).toContain(command.summary);
     }
     expect(page).toContain('Usage');
-    expect(page).toContain('grotto-computer <command> [arguments]');
-    expect(page).toContain('Run grotto-computer help <command> for details.');
+    expect(page).toContain('haus-computer <command> [arguments]');
+    expect(page).toContain('Run haus-computer help <command> for details.');
 });
 
 test('a command page shows usage, arguments, notes, and related commands', () => {
@@ -53,10 +53,10 @@ test('a command page shows usage, arguments, notes, and related commands', () =>
         return;
     }
     const page = renderComputerHelpPage({ command: setup, kind: 'command' }, render);
-    expect(page).toContain('grotto-computer setup /server-slug');
+    expect(page).toContain('haus-computer setup /server-slug');
     expect(page).toContain('/server-slug');
     expect(page).toContain('Notes');
-    expect(page).toContain('grotto-computer attach /server-slug');
+    expect(page).toContain('haus-computer attach /server-slug');
 });
 
 test('an error line leads the page with a failure glyph', () => {

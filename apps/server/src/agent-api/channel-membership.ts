@@ -10,7 +10,7 @@ import { AgentIdentityProtectedError } from '../server-agents/errors.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
 /**
- * `grotto channel add`: one Agent puts another in a channel. Membership is a
+ * `haus channel add`: one Agent puts another in a channel. Membership is a
  * correction any teammate may make, so the runner credential is the whole
  * authority; the add wakes nobody and repeating it changes nothing. Cove's
  * membership belongs to the onboarding factory, so it is refused here.

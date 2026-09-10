@@ -7,7 +7,7 @@ import { ChatNavigation } from './chat-navigation.tsx';
 import { CommandMenuProvider } from './command-menu-provider.tsx';
 import { ShellSidebar, ShellSidebarPage } from './shell-sidebar.tsx';
 
-test('leads the Server menu with Inbox under the Grotto mark', () => {
+test('leads the Server menu with Inbox under the Haus mark', () => {
     const markup = navigationMarkup();
 
     expect([...markup.matchAll(/>(Inbox|Search|Tasks)</g)].map((match) => match[1])).toEqual([
@@ -15,11 +15,11 @@ test('leads the Server menu with Inbox under the Grotto mark', () => {
         'Search',
         'Tasks',
     ]);
-    expect(markup).toContain('grotto-ghost--iridescent');
+    expect(markup).toContain('haus-ghost--iridescent');
     // Outside an activity provider the Server reads as quiet, so the mesh
     // still drifts but keeps the calm tempo.
-    expect(markup).toContain('grotto-ghost--animated');
-    expect(markup).not.toContain('grotto-ghost--lively');
+    expect(markup).toContain('haus-ghost--animated');
+    expect(markup).not.toContain('haus-ghost--lively');
 });
 
 test('lets Inbox read at the same weight and x as Search and Tasks', () => {

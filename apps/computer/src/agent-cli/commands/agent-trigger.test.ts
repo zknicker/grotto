@@ -86,7 +86,7 @@ describe('Agent trigger CLI', () => {
         const output = written.join('');
         expect(output.match(/grtt_secret/gu)).toHaveLength(2); // the secret line and the curl line
         expect(output).toContain('Shown once and never again');
-        expect(output).toContain('grotto trigger rotate --id trg_test replaces it');
+        expect(output).toContain('haus trigger rotate --id trg_test replaces it');
         expect(output).toContain(secretResult.curl);
         expect(output).toContain('trg_test [webhook · armed] "deploy finished"');
         expect(output).toContain(trigger.url);
@@ -175,7 +175,7 @@ describe('Agent trigger CLI', () => {
 
         expect(code).toBe(0);
         expect(written.join('')).toBe(
-            'No triggers. Create one with grotto trigger create when an outside event should reach you.\n'
+            'No triggers. Create one with haus trigger create when an outside event should reach you.\n'
         );
     });
 
@@ -241,7 +241,7 @@ describe('Agent trigger CLI', () => {
         expect(requests[0]?.input.query).toEqual({ fire: undefined, limit: undefined });
         expect(requests[1]?.input.query).toEqual({ fire: 'fir_test', limit: undefined });
         expect(listed.join('')).toMatch(
-            /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} fir_test 17B dedupe=delivery-42\nRead one payload: grotto trigger log --id trg_test --fire <fireId>\n$/u
+            /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} fir_test 17B dedupe=delivery-42\nRead one payload: haus trigger log --id trg_test --fire <fireId>\n$/u
         );
         expect(listed.join('')).not.toContain('status');
         expect(detailed.join('')).toMatch(
@@ -319,7 +319,7 @@ describe('Agent trigger CLI', () => {
         expect(error).toBeInstanceOf(AgentCliError);
         expect((error as AgentCliError).code).toBe('INVALID_ARG');
         expect((error as AgentCliError).options.nextAction).toBe(
-            'Run grotto trigger list to see your triggers and their ids.'
+            'Run haus trigger list to see your triggers and their ids.'
         );
     });
 });

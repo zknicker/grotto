@@ -26,7 +26,7 @@ import {
 } from './agent-command-utils.ts';
 import { messageSearchSubcommand } from './agent-message-search.ts';
 
-const HEREDOC_RECIPE = `grotto message send --target "#general" <<'GROTTOMSG'\nBody with "quotes", $vars, \`backticks\`.\nGROTTOMSG`;
+const HEREDOC_RECIPE = `haus message send --target "#general" <<'GROTTOMSG'\nBody with "quotes", $vars, \`backticks\`.\nGROTTOMSG`;
 const MAX_MESSAGE_CHECK_ROUNDS = 50;
 
 interface MessageDeps {
@@ -43,8 +43,8 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
         allowExtraPositionals: true,
         examples: [
             HEREDOC_RECIPE,
-            'grotto message send --send-draft --target "#general"',
-            'grotto message send --target "#general" --cause trf_41c2d8e9 <<\'GROTTOMSG\'\nPayment webhook failed twice.\nGROTTOMSG',
+            'haus message send --send-draft --target "#general"',
+            'haus message send --target "#general" --cause trf_41c2d8e9 <<\'GROTTOMSG\'\nPayment webhook failed twice.\nGROTTOMSG',
         ],
         flags: [
             {
@@ -70,12 +70,12 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runSend(args, defaultDeps()),
         summary: 'Send a message body read only from stdin',
-        usage: 'grotto message send --target <t> [--attachment-id <id> ...] [--cause <fireId>] [--send-draft] [--anyway]',
+        usage: 'haus message send --target <t> [--attachment-id <id> ...] [--cause <fireId>] [--send-draft] [--anyway]',
     },
     {
         examples: [
-            'grotto message read --target "#general"',
-            'grotto message read --target "#general" --after 42',
+            'haus message read --target "#general"',
+            'haus message read --target "#general" --after 42',
         ],
         flags: [
             {
@@ -104,31 +104,31 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runRead(args, defaultDeps()),
         summary: 'Read canonical history for one target',
-        usage: 'grotto message read --target <t> [--before|--after|--around <idOrSeq>] [--limit <n>]',
+        usage: 'haus message read --target <t> [--before|--after|--around <idOrSeq>] [--limit <n>]',
     },
     messageSearchSubcommand,
     {
-        examples: ['grotto message resolve msg_1a2b3c4d'],
+        examples: ['haus message resolve msg_1a2b3c4d'],
         flags: [],
         name: 'resolve',
         positionals: ['<id>'],
         run: (args) => runResolve(args, defaultDeps()),
         summary: 'Resolve one canonical message by short or full id',
-        usage: 'grotto message resolve <id>',
+        usage: 'haus message resolve <id>',
     },
     {
-        examples: ['grotto message check'],
+        examples: ['haus message check'],
         flags: [],
         name: 'check',
         positionals: [],
         run: () => runCheck(defaultDeps()),
         summary: 'Read and acknowledge pending message deliveries',
-        usage: 'grotto message check',
+        usage: 'haus message check',
     },
     {
         examples: [
-            'grotto message react --message-id 1a2b3c4d --emoji 👍',
-            'grotto message react --message-id 1a2b3c4d --emoji 👍 --remove',
+            'haus message react --message-id 1a2b3c4d --emoji 👍',
+            'haus message react --message-id 1a2b3c4d --emoji 👍 --remove',
         ],
         flags: [
             { name: '--message-id', valueName: '<id>', description: 'Message to react to' },
@@ -140,7 +140,7 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
         run: (args) => runReact(args, defaultDeps()),
         summary:
             'React only when a human asks or as a clear acknowledgement; never auto-react to routine events',
-        usage: 'grotto message react --message-id <id> --emoji <e> [--remove]',
+        usage: 'haus message react --message-id <id> --emoji <e> [--remove]',
     },
 ];
 
@@ -182,7 +182,7 @@ export async function runCheck(deps: MessageDeps): Promise<number> {
     }
     envelopes.sort(byCreatedAtThenId);
     const trailer = more
-        ? 'More messages are pending — run grotto message check again.'
+        ? 'More messages are pending — run haus message check again.'
         : envelopes.length === 0
           ? 'No new messages.'
           : 'No more new messages.';

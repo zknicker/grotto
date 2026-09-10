@@ -404,7 +404,7 @@ test('a test fire rides the same path a real delivery takes', async () => {
     expect(pending.content).toContain('Instruction: Post the failing job.');
     expect(pending.content).toContain('"test":true');
     expect(pending.content.split('\n').at(-1)).toBe(
-        `reply with: grotto message send --cause ${fireId}`
+        `reply with: haus message send --cause ${fireId}`
     );
     await expect(
         admin.trpc.trigger.runs.query({ serverId, triggerId: created.trigger.id })

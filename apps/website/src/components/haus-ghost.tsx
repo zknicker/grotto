@@ -1,11 +1,11 @@
 import { type ComponentPropsWithoutRef, useId } from 'react';
 import { cn } from '../lib/utils.ts';
-import { GrottoGhostGlass } from './grotto-ghost-glass.tsx';
-import { ghostGlassIds } from './grotto-ghost-glass-defs.tsx';
-import { BODY_PATH, EYES_PATH, VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from './grotto-ghost-paths.ts';
-import './grotto-ghost.css';
+import { HausGhostGlass } from './haus-ghost-glass.tsx';
+import { ghostGlassIds } from './haus-ghost-glass-defs.tsx';
+import { BODY_PATH, EYES_PATH, VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from './haus-ghost-paths.ts';
+import './haus-ghost.css';
 
-type GrottoGhostProps = {
+type HausGhostProps = {
     /**
      * `solid` paints the body in `currentColor` with the eyes punched out as
      * holes, so whatever sits behind the mark shows through them.
@@ -22,8 +22,8 @@ type GrottoGhostProps = {
     className?: string;
 } & Omit<ComponentPropsWithoutRef<'svg'>, 'fill'>;
 
-/** The Grotto ghost as vector artwork, tintable or in full app-icon color. */
-export function GrottoGhost({
+/** The Haus ghost as vector artwork, tintable or in full app-icon color. */
+export function HausGhost({
     fill = 'solid',
     animated = false,
     tempo = 'calm',
@@ -31,22 +31,22 @@ export function GrottoGhost({
     className,
     style,
     ...props
-}: GrottoGhostProps) {
+}: HausGhostProps) {
     const instanceId = useId().replaceAll(':', '');
     const iridescent = fill === 'iridescent';
     const drifting = iridescent && animated;
     // A `<title>` is the browser's native tooltip too, and `aria-hidden` does
-    // not suppress it — a decorative mark would pop "Grotto" on every hover.
+    // not suppress it — a decorative mark would pop "Haus" on every hover.
     const decorative = props['aria-hidden'] === true || props['aria-hidden'] === 'true';
 
     return (
         // biome-ignore lint/a11y/noSvgWithoutTitle: the title is conditional, because a decorative instance names itself with `aria-hidden` instead
         <svg
             className={cn(
-                'grotto-ghost',
-                iridescent && 'grotto-ghost--iridescent',
-                drifting && 'grotto-ghost--animated',
-                drifting && tempo === 'lively' && 'grotto-ghost--lively',
+                'haus-ghost',
+                iridescent && 'haus-ghost--iridescent',
+                drifting && 'haus-ghost--animated',
+                drifting && tempo === 'lively' && 'haus-ghost--lively',
                 className
             )}
             role={decorative ? undefined : 'img'}
@@ -57,12 +57,12 @@ export function GrottoGhost({
             xmlns="http://www.w3.org/2000/svg"
             {...props}
         >
-            {decorative ? null : <title>Grotto</title>}
+            {decorative ? null : <title>Haus</title>}
             {iridescent ? (
-                <GrottoGhostGlass ids={ghostGlassIds(instanceId)} />
+                <HausGhostGlass ids={ghostGlassIds(instanceId)} />
             ) : (
                 <path
-                    className="grotto-ghost__body"
+                    className="haus-ghost__body"
                     d={`${BODY_PATH} ${EYES_PATH}`}
                     fill="currentColor"
                     fillRule="evenodd"

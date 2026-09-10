@@ -374,7 +374,7 @@ async function mutateAgentTask(
             (await hasUnseenTaskThreadContext(tx, runner, messageId))
         ) {
             throw new AgentTaskError(
-                'New context exists in this task thread. Run grotto message check before retrying.'
+                'New context exists in this task thread. Run haus message check before retrying.'
             );
         }
         if (action === 'unclaim' && current.assigneeAgentId !== runner.agentId) {

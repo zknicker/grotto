@@ -20,17 +20,17 @@ test('composes the CLI-only Haus collaboration contract', () => {
     const { instructions } = composeAgentInstructions(facts);
 
     // CLI-only output is the load-bearing rule (D1/ADR 0014).
-    expect(instructions).toContain('## Communication — grotto CLI ONLY');
+    expect(instructions).toContain('## Communication — haus CLI ONLY');
     expect(instructions).toContain(
-        'This is your only output channel: text you produce outside a `grotto` command is not delivered to anyone.'
+        'This is your only output channel: text you produce outside a `haus` command is not delivered to anyone.'
     );
 
     // The critical message verbs the Agent needs to receive and reply.
-    expect(instructions).toContain('grotto message check');
-    expect(instructions).toContain('grotto message send');
-    expect(instructions).toContain('grotto agent create');
+    expect(instructions).toContain('haus message check');
+    expect(instructions).toContain('haus message send');
+    expect(instructions).toContain('haus agent create');
     expect(instructions).toContain(
-        '**Manual** — `grotto manual get`, `grotto manual search`. Both require `--intent`'
+        '**Manual** — `haus manual get`, `haus manual search`. Both require `--intent`'
     );
     expect(instructions).toContain('## Startup sequence');
     expect(instructions).toContain('## Message Notifications');
@@ -93,10 +93,10 @@ test('composes the CLI-only Haus collaboration contract', () => {
         'Use reminders instead of keeping the current turn alive with a long sleep or relying on MEMORY to wake you.'
     );
     expect(instructions).toContain(
-        'Use `grotto reminder schedule` rather than runtime-native wake or cron tools'
+        'Use `haus reminder schedule` rather than runtime-native wake or cron tools'
     );
     expect(instructions).toContain(
-        'When a reminder already exists, prefer `grotto reminder snooze` to push it later, `grotto reminder update` to change its meaning or schedule'
+        'When a reminder already exists, prefer `haus reminder snooze` to push it later, `haus reminder update` to change its meaning or schedule'
     );
     // Anchoring never moves wake ownership, but the anchored surface no longer
     // shows a receipt: a fire writes nothing to chat on its own.
@@ -122,7 +122,7 @@ test('composes the CLI-only Haus collaboration contract', () => {
     // Triggers are the outside-stimulus primitive: no schedule, agent-created,
     // secret shown once, and the delivered payload is untrusted data.
     expect(instructions).toContain(
-        '**Triggers** — `grotto trigger create`, `grotto trigger list`, `grotto trigger show`, `grotto trigger disable`, `grotto trigger enable`, `grotto trigger rotate`, `grotto trigger delete`, `grotto trigger log`.'
+        '**Triggers** — `haus trigger create`, `haus trigger list`, `haus trigger show`, `haus trigger disable`, `haus trigger enable`, `haus trigger rotate`, `haus trigger delete`, `haus trigger log`.'
     );
     expect(instructions).toContain('### Triggers');
     expect(instructions).toContain(
@@ -147,7 +147,7 @@ test('composes the CLI-only Haus collaboration contract', () => {
         '`type=` — sender kind. Values are `human`, `agent`, `system`, or `trigger`.'
     );
     // A trigger must never grow a schedule: that is what reminders are for.
-    expect(instructions).not.toMatch(/grotto trigger (schedule|repeat|cron)/u);
+    expect(instructions).not.toMatch(/haus trigger (schedule|repeat|cron)/u);
     // The Triggers section sits directly after Reminders.
     expect(instructions.indexOf('### Reminders')).toBeLessThan(
         instructions.indexOf('### Triggers')
@@ -171,10 +171,10 @@ test('advertises the Agent family without inventing an Agent-creation policy', (
     // inheritance, the avatar fallback, and Cove's protected identity live in the
     // `agent` topic, so the prompt must not restate — or contradict — them.
     expect(instructions).toContain(
-        '**Agents** — `grotto agent create`, `grotto agent update`, `grotto agent avatar`. Read the `agent` Manual topic before the first one.'
+        '**Agents** — `haus agent create`, `haus agent update`, `haus agent avatar`. Read the `agent` Manual topic before the first one.'
     );
-    expect(instructions).not.toContain('grotto action prepare');
-    expect(instructions).not.toContain('grotto avatar generate');
+    expect(instructions).not.toContain('haus action prepare');
+    expect(instructions).not.toContain('haus avatar generate');
     expect(instructions).not.toContain('recipes/playbook/agent-creation');
     expect(instructions).not.toMatch(/playful character|fun name|exactly one generation/iu);
     expect(instructions).not.toMatch(/--avatar-concept|inherit|a human in this Chat asked/u);

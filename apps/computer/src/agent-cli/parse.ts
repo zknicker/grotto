@@ -70,7 +70,7 @@ export function parseArgs(command: CliCommand, args: string[]): ParsedArgs {
         }
         const flag = known.get(arg);
         if (!flag) {
-            throw new UsageError(`Unknown flag '${arg}' for 'grotto ${command.name}'.`, command);
+            throw new UsageError(`Unknown flag '${arg}' for 'haus ${command.name}'.`, command);
         }
         if (flagTakesValue(flag)) {
             const value = args[index + 1];

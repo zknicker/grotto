@@ -119,9 +119,12 @@ enum VisualCardMetrics {
     /// The web card's content ceiling (46rem), so a wide layout reads the same.
     static let maxWidth: CGFloat = 736
     static let fadeHeight: CGFloat = 64
+    /// The in-transcript card corner, inherited from the retired action card so
+    /// the cards that hang off a message keep one rhythm.
+    static let cornerRadius: CGFloat = 13
 
     static var shape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: ActionCardMetrics.cornerRadius, style: .continuous)
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
     }
 
     /// Opaque on purpose: the collapse fade has to land on a real color, and a

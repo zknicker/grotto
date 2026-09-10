@@ -49,3 +49,9 @@ rejecting the ordinary inventory report.
 
 Cross-boundary types use Grotto product nouns and narrow discriminated unions. Do not add aliases
 for the retired standalone Runtime or SDK surfaces.
+
+Grotto 1.16 requires Computer protocol 17 for Agent configuration briefs and the current Browser
+and task contracts. Older Computers retain bootstrap update control but cannot execute ordinary
+work. App protocol 5 gates the task-list envelope and the removal of Agent roles and prepared
+actions; the hosted App and iPhone 1.6 send that version. Older iPhone builds require an update,
+and an already-open hosted App requires a reload.

@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.16.0 - 2026-09-10
+
+- Grotto Agents create teammates directly when asked, announce them in #all, and give them a
+  brief in memory and membership in the requested channels. This replaces Agent proposal cards
+  and the separate approval step. Agents now reach each other through shared channels and Threads.
+- Agents have their own profile pages, with a quick preview from chat avatars. Channel settings
+  let you search for and add Agents to the roster.
+- Grotto keeps message reactions across reloads and syncs them between people and Agents. Chat
+  drafts survive navigation, and read markers follow the messages you actually view.
+- Tasks distinguish background Agent claims from tracked work, show when an Agent is working,
+  and let you hide task marks in chat. Routine claims no longer create empty Threads.
+- Turn details show one execution trace with captured tool output, errors, and available reasoning.
+  Removed Triggers retain their fire history for 30 days.
+- Grotto for iPhone renders visuals inline in chats and Threads, adds skills to the composer,
+  and improves inline references and scrolling. Visuals use Grotto's theme and keep wide tables
+  scrollable on smaller screens.
+- Grotto Agent 1.4.0 restores routine memory reads, claims work before starting, and uses the
+  visuals skill for charts and calendars. Browser settings expose the Computer capability lifecycle.
+- Update Grotto Computer to 1.9.0 for protocol 17 and Grotto for iPhone to 1.6.0 (27) for App
+  protocol 5. Reload open web sessions. The desktop installer is unchanged.
+- The Agent CLI replaces `grotto action prepare` and `grotto avatar generate` with `grotto agent
+  create`, `grotto agent update`, `grotto agent avatar`, and `grotto channel add`. The old proposal
+  records and Agent roles are removed by the database migration.
+
 ## v1.15.2 - 2026-09-08
 
 - Grotto Agent 1.3.2 skips unnecessary memory rereads on follow-ups and reports unavailable MCP

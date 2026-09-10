@@ -2,7 +2,7 @@ import Foundation
 
 /// The headers that gate the App ↔ Server wire contract.
 public enum GrottoAppProtocol {
-    public static let version = 4
+    public static let version = 5
     public static let productVersionHeader = "x-grotto-product-version"
     public static let protocolVersionHeader = "x-grotto-app-protocol-version"
 }

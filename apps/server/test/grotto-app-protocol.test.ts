@@ -35,6 +35,12 @@ test('missing App protocol fails closed', async () => {
     expect((await request(null)).status).toBe(412);
 });
 
+test('the pre-2.0 App protocol receives an update requirement', async () => {
+    const response = await request(4);
+    expect(response.status).toBe(412);
+    expect(await response.text()).toContain('Update required');
+});
+
 test('development mode still requires a Clerk session', async () => {
     const previous = process.env.GROTTO_DEV_STACK;
     process.env.GROTTO_DEV_STACK = '1';

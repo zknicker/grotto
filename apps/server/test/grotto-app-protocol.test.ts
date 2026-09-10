@@ -35,7 +35,7 @@ test('missing App protocol fails closed', async () => {
     expect((await request(null)).status).toBe(412);
 });
 
-test('the pre-2.0 App protocol receives an update requirement', async () => {
+test('App protocol 4 receives an update requirement', async () => {
     const response = await request(4);
     expect(response.status).toBe(412);
     expect(await response.text()).toContain('Update required');

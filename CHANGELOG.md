@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## v2.0.0 - 2026-09-10
+## v1.16.0 - 2026-09-10
 
 - Grotto Agents create teammates directly when asked, announce them in #all, and give them a
   brief in memory and membership in the requested channels. This replaces Agent proposal cards
@@ -18,9 +18,9 @@ All notable changes to this project will be documented in this file.
 - Grotto for iPhone renders visuals inline in chats and Threads, adds skills to the composer,
   and improves inline references and scrolling. Visuals use Grotto's theme and keep wide tables
   scrollable on smaller screens.
-- Grotto Agent 2.0.0 restores routine memory reads, claims work before starting, and uses the
+- Grotto Agent 1.4.0 restores routine memory reads, claims work before starting, and uses the
   visuals skill for charts and calendars. Browser settings expose the Computer capability lifecycle.
-- Update Grotto Computer to 2.0.0 for protocol 17 and Grotto for iPhone to 2.0.0 (27) for App
+- Update Grotto Computer to 1.9.0 for protocol 17 and Grotto for iPhone to 1.6.0 (27) for App
   protocol 5. Reload open web sessions. The desktop installer is unchanged.
 - The Agent CLI replaces `grotto action prepare` and `grotto avatar generate` with `grotto agent
   create`, `grotto agent update`, `grotto agent avatar`, and `grotto channel add`. The old proposal

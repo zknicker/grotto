@@ -893,17 +893,17 @@
     }
   },
   {
-    "version": "2.0.0",
+    "version": "1.16.0",
     "date": "2026-09-10",
     "targets": {
-      "server": "2.0.0",
+      "server": "1.15.0",
       "app": null,
       "ios": {
-        "version": "2.0.0",
+        "version": "1.6.0",
         "buildNumber": 27
       },
-      "computer": "2.0.0",
-      "agent": "2.0.0"
+      "computer": "1.9.0",
+      "agent": "1.4.0"
     }
   }
 ]

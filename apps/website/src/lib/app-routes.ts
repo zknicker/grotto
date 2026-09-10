@@ -15,7 +15,6 @@ export const appRoutes = {
     settingsProfile: '/settings/profile',
     settingsMembers: '/settings/members',
     settingsSkills: '/settings/skills',
-    settingsBrowser: '/settings/browser',
     settingsConnections: '/settings/connections',
     settingsModels: '/settings/models',
 } as const;

@@ -1,4 +1,6 @@
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx';
+import { PageColumn } from '../shell/page-column.tsx';
 import {
     SkillsBrowser,
     SkillsBrowserPending,
@@ -14,8 +16,23 @@ export function SkillsSettings({ serverId }: { serverId: string }) {
         }))
     );
 
-    if (computers.error && !computers.data) {
-        return <SkillsBrowserUnavailable />;
-    }
-    return computers.data ? <SkillsBrowser sources={sources} /> : <SkillsBrowserPending />;
+    return (
+        <div className="flex h-full min-h-0 flex-col">
+            <PageColumn className="shrink-0 pb-6">
+                <SettingsPageHeader
+                    description="Browse installed Skills to add to your Agents."
+                    title="Skills"
+                />
+            </PageColumn>
+            <div className="min-h-0 flex-1">
+                {computers.error && !computers.data ? (
+                    <SkillsBrowserUnavailable />
+                ) : computers.data ? (
+                    <SkillsBrowser sources={sources} />
+                ) : (
+                    <SkillsBrowserPending />
+                )}
+            </div>
+        </div>
+    );
 }

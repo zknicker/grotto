@@ -106,10 +106,10 @@ function matchHumanId(pathname: string): string | undefined {
 
 /**
  * Computers is not in the nav item list — its rows come from the roster — so
- * it names its own place in the Server group.
+ * it names its own place in Settings.
  */
 const computersCrumb = {
-    group: 'Server',
+    group: 'Settings',
     icon: ComputerIcon,
     id: 'computers',
     label: 'Computers',

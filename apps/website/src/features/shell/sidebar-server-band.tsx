@@ -86,20 +86,22 @@ export function SidebarServerBand({
  */
 export function SidebarBackToChatRow({ route }: { route: string }) {
     return (
-        <Sidebar.Menu aria-label="Back to chat">
-            <Sidebar.MenuItem
-                aria-label="Back to chat"
-                href={route}
-                id="back-to-chat"
-                textValue="Back"
-            >
-                <Sidebar.MenuIcon>
-                    <Icon aria-hidden="true" icon={ArrowLeft01Icon} />
-                </Sidebar.MenuIcon>
-                <Sidebar.MenuItemContent>
-                    <Sidebar.MenuLabel>Back</Sidebar.MenuLabel>
-                </Sidebar.MenuItemContent>
-            </Sidebar.MenuItem>
-        </Sidebar.Menu>
+        <Sidebar.Group>
+            <Sidebar.Menu aria-label="Back to chat">
+                <Sidebar.MenuItem
+                    aria-label="Back to chat"
+                    href={route}
+                    id="back-to-chat"
+                    textValue="Back"
+                >
+                    <Sidebar.MenuIcon>
+                        <Icon aria-hidden="true" icon={ArrowLeft01Icon} />
+                    </Sidebar.MenuIcon>
+                    <Sidebar.MenuItemContent>
+                        <Sidebar.MenuLabel>Back</Sidebar.MenuLabel>
+                    </Sidebar.MenuItemContent>
+                </Sidebar.MenuItem>
+            </Sidebar.Menu>
+        </Sidebar.Group>
     );
 }

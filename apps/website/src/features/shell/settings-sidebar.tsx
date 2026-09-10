@@ -8,14 +8,17 @@ import {
     settingsNavSections,
 } from '../settings/layout/navigation.ts';
 import { ShellSidebarPageContent } from './shell-sidebar.tsx';
+import { SidebarBackToChatRow } from './sidebar-server-band.tsx';
 
 /** Settings navigation sidebar for the Server settings routes. */
 export function SettingsSidebar({
+    backRoute,
     canOperate,
     currentSection,
     serverId,
     slug,
 }: {
+    backRoute: string;
     canOperate: boolean;
     currentSection: SettingsRouteTab | undefined;
     serverId: string;
@@ -24,6 +27,7 @@ export function SettingsSidebar({
     const itemById = new Map(settingsNavItems.map((item) => [item.id, item]));
     return (
         <ShellSidebarPageContent>
+            <SidebarBackToChatRow route={backRoute} />
             {settingsNavSections.map((section) => {
                 const items = section.itemIds
                     .map((id) => itemById.get(id))

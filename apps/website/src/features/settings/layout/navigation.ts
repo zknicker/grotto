@@ -1,7 +1,6 @@
 import type { IconSvgElement } from '@hugeicons/react';
 import {
     AiBrain01Icon,
-    BrowserIcon,
     Plug01Icon,
     PreferenceHorizontalIcon,
     ServerStack01Icon,
@@ -12,17 +11,8 @@ import {
 import { appRoutes } from '../../../lib/app-routes.ts';
 
 /**
- * Settings splits on who a setting belongs to, not on what feature it came
- * from. Three groups, in order of how close the subject is to the reader:
- *
- *   Account — you, and this device.
- *   Server  — this Server and who is in it.
- *   Agents  — what the Agents on it can reach.
- *
- * One flat "General" list mixed all three: Appearance (a device preference)
- * sat between Server (administration) and Profile (identity), and the four
- * pages that are really one subject — what an Agent can do — were scattered
- * through it.
+ * Personal settings affect the reader; Server settings describe shared
+ * membership and capabilities. Machine-specific controls live on each Computer.
  */
 export const staticSettingsNavItems = [
     {
@@ -40,7 +30,7 @@ export const staticSettingsNavItems = [
     {
         icon: ServerStack01Icon,
         id: 'server',
-        label: 'General',
+        label: 'Server',
         to: appRoutes.settings,
     },
     {
@@ -67,12 +57,6 @@ export const staticSettingsNavItems = [
         label: 'Skills',
         to: appRoutes.settingsSkills,
     },
-    {
-        icon: BrowserIcon,
-        id: 'browser',
-        label: 'Browser',
-        to: appRoutes.settingsBrowser,
-    },
 ] as const satisfies ReadonlyArray<{
     icon: IconSvgElement;
     id: string;
@@ -88,19 +72,14 @@ export const settingsNavItems = staticSettingsNavItems;
  */
 export const settingsNavSections = [
     {
-        id: 'account',
+        id: 'personal',
         itemIds: ['profile', 'preferences'],
-        label: 'Account',
+        label: 'Preferences',
     },
     {
         id: 'server',
-        itemIds: ['server', 'members'],
+        itemIds: ['server', 'members', 'connections', 'models', 'skills'],
         label: 'Server',
-    },
-    {
-        id: 'agents',
-        itemIds: ['connections', 'models', 'skills', 'browser'],
-        label: 'Agents',
     },
 ] as const;
 

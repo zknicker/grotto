@@ -10,7 +10,6 @@ import {
     agentProfileRoute,
     serverSettingsSectionRoute,
 } from '../../features/servers/server-routes.ts';
-import { BrowserSettingsPage } from '../../features/settings/browser/page.tsx';
 import { ConnectionsPage } from '../../features/settings/mcp/connections-page.tsx';
 import { ModelsSettings } from '../../features/settings/models/page.tsx';
 import { PreferencesSettings } from '../../features/settings/preferences/page.tsx';
@@ -27,14 +26,6 @@ interface SectionContext {
 
 /** Section registry: one renderer per settings section, no dispatch chain. */
 const sections: Record<string, (context: SectionContext) => ReactNode> = {
-    browser: ({ server }) => (
-        <RequireOperator
-            description="Browser is managed per Computer. Owners and Admins can configure it from a Computer detail."
-            role={server.role}
-        >
-            <BrowserSettingsPage serverSlug={server.slug} />
-        </RequireOperator>
-    ),
     computers: ({ server }) => (
         <RequireOperator
             description="Computers are attached and removed by Server operators."
@@ -55,6 +46,7 @@ const sections: Record<string, (context: SectionContext) => ReactNode> = {
 /** Sections that moved; old links still resolve. */
 const renamedSections: Record<string, string> = {
     appearance: 'preferences',
+    browser: 'computers',
     updates: 'preferences',
 };
 

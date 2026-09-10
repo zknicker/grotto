@@ -27,14 +27,11 @@ interface ShellSidebarPageProps {
 /** Shell-owned contextual sidebar. Route changes replace the left page instantly. */
 export function ShellSidebar({
     activePage,
-    back,
     children,
     footer,
     identity,
 }: {
     activePage: ShellSidebarPageId;
-    /** Escape affordance rendered above non-chat pages (settings, tasks…). */
-    back?: React.ReactNode;
     children: React.ReactNode;
     footer?: React.ReactNode;
     /** Server identity row leading the sidebar on every page. */
@@ -81,7 +78,6 @@ export function ShellSidebar({
                 className="contents"
                 style={{ '--spacing': sidebarDensity } as React.CSSProperties}
             >
-                {back}
                 {activePageContent.children}
             </div>
             {footer ? <Sidebar.Footer>{footer}</Sidebar.Footer> : null}

@@ -27,10 +27,7 @@ import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pa
 import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sidebar.tsx';
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
 import { SidebarAgentActivityStrip } from '../../features/shell/sidebar-agent-activity-strip.tsx';
-import {
-    SidebarBackToChatRow,
-    SidebarServerBand,
-} from '../../features/shell/sidebar-server-band.tsx';
+import { SidebarServerBand } from '../../features/shell/sidebar-server-band.tsx';
 import { GrottoUpdateFooterContainer } from '../../features/updates/grotto-update-footer-container.tsx';
 import { GrottoUpdateProvider } from '../../features/updates/use-grotto-update.ts';
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
@@ -141,13 +138,6 @@ export function ServerLayout() {
                                             sidebar={
                                                 <ShellSidebar
                                                     activePage={activeSidebarPage}
-                                                    back={
-                                                        activeSidebarPage === 'server' ? null : (
-                                                            <SidebarBackToChatRow
-                                                                route={chatSectionRoute}
-                                                            />
-                                                        )
-                                                    }
                                                     footer={
                                                         <div className="flex w-full flex-col gap-2">
                                                             <SidebarAgentActivityStrip
@@ -213,6 +203,7 @@ export function ServerLayout() {
                                                         value="settings"
                                                     >
                                                         <SettingsSidebar
+                                                            backRoute={chatSectionRoute}
                                                             canOperate={canOperate}
                                                             currentSection={settingsSection}
                                                             serverId={server.data.id}

@@ -15,9 +15,9 @@ export function PreferencesSettings() {
                 description="How Grotto looks and behaves on this device."
                 title="Preferences"
             />
-            <GrottoVersionSummary view={update.view} />
             <AppearanceSection />
             <ChatSection />
+            <GrottoVersionSummary view={update.view} />
         </PageColumn>
     );
 }

@@ -1,4 +1,4 @@
-import { Button } from '@heroui/react';
+import { Button, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -25,7 +25,7 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
         <PageColumn>
             <SettingsPageHeader
                 description="Identity and permanent actions for this Server."
-                title="General"
+                title="Server"
             />
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
@@ -38,6 +38,18 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                         </ItemCard.Content>
                         <ItemCard.Action>
                             <SettingsFact>{server.displayName}</SettingsFact>
+                        </ItemCard.Action>
+                    </ItemCard>
+                    <Separator />
+                    <ItemCard>
+                        <ItemCard.Content>
+                            <ItemCard.Title>Address</ItemCard.Title>
+                            <ItemCard.Description>
+                                This permanent address identifies your Server and confirms deletion.
+                            </ItemCard.Description>
+                        </ItemCard.Content>
+                        <ItemCard.Action>
+                            <SettingsFact>{server.slug}</SettingsFact>
                         </ItemCard.Action>
                     </ItemCard>
                 </ItemCardGroup>

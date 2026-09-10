@@ -125,15 +125,20 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   second by `lib/heroui-composition-contract.test.ts`. Neither sees a `className`
   built through `cn()` or a variable, so read the component's anatomy before
   reaching for a wrapper.
-* Settings groups by *who a setting belongs to*, not by which feature shipped
-  it: **Account** (you and this device), **Server** (this Server and who is in
-  it), **Agents** (what Agents can reach), then the roster-driven **Computers**.
+* One Settings page separates **Preferences** (Profile and Preferences)
+  from **Server** (Server, Members, Connections, Models, Skills),
+  followed by the roster-driven **Computers**. Agent capabilities belong to
+  the shared Server scope, not a separate settings category. Browser controls live on each
+  Computer; the former Browser URL redirects there. Back is a stock
+  `Sidebar.Group` inside the same `Sidebar.Content` as the settings rows.
   `features/settings/layout/navigation.ts` is the source of that grouping and
-  `navigation.test.ts` guards it. A new section joins one of those three or
-  argues for a fourth — it does not go in a flat list. A setting whose subject
-  is you belongs in Account even when it is reached through a Server-scoped URL
+  `navigation.test.ts` guards it. File new settings by who they affect: the
+  reader, the shared Server, or a Computer. A setting whose subject
+  is you belongs in Preferences even when it is reached through a Server-scoped URL
   (Settings is mounted under `/s/:slug`, so device and user settings repeat per
   Server; that is a known wart, not a licence to file them under Server).
+  Page titles match their sidebar labels, including Server and Skills. Computer
+  titles use the same Computer name as the sidebar; health belongs in metadata.
 * **An Agent has its own page; a human is a record in Settings.** Agents are
   first-class product records, so an Agent's page renders in the Server layout
   at `/s/:slug/agents/:agentId/:tab` (`routes/app/agent-page.tsx`) and keeps the

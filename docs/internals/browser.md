@@ -51,8 +51,9 @@ The App always calls authenticated Server tRPC. The Server verifies current
 Server membership plus Owner or Admin authority, verifies the selected Computer
 belongs to that Server, and relays the operation to that Computer's outbound
 socket. The Computer detail is the Browser settings surface, so every request
-has an explicit Computer target; the Browser settings navigation page only
-points operators there. The browser never connects to a Computer directly.
+has an explicit Computer target. Browser has no separate settings navigation
+page; its former URL redirects to Computers. The browser never connects to a
+Computer directly.
 
 Enabling Browser starts supervision for that attachment. Disabling it stops
 supervision, closes the managed browser, and may interrupt Agents using it,

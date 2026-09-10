@@ -30,7 +30,7 @@ export function useDesktopOAuth() {
 
         const bridge = getDesktopBridge();
         if (!bridge) {
-            throw new Error('The Grotto desktop bridge is unavailable.');
+            throw new Error('The Haus desktop bridge is unavailable.');
         }
 
         abortControllerRef.current?.abort();

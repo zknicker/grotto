@@ -109,7 +109,7 @@ export const removedServerMemberSchema = z
 
 /**
  * An invitation address is compared to a verified Clerk email by exact match
- * after trimming and lowercasing. Grotto deliberately does not canonicalize
+ * after trimming and lowercasing. Haus deliberately does not canonicalize
  * provider-specific forms such as plus tags or dots: Clerk verifies the literal
  * address, so folding them would let one address consume another's invitation.
  */
@@ -139,7 +139,7 @@ export const createServerInvitationInputSchema = z
     .strict();
 
 /**
- * The one and only disclosure of the raw token. Grotto stores only its SHA-256
+ * The one and only disclosure of the raw token. Haus stores only its SHA-256
  * hash, so an issuer who loses this response must revoke and reissue.
  */
 export const createdServerInvitationSchema = z

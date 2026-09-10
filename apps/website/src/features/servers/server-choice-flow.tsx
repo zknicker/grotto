@@ -64,7 +64,7 @@ function ServerChoiceStep({
                     <Button onPress={onCreate}>Create a Server</Button>
                 </>
             }
-            title={hasServers ? 'Choose a Server' : 'Welcome to Grotto'}
+            title={hasServers ? 'Choose a Server' : 'Welcome to Haus'}
         >
             {hasServers ? (
                 <Card>

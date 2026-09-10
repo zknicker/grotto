@@ -21,11 +21,11 @@ test('presents every Computer update phase', () => {
         'Checking production release…',
         'Update available',
         'Download requested',
-        'Downloading Grotto Computer',
+        'Downloading Haus Computer',
         'Verifying signature and integrity',
         'Installing update',
         'Waiting for active Agents…',
-        'Restarting Grotto Computer',
+        'Restarting Haus Computer',
         'Update complete',
         'Update failed',
     ]);
@@ -48,11 +48,11 @@ test('an in-flight update keeps reporting its phase after the Computer drops', (
     // Restarting disconnects the Computer by design, so the offline label must
     // not swallow the progress the operator is watching.
     expect(computerUpdateView({ health: 'offline', phase: 'restarting' })).toMatchObject({
-        label: 'Restarting Grotto Computer',
+        label: 'Restarting Haus Computer',
         needsLocalRecovery: false,
     });
     expect(computerUpdateView({ health: 'offline', phase: 'downloading' }).label).toBe(
-        'Downloading Grotto Computer'
+        'Downloading Haus Computer'
     );
 });
 

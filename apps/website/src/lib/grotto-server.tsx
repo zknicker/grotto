@@ -17,7 +17,7 @@ import { watchGrottoSession } from './grotto-session-refresh.ts';
 import { queryClientDefaultOptions } from './query-policy.ts';
 import { type ConnectionState, createQueryReconnectHandler } from './query-reconnect-recovery.ts';
 
-/** The App's authenticated HTTP and WebSocket connection to Grotto Server. */
+/** The App's authenticated HTTP and WebSocket connection to Haus Server. */
 export const grottoTrpc = createTRPCReact<GrottoRouter>();
 
 export type GrottoOutputs = inferRouterOutputs<GrottoRouter>;
@@ -58,7 +58,7 @@ export function resolveGrottoServerOrigin(
     }
 
     throw new Error(
-        'The Grotto Server origin is unavailable. Open Grotto App over HTTP(S) or configure VITE_GROTTO_SERVER_ORIGIN for development.'
+        'The Haus Server origin is unavailable. Open Haus App over HTTP(S) or configure VITE_GROTTO_SERVER_ORIGIN for development.'
     );
 }
 

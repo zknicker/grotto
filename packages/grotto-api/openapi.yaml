@@ -1,15 +1,15 @@
 openapi: 3.1.0
 info:
-  title: Grotto API
+  title: Haus API
   version: 0.1.0
-  summary: OpenAPI contract for Grotto Server chat and realtime clients.
+  summary: OpenAPI contract for Haus Server chat and realtime clients.
   description: >
-    Grotto API is the Server-hosted contract for clients, bots, webhooks,
+    Haus API is the Server-hosted contract for clients, bots, webhooks,
     automations, agent runtime, and tests. This first slice covers durable
     chat state and realtime recovery.
 servers:
   - url: http://127.0.0.1:18790
-    description: Grotto Server
+    description: Haus Server
 tags:
   - name: Chats
   - name: Messages
@@ -558,7 +558,7 @@ paths:
     post:
       operationId: createAgentFromAgent
       tags: [Agent CLI]
-      summary: Create a Grotto Agent and post the Message that carries it.
+      summary: Create a Haus Agent and post the Message that carries it.
       requestBody:
         required: true
         content:
@@ -1068,7 +1068,7 @@ paths:
       tags: [Triggers]
       summary: Deliver one outside event to an agent-owned trigger.
       description: >-
-        Authenticated by the trigger's own bearer secret, not a Grotto session.
+        Authenticated by the trigger's own bearer secret, not a Haus session.
         The body is stored and relayed verbatim, up to 65536 UTF-8 bytes; the
         Server never parses it. An unknown trigger and a wrong secret both answer
         401 so the route never confirms that a trigger exists.

@@ -8,7 +8,7 @@ export const triggerHourlyWindowMs = 3_600_000;
 const sweepThreshold = 1000;
 
 /**
- * Per-trigger inbound rate limit. The Grotto Server is a single node, so the
+ * Per-trigger inbound rate limit. The Haus Server is a single node, so the
  * window lives in memory: a restart forgets it, which only ever admits traffic
  * the ceilings would have admitted a window later.
  */

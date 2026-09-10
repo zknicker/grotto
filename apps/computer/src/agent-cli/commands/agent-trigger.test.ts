@@ -111,7 +111,7 @@ describe('Agent trigger CLI', () => {
         });
     });
 
-    test('sends an explicit --kind and refuses one Grotto does not have', async () => {
+    test('sends an explicit --kind and refuses one Haus does not have', async () => {
         const calls: AgentApiRequest[] = [];
         const client = requester((_route, input) => {
             calls.push(input);

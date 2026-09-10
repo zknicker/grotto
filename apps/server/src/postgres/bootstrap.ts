@@ -3,7 +3,7 @@ import { migrateGrottoDatabase } from './migrations.ts';
 import { assertGrottoDatabaseRole, grantGrottoRuntimePrivileges } from './roles.ts';
 
 /**
- * Creates a fresh Grotto Server database from checked-in Drizzle
+ * Creates a fresh Haus Server database from checked-in Drizzle
  * migrations. Schema changes never live in this bootstrap wrapper.
  */
 export async function bootstrapGrottoDatabase(
@@ -22,7 +22,7 @@ export async function bootstrapGrottoDatabase(
             WHERE table_schema = 'public'
         `) as { total: number }[];
         if (existingTables[0]?.total !== 0) {
-            throw new Error('The Grotto PostgreSQL database must be empty before bootstrap.');
+            throw new Error('The Haus PostgreSQL database must be empty before bootstrap.');
         }
 
         await client.unsafe('REVOKE CREATE ON SCHEMA public FROM PUBLIC');

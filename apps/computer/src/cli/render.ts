@@ -46,11 +46,11 @@ export function createCliRenderer(options: { colors: boolean }): CliRenderer {
         banner: (identity) =>
             [
                 `  ${tint('accent', '╭─◠◠◠─╮')}`,
-                ` ${tint('accent', '╱')} ${tint('accent', '◆')}     ${tint('accent', '╲')}   ${tint('bold', 'Grotto Computer')} ${tint('dim', `v${identity.version}`)}`,
+                ` ${tint('accent', '╱')} ${tint('accent', '◆')}     ${tint('accent', '╲')}   ${tint('bold', 'Haus Computer')} ${tint('dim', `v${identity.version}`)}`,
             ].join('\n'),
         fail: (message) => `${tint('red', '✗')} ${message}`,
         header: (identity) =>
-            `${tint('accent', '◆')} ${tint('bold', 'Grotto Computer')} ${tint('dim', `v${identity.version}`)}`,
+            `${tint('accent', '◆')} ${tint('bold', 'Haus Computer')} ${tint('dim', `v${identity.version}`)}`,
         heading: (text) => tint('bold', text),
         hint: (text) => tint('dim', text),
         ok: (message) => `${tint('green', '✓')} ${message}`,

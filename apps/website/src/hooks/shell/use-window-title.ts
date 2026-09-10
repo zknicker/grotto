@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 
-const baseTitle = 'Grotto';
+const baseTitle = 'Haus';
 
 /**
- * Titles the window/tab "<title> — Grotto" while mounted. Electron windows
+ * Titles the window/tab "<title> — Haus" while mounted. Electron windows
  * follow document.title, so this names windows in the Window menu, ⌘`
  * cycling, and Mission Control.
  */

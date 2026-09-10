@@ -142,7 +142,7 @@ function projectDesktopStep(
         detail: desktop.detail ?? null,
         id: 'desktop-app',
         kind: 'desktop-app',
-        label: 'Grotto App',
+        label: 'Haus App',
         phase,
         progress: desktop.progress ?? null,
         targetVersion,
@@ -168,11 +168,11 @@ function aggregatePhase(steps: readonly GrottoUpdateStep[]): GrottoUpdatePhase {
 function aggregateHeadline(phase: GrottoUpdatePhase, version: string) {
     switch (phase) {
         case 'current':
-            return `Grotto ${version}`;
+            return `Haus ${version}`;
         case 'available':
-            return `Grotto ${version} is ready`;
+            return `Haus ${version} is ready`;
         case 'updating':
-            return `Updating Grotto ${version}`;
+            return `Updating Haus ${version}`;
         case 'restart-required':
             return 'Restart to finish';
         case 'failed':
@@ -191,7 +191,7 @@ function aggregateDetail(phase: GrottoUpdatePhase, steps: readonly GrottoUpdateS
         case 'updating':
             return active ? `Updating ${active.label}.` : 'Update in progress.';
         case 'restart-required':
-            return 'The Grotto App is ready to restart.';
+            return 'The Haus App is ready to restart.';
         case 'failed': {
             const failed = steps.find((step) => step.phase === 'failed');
             return (

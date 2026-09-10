@@ -221,8 +221,8 @@ export function McpConnectionDetailDialog({
                                                 </ManageRow>
                                             ) : null}
                                             <ManageRow
-                                                description="Removes this MCP entry, saved credentials, and Agent access from this Grotto Server."
-                                                title="Remove from Grotto"
+                                                description="Removes this MCP entry, saved credentials, and Agent access from this Haus Server."
+                                                title="Remove from Haus"
                                             >
                                                 <Button
                                                     onPress={() => setDestructiveAction('delete')}

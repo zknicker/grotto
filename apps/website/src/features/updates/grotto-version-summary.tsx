@@ -10,7 +10,7 @@ export function GrottoVersionSummary({ view }: { view: GrottoUpdateView }) {
             <ItemCardGroup>
                 <ItemCard>
                     <ItemCard.Content>
-                        <ItemCard.Title>Grotto {view.version}</ItemCard.Title>
+                        <ItemCard.Title>Haus {view.version}</ItemCard.Title>
                         <ItemCard.Description>
                             Component updates are managed from the sidebar.
                         </ItemCard.Description>

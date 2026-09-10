@@ -6,8 +6,8 @@ import { type AgentPromptRenderInput, renderAgentInstructions } from './managed-
 /**
  * Ported composition seam (Runtime's `agent-instructions.ts` +
  * `generateAgentInstructions`): every real Agent turn's system prompt is the
- * managed Grotto operating contract, fingerprinted. The Computer composes this itself — the Server never
- * ships prompt text — so every cold start delivers the full CLI-only Grotto
+ * managed Haus operating contract, fingerprinted. The Computer composes this itself — the Server never
+ * ships prompt text — so every cold start delivers the full CLI-only Haus
  * collaboration contract.
  *
  * Boundary adaptation: host facts (hostname/OS/runtime version) are derived on

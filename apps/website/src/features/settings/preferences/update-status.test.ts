@@ -37,7 +37,7 @@ describe('update settings status message', () => {
                 true
             )
         ).toEqual({
-            detail: 'Grotto v1.2.4 is available.',
+            detail: 'Haus v1.2.4 is available.',
             tone: 'neutral',
         });
     });

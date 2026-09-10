@@ -469,7 +469,7 @@ test('keeps every operator Trigger procedure to Owners and Admins', async () => 
     expect(survivor.status).toBe('armed');
 });
 
-test('refuses a kind Grotto does not have, on both authoring paths', async () => {
+test('refuses a kind Haus does not have, on both authoring paths', async () => {
     await expect(
         owner.trpc.trigger.create.mutate({
             agentId: sageAgentId,

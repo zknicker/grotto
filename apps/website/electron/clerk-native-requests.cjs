@@ -1,6 +1,6 @@
 'use strict';
 
-function prepareNativeClerkRequest(details, clerkOrigin = 'https://clerk.grotto.sh') {
+function prepareNativeClerkRequest(details, clerkOrigin = 'https://clerk.haus.chat') {
     if (!isNativeClerkRequest(details.url, clerkOrigin)) {
         return details.requestHeaders;
     }
@@ -12,8 +12,8 @@ function prepareNativeClerkRequest(details, clerkOrigin = 'https://clerk.grotto.
 
 function prepareNativeClerkResponse(
     details,
-    clerkOrigin = 'https://clerk.grotto.sh',
-    appOrigin = 'https://grotto.sh'
+    clerkOrigin = 'https://clerk.haus.chat',
+    appOrigin = 'https://haus.chat'
 ) {
     if (!isNativeClerkRequest(details.url, clerkOrigin)) {
         return details.responseHeaders;
@@ -29,8 +29,8 @@ function prepareNativeClerkResponse(
 
 function registerNativeClerkRequestHeaders(
     webRequest,
-    clerkOrigin = 'https://clerk.grotto.sh',
-    appOrigin = 'https://grotto.sh'
+    clerkOrigin = 'https://clerk.haus.chat',
+    appOrigin = 'https://haus.chat'
 ) {
     webRequest.onBeforeSendHeaders(
         { urls: [`${clerkOrigin.replace(/\/$/u, '')}/*`] },

@@ -21,18 +21,18 @@ export function registerMcpOAuthCallback(app: FastifyInstance, relay: McpOAuthRe
 function callbackCopy(status: 'complete' | 'expired' | 'failed') {
     if (status === 'complete') {
         return {
-            message: 'You can close this window and return to Grotto.',
+            message: 'You can close this window and return to Haus.',
             title: 'Connection complete',
         };
     }
     if (status === 'failed') {
         return {
-            message: 'Return to Grotto and try connecting again.',
+            message: 'Return to Haus and try connecting again.',
             title: 'Connection failed',
         };
     }
     return {
-        message: 'Return to Grotto and start the connection again.',
+        message: 'Return to Haus and start the connection again.',
         title: 'Connection expired',
     };
 }

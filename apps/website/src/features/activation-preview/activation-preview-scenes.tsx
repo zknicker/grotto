@@ -30,7 +30,7 @@ export const activationPreviewScenes: ActivationPreviewScene[] = [
                 <SignInGateFrame signIn />
             ) : (
                 <SignInGateFrame
-                    message="Sign in to open your Grotto. (Set VITE_CLERK_PUBLISHABLE_KEY to preview the sign-in action.)"
+                    message="Sign in to open your Haus. (Set VITE_CLERK_PUBLISHABLE_KEY to preview the sign-in action.)"
                     signIn={false}
                 />
             ),

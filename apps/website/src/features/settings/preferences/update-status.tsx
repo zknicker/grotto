@@ -40,7 +40,7 @@ export function getUpdateStatusMessage(
         case 'available':
         case 'ready':
             return {
-                detail: `Grotto v${status.version} is available.`,
+                detail: `Haus v${status.version} is available.`,
                 tone: 'neutral',
             };
         case 'error':

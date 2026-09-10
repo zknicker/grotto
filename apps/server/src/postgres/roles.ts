@@ -32,8 +32,6 @@ export async function grantGrottoBackupPrivileges(client: SQL, backupRole: strin
 
 export function assertGrottoDatabaseRole(role: string, kind: 'backup' | 'runtime') {
     if (!/^[a-z_][a-z0-9_]{0,62}$/u.test(role)) {
-        throw new Error(
-            `The Grotto PostgreSQL ${kind} role must be a plain PostgreSQL identifier.`
-        );
+        throw new Error(`The Haus PostgreSQL ${kind} role must be a plain PostgreSQL identifier.`);
     }
 }

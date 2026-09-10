@@ -156,13 +156,13 @@ async function checkForDesktopUpdateTask({ install }: { install: boolean }) {
 
         if (install) {
             await installCurrentDesktopUpdate({
-                unavailableMessage: 'No Grotto update is available to install.',
+                unavailableMessage: 'No Haus update is available to install.',
             });
         }
     } catch (error) {
         setDesktopUpdateStatus({
             phase: 'error',
-            message: getErrorMessage(error, 'Grotto could not check for updates.'),
+            message: getErrorMessage(error, 'Haus could not check for updates.'),
         });
     }
 }
@@ -177,7 +177,7 @@ async function installDesktopUpdateAndRestart() {
 
     if (currentStatus.phase === 'available' || currentStatus.phase === 'ready') {
         await installCurrentDesktopUpdate({
-            unavailableMessage: 'No Grotto update is available to install.',
+            unavailableMessage: 'No Haus update is available to install.',
         });
         return;
     }
@@ -217,7 +217,7 @@ async function installCurrentDesktopUpdate(options?: { unavailableMessage?: stri
     } catch (error) {
         setDesktopUpdateStatus({
             phase: 'error',
-            message: getErrorMessage(error, 'Grotto could not install the update.'),
+            message: getErrorMessage(error, 'Haus could not install the update.'),
         });
     }
 }

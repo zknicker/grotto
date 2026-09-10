@@ -1,30 +1,30 @@
 import type * as React from 'react';
 import { cn } from '../lib/utils.ts';
-import './grotto-logo.css';
+import './haus-logo.css';
 
-const appIconUrl = '/grotto-app-icon.png';
+const appIconUrl = '/haus-app-icon.png';
 
-/** The full-color Grotto mark: the blob on its blue-gradient badge. */
-export function GrottoLogo({
+/** The full-color Haus mark: the blob on its blue-gradient badge. */
+export function HausLogo({
     animated = false,
     className,
     ...props
 }: { animated?: boolean } & React.ComponentPropsWithoutRef<'svg'>) {
     return (
         <svg
-            className={cn('grotto-logo', animated && 'grotto-logo--animated', className)}
+            className={cn('haus-logo', animated && 'haus-logo--animated', className)}
             viewBox="0 0 256 256"
             xmlns="http://www.w3.org/2000/svg"
             {...props}
         >
-            <title>Grotto</title>
-            <image className="grotto-logo__figure" height="256" href={appIconUrl} width="256" />
+            <title>Haus</title>
+            <image className="haus-logo__figure" height="256" href={appIconUrl} width="256" />
         </svg>
     );
 }
 
 /** Compact form of the released app icon for small chrome like menus. */
-export function GrottoGlyph({ className, ...props }: React.ComponentPropsWithoutRef<'svg'>) {
+export function HausGlyph({ className, ...props }: React.ComponentPropsWithoutRef<'svg'>) {
     return (
         <svg
             className={className}
@@ -32,7 +32,7 @@ export function GrottoGlyph({ className, ...props }: React.ComponentPropsWithout
             xmlns="http://www.w3.org/2000/svg"
             {...props}
         >
-            <title>Grotto</title>
+            <title>Haus</title>
             <image height="256" href={appIconUrl} width="256" />
         </svg>
     );

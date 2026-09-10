@@ -58,7 +58,7 @@ export class GrottoApiError extends Error {
     readonly status: number;
 
     constructor(status: number, payload: unknown) {
-        super(`Grotto API request failed with status ${status}.`);
+        super(`Haus API request failed with status ${status}.`);
         this.name = 'GrottoApiError';
         this.payload = payload;
         this.status = status;

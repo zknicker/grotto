@@ -174,7 +174,7 @@ export class McpRuntime {
         const connection = await this.readConnection(connectionId);
         const secret = await this.readSecret(connectionId);
         return await createMCPClient({
-            clientName: 'Grotto Server',
+            clientName: 'Haus Server',
             initializationOptions: { signal },
             transport: {
                 authProvider:
@@ -186,7 +186,7 @@ export class McpRuntime {
                               {
                                   allowAuthorizationServerOrigin: false,
                                   onRedirect() {
-                                      throw new Error('Reconnect this MCP server in Grotto.');
+                                      throw new Error('Reconnect this MCP server in Haus.');
                                   },
                               }
                           )

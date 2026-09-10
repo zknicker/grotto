@@ -1,4 +1,4 @@
-# Grotto visuals — design system
+# Haus visuals — design system
 
 Everything you render — inline visuals and artifact pages — wears the app's
 theme. Almost every decision below is already a token; spend the tokens
@@ -51,7 +51,7 @@ injects the active theme.
 | `--gap-xs` `--gap-sm` `--gap-md` `--gap-lg` | Gaps between elements, tiles, sections |
 
 `--accent` is emphasis, not interactivity: training data associates blue with
-"clickable", Grotto does not. Controls, hover, and active states stay ink.
+"clickable", Haus does not. Controls, hover, and active states stay ink.
 
 ## Layout
 

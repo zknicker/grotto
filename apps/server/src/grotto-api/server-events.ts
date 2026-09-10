@@ -2,7 +2,7 @@ import EventEmitter, { on } from 'node:events';
 import type { ServerUpdatedEvent } from '@grotto/api';
 
 /**
- * Server-scoped realtime notifications for the Grotto Server. Delivery
+ * Server-scoped realtime notifications for the Haus Server. Delivery
  * is membership-checked by the subscription that consumes it. The wire shape is
  * the first-party contract in `@grotto/api`, so the App types its listener
  * against the same record this emits.

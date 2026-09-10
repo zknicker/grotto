@@ -27,7 +27,7 @@ const navigationTopic = {
     kind: 'index' as const,
     related: ['grotto-cli-overview'],
     summary: 'Navigate the Manual.',
-    title: 'Grotto Manual',
+    title: 'Haus Manual',
 };
 
 test('Manual topic schemas require recipe metadata and reject it on navigation topics', () => {

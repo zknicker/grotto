@@ -3,7 +3,7 @@ import { TASK_IN_REVIEW_STALE_DAYS } from '@grotto/api';
 import { composeAgentInstructions } from './instructions.ts';
 
 // The smallest guard on the ported system prompt: every real Computer Agent must
-// receive the CLI-only Grotto collaboration contract at cold start. These assert
+// receive the CLI-only Haus collaboration contract at cold start. These assert
 // the load-bearing message-check / message-send / CLI-only requirements, not the
 // whole (operator-approved) template.
 
@@ -16,7 +16,7 @@ const facts = {
     workspacePath: '/home/agt_cove/workspace',
 } as const;
 
-test('composes the CLI-only Grotto collaboration contract', () => {
+test('composes the CLI-only Haus collaboration contract', () => {
     const { instructions } = composeAgentInstructions(facts);
 
     // CLI-only output is the load-bearing rule (D1/ADR 0014).
@@ -81,7 +81,7 @@ test('composes the CLI-only Grotto collaboration contract', () => {
     );
     expect(instructions).not.toContain('acknowledge it briefly even when it is an FYI');
 
-    // Durable scheduling belongs to Grotto reminders, not sleeps, memory, or
+    // Durable scheduling belongs to Haus reminders, not sleeps, memory, or
     // runtime-native schedulers. Fires wake only the author.
     expect(instructions).toContain(
         'Use reminders for follow-up that depends on future state you cannot resolve now, whether user-requested or self-driven.'
@@ -210,7 +210,7 @@ test('fingerprint is stable per composed text', () => {
 // Raft parity (`buildTasksSection`, Computer 1.0.16): the claim gate is the
 // decision rule again. Anything that needs action beyond a reply is claimed
 // before the first tool call, so a second Agent cannot start work another
-// Agent already holds. Grotto keeps `closed` and the stale-close window, and
+// Agent already holds. Haus keeps `closed` and the stale-close window, and
 // diverges in exactly one place: same-turn completion is answered in the chat
 // that asked and goes straight to `done` instead of parking in `in_review`.
 test('claims before acting and closes same-turn work without parking it', () => {
@@ -237,13 +237,13 @@ test('claims before acting and closes same-turn work without parking it', () => 
         'Claiming is the concurrency lock and moves the task to `in_progress`'
     );
 
-    // Grotto's own status set and stale window survive as additive text.
-    expect(instructions).toContain('Grotto adds `closed` (reversible)');
+    // Haus's own status set and stale window survive as additive text.
+    expect(instructions).toContain('Haus adds `closed` (reversible)');
     expect(instructions).toContain('When done, set status to `in_review` so a human can validate');
     // The same-turn reply lands in the chat that asked, which overrides workflow
     // step 3's "post updates in the task's thread" for work that ends this turn.
     expect(instructions).toContain(
-        'Grotto diverges once: for a message you claimed and fully finished in the same turn, reply in the chat where the request was made, not its thread, and set it `done` rather than parking it in `in_review`'
+        'Haus diverges once: for a message you claimed and fully finished in the same turn, reply in the chat where the request was made, not its thread, and set it `done` rather than parking it in `in_review`'
     );
     expect(instructions).toContain(
         'the thread and `in_review` are for progress notes, questions, and work that outlives the turn'

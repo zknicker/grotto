@@ -10,7 +10,7 @@ import {
     runGrottoUpdateSequence,
 } from './grotto-update-reconciler.ts';
 
-describe('Grotto update reconciler', () => {
+describe('Haus update reconciler', () => {
     test('starts every Computer and the App before waiting for any one surface', async () => {
         let state = view([
             computer('alpha', 'available'),
@@ -75,14 +75,14 @@ describe('Grotto update reconciler', () => {
             downloadDesktop: async () => undefined,
             readView: () => view([desktop('restart-required')]),
             restartDesktop: async () => {
-                throw new Error('Grotto App could not restart.');
+                throw new Error('Haus App could not restart.');
             },
             updateComputer: async () => undefined,
             waitForChange: async () => undefined,
         });
 
         expect(result).toEqual({
-            failures: [{ detail: 'Grotto App could not restart.', stepId: 'desktop-app' }],
+            failures: [{ detail: 'Haus App could not restart.', stepId: 'desktop-app' }],
             kind: 'failed',
         });
     });
@@ -211,7 +211,7 @@ function desktop(phase: DesktopUpdateStep['phase']): DesktopUpdateStep {
         detail: null,
         id: 'desktop-app',
         kind: 'desktop-app',
-        label: 'Grotto App',
+        label: 'Haus App',
         phase,
         progress: null,
         targetVersion: '1.8.40',

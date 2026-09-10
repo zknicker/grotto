@@ -6,7 +6,7 @@ import { serverMembershipsTable, usersTable } from '../postgres/schema.ts';
 
 export class ServerMemberNotFoundError extends Error {
     constructor() {
-        super('That human is not a current member of this Grotto server.');
+        super('That human is not a current member of this Haus server.');
         this.name = 'ServerMemberNotFoundError';
     }
 }

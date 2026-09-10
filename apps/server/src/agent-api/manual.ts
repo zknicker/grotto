@@ -37,7 +37,7 @@ export function registerAgentManualRoutes(app: FastifyInstance, db: GrottoDataba
                 reply,
                 403,
                 'MANUAL_CAPABILITY_REQUIRED',
-                'This runner is not authorized to read the Grotto Manual.'
+                'This runner is not authorized to read the Haus Manual.'
             );
         }
         const parsed = agentManualGetQuerySchema.safeParse(request.query);
@@ -81,7 +81,7 @@ export function registerAgentManualRoutes(app: FastifyInstance, db: GrottoDataba
                 reply,
                 403,
                 'MANUAL_CAPABILITY_REQUIRED',
-                'This runner is not authorized to read the Grotto Manual.'
+                'This runner is not authorized to read the Haus Manual.'
             );
         }
         const parsed = agentManualSearchQuerySchema.safeParse(request.query);

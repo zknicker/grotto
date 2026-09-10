@@ -79,7 +79,7 @@ test('seeds Cove exact inventory and 12 valid separately authored Manual summari
     );
 });
 
-test('preserves the Cindy factory guidance shape with only supported Grotto actions', async () => {
+test('preserves the Cindy factory guidance shape with only supported Haus actions', async () => {
     await seedCoveWorkspace(workspaceDir);
 
     const memory = await fs.readFile(path.join(workspaceDir, 'MEMORY.md'), 'utf8');
@@ -99,7 +99,7 @@ test('preserves the Cindy factory guidance shape with only supported Grotto acti
     for (const heading of [
         '## Role',
         '## Core Goals',
-        '## What Grotto Is (Practical Definition)',
+        '## What Haus Is (Practical Definition)',
         '## Decision Principles',
         '## Tone Principles',
         '## Behavioral Invariant',
@@ -124,7 +124,7 @@ test('preserves the Cindy factory guidance shape with only supported Grotto acti
         expect(playbook).toContain(heading);
     }
     expect(playbook).toContain('Their request in this Chat is the consent');
-    expect(playbook).toContain('let an Owner or Admin perform the mutation in Grotto App');
+    expect(playbook).toContain('let an Owner or Admin perform the mutation in Haus App');
     expect(faq.match(/^## /gmu)).toHaveLength(15);
     expect(faq).toContain('How do I create Agents or Chats?');
     expect(objectives).toContain(

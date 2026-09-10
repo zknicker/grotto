@@ -139,8 +139,8 @@ test('revokes immediately, never waits for an offline Computer, and asynchronous
     const deletion = await owner.trpc.server.delete.mutate({ confirmation: slug, serverId });
 
     expect(deletion).toMatchObject({ serverId, status: 'pending' });
-    await expect(owner.trpc.server.bySlug.query({ slug })).rejects.toThrow(/No Grotto server/i);
-    await expect(member.trpc.server.bySlug.query({ slug })).rejects.toThrow(/No Grotto server/i);
+    await expect(owner.trpc.server.bySlug.query({ slug })).rejects.toThrow(/No Haus server/i);
+    await expect(member.trpc.server.bySlug.query({ slug })).rejects.toThrow(/No Haus server/i);
     const status = await waitForDeletion(deletion.deletionId);
     expect(status).toMatchObject({ error: null, serverId, status: 'completed' });
     await expect(owner.trpc.server.list.query()).resolves.toEqual([]);

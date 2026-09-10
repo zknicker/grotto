@@ -42,7 +42,7 @@ test('login reuses a usable access token without opening device authorization', 
         });
 
         expect(result.exitCode, result.stderr).toBe(0);
-        expect(result.stdout).toContain('Reused the saved Grotto Computer login.');
+        expect(result.stdout).toContain('Reused the saved Haus Computer login.');
         expect(requests).toEqual([]);
         expect(JSON.parse(await readFile(join(dataRoot, 'login.json'), 'utf8'))).toEqual(session);
     } finally {
@@ -90,7 +90,7 @@ test('login rotates an expired access token through the saved refresh session', 
         });
 
         expect(result.exitCode, result.stderr).toBe(0);
-        expect(result.stdout).toContain('Reused the saved Grotto Computer login.');
+        expect(result.stdout).toContain('Reused the saved Haus Computer login.');
         expect(received).toEqual([
             {
                 refreshToken: previous.refreshToken,
@@ -223,7 +223,7 @@ test('login requires explicit replacement before changing the saved origin', asy
             GROTTO_SERVER_ORIGIN: replacementOrigin,
         });
         expect(replaced.exitCode, `${replaced.stderr}\nRequests: ${requests.join(', ')}`).toBe(0);
-        expect(replaced.stdout).toContain('Grotto Computer signed in.');
+        expect(replaced.stdout).toContain('Haus Computer signed in.');
         expect(JSON.parse(await readFile(join(dataRoot, 'login.json'), 'utf8'))).toMatchObject({
             origin: replacementOrigin,
             sessionId: 'cls_6543210987654321',

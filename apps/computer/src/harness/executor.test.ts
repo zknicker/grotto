@@ -506,7 +506,7 @@ test('projects a concrete fire and a task assignment into the first prompt', asy
     const assignment = {
         chatId: 'cht_origin',
         content:
-            '[Grotto task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes',
+            '[Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes',
         createdAt: '2026-07-27T00:00:00.000Z',
         id: 'task-assign:msg_1a2b3c4d5e6f:3',
         mentioned: true,
@@ -518,7 +518,7 @@ test('projects a concrete fire and a task assignment into the first prompt', asy
     await runHarnessTurn(turnInput({ inbox: [assignment], inboxDelivery: 'concrete' }));
 
     expect(streamedPrompts[0]).toContain(
-        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 type=system mentioned=true] @grotto: [Grotto task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes'
+        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 type=system mentioned=true] @grotto: [Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes'
     );
 });
 
@@ -533,7 +533,7 @@ test('cold-starts ordinary Chat work with a content-free notice in the same task
     await runHarnessTurn(input);
 
     expect(streamedPrompts).toHaveLength(1);
-    expect(streamedPrompts[0]).toContain('Grotto inbox notice');
+    expect(streamedPrompts[0]).toContain('Haus inbox notice');
     expect(streamedPrompts[0]).toContain('dm:@operator  pending: 1 message');
     expect(streamedPrompts[0]).not.toContain('Hello Cove');
     expect(sentUserMessages).toEqual([]);
@@ -823,7 +823,7 @@ test('an aborted warm instruction and version update retries on the same session
     await expect(access(restartMarker)).rejects.toThrow();
 });
 
-test('an aborted Restart keeps the current public Grotto Agent version current', async () => {
+test('an aborted Restart keeps the current public Haus Agent version current', async () => {
     await runHarnessTurn(turnInput());
     const firstSession = await readSession();
     const runtimeDir = join(agentRoot, 'runtime');
@@ -1195,7 +1195,7 @@ test('delivers a pending busy notice into the live harness turn', async () => {
     const runtimeDir = join(agentRoot, 'runtime');
     await mkdir(runtimeDir, { recursive: true });
     const notice =
-        '[Grotto inbox notice:\nInbox update: 3 unread messages total; 1 changed target\ndm:@operator  pending: 3 messages\n]';
+        '[Haus inbox notice:\nInbox update: 3 unread messages total; 1 changed target\ndm:@operator  pending: 3 messages\n]';
     await writeFile(join(runtimeDir, 'pending-notice.json'), JSON.stringify({ notice }));
     let registeredSink: ((notice: string) => Promise<boolean>) | undefined;
     let unregistered = false;
@@ -1231,7 +1231,7 @@ test.each([
     acceptsUserMessages = supported;
     streamIncludesToolBoundary = boundary;
     const runtimeDir = join(agentRoot, 'runtime');
-    const notice = '[Grotto inbox notice:\\nInbox update: 1 unread message total\\n]';
+    const notice = '[Haus inbox notice:\\nInbox update: 1 unread message total\\n]';
     const receipt = { runId: 'run_active', workIds: ['msg_late'] };
     await writeFile(join(runtimeDir, 'pending-notice.json'), JSON.stringify({ notice, receipt }));
     const receipts: (typeof receipt)[] = [];
@@ -1262,7 +1262,7 @@ test('defers a stored follow-up notice until the cold turn has a safe live bound
     const runtimeDir = join(agentRoot, 'runtime');
     await mkdir(runtimeDir, { recursive: true });
     const notice =
-        '[Grotto inbox notice:\nInbox update: 1 unread message total; 1 changed target\n#product  pending: 1 message\n]';
+        '[Haus inbox notice:\nInbox update: 1 unread message total; 1 changed target\n#product  pending: 1 message\n]';
     await writeFile(join(runtimeDir, 'pending-notice.json'), JSON.stringify({ notice }));
 
     await runHarnessTurn(turnInput());

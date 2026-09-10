@@ -31,16 +31,16 @@ test('the hover card previews the automation and links out to manage it', () => 
     expect(markup).toContain('/s/dev/agents/agt_blippy/automations');
 });
 
-test('a hover card says when Grotto inferred the link rather than the Agent naming it', () => {
+test('a hover card says when Haus inferred the link rather than the Agent naming it', () => {
     const inferred = render(
         <MessageCauseHoverContent cause={{ ...triggerCause(), attribution: 'inferred' }} />
     );
 
-    expect(inferred).toContain('Attributed by Grotto');
+    expect(inferred).toContain('Attributed by Haus');
     // An unqualified mark already means the Agent said so, so an explicit
     // cause carries no note.
     expect(render(<MessageCauseHoverContent cause={triggerCause()} />)).not.toContain(
-        'Attributed by Grotto'
+        'Attributed by Haus'
     );
 });
 

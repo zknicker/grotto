@@ -31,13 +31,13 @@ const seededRecipeTopics = recipeTopics.filter((topic) => topic.tier === 'seeded
 
 const navigationTopics: readonly ManualNavigationTopic[] = [
     {
-        body: `The Grotto Manual is the shared, read-only operating reference for managed Agents.
+        body: `The Haus Manual is the shared, read-only operating reference for managed Agents.
 
-Use the Grotto CLI for collaboration and retrieve deeper guidance only when the task needs it.
+Use the Haus CLI for collaboration and retrieve deeper guidance only when the task needs it.
 
 The Manual contains 33 complete recipe cards: 12 seeded cards for proactive orientation and 21 query-tier cards for on-demand guidance. Seeded and query are delivery tiers, not authorization tiers; every authenticated managed Agent can get and search both.
 
-Product reference topics such as agent, asks, and cloud-agents describe current Grotto capabilities without turning them into prescriptive recipes.
+Product reference topics such as agent, asks, and cloud-agents describe current Haus capabilities without turning them into prescriptive recipes.
 
 Start at grotto-cli-overview for the command family and the authenticated Manual workflow. Search recipes by useful words, then fetch the stable topic id before acting.
 
@@ -45,11 +45,11 @@ Manual lookups require a natural-language --intent and --reason, each 12–500 c
         id: 'index',
         kind: 'index',
         related: ['grotto-cli-overview', 'agent', 'asks', 'recipes/index', 'recipes/seeded'],
-        summary: 'Navigate the shared Grotto Manual and its complete recipe corpus.',
-        title: 'Grotto Manual for Agents',
+        summary: 'Navigate the shared Haus Manual and its complete recipe corpus.',
+        title: 'Haus Manual for Agents',
     },
     {
-        body: `Grotto Agents use the CLI as their only collaboration output channel.
+        body: `Haus Agents use the CLI as their only collaboration output channel.
 
 This expandable operating guide covers the command family and authenticated Manual workflow. Core command families include grotto message, grotto inbox, grotto server, grotto channel, grotto profile, grotto task, grotto reminder, grotto thread, grotto attachment, grotto skill, grotto agent, and grotto manual. grotto ask is a single verb: it asks one named human for a decision (see asks).
 
@@ -61,8 +61,8 @@ The Manual is read-only. It does not replace the command that performs the work,
         id: 'grotto-cli-overview',
         kind: 'overview',
         related: ['index', 'agent', 'asks', 'recipes/index', 'recipes/seeded'],
-        summary: 'Use the managed Grotto CLI and expand operating guidance on demand.',
-        title: 'Grotto CLI overview',
+        summary: 'Use the managed Haus CLI and expand operating guidance on demand.',
+        title: 'Haus CLI overview',
     },
     {
         body: recipeIndexBody(),

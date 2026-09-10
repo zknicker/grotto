@@ -24,8 +24,8 @@ test('a TTY renders a determinate byte bar and finalizes each phase line', () =>
     expect(joined).toContain('█'.repeat(24));
     expect(joined).toContain('Waiting for 2 active Agents to finish…');
     expect(joined).toContain('Waiting for 1 active Agent to finish…');
-    expect(joined).toContain('Installing Grotto Computer 1.1.0…');
-    expect(joined).toContain('Restarting Grotto Computer…');
+    expect(joined).toContain('Installing Haus Computer 1.1.0…');
+    expect(joined).toContain('Restarting Haus Computer…');
     // One newline per finished phase: requested, downloading, verifying,
     // waiting-for-agents, installing, and restarting (closed by finish()).
     expect(joined.split('\n').length - 1).toBe(6);
@@ -61,14 +61,14 @@ test('a non-TTY stream gets sparse plain lines with no ANSI or carriage returns'
     expect(joined).not.toContain('\r');
     expect(joined).not.toContain(ESC);
     expect(joined.split('\n').slice(0, -1)).toEqual([
-        'Update requested: Grotto Computer 1.1.0.',
-        'Downloading Grotto Computer 1.1.0 (48.2 MB)…',
+        'Update requested: Haus Computer 1.1.0.',
+        'Downloading Haus Computer 1.1.0 (48.2 MB)…',
         'Verifying signature and integrity…',
         'Waiting for 2 active Agents to finish…',
         'Waiting for 1 active Agent to finish…',
         'Waiting for active Agents to finish…',
-        'Installing Grotto Computer 1.1.0…',
-        'Restarting Grotto Computer…',
+        'Installing Haus Computer 1.1.0…',
+        'Restarting Haus Computer…',
     ]);
 });
 
@@ -93,7 +93,7 @@ test('a concurrent update reports its live state', () => {
             at('downloading', { downloadedBytes: 12_400_000, totalBytes: 48_200_000 })
         )
     ).toBe(
-        'Another Grotto Computer update to 1.1.0 is already in progress (downloading, 12.4 MB of 48.2 MB). Re-run grotto-computer upgrade to check on it.'
+        'Another Haus Computer update to 1.1.0 is already in progress (downloading, 12.4 MB of 48.2 MB). Re-run grotto-computer upgrade to check on it.'
     );
     expect(describeConcurrentUpdate(at('waiting-for-agents', { activeAgentCount: 1 }))).toContain(
         'waiting for 1 active Agent'

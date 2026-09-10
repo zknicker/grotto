@@ -13,7 +13,7 @@ const appProcedure = t.procedure.use(({ ctx, next }) => {
 
     throw new TRPCError({
         code: 'PRECONDITION_FAILED',
-        message: 'Update required: this Grotto App no longer matches the Server protocol.',
+        message: 'Update required: this Haus App no longer matches the Server protocol.',
     });
 });
 
@@ -59,6 +59,6 @@ function unauthorized(cause?: unknown) {
     return new TRPCError({
         cause,
         code: 'UNAUTHORIZED',
-        message: 'Sign in to use this Grotto server.',
+        message: 'Sign in to use this Haus server.',
     });
 }

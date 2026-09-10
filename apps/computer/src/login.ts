@@ -59,7 +59,7 @@ export async function runComputerLogin(options: {
     if (current && !options.replace) {
         if (current.origin !== origin) {
             throw new Error(
-                `Grotto Computer is already signed in to ${current.origin}. Run "grotto-computer login --replace" to use ${origin}.`
+                `Haus Computer is already signed in to ${current.origin}. Run "grotto-computer login --replace" to use ${origin}.`
             );
         }
         try {
@@ -67,7 +67,7 @@ export async function runComputerLogin(options: {
                 dataRoot: options.dataRoot,
                 session: current,
             });
-            console.log(stdoutRenderer.ok('Reused the saved Grotto Computer login.'));
+            console.log(stdoutRenderer.ok('Reused the saved Haus Computer login.'));
             return session;
         } catch (cause) {
             if (!canStartFreshLogin(cause)) {
@@ -93,7 +93,7 @@ export async function runComputerLogin(options: {
         }
     }
 
-    console.log('Sign in Grotto Computer:');
+    console.log('Sign in Haus Computer:');
     console.log(`Verification URL: ${started.verificationUrl}`);
     console.log(`User code: ${started.userCode}`);
     console.log(
@@ -125,7 +125,7 @@ export async function runComputerLogin(options: {
                 await writeComputerLoginSession(options.dataRoot, session);
                 if (options.complete !== false) {
                     await completeComputerLogin(session);
-                    console.log(stdoutRenderer.ok('Grotto Computer signed in.'));
+                    console.log(stdoutRenderer.ok('Haus Computer signed in.'));
                 }
                 return session;
             }
@@ -147,7 +147,7 @@ export async function resolveComputerLogin(options: {
     const current = await readComputerLoginSession(options.dataRoot);
     if (!current) {
         if (!options.allowLogin) {
-            throw new Error('Grotto Computer is not signed in. Run "grotto-computer login" first.');
+            throw new Error('Haus Computer is not signed in. Run "grotto-computer login" first.');
         }
         return await runComputerLogin({
             complete: options.complete,
@@ -158,7 +158,7 @@ export async function resolveComputerLogin(options: {
     }
     if (current.origin !== origin) {
         throw new Error(
-            `Grotto Computer is already signed in to ${current.origin}. Run "grotto-computer login --replace" to use ${origin}.`
+            `Haus Computer is already signed in to ${current.origin}. Run "grotto-computer login --replace" to use ${origin}.`
         );
     }
     try {
@@ -178,7 +178,7 @@ export async function resolveComputerLogin(options: {
         }
         if (!options.allowLogin) {
             throw new Error(
-                'The saved Grotto Computer login could not be refreshed. Run "grotto-computer login" again.'
+                'The saved Haus Computer login could not be refreshed. Run "grotto-computer login" again.'
             );
         }
         throw cause;
@@ -367,7 +367,7 @@ function isSessionId(value: string) {
 function normalizeHttpOrigin(value: string): string {
     const url = new URL(value);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-        throw new Error('Grotto Server origin must use HTTP(S).');
+        throw new Error('Haus Server origin must use HTTP(S).');
     }
     return url.origin;
 }

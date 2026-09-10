@@ -15,7 +15,7 @@ import type { TriggerRateLimiter } from '../triggers/trigger-rate-limit.ts';
 import { publicOrigin } from '../triggers/trigger-url.ts';
 
 /**
- * Request context for the Grotto Server. It carries the Clerk session
+ * Request context for the Haus Server. It carries the Clerk session
  * for this request only — never process-shared identity — plus the Server's
  * PostgreSQL database.
  */

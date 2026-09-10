@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { createClerkUsers } from '../src/identity/clerk-users.ts';
 
 /**
- * The only Grotto surface that reads a human's email. Clerk is the sole source,
+ * The only Haus surface that reads a human's email. Clerk is the sole source,
  * the lookup is keyed by the verified session subject, and an address counts
  * only when Clerk itself reports it verified.
  */
@@ -26,18 +26,18 @@ function respondWith(body: unknown, status = 200) {
 test('only Clerk-verified addresses are returned, normalized', async () => {
     const { calls, fetchImpl } = respondWith({
         email_addresses: [
-            { email_address: 'Verified@Grotto.TEST', verification: { status: 'verified' } },
-            { email_address: 'unverified@grotto.test', verification: { status: 'unverified' } },
-            { email_address: 'no-verification@grotto.test', verification: null },
-            { email_address: '  spaced@grotto.test  ', verification: { status: 'verified' } },
+            { email_address: 'Verified@Haus.TEST', verification: { status: 'verified' } },
+            { email_address: 'unverified@haus.test', verification: { status: 'unverified' } },
+            { email_address: 'no-verification@haus.test', verification: null },
+            { email_address: '  spaced@haus.test  ', verification: { status: 'verified' } },
         ],
         id: 'user_clerk_1',
     });
     const clerkUsers = createClerkUsers({ fetch: fetchImpl, secretKey });
 
     await expect(clerkUsers.readVerifiedEmails('user_clerk_1')).resolves.toEqual([
-        'verified@grotto.test',
-        'spaced@grotto.test',
+        'verified@haus.test',
+        'spaced@haus.test',
     ]);
 
     expect(calls).toHaveLength(1);
@@ -50,7 +50,7 @@ test('only Clerk-verified addresses are returned, normalized', async () => {
 test('a human with no verified address resolves to none', async () => {
     const { fetchImpl } = respondWith({
         email_addresses: [
-            { email_address: 'pending@grotto.test', verification: { status: 'unverified' } },
+            { email_address: 'pending@haus.test', verification: { status: 'unverified' } },
         ],
         id: 'user_clerk_2',
     });

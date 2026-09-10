@@ -37,7 +37,7 @@ function createClerkVerifiedEmails(): ClerkVerifiedEmails {
 }
 
 /**
- * Boots the Grotto Server against a throwaway PostgreSQL cluster and a
+ * Boots the Haus Server against a throwaway PostgreSQL cluster and a
  * local Clerk issuer. Tests speak its public tRPC surface over HTTP, and read
  * committed rows straight from PostgreSQL through `sql`.
  */

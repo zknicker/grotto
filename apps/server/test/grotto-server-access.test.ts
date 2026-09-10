@@ -9,7 +9,7 @@ const openClients: GrottoClient[] = [];
 beforeAll(async () => {
     harness = await startGrottoServerHarness();
     owner = await signIn('user_clerk_access_owner');
-    await owner.trpc.server.create.mutate({ displayName: 'Grotto HQ', slug: 'grotto-hq' });
+    await owner.trpc.server.create.mutate({ displayName: 'Haus HQ', slug: 'grotto-hq' });
     await owner.trpc.server.create.mutate({ displayName: 'Side Quest', slug: 'side-quest' });
 });
 
@@ -25,7 +25,7 @@ test('opens a Server by slug with #all', async () => {
     const server = await owner.trpc.server.bySlug.query({ slug: 'grotto-hq' });
 
     expect(server.slug).toBe('grotto-hq');
-    expect(server.displayName).toBe('Grotto HQ');
+    expect(server.displayName).toBe('Haus HQ');
     expect(server.role).toBe('owner');
     expect(server.channels.map((channel) => channel.name)).toEqual(['all']);
 });
@@ -62,7 +62,7 @@ test('exposes no way to change an immutable Server slug', async () => {
 
     await expect(
         owner.trpc.server.rename.mutate({
-            displayName: 'Grotto HQ',
+            displayName: 'Haus HQ',
             serverId: server.id,
             slug: 'renamed-hq',
         } as never)
@@ -87,7 +87,7 @@ test('denies a human without membership every Server boundary', async () => {
     await expect(subscribeToServer(outsider, server.id).started).rejects.toThrow(/not a member/i);
 
     await expect(owner.trpc.server.bySlug.query({ slug: 'grotto-hq' })).resolves.toMatchObject({
-        displayName: 'Grotto HQ',
+        displayName: 'Haus HQ',
     });
 });
 
@@ -96,10 +96,10 @@ test('delivers Server updates to a member subscription', async () => {
     const subscription = subscribeToServer(owner, server.id);
 
     await subscription.started;
-    await owner.trpc.server.rename.mutate({ displayName: 'Grotto HQ 2', serverId: server.id });
+    await owner.trpc.server.rename.mutate({ displayName: 'Haus HQ 2', serverId: server.id });
     await expect(subscription.nextEvent).resolves.toMatchObject({ serverId: server.id });
 
-    await owner.trpc.server.rename.mutate({ displayName: 'Grotto HQ', serverId: server.id });
+    await owner.trpc.server.rename.mutate({ displayName: 'Haus HQ', serverId: server.id });
 });
 
 const subscriptionTimeoutMs = 5000;

@@ -45,7 +45,7 @@ export function BrowserSettingsDialog({
 
     return (
         <BrowserDialog
-            description="Grotto manages Google Chrome on this Computer with one shared profile. The profile name selects the local identity; it does not install Chrome or create an account."
+            description="Haus manages Google Chrome on this Computer with one shared profile. The profile name selects the local identity; it does not install Chrome or create an account."
             footer={
                 <Button
                     form={BROWSER_DIALOG_FORM_ID}
@@ -97,7 +97,7 @@ export function BrowserSettingsDialog({
                 </BrowserSection>
 
                 <BrowserSection
-                    description="The Chrome install Grotto manages."
+                    description="The Chrome install Haus manages."
                     title="Chrome installation"
                 >
                     {settings.application ? (

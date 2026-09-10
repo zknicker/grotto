@@ -184,7 +184,7 @@ test('Drizzle writes JSONB values as objects and arrays instead of JSON strings'
     });
 });
 
-test('Grotto Agent reports replace one Computer snapshot without crossing assignments', async () => {
+test('Haus Agent reports replace one Computer snapshot without crossing assignments', async () => {
     await harness.sql`
         update agents
         set effective_grotto_agent_applied_at = '2026-08-27T16:00:00.000Z',

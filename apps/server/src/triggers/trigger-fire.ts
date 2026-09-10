@@ -206,7 +206,7 @@ async function fireTriggerTransaction(
 
 /**
  * The fire an `Idempotency-Key` already recorded for this trigger, if any. The
- * route asks before spending rate-limit budget: replaying a delivery Grotto has
+ * route asks before spending rate-limit budget: replaying a delivery Haus has
  * already accepted is not new traffic.
  */
 export async function findTriggerFireByDedupeKey(

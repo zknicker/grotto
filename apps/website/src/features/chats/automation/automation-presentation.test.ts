@@ -144,7 +144,7 @@ test('a live Trigger fire whose own fire row expired drops its place in the hist
 test('only an inferred cause explains itself', () => {
     expect(messageCauseAttributionNote(triggerCause())).toBeNull();
     expect(messageCauseAttributionNote({ ...triggerCause(), attribution: 'inferred' })).toContain(
-        'Attributed by Grotto'
+        'Attributed by Haus'
     );
 });
 

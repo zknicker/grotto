@@ -60,8 +60,8 @@ const offlineComputers: OfflineComputerNotice[] = [
     },
 ];
 
-describe('Grotto update surfaces', () => {
-    test('keeps the compact update control hidden when Grotto is current', () => {
+describe('Haus update surfaces', () => {
+    test('keeps the compact update control hidden when Haus is current', () => {
         const html = renderToStaticMarkup(<GrottoUpdateFooter view={currentView} />);
 
         expect(html).toBe('');
@@ -71,7 +71,7 @@ describe('Grotto update surfaces', () => {
         const html = renderToStaticMarkup(<GrottoUpdateFooter view={multipleUpdatesView} />);
         const tooltip = renderToStaticMarkup(<UpdateTooltipContent view={multipleUpdatesView} />);
 
-        expect(html).toContain('Update Grotto to 1.9.0');
+        expect(html).toContain('Update Haus to 1.9.0');
         expect(html.match(/<button/gu)).toHaveLength(1);
         expect(html).toContain('role="presentation" tabindex="-1"');
         expect(html).not.toContain('cursor-hover-card');
@@ -83,7 +83,7 @@ describe('Grotto update surfaces', () => {
         const tooltip = renderToStaticMarkup(<UpdateTooltipContent view={oneComputerUpdateView} />);
 
         expect(tooltip).toContain('Computer · Zach&#x27;s MacBook Pro');
-        expect(tooltip).not.toContain('Grotto App');
+        expect(tooltip).not.toContain('Haus App');
         expect(tooltip).not.toContain('up to date');
     });
 
@@ -97,7 +97,7 @@ describe('Grotto update surfaces', () => {
         expect(html).toContain('role="presentation" tabindex="-1"');
         expect(tooltip).toContain('Updating');
         expect(tooltip).toContain('Computer · Zach&#x27;s MacBook Pro');
-        expect(tooltip).toContain('Downloading Grotto Computer');
+        expect(tooltip).toContain('Downloading Haus Computer');
         expect(tooltip).toContain('aria-valuenow="42"');
     });
 
@@ -118,7 +118,7 @@ describe('Grotto update surfaces', () => {
             { fill: 0.25, id: 'cmp_home', offset: 0, progress: 0.5 },
             { fill: 0.125, id: 'desktop-app', offset: 0.5, progress: 0.25 },
         ]);
-        expect(html).toContain('aria-label="Updating Grotto"');
+        expect(html).toContain('aria-label="Updating Haus"');
         expect(html).toContain('aria-valuenow="38"');
         expect(html.match(/stroke-dasharray=/gu)).toHaveLength(2);
     });
@@ -137,8 +137,8 @@ describe('Grotto update surfaces', () => {
             />
         );
 
-        expect(tooltip).toContain('Grotto App');
-        expect(tooltip).toContain('Downloading Grotto App');
+        expect(tooltip).toContain('Haus App');
+        expect(tooltip).toContain('Downloading Haus App');
         expect(tooltip).toContain('aria-valuenow="65"');
         expect(tooltip).toContain('1.8.39 → 1.8.40');
     });
@@ -148,7 +148,7 @@ describe('Grotto update surfaces', () => {
             <GrottoVersionBreakdown facts={multipleUpdatesView.componentFacts} />
         );
 
-        expect(html).toContain('Grotto App');
+        expect(html).toContain('Haus App');
         expect(html).toContain('Computer · Zach&#x27;s MacBook Pro');
         expect(html).toContain('Computer · Office');
         expect(html).not.toContain('>MacBook</dt>');
@@ -174,7 +174,7 @@ describe('Grotto update surfaces', () => {
     test('prominently renders only the product version in Settings', () => {
         const html = renderToStaticMarkup(<GrottoVersionSummary view={restartRequiredView} />);
 
-        expect(html).toContain('Grotto 1.9.0');
+        expect(html).toContain('Haus 1.9.0');
         expect(html).toContain('Component updates are managed from the sidebar.');
         expect(html).not.toContain('Restart to finish');
     });

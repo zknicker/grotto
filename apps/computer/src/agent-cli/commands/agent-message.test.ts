@@ -92,7 +92,7 @@ test('message check explains a restored Thread follow and its exact undo command
     await runCheck(depsFor(client, outputs));
 
     expect(outputs[0]).toContain(
-        '[Grotto thread follow restored: this @mention re-subscribed you to ordinary replies in #general:deadbeef.]'
+        '[Haus thread follow restored: this @mention re-subscribed you to ordinary replies in #general:deadbeef.]'
     );
     expect(outputs[0]).toContain(
         'To stop those replies again: grotto thread unfollow --target "#general:deadbeef"'
@@ -239,7 +239,7 @@ test('message check renders a task assignment through the fire envelope header',
                 automations: [
                     {
                         content:
-                            '[Grotto task assignment task=#7 target=#general assignedBy=@operator] Ship the release notes',
+                            '[Haus task assignment task=#7 target=#general assignedBy=@operator] Ship the release notes',
                         createdAt: '2026-08-17T12:00:04.000Z',
                         id: 'task-assign:msg_1a2b3c4d5e6f:3',
                         senderHandle: 'grotto',
@@ -259,7 +259,7 @@ test('message check renders a task assignment through the fire envelope header',
     // the id the Agent can actually read, thread on, or react to.
     expect(lines[0]).toStartWith('[target=#general msg=1a2b3c4d ');
     expect(lines[0]).toEndWith(
-        'type=system] @grotto: [Grotto task assignment task=#7 target=#general assignedBy=@operator] Ship the release notes'
+        'type=system] @grotto: [Haus task assignment task=#7 target=#general assignedBy=@operator] Ship the release notes'
     );
     expect(outputs[0]).not.toContain('No new messages.');
 });
@@ -271,7 +271,7 @@ test('message check orders a task assignment against fires and messages by creat
             schema.parse({
                 automations: [
                     {
-                        content: '[Grotto task assignment task=#7 target=#general] Ship it',
+                        content: '[Haus task assignment task=#7 target=#general] Ship it',
                         createdAt: '2026-08-17T12:00:02.000Z',
                         id: 'task-assign:msg_1a2b3c4d5e6f:3',
                         senderHandle: 'grotto',
@@ -299,7 +299,7 @@ test('message check orders a task assignment against fires and messages by creat
 
     const lines = (outputs[0] ?? '').trimEnd().split('\n');
     expect(lines[0]).toContain('[target=#general msg=first ');
-    expect(lines[1]).toContain('@grotto: [Grotto task assignment task=#7 target=#general] Ship it');
+    expect(lines[1]).toContain('@grotto: [Haus task assignment task=#7 target=#general] Ship it');
     expect(lines[2]).toContain('@trigger: \u26a1 Trigger: Sentry alerts');
     expect(lines[3]).toContain('[target=#general msg=fourth ');
     expect(lines[4]).toBe('No more new messages.');
@@ -317,7 +317,7 @@ test('history preserves restoration guidance when it is the first visible path',
     });
 
     expect(output).toContain(
-        '[Grotto thread follow restored: this @mention re-subscribed you to ordinary replies in #general:deadbeef.]'
+        '[Haus thread follow restored: this @mention re-subscribed you to ordinary replies in #general:deadbeef.]'
     );
     expect(output).toContain(
         'To stop those replies again: grotto thread unfollow --target "#general:deadbeef"'

@@ -1960,7 +1960,7 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
     expect(events.automations).toEqual([
         {
             content:
-                '[Grotto task assignment task=#1 target=#task-delegation assignedBy=@sage] Scout the release notes.',
+                '[Haus task assignment task=#1 target=#task-delegation assignedBy=@sage] Scout the release notes.',
             createdAt: expect.any(String),
             id: `task-assign:${messageId}:1`,
             senderHandle: 'grotto',

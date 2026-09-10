@@ -48,7 +48,7 @@ export function TriggerCreatePanel({
             <Sheet.Header>
                 <Sheet.Heading>New trigger</Sheet.Heading>
                 <p className="mt-1.5 text-muted text-sm leading-5">
-                    Wake {agent.displayName} when something outside Grotto happens.
+                    Wake {agent.displayName} when something outside Haus happens.
                 </p>
             </Sheet.Header>
             <Sheet.Body>

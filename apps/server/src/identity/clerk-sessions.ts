@@ -2,9 +2,9 @@ import { createRemoteJWKSet, customFetch, type FetchImplementation, jwtVerify } 
 
 /**
  * Verifies Clerk session tokens against the configured Clerk instance. Only the
- * token subject is read: it is the external reference used to find the Grotto
+ * token subject is read: it is the external reference used to find the Haus
  * User. Clerk Organization and Clerk role claims are never inspected because
- * they carry no Grotto authority.
+ * they carry no Haus authority.
  */
 export interface ClerkSessions {
     verify(token: string): Promise<{ clerkUserId: string }>;

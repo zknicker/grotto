@@ -41,7 +41,7 @@ export interface ConfiguredAgentRow {
 /**
  * Desired state is pending until the Computer reports a matching effective
  * snapshot. A reported snapshot with missing local resources is degraded, and
- * Grotto never substitutes a different execution configuration to hide the gap.
+ * Haus never substitutes a different execution configuration to hide the gap.
  */
 export function deriveAgentStatus(row: ConfiguredAgentRow): AgentStatus {
     if (!row.effectiveReportedAt) {

@@ -6,7 +6,7 @@ import { resolveRuntimeById } from './runtime-discovery.ts';
 type ComputerRuntime = ComputerInventory['runtimes'][number];
 
 /**
- * Runtimes Grotto Computer knows how to drive, keyed by the CLI that must be
+ * Runtimes Haus Computer knows how to drive, keyed by the CLI that must be
  * on PATH. Only installed runtimes are reported, and the report carries no
  * provider credentials — model availability, never secrets.
  */

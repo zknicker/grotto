@@ -97,9 +97,7 @@ export async function reportComputerHandshake(
             .set({
                 computerId: computer.id,
                 failureCode: compatible ? null : 'computer-incompatible',
-                failureDetail: compatible
-                    ? null
-                    : 'Update Grotto Computer before continuing setup.',
+                failureDetail: compatible ? null : 'Update Haus Computer before continuing setup.',
                 updatedAt: new Date(),
             })
             .where(

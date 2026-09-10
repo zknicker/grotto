@@ -159,7 +159,7 @@ function sourceHandle(source: string) {
 /**
  * The handle a bodiless delivery speaks under. Only rows with no Chat message
  * reach this: automation fires, and the task assignment handoff, which is
- * Server-authored and so speaks as Grotto.
+ * Server-authored and so speaks as Haus.
  */
 function typedSenderHandle(source: string): AgentAutomationEvent['senderHandle'] {
     if (source === 'trigger') {

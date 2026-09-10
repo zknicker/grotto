@@ -13,7 +13,7 @@ import { serversTable } from './servers.ts';
 import { usersTable } from './users.ts';
 
 /**
- * Standing access of one human to one Grotto server, with their Server role.
+ * Standing access of one human to one Haus server, with their Server role.
  * The row is the durable anchor every authored message, read, and DM points at,
  * so revocation sets `revokedAt` and re-acceptance resets the same row into a
  * fresh Member stint stamped with a new `joinedAt` and incremented `stint`.

@@ -23,12 +23,12 @@ function ClerkComputerLoginPage() {
             <ClerkLoading>
                 <LoginFrame
                     description="Opening your sign-in session…"
-                    title="Sign in Grotto Computer"
+                    title="Sign in Haus Computer"
                 />
             </ClerkLoading>
             <ClerkFailed>
                 <LoginFrame
-                    description="Grotto could not open sign-in. Reload this page and try again."
+                    description="Haus could not open sign-in. Reload this page and try again."
                     title="Sign-in unavailable"
                 />
             </ClerkFailed>
@@ -46,10 +46,7 @@ function ClerkComputerLoginContent() {
 
     if (!isLoaded) {
         return (
-            <LoginFrame
-                description="Opening your sign-in session…"
-                title="Sign in Grotto Computer"
-            />
+            <LoginFrame description="Opening your sign-in session…" title="Sign in Haus Computer" />
         );
     }
 
@@ -84,7 +81,7 @@ function KeylessComputerLoginPage() {
         return (
             <LoginFrame
                 description="Checking your sign-in session…"
-                title="Sign in Grotto Computer"
+                title="Sign in Haus Computer"
             />
         );
     }

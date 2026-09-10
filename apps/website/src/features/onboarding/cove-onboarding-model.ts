@@ -9,7 +9,7 @@ export type CoveOnboardingView =
     | 'applying-cove'
     | 'apply-failed';
 
-/** Grotto Computer ships Apple Silicon macOS only; Windows stays visible but unselectable. */
+/** Haus Computer ships Apple Silicon macOS only; Windows stays visible but unselectable. */
 export const coveComputerPlatforms = [
     { id: 'macos', isAvailable: true, label: 'macOS (Apple Silicon)' },
     { id: 'windows', isAvailable: false, label: 'Windows' },
@@ -78,7 +78,7 @@ export function getCoveRepairGuidance(
         return {
             command: 'grotto-computer start',
             note: reconnectResumesNote,
-            remedy: 'Start Grotto Computer on the Mac it runs on.',
+            remedy: 'Start Haus Computer on the Mac it runs on.',
             title: 'This Computer is offline',
         };
     }
@@ -86,15 +86,15 @@ export function getCoveRepairGuidance(
         return {
             command: 'grotto-computer upgrade',
             note: reconnectResumesNote,
-            remedy: 'Update Grotto Computer on the Mac it runs on.',
-            title: 'Grotto Computer needs an update',
+            remedy: 'Update Haus Computer on the Mac it runs on.',
+            title: 'Haus Computer needs an update',
         };
     }
     if (failure?.code === 'inventory-empty') {
         return {
             command: null,
             note: reconnectResumesNote,
-            remedy: 'Sign in to Codex or Claude Code on that Mac, then restart Grotto Computer.',
+            remedy: 'Sign in to Codex or Claude Code on that Mac, then restart Haus Computer.',
             title: 'No runtime is available on this Computer',
         };
     }
@@ -102,7 +102,7 @@ export function getCoveRepairGuidance(
         return {
             command: 'grotto-computer upgrade',
             note: reconnectResumesNote,
-            remedy: 'Update Grotto Computer on the Mac it runs on.',
+            remedy: 'Update Haus Computer on the Mac it runs on.',
             title: 'This Computer needs an update before Cove can start',
         };
     }

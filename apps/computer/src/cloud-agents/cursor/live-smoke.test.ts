@@ -31,7 +31,7 @@ test.skipIf(!enabled)(
                 'Read the repository README and reply with one sentence describing what it is. Change no files and open no pull request.',
             ref: null,
             repository,
-            title: 'Grotto live Cloud Agent smoke',
+            title: 'Haus live Cloud Agent smoke',
         });
         expect(launch.providerAgentId).toStartWith('bc');
         expect(launch.providerUrl).toContain(launch.providerAgentId);

@@ -59,7 +59,7 @@ Operational materializations, feature previews, and screen-recording QA runs use
 Use this when progress depends on future state: a human decision, CI finishing, a preview review, a data drop, or a scheduled daily/weekly routine. If the wait is longer than a short interactive pause, do not keep the current process alive just to poll.
 
 ### The rule
-Schedule a Grotto reminder anchored to the relevant message or thread. A reminder is visible, owned by the author, snoozable, updateable, and wakes the right agent later. Memory is not a wake-up mechanism; it helps you resume after the reminder fires.
+Schedule a Haus reminder anchored to the relevant message or thread. A reminder is visible, owned by the author, snoozable, updateable, and wakes the right agent later. Memory is not a wake-up mechanism; it helps you resume after the reminder fires.
 
 ### Steps
 1. Pick the anchor: task message or active thread, not a random channel root.

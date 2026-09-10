@@ -25,7 +25,7 @@ export class ServerSlugTakenError extends Error {
 }
 
 /**
- * One transaction commits the whole Server: the creator's stable Grotto User,
+ * One transaction commits the whole Server: the creator's stable Haus User,
  * the opaque Server id, its immutable slug and editable display name, the first
  * human Owner membership, and `#all` with that Owner participating. It creates
  * no Computer, Agent, or execution configuration.

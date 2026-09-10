@@ -102,7 +102,7 @@ export async function rollbackStandaloneExecutable(
     const previousNext = `${previous}.next`;
     const staged = `${destination}.rollback`;
     if (!(await exists(previous))) {
-        throw new Error('No previous verified Grotto Computer executable is available.');
+        throw new Error('No previous verified Haus Computer executable is available.');
     }
     await (options.verify ?? verifyAppleExecutable)(previous);
     await rm(previousNext, { force: true });
@@ -117,7 +117,7 @@ export async function rollbackStandaloneExecutable(
     } catch (cause) {
         await rm(staged, { force: true });
         await rm(previousNext, { force: true });
-        throw new Error('Grotto Computer rollback failed.', { cause });
+        throw new Error('Haus Computer rollback failed.', { cause });
     }
 }
 
@@ -126,7 +126,7 @@ export async function verifyAppleExecutable(path: string): Promise<void> {
         if (process.env.NODE_ENV === 'test') {
             return;
         }
-        throw new Error('Grotto Computer releases require Apple Silicon macOS.');
+        throw new Error('Haus Computer releases require Apple Silicon macOS.');
     }
     if (!(computerAppleTeamId && computerAppleSigningIdentity)) {
         throw new Error('This Computer does not contain its Apple signing identity.');

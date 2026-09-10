@@ -10,10 +10,12 @@ export const recognizedFactoryGuidanceHashes: Record<
     readonly string[]
 > = {
     'notes/onboarding_knowledge_faq.md': [
+        '44df10647c8f6ead5d89901cd4540c172983747da44844f00e4e431968abd2d3',
         '83778cfc1a8f9ee7b3e6674812d6a4b1b81f69a645cc374431cb5f5466ff6357',
         '23f36559dbd221b95764c2a4d3bf7995ccc2ee174674ee59652201e11249b1fb',
     ],
     'notes/onboarding_playbook.md': [
+        '524e438961dfcf4fca6554fda5a3e5437039cee20285f93a7d7fad2af6f47137',
         '623fa0c5f8d30ba38058cd8f6e844c27126f8696df5e7ff47ce84ccf0bbca316',
         '24c59b28c7c9115c05ea352477d7f0f16f15fbf0978558c55e04424662b7edb3',
     ],

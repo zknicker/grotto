@@ -3,7 +3,7 @@
 function assertTrustedRenderer(event, appUrl) {
     const senderUrl = event.senderFrame?.url ?? event.sender?.getURL?.();
     if (!isTrustedRendererUrl(senderUrl, appUrl)) {
-        throw new Error('Untrusted page cannot use the Grotto desktop bridge.');
+        throw new Error('Untrusted page cannot use the Haus desktop bridge.');
     }
 }
 

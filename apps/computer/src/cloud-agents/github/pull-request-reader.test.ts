@@ -48,7 +48,7 @@ test('anything that is not a GitHub pull request has no address to read', () => 
     }
 });
 
-test('each GitHub lifecycle reads back as the state Grotto records', () => {
+test('each GitHub lifecycle reads back as the state Haus records', () => {
     const cases: [Record<string, unknown>, string][] = [
         [{ draft: true, state: 'open' }, 'draft'],
         [{ draft: false, state: 'open' }, 'open'],

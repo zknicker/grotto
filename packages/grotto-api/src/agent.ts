@@ -18,7 +18,7 @@ export { agentReasoningEffortSchema } from './agent-execution.ts';
  * `pending` — no Computer-reported effective snapshot matches the desired
  * runtime, model, and reasoning effort yet. `applied` — the Computer reports
  * the exact desired execution configuration with nothing missing. `degraded`
- * — the Computer reports missing local resources; Grotto never substitutes a
+ * — the Computer reports missing local resources; Haus never substitutes a
  * different execution configuration.
  */
 export const agentStatusSchema = z.enum(['applied', 'degraded', 'pending']);
@@ -202,7 +202,7 @@ const agentLifecycleBaseSchema = z.object({
 
 /**
  * Volatile execution projection for one Agent run. Durable turn
- * evidence remains in `agent.activity`; this feed exists so Grotto App surfaces can
+ * evidence remains in `agent.activity`; this feed exists so Haus App surfaces can
  * react immediately without inventing transcript rows.
  */
 export const agentLifecycleEventSchema = z.discriminatedUnion('phase', [

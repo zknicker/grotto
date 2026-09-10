@@ -102,7 +102,7 @@ export function messageCauseArchivedNote(cause: MessageCause): string | null {
  */
 export function messageCauseAttributionNote(cause: MessageCause): string | null {
     return cause.attribution === 'inferred'
-        ? 'Attributed by Grotto — the Agent did not name this fire.'
+        ? 'Attributed by Haus — the Agent did not name this fire.'
         : null;
 }
 

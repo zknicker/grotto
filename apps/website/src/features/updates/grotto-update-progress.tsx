@@ -57,12 +57,12 @@ function updateStepLabel(step: GrottoUpdateStep) {
 
     switch (step.phase) {
         case 'checking':
-            return 'Checking for a Grotto App update…';
+            return 'Checking for a Haus App update…';
         case 'downloading':
-            return 'Downloading Grotto App';
+            return 'Downloading Haus App';
         case 'restarting':
-            return 'Restarting Grotto App';
+            return 'Restarting Haus App';
         default:
-            return 'Updating Grotto App';
+            return 'Updating Haus App';
     }
 }

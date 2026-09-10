@@ -208,7 +208,7 @@ function LoginActions({
     return (
         <div className="flex flex-wrap items-center justify-center gap-2">
             <Button isPending={isWorking} onPress={onApprove}>
-                Approve Grotto Computer
+                Approve Haus Computer
             </Button>
             <Button isDisabled={isWorking} onPress={onDeny} variant="danger-soft">
                 Deny
@@ -254,7 +254,7 @@ function loginTitle(status: ComputerLoginStatus | undefined, setupFlow: boolean)
         case 'consumed':
             return setupFlow
                 ? 'Computer connected — you can close this page'
-                : 'Grotto Computer signed in';
+                : 'Haus Computer signed in';
         case 'denied':
             return 'Computer login denied';
         case 'expired':
@@ -264,9 +264,9 @@ function loginTitle(status: ComputerLoginStatus | undefined, setupFlow: boolean)
         case 'not-found':
             return 'Computer login not found';
         case 'pending':
-            return 'Approve Grotto Computer?';
+            return 'Approve Haus Computer?';
         default:
-            return 'Sign in Grotto Computer';
+            return 'Sign in Haus Computer';
     }
 }
 
@@ -278,7 +278,7 @@ function loginDescription(
 ): React.ReactNode {
     switch (status) {
         case 'approved':
-            return 'Grotto Computer is completing its secure connection. Keep this page open for a moment.';
+            return 'Haus Computer is completing its secure connection. Keep this page open for a moment.';
         case 'consumed':
             return setupFlow
                 ? 'The Computer attachment is saved locally. You can close this page.'
@@ -297,7 +297,7 @@ function loginDescription(
                 </>
             );
         case 'malformed':
-            return 'Enter the eight-character code shown in your Grotto Computer terminal.';
+            return 'Enter the eight-character code shown in your Haus Computer terminal.';
         case 'not-found':
             return (
                 <>

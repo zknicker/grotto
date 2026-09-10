@@ -58,7 +58,7 @@ test('accepting a DM greeting removes its stale busy notice before the resumed t
     await replacePendingInbox(location(), [greeting]);
     await writePendingNotice(dataRoot, {
         agentId: location().agentId,
-        notice: '[Grotto inbox notice:\nInbox update: 1 unread message total; 1 changed target\ndm:@operator  pending: 1 message\n]',
+        notice: '[Haus inbox notice:\nInbox update: 1 unread message total; 1 changed target\ndm:@operator  pending: 1 message\n]',
         serverId: location().serverId,
     });
 

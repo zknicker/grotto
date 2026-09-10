@@ -36,7 +36,7 @@ test("a branch may carry the Computer's own dated GitHub reading of its pull req
         pullRequest
     );
     // A Run that opened nothing, or one whose pull request could not be read,
-    // is the same branch report Grotto always accepted.
+    // is the same branch report Haus always accepted.
     expect(
         cloudAgentObservationSchema.safeParse({ ...observation, branches: [branch] }).success
     ).toBe(true);

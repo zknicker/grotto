@@ -23,7 +23,7 @@ export function readGrottoReleaseIdentity(path: string): GrottoReleaseIdentity {
             `${release.serverVersion}+git.${release.sourceRevision.slice(0, 12)}` ||
         !/^[0-9a-f]{64}$/u.test(release.contentDigest)
     ) {
-        throw new Error('Grotto release identity is invalid.');
+        throw new Error('Haus release identity is invalid.');
     }
     return release;
 }

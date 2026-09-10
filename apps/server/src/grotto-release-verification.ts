@@ -9,7 +9,7 @@ export async function verifyGrottoRelease(releaseRoot: string, sourceRevision: s
     assertGrottoRevision(sourceRevision);
     const releaseStat = await lstat(releaseRoot);
     if (!releaseStat.isDirectory() || releaseStat.isSymbolicLink()) {
-        throw new Error('Grotto release directory must be a real directory.');
+        throw new Error('Haus release directory must be a real directory.');
     }
     await refuseSymlinks(releaseRoot);
 
@@ -27,12 +27,12 @@ export async function verifyGrottoRelease(releaseRoot: string, sourceRevision: s
             `${release.serverVersion}+git.${release.sourceRevision.slice(0, 12)}` ||
         !/^[0-9a-f]{64}$/u.test(release.contentDigest)
     ) {
-        throw new Error('Grotto release identity is invalid.');
+        throw new Error('Haus release identity is invalid.');
     }
 
     const checksumPath = join(releaseRoot, 'release-files.sha256');
     if ((await sha256(checksumPath)) !== release.contentDigest) {
-        throw new Error('Grotto release checksum manifest does not match its identity.');
+        throw new Error('Haus release checksum manifest does not match its identity.');
     }
     run('/usr/bin/shasum', ['-a', '256', '-c', 'release-files.sha256'], releaseRoot);
     return release;
@@ -40,7 +40,7 @@ export async function verifyGrottoRelease(releaseRoot: string, sourceRevision: s
 
 export function assertGrottoRevision(value: string) {
     if (!revisionPattern.test(value)) {
-        throw new Error('Grotto source revision must be a full lowercase Git SHA.');
+        throw new Error('Haus source revision must be a full lowercase Git SHA.');
     }
 }
 
@@ -50,7 +50,7 @@ async function refuseSymlinks(root: string) {
     );
     for (const entry of entries) {
         if ((await lstat(join(root, entry))).isSymbolicLink()) {
-            throw new Error('Grotto releases cannot contain symbolic links.');
+            throw new Error('Haus releases cannot contain symbolic links.');
         }
     }
 }

@@ -9,12 +9,12 @@ const releaseBaseUrl = process.env.GROTTO_RELEASE_BASE_URL?.replace(/\/+$/u, '')
 const macAppIcon = macAppIconConfiguration(existsSync(path.join(__dirname, assetCatalogPath)));
 
 module.exports = {
-    appId: 'build.grotto.desktop',
-    productName: 'Grotto',
+    appId: 'chat.haus.desktop',
+    productName: 'Haus',
     protocols: [
         {
-            name: 'Grotto',
-            schemes: ['grotto'],
+            name: 'Haus',
+            schemes: ['haus'],
         },
     ],
     directories: {

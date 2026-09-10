@@ -4,7 +4,7 @@ import type { TokenUsageView } from './token-usage-view.ts';
 import { formatTokens } from './usage-format.ts';
 
 export function TokenUsageChart({
-    emptyMessage = 'Token usage will appear after a Grotto Agent completes a model turn.',
+    emptyMessage = 'Token usage will appear after a Haus Agent completes a model turn.',
     view,
 }: {
     emptyMessage?: string;

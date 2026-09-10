@@ -3,7 +3,7 @@ import { avatarMaxBytes, avatarMediaTypeSchema, avatarPixelSize } from './avatar
 
 const idSchema = z.string().trim().min(1);
 
-/** The one image model Grotto uses for transient avatar generation. */
+/** The one image model Haus uses for transient avatar generation. */
 export const avatarGenerationModel = 'gpt-image-2' as const;
 
 /** Generation returns one PNG that the ordinary avatar contract can serve. */

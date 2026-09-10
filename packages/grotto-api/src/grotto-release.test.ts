@@ -15,7 +15,7 @@ const snapshot = {
     version: '1.9.0',
 } as const;
 
-test('accepts a complete Grotto release snapshot with independently versioned components', () => {
+test('accepts a complete Haus release snapshot with independently versioned components', () => {
     expect(grottoReleaseSnapshotSchema.parse(snapshot)).toEqual(snapshot);
 });
 

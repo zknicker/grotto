@@ -4,7 +4,7 @@ import { z } from 'zod';
 export type ServerRole = 'admin' | 'member' | 'owner';
 
 /**
- * The slug is the globally unique, immutable, human-facing address of a Grotto
+ * The slug is the globally unique, immutable, human-facing address of a Haus
  * server. It never carries authority — relationships and authorization use the
  * opaque Server id.
  */
@@ -58,6 +58,6 @@ export interface ServerDetail extends ServerSummary {
     viewerUserId: string;
 }
 
-/** The Channel every Grotto server creates for its whole membership. */
+/** The Channel every Haus server creates for its whole membership. */
 export const allChannelName = 'all';
 export const onboardingOwnerChannelName = 'onboarding-owner';

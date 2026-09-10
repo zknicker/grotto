@@ -167,7 +167,7 @@ export function renderComputerHelpPage(request: ComputerHelpRequest, render: Cli
 
 function renderGlobalPage(render: CliRenderer): string {
     const lines: string[] = [
-        'Runs your Grotto Agents on this machine and connects them to your Servers.',
+        'Runs your Haus Agents on this machine and connects them to your Servers.',
         '',
         render.heading('Usage'),
         '  grotto-computer <command> [arguments]',

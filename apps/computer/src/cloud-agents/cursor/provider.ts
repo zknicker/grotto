@@ -19,8 +19,8 @@ import {
 /**
  * Computer-local access to Cursor's Cloud Agents, behind `CloudAgentProvider`.
  * Every Cursor request, response, and status string is confined to this
- * adapter and its transport; Grotto's durable contracts see only bounded
- * observations. The user API key is never logged, stored by Grotto, or copied
+ * adapter and its transport; Haus's durable contracts see only bounded
+ * observations. The user API key is never logged, stored by Haus, or copied
  * to Server — it lives only in Cursor's own credential store.
  */
 export function createCursorCloudAgentProvider(transport: CursorTransport): CloudAgentProvider {
@@ -171,7 +171,7 @@ async function watchCursorRun(
 }
 
 /**
- * A Run Grotto tracks but Cursor never hosted has no provider address. Failing
+ * A Run Haus tracks but Cursor never hosted has no provider address. Failing
  * here keeps a launch that never reached Cursor from reporting a settled Run.
  */
 function requireAddress(ref: CloudAgentRunRef): CursorRunAddress {

@@ -101,7 +101,7 @@ function unavailableView(description: string): BrowserCapabilityView {
 }
 
 function profileDescription(settings: AgentRuntimeBrowserSettings) {
-    return `Grotto manages Chrome with the “${settings.profileName}” profile. Agents on this Computer share its signed-in accounts.`;
+    return `Haus manages Chrome with the “${settings.profileName}” profile. Agents on this Computer share its signed-in accounts.`;
 }
 
 function descriptionForStatus(

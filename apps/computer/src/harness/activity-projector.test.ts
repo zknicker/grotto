@@ -239,7 +239,7 @@ test('pairs preliminary, failure, interruption, and restart journal evidence by 
     });
     expect(events).toContainEqual({ category: 'running_command', phase: 'failed' });
 });
-test('classifies structured Grotto message and Browser proxy boundaries', () => {
+test('classifies structured Haus message and Browser proxy boundaries', () => {
     expect(classifyGrottoProxyBoundary('GET', '/api/agent/events')).toBe('checking_messages');
     expect(classifyGrottoProxyBoundary('GET', '/api/agent/history')).toBe('checking_messages');
     expect(classifyGrottoProxyBoundary('GET', '/api/agent/messages/search')).toBe(

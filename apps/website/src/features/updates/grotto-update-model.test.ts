@@ -21,12 +21,12 @@ const currentInput: GrottoUpdateInput = {
     },
 };
 
-describe('Grotto update projection', () => {
+describe('Haus update projection', () => {
     test('keeps the public release version independent from component versions', () => {
         const view = projectGrottoUpdate(currentInput);
 
         expect(view).toMatchObject({
-            headline: 'Grotto 1.9.0',
+            headline: 'Haus 1.9.0',
             phase: 'current',
             primaryAction: null,
             version: '1.9.0',
@@ -34,7 +34,7 @@ describe('Grotto update projection', () => {
         expect(
             view.componentFacts.map(({ label, targetVersion }) => [label, targetVersion])
         ).toEqual([
-            ['Grotto App', '1.8.40'],
+            ['Haus App', '1.8.40'],
             ['Computer · Home', '1.4.9'],
         ]);
     });
@@ -52,10 +52,10 @@ describe('Grotto update projection', () => {
         expect(view.steps.map((step) => step.label)).toEqual([
             'Computer · Office',
             "Computer · Zach's MacBook Pro",
-            'Grotto App',
+            'Haus App',
         ]);
         expect(view.componentFacts.map((fact) => fact.label)).toEqual([
-            'Grotto App',
+            'Haus App',
             'Computer · Office',
             "Computer · Zach's MacBook Pro",
         ]);
@@ -70,7 +70,7 @@ describe('Grotto update projection', () => {
         });
 
         expect(view.steps.map((step) => step.kind)).toEqual(['desktop-app']);
-        expect(view.componentFacts.map((fact) => fact.label)).toEqual(['Grotto App']);
+        expect(view.componentFacts.map((fact) => fact.label)).toEqual(['Haus App']);
         expect(view.phase).toBe('available');
     });
 

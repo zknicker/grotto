@@ -153,8 +153,8 @@ export async function createMcpOAuthProvider(
         get clientMetadata(): OAuthClientMetadata {
             const configuredSecret = secret.configuredClientInformation?.client_secret;
             return {
-                client_name: 'Grotto',
-                client_uri: 'https://grotto.sh',
+                client_name: 'Haus',
+                client_uri: 'https://haus.chat',
                 grant_types: ['authorization_code', 'refresh_token'],
                 redirect_uris: [redirectUrl],
                 response_types: ['code'],
@@ -255,7 +255,7 @@ function googleOAuthClient(): OAuthClientInformation {
     const clientId = process.env.GROTTO_GOOGLE_OAUTH_CLIENT_ID?.trim();
     const clientSecret = process.env.GROTTO_GOOGLE_OAUTH_CLIENT_SECRET?.trim();
     if (!(clientId && clientSecret)) {
-        throw new Error('The Grotto Server Google Calendar OAuth client is unavailable.');
+        throw new Error('The Haus Server Google Calendar OAuth client is unavailable.');
     }
     return { client_id: clientId, client_secret: clientSecret };
 }

@@ -42,7 +42,7 @@ const recipeIds = [
     'recipes/technique/video-review',
 ] as const;
 
-// Cards written for Grotto itself, with no captured source card behind them.
+// Cards written for Haus itself, with no captured source card behind them.
 // The fidelity test below asserts each really has no source file, so this list
 // cannot quietly become an escape hatch for a drifted adapted card.
 const grottoNativeIds = new Set<string>(['recipes/technique/trigger-webhook']);
@@ -133,13 +133,13 @@ test('keeps every published body faithful to its captured source card', async ()
         const body = source
             .slice(boundaries[1].index + 3, boundaries[2]?.index ?? source.length)
             .trim();
-        const adapted = body.replaceAll(/\bRaft\b/g, 'Grotto').replaceAll(/\braft\b/g, 'grotto');
+        const adapted = body.replaceAll(/\bRaft\b/g, 'Haus').replaceAll(/\braft\b/g, 'grotto');
 
         if (topic.id === 'recipes/technique/html-artifact-discussion') {
-            // Grotto adds the artifact fence the captured card predates.
-            expect(topic.body.split('### In Grotto')[0]?.trim()).toBe(adapted);
+            // Haus adds the artifact fence the captured card predates.
+            expect(topic.body.split('### In Haus')[0]?.trim()).toBe(adapted);
         } else if (topic.id === 'recipes/technique/reminder-cron') {
-            // Grotto's script/inbox guidance replaces Raft's historical proof paragraph.
+            // Haus's script/inbox guidance replaces Raft's historical proof paragraph.
             expect(topic.body.split('### Scripts and fires')[0]?.trim()).toBe(
                 adapted.split('### Proof it works')[0]?.trim()
             );

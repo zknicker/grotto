@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import type { GrottoCreateMessageRequest } from '@grotto/api';
 import { createGrottoClient } from './client';
 
-describe('Grotto SDK client', () => {
+describe('Haus SDK client', () => {
     it('posts chat messages through the OpenAPI path', async () => {
         const requests: Request[] = [];
         const client = createGrottoClient({
@@ -191,8 +191,8 @@ describe('Grotto SDK client', () => {
 
                 return Response.json({
                     captured_at: '2026-07-07T12:00:00.000Z',
-                    instructions: 'You are Grotto.',
-                    prompt: 'Current Grotto turn: ...',
+                    instructions: 'You are Haus.',
+                    prompt: 'Current Haus turn: ...',
                     run_id: 'run_1_primary',
                 });
             }) as typeof fetch,

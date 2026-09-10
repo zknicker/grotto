@@ -1,12 +1,12 @@
 /**
- * The one place Grotto reads a human's email addresses. Clerk owns them, and
- * Grotto keeps no profile email for a User — the only address it stores is the
+ * The one place Haus reads a human's email addresses. Clerk owns them, and
+ * Haus keeps no profile email for a User — the only address it stores is the
  * one an invitation is bound to, which is a target rather than an identity.
  *
  * The lookup is keyed by the subject of an already-verified session token, never
  * by anything the browser supplied, and an address counts only when Clerk
  * reports it verified. Clerk Organizations and Clerk role metadata are never
- * read — they carry no Grotto authority.
+ * read — they carry no Haus authority.
  */
 export interface ClerkUsers {
     readVerifiedEmails(clerkUserId: string): Promise<string[]>;

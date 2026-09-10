@@ -108,18 +108,18 @@ async function readJson(response: Response): Promise<unknown> {
 
 function invalidJson(): AgentCliError {
     return new AgentCliError('INVALID_JSON_RESPONSE', 'The server returned invalid JSON.', {
-        nextAction: 'Retry the command. If it fails again, check the Grotto Computer logs.',
+        nextAction: 'Retry the command. If it fails again, check the Haus Computer logs.',
     });
 }
 
 function serverFailure(): AgentCliError {
-    return new AgentCliError('SERVER_5XX', 'The Grotto server is unavailable.', {
-        nextAction: 'Retry after the Grotto Server is reachable.',
+    return new AgentCliError('SERVER_5XX', 'The Haus server is unavailable.', {
+        nextAction: 'Retry after the Haus Server is reachable.',
     });
 }
 
 function transportFailure(): AgentApiTransportError {
-    return new AgentApiTransportError('SERVER_5XX', 'The Grotto server is unavailable.', {
-        nextAction: 'Retry after the Grotto Server is reachable.',
+    return new AgentApiTransportError('SERVER_5XX', 'The Haus server is unavailable.', {
+        nextAction: 'Retry after the Haus Server is reachable.',
     });
 }

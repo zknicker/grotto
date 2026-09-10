@@ -255,7 +255,7 @@ test('a create that got no answer is retried once with the identical body', asyn
             if (attempts === 1) {
                 seen.push(input ?? {});
                 return Promise.reject(
-                    new AgentApiTransportError('SERVER_5XX', 'The Grotto server is unavailable.')
+                    new AgentApiTransportError('SERVER_5XX', 'The Haus server is unavailable.')
                 );
             }
             return inner.request(path, schema, input);

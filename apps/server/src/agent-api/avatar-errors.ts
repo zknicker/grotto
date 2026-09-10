@@ -57,4 +57,4 @@ export function sendAvatarGenerationFailure(
 export const avatarProviderUnavailableNote = 'Avatar generation is not configured on this Server.';
 
 const avatarProviderUnavailableNextAction =
-    'Tell the user avatar generation is unavailable on this Server; there is no App setting to change. The Grotto deployment operator must provision it.';
+    'Tell the user avatar generation is unavailable on this Server; there is no App setting to change. The Haus deployment operator must provision it.';

@@ -52,7 +52,7 @@ export function composeInboxNotice(
         ].join('');
     });
     return [
-        '[Grotto inbox notice:',
+        '[Haus inbox notice:',
         hasAttention
             ? `Inbox update: ${totalPending} pending ${plural(totalPending, 'work item')} total; ${targets.size} changed ${plural(targets.size, 'target')}`
             : `Inbox update: ${totalPending} unread ${plural(totalPending, 'message')} total; ${targets.size} changed ${plural(targets.size, 'target')}`,
@@ -93,7 +93,7 @@ function formatEnvelope(item: AgentInboxItem, homeTimezone: string): string {
 function formatCloudAgentWorkAttention(work: AgentCloudAgentWorkAttention, target: string): string {
     const branches = work.branches.map(formatCloudAgentBranch);
     return [
-        `[Grotto cloud agent attention status=${work.status} work=${work.workId} run=${work.runId} target=${target}]`,
+        `[Haus cloud agent attention status=${work.status} work=${work.workId} run=${work.runId} target=${target}]`,
         `${work.title} — ${work.repository} (${work.provider})`,
         `summary=${work.summary ?? '-'}`,
         `errorCode=${work.errorCode ?? '-'}`,
@@ -147,7 +147,7 @@ function askHandle(ask: AgentInboxAsk): string | null {
 
 export function formatThreadFollowRestoration(target: string): string {
     return [
-        `[Grotto thread follow restored: this @mention re-subscribed you to ordinary replies in ${target}.]`,
+        `[Haus thread follow restored: this @mention re-subscribed you to ordinary replies in ${target}.]`,
         `To stop those replies again: grotto thread unfollow --target "${target}"`,
     ].join('\n');
 }

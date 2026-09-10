@@ -66,13 +66,13 @@ afterAll(async () => {
 
 test('an Owner issues an invitation whose raw token is disclosed exactly once', async () => {
     const created = await owner.trpc.invitation.create.mutate({
-        email: 'first@grotto.test',
+        email: 'first@haus.test',
         serverId,
     });
 
     expect(created.token).toMatch(/^[\w-]{20,}$/u);
     expect(created.invitation).toMatchObject({
-        email: 'first@grotto.test',
+        email: 'first@haus.test',
         status: 'pending',
     });
 
@@ -96,28 +96,28 @@ test('an Owner issues an invitation whose raw token is disclosed exactly once', 
 
 test('an invitation email is stored and returned normalized', async () => {
     const created = await owner.trpc.invitation.create.mutate({
-        email: '  MiXeD.Case@Grotto.TEST  ',
+        email: '  MiXeD.Case@Haus.TEST  ',
         serverId,
     });
 
-    expect(created.invitation.email).toBe('mixed.case@grotto.test');
+    expect(created.invitation.email).toBe('mixed.case@haus.test');
 });
 
 test('an Admin may invite; a Member and a non-member may not', async () => {
     const created = await admin.trpc.invitation.create.mutate({
-        email: 'admin-invited@grotto.test',
+        email: 'admin-invited@haus.test',
         serverId,
     });
     expect(created.invitation.status).toBe('pending');
 
     await expect(
-        plainMember.trpc.invitation.create.mutate({ email: 'nope@grotto.test', serverId })
+        plainMember.trpc.invitation.create.mutate({ email: 'nope@haus.test', serverId })
     ).rejects.toThrow(/Owner or Admin/i);
     await expect(plainMember.trpc.invitation.list.query({ serverId })).rejects.toThrow(
         /Owner or Admin/i
     );
     await expect(
-        outsider.trpc.invitation.create.mutate({ email: 'nope@grotto.test', serverId })
+        outsider.trpc.invitation.create.mutate({ email: 'nope@haus.test', serverId })
     ).rejects.toThrow(/not a member/i);
     await expect(outsider.trpc.invitation.list.query({ serverId })).rejects.toThrow(
         /not a member/i
@@ -125,19 +125,19 @@ test('an Admin may invite; a Member and a non-member may not', async () => {
 });
 
 test('a Server keeps at most one live invitation per email', async () => {
-    await owner.trpc.invitation.create.mutate({ email: 'once@grotto.test', serverId });
+    await owner.trpc.invitation.create.mutate({ email: 'once@haus.test', serverId });
 
     await expect(
-        owner.trpc.invitation.create.mutate({ email: 'once@grotto.test', serverId })
+        owner.trpc.invitation.create.mutate({ email: 'once@haus.test', serverId })
     ).rejects.toThrow(/already/i);
     await expect(
-        admin.trpc.invitation.create.mutate({ email: 'ONCE@grotto.test', serverId })
+        admin.trpc.invitation.create.mutate({ email: 'ONCE@haus.test', serverId })
     ).rejects.toThrow(/already/i);
 });
 
 test('revoking an invitation frees the email for a fresh invitation', async () => {
     const created = await owner.trpc.invitation.create.mutate({
-        email: 'revocable@grotto.test',
+        email: 'revocable@haus.test',
         serverId,
     });
 
@@ -148,7 +148,7 @@ test('revoking an invitation frees the email for a fresh invitation', async () =
     expect(revoked.status).toBe('revoked');
 
     const reissued = await owner.trpc.invitation.create.mutate({
-        email: 'revocable@grotto.test',
+        email: 'revocable@haus.test',
         serverId,
     });
     expect(reissued.invitation.status).toBe('pending');
@@ -164,7 +164,7 @@ test('revoking an invitation frees the email for a fresh invitation', async () =
 
 test('an invitation past its seventh day reads as expired', async () => {
     const created = await owner.trpc.invitation.create.mutate({
-        email: 'stale@grotto.test',
+        email: 'stale@haus.test',
         serverId,
     });
 
@@ -181,7 +181,7 @@ test('an invitation past its seventh day reads as expired', async () => {
 
     // A lapsed invitation must not hold the address hostage.
     const reissued = await owner.trpc.invitation.create.mutate({
-        email: 'stale@grotto.test',
+        email: 'stale@haus.test',
         serverId,
     });
     expect(reissued.invitation.status).toBe('pending');
@@ -193,13 +193,13 @@ test('an invitation past its seventh day reads as expired', async () => {
 
 test('invitations fail closed across Servers', async () => {
     const created = await owner.trpc.invitation.create.mutate({
-        email: 'cross@grotto.test',
+        email: 'cross@haus.test',
         serverId,
     });
 
     await expect(
         owner.trpc.invitation.create.mutate({
-            email: 'cross@grotto.test',
+            email: 'cross@haus.test',
             serverId: outsiderServerId,
         })
     ).rejects.toThrow(/not a member/i);
@@ -234,7 +234,7 @@ test('issuing and revoking an invitation notifies an open Server subscription', 
     await started.promise;
 
     const created = await owner.trpc.invitation.create.mutate({
-        email: 'notified@grotto.test',
+        email: 'notified@haus.test',
         serverId,
     });
     await Bun.sleep(150);

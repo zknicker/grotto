@@ -6,7 +6,7 @@ import { parse } from 'yaml';
 
 const openApiPath = fileURLToPath(new URL('../openapi.yaml', import.meta.url));
 
-describe('Grotto OpenAPI contract', () => {
+describe('Haus OpenAPI contract', () => {
     const document = parse(readFileSync(openApiPath, 'utf8')) as {
         components?: { schemas?: Record<string, unknown> };
         info?: { title?: string };
@@ -14,9 +14,9 @@ describe('Grotto OpenAPI contract', () => {
         paths?: Record<string, unknown>;
     };
 
-    it('declares the Grotto API document', () => {
+    it('declares the Haus API document', () => {
         expect(document.openapi).toBe('3.1.0');
-        expect(document.info?.title).toBe('Grotto API');
+        expect(document.info?.title).toBe('Haus API');
     });
 
     it('contains the first chat and realtime API slice', () => {
@@ -103,7 +103,7 @@ describe('Grotto OpenAPI contract', () => {
             kind: 'index',
             related: ['grotto-cli-overview'],
             summary: 'Navigate the Manual.',
-            title: 'Grotto Manual',
+            title: 'Haus Manual',
         };
         const recipe = {
             body: '# Claim the task\n',

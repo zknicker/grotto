@@ -34,7 +34,7 @@ export async function updateChannel(
         await lockServerRow(tx, input.serverId);
         await requireServerMembership(tx, member, input.serverId);
         if (!member) {
-            throw new Error('Authenticated Server membership requires a Grotto User.');
+            throw new Error('Authenticated Server membership requires a Haus User.');
         }
         await requireChatWritable(tx, input);
 

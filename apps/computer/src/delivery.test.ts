@@ -121,14 +121,14 @@ test('a pending notice carries durable envelopes but persists only model-safe no
 
     await writePendingNotice(dataRoot, {
         agentId: 'agt_x',
-        notice: '[Grotto inbox notice:\\n#general pending: 1 message(s)\\n]',
+        notice: '[Haus inbox notice:\\n#general pending: 1 message(s)\\n]',
         serverId,
     });
     const written = JSON.parse(
         await readFile(noticePath(dataRoot, { agentId: 'agt_x', serverId }), 'utf8')
     );
     expect(written).toEqual({
-        notice: '[Grotto inbox notice:\\n#general pending: 1 message(s)\\n]',
+        notice: '[Haus inbox notice:\\n#general pending: 1 message(s)\\n]',
     });
 });
 

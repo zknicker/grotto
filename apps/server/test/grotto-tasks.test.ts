@@ -228,7 +228,7 @@ test('rejects task creation in a Thread as a bad request', async () => {
     ).rejects.toMatchObject({ data: { code: 'BAD_REQUEST' } });
 });
 
-test('maps task creation by an unknown Grotto User to not found', async () => {
+test('maps task creation by an unknown Haus User to not found', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Task Unknown User',
         slug: 'task-unknown-user',
@@ -928,7 +928,7 @@ test('assigns a task to an Agent, wakes it with typed work, and writes no messag
     `) as { content: string; dedupe_key: string; mentioned: boolean; source: string }[];
     expect([...deliveries].filter((row) => row.source === 'task_assignment')).toEqual([
         {
-            content: `[Grotto task assignment task=#${assigned.task.number} target=#all assignedBy=@task-owner] Hand this to an Agent`,
+            content: `[Haus task assignment task=#${assigned.task.number} target=#all assignedBy=@task-owner] Hand this to an Agent`,
             dedupe_key: `task-assign:${created.task.messageId}:${assigned.task.version}`,
             mentioned: true,
             source: 'task_assignment',

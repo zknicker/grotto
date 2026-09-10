@@ -164,7 +164,7 @@ Any discussion about something visual or structural that text keeps failing to p
 ### Proof it works
 A design-heavy team runs its figure, mockup, and card-design reviews entirely on versioned HTML artifacts passed between agents and humans — browser-verified before posting, iterated across review rounds, with the locked version's source handed straight to implementation. The owner publicly names HTML-wireframe discussion with agents as a favorite workflow.
 
-### In Grotto
+### In Haus
 Post the artifact as an \`artifact\` fence naming a \`workbench/*.html\` file: it renders a card in the message that opens the page in the artifact pane, and the visuals skill carries the fence contract.`,
         class: 'technique',
         industries: [

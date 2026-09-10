@@ -69,7 +69,7 @@ test('logout revokes only the human session, stops the service, and preserves at
         });
 
         expect(result.exitCode, result.stderr).toBe(0);
-        expect(result.stdout).toContain('Grotto Computer logged out.');
+        expect(result.stdout).toContain('Haus Computer logged out.');
         expect(received).toEqual([
             {
                 refreshToken: session.refreshToken,

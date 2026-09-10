@@ -19,7 +19,7 @@ const computer = {
 test('keeps Software Update copy stable after a failed check', () => {
     const html = renderUpdateCard({
         ...computer,
-        updateDetail: 'Production Grotto Computer 1.4.4 does not satisfy protocol 10.',
+        updateDetail: 'Production Haus Computer 1.4.4 does not satisfy protocol 10.',
         updateFailedPhase: 'checking',
         updatePhase: 'failed',
     });
@@ -43,7 +43,7 @@ test('uses the HeroUI progress bar for determinate and indeterminate update phas
         updateTargetVersion: '1.5.0',
     });
 
-    expect(determinate).toContain('Downloading Grotto Computer');
+    expect(determinate).toContain('Downloading Haus Computer');
     expect(determinate).toContain('aria-valuenow="42"');
     expect(determinate).toMatch(/item-card__action[\s\S]*progress-bar/);
     expect(indeterminate).toContain('Verifying signature and integrity');

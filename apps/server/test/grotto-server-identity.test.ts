@@ -75,7 +75,7 @@ test('leaves no User behind when Server creation rolls back', async () => {
     await expect(countUsers('user_clerk_rollback')).resolves.toBe(1);
 });
 
-test('maps every Clerk session of one human to the same Grotto User', async () => {
+test('maps every Clerk session of one human to the same Haus User', async () => {
     const first = await signIn('user_clerk_stable', { org_id: 'org_a', org_role: 'org:admin' });
     await first.trpc.server.create.mutate({ displayName: 'Stable', slug: 'stable' });
 

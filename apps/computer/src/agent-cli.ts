@@ -99,7 +99,7 @@ function reportAgentCliFailure(error: unknown): number {
 function printHelp() {
     process.stdout.write(
         [
-            'Grotto Agent CLI',
+            'Haus Agent CLI',
             '',
             'Commands:',
             ...Object.entries(commandGroups).map(

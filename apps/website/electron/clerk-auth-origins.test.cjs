@@ -31,8 +31,8 @@ describe('resolveClerkAuthOrigins', () => {
                 isPackaged: true,
             })
         ).toEqual({
-            appOrigin: 'https://grotto.sh',
-            clerkOrigin: 'https://clerk.grotto.sh',
+            appOrigin: 'https://haus.chat',
+            clerkOrigin: 'https://clerk.haus.chat',
         });
     });
 });

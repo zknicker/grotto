@@ -1,7 +1,7 @@
 import type { GrottoOutputs, ServerDetail, ServerSummary } from '../../lib/grotto-server.tsx';
 
 /**
- * Fixture answers for every Grotto API call the activation surfaces make. The
+ * Fixture answers for every Haus API call the activation surfaces make. The
  * preview renders the real components; only this module knows the data is
  * fake. Slugs and tokens under the `preview-` prefix select scene variants.
  */
@@ -15,7 +15,7 @@ const previewComputerId = 'cmp_previewfixture1';
 const fixedTimestamp = '2026-08-01T09:00:00.000Z';
 
 export const previewServerSummaries: ServerSummary[] = [
-    { displayName: 'Grotto HQ', id: 'srv_preview_hq', role: 'owner', slug: 'grotto-hq' },
+    { displayName: 'Haus HQ', id: 'srv_preview_hq', role: 'owner', slug: 'grotto-hq' },
     { displayName: 'Side Projects', id: 'srv_preview_side', role: 'member', slug: 'side-projects' },
 ];
 
@@ -143,12 +143,12 @@ export async function resolveActivationFixture(path: string, input: unknown): Pr
 function previewServerDetail(slug: string): ServerDetail {
     const onboardingState = onboardingBySlug[slug];
     if (!onboardingState) {
-        throw new Error(`No Grotto server exists at /${slug}.`);
+        throw new Error(`No Haus server exists at /${slug}.`);
     }
     return {
         avatarGenerationAvailable: false,
         channels: [],
-        displayName: 'Grotto HQ',
+        displayName: 'Haus HQ',
         id: 'srv_preview_hq',
         onboarding: onboardingState,
         role: 'owner',
@@ -195,10 +195,10 @@ function normalizeLoginCode(userCode: string): string {
 
 function previewInvitation(token: string) {
     if (token === 'preview-ready') {
-        return { emailMatches: true, serverDisplayName: 'Grotto HQ', serverSlug: 'grotto-hq' };
+        return { emailMatches: true, serverDisplayName: 'Haus HQ', serverSlug: 'grotto-hq' };
     }
     if (token === 'preview-mismatch') {
-        return { emailMatches: false, serverDisplayName: 'Grotto HQ', serverSlug: 'grotto-hq' };
+        return { emailMatches: false, serverDisplayName: 'Haus HQ', serverSlug: 'grotto-hq' };
     }
     throw new Error('This invitation is no longer valid.');
 }

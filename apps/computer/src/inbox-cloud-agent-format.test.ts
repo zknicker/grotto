@@ -33,7 +33,7 @@ test('projects a settled Cloud Agent Run with the evidence its Agent must inspec
     const drain = composeInboxDrain([attention], 'UTC');
 
     expect(drain).toContain(
-        '[Grotto cloud agent attention status=completed work=caw_1234567890abcdef run=car_1234567890abcdef target=#general]'
+        '[Haus cloud agent attention status=completed work=caw_1234567890abcdef run=car_1234567890abcdef target=#general]'
     );
     expect(drain).toContain('summary=Opened a pull request.');
     expect(drain).toContain(

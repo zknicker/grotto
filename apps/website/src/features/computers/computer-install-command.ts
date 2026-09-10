@@ -1,4 +1,4 @@
-const computerInstallerUrl = 'https://releases.grotto.sh/computer/install.sh';
+const computerInstallerUrl = 'https://releases.haus.chat/computer/install.sh';
 
 export interface ComputerSetupCommands {
     install: string;

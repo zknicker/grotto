@@ -28,10 +28,10 @@ export function projectComponentFacts(
             detail: desktop?.phase === 'failed' ? desktop.detail : null,
             id: 'desktop-app',
             kind: 'desktop-app',
-            label: 'Grotto App',
+            label: 'Haus App',
             remedy:
                 desktop?.phase === 'failed'
-                    ? 'Try again. If the problem continues, restart Grotto App.'
+                    ? 'Try again. If the problem continues, restart Haus App.'
                     : null,
             status: desktop && desktopTarget ? statusForStep(desktop) : 'external',
             targetVersion: desktopTarget,

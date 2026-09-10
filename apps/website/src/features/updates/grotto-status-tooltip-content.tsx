@@ -21,7 +21,7 @@ export function UpdateTooltipContent({ view }: { view: GrottoUpdateView }) {
                 <p className="grid gap-0.5 text-danger text-sm">
                     <span>{view.detail}</span>
                     <span className="text-foreground">
-                        Try again. If it continues, restart Grotto.
+                        Try again. If it continues, restart Haus.
                     </span>
                 </p>
             ) : null}

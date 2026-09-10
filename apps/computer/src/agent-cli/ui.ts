@@ -40,7 +40,7 @@ export const ui = {
  * the trailing blank. Compact wordmark, no figlet.
  */
 export function banner(): string {
-    const title = ui.accent(ui.bold('🟠 Grotto Computer'));
+    const title = ui.accent(ui.bold('🟠 Haus Computer'));
     const version = ui.dim(`v${computerPackage.version}`);
     return `${title} ${version}\n${ui.dim('The local execution home for your agents.')}\n`;
 }

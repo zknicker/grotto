@@ -126,7 +126,7 @@ function useGrottoUpdateState(serverId: string, canOperate: boolean) {
                     failures: [
                         {
                             detail:
-                                error instanceof Error ? error.message : 'Grotto could not update.',
+                                error instanceof Error ? error.message : 'Haus could not update.',
                             stepId: 'update-sequence',
                         },
                     ],
@@ -209,7 +209,7 @@ function applyRunFailures(
     if (failures.size === 0) {
         return view;
     }
-    const firstFailure = failures.values().next().value ?? 'Grotto could not update.';
+    const firstFailure = failures.values().next().value ?? 'Haus could not update.';
     return {
         ...view,
         componentFacts: view.componentFacts.map((fact) => {
@@ -246,7 +246,7 @@ function projectDesktop(desktop: ReturnType<typeof useDesktopUpdate>): GrottoUpd
 async function fetchLatestRelease() {
     const response = await fetch(productionReleaseUrl);
     if (!response.ok) {
-        throw new Error(`Grotto update check failed (${response.status}).`);
+        throw new Error(`Haus update check failed (${response.status}).`);
     }
     return grottoReleaseDiscoverySchema.parse(await response.json());
 }

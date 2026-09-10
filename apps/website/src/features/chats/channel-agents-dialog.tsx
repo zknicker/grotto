@@ -66,6 +66,7 @@ export function ChannelAgentsDialog({ chat, onClose }: { chat: Chat; onClose: ()
                                     }))}
                                     agentsPending={agents.isPending}
                                     isDisabled={updateChannel.isPending}
+                                    label="hidden"
                                     onSelectedAgentIdsChange={setSelectedAgentIds}
                                     selectedAgentIds={selectedAgentIds}
                                 />

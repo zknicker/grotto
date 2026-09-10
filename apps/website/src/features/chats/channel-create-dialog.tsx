@@ -135,6 +135,7 @@ function ChannelCreateForm({
                         agents={agents}
                         agentsPending={agentsPending}
                         isDisabled={isPending}
+                        label="visible"
                         onSelectedAgentIdsChange={setSelectedAgentIds}
                         selectedAgentIds={selectedAgentIds}
                     />

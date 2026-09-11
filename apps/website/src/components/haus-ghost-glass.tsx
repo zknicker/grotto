@@ -8,7 +8,10 @@
  *
  * How much light the interior scatters depends on the ground, the way it does
  * in the app icon — on a dark tile the body reads pale and luminous, not as a
- * hole cut in the sidebar. `--haus-ghost-scatter` owns that, in the CSS.
+ * hole cut in the sidebar. On a light page that scatter is a whisper over a
+ * body the page has already filled; on a near-black one it *is* the body, so
+ * it turns into a near-solid, near-flat white. The CSS owns both the strength
+ * and the falloff, in `--haus-ghost-scatter` and its three stops.
  *
  * A soft colored halo sits outside the silhouette, then four layers clipped to
  * the body, painted back to front:
@@ -35,7 +38,8 @@
  * are opaque marks on top of the glass, not something it tints.
  */
 
-import { type GhostGlassIds, GLASS, GlassDefs } from './haus-ghost-glass-defs.tsx';
+import { type GhostGlassIds, GlassDefs } from './haus-ghost-glass-defs.tsx';
+import { GLASS } from './haus-ghost-palette.ts';
 import { BODY_PATH, EYES_PATH, VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from './haus-ghost-paths.ts';
 
 export function HausGhostGlass({ ids }: { ids: GhostGlassIds }) {
@@ -141,13 +145,18 @@ interface MeshBlob {
     r: number;
 }
 
-/* Azure at the upper right, violet through the middle, rose at the lower
-   right — the icon's arrangement. Each blob is wide enough to cross the
-   silhouette so its color wraps the edge rather than stopping short of it. */
+/* Azure at the upper right, rose along the lower-right contour, and only a
+   soft violet where the two would otherwise mix to gray — the icon's
+   arrangement. Each blob is wide enough to cross the silhouette so its color
+   wraps the edge rather than stopping short of it, and the rose sits far
+   enough out that the body keeps its inner falloff and the edge keeps the
+   rest: on the icon the red hugs the lower-right silhouette, it does not pool
+   in the middle. Violet is the quietest of the three on purpose; raising it
+   is what turned the mark purple. */
 const MESH_BLOBS: readonly MeshBlob[] = [
-    { id: 'azure', color: GLASS.meshAzure, cx: 152, cy: 72, r: 44, opacity: 0.88 },
-    { id: 'violet', color: GLASS.meshViolet, cx: 106, cy: 148, r: 46, opacity: 0.86 },
-    { id: 'rose', color: GLASS.meshRose, cx: 152, cy: 178, r: 38, opacity: 0.84 },
+    { id: 'azure', color: GLASS.meshAzure, cx: 154, cy: 68, r: 50, opacity: 0.78 },
+    { id: 'violet', color: GLASS.meshViolet, cx: 110, cy: 142, r: 39, opacity: 0.66 },
+    { id: 'rose', color: GLASS.meshRose, cx: 163, cy: 187, r: 42, opacity: 0.74 },
 ];
 
 /** Measured off the icon: a long streak about a third across and a sixth down

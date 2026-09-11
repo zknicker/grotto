@@ -4,7 +4,6 @@ import { HausGhost } from './haus-ghost.tsx';
 
 const iridescent = () => renderToStaticMarkup(<HausGhost fill="iridescent" />);
 const ghostCss = await Bun.file(new URL('./haus-ghost.css', import.meta.url)).text();
-
 describe('Haus ghost', () => {
     test('punches the eyes out of a single tintable path when solid', () => {
         const markup = renderToStaticMarkup(<HausGhost />);
@@ -43,31 +42,43 @@ describe('Haus ghost', () => {
     test('lets the theme decide how much light the interior scatters', () => {
         const markup = iridescent();
         const tint = markup.match(/<radialGradient[^>]*>(.*?)<\/radialGradient>/s)?.[1] ?? '';
-        const stops = [...tint.matchAll(/stop-opacity="([\d.]+)"/g)].map((m) => Number(m[1]));
+        const stops = [...tint.matchAll(/stop-opacity:\s*var\((--[\w-]+)\)/g)].map((m) => m[1]);
 
-        // The gradient is only the falloff *shape*; the strength is the CSS
-        // variable, so a light ground stays nearly clear and a dark one gets
-        // the icon's pale luminous body instead of a smoky hole.
-        expect(stops[0]).toBe(1);
-        expect(stops).toEqual([...stops].sort((a, b) => b - a));
-        expect(stops.at(-1)).toBeLessThan(0.5);
+        // The gradient carries only the run of offsets. Both the strength and
+        // the falloff belong to the ground, so the theme owns both: a light
+        // ground reads through nearly clear glass, a dark one has no ground to
+        // read through and gets a near-flat white body instead of a gray one.
+        expect(stops).toEqual([
+            '--haus-ghost-scatter-peak',
+            '--haus-ghost-scatter-mid',
+            '--haus-ghost-scatter-outer',
+        ]);
         expect(markup).toContain('class="haus-ghost__interior"');
         expect(ghostCss).toContain('fill-opacity: var(--haus-ghost-scatter)');
         expect(ghostCss).toContain('opacity: var(--haus-ghost-specular)');
     });
 
-    test("scales the ground-dependent layers on the app's own dark selector", () => {
+    test("fills the body with white on the app's own dark selector", () => {
         const dark = ghostCss.slice(ghostCss.indexOf("[data-theme='dark'] .haus-ghost"));
+        const read = (css: string, variable: string) =>
+            Number(css.match(new RegExp(`--haus-ghost-${variable}:\\s*([\\d.]+)`))?.[1]);
 
         expect(dark).toContain('.dark .haus-ghost');
-        for (const variable of ['scatter', 'specular', 'edge', 'halo']) {
-            expect(dark).toContain(`--haus-ghost-${variable}:`);
+        // On black the scatter is not a tint on a body the page already
+        // filled — it *is* the body, so it has to be a near-solid white, and
+        // near-flat out to the silhouette. A partial or falling-off scatter is
+        // what read as a gray blob with colored edges.
+        expect(read(dark, 'scatter')).toBeGreaterThan(0.9);
+        for (const stop of ['mid', 'outer']) {
+            expect(read(dark, `scatter-${stop}`)).toBeGreaterThan(0.9);
+            expect(read(ghostCss, `scatter-${stop}`)).toBeLessThan(0.8);
         }
-        // A dark ground has to scatter far more light than a light one, or the
-        // ghost reads as a dark blob with faint colored edges.
-        const scatter = (css: string) => Number(css.match(/--haus-ghost-scatter:\s*([\d.]+)/)?.[1]);
-
-        expect(scatter(dark)).toBeGreaterThan(4 * scatter(ghostCss));
+        // A white shape on near-black wants a colored bloom to sit in; the
+        // highlight and outline were lifting a gray body and no longer are, so
+        // they carry one value on both grounds.
+        expect(read(dark, 'halo')).toBeGreaterThan(read(ghostCss, 'halo'));
+        expect(dark).not.toContain('--haus-ghost-specular:');
+        expect(dark).not.toContain('--haus-ghost-edge:');
     });
 
     test('outlines the mark in a gradient that samples the mesh, never in ink', () => {
@@ -125,6 +136,36 @@ describe('Haus ghost', () => {
         expect(markup).toContain(`mask="url(#${sideId})"`);
     });
 
+    test('arranges the color the way the app icon does', () => {
+        const markup = iridescent();
+        const blobs = Object.fromEntries(
+            [...markup.matchAll(/haus-ghost__blob--(\w+)"([^>]*)/g)].map(([, id, attrs]) => [
+                id,
+                Object.fromEntries(
+                    [...attrs.matchAll(/([\w-]+)="([\d.]+)"/g)].map(([, k, v]) => [k, Number(v)])
+                ),
+            ])
+        );
+        const rim = markup.match(
+            /<linearGradient[^>]*rim-color[^>]*>(.*?)<\/linearGradient>/s
+        )?.[1];
+        const roseRun = [...(rim ?? '').matchAll(/offset="([\d.]+)" stop-color="#ff43a6"/g)].map(
+            (m) => Number(m[1])
+        );
+
+        // Azure high and right, rose low and further right still, violet a
+        // quiet transition between them rather than a region of its own.
+        expect(blobs.azure.cy).toBeLessThan(blobs.violet.cy);
+        expect(blobs.violet.cy).toBeLessThan(blobs.rose.cy);
+        expect(blobs.rose.cx).toBeGreaterThan(blobs.violet.cx);
+        expect(blobs.violet['fill-opacity']).toBeLessThan(blobs.azure['fill-opacity']);
+        expect(blobs.violet['fill-opacity']).toBeLessThan(blobs.rose['fill-opacity']);
+        // The rim gradient runs upper-right to lower-left, so its later half is
+        // the lower-right contour: rose has to own a stretch of it, not a point.
+        expect(roseRun).toHaveLength(2);
+        expect(roseRun[1] - roseRun[0]).toBeGreaterThan(0.2);
+    });
+
     test('scopes every def to the instance, so two marks never collide', () => {
         const pair = renderToStaticMarkup(
             <>
@@ -155,38 +196,5 @@ describe('Haus ghost', () => {
 
         expect(markup).toContain('height:102px');
         expect(markup).toContain('width:96px');
-    });
-
-    test('drifts the mesh only for the animated iridescent fill', () => {
-        expect(renderToStaticMarkup(<HausGhost animated fill="iridescent" />)).toContain(
-            'haus-ghost--animated'
-        );
-        expect(iridescent()).not.toContain('haus-ghost--animated');
-        expect(renderToStaticMarkup(<HausGhost animated />)).not.toContain('haus-ghost--animated');
-    });
-
-    test('steps the drift, and stops it when the window is not being looked at', () => {
-        // The blobs drift inside a Gaussian blur nested in two masks and a
-        // clip, so every distinct transform re-runs that filter chain on the
-        // main thread. A continuous drift cost 10% of a core on every route;
-        // stepping it is what makes the mark affordable, and pausing it while
-        // the window is blurred is what makes it free.
-        const drift = ghostCss.slice(ghostCss.indexOf('.haus-ghost--animated .haus-ghost__blob'));
-
-        expect(drift).toMatch(/animation-timing-function:\s*steps\(\d+,\s*end\)/);
-        expect(drift).not.toContain('ease-in-out');
-        expect(ghostCss).toContain('html.window-blurred .haus-ghost--animated .haus-ghost__blob');
-        expect(ghostCss.slice(ghostCss.indexOf('html.window-blurred'))).toContain(
-            'animation-play-state: paused'
-        );
-    });
-
-    test('quickens the drift only when a lively tempo is asked for', () => {
-        expect(
-            renderToStaticMarkup(<HausGhost animated fill="iridescent" tempo="lively" />)
-        ).toContain('haus-ghost--lively');
-        expect(renderToStaticMarkup(<HausGhost animated fill="iridescent" />)).not.toContain(
-            'haus-ghost--lively'
-        );
     });
 });

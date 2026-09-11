@@ -9,9 +9,15 @@
 .haus-ghost {
     --haus-ghost-tempo: 1;
 
-    /* How much light the body scatters. On a light page the glass is nearly
-       clear and the ground reads straight through it. */
+    /* How much light the body scatters, and how that scatter falls off from
+       under the dome out to the silhouette. On a light page the glass is
+       nearly clear and the ground reads straight through it, so the falloff is
+       only shaping a whisper of white over a body the page has already
+       filled. */
     --haus-ghost-scatter: 0.1;
+    --haus-ghost-scatter-peak: 1;
+    --haus-ghost-scatter-mid: 0.72;
+    --haus-ghost-scatter-outer: 0.3;
     --haus-ghost-specular: 0.7;
     --haus-ghost-edge: 0.5;
     --haus-ghost-halo: 0.22;
@@ -25,17 +31,27 @@
 }
 
 /* On a near-black ground a nearly clear body is just a hole: the ghost goes
-   dark and smoky and the eyes vanish. Real glass scatters, so the interior
-   turns pale and luminous the way it does on the app icon's black tile, and
-   the highlight and outline lean brighter to keep it from flattening into a
-   white sticker. Matches the theme layer's own selector pair. */
+   dark and smoky and the eyes vanish. What fills the body on a light page is
+   the page — flat, pale, the same brightness edge to edge — so on a dark page
+   the scatter has to supply that ground itself, which makes it a near-solid
+   white underlay rather than a tint, and a nearly flat one. A partial scatter
+   is what reads as gray, and a scatter that keeps the light falloff reads as
+   gray at the rim: measured against the light mark, the body wants ~0.94 white
+   nearly edge to edge, and then it is the same pale luminous glass it is on
+   the app icon's black tile.
+
+   Only the halo is left leaning on the ground after that. A white shape on
+   near-black wants a colored bloom to sit in; on a light page the page carries
+   the mark's color already. The highlight and the outline were lifted to fight
+   a gray body and have nothing left to fight, so they keep their one value on
+   both grounds. Matches the theme layer's own selector pair. */
 
 [data-theme='dark'] .haus-ghost,
 .dark .haus-ghost {
-    --haus-ghost-scatter: 0.6;
-    --haus-ghost-specular: 0.85;
-    --haus-ghost-edge: 0.72;
-    --haus-ghost-halo: 0.35;
+    --haus-ghost-scatter: 0.94;
+    --haus-ghost-scatter-mid: 0.98;
+    --haus-ghost-scatter-outer: 0.96;
+    --haus-ghost-halo: 0.3;
 }
 
 .haus-ghost--lively {
@@ -45,9 +61,13 @@
 /* Wide, soft strokes of the body path, clipped back to it: the visible half
    is the inside one, which is what makes a glow hug the silhouette. */
 
+/* Wide and quiet, not narrow and loud: this is the layer that carries the
+   rose along the lower-right contour, so it earns its reach from width and
+   blur rather than from opacity. */
+
 .haus-ghost__rim-color {
-    stroke-width: 26;
-    opacity: 0.63;
+    stroke-width: 29;
+    opacity: 0.55;
 }
 
 .haus-ghost__rim-light {
@@ -82,107 +102,134 @@
     vector-effect: non-scaling-stroke;
 }
 
-/* Stepped, not continuous, and that is the whole performance story of this
-   mark. The blobs drift inside a Gaussian blur nested in two masks and a clip,
-   so every distinct transform re-runs that filter chain on the main thread: a
+/* Stepped, not continuous, and every loop stepped on one shared grid — that is
+   the whole performance story of this mark.
+
+   The blobs drift inside a Gaussian blur nested in two masks and a clip, so
+   every distinct transform re-runs that filter chain on the main thread: a
    smooth 60fps drift cost 10% of a core, permanently, on every route that
    renders the sidebar. `will-change` changes nothing — the work is the filter,
    not the layer.
 
-   Six steps per keyframe segment is 24 positions per loop, one every 0.4-0.6s,
-   and at most 1.6px of travel per step on the largest instance (56px on the
-   activation screen) under a blur many times that wide. It is not visible, and
-   it drops the drift to ~1% of a core. */
+   What costs is the number of frames the mark redraws on, not how much changed
+   in one of them. So all three loops land on the same 0.3s grid: every period
+   is a whole number of ticks and every keyframe divides into equal ticks, so
+   the mark repaints 3.3 times a second whether one blob moved or all three
+   did. `lively` scales the periods and the grid together, so the alignment
+   survives both tempos.
+
+   That alignment is what pays for the travel. The loops are twice the extent
+   they were on periods a third shorter — about 3.5x the old speed — and the
+   mark costs less than half what the old drift did: 0.8% of a core against
+   1.7%, for a mean channel change of 6.5 over three seconds on the 22px
+   sidebar row against 3.3, which read as still.
+
+   The periods are 20, 28 and 16 ticks, so the three loops only return to the
+   same phase every three minutes. */
 
 .haus-ghost--animated .haus-ghost__blob {
     animation-iteration-count: infinite;
-    animation-timing-function: steps(6, end);
 }
 
 .haus-ghost--animated .haus-ghost__blob--azure {
     animation-name: haus-ghost-drift-azure;
-    animation-duration: calc(11s * var(--haus-ghost-tempo));
+    animation-duration: calc(6s * var(--haus-ghost-tempo));
+    animation-timing-function: steps(5, end);
 }
 
 .haus-ghost--animated .haus-ghost__blob--violet {
     animation-name: haus-ghost-drift-violet;
-    animation-duration: calc(14s * var(--haus-ghost-tempo));
+    animation-duration: calc(8.4s * var(--haus-ghost-tempo));
+    animation-timing-function: steps(7, end);
 }
 
 .haus-ghost--animated .haus-ghost__blob--rose {
     animation-name: haus-ghost-drift-rose;
-    animation-duration: calc(9s * var(--haus-ghost-tempo));
+    animation-duration: calc(4.8s * var(--haus-ghost-tempo));
+    animation-timing-function: steps(4, end);
 }
 
-/* Three closed loops of different shape, direction, and period, each about a
-   quarter of the mark wide. A blob this large and this blurred cannot read as
-   an object in motion, so travel that would be lurching on a hard shape reads
-   here as the color regions slowly trading places — which is the only way the
-   drift is visible at all at 22px. */
+/* Three ellipses, one per blob, centred on the position the icon puts it at.
+
+   An ellipse is the shape that keeps the color moving: a there-and-back path
+   spends its time near the ends, where nothing is changing, and arcs that hug
+   the contour measured worse still — 4.8 against the 6.5 these get — because a
+   path inside the mask's band is so much shorter than one crossing it. These
+   sweep about half the mark, twice the old reach.
+
+   Each one is bounded by its blob's own quadrant, and that bound is the design:
+   azure never leaves the upper right and rose never leaves the lower-right
+   contour, so the arrangement the mark is known by holds at every phase, not
+   just at rest. Wider loops were tried and rejected — at a hundred units of
+   travel the rose crossed the centre line and pooled in the left lobe. A blob
+   this large and this blurred cannot read as an object in motion, so travel
+   that would be lurching on a hard shape reads here as the color regions slowly
+   trading places. Violet runs the other way round its ellipse, so the three
+   never sweep as a group. */
 
 @keyframes haus-ghost-drift-azure {
     0% {
-        transform: translate(0, 0);
+        transform: translate(36px, 14px);
     }
 
     25% {
-        transform: translate(-30px, 18px);
+        transform: translate(-13px, 39px);
     }
 
     50% {
-        transform: translate(-44px, -8px);
+        transform: translate(-36px, -14px);
     }
 
     75% {
-        transform: translate(-18px, -28px);
+        transform: translate(13px, -39px);
     }
 
     100% {
-        transform: translate(0, 0);
+        transform: translate(36px, 14px);
     }
 }
 
 @keyframes haus-ghost-drift-violet {
     0% {
-        transform: translate(0, 0);
+        transform: translate(-50px, -15px);
     }
 
     25% {
-        transform: translate(26px, -22px);
+        transform: translate(-18px, 41px);
     }
 
     50% {
-        transform: translate(44px, 6px);
+        transform: translate(50px, 15px);
     }
 
     75% {
-        transform: translate(20px, 30px);
+        transform: translate(18px, -41px);
     }
 
     100% {
-        transform: translate(0, 0);
+        transform: translate(-50px, -15px);
     }
 }
 
 @keyframes haus-ghost-drift-rose {
     0% {
-        transform: translate(0, 0);
+        transform: translate(-15px, -33px);
     }
 
     25% {
-        transform: translate(-24px, -26px);
+        transform: translate(41px, -12px);
     }
 
     50% {
-        transform: translate(-50px, -6px);
+        transform: translate(15px, 33px);
     }
 
     75% {
-        transform: translate(-28px, 22px);
+        transform: translate(-41px, 12px);
     }
 
     100% {
-        transform: translate(0, 0);
+        transform: translate(-15px, -33px);
     }
 }
 

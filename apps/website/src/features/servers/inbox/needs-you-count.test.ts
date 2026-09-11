@@ -1,14 +1,9 @@
 import { expect, test } from 'bun:test';
 import { selectNeedsYouCount } from './needs-you-count.ts';
-import type { NeedsYouTask } from './needs-you-tasks.ts';
 import type { StalledClaimTask } from './stalled-claims.ts';
 
-const viewer = 'user_me';
-
-function task(overrides: Partial<NeedsYouTask & StalledClaimTask> & { id: string }) {
+function task(overrides: Partial<StalledClaimTask> & { id: string }) {
     return {
-        assigneeUserId: null,
-        createdByUserId: null,
         live: false,
         origin: 'composed' as const,
         status: 'todo' as const,
@@ -17,14 +12,13 @@ function task(overrides: Partial<NeedsYouTask & StalledClaimTask> & { id: string
     };
 }
 
-test('adds the open Asks to the stalled claims and the reviews that are yours', () => {
+test('adds the open Asks to the stalled claims', () => {
     const count = selectNeedsYouCount({
         askCount: 2,
         tasks: [
             task({ id: 'stalled', origin: 'claimed', status: 'in_progress' }),
-            task({ createdByUserId: viewer, id: 'mine-in-review', status: 'in_review' }),
+            task({ id: 'another', origin: 'claimed', status: 'in_progress' }),
         ],
-        viewerUserId: viewer,
     });
 
     expect(count).toBe(4);
@@ -41,21 +35,10 @@ test('counts nothing that the section would not list', () => {
                 status: 'in_progress',
                 tier: 'background',
             }),
-            task({ createdByUserId: 'user_other', id: 'their-review', status: 'in_review' }),
-            task({ createdByUserId: viewer, id: 'my-todo' }),
+            task({ id: 'in-review', status: 'in_review' }),
+            task({ id: 'todo' }),
         ],
-        viewerUserId: viewer,
     });
 
     expect(count).toBe(0);
-});
-
-test('counts the Asks even before the viewer is known', () => {
-    const count = selectNeedsYouCount({
-        askCount: 3,
-        tasks: [task({ createdByUserId: viewer, id: 'mine-in-review', status: 'in_review' })],
-        viewerUserId: null,
-    });
-
-    expect(count).toBe(3);
 });

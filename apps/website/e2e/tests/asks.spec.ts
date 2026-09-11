@@ -3,9 +3,10 @@ import { createTestServer, openChannel } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 const askTitle = 'Run the staged migration?';
-const recommendedStep = 'Approve the staged migration';
+const recommendation = 'Approve the staged migration';
+const alternative = 'Hold until Monday';
 
-test('an open Ask leads the Inbox, and its step answers in the Thread', async ({ page }) => {
+test('an open Ask leads the Inbox, and its options answer in the Thread peek', async ({ page }) => {
     const { client, server, session } = await createTestServer(page, {
         displayName: 'Hosted Asks',
         slug: 'asks',
@@ -22,7 +23,7 @@ test('an open Ask leads the Inbox, and its step answers in the Thread', async ({
         channelName: 'all',
         content: 'The migration is staged. Should I run it now?',
         databaseUrl: session.databaseUrl,
-        recommendedStep,
+        options: [recommendation, alternative],
         serverId: server.id,
         slug: 'asks',
         summary: 'The migration is staged and reversible for one hour.',
@@ -30,16 +31,28 @@ test('an open Ask leads the Inbox, and its step answers in the Thread', async ({
         token: session.token,
     });
 
+    // The row states the Ask and opens it. It carries no control of its own,
+    // so no option is pressable until the Ask itself is open.
     await page.goto('/s/asks/inbox');
-    const row = page.getByRole('row', { name: new RegExp(askTitle, 'u') });
+    const row = page.getByRole('button', { exact: true, name: askTitle });
     await expect(row).toBeVisible();
     await expect(row).toContainText('The migration is staged and reversible for one hour.');
-    const step = page.getByRole('button', { exact: true, name: recommendedStep });
-    await expect(step).toBeVisible();
+    await expect(page.getByRole('button', { exact: true, name: recommendation })).toHaveCount(0);
 
-    // Pressing the step is the human answering in their own words — the exact
-    // step text, authored by them, in the Ask's Thread.
-    await step.click();
+    // The options live in the peek, where the question and its reasoning are
+    // readable, and the Agent's recommendation leads them emphasized.
+    await row.click();
+    const recommended = page.getByRole('button', { exact: true, name: recommendation });
+    const held = page.getByRole('button', { exact: true, name: alternative });
+    await expect(recommended).toBeVisible();
+    await expect(held).toBeVisible();
+    await expect(recommended).toHaveClass(/button--primary/u);
+    await expect(held).toHaveClass(/button--secondary/u);
+
+    // Pressing an option is the human answering in their own words — the exact
+    // option text, authored by them, in the Ask's Thread. The Server settles
+    // the Ask as a side effect, so the row and the peek both leave on its event.
+    await recommended.click();
     await expect(row).toHaveCount(0);
     await expect(page.getByText('Nothing needs you.')).toBeVisible();
 
@@ -47,7 +60,8 @@ test('an open Ask leads the Inbox, and its step answers in the Thread', async ({
         chatId: seeded.threadChatId,
         serverId: server.id,
     });
-    const answer = thread.messages.find((message) => message.content === recommendedStep);
+    const answer = thread.messages.at(-1);
+    expect(answer?.content).toBe(recommendation);
     expect(answer?.author.kind).toBe('human');
 
     // The Chat keeps the settled Ask legible: the marker names who answered.

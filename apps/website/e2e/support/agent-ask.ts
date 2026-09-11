@@ -25,7 +25,7 @@ export async function seedOpenAsk(input: {
     channelName: string;
     content: string;
     databaseUrl: string;
-    recommendedStep: string;
+    options: string[];
     serverId: string;
     slug: string;
     summary: string;
@@ -56,7 +56,6 @@ export async function seedOpenAsk(input: {
         displayName: 'Orbit',
         handle: input.agentHandle,
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId: input.serverId,
     });
@@ -73,7 +72,7 @@ export async function seedOpenAsk(input: {
             addresseeHandle: input.addresseeHandle,
             content: input.content,
             nonce: `ask-${created.agent.id}`,
-            recommendedStep: input.recommendedStep,
+            options: input.options,
             summary: input.summary,
             target: `#${input.channelName}`,
             title: input.title,

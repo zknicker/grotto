@@ -29,18 +29,20 @@ interface ChannelCreateDialogProps {
 /** New channel: its name and face in one field, then the Agents it starts with. */
 export function ChannelCreateDialog({ open, onClose, ...form }: ChannelCreateDialogProps) {
     return (
-        <Modal isOpen={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-            <Modal.Backdrop isDismissable>
-                <Modal.Container>
-                    <Modal.Dialog>
-                        <Modal.CloseTrigger />
-                        {/* Mounted only while open so a dismissed draft never
-                            reappears in the next channel. */}
-                        {open ? <ChannelCreateForm {...form} /> : null}
-                    </Modal.Dialog>
-                </Modal.Container>
-            </Modal.Backdrop>
-        </Modal>
+        <Modal.Backdrop
+            isDismissable
+            isOpen={open}
+            onOpenChange={(nextOpen) => !nextOpen && onClose()}
+        >
+            <Modal.Container>
+                <Modal.Dialog>
+                    <Modal.CloseTrigger />
+                    {/* Mounted only while open so a dismissed draft never
+                        reappears in the next channel. */}
+                    {open ? <ChannelCreateForm {...form} /> : null}
+                </Modal.Dialog>
+            </Modal.Container>
+        </Modal.Backdrop>
     );
 }
 

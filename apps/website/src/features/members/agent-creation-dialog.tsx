@@ -39,47 +39,43 @@ export function AgentCreationDialog({
         }));
 
     return (
-        <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop isDismissable>
-                <Modal.Container scroll="inside" size="lg">
-                    <Modal.Dialog>
-                        <Modal.CloseTrigger />
-                        <Modal.Header>
-                            <Modal.Heading>Create Agent</Modal.Heading>
-                            <p className="mt-1.5 text-muted text-sm leading-5">
-                                Choose where this Agent runs and tune its starting configuration.
-                            </p>
-                        </Modal.Header>
-                        {computers.isPending ? (
-                            <Modal.Body>
-                                <div className="flex min-h-32 items-center justify-center">
-                                    <Spinner />
-                                </div>
-                            </Modal.Body>
-                        ) : computers.error ? (
-                            <Modal.Body>
-                                <Alert status="danger">
-                                    <Alert.Indicator />
-                                    <Alert.Content>
-                                        <Alert.Description>
-                                            {computers.error.message}
-                                        </Alert.Description>
-                                    </Alert.Content>
-                                </Alert>
-                            </Modal.Body>
-                        ) : (
-                            <AgentCreationForm
-                                agents={agents}
-                                error={error}
-                                isPending={isPending}
-                                onCreated={onCreated}
-                                onSubmit={onSubmit}
-                                reported={reported}
-                            />
-                        )}
-                    </Modal.Dialog>
-                </Modal.Container>
-            </Modal.Backdrop>
-        </Modal>
+        <Modal.Backdrop isDismissable isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Container scroll="inside" size="lg">
+                <Modal.Dialog>
+                    <Modal.CloseTrigger />
+                    <Modal.Header>
+                        <Modal.Heading>Create Agent</Modal.Heading>
+                        <p className="mt-1.5 text-muted text-sm leading-5">
+                            Choose where this Agent runs and tune its starting configuration.
+                        </p>
+                    </Modal.Header>
+                    {computers.isPending ? (
+                        <Modal.Body>
+                            <div className="flex min-h-32 items-center justify-center">
+                                <Spinner />
+                            </div>
+                        </Modal.Body>
+                    ) : computers.error ? (
+                        <Modal.Body>
+                            <Alert status="danger">
+                                <Alert.Indicator />
+                                <Alert.Content>
+                                    <Alert.Description>{computers.error.message}</Alert.Description>
+                                </Alert.Content>
+                            </Alert>
+                        </Modal.Body>
+                    ) : (
+                        <AgentCreationForm
+                            agents={agents}
+                            error={error}
+                            isPending={isPending}
+                            onCreated={onCreated}
+                            onSubmit={onSubmit}
+                            reported={reported}
+                        />
+                    )}
+                </Modal.Dialog>
+            </Modal.Container>
+        </Modal.Backdrop>
     );
 }

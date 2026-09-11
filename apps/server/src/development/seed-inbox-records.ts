@@ -16,53 +16,63 @@ import { appendSeedMessages } from './seed-inbox-messages.ts';
 
 const repository = 'zknicker/grotto';
 
+interface SeedAsk {
+    agentId: string;
+    chatId: string;
+    content: string;
+    createdAt: Date;
+    nonce: string;
+    options: string[];
+    summary: string;
+    title: string;
+}
+
 /**
- * One open Ask from Cove, written the way `createAsk` writes one: the
- * Agent-authored Message carrying the `ask` body, its deterministic child
- * Thread, the author's follow on that Thread, and the Ask record.
+ * One open Ask, written the way `createAsk` writes one: the Agent-authored
+ * Message carrying the `ask` body, its deterministic child Thread, the author's
+ * follow on that Thread, and the Ask record.
  */
 export async function seedInboxAsk(
     tx: GrottoDatabase,
     context: InboxSeedContext,
-    createdAt: Date
+    ask: SeedAsk
 ): Promise<void> {
     const messageId = createOpaqueId('msg');
     await appendSeedMessages(tx, {
-        chatId: context.onboardingChatId,
+        chatId: ask.chatId,
         messages: [
             {
-                authorAgentId: context.coveId,
+                authorAgentId: ask.agentId,
                 bodyKind: 'ask',
-                content: 'Renaming #product to #build would make the channel’s job obvious.',
-                createdAt,
+                content: ask.content,
+                createdAt: ask.createdAt,
                 id: messageId,
-                nonce: 'dev-inbox-ask-rename-product',
+                nonce: ask.nonce,
             },
         ],
         serverId: context.serverId,
     });
     await ensureThreadRecord(tx, {
         anchorMessageId: messageId,
-        parentChatId: context.onboardingChatId,
+        parentChatId: ask.chatId,
         serverId: context.serverId,
     });
     await followAgentThread(tx, {
-        agentId: context.coveId,
+        agentId: ask.agentId,
         serverId: context.serverId,
         threadChatId: threadChatIdForAnchor(messageId),
     });
     await tx.insert(asksTable).values({
         addresseeUserId: context.userId,
-        agentId: context.coveId,
-        chatId: context.onboardingChatId,
-        createdAt,
+        agentId: ask.agentId,
+        chatId: ask.chatId,
+        createdAt: ask.createdAt,
         id: createOpaqueId('ask'),
         messageId,
-        recommendedStep: 'Yes, rename it',
+        options: ask.options,
         serverId: context.serverId,
-        summary:
-            'Two agents keep filing build questions in #product. Renaming makes the channel’s job obvious.',
-        title: 'Rename #product to #build?',
+        summary: ask.summary,
+        title: ask.title,
     });
 }
 

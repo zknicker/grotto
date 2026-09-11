@@ -67,7 +67,8 @@ the Agents Blippy and Tiny, avatars for them and for you, the `#all` and
 `#product` Channels, starter messages, a Thread, two tasks, and one MCP
 connection — enough to open any surface without hand-building data. It then
 seeds the activity the Inbox is a lens over: unread lines in both Channels and
-both Agent DMs, one open Ask from Cove, one claim Blippy left stalled, one
+both Agent DMs, two open Asks — Cove's rename question offering three replies
+and Tiny's stale-copy question offering none — one claim Blippy left stalled, one
 settled Cloud Agent work, and seven days of Agent turns. No running Cloud Agent
 work is seeded — Computer reconciles running work against the provider every
 minute, and a fake run fails that loop until its retries exhaust the Server

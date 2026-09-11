@@ -55,18 +55,29 @@ test('Conversations reads unread demo Chats with their last line', async () => {
     expect(dms.every((chat) => chat.unreadCount > 0 || chat.lastMessage === null)).toBe(true);
 });
 
-test('Needs you reads one open Cove Ask and one stalled claim', async () => {
+test('Needs you reads both open Asks and one stalled claim', async () => {
     const asks = await owner.trpc.ask.listOpen.query({ serverId });
-    expect(asks).toHaveLength(1);
-    expect(asks[0]?.ask).toMatchObject({
-        recommendedStep: 'Yes, rename it',
+    expect(asks).toHaveLength(2);
+    const rename = asks.find((row) => row.ask.title === 'Rename #product to #build?');
+    const staleCopy = asks.find((row) => row.ask.title === 'Which stale copy should I fix first?');
+
+    expect(rename?.ask).toMatchObject({
+        options: ['Yes, rename it', 'Keep #product, pin a note instead', 'Not now'],
         status: 'open',
         summary:
             'Two agents keep filing build questions in #product. Renaming makes the channel’s job obvious.',
-        title: 'Rename #product to #build?',
     });
-    expect(asks[0]?.chatName).toBe('onboarding-owner');
-    expect(asks[0]?.message.body).toMatchObject({ kind: 'ask' });
+    expect(rename?.chatName).toBe('onboarding-owner');
+    expect(rename?.message.body).toMatchObject({ kind: 'ask' });
+
+    // The open question: no options, so the peek offers its composer instead.
+    expect(staleCopy?.ask).toMatchObject({
+        options: [],
+        status: 'open',
+        summary:
+            'The directory audit found three stale strings; the order matters if you want a single PR.',
+    });
+    expect(staleCopy?.chatName).toBe('product');
 
     const agents = await owner.trpc.agent.list.query({ serverId });
     const blippyId = agents.find((agent) => agent.handle === 'blippy')?.id;

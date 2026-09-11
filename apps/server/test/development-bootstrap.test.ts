@@ -57,9 +57,9 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     expect(await connection.db.select().from(computersTable)).toHaveLength(1);
     const agents = await connection.db.select().from(agentsTable);
     expect(agents).toHaveLength(3);
-    // 3 channels + 3 Agent DMs + 5 threads (a discussion, one per promoted
+    // 3 channels + 3 Agent DMs + 6 threads (a discussion, one per promoted
     // task, and one per record-backed Message the Inbox seed writes)
-    expect(await connection.db.select().from(chatsTable)).toHaveLength(11);
+    expect(await connection.db.select().from(chatsTable)).toHaveLength(12);
     expect(await connection.db.select().from(serverOnboardingTable)).toMatchObject([
         {
             agentId: agents.find((agent) => agent.handle === 'cove')?.id,
@@ -69,7 +69,7 @@ test('creates one idempotent Server-owned demo workspace', async () => {
             serverId: first.id,
         },
     ]);
-    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(23);
+    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(24);
     const [seededAttachment] = await connection.db.select().from(attachmentsTable);
     expect(seededAttachment).toMatchObject({
         byteSize: 163_552,
@@ -137,7 +137,7 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     expect(await connection.db.select().from(avatarsTable)).toHaveLength(4);
 
     // Threads are anchored to real channel messages, and one is followed.
-    expect(threads).toHaveLength(5);
+    expect(threads).toHaveLength(6);
     expect(threads.every((thread) => thread.anchorMessageId && thread.parentChatId)).toBe(true);
     expect(await connection.db.select().from(threadFollowsTable)).toHaveLength(1);
 

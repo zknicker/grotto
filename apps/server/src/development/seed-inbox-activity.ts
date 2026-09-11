@@ -16,7 +16,7 @@ const hour = 60 * minute;
 
 /**
  * Gives the demo workspace the activity the human Inbox is a lens over: unread
- * conversations with a last line, an open Ask, a claim an Agent left behind,
+ * conversations with a last line, two open Asks, a claim an Agent left behind,
  * one settled Cloud Agent work, and a week of Agent turns. Every row is shaped
  * the way the product writes it, so the page can be judged from a fresh boot
  * without hand-building data.
@@ -48,7 +48,17 @@ export async function seedDevelopmentInboxActivity(
         });
         await seedProductChannelActivity(tx, context, now);
         await seedDirectMessageActivity(tx, context, now);
-        await seedInboxAsk(tx, context, before(now, 55 * minute));
+        await seedInboxAsk(tx, context, {
+            agentId: context.coveId,
+            chatId: context.onboardingChatId,
+            content: 'Renaming #product to #build would make the channel’s job obvious.',
+            createdAt: before(now, 55 * minute),
+            nonce: 'dev-inbox-ask-rename-product',
+            options: ['Yes, rename it', 'Keep #product, pin a note instead', 'Not now'],
+            summary:
+                'Two agents keep filing build questions in #product. Renaming makes the channel’s job obvious.',
+            title: 'Rename #product to #build?',
+        });
         await seedAgentTurns(tx, context, now);
     });
 }
@@ -105,7 +115,11 @@ async function seedAllChannelActivity(
     return claimAnchorMessageId;
 }
 
-/** #product: yesterday's settled Cloud Agent work and Tiny's rename nudge. */
+/**
+ * #product: yesterday's settled Cloud Agent work, Tiny's open question, and its
+ * rename nudge. The Ask is appended before the nudge so sequence, clock, and
+ * the Chat's last line all agree.
+ */
 async function seedProductChannelActivity(
     tx: GrottoDatabase,
     context: InboxSeedContext,
@@ -134,6 +148,20 @@ async function seedProductChannelActivity(
         startedAt: before(now, 25 * hour + 50 * minute),
         terminalAt: before(now, 25 * hour + 10 * minute),
         title: 'Sidebar Inbox badge',
+    });
+    // No options: the answer is an ordering only the human knows, so the peek
+    // offers its composer rather than a row of replies.
+    await seedInboxAsk(tx, context, {
+        agentId: context.tinyId,
+        chatId: context.productChatId,
+        content:
+            'Which of the three stale strings should I fix first? I can fold the rest into the same PR once I know where to start.',
+        createdAt: before(now, 12 * minute),
+        nonce: 'dev-inbox-ask-stale-copy',
+        options: [],
+        summary:
+            'The directory audit found three stale strings; the order matters if you want a single PR.',
+        title: 'Which stale copy should I fix first?',
     });
     await appendSeedMessages(tx, {
         chatId: context.productChatId,

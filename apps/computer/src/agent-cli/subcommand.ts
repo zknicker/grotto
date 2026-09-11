@@ -136,9 +136,10 @@ function reportUnknownSub(groupName: string, name: string | undefined, subs: Sub
 /** Per-subcommand help: summary, usage, flags, examples. */
 export function printSubHelp(sub: SubCommand, stream: NodeJS.WriteStream): void {
     const blocks: string[] = [sub.summary, `${heading('Usage', stream)}\n  ${sub.usage}`];
-    if (sub.flags.length > 0) {
+    const flags = sub.flags.filter((flag) => !flag.removed);
+    if (flags.length > 0) {
         const body = rows(
-            sub.flags.map((flag) => ({
+            flags.map((flag) => ({
                 left: flag.valueName ? `${flag.name} ${flag.valueName}` : flag.name,
                 right: flag.description,
             })),

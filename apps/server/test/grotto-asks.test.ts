@@ -85,7 +85,7 @@ test('one Ask writes its Message, record, Thread, and events, and replays by non
         addresseeHandle: 'ada',
         content: 'The migration is staged. Should I run it now?',
         nonce: 'ask-top-level',
-        recommendedStep: 'Approve the staged migration',
+        options: ['Approve the staged migration', 'Wait for the release window'],
         summary: 'The migration is staged and reversible for one hour.',
         target: '#product',
         title: 'Run the staged migration?',
@@ -100,7 +100,7 @@ test('one Ask writes its Message, record, Thread, and events, and replays by non
             answerMessageId: null,
             answeredBy: null,
             chatId: channelId,
-            recommendedStep: 'Approve the staged migration',
+            options: ['Approve the staged migration', 'Wait for the release window'],
             status: 'open',
             title: 'Run the staged migration?',
         },
@@ -131,7 +131,7 @@ test('one Ask writes its Message, record, Thread, and events, and replays by non
         addresseeHandle: 'ada',
         content: 'The migration is staged. Should I run it now?',
         nonce: 'ask-top-level',
-        recommendedStep: 'Approve the staged migration',
+        options: ['Approve the staged migration', 'Wait for the release window'],
         summary: 'The migration is staged and reversible for one hour.',
         target: '#product',
         title: 'Run the staged migration?',
@@ -150,7 +150,7 @@ test('one Ask writes its Message, record, Thread, and events, and replays by non
         addresseeHandle: 'ada',
         content: 'A different question entirely.',
         nonce: 'ask-top-level',
-        recommendedStep: 'Approve the staged migration',
+        options: ['Approve the staged migration', 'Wait for the release window'],
         summary: 'The migration is staged and reversible for one hour.',
         target: '#product',
         title: 'Run the staged migration?',
@@ -376,18 +376,14 @@ test('Agent history reads an Ask Message with its body kind and Ask facts', asyn
     const response = await fetch(url, { headers: { authorization: `Bearer ${runner.token}` } });
     expect(response.status).toBe(200);
     const body = (await response.json()) as {
-        messages: Array<{
-            ask?: { addressee_handle: string | null; status: string; title: string };
-            body_kind: string;
-            id: string;
-        }>;
+        messages: Array<{ ask?: Record<string, unknown>; body_kind: string; id: string }>;
     };
     const askMessage = body.messages.find((row) => row.id === created.body.messageId);
     expect(askMessage).toMatchObject({
         ask: {
             addressee_handle: 'ada',
             id: (created.body.ask as Ask).id,
-            recommended_step: 'Approve the staged migration',
+            options: ['Approve the staged migration', 'Wait for the release window'],
             status: 'open',
             title: 'Cut the hotfix?',
         },
@@ -440,7 +436,7 @@ function askBody(overrides: Record<string, string> = {}) {
         addresseeHandle: 'ada',
         content: 'The migration is staged. Should I run it now?',
         nonce: `ask-rejected-${overrides.nonce ?? Math.random().toString(36).slice(2)}`,
-        recommendedStep: 'Approve the staged migration',
+        options: ['Approve the staged migration', 'Wait for the release window'],
         summary: 'The migration is staged and reversible for one hour.',
         target: '#product',
         title: 'Run the staged migration?',

@@ -76,7 +76,7 @@
     "apps/server/test/computer-connections.test.ts": 330,
     "apps/server/test/grotto-agent-run.test.ts": 2874,
     "apps/server/test/grotto-agents.test.ts": 717,
-    "apps/server/test/grotto-asks.test.ts": 581,
+    "apps/server/test/grotto-asks.test.ts": 577,
     "apps/server/test/grotto-automation-provenance.test.ts": 778,
     "apps/server/test/grotto-chat-durable-events.test.ts": 316,
     "apps/server/test/grotto-chat-threads.test.ts": 353,

@@ -20,7 +20,7 @@ function openAsk(overrides: Partial<OpenAsk> = {}): OpenAsk {
             createdAt: '2026-09-02T12:00:00.000Z',
             id: 'ask_one',
             messageId: 'message_one',
-            recommendedStep: 'Ship it',
+            options: ['Ship it', 'Hold for review'],
             status: 'open',
             summary: 'The migration is staged and reversible.',
             title: 'Run the migration?',
@@ -106,7 +106,7 @@ test('a retired Agent keeps the name its Message stored', () => {
     expect(toNeedsYouAsks([openAsk()], humans, [])[0]?.agentName).toBe('Blippy (stored)');
 });
 
-test('the recommended step answers in the conversation, on the Thread anchor', () => {
+test('a pressed option answers in the conversation, on the Thread anchor', () => {
     const topLevel = openAsk();
     const inThread = openAsk({
         ask: { ...openAsk().ask, chatId: 'chat_thread' },
@@ -114,11 +114,17 @@ test('the recommended step answers in the conversation, on the Thread anchor', (
     });
 
     // A top-level Ask anchors its own Thread, so the answer replies to the Ask
-    // Message itself.
-    expect(askAnswerMessage(topLevel, { nonce: 'nonce_one', serverId: 'server_one' })).toEqual({
+    // Message itself, carrying the pressed option's text verbatim.
+    expect(
+        askAnswerMessage(topLevel, {
+            nonce: 'nonce_one',
+            option: 'Hold for review',
+            serverId: 'server_one',
+        })
+    ).toEqual({
         attachmentIds: [],
         chatId: 'chat_product',
-        content: 'Ship it',
+        content: 'Hold for review',
         nonce: 'nonce_one',
         serverId: 'server_one',
         thread: { anchorMessageId: 'message_one' },
@@ -126,7 +132,11 @@ test('the recommended step answers in the conversation, on the Thread anchor', (
     // Threads do not nest: an Ask inside one answers on that Thread's anchor,
     // addressed to the Channel or DM the Thread hangs under.
     expect(
-        askAnswerMessage(inThread, { nonce: 'nonce_two', serverId: 'server_one' })
+        askAnswerMessage(inThread, {
+            nonce: 'nonce_two',
+            option: 'Ship it',
+            serverId: 'server_one',
+        })
     ).toMatchObject({
         chatId: 'chat_product',
         thread: { anchorMessageId: 'message_anchor' },

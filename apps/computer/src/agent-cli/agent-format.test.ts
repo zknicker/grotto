@@ -25,10 +25,10 @@ function message(overrides: Partial<AgentCliMessage> = {}): AgentCliMessage {
 const openAsk = {
     addressee_handle: 'ada',
     id: 'ask_1a2b3c4d',
-    recommended_step: 'Approve the staged migration',
+    options: ['Approve the staged migration', 'Wait for the release window'],
     status: 'open',
     title: 'Run the staged migration?',
-} as const;
+} satisfies NonNullable<AgentCliMessage['ask']>;
 
 test('an Ask Message states its lifecycle and addressee on every line it rides', () => {
     const ask = message({ ask: openAsk, body_kind: 'ask' });

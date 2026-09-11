@@ -1779,7 +1779,8 @@ export interface components {
             status: "open" | "answered";
             addressee_handle: string | null;
             title: string;
-            recommended_step: string;
+            /** @description Short replies the addressee can send as is, the first being the Agent's recommendation. Empty means an open question. */
+            options: string[];
         };
         MessageAgentCreated: {
             agent_id: string;

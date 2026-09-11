@@ -4,7 +4,7 @@ import { useOpenAsks } from '../../../hooks/servers/use-open-asks.ts';
 import { useServerContext } from '../server-context.ts';
 import { ThreadPeekDialog } from '../thread/thread-peek-dialog.tsx';
 import { useInboxView } from './inbox-view.ts';
-import { NeedsYouAskStep } from './needs-you-ask-step.tsx';
+import { NeedsYouAskOptions } from './needs-you-ask-options.tsx';
 
 /**
  * The Ask peek: opening an Inbox Ask row shows the Thread the answer is
@@ -14,10 +14,10 @@ import { NeedsYouAskStep } from './needs-you-ask-step.tsx';
  * hangs off, which for an Ask posted inside a Thread is that Thread's own
  * anchor rather than the Ask.
  *
- * The Agent's recommended step is offered above the composer, as the one-press
- * form of the reply a person would otherwise type. It rides the open-Ask read
- * the peek already makes, so an Ask answered while this dialog is open takes
- * the step with it — there is no Ask left to offer, and no dialog either.
+ * The Agent's options are offered above the composer, as the one-press form of
+ * the reply a person would otherwise type. They ride the open-Ask read the peek
+ * already makes, so an Ask answered while this dialog is open takes them with
+ * it — there is no Ask left to offer, and no dialog either.
  */
 export function AskThreadDialog() {
     const { server } = useServerContext();
@@ -40,7 +40,7 @@ export function AskThreadDialog() {
             anchor={openAskThreadAnchor(item)}
             ariaLabel={`Ask thread: ${item.ask.title}`}
             chat={chat}
-            composerAction={<NeedsYouAskStep ask={item} serverId={server.id} />}
+            composerAction={<NeedsYouAskOptions ask={item} serverId={server.id} />}
             headerTitle={item.ask.title}
             initialThreadChatId={item.threadChatId}
             onClose={closeAsk}

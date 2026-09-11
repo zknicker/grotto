@@ -24,7 +24,7 @@ export const asksTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         id: text('id').primaryKey(),
         messageId: text('message_id').notNull(),
-        recommendedStep: text('recommended_step').notNull(),
+        options: text('options').array().notNull().default(sql`ARRAY[]::text[]`),
         serverId: text('server_id').notNull(),
         status: text('status').notNull().default('open').$type<AskStatus>(),
         summary: text('summary').notNull(),
@@ -76,7 +76,14 @@ export const asksTable = pgTable(
         check('asks_status', sql`${table.status} in ('open', 'answered')`),
         check('asks_title_length', sql`char_length(${table.title}) between 1 and 120`),
         check('asks_summary_length', sql`char_length(${table.summary}) between 1 and 500`),
-        check('asks_step_length', sql`char_length(${table.recommendedStep}) between 1 and 200`),
+        // Per-element length and distinctness need a subquery, which a CHECK
+        // cannot carry; `askOptionsSchema` owns those at every write and read.
+        check(
+            'asks_options_shape',
+            sql`cardinality(${table.options}) <= 4
+                and array_position(${table.options}, null) is null
+                and array_position(${table.options}, '') is null`
+        ),
         check(
             'asks_settlement_shape',
             sql`(${table.status} = 'answered') = (

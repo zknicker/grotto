@@ -7,7 +7,7 @@ import type { HumanDirectory } from '../human-identity.ts';
  * One open Ask as the Inbox row reads it: the decision, and where it came from.
  *
  * A row states the Ask and opens it; it does not answer it. Everything the
- * answer needs — the conversation, the Thread anchor, the recommended step —
+ * answer needs — the conversation, the Thread anchor, the offered options —
  * is read off the Server's own `OpenAsk` in the peek, so none of it is
  * projected here.
  */
@@ -47,24 +47,23 @@ export function toNeedsYouAsks(
 }
 
 /**
- * The answer the recommended-step button sends: the human's own Message,
- * addressed to the conversation and to the Message its Thread hangs off —
- * never to the Thread's own Chat id, which is the shape a Thread reply takes
- * everywhere. The Server settles the Ask as a side effect of this ordinary
- * send.
+ * The answer a pressed option sends: the human's own Message, carrying that
+ * option's text verbatim, addressed to the conversation and to the Message its
+ * Thread hangs off — never to the Thread's own Chat id, which is the shape a
+ * Thread reply takes everywhere. Pressing an option and typing the same words
+ * are the same send, so the Server settles the Ask as a side effect of either.
  *
- * It reads the Server record rather than the row projection: the button lives
- * in the Ask's own Thread peek now, and that is the record the peek already
- * holds.
+ * It reads the Server record rather than the row projection: the options live
+ * in the Ask's own Thread peek, and that is the record the peek already holds.
  */
 export function askAnswerMessage(
     item: OpenAsk,
-    input: { nonce: string; serverId: string }
+    input: { nonce: string; option: string; serverId: string }
 ): ChatSendInput {
     return {
         attachmentIds: [],
         chatId: item.conversationChatId,
-        content: item.ask.recommendedStep,
+        content: input.option,
         nonce: input.nonce,
         serverId: input.serverId,
         thread: { anchorMessageId: openAskThreadAnchor(item).id },

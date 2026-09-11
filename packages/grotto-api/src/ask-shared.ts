@@ -5,7 +5,8 @@ const askTimestampSchema = z.iso.datetime({ offset: true });
 
 export const askTitleMaxLength = 120;
 export const askSummaryMaxLength = 500;
-export const askRecommendedStepMaxLength = 200;
+export const askOptionMaxLength = 80;
+export const askOptionsMaxCount = 4;
 
 export const askStatuses = ['open', 'answered'] as const;
 
@@ -19,7 +20,19 @@ export const askAnsweredBySchema = z.discriminatedUnion('kind', [
 
 export const askTitleSchema = z.string().trim().min(1).max(askTitleMaxLength);
 export const askSummarySchema = z.string().trim().min(1).max(askSummaryMaxLength);
-export const askRecommendedStepSchema = z.string().trim().min(1).max(askRecommendedStepMaxLength);
+export const askOptionSchema = z.string().trim().min(1).max(askOptionMaxLength);
+
+/**
+ * The ways forward the Agent offers, each a short reply the human can send as
+ * is. The first is the Agent's recommendation. Zero options is an open
+ * question; the answer is whatever the human writes.
+ */
+export const askOptionsSchema = z
+    .array(askOptionSchema)
+    .max(askOptionsMaxCount)
+    .refine((options) => new Set(options).size === options.length, {
+        message: 'Ask options must be distinct',
+    });
 
 /**
  * One Agent-authored request for a named human's decision. The Message owns
@@ -36,7 +49,7 @@ export const askSchema = z
         createdAt: askTimestampSchema,
         id: askIdSchema,
         messageId: askIdSchema,
-        recommendedStep: askRecommendedStepSchema,
+        options: askOptionsSchema,
         status: askStatusSchema,
         summary: askSummarySchema,
         title: askTitleSchema,

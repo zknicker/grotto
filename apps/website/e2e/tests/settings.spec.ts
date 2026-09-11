@@ -198,7 +198,7 @@ test('creates and deletes a custom Server MCP connection', async ({ page }) => {
     await connection.click();
     const detail = page.getByRole('dialog', { name });
     await detail.getByRole('button', { name: 'Remove' }).click();
-    const confirmation = page.getByRole('alertdialog', { name: `Remove ${name} from Grotto?` });
+    const confirmation = page.getByRole('alertdialog', { name: `Remove ${name} from Haus?` });
     await expect(confirmation).toContainText('No Agents currently use this connection.');
     await confirmation.getByRole('button', { name: 'Remove' }).click();
     await expect(connection).toHaveCount(0);
@@ -227,7 +227,7 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await connection.click();
     const detail = page.getByRole('dialog', { name: 'MerchBase Sign in required' });
     await expect(detail.getByRole('button', { exact: true, name: 'Sign in' })).toBeVisible();
-    await expect(detail).toContainText('This MCP is added to Grotto. Sign in to your account');
+    await expect(detail).toContainText('This MCP is added to Haus. Sign in to your account');
     await expect(detail).toContainText(
         'Removes this MCP entry, saved credentials, and Agent access'
     );
@@ -241,7 +241,7 @@ test('hides added presets and allows deleting every preset account', async ({ pa
         .getByRole('button', { exact: true, name: 'Remove' })
         .click();
     await page
-        .getByRole('alertdialog', { name: 'Remove MerchBase account from Grotto?' })
+        .getByRole('alertdialog', { name: 'Remove MerchBase account from Haus?' })
         .getByRole('button', { exact: true, name: 'Remove' })
         .click();
     await expect(secondAccount).toHaveCount(0);
@@ -250,7 +250,7 @@ test('hides added presets and allows deleting every preset account', async ({ pa
 
     await connection.click();
     await detail.getByRole('button', { exact: true, name: 'Remove' }).click();
-    const confirmation = page.getByRole('alertdialog', { name: 'Remove MerchBase from Grotto?' });
+    const confirmation = page.getByRole('alertdialog', { name: 'Remove MerchBase from Haus?' });
     await confirmation.getByRole('button', { name: 'Cancel' }).click();
     await expect(detail).toBeVisible();
     await detail.getByRole('button', { exact: true, name: 'Remove' }).click();

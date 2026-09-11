@@ -43,9 +43,9 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     await expect(page).toHaveURL(/\/s\/grotto-hq$/u);
     await expect(page.getByRole('heading', { level: 1, name: 'Connect a Computer' })).toBeVisible();
     await expect(
-        page.getByText('curl -fsSL https://releases.grotto.sh/computer/install.sh | sh')
+        page.getByText('curl -fsSL https://releases.haus.chat/computer/install.sh | sh')
     ).toBeVisible();
-    await expect(page.getByText('$HOME/.local/bin/grotto-computer setup /grotto-hq')).toBeVisible();
+    await expect(page.getByText('$HOME/.local/bin/haus-computer setup /grotto-hq')).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
 
     // Even a direct destination stays behind the route-level gate.
@@ -63,11 +63,11 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
             await signInAsClerkHuman(approvalPage);
             await approvalPage.goto(computer.verificationUrl);
             await expect(
-                approvalPage.getByRole('heading', { name: 'Approve Grotto Computer?' })
+                approvalPage.getByRole('heading', { name: 'Approve Haus Computer?' })
             ).toBeVisible();
 
             await page.context().setOffline(true);
-            await approvalPage.getByRole('button', { name: 'Approve Grotto Computer' }).click();
+            await approvalPage.getByRole('button', { name: 'Approve Haus Computer' }).click();
             await expect(
                 approvalPage.getByRole('heading', { name: 'Signed in — finishing the connection' })
             ).toBeVisible();

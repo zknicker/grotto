@@ -367,6 +367,20 @@
     }
 
     /*
+     * Inbox rows run to three or four lines beside one 24px identity mark, and
+     * ListView centers a row's content. Centering is right for a one-line row
+     * and wrong for these: the mark and the trailing control float halfway
+     * down a paragraph, belonging to none of its lines. The Inbox modifier
+     * hangs the whole row from its top edge instead, and the row's own parts
+     * (`features/servers/inbox/inbox-row.tsx`) take the half-step nudges that
+     * put each of them back on the title line.
+     */
+    .list-view--inbox .list-view__item,
+    .list-view--inbox .list-view__item-content {
+        align-items: flex-start;
+    }
+
+    /*
      * A secondary navigation rail (the workspace file rail, the Skills
      * browser) sits on the same ground as the primary sidebar — one token,
      * so every sidebar-shaped surface tints together. Dark themes define no

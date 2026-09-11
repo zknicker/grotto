@@ -5,6 +5,8 @@ import type { HumanDirectory } from '../human-identity.ts';
 
 /** One open Ask as the Inbox reads it: the decision, where it came from. */
 export interface NeedsYouAsk {
+    /** The Agent that asked, whose face leads the row. */
+    agentId: string;
     agentName: string;
     chatLabel: string;
     /** The Channel or DM the answer is addressed to, never a Thread. */
@@ -34,6 +36,7 @@ export function toNeedsYouAsks(
     const agentsById = new Map(agents.map((agent) => [agent.id, agent]));
 
     return items.map((item) => ({
+        agentId: item.ask.agentId,
         agentName: askAgentName(item, agentsById),
         chatLabel: conversationLabel(item, humans),
         conversationChatId: item.conversationChatId,

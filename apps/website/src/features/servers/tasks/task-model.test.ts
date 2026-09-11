@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { Agent, TaskListItem } from '@grotto/api';
+import { testChat } from '../../chats/chat-fixtures.ts';
 import { testAgent } from '../../members/agent-fixtures.ts';
 import { humanDirectory } from '../human-identity.ts';
 import {
@@ -162,90 +163,36 @@ test('offers writable Channels and DMs as task creation work surfaces', () => {
     expect(
         taskChatOptions(
             [
-                {
-                    archivedAt: null,
-                    archivedByUserId: null,
-                    color: null,
-                    createdAt: '2026-07-26T12:00:00.000Z',
-                    icon: null,
+                testChat({
                     id: 'chat_channel',
                     isAll: true,
-                    kind: 'channel',
-                    lastActivityAt: '2026-07-26T12:00:00.000Z',
-                    lastMessageSequence: 0,
                     name: 'all',
-                    participantAgentIds: [],
                     participantUserIds: ['user_viewer'],
-                    peerAgentDisplayName: null,
-                    peerAgentId: null,
-                    peerAgentRetired: false,
-                    peerUserId: null,
-                    serverId: 'server_one',
-                    unreadCount: 0,
-                },
-                {
-                    archivedAt: null,
-                    archivedByUserId: null,
-                    color: null,
-                    createdAt: '2026-07-26T12:00:00.000Z',
-                    icon: null,
+                }),
+                testChat({
                     id: 'chat_dm',
-                    isAll: false,
                     kind: 'dm',
-                    lastActivityAt: '2026-07-26T12:00:00.000Z',
-                    lastMessageSequence: 0,
                     name: null,
-                    participantAgentIds: [],
                     participantUserIds: ['user_viewer', 'user_peer'],
-                    peerAgentDisplayName: null,
-                    peerAgentId: null,
-                    peerAgentRetired: false,
                     peerUserId: 'user_peer',
-                    serverId: 'server_one',
-                    unreadCount: 0,
-                },
-                {
-                    archivedAt: null,
-                    archivedByUserId: null,
-                    color: null,
-                    createdAt: '2026-07-26T12:00:00.000Z',
-                    icon: null,
+                }),
+                testChat({
                     id: 'chat_agent_dm',
-                    isAll: false,
                     kind: 'dm',
-                    lastActivityAt: '2026-07-26T12:00:00.000Z',
-                    lastMessageSequence: 0,
                     name: null,
-                    participantAgentIds: [],
                     participantUserIds: ['user_viewer'],
                     peerAgentDisplayName: 'Cove',
                     peerAgentId: 'agent_cove',
-                    peerAgentRetired: false,
-                    peerUserId: null,
-                    serverId: 'server_one',
-                    unreadCount: 0,
-                },
-                {
-                    archivedAt: null,
-                    archivedByUserId: null,
-                    color: null,
-                    createdAt: '2026-07-26T12:00:00.000Z',
-                    icon: null,
+                }),
+                testChat({
                     id: 'chat_retired_agent_dm',
-                    isAll: false,
                     kind: 'dm',
-                    lastActivityAt: '2026-07-26T12:00:00.000Z',
-                    lastMessageSequence: 0,
                     name: null,
-                    participantAgentIds: [],
                     participantUserIds: ['user_viewer'],
                     peerAgentDisplayName: 'Fen',
                     peerAgentId: 'agent_fen',
                     peerAgentRetired: true,
-                    peerUserId: null,
-                    serverId: 'server_one',
-                    unreadCount: 0,
-                },
+                }),
             ],
             humans
         )

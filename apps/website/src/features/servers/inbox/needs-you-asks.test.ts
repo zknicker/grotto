@@ -53,6 +53,7 @@ const agents = [{ displayName: 'Blippy', id: 'agent_blippy' } as Agent];
 test('a channel Ask reads its title, step, Chat, and live Agent name', () => {
     expect(toNeedsYouAsks([openAsk()], humans, agents)).toEqual([
         {
+            agentId: 'agent_blippy',
             agentName: 'Blippy',
             chatLabel: '#product',
             conversationChatId: 'chat_product',

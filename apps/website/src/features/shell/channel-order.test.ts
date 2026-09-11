@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { Chat } from '@grotto/api';
+import { testChat } from '../chats/chat-fixtures.ts';
 import { orderChannels, readChannelOrder, writeChannelOrder } from './channel-order.ts';
 
 test('restores known channels and appends newly visible channels', () => {
@@ -30,25 +31,5 @@ test('writes the complete visible order', () => {
 });
 
 function channel(id: string): Chat {
-    return {
-        archivedAt: null,
-        archivedByUserId: null,
-        color: null,
-        createdAt: '2026-08-25T12:00:00.000Z',
-        icon: null,
-        id,
-        isAll: false,
-        kind: 'channel',
-        lastActivityAt: null,
-        lastMessageSequence: 0,
-        name: id,
-        participantAgentIds: [],
-        participantUserIds: [],
-        peerAgentDisplayName: null,
-        peerAgentId: null,
-        peerAgentRetired: false,
-        peerUserId: null,
-        serverId: 'server_one',
-        unreadCount: 0,
-    };
+    return testChat({ createdAt: '2026-08-25T12:00:00.000Z', id, name: id });
 }

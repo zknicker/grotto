@@ -92,7 +92,7 @@ reuses the latest local snapshot while realtime invalidations refresh it.
 
 * `ServerLayout` owns the stable `AppLayout` scaffold and one persistent
   `ShellSidebar` — there is no icon rail. The sidebar leads with the Inbox row,
-  first in the Inbox/Search/Tasks menu and marked by the Grotto ghost where a
+  first in the Inbox/Search/Tasks menu and marked by the Haus ghost where a
   product's wordmark would sit; the mark carries a slowly drifting mesh
   gradient that moves a little faster while any Agent is working. Chat navigation follows; the footer holds live Agent activity above
   the bottom-pinned desktop update status. The settings gear is the sidebar's

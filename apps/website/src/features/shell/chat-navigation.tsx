@@ -66,7 +66,7 @@ export function ChatNavigation({
             <Sidebar.Group>
                 {/* One menu so Inbox, Search, and Tasks share one row anatomy
                     and one pitch. Inbox leads: it is the sidebar's top-left
-                    anchor, so the Grotto mark sits where a product's wordmark
+                    anchor, so the Haus mark sits where a product's wordmark
                     would, and `shell.css` offsets that lead row by half the
                     shared shell band so its midline meets the content topbar's
                     — the row keeps its own height, fill, and pitch, so Search

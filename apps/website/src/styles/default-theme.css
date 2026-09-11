@@ -367,22 +367,26 @@
     }
 
     /*
-     * An Inbox row is an email row: one line, scanned in a column of its
-     * peers. ListView's stock row pads for a title stacked over a description,
-     * which around a single line reads as a list of cards; this trades that
-     * padding for one fixed band, so every row is the same 40px whether it
-     * carries a 24px mark or a small button, and only an Ask reporting a send
-     * failure grows past it. The parts that fill the band live in
+     * An Inbox section is a label over its own content, the same grammar as
+     * every other label-above-content block on the page. The group header
+     * carries the label alone, so it sheds the inset a carded header needs —
+     * the page column already owns the gutter and the rhythm between
+     * sections — and keeps only the step down to what it names.
+     *
+     * Its rows are email rows: one line, scanned in a column of peers. The
+     * card's own padding around a 32px mark is the band; the list this
+     * replaced pinned a 40px row and then spent rules undoing the component's
+     * spacing to fit it. The parts that fill the band live in
      * `features/servers/inbox/inbox-row.tsx`.
      */
-    .list-view--inbox .list-view__item {
-        min-block-size: 40px;
-        padding-block: 0;
+    .item-card-group--inbox > .item-card-group__header {
+        padding-block: 0 calc(var(--spacing) * 2);
+        padding-inline: 0;
     }
 
     /* The description sits beside the title here, not under it, so it sheds
        the offset that separates two stacked lines. */
-    .list-view--inbox .list-view__description {
+    .item-card--inbox .item-card__description {
         margin-top: 0;
     }
 

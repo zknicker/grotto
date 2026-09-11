@@ -2,19 +2,23 @@ import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import type { ReactNode } from 'react';
 
 /**
- * One Inbox section, and the page's only container grammar: a bordered group
- * whose header carries the title and whose body is that section's own rows.
+ * One Inbox section, in `ItemCardGroup`'s own grammar: a transparent group
+ * whose header carries the title, and whose body is whatever that section
+ * shows beneath it.
  *
- * The group owns the inset, so a header and the rows beneath it line up on the
- * same edge and a row's hover fill has a card to stop against. Sections used to
- * be transparent headers floating over borderless lists, which read as three
- * unrelated islands with the fill starting outside its own heading.
+ * Every one of the four sections is this shape, so all four labels are the same
+ * type at the same edge. Three of them put a bordered box of rows under the
+ * label (`InboxSectionRows`); the week strip puts its cards there instead,
+ * because cards already carry their own edges.
+ *
+ * The title used to sit inside the bordered box, with a borderless divided list
+ * nested under it — a hybrid that put a rule between every pair of rows but
+ * none under the heading they belonged to. Label outside, box below is what
+ * HeroUI's own usage example does, and it is the grammar the strip already had.
  */
 export function InboxSection({ children, title }: { children: ReactNode; title: ReactNode }) {
     return (
-        // The group rounds its corners but does not clip them; the last row's
-        // hover fill would square them off without this.
-        <ItemCardGroup className="overflow-hidden">
+        <ItemCardGroup className="item-card-group--inbox" variant="transparent">
             <ItemCardGroup.Header>
                 <ItemCardGroup.Title>{title}</ItemCardGroup.Title>
             </ItemCardGroup.Header>
@@ -24,9 +28,18 @@ export function InboxSection({ children, title }: { children: ReactNode; title: 
 }
 
 /**
+ * The box under a section's label: its rows, separated, inside one bordered
+ * group. It rounds its corners but does not clip them on its own, so the first
+ * and last row's hover fill is squared off without `overflow-hidden`.
+ */
+export function InboxSectionRows({ children }: { children: ReactNode }) {
+    return <ItemCardGroup className="overflow-hidden">{children}</ItemCardGroup>;
+}
+
+/**
  * The neutral region a section reserves while its query settles. An unresolved
- * query is not an empty collection, so nothing is claimed until it is — and
- * nothing flashes on the way there.
+ * query is not an empty collection, so nothing is claimed until it is — and no
+ * empty box is drawn on the way there.
  */
 export function InboxSectionPending({ label }: { label: string }) {
     return (
@@ -37,26 +50,18 @@ export function InboxSectionPending({ label }: { label: string }) {
 }
 
 /**
- * The settled, genuinely empty section: one quiet row inside its own group,
- * carrying the same inset as the rows it stands in for.
+ * The settled, genuinely empty section: one quiet row in the same box the rows
+ * would have filled, so a quiet section keeps the section's shape instead of
+ * changing it to say so.
  */
 export function InboxSectionEmpty({ description }: { description: string }) {
     return (
-        <ItemCard>
-            <ItemCard.Content>
-                <ItemCard.Description>{description}</ItemCard.Description>
-            </ItemCard.Content>
-        </ItemCard>
+        <InboxSectionRows>
+            <ItemCard>
+                <ItemCard.Content>
+                    <ItemCard.Description>{description}</ItemCard.Description>
+                </ItemCard.Content>
+            </ItemCard>
+        </InboxSectionRows>
     );
-}
-
-/**
- * A section title with no card under it. The Inbox has exactly one such
- * section — the week strip, whose cards already carry their own edges — and it
- * still has to read as a peer of the carded sections beside it, so the label
- * borrows the group header's own type rather than inventing a second heading
- * tier.
- */
-export function InboxSectionLabel({ children }: { children: ReactNode }) {
-    return <h2 className="font-semibold text-foreground text-sm">{children}</h2>;
 }

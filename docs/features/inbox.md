@@ -33,26 +33,43 @@ tall narrow thing, and two columns were how a 1152px page held them; a one-line 
 a wide shallow one, and every part of that row — the title, the preview it leaves room for, and the
 trailing meta — wants width. Splitting the page took width from all three at once.
 
+All four sections share one composition, `ItemCardGroup`'s own: a transparent group whose
+`ItemCardGroup.Header` carries the label at the page column's left edge, and whose body is what the
+label names. Three of them put a bordered group of `ItemCard` rows there, divided by `Separator`;
+the strip puts its cards there instead, because cards already carry their own edges. All four labels
+are therefore the same type at the same edge
+([`inbox-section.tsx`](../../apps/website/src/features/servers/inbox/inbox-section.tsx)).
+
+The title used to sit inside the bordered box with a borderless divided list nested under it — a
+hybrid that drew a rule between every pair of rows but none under the heading they belonged to, and
+that needed CSS to undo the nested list's own spacing. Label outside, box below is HeroUI's own
+usage grammar and the one the strip already had.
+
 ## Sections
 
-**Active this week** is the one uncarded section: a small label over a horizontally scrolling row of
-Agent cards, which already carry their own edges. Each card is one Agent — its 24px avatar and name
-on the header line, then the number of turns it ran in the last seven days as the figure, that
-week's daily counts as a sparkline beside it, and one muted line naming what the figure counts. An
-Agent that is mid-turn spends that line on the step it is on and its elapsed time, in accent.
-Pressing a card opens that Agent's DM, or its profile when it has no DM yet.
+**Active this week** is the one section whose body is not a box: a horizontally scrolling row of
+Agent cards under the shared label. Each card is one Agent — its 24px avatar and name on the header
+line, then the **processed tokens it burned over the last seven days** as the figure, that week's
+daily token totals as a sparkline beside it, and one muted line, `tokens · 7d`, naming what the
+figure counts. An Agent that is mid-turn spends that line on the step it is on and its elapsed time,
+in accent. Pressing a card opens that Agent's DM, or its profile when it has no DM yet.
+
+The metric is tokens rather than turns. A turn is the execution runtime's own bookkeeping, and ten
+cheap turns read the same in a count as one long one; processed tokens are what the Agent actually
+spent. They also already have a read: the Server-wide usage snapshot behind `useUsage`, sliced per
+Agent by `summarizeAgentTokenUsage` — the same summarizer the Agent profile's usage tile uses. The
+App keeps no turn-history read of its own.
 
 The strip is not a roster. A Server can hold thirty-five Agents, and a card for every one of them is
-a wall to scan rather than a thing to read. It carries only Agents that ran at least one turn in the
-window or are running a turn now, working Agents first, then the busiest week, then the name, capped
-at eight. When none qualify it says **No Agent activity this week**; while the read is unsettled it
-shows nothing at all, because a partly-loaded set would rank Agents against zeroes and reorder under
-the reader. The ranking is a Server-wide question, so it comes from one Server read — `agent.recentTurns`,
-every Agent's turns in the window — which the page groups by Agent rather than asking once per Agent
-([`use-agent-week-turns.ts`](../../apps/website/src/features/servers/inbox/use-agent-week-turns.ts)).
+a wall to scan rather than a thing to read. It carries only Agents that processed tokens in the
+window or are in a turn now, working Agents first, then the busiest week, then the name, capped at
+eight. When none qualify it says **No Agent activity this week**; while the usage read is unsettled
+it shows nothing at all, because a partly-loaded set would rank Agents against zeroes and reorder
+under the reader.
 
-The remaining three sections share one grammar: a bordered group carrying the title, and exactly one
-divided list inside it. A quiet section says so in one muted row inside that same group.
+The remaining three sections share one grammar: the label above, and below it one bordered group
+holding that section's rows with a separator between each pair. A quiet section says so in one muted
+row inside that same box, so it keeps the section's shape rather than changing it to say so.
 
 **Needs you** — work waiting on this human, as one list over two records:
 
@@ -97,11 +114,12 @@ This is where background work that outlives an Agent turn stays observable.
 
 ## Row anatomy
 
-Every row in every list is one line tall — a 40px band — and reads left to right in the email-inbox
+Every row in every list is one `ItemCard`, one line tall, and reads left to right in the email-inbox
 grammar:
 
-- A 24px leading mark: the Agent's own avatar, a Channel's icon box, or a Cloud Agent provider
-  glyph.
+- A 32px leading mark: the Agent's own avatar, a Channel's icon box, or a Cloud Agent provider
+  glyph. It sits beside `ItemCard.Content`, not in `ItemCard.Icon`: an avatar is already a mark with
+  its own ground, and that slot exists to give a bare glyph one.
 - The **title**, which keeps its own width rather than shrinking, and truncates only past 40% of the
   line so one long title cannot take the preview's width with it.
 - The **preview**, muted, filling whatever the title leaves and truncating first: an Ask's summary,
@@ -112,10 +130,19 @@ grammar:
   grows past one line, and it grows by exactly the error.
 
 An Ask leads with the asking Agent's face, not a question glyph, so every row in the section shares
-one identity grammar. The row is composed from ListView's own parts in
-[`inbox-row.tsx`](../../apps/website/src/features/servers/inbox/inbox-row.tsx); the band itself is
-one BEM override on `.list-view--inbox` in `styles/default-theme.css`, which trades the stacked
-row's block padding for a fixed height.
+one identity grammar. The row is composed from `ItemCard`'s own parts in
+[`inbox-row.tsx`](../../apps/website/src/features/servers/inbox/inbox-row.tsx), and carries no height
+of its own: the card's padding around a 32px mark is the band, which measures 54.5px at the app's
+spacing scale. The theme layer holds exactly two Inbox rules — the section header's inset, and the
+description's stacked-line offset, which comes off because the description sits beside the title
+here rather than under it. The 40px band the list this replaced pinned, and the rules that undid the
+component's spacing to fit it, are gone.
+
+Pressing anywhere on a row opens it. The press target is a button laid over the card rather than the
+card rendered as one: an Ask row carries its own control, and a button cannot contain a button. It
+takes the tab stop, carries the row's title as its accessible name, and shows an inset
+`:focus-visible` ring; hover and press feedback are the stock `PressableFeedback.Highlight`, which
+reads its parent's own state. A row's control lifts above that layer and keeps its own press.
 
 ## Current stub
 
@@ -141,11 +168,13 @@ One source has no Server list procedure yet and is absent until it does: followe
   say it.
 - A section stays blank while its reads settle. An unsettled query is not an empty collection, so
   nothing is claimed — and nothing flashes — on the way there. This holds for the header, which
-  waits for the name it greets, and for the week strip, which waits for its one turn read rather than
-  ranking against zeroes.
+  waits for the name it greets, and for the week strip, which waits for the usage snapshot rather
+  than ranking against zeroes.
 - The page updates from the durable events the underlying records already emit — `ask.updated`,
   `task.updated`, `cloud-agent-work.updated`, Agent activity and lifecycle, and `message.created` —
-  through the existing invalidations. The Inbox adds no event of its own.
+  through the existing invalidations. The Inbox adds no event of its own. The strip's token figure is
+  the exception that needs none: it rides the usage snapshot's own freshness, the same one every
+  other usage surface reads, while the live step on a card still comes from Agent activity.
 - The Inbox owns no read state. Unread counts come from `chat_reads`; open and answered come from
   the Ask, Task, and work records. Opening the Inbox marks nothing read.
 - The Inbox adds no store, no cache, and no page-local lifecycle. Authorization is the ordinary

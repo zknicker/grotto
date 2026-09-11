@@ -1,20 +1,56 @@
 import type { Agent } from '@grotto/api';
-import { ListView } from '@heroui-pro/react';
+import { ItemCard, PressableFeedback } from '@heroui-pro/react';
 import type { ReactNode } from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { AgentAvatar } from '../../members/agent-avatar.tsx';
 
 /** Every Inbox row leads with a mark at this size, Agent or Channel alike. */
-export const inboxRowMarkSize = 24;
+export const inboxRowMarkSize = 32;
 
 /**
- * The row's leading mark.
+ * One Inbox row: a stock `ItemCard`, with the whole band as the way in.
  *
- * An Inbox row is one line tall, so the mark centers on the row the way
- * ListView already centers everything else in it. It used to hang from the
- * row's top edge with a half-step nudge, because a three-line row gave a
- * centered mark no line to belong to; one line removes both the problem and
- * the correction.
+ * The press target is a button laid over the card rather than the card itself
+ * rendered as one. A row can carry its own control — an Ask's recommended
+ * step — and a button cannot contain a button, so the one pressable shape that
+ * serves every row in the section puts the target underneath and lets a
+ * control lift above it. Feedback is still stock: `PressableFeedback.Highlight`
+ * reads its parent's own hover and press, so it works here exactly as it does
+ * inside a pressable card.
+ *
+ * The row carries no height of its own. `ItemCard`'s padding around a 32px
+ * mark is the band, which is the whole point of the recomposition: the list
+ * this replaced pinned a 40px row and then spent CSS undoing the component's
+ * spacing to fit it.
+ */
+export function InboxRow({
+    children,
+    label,
+    onOpen,
+}: {
+    children: ReactNode;
+    /** The row's accessible name; the overlay button carries no text of its own. */
+    label: string;
+    onOpen: () => void;
+}) {
+    return (
+        <ItemCard className="item-card--inbox relative">
+            <PressableFeedback.Highlight />
+            <button
+                aria-label={label}
+                className="absolute inset-0 cursor-(--cursor-interactive) outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
+                onClick={onOpen}
+                type="button"
+            />
+            {children}
+        </ItemCard>
+    );
+}
+
+/**
+ * The row's leading mark. It sits beside `ItemCard.Content` rather than inside
+ * `ItemCard.Icon`: an avatar and a channel box are already marks with their own
+ * ground, and the icon slot exists to give a bare glyph one.
  */
 export function InboxRowMark({ children }: { children: ReactNode }) {
     return <span className="flex shrink-0">{children}</span>;
@@ -64,30 +100,27 @@ export function InboxGlyphMark({ children }: { children: ReactNode }) {
 }
 
 /**
- * The row's single line of text. Layout only — the type comes from ListView's
- * own Title and Description, which this arranges side by side rather than
- * stacked.
- */
-export function InboxRowLine({ children }: { children: ReactNode }) {
-    return <span className="flex min-w-0 flex-1 items-center gap-2">{children}</span>;
-}
-
-/**
- * What the row is. It keeps its own width rather than shrinking to make room:
- * the title is the thing being scanned, and a column of half-titles is a
- * column you have to open to read. Past 40% of the line it truncates, so one
- * long title cannot take the preview's width with it.
- */
-export function InboxRowTitle({ children }: { children: ReactNode }) {
-    return <ListView.Title className="max-w-[40%] shrink-0">{children}</ListView.Title>;
-}
-
-/**
- * What is waiting behind the title. It fills whatever the title leaves and is
+ * The row's single line of text.
+ *
+ * `ItemCard.Content` stacks its title over its description, so the line itself
+ * is a structural wrapper inside it — layout only; the type is still the card's
+ * own Title and Description, arranged side by side rather than stacked.
+ *
+ * The title keeps its own width rather than shrinking to make room: it is the
+ * thing being scanned, and a column of half-titles is a column you have to open
+ * to read. Past 40% of the line it truncates, so one long title cannot take the
+ * preview's width with it. The preview fills whatever the title leaves and is
  * the first thing to give way, the way an email list's preview does.
  */
-export function InboxRowPreview({ children }: { children: ReactNode }) {
-    return <ListView.Description className="min-w-0 flex-1">{children}</ListView.Description>;
+export function InboxRowBody({ preview, title }: { preview: ReactNode; title: ReactNode }) {
+    return (
+        <ItemCard.Content>
+            <span className="flex min-w-0 items-center gap-2">
+                <ItemCard.Title className="max-w-[40%] shrink-0">{title}</ItemCard.Title>
+                <ItemCard.Description className="min-w-0 flex-1">{preview}</ItemCard.Description>
+            </span>
+        </ItemCard.Content>
+    );
 }
 
 /**
@@ -96,5 +129,9 @@ export function InboxRowPreview({ children }: { children: ReactNode }) {
  * the two things that must stay readable when the line runs out of width.
  */
 export function InboxRowMeta({ children }: { children: ReactNode }) {
-    return <div className="flex shrink-0 items-center gap-2 text-muted text-xs">{children}</div>;
+    return (
+        <ItemCard.Action>
+            <span className="flex items-center gap-2 text-muted text-xs">{children}</span>
+        </ItemCard.Action>
+    );
 }

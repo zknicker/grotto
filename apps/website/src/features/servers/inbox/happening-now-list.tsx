@@ -1,15 +1,16 @@
-import { ListView } from '@heroui-pro/react';
+import { Separator } from '@heroui/react';
+import * as React from 'react';
 import { CloudAgentProviderGlyph } from '../../cloud-agents/cloud-agent-provider-mark.tsx';
 import { CloudAgentStatusDisc } from '../../cloud-agents/cloud-agent-status-disc.tsx';
 import type { HappeningNowRow } from './happening-now-rows.ts';
 import {
     InboxGlyphMark,
     InboxIdentityMark,
-    InboxRowLine,
+    InboxRow,
+    InboxRowBody,
     InboxRowMeta,
-    InboxRowPreview,
-    InboxRowTitle,
 } from './inbox-row.tsx';
+import { InboxSectionRows } from './inbox-section.tsx';
 
 /**
  * What is moving right now, as one list: the Cloud Agent work a delegation
@@ -24,37 +25,23 @@ export function HappeningNowList({
     rows: readonly HappeningNowRow[];
 }) {
     return (
-        <ListView
-            aria-label="Work running now"
-            className="list-view--inbox"
-            items={rows}
-            onAction={(key) => {
-                const row = rows.find((candidate) => candidate.id === String(key));
-                if (row) {
-                    onOpenRow(row);
-                }
-            }}
-            variant="secondary"
-        >
-            {(row) =>
-                row.kind === 'work' ? (
-                    <ListView.Item id={row.id} textValue={row.work.title}>
-                        <ListView.ItemContent>
+        <InboxSectionRows>
+            {rows.map((row, index) => (
+                <React.Fragment key={row.id}>
+                    {index === 0 ? null : <Separator />}
+                    {row.kind === 'work' ? (
+                        <InboxRow label={row.work.title} onOpen={() => onOpenRow(row)}>
                             <InboxGlyphMark>
                                 <CloudAgentProviderGlyph provider={row.work.provider} />
                             </InboxGlyphMark>
-                            <InboxRowLine>
-                                <InboxRowTitle>{row.work.title}</InboxRowTitle>
-                                <InboxRowPreview>
-                                    {row.work.chatLabel} · {row.work.agentName}
-                                </InboxRowPreview>
-                            </InboxRowLine>
-                        </ListView.ItemContent>
-                        {/* Status is the row's meta, not its preview: it is the
-                            fact that changes while the row sits there, so it
-                            keeps the fixed trailing column rather than
-                            competing with the Chat it came from. */}
-                        <ListView.ItemAction>
+                            <InboxRowBody
+                                preview={`${row.work.chatLabel} · ${row.work.agentName}`}
+                                title={row.work.title}
+                            />
+                            {/* Status is the row's meta, not its preview: it is
+                                the fact that changes while the row sits there,
+                                so it keeps the fixed trailing column rather
+                                than competing with the Chat it came from. */}
                             <InboxRowMeta>
                                 <CloudAgentStatusDisc
                                     className="size-3.5"
@@ -62,20 +49,15 @@ export function HappeningNowList({
                                 />
                                 <span>{row.work.statusText}</span>
                             </InboxRowMeta>
-                        </ListView.ItemAction>
-                    </ListView.Item>
-                ) : (
-                    <ListView.Item id={row.id} textValue={row.agent.name}>
-                        <ListView.ItemContent>
+                        </InboxRow>
+                    ) : (
+                        <InboxRow label={row.agent.name} onOpen={() => onOpenRow(row)}>
                             <InboxIdentityMark agent={row.agent.agent} name={row.agent.name} />
-                            <InboxRowLine>
-                                <InboxRowTitle>{row.agent.name}</InboxRowTitle>
-                                <InboxRowPreview>{row.agent.label}</InboxRowPreview>
-                            </InboxRowLine>
-                        </ListView.ItemContent>
-                    </ListView.Item>
-                )
-            }
-        </ListView>
+                            <InboxRowBody preview={row.agent.label} title={row.agent.name} />
+                        </InboxRow>
+                    )}
+                </React.Fragment>
+            ))}
+        </InboxSectionRows>
     );
 }

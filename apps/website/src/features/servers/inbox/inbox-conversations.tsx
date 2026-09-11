@@ -1,5 +1,5 @@
 import type { Agent, Chat } from '@grotto/api';
-import { ListView } from '@heroui-pro/react';
+import { Separator } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
@@ -16,12 +16,16 @@ import { conversationPreviewLine } from './conversation-preview.ts';
 import {
     InboxGlyphMark,
     InboxIdentityMark,
-    InboxRowLine,
+    InboxRow,
+    InboxRowBody,
     InboxRowMeta,
-    InboxRowPreview,
-    InboxRowTitle,
 } from './inbox-row.tsx';
-import { InboxSection, InboxSectionEmpty, InboxSectionPending } from './inbox-section.tsx';
+import {
+    InboxSection,
+    InboxSectionEmpty,
+    InboxSectionPending,
+    InboxSectionRows,
+} from './inbox-section.tsx';
 
 /**
  * Unread conversation, newest first, each row quoting the line that is waiting.
@@ -49,25 +53,23 @@ export function InboxConversations() {
                 unread.length === 0 ? (
                     <InboxSectionEmpty description="You’re caught up." />
                 ) : (
-                    <ListView
-                        aria-label="Unread chats"
-                        className="list-view--inbox"
-                        items={unread}
-                        onAction={(key) => navigate(serverChatRoute(server.slug, String(key)))}
-                        variant="secondary"
-                    >
-                        {(chat) => (
-                            <UnreadChatItem
-                                agent={
-                                    chat.peerAgentId
-                                        ? (agentById.get(chat.peerAgentId) ?? null)
-                                        : null
-                                }
-                                chat={chat}
-                                viewerDisplayName={viewerDisplayName}
-                            />
-                        )}
-                    </ListView>
+                    <InboxSectionRows>
+                        {unread.map((chat, index) => (
+                            <React.Fragment key={chat.id}>
+                                {index === 0 ? null : <Separator />}
+                                <UnreadChatRow
+                                    agent={
+                                        chat.peerAgentId
+                                            ? (agentById.get(chat.peerAgentId) ?? null)
+                                            : null
+                                    }
+                                    chat={chat}
+                                    onOpen={() => navigate(serverChatRoute(server.slug, chat.id))}
+                                    viewerDisplayName={viewerDisplayName}
+                                />
+                            </React.Fragment>
+                        ))}
+                    </InboxSectionRows>
                 )
             ) : (
                 <InboxSectionPending label="Loading unread chats" />
@@ -76,13 +78,15 @@ export function InboxConversations() {
     );
 }
 
-function UnreadChatItem({
+function UnreadChatRow({
     agent,
     chat,
+    onOpen,
     viewerDisplayName,
 }: {
     agent: Agent | null;
     chat: Chat;
+    onOpen: () => void;
     viewerDisplayName: null | string;
 }) {
     const name = chatNavigationName(chat, agent);
@@ -93,31 +97,27 @@ function UnreadChatItem({
     });
 
     return (
-        <ListView.Item id={chat.id} textValue={name}>
-            <ListView.ItemContent>
-                {isDirect ? (
-                    <InboxIdentityMark agent={agent} name={name} />
-                ) : (
-                    <InboxGlyphMark>
-                        <ChannelIconBox color={chat.color} icon={chat.icon} size="topbar" />
-                    </InboxGlyphMark>
-                )}
-                <InboxRowLine>
-                    <InboxRowTitle>{chat.kind === 'channel' ? `#${name}` : name}</InboxRowTitle>
-                    {/* The waiting line, as one truncated quote. A Chat that
-                        holds no message yet says so instead. */}
-                    <InboxRowPreview>{preview ?? 'no activity yet'}</InboxRowPreview>
-                </InboxRowLine>
-            </ListView.ItemContent>
-            <ListView.ItemAction>
-                <InboxRowMeta>
-                    <span className="tabular-nums">
-                        <RelativeTime fallback="" value={chat.lastActivityAt} />
-                    </span>
-                    <UnreadCountChip count={chat.unreadCount} />
-                </InboxRowMeta>
-            </ListView.ItemAction>
-        </ListView.Item>
+        <InboxRow label={name} onOpen={onOpen}>
+            {isDirect ? (
+                <InboxIdentityMark agent={agent} name={name} />
+            ) : (
+                <InboxGlyphMark>
+                    <ChannelIconBox color={chat.color} icon={chat.icon} size="inboxRow" />
+                </InboxGlyphMark>
+            )}
+            {/* The preview is the waiting line, as one truncated quote. A Chat
+                that holds no message yet says so instead. */}
+            <InboxRowBody
+                preview={preview ?? 'no activity yet'}
+                title={chat.kind === 'channel' ? `#${name}` : name}
+            />
+            <InboxRowMeta>
+                <span className="tabular-nums">
+                    <RelativeTime fallback="" value={chat.lastActivityAt} />
+                </span>
+                <UnreadCountChip count={chat.unreadCount} />
+            </InboxRowMeta>
+        </InboxRow>
     );
 }
 

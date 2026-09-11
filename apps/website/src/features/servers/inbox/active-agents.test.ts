@@ -1,14 +1,15 @@
 import { describe, expect, test } from 'bun:test';
-import type { Agent, AgentRecentTurn } from '@grotto/api';
+import type { Agent, TokenUsageOverview } from '@grotto/api';
+import { summarizeAgentTokenUsage } from '../../stats/agent-usage-summary.ts';
 import {
     type ActiveAgent,
     activeAgentUnit,
-    groupTurnsByAgent,
+    activeAgentWindowDays,
     rankActiveAgents,
     toActiveAgent,
 } from './active-agents.ts';
 
-const now = Date.parse('2025-05-08T15:00:00.000Z');
+const asOf = new Date('2025-05-08T15:00:00.000Z');
 
 function agent(id: string, displayName: string): Agent {
     return {
@@ -19,82 +20,88 @@ function agent(id: string, displayName: string): Agent {
     } as Agent;
 }
 
-function entry(name: string, turnCount: number, activityLabel: null | string = null): ActiveAgent {
-    return { activityLabel, agent: agent(name, name), days: [], turnCount };
+function entry(
+    name: string,
+    totalTokens: number,
+    activityLabel: null | string = null
+): ActiveAgent {
+    return { activityLabel, agent: agent(name, name), days: [], totalTokens };
 }
 
-function turn(agentId: string, startedAt: string): AgentRecentTurn {
+function usage(
+    rows: readonly { agentId: string; date: string; totalTokens: number }[]
+): TokenUsageOverview {
     return {
-        agentId,
-        endedAt: startedAt,
-        runId: `run_${agentId}_${startedAt}`,
-        startedAt,
-        status: 'completed',
+        breakdown: rows.map((row) => ({
+            agentAvatarUrl: null,
+            agentHandle: row.agentId,
+            agentId: row.agentId,
+            agentName: row.agentId,
+            cacheReadTokens: 0,
+            cacheWriteTokens: 0,
+            date: row.date,
+            inputTokens: row.totalTokens,
+            modelId: 'model',
+            outputTokens: 0,
+            runtimeId: 'runtime',
+            totalTokens: row.totalTokens,
+        })),
+        days: 90,
+        totals: {
+            cacheReadTokens: 0,
+            cacheWriteTokens: 0,
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: 0,
+        },
     };
 }
 
-describe('groupTurnsByAgent', () => {
-    test('splits one Server-wide window into per-Agent weeks', () => {
-        const grouped = groupTurnsByAgent([
-            turn('agt_1', '2025-05-08T09:00:00.000Z'),
-            turn('agt_2', '2025-05-08T08:00:00.000Z'),
-            turn('agt_1', '2025-05-07T09:00:00.000Z'),
-        ]);
-
-        expect(grouped.get('agt_1')?.map((entry) => entry.startedAt)).toEqual([
-            '2025-05-08T09:00:00.000Z',
-            '2025-05-07T09:00:00.000Z',
-        ]);
-        expect(grouped.get('agt_2')).toHaveLength(1);
-    });
-
-    test('an Agent with no turns in the window is absent, not empty', () => {
-        const grouped = groupTurnsByAgent([turn('agt_1', '2025-05-08T09:00:00.000Z')]);
-
-        expect(grouped.has('agt_2')).toBe(false);
-        expect(
-            toActiveAgent(agent('agt_2', 'Quiet'), grouped.get('agt_2'), null, now).turnCount
-        ).toBe(0);
-    });
-
-    test('an empty window groups to nothing', () => {
-        expect(groupTurnsByAgent([]).size).toBe(0);
-    });
-});
-
 describe('toActiveAgent', () => {
-    test('counts the turns in the window it draws', () => {
+    test('draws the window it counts, day by day', () => {
         const result = toActiveAgent(
             agent('agt_1', 'Blippy'),
-            [
-                { startedAt: '2025-05-08T09:00:00.000Z' },
-                { startedAt: '2025-05-08T11:00:00.000Z' },
-                { startedAt: '2025-05-06T11:00:00.000Z' },
-                // Older than the window, so it is neither drawn nor counted.
-                { startedAt: '2025-01-01T11:00:00.000Z' },
-            ],
-            null,
-            now
+            summarizeAgentTokenUsage(
+                usage([
+                    { agentId: 'agt_1', date: '2025-05-08', totalTokens: 1200 },
+                    { agentId: 'agt_1', date: '2025-05-06', totalTokens: 800 },
+                    // Another Agent's tokens, and one older than the window.
+                    { agentId: 'agt_2', date: '2025-05-07', totalTokens: 500 },
+                    { agentId: 'agt_1', date: '2025-01-01', totalTokens: 900 },
+                ]),
+                'agt_1',
+                activeAgentWindowDays,
+                asOf
+            ),
+            null
         );
 
-        expect(result.turnCount).toBe(3);
-        expect(result.days).toHaveLength(7);
-        expect(result.days.reduce((total, count) => total + count, 0)).toBe(3);
+        expect(result.totalTokens).toBe(2000);
+        expect(result.days).toEqual([0, 0, 0, 0, 800, 0, 1200]);
     });
 
-    test('an unsettled turn read counts nothing rather than guessing', () => {
-        expect(toActiveAgent(agent('agt_1', 'Blippy'), undefined, null, now).turnCount).toBe(0);
+    test('an Agent with nothing in the window reads as a quiet week', () => {
+        const result = toActiveAgent(
+            agent('agt_9', 'Quiet'),
+            summarizeAgentTokenUsage(usage([]), 'agt_9', activeAgentWindowDays, asOf),
+            null
+        );
+
+        expect(result.totalTokens).toBe(0);
+        expect(result.days).toHaveLength(activeAgentWindowDays);
     });
 });
 
 describe('rankActiveAgents', () => {
     test('drops the Agents with no week and nothing running', () => {
         expect(
-            rankActiveAgents([entry('Quiet', 0), entry('Busy', 3)]).map((e) => e.agent.displayName)
+            rankActiveAgents([entry('Quiet', 0), entry('Busy', 3000)]).map(
+                (e) => e.agent.displayName
+            )
         ).toEqual(['Busy']);
     });
 
-    test('keeps a working Agent that has not finished a turn yet', () => {
+    test('keeps a working Agent that has not billed a token yet', () => {
         expect(
             rankActiveAgents([entry('Working', 0, 'Editing files · 3m')]).map(
                 (e) => e.agent.displayName
@@ -105,16 +112,18 @@ describe('rankActiveAgents', () => {
     test('working first, then the busiest week, then the name', () => {
         expect(
             rankActiveAgents([
-                entry('Cove', 9),
-                entry('Tiny', 2, 'Reading files · 1m'),
-                entry('Amber', 4),
-                entry('Zephyr', 4),
+                entry('Cove', 9000),
+                entry('Tiny', 2000, 'Reading files · 1m'),
+                entry('Amber', 4000),
+                entry('Zephyr', 4000),
             ]).map((e) => e.agent.displayName)
         ).toEqual(['Tiny', 'Cove', 'Amber', 'Zephyr']);
     });
 
     test('caps the strip', () => {
-        const many = Array.from({ length: 20 }, (_, index) => entry(`Agent ${index}`, index + 1));
+        const many = Array.from({ length: 20 }, (_, index) =>
+            entry(`Agent ${index}`, (index + 1) * 100)
+        );
         expect(rankActiveAgents(many)).toHaveLength(8);
         expect(rankActiveAgents(many, 3)).toHaveLength(3);
     });
@@ -122,13 +131,10 @@ describe('rankActiveAgents', () => {
 
 describe('activeAgentUnit', () => {
     test('names what the figure counts', () => {
-        expect(activeAgentUnit({ activityLabel: null, turnCount: 4 })).toBe('turns · 7d');
-        expect(activeAgentUnit({ activityLabel: null, turnCount: 1 })).toBe('turn · 7d');
+        expect(activeAgentUnit({ activityLabel: null })).toBe('tokens · 7d');
     });
 
     test('a working Agent spends the line on its step instead', () => {
-        expect(activeAgentUnit({ activityLabel: 'Editing files · 3m', turnCount: 4 })).toBe(
-            'Editing files · 3m'
-        );
+        expect(activeAgentUnit({ activityLabel: 'Editing files · 3m' })).toBe('Editing files · 3m');
     });
 });

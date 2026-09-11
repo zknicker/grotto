@@ -2,6 +2,7 @@ import { ItemCard, PressableFeedback } from '@heroui-pro/react';
 import { Sparkline } from '../../../components/ui/sparkline.tsx';
 import { cn } from '../../../lib/utils.ts';
 import { AgentAvatar } from '../../members/agent-avatar.tsx';
+import { formatTokens } from '../../stats/usage-format.ts';
 import { type ActiveAgent, activeAgentUnit } from './active-agents.ts';
 
 const sparklineHeight = 20;
@@ -9,8 +10,8 @@ const sparklineWidth = 64;
 
 /**
  * One Agent's week as a card in the strip: its face and name on the header
- * line, then the one number that says how much it ran and the shape that
- * number came in.
+ * line, then the tokens it processed this week and the shape they came
+ * in.
  *
  * The figure leads and the series trails, which is the stat-card grammar
  * everywhere else in the system. A working Agent spends the line under the
@@ -45,7 +46,7 @@ export function AgentWeekCard({
                 <span className="flex items-end justify-between gap-2">
                     <span className="flex min-w-0 flex-col gap-1">
                         <span className="font-semibold text-2xl tabular-nums leading-none tracking-tight">
-                            {activity.turnCount}
+                            {formatTokens(activity.totalTokens)}
                         </span>
                         <span
                             className={cn(

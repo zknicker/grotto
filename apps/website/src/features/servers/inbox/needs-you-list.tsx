@@ -1,12 +1,8 @@
 import type { Agent } from '@grotto/api';
-import { ListView } from '@heroui-pro/react';
-import {
-    InboxIdentityMark,
-    InboxRowLine,
-    InboxRowMeta,
-    InboxRowPreview,
-    InboxRowTitle,
-} from './inbox-row.tsx';
+import { Separator } from '@heroui/react';
+import * as React from 'react';
+import { InboxIdentityMark, InboxRow, InboxRowBody, InboxRowMeta } from './inbox-row.tsx';
+import { InboxSectionRows } from './inbox-section.tsx';
 import { NeedsYouAskStep } from './needs-you-ask-step.tsx';
 import type { NeedsYouRow } from './needs-you-rows.ts';
 
@@ -28,41 +24,26 @@ export function NeedsYouList({
     serverId: string;
 }) {
     return (
-        <ListView
-            aria-label="What needs you"
-            className="list-view--inbox"
-            items={rows}
-            onAction={(key) => {
-                const row = rows.find((candidate) => candidate.id === String(key));
-                if (row) {
-                    onOpenRow(row);
-                }
-            }}
-            variant="secondary"
-        >
-            {(row) => (
-                <ListView.Item id={row.id} textValue={row.title}>
-                    <ListView.ItemContent>
+        <InboxSectionRows>
+            {rows.map((row, index) => (
+                <React.Fragment key={row.id}>
+                    {index === 0 ? null : <Separator />}
+                    <InboxRow label={row.title} onOpen={() => onOpenRow(row)}>
                         <InboxIdentityMark
                             agent={(row.agentId && agentById.get(row.agentId)) || null}
                             avatarUrl={row.avatarUrl}
                             name={row.markName}
                         />
-                        <InboxRowLine>
-                            <InboxRowTitle>{row.title}</InboxRowTitle>
-                            <InboxRowPreview>{row.preview}</InboxRowPreview>
-                        </InboxRowLine>
-                    </ListView.ItemContent>
-                    <ListView.ItemAction>
+                        <InboxRowBody preview={row.preview} title={row.title} />
                         <InboxRowMeta>
                             <span>{row.meta}</span>
                             {row.kind === 'ask' ? (
                                 <NeedsYouAskStep ask={row.ask} serverId={serverId} />
                             ) : null}
                         </InboxRowMeta>
-                    </ListView.ItemAction>
-                </ListView.Item>
-            )}
-        </ListView>
+                    </InboxRow>
+                </React.Fragment>
+            ))}
+        </InboxSectionRows>
     );
 }

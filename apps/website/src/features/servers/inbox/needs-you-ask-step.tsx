@@ -15,7 +15,9 @@ export function NeedsYouAskStep({ ask, serverId }: { ask: NeedsYouAsk; serverId:
     const send = useChatMessageSend();
 
     return (
-        <div className="flex min-w-0 flex-col items-end gap-1">
+        // Positioned so the control lifts above the row's own press target,
+        // which covers the whole band underneath it.
+        <div className="relative z-10 flex min-w-0 flex-col items-end gap-1">
             <Button
                 // Once this button has posted its answer it is spent. The
                 // row leaves on the Ask's own event, and until it does a

@@ -78,11 +78,15 @@ read, and lost access simply stops returning the row.
 ## Inbox row
 
 An open Ask addressed to a human appears in that human's [Inbox](../docs/features/inbox.md) under
-"Needs you" with its title, its summary, the recommended step as a button, and the Chat name.
+"Needs you" with its title, its summary, and the Chat name. The row states the Ask and opens it; it
+carries no control of its own.
 
-Pressing the step sends a real Message authored by that human into the Ask's Thread whose content is
-exactly the step text. That Message settles the Ask and reaches the Agent through ordinary Thread
-delivery. Opening the row opens the Thread.
+Opening the row peeks the Ask's Thread, and the recommended step is offered there, above the
+composer. Pressing it sends a real Message authored by that human into the Thread whose content is
+exactly the step text; that Message settles the Ask and reaches the Agent through ordinary Thread
+delivery, exactly as a typed reply would. The step lives with the Thread because that is where the
+Ask is fully readable — a row shows one line of a question, which is not enough to commit to an
+answer from.
 
 ## Chat presentation
 

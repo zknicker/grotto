@@ -76,7 +76,7 @@ export function rankActiveAgents(
  * figure counts, because a bare number on a card is a riddle.
  */
 export function activeAgentUnit(entry: Pick<ActiveAgent, 'activityLabel'>): string {
-    return entry.activityLabel ?? `tokens · ${activeAgentWindowDays}d`;
+    return entry.activityLabel ?? `Tokens · ${activeAgentWindowDays}d`;
 }
 
 function working(entry: ActiveAgent): number {

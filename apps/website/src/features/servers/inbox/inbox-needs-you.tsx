@@ -74,12 +74,7 @@ export function InboxNeedsYou() {
                 rows.length === 0 ? (
                     <InboxSectionEmpty description="Nothing needs you." />
                 ) : (
-                    <NeedsYouList
-                        agentById={agentById}
-                        onOpenRow={openRow}
-                        rows={rows}
-                        serverId={server.id}
-                    />
+                    <NeedsYouList agentById={agentById} onOpenRow={openRow} rows={rows} />
                 )
             ) : (
                 <InboxSectionPending label="Loading what needs you" />

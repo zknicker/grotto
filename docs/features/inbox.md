@@ -48,10 +48,10 @@ usage grammar and the one the strip already had.
 ## Sections
 
 **Active this week** is the one section whose body is not a box: a horizontally scrolling row of
-Agent cards under the shared label. Each card is one Agent — its 24px avatar and name on the header
-line, then the **processed tokens it burned over the last seven days** as the figure, that week's
-daily token totals as a sparkline beside it, and one muted line, `tokens · 7d`, naming what the
-figure counts. An Agent that is mid-turn spends that line on the step it is on and its elapsed time,
+Agent cards under the shared label. Each card is one Agent — its 32px avatar and name on the header
+line, at the mark size and gap every row below it leads with, then the **processed tokens it burned
+over the last seven days** as the figure, that week's daily token totals as a sparkline beside it,
+and one muted line, `Tokens · 7d`, naming what the figure counts. An Agent that is mid-turn spends that line on the step it is on and its elapsed time,
 in accent. Pressing a card opens that Agent's DM, or its profile when it has no DM yet.
 
 The metric is tokens rather than turns. A turn is the execution runtime's own bookkeeping, and ten
@@ -73,7 +73,8 @@ row inside that same box, so it keeps the section's shape rather than changing i
 
 **Needs you** — work waiting on this human, as one list over two records:
 
-- Open [Asks](../../specs/asks.md) addressed to me, with the recommended step as a button.
+- Open [Asks](../../specs/asks.md) addressed to me. The row states the Ask; the recommended step is
+  offered in the Thread the row peeks, where the whole Ask is readable.
 - Claims an Agent took and stopped short of finishing.
 
 They share a list rather than a card. As two lists in one group, the seam between them was the only
@@ -124,10 +125,10 @@ grammar:
   line so one long title cannot take the preview's width with it.
 - The **preview**, muted, filling whatever the title leaves and truncating first: an Ask's summary,
   a Chat's waiting line, the Chat and Agent behind a Cloud Agent work.
-- The **trailing cluster**, which never wraps or shrinks: where the row came from — an Ask reads
-  `Ask · #onboarding-owner`, a stalled claim `#all · Task #3` — and the one control that acts on it,
-  the recommended-step button or the unread count. An Ask whose send failed is the only row that
-  grows past one line, and it grows by exactly the error.
+- The **trailing cluster**, which never wraps or shrinks: where the row came from and how it stands
+  — an Ask reads `Ask · #onboarding-owner`, a stalled claim `#all · Task #3`, a Chat its time and
+  unread count. No row carries a control, so every row in the column ends on the same right edge
+  and every one of them is exactly one line tall.
 
 An Ask leads with the asking Agent's face, not a question glyph, so every row in the section shares
 one identity grammar. The row is composed from `ItemCard`'s own parts in
@@ -138,16 +139,19 @@ description's stacked-line offset, which comes off because the description sits 
 here rather than under it. The 40px band the list this replaced pinned, and the rules that undid the
 component's spacing to fit it, are gone.
 
-Pressing anywhere on a row opens it. The press target is a button laid over the card rather than the
-card rendered as one: an Ask row carries its own control, and a button cannot contain a button. It
-takes the tab stop, carries the row's title as its accessible name, and shows an inset
-`:focus-visible` ring; hover and press feedback are the stock `PressableFeedback.Highlight`, which
-reads its parent's own state. A row's control lifts above that layer and keeps its own press.
+Pressing anywhere on a row opens it. The card itself is the press target — `ItemCard`'s own
+Pressable composition, rendered as a `button` with `PressableFeedback.Highlight` inside it, the same
+shape the week cards in the strip use. It takes the tab stop, carries the row's title as its
+accessible name, and shows an inset `:focus-visible` ring. Nothing nests inside it: a row that acts
+would need the target underneath and the control lifted above, and no row acts.
 
 ## Current stub
 
 The page is live at `/s/:slug/inbox`. An Ask row peeks its Thread over the Inbox at
-`?ask=<messageId>`; a Cloud Agent work row peeks its conversation at `?work=<messageId>` — the same
+`?ask=<messageId>`, with the Agent's recommended step above that Thread's composer — the one-press
+form of the reply a person would otherwise type, and the only place an Ask can be answered without
+typing. It rides the same open-Ask read the section does, so an Ask answered elsewhere takes the
+step, the peek, and the row with it; a Cloud Agent work row peeks its conversation at `?work=<messageId>` — the same
 Thread timeline the Chat opens, work card and all; a stalled claim opens the task on the Tasks page;
 an Agent row in **Happening now** opens that Agent's page.
 

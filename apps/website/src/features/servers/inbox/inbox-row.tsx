@@ -4,19 +4,17 @@ import type { ReactNode } from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { AgentAvatar } from '../../members/agent-avatar.tsx';
 
-/** Every Inbox row leads with a mark at this size, Agent or Channel alike. */
-export const inboxRowMarkSize = 32;
+/** Every Inbox mark is this size, Agent, Channel, or week card alike. */
+export const inboxMarkSize = 32;
 
 /**
- * One Inbox row: a stock `ItemCard`, with the whole band as the way in.
+ * One Inbox row: a stock `ItemCard` rendered as the button that opens it.
  *
- * The press target is a button laid over the card rather than the card itself
- * rendered as one. A row can carry its own control — an Ask's recommended
- * step — and a button cannot contain a button, so the one pressable shape that
- * serves every row in the section puts the target underneath and lets a
- * control lift above it. Feedback is still stock: `PressableFeedback.Highlight`
- * reads its parent's own hover and press, so it works here exactly as it does
- * inside a pressable card.
+ * No row carries a control of its own, so the card itself is the press target —
+ * `ItemCard`'s documented Pressable composition, the same one the week cards in
+ * the strip use. A row's whole job is to be opened; the record it projects is
+ * acted on where it is fully readable, which for an Ask is the Thread the row
+ * peeks.
  *
  * The row carries no height of its own. `ItemCard`'s padding around a 32px
  * mark is the band, which is the whole point of the recomposition: the list
@@ -29,19 +27,18 @@ export function InboxRow({
     onOpen,
 }: {
     children: ReactNode;
-    /** The row's accessible name; the overlay button carries no text of its own. */
+    /** The row's accessible name, so a row announces as the thing it opens. */
     label: string;
     onOpen: () => void;
 }) {
     return (
-        <ItemCard className="item-card--inbox relative">
+        <ItemCard<'button'>
+            aria-label={label}
+            className="item-card--inbox relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
+            onClick={onOpen}
+            render={(props) => <button type="button" {...props} />}
+        >
             <PressableFeedback.Highlight />
-            <button
-                aria-label={label}
-                className="absolute inset-0 cursor-(--cursor-interactive) outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
-                onClick={onOpen}
-                type="button"
-            />
             {children}
         </ItemCard>
     );
@@ -72,9 +69,9 @@ export function InboxIdentityMark({
     return (
         <InboxRowMark>
             {agent ? (
-                <AgentAvatar agent={agent} size={inboxRowMarkSize} />
+                <AgentAvatar agent={agent} size={inboxMarkSize} />
             ) : (
-                <EntityAvatar name={name} size={inboxRowMarkSize} src={avatarUrl ?? null} />
+                <EntityAvatar name={name} size={inboxMarkSize} src={avatarUrl ?? null} />
             )}
         </InboxRowMark>
     );
@@ -91,7 +88,7 @@ export function InboxGlyphMark({ children }: { children: ReactNode }) {
         <InboxRowMark>
             <span
                 className="flex items-center justify-center"
-                style={{ height: inboxRowMarkSize, width: inboxRowMarkSize }}
+                style={{ height: inboxMarkSize, width: inboxMarkSize }}
             >
                 {children}
             </span>
@@ -124,9 +121,10 @@ export function InboxRowBody({ preview, title }: { preview: ReactNode; title: Re
 }
 
 /**
- * The trailing cluster: where the row came from, and the one control that acts
- * on it. It never wraps and never shrinks — a row's origin and its action are
- * the two things that must stay readable when the line runs out of width.
+ * The trailing cluster: where the row came from and how it stands — an Ask's
+ * Chat, a Chat's time and unread count, a run's status. It never wraps and
+ * never shrinks, so every row in the column ends on the same right edge and
+ * reads in the same grammar.
  */
 export function InboxRowMeta({ children }: { children: ReactNode }) {
     return (

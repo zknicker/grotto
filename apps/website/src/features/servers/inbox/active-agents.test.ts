@@ -131,7 +131,7 @@ describe('rankActiveAgents', () => {
 
 describe('activeAgentUnit', () => {
     test('names what the figure counts', () => {
-        expect(activeAgentUnit({ activityLabel: null })).toBe('tokens · 7d');
+        expect(activeAgentUnit({ activityLabel: null })).toBe('Tokens · 7d');
     });
 
     test('a working Agent spends the line on its step instead', () => {

@@ -3,7 +3,6 @@ import { Separator } from '@heroui/react';
 import * as React from 'react';
 import { InboxIdentityMark, InboxRow, InboxRowBody, InboxRowMeta } from './inbox-row.tsx';
 import { InboxSectionRows } from './inbox-section.tsx';
-import { NeedsYouAskStep } from './needs-you-ask-step.tsx';
 import type { NeedsYouRow } from './needs-you-rows.ts';
 
 /**
@@ -11,17 +10,19 @@ import type { NeedsYouRow } from './needs-you-rows.ts';
  * the Agent behind it, what it is, the one line that says why, and where it
  * came from — so the eye can run down the column instead of re-reading each
  * row's layout.
+ *
+ * No row acts. An Ask's recommended step is offered in the Thread the row
+ * peeks, where the whole Ask is readable; here it would only be a second right
+ * edge in a column whose whole value is that every row ends the same way.
  */
 export function NeedsYouList({
     agentById,
     onOpenRow,
     rows,
-    serverId,
 }: {
     agentById: ReadonlyMap<string, Agent>;
     onOpenRow: (row: NeedsYouRow) => void;
     rows: readonly NeedsYouRow[];
-    serverId: string;
 }) {
     return (
         <InboxSectionRows>
@@ -35,12 +36,7 @@ export function NeedsYouList({
                             name={row.markName}
                         />
                         <InboxRowBody preview={row.preview} title={row.title} />
-                        <InboxRowMeta>
-                            <span>{row.meta}</span>
-                            {row.kind === 'ask' ? (
-                                <NeedsYouAskStep ask={row.ask} serverId={serverId} />
-                            ) : null}
-                        </InboxRowMeta>
+                        <InboxRowMeta>{row.meta}</InboxRowMeta>
                     </InboxRow>
                 </React.Fragment>
             ))}

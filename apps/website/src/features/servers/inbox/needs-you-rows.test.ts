@@ -7,12 +7,8 @@ const ask: NeedsYouAsk = {
     agentId: 'agt_cove',
     agentName: 'Cove',
     chatLabel: '#onboarding-owner',
-    conversationChatId: 'cht_1',
     id: 'msg_ask',
-    recommendedStep: 'Yes, rename it',
     summary: 'Two agents keep filing build questions in #product.',
-    threadAnchorMessageId: 'msg_anchor',
-    threadChatId: 'cht_thread',
     title: 'Rename #product to #build?',
 };
 
@@ -47,10 +43,10 @@ describe('toNeedsYouRows', () => {
         });
     });
 
-    test('every row carries the payload its action needs', () => {
+    test('every row carries the record it opens', () => {
         const [askRow, claimRow] = toNeedsYouRows([ask], [claim]);
 
-        expect(askRow?.kind === 'ask' && askRow.ask.recommendedStep).toBe('Yes, rename it');
+        expect(askRow?.kind === 'ask' && askRow.ask.id).toBe('msg_ask');
         expect(claimRow?.kind === 'claim' && claimRow.claim.number).toBe(3);
     });
 

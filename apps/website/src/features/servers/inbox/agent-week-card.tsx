@@ -4,6 +4,7 @@ import { cn } from '../../../lib/utils.ts';
 import { AgentAvatar } from '../../members/agent-avatar.tsx';
 import { formatTokens } from '../../stats/usage-format.ts';
 import { type ActiveAgent, activeAgentUnit } from './active-agents.ts';
+import { inboxMarkSize } from './inbox-row.tsx';
 
 const sparklineHeight = 20;
 const sparklineWidth = 64;
@@ -39,8 +40,11 @@ export function AgentWeekCard({
         >
             <PressableFeedback.Highlight />
             <ItemCard.Content className="gap-3">
-                <span className="flex min-w-0 items-center gap-2">
-                    <AgentAvatar agent={activity.agent} size={24} />
+                {/* The mark and the gap that follows it are the row's, so a
+                    card in the strip and a row in the lists below it lead the
+                    same way. */}
+                <span className="flex min-w-0 items-center gap-3">
+                    <AgentAvatar agent={activity.agent} size={inboxMarkSize} />
                     <ItemCard.Title>{activity.agent.displayName}</ItemCard.Title>
                 </span>
                 <span className="flex items-end justify-between gap-2">

@@ -24,8 +24,8 @@ interface NeedsYouRowFace {
 }
 
 /**
- * One row in Needs you. The payload rides along so the row can act: an Ask
- * carries its recommended step, a stalled claim carries the task to open.
+ * One row in Needs you. The record rides along so the row can be opened: an
+ * Ask carries the Message its Thread hangs off, a stalled claim the task.
  */
 export type NeedsYouRow =
     | (NeedsYouRowFace & { ask: NeedsYouAsk; kind: 'ask' })

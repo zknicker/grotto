@@ -3,22 +3,23 @@ import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { conversationLabel } from '../conversation-label.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
-/** One open Ask as the Inbox reads it: the decision, where it came from. */
+/**
+ * One open Ask as the Inbox row reads it: the decision, and where it came from.
+ *
+ * A row states the Ask and opens it; it does not answer it. Everything the
+ * answer needs — the conversation, the Thread anchor, the recommended step —
+ * is read off the Server's own `OpenAsk` in the peek, so none of it is
+ * projected here.
+ */
 export interface NeedsYouAsk {
     /** The Agent that asked, whose face leads the row. */
     agentId: string;
     agentName: string;
     chatLabel: string;
-    /** The Channel or DM the answer is addressed to, never a Thread. */
-    conversationChatId: string;
     /** The Ask Message id, which is also the `?ask=` deep link. */
     id: string;
-    recommendedStep: string;
     /** The Agent's summary as one flat line, never its raw Markdown. */
     summary: string;
-    /** The Message the answer replies to: the answer Thread's anchor. */
-    threadAnchorMessageId: string;
-    threadChatId: string;
     title: string;
 }
 
@@ -39,12 +40,8 @@ export function toNeedsYouAsks(
         agentId: item.ask.agentId,
         agentName: askAgentName(item, agentsById),
         chatLabel: conversationLabel(item, humans),
-        conversationChatId: item.conversationChatId,
         id: item.ask.messageId,
-        recommendedStep: item.ask.recommendedStep,
         summary: messagePreviewLine(item.ask.summary),
-        threadAnchorMessageId: openAskThreadAnchor(item).id,
-        threadChatId: item.threadChatId,
         title: item.ask.title,
     }));
 }
@@ -55,18 +52,22 @@ export function toNeedsYouAsks(
  * never to the Thread's own Chat id, which is the shape a Thread reply takes
  * everywhere. The Server settles the Ask as a side effect of this ordinary
  * send.
+ *
+ * It reads the Server record rather than the row projection: the button lives
+ * in the Ask's own Thread peek now, and that is the record the peek already
+ * holds.
  */
 export function askAnswerMessage(
-    ask: NeedsYouAsk,
+    item: OpenAsk,
     input: { nonce: string; serverId: string }
 ): ChatSendInput {
     return {
         attachmentIds: [],
-        chatId: ask.conversationChatId,
-        content: ask.recommendedStep,
+        chatId: item.conversationChatId,
+        content: item.ask.recommendedStep,
         nonce: input.nonce,
         serverId: input.serverId,
-        thread: { anchorMessageId: ask.threadAnchorMessageId },
+        thread: { anchorMessageId: openAskThreadAnchor(item).id },
     };
 }
 

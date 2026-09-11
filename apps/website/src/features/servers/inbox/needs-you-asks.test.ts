@@ -50,43 +50,19 @@ function openAsk(overrides: Partial<OpenAsk> = {}): OpenAsk {
 
 const agents = [{ displayName: 'Blippy', id: 'agent_blippy' } as Agent];
 
-test('a channel Ask reads its title, step, Chat, and live Agent name', () => {
+test('a channel Ask reads its title, summary, Chat, and live Agent name', () => {
+    // The row states the Ask and opens it; the answer's routing is read off
+    // the Server record in the peek, so none of it is projected here.
     expect(toNeedsYouAsks([openAsk()], humans, agents)).toEqual([
         {
             agentId: 'agent_blippy',
             agentName: 'Blippy',
             chatLabel: '#product',
-            conversationChatId: 'chat_product',
             id: 'message_one',
-            recommendedStep: 'Ship it',
-            // A top-level Ask anchors its own Thread, so the answer replies
-            // to the Ask Message itself.
-            threadAnchorMessageId: 'message_one',
             summary: 'The migration is staged and reversible.',
-            threadChatId: 'chat_thread',
             title: 'Run the migration?',
         },
     ]);
-});
-
-test('an Ask inside a Thread answers on the Thread anchor, in the conversation', () => {
-    const rows = toNeedsYouAsks(
-        [
-            openAsk({
-                ask: { ...openAsk().ask, chatId: 'chat_thread' },
-                threadAnchorMessage: { id: 'message_anchor' } as OpenAsk['message'],
-                threadChatId: 'chat_thread',
-            }),
-        ],
-        humans,
-        agents
-    );
-
-    expect(rows[0]).toMatchObject({
-        conversationChatId: 'chat_product',
-        threadAnchorMessageId: 'message_anchor',
-        threadChatId: 'chat_thread',
-    });
 });
 
 test('a DM Ask names the peer the way every other context label does', () => {
@@ -131,21 +107,14 @@ test('a retired Agent keeps the name its Message stored', () => {
 });
 
 test('the recommended step answers in the conversation, on the Thread anchor', () => {
-    const [topLevel] = toNeedsYouAsks([openAsk()], humans, agents);
-    const [inThread] = toNeedsYouAsks(
-        [
-            openAsk({
-                ask: { ...openAsk().ask, chatId: 'chat_thread' },
-                threadAnchorMessage: { id: 'message_anchor' } as OpenAsk['message'],
-            }),
-        ],
-        humans,
-        agents
-    );
-    if (!(topLevel && inThread)) {
-        throw new Error('The Inbox Ask rows did not resolve.');
-    }
+    const topLevel = openAsk();
+    const inThread = openAsk({
+        ask: { ...openAsk().ask, chatId: 'chat_thread' },
+        threadAnchorMessage: { id: 'message_anchor' } as OpenAsk['message'],
+    });
 
+    // A top-level Ask anchors its own Thread, so the answer replies to the Ask
+    // Message itself.
     expect(askAnswerMessage(topLevel, { nonce: 'nonce_one', serverId: 'server_one' })).toEqual({
         attachmentIds: [],
         chatId: 'chat_product',

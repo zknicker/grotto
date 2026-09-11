@@ -7,11 +7,11 @@
     "platform": "iphoneos",
     "targetDevice": "iphone"
   },
-  "sourceSha256": "2cd2c3d8a729cdcd1b844f176c4231a9bb45b5a610d2b2aa04e313198e8d4ed9",
+  "sourceSha256": "13f73a135d42c008edcd1dd56da9f24936641f2e9bd0261fc5e0ece6219c061d",
   "files": {
-    "Assets.car": "f41daed0c5f157859c5547bc3a52159a329ecf8877ed38afdc1bbcea57f363a9",
+    "Assets.car": "bd864f7274e1ef833fcfeec4aa3d3762b3cb37542adcc7b3af3cc704b69a447c",
     "assetcatalog_generated_info.plist": "7c3481276e5d05be982a7a7fa484b89690339920b4d3d0d2b31396b3d49335dc",
-    "mac-icon60x60@2x.png": "1e86c6f1b0d89ba9390beefb53cb1de56f99a8c5b6f3a8e55775ae685e867fa9",
-    "mac-icon76x76@2x~ipad.png": "28c1803a9a161d8eefc92603da840b85801743c9ec5ef82929368b714b54687a"
+    "mac-icon60x60@2x.png": "e2442e1ce775d9dfb26423f6c920cdef6dfccbce05147e05fd5ec0f8226a8f30",
+    "mac-icon76x76@2x~ipad.png": "aa32717ab0a0d6c9d064f4e84fbc25e0182b7d619f118a95adf4d008ea10c1d9"
   }
 }

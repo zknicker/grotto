@@ -99,7 +99,7 @@
         {
           "value" : {
             "enabled" : true,
-            "value" : 0
+            "value" : 0.1
           }
         },
         {
@@ -116,8 +116,8 @@
       "layers" : [
         {
           "hidden" : false,
-          "image-name" : "Untitled Project - ChatGPT Image Aug 30, 2026, 05_33_26 PM (1).png",
-          "name" : "Untitled Project - ChatGPT Image Aug 30, 2026, 05_33_26 PM (1)",
+          "image-name" : "mesh-gradient.png",
+          "name" : "mesh-gradient",
           "position" : {
             "scale" : 0.48,
             "translation-in-points" : [

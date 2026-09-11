@@ -11,6 +11,8 @@
     "build:grotto": "bun run check:browser-dependencies && GROTTO_HOSTED_APP=1 vite build --outDir dist-grotto",
     "check:browser-dependencies": "bun scripts/check-browser-dependency-graph.ts",
     "build:desktop:icons": "node ../../scripts/build-macos-app-icon.mjs",
+    "icon:render-mesh": "bun scripts/render-icon-mesh.ts",
+    "icon:render-favicon": "bun scripts/render-favicon.ts",
     "desktop:build": "bun run build:desktop:icons && bun x electron-builder --config electron-builder.config.cjs --mac",
     "desktop:build:unsigned": "bun run build:desktop:icons && node ../../scripts/release/build-desktop-unsigned.mjs",
     "desktop:build:app": "bun run build:desktop:icons && bun x electron-builder --config electron-builder.config.cjs --mac dir",

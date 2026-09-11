@@ -69,8 +69,22 @@ Environment and verifies the public Server and hosted Grotto App. Reviewing and 
 PR is the release's only human authorization gate; selected target jobs run to completion without a
 second approval.
 
-The installed App icon source is `assets/mac-icon.icon`. The App release job uses GitHub's
-`xcode-27` image because older Xcode versions cannot compile the current Icon Composer 2 source.
+The installed App icon source is `assets/mac-icon.icon`. It is three stacked layers — Liquid Glass
+on a translucent white ghost body over `Assets/mesh-gradient.png`, a ghost-shaped render of the
+product mark's own color mesh (the azure, violet, and rose blobs, the side fade, the rim mask that
+pushes color out to the contour, and the colored rim, all read off
+`apps/website/src/components/haus-ghost-palette.ts`), with the eyes on top.
+`apps/website/scripts/render-icon-mesh.ts` is that render: `bun run icons:render-mesh` rebuilds the
+PNG from the mark's own palette and silhouette, then `node scripts/build-macos-app-icon.mjs`
+recompiles the icon. Re-render it rather than flattening the stack or retouching a layer. The
+script's `ICON_PROFILE` holds the only differences between the tile and the sidebar mark — a softer
+colored rim, the azure core that lights the body from behind the eyes, and the white edge veil that
+pools opaque white along the right and lower-right silhouette so the tile reads as thick glass lit
+from the left — so tune the icon there; the sidebar mark never reads that profile. The App release job uses GitHub's `xcode-27` image
+because older Xcode versions cannot compile the current Icon Composer 2 source.
+The web favicon set in `apps/website/public/` (`favicon.svg`, `favicon-32.png`,
+`favicon-192.png`, `apple-touch-icon.png`) is generated the same way, from the mark itself:
+`bun run icons:render-favicon` renders `HausGhost` to a standalone SVG and its rasters.
 The iOS app commits the full-fidelity compiled catalog under `assets/ios-icon`. Its manifest binds
 the catalog to the canonical `.icon` source, exact Xcode build, and output checksums. When the icon
 source changes, regenerate the catalog with `bun run ios:prepare-icon` under the Xcode build named

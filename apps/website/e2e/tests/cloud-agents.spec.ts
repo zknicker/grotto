@@ -34,7 +34,8 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
 
     // The Inbox is where background work that outlives a turn stays visible.
     await page.goto('/s/cloud-agent-work/inbox');
-    const inboxRow = page.getByRole('row', { name: new RegExp(workTitle, 'u') });
+    // Inbox rows are pressable cards named by their title, not grid rows.
+    const inboxRow = page.getByRole('button', { name: new RegExp(workTitle, 'u') });
     await expect(inboxRow).toBeVisible();
     await expect(inboxRow).toContainText('Queued');
     await expect(inboxRow).toContainText('#all');
@@ -130,7 +131,7 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
 
     // Settled work leaves "Happening now", which lists only live work.
     await page.goto('/s/cloud-agent-work/inbox');
-    await expect(page.getByRole('row', { name: new RegExp(workTitle, 'u') })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: new RegExp(workTitle, 'u') })).toHaveCount(0);
 
     // Work delegated inside somebody else's Thread hoists its status onto that
     // Thread's own surface in the Chat, so a reader scanning back sees that

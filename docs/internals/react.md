@@ -96,11 +96,19 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   product's wordmark would sit; the mark carries a slowly drifting mesh
   gradient that moves a little faster while any Agent is working. Chat navigation follows; the footer holds live Agent activity above
   the bottom-pinned desktop update status. The settings gear is the sidebar's
-  only other chrome, and it takes no row: it floats at the sidebar's top-right
-  corner over the trailing end of the lead row's line, which reserves the gear's
-  box at its own trailing end. On the macOS desktop the same box lands in the
-  titlebar strip beside the traffic lights, and the navigation starts below the
-  strip with one breath of clearance. Switching,
+  only other chrome, and it takes no row: off the macOS desktop it sits at the
+  trailing end of the footer, on the Agent activity strip's line, and
+  `ShellSidebar` chooses that slot from the `macos-electron` root class rather
+  than a process probe, so the gear's DOM position matches where it is drawn.
+  A sidebar page's first navigation row is offset by half the shared
+  `--app-shell-band-height` band — Inbox in chat navigation, the back-to-chat
+  row elsewhere — so its midline meets the content topbar's across the divider
+  while the menu's own pitch continues underneath; the row keeps HeroUI's own
+  height, fill, and end padding. On the macOS desktop the column starts below
+  the titlebar strip, which is where the gear lands beside the traffic lights,
+  and the strip plus that offset is the navigation's clearance under them — so
+  the lead row's midline sits a strip lower than the content topbar's there, by
+  construction. Switching,
   creating, and joining Servers live under Settings → Servers, not in the
   sidebar. Sections compose `ShellSidebarPage` slots; route state
   selects one slot without replacing the sidebar root, and non-chat pages

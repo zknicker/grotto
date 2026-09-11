@@ -56,7 +56,8 @@ test('aligns the Settings escape row with the first Chat navigation row', async 
     await page.goto(`/s/${slug}`);
 
     // Inbox leads the chat navigation, so it is the line the escape row has to
-    // land on — both share the sidebar's top edge under the floating gear.
+    // land on: each leads its own sidebar page, so both take the shell's lead
+    // offset and meet the content topbar's midline.
     const inboxBox = await page.getByRole('row', { exact: true, name: 'Inbox' }).boundingBox();
     expect(inboxBox).not.toBeNull();
 

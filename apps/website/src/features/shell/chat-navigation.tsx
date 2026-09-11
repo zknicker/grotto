@@ -64,11 +64,15 @@ export function ChatNavigation({
     return (
         <ShellSidebarPageContent>
             <Sidebar.Group>
-                {/* One menu so Inbox, Search, and Tasks share the row pitch exactly.
-                    Inbox leads: it is the sidebar's top-left anchor, so the
-                    Grotto mark sits where a product's wordmark would. Search
-                    opens the command palette rather than navigating, so it is an
-                    action item that names its own shortcut. */}
+                {/* One menu so Inbox, Search, and Tasks share one row anatomy
+                    and one pitch. Inbox leads: it is the sidebar's top-left
+                    anchor, so the Grotto mark sits where a product's wordmark
+                    would, and `shell.css` offsets that lead row by half the
+                    shared shell band so its midline meets the content topbar's
+                    — the row keeps its own height, fill, and pitch, so Search
+                    follows it at the same step every other pair sits at.
+                    Search opens the command palette rather than navigating, so
+                    it is an action item that names its own shortcut. */}
                 <Sidebar.Menu
                     aria-label="Server"
                     onAction={(key) => {

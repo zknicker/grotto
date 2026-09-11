@@ -37,8 +37,8 @@ test('badges Inbox with the Needs-you count in the Chat rows own chip', () => {
     const markup = navigationMarkup({ needsYouCount: 3 });
 
     expect(markup).toContain('aria-label="3 needs you"');
-    // The same chip the unread counts wear, inside the row's own content, so
-    // it lands in the trailing reserve the Settings gear floats over.
+    // The same chip the unread counts wear, inside the row's own content, at
+    // the row's natural trailing edge.
     expect(/data-sidebar="label"[^>]*>(?:(?!<\/li>).)*?3 needs you/s.test(markup)).toBe(true);
 });
 
@@ -46,23 +46,29 @@ test('says nothing when nothing needs you', () => {
     expect(navigationMarkup({ needsYouCount: 0 })).not.toContain('needs you');
 });
 
-test('marks Inbox as the lead row, whose line the Settings gear floats over', () => {
+test('leads the sidebar with Inbox, which is the row the shell offsets', () => {
     const markup = navigationMarkup();
     const shellCss = readFileSync(new URL('./shell.css', import.meta.url), 'utf8');
-    const leadRows = markup.match(/app-shell-sidebar-lead-row/g) ?? [];
 
-    // Exactly one: the reserve belongs to the row the gear overlaps, not to
-    // the menu, or the rows below would truncate for a gear that is not there.
-    expect(leadRows).toHaveLength(1);
-    expect(markup.indexOf('app-shell-sidebar-lead-row')).toBeLessThan(markup.indexOf('>Search<'));
-    // The reserve is the row part's own padding, so the row's fill still runs
-    // the full width; macOS keeps HeroUI's padding, because the gear rides in
-    // the titlebar strip above the navigation rather than over it.
-    expect(shellCss).toMatch(
-        /html:not\(\.macos-electron\)\s+\.app-shell-sidebar-lead-row\s+\.sidebar__menu-item-content/
+    // The offset is keyed on the position, not on a class this row carries:
+    // nothing may render between the sidebar's content and Inbox, or the
+    // shell would lift the wrong row onto the topbar's line. So the group has
+    // to be the content's own first child, and Inbox the first row inside it.
+    expect(markup.slice(markup.indexOf('data-slot="sidebar-content"'))).toMatch(
+        /^data-slot="sidebar-content"[^>]*>\s*<[a-z]+[^>]*data-slot="sidebar-group"/
     );
-    expect(shellCss).toContain('--app-shell-settings-gear-size');
+    expect(firstMenuItemTag(markup)).toContain('data-key="inbox"');
+    expect(markup.indexOf('>Inbox<')).toBeLessThan(markup.indexOf('>Search<'));
+    // Nothing shares the row's line any more, so it keeps HeroUI's own end
+    // padding and the gear's old reserve is gone with the gear.
+    expect(markup).not.toContain('app-shell-sidebar-lead-row');
+    expect(shellCss).not.toContain('app-shell-sidebar-lead-row');
+    expect(shellCss).not.toContain('--app-shell-settings-gear-size');
 });
+
+function firstMenuItemTag(markup: string): string {
+    return /<[a-z]+[^>]*data-slot="sidebar-menu-item"[^>]*>/.exec(markup)?.[0] ?? '';
+}
 
 function inboxLabelClasses(markup: string): string {
     return (

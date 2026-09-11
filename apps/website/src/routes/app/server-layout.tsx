@@ -125,16 +125,6 @@ export function ServerLayout() {
                                             sidebar={
                                                 <ShellSidebar
                                                     activePage={activeSidebarPage}
-                                                    chrome={
-                                                        <SidebarSettingsAction
-                                                            onOpenSettings={() =>
-                                                                navigate(serverSettingsRoute(slug))
-                                                            }
-                                                            onPreloadSettings={() =>
-                                                                preloadServerSection('settings')
-                                                            }
-                                                        />
-                                                    }
                                                     footer={
                                                         <div className="flex w-full flex-col gap-2">
                                                             <SidebarAgentActivityStrip
@@ -145,6 +135,16 @@ export function ServerLayout() {
                                                                 slug={slug}
                                                             />
                                                         </div>
+                                                    }
+                                                    settingsAction={
+                                                        <SidebarSettingsAction
+                                                            onOpenSettings={() =>
+                                                                navigate(serverSettingsRoute(slug))
+                                                            }
+                                                            onPreloadSettings={() =>
+                                                                preloadServerSection('settings')
+                                                            }
+                                                        />
                                                     }
                                                 >
                                                     <ShellSidebarPage

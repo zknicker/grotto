@@ -200,9 +200,7 @@ const SKIPPED_SELECTOR = /^@|--animated|--lively|\[data-theme|\.dark |^html\./;
 /** Roughly a twenty-fifth of the mark on every side. */
 const PAD_RATIO = 0.04;
 
-const GHOST_CSS_PATH = fileURLToPath(
-    new URL('../src/components/haus-ghost.css', import.meta.url)
-);
+const GHOST_CSS_PATH = fileURLToPath(new URL('../src/components/haus-ghost.css', import.meta.url));
 const DEFAULT_OUT_DIR = fileURLToPath(new URL('../public', import.meta.url));
 
 if (import.meta.main) {

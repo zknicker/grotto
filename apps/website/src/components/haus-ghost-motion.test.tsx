@@ -23,9 +23,7 @@ describe('Haus ghost motion', () => {
             'haus-ghost--animated'
         );
         expect(iridescent()).not.toContain('haus-ghost--animated');
-        expect(renderToStaticMarkup(<HausGhost animated />)).not.toContain(
-            'haus-ghost--animated'
-        );
+        expect(renderToStaticMarkup(<HausGhost animated />)).not.toContain('haus-ghost--animated');
     });
 
     test('steps every loop onto one shared grid, so the mark repaints once for all three', () => {
@@ -56,9 +54,7 @@ describe('Haus ghost motion', () => {
     });
 
     test('stops the drift when the window is not being looked at', () => {
-        expect(ghostCss).toContain(
-            'html.window-blurred .haus-ghost--animated .haus-ghost__blob'
-        );
+        expect(ghostCss).toContain('html.window-blurred .haus-ghost--animated .haus-ghost__blob');
         expect(ghostCss.slice(ghostCss.indexOf('html.window-blurred'))).toContain(
             'animation-play-state: paused'
         );

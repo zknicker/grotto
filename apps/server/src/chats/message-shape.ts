@@ -29,39 +29,64 @@ export interface StoredChatMessageAuthorProfile {
     displayName: string;
 }
 
-export interface StoredChatMessageAuthorProfileRow {
-    authorAgentAvatarId: string | null;
-    authorAgentDescription: string | null;
+export interface StoredChatMessageAuthorRow {
     authorAgentDisplayName: string | null;
     authorAgentId: string | null;
+    authorUserDisplayName: string | null;
+    authorUserId: string | null;
+}
+
+export interface StoredChatMessageAuthorProfileRow extends StoredChatMessageAuthorRow {
+    authorAgentAvatarId: string | null;
+    authorAgentDescription: string | null;
     authorAgentRetiredAt: Date | null;
     authorUserAvatarId: string | null;
     authorUserDescription: string | null;
-    authorUserDisplayName: string | null;
-    authorUserId: string | null;
     authorUserRevokedAt: Date | null;
+}
+
+/**
+ * The one place a stored Message row becomes a named author. Every reader that
+ * shows an author name — the Message reader and the Chat list's last-message
+ * line — resolves it here, so the two can never disagree. An unresolvable row
+ * returns undefined rather than an invented name.
+ */
+export function readStoredAuthorIdentity(
+    message: StoredChatMessageAuthorRow
+): { displayName: string; kind: 'agent' | 'human' } | undefined {
+    if (message.authorAgentId && message.authorAgentDisplayName) {
+        return { displayName: message.authorAgentDisplayName, kind: 'agent' };
+    }
+    if (message.authorUserId) {
+        return {
+            displayName: message.authorUserDisplayName ?? `Human ${message.authorUserId.slice(-6)}`,
+            kind: 'human',
+        };
+    }
+    return undefined;
 }
 
 export function readStoredAuthorProfile(
     message: StoredChatMessageAuthorProfileRow
 ): StoredChatMessageAuthorProfile | undefined {
-    if (message.authorAgentId && message.authorAgentDisplayName) {
+    const identity = readStoredAuthorIdentity(message);
+    if (!identity) {
+        return undefined;
+    }
+    if (identity.kind === 'agent') {
         return {
             avatarUrl: avatarUrlFor(message.authorAgentAvatarId),
             deleted: message.authorAgentRetiredAt !== null,
             description: message.authorAgentDescription,
-            displayName: message.authorAgentDisplayName,
+            displayName: identity.displayName,
         };
     }
-    if (message.authorUserId) {
-        return {
-            avatarUrl: avatarUrlFor(message.authorUserAvatarId),
-            deleted: message.authorUserRevokedAt !== null,
-            description: message.authorUserDescription,
-            displayName: message.authorUserDisplayName ?? `Human ${message.authorUserId.slice(-6)}`,
-        };
-    }
-    return undefined;
+    return {
+        avatarUrl: avatarUrlFor(message.authorUserAvatarId),
+        deleted: message.authorUserRevokedAt !== null,
+        description: message.authorUserDescription,
+        displayName: identity.displayName,
+    };
 }
 
 /** Everything the one Message reader joins onto a stored Message row. */

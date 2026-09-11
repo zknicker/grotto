@@ -193,3 +193,75 @@ test('durable cursor sequences are independent across Servers', async () => {
 
     expect(receipt.eventCursor).toBe('1');
 });
+
+test('the Chat list quotes the newest top-level Message with its resolved author', async () => {
+    const server = await client.trpc.server.create.mutate({
+        displayName: 'Last Message Server',
+        slug: 'last-message-server',
+    });
+    const chatId = server.channels[0].id;
+    const [user] = (await harness.sql`
+        select id from users where clerk_user_id = 'user_hosted_messages'
+    `) as { id: string }[];
+    await harness.sql`
+        update users set display_name = 'Quinn Reader' where id = ${user.id}
+    `;
+
+    const empty = (await client.trpc.chat.list.query({ serverId: server.id })).find(
+        (chat) => chat.id === chatId
+    );
+    expect(empty?.lastMessage).toBeNull();
+
+    await client.trpc.chat.send.mutate({
+        chatId,
+        content: 'First line.',
+        nonce: 'last-message-1',
+        serverId: server.id,
+    });
+    const newest = await client.trpc.chat.send.mutate({
+        chatId,
+        content: 'Newest **line**.',
+        nonce: 'last-message-2',
+        serverId: server.id,
+    });
+
+    const listed = (await client.trpc.chat.list.query({ serverId: server.id })).find(
+        (chat) => chat.id === chatId
+    );
+    expect(listed?.lastMessage).toEqual({
+        authorDisplayName: 'Quinn Reader',
+        content: 'Newest **line**.',
+        createdAt: newest.message.createdAt,
+    });
+
+    const read = await client.trpc.chat.messages.query({ chatId, serverId: server.id });
+    expect(read.messages.at(-1)?.author.profile?.displayName).toBe(
+        listed?.lastMessage?.authorDisplayName ?? ''
+    );
+});
+
+test('a Thread reply never becomes the parent Chat last message', async () => {
+    const server = await client.trpc.server.create.mutate({
+        displayName: 'Thread Last Message',
+        slug: 'thread-last-message',
+    });
+    const parentChatId = server.channels[0].id;
+    const anchor = await client.trpc.chat.send.mutate({
+        chatId: parentChatId,
+        content: 'Top-level anchor.',
+        nonce: 'thread-last-anchor',
+        serverId: server.id,
+    });
+    await client.trpc.chat.send.mutate({
+        chatId: parentChatId,
+        content: 'Thread-only reply.',
+        nonce: 'thread-last-reply',
+        serverId: server.id,
+        thread: { anchorMessageId: anchor.message.id },
+    });
+
+    const listed = (await client.trpc.chat.list.query({ serverId: server.id })).find(
+        (chat) => chat.id === parentChatId
+    );
+    expect(listed?.lastMessage).toMatchObject({ content: 'Top-level anchor.' });
+});

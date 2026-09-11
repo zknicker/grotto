@@ -281,6 +281,13 @@
       "when": 1789014450620,
       "tag": "0039_agent_creation_message_detach",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1789148044412,
+      "tag": "0040_agent_turn_recency",
+      "breakpoints": true
     }
   ]
 }

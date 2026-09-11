@@ -10,6 +10,7 @@ import * as z from 'zod';
 import { attachmentMetadataSchema } from './attachments.ts';
 import { messageCauseSchema } from './automation.ts';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
+import { chatLastMessageSchema } from './chat-last-message.ts';
 import * as reactionContracts from './chat-message-reactions.ts';
 import * as receiptContracts from './chat-message-receipts.ts';
 import { messageTaskSchema } from './task-shared.ts';
@@ -79,9 +80,8 @@ export const chatMessageSchema = z
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
 
 /**
- * Enough of one reply for the anchor's Thread preview: who wrote it and what
- * they said. Authors stay as ids so every surface names them through the same
- * Agent list and member directory the transcript already reads.
+ * One reply as the anchor's Thread preview quotes it. Authors stay as ids so
+ * every surface names them through the Agent list and member directory.
  */
 export const threadReplyPreviewSchema = z
     .object({
@@ -166,6 +166,7 @@ export const chatSchema = z
         isAll: z.boolean(),
         kind: z.enum(['channel', 'dm']),
         lastActivityAt: timestampSchema.nullable(),
+        lastMessage: chatLastMessageSchema.nullable(),
         lastMessageSequence: z.number().int().nonnegative(),
         name: z.string().min(1).nullable(),
         participantAgentIds: z.array(idSchema),
@@ -492,10 +493,9 @@ export const reminderChangedEventSchema = z
 export type ReminderChangedEvent = z.infer<typeof reminderChangedEventSchema>;
 
 /**
- * One Chat's existence changing: `created` for a new Channel or the first
- * resolution of a DM, `updated` for a Channel rename or Agent participant
- * change, plus the archive lifecycle. Delivery is Chat-access scoped, so a DM
- * `created` event reaches its two members and nobody else.
+ * One Chat's existence changing: `created` for a new Channel or a DM's first
+ * resolution, `updated` for a rename or Agent participant change, plus the
+ * archive lifecycle. Chat-access scoped: a DM's `created` reaches its two members only.
  */
 export const chatLifecycleEventSchema = z
     .object({

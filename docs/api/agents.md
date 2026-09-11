@@ -48,6 +48,16 @@ compact kind that crosses the Server boundary, otherwise null), `outputProduced`
 silent turn readable: a completed turn with no output and no messages is
 positive proof the Agent chose to stay quiet, not evidence of a lost run.
 
+`agent.recentTurns` answers the cross-Agent question instead: every turn any
+Agent on the Server started inside the window, newest first by `startedAt`. It
+takes `{ serverId, days }` with `days` an integer from 1 to 30 (default 7) and
+returns up to 2000 records of `{ agentId, runId, startedAt, endedAt, status }` —
+the fields a ranking needs, without the per-turn evidence `agent.turns` carries.
+Server membership is the whole gate, since a member sees every Agent on the
+Server. It exists so a surface that ranks Agents against each other, such as the
+Inbox's week strip, reads once rather than once per Agent; a roster-sized
+fan-out of `agent.turns` is what this read replaces.
+
 `agent.deliveries` returns that Agent's delivery ledger, newest first by
 `createdAt`, with `limit` between 1 and 100 (default 50). Each record carries
 `chatId`, `source`, `workId`, `messageId`, `state` (`queued`,

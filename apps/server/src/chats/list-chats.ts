@@ -5,6 +5,7 @@ import { agentsTable, chatsTable, serverOnboardingTable } from '../postgres/sche
 import { requireServerMembership } from '../servers/server-access.ts';
 import { readThreadAttentionCounts } from '../threads/thread-attention.ts';
 import type { GrottoUser } from '../users/grotto-user.ts';
+import { chatLastMessageLateral, toChatLastMessage } from './chat-last-message.ts';
 import { visibleChats } from './chat-visibility.ts';
 
 export async function listChats(
@@ -19,6 +20,7 @@ export async function listChats(
         return [];
     }
 
+    const lastMessage = chatLastMessageLateral(db);
     const rows = await db
         .select({
             archivedAt: chatsTable.archivedAt,
@@ -31,6 +33,14 @@ export async function listChats(
             isAll: chatsTable.isAll,
             kind: sql<'channel' | 'dm'>`${chatsTable.kind}`,
             lastActivityAt: chatsTable.lastActivityAt,
+            lastMessage: {
+                authorAgentDisplayName: lastMessage.authorAgentDisplayName,
+                authorAgentId: lastMessage.authorAgentId,
+                authorUserDisplayName: lastMessage.authorUserDisplayName,
+                authorUserId: lastMessage.authorUserId,
+                content: lastMessage.content,
+                createdAt: lastMessage.createdAt,
+            },
             lastMessageSequence: chatsTable.lastMessageSequence,
             name: chatsTable.name,
             participantAgentIds: sql<string[]>`
@@ -119,6 +129,7 @@ export async function listChats(
             )
         )
         .innerJoin(serverOnboardingTable, eq(serverOnboardingTable.serverId, chatsTable.serverId))
+        .leftJoinLateral(lastMessage, sql`true`)
         .where(
             and(
                 eq(chatsTable.serverId, serverId),
@@ -149,11 +160,12 @@ export async function listChats(
         serverId,
     });
 
-    return rows.map((chat) => ({
+    return rows.map(({ lastMessage: lastMessageRow, ...chat }) => ({
         ...chat,
         archivedAt: chat.archivedAt?.toISOString() ?? null,
         createdAt: chat.createdAt.toISOString(),
         lastActivityAt: chat.lastActivityAt?.toISOString() ?? null,
+        lastMessage: toChatLastMessage(lastMessageRow),
         unreadCount: chat.unreadCount + (threadAttentionCounts.get(chat.id) ?? 0),
     }));
 }

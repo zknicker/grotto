@@ -35,14 +35,14 @@ describe('toNeedsYouRows', () => {
             agentId: 'agt_cove',
             markName: 'Cove',
             meta: 'Ask · #onboarding-owner',
-            substance: 'Two agents keep filing build questions in #product.',
+            preview: 'Two agents keep filing build questions in #product.',
             title: 'Rename #product to #build?',
         });
         expect(rows[1]).toMatchObject({
             agentId: 'agt_blippy',
             avatarUrl: 'https://example.test/blippy.png',
             meta: '#all · Task #3',
-            substance: 'Reminders on the weekly digest fired twice this morning.',
+            preview: 'Reminders on the weekly digest fired twice this morning.',
             title: 'Blippy stopped before finishing',
         });
     });

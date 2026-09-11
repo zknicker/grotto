@@ -18,8 +18,8 @@ interface NeedsYouRowFace {
     markName: string;
     /** Where it came from, and what kind of row it is. */
     meta: string;
-    /** The one line of substance under the title. */
-    substance: string;
+    /** The line that says why, beside the title. */
+    preview: string;
     title: string;
 }
 
@@ -57,7 +57,7 @@ export function toNeedsYouRows(
                 kind: 'ask',
                 markName: ask.agentName,
                 meta: `Ask · ${ask.chatLabel}`,
-                substance: ask.summary,
+                preview: ask.summary,
                 title: ask.title,
             })
         ),
@@ -70,7 +70,7 @@ export function toNeedsYouRows(
                 kind: 'claim',
                 markName: claim.assigneeLabel,
                 meta: `${claim.chatLabel} · Task #${claim.number}`,
-                substance: claim.title,
+                preview: claim.title,
                 title: stalledClaimTitle(claim),
             })
         ),

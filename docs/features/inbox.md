@@ -24,17 +24,14 @@ delivery ledger that wakes Agents. Say "Agent inbox" wherever the two could be c
 ## Layout
 
 The page opens on a header with no card: the greeting that names the reader, and the weekday and
-date beneath it. Under that sits the **Active this week** strip, and under that the sections split
-into two columns at `lg` and wider — **Needs you** then **Conversations** on the left, **Happening
-now** beside them on the right. Below `lg` there is no width to divide and the sections stack in
-that same order.
+date beneath it. Under that sits the **Active this week** strip, and under that three full-width
+sections stacked in reading order — **Needs you**, **Conversations**, **Happening now** — in the
+page column's own rhythm.
 
-The split exists because Inbox sections are narrow things. A single column of content-height cards
-down a 1152px page reads as a ribbon of rows in a field of white, and the page column deliberately
-has no per-page width variant to narrow it with
-([`features/shell/page-column.tsx`](../../apps/website/src/features/shell/page-column.tsx)). Two
-columns give the width structure to hold instead: the reader's own queue on the left, what is
-moving without them on the right.
+They stack rather than split because a row is one line tall. Three-line rows made each section a
+tall narrow thing, and two columns were how a 1152px page held them; a one-line row makes a section
+a wide shallow one, and every part of that row — the title, the preview it leaves room for, and the
+trailing meta — wants width. Splitting the page took width from all three at once.
 
 ## Sections
 
@@ -74,20 +71,8 @@ its **Needs your review** group, and an [Ask](../../specs/asks.md) is the record
 person — so `in_review` rows in the Inbox only made the section long enough that the Asks stopped
 being the point.
 
-**Happening now** — work running right now, whether or not this human started it, also as one list:
-
-- [Cloud Agent work](../../specs/cloud-agents.md) queued or running anywhere on the Server I can
-  see, led by its provider glyph: the title, a status line with its status disc — `Running · 25m` —
-  and the Chat and Agent it came from.
-- Agents currently in a turn, from the same data as the Agent activity strip
-  ([Agent Activity](../../specs/agent-activity.md)), each stating its current step and how long it
-  has been on it — `Editing files · 3m`. The snapshot carries one event per Agent, so that span is
-  time in the current step; the run's own start is not part of this projection.
-
-This is where background work that outlives an Agent turn stays observable.
-
 **Conversations** — unread Chats, newest activity first: the Chat's identity and name, the last
-message beneath it, and the time and unread count trailing. The quoted line is flattened by the same
+message beside it, and the time and unread count trailing. The quoted line is flattened by the same
 helper every other quoting surface uses, so a reference reads as `#product` and a visual reads as its
 title. A Chat holding no message yet says so instead.
 
@@ -98,22 +83,39 @@ author is the fact the reader is scanning for. `ChatLastMessage` carries no auth
 is by display name; it is a presentation choice inside one row and never identity, and the worst a
 collision does is drop or add a prefix.
 
+**Happening now** — work running right now, whether or not this human started it, also as one list:
+
+- [Cloud Agent work](../../specs/cloud-agents.md) queued or running anywhere on the Server I can
+  see, led by its provider glyph: the title, the Chat and Agent it came from as its preview, and its
+  status disc with the elapsed time trailing — `Running · 25m`.
+- Agents currently in a turn, from the same data as the Agent activity strip
+  ([Agent Activity](../../specs/agent-activity.md)), each stating its current step and how long it
+  has been on it — `Editing files · 3m`. The snapshot carries one event per Agent, so that span is
+  time in the current step; the run's own start is not part of this projection.
+
+This is where background work that outlives an Agent turn stays observable.
+
 ## Row anatomy
 
-Every row in every list is the same shape, and hangs from its first line rather than centering on
-the block:
+Every row in every list is one line tall — a 40px band — and reads left to right in the email-inbox
+grammar:
 
-- A 24px leading mark — the Agent's own avatar, a Channel's icon box, or a Cloud Agent provider
-  glyph — nudged up half a step so it centers on the title line it introduces.
-- The title, then one muted line of substance, then one muted line of meta: an Ask reads
-  `Ask · #onboarding-owner`, a stalled claim reads `#all · Task #3`.
-- Trailing controls — the recommended-step button, or the time and unread count — aligned to that
-  same first line.
+- A 24px leading mark: the Agent's own avatar, a Channel's icon box, or a Cloud Agent provider
+  glyph.
+- The **title**, which keeps its own width rather than shrinking, and truncates only past 40% of the
+  line so one long title cannot take the preview's width with it.
+- The **preview**, muted, filling whatever the title leaves and truncating first: an Ask's summary,
+  a Chat's waiting line, the Chat and Agent behind a Cloud Agent work.
+- The **trailing cluster**, which never wraps or shrinks: where the row came from — an Ask reads
+  `Ask · #onboarding-owner`, a stalled claim `#all · Task #3` — and the one control that acts on it,
+  the recommended-step button or the unread count. An Ask whose send failed is the only row that
+  grows past one line, and it grows by exactly the error.
 
 An Ask leads with the asking Agent's face, not a question glyph, so every row in the section shares
-one identity grammar. The alignment itself is one BEM override on `.list-view--inbox` in
-`styles/default-theme.css`; the half-step nudges live on the row's own parts in
-[`inbox-row.tsx`](../../apps/website/src/features/servers/inbox/inbox-row.tsx).
+one identity grammar. The row is composed from ListView's own parts in
+[`inbox-row.tsx`](../../apps/website/src/features/servers/inbox/inbox-row.tsx); the band itself is
+one BEM override on `.list-view--inbox` in `styles/default-theme.css`, which trades the stacked
+row's block padding for a fixed height.
 
 ## Current stub
 
@@ -126,8 +128,8 @@ A **stalled claim** row is where a person learns that an Agent took work and dro
 [Chat hides an Agent's own claims by default](tasks.md). It is composed from the same `task.list`
 read the section already makes — a task with `origin` `claimed`, status `in_progress`, tier
 `tracked`, and `live` false, meaning its run settled without answering and no reply is coming — and
-reads as the Agent's avatar, `Blippy stopped before finishing`, what was asked, and the Chat and
-task number.
+reads as the Agent's avatar, `Blippy stopped before finishing`, what was asked as its preview, and
+the Chat and task number trailing.
 
 One source has no Server list procedure yet and is absent until it does: followed Threads
 (**Conversations**).

@@ -1,6 +1,12 @@
 import type { Agent } from '@grotto/api';
 import { ListView } from '@heroui-pro/react';
-import { InboxIdentityMark, InboxRowText } from './inbox-row.tsx';
+import {
+    InboxIdentityMark,
+    InboxRowLine,
+    InboxRowMeta,
+    InboxRowPreview,
+    InboxRowTitle,
+} from './inbox-row.tsx';
 import { NeedsYouAskStep } from './needs-you-ask-step.tsx';
 import type { NeedsYouRow } from './needs-you-rows.ts';
 
@@ -42,17 +48,19 @@ export function NeedsYouList({
                             avatarUrl={row.avatarUrl}
                             name={row.markName}
                         />
-                        <InboxRowText>
-                            <ListView.Title>{row.title}</ListView.Title>
-                            <ListView.Description>{row.substance}</ListView.Description>
-                            <ListView.Description>{row.meta}</ListView.Description>
-                        </InboxRowText>
+                        <InboxRowLine>
+                            <InboxRowTitle>{row.title}</InboxRowTitle>
+                            <InboxRowPreview>{row.preview}</InboxRowPreview>
+                        </InboxRowLine>
                     </ListView.ItemContent>
-                    {row.kind === 'ask' ? (
-                        <ListView.ItemAction>
-                            <NeedsYouAskStep ask={row.ask} serverId={serverId} />
-                        </ListView.ItemAction>
-                    ) : null}
+                    <ListView.ItemAction>
+                        <InboxRowMeta>
+                            <span>{row.meta}</span>
+                            {row.kind === 'ask' ? (
+                                <NeedsYouAskStep ask={row.ask} serverId={serverId} />
+                            ) : null}
+                        </InboxRowMeta>
+                    </ListView.ItemAction>
                 </ListView.Item>
             )}
         </ListView>

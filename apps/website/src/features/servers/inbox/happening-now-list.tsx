@@ -2,7 +2,14 @@ import { ListView } from '@heroui-pro/react';
 import { CloudAgentProviderGlyph } from '../../cloud-agents/cloud-agent-provider-mark.tsx';
 import { CloudAgentStatusDisc } from '../../cloud-agents/cloud-agent-status-disc.tsx';
 import type { HappeningNowRow } from './happening-now-rows.ts';
-import { InboxGlyphMark, InboxIdentityMark, InboxRowText } from './inbox-row.tsx';
+import {
+    InboxGlyphMark,
+    InboxIdentityMark,
+    InboxRowLine,
+    InboxRowMeta,
+    InboxRowPreview,
+    InboxRowTitle,
+} from './inbox-row.tsx';
 
 /**
  * What is moving right now, as one list: the Cloud Agent work a delegation
@@ -36,31 +43,35 @@ export function HappeningNowList({
                             <InboxGlyphMark>
                                 <CloudAgentProviderGlyph provider={row.work.provider} />
                             </InboxGlyphMark>
-                            <InboxRowText>
-                                <ListView.Title>{row.work.title}</ListView.Title>
-                                <ListView.Description>
-                                    <span className="flex min-w-0 items-center gap-1.5">
-                                        <CloudAgentStatusDisc
-                                            className="size-3.5"
-                                            status={row.work.status}
-                                        />
-                                        {row.work.statusText}
-                                    </span>
-                                </ListView.Description>
-                                <ListView.Description>
+                            <InboxRowLine>
+                                <InboxRowTitle>{row.work.title}</InboxRowTitle>
+                                <InboxRowPreview>
                                     {row.work.chatLabel} · {row.work.agentName}
-                                </ListView.Description>
-                            </InboxRowText>
+                                </InboxRowPreview>
+                            </InboxRowLine>
                         </ListView.ItemContent>
+                        {/* Status is the row's meta, not its preview: it is the
+                            fact that changes while the row sits there, so it
+                            keeps the fixed trailing column rather than
+                            competing with the Chat it came from. */}
+                        <ListView.ItemAction>
+                            <InboxRowMeta>
+                                <CloudAgentStatusDisc
+                                    className="size-3.5"
+                                    status={row.work.status}
+                                />
+                                <span>{row.work.statusText}</span>
+                            </InboxRowMeta>
+                        </ListView.ItemAction>
                     </ListView.Item>
                 ) : (
                     <ListView.Item id={row.id} textValue={row.agent.name}>
                         <ListView.ItemContent>
                             <InboxIdentityMark agent={row.agent.agent} name={row.agent.name} />
-                            <InboxRowText>
-                                <ListView.Title>{row.agent.name}</ListView.Title>
-                                <ListView.Description>{row.agent.label}</ListView.Description>
-                            </InboxRowText>
+                            <InboxRowLine>
+                                <InboxRowTitle>{row.agent.name}</InboxRowTitle>
+                                <InboxRowPreview>{row.agent.label}</InboxRowPreview>
+                            </InboxRowLine>
                         </ListView.ItemContent>
                     </ListView.Item>
                 )

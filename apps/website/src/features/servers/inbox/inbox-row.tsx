@@ -1,4 +1,5 @@
 import type { Agent } from '@grotto/api';
+import { ListView } from '@heroui-pro/react';
 import type { ReactNode } from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { AgentAvatar } from '../../members/agent-avatar.tsx';
@@ -7,17 +8,16 @@ import { AgentAvatar } from '../../members/agent-avatar.tsx';
 export const inboxRowMarkSize = 24;
 
 /**
- * The row's leading mark, hung from the first text line.
+ * The row's leading mark.
  *
- * ListView centers a row's content, which is right for a one-line row and
- * wrong for these: an Inbox row runs to three or four lines, and a mark
- * floating halfway down that block belongs to none of them. The Inbox's
- * ListView modifier hangs the whole row from its top instead; this pulls the
- * mark back up by half the difference between the 24px mark and the 20px title
- * line, so it centers on the line it introduces rather than sitting below it.
+ * An Inbox row is one line tall, so the mark centers on the row the way
+ * ListView already centers everything else in it. It used to hang from the
+ * row's top edge with a half-step nudge, because a three-line row gave a
+ * centered mark no line to belong to; one line removes both the problem and
+ * the correction.
  */
 export function InboxRowMark({ children }: { children: ReactNode }) {
-    return <span className="-mt-0.5 flex shrink-0">{children}</span>;
+    return <span className="flex shrink-0">{children}</span>;
 }
 
 /**
@@ -44,19 +44,6 @@ export function InboxIdentityMark({
     );
 }
 
-/** The row's text column: a title, one line of substance, one line of meta. */
-export function InboxRowText({ children }: { children: ReactNode }) {
-    return <span className="flex min-w-0 flex-col">{children}</span>;
-}
-
-/**
- * The trailing meta cluster. It rides down half a step to sit on the title
- * line, because the row itself now hangs from its top edge.
- */
-export function InboxRowTrailing({ children }: { children: ReactNode }) {
-    return <span className="mt-0.5 flex items-center gap-2">{children}</span>;
-}
-
 /**
  * A glyph standing in for a face: a brand logo centered in the same mark
  * column the Agent avatars occupy, so a Cloud Agent row and an Agent row share
@@ -74,4 +61,40 @@ export function InboxGlyphMark({ children }: { children: ReactNode }) {
             </span>
         </InboxRowMark>
     );
+}
+
+/**
+ * The row's single line of text. Layout only — the type comes from ListView's
+ * own Title and Description, which this arranges side by side rather than
+ * stacked.
+ */
+export function InboxRowLine({ children }: { children: ReactNode }) {
+    return <span className="flex min-w-0 flex-1 items-center gap-2">{children}</span>;
+}
+
+/**
+ * What the row is. It keeps its own width rather than shrinking to make room:
+ * the title is the thing being scanned, and a column of half-titles is a
+ * column you have to open to read. Past 40% of the line it truncates, so one
+ * long title cannot take the preview's width with it.
+ */
+export function InboxRowTitle({ children }: { children: ReactNode }) {
+    return <ListView.Title className="max-w-[40%] shrink-0">{children}</ListView.Title>;
+}
+
+/**
+ * What is waiting behind the title. It fills whatever the title leaves and is
+ * the first thing to give way, the way an email list's preview does.
+ */
+export function InboxRowPreview({ children }: { children: ReactNode }) {
+    return <ListView.Description className="min-w-0 flex-1">{children}</ListView.Description>;
+}
+
+/**
+ * The trailing cluster: where the row came from, and the one control that acts
+ * on it. It never wraps and never shrinks — a row's origin and its action are
+ * the two things that must stay readable when the line runs out of width.
+ */
+export function InboxRowMeta({ children }: { children: ReactNode }) {
+    return <div className="flex shrink-0 items-center gap-2 text-muted text-xs">{children}</div>;
 }

@@ -367,17 +367,23 @@
     }
 
     /*
-     * Inbox rows run to three or four lines beside one 24px identity mark, and
-     * ListView centers a row's content. Centering is right for a one-line row
-     * and wrong for these: the mark and the trailing control float halfway
-     * down a paragraph, belonging to none of its lines. The Inbox modifier
-     * hangs the whole row from its top edge instead, and the row's own parts
-     * (`features/servers/inbox/inbox-row.tsx`) take the half-step nudges that
-     * put each of them back on the title line.
+     * An Inbox row is an email row: one line, scanned in a column of its
+     * peers. ListView's stock row pads for a title stacked over a description,
+     * which around a single line reads as a list of cards; this trades that
+     * padding for one fixed band, so every row is the same 40px whether it
+     * carries a 24px mark or a small button, and only an Ask reporting a send
+     * failure grows past it. The parts that fill the band live in
+     * `features/servers/inbox/inbox-row.tsx`.
      */
-    .list-view--inbox .list-view__item,
-    .list-view--inbox .list-view__item-content {
-        align-items: flex-start;
+    .list-view--inbox .list-view__item {
+        min-block-size: 40px;
+        padding-block: 0;
+    }
+
+    /* The description sits beside the title here, not under it, so it sheds
+       the offset that separates two stacked lines. */
+    .list-view--inbox .list-view__description {
+        margin-top: 0;
     }
 
     /*

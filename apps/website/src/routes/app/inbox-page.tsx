@@ -16,14 +16,15 @@ import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
  * emit. Each section reads its own query and states its own result.
  *
  * The order is the reading order: who is reading and what day it is, then the
- * Agents that moved this week, then what is waiting on this person.
+ * Agents that moved this week, then what is waiting on this person, then the
+ * conversation waiting on them, then what is moving without them.
  *
- * Below the strip the page splits. Every section is content-height, and a
- * single column of them down a 1152px page is a ribbon of rows in a field of
- * white — the sections are narrow things, not wide ones. Two columns give the
- * width something to hold: the reader's own queue on the left, and what is
- * moving without them beside it. Below `lg` there is no width to divide, so it
- * falls back to the one column it always was.
+ * The sections stack full width, one per band, in the page column's own
+ * rhythm. They were two columns while a row ran three lines deep and a section
+ * was a tall narrow thing; one-line rows make every section a wide shallow one,
+ * and a wide shallow section wants the whole column — a row's title, preview,
+ * and trailing meta all need width, and splitting the page took it from all
+ * three at once.
  */
 export function InboxPage() {
     useWindowTitle('Inbox');
@@ -36,13 +37,9 @@ export function InboxPage() {
             <PageColumn>
                 <InboxHeader />
                 <InboxActiveAgents />
-                <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-                    <div className="flex flex-col gap-8">
-                        <InboxNeedsYou />
-                        <InboxConversations />
-                    </div>
-                    <InboxHappeningNow />
-                </div>
+                <InboxNeedsYou />
+                <InboxConversations />
+                <InboxHappeningNow />
             </PageColumn>
             <AskThreadDialog />
             <CloudAgentWorkDialog />

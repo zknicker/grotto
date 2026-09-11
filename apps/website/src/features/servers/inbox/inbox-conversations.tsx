@@ -13,7 +13,14 @@ import { chatNavigationName } from '../../shell/chat-navigation-row.tsx';
 import { useServerContext } from '../server-context.ts';
 import { serverChatRoute } from '../server-routes.ts';
 import { conversationPreviewLine } from './conversation-preview.ts';
-import { InboxGlyphMark, InboxIdentityMark, InboxRowText, InboxRowTrailing } from './inbox-row.tsx';
+import {
+    InboxGlyphMark,
+    InboxIdentityMark,
+    InboxRowLine,
+    InboxRowMeta,
+    InboxRowPreview,
+    InboxRowTitle,
+} from './inbox-row.tsx';
 import { InboxSection, InboxSectionEmpty, InboxSectionPending } from './inbox-section.tsx';
 
 /**
@@ -95,20 +102,20 @@ function UnreadChatItem({
                         <ChannelIconBox color={chat.color} icon={chat.icon} size="topbar" />
                     </InboxGlyphMark>
                 )}
-                <InboxRowText>
-                    <ListView.Title>{chat.kind === 'channel' ? `#${name}` : name}</ListView.Title>
+                <InboxRowLine>
+                    <InboxRowTitle>{chat.kind === 'channel' ? `#${name}` : name}</InboxRowTitle>
                     {/* The waiting line, as one truncated quote. A Chat that
                         holds no message yet says so instead. */}
-                    <ListView.Description>{preview ?? 'no activity yet'}</ListView.Description>
-                </InboxRowText>
+                    <InboxRowPreview>{preview ?? 'no activity yet'}</InboxRowPreview>
+                </InboxRowLine>
             </ListView.ItemContent>
             <ListView.ItemAction>
-                <InboxRowTrailing>
-                    <span className="text-muted text-xs tabular-nums">
+                <InboxRowMeta>
+                    <span className="tabular-nums">
                         <RelativeTime fallback="" value={chat.lastActivityAt} />
                     </span>
                     <UnreadCountChip count={chat.unreadCount} />
-                </InboxRowTrailing>
+                </InboxRowMeta>
             </ListView.ItemAction>
         </ListView.Item>
     );

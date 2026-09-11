@@ -248,6 +248,25 @@
         corner-shape: round;
     }
 
+    /*
+     * HeroUI Pro 1.0.0-beta.9 ships a compact-layout shell rule that outranks
+     * the `secondary` variant and repaints the shell with `--field-background`,
+     * so a secondary composer sitting on a surface — the thread peek — paints
+     * surface on surface and vanishes. Restore the variant's own fill and edge
+     * under the compact layout. Remove once `.prompt-input__shell--secondary`
+     * wins over the compact rule upstream.
+     */
+    .prompt-input[data-layout="compact"]
+        .prompt-input__shell--compact.prompt-input__shell--secondary {
+        background-color: var(--default);
+        border-color: var(--border);
+    }
+
+    .prompt-input[data-layout="compact"]
+        .prompt-input__shell--compact.prompt-input__shell--secondary:hover {
+        background-color: var(--default-hover);
+    }
+
     .prompt-input[data-layout="compact"] .prompt-input__shell--compact {
         transition:
             background-color 150ms var(--ease-smooth),

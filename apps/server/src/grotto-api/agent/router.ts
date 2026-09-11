@@ -14,7 +14,6 @@ import { importAgentSkillProcedure } from './import-skill.ts';
 import { listAgentsProcedure } from './list.ts';
 import { onAgentActivityProcedure } from './on-activity.ts';
 import { onAgentLifecycleProcedure } from './on-lifecycle.ts';
-import { agentRecentTurnsProcedure } from './recent-turns.ts';
 import { resetAgentProcedure } from './reset.ts';
 import { restartAgentProcedure } from './restart.ts';
 import { agentSessionRotationProcedure } from './session-rotation.ts';
@@ -48,7 +47,6 @@ export const agentRouter = createRouter({
     list: listAgentsProcedure,
     onLifecycle: onAgentLifecycleProcedure,
     onActivity: onAgentActivityProcedure,
-    recentTurns: agentRecentTurnsProcedure,
     reset: resetAgentProcedure,
     restart: restartAgentProcedure,
     sessionRotation: agentSessionRotationProcedure,

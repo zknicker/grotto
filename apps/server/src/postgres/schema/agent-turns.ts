@@ -53,8 +53,6 @@ export const agentTurnsTable = pgTable(
     (table) => [
         uniqueIndex('agent_turns_run_key').on(table.serverId, table.agentId, table.runId),
         index('agent_turns_agent_idx').on(table.serverId, table.agentId, table.reportedAt),
-        /** The cross-Agent recency read: every turn on a Server since a cutoff. */
-        index('agent_turns_started_idx').on(table.serverId, table.startedAt),
         foreignKey({
             columns: [table.serverId, table.agentId],
             foreignColumns: [agentsTable.serverId, agentsTable.id],

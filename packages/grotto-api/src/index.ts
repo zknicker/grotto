@@ -60,7 +60,6 @@ export * from './agent.ts';
 export * from './agent-activity.ts';
 export * from './agent-creation.ts';
 export * from './agent-execution.ts';
-export * from './agent-recent-turns.ts';
 export * from './agent-runner.ts';
 export * from './agent-workspace-files.ts';
 export * from './app-protocol.ts';

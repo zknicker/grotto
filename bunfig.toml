@@ -14,6 +14,9 @@ minimumReleaseAgeExcludes = [
     "@ai-sdk/mcp",
     "@ai-sdk/provider-utils",
     "@heroui-pro/react",
+    # Required peers of @heroui-pro/react 1.0.0-beta.9 (>=3.2.5).
+    "@heroui/react",
+    "@heroui/styles",
 ]
 
 [install.scopes]

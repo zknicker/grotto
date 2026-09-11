@@ -29,6 +29,7 @@ import { demoTokenUsage } from './demo-token-usage.ts';
 import { ensureDevelopmentChatAttachment } from './seed-chat-attachment.ts';
 import { ensureDevelopmentCove } from './seed-cove.ts';
 import { insertSeedAvatars } from './seed-demo-avatars.ts';
+import { seedDevelopmentInboxActivity } from './seed-inbox-activity.ts';
 
 const demoInventory = {
     name: 'Development Mac',
@@ -62,6 +63,7 @@ export async function seedDevelopmentServer(
         if (options.attachmentRoot) {
             await ensureDevelopmentChatAttachment(db, options.attachmentRoot, existing[0].id);
         }
+        await seedDevelopmentInboxActivity(db, { serverId: existing[0].id, userId: user.id });
         return existing[0];
     }
 
@@ -152,21 +154,13 @@ export async function seedDevelopmentServer(
             name: 'product',
             serverId,
         });
-        await tx.insert(channelParticipantsTable).values({
-            chatId: channelId,
-            serverId,
-            userId: user.id,
-        });
-        await tx.insert(channelParticipantsTable).values({
-            chatId: demoChannelId,
-            serverId,
-            userId: user.id,
-        });
-        await tx.insert(channelParticipantsTable).values({
-            chatId: onboardingChannelId,
-            serverId,
-            userId: user.id,
-        });
+        await tx.insert(channelParticipantsTable).values(
+            [channelId, demoChannelId, onboardingChannelId].map((chatId) => ({
+                chatId,
+                serverId,
+                userId: user.id,
+            }))
+        );
         await tx.insert(computersTable).values({
             architecture: process.arch,
             attachedByUserId: user.id,
@@ -347,6 +341,7 @@ export async function seedDevelopmentServer(
     if (options.attachmentRoot) {
         await ensureDevelopmentChatAttachment(db, options.attachmentRoot, seeded.id);
     }
+    await seedDevelopmentInboxActivity(db, { serverId: seeded.id, userId: user.id });
     return seeded;
 }
 

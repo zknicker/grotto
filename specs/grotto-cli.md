@@ -163,7 +163,7 @@ Rules:
   every layer prints it.
 - Every message also carries `body_kind` (`text | ask | cloud-agent-work`) on the
   wire, with the Ask's own facts under `ask` (`id`, `status`, `addressee_handle`,
-  `title`, `recommended_step`) and Cloud Agent work's under `cloud_agent_work`
+  `title`, `options`) and Cloud Agent work's under `cloud_agent_work`
   (`id`, `provider`, `status`, `title`, `repository`, `starting_ref`,
   `provider_url`, `activity`, and the `latest_run` with its status, summary,
   error code, and branches) so a reader can act without a second call.
@@ -349,7 +349,7 @@ per family:
 | profile | `show update` | WS5 (landed) | Agent-facing `show [@handle]`, `update --description` (≤500 chars); human display names and handles are edited in App Settings |
 | reminder | `schedule list snooze update cancel log` | WS5 (landed) | D4 model: `schedule --title (--delay-seconds \| --fire-at) [--repeat] --message-id [--script]`; message anchors only |
 | trigger | `create list show enable disable rotate delete log` | ADR 0027 (landed) | Inbound webhook wakes: `create --title --message-id [--instruction] [--kind webhook]`; `--kind` defaults to `webhook` and any other value is `INVALID_ARG` naming the supported kinds; `list`/`show` print the kind with the status; message anchors only and never a schedule; `create` and `rotate` print the bearer secret once with a ready `curl` line; `delete` removes active use while retaining recent fire history for 30 days; mutations are not idempotent |
-| ask | one verb, no subcommand | Asks (landed) | `ask --target <target> --to @<handle> --title <text> --summary <text> --step <text>`, question body on stdin; one named human's decision ([Asks](asks.md)) |
+| ask | one verb, no subcommand | Asks (landed) | `ask --target <target> --to @<handle> --title <text> --summary <text> [--option <text>]...`, question body on stdin; one named human's decision ([Asks](asks.md)) |
 | cloud-agent | `start cancel` | Cloud Agents (landed) | `start --target <target> --repo <owner/name> [--ref <ref>] --title <text> --say <text>` with the provider instructions on stdin, and `cancel --work <workId>`; the Computer checks provider readiness before Server records anything and the instructions never leave it ([Cloud Agents](cloud-agents.md)) |
 | agent | `create update avatar` | ADR 0028 (landed) | `create --target <target> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] --say <text>` creates the Agent and returns its `@handle` and channels, inheriting the caller's runtime, model, reasoning effort, and Computer; `--brief` is the standing instruction seeded into its memory, `--channel` repeats and always comes on top of `#all`; `update --agent @handle --description <text>` and `avatar --agent @handle --concept <text>` edit an existing Agent and refuse Cove. Flags only, no stdin ([Agents](../docs/features/agents.md)) |
 | skill | `list view create patch write-file` | WS5 (landed) | Replaces `skills_*` tools; hash-guarded patch/write-file, stdin bodies |
@@ -390,7 +390,7 @@ POST /api/agent/agents             { avatarConcept?, content, description, displ
                                        sequence, target }
 POST /api/agent/agents/update      { agent, description } → { agent }
 POST /api/agent/agents/avatar      { agent, concept } → { agent, avatar }
-POST /api/agent/asks               { addresseeHandle, content, nonce, recommendedStep,
+POST /api/agent/asks               { addresseeHandle, content, nonce, options,
                                      summary, target, title }
                                    → { ask, chatId, idempotent, messageId, sequence, target }
 POST /api/agent/cloud-agents       { content, nonce, provider, repository, startingRef,

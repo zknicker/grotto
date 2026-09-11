@@ -73,7 +73,7 @@ row inside that same box, so it keeps the section's shape rather than changing i
 
 **Needs you** — work waiting on this human, as one list over two records:
 
-- Open [Asks](../../specs/asks.md) addressed to me. The row states the Ask; the recommended step is
+- Open [Asks](../../specs/asks.md) addressed to me. The row states the Ask; the Ask's options are
   offered in the Thread the row peeks, where the whole Ask is readable.
 - Claims an Agent took and stopped short of finishing.
 
@@ -148,10 +148,12 @@ would need the target underneath and the control lifted above, and no row acts.
 ## Current stub
 
 The page is live at `/s/:slug/inbox`. An Ask row peeks its Thread over the Inbox at
-`?ask=<messageId>`, with the Agent's recommended step above that Thread's composer — the one-press
-form of the reply a person would otherwise type, and the only place an Ask can be answered without
-typing. It rides the same open-Ask read the section does, so an Ask answered elsewhere takes the
-step, the peek, and the row with it; a Cloud Agent work row peeks its conversation at `?work=<messageId>` — the same
+`?ask=<messageId>`, with the Ask's options above that Thread's composer as tap-to-reply chips in the
+Agent's own order, the recommendation first and emphasized — the one-press form of the reply a
+person would otherwise type, and the only place an Ask can be answered without typing. Pressing one
+sends exactly its text; one press spends the row. An Ask with no options is an open question and
+shows only the composer. The options ride the same open-Ask read the section does, so an Ask
+answered elsewhere takes them, the peek, and the row with it; a Cloud Agent work row peeks its conversation at `?work=<messageId>` — the same
 Thread timeline the Chat opens, work card and all; a stalled claim opens the task on the Tasks page;
 an Agent row in **Happening now** opens that Agent's page.
 

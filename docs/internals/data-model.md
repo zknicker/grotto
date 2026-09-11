@@ -54,7 +54,7 @@ cursor, while Chat access and archive checks remain the write boundary. Deleting
 aggregate cascades its reactions.
 
 `asks` is the Server record behind an `ask` body: one row per Message (`(server_id, message_id)` is
-unique) carrying the addressed human, the asking Agent, the title, summary, and recommended step,
+unique) carrying the addressed human, the asking Agent, the title, summary, and options,
 plus the settlement columns — status, answered-at, answer Message, and exactly one of the answering
 human or Agent. A CHECK keeps `answered` and its settlement columns in agreement, and composite
 foreign keys keep the Ask, its Message, its Chat, its addressee, and its answerer in one Server

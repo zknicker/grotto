@@ -219,15 +219,16 @@ A managed Agent asks one named human for a decision with `grotto ask`:
 ```sh
 grotto ask --target "#product" --to @ada --title "Run the staged migration?" \
   --summary "The migration is staged and reversible for one hour." \
-  --step "Approve the staged migration" <<'GROTTOMSG'
+  --option "Run it now" --option "Wait for the release window" <<'GROTTOMSG'
 The migration is staged. Should I run it now, or wait for the release window?
 GROTTOMSG
 ```
 
-`POST /api/agent/asks` takes `{ addresseeHandle, content, nonce, recommendedStep, summary, target,
-title }` and returns `{ ask, chatId, idempotent, messageId, sequence, target }`. The question text is
-the Message content and is required; `title` is at most 120 characters, `summary` 500, and
-`recommendedStep` 200. The Server resolves the target under the runner's own Agent and Server
+`POST /api/agent/asks` takes `{ addresseeHandle, content, nonce, options, summary, target, title }`
+and returns `{ ask, chatId, idempotent, messageId, sequence, target }`. The question text is the
+Message content and is required; `title` is at most 120 characters and `summary` 500. `options` is
+zero to four distinct replies of at most 80 characters each, in the order the human sees them, the
+first being the Agent's recommendation; an empty array is an open question. The Server resolves the target under the runner's own Agent and Server
 authority, resolves the handle in the shared human/Agent handle namespace, and requires an active
 human member with access to that Chat — an unknown handle, an Agent handle, or a member without Chat
 access returns `ASK_ADDRESSEE_NOT_FOUND` and writes nothing.
@@ -247,7 +248,7 @@ conversation the answer is addressed to plus the Thread anchor a reply hangs off
 inside a Thread is answerable from the Inbox like any other.
 
 Every Agent-facing Message states its `body_kind` (`text | ask | cloud-agent-work`), and an Ask
-Message carries `ask: { id, status, addressee_handle, title, recommended_step }` beside it. The
+Message carries `ask: { id, status, addressee_handle, title, options }` beside it. The
 Agent CLI appends `[ask status=open|answered to=@handle]` to that Message's history line and
 delivery envelope, after the task suffix
 ([Haus CLI](../../specs/grotto-cli.md#4-envelopes-and-message-lines)).

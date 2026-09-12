@@ -189,7 +189,7 @@ describe('Haus OpenAPI contract', () => {
         const ask = {
             addressee_handle: 'ada',
             id: 'ask_1234567890abcdef',
-            recommended_step: 'Approve the staged migration',
+            options: ['Approve the staged migration', 'Wait for the release window'],
             status: 'open',
             title: 'Run the staged migration?',
         };
@@ -203,7 +203,13 @@ describe('Haus OpenAPI contract', () => {
         expect(validate('MessageAsk', { ...ask, addressee_handle: null })).toBe(true);
         expect(validate('MessageAsk', { ...ask, status: 'closed' })).toBe(false);
         expect(validate('MessageAsk', { ...ask, summary: 'extra' })).toBe(false);
-        expect(validate('MessageAsk', { ...ask, recommended_step: undefined })).toBe(false);
+        expect(validate('MessageAsk', { ...ask, options: [] })).toBe(true);
+        expect(validate('MessageAsk', { ...ask, options: undefined })).toBe(false);
+        expect(validate('MessageAsk', { ...ask, options: ['Yes', 'Yes'] })).toBe(false);
+        expect(validate('MessageAsk', { ...ask, options: ['a'.repeat(81)] })).toBe(false);
+        expect(
+            validate('MessageAsk', { ...ask, options: ['One', 'Two', 'Three', 'Four', 'Five'] })
+        ).toBe(false);
     });
 
     it('maps agent send discriminator values to their response variants', () => {

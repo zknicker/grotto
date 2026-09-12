@@ -38,6 +38,7 @@ test('upgrades the preceding production schema without replaying migrations', as
             '0037_trigger_history_retention',
             '0038_agents_create_agents',
             '0039_agent_creation_message_detach',
+            '0040_ask_options',
             '0041_haus_identity',
         ]);
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([

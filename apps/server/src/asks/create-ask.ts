@@ -60,7 +60,7 @@ export async function createAsk(
             chatId: plan.chatId,
             id: askId,
             messageId: written.messageId,
-            recommendedStep: input.recommendedStep,
+            options: input.options,
             serverId: runner.serverId,
             summary: input.summary,
             title: input.title,
@@ -118,7 +118,7 @@ async function readAskByNonce(
         message.content !== input.content ||
         ask.title !== input.title ||
         ask.summary !== input.summary ||
-        ask.recommendedStep !== input.recommendedStep
+        !sameOptions(ask.options, input.options)
     ) {
         throw new AskConflictError();
     }
@@ -130,6 +130,13 @@ async function readAskByNonce(
         sequence: message.sequence,
         target: input.target,
     };
+}
+
+/** Options are ordered — the first is the recommendation — so a reorder is a different Ask. */
+function sameOptions(stored: readonly string[], incoming: readonly string[]): boolean {
+    return (
+        stored.length === incoming.length && stored.every((option, at) => option === incoming[at])
+    );
 }
 
 /**

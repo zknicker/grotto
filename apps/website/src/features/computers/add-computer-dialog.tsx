@@ -13,33 +13,31 @@ export function AddComputerDialog({
     serverSlug: string;
 }) {
     return (
-        <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop isDismissable>
-                <Modal.Container scroll="inside" size="lg">
-                    <Modal.Dialog>
-                        <Modal.CloseTrigger />
-                        <Modal.Header>
-                            <Modal.Icon className="bg-default text-foreground">
-                                <Icon className="size-5" icon={ComputerIcon} />
-                            </Modal.Icon>
-                            <Modal.Heading>Add Computer</Modal.Heading>
-                            <p className="mt-1.5 text-muted text-sm leading-5">
-                                Run Agents on an Apple Silicon Mac you control.
-                            </p>
-                        </Modal.Header>
-                        <Modal.Body>
-                            <div className="pt-2">
-                                <ComputerSetupCommands serverSlug={serverSlug} />
-                            </div>
-                        </Modal.Body>
-                        <Modal.Footer>
-                            <Button slot="close" variant="secondary">
-                                Done
-                            </Button>
-                        </Modal.Footer>
-                    </Modal.Dialog>
-                </Modal.Container>
-            </Modal.Backdrop>
-        </Modal>
+        <Modal.Backdrop isDismissable isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Container scroll="inside" size="lg">
+                <Modal.Dialog>
+                    <Modal.CloseTrigger />
+                    <Modal.Header>
+                        <Modal.Icon className="bg-default text-foreground">
+                            <Icon className="size-5" icon={ComputerIcon} />
+                        </Modal.Icon>
+                        <Modal.Heading>Add Computer</Modal.Heading>
+                        <p className="mt-1.5 text-muted text-sm leading-5">
+                            Run Agents on an Apple Silicon Mac you control.
+                        </p>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <div className="pt-2">
+                            <ComputerSetupCommands serverSlug={serverSlug} />
+                        </div>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button slot="close" variant="secondary">
+                            Done
+                        </Button>
+                    </Modal.Footer>
+                </Modal.Dialog>
+            </Modal.Container>
+        </Modal.Backdrop>
     );
 }

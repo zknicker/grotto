@@ -16,7 +16,7 @@ export const taskActorSchema = z.object({
 const messageAskSchema = z.object({
     addressee_handle: z.string().nullable(),
     id: z.string(),
-    recommended_step: z.string(),
+    options: z.array(z.string()),
     status: z.enum(['open', 'answered']),
     title: z.string(),
 });

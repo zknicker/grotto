@@ -19,7 +19,7 @@ const openAsk = {
     createdAt: '2026-09-03T12:00:00.000Z',
     id: 'ask_1234567890abcdef',
     messageId: 'msg_1234567890abcdef',
-    recommendedStep: 'Approve the staged migration.',
+    options: ['Approve the staged migration.', 'Wait for the release window'],
     status: 'open',
     summary: 'The staged migration is ready and needs a human decision before it runs.',
     title: 'Run the staged migration?',
@@ -43,9 +43,14 @@ test('an Ask carries its request and settlement in one narrow record', () => {
     expect(askSchema.safeParse({ ...openAsk, title: '' }).success).toBe(false);
     expect(askSchema.safeParse({ ...openAsk, title: 'a'.repeat(121) }).success).toBe(false);
     expect(askSchema.safeParse({ ...openAsk, summary: 'a'.repeat(501) }).success).toBe(false);
-    expect(askSchema.safeParse({ ...openAsk, recommendedStep: 'a'.repeat(201) }).success).toBe(
-        false
-    );
+    expect(askSchema.safeParse({ ...openAsk, options: [] }).success).toBe(true);
+    expect(askSchema.safeParse({ ...openAsk, options: ['a'.repeat(81)] }).success).toBe(false);
+    expect(askSchema.safeParse({ ...openAsk, options: [''] }).success).toBe(false);
+    expect(askSchema.safeParse({ ...openAsk, options: ['Yes', 'Yes'] }).success).toBe(false);
+    expect(
+        askSchema.safeParse({ ...openAsk, options: ['One', 'Two', 'Three', 'Four', 'Five'] })
+            .success
+    ).toBe(false);
 });
 
 test('a Message body is exhaustive across text and ask', () => {
@@ -150,7 +155,7 @@ test('the open-Ask row and the Agent request keep their narrow shapes', () => {
             addresseeHandle: 'Ada',
             content: 'The migration is staged. Should I run it?',
             nonce: 'ask-1',
-            recommendedStep: 'Approve the staged migration.',
+            options: ['Approve the staged migration.'],
             summary: 'The staged migration is ready and needs a human decision before it runs.',
             target: '#product',
             title: 'Run the staged migration?',
@@ -161,7 +166,7 @@ test('the open-Ask row and the Agent request keep their narrow shapes', () => {
             addresseeHandle: 'ada',
             content: '   ',
             nonce: 'ask-1',
-            recommendedStep: 'Approve the staged migration.',
+            options: ['Approve the staged migration.'],
             summary: 'The staged migration is ready.',
             target: '#product',
             title: 'Run the staged migration?',

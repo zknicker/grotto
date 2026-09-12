@@ -1,6 +1,8 @@
 export interface CliFlag {
     description: string;
     name: string;
+    /** A flag this command no longer takes. Using it fails with this message. */
+    removed?: string;
     valueName?: string;
 }
 
@@ -71,6 +73,9 @@ export function parseArgs(command: CliCommand, args: string[]): ParsedArgs {
         const flag = known.get(arg);
         if (!flag) {
             throw new UsageError(`Unknown flag '${arg}' for 'haus ${command.name}'.`, command);
+        }
+        if (flag.removed) {
+            throw new UsageError(flag.removed, command);
         }
         if (flagTakesValue(flag)) {
             const value = args[index + 1];

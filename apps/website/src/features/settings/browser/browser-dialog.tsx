@@ -41,46 +41,44 @@ export function BrowserDialog({
     titleSuffix?: ReactNode;
 }) {
     return (
-        <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop isDismissable>
-                <Modal.Container scroll="inside" size="lg">
-                    <Modal.Dialog>
-                        {/* Modal.Header stacks Icon over Heading over one muted
-                            line. A control laid out beside the heading replaces
-                            that layout; controls belong in the body. */}
-                        <Modal.Header>
-                            <Modal.Icon className="bg-default text-foreground">
-                                <Icon className="size-5" icon={icon} />
-                            </Modal.Icon>
-                            <Modal.Heading>
-                                {title}
-                                {titleSuffix ? ` ${titleSuffix}` : null}
-                            </Modal.Heading>
-                            {description ? (
-                                <p className="mt-1.5 text-muted text-sm leading-5">{description}</p>
-                            ) : null}
-                        </Modal.Header>
-                        <Modal.Body>
-                            <Form
-                                id={BROWSER_DIALOG_FORM_ID}
-                                onSubmit={(event) => {
-                                    event.preventDefault();
-                                    onSubmit();
-                                }}
-                            >
-                                {children}
-                            </Form>
-                        </Modal.Body>
-                        <Modal.Footer>
-                            <Button slot="close" type="button" variant="secondary">
-                                Cancel
-                            </Button>
-                            {footer}
-                        </Modal.Footer>
-                    </Modal.Dialog>
-                </Modal.Container>
-            </Modal.Backdrop>
-        </Modal>
+        <Modal.Backdrop isDismissable isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Container scroll="inside" size="lg">
+                <Modal.Dialog>
+                    {/* Modal.Header stacks Icon over Heading over one muted
+                        line. A control laid out beside the heading replaces
+                        that layout; controls belong in the body. */}
+                    <Modal.Header>
+                        <Modal.Icon className="bg-default text-foreground">
+                            <Icon className="size-5" icon={icon} />
+                        </Modal.Icon>
+                        <Modal.Heading>
+                            {title}
+                            {titleSuffix ? ` ${titleSuffix}` : null}
+                        </Modal.Heading>
+                        {description ? (
+                            <p className="mt-1.5 text-muted text-sm leading-5">{description}</p>
+                        ) : null}
+                    </Modal.Header>
+                    <Modal.Body>
+                        <Form
+                            id={BROWSER_DIALOG_FORM_ID}
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                onSubmit();
+                            }}
+                        >
+                            {children}
+                        </Form>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button slot="close" type="button" variant="secondary">
+                            Cancel
+                        </Button>
+                        {footer}
+                    </Modal.Footer>
+                </Modal.Dialog>
+            </Modal.Container>
+        </Modal.Backdrop>
     );
 }
 

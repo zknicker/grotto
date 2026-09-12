@@ -28,23 +28,24 @@ interface ShellSidebarPageProps {
 export function ShellSidebar({
     activePage,
     children,
-    chrome,
     footer,
+    settingsAction,
 }: {
     activePage: ShellSidebarPageId;
     children: React.ReactNode;
-    /**
-     * Floating sidebar chrome, rendered before the navigation so it leads the
-     * tab order. It is positioned out of flow, so it costs the pages below it
-     * no vertical space.
-     */
-    chrome?: React.ReactNode;
     footer?: React.ReactNode;
+    /**
+     * The sidebar's one piece of chrome. Where it lands is the shell's
+     * business, not the action's: the macOS titlebar strip, or the footer's
+     * trailing end everywhere else.
+     */
+    settingsAction?: React.ReactNode;
 }) {
     // The sidebar resizes like every pane: drag its trailing edge. The width
     // lives in a shared store because the token must be set above HeroUI's
     // offcanvas wrapper (see the AppLayout host), while the rail lives here.
     const sidebarWidth = useAppSidebarWidth();
+    const settingsSlot = resolveSettingsActionSlot();
     let activePageContent: ShellSidebarPageProps | undefined;
     React.Children.forEach(children, (child) => {
         if (child === null) {
@@ -76,7 +77,7 @@ export function ShellSidebar({
                 title="Resize sidebar"
                 width={sidebarWidth.width}
             />
-            {chrome}
+            {settingsSlot === 'titlebar' ? settingsAction : null}
             {/* `contents` carries the scale to every navigation row without adding a box. */}
             <div
                 className="contents"
@@ -84,9 +85,42 @@ export function ShellSidebar({
             >
                 {activePageContent.children}
             </div>
-            {footer ? <Sidebar.Footer>{footer}</Sidebar.Footer> : null}
+            {footer || settingsSlot === 'footer' ? (
+                <Sidebar.Footer>
+                    {/* One line: live Agent activity reads from the leading
+                        edge, Settings sits at the trailing one. `items-end`
+                        keeps the gear on the strip's last row, and on its own
+                        line at the sidebar's bottom-right when the strip has
+                        nothing to say. */}
+                    <div className="flex w-full items-end gap-2">
+                        <div className="min-w-0 flex-1">{footer}</div>
+                        {settingsSlot === 'footer' ? settingsAction : null}
+                    </div>
+                </Sidebar.Footer>
+            ) : null}
         </Sidebar>
     );
+}
+
+/**
+ * Where the Settings gear goes.
+ *
+ * macOS reserves a titlebar strip beside the traffic lights, and the gear is
+ * the only thing that ever rides in it; `shell.css` floats it there. Every
+ * other surface has no strip, and floating the gear over the lead row's
+ * trailing end made Inbox and Settings share a line — so there it is an
+ * ordinary footer item instead, rendered where it is drawn so the tab order
+ * follows the eye on both surfaces.
+ *
+ * The signal is the class `main.tsx` already stamps on the root for the same
+ * platform split in CSS, read once at render: it is set before the app mounts
+ * and never toggles afterwards.
+ */
+function resolveSettingsActionSlot(): 'footer' | 'titlebar' {
+    return typeof document !== 'undefined' &&
+        document.documentElement.classList.contains('macos-electron')
+        ? 'titlebar'
+        : 'footer';
 }
 
 /** Declarative page marker consumed by ShellSidebar. */
@@ -95,27 +129,14 @@ export function ShellSidebarPage({ children }: ShellSidebarPageProps) {
 }
 
 /**
- * Frame inside one contextual sidebar page. Every page supplies a semantic
- * header band; Sidebar.Header's stock padding keeps it visually inline with
- * the shell topbar instead of approximating that alignment in scrollable content.
- * (Sidebar.Header does not forward className; the inner wrapper shapes a
- * 32px row whose midline matches the shell topbar's.)
+ * Frame inside one contextual sidebar page: the page's groups, in the
+ * sidebar's scrollable content.
+ *
+ * No page carries a header band. A sidebar page leads with a navigation row —
+ * Inbox in chat navigation, Back on the settings pages — and `shell.css` puts
+ * that first row in the shared shell band, so its midline meets the content
+ * topbar's across the divider without a band element to approximate it.
  */
-export function ShellSidebarPageContent({
-    band,
-    children,
-}: {
-    band?: React.ReactNode;
-    children: React.ReactNode;
-}) {
-    return (
-        <>
-            {band ? (
-                <Sidebar.Header>
-                    <div className="-mx-1 -mt-2 flex min-h-8 items-center">{band}</div>
-                </Sidebar.Header>
-            ) : null}
-            <Sidebar.Content>{children}</Sidebar.Content>
-        </>
-    );
+export function ShellSidebarPageContent({ children }: { children: React.ReactNode }) {
+    return <Sidebar.Content>{children}</Sidebar.Content>;
 }

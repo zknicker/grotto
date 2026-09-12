@@ -22,23 +22,21 @@ export function McpHeaderCredentialsDialog({
     saving: boolean;
 }) {
     return (
-        <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop isDismissable>
-                <Modal.Container size="md">
-                    <Modal.Dialog>
-                        <Modal.CloseTrigger />
-                        {open ? (
-                            <HeaderCredentialsForm
-                                connection={connection}
-                                onCancel={() => onOpenChange(false)}
-                                onSave={onSave}
-                                saving={saving}
-                            />
-                        ) : null}
-                    </Modal.Dialog>
-                </Modal.Container>
-            </Modal.Backdrop>
-        </Modal>
+        <Modal.Backdrop isDismissable isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Container size="md">
+                <Modal.Dialog>
+                    <Modal.CloseTrigger />
+                    {open ? (
+                        <HeaderCredentialsForm
+                            connection={connection}
+                            onCancel={() => onOpenChange(false)}
+                            onSave={onSave}
+                            saving={saving}
+                        />
+                    ) : null}
+                </Modal.Dialog>
+            </Modal.Container>
+        </Modal.Backdrop>
     );
 }
 

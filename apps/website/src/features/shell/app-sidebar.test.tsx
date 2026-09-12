@@ -3,6 +3,7 @@ import type { Agent, Chat } from '@haus/api';
 import { Sidebar } from '@heroui-pro/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { testChat } from '../chats/chat-fixtures.ts';
 import { testAgent } from '../members/agent-fixtures.ts';
 import { ChatNavigation } from './chat-navigation.tsx';
 import { CommandMenuProvider } from './command-menu-provider.tsx';
@@ -261,73 +262,36 @@ function agent(overrides: Pick<Agent, 'availability' | 'displayName' | 'id'>): A
 }
 
 function dm(id: string, peer: Agent): Chat {
-    return {
-        archivedAt: null,
-        archivedByUserId: null,
-        color: null,
-        createdAt: '2026-07-29T12:00:00.000Z',
-        icon: null,
+    return testChat({
         id,
-        isAll: false,
         kind: 'dm',
-        lastActivityAt: null,
-        lastMessageSequence: 0,
         name: null,
         participantAgentIds: [peer.id],
         participantUserIds: ['user_one'],
         peerAgentDisplayName: peer.displayName,
         peerAgentId: peer.id,
-        peerAgentRetired: false,
-        peerUserId: null,
-        serverId: 'server_one',
-        unreadCount: 0,
-    };
+    });
 }
 
 function retiredDm(): Chat {
-    return {
-        archivedAt: null,
-        archivedByUserId: null,
-        color: null,
-        createdAt: '2026-07-29T12:00:00.000Z',
-        icon: null,
+    return testChat({
         id: 'chat_fen',
-        isAll: false,
         kind: 'dm',
-        lastActivityAt: null,
         lastMessageSequence: 4,
         name: null,
-        participantAgentIds: [],
         participantUserIds: ['user_one'],
         peerAgentDisplayName: 'Fen',
         peerAgentId: 'agt_fen0000000000000',
         peerAgentRetired: true,
-        peerUserId: null,
-        serverId: 'server_one',
-        unreadCount: 0,
-    };
+    });
 }
 
 function channel(overrides: Partial<Pick<Chat, 'id' | 'unreadCount'>> = {}): Chat {
-    return {
-        archivedAt: null,
-        archivedByUserId: null,
+    return testChat({
         color: 'violet',
-        createdAt: '2026-07-29T12:00:00.000Z',
         icon: 'RocketIcon',
-        id: overrides.id ?? 'chat_planning',
-        isAll: false,
-        kind: 'channel',
-        lastActivityAt: null,
-        lastMessageSequence: 0,
-        name: 'planning',
-        participantAgentIds: [],
+        id: 'chat_planning',
         participantUserIds: ['user_one'],
-        peerAgentDisplayName: null,
-        peerAgentId: null,
-        peerAgentRetired: false,
-        peerUserId: null,
-        serverId: 'server_one',
-        unreadCount: overrides.unreadCount ?? 0,
-    };
+        ...overrides,
+    });
 }

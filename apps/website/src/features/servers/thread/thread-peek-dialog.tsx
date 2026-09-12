@@ -6,6 +6,7 @@ import {
     type ThreadSummary,
 } from '@haus/api';
 import { Modal } from '@heroui/react';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { openAgentProfilePane } from '../../../hooks/pane/use-agent-profile-pane.ts';
 import { getTurnDetailAccess } from '../../members/agent-profile/agent-activity-model.ts';
@@ -24,6 +25,7 @@ export function ThreadPeekDialog({
     anchor,
     ariaLabel,
     chat,
+    composerAction,
     headerTitle,
     initialThreadChatId,
     onClose,
@@ -32,6 +34,8 @@ export function ThreadPeekDialog({
     anchor: ChatMessage;
     ariaLabel: string;
     chat: Chat;
+    /** The Inbox's Ask peek offers the Agent's recommended step above the composer. */
+    composerAction?: ReactNode;
     headerTitle: string;
     initialThreadChatId: string;
     onClose: () => void;
@@ -90,6 +94,7 @@ export function ThreadPeekDialog({
                         active
                         anchor={anchor}
                         chat={chat}
+                        composerAction={composerAction}
                         composerVariant="secondary"
                         headerTitle={headerTitle}
                         initialThreadChatId={initialThreadChatId}

@@ -36,56 +36,54 @@ export function McpConnectionFormDrawer({
     const [draft, setDraft] = useState(createConnectionDraft);
     const canSave = Boolean(draft.name.trim() && draft.url.trim());
 
+    // Header, Body, and Footer are the dialog's own layout children — wrapping
+    // them in the form collapsed that layout and floated the footer under the
+    // fields instead of pinning it.
     return (
-        <Drawer>
-            {/* Header, Body, and Footer are the dialog's own layout children —
-                wrapping them in the form collapsed that layout and floated the
-                footer under the fields instead of pinning it. */}
-            <Drawer.Backdrop isDismissable isOpen={open} onOpenChange={onOpenChange}>
-                <Drawer.Content placement="right">
-                    <Drawer.Dialog>
-                        <Drawer.CloseTrigger />
-                        <Drawer.Header>
-                            <Drawer.Heading>Add MCP Server</Drawer.Heading>
-                        </Drawer.Header>
-                        <Drawer.Body>
-                            <Form
-                                className="grid gap-6"
-                                id={MCP_CONNECTION_FORM_ID}
-                                onSubmit={(event) => {
-                                    event.preventDefault();
-                                    if (canSave) {
-                                        onSave(buildSaveInput(draft));
-                                    }
-                                }}
+        <Drawer.Backdrop isDismissable isOpen={open} onOpenChange={onOpenChange}>
+            <Drawer.Content placement="right">
+                <Drawer.Dialog>
+                    <Drawer.CloseTrigger />
+                    <Drawer.Header>
+                        <Drawer.Heading>Add MCP Server</Drawer.Heading>
+                    </Drawer.Header>
+                    <Drawer.Body>
+                        <Form
+                            className="grid gap-6"
+                            id={MCP_CONNECTION_FORM_ID}
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                if (canSave) {
+                                    onSave(buildSaveInput(draft));
+                                }
+                            }}
+                        >
+                            <LabeledField
+                                label="Name"
+                                onChange={(name) => update(setDraft, { name })}
+                                value={draft.name}
                             >
-                                <LabeledField
-                                    label="Name"
-                                    onChange={(name) => update(setDraft, { name })}
-                                    value={draft.name}
-                                >
-                                    <Input placeholder="My MCP Server" />
-                                </LabeledField>
-                                <HttpConnectionFields draft={draft} setDraft={setDraft} />
-                            </Form>
-                        </Drawer.Body>
-                        <Drawer.Footer>
-                            <Button slot="close" type="button" variant="secondary">
-                                Cancel
-                            </Button>
-                            <Button
-                                form={MCP_CONNECTION_FORM_ID}
-                                isDisabled={!canSave}
-                                isPending={saving}
-                                type="submit"
-                            >
-                                Add MCP
-                            </Button>
-                        </Drawer.Footer>
-                    </Drawer.Dialog>
-                </Drawer.Content>
-            </Drawer.Backdrop>
-        </Drawer>
+                                <Input placeholder="My MCP Server" />
+                            </LabeledField>
+                            <HttpConnectionFields draft={draft} setDraft={setDraft} />
+                        </Form>
+                    </Drawer.Body>
+                    <Drawer.Footer>
+                        <Button slot="close" type="button" variant="secondary">
+                            Cancel
+                        </Button>
+                        <Button
+                            form={MCP_CONNECTION_FORM_ID}
+                            isDisabled={!canSave}
+                            isPending={saving}
+                            type="submit"
+                        >
+                            Add MCP
+                        </Button>
+                    </Drawer.Footer>
+                </Drawer.Dialog>
+            </Drawer.Content>
+        </Drawer.Backdrop>
     );
 }
 

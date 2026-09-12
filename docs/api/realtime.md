@@ -162,7 +162,7 @@ the finishing state; a later started operation replaces it.
 the anchor Message's Chat sequence, and the cursor. Creating an Ask emits `message.created` and then
 `ask.updated` in one transaction; the first reply in the Ask's Thread emits its own
 `message.created` and the settling `ask.updated` in the reply's transaction. The payload never
-carries the question, summary, or recommended step: clients refetch the affected Message — whose
+carries the question, summary, or options: clients refetch the affected Message — whose
 `body` projects the current Ask — and the viewer's open-Ask list. Reconnect recovery therefore walks
 the same events and cannot lose a settlement whose notification was dropped.
 

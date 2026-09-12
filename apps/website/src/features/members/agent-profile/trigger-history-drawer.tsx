@@ -32,36 +32,32 @@ export function TriggerHistoryDrawer({
     const columns = executionColumns(serverSlug);
 
     return (
-        <Drawer>
-            <Drawer.Backdrop isDismissable isOpen={isOpen} onOpenChange={onOpenChange}>
-                <Drawer.Content placement="right">
-                    <Drawer.Dialog className="w-[42rem]">
-                        <Drawer.CloseTrigger />
-                        <Drawer.Header>
-                            <Drawer.Heading>History</Drawer.Heading>
-                        </Drawer.Header>
-                        <Drawer.Body>
-                            <DataGrid
-                                aria-label="Trigger executions"
-                                columns={columns}
-                                data={rows ?? []}
-                                getRowId={(entry) => entry.fireId}
-                                renderEmptyState={() =>
-                                    rows ? (
-                                        <p className="py-6 text-muted text-sm">
-                                            No executions yet.
-                                        </p>
-                                    ) : null
-                                }
-                            />
-                        </Drawer.Body>
-                        <Drawer.Footer className="justify-start">
-                            <p className="text-muted text-sm">{retentionNote(rows?.length ?? 0)}</p>
-                        </Drawer.Footer>
-                    </Drawer.Dialog>
-                </Drawer.Content>
-            </Drawer.Backdrop>
-        </Drawer>
+        <Drawer.Backdrop isDismissable isOpen={isOpen} onOpenChange={onOpenChange}>
+            <Drawer.Content placement="right">
+                <Drawer.Dialog className="w-[42rem]">
+                    <Drawer.CloseTrigger />
+                    <Drawer.Header>
+                        <Drawer.Heading>History</Drawer.Heading>
+                    </Drawer.Header>
+                    <Drawer.Body>
+                        <DataGrid
+                            aria-label="Trigger executions"
+                            columns={columns}
+                            data={rows ?? []}
+                            getRowId={(entry) => entry.fireId}
+                            renderEmptyState={() =>
+                                rows ? (
+                                    <p className="py-6 text-muted text-sm">No executions yet.</p>
+                                ) : null
+                            }
+                        />
+                    </Drawer.Body>
+                    <Drawer.Footer className="justify-start">
+                        <p className="text-muted text-sm">{retentionNote(rows?.length ?? 0)}</p>
+                    </Drawer.Footer>
+                </Drawer.Dialog>
+            </Drawer.Content>
+        </Drawer.Backdrop>
     );
 }
 

@@ -8,9 +8,9 @@ An Ask is a Message that asks one named human for a decision and stays in that h
 
 Use an Ask when a decision is genuinely theirs — an irreversible act, a spend, a release, a choice between paths you cannot rank on your own. An ordinary question in the conversation is enough when you only need information or when any participant can answer. One Ask carries one decision.
 
-\`haus ask --target <target> --to @<handle> --title <text> --summary <text> --step <text>\`
+\`haus ask --target <target> --to @<handle> --title <text> --summary <text> [--option <text>]...\`
 
-The question text arrives on stdin and becomes the Message content, so write it in your own words. \`--title\` names the decision, \`--summary\` gives the human what they need to decide, and \`--step\` is the single step you recommend. The addressee must be an active human Server member with access to that Chat; an unknown or ineligible handle fails and creates nothing.
+The question text arrives on stdin and becomes the Message content, so write it in your own words. \`--title\` names the decision and \`--summary\` gives the human what they need to decide. Each \`--option\` is a short reply they can send as is, up to four, your recommendation first; leave them off when the answer is genuinely open and they should write their own. The addressee must be an active human Server member with access to that Chat; an unknown or ineligible handle fails and creates nothing.
 
 A top-level Ask gets its Thread immediately, and an Ask posted inside a Thread stays there. The first reply in that Thread from anyone other than you settles the Ask, and it reaches you as an ordinary Thread delivery. Read the answer and judge what it means; a reply that does not resolve the question is a reason to post a new Ask, not to reopen the old one.
 

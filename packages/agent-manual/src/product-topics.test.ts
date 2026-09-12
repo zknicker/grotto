@@ -47,7 +47,7 @@ test('publishes the Ask reference topic without turning it into a procedure', ()
 
     expect(asks?.kind).toBe('overview');
     expect(asks?.body).toContain(
-        'haus ask --target <target> --to @<handle> --title <text> --summary <text> --step <text>'
+        'haus ask --target <target> --to @<handle> --title <text> --summary <text> [--option <text>]...'
     );
     expect(asks?.body).toContain('one named human for a decision');
     expect(asks?.body).toContain('The question text arrives on stdin');

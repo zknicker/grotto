@@ -41,45 +41,41 @@ export function ReminderHistoryDrawer({
     const columns = executionColumns(serverSlug);
 
     return (
-        <Drawer>
-            <Drawer.Backdrop isDismissable isOpen={isOpen} onOpenChange={onOpenChange}>
-                {/* The stock right drawer is sized for a form. Five columns of
-                    log need more measure than that, so the dialog carries its
-                    own width the way the Trigger sheet does. */}
-                <Drawer.Content placement="right">
-                    <Drawer.Dialog className="w-[42rem]">
-                        <Drawer.CloseTrigger />
-                        <Drawer.Header>
-                            <Drawer.Heading>History</Drawer.Heading>
-                        </Drawer.Header>
-                        <Drawer.Body>
-                            <DataGrid
-                                aria-label="Reminder executions"
-                                columns={columns}
-                                data={rows ?? []}
-                                getRowId={(entry) => entry.fireId}
-                                renderEmptyState={() =>
-                                    // Blank until the read settles: "no
-                                    // executions yet" is only true once the
-                                    // Server has answered.
-                                    rows ? (
-                                        <p className="py-6 text-muted text-sm">
-                                            No executions yet.
-                                        </p>
-                                    ) : null
-                                }
-                            />
-                        </Drawer.Body>
-                        {/* One informational line, not an action cluster, so it
-                            shares the table's left edge instead of the footer's
-                            trailing alignment. */}
-                        <Drawer.Footer className="justify-start">
-                            <p className="text-muted text-sm">{retentionNote(rows?.length ?? 0)}</p>
-                        </Drawer.Footer>
-                    </Drawer.Dialog>
-                </Drawer.Content>
-            </Drawer.Backdrop>
-        </Drawer>
+        <Drawer.Backdrop isDismissable isOpen={isOpen} onOpenChange={onOpenChange}>
+            {/* The stock right drawer is sized for a form. Five columns of
+                log need more measure than that, so the dialog carries its
+                own width the way the Trigger sheet does. */}
+            <Drawer.Content placement="right">
+                <Drawer.Dialog className="w-[42rem]">
+                    <Drawer.CloseTrigger />
+                    <Drawer.Header>
+                        <Drawer.Heading>History</Drawer.Heading>
+                    </Drawer.Header>
+                    <Drawer.Body>
+                        <DataGrid
+                            aria-label="Reminder executions"
+                            columns={columns}
+                            data={rows ?? []}
+                            getRowId={(entry) => entry.fireId}
+                            renderEmptyState={() =>
+                                // Blank until the read settles: "no
+                                // executions yet" is only true once the
+                                // Server has answered.
+                                rows ? (
+                                    <p className="py-6 text-muted text-sm">No executions yet.</p>
+                                ) : null
+                            }
+                        />
+                    </Drawer.Body>
+                    {/* One informational line, not an action cluster, so it
+                        shares the table's left edge instead of the footer's
+                        trailing alignment. */}
+                    <Drawer.Footer className="justify-start">
+                        <p className="text-muted text-sm">{retentionNote(rows?.length ?? 0)}</p>
+                    </Drawer.Footer>
+                </Drawer.Dialog>
+            </Drawer.Content>
+        </Drawer.Backdrop>
     );
 }
 

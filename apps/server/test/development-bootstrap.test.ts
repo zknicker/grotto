@@ -57,8 +57,9 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     expect(await connection.db.select().from(computersTable)).toHaveLength(1);
     const agents = await connection.db.select().from(agentsTable);
     expect(agents).toHaveLength(3);
-    // 3 channels + 3 Agent DMs + 3 threads (a discussion plus one per task)
-    expect(await connection.db.select().from(chatsTable)).toHaveLength(9);
+    // 3 channels + 3 Agent DMs + 6 threads (a discussion, one per promoted
+    // task, and one per record-backed Message the Inbox seed writes)
+    expect(await connection.db.select().from(chatsTable)).toHaveLength(12);
     expect(await connection.db.select().from(serverOnboardingTable)).toMatchObject([
         {
             agentId: agents.find((agent) => agent.handle === 'cove')?.id,
@@ -68,7 +69,7 @@ test('creates one idempotent Server-owned demo workspace', async () => {
             serverId: first.id,
         },
     ]);
-    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(14);
+    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(24);
     const [seededAttachment] = await connection.db.select().from(attachmentsTable);
     expect(seededAttachment).toMatchObject({
         byteSize: 163_552,
@@ -136,26 +137,30 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     expect(await connection.db.select().from(avatarsTable)).toHaveLength(4);
 
     // Threads are anchored to real channel messages, and one is followed.
-    expect(threads).toHaveLength(3);
+    expect(threads).toHaveLength(6);
     expect(threads.every((thread) => thread.anchorMessageId && thread.parentChatId)).toBe(true);
     expect(await connection.db.select().from(threadFollowsTable)).toHaveLength(1);
 
-    // Every task carries its deterministic Thread, or the tasks list refuses
-    // to project it at all.
+    // Every promoted task carries its deterministic Thread. A claim does not:
+    // the Thread is materialized when somebody first replies in it, which is
+    // exactly what the seeded stalled claim never got.
     const threadIds = new Set(threads.map((thread) => thread.id));
     expect(
-        tasks.every((task) => threadIds.has(`cht_thr_${task.messageId.replace(/^msg_/u, '')}`))
+        tasks
+            .filter((task) => task.origin !== 'claimed')
+            .every((task) => threadIds.has(`cht_thr_${task.messageId.replace(/^msg_/u, '')}`))
     ).toBe(true);
 
-    // Two tasks covering both assignee kinds and two statuses. The channel's
-    // counter is past both, so promoting a message in the seeded `#all` does
-    // not collide with a seeded task number.
-    expect(tasks).toHaveLength(2);
+    // Two promoted tasks covering both assignee kinds and two statuses, plus
+    // the Inbox seed's stalled claim. The channel's counter is past all of
+    // them, so promoting a message in the seeded `#all` does not collide with
+    // a seeded task number.
+    expect(tasks).toHaveLength(3);
     const [allChannel] = (await connection.db.select().from(chatsTable)).filter(
         (chat) => chat.isAll
     );
     expect(allChannel?.lastTaskNumber).toBe(Math.max(...tasks.map((task) => task.number)));
-    expect(tasks.map((task) => task.status).sort()).toEqual(['in_progress', 'todo']);
+    expect(tasks.map((task) => task.status).sort()).toEqual(['in_progress', 'in_progress', 'todo']);
     expect(tasks.some((task) => task.assigneeAgentId !== null)).toBe(true);
     expect(tasks.some((task) => task.assigneeUserId !== null)).toBe(true);
 

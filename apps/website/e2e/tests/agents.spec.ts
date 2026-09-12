@@ -108,7 +108,6 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
             displayName: 'Ghost',
             handle: 'ghost',
             modelId: 'gpt-9-unreported',
-            role: 'member',
             runtimeId: 'codex',
             serverId: attachment.serverId,
         })

@@ -12,7 +12,7 @@ An Ask is an Agent-authored Message that asks one human for a decision and stays
 human's Inbox until someone answers. It is the first Haus record that names a specific human as
 the one who needs to act.
 
-An Ask changes nothing on its own. It carries a question, a recommended step, and an addressee; the
+An Ask changes nothing on its own. It carries a question, its options, and an addressee; the
 answer is an ordinary Message, and the asking Agent decides what the answer means.
 
 ## Product contract
@@ -44,7 +44,8 @@ type Ask = {
     addresseeUserId: string;
     title: string;
     summary: string;
-    recommendedStep: string;
+    /** Zero to four distinct replies, ≤80 characters each, recommendation first. */
+    options: string[];
     status: 'open' | 'answered';
     answeredBy: { kind: 'user' | 'agent'; id: string } | null;
     answerMessageId: string | null;
@@ -78,11 +79,16 @@ read, and lost access simply stops returning the row.
 ## Inbox row
 
 An open Ask addressed to a human appears in that human's [Inbox](../docs/features/inbox.md) under
-"Needs you" with its title, its summary, the recommended step as a button, and the Chat name.
+"Needs you" with its title, its summary, and the Chat name. The row states the Ask and opens it; it
+carries no control of its own.
 
-Pressing the step sends a real Message authored by that human into the Ask's Thread whose content is
-exactly the step text. That Message settles the Ask and reaches the Agent through ordinary Thread
-delivery. Opening the row opens the Thread.
+Opening the row peeks the Ask's Thread, and the options — recommendation first — are offered there
+as tap-to-reply chips above the composer. Pressing one sends a real Message authored by that human
+into the Thread whose content is exactly that option's text; that Message settles the Ask and
+reaches the Agent through ordinary Thread delivery, exactly as a typed reply would. An Ask with no
+options is an open question: the peek offers its composer and nothing else. The options live with
+the Thread because that is where the Ask is fully readable — a row shows one line of a question,
+which is not enough to commit to an answer from.
 
 ## Chat presentation
 
@@ -97,7 +103,7 @@ Thread preview.
 ## Agent reading
 
 An Ask Message reads back to an Agent as an ordinary Message with `body_kind: 'ask'` and the Ask
-facts an actor needs beside it — its id, status, addressee handle, title, and recommended step.
+facts an actor needs beside it — its id, status, addressee handle, title, and options.
 Every surface that prints a Message appends `[ask status=open|answered to=@handle]` after the task
 suffix, the same way Tasks ride their `[task #N status=…]`
 ([Haus CLI](haus-cli.md#4-envelopes-and-message-lines)).
@@ -108,10 +114,11 @@ The Agent CLI is an Agent's only output channel
 ([ADR 0014](../docs/adr/0014-cli-is-the-agents-only-output-channel.md)):
 
 ```text
-haus ask --target <target> --to @<handle> --title <text> --summary <text> --step <text>
+haus ask --target <target> --to @<handle> --title <text> --summary <text> [--option <text>]...
 ```
 
-The question text arrives on stdin and becomes the Message content.
+The question text arrives on stdin and becomes the Message content. `--option` repeats up to four
+times, the first being the Agent's recommendation; no `--option` at all is an open question.
 
 ## Events and delivery
 
@@ -141,12 +148,12 @@ spec owns the record and its surfaces.
 | Layer | Owns |
 | --- | --- |
 | Haus Server | The Ask record, addressee authorization, settlement, durable events, and the Inbox projection |
-| Haus App | Inbox rows, the recommended-step button, and the Thread-surface Ask marker |
+| Haus App | Inbox rows, the option chips above the peek's composer, and the Thread-surface Ask marker |
 | Haus Computer | The `haus ask` command and its Agent-scoped Server call |
 
 ## Intentionally missing
 
-- No answer options, defaults, expiry, or escalation.
+- No answer defaults, expiry, or escalation, and no option kinds: an option is plain reply text.
 - No role addressees, multiple addressees, or Agent-addressed Asks.
 - No separate answer channel; the Thread reply is the answer.
 - No per-Ask notification channels in v1.
@@ -160,7 +167,7 @@ spec owns the record and its surfaces.
    the same union later ([Cloud Agents](cloud-agents.md)).
 2. **Landed.** The `haus ask` command, addressee validation, the single creation transaction,
    settlement inside the ordinary Message creation paths, `ask.updated`, and `ask.listOpen`.
-3. **Landed.** The Inbox "Needs you" row and the recommended-step button that posts the human's
+3. **Landed.** The Inbox "Needs you" row and the peek's option chips, each posting the human's
    Message.
 4. **Landed in web.** The Thread-surface Ask marker in Haus App, with deterministic Server, API,
    Computer, and App coverage of creation, settlement, ineligible-addressee failure, the Agent line

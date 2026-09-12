@@ -31,7 +31,6 @@ export async function createAgentThreadSender(input: {
         displayName: 'Scout',
         handle: 'scout',
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId: server.id,
     });

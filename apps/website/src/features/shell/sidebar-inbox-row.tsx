@@ -12,12 +12,13 @@ import { resolveAgentActivityGhostTempo } from './agent-activity-ghost-tempo.ts'
  * app-icon mesh. Its drift speed is the Server's live-work tell: a slow
  * shimmer when the Server is quiet, noticeably quicker while any Agent works.
  *
- * The row leads the sidebar flush at its top edge, and the Settings gear
- * floats over the trailing end of its line rather than taking a row above it.
+ * The row leads the sidebar, offset by half the shared shell band so its
+ * midline meets the content topbar's across the divider (`shell.css`) while the
+ * menu's own pitch continues under it. Nothing shares its line: Settings moved
+ * to the sidebar's footer.
  * `needsYouCount` badges it with the Inbox's own "Needs you" total, wearing the
  * same chip the Chat rows wear for unread messages and, like them, showing
- * nothing at zero. The chip rides inside the row content's trailing reserve, so
- * it stops short of the gear rather than running under it.
+ * nothing at zero. The chip sits at the row's natural trailing edge.
  *
  * It draws at a 22px identity-mark box inside HeroUI's narrower icon column,
  * the same overflow the DM avatars already take. The column centers it and does
@@ -39,9 +40,6 @@ export function SidebarInboxRow({
 
     return (
         <Sidebar.MenuItem
-            // Lead row: it shares its line with the floating Settings gear, so
-            // `shell.css` reserves the gear's box at this row's trailing end.
-            className="app-shell-sidebar-lead-row"
             href={inboxRoute(slug)}
             id="inbox"
             isCurrent={isCurrent}

@@ -1,5 +1,6 @@
 import type { Chat, ChatMessage, ThreadSummary } from '@haus/api';
 import { Button } from '@heroui/react';
+import type { ReactNode } from 'react';
 import * as React from 'react';
 import {
     MessageScroller,
@@ -43,6 +44,7 @@ export function ThreadContent({
     active,
     anchor,
     chat,
+    composerAction,
     composerVariant = 'primary',
     headerTitle,
     initialThreadChatId,
@@ -59,6 +61,8 @@ export function ThreadContent({
     active: boolean;
     anchor: ChatMessage;
     chat: Chat;
+    /** One press that writes a reply, in the composer's gutter and sharing its fate. */
+    composerAction?: ReactNode;
     /** `secondary` when the host is a surface (the task dialog). */
     composerVariant?: 'primary' | 'secondary';
     /**
@@ -248,16 +252,21 @@ export function ThreadContent({
                     This conversation is read-only because the Agent has been retired.
                 </p>
             ) : (
-                <ChatComposer
-                    chatId={chat.id}
-                    chatName={titles.header}
-                    onThreadCreated={setCreatedThreadChatId}
-                    pendingChatId={pendingThreadReplyKey(anchor.id)}
-                    placeholder="Add a reply…"
-                    serverId={chat.serverId}
-                    thread={{ anchorMessageId: anchor.id }}
-                    variant={composerVariant}
-                />
+                <>
+                    {composerAction ? (
+                        <div className="shrink-0 px-5 pb-2">{composerAction}</div>
+                    ) : null}
+                    <ChatComposer
+                        chatId={chat.id}
+                        chatName={titles.header}
+                        onThreadCreated={setCreatedThreadChatId}
+                        pendingChatId={pendingThreadReplyKey(anchor.id)}
+                        placeholder="Add a reply…"
+                        serverId={chat.serverId}
+                        thread={{ anchorMessageId: anchor.id }}
+                        variant={composerVariant}
+                    />
+                </>
             )}
         </div>
     );

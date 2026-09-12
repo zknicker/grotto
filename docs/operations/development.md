@@ -31,6 +31,15 @@ its downloaded artifacts.
 caches a broken `@heroui-pro/react` resolution that outlives a restart, so
 rerun `bun run setup:worktree` and start the stack again.
 
+Upgrading `@heroui-pro/react` means bumping its peers in the same install:
+`@heroui/react`, `@heroui/styles`, `react-aria-components`, `react-aria`,
+`react-stately`, and `@react-aria/interactions` are all declared peers and
+`auto = "disable"` never installs them for us. A HeroUI release published
+inside the three-day `minimumReleaseAge` window needs its package added to
+`minimumReleaseAgeExcludes` in `bunfig.toml`; installing with
+`frozenLockfile = false` is a temporary flip that gets restored in the same
+change. Rerun `bun run setup:worktree` afterwards.
+
 ## Local Stack
 
 Run the managed development stack:
@@ -56,7 +65,16 @@ predates the checked-in migration baseline: move
 `~/.haus/dev/<worktree-id>/postgres` aside and rerun to bootstrap fresh. On first use, Server creates one demo Server with
 the Agents Blippy and Tiny, avatars for them and for you, the `#all` and
 `#product` Channels, starter messages, a Thread, two tasks, and one MCP
-connection — enough to open any surface without hand-building data. Computer
+connection — enough to open any surface without hand-building data. It then
+seeds the activity the Inbox is a lens over: unread lines in both Channels and
+both Agent DMs, two open Asks — Cove's rename question offering three replies
+and Tiny's stale-copy question offering none — one claim Blippy left stalled, one
+settled Cloud Agent work, and seven days of Agent turns. No running Cloud Agent
+work is seeded — Computer reconciles running work against the provider every
+minute, and a fake run fails that loop until its retries exhaust the Server
+database pool — so Happening now is empty on a fresh boot. That activity is
+idempotent and separate, in
+`apps/server/src/development/seed-inbox-activity.ts`. Computer
 then runs their real Agent turns using the host's Codex, Claude Code, Grok Build, or Pi
 sign-in.
 

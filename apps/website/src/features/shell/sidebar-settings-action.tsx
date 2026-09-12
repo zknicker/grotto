@@ -10,12 +10,12 @@ import { shellBandIconSize } from './section-header.tsx';
  * with the Haus mark on the Inbox row — so what is left is a single quiet
  * action with no row to justify.
  *
- * So it takes none. `shell.css` floats it at the sidebar's top-right corner,
- * over the trailing end of the first navigation row's line, and that row
- * reserves the gear's box at its own trailing end. On the macOS desktop the
- * same box lands inside the titlebar strip beside the traffic lights, which is
- * reserved space with nothing else in it. One markup shape serves both; where
- * the box lands is the shell's business, not this action's.
+ * So it takes none, on either surface. On the macOS desktop `shell.css` floats
+ * it in the titlebar strip beside the traffic lights, reserved space with
+ * nothing else in it. Everywhere else it sits at the trailing end of the
+ * sidebar footer, on the Agent activity strip's line — the quietest corner of
+ * the column, and nothing else's line to share. `ShellSidebar` picks the slot;
+ * where the gear lands is the shell's business, not this action's.
  */
 export function SidebarSettingsAction({
     onOpenSettings,
@@ -54,11 +54,10 @@ export function SidebarSettingsAction({
  * Escape hatch for sidebar pages that replace the chat navigation (settings,
  * tasks, members, computers): one quiet row back to the last-open chat.
  *
- * It leads those pages the way Inbox leads the chat navigation, so the Settings
- * gear floats over its line too — but its label is one short word that stops
- * nowhere near the gear, so it claims no trailing reserve. The stock
- * `Sidebar.Group` is what puts it on the same leading edge and width as the
- * settings rows it sits above.
+ * It leads those pages the way Inbox leads the chat navigation, taking the
+ * same half-band offset so both land on one line whichever page is mounted.
+ * The stock `Sidebar.Group` is what puts it on the same leading edge and width
+ * as the settings rows it sits above.
  */
 export function SidebarBackToChatRow({ route }: { route: string }) {
     return (

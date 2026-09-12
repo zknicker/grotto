@@ -33,74 +33,72 @@ export function TaskLabelsDialog({
     }
 
     return (
-        <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop isDismissable>
-                <Modal.Container scroll="inside" size="lg">
-                    <Modal.Dialog>
-                        <Modal.CloseTrigger />
-                        <Modal.Header>
-                            <Modal.Heading>Task Labels</Modal.Heading>
-                            <p className="mt-1.5 text-muted text-sm leading-5">
-                                Labels are shared across this task board.
-                            </p>
-                        </Modal.Header>
-                        <Modal.Body>
-                            <div className="grid gap-4">
-                                <Form className="flex items-end gap-2" onSubmit={createLabel}>
-                                    <TextField
-                                        aria-label="New task label"
-                                        className="flex-1"
-                                        onChange={setName}
-                                        value={name}
-                                        variant="secondary"
-                                    >
-                                        <Input placeholder="New label" />
-                                    </TextField>
-                                    <Button
-                                        isDisabled={!name.trim()}
-                                        isPending={create.isPending}
-                                        type="submit"
-                                    >
-                                        Add Label
-                                    </Button>
-                                </Form>
-                                {create.error ? (
-                                    <Alert role="alert" status="danger">
-                                        <Alert.Indicator />
-                                        <Alert.Content>
-                                            <Alert.Description>
-                                                {create.error.message}
-                                            </Alert.Description>
-                                        </Alert.Content>
-                                    </Alert>
-                                ) : null}
-                                {labels.length === 0 ? (
-                                    <p className="py-4 text-center text-muted text-sm">
-                                        No task labels yet.
-                                    </p>
-                                ) : (
-                                    <ul className="grid max-h-72 gap-1 overflow-y-auto">
-                                        {labels.map((label) => (
-                                            <TaskLabelRow
-                                                canManage={canManage}
-                                                key={label.id}
-                                                label={label}
-                                                serverId={serverId}
-                                            />
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
-                        </Modal.Body>
-                        <Modal.Footer>
-                            <Button slot="close" type="button" variant="secondary">
-                                Done
-                            </Button>
-                        </Modal.Footer>
-                    </Modal.Dialog>
-                </Modal.Container>
-            </Modal.Backdrop>
-        </Modal>
+        <Modal.Backdrop isDismissable isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Container scroll="inside" size="lg">
+                <Modal.Dialog>
+                    <Modal.CloseTrigger />
+                    <Modal.Header>
+                        <Modal.Heading>Task Labels</Modal.Heading>
+                        <p className="mt-1.5 text-muted text-sm leading-5">
+                            Labels are shared across this task board.
+                        </p>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <div className="grid gap-4">
+                            <Form className="flex items-end gap-2" onSubmit={createLabel}>
+                                <TextField
+                                    aria-label="New task label"
+                                    className="flex-1"
+                                    onChange={setName}
+                                    value={name}
+                                    variant="secondary"
+                                >
+                                    <Input placeholder="New label" />
+                                </TextField>
+                                <Button
+                                    isDisabled={!name.trim()}
+                                    isPending={create.isPending}
+                                    type="submit"
+                                >
+                                    Add Label
+                                </Button>
+                            </Form>
+                            {create.error ? (
+                                <Alert role="alert" status="danger">
+                                    <Alert.Indicator />
+                                    <Alert.Content>
+                                        <Alert.Description>
+                                            {create.error.message}
+                                        </Alert.Description>
+                                    </Alert.Content>
+                                </Alert>
+                            ) : null}
+                            {labels.length === 0 ? (
+                                <p className="py-4 text-center text-muted text-sm">
+                                    No task labels yet.
+                                </p>
+                            ) : (
+                                <ul className="grid max-h-72 gap-1 overflow-y-auto">
+                                    {labels.map((label) => (
+                                        <TaskLabelRow
+                                            canManage={canManage}
+                                            key={label.id}
+                                            label={label}
+                                            serverId={serverId}
+                                        />
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button slot="close" type="button" variant="secondary">
+                            Done
+                        </Button>
+                    </Modal.Footer>
+                </Modal.Dialog>
+            </Modal.Container>
+        </Modal.Backdrop>
     );
 }
 

@@ -51,50 +51,48 @@ export function AvatarGenerationDialog({
     const busy = isGenerating || isSaving;
 
     return (
-        <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop isDismissable={!busy}>
-                <Modal.Container size="md">
-                    <Modal.Dialog>
-                        <Modal.CloseTrigger />
-                        <Modal.Header>
-                            {/* Modal.Icon carries no background of its own;
-                                the stock idiom pairs it with a soft fill. */}
-                            <Modal.Icon className="bg-accent-soft text-accent-soft-foreground">
-                                <Icon className="size-5" icon={AiMagicIcon} />
-                            </Modal.Icon>
-                            <Modal.Heading>Generate Avatar</Modal.Heading>
-                            <p className="mt-1.5 text-muted text-sm leading-5">
-                                Describe a short concept for one preview. The Agent's name and
-                                description are not used.
-                            </p>
-                        </Modal.Header>
-                        <Modal.Body>
-                            <AvatarGenerationFields
-                                concept={concept}
-                                conceptError={conceptError}
-                                error={error}
-                                isGenerating={isGenerating}
-                                name={name}
-                                onConceptChange={onConceptChange}
-                                onGenerate={onGenerate}
-                                preview={preview}
-                            />
-                        </Modal.Body>
-                        <Modal.Footer>
-                            <AvatarGenerationActions
-                                busy={busy}
-                                concept={concept}
-                                error={error}
-                                isGenerating={isGenerating}
-                                isSaving={isSaving}
-                                onSave={onSave}
-                                preview={preview}
-                            />
-                        </Modal.Footer>
-                    </Modal.Dialog>
-                </Modal.Container>
-            </Modal.Backdrop>
-        </Modal>
+        <Modal.Backdrop isDismissable={!busy} isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Container size="md">
+                <Modal.Dialog>
+                    <Modal.CloseTrigger />
+                    <Modal.Header>
+                        {/* Modal.Icon carries no background of its own;
+                            the stock idiom pairs it with a soft fill. */}
+                        <Modal.Icon className="bg-accent-soft text-accent-soft-foreground">
+                            <Icon className="size-5" icon={AiMagicIcon} />
+                        </Modal.Icon>
+                        <Modal.Heading>Generate Avatar</Modal.Heading>
+                        <p className="mt-1.5 text-muted text-sm leading-5">
+                            Describe a short concept for one preview. The Agent's name and
+                            description are not used.
+                        </p>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <AvatarGenerationFields
+                            concept={concept}
+                            conceptError={conceptError}
+                            error={error}
+                            isGenerating={isGenerating}
+                            name={name}
+                            onConceptChange={onConceptChange}
+                            onGenerate={onGenerate}
+                            preview={preview}
+                        />
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <AvatarGenerationActions
+                            busy={busy}
+                            concept={concept}
+                            error={error}
+                            isGenerating={isGenerating}
+                            isSaving={isSaving}
+                            onSave={onSave}
+                            preview={preview}
+                        />
+                    </Modal.Footer>
+                </Modal.Dialog>
+            </Modal.Container>
+        </Modal.Backdrop>
     );
 }
 

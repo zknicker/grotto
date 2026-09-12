@@ -49,5 +49,7 @@ test('WorkGroupHeaderText keeps long active labels on shimmer fallback', () => {
 
     assert.match(markup, /text-shimmer/);
     assert.match(markup, /Running a deliberately long command/);
-    assert.doesNotMatch(markup, /aria-hidden="true"/);
+    // Pro's shimmer owns an aria-hidden highlight layer, so assert the SlotText
+    // branch is absent directly rather than through an aria-hidden proxy.
+    assert.doesNotMatch(markup, /class="slot-text/);
 });

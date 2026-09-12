@@ -27,7 +27,9 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
     const dialog = page.getByRole('dialog', { name: 'Task #1 thread' });
     await expect(dialog.getByRole('region', { name: 'Task #1 details' })).toBeVisible();
     await expect(dialog.getByText('Prove the hosted task flow', { exact: true })).toBeVisible();
-    const threadViewport = dialog.locator('.overflow-y-auto');
+    // The dialog holds two scroll containers (task details above the anchor,
+    // and the Thread itself); the horizontal-overflow claim is about the Thread.
+    const threadViewport = dialog.getByTestId('thread-conversation');
     await expect
         .poll(() => threadViewport.evaluate((element) => element.scrollWidth - element.clientWidth))
         .toBeLessThanOrEqual(0);
@@ -104,7 +106,7 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
     await expect(taskControl(taskCard(page), 'Assignee')).toContainText(peerUserId.slice(-6));
 
     const snapshot = await client.task.list.query({ serverId: server.id });
-    const task = snapshot[0]?.task;
+    const task = snapshot.tasks[0]?.task;
     if (!task) {
         throw new Error('The hosted task flow did not resolve its task.');
     }

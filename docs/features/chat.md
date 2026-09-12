@@ -255,6 +255,14 @@ sequence. When a user opens a Chat from the sidebar, the route renders that
 selected `chat.list` record immediately while `chat.get` loads, so the Chat
 surface never drops out between selections.
 
+Every `chat.list` record carries `lastMessage`: the newest top-level message in
+that chat as `authorDisplayName`, raw markdown `content`, and `createdAt`, or
+null when the chat holds no message or its author no longer resolves to a name.
+Thread replies live in the thread's own chat, so they never become the parent
+chat's last message, and the author name resolves exactly as a message author
+does in the chat timeline. The app already invalidates `chat.list` on
+`message.created`, so the line refreshes with the timeline.
+
 ## Chat Appearance
 
 Channel icon and color are durable Haus chat metadata on the `Chat` record

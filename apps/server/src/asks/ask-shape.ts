@@ -17,7 +17,7 @@ export function toAsk(row: AskRow): Ask {
         createdAt: row.createdAt.toISOString(),
         id: row.id,
         messageId: row.messageId,
-        recommendedStep: row.recommendedStep,
+        options: row.options,
         status: row.status,
         summary: row.summary,
         title: row.title,

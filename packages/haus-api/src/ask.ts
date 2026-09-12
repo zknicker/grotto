@@ -1,10 +1,5 @@
 import * as z from 'zod';
-import {
-    askRecommendedStepSchema,
-    askSchema,
-    askSummarySchema,
-    askTitleSchema,
-} from './ask-shared.ts';
+import { askOptionsSchema, askSchema, askSummarySchema, askTitleSchema } from './ask-shared.ts';
 import { type ChatMessage, chatMessageSchema, idSchema } from './chat.ts';
 import { participantHandleSchema } from './participant-handle.ts';
 
@@ -54,7 +49,7 @@ export const agentAskInputSchema = z
         addresseeHandle: participantHandleSchema,
         content: z.string().trim().min(1).max(32_000),
         nonce: z.string().trim().min(1).max(128),
-        recommendedStep: askRecommendedStepSchema,
+        options: askOptionsSchema,
         summary: askSummarySchema,
         target: z.string().trim().min(1).max(200),
         title: askTitleSchema,

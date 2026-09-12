@@ -62,88 +62,82 @@ export function NewTaskDialog({
     const selectedChat = chats.find((chat) => chat.id === chatId) ?? null;
 
     return (
-        <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop isDismissable>
-                <Modal.Container>
-                    <Modal.Dialog>
-                        <Modal.CloseTrigger />
-                        <Modal.Header>
-                            <Modal.Heading>New Task</Modal.Heading>
-                            <p className="mt-1.5 text-muted text-sm leading-5">
-                                Create a message and use its Thread as the task work surface.
-                            </p>
-                        </Modal.Header>
-                        <Modal.Body>
-                            <Form className="grid gap-4" id="new-task-form" onSubmit={submit}>
-                                <Select
-                                    fullWidth
-                                    onChange={(value) => value && setChatId(String(value))}
-                                    value={chatId}
-                                    variant="secondary"
-                                >
-                                    <Label>Chat</Label>
-                                    <Select.Trigger>
-                                        <Select.Value>
-                                            {selectedChat?.label ?? 'Choose a chat'}
-                                        </Select.Value>
-                                        <Select.Indicator />
-                                    </Select.Trigger>
-                                    <Select.Popover>
-                                        <ListBox>
-                                            {chats.map((chat) => (
-                                                <ListBox.Item
-                                                    id={chat.id}
-                                                    key={chat.id}
-                                                    textValue={chat.label}
-                                                >
-                                                    <Label>{chat.label}</Label>
-                                                    <ListBox.ItemIndicator />
-                                                </ListBox.Item>
-                                            ))}
-                                        </ListBox>
-                                    </Select.Popover>
-                                </Select>
-                                <TextField
-                                    fullWidth
-                                    onChange={setBody}
-                                    value={body}
-                                    variant="secondary"
-                                >
-                                    <Label>Task</Label>
-                                    <TextArea
-                                        autoFocus
-                                        placeholder="What needs to be done?"
-                                        rows={4}
-                                    />
-                                </TextField>
-                                {create.error ? (
-                                    <Alert role="alert" status="danger">
-                                        <Alert.Indicator />
-                                        <Alert.Content>
-                                            <Alert.Description>
-                                                {create.error.message}
-                                            </Alert.Description>
-                                        </Alert.Content>
-                                    </Alert>
-                                ) : null}
-                            </Form>
-                        </Modal.Body>
-                        <Modal.Footer>
-                            <Button slot="close" type="button" variant="secondary">
-                                Cancel
-                            </Button>
-                            <Button
-                                form="new-task-form"
-                                isDisabled={!(body.trim() && chatId)}
-                                isPending={create.isPending}
-                                type="submit"
+        <Modal.Backdrop isDismissable isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Container>
+                <Modal.Dialog>
+                    <Modal.CloseTrigger />
+                    <Modal.Header>
+                        <Modal.Heading>New Task</Modal.Heading>
+                        <p className="mt-1.5 text-muted text-sm leading-5">
+                            Create a message and use its Thread as the task work surface.
+                        </p>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <Form className="grid gap-4" id="new-task-form" onSubmit={submit}>
+                            <Select
+                                fullWidth
+                                onChange={(value) => value && setChatId(String(value))}
+                                value={chatId}
+                                variant="secondary"
                             >
-                                Create Task
-                            </Button>
-                        </Modal.Footer>
-                    </Modal.Dialog>
-                </Modal.Container>
-            </Modal.Backdrop>
-        </Modal>
+                                <Label>Chat</Label>
+                                <Select.Trigger>
+                                    <Select.Value>
+                                        {selectedChat?.label ?? 'Choose a chat'}
+                                    </Select.Value>
+                                    <Select.Indicator />
+                                </Select.Trigger>
+                                <Select.Popover>
+                                    <ListBox>
+                                        {chats.map((chat) => (
+                                            <ListBox.Item
+                                                id={chat.id}
+                                                key={chat.id}
+                                                textValue={chat.label}
+                                            >
+                                                <Label>{chat.label}</Label>
+                                                <ListBox.ItemIndicator />
+                                            </ListBox.Item>
+                                        ))}
+                                    </ListBox>
+                                </Select.Popover>
+                            </Select>
+                            <TextField
+                                fullWidth
+                                onChange={setBody}
+                                value={body}
+                                variant="secondary"
+                            >
+                                <Label>Task</Label>
+                                <TextArea autoFocus placeholder="What needs to be done?" rows={4} />
+                            </TextField>
+                            {create.error ? (
+                                <Alert role="alert" status="danger">
+                                    <Alert.Indicator />
+                                    <Alert.Content>
+                                        <Alert.Description>
+                                            {create.error.message}
+                                        </Alert.Description>
+                                    </Alert.Content>
+                                </Alert>
+                            ) : null}
+                        </Form>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button slot="close" type="button" variant="secondary">
+                            Cancel
+                        </Button>
+                        <Button
+                            form="new-task-form"
+                            isDisabled={!(body.trim() && chatId)}
+                            isPending={create.isPending}
+                            type="submit"
+                        >
+                            Create Task
+                        </Button>
+                    </Modal.Footer>
+                </Modal.Dialog>
+            </Modal.Container>
+        </Modal.Backdrop>
     );
 }

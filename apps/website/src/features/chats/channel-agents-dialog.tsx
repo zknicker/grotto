@@ -41,56 +41,50 @@ export function ChannelAgentsDialog({ chat, onClose }: { chat: Chat; onClose: ()
     });
 
     return (
-        <Modal isOpen onOpenChange={(open) => !open && onClose()}>
-            <Modal.Backdrop isDismissable>
-                <Modal.Container>
-                    <Modal.Dialog>
-                        <Modal.CloseTrigger />
-                        <Modal.Header>
-                            <Modal.Heading>Channel agents</Modal.Heading>
-                            <p className="text-muted text-sm leading-5">
-                                Who works in #{chat.name}.
-                            </p>
-                        </Modal.Header>
-                        <Modal.Body>
-                            <Form
-                                className="flex flex-col gap-4"
-                                id="channel-agents-form"
-                                onSubmit={handleSubmit}
-                            >
-                                <ChannelAgentPicker
-                                    agents={(agents.data ?? []).map((agent) => ({
-                                        avatarUrl: agent.avatarUrl,
-                                        id: agent.id,
-                                        name: agent.displayName,
-                                    }))}
-                                    agentsPending={agents.isPending}
-                                    isDisabled={updateChannel.isPending}
-                                    label="hidden"
-                                    onSelectedAgentIdsChange={setSelectedAgentIds}
-                                    selectedAgentIds={selectedAgentIds}
-                                />
-                                <ChannelDialogError
-                                    message={updateChannel.error?.message ?? null}
-                                />
-                            </Form>
-                        </Modal.Body>
-                        <Modal.Footer>
-                            <Button slot="close" type="button" variant="secondary">
-                                Cancel
-                            </Button>
-                            <Button
-                                form="channel-agents-form"
-                                isDisabled={!canSubmit}
-                                isPending={updateChannel.isPending}
-                                type="submit"
-                            >
-                                Save
-                            </Button>
-                        </Modal.Footer>
-                    </Modal.Dialog>
-                </Modal.Container>
-            </Modal.Backdrop>
-        </Modal>
+        <Modal.Backdrop isDismissable isOpen onOpenChange={(open) => !open && onClose()}>
+            <Modal.Container>
+                <Modal.Dialog>
+                    <Modal.CloseTrigger />
+                    <Modal.Header>
+                        <Modal.Heading>Channel agents</Modal.Heading>
+                        <p className="text-muted text-sm leading-5">Who works in #{chat.name}.</p>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <Form
+                            className="flex flex-col gap-4"
+                            id="channel-agents-form"
+                            onSubmit={handleSubmit}
+                        >
+                            <ChannelAgentPicker
+                                agents={(agents.data ?? []).map((agent) => ({
+                                    avatarUrl: agent.avatarUrl,
+                                    id: agent.id,
+                                    name: agent.displayName,
+                                }))}
+                                agentsPending={agents.isPending}
+                                isDisabled={updateChannel.isPending}
+                                label="hidden"
+                                onSelectedAgentIdsChange={setSelectedAgentIds}
+                                selectedAgentIds={selectedAgentIds}
+                            />
+                            <ChannelDialogError message={updateChannel.error?.message ?? null} />
+                        </Form>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button slot="close" type="button" variant="secondary">
+                            Cancel
+                        </Button>
+                        <Button
+                            form="channel-agents-form"
+                            isDisabled={!canSubmit}
+                            isPending={updateChannel.isPending}
+                            type="submit"
+                        >
+                            Save
+                        </Button>
+                    </Modal.Footer>
+                </Modal.Dialog>
+            </Modal.Container>
+        </Modal.Backdrop>
     );
 }

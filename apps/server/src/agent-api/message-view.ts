@@ -150,7 +150,7 @@ export async function toAgentMessages(
                       ask: {
                           addressee_handle: humanById.get(ask.addresseeUserId)?.handle ?? null,
                           id: ask.id,
-                          recommended_step: ask.recommendedStep,
+                          options: ask.options,
                           status: ask.status,
                           title: ask.title,
                       },

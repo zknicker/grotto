@@ -56,7 +56,6 @@ export async function seedCloudAgentWork(input: {
         displayName: 'Orbit',
         handle: input.agentHandle,
         modelId: 'gpt-5.6-sol',
-        role: 'member',
         runtimeId: 'codex',
         serverId: input.serverId,
     });

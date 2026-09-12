@@ -1,6 +1,6 @@
 {
   "id": "9ef9acd6-92b6-4c11-9f78-32504e4d5493",
-  "prevId": "7918b973-f53d-4f2e-9b59-65b63c2492c1",
+  "prevId": "fb8e0d0c-8458-41d0-a41b-15e81b61f969",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2336,11 +2336,12 @@
           "primaryKey": false,
           "notNull": true
         },
-        "recommended_step": {
-          "name": "recommended_step",
-          "type": "text",
+        "options": {
+          "name": "options",
+          "type": "text[]",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
         },
         "server_id": {
           "name": "server_id",
@@ -2494,9 +2495,9 @@
           "name": "asks_summary_length",
           "value": "char_length(\"asks\".\"summary\") between 1 and 500"
         },
-        "asks_step_length": {
-          "name": "asks_step_length",
-          "value": "char_length(\"asks\".\"recommended_step\") between 1 and 200"
+        "asks_options_shape": {
+          "name": "asks_options_shape",
+          "value": "cardinality(\"asks\".\"options\") <= 4\n                and array_position(\"asks\".\"options\", null) is null\n                and array_position(\"asks\".\"options\", '') is null"
         },
         "asks_settlement_shape": {
           "name": "asks_settlement_shape",

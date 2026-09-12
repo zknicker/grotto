@@ -2,9 +2,11 @@ import type { ReactNode } from 'react';
 
 /**
  * The band height every top-of-column zone shares: the shell topbar, local
- * SectionBars, and the sidebar frame's header zone. The value itself lives in
- * shell.css as --app-shell-band-height, because the native window's traffic
- * lights must be centered on the same number from outside the renderer.
+ * SectionBars, the macOS titlebar strip, and the box the sidebar's lead
+ * navigation row is offset onto — half a band, which is how that row's midline
+ * meets the shell topbar's across the divider. The value itself lives in
+ * shell.css as --app-shell-band-height, because the native window's traffic lights must be
+ * centered on the same number from outside the renderer.
  */
 export const bandHeightClassName = 'app-shell-band h-[var(--app-shell-band-height)]';
 

@@ -38,7 +38,7 @@ import { cn } from '../../lib/utils.ts';
  *           </Chip>
  *         </ActionCard.Status>
  *       </ActionCard.Title>
- *       <ActionCard.Description>zknicker/grotto · codex/avatar-fix</ActionCard.Description>
+ *       <ActionCard.Description>zknicker/haus · codex/avatar-fix</ActionCard.Description>
  *     </ActionCard.Content>
  *   </ActionCard.Header>
  *   <ActionCard.Meta>14 files changed · +762 −1</ActionCard.Meta>

@@ -1,8 +1,8 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useAgentDelete(serverId: string, onDeleted: () => void) {
-    const utils = grottoTrpc.useUtils();
-    return grottoTrpc.agent.delete.useMutation({
+    const utils = hausTrpc.useUtils();
+    return hausTrpc.agent.delete.useMutation({
         onSuccess: async (_result, input) => {
             await Promise.all([
                 utils.agent.get.reset({ agentId: input.agentId, serverId }),

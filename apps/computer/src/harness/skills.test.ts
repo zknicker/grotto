@@ -2,7 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { defaultVisualsSkill } from '@grotto/agent-workspace';
+import { defaultVisualsSkill } from '@haus/agent-workspace';
 import { readAgentSkills } from './skills.ts';
 
 const roots: string[] = [];
@@ -123,7 +123,7 @@ test('the seeded visuals skill lists its authored description', async () => {
 });
 
 async function makeSkillsDir(bundles: Record<string, string>): Promise<string> {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-agent-skills-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-agent-skills-'));
     roots.push(root);
     for (const [name, content] of Object.entries(bundles)) {
         await mkdir(join(root, name), { recursive: true });

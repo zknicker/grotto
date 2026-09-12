@@ -1,4 +1,4 @@
-credentials-file: /Users/zknicker/srv/grotto/config/cloudflared-credentials.json
+credentials-file: /Users/zknicker/srv/haus/config/cloudflared-credentials.json
 ingress:
   - hostname: haus.chat
     service: http://127.0.0.1:18791

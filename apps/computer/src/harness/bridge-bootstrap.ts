@@ -95,7 +95,7 @@ export function withComputerBridgeBootstrap<T extends HarnessV1>(
 
 /** Installed bridge packages are machine software, not Server-scoped Agent state. */
 export function bridgeStoreDirForHost(homeDirectory = homedir()) {
-    return join(homeDirectory, '.grotto', 'cache', 'harness-bridge-store');
+    return join(homeDirectory, '.haus', 'cache', 'harness-bridge-store');
 }
 
 /**
@@ -216,8 +216,8 @@ async function readBridgeBootstrap(
                 }))
             )),
             {
-                content: 'grotto-computer-v1\n',
-                path: `${spec.bootstrapDir}/grotto-computer-owner`,
+                content: 'haus-computer-v1\n',
+                path: `${spec.bootstrapDir}/haus-computer-owner`,
             },
         ],
         harnessId,

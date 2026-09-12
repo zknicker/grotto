@@ -36,5 +36,5 @@ jobs:
             https://releases.haus.chat/computer/latest.json | \
             jq --exit-status '.release.version and .release.sourceRevision' > /dev/null
           curl --fail --location --show-error --silent --max-time 20 \
-            https://releases.haus.chat/grotto/latest.json | \
+            https://releases.haus.chat/haus/latest.json | \
             jq --exit-status '.version and .sourceRevision and .components.computer' > /dev/null

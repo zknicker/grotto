@@ -22,7 +22,7 @@ import { ServersSettings } from '../../features/settings/servers/page.tsx';
 import { SkillsSettings } from '../../features/skills/skills-settings.tsx';
 import { useMember } from '../../hooks/members/use-member.ts';
 import { useMembers } from '../../hooks/servers/use-members.ts';
-import type { ServerSummary } from '../../lib/grotto-server.tsx';
+import type { ServerSummary } from '../../lib/haus-server.tsx';
 
 interface SectionContext {
     server: ServerSummary;

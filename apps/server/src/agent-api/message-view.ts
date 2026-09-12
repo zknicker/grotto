@@ -1,10 +1,10 @@
-import type { GrottoAgentMessage, MessageBodyKind } from '@grotto/api';
+import type { HausAgentMessage, MessageBodyKind } from '@haus/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { readAsksForMessages } from '../asks/ask-shape.ts';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readCloudAgentWorkForMessages } from '../cloud-agents/cloud-agent-shape.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
     chatMessagesTable,
@@ -42,10 +42,10 @@ export const messageSelection = {
 };
 
 export async function toAgentMessages(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     rows: MessageRow[]
-): Promise<GrottoAgentMessage[]> {
+): Promise<HausAgentMessage[]> {
     const messageIds = rows.map(({ id }) => id);
     // Sequential, not Promise.all: `db` is often the caller's transaction, and
     // overlapping reads on that one connection deadlocked Agent delivery
@@ -187,7 +187,7 @@ export async function toAgentMessages(
 }
 
 export async function targetForChat(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     chatId: string
 ): Promise<string> {

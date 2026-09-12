@@ -1,12 +1,12 @@
-import type { AttachmentUploadResult } from '@grotto/api';
+import type { AttachmentUploadResult } from '@haus/api';
 import { useMutation } from '@tanstack/react-query';
 import { getClerkSessionToken } from '../../lib/clerk.tsx';
-import { getGrottoServerOrigin, grottoTrpc } from '../../lib/grotto-server.tsx';
+import { getHausServerOrigin, hausTrpc } from '../../lib/haus-server.tsx';
 
 export const attachmentMaxSizeBytes = 52_428_800;
 
 export function useUploadServerAttachment() {
-    const reserve = grottoTrpc.attachment.reserve.useMutation();
+    const reserve = hausTrpc.attachment.reserve.useMutation();
 
     return useMutation({
         mutationFn: async ({
@@ -39,7 +39,7 @@ export function useUploadServerAttachment() {
             const response = await fetch(
                 new URL(
                     `/attachments/${serverId}/${reservation.attachmentId}`,
-                    getGrottoServerOrigin()
+                    getHausServerOrigin()
                 ),
                 {
                     body: file,

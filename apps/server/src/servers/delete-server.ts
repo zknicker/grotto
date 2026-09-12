@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentDeliveryTable,
@@ -18,7 +18,7 @@ import {
     serverMembershipsTable,
     serversTable,
 } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { requireServerMembership } from './server-access.ts';
 import { lockServerRow } from './server-lock.ts';
 
@@ -39,8 +39,8 @@ export class ServerDeleteDeniedError extends Error {
  * so deletion never waits on an offline machine.
  */
 export async function markServerDeleting(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { confirmation: string; serverId: string }
 ): Promise<{ deletionId: string; serverId: string; status: 'pending' }> {
     return await db.transaction(async (tx) => {
@@ -127,7 +127,7 @@ export async function markServerDeleting(
  * never touched — a stray call can only ever finish a real deletion.
  */
 export async function purgeDeletedServer(
-    db: GrottoDatabase,
+    db: HausDatabase,
     attachmentRoot: AttachmentRoot,
     input: { deletionId: string; serverId: string }
 ): Promise<void> {
@@ -182,7 +182,7 @@ export async function purgeDeletedServer(
  * every boot alongside attachment reconciliation.
  */
 export async function purgeDeletedServers(
-    db: GrottoDatabase,
+    db: HausDatabase,
     attachmentRoot: AttachmentRoot
 ): Promise<void> {
     const pending = await db
@@ -196,7 +196,7 @@ export async function purgeDeletedServers(
 }
 
 export async function readServerDeletion(
-    db: GrottoDatabase,
+    db: HausDatabase,
     requestedByUserId: string,
     deletionId: string
 ) {

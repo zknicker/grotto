@@ -1,4 +1,4 @@
-import type { GrottoAgentSendResponse } from '@grotto/api';
+import type { HausAgentSendResponse } from '@haus/api';
 import type { z } from 'zod';
 import { formatThreadFollowRestoration } from '../inbox-format.ts';
 import type {
@@ -17,7 +17,7 @@ import {
     shortMessageId,
 } from './agent-format.ts';
 
-type AgentSendResponse = GrottoAgentSendResponse;
+type AgentSendResponse = HausAgentSendResponse;
 type AgentHistoryResponse = z.infer<typeof agentHistoryResponseSchema>;
 type AgentServerInfo = z.infer<typeof agentServerInfoSchema>;
 type AgentChannel = z.infer<typeof agentChannelSchema>;

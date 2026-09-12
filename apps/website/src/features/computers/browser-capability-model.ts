@@ -1,4 +1,4 @@
-import type { AgentRuntimeBrowserSettings, AgentRuntimeBrowserState } from '@grotto/api';
+import type { AgentRuntimeBrowserSettings, AgentRuntimeBrowserState } from '@haus/api';
 
 export type BrowserCapabilityStatus =
     | 'attention'

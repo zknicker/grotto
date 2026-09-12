@@ -1,4 +1,4 @@
-import type { ServerMember } from '@grotto/api/membership';
+import type { ServerMember } from '@haus/api/membership';
 import { Chip } from '@heroui/react';
 import { ShieldUserIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';

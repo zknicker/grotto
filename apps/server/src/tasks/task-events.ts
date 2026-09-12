@@ -1,11 +1,11 @@
-import type { ServerDurableEvent } from '@grotto/api';
+import type { ServerDurableEvent } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, chatMessagesTable } from '../postgres/schema.ts';
 
-type TaskEventWriter = Pick<GrottoDatabase, 'insert' | 'select' | 'update'>;
+type TaskEventWriter = Pick<HausDatabase, 'insert' | 'select' | 'update'>;
 
 export async function insertTaskEvent(
     db: TaskEventWriter,

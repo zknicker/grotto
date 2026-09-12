@@ -14,13 +14,13 @@ import {
     coveApplyResultSchema,
     reminderScriptResultSchema,
     usageReportSchema,
-} from '@grotto/api';
+} from '@haus/api';
 import { z } from 'zod';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { emitServerUpdated } from '../grotto-api/server-events.ts';
+import { emitServerUpdated } from '../haus-api/server-events.ts';
 import { recordCoveApplyResult } from '../onboarding/create-cove.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { recordComputerAgentActivityWithStatus } from '../server-agents/agent-activity.ts';
 import { recordAgentEffectiveState } from '../server-agents/record-agent-effective-state.ts';
 import { recordComputerUsage } from '../server-operations/computer-usage.ts';
@@ -42,13 +42,13 @@ const reportSchema = z
 interface ReportContext {
     computerId: string;
     connections: ComputerConnections;
-    db: GrottoDatabase;
+    db: HausDatabase;
     delivery: AgentDelivery;
     serverId: string;
 }
 
 export async function ingestComputerReport(
-    db: GrottoDatabase,
+    db: HausDatabase,
     connections: ComputerConnections,
     delivery: AgentDelivery,
     computerId: string,

@@ -1,9 +1,9 @@
-import type { AgentSetAgentAvatarReceipt } from '@grotto/api';
+import type { AgentSetAgentAvatarReceipt } from '@haus/api';
 import type { NormalizedAvatarImage } from '../avatar-generation/normalization.ts';
 import { createAvatarId, hashAvatarBytes } from '../avatars/avatar-bytes.ts';
 import { assignAvatar } from '../avatars/set-avatar.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { avatarsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { readCreatedAgent } from './agent-created-shape.ts';
@@ -16,7 +16,7 @@ import { resolveEditableAgent } from './update-agent-description.ts';
  * lock — so this is only the write.
  */
 export async function setAgentAvatarFromAgent(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: { agent: string; avatar: NormalizedAvatarImage }
 ): Promise<AgentSetAgentAvatarReceipt> {

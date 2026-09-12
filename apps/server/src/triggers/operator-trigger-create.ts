@@ -1,9 +1,9 @@
-import type { Trigger, TriggerKind } from '@grotto/api';
+import type { Trigger, TriggerKind } from '@haus/api';
 import { requireChatWritable } from '../chats/chat-access.ts';
 import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { requireActiveAgent } from '../reminders/reminder-model.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { requireTriggerOperator } from './operator-triggers.ts';
 import type { TriggerClock } from './trigger-model.ts';
 import { triggerCurlCommand } from './trigger-url.ts';
@@ -26,8 +26,8 @@ export interface CreateOperatorTriggerInput {
  * exactly where the person who wired it will look.
  */
 export async function createOperatorTrigger(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: CreateOperatorTriggerInput,
     clock: TriggerClock
 ): Promise<{ curl: string; secret: string; trigger: Trigger; url: string }> {

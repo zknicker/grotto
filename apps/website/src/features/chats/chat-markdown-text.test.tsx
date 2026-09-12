@@ -166,7 +166,7 @@ test('ChatMarkdownText gives non-navigable references preview controls in both r
     expect(animatedMarkup).toContain('Design');
 });
 
-test('ChatMarkdownText renders Grotto resource links', () => {
+test('ChatMarkdownText renders Haus resource links', () => {
     const markup = renderToStaticMarkup(
         <ArtifactPanelOpenProvider onOpen={() => undefined}>
             <ChatMarkdownText content="[preview.html](haus://workspace/out/preview.html)" />

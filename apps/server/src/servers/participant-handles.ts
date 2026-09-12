@@ -1,6 +1,6 @@
-import { suggestParticipantHandle } from '@grotto/api';
+import { suggestParticipantHandle } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, serverMembershipsTable } from '../postgres/schema.ts';
 
 export const participantHandleConstraint = 'participant_handles_server_handle_key';
@@ -14,7 +14,7 @@ export class ParticipantHandleTakenError extends Error {
 
 /** Picks a friendly seed while the caller holds the Server row lock. */
 export async function suggestAvailableParticipantHandle(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     ...sources: Array<null | string | undefined>
 ): Promise<string> {

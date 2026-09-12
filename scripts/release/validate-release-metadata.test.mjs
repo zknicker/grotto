@@ -28,14 +28,14 @@ test('release validation rejects target metadata that drifts from releases.json'
 });
 
 async function createFixture() {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-release-validation-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-release-validation-'));
     temporaryRoots.push(root);
     await Promise.all(
         [
             'apps/computer',
             'apps/website/electron',
             'apps/ios-swift/Haus.xcodeproj',
-            'packages/grotto-api',
+            'packages/haus-api',
             'scripts/release',
         ].map((directory) => mkdir(join(root, directory), { recursive: true }))
     );
@@ -52,11 +52,8 @@ async function createFixture() {
     );
     await writeFile(join(root, 'apps/website/package.json'), '{"version":"1.8.22"}\n');
     await writeFile(join(root, 'apps/computer/package.json'), '{"version":"1.4.8"}\n');
-    await writeFile(join(root, 'packages/grotto-api/grotto-agent.json'), '{"version":"1.0.0"}\n');
-    await writeFile(
-        join(root, 'packages/grotto-api/grotto-product.json'),
-        '{"version":"1.8.39"}\n'
-    );
+    await writeFile(join(root, 'packages/haus-api/haus-agent.json'), '{"version":"1.0.0"}\n');
+    await writeFile(join(root, 'packages/haus-api/haus-product.json'), '{"version":"1.8.39"}\n');
     await writeFile(
         join(root, 'apps/website/electron-builder.config.cjs'),
         "module.exports = { appId: 'chat.haus.desktop', files: [] };\n"

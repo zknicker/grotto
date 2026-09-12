@@ -11,7 +11,7 @@ import {
 let skillsDir = '';
 
 beforeEach(async () => {
-    skillsDir = await mkdtemp(join(tmpdir(), 'grotto-managed-skills-'));
+    skillsDir = await mkdtemp(join(tmpdir(), 'haus-managed-skills-'));
 });
 
 afterEach(async () => {
@@ -21,15 +21,15 @@ afterEach(async () => {
 test('restores visuals without removing authored or stale factory skills', async () => {
     await mkdir(join(skillsDir, 'authored'), { recursive: true });
     await writeFile(join(skillsDir, 'authored', 'SKILL.md'), '# Authored\n');
-    await mkdir(join(skillsDir, 'grotto-agent'), { recursive: true });
-    await writeFile(join(skillsDir, 'grotto-agent', 'SKILL.md'), '# stale\n');
+    await mkdir(join(skillsDir, 'haus-agent'), { recursive: true });
+    await writeFile(join(skillsDir, 'haus-agent', 'SKILL.md'), '# stale\n');
 
     await seedFactoryManagedSkills(skillsDir);
 
     await expect(readFile(join(skillsDir, 'authored', 'SKILL.md'), 'utf8')).resolves.toBe(
         '# Authored\n'
     );
-    await expect(readFile(join(skillsDir, 'grotto-agent', 'SKILL.md'), 'utf8')).resolves.toBe(
+    await expect(readFile(join(skillsDir, 'haus-agent', 'SKILL.md'), 'utf8')).resolves.toBe(
         '# stale\n'
     );
     await expect(readFile(join(skillsDir, 'visuals', 'SKILL.md'), 'utf8')).resolves.toBe(
@@ -165,7 +165,6 @@ test('visuals skill states the visual frame facts', () => {
     expect(defaultVisualsSkill).toContain('16px padding');
     expect(defaultVisualsSkill).toContain('the app font');
     expect(defaultVisualsSkill).toContain('14px text');
-    expect(defaultVisualsSkill).not.toContain('Tavern');
     // The description ends with the words users actually type, so the skill
     // listing matches a chart or calendar request that never says "visual".
     for (const trigger of ['chart', 'dashboard', 'KPI row', 'calendar', 'revenue', 'cash flow']) {

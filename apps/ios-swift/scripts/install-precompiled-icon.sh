@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-icon_dir="${GROTTO_PRECOMPILED_IOS_ICON_DIR:-}"
+icon_dir="${HAUS_PRECOMPILED_IOS_ICON_DIR:-}"
 if [[ -z "${icon_dir}" ]]; then
     exit 0
 fi

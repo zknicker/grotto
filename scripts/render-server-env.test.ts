@@ -26,25 +26,25 @@ describe('the delivered Server environment', () => {
         // The migration credential is the deploy job's alone; delivering it to
         // the running Server would hand it schema-owner rights on its own
         // database.
-        expect(names).not.toContain('GROTTO_DATABASE_MIGRATION_URL');
-        expect(names).not.toContain('GROTTO_POSTGRES_ADMIN_PASSWORD');
+        expect(names).not.toContain('HAUS_DATABASE_MIGRATION_URL');
+        expect(names).not.toContain('HAUS_POSTGRES_ADMIN_PASSWORD');
     });
 
     test('survives shell sourcing of a value with quotes and a dollar sign', () => {
         const value = 'p\'a$$w"ord';
-        const file = join(mkdtempSync(join(tmpdir(), 'grotto-render-')), 'server.env');
-        writeFileSync(file, `GROTTO_DATABASE_URL=${shellQuote(value)}\n`);
+        const file = join(mkdtempSync(join(tmpdir(), 'haus-render-')), 'server.env');
+        writeFileSync(file, `HAUS_DATABASE_URL=${shellQuote(value)}\n`);
 
         const read = Bun.spawnSync([
             '/bin/sh',
             '-c',
-            `set -a; . "$1"; printf '%s' "$GROTTO_DATABASE_URL"`,
+            `set -a; . "$1"; printf '%s' "$HAUS_DATABASE_URL"`,
             'sh',
             file,
         ]);
 
         expect(read.stdout.toString()).toBe(value);
-        expect(readRenderedEnvironmentNames(file)).toEqual(['GROTTO_DATABASE_URL']);
+        expect(readRenderedEnvironmentNames(file)).toEqual(['HAUS_DATABASE_URL']);
     });
 
     test('no @internal item can ever be delivered', () => {
@@ -56,7 +56,7 @@ describe('the delivered Server environment', () => {
 });
 
 describe('the released contract guard', () => {
-    const released = ['GROTTO_APP_ORIGIN', 'GROTTO_CLERK_SECRET_KEY'];
+    const released = ['HAUS_APP_ORIGIN', 'HAUS_CLERK_SECRET_KEY'];
 
     test('passes when the released Server reads what this revision delivers', () => {
         expect(() => assertContractsAgree(released, [...released], 'a'.repeat(40))).not.toThrow();

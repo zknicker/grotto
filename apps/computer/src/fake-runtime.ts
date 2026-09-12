@@ -7,11 +7,11 @@
  * fake model.
  */
 async function main(): Promise<number> {
-    const prompt = process.env.GROTTO_TURN_PROMPT ?? '';
+    const prompt = process.env.HAUS_TURN_PROMPT ?? '';
     const ask = readLatestHumanMessage(prompt);
     const reply = ask ? `Acknowledged: ${ask.content}` : 'Acknowledged.';
 
-    const haus = Bun.which('haus') ?? process.env.GROTTO_WRAPPER;
+    const haus = Bun.which('haus') ?? process.env.HAUS_WRAPPER;
     if (!haus) {
         process.stderr.write('The haus wrapper was not found on PATH.\n');
         return 1;

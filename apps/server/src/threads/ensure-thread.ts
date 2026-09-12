@@ -1,13 +1,13 @@
-import { idSchema } from '@grotto/api';
+import { idSchema } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, threadFollowsTable } from '../postgres/schema.ts';
 import { followMaterializedTaskThread } from '../tasks/task-thread-follows.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { threadChatIdForAnchor } from './thread-id.ts';
 
-type ThreadWriter = Pick<GrottoDatabase, 'insert' | 'select'>;
+type ThreadWriter = Pick<HausDatabase, 'insert' | 'select'>;
 
 export class InvalidThreadAnchorError extends Error {
     constructor() {
@@ -25,7 +25,7 @@ export class NestedThreadError extends Error {
 
 export async function ensureThread(
     db: ThreadWriter,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: { anchorMessageId: string; parentChatId: string; serverId: string }
 ) {
     await requireChatWriteAccess(db, member, {

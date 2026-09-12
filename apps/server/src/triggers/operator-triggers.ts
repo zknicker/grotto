@@ -1,9 +1,9 @@
-import type { Trigger, TriggerFire, TriggerStatus } from '@grotto/api';
+import type { Trigger, TriggerFire, TriggerStatus } from '@haus/api';
 import { and, asc, eq, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable, triggersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { TriggerAccessDeniedError, type TriggerClock } from './trigger-model.ts';
 import { listTriggerFires, readTrigger, triggerRows, viewTrigger } from './trigger-queries.ts';
 import {
@@ -27,8 +27,8 @@ export interface OperatorTriggerInput {
 
 /** Triggers are operator state: only a Server Owner or Admin may read or change them. */
 export async function requireTriggerOperator(
-    db: Pick<GrottoDatabase, 'select'>,
-    member: GrottoUser | null,
+    db: Pick<HausDatabase, 'select'>,
+    member: HausUser | null,
     serverId: string
 ) {
     const server = await requireServerMembership(db, member, serverId);
@@ -40,7 +40,7 @@ export async function requireTriggerOperator(
 
 /** The operator's own Server handle, used to name who sent a test fire. */
 export async function readOperatorHandle(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     input: { serverId: string; userId: string }
 ): Promise<string | null> {
     const [membership] = await db
@@ -58,8 +58,8 @@ export async function readOperatorHandle(
 }
 
 export async function listOperatorTriggers(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { agentId?: string; origin: string; serverId: string; status?: TriggerStatus }
 ): Promise<Trigger[]> {
     await requireTriggerOperator(db, member, input.serverId);
@@ -77,8 +77,8 @@ export async function listOperatorTriggers(
 }
 
 export async function listOperatorTriggerRuns(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: OperatorTriggerInput
 ): Promise<TriggerFire[]> {
     await requireTriggerOperator(db, member, input.serverId);
@@ -92,8 +92,8 @@ export async function listOperatorTriggerRuns(
 
 /** The App's arm/disable switch. Setting the status it already has is a no-op. */
 export async function setOperatorTriggerStatus(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: OperatorTriggerInput & { status: TriggerStatus },
     clock: TriggerClock
 ): Promise<{ trigger: Trigger }> {
@@ -104,8 +104,8 @@ export async function setOperatorTriggerStatus(
 
 /** Edits the title and standing instruction. The anchor and kind never move. */
 export async function updateOperatorTrigger(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: OperatorTriggerInput & { instruction?: string | null; title?: string },
     clock: TriggerClock
 ): Promise<{ trigger: Trigger }> {
@@ -114,8 +114,8 @@ export async function updateOperatorTrigger(
 
 /** Mints a replacement secret. The response is the only place it is readable. */
 export async function rotateOperatorTriggerSecret(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: OperatorTriggerInput,
     clock: TriggerClock
 ): Promise<{ secret: string; trigger: Trigger }> {
@@ -124,8 +124,8 @@ export async function rotateOperatorTriggerSecret(
 
 /** Removes the trigger from active use while retaining its recent fire history. */
 export async function deleteOperatorTrigger(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: OperatorTriggerInput,
     clock: TriggerClock
 ): Promise<{ deleted: true; id: string }> {
@@ -133,6 +133,6 @@ export async function deleteOperatorTrigger(
     return { deleted: true, id: input.triggerId };
 }
 
-function operatorCheck(member: GrottoUser | null, input: { serverId: string }) {
-    return async (tx: GrottoDatabase) => await requireTriggerOperator(tx, member, input.serverId);
+function operatorCheck(member: HausUser | null, input: { serverId: string }) {
+    return async (tx: HausDatabase) => await requireTriggerOperator(tx, member, input.serverId);
 }

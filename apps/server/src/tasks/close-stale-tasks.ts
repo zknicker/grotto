@@ -1,8 +1,8 @@
-import { type ServerDurableEvent, TASK_IN_REVIEW_STALE_DAYS } from '@grotto/api';
+import { type ServerDurableEvent, TASK_IN_REVIEW_STALE_DAYS } from '@haus/api';
 import { and, eq, lt, sql } from 'drizzle-orm';
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { messageTasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { insertTaskEvent } from './task-events.ts';
@@ -24,7 +24,7 @@ const staleMs = TASK_IN_REVIEW_STALE_DAYS * 24 * 60 * 60 * 1000;
  * other close; nothing here invents a field to say otherwise.
  */
 export async function closeStaleInReviewTasks(
-    db: GrottoDatabase,
+    db: HausDatabase,
     now: Date
 ): Promise<ServerDurableEvent[]> {
     const quietBefore = new Date(now.getTime() - staleMs);
@@ -51,7 +51,7 @@ export async function closeStaleInReviewTasks(
 
 /** Runs the stale close on boot and hourly after that. */
 export function startStaleTaskSweep(
-    db: GrottoDatabase,
+    db: HausDatabase,
     clock: { now(): Date },
     timers?: SweepTimers
 ): BootSweep {
@@ -64,7 +64,7 @@ export function startStaleTaskSweep(
 }
 
 async function closeStaleTask(
-    db: GrottoDatabase,
+    db: HausDatabase,
     task: { chatId: string; messageId: string; serverId: string },
     window: { now: Date; quietBefore: Date }
 ): Promise<ServerDurableEvent | null> {

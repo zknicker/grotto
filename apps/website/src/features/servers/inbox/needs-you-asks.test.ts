@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Agent, OpenAsk } from '@grotto/api';
+import type { Agent, OpenAsk } from '@haus/api';
 import { humanDirectory } from '../human-identity.ts';
 import { askAnswerMessage, toNeedsYouAsks } from './needs-you-asks.ts';
 

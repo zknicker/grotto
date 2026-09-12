@@ -1,4 +1,4 @@
-import type { ComputerRuntimeId, UsageOverview } from '@grotto/api';
+import type { ComputerRuntimeId, UsageOverview } from '@haus/api';
 import { Button, ProgressBar, Skeleton, Tooltip } from '@heroui/react';
 import { DataGrid, type DataGridColumn } from '@heroui-pro/react';
 import { ProviderMark } from '../../components/provider-mark.tsx';

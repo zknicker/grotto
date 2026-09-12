@@ -1,11 +1,11 @@
 import { and, asc, eq, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable, serversTable } from '../postgres/schema.ts';
 import type { ServerSummary } from './contracts.ts';
 
 /** The Haus servers one human may open, newest membership last. */
 export async function listAccessibleServers(
-    db: GrottoDatabase,
+    db: HausDatabase,
     userId: string
 ): Promise<ServerSummary[]> {
     return await db

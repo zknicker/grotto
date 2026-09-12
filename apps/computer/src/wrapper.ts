@@ -25,19 +25,16 @@ export async function writeHausWrapper(input: {
         .join(' ');
     const script = [
         '#!/bin/sh',
-        `export GROTTO_AGENT_ID=${shellQuote(input.identity.agentId)}`,
-        `export GROTTO_SERVER_URL=${shellQuote(input.identity.proxyUrl)}`,
-        `export GROTTO_AGENT_TOKEN_FILE=${shellQuote(input.identity.proxyTokenFile)}`,
-        `export GROTTO_AGENT_PROXY_URL=${shellQuote(input.identity.proxyUrl)}`,
-        `export GROTTO_AGENT_PROXY_TOKEN_FILE=${shellQuote(input.identity.proxyTokenFile)}`,
+        `export HAUS_AGENT_ID=${shellQuote(input.identity.agentId)}`,
+        `export HAUS_SERVER_URL=${shellQuote(input.identity.proxyUrl)}`,
+        `export HAUS_AGENT_TOKEN_FILE=${shellQuote(input.identity.proxyTokenFile)}`,
+        `export HAUS_AGENT_PROXY_URL=${shellQuote(input.identity.proxyUrl)}`,
+        `export HAUS_AGENT_PROXY_TOKEN_FILE=${shellQuote(input.identity.proxyTokenFile)}`,
         `exec ${command} "$@"`,
         '',
     ].join('\n');
-    // Resumed Agent histories may still invoke the former command name.
-    for (const path of [wrapperPath, join(input.binDir, 'grotto')]) {
-        await writeFile(path, script, { mode: 0o755 });
-        await chmod(path, 0o755);
-    }
+    await writeFile(wrapperPath, script, { mode: 0o755 });
+    await chmod(wrapperPath, 0o755);
     return wrapperPath;
 }
 

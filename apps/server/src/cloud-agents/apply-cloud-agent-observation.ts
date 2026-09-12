@@ -3,10 +3,10 @@ import {
     type CloudAgentWork,
     isTerminalCloudAgentStatus,
     type ServerDurableEvent,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, desc, eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import {
@@ -32,7 +32,7 @@ export interface AppliedCloudAgentObservation {
  * delegating Agent, in the same transaction.
  */
 export async function applyCloudAgentObservation(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { computerId: string; observation: CloudAgentObservation; serverId: string },
     agentDelivery: AgentDelivery
 ): Promise<AppliedCloudAgentObservation | null> {
@@ -138,7 +138,7 @@ export async function applyCloudAgentObservation(
 }
 
 export async function emitWorkEvent(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { chatId: string; messageId: string; serverId: string; workId: string }
 ): Promise<ServerDurableEvent> {
     const anchor: { chat: CloudAgentEventChat; sequence: number } = await readCloudAgentEventAnchor(

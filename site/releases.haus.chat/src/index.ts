@@ -1,8 +1,8 @@
 export const releaseOrigin = new URL(
-    'https://punchpress-electron-app-209596837609-us-east-1-an.s3.us-east-1.amazonaws.com/tavern/mac/'
+    'https://punchpress-electron-app-209596837609-us-east-1-an.s3.us-east-1.amazonaws.com/haus/mac/'
 );
 
-const publicNamespaces = ['/computer/', '/haus/', '/grotto/'];
+const publicNamespaces = ['/computer/', '/haus/'];
 
 export function handleReleaseRequest(request: Request): Response {
     const requested = new URL(request.url);
@@ -13,9 +13,7 @@ export function handleReleaseRequest(request: Request): Response {
         });
     }
 
-    // Published S3 keys are immutable; the Haus URL maps to their existing namespace.
-    const artifactPath = requested.pathname.replace(/^\/haus\//u, '/grotto/');
-    const destination = new URL(`.${artifactPath}`, releaseOrigin);
+    const destination = new URL(`.${requested.pathname}`, releaseOrigin);
     destination.search = requested.search;
     return new Response(null, {
         headers: {

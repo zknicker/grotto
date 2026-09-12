@@ -3,7 +3,7 @@ import {
     agentCloudAgentListInputSchema,
     agentCloudAgentSendInputSchema,
     agentCloudAgentStartInputSchema,
-} from '@grotto/api';
+} from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { AgentAuthorNotFoundError } from '../chats/agent-authored-message.ts';
@@ -22,7 +22,7 @@ import { listAgentCloudAgentWork } from '../cloud-agents/list-agent-cloud-agent-
 import { requestCloudAgentCancel } from '../cloud-agents/request-cloud-agent-cancel.ts';
 import { sendCloudAgentWork } from '../cloud-agents/send-cloud-agent-work.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { requireCancellableWorkAgent } from './cloud-agents.ts';
@@ -38,7 +38,7 @@ export function registerAgentCloudAgentRoutes(
     dependencies: {
         agentDelivery: AgentDelivery;
         computers: ComputerConnections;
-        db: GrottoDatabase;
+        db: HausDatabase;
         postCommitWork: ServerPostCommitWork;
     }
 ) {

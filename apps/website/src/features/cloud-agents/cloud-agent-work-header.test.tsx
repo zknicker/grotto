@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { CloudAgentWork } from '@grotto/api';
+import type { CloudAgentWork } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CloudAgentWorkDetail, CloudAgentWorkHeader } from './cloud-agent-work-header.tsx';
 import { ThreadCloudAgentRows } from './thread-cloud-agent-rows.tsx';
@@ -76,8 +76,8 @@ test('compact completed rows show recorded diff counts, not the task title', () 
                 branches: [
                     {
                         branch: 'cursor/test',
-                        repository: 'grotto/grotto',
-                        pullRequestUrl: 'https://github.com/grotto/grotto/pull/1',
+                        repository: 'haus/haus',
+                        pullRequestUrl: 'https://github.com/haus/haus/pull/1',
                         pullRequest: {
                             number: 1,
                             state: 'draft',
@@ -139,7 +139,7 @@ function work(overrides: Partial<CloudAgentWork>): CloudAgentWork {
         provider: 'cursor',
         providerAgentId: null,
         providerUrl: null,
-        repository: 'grotto/grotto',
+        repository: 'haus/haus',
         runs: [],
         startedAt: null,
         startingRef: null,

@@ -1,7 +1,7 @@
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
-import type { EffectRuntime, TraceCarrier } from '@grotto/effect';
+import type { EffectRuntime, TraceCarrier } from '@haus/effect';
 import { and, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentMcpConnectionGrantsTable,
     mcpConnectionsTable,
@@ -48,7 +48,7 @@ export class McpRuntime {
     private readonly discoveryTimeoutMs: number;
     private readonly invocationTimeoutMs: number;
     constructor(
-        private readonly db: GrottoDatabase,
+        private readonly db: HausDatabase,
         runtime: EffectRuntime<never>,
         options: McpRuntimeOptions = {}
     ) {

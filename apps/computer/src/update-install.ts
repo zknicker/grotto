@@ -10,7 +10,7 @@ import {
 import type { SignedComputerRelease } from './update-contract.ts';
 
 const installedPath =
-    process.env.GROTTO_COMPUTER_INSTALL_PATH ??
+    process.env.HAUS_COMPUTER_INSTALL_PATH ??
     (computerStandalone ? process.execPath : join(homedir(), '.local', 'bin', 'haus-computer'));
 
 export async function downloadAndVerifyArtifact(input: {
@@ -29,8 +29,8 @@ export async function downloadAndVerifyArtifact(input: {
         Number.isSafeInteger(parsedTotalBytes) && (parsedTotalBytes ?? 0) > 0
             ? parsedTotalBytes
             : null;
-    const temporaryRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-update-'));
-    const artifactPath = join(temporaryRoot, 'grotto-computer');
+    const temporaryRoot = await mkdtemp(join(tmpdir(), 'haus-computer-update-'));
+    const artifactPath = join(temporaryRoot, 'haus-computer');
     const hash = createHash('sha256');
     let downloadedBytes = 0;
     try {

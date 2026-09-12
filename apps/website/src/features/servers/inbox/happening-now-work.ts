@@ -1,4 +1,4 @@
-import type { ActiveCloudAgentWork, Agent, CloudAgentProvider } from '@grotto/api';
+import type { ActiveCloudAgentWork, Agent, CloudAgentProvider } from '@haus/api';
 import {
     type CloudAgentPresentationStatus,
     cloudAgentPresentationStatus,

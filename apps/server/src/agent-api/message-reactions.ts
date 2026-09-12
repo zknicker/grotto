@@ -1,12 +1,12 @@
-import type { GrottoAgentMessage } from '@grotto/api';
+import type { HausAgentMessage } from '@haus/api';
 import { readChatMessageReactions } from '../chats/message-reactions.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 
-type AgentMessageReaction = NonNullable<GrottoAgentMessage['reactions']>[number];
+type AgentMessageReaction = NonNullable<HausAgentMessage['reactions']>[number];
 
 /** Projects the shared Chat reaction relation into the Agent API's stable shape. */
 export async function readMessageReactions(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     messageIds: string[]
 ): Promise<Map<string, AgentMessageReaction[]>> {

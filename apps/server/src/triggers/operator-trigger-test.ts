@@ -1,8 +1,8 @@
-import type { EffectRuntime } from '@grotto/effect';
+import type { EffectRuntime } from '@haus/effect';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import {
     type OperatorTriggerInput,
     readOperatorHandle,
@@ -28,9 +28,9 @@ export interface TriggerTestDependencies {
  * trigger, so demanding it would only make them mint one first.
  */
 export async function testOperatorTrigger(
-    db: GrottoDatabase,
+    db: HausDatabase,
     dependencies: TriggerTestDependencies,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: OperatorTriggerInput,
     clock: TriggerClock
 ): Promise<{ fireId: string }> {

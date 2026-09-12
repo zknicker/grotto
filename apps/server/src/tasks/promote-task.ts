@@ -1,10 +1,10 @@
-import type { MessageTask, ServerDurableEvent } from '@grotto/api';
+import type { MessageTask, ServerDurableEvent } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { insertTaskEvent } from './task-events.ts';
 import { findMessageTask } from './task-shape.ts';
 
@@ -23,8 +23,8 @@ export class UntaskableMessageError extends Error {
 }
 
 export async function promoteMessageTask(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { messageId: string; serverId: string }
 ): Promise<{
     event: ServerDurableEvent | null;

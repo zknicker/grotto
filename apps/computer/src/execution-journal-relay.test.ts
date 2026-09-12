@@ -15,7 +15,7 @@ afterEach(async () => {
 });
 
 test('serves one local journal only for the attached Server partition', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-journal-relay-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-journal-relay-'));
     roots.push(dataRoot);
     const journal = await createComputerExecutionJournal({
         agentRoot: join(dataRoot, 'servers', 'srv_attached', 'agents', 'agt_attached'),
@@ -40,7 +40,7 @@ test('serves one local journal only for the attached Server partition', async ()
 });
 
 test('serves a still-running turn from its append-only log', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-journal-running-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-journal-running-'));
     roots.push(dataRoot);
     const journal = await createComputerExecutionJournal({
         agentRoot: join(dataRoot, 'servers', 'srv_attached', 'agents', 'agt_running'),
@@ -74,7 +74,7 @@ test('serves a still-running turn from its append-only log', async () => {
 });
 
 test('returns an explicit missing result instead of inventing local detail', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-journal-missing-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-journal-missing-'));
     roots.push(dataRoot);
     const request = parseExecutionJournalRequest({
         agentId: 'agt_missing',
@@ -96,7 +96,7 @@ test('returns an explicit missing result instead of inventing local detail', asy
 });
 
 test('returns explicit missing for a run id that cannot address a local file', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-journal-invalid-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-journal-invalid-'));
     roots.push(dataRoot);
     const request = parseExecutionJournalRequest({
         agentId: 'agt_invalid',

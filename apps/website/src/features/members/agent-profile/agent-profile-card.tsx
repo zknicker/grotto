@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';

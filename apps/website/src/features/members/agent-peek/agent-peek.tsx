@@ -1,7 +1,7 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { agentProfileRoute } from '../../servers/server-routes.ts';
 import { AgentPeekAutomations } from './agent-peek-automations.tsx';
 import { AgentPeekChats } from './agent-peek-chats.tsx';

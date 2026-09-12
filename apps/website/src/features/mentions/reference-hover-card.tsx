@@ -2,7 +2,7 @@ import {
     parseAgentReferenceTarget,
     parseChatReferenceTarget,
     parseSkillReferenceTarget,
-} from '@grotto/api/rich-references';
+} from '@haus/api/rich-references';
 import { Separator } from '@heroui/react';
 import type * as React from 'react';
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';

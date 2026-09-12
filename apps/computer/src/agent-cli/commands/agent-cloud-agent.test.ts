@@ -23,7 +23,7 @@ const work = {
     provider: 'cursor',
     providerAgentId: null,
     providerUrl: null,
-    repository: 'grotto/grotto',
+    repository: 'haus/haus',
     runs: [],
     startedAt: null,
     startingRef: 'main',
@@ -41,7 +41,7 @@ function args(overrides: Record<string, string> = {}): ParsedArgs {
         valueLists: {},
         values: {
             '--ref': 'main',
-            '--repo': 'grotto/grotto',
+            '--repo': 'haus/haus',
             '--say': 'Handing the flaky delivery test to a cloud agent.',
             '--target': '#product',
             '--title': 'Fix the flaky delivery test',
@@ -96,7 +96,7 @@ test('starts one Cloud Agent with the stdin instructions and the Agent’s own w
         content: 'Handing the flaky delivery test to a cloud agent.',
         instructions: 'Reproduce the flake and open a pull request.',
         nonce: 'cloud-agent-nonce',
-        repository: 'grotto/grotto',
+        repository: 'haus/haus',
         startingRef: 'main',
         target: '#product',
         title: 'Fix the flaky delivery test',
@@ -119,7 +119,7 @@ test('a start with no instructions, a bad repository, or no ref fails or omits t
 
     const seen: AgentApiRequest[] = [];
     await expect(
-        runCloudAgentStart(args({ '--repo': 'grotto' }), {
+        runCloudAgentStart(args({ '--repo': 'haus' }), {
             ...deps,
             client: requester(seen),
             readStdin: () => Promise.resolve('Do the work.'),

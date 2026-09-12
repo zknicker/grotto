@@ -5,7 +5,7 @@ export const releaseMetadataPaths = [
     'apps/computer/package.json',
     'apps/website/package.json',
     'bun.lock',
-    'packages/grotto-api/grotto-agent.json',
-    'packages/grotto-api/grotto-product.json',
+    'packages/haus-api/haus-agent.json',
+    'packages/haus-api/haus-product.json',
     'releases.json',
 ];

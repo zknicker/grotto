@@ -1,8 +1,8 @@
-import type { ChatMessage } from '@grotto/api';
+import type { ChatMessage } from '@haus/api';
 import { and, eq, getTableColumns, inArray } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
     chatMessagesTable,
@@ -22,7 +22,7 @@ import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
  * Authorization belongs to the caller, which is why this takes explicit ids.
  */
 export async function readMessagesById(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     messageIds: string[]
 ): Promise<Map<string, ChatMessage>> {

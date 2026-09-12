@@ -10,7 +10,7 @@ export type DesktopUpdateBridgeStatus =
 
 export type DesktopEditCommand = 'copy' | 'cut' | 'paste' | 'redo' | 'selectAll' | 'undo';
 
-export interface GrottoDesktopBridge {
+export interface HausDesktopBridge {
     /** Read Clerk's native client JWT from main-process storage. */
     authTokenGet: () => Promise<string | null>;
     /** Persist or clear Clerk's native client JWT in main-process storage. */
@@ -21,7 +21,7 @@ export interface GrottoDesktopBridge {
     closeWindow: () => Promise<void>;
     downloadUpdate: () => Promise<void>;
     getInfo: () => Promise<{ isPackaged: boolean; platform: NodeJS.Platform; version: string }>;
-    /** Electron loads the canonical Grotto App instead of a bundled renderer. */
+    /** Electron loads the canonical Haus App instead of a bundled renderer. */
     loadsApp?: true;
     /** Main → renderer: File > Close (⌘W); close a tab first or fall back to closeWindow. */
     onCloseWindowRequest?: (listener: () => void) => () => void;
@@ -53,19 +53,9 @@ export interface GrottoDesktopBridge {
     startWindowDrag: () => Promise<void>;
 }
 
-/**
- * The desktop shell and this App ship on two independent channels — the shell
- * through the S3 release feed, the App through the hosted Server — so a running
- * shell is routinely a different version from the App it loads. The global the
- * preload injects is therefore a production compatibility contract, and reading
- * it has to stay tolerant in both directions: accept the pre-Grotto
- * `tavernDesktop` so an older installed shell is still recognised. Without that,
- * every shell predating the Grotto rename looks like an ordinary browser tab and
- * silently falls back to a sign-in flow that cannot complete inside Electron.
- * Retire the fallback only once no supported shell exposes the old name.
- */
+/** The supported Haus shell exposes the same bridge as the hosted App. */
 export function resolveDesktopBridge(host: Partial<Window> | undefined | null) {
-    return host?.grottoDesktop ?? host?.tavernDesktop ?? null;
+    return host?.hausDesktop ?? null;
 }
 
 export function getDesktopBridge() {

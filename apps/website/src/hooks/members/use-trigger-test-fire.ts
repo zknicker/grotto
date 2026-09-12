@@ -1,5 +1,5 @@
 import { toast } from '@heroui/react';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /**
  * A test fire rides the real fire path, so it changes both the Trigger's
@@ -7,8 +7,8 @@ import { grottoTrpc } from '../../lib/grotto-server.tsx';
  * the operator can look up.
  */
 export function useTriggerTestFire(serverId: string, agentId: string, triggerId: string) {
-    const utils = grottoTrpc.useUtils();
-    const mutation = grottoTrpc.trigger.test.useMutation({
+    const utils = hausTrpc.useUtils();
+    const mutation = hausTrpc.trigger.test.useMutation({
         onSuccess: async () => {
             await Promise.all([
                 utils.trigger.list.invalidate({ agentId, serverId }),

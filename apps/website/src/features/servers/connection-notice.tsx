@@ -1,5 +1,5 @@
 import { useAgents } from '../../hooks/members/use-agents.ts';
-import { useGrottoServerConnectionState } from '../../lib/grotto-server.tsx';
+import { useHausServerConnectionState } from '../../lib/haus-server.tsx';
 
 export function ConnectionNotice({
     serverError,
@@ -9,7 +9,7 @@ export function ConnectionNotice({
     serverId: string;
 }) {
     const agents = useAgents(serverId);
-    const connection = useGrottoServerConnectionState();
+    const connection = useHausServerConnectionState();
 
     if (!(serverError || agents.error || connection !== 'connected')) {
         return null;

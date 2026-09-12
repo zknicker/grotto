@@ -1,4 +1,4 @@
-import type { Agent, ComputerInventory } from '@grotto/api';
+import type { Agent, ComputerInventory } from '@haus/api';
 import { Alert, Button, Form, Label, ListBox, Modal, Select } from '@heroui/react';
 import * as React from 'react';
 import { isRuntimeConfigDraftAvailable, type RuntimeConfigDraft } from './runtime-model.ts';

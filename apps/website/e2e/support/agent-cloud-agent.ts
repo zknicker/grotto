@@ -116,7 +116,7 @@ export async function startCloudAgentWork(input: {
         chatId: input.chatId,
         credential: input.computerCredential,
     });
-    const response = await fetch(`${grottoOrigin()}/api/agent/cloud-agents`, {
+    const response = await fetch(`${hausOrigin()}/api/agent/cloud-agents`, {
         body: JSON.stringify({
             content: input.content,
             nonce: `cloud-agent-${input.agentId}-${input.target}`,
@@ -148,7 +148,7 @@ export function cloudAgentObservationFrame(input: {
     /** The work's one bounded line of current state while it runs. */
     activity?: string;
     /** The Run's terminal branch evidence, including any pull request it opened. */
-    branches?: import('@grotto/api').CloudAgentBranch[];
+    branches?: import('@haus/api').CloudAgentBranch[];
     observedAt: string;
     runId: string;
     status: 'cancelled' | 'completed' | 'expired' | 'failed' | 'queued' | 'running';
@@ -174,7 +174,7 @@ export function cloudAgentObservationFrame(input: {
 }
 
 async function mintAgentRunner(input: { agentId: string; chatId: string; credential: string }) {
-    const response = await fetch(`${grottoOrigin()}/computer/runner/mint`, {
+    const response = await fetch(`${hausOrigin()}/computer/runner/mint`, {
         body: JSON.stringify({
             agentId: input.agentId,
             chatId: input.chatId,
@@ -190,6 +190,6 @@ async function mintAgentRunner(input: { agentId: string; chatId: string; credent
     return ((await response.json()) as { runnerToken: string }).runnerToken;
 }
 
-function grottoOrigin() {
-    return `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}`;
+function hausOrigin() {
+    return `http://127.0.0.1:${process.env.HAUS_SERVER_PORT}`;
 }

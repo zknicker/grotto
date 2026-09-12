@@ -1,4 +1,4 @@
-import type { Chat } from '@grotto/api';
+import type { Chat } from '@haus/api';
 import { Button, toast } from '@heroui/react';
 import { useChannelUnarchive } from '../../../hooks/servers/use-channel-lifecycle.ts';
 

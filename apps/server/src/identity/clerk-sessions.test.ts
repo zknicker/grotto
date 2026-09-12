@@ -3,7 +3,7 @@ import { exportJWK, type FetchImplementation, generateKeyPair, type JWK, SignJWT
 import { ClerkSessionUnavailableError, createClerkSessions } from './clerk-sessions.ts';
 
 const issuerUrl = 'https://worthy-peacock-11.clerk.accounts.test';
-const appOrigin = 'https://app.grotto.test';
+const appOrigin = 'https://app.haus.test';
 const keyId = 'clerk-signing-key';
 
 /**

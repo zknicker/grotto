@@ -2,10 +2,10 @@ import { execFileSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { appProtocolHeaders, appProtocolVersion } from '@grotto/api/app-protocol';
+import { appProtocolHeaders, appProtocolVersion } from '@haus/api/app-protocol';
 import { expect, type Page } from '@playwright/test';
 import { createTRPCClient, httpLink } from '@trpc/client';
-import type { GrottoRouter } from '../../../server/src/grotto-api/router.ts';
+import type { HausRouter } from '../../../server/src/haus-api/router.ts';
 import {
     e2eHumanEmail,
     e2eHumanName,
@@ -79,7 +79,7 @@ export async function openSection(page: Page, name: string) {
 }
 
 export function createClient(token: string) {
-    return createTRPCClient<GrottoRouter>({
+    return createTRPCClient<HausRouter>({
         links: [
             httpLink({
                 headers: {
@@ -87,7 +87,7 @@ export function createClient(token: string) {
                     [appProtocolHeaders.productVersion]: 'e2e',
                     [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
                 },
-                url: `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/trpc`,
+                url: `http://127.0.0.1:${process.env.HAUS_SERVER_PORT}/trpc`,
             }),
         ],
     });
@@ -97,7 +97,7 @@ export async function attachComputer(
     client: ReturnType<typeof createClient>,
     input: { credential: string; slug: string }
 ) {
-    const origin = `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}`;
+    const origin = `http://127.0.0.1:${process.env.HAUS_SERVER_PORT}`;
     const started = await fetch(new URL('/computer/login', origin), {
         body: JSON.stringify({ origin, purpose: 'setup' }),
         headers: { 'content-type': 'application/json' },
@@ -169,7 +169,7 @@ export function assertOpaqueId(value: string | undefined): asserts value is stri
 
 function resolvePsql() {
     const roots = [
-        process.env.GROTTO_POSTGRES_BIN,
+        process.env.HAUS_POSTGRES_BIN,
         '/opt/homebrew/opt/postgresql@16/bin',
         '/opt/homebrew/opt/libpq/bin',
         '/usr/local/opt/postgresql@16/bin',

@@ -1,20 +1,20 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { makeTelemetryLayer } from '@grotto/effect';
+import { makeTelemetryLayer } from '@haus/effect';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ManagedRuntime } from 'effect';
 import Fastify from 'fastify';
 import { registerAgentMcpRoutes } from '../src/agent-api/mcp-routes.ts';
-import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
+import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
 import { modelToolName } from '../src/server-mcp/tool-catalog.ts';
-import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
-import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
+import { createHausClient, type HausClient } from './haus-client.ts';
+import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
 const exporter = new InMemorySpanExporter();
 const effectRuntime = ManagedRuntime.make(
     makeTelemetryLayer({
-        serviceName: 'grotto-test',
+        serviceName: 'haus-test',
         spanProcessor: new SimpleSpanProcessor(exporter),
     })
 );
@@ -24,16 +24,16 @@ const connectionId = `mcp_${'t'.repeat(16)}`;
 const credentialHash = 'c'.repeat(64);
 const traceId = 'a'.repeat(32);
 const parentId = 'b'.repeat(16);
-let harness: GrottoServerHarness;
-let owner: GrottoClient;
-let connection: GrottoConnection;
+let harness: HausServerHarness;
+let owner: HausClient;
+let connection: HausConnection;
 let runtime: McpRuntime;
 let runnerToken: string;
 
 beforeAll(async () => {
-    harness = await startGrottoServerHarness();
+    harness = await startHausServerHarness();
     const token = await harness.clerk.mintSessionToken('user_mcp_trace');
-    owner = createGrottoClient(harness, token);
+    owner = createHausClient(harness, token);
     const server = await owner.trpc.server.create.mutate({ displayName: 'Trace', slug: 'trace' });
     const [user] = await harness.sql`select id from users where clerk_user_id = 'user_mcp_trace'`;
     await harness.sql`insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
@@ -67,7 +67,7 @@ beforeAll(async () => {
         values (${connectionId}, ${server.id}, 'Fixture', 'https://example.test/mcp', 'none', true, '{}'::text[], ARRAY['echo'])`;
     await harness.sql`insert into agent_mcp_connection_grants (server_id, agent_id, connection_id)
         values (${server.id}, ${agent.id}, ${connectionId})`;
-    connection = await connectGrottoDatabase(harness.databaseUrl);
+    connection = await connectHausDatabase(harness.databaseUrl);
     runtime = new McpRuntime(connection.db, effectRuntime, {
         clientFactory: async () => makeClient('Fixture').client,
     });
@@ -107,7 +107,7 @@ test('authenticated MCP discovery and invocation continue valid context; malform
         const spans = exporter.getFinishedSpans();
         expect(spans).toHaveLength(2);
         for (const span of spans) {
-            expect(span.name).toBe('grotto.mcp.operation');
+            expect(span.name).toBe('haus.mcp.operation');
             if (traceparent === valid) {
                 expect(span.spanContext().traceId).toBe(traceId);
                 expect(span.parentSpanContext?.spanId).toBe(parentId);

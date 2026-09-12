@@ -1,6 +1,6 @@
 import { Tabs } from '@heroui/react';
 import { ActivationStep } from '../../components/activation/activation-shell.tsx';
-import type { ServerDetail } from '../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../lib/haus-server.tsx';
 import { ComputerSetupCommands } from '../computers/computer-setup-commands.tsx';
 import {
     type CoveOnboardingView,

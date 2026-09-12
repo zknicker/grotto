@@ -5,7 +5,7 @@ import App from './app.tsx';
 import { DevModeProvider } from './components/dev-mode-provider.tsx';
 import { ThemeProvider } from './components/theme-provider.tsx';
 import { DesktopEditContextMenuProvider } from './features/shell/desktop-edit-context-menu.tsx';
-import { GrottoClerkProvider } from './lib/clerk.tsx';
+import { HausClerkProvider } from './lib/clerk.tsx';
 import { getDesktopBridge, isElectronDesktopApp } from './lib/desktop-bridge.ts';
 import './styles/global.css';
 
@@ -28,7 +28,7 @@ if (isElectronDesktopApp() && navigator.userAgent.includes('Mac')) {
 
 createRoot(rootElement).render(
     <StrictMode>
-        <GrottoClerkProvider>
+        <HausClerkProvider>
             <ThemeProvider>
                 <DevModeProvider>
                     <DesktopEditContextMenuProvider>
@@ -43,13 +43,13 @@ createRoot(rootElement).render(
                      * clicks on it for its whole timeout. The top band is
                      * chrome, and `toast-region` clears it in the theme layer.
                      *
-                     * 360 rather than HeroUI's 460: Grotto's toasts are mostly
+                     * 360 rather than HeroUI's 460: Haus's toasts are mostly
                      * one-line confirmations, and the few that carry a
                      * description still get a comfortable measure.
                      */}
                     <Toast.Provider placement="top end" width={360} />
                 </DevModeProvider>
             </ThemeProvider>
-        </GrottoClerkProvider>
+        </HausClerkProvider>
     </StrictMode>
 );

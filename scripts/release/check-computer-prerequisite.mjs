@@ -5,7 +5,7 @@ import {
 import { readComputerReleasePublicKey } from './computer-release-keys.mjs';
 
 export async function checkComputerReleasePrerequisite(
-    manifestUrl = process.env.GROTTO_COMPUTER_RELEASE_MANIFEST_URL ??
+    manifestUrl = process.env.HAUS_COMPUTER_RELEASE_MANIFEST_URL ??
         'https://releases.haus.chat/computer/latest.json',
     publicKey = requiredReleasePublicKey()
 ) {
@@ -26,9 +26,7 @@ export async function checkComputerReleasePrerequisite(
 function requiredReleasePublicKey() {
     const value = readComputerReleasePublicKey();
     if (!value) {
-        throw new Error(
-            'GROTTO_COMPUTER_RELEASE_PUBLIC_KEY or its macOS Keychain item is required'
-        );
+        throw new Error('HAUS_COMPUTER_RELEASE_PUBLIC_KEY or its macOS Keychain item is required');
     }
     return value;
 }

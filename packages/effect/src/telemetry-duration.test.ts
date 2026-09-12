@@ -17,7 +17,7 @@ test('records virtual multi-minute operation duration in milliseconds', async ()
     const runtime = ManagedRuntime.make(
         Layer.merge(
             TestContext.TestContext,
-            makeTelemetryLayer({ metricReader, serviceName: 'grotto-test' })
+            makeTelemetryLayer({ metricReader, serviceName: 'haus-test' })
         )
     );
 
@@ -26,8 +26,8 @@ test('records virtual multi-minute operation duration in milliseconds', async ()
         const fiber = runtime.runFork(
             Deferred.succeed(started, undefined).pipe(
                 Effect.zipRight(Effect.sleep('5 minutes')),
-                withTelemetrySpan('grotto.agent.turn', {
-                    'grotto.operation': 'test.virtual-duration',
+                withTelemetrySpan('haus.agent.turn', {
+                    'haus.operation': 'test.virtual-duration',
                 })
             )
         );
@@ -41,7 +41,7 @@ test('records virtual multi-minute operation duration in milliseconds', async ()
             .getMetrics()
             .flatMap((resource) => resource.scopeMetrics)
             .flatMap((scope) => scope.metrics)
-            .find((metric) => metric.descriptor.name === 'grotto.operation.duration');
+            .find((metric) => metric.descriptor.name === 'haus.operation.duration');
         if (!duration || duration.dataPointType !== DataPointType.HISTOGRAM) {
             throw new Error('Expected the operation duration histogram.');
         }

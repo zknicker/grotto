@@ -1,6 +1,6 @@
 import { randomBytes, randomInt } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     type ComputerLoginGrantStatus,
@@ -45,7 +45,7 @@ export function normalizeComputerOrigin(value: string): string {
 }
 
 export async function beginComputerLogin(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { origin: string; purpose?: ComputerLoginPurpose }
 ) {
     const origin = normalizeComputerOrigin(input.origin);
@@ -74,7 +74,7 @@ export async function beginComputerLogin(
     };
 }
 
-export async function readComputerLoginStatus(db: GrottoDatabase, input: { userCode: string }) {
+export async function readComputerLoginStatus(db: HausDatabase, input: { userCode: string }) {
     const normalized = normalizeComputerLoginUserCode(input.userCode);
     if (!normalized) {
         return { status: 'malformed' as const };
@@ -116,7 +116,7 @@ export async function readComputerLoginStatus(db: GrottoDatabase, input: { userC
 }
 
 export async function approveComputerLogin(
-    db: GrottoDatabase,
+    db: HausDatabase,
     clerkUserId: string,
     input: { userCode: string }
 ) {
@@ -156,7 +156,7 @@ export async function approveComputerLogin(
 }
 
 export async function denyComputerLogin(
-    db: GrottoDatabase,
+    db: HausDatabase,
     clerkUserId: string,
     input: { userCode: string }
 ) {
@@ -192,7 +192,7 @@ export async function denyComputerLogin(
     });
 }
 
-export async function pollComputerLogin(db: GrottoDatabase, input: { deviceCode: string }) {
+export async function pollComputerLogin(db: HausDatabase, input: { deviceCode: string }) {
     if (!/^[A-Za-z0-9_-]{32,256}$/u.test(input.deviceCode)) {
         throw computerLoginError('computer_login_malformed');
     }
@@ -284,7 +284,7 @@ function requireComputerLoginUserCode(value: string) {
 }
 
 async function lockComputerLoginGrant(
-    tx: Parameters<Parameters<GrottoDatabase['transaction']>[0]>[0],
+    tx: Parameters<Parameters<HausDatabase['transaction']>[0]>[0],
     normalizedUserCode: string
 ) {
     const [grant] = await tx
@@ -304,7 +304,7 @@ function assertComputerLoginGrant(
 }
 
 async function expireComputerLoginGrant(
-    tx: Parameters<Parameters<GrottoDatabase['transaction']>[0]>[0],
+    tx: Parameters<Parameters<HausDatabase['transaction']>[0]>[0],
     id: string
 ) {
     await tx

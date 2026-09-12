@@ -5,7 +5,7 @@ import * as React from 'react';
 // chat-composer-focus.ts. Presence registration lets quote affordances hide
 // on surfaces without a composer (e.g. the standalone Wiki page).
 
-const chatComposerInsertEventName = 'grotto:chat-composer-insert-request';
+const chatComposerInsertEventName = 'haus:chat-composer-insert-request';
 
 let composerTargetCount = 0;
 const presenceListeners = new Set<() => void>();

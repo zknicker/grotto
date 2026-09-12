@@ -17,7 +17,7 @@ import type { TaskOrigin } from './task-presentation.ts';
  * the same value without the transcript learning about a context it would only
  * pass through.
  */
-const storageKey = 'grotto.chat.showTasks';
+const storageKey = 'haus.chat.showTasks';
 
 let showTasks = readShowTasksInChat();
 const listeners = new Set<() => void>();

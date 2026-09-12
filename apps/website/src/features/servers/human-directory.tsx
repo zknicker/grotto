@@ -1,6 +1,6 @@
-import type { Agent } from '@grotto/api';
-import type { ServerMember, ServerMemberDirectory } from '@grotto/api/membership';
-import { canManageServerInvitations } from '@grotto/api/membership';
+import type { Agent } from '@haus/api';
+import type { ServerMember, ServerMemberDirectory } from '@haus/api/membership';
+import { canManageServerInvitations } from '@haus/api/membership';
 import { Button } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';

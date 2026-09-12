@@ -1,4 +1,4 @@
-import type { WidgetArtifactProps } from '@grotto/api/widgets/artifact';
+import type { WidgetArtifactProps } from '@haus/api/widgets/artifact';
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';

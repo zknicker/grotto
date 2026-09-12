@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { makeTestRuntime } from '@grotto/effect';
+import { makeTestRuntime } from '@haus/effect';
 import { Effect, TestClock } from 'effect';
 import { startDeliveryRetrySweep } from './retry-sweep.ts';
 

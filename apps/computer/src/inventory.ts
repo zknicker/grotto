@@ -1,5 +1,5 @@
-import type { ComputerInventory } from '@grotto/api';
-import { type ComputerRuntimeId, computerRuntimeCatalog } from '@grotto/api/computer-runtime';
+import type { ComputerInventory } from '@haus/api';
+import { type ComputerRuntimeId, computerRuntimeCatalog } from '@haus/api/computer-runtime';
 import { detectCloudAgentProviders } from './cloud-agents/registry.ts';
 import { resolveRuntimeById } from './runtime-discovery.ts';
 
@@ -43,12 +43,12 @@ export async function detectFullInventory(
 }
 
 /**
- * Reports the sanitized runtime/model inventory. `GROTTO_COMPUTER_INVENTORY`
+ * Reports the sanitized runtime/model inventory. `HAUS_COMPUTER_INVENTORY`
  * overrides detection with an explicit JSON catalogue for development and tests;
  * otherwise only runtimes whose CLI is installed are reported.
  */
 export function detectInventory(options: { searchPath?: string } = {}): ComputerInventory {
-    const override = process.env.GROTTO_COMPUTER_INVENTORY;
+    const override = process.env.HAUS_COMPUTER_INVENTORY;
     if (override) {
         return JSON.parse(override) as ComputerInventory;
     }

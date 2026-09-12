@@ -124,7 +124,7 @@ export function buildVisualSrcDoc(html: string, tokensCss: string): string {
         // nothing left to offset. Both halves verified in WebKit and Chromium.
         'caption { position: sticky; left: 0; width: max-content; max-width: 100%; margin-top: 12px; color: var(--muted-foreground); text-align: left; }',
         // Bare form controls otherwise render as the browser's, which reads as
-        // another product inside a Grotto card. These five carry HeroUI's field
+        // another product inside a Haus card. These five carry HeroUI's field
         // and outline-button metrics in published tokens — the field radius
         // tier, a hairline edge, the surface behind it, the control pad — so an
         // agent gets native-looking controls out of plain markup and never
@@ -157,11 +157,11 @@ const sizeReporterScript = `(function () {
             var table = tables[i];
             var parent = table.parentNode;
             if (!parent || (parent.getAttribute
-                && parent.getAttribute('data-grotto-table-scroll') === 'true')) {
+                && parent.getAttribute('data-haus-table-scroll') === 'true')) {
                 continue;
             }
             var wrapper = document.createElement('div');
-            wrapper.setAttribute('data-grotto-table-scroll', 'true');
+            wrapper.setAttribute('data-haus-table-scroll', 'true');
             wrapper.setAttribute(
                 'style',
                 'overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch;'
@@ -175,7 +175,7 @@ const sizeReporterScript = `(function () {
         // shrinks below the frame's own height, so it cannot shrink-to-fit.
         var body = document.body;
         var height = body ? body.offsetHeight : document.documentElement.scrollHeight;
-        parent.postMessage({ height: Math.ceil(height), type: 'grotto-visual-size' }, '*');
+        parent.postMessage({ height: Math.ceil(height), type: 'haus-visual-size' }, '*');
     };
     addEventListener('DOMContentLoaded', function () {
         wrapWideTables();
@@ -202,7 +202,7 @@ function useReportedContentHeight(frameRef: React.RefObject<HTMLIFrameElement | 
                 return;
             }
             const data = event.data as { height?: unknown; type?: unknown } | null;
-            if (data?.type !== 'grotto-visual-size' || typeof data.height !== 'number') {
+            if (data?.type !== 'haus-visual-size' || typeof data.height !== 'number') {
                 return;
             }
             if (Number.isFinite(data.height) && data.height > 0) {

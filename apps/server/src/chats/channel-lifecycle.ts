@@ -1,15 +1,11 @@
-import type {
-    ChannelDeleteReceipt,
-    ChannelLifecycleReceipt,
-    ServerDurableEvent,
-} from '@grotto/api';
+import type { ChannelDeleteReceipt, ChannelLifecycleReceipt, ServerDurableEvent } from '@haus/api';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { purgeDeletedChannel } from './channel-deletion.ts';
 import { insertLifecycleEvent } from './lifecycle-events.ts';
 
@@ -35,8 +31,8 @@ interface LifecycleResult<Receipt> {
 }
 
 export async function archiveChannel(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { chatId: string; serverId: string }
 ): Promise<LifecycleResult<ChannelLifecycleReceipt>> {
     return await db.transaction(async (tx) => {
@@ -73,8 +69,8 @@ export async function archiveChannel(
 }
 
 export async function unarchiveChannel(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { chatId: string; serverId: string }
 ): Promise<LifecycleResult<ChannelLifecycleReceipt>> {
     return await db.transaction(async (tx) => {
@@ -102,9 +98,9 @@ export async function unarchiveChannel(
 }
 
 export async function deleteChannel(
-    db: GrottoDatabase,
+    db: HausDatabase,
     attachmentRoot: AttachmentRoot,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: { chatId: string; confirmation: string; serverId: string }
 ): Promise<LifecycleResult<ChannelDeleteReceipt>> {
     const event = await db.transaction(async (tx) => {
@@ -131,7 +127,7 @@ export async function deleteChannel(
     return { event, receipt: { chatId: input.chatId, serverId: input.serverId } };
 }
 
-async function requireOperator(db: GrottoDatabase, member: GrottoUser | null, serverId: string) {
+async function requireOperator(db: HausDatabase, member: HausUser | null, serverId: string) {
     const server = await requireServerMembership(db, member, serverId);
     if (!member || (server.role !== 'owner' && server.role !== 'admin')) {
         throw new ChannelLifecycleDeniedError();
@@ -139,7 +135,7 @@ async function requireOperator(db: GrottoDatabase, member: GrottoUser | null, se
 }
 
 async function requireRegularChannel(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { chatId: string; serverId: string }
 ) {
     const [channel] = await db
@@ -167,7 +163,7 @@ async function requireRegularChannel(
 }
 
 async function discardQueuedChannelWork(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { chatId: string; serverId: string }
 ) {
     const chats = await db

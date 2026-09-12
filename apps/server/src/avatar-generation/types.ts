@@ -1,4 +1,4 @@
-import type { AvatarMediaType } from '@grotto/api/avatar';
+import type { AvatarMediaType } from '@haus/api/avatar';
 
 export interface AvatarProviderRequest {
     model: 'gpt-image-2';

@@ -12,18 +12,18 @@ function isTestEnvironment() {
     return process.env.NODE_ENV === 'test';
 }
 
-export function getDefaultGrottoServerPort() {
-    const port = process.env.GROTTO_SERVER_PORT;
+export function getDefaultHausServerPort() {
+    const port = process.env.HAUS_SERVER_PORT;
 
     return port && isValidPort(port) ? Number(port) : 8090;
 }
 
 export function getDefaultDatabaseUrl() {
-    return `postgres://127.0.0.1:5432/grotto${isTestEnvironment() ? '_test' : ''}`;
+    return `postgres://127.0.0.1:5432/haus${isTestEnvironment() ? '_test' : ''}`;
 }
 
-export function getDefaultGrottoAttachmentRoot() {
-    return join(os.homedir(), '.grotto', 'server', 'attachments');
+export function getDefaultHausAttachmentRoot() {
+    return join(os.homedir(), '.haus', 'server', 'attachments');
 }
 
 export function getDefaultClerkIssuerUrl() {
@@ -43,36 +43,32 @@ function resolveHomePath(value: string) {
 }
 
 export function getDefaultAppOrigin() {
-    const websitePort = process.env.GROTTO_WEBSITE_PORT;
+    const websitePort = process.env.HAUS_WEBSITE_PORT;
 
     return `http://localhost:${isValidPort(websitePort) ? websitePort : '3100'}`;
 }
 
 const envSchema = z
     .object({
-        GROTTO_APP_ORIGIN: z.string().url().default(getDefaultAppOrigin()),
-        GROTTO_AGENT_E2E_AVATAR_FIXTURE: z.literal('1').optional(),
-        GROTTO_AGENT_E2E_AVATAR_FIXTURE_PATH: z.string().min(1).optional(),
-        GROTTO_AGENT_E2E_AVATAR_REQUEST_LOG: z.string().min(1).optional(),
-        GROTTO_CLERK_API_URL: z.string().url().optional(),
-        GROTTO_CLERK_ISSUER_URL: z.string().url().default(getDefaultClerkIssuerUrl()),
-        GROTTO_CLERK_SECRET_KEY: z.string().min(1).optional(),
-        GROTTO_DEV_CLERK_SIGN_IN_USER_ID: z.string().min(1).optional(),
-        GROTTO_ATTACHMENT_ROOT: z
+        HAUS_APP_ORIGIN: z.string().url().default(getDefaultAppOrigin()),
+        HAUS_AGENT_E2E_AVATAR_FIXTURE: z.literal('1').optional(),
+        HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH: z.string().min(1).optional(),
+        HAUS_AGENT_E2E_AVATAR_REQUEST_LOG: z.string().min(1).optional(),
+        HAUS_CLERK_API_URL: z.string().url().optional(),
+        HAUS_CLERK_ISSUER_URL: z.string().url().default(getDefaultClerkIssuerUrl()),
+        HAUS_CLERK_SECRET_KEY: z.string().min(1).optional(),
+        HAUS_DEV_CLERK_SIGN_IN_USER_ID: z.string().min(1).optional(),
+        HAUS_ATTACHMENT_ROOT: z
             .string()
             .min(1)
-            .default(getDefaultGrottoAttachmentRoot())
+            .default(getDefaultHausAttachmentRoot())
             .transform(resolveHomePath),
-        GROTTO_COMPUTER_RELEASE_MANIFEST_URL: z.string().url().optional(),
-        GROTTO_DATABASE_URL: z.string().min(1).default(getDefaultDatabaseUrl()),
-        GROTTO_OPENAI_API_KEY: z.string().min(1).optional(),
-        GROTTO_RELEASE_MANIFEST: z.string().min(1).transform(resolveHomePath).optional(),
-        GROTTO_SERVER_PORT: z.coerce
-            .number()
-            .int()
-            .positive()
-            .default(getDefaultGrottoServerPort()),
-        GROTTO_STATIC_APP_ROOT: z.string().min(1).transform(resolveHomePath).optional(),
+        HAUS_COMPUTER_RELEASE_MANIFEST_URL: z.string().url().optional(),
+        HAUS_DATABASE_URL: z.string().min(1).default(getDefaultDatabaseUrl()),
+        HAUS_OPENAI_API_KEY: z.string().min(1).optional(),
+        HAUS_RELEASE_MANIFEST: z.string().min(1).transform(resolveHomePath).optional(),
+        HAUS_SERVER_PORT: z.coerce.number().int().positive().default(getDefaultHausServerPort()),
+        HAUS_STATIC_APP_ROOT: z.string().min(1).transform(resolveHomePath).optional(),
         OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
         OTEL_EXPORTER_OTLP_HEADERS: z.string().min(1).optional(),
         OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: z.string().url().optional(),
@@ -84,13 +80,13 @@ const envSchema = z
     })
     .superRefine((value, context) => {
         if (
-            value.GROTTO_RELEASE_MANIFEST &&
-            (!value.GROTTO_CLERK_SECRET_KEY || value.GROTTO_CLERK_SECRET_KEY === 'INJECT_ON_HOST')
+            value.HAUS_RELEASE_MANIFEST &&
+            (!value.HAUS_CLERK_SECRET_KEY || value.HAUS_CLERK_SECRET_KEY === 'INJECT_ON_HOST')
         ) {
             context.addIssue({
                 code: 'custom',
-                message: 'GROTTO_CLERK_SECRET_KEY is required for a production Haus release.',
-                path: ['GROTTO_CLERK_SECRET_KEY'],
+                message: 'HAUS_CLERK_SECRET_KEY is required for a production Haus release.',
+                path: ['HAUS_CLERK_SECRET_KEY'],
             });
         }
     });

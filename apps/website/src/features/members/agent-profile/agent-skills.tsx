@@ -1,12 +1,7 @@
-import type {
-    Agent,
-    AgentSkillImportRecord,
-    AgentSkillMetadata,
-    ImportableSkill,
-} from '@grotto/api';
+import type { Agent, AgentSkillImportRecord, AgentSkillMetadata, ImportableSkill } from '@haus/api';
 import * as React from 'react';
 import { useSkillImport } from '../../../hooks/members/use-skill-import.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { SkillDialog } from './skill-dialog.tsx';
 import { SkillList } from './skill-list.tsx';
 

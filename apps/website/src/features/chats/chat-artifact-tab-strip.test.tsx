@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ArtifactTabStrip } from './chat-artifact-tab-strip.tsx';
-import { type GrottoResourceTarget, getArtifactPanelTargetKey } from './grotto-resource-link.ts';
+import { getArtifactPanelTargetKey, type HausResourceTarget } from './haus-resource-link.ts';
 
-const targets: GrottoResourceTarget[] = [
+const targets: HausResourceTarget[] = [
     { agentId: 'agent-1', kind: 'workspaceDirectory', path: '' },
     { agentId: 'agent-1', kind: 'workspaceFile', path: 'notes/NOTES.md' },
 ];

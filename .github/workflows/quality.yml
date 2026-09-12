@@ -42,7 +42,7 @@ jobs:
         run: |
           set -euo pipefail
           MERCHBASE_HUGEICONS_LICENSE_KEY="$(
-            GROTTO_RESOLVE_INSTALL_TOKENS=true \
+            HAUS_RESOLVE_INSTALL_TOKENS=true \
             bunx varlock@1.16.1 printenv MERCHBASE_HUGEICONS_LICENSE_KEY
           )"
           if [ -z "${MERCHBASE_HUGEICONS_LICENSE_KEY}" ]; then
@@ -55,7 +55,7 @@ jobs:
       # `check:fast` pins the schema's `test` lifecycle itself, so every gate
       # here runs fully offline with no 1Password access of its own.
       #
-      # Policy, not an oversight: Quality runs the fast lane only. The Grotto
+      # Policy, not an oversight: Quality runs the fast lane only. The Haus
       # App typecheck and its unit tests both need the licensed HeroUI Pro dist
       # download; the Server suites each provision a real PostgreSQL cluster;
       # the Computer suites spawn runtimes; the App end-to-end suites drive

@@ -1,5 +1,5 @@
-import type { TriggerStatus } from '@grotto/api';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import type { TriggerStatus } from '@haus/api';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { withSaveErrorToast } from '../../lib/saving-toast.ts';
 
 /**
@@ -7,8 +7,8 @@ import { withSaveErrorToast } from '../../lib/saving-toast.ts';
  * the list read's refresh — there is no listener to defer to.
  */
 export function useTriggerSetStatus(serverId: string, agentId: string) {
-    const utils = grottoTrpc.useUtils();
-    const mutation = grottoTrpc.trigger.setStatus.useMutation({
+    const utils = hausTrpc.useUtils();
+    const mutation = hausTrpc.trigger.setStatus.useMutation({
         onSuccess: () => utils.trigger.list.invalidate({ agentId, serverId }),
     });
 

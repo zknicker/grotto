@@ -3,13 +3,13 @@ import { requireChatWritable } from '../chats/chat-access.ts';
 import { insertMessageReactionEvent } from '../chats/message-reaction-event.ts';
 import { writeMessageReaction } from '../chats/message-reactions.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { requireAgentChatAccess, resolveAgentMessage } from './message-read.ts';
 
 export async function changeAgentReaction(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: { emoji: string; messageId: string; remove: boolean }
 ) {

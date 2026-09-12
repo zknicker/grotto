@@ -1,4 +1,4 @@
-import { type EffectRuntime, instrumentOperation, settle } from '@grotto/effect';
+import { type EffectRuntime, instrumentOperation, settle } from '@haus/effect';
 import { Data, Deferred, type Duration, Effect, Exit, Ref, Schedule, Scope } from 'effect';
 import type { ReminderClock } from './reminder-model.ts';
 

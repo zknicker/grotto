@@ -1,10 +1,10 @@
-import type { ServerUpdatedEvent } from '@grotto/api';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import type { ServerUpdatedEvent } from '@haus/api';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { cachesClearedOnMembershipLoss } from './membership-caches.ts';
 import { isMembershipLoss } from './membership-loss.ts';
 
 /**
- * Keeps the open Grotto server current while it changes on the Server. This
+ * Keeps the open Haus server current while it changes on the Server. This
  * subscription owns every invalidation a Server-level change implies, including
  * membership: a role change or a departure alters the directory, the viewer's
  * own standing, and which Servers they can open.
@@ -14,9 +14,9 @@ import { isMembershipLoss } from './membership-loss.ts';
  * route falls back to its unavailable state.
  */
 export function useServerEvents(serverId: string | undefined, slug: string | undefined) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
-    grottoTrpc.server.onUpdate.useSubscription(
+    hausTrpc.server.onUpdate.useSubscription(
         { serverId: serverId ?? '' },
         {
             enabled: serverId !== undefined,
@@ -41,7 +41,7 @@ export function useServerEvents(serverId: string | undefined, slug: string | und
     );
 }
 
-type ServerEventUtils = ReturnType<typeof grottoTrpc.useUtils>;
+type ServerEventUtils = ReturnType<typeof hausTrpc.useUtils>;
 
 /**
  * One Server's realtime notice, as this listener reads it. The ids are the

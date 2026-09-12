@@ -36,7 +36,7 @@ export function composeAgentInstructions(facts: AgentInstructionFacts): Composed
         hostname: hostname(),
         initialRole: facts.initialRole,
         os: `${type()} ${release()}`,
-        runtimeVersion: process.env.GROTTO_COMPUTER_PRODUCT_VERSION ?? computerPackage.version,
+        runtimeVersion: process.env.HAUS_COMPUTER_PRODUCT_VERSION ?? computerPackage.version,
         webAccess: facts.webAccess,
         workspacePath: facts.workspacePath,
     };

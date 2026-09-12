@@ -7,10 +7,10 @@ if [ -n "$server_path" ] && [ "${server_path#/}" = "$server_path" ]; then
     exit 64
 fi
 
-manifest_url="${GROTTO_COMPUTER_RELEASE_MANIFEST_URL:-https://releases.haus.chat/computer/latest.json}"
-install_path="${GROTTO_COMPUTER_INSTALL_PATH:-$HOME/.local/bin/haus-computer}"
-expected_team_id="__GROTTO_APPLE_TEAM_ID__"
-expected_identity="__GROTTO_APPLE_SIGNING_IDENTITY__"
+manifest_url="${HAUS_COMPUTER_RELEASE_MANIFEST_URL:-https://releases.haus.chat/computer/latest.json}"
+install_path="${HAUS_COMPUTER_INSTALL_PATH:-$HOME/.local/bin/haus-computer}"
+expected_team_id="__HAUS_APPLE_TEAM_ID__"
+expected_identity="__HAUS_APPLE_SIGNING_IDENTITY__"
 temporary_root="$(mktemp -d "${TMPDIR:-/tmp}/haus-computer-install.XXXXXX")"
 trap 'rm -rf "$temporary_root"' EXIT INT TERM
 

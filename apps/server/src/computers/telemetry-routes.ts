@@ -1,7 +1,7 @@
-import type { OtlpSignal, OtlpTelemetryRelay } from '@grotto/effect';
+import type { OtlpSignal, OtlpTelemetryRelay } from '@haus/effect';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema/agents.ts';
 import { hashComputerSecret, resolveComputerCredential } from './service.ts';
 import { sanitizeComputerTelemetry, type TelemetryComputer } from './telemetry-payload.ts';
@@ -11,7 +11,7 @@ const relayBodyLimit = 1024 * 1024;
 
 type ComputerTelemetryAuth =
     | {
-          readonly db: GrottoDatabase;
+          readonly db: HausDatabase;
           readonly kind: 'database';
       }
     | {

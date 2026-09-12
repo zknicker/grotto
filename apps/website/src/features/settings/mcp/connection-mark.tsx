@@ -10,7 +10,7 @@ import type { McpConnection } from './mcp-server-shared.ts';
  * still an MCP server, and drawing it bare made the Recommended list read as a
  * different kind of thing from the Added one.
  *
- * A preset has no stored icon: Grotto Server resolves and inlines that at
+ * A preset has no stored icon: Haus Server resolves and inlines that at
  * discovery, which only happens once the connection exists. So a preset shows
  * the palette monogram, and swaps to the real icon after it is added. Do not
  * bundle brand art for the two presets to close that gap — it would disagree

@@ -24,7 +24,7 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
         computerCredential: credential,
         content: 'Delegating the migration fix to a Cloud Agent.',
         databaseUrl: session.databaseUrl,
-        repository: 'grotto/grotto',
+        repository: 'haus/haus',
         serverId: server.id,
         slug: 'cloud-agent-work',
         startingRef: 'main',
@@ -51,7 +51,7 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
     // A Computer reporting progress updates the same header in place, with no
     // second Message: this is one record, not a transcript.
     const computer = new WebSocket(
-        `ws://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/computer/attachment`
+        `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
     );
     await socketOpen(computer);
     const accepted = socketMessage(computer);
@@ -83,7 +83,7 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
     await expect(thread.getByTestId('thread-cloud-agent-carousel')).toHaveCount(0);
     await expect(thread.getByRole('heading', { name: /Cloud agents/u })).toHaveCount(0);
     await expect(card).toContainText('Running');
-    await expect(card).toContainText('grotto/grotto');
+    await expect(card).toContainText('haus/haus');
     await expect(
         thread.getByText('Delegating the migration fix to a Cloud Agent.', { exact: true })
     ).toBeVisible();
@@ -96,8 +96,8 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
             branches: [
                 {
                     branch: 'cursor/fix-migration',
-                    pullRequestUrl: 'https://github.com/grotto/grotto/pull/482',
-                    repository: 'grotto/grotto',
+                    pullRequestUrl: 'https://github.com/haus/haus/pull/482',
+                    repository: 'haus/haus',
                     pullRequest: {
                         number: 482,
                         state: 'open',
@@ -140,7 +140,7 @@ test('Cloud Agent work reads as a Chat surface header and an in-Thread card', as
         chatId: seeded.chatId,
         computerCredential: credential,
         content: 'Following up inside the thread.',
-        repository: 'grotto/grotto',
+        repository: 'haus/haus',
         target: `#all:${seeded.messageId}`,
         title: 'Backfill the migration test',
     });

@@ -3,9 +3,9 @@ import {
     formatSkillReferenceTarget,
     formatUserReferenceTarget,
     type MentionOption,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
     channelAgentParticipantsTable,
@@ -14,13 +14,13 @@ import {
 } from '../postgres/schema.ts';
 import { listServerMembers } from '../servers/list-members.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { requireChatAccess } from './chat-access.ts';
 import { listChannelMentionOptions } from './list-channel-mention-options.ts';
 
 export async function listMentionOptions(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input:
         | { agentId: string; agentIds: string[]; serverId: string; targetKind: 'agent-dm' }
         | { agentIds: string[]; chatId: string; serverId: string }
@@ -125,8 +125,8 @@ export async function listMentionOptions(
 }
 
 async function listImplicitDmAgentIds(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { agentId: string; serverId: string }
 ) {
     await requireServerMembership(db, member, input.serverId);
@@ -145,8 +145,8 @@ async function listImplicitDmAgentIds(
 }
 
 async function listChatMentionAgentIds(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { chatId: string; serverId: string }
 ) {
     const chat = await requireChatAccess(db, member, input);
@@ -157,7 +157,7 @@ async function listChatMentionAgentIds(
 }
 
 async function listParticipantAgentIds(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { chatId: string; serverId: string }
 ): Promise<string[]> {
     const [chat] = await db

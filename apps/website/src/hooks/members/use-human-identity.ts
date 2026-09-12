@@ -1,10 +1,10 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { withSavingToast } from '../../lib/saving-toast.ts';
 import { refreshMember } from './member-refresh.ts';
 
 export function useHumanIdentity(serverId: string, userId: string) {
-    const utils = grottoTrpc.useUtils();
-    const mutation = grottoTrpc.member.updateProfile.useMutation({
+    const utils = hausTrpc.useUtils();
+    const mutation = hausTrpc.member.updateProfile.useMutation({
         onSuccess: () => refreshMember(utils, serverId, userId),
     });
 

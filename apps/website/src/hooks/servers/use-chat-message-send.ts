@@ -1,9 +1,9 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useChatMessageSend() {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
-    return grottoTrpc.chat.send.useMutation({
+    return hausTrpc.chat.send.useMutation({
         // The chat.onEvent listener owns cache invalidation for a send —
         // chat.list, chat.search, and every affected transcript. This is only
         // the sender's ack fallback for when its own durable event is slow, so

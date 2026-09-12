@@ -15,8 +15,8 @@ let dataRoot: string;
 let sourceRoot: string;
 
 beforeEach(async () => {
-    dataRoot = await mkdtemp(join(tmpdir(), 'grotto-host-skills-'));
-    sourceRoot = await mkdtemp(join(tmpdir(), 'grotto-host-sources-'));
+    dataRoot = await mkdtemp(join(tmpdir(), 'haus-host-skills-'));
+    sourceRoot = await mkdtemp(join(tmpdir(), 'haus-host-sources-'));
 });
 
 afterEach(async () => {
@@ -77,7 +77,7 @@ test('reports metadata only and imports an independent Agent copy', async () => 
 
 test('dedupes symlinked sources and never imports symlinks from a bundle', async () => {
     const source = join(sourceRoot, 'safe');
-    const otherRoot = await mkdtemp(join(tmpdir(), 'grotto-host-sources-link-'));
+    const otherRoot = await mkdtemp(join(tmpdir(), 'haus-host-sources-link-'));
     await mkdir(source);
     await writeFile(join(source, 'SKILL.md'), '# Safe');
     await symlink('/tmp', join(source, 'escape'));
@@ -111,7 +111,7 @@ test('dedupes symlinked sources and never imports symlinks from a bundle', async
 
 test('dedupes same-name sources by root precedence', async () => {
     const preferred = join(sourceRoot, 'decision-helper');
-    const fallbackRoot = await mkdtemp(join(tmpdir(), 'grotto-host-sources-fallback-'));
+    const fallbackRoot = await mkdtemp(join(tmpdir(), 'haus-host-sources-fallback-'));
     const fallback = join(fallbackRoot, 'decision-helper');
     await mkdir(preferred);
     await mkdir(fallback);

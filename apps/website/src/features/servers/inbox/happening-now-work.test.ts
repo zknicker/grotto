@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { ActiveCloudAgentWork, Agent } from '@grotto/api';
+import type { ActiveCloudAgentWork, Agent } from '@haus/api';
 import { humanDirectory } from '../human-identity.ts';
 import { toHappeningNowWork } from './happening-now-work.ts';
 
@@ -76,7 +76,7 @@ function workRecord(
         provider: 'cursor',
         providerAgentId: null,
         providerUrl: null,
-        repository: 'grotto/grotto',
+        repository: 'haus/haus',
         runs: [],
         startedAt: '2026-09-04T12:00:00.000Z',
         startingRef: null,

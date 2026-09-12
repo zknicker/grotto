@@ -3,7 +3,7 @@ diff --git a/dist/bundled/index.js b/dist/bundled/index.js
 +++ b/dist/bundled/index.js
 @@ -1 +1,9 @@
  // @bun
-+// Grotto: bound finite SDK fetches; retain caller-owned stream signals.
++// Haus: bound finite SDK fetches; retain caller-owned stream signals.
 +function fetch(input, init) {
 +  return globalThis.fetch(input, {
 +    ...init,

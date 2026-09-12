@@ -14,9 +14,9 @@ type AgentEnvironment = Record<string, string | undefined>;
 
 export function hasAgentIdentityEnvironment(environment: AgentEnvironment = process.env): boolean {
     return Boolean(
-        environment.GROTTO_AGENT_ID ||
-            environment.GROTTO_SERVER_URL ||
-            environment.GROTTO_AGENT_TOKEN_FILE
+        environment.HAUS_AGENT_ID ||
+            environment.HAUS_SERVER_URL ||
+            environment.HAUS_AGENT_TOKEN_FILE
     );
 }
 
@@ -24,11 +24,11 @@ export function resolveAgentContext(
     environment: AgentEnvironment = process.env,
     readFile: (filePath: string) => string = (filePath) => fs.readFileSync(filePath, 'utf8')
 ): AgentContext {
-    const agentId = environment.GROTTO_AGENT_ID?.trim();
+    const agentId = environment.HAUS_AGENT_ID?.trim();
     if (!agentId) {
         throw bootstrapError(
             'MISSING_AGENT_ID',
-            'GROTTO_AGENT_ID is required.',
+            'HAUS_AGENT_ID is required.',
             'Run this command from a Haus Computer Agent shell.'
         );
     }
@@ -37,24 +37,24 @@ export function resolveAgentContext(
     if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u.test(agentId)) {
         throw bootstrapError(
             'MISSING_AGENT_ID',
-            'GROTTO_AGENT_ID must be a single path-safe token.',
+            'HAUS_AGENT_ID must be a single path-safe token.',
             'Start a new agent turn so the Computer can refresh the Agent identity.'
         );
     }
-    const serverUrl = environment.GROTTO_SERVER_URL?.trim();
+    const serverUrl = environment.HAUS_SERVER_URL?.trim();
     if (!serverUrl) {
         throw bootstrapError(
             'MISSING_SERVER_URL',
-            'GROTTO_SERVER_URL is required.',
+            'HAUS_SERVER_URL is required.',
             'Run this command from a Haus Computer Agent shell.'
         );
     }
     assertServerUrl(serverUrl);
-    const tokenFile = environment.GROTTO_AGENT_TOKEN_FILE?.trim();
+    const tokenFile = environment.HAUS_AGENT_TOKEN_FILE?.trim();
     if (!tokenFile) {
         throw bootstrapError(
             'MISSING_TOKEN',
-            'GROTTO_AGENT_TOKEN_FILE is required.',
+            'HAUS_AGENT_TOKEN_FILE is required.',
             'Start a new agent turn so the Computer can provide an Agent token file.'
         );
     }
@@ -95,7 +95,7 @@ function assertServerUrl(serverUrl: string): void {
     } catch {
         throw bootstrapError(
             'MISSING_SERVER_URL',
-            'GROTTO_SERVER_URL must be an HTTP or HTTPS URL.',
+            'HAUS_SERVER_URL must be an HTTP or HTTPS URL.',
             'Start a new agent turn so the Computer can refresh the Server URL.'
         );
     }

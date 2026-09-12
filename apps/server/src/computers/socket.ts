@@ -5,13 +5,13 @@ import {
     computerHeartbeatNegotiationSchema,
     computerHeartbeatSchema,
     computerProtocolVersion,
-} from '@grotto/api';
+} from '@haus/api';
 import { WebSocketServer } from 'ws';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { emitServerUpdated } from '../grotto-api/server-events.ts';
+import { emitServerUpdated } from '../haus-api/server-events.ts';
 import { sendPendingCoveApplication } from '../onboarding/create-cove.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
-import { clearGrottoAgentState } from '../server-agents/record-grotto-agent-state.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
+import { clearHausAgentState } from '../server-agents/record-haus-agent-state.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { sendCloudAgentReconcile } from './cloud-agent-reports.ts';
 import type { ComputerConnections } from './connections.ts';
@@ -32,7 +32,7 @@ const heartbeatConfiguration = {
 /** The only Server-to-Computer transport: one authenticated outbound socket per Computer. */
 export function startComputerAttachmentSocket(
     server: Server,
-    db: GrottoDatabase,
+    db: HausDatabase,
     connections: ComputerConnections,
     delivery: AgentDelivery,
     postCommitWork: ServerPostCommitWork
@@ -127,7 +127,7 @@ export function startComputerAttachmentSocket(
                         sockets.set(resolvedComputer.id, socket);
                         const computer = await reportComputerHandshake(db, resolvedComputer, hello);
                         connectionGeneration = computer.connectionGeneration;
-                        await clearGrottoAgentState(db, computer.id);
+                        await clearHausAgentState(db, computer.id);
                         ordinary = hello.protocolVersion === computerProtocolVersion;
                         connections.register(computer.id, {
                             disconnect: (reason) => socket.close(4000, reason),

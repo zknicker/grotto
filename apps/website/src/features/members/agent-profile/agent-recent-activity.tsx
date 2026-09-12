@@ -1,11 +1,11 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { Button, Chip, Separator } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAgentActivityHistory } from '../../../hooks/members/use-agent-activity-history.ts';
 import { useAgentTurns } from '../../../hooks/members/use-agent-turns.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { agentProfileRoute } from '../../servers/server-routes.ts';
 import { getAgentActivityColor, getAgentActivityPhaseLabel } from './agent-activity-model.ts';
 import {

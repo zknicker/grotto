@@ -1,9 +1,9 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { EmptyState } from '@heroui-pro/react';
 import { ComputerIcon, Folder01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { WorkspaceBrowserContent } from '../../chats/chat-artifact-workspace-content.tsx';
 import { AgentOverview } from './agent-overview.tsx';
 import { AgentReminders } from './agent-reminders.tsx';

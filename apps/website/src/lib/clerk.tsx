@@ -44,7 +44,7 @@ export async function resolveClerkSessionToken(
     }
 }
 
-export function GrottoClerkProvider({ children }: { children: ReactNode }) {
+export function HausClerkProvider({ children }: { children: ReactNode }) {
     if (!clerkPublishableKey) {
         return children;
     }

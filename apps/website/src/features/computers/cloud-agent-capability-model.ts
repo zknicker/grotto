@@ -1,4 +1,4 @@
-import type { CloudAgentCapabilityState, ComputerInventory } from '@grotto/api';
+import type { CloudAgentCapabilityState, ComputerInventory } from '@haus/api';
 
 export interface CloudAgentCapabilityView {
     canConnect: boolean;

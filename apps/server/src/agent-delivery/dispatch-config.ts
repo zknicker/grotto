@@ -1,7 +1,7 @@
-import type { AgentCommand, AgentReasoningEffort } from '@grotto/api';
+import type { AgentCommand, AgentReasoningEffort } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 
 /**
@@ -31,7 +31,7 @@ export interface AgentDispatchConfig {
 
 /** The Agent's assigned Computer and desired runtime/model, or nulls when unconfigured. */
 export async function readAgentDispatchConfig(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string
 ): Promise<AgentDispatchConfig | null> {
     const creator = alias(agentsTable, 'creator_agent');
@@ -85,7 +85,7 @@ export interface ComputerAgentRow {
 }
 
 export async function listComputerAgents(
-    db: GrottoDatabase,
+    db: HausDatabase,
     computerId: string
 ): Promise<ComputerAgentRow[]> {
     const creator = alias(agentsTable, 'creator_agent');

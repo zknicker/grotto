@@ -1,5 +1,5 @@
 const publishableKeyEnvironmentName = 'VITE_CLERK_PUBLISHABLE_KEY';
-const releaseSwitchName = 'GROTTO_RESOLVE_RELEASE_TOKENS';
+const releaseSwitchName = 'HAUS_RESOLVE_RELEASE_TOKENS';
 const productionKeyPrefix = 'pk_live_';
 
 /**

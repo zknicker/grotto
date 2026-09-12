@@ -26,7 +26,7 @@ const session: StoredSession = {
 };
 
 test('setup falls back to device login, persists pending issuance before attach, and starts', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-setup-login-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-setup-login-'));
     const requests: string[] = [];
     let pendingAtAttach: Record<string, string> | null = null;
     const sockets = new Set<ServerWebSocket<undefined>>();
@@ -98,11 +98,11 @@ test('setup falls back to device login, persists pending issuance before attach,
     origin = `http://127.0.0.1:${peer.port}`;
     try {
         const result = await runCli(['setup', '/hq'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
-            GROTTO_COMPUTER_ONESHOT: '1',
-            GROTTO_COMPUTER_USAGE_DISABLED: '1',
-            GROTTO_SERVER_ORIGIN: origin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_DISABLE_BROWSER_OPEN: '1',
+            HAUS_COMPUTER_ONESHOT: '1',
+            HAUS_COMPUTER_USAGE_DISABLED: '1',
+            HAUS_SERVER_ORIGIN: origin,
         });
 
         expect(result.exitCode, result.stderr).toBe(0);
@@ -132,7 +132,7 @@ test('setup falls back to device login, persists pending issuance before attach,
 }, 15_000);
 
 test('setup retries a crashed issuance with the same pending idempotency key', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-setup-retry-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-setup-retry-'));
     const firstAttachStarted = Promise.withResolvers<void>();
     let releaseFirstResponse: ((response: Response) => void) | null = null;
     const requests: Record<string, string>[] = [];
@@ -184,10 +184,10 @@ test('setup retries a crashed issuance with the same pending idempotency key', a
         const first = Bun.spawn(['bun', entrypoint, 'setup', '/hq'], {
             env: {
                 ...process.env,
-                GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-                GROTTO_COMPUTER_ONESHOT: '1',
-                GROTTO_COMPUTER_USAGE_DISABLED: '1',
-                GROTTO_SERVER_ORIGIN: origin,
+                HAUS_COMPUTER_DATA_ROOT: dataRoot,
+                HAUS_COMPUTER_ONESHOT: '1',
+                HAUS_COMPUTER_USAGE_DISABLED: '1',
+                HAUS_SERVER_ORIGIN: origin,
             },
             stderr: 'pipe',
             stdout: 'pipe',
@@ -203,10 +203,10 @@ test('setup retries a crashed issuance with the same pending idempotency key', a
         await first.exited;
 
         const retry = await runCli(['setup', '/hq'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_ONESHOT: '1',
-            GROTTO_COMPUTER_USAGE_DISABLED: '1',
-            GROTTO_SERVER_ORIGIN: origin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_ONESHOT: '1',
+            HAUS_COMPUTER_USAGE_DISABLED: '1',
+            HAUS_SERVER_ORIGIN: origin,
         });
 
         expect(retry.exitCode, `${retry.stderr}\n${retry.stdout}`).toBe(0);

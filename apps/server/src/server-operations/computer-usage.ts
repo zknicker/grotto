@@ -1,13 +1,13 @@
-import type { ServerUsageOverview, TokenUsageOverview, UsageOverview } from '@grotto/api';
+import type { ServerUsageOverview, TokenUsageOverview, UsageOverview } from '@haus/api';
 import { and, desc, eq, gte, lt } from 'drizzle-orm';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, agentTokenUsageDailyTable, computersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 
 export async function recordComputerUsage(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         computerId: string;
         serverId: string;
@@ -29,8 +29,8 @@ export async function recordComputerUsage(
 }
 
 export async function readServerUsage(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     serverId: string
 ): Promise<ServerUsageOverview> {
     await requireServerMembership(db, member, serverId);
@@ -94,7 +94,7 @@ const tokenFields = [
 
 type TokenTotals = TokenUsageOverview['totals'];
 
-async function readTokenUsage(db: GrottoDatabase, serverId: string): Promise<TokenUsageOverview> {
+async function readTokenUsage(db: HausDatabase, serverId: string): Promise<TokenUsageOverview> {
     const cutoff = new Date();
     cutoff.setUTCHours(0, 0, 0, 0);
     cutoff.setUTCDate(cutoff.getUTCDate() - 89);

@@ -50,7 +50,7 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     await expect(page.getByRole('button', { name: 'Recovery Commands' })).toBeVisible();
 
     const computer = new WebSocket(
-        `ws://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/computer/attachment`
+        `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
     );
     await socketOpen(computer);
     const bootstrapAccepted = socketMessage(computer);
@@ -79,13 +79,13 @@ test('an Owner updates one Computer from Settings through isolated progress', as
         release: { release: { version: '1.1.0' } },
         type: 'update',
     });
-    await reportProgress(computer, 'downloading', 'Downloading Grotto Computer 1.1.0.', {
+    await reportProgress(computer, 'downloading', 'Downloading Haus Computer 1.1.0.', {
         downloaded: 5 * 1024 * 1024,
         total: 10 * 1024 * 1024,
     });
-    await expect(page.getByText('Downloading Grotto Computer', { exact: true })).toBeVisible();
+    await expect(page.getByText('Downloading Haus Computer', { exact: true })).toBeVisible();
     await expect(
-        page.getByRole('progressbar', { name: 'Downloading Grotto Computer' })
+        page.getByRole('progressbar', { name: 'Downloading Haus Computer' })
     ).toHaveAttribute('aria-valuenow', '50');
     await reportProgress(computer, 'verifying', 'Verifying signature and integrity.');
     await expect(
@@ -96,13 +96,13 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     await reportProgress(computer, 'waiting-for-agents', 'Waiting for active Agents.');
     await expect(page.getByText('Waiting for active Agents…')).toBeVisible();
     await reportProgress(computer, 'restarting', 'Restarting Computer.');
-    await expect(page.getByText('Restarting Grotto Computer')).toBeVisible();
+    await expect(page.getByText('Restarting Haus Computer')).toBeVisible();
     computer.close();
     await page.reload();
-    await expect(page.getByText('Restarting Grotto Computer')).toBeVisible();
+    await expect(page.getByText('Restarting Haus Computer')).toBeVisible();
 
     const reconnectedComputer = new WebSocket(
-        `ws://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/computer/attachment`
+        `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
     );
     await socketOpen(reconnectedComputer);
     const reconnected = socketMessage(reconnectedComputer);
@@ -111,7 +111,7 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     await expect(page.getByRole('gridcell', { name: /Online Mac Computer v1.1.0/u })).toBeVisible();
 
     await page.getByRole('button', { name: 'Check' }).click();
-    await expect(page.getByText('Grotto Computer is up to date', { exact: true })).toBeVisible();
+    await expect(page.getByText('Haus Computer is up to date', { exact: true })).toBeVisible();
     await expect(page.getByText('Version 1.1.0 is the latest production release.')).toBeVisible();
     await expect(page.getByRole('button', { name: /Update to/u })).toHaveCount(0);
     reconnectedComputer.close();
@@ -126,7 +126,7 @@ test('an Owner connects a Computer to Cursor Cloud Agents from Settings', async 
     await attachComputer(owner, { credential, slug: 'cloud-agent-hq' });
 
     const computer = new WebSocket(
-        `ws://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/computer/attachment`
+        `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
     );
     await socketOpen(computer);
     const accepted = socketMessage(computer);

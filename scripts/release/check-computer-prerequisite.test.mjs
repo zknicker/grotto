@@ -12,7 +12,7 @@ test('Server publishing refuses a production Computer below its protocol floor',
         createSignedComputerRelease(
             {
                 artifactUrl:
-                    'https://releases.grotto.sh/computer/1.0.0/grotto-computer-aarch64-apple-darwin',
+                    'https://releases.haus.chat/computer/1.0.0/haus-computer-aarch64-apple-darwin',
                 protocolVersion: 2,
                 sha256: 'a'.repeat(64),
                 sourceRevision: 'b'.repeat(40),
@@ -40,7 +40,7 @@ test('Server publishing verifies the production descriptor signature', async () 
         createSignedComputerRelease(
             {
                 artifactUrl:
-                    'https://releases.grotto.sh/computer/1.1.0/grotto-computer-aarch64-apple-darwin',
+                    'https://releases.haus.chat/computer/1.1.0/haus-computer-aarch64-apple-darwin',
                 protocolVersion: 3,
                 sha256: 'a'.repeat(64),
                 sourceRevision: 'b'.repeat(40),

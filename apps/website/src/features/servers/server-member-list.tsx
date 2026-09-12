@@ -1,4 +1,4 @@
-import type { ServerMember, ServerMemberDirectory } from '@grotto/api/membership';
+import type { ServerMember, ServerMemberDirectory } from '@haus/api/membership';
 import { Button, Chip, Separator } from '@heroui/react';
 import * as React from 'react';
 import { Link } from 'react-router-dom';

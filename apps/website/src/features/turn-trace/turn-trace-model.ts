@@ -3,7 +3,7 @@ import type {
     AgentActivityEvent,
     AgentExecutionJournal,
     AgentExecutionJournalReasoning,
-} from '@grotto/api';
+} from '@haus/api';
 import type { AgentActivityTurn } from '../members/agent-profile/agent-activity-turns.ts';
 import { classifyTraceTool, type TurnTraceTool } from './turn-trace-tool-model.ts';
 

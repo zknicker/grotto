@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { CloudAgentPullRequest } from '@grotto/api';
+import type { CloudAgentPullRequest } from '@haus/api';
 import type { CloudAgentProviderObservation } from '../provider.ts';
 import { carriesPullRequest, withPullRequestEvidence } from './observation-evidence.ts';
 import type { PullRequestReader } from './pull-request-reader.ts';
@@ -15,11 +15,11 @@ const snapshot: CloudAgentPullRequest = {
 
 const settled: CloudAgentProviderObservation = {
     branches: [
-        { branch: 'cloud/no-pr', pullRequestUrl: null, repository: 'grotto/grotto' },
+        { branch: 'cloud/no-pr', pullRequestUrl: null, repository: 'haus/haus' },
         {
             branch: 'cloud/fix-flake',
-            pullRequestUrl: 'https://github.com/grotto/grotto/pull/56',
-            repository: 'grotto/grotto',
+            pullRequestUrl: 'https://github.com/haus/haus/pull/56',
+            repository: 'haus/haus',
         },
     ],
     observedAt: '2026-09-05T12:00:00.000Z',
@@ -37,9 +37,7 @@ test('only an observation naming a pull request is worth a GitHub read', () => {
     );
     expect(
         carriesPullRequest({
-            branches: [
-                { branch: 'cloud/no-pr', pullRequestUrl: null, repository: 'grotto/grotto' },
-            ],
+            branches: [{ branch: 'cloud/no-pr', pullRequestUrl: null, repository: 'haus/haus' }],
             observedAt: '2026-09-05T12:00:00.000Z',
             status: 'completed',
         })
@@ -56,18 +54,18 @@ test('the read attaches its snapshot to the branch that opened the pull request'
         })
     );
 
-    expect(urls).toEqual(['https://github.com/grotto/grotto/pull/56']);
+    expect(urls).toEqual(['https://github.com/haus/haus/pull/56']);
     expect(reported.branches?.[1]).toEqual({
         branch: 'cloud/fix-flake',
         pullRequest: snapshot,
-        pullRequestUrl: 'https://github.com/grotto/grotto/pull/56',
-        repository: 'grotto/grotto',
+        pullRequestUrl: 'https://github.com/haus/haus/pull/56',
+        repository: 'haus/haus',
     });
     // The branch that opened nothing is untouched.
     expect(reported.branches?.[0]).toEqual({
         branch: 'cloud/no-pr',
         pullRequestUrl: null,
-        repository: 'grotto/grotto',
+        repository: 'haus/haus',
     });
 });
 

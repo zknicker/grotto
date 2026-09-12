@@ -1,5 +1,5 @@
 import type { attachmentsTable } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 
 export class AttachmentUploadError extends Error {
     constructor(
@@ -15,7 +15,7 @@ export interface AttachmentUploadInput {
     attachmentId: string;
     declaredLength: number | null;
     failureInjection?: AttachmentUploadFailureInjection;
-    member: GrottoUser | null;
+    member: HausUser | null;
     serverId: string;
     stream: AsyncIterable<Uint8Array>;
 }

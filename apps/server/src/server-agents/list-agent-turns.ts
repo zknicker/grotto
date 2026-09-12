@@ -1,9 +1,9 @@
-import { type AgentTurn, type AgentTurnsInput, agentTurnActivitySummarySchema } from '@grotto/api';
+import { type AgentTurn, type AgentTurnsInput, agentTurnActivitySummarySchema } from '@haus/api';
 import { and, desc, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentTurnsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { requireAgent } from './agent-delivery-control.ts';
 
 /**
@@ -12,8 +12,8 @@ import { requireAgent } from './agent-delivery-control.ts';
  * answer?" without reading Computer-local execution traces.
  */
 export async function listAgentTurns(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: AgentTurnsInput
 ): Promise<AgentTurn[]> {
     await requireServerMembership(db, member, input.serverId);

@@ -1,4 +1,4 @@
-import type { Agent, Chat, MessageTask } from '@grotto/api';
+import type { Agent, Chat, MessageTask } from '@haus/api';
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
 import { EntityName } from '../../../components/ui/entity-name.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { buildAvatarGenerationPrompt } from '@grotto/api';
+import { buildAvatarGenerationPrompt } from '@haus/api';
 import {
     AvatarGenerationBusyError,
     type AvatarGenerationLogEvent,

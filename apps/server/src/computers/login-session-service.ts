@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { computerLoginRefreshTokensTable, computerLoginSessionsTable } from '../postgres/schema.ts';
 import { computerLoginError } from './login-errors.ts';
@@ -25,7 +25,7 @@ export interface ComputerManagementSession {
 }
 
 export async function refreshComputerLogin(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { refreshToken: string; sessionId: string }
 ): Promise<ComputerLoginSessionResponse & { status: 'refreshed' }> {
     if (!(isRefreshToken(input.refreshToken) && isComputerLoginSessionId(input.sessionId))) {
@@ -108,7 +108,7 @@ export async function refreshComputerLogin(
 }
 
 export async function authenticateComputerLogin(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { accessToken: string }
 ): Promise<ComputerManagementSession> {
     if (!isAccessToken(input.accessToken)) {
@@ -140,7 +140,7 @@ export async function authenticateComputerLogin(
     return session;
 }
 
-export async function inspectComputerLogin(db: GrottoDatabase, input: { accessToken: string }) {
+export async function inspectComputerLogin(db: HausDatabase, input: { accessToken: string }) {
     const session = await authenticateComputerLogin(db, input);
     return {
         accessTokenExpiresAt: session.accessTokenExpiresAt.toISOString(),
@@ -153,7 +153,7 @@ export async function inspectComputerLogin(db: GrottoDatabase, input: { accessTo
 }
 
 export async function revokeComputerLogin(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { refreshToken: string; sessionId: string }
 ) {
     if (!(isRefreshToken(input.refreshToken) && isComputerLoginSessionId(input.sessionId))) {
@@ -191,7 +191,7 @@ export async function revokeComputerLogin(
     });
 }
 
-type ComputerLoginTransaction = Parameters<Parameters<GrottoDatabase['transaction']>[0]>[0];
+type ComputerLoginTransaction = Parameters<Parameters<HausDatabase['transaction']>[0]>[0];
 
 async function revokeComputerLoginFamily(
     tx: ComputerLoginTransaction,

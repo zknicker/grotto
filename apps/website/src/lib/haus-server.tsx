@@ -1,0 +1,197 @@
+import { appProtocolHeaders, appProtocolVersion } from '@haus/api/app-protocol';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+    createWSClient,
+    httpBatchLink,
+    splitLink,
+    type TRPCWebSocketClient,
+    wsLink,
+} from '@trpc/client';
+import { createTRPCReact } from '@trpc/react-query';
+import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
+import * as React from 'react';
+import type { HausRouter } from '../../../server/src/haus-api/router.ts';
+import { UpdateRequiredGate } from '../features/servers/update-required-gate.tsx';
+import { getClerkSessionToken } from './clerk.tsx';
+import { watchHausSession } from './haus-session-refresh.ts';
+import { queryClientDefaultOptions } from './query-policy.ts';
+import { type ConnectionState, createQueryReconnectHandler } from './query-reconnect-recovery.ts';
+
+/** The App's authenticated HTTP and WebSocket connection to Haus Server. */
+export const hausTrpc = createTRPCReact<HausRouter>();
+
+export type HausOutputs = inferRouterOutputs<HausRouter>;
+export type HausInputs = inferRouterInputs<HausRouter>;
+export type ServerSummary = HausOutputs['server']['list'][number];
+export type ServerDetail = HausOutputs['server']['bySlug'];
+export type HausServerConnectionState = ConnectionState;
+
+const sessionWatchIntervalMs = 30_000;
+// Provenance only; the build injects the App package version (see vite.config).
+const productVersion = import.meta.env.VITE_HAUS_PRODUCT_VERSION ?? '0.0.0-dev';
+const HausServerConnectionContext = React.createContext<HausServerConnectionState>('connecting');
+
+export function getHausServerOrigin(): string {
+    return resolveHausServerOrigin(
+        import.meta.env.VITE_HAUS_SERVER_ORIGIN,
+        globalThis.window?.location.origin,
+        import.meta.env.DEV
+    );
+}
+
+export function resolveHausServerOrigin(
+    configuredOrigin: string | undefined,
+    browserOrigin: string | undefined,
+    allowDevelopmentOverride = false
+): string {
+    if (allowDevelopmentOverride) {
+        const configuredUrl = parseHttpOrigin(configuredOrigin);
+        if (configuredUrl) {
+            return configuredUrl.origin;
+        }
+    }
+
+    const browserUrl = parseHttpOrigin(browserOrigin);
+    if (browserUrl) {
+        return browserUrl.origin;
+    }
+
+    throw new Error(
+        'The Haus Server origin is unavailable. Open Haus App over HTTP(S) or configure VITE_HAUS_SERVER_ORIGIN for development.'
+    );
+}
+
+function parseHttpOrigin(value: string | undefined) {
+    if (!value) {
+        return null;
+    }
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) ? url : null;
+}
+
+export function HausServerProvider({ children }: React.PropsWithChildren) {
+    const [queryClient] = React.useState(
+        () => new QueryClient({ defaultOptions: queryClientDefaultOptions })
+    );
+    const [connectionState, setConnectionState] =
+        React.useState<HausServerConnectionState>('connecting');
+    const [handleConnectionState] = React.useState(() =>
+        createQueryReconnectHandler({
+            onReconnect: () => {
+                void queryClient.invalidateQueries({ refetchType: 'active' });
+            },
+            onStateChange: setConnectionState,
+        })
+    );
+    const [connection, setConnection] = React.useState<HausConnection | null>(null);
+
+    React.useEffect(() => {
+        let active = true;
+        const nextConnection = createHausConnection((state) => {
+            if (active) {
+                handleConnectionState(state);
+            }
+        });
+        setConnection(nextConnection);
+
+        return () => {
+            active = false;
+            void nextConnection.wsClient.close();
+        };
+    }, [handleConnectionState]);
+
+    React.useEffect(() => {
+        if (!connection) {
+            return;
+        }
+
+        const stop = watchHausSession({
+            clearTimer: (handle) => window.clearInterval(handle),
+            intervalMs: sessionWatchIntervalMs,
+            onStaleSession: () => reconnectHausSession(connection.wsClient),
+            readSessionToken: getClerkSessionToken,
+            startTimer: (run, intervalMs) => window.setInterval(run, intervalMs),
+        });
+
+        return stop;
+    }, [connection]);
+
+    if (!connection) {
+        return null;
+    }
+
+    return (
+        <HausServerConnectionContext value={connectionState}>
+            <QueryClientProvider client={queryClient}>
+                <hausTrpc.Provider client={connection.client} queryClient={queryClient}>
+                    <UpdateRequiredGate queryClient={queryClient}>{children}</UpdateRequiredGate>
+                </hausTrpc.Provider>
+            </QueryClientProvider>
+        </HausServerConnectionContext>
+    );
+}
+
+/** One stable tRPC client whose websocket re-authenticates in place. */
+function createHausConnection(
+    onConnectionState: (state: HausServerConnectionState) => void
+): HausConnection {
+    const origin = getHausServerOrigin();
+    const httpUrl = new URL('/trpc', origin).toString();
+    const socketUrl = new URL('/trpc', origin);
+
+    socketUrl.protocol = socketUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+
+    const wsClient = createWSClient({
+        connectionParams: async () => {
+            const token = await getClerkSessionToken();
+            return {
+                appProtocolVersion: String(appProtocolVersion),
+                ...(token ? { clerkSessionToken: token } : {}),
+                productVersion,
+            };
+        },
+        onClose: () => onConnectionState('reconnecting'),
+        onOpen: () => onConnectionState('connected'),
+        url: socketUrl.toString(),
+    });
+
+    return {
+        client: hausTrpc.createClient({
+            links: [
+                splitLink({
+                    condition: (operation) => operation.type === 'subscription',
+                    // Batched: a screen's concurrent queries share one POST, so
+                    // a cold chat open costs one round trip, not five.
+                    false: httpBatchLink({
+                        headers: async () => {
+                            const token = await getClerkSessionToken();
+                            return {
+                                [appProtocolHeaders.productVersion]: productVersion,
+                                [appProtocolHeaders.protocolVersion]: String(appProtocolVersion),
+                                ...(token ? { authorization: `Bearer ${token}` } : {}),
+                            };
+                        },
+                        methodOverride: 'POST',
+                        url: httpUrl,
+                    }),
+                    true: wsLink({ client: wsClient }),
+                }),
+            ],
+        }),
+        wsClient,
+    };
+}
+
+interface HausConnection {
+    client: ReturnType<typeof hausTrpc.createClient>;
+    wsClient: TRPCWebSocketClient;
+}
+
+/** Re-authenticate the transport without replacing its tRPC or React providers. */
+function reconnectHausSession(wsClient: TRPCWebSocketClient) {
+    wsClient.connection?.ws?.close();
+}
+
+export function useHausServerConnectionState() {
+    return React.use(HausServerConnectionContext);
+}

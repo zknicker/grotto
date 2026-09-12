@@ -1,4 +1,4 @@
-import type { ChatMessage, ThreadSummary } from '@grotto/api';
+import type { ChatMessage, ThreadSummary } from '@haus/api';
 import * as React from 'react';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';
@@ -11,7 +11,7 @@ import type {
     TranscriptMessageRow,
     TranscriptRenderContextValue,
 } from '../../chats/chat-transcript-render-context.tsx';
-import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
+import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import { deriveSessionMarks } from '../../chats/session/session-mark-model.ts';
 import { indexCloudAgentWorkByThreadAnchor } from '../../cloud-agents/hoisted-cloud-agent-work.ts';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
@@ -40,7 +40,7 @@ export interface ChatTranscriptInput {
     /** The Channel or DM this transcript belongs to; a Thread names its parent. */
     conversationChatId?: string;
     messages: readonly ChatMessage[] | undefined;
-    onOpenArtifact: (target: GrottoResourceTarget) => void;
+    onOpenArtifact: (target: HausResourceTarget) => void;
     onOpenThread?: (message: ChatMessage, summary: ThreadSummary | null) => void;
     onReferenceActivate?: ReferenceActivation;
     onStartDm?: (userId: string) => void;

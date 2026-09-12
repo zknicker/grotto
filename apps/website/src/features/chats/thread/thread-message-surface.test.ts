@@ -6,7 +6,7 @@ describe('thread message surface', () => {
         expect(isThreadAnchorRow(messageRow('msg_durable'))).toBe(true);
         expect(isThreadAnchorRow(messageRow('act_narration'))).toBe(false);
         expect(
-            isThreadAnchorRow(messageRow('msg_optimistic', { __grottoLocalTimelineMessage: true }))
+            isThreadAnchorRow(messageRow('msg_optimistic', { __hausLocalTimelineMessage: true }))
         ).toBe(false);
         expect(
             isThreadAnchorRow(messageRow('msg_streaming', { runtime: { streaming: true } }))

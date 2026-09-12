@@ -1,4 +1,4 @@
-import { avatarMediaTypes } from '@grotto/api/avatar';
+import { avatarMediaTypes } from '@haus/api/avatar';
 import { Button, Description, Dropdown, Label, Tooltip } from '@heroui/react';
 import { AiMagicIcon, Camera01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';

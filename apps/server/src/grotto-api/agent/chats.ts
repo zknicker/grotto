@@ -1,8 +1,0 @@
-import { agentDetailInputSchema, chatListSchema } from '@grotto/api';
-import { listAgentChats } from '../../server-agents/list-agent-chats.ts';
-import { memberProcedure } from '../server/procedure.ts';
-
-export const agentChatsProcedure = memberProcedure
-    .input(agentDetailInputSchema)
-    .output(chatListSchema)
-    .query(({ ctx, input }) => listAgentChats(ctx.grottoDb, ctx.member, input));

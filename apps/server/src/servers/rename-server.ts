@@ -1,15 +1,15 @@
 import { eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { serversTable } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import type { ServerSummary } from './contracts.ts';
 import { requireServerMembership } from './server-access.ts';
 import { lockServerRow } from './server-lock.ts';
 
 /** Renames a Haus server. The slug is its permanent address and never moves. */
 export async function renameServer(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { displayName: string; serverId: string }
 ): Promise<ServerSummary> {
     return await db.transaction(async (tx) => {

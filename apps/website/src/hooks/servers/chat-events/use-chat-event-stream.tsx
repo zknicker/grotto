@@ -1,6 +1,6 @@
-import type { ServerDurableEvent } from '@grotto/api';
+import type { ServerDurableEvent } from '@haus/api';
 import * as React from 'react';
-import { grottoTrpc } from '../../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../../lib/haus-server.tsx';
 import {
     chatEventBatchWindowMs,
     createChatEventBatch,
@@ -33,7 +33,7 @@ export function ChatEventStreamProvider({
     children: React.ReactNode;
     serverId: string | undefined;
 }) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
     const registryRef = React.useRef<ChatEventRegistry | null>(null);
     registryRef.current ??= createChatEventRegistry();
     const registry = registryRef.current;
@@ -128,7 +128,7 @@ export function ChatEventStreamProvider({
     // Server — or the app — flushes it instead of dropping it.
     React.useEffect(() => flushEventBatch, [flushEventBatch]);
 
-    grottoTrpc.chat.onEvent.useSubscription(
+    hausTrpc.chat.onEvent.useSubscription(
         { serverId: serverId ?? '' },
         {
             enabled: serverId !== undefined,

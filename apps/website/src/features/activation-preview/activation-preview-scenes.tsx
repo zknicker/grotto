@@ -106,7 +106,7 @@ export const activationPreviewScenes: ActivationPreviewScene[] = [
         path: 'invite/preview-expired',
     },
     {
-        description: 'No code yet: enter the code from `grotto-computer login`.',
+        description: 'No code yet: enter the code from `haus-computer login`.',
         group: 'Computer login',
         id: 'computer-login',
         render: () => <SignedInComputerLogin />,

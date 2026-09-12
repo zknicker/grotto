@@ -1,5 +1,5 @@
 import type { MCPClient } from '@ai-sdk/mcp';
-import { type TraceCarrier, withTelemetrySpan, withTraceCarrier } from '@grotto/effect';
+import { type TraceCarrier, withTelemetrySpan, withTraceCarrier } from '@haus/effect';
 import { Data, Effect, Runtime } from 'effect';
 import type { McpClientCache } from './client-cache.ts';
 import { classifyMcpUpstreamError, McpClientAcquireError, McpUpstreamError } from './errors.ts';
@@ -36,8 +36,8 @@ export async function runMcpUpstream<T>(input: McpUpstreamOperation<T>): Promise
                             `The MCP ${input.operation} timed out.`
                         ),
                 }),
-                withTelemetrySpan('grotto.mcp.operation', {
-                    'grotto.operation': `mcp.${input.operation}`,
+                withTelemetrySpan('haus.mcp.operation', {
+                    'haus.operation': `mcp.${input.operation}`,
                 }),
                 withTraceCarrier(input.traceContext)
             )

@@ -1,15 +1,15 @@
-import { getManualTopic, searchManualTopics } from '@grotto/agent-manual';
+import { getManualTopic, searchManualTopics } from '@haus/agent-manual';
 import {
     agentManualGetQuerySchema,
     agentManualGetResponseSchema,
     agentManualSearchQuerySchema,
     agentManualSearchResponseSchema,
     manualRunnerCapability,
-} from '@grotto/api';
+} from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import type * as z from 'zod';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentManualLookupAuditTable } from '../postgres/schema.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
@@ -21,7 +21,7 @@ export class ManualTopicNotFoundError extends Error {
     }
 }
 
-export function registerAgentManualRoutes(app: FastifyInstance, db: GrottoDatabase) {
+export function registerAgentManualRoutes(app: FastifyInstance, db: HausDatabase) {
     app.get('/api/agent/manual/get', async (request, reply) => {
         const runner = await authorizeAgentRunner(db, request);
         if (!runner) {
@@ -107,7 +107,7 @@ export function registerAgentManualRoutes(app: FastifyInstance, db: GrottoDataba
 }
 
 async function readManualTopic(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: z.infer<typeof agentManualGetQuerySchema>
 ) {
@@ -125,7 +125,7 @@ async function readManualTopic(
 }
 
 async function searchManual(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: z.infer<typeof agentManualSearchQuerySchema>
 ) {
@@ -146,7 +146,7 @@ async function searchManual(
 }
 
 async function recordManualLookup(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: {
         intent: string;

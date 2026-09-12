@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
 import type { HarnessAgent } from '@ai-sdk/harness/agent';
-import { seedCoveWorkspace } from '@grotto/agent-workspace';
-import { grottoAgentVersion } from '@grotto/api';
+import { seedCoveWorkspace } from '@haus/agent-workspace';
+import { hausAgentVersion } from '@haus/api';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
@@ -28,7 +28,7 @@ const legacyCoveFaq = `# Onboarding Knowledge FAQ
 
 ## What can Cove do?
 
-Cove can collaborate in joined Chats, read Server-owned history through the Grotto CLI, work in this private workspace, use granted tools and skills, manage Tasks and reminders within current authority, and consult the shared Manual.
+Cove can collaborate in joined Chats, read Server-owned history through the Haus CLI, work in this private workspace, use granted tools and skills, manage Tasks and reminders within current authority, and consult the shared Manual.
 
 ## What stays with the owner?
 
@@ -36,7 +36,7 @@ Owners and Admins create and administer Channels, Computers, members, roles, and
 
 ## Where does history live?
 
-Canonical Chat history lives on Grotto Server. Workspace notes are Cove's durable working memory, not a transcript mirror.
+Canonical Chat history lives on Haus Server. Workspace notes are Cove's durable working memory, not a transcript mirror.
 
 ## Are Agents archetypes?
 
@@ -47,9 +47,9 @@ const legacyCovePlaybook = `# Onboarding Playbook
 
 1. Start with the owner's concrete goal, not a feature tour.
 2. Propose one useful next action and name who has authority to do it.
-3. Use real Grotto capabilities only. Never invent unsupported UI affordances, local Chat ownership, or Agent-created Channels.
+3. Use real Haus capabilities only. Never invent unsupported UI affordances, local Chat ownership, or Agent-created Channels.
 4. Keep suggestions optional after setup. Record postponements, refusals, and blockers in onboarding_objectives.md.
-5. Retrieve a full procedure with \`grotto manual get <topic>\` when a seeded summary applies. For an Agent-creation request, retrieve \`recipes/playbook/agent-creation\` before composing the avatar, action, and continuation.
+5. Retrieve a full procedure with \`haus manual get <topic>\` when a seeded summary applies. For an Agent-creation request, retrieve \`recipes/playbook/agent-creation\` before composing the avatar, action, and continuation.
 6. Preserve honest authorship: Cove's messages come from Cove turns, never setup machinery.
 `;
 
@@ -80,7 +80,7 @@ let streamedCoveFaqs: Array<string | null>;
 let streamedCovePlaybooks: Array<string | null>;
 
 beforeEach(async () => {
-    agentRoot = await mkdtemp(join(tmpdir(), 'grotto-harness-'));
+    agentRoot = await mkdtemp(join(tmpdir(), 'haus-harness-'));
     acceptsUserMessages = true;
     agentInstructions = [];
     createSessionCalls = [];
@@ -451,7 +451,7 @@ test('projects a concrete typed attention into the first prompt by its own ident
                         errorCode: null,
                         provider: 'cursor',
                         providerUrl: null,
-                        repository: 'grotto/grotto',
+                        repository: 'haus/haus',
                         runId: 'car_1234567890abcdef',
                         status: 'completed',
                         summary: 'Opened a pull request.',
@@ -461,7 +461,7 @@ test('projects a concrete typed attention into the first prompt by its own ident
                     content: '',
                     createdAt: '2026-07-27T00:00:00.000Z',
                     id: 'car_1234567890abcdef',
-                    senderHandle: 'grotto',
+                    senderHandle: 'haus',
                     senderType: 'system',
                     sequence: 0,
                     target: '#general',
@@ -510,7 +510,7 @@ test('projects a concrete fire and a task assignment into the first prompt', asy
         createdAt: '2026-07-27T00:00:00.000Z',
         id: 'task-assign:msg_1a2b3c4d5e6f:3',
         mentioned: true,
-        senderHandle: 'grotto',
+        senderHandle: 'haus',
         senderType: 'system' as const,
         sequence: 1,
         target: '#general',
@@ -518,7 +518,7 @@ test('projects a concrete fire and a task assignment into the first prompt', asy
     await runHarnessTurn(turnInput({ inbox: [assignment], inboxDelivery: 'concrete' }));
 
     expect(streamedPrompts[0]).toContain(
-        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 type=system mentioned=true] @grotto: [Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes'
+        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 type=system mentioned=true] @haus: [Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes'
     );
 });
 
@@ -634,9 +634,9 @@ test('managed instruction drift reaches the next resumed turn once without rotat
         join(agentRoot, 'session.json'),
         `${JSON.stringify({
             ...firstSession,
-            grottoAgentAppliedAt: '2026-08-27T12:00:00.000Z',
-            grottoAgentStatus: 'current',
-            grottoAgentVersion: '0.9.0',
+            hausAgentAppliedAt: '2026-08-27T12:00:00.000Z',
+            hausAgentStatus: 'current',
+            hausAgentVersion: '0.9.0',
         })}\n`
     );
     const updateActivity: Array<{ category: string; phase: string }> = [];
@@ -660,9 +660,9 @@ test('managed instruction drift reaches the next resumed turn once without rotat
     const updatedSession = await readSession();
     expect(updatedSession.generation).toBe(1);
     expect(updatedSession.runtimeSessionId).toBe('engine_session_1');
-    expect(updatedSession.grottoAgentStatus).toBe('current');
-    expect(updatedSession.grottoAgentVersion).toBe(grottoAgentVersion);
-    expect(updatedSession.grottoAgentAppliedAt).not.toBe('2026-08-27T12:00:00.000Z');
+    expect(updatedSession.hausAgentStatus).toBe('current');
+    expect(updatedSession.hausAgentVersion).toBe(hausAgentVersion);
+    expect(updatedSession.hausAgentAppliedAt).not.toBe('2026-08-27T12:00:00.000Z');
     expect(updatedSession.instructionFingerprint).not.toBe(firstSession.instructionFingerprint);
     expect(updateActivity).toEqual([
         { category: 'updating_instructions', phase: 'started' },
@@ -697,9 +697,9 @@ test('version-only drift applies once on the same warm session', async () => {
         join(agentRoot, 'session.json'),
         `${JSON.stringify({
             ...firstSession,
-            grottoAgentAppliedAt: previousAppliedAt,
-            grottoAgentStatus: 'current',
-            grottoAgentVersion: '0.9.0',
+            hausAgentAppliedAt: previousAppliedAt,
+            hausAgentStatus: 'current',
+            hausAgentVersion: '0.9.0',
         })}\n`
     );
     const updateActivity: Array<{ category: string; phase: string }> = [];
@@ -715,12 +715,12 @@ test('version-only drift applies once on the same warm session', async () => {
     expect(updatedSession).toMatchObject({
         bootstrapFingerprint: firstSession.bootstrapFingerprint,
         generation: 1,
-        grottoAgentStatus: 'current',
-        grottoAgentVersion,
+        hausAgentStatus: 'current',
+        hausAgentVersion,
         instructionFingerprint: firstSession.instructionFingerprint,
         runtimeSessionId: 'engine_session_1',
     });
-    expect(updatedSession.grottoAgentAppliedAt).not.toBe(previousAppliedAt);
+    expect(updatedSession.hausAgentAppliedAt).not.toBe(previousAppliedAt);
     expect(stoppedSessions).toBe(0);
     expect(refreshedBootstraps).toBe(0);
     expect(updateActivity).toEqual([
@@ -749,9 +749,9 @@ test('an aborted warm instruction and version update retries on the same session
         join(agentRoot, 'session.json'),
         `${JSON.stringify({
             ...firstSession,
-            grottoAgentAppliedAt: previousAppliedAt,
-            grottoAgentStatus: 'current',
-            grottoAgentVersion: '0.9.0',
+            hausAgentAppliedAt: previousAppliedAt,
+            hausAgentStatus: 'current',
+            hausAgentVersion: '0.9.0',
         })}\n`
     );
     const runtimeDir = join(agentRoot, 'runtime');
@@ -773,9 +773,9 @@ test('an aborted warm instruction and version update retries on the same session
     expect(abortedSession).toMatchObject({
         bootstrapFingerprint: firstSession.bootstrapFingerprint,
         generation: 1,
-        grottoAgentAppliedAt: previousAppliedAt,
-        grottoAgentStatus: 'failed',
-        grottoAgentVersion: '0.9.0',
+        hausAgentAppliedAt: previousAppliedAt,
+        hausAgentStatus: 'failed',
+        hausAgentVersion: '0.9.0',
         instructionFingerprint: firstSession.instructionFingerprint,
         runtimeSessionId: 'engine_session_1',
     });
@@ -806,11 +806,11 @@ test('an aborted warm instruction and version update retries on the same session
     const retriedSession = await readSession();
     expect(retriedSession).toMatchObject({
         generation: 1,
-        grottoAgentStatus: 'current',
-        grottoAgentVersion,
+        hausAgentStatus: 'current',
+        hausAgentVersion,
         runtimeSessionId: 'engine_session_1',
     });
-    expect(retriedSession.grottoAgentAppliedAt).not.toBe(previousAppliedAt);
+    expect(retriedSession.hausAgentAppliedAt).not.toBe(previousAppliedAt);
     expect(retriedSession.instructionFingerprint).not.toBe(firstSession.instructionFingerprint);
     expect(stoppedSessions).toBe(2);
     expect(refreshedBootstraps).toBe(2);
@@ -838,9 +838,9 @@ test('an aborted Restart keeps the current public Haus Agent version current', a
     expect(result.aborted).toBe(true);
     expect(await readSession()).toMatchObject({
         bootstrapFingerprint: firstSession.bootstrapFingerprint,
-        grottoAgentAppliedAt: firstSession.grottoAgentAppliedAt,
-        grottoAgentStatus: 'current',
-        grottoAgentVersion: firstSession.grottoAgentVersion,
+        hausAgentAppliedAt: firstSession.hausAgentAppliedAt,
+        hausAgentStatus: 'current',
+        hausAgentVersion: firstSession.hausAgentVersion,
         instructionFingerprint: firstSession.instructionFingerprint,
         runtimeSessionId: 'engine_session_1',
     });
@@ -937,8 +937,8 @@ test('an aborted warm Cove guidance refresh keeps its receipt and rereads on ret
     expect(aborted.aborted).toBe(true);
     const abortedSession = await readSession();
     expect(abortedSession).toMatchObject({
-        grottoAgentStatus: 'current',
-        grottoAgentVersion,
+        hausAgentStatus: 'current',
+        hausAgentVersion,
         runtimeSessionId: 'engine_session_1',
     });
     expect(streamedPrompts[1]).toContain('re-read notes/onboarding_playbook.md');
@@ -1003,9 +1003,9 @@ test('preserves edited Cove guidance and records a failed operator-visible refre
     });
     expect(streamedPrompts[0]).toContain('could not update');
     expect(await readSession()).toMatchObject({
-        grottoAgentAppliedAt: null,
-        grottoAgentStatus: 'failed',
-        grottoAgentVersion: null,
+        hausAgentAppliedAt: null,
+        hausAgentStatus: 'failed',
+        hausAgentVersion: null,
     });
 });
 
@@ -1150,7 +1150,7 @@ test('a stream failure records a failed instruction refresh and leaves its recei
         join(agentRoot, 'session.json'),
         `${JSON.stringify({
             ...staleSession,
-            grottoAgentVersion: '0.9.0',
+            hausAgentVersion: '0.9.0',
             instructionFingerprint: 'stale',
         })}\n`
     );
@@ -1163,8 +1163,8 @@ test('a stream failure records a failed instruction refresh and leaves its recei
 
     expect((await readSession()).instructionFingerprint).toBe('stale');
     expect(await readSession()).toMatchObject({
-        grottoAgentStatus: 'failed',
-        grottoAgentVersion: '0.9.0',
+        hausAgentStatus: 'failed',
+        hausAgentVersion: '0.9.0',
     });
     expect(activity).toContainEqual({ category: 'updating_instructions', phase: 'started' });
     expect(activity).toContainEqual({ category: 'updating_instructions', phase: 'failed' });

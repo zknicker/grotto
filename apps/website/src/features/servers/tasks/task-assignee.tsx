@@ -1,4 +1,4 @@
-import type { TaskAssignee as TaskAssigneeOption } from '@grotto/api';
+import type { TaskAssignee as TaskAssigneeOption } from '@haus/api';
 import { Description, Label, ListBox, Select } from '@heroui/react';
 import { InlineSelect } from '@heroui-pro/react/inline-select';
 import * as React from 'react';
@@ -7,7 +7,7 @@ import { EntityName } from '../../../components/ui/entity-name.tsx';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useTaskAssign } from '../../../hooks/servers/use-task-assign.ts';
 import { useTaskAssignees } from '../../../hooks/servers/use-task-assignees.ts';
-import type { GrottoInputs } from '../../../lib/grotto-server.tsx';
+import type { HausInputs } from '../../../lib/haus-server.tsx';
 import { useServerContext } from '../server-context.ts';
 import { taskAssignmentInput } from './task-input.ts';
 import type { TaskItem } from './task-model.ts';
@@ -158,7 +158,7 @@ export function TaskAssignee({
     );
 }
 
-export function taskAssigneeFromKey(key: string): GrottoInputs['task']['assign']['assignee'] {
+export function taskAssigneeFromKey(key: string): HausInputs['task']['assign']['assignee'] {
     if (key === unassignedAssigneeKey) {
         return null;
     }

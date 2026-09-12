@@ -1,10 +1,10 @@
-import type { Agent, AgentSkillMetadata } from '@grotto/api';
+import type { Agent, AgentSkillMetadata } from '@haus/api';
 import { Alert, AlertDialog, Button, Modal, TextArea } from '@heroui/react';
 import * as React from 'react';
 import { useSkillDelete } from '../../../hooks/members/use-skill-delete.ts';
 import { useSkillFile } from '../../../hooks/members/use-skill-file.ts';
 import { useSkillSave } from '../../../hooks/members/use-skill-save.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { formatSkillName } from '../../skills/skill-name-format.ts';
 
 export function SkillDialog({

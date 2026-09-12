@@ -1,7 +1,7 @@
 // A fresh Agent can pick up another Agent's work from durable product state
 // alone. The relay token exists only in the task Thread and in the first owner's
 // workspace file, so a successor with a reset session can only repeat it by
-// recovering it from Grotto — not from anything it was told.
+// recovering it from Haus — not from anything it was told.
 
 import { sleep } from '../../eval-harness.mjs';
 import { isReady } from '../provisioner.mjs';

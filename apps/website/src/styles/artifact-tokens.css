@@ -1,5 +1,5 @@
 /*
- * Artifact tokens — the vocabulary Grotto publishes to agent-authored pages.
+ * Artifact tokens — the vocabulary Haus publishes to agent-authored pages.
  *
  * Agents write self-contained HTML that renders in a sandboxed frame with an
  * opaque origin, so it can never read these stylesheets. `agent-html/tokens.ts`

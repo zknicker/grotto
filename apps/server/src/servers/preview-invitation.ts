@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type { ClerkUsers } from '../identity/clerk-users.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { serverInvitationsTable, serversTable } from '../postgres/schema.ts';
 import { isLiveInvitation } from './accept-invitation.ts';
 import { InvitationNotAcceptableError } from './invitation-access.ts';
@@ -19,7 +19,7 @@ export interface ServerInvitationPreview {
  * returned — a token holder must not learn someone else's email.
  */
 export async function previewServerInvitation(
-    db: GrottoDatabase,
+    db: HausDatabase,
     clerkUsers: ClerkUsers,
     clerkUserId: string,
     token: string

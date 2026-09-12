@@ -34,11 +34,11 @@ test('nextWindowBounds centers the first window and offsets the rest', () => {
     );
 });
 
-test('buildWindowUrl seeds hosted and dev Grotto App routes', () => {
-    assert.equal(buildWindowUrl('https://grotto.sh', '/chats/abc'), 'https://grotto.sh/chats/abc');
+test('buildWindowUrl seeds hosted and dev Haus App routes', () => {
+    assert.equal(buildWindowUrl('https://haus.chat', '/chats/abc'), 'https://haus.chat/chats/abc');
     assert.equal(
         buildWindowUrl('http://localhost:3100', '/chats/abc'),
         'http://localhost:3100/chats/abc'
     );
-    assert.equal(buildWindowUrl('https://grotto.sh', undefined), 'https://grotto.sh');
+    assert.equal(buildWindowUrl('https://haus.chat', undefined), 'https://haus.chat');
 });

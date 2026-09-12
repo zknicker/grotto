@@ -1,5 +1,5 @@
 import EventEmitter, { on } from 'node:events';
-import type { ServerDurableEvent } from '@grotto/api';
+import type { ServerDurableEvent } from '@haus/api';
 
 const eventName = 'chat.durable';
 const emitter = new EventEmitter();

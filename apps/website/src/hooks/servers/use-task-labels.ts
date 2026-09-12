@@ -1,8 +1,8 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 export function useTaskLabels(serverId: string | undefined, options?: { enabled?: boolean }) {
-    return grottoTrpc.taskLabel.list.useQuery(
+    return hausTrpc.taskLabel.list.useQuery(
         { serverId: serverId ?? '' },
         {
             ...queryPolicy.syncedSnapshot,

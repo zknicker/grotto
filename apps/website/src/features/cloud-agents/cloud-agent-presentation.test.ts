@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { CloudAgentRun, CloudAgentStatus, CloudAgentWork } from '@grotto/api';
+import type { CloudAgentRun, CloudAgentStatus, CloudAgentWork } from '@haus/api';
 import {
     canCancelCloudAgentWork,
     cloudAgentBranchPullRequestNumber,
@@ -133,7 +133,7 @@ function work(overrides: Partial<CloudAgentWork>): CloudAgentWork {
         provider: 'cursor',
         providerAgentId: null,
         providerUrl: null,
-        repository: 'grotto/grotto',
+        repository: 'haus/haus',
         runs: [],
         startedAt,
         startingRef: null,
@@ -150,11 +150,11 @@ test('the branch that opened a pull request wins over the ones that did not', ()
         runs: [
             run({
                 branches: [
-                    { branch: 'cursor/spike', pullRequestUrl: null, repository: 'grotto/grotto' },
+                    { branch: 'cursor/spike', pullRequestUrl: null, repository: 'haus/haus' },
                     {
                         branch: 'cursor/fix-migration',
-                        pullRequestUrl: 'https://github.com/grotto/grotto/pull/482',
-                        repository: 'grotto/grotto',
+                        pullRequestUrl: 'https://github.com/haus/haus/pull/482',
+                        repository: 'haus/haus',
                     },
                 ],
             }),
@@ -169,7 +169,7 @@ test('a work whose branches opened nothing still names the first one', () => {
         runs: [
             run({
                 branches: [
-                    { branch: 'cursor/spike', pullRequestUrl: null, repository: 'grotto/grotto' },
+                    { branch: 'cursor/spike', pullRequestUrl: null, repository: 'haus/haus' },
                 ],
             }),
         ],
@@ -193,8 +193,8 @@ test('a branch names its pull request from the snapshot, then from its URL', () 
             observedAt: startedAt,
             state: 'open' as const,
         },
-        pullRequestUrl: 'https://github.com/grotto/grotto/pull/482',
-        repository: 'grotto/grotto',
+        pullRequestUrl: 'https://github.com/haus/haus/pull/482',
+        repository: 'haus/haus',
     };
 
     expect(cloudAgentBranchPullRequestNumber(observed)).toBe(482);
@@ -203,7 +203,7 @@ test('a branch names its pull request from the snapshot, then from its URL', () 
         cloudAgentBranchPullRequestNumber({
             ...observed,
             pullRequest: null,
-            pullRequestUrl: 'https://gitlab.com/grotto/grotto/-/merge_requests/7',
+            pullRequestUrl: 'https://gitlab.com/haus/haus/-/merge_requests/7',
         })
     ).toBe(null);
     expect(

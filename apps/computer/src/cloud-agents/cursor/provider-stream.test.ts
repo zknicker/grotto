@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { cloudAgentObservationSchema } from '@grotto/api';
+import { cloudAgentObservationSchema } from '@haus/api';
 import type { CloudAgentProviderObservation } from '../provider.ts';
 import { createCursorCloudAgentProvider } from './provider.ts';
 import {

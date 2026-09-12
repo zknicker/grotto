@@ -5,57 +5,57 @@ import { fileURLToPath } from 'node:url';
 import { getDefaultAppOrigin, parseEnvironment } from '../src/config/env.ts';
 
 test('getDefaultAppOrigin uses the Haus website port when present', () => {
-    const previousPort = process.env.GROTTO_WEBSITE_PORT;
+    const previousPort = process.env.HAUS_WEBSITE_PORT;
 
-    process.env.GROTTO_WEBSITE_PORT = '4242';
+    process.env.HAUS_WEBSITE_PORT = '4242';
 
     try {
         assert.equal(getDefaultAppOrigin(), 'http://localhost:4242');
     } finally {
-        restoreEnvironmentVariable('GROTTO_WEBSITE_PORT', previousPort);
+        restoreEnvironmentVariable('HAUS_WEBSITE_PORT', previousPort);
     }
 });
 
 test('getDefaultAppOrigin falls back to the standard website port', () => {
-    const previousPort = process.env.GROTTO_WEBSITE_PORT;
+    const previousPort = process.env.HAUS_WEBSITE_PORT;
 
-    process.env.GROTTO_WEBSITE_PORT = undefined;
+    process.env.HAUS_WEBSITE_PORT = undefined;
 
     try {
         assert.equal(getDefaultAppOrigin(), 'http://localhost:3100');
     } finally {
-        restoreEnvironmentVariable('GROTTO_WEBSITE_PORT', previousPort);
+        restoreEnvironmentVariable('HAUS_WEBSITE_PORT', previousPort);
     }
 });
 
 test('getDefaultAppOrigin ignores an invalid website port override', () => {
-    const previousPort = process.env.GROTTO_WEBSITE_PORT;
+    const previousPort = process.env.HAUS_WEBSITE_PORT;
 
-    process.env.GROTTO_WEBSITE_PORT = 'nope';
+    process.env.HAUS_WEBSITE_PORT = 'nope';
 
     try {
         assert.equal(getDefaultAppOrigin(), 'http://localhost:3100');
     } finally {
-        restoreEnvironmentVariable('GROTTO_WEBSITE_PORT', previousPort);
+        restoreEnvironmentVariable('HAUS_WEBSITE_PORT', previousPort);
     }
 });
 
 test('production releases require a real Clerk secret before opening the Server', () => {
     const production = {
         ...process.env,
-        GROTTO_CLERK_SECRET_KEY: undefined,
-        GROTTO_RELEASE_MANIFEST: '/tmp/grotto-release.json',
+        HAUS_CLERK_SECRET_KEY: undefined,
+        HAUS_RELEASE_MANIFEST: '/tmp/haus-release.json',
         NODE_ENV: 'test',
     };
 
-    assert.throws(() => parseEnvironment(production), /GROTTO_CLERK_SECRET_KEY/u);
+    assert.throws(() => parseEnvironment(production), /HAUS_CLERK_SECRET_KEY/u);
     assert.throws(
-        () => parseEnvironment({ ...production, GROTTO_CLERK_SECRET_KEY: 'INJECT_ON_HOST' }),
-        /GROTTO_CLERK_SECRET_KEY/u
+        () => parseEnvironment({ ...production, HAUS_CLERK_SECRET_KEY: 'INJECT_ON_HOST' }),
+        /HAUS_CLERK_SECRET_KEY/u
     );
     assert.equal(
-        parseEnvironment({ ...production, GROTTO_CLERK_SECRET_KEY: 'sk_test_fixture' })
-            .GROTTO_CLERK_SECRET_KEY,
+        parseEnvironment({ ...production, HAUS_CLERK_SECRET_KEY: 'sk_test_fixture' })
+            .HAUS_CLERK_SECRET_KEY,
         'sk_test_fixture'
     );
 });

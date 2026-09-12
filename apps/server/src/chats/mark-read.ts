@@ -1,10 +1,10 @@
-import type { ChatReadReceipt, ServerDurableEvent } from '@grotto/api';
+import type { ChatReadReceipt, ServerDurableEvent } from '@haus/api';
 import { and, eq, lt, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, chatReadsTable, chatsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { allocateEventCursor } from './allocate-event-cursor.ts';
 import { requireChatAccess } from './chat-access.ts';
 
@@ -14,8 +14,8 @@ export interface MarkChatReadResult {
 }
 
 export async function markChatRead(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { chatId: string; sequence: number; serverId: string }
 ): Promise<MarkChatReadResult> {
     return await db.transaction(async (tx) => {

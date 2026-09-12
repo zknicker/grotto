@@ -1,6 +1,6 @@
-import { type AvatarMediaType, isAvatarId } from '@grotto/api/avatar';
+import { type AvatarMediaType, isAvatarId } from '@haus/api/avatar';
 import { eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { avatarsTable } from '../postgres/schema.ts';
 
 export interface StoredAvatar {
@@ -11,7 +11,7 @@ export interface StoredAvatar {
 
 /** Reads one avatar by its opaque id. Nothing here is Server-scoped. */
 export async function readAvatar(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     avatarId: string
 ): Promise<StoredAvatar | null> {
     if (!isAvatarId(avatarId)) {

@@ -1,9 +1,9 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { replaceTask } from './task-cache.ts';
 
 export function useTaskUnclaim() {
-    const utils = grottoTrpc.useUtils();
-    return grottoTrpc.task.unclaim.useMutation({
+    const utils = hausTrpc.useUtils();
+    return hausTrpc.task.unclaim.useMutation({
         onSuccess: ({ task }, input) => {
             utils.task.list.setData({ serverId: input.serverId }, (items) =>
                 replaceTask(items, task)

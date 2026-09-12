@@ -1,13 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { threadMessagesQueryKey } from './use-thread-messages.ts';
 
 /** Sends the viewer's reaction to the Server and refreshes both transcript lenses. */
 export function useChatMessageReaction(chatId: string) {
     const queryClient = useQueryClient();
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
-    return grottoTrpc.chat.react.useMutation({
+    return hausTrpc.chat.react.useMutation({
         // The durable event owns cross-client refresh. This ack fallback also
         // repairs the initiating App if its stream is reconnecting.
         onSuccess: (result, input) => {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { cloudAgentBranchSchema } from '@grotto/api';
+import { cloudAgentBranchSchema } from '@haus/api';
 import { branchesOf, repositoryOf } from './status.ts';
 
 describe('a Cursor repository reference reads back as one repository label', () => {

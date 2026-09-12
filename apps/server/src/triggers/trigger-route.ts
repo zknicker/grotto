@@ -1,8 +1,8 @@
-import { triggerDedupeKeyMaxLength, triggerPayloadMaxBytes } from '@grotto/api';
-import type { EffectRuntime } from '@grotto/effect';
+import { triggerDedupeKeyMaxLength, triggerPayloadMaxBytes } from '@haus/api';
+import type { EffectRuntime } from '@haus/effect';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authenticateTrigger, findTriggerFireByDedupeKey, fireTrigger } from './trigger-fire.ts';
 import { readBearerSecret, type TriggerClock } from './trigger-model.ts';
@@ -15,7 +15,7 @@ const routeBodyLimit = triggerPayloadMaxBytes * 4;
 
 export interface TriggerRouteOptions {
     clock?: TriggerClock;
-    db: GrottoDatabase;
+    db: HausDatabase;
     delivery: AgentDelivery;
     limiter?: TriggerRateLimiter;
     postCommitWork: ServerPostCommitWork;

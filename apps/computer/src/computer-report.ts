@@ -1,4 +1,4 @@
-import type { AgentEffectiveState } from '@grotto/api';
+import type { AgentEffectiveState } from '@haus/api';
 import { type EffectiveAgentState, readEffectiveAgentStates } from './effective-state.ts';
 import {
     listAgentSkillImportReports,
@@ -32,14 +32,14 @@ export async function sendEffectiveComputerReport({
     });
     send({
         agents: agents.map(
-            ({ agentId, grottoAgentAppliedAt, grottoAgentStatus, grottoAgentVersion }) => ({
+            ({ agentId, hausAgentAppliedAt, hausAgentStatus, hausAgentVersion }) => ({
                 agentId,
-                appliedAt: grottoAgentAppliedAt,
-                status: grottoAgentStatus,
-                version: grottoAgentVersion,
+                appliedAt: hausAgentAppliedAt,
+                status: hausAgentStatus,
+                version: hausAgentVersion,
             })
         ),
-        type: 'grotto-agent-report',
+        type: 'haus-agent-report',
     });
 }
 

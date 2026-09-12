@@ -18,10 +18,10 @@ const generatedIconsDirectory = path.join(
 );
 
 const stagedIconPath = path.join(
-    mkdtempSync(path.join(tmpdir(), 'grotto-app-icon-')),
+    mkdtempSync(path.join(tmpdir(), 'haus-app-icon-')),
     'AppIcon.icon'
 );
-const outputDirectory = mkdtempSync(path.join(tmpdir(), 'grotto-app-icon-out-'));
+const outputDirectory = mkdtempSync(path.join(tmpdir(), 'haus-app-icon-out-'));
 const compiledIconPath = path.join(outputDirectory, 'AppIcon.icns');
 
 if (!existsSync(sourceIconPath)) {
@@ -77,7 +77,7 @@ try {
     );
 
     console.log(
-        `[grotto] macOS app icon compiled from assets/mac-icon.icon (${copiedAssetCatalog ? 'Assets.car + ICNS' : 'ICNS'})`
+        `[haus] macOS app icon compiled from assets/mac-icon.icon (${copiedAssetCatalog ? 'Assets.car + ICNS' : 'ICNS'})`
     );
 } finally {
     rmSync(path.dirname(stagedIconPath), { recursive: true, force: true });

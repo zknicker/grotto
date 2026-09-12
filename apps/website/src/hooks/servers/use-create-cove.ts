@@ -1,9 +1,9 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /** Owns the one external operation that reserves or retries Cove application. */
 export function useCreateCove() {
-    const utils = grottoTrpc.useUtils();
-    return grottoTrpc.server.createCove.useMutation({
+    const utils = hausTrpc.useUtils();
+    return hausTrpc.server.createCove.useMutation({
         onSuccess: async (result) => {
             await Promise.all([
                 utils.server.bySlug.invalidate(),

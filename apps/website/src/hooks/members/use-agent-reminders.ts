@@ -1,4 +1,4 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 /**
@@ -11,7 +11,7 @@ import { queryPolicy } from '../../lib/query-policy.ts';
  * the synced-snapshot mount and reconnect refetch.
  */
 export function useAgentReminders(serverId: string, agentId: string, enabled: boolean) {
-    return grottoTrpc.reminder.list.useQuery(
+    return hausTrpc.reminder.list.useQuery(
         { agentId, serverId },
         { ...queryPolicy.syncedSnapshot, enabled }
     );

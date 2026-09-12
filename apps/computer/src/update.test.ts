@@ -19,7 +19,7 @@ import {
 } from './update-contract.ts';
 
 test('legacy persisted progress gains the stable bootstrap fields', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-progress-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-update-progress-test-'));
     try {
         await writeFile(
             join(dataRoot, 'update.json'),
@@ -46,7 +46,7 @@ test('legacy persisted progress gains the stable bootstrap fields', async () => 
 });
 
 test('a signed update waits without a kill timeout, then installs and restarts', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-update-test-'));
     const tarball = Buffer.from('verified computer tarball');
     const peer = await serveArtifact(tarball);
     const keys = generateKeyPairSync('ed25519');
@@ -90,7 +90,7 @@ test('a signed update waits without a kill timeout, then installs and restarts',
 });
 
 test('a direct observer sees every phase in order with real byte counts', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-update-test-'));
     const tarball = Buffer.from('verified computer tarball');
     const peer = await serveArtifact(tarball);
     const keys = generateKeyPairSync('ed25519');
@@ -149,13 +149,13 @@ test('a rollback reports its restore and restart phases in order', async () => {
 });
 
 test('failed signature verification never touches Computer data or installs', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-update-test-'));
     const durablePath = join(dataRoot, 'servers', 'srv_test', 'attachment.json');
     await Bun.write(durablePath, '{"credential":"keep"}\n', { createPath: true });
     const keys = generateKeyPairSync('ed25519');
     const wrongKeys = generateKeyPairSync('ed25519');
     const tarball = Buffer.from('untrusted');
-    const release = signedRelease('https://example.test/grotto-computer', tarball, keys.privateKey);
+    const release = signedRelease('https://example.test/haus-computer', tarball, keys.privateKey);
     let installed = false;
 
     try {
@@ -187,7 +187,7 @@ test('failed signature verification never touches Computer data or installs', as
 });
 
 test('a Server-authorized future protocol release upgrades this Computer', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-update-test-'));
     const tarball = Buffer.from('future');
     const peer = await serveArtifact(tarball);
     const keys = generateKeyPairSync('ed25519');
@@ -220,10 +220,10 @@ test('a Server-authorized future protocol release upgrades this Computer', async
 });
 
 test('an older protocol release cannot downgrade this Computer', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-update-test-'));
     const keys = generateKeyPairSync('ed25519');
     const release = signedRelease(
-        'https://example.test/grotto-computer',
+        'https://example.test/haus-computer',
         Buffer.from('older'),
         keys.privateKey
     );
@@ -251,7 +251,7 @@ test('an older protocol release cannot downgrade this Computer', async () => {
 });
 
 test('one physical Computer runs only one update job', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-update-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-update-test-'));
     const tarball = Buffer.from('verified computer tarball');
     const peer = await serveArtifact(tarball);
     const keys = generateKeyPairSync('ed25519');
@@ -300,7 +300,7 @@ async function serveArtifact(bytes: Buffer) {
     });
     return {
         stop: (closeActiveConnections: boolean) => server.stop(closeActiveConnections),
-        url: `http://127.0.0.1:${server.port}/grotto-computer`,
+        url: `http://127.0.0.1:${server.port}/haus-computer`,
     };
 }
 

@@ -1,5 +1,5 @@
 import { afterEach } from 'bun:test';
-import type { AgentRuntimeBrowserState } from '@grotto/api';
+import type { AgentRuntimeBrowserState } from '@haus/api';
 import { type DaemonRuntime, makeDaemonRuntime } from '../daemon-runtime.ts';
 import { BrowserCommandQueue } from './command-queue.ts';
 import { BrowserSupervisor } from './supervisor.ts';

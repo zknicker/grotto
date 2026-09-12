@@ -1,5 +1,5 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, channelAgentParticipantsTable, chatsTable } from '../postgres/schema.ts';
 
 /** One channel an Agent can be put in, named the way Agents write it. */
@@ -16,7 +16,7 @@ export interface JoinableChannel {
  * Returns the Agents that were not already members.
  */
 export async function joinChannelAgents(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentIds: string[]; chatId: string; serverId: string }
 ): Promise<string[]> {
     if (input.agentIds.length === 0) {
@@ -42,7 +42,7 @@ export async function joinChannelAgents(
  * asked for instead of failing on a channel that is not there to join.
  */
 export async function findAllChannel(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string
 ): Promise<JoinableChannel | null> {
     const [channel] = await db
@@ -66,7 +66,7 @@ export async function findAllChannel(
  * membership row into a Chat that is on its way out.
  */
 export async function findLiveChannel(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     target: string
 ): Promise<JoinableChannel | null> {
@@ -89,7 +89,7 @@ export async function findLiveChannel(
 
 /** One active Agent of this Server by handle, or null. */
 export async function findActiveAgentByHandle(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     handle: string
 ): Promise<{ factoryKind: 'cove' | 'ordinary'; handle: string; id: string } | null> {

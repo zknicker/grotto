@@ -1,6 +1,6 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { findChatAccess } from '../chats/chat-access.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
     channelAgentParticipantsTable,
@@ -28,7 +28,7 @@ export interface ResolvedTaskAssignee {
  * to do the work — and a human must be an active member with Chat access.
  */
 export async function resolveTaskAssignee(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         assignee: { agentId: string; kind: 'agent' } | { kind: 'human'; userId: string } | null;
         chatId: string;
@@ -97,7 +97,7 @@ export async function resolveTaskAssignee(
 }
 
 async function agentParticipatesInChat(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; chatId: string; serverId: string }
 ): Promise<boolean> {
     const [chat] = await db

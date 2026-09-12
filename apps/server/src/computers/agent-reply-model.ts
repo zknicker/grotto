@@ -2,7 +2,7 @@ import type {
     AgentExecutionJournalResult,
     AgentSkillFileResult,
     AgentWorkspaceResult,
-} from '@grotto/api';
+} from '@haus/api';
 import type { Deferred } from 'effect';
 
 export type SkillFileValue = NonNullable<AgentSkillFileResult['result']>;

@@ -1,5 +1,5 @@
 import { afterAll, expect, test } from 'bun:test';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { makeServerRuntime } from '../server-runtime.ts';
 import { McpUpstreamError } from './errors.ts';
 import { McpRuntime } from './runtime.ts';
@@ -22,7 +22,7 @@ test('timeouts abort active list and call requests and close their clients', asy
             return listGate.promise;
         },
     });
-    const listRuntime = new McpRuntime({} as GrottoDatabase, effectRuntime, {
+    const listRuntime = new McpRuntime({} as HausDatabase, effectRuntime, {
         clientFactory: async () => listed.client,
         discoveryTimeoutMs: 15,
     });
@@ -64,7 +64,7 @@ test('discovery timeout covers client acquisition and retires a late client', as
     const acquisition = Promise.withResolvers<ReturnType<typeof makeClient>['client']>();
     const late = makeClient('Late acquisition');
     let factorySignal: AbortSignal | undefined;
-    const runtime = new McpRuntime({} as GrottoDatabase, effectRuntime, {
+    const runtime = new McpRuntime({} as HausDatabase, effectRuntime, {
         clientFactory: async (_connectionId, signal) => {
             factorySignal = signal;
             return await acquisition.promise;
@@ -123,7 +123,7 @@ test('close interrupts active non-cooperative discovery and invocation', async (
             return listGate.promise;
         },
     });
-    const listRuntime = new McpRuntime({} as GrottoDatabase, effectRuntime, {
+    const listRuntime = new McpRuntime({} as HausDatabase, effectRuntime, {
         clientFactory: async () => listed.client,
         closeTimeoutMs: 20,
     });
@@ -175,7 +175,7 @@ test('one failed operation retires the client and interrupts its sibling', async
             return Promise.reject(new Error('sibling failed'));
         },
     });
-    const runtime = new McpRuntime({} as GrottoDatabase, effectRuntime, {
+    const runtime = new McpRuntime({} as HausDatabase, effectRuntime, {
         clientFactory: async () => fixture.client,
         discoveryTimeoutMs: 1000,
     });

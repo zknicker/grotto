@@ -1,6 +1,6 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { Segment } from '@heroui-pro/react';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { SectionHeader } from '../../shell/section-header.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';

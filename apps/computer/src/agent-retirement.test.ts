@@ -15,7 +15,7 @@ test('parses only a scoped Agent retirement command', () => {
 });
 
 test('retirement cleanup is idempotent and preserves standing Agent partitions', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-retirement-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-retirement-'));
     const serverId = 'srv_1234567890abcdef';
     const retiredId = 'agt_1234567890abcdef';
     const standingId = 'agt_abcdef1234567890';

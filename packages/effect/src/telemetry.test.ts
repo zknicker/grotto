@@ -27,7 +27,7 @@ test('exports parented spans across an explicit trace carrier', async () => {
             deploymentEnvironment: 'development',
             metricReader,
             releaseId: '1.2.3+git.abc123',
-            serviceName: 'grotto-test',
+            serviceName: 'haus-test',
             serviceRevision: 'abc123',
             serviceVersion: '1.2.3',
             spanProcessor: new SimpleSpanProcessor(exporter),
@@ -45,27 +45,27 @@ test('exports parented spans across an explicit trace carrier', async () => {
     try {
         const parent = await tracePromise(
             runtime,
-            'grotto.agent.dispatch',
-            { 'grotto.run.id': 'run_123' },
+            'haus.agent.dispatch',
+            { 'haus.run.id': 'run_123' },
             async (carrier) => carrier
         );
         await tracePromise(
             runtime,
-            'grotto.agent.turn',
-            { 'grotto.run.id': 'run_123' },
+            'haus.agent.turn',
+            { 'haus.run.id': 'run_123' },
             async () => ({ status: 'failed' as const }),
             parent,
-            (result) => ({ 'grotto.outcome': result.status }),
+            (result) => ({ 'haus.outcome': result.status }),
             (result) => (result.status === 'failed' ? 'failure' : 'success')
         );
         const spans = exporter.getFinishedSpans();
-        const dispatch = spans.find((span) => span.name === 'grotto.agent.dispatch');
-        const turn = spans.find((span) => span.name === 'grotto.agent.turn');
+        const dispatch = spans.find((span) => span.name === 'haus.agent.dispatch');
+        const turn = spans.find((span) => span.name === 'haus.agent.turn');
         dispatchSpanId = dispatch?.spanContext().spanId;
         deploymentEnvironment = dispatch?.resource.attributes['deployment.environment.name'];
         resourceAttributes = dispatch?.resource.attributes ?? {};
         turnParentSpanId = turn?.parentSpanContext?.spanId;
-        turnOutcome = turn?.attributes['grotto.outcome'];
+        turnOutcome = turn?.attributes['haus.outcome'];
         traceIds = spans.map((span) => span.spanContext().traceId);
         await metricReader.forceFlush();
         const metrics = metricExporter
@@ -89,14 +89,14 @@ test('exports parented spans across an explicit trace carrier', async () => {
     expect(turnOutcome).toBe('failed');
     expect(deploymentEnvironment).toBe('development');
     expect(resourceAttributes).toMatchObject({
-        'grotto.release.id': '1.2.3+git.abc123',
-        'grotto.release.revision': 'abc123',
-        'service.namespace': 'grotto',
+        'haus.release.id': '1.2.3+git.abc123',
+        'haus.release.revision': 'abc123',
+        'service.namespace': 'haus',
         'service.version': '1.2.3',
     });
-    expect(metricNames).toContain('grotto.operation.count');
-    expect(metricNames).toContain('grotto.operation.duration');
-    expect(metricOperations).toContain('grotto.agent.turn');
+    expect(metricNames).toContain('haus.operation.count');
+    expect(metricNames).toContain('haus.operation.duration');
+    expect(metricOperations).toContain('haus.agent.turn');
     expect(metricOutcomes).toContain('failure');
 });
 
@@ -106,10 +106,10 @@ test('relays protobuf signals with only configured upstream headers', async () =
         environment: {
             OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: 'https://telemetry.example/v1/metrics',
             OTEL_EXPORTER_OTLP_METRICS_HEADERS:
-                'Authorization=Bearer%20metrics,X-Axiom-Metrics-Dataset=grotto-metrics',
+                'Authorization=Bearer%20metrics,X-Axiom-Metrics-Dataset=haus-metrics',
             OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: 'https://telemetry.example/v1/traces',
             OTEL_EXPORTER_OTLP_TRACES_HEADERS:
-                'Authorization=Bearer%20traces,X-Axiom-Dataset=grotto-operations',
+                'Authorization=Bearer%20traces,X-Axiom-Dataset=haus-operations',
         },
         fetch: async (input, init) => {
             requests.push({
@@ -127,7 +127,7 @@ test('relays protobuf signals with only configured upstream headers', async () =
     expect(requests).toHaveLength(1);
     expect(requests[0]?.url).toBe('https://telemetry.example/v1/traces');
     expect(requests[0]?.headers.get('authorization')).toBe('Bearer traces');
-    expect(requests[0]?.headers.get('x-axiom-dataset')).toBe('grotto-operations');
+    expect(requests[0]?.headers.get('x-axiom-dataset')).toBe('haus-operations');
     expect(requests[0]?.headers.get('x-axiom-metrics-dataset')).toBeNull();
     expect(requests[0]?.headers.get('content-type')).toBe('application/x-protobuf');
     expect([...(requests[0]?.body ?? [])]).toEqual([1, 2, 3]);
@@ -136,11 +136,11 @@ test('relays protobuf signals with only configured upstream headers', async () =
 test('drops arbitrary content and rejects malformed trace carriers', () => {
     expect(
         sanitizeTelemetryAttributes({
-            'grotto.operation': 'agent.turn',
+            'haus.operation': 'agent.turn',
             'message.content': 'private prompt',
             token: 'secret',
         })
-    ).toEqual({ 'grotto.operation': 'agent.turn' });
+    ).toEqual({ 'haus.operation': 'agent.turn' });
     expect(parseTraceCarrier({ traceparent: 'not-a-trace' })).toBeNull();
     expect(
         parseTraceCarrier({
@@ -153,7 +153,7 @@ test('exports only a generic exception while preserving the original failure', a
     const exporter = new InMemorySpanExporter();
     const runtime = ManagedRuntime.make(
         makeTelemetryLayer({
-            serviceName: 'grotto-test',
+            serviceName: 'haus-test',
             spanProcessor: new SimpleSpanProcessor(exporter),
         })
     );
@@ -161,7 +161,7 @@ test('exports only a generic exception while preserving the original failure', a
     let caught: unknown;
     let serializedSpan = '';
     try {
-        await tracePromise(runtime, 'grotto.agent.turn', {}, async () => {
+        await tracePromise(runtime, 'haus.agent.turn', {}, async () => {
             throw failure;
         });
     } catch (error) {
@@ -182,7 +182,7 @@ test('exports only a generic exception while preserving the original failure', a
 
 test('runs traced operations without an exporter when telemetry is disabled', async () => {
     const runtime = ManagedRuntime.make(
-        makeProcessTelemetryLayer({ environment: {}, serviceName: 'grotto-test' })
+        makeProcessTelemetryLayer({ environment: {}, serviceName: 'haus-test' })
     );
     const disabledRuntime = ManagedRuntime.make(
         makeProcessTelemetryLayer({
@@ -190,15 +190,15 @@ test('runs traced operations without an exporter when telemetry is disabled', as
                 OTEL_EXPORTER_OTLP_ENDPOINT: 'http://127.0.0.1:4318',
                 OTEL_SDK_DISABLED: 'true',
             },
-            serviceName: 'grotto-test',
+            serviceName: 'haus-test',
         })
     );
     try {
         await expect(
-            tracePromise(runtime, 'grotto.agent.turn', {}, async () => 'unconfigured')
+            tracePromise(runtime, 'haus.agent.turn', {}, async () => 'unconfigured')
         ).resolves.toBe('unconfigured');
         await expect(
-            tracePromise(disabledRuntime, 'grotto.agent.turn', {}, async () => 'disabled')
+            tracePromise(disabledRuntime, 'haus.agent.turn', {}, async () => 'disabled')
         ).resolves.toBe('disabled');
     } finally {
         await Promise.all([runtime.dispose(), disabledRuntime.dispose()]);

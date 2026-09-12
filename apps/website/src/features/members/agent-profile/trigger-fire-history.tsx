@@ -1,4 +1,4 @@
-import type { TriggerFire } from '@grotto/api';
+import type { TriggerFire } from '@haus/api';
 import type * as React from 'react';
 import { formatTriggerFireDetail, formatTriggerFireTime } from './agent-trigger-model.ts';
 

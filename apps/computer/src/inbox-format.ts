@@ -1,4 +1,4 @@
-import type { CloudAgentBranch } from '@grotto/api';
+import type { CloudAgentBranch } from '@haus/api';
 import type { AgentCloudAgentWorkAttention, AgentInboxAsk, AgentInboxItem } from './launch.ts';
 
 const deliveryTrailer = [

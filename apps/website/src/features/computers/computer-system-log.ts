@@ -1,4 +1,4 @@
-import type { ComputerSystemEvent } from '@grotto/api';
+import type { ComputerSystemEvent } from '@haus/api';
 
 export function systemEventLabel(event: ComputerSystemEvent) {
     switch (event.type) {

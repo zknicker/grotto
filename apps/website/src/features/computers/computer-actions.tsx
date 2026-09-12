@@ -65,16 +65,16 @@ export function ComputerActions({
 export function RecoveryCommands({ serverSlug }: { serverSlug: string }) {
     const commands = [
         '# Check whether each Server attachment is stopped or running',
-        'grotto-computer status',
+        'haus-computer status',
         '',
         '# Check local files and Server credential acceptance',
-        'grotto-computer doctor',
+        'haus-computer doctor',
         '',
         '# Restart this attachment if it stops responding',
-        `grotto-computer restart /${serverSlug}`,
+        `haus-computer restart /${serverSlug}`,
         '',
         '# Restore the previous verified Computer release',
-        'grotto-computer upgrade --rollback',
+        'haus-computer upgrade --rollback',
     ].join('\n');
 
     return (

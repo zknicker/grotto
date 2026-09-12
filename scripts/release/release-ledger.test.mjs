@@ -23,7 +23,7 @@ const normalRelease = {
 
 test('migrated ledger is oldest-first and keeps independent target versions', async () => {
     const ledger = JSON.parse(await readFile('releases.json', 'utf8'));
-    const product = JSON.parse(await readFile('packages/grotto-api/grotto-product.json', 'utf8'));
+    const product = JSON.parse(await readFile('packages/haus-api/haus-product.json', 'utf8'));
     const result = assertReleaseLedger(ledger, { requireComplete: true });
 
     expect(ledger.length).toBeGreaterThanOrEqual(34);

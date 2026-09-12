@@ -2,19 +2,19 @@ import { expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { makeTelemetryLayer } from '@grotto/effect';
+import { makeTelemetryLayer } from '@haus/effect';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ManagedRuntime } from 'effect';
 import { parseBrowserRequest, runBrowserRequest } from '../../computer/src/browser/requests.ts';
 import { BrowserReplyOffice } from '../src/computers/browser-reply-office.ts';
 
 test('Browser request serialization preserves Server parent on the Computer operation', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-browser-trace-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-browser-trace-'));
     const exporter = new InMemorySpanExporter();
     const createRuntime = () =>
         ManagedRuntime.make(
             makeTelemetryLayer({
-                serviceName: 'grotto-test',
+                serviceName: 'haus-test',
                 spanProcessor: new SimpleSpanProcessor(exporter),
             })
         );
@@ -47,9 +47,7 @@ test('Browser request serialization preserves Server parent on the Computer oper
         expect(child).toBeDefined();
         expect(child?.spanContext().traceId).toBe(parent?.spanContext().traceId);
         expect(child?.parentSpanContext?.spanId).toBe(parent?.spanContext().spanId);
-        expect(child?.attributes['grotto.request.id']).toBe(
-            parent?.attributes['grotto.request.id']
-        );
+        expect(child?.attributes['haus.request.id']).toBe(parent?.attributes['haus.request.id']);
     } finally {
         await execution;
         await Promise.all([serverRuntime.dispose(), computerRuntime.dispose()]);

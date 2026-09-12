@@ -2,7 +2,7 @@
 // development Clerk user, then drives real Server -> Computer -> model turns
 // through the public Server tRPC contract.
 import { createRequire } from 'node:module';
-import { appProtocolHeaders, appProtocolVersion } from '../packages/grotto-api/src/app-protocol.ts';
+import { appProtocolHeaders, appProtocolVersion } from '../packages/haus-api/src/app-protocol.ts';
 import { resolveDevPorts } from './dev-ports.mjs';
 import { syncEvalHumanIdentity } from './eval-human-identity.mjs';
 import { loadHeadlessClerk } from './headless-clerk.mjs';
@@ -428,7 +428,7 @@ function resolveServerUrl(repositoryRoot) {
     if (explicit) {
         return explicit.replace(/\/$/u, '');
     }
-    return `http://localhost:${resolveDevPorts({ repositoryRoot }).grottoPort}`;
+    return `http://localhost:${resolveDevPorts({ repositoryRoot }).hausPort}`;
 }
 
 function resolveFlag(name) {

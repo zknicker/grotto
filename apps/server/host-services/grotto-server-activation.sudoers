@@ -1,1 +1,0 @@
-zknicker ALL=(root) NOPASSWD: /usr/local/libexec/grotto/activate-grotto-server

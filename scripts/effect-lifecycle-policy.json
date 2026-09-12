@@ -5,19 +5,19 @@
     "effectImportOnly": {},
     "effectOwnedConsole": {},
     "foreignFailureIdentityCatch": {
-      "apps/server/src/grotto-server-shutdown.ts": 1
+      "apps/server/src/haus-server-shutdown.ts": 1
     },
     "managedRuntimeConstruction": {},
     "unknownErrorChannel": {
-      "apps/server/src/grotto-server-shutdown.ts": 1
+      "apps/server/src/haus-server-shutdown.ts": 1
     }
   },
   "migrationExceptions": {
     "foreignFailureIdentityCatch": {
-      "apps/server/src/grotto-server-shutdown.ts": "Shutdown deliberately rethrows the first foreign resource failure unchanged after all finalizers complete."
+      "apps/server/src/haus-server-shutdown.ts": "Shutdown deliberately rethrows the first foreign resource failure unchanged after all finalizers complete."
     },
     "unknownErrorChannel": {
-      "apps/server/src/grotto-server-shutdown.ts": "Shutdown deliberately preserves the foreign resource failure identity at the finalizer boundary."
+      "apps/server/src/haus-server-shutdown.ts": "Shutdown deliberately preserves the foreign resource failure identity at the finalizer boundary."
     }
   },
   "lifecycleCandidates": {
@@ -494,7 +494,7 @@
         "timer": 0
       }
     },
-    "apps/server/src/grotto-server-application.ts": {
+    "apps/server/src/haus-server-application.ts": {
       "disposition": "effect-owned",
       "reason": "The Server composition root creates one runtime and orders every owned service finalizer before database disposal.",
       "risks": {

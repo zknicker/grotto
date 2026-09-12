@@ -1,4 +1,4 @@
-import type { WorkspaceFileEntry as ServerWorkspaceFileEntry } from '@grotto/api';
+import type { WorkspaceFileEntry as ServerWorkspaceFileEntry } from '@haus/api';
 
 export type WorkspaceFileEntry = ServerWorkspaceFileEntry;
 export type WorkspaceDirectoryEntries = Record<string, WorkspaceFileEntry[]>;

@@ -1,4 +1,4 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 /**
@@ -8,5 +8,5 @@ import { queryPolicy } from '../../lib/query-policy.ts';
  * read for the whole Server.
  */
 export function useAgentChats(serverId: string, agentId: string) {
-    return grottoTrpc.agent.chats.useQuery({ agentId, serverId }, queryPolicy.syncedSnapshot);
+    return hausTrpc.agent.chats.useQuery({ agentId, serverId }, queryPolicy.syncedSnapshot);
 }

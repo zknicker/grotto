@@ -1,6 +1,6 @@
-import type { TaskTier } from '@grotto/api';
+import type { TaskTier } from '@haus/api';
 import { and, eq, inArray, or, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { asksTable, chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
 import { threadChatIdForAnchor } from '../threads/thread-id.ts';
 
@@ -90,7 +90,7 @@ const assigneeSpokeInThread = sql`exists (
  * claimed task can be background, so nothing else is queried.
  */
 export async function loadTaskTierEvidence(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     rows: TaskTierRow[]
 ): Promise<Map<string, TaskTierEvidence>> {

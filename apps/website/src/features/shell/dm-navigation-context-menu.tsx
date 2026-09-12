@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { Label } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
 import {

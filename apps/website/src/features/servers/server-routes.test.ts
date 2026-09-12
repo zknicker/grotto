@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 import { invitationLink, serverSearchRoute, usageRoute } from './server-routes.ts';
 
-test('invitation links use the configured browser-reachable Grotto App origin', () => {
-    expect(invitationLink('secret-token', 'https://app.grotto.test')).toBe(
-        'https://app.grotto.test/invite/secret-token'
+test('invitation links use the configured browser-reachable Haus App origin', () => {
+    expect(invitationLink('secret-token', 'https://app.haus.test')).toBe(
+        'https://app.haus.test/invite/secret-token'
     );
 });
 

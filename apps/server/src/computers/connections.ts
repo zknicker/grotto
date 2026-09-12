@@ -12,8 +12,8 @@ import type {
     CloudAgentCapabilityResult,
     ComputerUpdatePhase,
     SignedComputerRelease,
-} from '@grotto/api';
-import type { EffectRuntime } from '@grotto/effect';
+} from '@haus/api';
+import type { EffectRuntime } from '@haus/effect';
 import type { DeliveryTransport } from '../agent-delivery/delivery.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { AgentReplyOffice } from './agent-reply-office.ts';

@@ -1,9 +1,9 @@
 import type { QueryClient } from '@tanstack/react-query';
-import type { grottoTrpc } from '../../../lib/grotto-server.tsx';
+import type { hausTrpc } from '../../../lib/haus-server.tsx';
 import type { ChatEventOf, ChatEventType } from './chat-event-registry.ts';
 
 /** The tRPC cache handle every Chat event listener invalidates through. */
-export type ChatEventUtils = ReturnType<typeof grottoTrpc.useUtils>;
+export type ChatEventUtils = ReturnType<typeof hausTrpc.useUtils>;
 
 /** What one listener needs to invalidate the reads its own events change. */
 export interface ChatEventInvalidation<Type extends ChatEventType> {

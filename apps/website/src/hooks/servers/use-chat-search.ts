@@ -1,4 +1,4 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 export interface ChatSearchFilters {
@@ -14,7 +14,7 @@ export function useChatSearch(
     query: string,
     filters: ChatSearchFilters = {}
 ) {
-    return grottoTrpc.chat.search.useQuery(
+    return hausTrpc.chat.search.useQuery(
         { ...filters, query, serverId: serverId ?? '' },
         {
             ...queryPolicy.syncedSnapshot,

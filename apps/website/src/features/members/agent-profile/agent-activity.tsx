@@ -1,12 +1,12 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { Accordion, Button, Chip } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import { CopyButton } from '../../../components/copy-button.tsx';
 import { useAgentActivityHistory } from '../../../hooks/members/use-agent-activity-history.ts';
 import { useAgentTurns } from '../../../hooks/members/use-agent-turns.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
-import { useGrottoServerConnectionState } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
+import { useHausServerConnectionState } from '../../../lib/haus-server.tsx';
 import { TurnTrace } from '../../turn-trace/turn-trace.tsx';
 import {
     formatAgentActivityDiagnosticInfo,
@@ -28,7 +28,7 @@ import { AgentLoading } from './agent-loading.tsx';
 export function AgentActivity({ agent, server }: { agent: Agent; server: ServerDetail }) {
     const activity = useAgentActivityHistory(server.id, agent.id);
     const settledTurns = useAgentTurns(server.id, agent.id);
-    const connectionState = useGrottoServerConnectionState();
+    const connectionState = useHausServerConnectionState();
     const events = activity.events;
     const unavailable =
         events.length === 0 && activity.error !== null && settledTurns.error !== null;

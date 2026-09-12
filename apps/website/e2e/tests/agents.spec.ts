@@ -1,4 +1,4 @@
-import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@grotto/api';
+import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@haus/api';
 import { WebSocket } from 'ws';
 import { attachComputer, createTestServer, runAgentAction } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
@@ -118,7 +118,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
 function reportInventory() {
     return new Promise<void>((resolve, reject) => {
         const socket = new WebSocket(
-            `ws://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/computer/attachment`
+            `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
         );
         socket.on('error', reject);
         socket.on('close', (code, reason) => {

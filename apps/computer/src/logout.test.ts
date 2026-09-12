@@ -16,7 +16,7 @@ interface StoredSession {
 }
 
 test('logout revokes only the human session, stops the service, and preserves attachments and workspaces', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-logout-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-logout-'));
     const session: StoredSession = {
         accessToken: `gcl_at_${'f'.repeat(43)}`,
         accessTokenExpiresAt: new Date(Date.now() + 60_000).toISOString(),
@@ -64,8 +64,8 @@ test('logout revokes only the human session, stops the service, and preserves at
         await writeFile(workspace, 'keep this Agent workspace\n');
 
         const result = await runCli(['logout'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_SERVER_ORIGIN: session.origin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_SERVER_ORIGIN: session.origin,
         });
 
         expect(result.exitCode, result.stderr).toBe(0);
@@ -89,7 +89,7 @@ test('logout revokes only the human session, stops the service, and preserves at
 }, 15_000);
 
 test('logout still removes the local session and stops when Server revocation fails', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-logout-failure-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-logout-failure-'));
     const peer = Bun.serve({
         fetch(request) {
             if (new URL(request.url).pathname === '/computer/login/revoke') {
@@ -110,8 +110,8 @@ test('logout still removes the local session and stops when Server revocation fa
     try {
         await writeSession(dataRoot, session);
         const result = await runCli(['logout'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_SERVER_ORIGIN: session.origin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_SERVER_ORIGIN: session.origin,
         });
 
         expect(result.exitCode).not.toBe(0);
@@ -134,7 +134,7 @@ async function runCli(args: string[], environment: Record<string, string>) {
     const child = Bun.spawn(['bun', entrypoint, ...args], {
         env: {
             ...process.env,
-            HOME: environment.GROTTO_COMPUTER_DATA_ROOT,
+            HOME: environment.HAUS_COMPUTER_DATA_ROOT,
             ...environment,
         },
         stderr: 'pipe',

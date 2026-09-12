@@ -1,4 +1,4 @@
-import type { UsageOverview } from '@grotto/api';
+import type { UsageOverview } from '@haus/api';
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
 import { attachComputer, createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
@@ -14,7 +14,7 @@ test('old provider usage stays labeled until a fresh Computer snapshot arrives',
     const credential = 'computer-usage-test-credential-1234';
     await attachComputer(owner, { credential, slug: 'usage-hq' });
     const computer = new WebSocket(
-        `ws://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/computer/attachment`
+        `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
     );
     try {
         await socketOpen(computer);

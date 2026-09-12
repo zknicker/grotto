@@ -1,16 +1,16 @@
-import type { ThreadCloudAgentWork } from '@grotto/api';
+import type { ThreadCloudAgentWork } from '@haus/api';
 import { and, asc, eq, isNull, or } from 'drizzle-orm';
 import { requireChatAccess } from '../chats/chat-access.ts';
 import { visibleChats } from '../chats/chat-visibility.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { readRuns, toCloudAgentWork } from './cloud-agent-shape.ts';
 
 /** Durable work in a conversation and its Threads, including settled outcomes. */
 export async function listChatCloudAgentWork(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { serverId: string; chatId: string }
 ): Promise<ThreadCloudAgentWork[]> {
     await requireChatAccess(db, member, input);

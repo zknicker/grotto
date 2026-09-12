@@ -1,4 +1,4 @@
-import type { AgentExecutionJournalReasoning } from '@grotto/api';
+import type { AgentExecutionJournalReasoning } from '@haus/api';
 import { ChainOfThought } from '@heroui-pro/react';
 import { ReferenceMarkdown } from '../mentions/reference-markdown.tsx';
 import { formatToolDuration } from '../sessions/tools/tool-ui.ts';

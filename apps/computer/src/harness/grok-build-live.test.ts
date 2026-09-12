@@ -18,7 +18,7 @@ liveTest(
         grokPreflight.available ? '' : ` (${grokPreflight.reason})`
     }`,
     async () => {
-        const temporaryRoot = await mkdtemp(join(tmpdir(), 'grotto-grok-interjection-'));
+        const temporaryRoot = await mkdtemp(join(tmpdir(), 'haus-grok-interjection-'));
         const rootDir = await realpath(temporaryRoot);
         const homeDir = join(rootDir, 'home');
         const workspaceDir = join(rootDir, 'workspace');

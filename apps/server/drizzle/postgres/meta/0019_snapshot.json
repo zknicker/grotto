@@ -2257,7 +2257,7 @@
         },
         "agents_handle_grammar": {
           "name": "agents_handle_grammar",
-          "value": "\"agents\".\"handle\" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and ((\"agents\".\"factory_kind\" = 'cove' and \"agents\".\"handle\" = 'cove') or lower(\"agents\".\"handle\") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'grotto', 'here', 'human', 'humans', 'idle', 'system'))"
+          "value": "\"agents\".\"handle\" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and ((\"agents\".\"factory_kind\" = 'cove' and \"agents\".\"handle\" = 'cove') or lower(\"agents\".\"handle\") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system'))"
         },
         "agents_description_length": {
           "name": "agents_description_length",
@@ -6459,7 +6459,7 @@
         },
         "server_memberships_handle_grammar": {
           "name": "server_memberships_handle_grammar",
-          "value": "\"server_memberships\".\"handle\" is null or (\"server_memberships\".\"handle\" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and lower(\"server_memberships\".\"handle\") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'grotto', 'here', 'human', 'humans', 'idle', 'system'))"
+          "value": "\"server_memberships\".\"handle\" is null or (\"server_memberships\".\"handle\" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and lower(\"server_memberships\".\"handle\") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system'))"
         }
       },
       "isRLSEnabled": false

@@ -1,4 +1,4 @@
-import type { ComputerRuntimeId, UsageOverview } from '@grotto/api';
+import type { ComputerRuntimeId, UsageOverview } from '@haus/api';
 import {
     type DisplayPlanWindow,
     selectFirstWindow,

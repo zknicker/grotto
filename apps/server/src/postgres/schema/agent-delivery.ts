@@ -1,4 +1,4 @@
-import type { AgentReasoningEffort } from '@grotto/api';
+import type { AgentReasoningEffort } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import { boolean, check, foreignKey, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';

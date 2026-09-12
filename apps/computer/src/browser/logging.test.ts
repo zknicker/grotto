@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import { makeTestRuntime } from '@grotto/effect';
+import { makeTestRuntime } from '@haus/effect';
 import { BrowserServiceCoordinator } from './service.ts';
 import {
     createSupervisor,

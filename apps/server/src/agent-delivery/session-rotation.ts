@@ -1,6 +1,6 @@
-import type { AgentSessionRotation, AgentSessionRotationReason } from '@grotto/api';
+import type { AgentSessionRotation, AgentSessionRotationReason } from '@haus/api';
 import { and, desc, eq, lt } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentSessionRotationsTable, agentsTable } from '../postgres/schema.ts';
 
 /**
@@ -10,7 +10,7 @@ import { agentSessionRotationsTable, agentsTable } from '../postgres/schema.ts';
  * the mark's hover card reads.
  */
 export async function recordSessionRotation(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         agentId: string;
         generation: number;
@@ -34,7 +34,7 @@ export async function recordSessionRotation(
 
 /** The rotation that began one generation, for the session mark's hover card. */
 export async function readSessionRotation(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; generation: number; serverId: string }
 ): Promise<AgentSessionRotation | null> {
     const [row] = await db
@@ -71,7 +71,7 @@ export async function readSessionRotation(
  * Agent's own creation for the first generation.
  */
 async function readGenerationStart(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; generation: number; serverId: string }
 ): Promise<Date | null> {
     const [previous] = await db

@@ -25,7 +25,7 @@ if (!force && artifactMatchesSource(outputDirectory)) {
     process.exit(0);
 }
 
-const stagedDirectory = mkdtempSync(path.join(tmpdir(), 'grotto-ios-icon-'));
+const stagedDirectory = mkdtempSync(path.join(tmpdir(), 'haus-ios-icon-'));
 const stagedIcon = path.join(stagedDirectory, 'mac-icon.icon');
 const stagedOutput = path.join(stagedDirectory, 'output');
 

@@ -1,8 +1,8 @@
-import type { Agent, ComputerInventory } from '@grotto/api';
+import type { Agent, ComputerInventory } from '@haus/api';
 import { Link } from 'react-router-dom';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import {
     agentExecutionLabels,
     availabilityLabel,

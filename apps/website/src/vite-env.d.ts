@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-    readonly VITE_GROTTO_PRODUCT_VERSION: string;
-    readonly VITE_GROTTO_RELEASE_SNAPSHOT: import('@grotto/api').GrottoReleaseSnapshot;
+    readonly VITE_HAUS_PRODUCT_VERSION: string;
+    readonly VITE_HAUS_RELEASE_SNAPSHOT: import('@haus/api').HausReleaseSnapshot;
 }

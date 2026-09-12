@@ -1,11 +1,11 @@
 import { ToggleButton } from '@heroui/react';
 import { useState } from 'react';
 import { CopyButton } from '../../components/copy-button.tsx';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
-import type { GrottoResourceTarget } from './grotto-resource-link.ts';
+import type { HausResourceTarget } from './haus-resource-link.ts';
 
-type WorkspaceFileTarget = Extract<GrottoResourceTarget, { kind: 'workspaceFile' }>;
+type WorkspaceFileTarget = Extract<HausResourceTarget, { kind: 'workspaceFile' }>;
 
 export function useWorkspaceArtifact({
     agentId,
@@ -18,7 +18,7 @@ export function useWorkspaceArtifact({
     serverId: string;
     target: WorkspaceFileTarget | null;
 }) {
-    const fileQuery = grottoTrpc.agent.workspaceFile.useQuery(
+    const fileQuery = hausTrpc.agent.workspaceFile.useQuery(
         { agentId, includeHidden, path: target?.path ?? '', serverId },
         { ...queryPolicy.computerSnapshot, enabled: agentId.length > 0 && target !== null }
     );

@@ -23,7 +23,7 @@ const requireComplete =
     expectedVersion !== null || process.argv.slice(2).includes('--require-complete');
 
 const versionedFiles = {
-    product: 'packages/grotto-api/grotto-product.json',
+    product: 'packages/haus-api/haus-product.json',
     website: 'apps/website/package.json',
     electronBuilder: 'apps/website/electron-builder.config.cjs',
 };

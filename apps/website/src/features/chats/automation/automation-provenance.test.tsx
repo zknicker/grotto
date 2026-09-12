@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AutomationFireContext, MessageCause } from '@grotto/api';
+import type { AutomationFireContext, MessageCause } from '@haus/api';
 import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -180,7 +180,7 @@ function triggerContext(): AutomationFireContext {
         fireOrdinal: 12,
         fireTotal: 12,
         nextFireAt: null,
-        payload: '{\n  "repo": "grotto"\n}',
+        payload: '{\n  "repo": "haus"\n}',
         payloadBytes: 52,
         payloadTruncated: false,
         repeat: null,

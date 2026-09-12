@@ -3,10 +3,10 @@ import {
     formatChatReferenceTarget,
     parseAgentReferenceTarget,
     parseChatReferenceTarget,
-    parseGrottoRichReferences,
-} from '@grotto/api';
+    parseHausRichReferences,
+} from '@haus/api';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable } from '../postgres/schema.ts';
 import { readBareReferenceTokens } from './bare-reference-tokens.ts';
 
@@ -31,7 +31,7 @@ export interface ChatReferenceTarget {
  * being written.
  */
 export async function canonicalizeAgentMessageContentForPersistence(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         additionalAgents?: AgentReferenceTarget[];
         content: string;
@@ -122,7 +122,7 @@ function readExistingReferenceTargets(content: string | undefined) {
         return { agents, channels };
     }
 
-    for (const reference of parseGrottoRichReferences(content)) {
+    for (const reference of parseHausRichReferences(content)) {
         if (reference.kind === 'agent') {
             const id = parseAgentReferenceTarget(reference.id);
             if (id) {

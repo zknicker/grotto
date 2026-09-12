@@ -9,7 +9,7 @@ describe('ActivationShell', () => {
         expect(markup).toContain(
             'haus-ghost haus-ghost--iridescent haus-ghost--animated activation-mark'
         );
-        expect(markup).not.toContain('grotto-app-icon.png');
+        expect(markup).not.toContain('haus-app-icon.png');
     });
 
     test('a caller can replace the mark', () => {

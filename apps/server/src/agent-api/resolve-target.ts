@@ -1,6 +1,6 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     channelAgentParticipantsTable,
     chatsTable,
@@ -12,7 +12,7 @@ import {
  * authority. The launch chat is context, not a routing shortcut.
  */
 export async function resolveAgentTarget(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     target: string
 ): Promise<string> {
@@ -87,7 +87,7 @@ export async function resolveAgentTarget(
 }
 
 async function resolveAgentThreadTarget(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     parentChatId: string,
     threadAnchor: string

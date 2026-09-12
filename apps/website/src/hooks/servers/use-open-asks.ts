@@ -1,4 +1,4 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 /**
@@ -7,7 +7,7 @@ import { queryPolicy } from '../../lib/query-policy.ts';
  * arriving; the Inbox never has to filter one out.
  */
 export function useOpenAsks(serverId: string | undefined) {
-    return grottoTrpc.ask.listOpen.useQuery(
+    return hausTrpc.ask.listOpen.useQuery(
         { serverId: serverId ?? '' },
         { ...queryPolicy.syncedSnapshot, enabled: serverId !== undefined }
     );

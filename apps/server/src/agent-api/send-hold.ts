@@ -6,7 +6,7 @@ import {
 } from '../agent-delivery/cursors.ts';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentInboxExactVisibilityTable,
     agentMessageDraftsTable,
@@ -39,7 +39,7 @@ export interface AgentSendModeInput {
 }
 
 export async function prepareAgentSend(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string,
     input: AgentSendModeInput
@@ -97,7 +97,7 @@ export async function prepareAgentSend(
     };
 }
 
-export async function clearAgentDraft(db: GrottoDatabase, runner: ResolvedRunner, chatId: string) {
+export async function clearAgentDraft(db: HausDatabase, runner: ResolvedRunner, chatId: string) {
     await db
         .delete(agentMessageDraftsTable)
         .where(
@@ -110,7 +110,7 @@ export async function clearAgentDraft(db: GrottoDatabase, runner: ResolvedRunner
 }
 
 async function resolveHold(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string,
     sessionGeneration: number,
@@ -184,7 +184,7 @@ async function resolveHold(
 }
 
 async function readDraft(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string,
     generation: number
@@ -212,7 +212,7 @@ async function readDraft(
 }
 
 async function saveDraft(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string,
     generation: number,
@@ -241,7 +241,7 @@ async function saveDraft(
 }
 
 async function readCommittedSend(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string,
     nonce: string
@@ -312,7 +312,7 @@ function requireDraft(draft: Awaited<ReturnType<typeof readDraft>>) {
     return draft;
 }
 
-async function readAgentHandle(db: GrottoDatabase, runner: ResolvedRunner) {
+async function readAgentHandle(db: HausDatabase, runner: ResolvedRunner) {
     const [agent] = await db
         .select({ handle: agentsTable.handle })
         .from(agentsTable)

@@ -6,8 +6,8 @@ import { join } from 'node:path';
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { seedDevelopmentServer } from '../src/development/seed-server.ts';
 import { readPendingCoveCommand } from '../src/onboarding/create-cove.ts';
-import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
-import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
+import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
+import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {
     agentsTable,
     attachmentsTable,
@@ -26,13 +26,13 @@ import { makeServerRuntime } from '../src/server-runtime.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 let cluster: PostgresCluster;
-let connection: GrottoConnection;
+let connection: HausConnection;
 const runtime = makeServerRuntime();
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
-    await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
-    connection = await connectGrottoDatabase(cluster.databaseUrl);
+    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    connection = await connectHausDatabase(cluster.databaseUrl);
 });
 
 afterAll(async () => {
@@ -42,7 +42,7 @@ afterAll(async () => {
 });
 
 test('creates one idempotent Server-owned demo workspace', async () => {
-    const computerDataRoot = await mkdtemp(join(tmpdir(), 'grotto-dev-computer-'));
+    const computerDataRoot = await mkdtemp(join(tmpdir(), 'haus-dev-computer-'));
     const attachmentRoot = await openAttachmentRoot(join(computerDataRoot, 'attachments'), runtime);
     const options = {
         attachmentRoot,

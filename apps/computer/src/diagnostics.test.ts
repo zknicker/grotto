@@ -12,7 +12,7 @@ import {
 let dataRoot: string;
 
 beforeEach(async () => {
-    dataRoot = await mkdtemp(join(tmpdir(), 'grotto-diagnostics-'));
+    dataRoot = await mkdtemp(join(tmpdir(), 'haus-diagnostics-'));
     await mkdir(join(dataRoot, 'servers', 'srv_diagnostics'), { recursive: true });
     await writeFile(
         join(dataRoot, 'servers', 'srv_diagnostics', 'attachment.json'),
@@ -20,7 +20,7 @@ beforeEach(async () => {
             computerId: 'cmp_diagnostics',
             credential: 'secret',
             serverId: 'srv_diagnostics',
-            serverOrigin: 'https://grotto.test',
+            serverOrigin: 'https://haus.test',
             slug: 'hq',
         }),
         { mode: 0o600 }

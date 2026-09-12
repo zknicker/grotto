@@ -1,4 +1,4 @@
-import type { AgentRuntimeBrowserSettings, AgentRuntimeBrowserState } from '@grotto/api';
+import type { AgentRuntimeBrowserSettings, AgentRuntimeBrowserState } from '@haus/api';
 import { Alert, Button } from '@heroui/react';
 import { BrowserIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { Dispatch, SetStateAction } from 'react';

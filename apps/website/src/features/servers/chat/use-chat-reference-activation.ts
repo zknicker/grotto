@@ -1,4 +1,4 @@
-import { parseAgentReferenceTarget, parseChatReferenceTarget } from '@grotto/api';
+import { parseAgentReferenceTarget, parseChatReferenceTarget } from '@haus/api';
 import { useCallback } from 'react';
 import { openAgentProfilePane } from '../../../hooks/pane/use-agent-profile-pane.ts';
 import type { ReferenceActivationTarget } from '../../mentions/mention-types.ts';

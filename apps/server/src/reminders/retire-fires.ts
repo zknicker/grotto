@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { retireQueuedItemsByDedupeKeys } from '../agent-delivery/store.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { reminderFiresTable } from '../postgres/schema.ts';
 
 /**
@@ -10,7 +10,7 @@ import { reminderFiresTable } from '../postgres/schema.ts';
  * Agent with work it can no longer act on.
  */
 export async function retireQueuedReminderFires(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     reminderId: string
 ): Promise<void> {

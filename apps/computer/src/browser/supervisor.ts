@@ -1,5 +1,5 @@
-import type { AgentRuntimeBrowserState, AgentRuntimeBrowserStatus } from '@grotto/api';
-import { type EffectRuntime, settle } from '@grotto/effect';
+import type { AgentRuntimeBrowserState, AgentRuntimeBrowserStatus } from '@haus/api';
+import { type EffectRuntime, settle } from '@haus/effect';
 import { Cause, Chunk, Deferred, Effect, Exit, Fiber, Queue } from 'effect';
 import {
     browserFailureLogAnnotations,

@@ -1,4 +1,4 @@
-import { type CloudAgentWork, isTerminalCloudAgentStatus } from '@grotto/api';
+import { type CloudAgentWork, isTerminalCloudAgentStatus } from '@haus/api';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { formatRelativeTime } from '../../lib/format.ts';
 import {

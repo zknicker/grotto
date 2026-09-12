@@ -72,7 +72,7 @@ test('a notice attempted after SDK completion stays pending without changing the
 });
 
 async function createTurn(submitUserMessage?: (text: string) => Promise<void>) {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-steering-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-steering-'));
     roots.push(root);
     const started = Promise.withResolvers<void>();
     const finished = Promise.withResolvers<void>();

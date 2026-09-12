@@ -1,4 +1,4 @@
-import type { TokenUsageOverview } from '@grotto/api';
+import type { TokenUsageOverview } from '@haus/api';
 import { expect, test } from 'vitest';
 import { buildTokenUsageView } from './token-usage-view.ts';
 
@@ -73,7 +73,7 @@ const usage: TokenUsageOverview = {
     totals: zero,
 };
 
-test('builds a range-scoped token view by runtime, model, and Grotto agent', () => {
+test('builds a range-scoped token view by runtime, model, and Haus agent', () => {
     const view = buildTokenUsageView(usage, 7, null, new Date('2026-08-13T18:00:00.000Z'));
 
     expect(view.totals).toEqual({

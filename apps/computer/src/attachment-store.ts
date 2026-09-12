@@ -1,6 +1,5 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { hausOrigin } from './haus-origin.ts';
 import type { Attachment } from './launch.ts';
 
 export function createAttachmentStore(dataRoot: string) {
@@ -17,9 +16,7 @@ export function createAttachmentStore(dataRoot: string) {
         } catch {
             return null;
         }
-        return attachment
-            ? { ...attachment, serverOrigin: hausOrigin(attachment.serverOrigin) }
-            : null;
+        return attachment ?? null;
     }
 
     async function listAttachments(): Promise<Attachment[]> {

@@ -8,7 +8,7 @@ test('Server publisher consumes prebuilt App artifacts without publishing deskto
 
     expect(source).not.toContain('release:check-desktop-artifacts');
     expect(source).not.toContain("run('bun', ['run', 'publish:desktop']");
-    expect(source).not.toContain('GROTTO_RELEASE_INCLUDE_DESKTOP');
+    expect(source).not.toContain('HAUS_RELEASE_INCLUDE_DESKTOP');
     expect(source).not.toMatch(/\['commit'/u);
     expect(source).not.toMatch(/HEAD:\$\{/u);
 });

@@ -1,10 +1,10 @@
 import { Button, Tooltip } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
-import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
-import { UpdateProgressBar } from '../updates/grotto-update-progress.tsx';
+import type { HausOutputs } from '../../lib/haus-server.tsx';
+import { UpdateProgressBar } from '../updates/haus-update-progress.tsx';
 import { computerUpdateView } from './computer-update-model.ts';
 
-export type ComputerUpdateComputer = GrottoOutputs['computer']['list'][number];
+export type ComputerUpdateComputer = HausOutputs['computer']['list'][number];
 
 const activeUpdatePhases = new Set<ComputerUpdateComputer['updatePhase']>([
     'requested',

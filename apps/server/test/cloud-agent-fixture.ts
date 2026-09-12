@@ -1,15 +1,15 @@
 import { afterAll, beforeAll, expect } from 'bun:test';
 import { createHash } from 'node:crypto';
-import type { CloudAgentBranch, CloudAgentWork } from '@grotto/api';
+import type { CloudAgentBranch, CloudAgentWork } from '@haus/api';
 import { cloudAgentComputerFixture } from './cloud-agent-computer-fixture.ts';
-import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
-import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
+import { createHausClient, type HausClient } from './haus-client.ts';
+import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
 export function cloudAgentFixture() {
-    let harness: GrottoServerHarness;
-    let owner: GrottoClient;
-    let peer: GrottoClient;
-    let outsider: GrottoClient;
+    let harness: HausServerHarness;
+    let owner: HausClient;
+    let peer: HausClient;
+    let outsider: HausClient;
 
     let serverId: string;
     let channelId: string;
@@ -22,10 +22,10 @@ export function cloudAgentFixture() {
     const credentialHash = createHash('sha256').update(credential).digest('hex');
 
     beforeAll(async () => {
-        harness = await startGrottoServerHarness();
-        owner = await signIn('user_cloud_owner', ['ada@grotto.test']);
-        peer = await signIn('user_cloud_peer', ['bo@grotto.test']);
-        outsider = await signIn('user_cloud_outsider', ['cass@grotto.test']);
+        harness = await startHausServerHarness();
+        owner = await signIn('user_cloud_owner', ['ada@haus.test']);
+        peer = await signIn('user_cloud_peer', ['bo@haus.test']);
+        outsider = await signIn('user_cloud_outsider', ['cass@haus.test']);
 
         const server = await owner.trpc.server.create.mutate({
             displayName: 'Cloud HQ',
@@ -38,8 +38,8 @@ export function cloudAgentFixture() {
             handle: 'ada',
             serverId,
         });
-        await join(peer, 'bo@grotto.test', 'Bo', 'bo');
-        await join(outsider, 'cass@grotto.test', 'Cass', 'cass');
+        await join(peer, 'bo@haus.test', 'Bo', 'bo');
+        await join(outsider, 'cass@haus.test', 'Cass', 'cass');
         ownerUserId = await readUserId('user_cloud_owner');
         peerUserId = await readUserId('user_cloud_peer');
 
@@ -142,7 +142,7 @@ export function cloudAgentFixture() {
             content: 'Handing the flaky delivery test to a cloud agent.',
             nonce: 'cloud-default',
             provider: 'cursor',
-            repository: 'grotto/grotto',
+            repository: 'haus/haus',
             startingRef: 'main',
             target: '#product',
             title: 'Fix the flaky delivery test',
@@ -255,7 +255,7 @@ export function cloudAgentFixture() {
         throw new Error('Timed out waiting for the expected Cloud Agent state.');
     }
 
-    async function join(client: GrottoClient, email: string, displayName: string, handle: string) {
+    async function join(client: HausClient, email: string, displayName: string, handle: string) {
         const { token } = await owner.trpc.invitation.create.mutate({ email, serverId });
         await client.trpc.invitation.accept.mutate({ token });
         await client.trpc.member.updateProfile.mutate({
@@ -268,7 +268,7 @@ export function cloudAgentFixture() {
 
     async function signIn(clerkUserId: string, verifiedEmails: string[]) {
         harness.clerkUsers.setVerifiedEmails(clerkUserId, verifiedEmails);
-        return createGrottoClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+        return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
     }
 
     async function readUserId(clerkUserId: string) {

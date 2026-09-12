@@ -140,7 +140,7 @@ export async function consumeVisibleMessages(
  * key must never enter message-visibility attestation.
  */
 export function isAutomationInboxItem(item: AgentInboxItem): boolean {
-    return !item.message && ['trigger', 'reminder', 'haus', 'grotto'].includes(item.senderHandle);
+    return !item.message && ['trigger', 'reminder', 'haus'].includes(item.senderHandle);
 }
 
 /** Retires bodiless items the Server just served on `/api/agent/events` from the mirror. */

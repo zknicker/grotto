@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-import type { AgentActivityFrame, AgentCommand, AgentTurnSummary } from '@grotto/api';
+import type { AgentActivityFrame, AgentCommand, AgentTurnSummary } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
-import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
-import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
+import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
+import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentActivityTable,
@@ -28,12 +28,12 @@ import { lockServerRow } from '../src/servers/server-lock.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 let cluster: PostgresCluster;
-let connection: GrottoConnection;
+let connection: HausConnection;
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
-    await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
-    connection = await connectGrottoDatabase(cluster.databaseUrl);
+    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    connection = await connectHausDatabase(cluster.databaseUrl);
 });
 
 afterAll(async () => {

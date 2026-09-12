@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
 import { generateKeyPairSync } from 'node:crypto';
-import computerProtocol from '../../packages/grotto-api/computer-protocol.json' with {
-    type: 'json',
-};
+import computerProtocol from '../../packages/haus-api/computer-protocol.json' with { type: 'json' };
 import {
     assertComputerReleaseKey,
     assertNewerComputerVersion,
@@ -19,7 +17,7 @@ test('Computer publisher uses the canonical ordinary protocol version', () => {
 });
 
 const release = {
-    artifactUrl: 'https://releases.grotto.sh/computer/1.1.0/grotto-computer-aarch64-apple-darwin',
+    artifactUrl: 'https://releases.haus.chat/computer/1.1.0/haus-computer-aarch64-apple-darwin',
     protocolVersion: 3,
     sha256: 'a'.repeat(64),
     sourceRevision: 'b'.repeat(40),

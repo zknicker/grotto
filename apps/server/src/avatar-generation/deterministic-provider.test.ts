@@ -14,7 +14,7 @@ afterEach(async () => {
 });
 
 test('returns stable image bytes and records one provider request without the concept', async () => {
-    temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), 'grotto-avatar-fixture-'));
+    temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), 'haus-avatar-fixture-'));
     const requestLogPath = path.join(temporaryDirectory, 'requests.jsonl');
     const fixturePath = path.join(temporaryDirectory, 'fixture.png');
     await writeFile(fixturePath, Buffer.from('stable fixture bytes'));

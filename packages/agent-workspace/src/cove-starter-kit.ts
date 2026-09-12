@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { getManualTopic } from '@grotto/agent-manual';
+import { getManualTopic } from '@haus/agent-manual';
 import { coveOnboardingFaq } from './cove-factory-faq.ts';
 import { coveMemory, coveOnboardingPlaybook } from './cove-factory-guidance.ts';
 import { recognizedFactoryGuidanceHashes } from './cove-factory-guidance-hashes.ts';
@@ -182,7 +182,7 @@ export async function reconcileCoveFactoryGuidance(
     }
     for (const name of plan.files) {
         const destination = path.join(workspaceDir, name);
-        const temporary = `${destination}.grotto-refresh-${process.pid}-${randomUUID()}`;
+        const temporary = `${destination}.haus-refresh-${process.pid}-${randomUUID()}`;
         await fs.writeFile(temporary, coveFactoryGuidanceFiles[name], { mode: 0o600 });
         await fs.rename(temporary, destination).catch(async (error) => {
             await fs.rm(temporary, { force: true });

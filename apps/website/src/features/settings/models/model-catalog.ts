@@ -1,4 +1,4 @@
-import type { ComputerInventory } from '@grotto/api';
+import type { ComputerInventory } from '@haus/api';
 import { type ComputerPresentation, computerLabel } from '../../computers/presentation.ts';
 
 export interface ModelsComputer extends ComputerPresentation {

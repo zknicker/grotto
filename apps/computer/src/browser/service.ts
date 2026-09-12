@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { asError, type EffectRuntime, settle } from '@grotto/effect';
+import { asError, type EffectRuntime, settle } from '@haus/effect';
 import { Effect } from 'effect';
 import { detectChromeApplications } from './chrome-detection.ts';
 import { BrowserCommandQueue } from './command-queue.ts';

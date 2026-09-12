@@ -1,13 +1,13 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { seedAgentWorkspace, seedFactoryManagedSkills } from '@grotto/agent-workspace';
+import { seedAgentWorkspace, seedFactoryManagedSkills } from '@haus/agent-workspace';
 import {
     type AgentConfigureCommand,
     type AgentReasoningEffort,
     agentConfigureCommandSchema,
     type ComputerInventory,
     type CoveApplyCommand,
-} from '@grotto/api';
+} from '@haus/api';
 
 export interface AppliedAgentConfiguration {
     missingResources: string[];

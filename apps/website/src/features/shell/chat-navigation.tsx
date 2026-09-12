@@ -1,4 +1,4 @@
-import type { Agent, Chat } from '@grotto/api';
+import type { Agent, Chat } from '@haus/api';
 import { Button } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
 import { Plus } from '@hugeicons/core-free-icons';
@@ -66,7 +66,7 @@ export function ChatNavigation({
             <Sidebar.Group>
                 {/* One menu so Inbox, Search, and Tasks share the row pitch exactly.
                     Inbox leads: it is the sidebar's top-left anchor, so the
-                    Grotto mark sits where a product's wordmark would. Search
+                    Haus mark sits where a product's wordmark would. Search
                     opens the command palette rather than navigating, so it is an
                     action item that names its own shortcut. */}
                 <Sidebar.Menu

@@ -1,6 +1,6 @@
-import type { Chat, ChatMessage, ThreadSummary } from '@grotto/api';
+import type { Chat, ChatMessage, ThreadSummary } from '@haus/api';
 import { ChatSidePaneShell } from '../../chats/chat-side-pane-shell.tsx';
-import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
+import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { ThreadContent } from './thread-content.tsx';
 
@@ -25,7 +25,7 @@ export function ThreadPanel({
     initialThreadChatId?: string;
     onClose: () => void;
     onExitComplete: () => void;
-    onOpenArtifact: (target: GrottoResourceTarget) => void;
+    onOpenArtifact: (target: HausResourceTarget) => void;
     onReferenceActivate?: ReferenceActivation;
     onViewInChannel: () => void;
     readOnly: boolean;

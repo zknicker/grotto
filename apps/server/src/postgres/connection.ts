@@ -3,11 +3,11 @@ import { type BunSQLDatabase, drizzle } from 'drizzle-orm/bun-sql';
 import { describeDatabaseUrl } from './database-url.ts';
 import * as schema from './schema.ts';
 
-export type GrottoDatabase = BunSQLDatabase<typeof schema>;
+export type HausDatabase = BunSQLDatabase<typeof schema>;
 
-export interface GrottoConnection {
+export interface HausConnection {
     close(): Promise<void>;
-    db: GrottoDatabase;
+    db: HausDatabase;
     health(): Promise<boolean>;
 }
 
@@ -31,7 +31,7 @@ const poolSize = 10;
  * Remove the split once Bun isolates reserved connections, and take
  * `transaction` straight off the query pool again.
  */
-export async function connectGrottoDatabase(databaseUrl: string): Promise<GrottoConnection> {
+export async function connectHausDatabase(databaseUrl: string): Promise<HausConnection> {
     const queryClient = new SQL({ max: poolSize, url: databaseUrl });
     const transactionClient = new SQL({ max: poolSize, url: databaseUrl });
 
@@ -69,10 +69,7 @@ export async function connectGrottoDatabase(databaseUrl: string): Promise<Grotto
 }
 
 /** One database to callers; `transaction` alone runs on the transaction pool. */
-function withIsolatedTransactions(
-    queries: GrottoDatabase,
-    transactions: GrottoDatabase
-): GrottoDatabase {
+function withIsolatedTransactions(queries: HausDatabase, transactions: HausDatabase): HausDatabase {
     return new Proxy(queries, {
         get: (target, property, receiver) =>
             property === 'transaction'

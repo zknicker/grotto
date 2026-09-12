@@ -2,7 +2,7 @@ import type {
     AgentCloudAgentReceipt,
     AgentCloudAgentStartInput,
     ServerDurableEvent,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import {
@@ -11,7 +11,7 @@ import {
     writeAgentAuthoredMessage,
 } from '../chats/agent-authored-message.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -34,7 +34,7 @@ export interface CreateCloudAgentWorkResult {
  * a later provider failure settles this same work rather than erasing it.
  */
 export async function createCloudAgentWork(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: AgentCloudAgentStartInput,
     agentDelivery: AgentDelivery
@@ -110,7 +110,7 @@ export async function createCloudAgentWork(
 }
 
 async function readWorkByNonce(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string,
     input: AgentCloudAgentStartInput
@@ -161,10 +161,7 @@ async function readWorkByNonce(
 }
 
 /** Cloud Agent work is owned by the Computer that holds the provider access. */
-async function requireAssignedComputer(
-    db: GrottoDatabase,
-    runner: ResolvedRunner
-): Promise<string> {
+async function requireAssignedComputer(db: HausDatabase, runner: ResolvedRunner): Promise<string> {
     const [agent] = await db
         .select({ computerId: agentsTable.computerId })
         .from(agentsTable)

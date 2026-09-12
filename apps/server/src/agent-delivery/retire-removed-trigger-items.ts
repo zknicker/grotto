@@ -1,9 +1,9 @@
 import { sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 
 /** Removes a requeued wake whose Trigger was removed while its run was active. */
 export async function retireRemovedTriggerItemsForRun(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string
 ): Promise<void> {
     await db.execute(sql`

@@ -4,7 +4,7 @@ import type {
     MessageBody,
     MessageBodyKind,
     MessageCause,
-} from '@grotto/api';
+} from '@haus/api';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
 interface StoredChatMessage {

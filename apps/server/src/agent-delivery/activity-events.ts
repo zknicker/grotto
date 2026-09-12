@@ -1,5 +1,5 @@
 import EventEmitter, { on } from 'node:events';
-import { type AgentActivityEvent, agentActivityEventSchema } from '@grotto/api';
+import { type AgentActivityEvent, agentActivityEventSchema } from '@haus/api';
 
 const eventName = 'agent.activity.committed';
 const emitter = new EventEmitter();

@@ -1,9 +1,9 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useSkillSave(serverId: string, agentId: string, name: string) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
     const input = { agentId, name, serverId };
-    const mutation = grottoTrpc.agent.updateSkillFile.useMutation();
+    const mutation = hausTrpc.agent.updateSkillFile.useMutation();
 
     return {
         ...mutation,

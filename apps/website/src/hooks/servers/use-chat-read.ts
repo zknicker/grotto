@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { useAppForegrounded } from '../shell/use-app-foregrounded.ts';
 
 export interface ChatReadAttemptTarget {
@@ -81,7 +81,7 @@ export function useChatRead(input: {
     const attemptTrackerRef = React.useRef(createChatReadAttemptTracker());
     const attemptTracker = attemptTrackerRef.current;
     // The durable `chat.read` event owns unread-count invalidation; see useChatEvents.
-    const mutation = grottoTrpc.chat.markRead.useMutation({
+    const mutation = hausTrpc.chat.markRead.useMutation({
         onError: (_error, variables) => {
             attemptTracker.fail(chatReadTarget(variables));
         },

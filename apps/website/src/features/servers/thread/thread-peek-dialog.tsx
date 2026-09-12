@@ -4,7 +4,7 @@ import {
     parseAgentReferenceTarget,
     parseChatReferenceTarget,
     type ThreadSummary,
-} from '@grotto/api';
+} from '@haus/api';
 import { Modal } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
 import { openAgentProfilePane } from '../../../hooks/pane/use-agent-profile-pane.ts';

@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { bindWorkspaceTargetToAgent, type GrottoResourceTarget } from './grotto-resource-link.ts';
+import { bindWorkspaceTargetToAgent, type HausResourceTarget } from './haus-resource-link.ts';
 
-const ArtifactPanelContext = React.createContext<((target: GrottoResourceTarget) => void) | null>(
+const ArtifactPanelContext = React.createContext<((target: HausResourceTarget) => void) | null>(
     null
 );
 
@@ -12,10 +12,10 @@ export function ArtifactPanelOpenProvider({
 }: {
     agentId?: string;
     children: React.ReactNode;
-    onOpen: (target: GrottoResourceTarget) => void;
+    onOpen: (target: HausResourceTarget) => void;
 }) {
     const open = React.useCallback(
-        (target: GrottoResourceTarget) => onOpen(bindWorkspaceTargetToAgent(target, agentId)),
+        (target: HausResourceTarget) => onOpen(bindWorkspaceTargetToAgent(target, agentId)),
         [agentId, onOpen]
     );
     return <ArtifactPanelContext.Provider value={open}>{children}</ArtifactPanelContext.Provider>;

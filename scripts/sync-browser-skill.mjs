@@ -2,9 +2,9 @@
 // Regenerates the managed Browser skill from the installed agent-browser
 // package. The sync is mechanical: it keeps upstream snapshot, reference,
 // navigation, interaction, screenshot, and troubleshooting guidance verbatim,
-// and changes only the Grotto invocation surface (one `browser` tool) while
+// and changes only the Haus invocation surface (one `browser` tool) while
 // removing install, MCP, session-management, and shell-only guidance that the
-// Grotto Computer owns. Any upstream drift in the touched anchors fails the
+// Haus Computer owns. Any upstream drift in the touched anchors fails the
 // sync so skill updates stay deliberate.
 //
 // Usage: node scripts/sync-browser-skill.mjs
@@ -25,7 +25,7 @@ const outputPath = path.join(
     'browser-skill.generated.ts'
 );
 
-// Sections that do not apply inside Grotto: Computer owns install, sessions,
+// Sections that do not apply inside Haus: Computer owns install, sessions,
 // the CDP connection, and skill distribution.
 const removedSections = [
     '## Quickstart',
@@ -53,7 +53,7 @@ const sentenceScrubs = [
     [/\s*\(see \[references\/[^)]+\)\)/g, ''],
 ];
 
-// Upstream heredoc examples teach shell chaining the Grotto tool does not
+// Upstream heredoc examples teach shell chaining the Haus tool does not
 // have; the same commands work by passing the script as one argument.
 const exactReplacements = [
     [
@@ -104,9 +104,9 @@ const forbiddenTokens = [
     "cat <<'EOF'",
 ];
 
-const grottoPreamble = `# Browser
+const hausPreamble = `# Browser
 
-Control the managed Chrome browser. Grotto owns the browser process, its
+Control the managed Chrome browser. Haus owns the browser process, its
 durable profile, the session, and the CDP connection; you drive it with one
 tool.
 
@@ -126,7 +126,7 @@ never try to run agent-browser through shell commands. Shell constructs
 JavaScript as a single argument: \`{"args": ["eval", "<code>"]}\`.
 
 If the tool reports that the browser is unavailable, tell the user the
-reported reason. Browser setup and recovery live in Grotto settings.
+reported reason. Browser setup and recovery live in Haus settings.
 `;
 
 function fail(message) {
@@ -189,7 +189,7 @@ function removeSpan(lines, span) {
 const packageJson = JSON.parse(fs.readFileSync(path.join(packageDir, 'package.json'), 'utf8'));
 const upstream = fs.readFileSync(path.join(packageDir, 'skill-data', 'core', 'SKILL.md'), 'utf8');
 
-// Drop upstream frontmatter and its H1; Grotto supplies both.
+// Drop upstream frontmatter and its H1; Haus supplies both.
 const frontmatterMatch = upstream.match(/^---\n[\s\S]*?\n---\n/);
 if (!frontmatterMatch) {
     fail('upstream SKILL.md frontmatter was not found.');
@@ -221,7 +221,7 @@ for (const [needle, replacement] of exactReplacements) {
     }
     content = content.replace(needle, replacement);
 }
-content = `${grottoPreamble}\n${content.replace(/\n{3,}/g, '\n\n').trim()}\n`;
+content = `${hausPreamble}\n${content.replace(/\n{3,}/g, '\n\n').trim()}\n`;
 
 for (const token of forbiddenTokens) {
     if (content.includes(token)) {

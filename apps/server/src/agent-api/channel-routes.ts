@@ -1,10 +1,10 @@
-import { agentAddChannelAgentInputSchema } from '@grotto/api';
+import { agentAddChannelAgentInputSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import { findLiveChannel } from '../chats/channel-agent-membership.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { insertLifecycleEvent } from '../chats/lifecycle-events.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { AgentIdentityProtectedError } from '../server-agents/errors.ts';
 import { changeAgentChannelMute } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
@@ -18,7 +18,7 @@ import {
 const targetSchema = z.object({ target: z.string().trim().min(1).max(200) });
 
 /** The channel surface an Agent drives: what a channel is, who is in it, and membership. */
-export function registerAgentChannelRoutes(app: FastifyInstance, options: { db: GrottoDatabase }) {
+export function registerAgentChannelRoutes(app: FastifyInstance, options: { db: HausDatabase }) {
     const { db } = options;
 
     app.get('/api/agent/channels/info', async (request, reply) => {
@@ -114,7 +114,7 @@ export function registerAgentChannelRoutes(app: FastifyInstance, options: { db: 
  * Membership is what the App reads off a channel, so an Agent joining, leaving,
  * or being added announces itself exactly as a human's channel save does.
  */
-async function announceChannelMembership(db: GrottoDatabase, serverId: string, target: string) {
+async function announceChannelMembership(db: HausDatabase, serverId: string, target: string) {
     const channel = await findLiveChannel(db, serverId, target);
     if (!channel) {
         return;

@@ -35,7 +35,7 @@ test('normalizes the current Grok weekly allowance and proto3 zero omission', ()
 });
 
 test('reads Grok Build billing with its current OAuth headers', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-grok-usage-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-grok-usage-'));
     roots.push(root);
     await mkdir(root, { recursive: true });
     await writeFile(

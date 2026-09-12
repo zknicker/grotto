@@ -1,4 +1,4 @@
-import { type Agent, type ChatSendInput, type OpenAsk, openAskThreadAnchor } from '@grotto/api';
+import { type Agent, type ChatSendInput, type OpenAsk, openAskThreadAnchor } from '@haus/api';
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { conversationLabel } from '../conversation-label.ts';
 import type { HumanDirectory } from '../human-identity.ts';

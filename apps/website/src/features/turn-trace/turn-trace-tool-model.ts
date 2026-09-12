@@ -1,4 +1,4 @@
-import type { AgentExecutionJournalTool } from '@grotto/api';
+import type { AgentExecutionJournalTool } from '@haus/api';
 import type { ToolPartState } from '@heroui-pro/react/chat-tool';
 import { formatShellLabel } from './turn-trace-shell-label.ts';
 import { readHostname, readRecord, readString, stableJson } from './turn-trace-values.ts';

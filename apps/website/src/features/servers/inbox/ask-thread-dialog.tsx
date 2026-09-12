@@ -1,4 +1,4 @@
-import { openAskThreadAnchor } from '@grotto/api';
+import { openAskThreadAnchor } from '@haus/api';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useOpenAsks } from '../../../hooks/servers/use-open-asks.ts';
 import { useServerContext } from '../server-context.ts';

@@ -68,12 +68,4 @@ const bridge = {
     startWindowDrag: () => ipcRenderer.invoke('desktop:window:start-drag'),
 };
 
-// The desktop shell and the Grotto App ship on two independent channels: the
-// shell through the S3 release feed, the App through the hosted Server. A
-// packaged shell always loads the *deployed* App, so the two are routinely at
-// different versions and the injected global is a production compatibility
-// contract, not an internal name. Exposing the pre-Grotto `tavernDesktop`
-// alongside it keeps a newer shell working against an App build that still
-// reads the old name. Retire the alias only once no deployed App reads it.
-contextBridge.exposeInMainWorld('grottoDesktop', bridge);
-contextBridge.exposeInMainWorld('tavernDesktop', bridge);
+contextBridge.exposeInMainWorld('hausDesktop', bridge);

@@ -47,7 +47,7 @@ test('rejects a typed attention whose envelope identity does not match it', () =
                         errorCode: null,
                         provider: 'cursor',
                         providerUrl: null,
-                        repository: 'grotto/grotto',
+                        repository: 'haus/haus',
                         runId: 'car_1234567890abcdef',
                         status: 'completed',
                         summary: 'Opened a pull request.',
@@ -57,7 +57,7 @@ test('rejects a typed attention whose envelope identity does not match it', () =
                     content: '',
                     createdAt: '2026-08-26T12:00:00.000Z',
                     id: 'msg_wrong_identity',
-                    senderHandle: 'grotto',
+                    senderHandle: 'haus',
                     senderType: 'system',
                     sequence: 0,
                     target: '#product',
@@ -76,7 +76,7 @@ test('rejects a typed attention whose envelope identity does not match it', () =
 
 let dataRoot: string;
 beforeEach(async () => {
-    dataRoot = await mkdtemp(join(tmpdir(), 'grotto-launch-'));
+    dataRoot = await mkdtemp(join(tmpdir(), 'haus-launch-'));
     const server = Bun.serve({
         fetch: async (request) => {
             const url = new URL(request.url);
@@ -427,7 +427,7 @@ test('full reset independently clears harness context and restores the ordinary 
     );
     await expect(stat(join(agentRoot, 'workspace', 'notes'))).rejects.toThrow();
     await expect(
-        readFile(join(agentRoot, 'skills', 'grotto-agent', 'SKILL.md'), 'utf8')
+        readFile(join(agentRoot, 'skills', 'haus-agent', 'SKILL.md'), 'utf8')
     ).rejects.toThrow();
     await expect(
         readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')
@@ -484,7 +484,7 @@ test('Cove full reset restores its exact factory workspace and only visuals', as
         'utf8'
     );
     expect(objectives.match(/^### recipes\//gmu)).toHaveLength(12);
-    expect(objectives).not.toMatch(/save-as-a-skill|grotto-agent|recipes\/archetype\//u);
+    expect(objectives).not.toMatch(/save-as-a-skill|haus-agent|recipes\/archetype\//u);
     expect(await readdir(join(agentRoot, 'skills'))).toEqual(['visuals']);
     await expect(
         readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')

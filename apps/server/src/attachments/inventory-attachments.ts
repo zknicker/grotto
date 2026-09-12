@@ -1,9 +1,9 @@
-import type { AttachmentInventory } from '@grotto/api';
+import type { AttachmentInventory } from '@haus/api';
 import { asc, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import type { AttachmentRoot } from './attachment-root.ts';
 
 export class AttachmentInventoryDeniedError extends Error {
@@ -14,9 +14,9 @@ export class AttachmentInventoryDeniedError extends Error {
 }
 
 export async function inventoryServerAttachments(
-    db: GrottoDatabase,
+    db: HausDatabase,
     root: AttachmentRoot,
-    member: GrottoUser | null,
+    member: HausUser | null,
     serverId: string
 ): Promise<AttachmentInventory> {
     const server = await requireServerMembership(db, member, serverId);

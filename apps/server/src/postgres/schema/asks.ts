@@ -1,4 +1,4 @@
-import type { AskStatus } from '@grotto/api';
+import type { AskStatus } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';

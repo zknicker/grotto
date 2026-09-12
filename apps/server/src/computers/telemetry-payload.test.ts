@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { makeProcessTelemetryLayer, withTelemetrySpan } from '@grotto/effect';
+import { makeProcessTelemetryLayer, withTelemetrySpan } from '@haus/effect';
 import { Effect, ManagedRuntime } from 'effect';
 import Fastify from 'fastify';
 import { Field, Root } from 'protobufjs';
@@ -14,7 +14,7 @@ const computer = {
 const span = {
     traceId: Buffer.alloc(16, 1),
     spanId: Buffer.alloc(8, 2),
-    name: 'grotto.agent.turn',
+    name: 'haus.agent.turn',
     startTimeUnixNano: '1000000000',
     endTimeUnixNano: '361000000000',
     status: { code: 2 },
@@ -30,7 +30,7 @@ test('drops content and forged resources while retaining safe diagnostic turn ev
                     {
                         resource: {
                             attributes: [
-                                attribute('service.name', 'grotto-server'),
+                                attribute('service.name', 'haus-server'),
                                 attribute('deployment.environment.name', 'forged'),
                                 attribute('service.version', 'secret'),
                                 attribute(
@@ -46,12 +46,12 @@ test('drops content and forged resources while retaining safe diagnostic turn ev
                                         ...span,
                                         attributes: [
                                             attribute('prompt', 'secret'),
-                                            attribute('grotto.server.id', 'forged'),
-                                            attribute('grotto.agent.id', 'agt_owned'),
-                                            attribute('grotto.run.id', 'run_test'),
-                                            attribute('grotto.run.id', 'run_duplicate'),
-                                            attribute('grotto.model.id', 'secret'),
-                                            attribute('grotto.outcome', 'failed'),
+                                            attribute('haus.server.id', 'forged'),
+                                            attribute('haus.agent.id', 'agt_owned'),
+                                            attribute('haus.run.id', 'run_test'),
+                                            attribute('haus.run.id', 'run_duplicate'),
+                                            attribute('haus.model.id', 'secret'),
+                                            attribute('haus.outcome', 'failed'),
                                         ],
                                     },
                                     { ...span, name: 'secret arbitrary span' },
@@ -117,7 +117,7 @@ test('strips span events, links, error messages and a foreign Agent identity', (
                                         events: [Buffer.from('secret')],
                                         links: [Buffer.from('secret')],
                                         status: { code: 2, message: 'secret' },
-                                        attributes: [attribute('grotto.agent.id', 'agt_foreign')],
+                                        attributes: [attribute('haus.agent.id', 'agt_foreign')],
                                     },
                                 ],
                             },
@@ -137,7 +137,7 @@ test('strips span events, links, error messages and a foreign Agent identity', (
 test('requires independent metric instance identity and correct instrument type', () => {
     const codec = telemetryProtobuf.metrics;
     const metric = {
-        name: 'grotto.operation.duration',
+        name: 'haus.operation.duration',
         sum: {
             aggregationTemporality: 2,
             isMonotonic: true,
@@ -166,7 +166,7 @@ test('requires independent metric instance identity and correct instrument type'
     expect(() =>
         sanitizeComputerTelemetry(
             'metrics',
-            encode('grotto.operation.count', false),
+            encode('haus.operation.count', false),
             computer,
             'production'
         )
@@ -174,7 +174,7 @@ test('requires independent metric instance identity and correct instrument type'
     expect(() =>
         sanitizeComputerTelemetry(
             'metrics',
-            encode('grotto.operation.count', true),
+            encode('haus.operation.count', true),
             computer,
             'production'
         )
@@ -204,7 +204,7 @@ test('real OTLP trace and metric exporters remain compatible with the relay proj
     const address = await collector.listen({ port: 0, host: '127.0.0.1' });
     const runtime = ManagedRuntime.make(
         makeProcessTelemetryLayer({
-            serviceName: 'grotto-computer',
+            serviceName: 'haus-computer',
             environment: { OTEL_EXPORTER_OTLP_ENDPOINT: address },
             deploymentEnvironment: 'development',
         })
@@ -212,9 +212,9 @@ test('real OTLP trace and metric exporters remain compatible with the relay proj
     try {
         await runtime.runPromise(
             Effect.void.pipe(
-                withTelemetrySpan('grotto.agent.turn', {
-                    'grotto.agent.id': 'agt_owned',
-                    'grotto.operation': 'agent.turn',
+                withTelemetrySpan('haus.agent.turn', {
+                    'haus.agent.id': 'agt_owned',
+                    'haus.operation': 'agent.turn',
                 })
             )
         );
@@ -228,9 +228,9 @@ test('real OTLP trace and metric exporters remain compatible with the relay proj
             const codec = telemetryProtobuf[signal];
             const text = JSON.stringify(codec.toObject(codec.decode(payload), { longs: String }));
             expect(text).toContain('production');
-            expect(text).toContain('grotto-computer');
+            expect(text).toContain('haus-computer');
             expect(text).toContain(
-                signal === 'traces' ? 'grotto.agent.turn' : 'grotto.operation.duration'
+                signal === 'traces' ? 'haus.agent.turn' : 'haus.operation.duration'
             );
         }
     } finally {

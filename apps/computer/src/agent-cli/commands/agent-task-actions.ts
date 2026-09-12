@@ -77,7 +77,7 @@ export async function runTaskCreate(args: ParsedArgs, deps: TaskDeps): Promise<n
                 'Task create needs --title flags or a heredoc body on stdin.',
                 {
                     nextAction:
-                        'haus task create --target "#channel" <<\'GROTTOMSG\'\n<task body>\nGROTTOMSG',
+                        'haus task create --target "#channel" <<\'HAUSMSG\'\n<task body>\nHAUSMSG',
                 }
             );
         }

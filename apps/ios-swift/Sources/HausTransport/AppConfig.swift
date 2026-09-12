@@ -2,9 +2,9 @@ import Foundation
 
 /// The headers that gate the App ↔ Server wire contract.
 public enum HausAppProtocol {
-    public static let version = 5
-    public static let productVersionHeader = "x-grotto-product-version"
-    public static let protocolVersionHeader = "x-grotto-app-protocol-version"
+    public static let version = 6
+    public static let productVersionHeader = "x-haus-product-version"
+    public static let protocolVersionHeader = "x-haus-app-protocol-version"
 }
 
 /// Configuration shared by every native request to Haus Server.

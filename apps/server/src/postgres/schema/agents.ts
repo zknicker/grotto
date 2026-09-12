@@ -1,4 +1,4 @@
-import type { AgentReasoningEffort } from '@grotto/api';
+import type { AgentReasoningEffort } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
     check,
@@ -47,13 +47,13 @@ export const agentsTable = pgTable(
         desiredRuntimeId: text('desired_runtime_id'),
         description: text('description'),
         displayName: text('display_name').notNull(),
-        effectiveGrottoAgentAppliedAt: timestamp('effective_grotto_agent_applied_at', {
+        effectiveHausAgentAppliedAt: timestamp('effective_haus_agent_applied_at', {
             withTimezone: true,
         }),
-        effectiveGrottoAgentStatus: text('effective_grotto_agent_status').$type<
+        effectiveHausAgentStatus: text('effective_haus_agent_status').$type<
             'current' | 'failed' | 'pending'
         >(),
-        effectiveGrottoAgentVersion: text('effective_grotto_agent_version'),
+        effectiveHausAgentVersion: text('effective_haus_agent_version'),
         effectiveMissing: bunJsonb('effective_missing').$type<string[]>(),
         effectiveModelId: text('effective_model_id'),
         effectiveReasoningEffort: text('effective_reasoning_effort').$type<AgentReasoningEffort>(),
@@ -115,14 +115,14 @@ export const agentsTable = pgTable(
         ),
         check('agents_factory_kind', sql`${table.factoryKind} in ('ordinary', 'cove')`),
         check(
-            'agents_grotto_agent_status',
-            sql`${table.effectiveGrottoAgentStatus} is null or ${table.effectiveGrottoAgentStatus} in ('current', 'failed', 'pending')`
+            'agents_haus_agent_status',
+            sql`${table.effectiveHausAgentStatus} is null or ${table.effectiveHausAgentStatus} in ('current', 'failed', 'pending')`
         ),
         check('agents_positive_session_generation', sql`${table.sessionGeneration} > 0`),
         check('agents_session_reset_kind', sql`${table.sessionResetKind} in ('full', 'session')`),
         check(
             'agents_handle_grammar',
-            sql`${table.handle} ~ '^[a-z0-9][a-z0-9-]{1,30}$' and ((${table.factoryKind} = 'cove' and ${table.handle} = 'cove') or lower(${table.handle}) not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'grotto', 'here', 'human', 'humans', 'idle', 'system'))`
+            sql`${table.handle} ~ '^[a-z0-9][a-z0-9-]{1,30}$' and ((${table.factoryKind} = 'cove' and ${table.handle} = 'cove') or lower(${table.handle}) not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system'))`
         ),
         check(
             'agents_description_length',

@@ -1,15 +1,15 @@
-import type { AgentExecutionJournalInput, AgentExecutionJournalResult } from '@grotto/api';
+import type { AgentExecutionJournalInput, AgentExecutionJournalResult } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { ComputerConnections } from '../computers/connections.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 
 export async function requestAgentExecutionJournal(
-    db: GrottoDatabase,
+    db: HausDatabase,
     connections: ComputerConnections,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: AgentExecutionJournalInput
 ): Promise<AgentExecutionJournalResult> {
     const server = await requireServerMembership(db, member, input.serverId);

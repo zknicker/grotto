@@ -32,7 +32,7 @@ export function readImports(file: ts.SourceFile): Imports {
                 continue;
             }
             const source = module.text;
-            if (!/^effect(?:\/|$)/u.test(source) && source !== '@grotto/effect') {
+            if (!/^effect(?:\/|$)/u.test(source) && source !== '@haus/effect') {
                 continue;
             }
             imports.effect = true;

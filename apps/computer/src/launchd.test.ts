@@ -3,8 +3,8 @@ import { replaceLaunchdService } from './launchd.ts';
 
 const service = {
     domain: 'gui/501',
-    label: 'com.grotto.computer',
-    plistPath: '/Users/test/Library/LaunchAgents/com.grotto.computer.plist',
+    label: 'com.haus.computer',
+    plistPath: '/Users/test/Library/LaunchAgents/com.haus.computer.plist',
 };
 
 test('bootstraps when bootout reports an absent service', () => {

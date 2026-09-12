@@ -1,15 +1,15 @@
 import { and, eq } from 'drizzle-orm';
 import { requireChatAccess } from '../chats/chat-access.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import type { AttachmentRoot } from './attachment-root.ts';
 import { AttachmentUploadError } from './upload-attachment.ts';
 
 export async function openAttachmentDownload(
-    db: GrottoDatabase,
+    db: HausDatabase,
     root: AttachmentRoot,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: { attachmentId: string; serverId: string }
 ) {
     const [attachment] = await db

@@ -3,12 +3,12 @@ import {
     computerProtocolVersion,
     type SignedComputerRelease,
     signedComputerReleaseSchema,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import type { ComputerConnections } from './connections.ts';
 import { ComputerSetupDeniedError } from './service.ts';
 
@@ -16,9 +16,9 @@ export const productionComputerManifestUrl = 'https://releases.haus.chat/compute
 
 export async function checkComputerUpdate(input: {
     computerId: string;
-    db: GrottoDatabase;
+    db: HausDatabase;
     manifestUrl: string;
-    member: GrottoUser | null;
+    member: HausUser | null;
     serverId: string;
 }) {
     const computer = await requireComputerAdmin(input);
@@ -48,9 +48,9 @@ export async function checkComputerUpdate(input: {
 export async function startComputerUpdate(input: {
     computerId: string;
     connections: ComputerConnections;
-    db: GrottoDatabase;
+    db: HausDatabase;
     manifestUrl: string;
-    member: GrottoUser | null;
+    member: HausUser | null;
     targetVersion?: string;
     serverId: string;
 }) {
@@ -117,8 +117,8 @@ export function releaseManifestUrl(latestManifestUrl: string, releaseVersion?: s
 
 async function requireComputerAdmin(input: {
     computerId: string;
-    db: GrottoDatabase;
-    member: GrottoUser | null;
+    db: HausDatabase;
+    member: HausUser | null;
     serverId: string;
 }) {
     const membership = await requireServerMembership(input.db, input.member, input.serverId);
@@ -152,7 +152,7 @@ async function fetchProductionRelease(manifestUrl: string): Promise<SignedComput
     return signedComputerReleaseSchema.parse(await response.json());
 }
 
-async function setChecking(db: GrottoDatabase, computerId: string) {
+async function setChecking(db: HausDatabase, computerId: string) {
     await db
         .update(computersTable)
         .set({
@@ -164,7 +164,7 @@ async function setChecking(db: GrottoDatabase, computerId: string) {
 }
 
 async function recordFailure(
-    db: GrottoDatabase,
+    db: HausDatabase,
     computerId: string,
     cause: unknown,
     failedPhase: ComputerUpdateProgress['failedPhase']

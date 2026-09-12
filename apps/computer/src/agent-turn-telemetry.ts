@@ -1,4 +1,4 @@
-import { type TraceCarrier, tracePromise } from '@grotto/effect';
+import { type TraceCarrier, tracePromise } from '@haus/effect';
 import { AgentTurnTimings } from './agent-turn-timings.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import type { HarnessTokenUsage } from './harness/token-usage.ts';
@@ -39,14 +39,14 @@ export function traceAgentTurn<
     const timings = new AgentTurnTimings();
     return tracePromise(
         runtime,
-        'grotto.agent.turn',
+        'haus.agent.turn',
         {
-            'grotto.agent.id': command.agentId,
-            'grotto.chat.id': command.chatId,
-            'grotto.model.id': command.modelId,
-            'grotto.operation': 'agent.turn',
-            'grotto.run.id': command.runId,
-            'grotto.runtime.id': command.runtimeId,
+            'haus.agent.id': command.agentId,
+            'haus.chat.id': command.chatId,
+            'haus.model.id': command.modelId,
+            'haus.operation': 'agent.turn',
+            'haus.run.id': command.runId,
+            'haus.runtime.id': command.runtimeId,
         },
         (traceContext) => operation(traceContext, timings),
         command.traceContext,
@@ -54,16 +54,16 @@ export function traceAgentTurn<
             ...timings.snapshot(),
             ...(result.tokenUsage
                 ? {
-                      'grotto.tokens.input': result.tokenUsage.inputTokens,
-                      'grotto.tokens.output': result.tokenUsage.outputTokens,
-                      'grotto.tokens.cache_read': result.tokenUsage.cacheReadTokens,
-                      'grotto.tokens.cache_write': result.tokenUsage.cacheWriteTokens,
+                      'haus.tokens.input': result.tokenUsage.inputTokens,
+                      'haus.tokens.output': result.tokenUsage.outputTokens,
+                      'haus.tokens.cache_read': result.tokenUsage.cacheReadTokens,
+                      'haus.tokens.cache_write': result.tokenUsage.cacheWriteTokens,
                   }
                 : {}),
-            ...(result.failureKind ? { 'grotto.failure.kind': result.failureKind } : {}),
-            'grotto.message.count': result.messageCount,
-            'grotto.outcome': result.status,
-            'grotto.output.produced': result.outputProduced,
+            ...(result.failureKind ? { 'haus.failure.kind': result.failureKind } : {}),
+            'haus.message.count': result.messageCount,
+            'haus.outcome': result.status,
+            'haus.output.produced': result.outputProduced,
         }),
         (result) => {
             switch (result.status) {

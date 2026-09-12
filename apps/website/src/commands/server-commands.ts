@@ -1,4 +1,4 @@
-import type { Agent, Chat } from '@grotto/api';
+import type { Agent, Chat } from '@haus/api';
 import { toast } from '@heroui/react';
 import {
     Analytics01Icon,

@@ -17,7 +17,7 @@ afterEach(async () => {
 });
 
 test('refreshes changed bridge assets before a resumed session starts', async () => {
-    const root = await realpath(await mkdtemp(join(tmpdir(), 'grotto-bootstrap-refresh-')));
+    const root = await realpath(await mkdtemp(join(tmpdir(), 'haus-bootstrap-refresh-')));
     roots.push(root);
     const bridgePath = join(root, '.harness-bootstrap', 'test', 'bridge.mjs');
     await mkdir(join(root, '.harness-bootstrap', 'test'), { recursive: true });

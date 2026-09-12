@@ -2,8 +2,8 @@ import { Button, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { ServerSummary } from '../../../lib/grotto-server.tsx';
-import { grottoTrpc } from '../../../lib/grotto-server.tsx';
+import type { ServerSummary } from '../../../lib/haus-server.tsx';
+import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
@@ -11,9 +11,9 @@ import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
 
 export function ServerSettings({ server }: { server: ServerSummary }) {
     const navigate = useNavigate();
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
     const [deleting, setDeleting] = React.useState(false);
-    const remove = grottoTrpc.server.delete.useMutation({
+    const remove = hausTrpc.server.delete.useMutation({
         onSuccess: async () => {
             setDeleting(false);
             await utils.server.list.invalidate();

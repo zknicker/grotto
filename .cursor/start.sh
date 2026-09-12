@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Per-boot startup for Grotto Cloud Agents. Seeds fleet agents so a reused
+# Per-boot startup for Haus Cloud Agents. Seeds fleet agents so a reused
 # snapshot cannot pin a stale copy. The product stack starts in the
 # environment.json `dev-stack` terminal.
 set -euo pipefail

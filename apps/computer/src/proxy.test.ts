@@ -132,7 +132,7 @@ test('the loopback proxy preserves Agent API query parameters', async () => {
     }
 });
 test('serves cached message bodies locally when the Server fetch is unavailable', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-local-first-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-proxy-local-first-'));
     const location = { agentId: 'agt_local', dataRoot, serverId: 'srv_local' };
     const cached = inboxItem('msg_cached', 1);
     cached.message = agentMessage(cached);
@@ -168,7 +168,7 @@ test('serves cached message bodies locally when the Server fetch is unavailable'
     }
 });
 test('local pulls preserve the canonical more signal beyond the cached window', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-window-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-proxy-window-'));
     const location = { agentId: 'agt_window', dataRoot, serverId: 'srv_window' };
     const cached = Array.from({ length: 50 }, (_, index) => {
         const item = inboxItem(`msg_${index}`, index + 1);
@@ -196,7 +196,7 @@ test('local pulls preserve the canonical more signal beyond the cached window', 
 });
 
 test('local proxy exposes successive message-check pages until the inbox drains', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-pages-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-proxy-pages-'));
     const location = { agentId: 'agt_pages', dataRoot, serverId: 'srv_pages' };
     const cached = Array.from({ length: 80 }, (_, index) => {
         const item = inboxItem(`msg_page_${index}`, index + 1);
@@ -236,7 +236,7 @@ test('local proxy exposes successive message-check pages until the inbox drains'
 });
 
 test('a reachable local visibility receipt lands before the pull response', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-attest-order-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-proxy-attest-order-'));
     const location = { agentId: 'agt_order', dataRoot, serverId: 'srv_order' };
     const cached = inboxItem('msg_order', 1);
     cached.message = agentMessage(cached);
@@ -275,7 +275,7 @@ test('a reachable local visibility receipt lands before the pull response', asyn
 });
 
 test('consumes only messages made visible by Agent API responses', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-inbox-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-proxy-inbox-'));
     const location = { agentId: 'agt_proxy', dataRoot, serverId: 'srv_proxy' };
     const greeting = inboxItem('msg_greeting', 1);
     greeting.message = agentMessage(greeting);
@@ -365,7 +365,7 @@ test('consumes only messages made visible by Agent API responses', async () => {
 });
 
 test('returns a committed send when its visibility receipt is unavailable', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-send-receipt-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-proxy-send-receipt-'));
     const location = { agentId: 'agt_proxy', dataRoot, serverId: 'srv_proxy' };
     const shown = inboxItem('msg_shown', 1);
     await replacePendingInbox(location, [shown]);
@@ -534,7 +534,7 @@ test('forwards a bodyless mutation with neither a body nor a content-type', asyn
 });
 
 test('a pending fire routes the whole pull upstream and never attests its fire id', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-automation-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-proxy-automation-'));
     const location = { agentId: 'agt_fire', dataRoot, serverId: 'srv_fire' };
     const fire = automationInboxItem('trf_41c2d8e9');
     const cached = inboxItem('msg_cached', 2);
@@ -595,7 +595,7 @@ test('a pending fire routes the whole pull upstream and never attests its fire i
 });
 
 test('the local-first pull answers with the automations array the Agent CLI expects', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-shape-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-proxy-shape-'));
     const location = { agentId: 'agt_shape', dataRoot, serverId: 'srv_shape' };
     const cached = inboxItem('msg_shape', 1);
     cached.message = agentMessage(cached);
@@ -619,7 +619,7 @@ test('the local-first pull answers with the automations array the Agent CLI expe
 });
 
 test('a pending task assignment routes the whole pull upstream like a fire', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-proxy-assignment-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-proxy-assignment-'));
     const location = { agentId: 'agt_assign', dataRoot, serverId: 'srv_assign' };
     const assignment: AgentInboxItem = {
         chatId: 'cht_proxy',
@@ -627,7 +627,7 @@ test('a pending task assignment routes the whole pull upstream like a fire', asy
         createdAt: new Date(Date.UTC(2026, 7, 4, 0, 0, 1)).toISOString(),
         id: 'task-assign:msg_1a2b3c4d5e6f:3',
         mentioned: true,
-        senderHandle: 'grotto',
+        senderHandle: 'haus',
         senderType: 'system',
         sequence: 1,
         target: '#general',
@@ -650,7 +650,7 @@ test('a pending task assignment routes the whole pull upstream like a fire', asy
                         content: assignment.content,
                         createdAt: assignment.createdAt,
                         id: assignment.id,
-                        senderHandle: 'grotto',
+                        senderHandle: 'haus',
                         senderType: 'system',
                         target: assignment.target,
                     },
@@ -676,7 +676,7 @@ test('a pending task assignment routes the whole pull upstream like a fire', asy
         });
         expect(response.status).toBe(200);
         expect(await response.json()).toMatchObject({
-            automations: [{ id: assignment.id, senderHandle: 'grotto', senderType: 'system' }],
+            automations: [{ id: assignment.id, senderHandle: 'haus', senderType: 'system' }],
         });
         // The assignment key never enters message-visibility attestation.
         expect(attested).toEqual([['msg_cached']]);

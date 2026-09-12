@@ -1,11 +1,11 @@
-import type { AttachmentMetadata } from '@grotto/api';
+import type { AttachmentMetadata } from '@haus/api';
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 
-type AttachmentReader = Pick<GrottoDatabase, 'select'>;
-type AttachmentWriter = AttachmentReader & Pick<GrottoDatabase, 'update'>;
+type AttachmentReader = Pick<HausDatabase, 'select'>;
+type AttachmentWriter = AttachmentReader & Pick<HausDatabase, 'update'>;
 
 export class AttachmentAssociationError extends Error {
     constructor() {
@@ -16,7 +16,7 @@ export class AttachmentAssociationError extends Error {
 
 export async function requireMessageAttachments(
     db: AttachmentReader,
-    member: GrottoUser,
+    member: HausUser,
     input: {
         attachmentIds: string[];
         chatId: string;

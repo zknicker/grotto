@@ -1,4 +1,4 @@
-import type { GrottoOutputs, ServerDetail, ServerSummary } from '../../lib/grotto-server.tsx';
+import type { HausOutputs, ServerDetail, ServerSummary } from '../../lib/haus-server.tsx';
 
 /**
  * Fixture answers for every Haus API call the activation surfaces make. The
@@ -6,7 +6,7 @@ import type { GrottoOutputs, ServerDetail, ServerSummary } from '../../lib/grott
  * fake. Slugs and tokens under the `preview-` prefix select scene variants.
  */
 
-type ComputerSummary = GrottoOutputs['computer']['list'][number];
+type ComputerSummary = HausOutputs['computer']['list'][number];
 type ServerOnboarding = ServerDetail['onboarding'];
 
 const queryDelayMs = 250;
@@ -15,7 +15,7 @@ const previewComputerId = 'cmp_previewfixture1';
 const fixedTimestamp = '2026-08-01T09:00:00.000Z';
 
 export const previewServerSummaries: ServerSummary[] = [
-    { displayName: 'Haus HQ', id: 'srv_preview_hq', role: 'owner', slug: 'grotto-hq' },
+    { displayName: 'Haus HQ', id: 'srv_preview_hq', role: 'owner', slug: 'haus-hq' },
     { displayName: 'Side Projects', id: 'srv_preview_side', role: 'member', slug: 'side-projects' },
 ];
 
@@ -154,7 +154,7 @@ function previewServerDetail(slug: string): ServerDetail {
         role: 'owner',
         // The display slug, not the URL's variant slug, so rendered setup
         // commands read like a real Server's.
-        slug: 'grotto-hq',
+        slug: 'haus-hq',
         viewerUserId: 'usr_preview',
     };
 }
@@ -195,10 +195,10 @@ function normalizeLoginCode(userCode: string): string {
 
 function previewInvitation(token: string) {
     if (token === 'preview-ready') {
-        return { emailMatches: true, serverDisplayName: 'Haus HQ', serverSlug: 'grotto-hq' };
+        return { emailMatches: true, serverDisplayName: 'Haus HQ', serverSlug: 'haus-hq' };
     }
     if (token === 'preview-mismatch') {
-        return { emailMatches: false, serverDisplayName: 'Haus HQ', serverSlug: 'grotto-hq' };
+        return { emailMatches: false, serverDisplayName: 'Haus HQ', serverSlug: 'haus-hq' };
     }
     throw new Error('This invitation is no longer valid.');
 }

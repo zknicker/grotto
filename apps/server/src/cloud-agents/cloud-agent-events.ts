@@ -1,7 +1,7 @@
-import type { ServerDurableEvent } from '@grotto/api';
+import type { ServerDurableEvent } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 
@@ -15,7 +15,7 @@ export interface CloudAgentEventChat {
  * refetch the Message; the event itself carries only identities.
  */
 export async function insertCloudAgentWorkEvent(
-    db: Pick<GrottoDatabase, 'insert' | 'update'>,
+    db: Pick<HausDatabase, 'insert' | 'update'>,
     input: {
         chat: CloudAgentEventChat;
         chatId: string;
@@ -62,7 +62,7 @@ export async function insertCloudAgentWorkEvent(
 
 /** The Chat placement and Message sequence one lifecycle event needs. */
 export async function readCloudAgentEventAnchor(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     input: { chatId: string; messageId: string; serverId: string }
 ): Promise<{ chat: CloudAgentEventChat; sequence: number }> {
     const [row] = await db

@@ -2,10 +2,10 @@ import type {
     AgentActivityEvent,
     AgentSendReceipt,
     AttachmentMetadata,
-    GrottoAgentMessage,
+    HausAgentMessage,
     MessageBodyKind,
     ServerDurableEvent,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { followAgentThread } from '../agent-api/attention.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
@@ -18,7 +18,7 @@ import {
     requireAgentMessageAttachments,
 } from '../attachments/message-attachments.ts';
 import { type AttributedMessageCause, insertMessageCause } from '../automations/message-cause.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatEventsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
@@ -50,7 +50,7 @@ export interface SendAgentMessageInput {
 export interface SendAgentMessageResult {
     activities: AgentActivityEvent[];
     events: ServerDurableEvent[];
-    message: GrottoAgentMessage;
+    message: HausAgentMessage;
     receipt: AgentSendReceipt;
     wakes: Array<{ agentId: string; serverId: string }>;
 }
@@ -61,7 +61,7 @@ export interface SendAgentMessageResult {
  * grammar target and access before calling here. Idempotency is `(chat, nonce)`.
  */
 export async function sendAgentMessage(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: SendAgentMessageInput,
     agentDelivery: AgentDelivery
 ): Promise<SendAgentMessageResult> {
@@ -351,7 +351,7 @@ function toAgentCliMessage(
         displayName: string;
         handle: string;
     }
-): GrottoAgentMessage {
+): HausAgentMessage {
     return {
         attachments: agent.attachments,
         author: {

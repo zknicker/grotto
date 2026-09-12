@@ -127,7 +127,7 @@ describe('Cove onboarding presentation boundary', () => {
         );
         expect(visible).not.toMatch(/factory|acknowledg|workspace|seed|configuration/iu);
         expect(guidance.remedy).toContain('Try again');
-        expect(guidance.command).toBe('grotto-computer logs');
+        expect(guidance.command).toBe('haus-computer logs');
     });
 
     test('gives a disconnected Computer the exact recovery command', () => {
@@ -137,14 +137,14 @@ describe('Cove onboarding presentation boundary', () => {
         });
 
         expect(guidance.title).toBe('This Computer is offline');
-        expect(guidance.command).toBe('grotto-computer start');
+        expect(guidance.command).toBe('haus-computer start');
         expect(guidance.note).toContain('continues automatically');
     });
 
     test('routes update-shaped failures to the upgrade command', () => {
         for (const code of ['computer-incompatible', 'inventory-invalid'] as const) {
             expect(getCoveRepairGuidance({ code, detail: 'internal' }).command).toBe(
-                'grotto-computer upgrade'
+                'haus-computer upgrade'
             );
         }
     });

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { makeTestRuntime } from '@grotto/effect';
+import { makeTestRuntime } from '@haus/effect';
 import { CloudAgentLaunchScope } from './launch-scope.ts';
 
 test('daemon close drains an admitted launch and rejects new admission', async () => {

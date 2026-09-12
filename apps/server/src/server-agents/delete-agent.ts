@@ -1,6 +1,6 @@
-import type { DeleteAgentInput, ServerDurableEvent } from '@grotto/api';
+import type { DeleteAgentInput, ServerDurableEvent } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentDeliveryTable,
     agentInboxTable,
@@ -14,13 +14,13 @@ import {
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { clearTaskAssignments } from '../tasks/clear-task-assignments.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { AgentDeleteDeniedError } from './agent-config-errors.ts';
 
 /** Retires an Agent in the Server transaction; local Computer cleanup is never a prerequisite. */
 export async function deleteAgent(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: DeleteAgentInput
 ): Promise<{ agentId: string; computerId: string; taskEvents: ServerDurableEvent[] }> {
     return await db.transaction(async (tx) => {
@@ -116,9 +116,9 @@ export async function deleteAgent(
         await tx
             .update(agentsTable)
             .set({
-                effectiveGrottoAgentAppliedAt: null,
-                effectiveGrottoAgentStatus: null,
-                effectiveGrottoAgentVersion: null,
+                effectiveHausAgentAppliedAt: null,
+                effectiveHausAgentStatus: null,
+                effectiveHausAgentVersion: null,
                 effectiveMissing: null,
                 effectiveModelId: null,
                 effectiveReasoningEffort: null,

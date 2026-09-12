@@ -9,7 +9,7 @@ import {
 } from './lib/env-schema.ts';
 
 /**
- * Name-only contract check across the places a Grotto environment value
+ * Name-only contract check across the places a Haus environment value
  * appears: `.env.schema` (the contract), the Server's typed zod env module,
  * the bare `process.env.X` reads in the shipped Server and the release
  * scripts, the committed launchd delivery surface, and the deploy workflow.
@@ -20,7 +20,7 @@ import {
 const repositoryRoot = process.cwd();
 const schemaPath = join(repositoryRoot, '.env.schema');
 const runServerPath = join(repositoryRoot, 'apps/server/operations/run-server');
-const deployWorkflowPath = join(repositoryRoot, '.github/workflows/deploy-grotto-server.yml');
+const deployWorkflowPath = join(repositoryRoot, '.github/workflows/deploy-haus-server.yml');
 const releaseHostWorkflowPath = join(repositoryRoot, '.github/workflows/deploy-release-host.yml');
 const qualityWorkflowPath = join(repositoryRoot, '.github/workflows/quality.yml');
 const releaseWorkflowPath = join(repositoryRoot, '.github/workflows/release.yml');
@@ -58,15 +58,15 @@ const platformNames = new Set([
 const processContractNames = new Set([
     'CSC_IDENTITY_AUTO_DISCOVERY',
     'CSC_NAME',
-    'GROTTO_COMPUTER_DATA_ROOT',
-    'GROTTO_DEV_STACK',
-    'GROTTO_ELECTRON_NOTARIZE',
-    'GROTTO_MIGRATIONS_FOLDER',
-    'GROTTO_PRECOMPILED_IOS_ICON_DIR',
-    'GROTTO_RELEASE_INCLUDE_DESKTOP',
-    'GROTTO_SERVER_ORIGIN',
-    'GROTTO_STARTUP_UI',
-    'GROTTO_WEBSITE_PORT',
+    'HAUS_COMPUTER_DATA_ROOT',
+    'HAUS_DEV_STACK',
+    'HAUS_ELECTRON_NOTARIZE',
+    'HAUS_MIGRATIONS_FOLDER',
+    'HAUS_PRECOMPILED_IOS_ICON_DIR',
+    'HAUS_RELEASE_INCLUDE_DESKTOP',
+    'HAUS_SERVER_ORIGIN',
+    'HAUS_STARTUP_UI',
+    'HAUS_WEBSITE_PORT',
     'IOS_DEVELOPMENT_TEAM',
 ]);
 
@@ -149,12 +149,12 @@ for (const item of schemaItems) {
     }
 }
 
-// 2. A VITE_ value is inlined into the public Grotto App bundle at build time.
+// 2. A VITE_ value is inlined into the public Haus App bundle at build time.
 //    Marking one sensitive means a secret is about to ship to every visitor.
 for (const item of schemaItems) {
     if (item.name.startsWith('VITE_') && item.isSensitive) {
         issues.push(
-            `${item.name} is @sensitive but VITE_ values are inlined into the public Grotto App bundle.`
+            `${item.name} is @sensitive but VITE_ values are inlined into the public Haus App bundle.`
         );
     }
 }

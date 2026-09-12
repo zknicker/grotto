@@ -1,5 +1,5 @@
 {
-  "name": "@grotto/agent-manual",
+  "name": "@haus/agent-manual",
   "private": true,
   "type": "module",
   "exports": {

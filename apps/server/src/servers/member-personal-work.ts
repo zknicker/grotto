@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { visibleChats } from '../chats/chat-visibility.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     channelParticipantsTable,
     chatReadsTable,
@@ -8,7 +8,7 @@ import {
     threadFollowsTable,
 } from '../postgres/schema.ts';
 
-type PersonalWorkWriter = Pick<GrottoDatabase, 'delete' | 'insert' | 'select'>;
+type PersonalWorkWriter = Pick<HausDatabase, 'delete' | 'insert' | 'select'>;
 
 /**
  * The personal work one human holds on one Server today: Channel
@@ -52,7 +52,7 @@ export async function clearPersonalWork(
 
 /** Joins one human to the Channel every Haus server creates for everyone. */
 export async function joinAllChannel(
-    db: Pick<GrottoDatabase, 'insert' | 'select'>,
+    db: Pick<HausDatabase, 'insert' | 'select'>,
     serverId: string,
     userId: string
 ): Promise<void> {

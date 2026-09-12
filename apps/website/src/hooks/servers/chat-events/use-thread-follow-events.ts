@@ -1,4 +1,4 @@
-import { grottoTrpc } from '../../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { type ChatEventInvalidation, uniqueChatIds } from './chat-event-invalidation.ts';
 import { useChatEvent } from './use-chat-event-stream.tsx';
 
@@ -7,7 +7,7 @@ import { useChatEvent } from './use-chat-event-stream.tsx';
  * a follow change moves the Chat list and the parent Chat's summary.
  */
 export function useThreadFollowEvents() {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
     useChatEvent('thread.follow.updated', async (events, serverId) => {
         await invalidateThreadFollow({ events, serverId, utils });

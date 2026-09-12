@@ -2,14 +2,14 @@ import { Button, Description, Dropdown, Header, Label } from '@heroui/react';
 import { FileSearchIcon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import { shellBandIconSize } from '../shell/section-header.tsx';
-import type { GrottoResourceTarget } from './grotto-resource-link.ts';
+import type { HausResourceTarget } from './haus-resource-link.ts';
 
 export function ArtifactPanelSourceMenu({
     agentId,
     onOpenTarget,
 }: {
     agentId: string;
-    onOpenTarget: (target: GrottoResourceTarget) => void;
+    onOpenTarget: (target: HausResourceTarget) => void;
 }) {
     return (
         <Dropdown>

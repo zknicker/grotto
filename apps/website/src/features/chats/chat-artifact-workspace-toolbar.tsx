@@ -9,7 +9,7 @@ import type { ReactNode } from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../lib/clipboard.ts';
 import { SectionBar } from '../shell/section-header.tsx';
-import { formatGrottoResourceLink } from './grotto-resource-link.ts';
+import { formatHausResourceLink } from './haus-resource-link.ts';
 
 interface WorkspaceFilterProps {
     includeHidden: boolean;
@@ -168,7 +168,7 @@ function WorkspaceOptions({ selectedPath }: { selectedPath: null | string }) {
                         }
                         if (key === 'copy-link') {
                             void writeClipboardText(
-                                formatGrottoResourceLink({
+                                formatHausResourceLink({
                                     kind: 'workspaceFile',
                                     path: selectedPath,
                                 })

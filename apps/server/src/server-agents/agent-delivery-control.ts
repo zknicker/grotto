@@ -1,10 +1,10 @@
-import type { AgentDeliveryControlInput, AgentDeliveryState } from '@grotto/api';
+import type { AgentDeliveryControlInput, AgentDeliveryState } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import { countQueuedInboxItems, readDeliveryState } from '../agent-delivery/store.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { AgentConfigDeniedError } from './agent-config-errors.ts';
 
 /**
@@ -12,8 +12,8 @@ import { AgentConfigDeniedError } from './agent-config-errors.ts';
  * Admin capability, mirroring Agent configuration.
  */
 export async function assertAgentDeliveryAccess(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: AgentDeliveryControlInput
 ): Promise<void> {
     const server = await requireServerMembership(db, member, input.serverId);
@@ -30,8 +30,8 @@ export async function assertAgentDeliveryAccess(
 
 /** Authorizes a human session or full reset of an active Agent. */
 export async function assertAgentResetAccess(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: AgentDeliveryControlInput
 ): Promise<void> {
     await assertAgentDeliveryAccess(db, member, input);
@@ -39,8 +39,8 @@ export async function assertAgentResetAccess(
 
 /** Reads one Agent's Server-owned delivery state for any Server member. */
 export async function readAgentDeliveryState(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: AgentDeliveryControlInput
 ): Promise<AgentDeliveryState> {
     await requireServerMembership(db, member, input.serverId);
@@ -59,7 +59,7 @@ export async function readAgentDeliveryState(
 
 /** Refuses any read or control targeting an id that is not a live Agent here. */
 export async function requireAgent(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; serverId: string }
 ): Promise<void> {
     const [agent] = await db

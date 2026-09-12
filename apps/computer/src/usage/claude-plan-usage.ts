@@ -3,7 +3,7 @@ import {
     ClaudeUsageRequestError,
     type ClaudeUsageSnapshot,
     getClaudeUsage,
-} from '@grotto/claude-usage';
+} from '@haus/claude-usage';
 import {
     readClaudePlanUsageState,
     saveClaudePlanUsageSnapshot,

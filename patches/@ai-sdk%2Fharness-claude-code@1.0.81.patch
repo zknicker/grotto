@@ -14,7 +14,7 @@ index 76b1e86b3..2b54677ed 100644
            }
            queryInput.observeResult();
            if (!queryInput.hasActiveUserMessages()) {
-+            if (start.env?.GROTTO_CLAUDE_USAGE_REFRESH === '1') {
++            if (start.env?.HAUS_CLAUDE_USAGE_REFRESH === '1') {
 +              try {
 +                planUsage =
 +                  await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
@@ -59,7 +59,7 @@ index 99221af2c..018d4ed94 100644
            }
            queryInput.observeResult();
            if (!queryInput.hasActiveUserMessages()) {
-+            if (start.env?.GROTTO_CLAUDE_USAGE_REFRESH === "1") {
++            if (start.env?.HAUS_CLAUDE_USAGE_REFRESH === "1") {
 +              try {
 +                planUsage = await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
 +              } catch {

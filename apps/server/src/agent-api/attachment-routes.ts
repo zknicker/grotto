@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { AgentAttachmentError, uploadAgentAttachment, viewAgentAttachment } from './attachments.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 
@@ -9,7 +9,7 @@ const attachmentIdSchema = z.string().regex(/^att_[A-Za-z0-9_-]{16}$/u);
 
 export function registerAgentAttachmentRoutes(
     app: FastifyInstance,
-    options: { db: GrottoDatabase; root: AttachmentRoot }
+    options: { db: HausDatabase; root: AttachmentRoot }
 ) {
     app.post(
         '/api/agent/attachments/upload',

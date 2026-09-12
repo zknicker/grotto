@@ -1,5 +1,5 @@
 import { and, asc, eq, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
 
 /**
@@ -11,7 +11,7 @@ import { chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
  * Returns `null` when the Server has no active human to hand the DM to.
  */
 export async function resolveAgentDmOwnerUserId(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     input: { contextChatId: string | null; creatorAgentId: string; serverId: string }
 ): Promise<string | null> {
     if (input.contextChatId) {
@@ -28,11 +28,7 @@ export async function resolveAgentDmOwnerUserId(
 }
 
 /** The active human on one DM Chat, or null when the Chat is not a live DM. */
-async function readDmChatHuman(
-    db: Pick<GrottoDatabase, 'select'>,
-    serverId: string,
-    chatId: string
-) {
+async function readDmChatHuman(db: Pick<HausDatabase, 'select'>, serverId: string, chatId: string) {
     const [row] = await db
         .select({ userId: chatsTable.dmMemberOneUserId })
         .from(chatsTable)
@@ -50,7 +46,7 @@ async function readDmChatHuman(
 
 /** The human an Agent already DMs with, only when exactly one such human exists. */
 async function readSoleAgentDmHuman(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     agentId: string
 ) {
@@ -71,7 +67,7 @@ async function readSoleAgentDmHuman(
 }
 
 /** The longest-standing Server Owner, the Server's last resort for ownership. */
-async function readServerOwnerUserId(db: Pick<GrottoDatabase, 'select'>, serverId: string) {
+async function readServerOwnerUserId(db: Pick<HausDatabase, 'select'>, serverId: string) {
     const [row] = await db
         .select({ userId: serverMembershipsTable.userId })
         .from(serverMembershipsTable)

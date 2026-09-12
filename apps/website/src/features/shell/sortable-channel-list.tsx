@@ -10,7 +10,7 @@ import {
     useSensors,
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import type { Agent, Chat } from '@grotto/api';
+import type { Agent, Chat } from '@haus/api';
 import { Sidebar } from '@heroui-pro/react';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
@@ -59,7 +59,7 @@ export function SortableChannelList({
     serverId: string;
     slug: string;
 }) {
-    const storageKey = `grotto.sidebar.channels.${serverId}`;
+    const storageKey = `haus.sidebar.channels.${serverId}`;
     const storage = globalThis.window?.localStorage;
     const [storedIds, setStoredIds] = React.useState(() =>
         storage ? readChannelOrder(storage, storageKey) : []

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { makeTelemetryLayer, tracePromise } from '@grotto/effect';
+import { makeTelemetryLayer, tracePromise } from '@haus/effect';
 import {
     AggregationTemporality,
     InMemoryMetricExporter,
@@ -19,7 +19,7 @@ test('scheduler checks emit health metrics while real work keeps its operation s
             TestContext.TestContext,
             makeTelemetryLayer({
                 metricReader: reader,
-                serviceName: 'grotto-test',
+                serviceName: 'haus-test',
                 spanProcessor: new SimpleSpanProcessor(spans),
             })
         )
@@ -32,7 +32,7 @@ test('scheduler checks emit health metrics while real work keeps its operation s
                 if (attempts === 1) {
                     throw new Error('private database failure');
                 }
-                await tracePromise(runtime, 'grotto.agent.dispatch', {}, async () => undefined);
+                await tracePromise(runtime, 'haus.agent.dispatch', {}, async () => undefined);
             },
         },
         { runtime }
@@ -47,15 +47,13 @@ test('scheduler checks emit health metrics while real work keeps its operation s
         await runtime.runPromise(TestClock.adjust('4 seconds'));
         expect(attempts).toBe(2);
         expect(reminders.health().status).toBe('healthy');
-        expect(spans.getFinishedSpans().map((span) => span.name)).toEqual([
-            'grotto.agent.dispatch',
-        ]);
+        expect(spans.getFinishedSpans().map((span) => span.name)).toEqual(['haus.agent.dispatch']);
         await reader.forceFlush();
         const points = metrics
             .getMetrics()
             .flatMap((resource) => resource.scopeMetrics)
             .flatMap((scope) => scope.metrics)
-            .filter((metric) => metric.descriptor.name === 'grotto.operation.count')
+            .filter((metric) => metric.descriptor.name === 'haus.operation.count')
             .flatMap((metric) => metric.dataPoints.map((point) => point.attributes));
         expect(points).toContainEqual({ operation: 'delivery.retry-sweep', outcome: 'failure' });
         expect(points).toContainEqual({ operation: 'delivery.retry-sweep', outcome: 'success' });

@@ -1,4 +1,4 @@
-import type { AgentSessionRotation } from '@grotto/api';
+import type { AgentSessionRotation } from '@haus/api';
 import { formatRelativeTime } from '../../../lib/format.ts';
 
 /**

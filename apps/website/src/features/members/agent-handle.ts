@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 
 export function createAgentHandle(name: string, agents: readonly Pick<Agent, 'handle'>[]) {
     const normalized =

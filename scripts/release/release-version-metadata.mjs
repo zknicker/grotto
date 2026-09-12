@@ -8,8 +8,8 @@ import {
 import { readJson, readText, updateJson, writeText } from './release-utils.mjs';
 
 const paths = {
-    agent: 'packages/grotto-api/grotto-agent.json',
-    product: 'packages/grotto-api/grotto-product.json',
+    agent: 'packages/haus-api/haus-agent.json',
+    product: 'packages/haus-api/haus-product.json',
     computer: 'apps/computer/package.json',
     iosProject: 'apps/ios-swift/project.yml',
     iosGeneratedProject: 'apps/ios-swift/Haus.xcodeproj/project.pbxproj',

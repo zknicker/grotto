@@ -1,4 +1,4 @@
-import type { Agent, Trigger } from '@grotto/api';
+import type { Agent, Trigger } from '@haus/api';
 import { Sheet } from '@heroui-pro/react';
 import * as React from 'react';
 import type { TriggerSheetMode } from './agent-trigger-model.ts';

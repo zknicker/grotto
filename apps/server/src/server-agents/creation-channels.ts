@@ -1,4 +1,4 @@
-import type { ServerDurableEvent } from '@grotto/api';
+import type { ServerDurableEvent } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
 import { AgentTargetError } from '../agent-api/resolve-target.ts';
 import {
@@ -7,7 +7,7 @@ import {
     joinChannelAgents,
 } from '../chats/channel-agent-membership.ts';
 import { insertLifecycleEvent } from '../chats/lifecycle-events.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { channelAgentParticipantsTable, chatsTable } from '../postgres/schema.ts';
 
 /**
@@ -17,7 +17,7 @@ import { channelAgentParticipantsTable, chatsTable } from '../postgres/schema.ts
  * nothing.
  */
 export async function requireCreationChannels(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     targets: readonly string[]
 ): Promise<JoinableChannel[]> {
@@ -36,7 +36,7 @@ export async function requireCreationChannels(
 
 /** Puts the new Agent in the lanes the request named, on top of `#all`. */
 export async function joinCreationChannels(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     agentId: string,
     channels: readonly JoinableChannel[]
@@ -48,7 +48,7 @@ export async function joinCreationChannels(
 
 /** The channels an Agent is in, `#all` first, as the receipt names them. */
 export async function readAgentChannels(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     agentId: string
 ): Promise<{ id: string; name: string }[]> {
@@ -81,7 +81,7 @@ export async function readAgentChannels(
  * save does.
  */
 export async function channelMembershipEvents(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     channels: readonly { id: string }[]
 ): Promise<ServerDurableEvent[]> {

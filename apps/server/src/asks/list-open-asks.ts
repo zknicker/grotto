@@ -1,14 +1,14 @@
-import type { ChatMessage, OpenAsk } from '@grotto/api';
+import type { ChatMessage, OpenAsk } from '@haus/api';
 import { and, asc, eq, getTableColumns } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { visibleChats } from '../chats/chat-visibility.ts';
 import { readChatMessageReactions } from '../chats/message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from '../chats/message-shape.ts';
 import { readMessagesById } from '../chats/read-messages-by-id.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, asksTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { toAsk } from './ask-shape.ts';
 
 const parentChatsTable = alias(chatsTable, 'parent_chat');
@@ -29,8 +29,8 @@ interface ConversationChat {
  * the row rather than hiding a partial one.
  */
 export async function listOpenAsks(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { serverId: string }
 ): Promise<OpenAsk[]> {
     await requireServerMembership(db, member, input.serverId);

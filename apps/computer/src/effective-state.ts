@@ -1,15 +1,15 @@
 import type { Dirent } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { type AgentReasoningEffort, type GrottoAgentStatus, grottoAgentVersion } from '@grotto/api';
+import { type AgentReasoningEffort, type HausAgentStatus, hausAgentVersion } from '@haus/api';
 import { readAppliedAgentConfiguration } from './agent-configuration.ts';
 import { readAgentSessionState } from './harness/session-store.ts';
 
 export interface EffectiveAgentState {
     agentId: string;
-    grottoAgentAppliedAt: string | null;
-    grottoAgentStatus: GrottoAgentStatus;
-    grottoAgentVersion: string | null;
+    hausAgentAppliedAt: string | null;
+    hausAgentStatus: HausAgentStatus;
+    hausAgentVersion: string | null;
     missingResources: string[];
     modelId: string | null;
     reasoningEffort: AgentReasoningEffort | null;
@@ -41,7 +41,7 @@ export async function readEffectiveAgentStates(
                     readAppliedAgentConfiguration(agentRoot),
                     readAgentSessionState(agentRoot),
                 ]);
-                const versionState = effectiveGrottoAgentState(session);
+                const versionState = effectiveHausAgentState(session);
                 if (configuration) {
                     return {
                         agentId: entry.name,
@@ -73,18 +73,18 @@ export async function readEffectiveAgentStates(
     );
 }
 
-function effectiveGrottoAgentState(session: Awaited<ReturnType<typeof readAgentSessionState>>) {
-    const appliedVersion = session?.grottoAgentVersion ?? null;
-    const status: GrottoAgentStatus =
-        appliedVersion === grottoAgentVersion
+function effectiveHausAgentState(session: Awaited<ReturnType<typeof readAgentSessionState>>) {
+    const appliedVersion = session?.hausAgentVersion ?? null;
+    const status: HausAgentStatus =
+        appliedVersion === hausAgentVersion
             ? 'current'
-            : session?.grottoAgentStatus === 'failed'
+            : session?.hausAgentStatus === 'failed'
               ? 'failed'
               : 'pending';
     return {
-        grottoAgentAppliedAt: session?.grottoAgentAppliedAt ?? null,
-        grottoAgentStatus: status,
-        grottoAgentVersion: appliedVersion,
+        hausAgentAppliedAt: session?.hausAgentAppliedAt ?? null,
+        hausAgentStatus: status,
+        hausAgentVersion: appliedVersion,
     };
 }
 

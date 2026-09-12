@@ -7,8 +7,8 @@ import type {
     WorkspaceFileContent,
     WorkspaceFileEntry,
     WorkspaceFileList,
-} from '@grotto/api';
-import { agentWorkspaceRequestSchema } from '@grotto/api';
+} from '@haus/api';
+import { agentWorkspaceRequestSchema } from '@haus/api';
 import {
     isVisibleWorkspaceEntry,
     normalizeWorkspacePath,

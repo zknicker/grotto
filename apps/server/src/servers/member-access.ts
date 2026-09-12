@@ -1,7 +1,7 @@
-import type { ServerMember, ServerMemberAuthorityRefusal, ServerRole } from '@grotto/api';
+import type { ServerMember, ServerMemberAuthorityRefusal, ServerRole } from '@haus/api';
 import { and, eq, isNull, ne, sql } from 'drizzle-orm';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable, usersTable } from '../postgres/schema.ts';
 
 export class ServerMemberNotFoundError extends Error {
@@ -40,7 +40,7 @@ const refusalMessages: Record<ServerMemberAuthorityRefusal, string> = {
     'use-leave': 'Leave the Server instead of removing yourself.',
 };
 
-type MembershipReader = Pick<GrottoDatabase, 'select'>;
+type MembershipReader = Pick<HausDatabase, 'select'>;
 
 export interface CurrentMembership {
     avatarId: null | string;

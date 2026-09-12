@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@grotto/api';
+import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@haus/api';
 import { WebSocket } from 'ws';
 import { readClerkSessionFixture, signInAsClerkHuman } from '../support/clerk-session.ts';
 import { createClient, runAgentAction } from '../support/server.ts';
@@ -31,30 +31,30 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     await page.getByRole('button', { name: 'Create a Server' }).click();
     await expect(nameField).toBeVisible();
 
-    await nameField.fill('Grotto HQ');
+    await nameField.fill('Haus HQ');
     const addressField = page.getByLabel('Address');
-    await expect(addressField).toHaveValue('grotto-hq');
+    await expect(addressField).toHaveValue('haus-hq');
     await addressField.fill('custom-address');
     await nameField.fill('Hearth');
     await expect(addressField).toHaveValue('custom-address');
-    await addressField.fill('grotto-hq');
+    await addressField.fill('haus-hq');
     await page.getByRole('button', { name: 'Create Server' }).click();
 
-    await expect(page).toHaveURL(/\/s\/grotto-hq$/u);
+    await expect(page).toHaveURL(/\/s\/haus-hq$/u);
     await expect(page.getByRole('heading', { level: 1, name: 'Connect a Computer' })).toBeVisible();
     await expect(
-        page.getByText('curl -fsSL https://releases.grotto.sh/computer/install.sh | sh')
+        page.getByText('curl -fsSL https://releases.haus.chat/computer/install.sh | sh')
     ).toBeVisible();
-    await expect(page.getByText('$HOME/.local/bin/grotto-computer setup /grotto-hq')).toBeVisible();
+    await expect(page.getByText('$HOME/.local/bin/haus-computer setup /haus-hq')).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
 
     // Even a direct destination stays behind the route-level gate.
-    await page.goto('/s/grotto-hq/members');
+    await page.goto('/s/haus-hq/members');
     await expect(page.getByRole('heading', { level: 1, name: 'Connect a Computer' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 1, name: 'Members' })).toHaveCount(0);
 
-    const server = await owner.server.bySlug.query({ slug: 'grotto-hq' });
-    const computer = await startComputerSetup({ serverId: server.id, slug: 'grotto-hq' });
+    const server = await owner.server.bySlug.query({ slug: 'haus-hq' });
+    const computer = await startComputerSetup({ serverId: server.id, slug: 'haus-hq' });
     try {
         const approvalContext = await browser.newContext();
         let attachment: Awaited<ReturnType<typeof computer.waitForAttachment>>;
@@ -63,11 +63,11 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
             await signInAsClerkHuman(approvalPage);
             await approvalPage.goto(computer.verificationUrl);
             await expect(
-                approvalPage.getByRole('heading', { name: 'Approve Grotto Computer?' })
+                approvalPage.getByRole('heading', { name: 'Approve Haus Computer?' })
             ).toBeVisible();
 
             await page.context().setOffline(true);
-            await approvalPage.getByRole('button', { name: 'Approve Grotto Computer' }).click();
+            await approvalPage.getByRole('button', { name: 'Approve Haus Computer' }).click();
             await expect(
                 approvalPage.getByRole('heading', { name: 'Signed in — finishing the connection' })
             ).toBeVisible();
@@ -78,7 +78,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
             ).toHaveCount(0);
 
             attachment = await computer.waitForAttachment();
-            expect(attachment).toMatchObject({ serverId: server.id, slug: 'grotto-hq' });
+            expect(attachment).toMatchObject({ serverId: server.id, slug: 'haus-hq' });
             expect(
                 (await stat(join(computer.dataRoot, 'servers', server.id, 'attachment.json')))
                     .mode & 0o777
@@ -98,7 +98,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
             await expect
                 .poll(
                     async () =>
-                        (await owner.server.bySlug.query({ slug: 'grotto-hq' })).onboarding.phase
+                        (await owner.server.bySlug.query({ slug: 'haus-hq' })).onboarding.phase
                 )
                 .toBe('awaiting-cove');
             await expect(
@@ -125,13 +125,13 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
 
         await page.reload();
         await expect(page.getByRole('heading', { level: 1, name: 'Meet Cove' })).toBeVisible();
-        await page.goto('/s/grotto-hq/tasks');
+        await page.goto('/s/haus-hq/tasks');
         await expect(page.getByRole('heading', { level: 1, name: 'Meet Cove' })).toBeVisible();
         await expect(page.getByRole('heading', { level: 1, name: 'Tasks' })).toHaveCount(0);
 
         socket.close();
         await expect(page.getByRole('alert')).toContainText('This Computer is offline');
-        await expect(page.getByRole('alert')).toContainText('grotto-computer start');
+        await expect(page.getByRole('alert')).toContainText('haus-computer start');
         const reconnected = await connectComputer(attachment.credential);
         await expect(page.getByRole('alert')).toHaveCount(0);
 
@@ -151,7 +151,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
             })
         );
         await expect(page.getByRole('alert')).toContainText('Cove’s setup didn’t finish');
-        await expect(page.getByRole('alert')).toContainText('grotto-computer logs');
+        await expect(page.getByRole('alert')).toContainText('haus-computer logs');
         await expect(page.getByText('Workspace seed failed.')).toHaveCount(0);
 
         const replay = socketMessage(reconnected, 'cove-apply');
@@ -170,7 +170,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
                 type: 'cove-apply-result',
             })
         );
-        await expect(page).toHaveURL(/\/s\/grotto-hq\/chats\//u);
+        await expect(page).toHaveURL(/\/s\/haus-hq\/chats\//u);
         await expect(page.getByText('onboarding-owner', { exact: true }).first()).toBeVisible();
         const greetingStart = await greetingStartPromise;
         expect(greetingStart).toMatchObject({
@@ -201,7 +201,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
                 type: 'turn',
             })
         );
-        await page.goto('/s/grotto-hq/members');
+        await page.goto('/s/haus-hq/members');
         await expect(page.getByRole('heading', { level: 1, name: 'Meet Cove' })).toHaveCount(0);
         const coveRow = page.getByRole('link', { name: 'Cove' });
         await expect(coveRow).toBeVisible();
@@ -232,7 +232,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         });
         const greeting = 'Hi, I’m Cove. Let’s turn your first idea into real work.';
         await sendAgentGreeting(runnerToken, greeting, String(command.applicationId));
-        await page.goto('/s/grotto-hq');
+        await page.goto('/s/haus-hq');
         const messages = page.getByLabel('Messages', { exact: true });
         await expect(messages.getByText(greeting, { exact: true })).toBeVisible();
         const coveAvatar = messages.getByRole('img', { name: 'Cove' });
@@ -275,12 +275,12 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
                 type: 'cove-apply-result',
             })
         );
-        await page.goto('/s/grotto-hq');
-        await expect(page).toHaveURL(/\/s\/grotto-hq\/chats\//u);
+        await page.goto('/s/haus-hq');
+        await expect(page).toHaveURL(/\/s\/haus-hq\/chats\//u);
         await expect(page.getByText('onboarding-owner', { exact: true }).first()).toBeVisible();
         await expect(messages.getByText(greeting, { exact: true })).toHaveCount(1);
         await expect(page.getByText('Getting Cove ready…')).toHaveCount(0);
-        await page.goto('/s/grotto-hq/members');
+        await page.goto('/s/haus-hq/members');
         await page.getByRole('link', { name: 'Cove' }).click();
         await runAgentAction(page, 'Cove', 'Full reset');
         const resetDialog = page.getByRole('alertdialog', { name: 'Full Reset?' });
@@ -298,8 +298,8 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         await deleteDialog.getByLabel(/Type Cove to confirm/iu).fill('Cove');
         await deleteDialog.getByRole('button', { name: 'Delete Agent' }).click();
         await expect(page.getByRole('link', { name: 'Cove' })).toHaveCount(0);
-        await page.goto('/s/grotto-hq');
-        await expect(page).toHaveURL(/\/s\/grotto-hq\/chats\//u);
+        await page.goto('/s/haus-hq');
+        await expect(page).toHaveURL(/\/s\/haus-hq\/chats\//u);
         await expect(page.getByRole('heading', { level: 1, name: 'Meet Cove' })).toHaveCount(0);
         await expect(page.getByRole('row', { name: 'onboarding-owner' })).toHaveCount(1);
         await expect(messages.getByText(greeting, { exact: true })).toHaveCount(1);
@@ -314,7 +314,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
 });
 
 test('a human without membership cannot open the Server', async ({ page }) => {
-    await page.goto('/s/grotto-hq');
+    await page.goto('/s/haus-hq');
 
     await expect(page.getByText('Server unavailable')).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
@@ -343,8 +343,8 @@ const computerEntrypoint = fileURLToPath(
 );
 
 async function startComputerSetup(options: { serverId: string; slug: string }) {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-e2e-computer-'));
-    const serverPort = process.env.GROTTO_SERVER_PORT;
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-e2e-computer-'));
+    const serverPort = process.env.HAUS_SERVER_PORT;
     if (!serverPort) {
         throw new Error('The hosted Server port is not configured.');
     }
@@ -352,12 +352,12 @@ async function startComputerSetup(options: { serverId: string; slug: string }) {
     const child = spawn('bun', [computerEntrypoint, 'setup', `/${options.slug}`], {
         env: {
             ...process.env,
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
-            GROTTO_COMPUTER_INVENTORY: JSON.stringify(usableInventory),
-            GROTTO_COMPUTER_ONESHOT: '1',
-            GROTTO_COMPUTER_USAGE_DISABLED: '1',
-            GROTTO_SERVER_ORIGIN: serverOrigin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_DISABLE_BROWSER_OPEN: '1',
+            HAUS_COMPUTER_INVENTORY: JSON.stringify(usableInventory),
+            HAUS_COMPUTER_ONESHOT: '1',
+            HAUS_COMPUTER_USAGE_DISABLED: '1',
+            HAUS_SERVER_ORIGIN: serverOrigin,
         },
         stderr: 'pipe',
         stdin: 'ignore',
@@ -383,7 +383,7 @@ async function startComputerSetup(options: { serverId: string; slug: string }) {
                 if (child.exitCode !== null || child.signalCode !== null) {
                     const exitCode = await exited;
                     if (exitCode !== 0) {
-                        throw new Error(`grotto-computer setup failed:\n${stderr.text}`);
+                        throw new Error(`haus-computer setup failed:\n${stderr.text}`);
                     }
                     stopped = true;
                     return;
@@ -391,7 +391,7 @@ async function startComputerSetup(options: { serverId: string; slug: string }) {
                 const result = await runComputerCli(['stop'], dataRoot, serverOrigin);
                 if (result.exitCode !== 0) {
                     throw new Error(
-                        `grotto-computer stop failed:\n${result.stderr || result.stdout}`
+                        `haus-computer stop failed:\n${result.stderr || result.stdout}`
                     );
                 }
                 await exited;
@@ -429,10 +429,10 @@ async function runComputerCli(args: string[], dataRoot: string, serverOrigin: st
     const child = spawn('bun', [computerEntrypoint, ...args], {
         env: {
             ...process.env,
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
-            GROTTO_COMPUTER_USAGE_DISABLED: '1',
-            GROTTO_SERVER_ORIGIN: serverOrigin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_DISABLE_BROWSER_OPEN: '1',
+            HAUS_COMPUTER_USAGE_DISABLED: '1',
+            HAUS_SERVER_ORIGIN: serverOrigin,
         },
         stderr: 'pipe',
         stdin: 'ignore',
@@ -501,7 +501,7 @@ async function waitForStoredAttachment(dataRoot: string, serverId: string) {
 
 async function connectComputer(credential: string) {
     const socket = new WebSocket(
-        `ws://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/computer/attachment`
+        `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
     );
     await new Promise<void>((resolve, reject) => {
         socket.once('open', resolve);
@@ -556,7 +556,7 @@ async function mintRunner(input: {
     runId: string;
 }) {
     const response = await fetch(
-        `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/computer/runner/mint`,
+        `http://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/runner/mint`,
         {
             body: JSON.stringify({
                 agentId: input.agentId,
@@ -575,7 +575,7 @@ async function mintRunner(input: {
 
 async function sendAgentGreeting(token: string, content: string, applicationId: string) {
     const response = await fetch(
-        `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}/api/agent/messages/send`,
+        `http://127.0.0.1:${process.env.HAUS_SERVER_PORT}/api/agent/messages/send`,
         {
             body: JSON.stringify({
                 content,

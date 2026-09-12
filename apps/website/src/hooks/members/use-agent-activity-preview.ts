@@ -1,16 +1,16 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 const previewEventLimit = 5;
 
 export function useAgentActivityPreview(serverId: string, agentId: string) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
     const input = { agentId, limit: previewEventLimit, serverId };
     const invalidate = () => {
         void utils.agent.activityHistory.invalidate(input);
     };
 
-    grottoTrpc.agent.onActivity.useSubscription(
+    hausTrpc.agent.onActivity.useSubscription(
         { serverId },
         {
             onData: (event) => {
@@ -22,5 +22,5 @@ export function useAgentActivityPreview(serverId: string, agentId: string) {
         }
     );
 
-    return grottoTrpc.agent.activityHistory.useQuery(input, queryPolicy.syncedSnapshot);
+    return hausTrpc.agent.activityHistory.useQuery(input, queryPolicy.syncedSnapshot);
 }

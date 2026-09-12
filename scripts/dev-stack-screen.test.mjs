@@ -12,15 +12,15 @@ function snapshot(overrides = {}) {
     return {
         config: {
             desktopEnabled: true,
-            grottoServerUrl: 'http://localhost:8090',
-            postgresDataPath: '~/.grotto/dev/test/postgres',
+            hausServerUrl: 'http://localhost:8090',
+            postgresDataPath: '~/.haus/dev/test/postgres',
             websiteUrl: 'http://localhost:3100',
         },
         phase: 'starting',
         processes: {
             computer: { status: 'waiting' },
             desktop: { status: 'waiting' },
-            grotto: { status: 'waiting' },
+            haus: { status: 'waiting' },
             postgres: { status: 'waiting' },
             website: { status: 'waiting' },
         },
@@ -44,7 +44,7 @@ test('streams Computer startup and emits the final ready block', () => {
         processes: {
             computer: { status: 'running' },
             desktop: { status: 'running' },
-            grotto: { status: 'running' },
+            haus: { status: 'running' },
             postgres: { status: 'running' },
             website: { status: 'running' },
         },

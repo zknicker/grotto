@@ -1,4 +1,4 @@
-import type { CloudAgentWork, ThreadCloudAgentWork } from '@grotto/api';
+import type { CloudAgentWork, ThreadCloudAgentWork } from '@haus/api';
 
 /** Stable creation order keeps the carousel from moving when a Run settles. */
 export function indexCloudAgentWorkByThreadAnchor(

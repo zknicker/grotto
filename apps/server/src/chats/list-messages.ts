@@ -1,8 +1,8 @@
-import type { ChatMessage } from '@grotto/api';
+import type { ChatMessage } from '@haus/api';
 import { and, desc, eq, getTableColumns, lt } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
     chatMessagesTable,
@@ -12,15 +12,15 @@ import {
 import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
 import { requireThreadAccess } from '../threads/resolve-thread-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { ChatNotFoundError, requireChatAccess } from './chat-access.ts';
 import { readMessageBodies } from './message-bodies.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
 
 export async function listChatMessages(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: {
         beforeSequence?: number;
         chatId: string;

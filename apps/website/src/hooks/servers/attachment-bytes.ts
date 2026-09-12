@@ -1,5 +1,5 @@
 import { getClerkSessionToken } from '../../lib/clerk.tsx';
-import { getGrottoServerOrigin } from '../../lib/grotto-server.tsx';
+import { getHausServerOrigin } from '../../lib/haus-server.tsx';
 
 export async function fetchAttachmentBlob({
     attachmentId,
@@ -16,7 +16,7 @@ export async function fetchAttachmentBlob({
     }
 
     const response = await fetch(
-        new URL(`/attachments/${serverId}/${attachmentId}`, getGrottoServerOrigin()),
+        new URL(`/attachments/${serverId}/${attachmentId}`, getHausServerOrigin()),
         {
             headers: { authorization: `Bearer ${token}` },
             signal,

@@ -1,14 +1,14 @@
-import type { ServerDurableEvent } from '@grotto/api';
+import type { ServerDurableEvent } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, chatsTable } from '../postgres/schema.ts';
 
 export type ReminderEventAction = 'canceled' | 'fired' | 'scheduled' | 'snoozed' | 'updated';
 
 export async function insertReminderChangedEvent(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         action: ReminderEventAction;
         chatId: string;
@@ -49,7 +49,7 @@ export async function insertReminderChangedEvent(
 }
 
 export async function insertAnchoredReminderChangedEvent(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         action: ReminderEventAction;
         chatId: string;

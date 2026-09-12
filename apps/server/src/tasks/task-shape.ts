@@ -1,6 +1,6 @@
-import type { MessageTask, TaskLabel } from '@grotto/api';
+import type { MessageTask, TaskLabel } from '@haus/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { messageTaskLabelsTable, messageTasksTable, taskLabelsTable } from '../postgres/schema.ts';
 import { threadChatIdForAnchor } from '../threads/thread-id.ts';
 import { loadLiveTaskMessageIds } from './task-liveness.ts';
@@ -16,7 +16,7 @@ export interface TaskDerivation {
 }
 
 export async function findMessageTask(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     messageId: string
 ): Promise<MessageTask | null> {
@@ -35,7 +35,7 @@ export async function findMessageTask(
 }
 
 export async function listMessageTaskMap(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     messageIds: string[]
 ): Promise<Map<string, MessageTask>> {
@@ -57,7 +57,7 @@ export async function listMessageTaskMap(
 }
 
 export async function toMessageTask(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     row: MessageTaskRow
 ): Promise<MessageTask> {
     const [task] = await projectMessageTasks(db, row.serverId, [row]);
@@ -74,7 +74,7 @@ export async function toMessageTask(
  * write queues behind it forever.
  */
 export async function projectMessageTasks(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     rows: MessageTaskRow[],
     knownLabels?: Map<string, TaskLabel[]>
@@ -122,7 +122,7 @@ export function toMessageTaskWithDerivation(
 }
 
 export async function listTaskLabelMap(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     messageIds: string[]
 ): Promise<Map<string, TaskLabel[]>> {

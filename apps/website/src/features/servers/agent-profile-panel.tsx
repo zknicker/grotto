@@ -5,7 +5,7 @@ import {
     useAgentProfilePane,
 } from '../../hooks/pane/use-agent-profile-pane.ts';
 import { useChatSidePane } from '../../hooks/pane/use-chat-side-pane.ts';
-import type { ServerDetail } from '../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../lib/haus-server.tsx';
 import { ChatSidePaneShell } from '../chats/chat-side-pane-shell.tsx';
 import { AgentPeek } from '../members/agent-peek/agent-peek.tsx';
 import { AgentLoading } from '../members/agent-profile/agent-loading.tsx';

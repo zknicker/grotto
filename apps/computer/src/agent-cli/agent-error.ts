@@ -1,4 +1,4 @@
-import type { TaskClaimConflict } from '@grotto/api';
+import type { TaskClaimConflict } from '@haus/api';
 import { formatTaskClaimConflict } from './agent-claim-conflict.ts';
 
 export type AgentCliErrorCode =

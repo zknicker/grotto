@@ -1,4 +1,4 @@
-import type { AskStatus } from '@grotto/api';
+import type { AskStatus } from '@haus/api';
 
 /** The word an Ask marker leads with, shared by Chat and the Inbox. */
 export const askMarkerLabel = 'Ask';

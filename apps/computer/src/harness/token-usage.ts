@@ -1,4 +1,4 @@
-import { type ClaudeUsageSnapshot, normalizeClaudeUsageResponse } from '@grotto/claude-usage';
+import { type ClaudeUsageSnapshot, normalizeClaudeUsageResponse } from '@haus/claude-usage';
 import type { AgentSessionTokenUsage } from './session-store.ts';
 
 export type HarnessTokenUsage = AgentSessionTokenUsage;

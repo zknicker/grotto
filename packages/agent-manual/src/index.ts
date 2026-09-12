@@ -92,7 +92,7 @@ export const manualTopics: readonly ManualTopic[] = [
 const topicById = new Map(manualTopics.map((topic) => [topic.id, topic]));
 
 export function getManualTopic(topicId: string): ManualTopic | null {
-    return topicById.get(topicId === 'grotto-cli-overview' ? 'haus-cli-overview' : topicId) ?? null;
+    return topicById.get(topicId === 'haus-cli-overview' ? 'haus-cli-overview' : topicId) ?? null;
 }
 
 export function searchManualTopics(

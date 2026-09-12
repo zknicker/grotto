@@ -96,7 +96,7 @@ test('profile teardown settles observation and Chrome stop before releasing the 
 
 test('reconciling a disabled root preserves another root service', async () => {
     const runtime = testRuntime();
-    const directory = await mkdtemp(join(tmpdir(), 'grotto-browser-roots-'));
+    const directory = await mkdtemp(join(tmpdir(), 'haus-browser-roots-'));
     const activeRoot = join(directory, 'active');
     const disabledRoot = join(directory, 'disabled');
     try {

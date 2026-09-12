@@ -1,9 +1,9 @@
-import type { TaskClaimConflict } from '@grotto/api';
+import type { TaskClaimConflict } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, type messageTasksTable, serverMembershipsTable } from '../postgres/schema.ts';
 
-type ClaimConflictReader = Pick<GrottoDatabase, 'select'>;
+type ClaimConflictReader = Pick<HausDatabase, 'select'>;
 type TaskRow = typeof messageTasksTable.$inferSelect;
 
 /**

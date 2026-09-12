@@ -4,14 +4,14 @@ import {
     cloudAgentRunSchema,
     cloudAgentRunsRetained,
     cloudAgentWorkSchema,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, desc, eq, inArray } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 
 type WorkRow = typeof cloudAgentWorkTable.$inferSelect;
 type RunRow = typeof cloudAgentRunsTable.$inferSelect;
-type CloudAgentReader = Pick<GrottoDatabase, 'select'>;
+type CloudAgentReader = Pick<HausDatabase, 'select'>;
 
 export function toCloudAgentRun(row: RunRow): CloudAgentRun {
     return cloudAgentRunSchema.parse({

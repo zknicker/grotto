@@ -1,4 +1,4 @@
-import type { AgentRuntimeBrowserSettings, AgentRuntimeSaveBrowserSettings } from '@grotto/api';
+import type { AgentRuntimeBrowserSettings, AgentRuntimeSaveBrowserSettings } from '@haus/api';
 import { Button } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
 import * as React from 'react';

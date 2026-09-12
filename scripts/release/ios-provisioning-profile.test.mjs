@@ -48,7 +48,7 @@ test('downloads the one active App Store profile into the Xcode 16+ profile dire
     );
     expect(readFileSync(result.path, 'utf8')).toBe('signed profile bytes');
     expect(readFileSync(fixture.environment.GITHUB_ENV, 'utf8')).toContain(
-        `GROTTO_RELEASE_PROVISIONING_PROFILE_PATH=${result.path}`
+        `HAUS_RELEASE_PROVISIONING_PROFILE_PATH=${result.path}`
     );
 });
 
@@ -101,7 +101,7 @@ test('refuses ambiguous, expired, or wrong-bundle profiles', async () => {
 });
 
 function createFixture() {
-    const home = mkdtempSync(path.join(tmpdir(), 'grotto-ios-profile-'));
+    const home = mkdtempSync(path.join(tmpdir(), 'haus-ios-profile-'));
     temporaryDirectories.push(home);
     const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
     const privateKeyPEM = privateKey.export({ format: 'pem', type: 'pkcs8' });

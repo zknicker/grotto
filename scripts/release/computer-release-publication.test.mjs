@@ -64,7 +64,7 @@ test('production release reads verify continuity and allow only an initial 404',
     const descriptor = createSignedComputerRelease(
         {
             artifactUrl:
-                'https://releases.grotto.sh/computer/1.1.0/grotto-computer-aarch64-apple-darwin',
+                'https://releases.haus.chat/computer/1.1.0/haus-computer-aarch64-apple-darwin',
             protocolVersion: 3,
             sha256: 'a'.repeat(64),
             sourceRevision: 'b'.repeat(40),
@@ -76,21 +76,21 @@ test('production release reads verify continuity and allow only an initial 404',
 
     await expect(
         readProductionComputerRelease(
-            'https://releases.grotto.sh/computer/latest.json',
+            'https://releases.haus.chat/computer/latest.json',
             trusted.publicKey,
             request
         )
     ).resolves.toEqual(descriptor);
     await expect(
         readProductionComputerRelease(
-            'https://releases.grotto.sh/computer/latest.json',
+            'https://releases.haus.chat/computer/latest.json',
             untrusted.publicKey,
             request
         )
     ).rejects.toThrow('signature verification failed');
     await expect(
         readProductionComputerRelease(
-            'https://releases.grotto.sh/computer/latest.json',
+            'https://releases.haus.chat/computer/latest.json',
             trusted.publicKey,
             async () => new Response(null, { status: 404 })
         )
@@ -101,7 +101,7 @@ test('a re-run completes only the exact artifact already promoted to production'
     const production = {
         release: {
             artifactUrl:
-                'https://releases.grotto.sh/computer/1.7.0/grotto-computer-aarch64-apple-darwin',
+                'https://releases.haus.chat/computer/1.7.0/haus-computer-aarch64-apple-darwin',
             protocolVersion: 12,
             sha256: 'c'.repeat(64),
             sourceRevision: 'd'.repeat(40),
@@ -134,7 +134,7 @@ test('a candidate that is not the published artifact still meets the newer-versi
     const production = {
         release: {
             artifactUrl:
-                'https://releases.grotto.sh/computer/1.7.0/grotto-computer-aarch64-apple-darwin',
+                'https://releases.haus.chat/computer/1.7.0/haus-computer-aarch64-apple-darwin',
             protocolVersion: 12,
             sha256: 'c'.repeat(64),
             sourceRevision: 'd'.repeat(40),

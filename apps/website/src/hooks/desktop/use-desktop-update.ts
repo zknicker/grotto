@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import {
     type DesktopUpdateBridgeStatus,
-    type GrottoDesktopBridge,
     getDesktopBridge,
+    type HausDesktopBridge,
     isElectronDesktopApp,
 } from '../../lib/desktop-bridge.ts';
 
@@ -107,7 +107,7 @@ function notifyDesktopUpdateListeners() {
 }
 
 export async function readDesktopInstalledVersion(
-    bridge: Pick<GrottoDesktopBridge, 'getInfo'> | null
+    bridge: Pick<HausDesktopBridge, 'getInfo'> | null
 ) {
     if (!bridge) {
         return null;

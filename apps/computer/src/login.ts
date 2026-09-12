@@ -82,7 +82,7 @@ export async function runComputerLogin(options: {
     });
     assertBeginResponse(started);
 
-    const browserOpenEnabled = process.env.GROTTO_COMPUTER_DISABLE_BROWSER_OPEN !== '1';
+    const browserOpenEnabled = process.env.HAUS_COMPUTER_DISABLE_BROWSER_OPEN !== '1';
     const enterOpensBrowser = browserOpenEnabled && process.stdin.isTTY === true;
     let browserOpenRequested = false;
     if (browserOpenEnabled) {

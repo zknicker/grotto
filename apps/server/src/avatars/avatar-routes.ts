@@ -1,10 +1,10 @@
 import type { FastifyInstance } from 'fastify';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { avatarRoutePrefix } from './avatar-url.ts';
 import { readAvatar } from './read-avatar.ts';
 
 interface AvatarRouteDependencies {
-    db: GrottoDatabase;
+    db: HausDatabase;
 }
 
 /**

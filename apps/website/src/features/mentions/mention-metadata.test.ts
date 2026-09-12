@@ -10,68 +10,68 @@ import {
 describe('readMentionsFromMarkdown', () => {
     it('reads explicit rich reference links from message content', () => {
         const content =
-            'Ask [@Grotto](agent://agt_primary), open [@Computer Use](plugin://computer-use@openai-bundled), [@Chrome](app://computer-use/google-chrome), read [$ui](skill://ui), [mentions.md](/Users/zknicker/.codex/worktrees/1b41/grotto/specs/mentions.md), and [components/ui](/Users/zknicker/.codex/worktrees/1b41/grotto/apps/website/src/components/ui)';
+            'Ask [@Haus](agent://agt_primary), open [@Computer Use](plugin://computer-use@openai-bundled), [@Chrome](app://computer-use/google-chrome), read [$ui](skill://ui), [mentions.md](/Users/zknicker/.codex/worktrees/1b41/haus/specs/mentions.md), and [components/ui](/Users/zknicker/.codex/worktrees/1b41/haus/apps/website/src/components/ui)';
 
         expect(readMentionsFromMarkdown(content)).toEqual([
             {
-                end: 34,
+                end: 32,
                 id: 'agent://agt_primary',
                 kind: 'agent',
-                label: 'Grotto',
+                label: 'Haus',
                 projection: 'agent-reference',
                 start: 4,
-                text: '[@Grotto](agent://agt_primary)',
+                text: '[@Haus](agent://agt_primary)',
             },
             {
-                end: 94,
+                end: 92,
                 id: 'plugin://computer-use@openai-bundled',
                 kind: 'plugin',
                 label: 'Computer Use',
                 projection: 'capability-reference',
-                start: 41,
+                start: 39,
                 text: '[@Computer Use](plugin://computer-use@openai-bundled)',
             },
             {
-                end: 139,
+                end: 137,
                 id: 'app://computer-use/google-chrome',
                 kind: 'app',
                 label: 'Chrome',
                 projection: 'capability-reference',
-                start: 96,
+                start: 94,
                 text: '[@Chrome](app://computer-use/google-chrome)',
             },
             {
-                end: 163,
+                end: 161,
                 id: 'skill://ui',
                 kind: 'skill',
                 label: 'ui',
                 projection: 'skill-activation',
-                start: 146,
+                start: 144,
                 text: '[$ui](skill://ui)',
             },
             {
-                end: 242,
-                id: '/Users/zknicker/.codex/worktrees/1b41/grotto/specs/mentions.md',
+                end: 238,
+                id: '/Users/zknicker/.codex/worktrees/1b41/haus/specs/mentions.md',
                 kind: 'file',
                 label: 'mentions.md',
                 projection: 'path-reference',
-                start: 165,
-                text: '[mentions.md](/Users/zknicker/.codex/worktrees/1b41/grotto/specs/mentions.md)',
+                start: 163,
+                text: '[mentions.md](/Users/zknicker/.codex/worktrees/1b41/haus/specs/mentions.md)',
             },
             {
                 end: content.length,
-                id: '/Users/zknicker/.codex/worktrees/1b41/grotto/apps/website/src/components/ui',
+                id: '/Users/zknicker/.codex/worktrees/1b41/haus/apps/website/src/components/ui',
                 kind: 'directory',
                 label: 'components/ui',
                 projection: 'path-reference',
-                start: 248,
-                text: '[components/ui](/Users/zknicker/.codex/worktrees/1b41/grotto/apps/website/src/components/ui)',
+                start: 244,
+                text: '[components/ui](/Users/zknicker/.codex/worktrees/1b41/haus/apps/website/src/components/ui)',
             },
         ]);
     });
 
     it('ignores bare mention-looking text', () => {
-        expect(readMentionsFromMarkdown('@Grotto and $ui are plain text')).toEqual([]);
+        expect(readMentionsFromMarkdown('@Haus and $ui are plain text')).toEqual([]);
     });
 });
 

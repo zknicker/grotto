@@ -49,13 +49,13 @@ const macosTrafficLightPosition = {
     y: (topbarHeightPx - macosTrafficLightDiameterPx) / 2 - 1,
 };
 const { autoUpdater } = electronUpdater;
-const useMockUpdater = !app.isPackaged && process.env.GROTTO_ELECTRON_UPDATER_MOCK === '1';
+const useMockUpdater = !app.isPackaged && process.env.HAUS_ELECTRON_UPDATER_MOCK === '1';
 const appUrl = app.isPackaged
     ? productionAppUrl
-    : (process.env.GROTTO_ELECTRON_DEV_URL ?? productionAppUrl);
+    : (process.env.HAUS_ELECTRON_DEV_URL ?? productionAppUrl);
 const clerkAuthOrigins = resolveClerkAuthOrigins({
     appUrl,
-    clerkIssuerUrl: process.env.GROTTO_CLERK_ISSUER_URL,
+    clerkIssuerUrl: process.env.HAUS_CLERK_ISSUER_URL,
     isPackaged: app.isPackaged,
 });
 
@@ -68,11 +68,8 @@ const newWindowOffsetPx = 36;
 const minWindowWidth = 1100;
 const minWindowHeight = 760;
 
-if (process.env.GROTTO_ELECTRON_DEV_URL) {
-    const stackId = (process.env.GROTTO_DEV_STACK_ID || 'default').replace(
-        /[^a-zA-Z0-9._-]/gu,
-        '-'
-    );
+if (process.env.HAUS_ELECTRON_DEV_URL) {
+    const stackId = (process.env.HAUS_DEV_STACK_ID || 'default').replace(/[^a-zA-Z0-9._-]/gu, '-');
     app.setPath('userData', path.join(app.getPath('appData'), 'Haus Dev', stackId));
 }
 
@@ -84,10 +81,10 @@ registerClerkAuth({ app, appUrl, BrowserWindow, ipcMain, safeStorage, shell, web
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
 
-if (process.env.GROTTO_ELECTRON_UPDATE_FEED_URL) {
+if (process.env.HAUS_ELECTRON_UPDATE_FEED_URL) {
     autoUpdater.setFeedURL({
         provider: 'generic',
-        url: process.env.GROTTO_ELECTRON_UPDATE_FEED_URL,
+        url: process.env.HAUS_ELECTRON_UPDATE_FEED_URL,
     });
 }
 
@@ -555,7 +552,7 @@ function cleanupDevPortsOnce() {
         return;
     }
 
-    for (const key of ['GROTTO_WEBSITE_PORT']) {
+    for (const key of ['HAUS_WEBSITE_PORT']) {
         const port = readPort(key);
         if (port) {
             killProcessesListeningOnPort(port);

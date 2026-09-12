@@ -2,8 +2,8 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { CloudAgentObservation } from '@grotto/api';
-import { makeTestRuntime } from '@grotto/effect';
+import type { CloudAgentObservation } from '@haus/api';
+import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
 import { CloudLaunchJournal } from './launch-journal.ts';
@@ -27,7 +27,7 @@ afterEach(async () => {
 });
 
 async function fixture(enrich?: EnrichObservation) {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-cloud-watch-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-cloud-watch-'));
     const runtime = makeTestRuntime();
     const provider = createFakeCloudAgentProvider();
     provider.read = () =>

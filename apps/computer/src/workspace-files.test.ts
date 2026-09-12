@@ -11,7 +11,7 @@ afterEach(async () => {
 });
 
 test('ports Runtime workspace browsing while confining Computer-local reads', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-workspace-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-workspace-'));
     roots.push(root);
     const workspace = join(root, 'workspace');
     const outside = join(root, 'outside.md');

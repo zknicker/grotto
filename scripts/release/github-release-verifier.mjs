@@ -92,7 +92,7 @@ export async function verifyProductRelease({ repository, sourceRevision, release
 
 function serverAssetName(version, sourceRevision) {
     return (
-        'grotto-server-' +
+        'haus-server-' +
         version +
         '+git.' +
         sourceRevision.slice(0, 12) +

@@ -7,7 +7,7 @@ dist
 .env.local
 .env.development.local
 !.env.schema
-.grotto
+.haus
 apps/server/data
 .DS_Store
 .*.bun-build
@@ -15,7 +15,7 @@ apps/server/data
 apps/server/dist-sidecar
 apps/server/release
 apps/computer/release
-apps/website/dist-grotto
+apps/website/dist-haus
 apps/website/electron-dist
 apps/website/electron/generated-icons
 apps/website/electron/icons
@@ -35,5 +35,5 @@ scripts/design-battery/output
 /build/
 
 # Old install-time fleet copy path. Fleet skills now seed from start.sh.
-# Grotto's own product skills live in the committed .agents/skills.
+# Haus's own product skills live in the committed .agents/skills.
 .cursor/skills

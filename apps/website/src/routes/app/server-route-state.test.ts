@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { Chat } from '@grotto/api';
+import type { Chat } from '@haus/api';
 import {
     resolveActiveSection,
     resolveChatSectionRoute,

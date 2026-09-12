@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AgentSessionRotation } from '@grotto/api';
+import type { AgentSessionRotation } from '@haus/api';
 import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';

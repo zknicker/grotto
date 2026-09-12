@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AgentRuntimeBrowserState } from '@grotto/api';
+import type { AgentRuntimeBrowserState } from '@haus/api';
 import { BrowserCommandQueue } from './command-queue.ts';
 import {
     createSupervisor,

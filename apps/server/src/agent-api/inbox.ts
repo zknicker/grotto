@@ -1,4 +1,4 @@
-import type { AgentAutomationEvent } from '@grotto/api';
+import type { AgentAutomationEvent } from '@haus/api';
 import { recordExactMessagesServed } from '../agent-delivery/cursors.ts';
 import {
     attachQueuedItemsToRun,
@@ -8,14 +8,14 @@ import {
     readDeliveryState,
 } from '../agent-delivery/store.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { resolveAgentMessage } from './message-read.ts';
 import { targetForChat } from './message-view.ts';
 
 const maxPulledMessages = 40;
 
-export async function pullAgentEvents(db: GrottoDatabase, runner: ResolvedRunner) {
+export async function pullAgentEvents(db: HausDatabase, runner: ResolvedRunner) {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
         const delivery = await readDeliveryState(tx, runner.agentId);
@@ -77,7 +77,7 @@ export async function pullAgentEvents(db: GrottoDatabase, runner: ResolvedRunner
 
 /** Attests exact bodies returned by the Computer-local inbox cache to the active turn. */
 export async function attestAgentEvents(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     identities: Array<{ chatId: string; id: string; sequence: number }>
 ) {
@@ -122,7 +122,7 @@ export async function attestAgentEvents(
     });
 }
 
-export async function inspectAgentInbox(db: GrottoDatabase, runner: ResolvedRunner) {
+export async function inspectAgentInbox(db: HausDatabase, runner: ResolvedRunner) {
     const pending = await listQueuedMessageItems(db, runner.agentId, 1000);
     const groups = new Map<string, typeof pending>();
     for (const row of pending) {

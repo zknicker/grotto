@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { CloudAgentObservation, CloudAgentReconcileEntry } from '@grotto/api';
+import type { CloudAgentObservation, CloudAgentReconcileEntry } from '@haus/api';
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
 import {
     CloudAgentLaunchFailedError,
@@ -13,7 +13,7 @@ import { CloudAgentProviderUnavailableError } from './provider.ts';
 import { setCloudAgentProvider } from './registry.ts';
 
 const serverId = 'srv_cloud';
-const serverOrigin = 'https://grotto.test';
+const serverOrigin = 'https://haus.test';
 const workId = 'caw_1234567890abcdef';
 const runId = 'car_1234567890abcdef';
 
@@ -21,7 +21,7 @@ const request = {
     content: 'Handing this to a cloud agent.',
     instructions: 'Reproduce the flake and open a pull request.',
     nonce: 'cloud-agent-nonce',
-    repository: 'grotto/grotto',
+    repository: 'haus/haus',
     startingRef: 'main',
     target: '#product',
     title: 'Fix the flaky delivery test',
@@ -47,7 +47,7 @@ const receipt = {
         provider: 'cursor',
         providerAgentId: null,
         providerUrl: null,
-        repository: 'grotto/grotto',
+        repository: 'haus/haus',
         runs: [],
         startedAt: null,
         startingRef: 'main',
@@ -76,7 +76,7 @@ const supervisor = {
     },
 };
 beforeEach(async () => {
-    dataRoot = await mkdtemp(join(tmpdir(), 'grotto-cloud-launch-'));
+    dataRoot = await mkdtemp(join(tmpdir(), 'haus-cloud-launch-'));
     observations = [];
     reconciled = [];
 });
@@ -142,7 +142,7 @@ test('a launch records the work, keeps instructions local, and reports the provi
     });
 
     expect(result.work.id).toBe(workId);
-    expect(calls[0]?.url).toBe('https://grotto.test/api/agent/cloud-agents');
+    expect(calls[0]?.url).toBe('https://haus.test/api/agent/cloud-agents');
     expect(calls[0]?.body).toEqual({
         content: request.content,
         nonce: request.nonce,
@@ -157,7 +157,7 @@ test('a launch records the work, keeps instructions local, and reports the provi
         idempotencyKey: runId,
         instructions: request.instructions,
         ref: 'main',
-        repository: 'grotto/grotto',
+        repository: 'haus/haus',
     });
     expect(observations).toEqual([
         {

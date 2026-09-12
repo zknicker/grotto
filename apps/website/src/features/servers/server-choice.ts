@@ -1,8 +1,8 @@
-import type { Chat } from '@grotto/api';
-import type { ServerSummary } from '../../lib/grotto-server.tsx';
+import type { Chat } from '@haus/api';
+import type { ServerSummary } from '../../lib/haus-server.tsx';
 
-export const lastServerSlugStorageKey = 'grotto.last-server-slug';
-const lastChatIdStorageKeyPrefix = 'grotto.last-chat-id.';
+export const lastServerSlugStorageKey = 'haus.last-server-slug';
+const lastChatIdStorageKeyPrefix = 'haus.last-chat-id.';
 
 export function resolveEntryServer(
     servers: ServerSummary[],

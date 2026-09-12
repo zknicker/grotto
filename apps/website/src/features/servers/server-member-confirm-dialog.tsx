@@ -10,7 +10,7 @@ export interface PendingMemberChange {
 }
 
 /**
- * Destructive and Owner-level changes follow Grotto's danger-zone interaction:
+ * Destructive and Owner-level changes follow Haus's danger-zone interaction:
  * the Server's immutable address is typed in full, `/` renders as a fixed
  * prefix, and the confirming button stays disabled until the value matches
  * exactly. The Server verifies the same value inside its transaction, so this

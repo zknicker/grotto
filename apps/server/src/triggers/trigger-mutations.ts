@@ -1,6 +1,6 @@
-import type { Trigger, TriggerKind, TriggerStatus } from '@grotto/api';
+import type { Trigger, TriggerKind, TriggerStatus } from '@haus/api';
 import { requireChatWritable } from '../chats/chat-access.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { requireActiveAgent, requireAgentAnchor } from '../reminders/reminder-model.ts';
 import type { TriggerClock } from './trigger-model.ts';
 import { readOwnedTrigger } from './trigger-queries.ts';
@@ -33,7 +33,7 @@ export interface CreateTriggerInput {
  * clear.
  */
 export async function createTrigger(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string,
     input: CreateTriggerInput,
     clock: TriggerClock
@@ -69,7 +69,7 @@ export async function createTrigger(
 
 /** Arms or disables one of the calling Agent's own triggers. */
 export async function setTriggerStatus(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string,
     input: { origin: string; serverId: string; status: TriggerStatus; triggerId: string },
     clock: TriggerClock
@@ -79,7 +79,7 @@ export async function setTriggerStatus(
 
 /** Replaces the bearer secret. The previous secret stops working immediately. */
 export async function rotateTriggerSecret(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string,
     input: { origin: string; serverId: string; triggerId: string },
     clock: TriggerClock
@@ -89,7 +89,7 @@ export async function rotateTriggerSecret(
 
 /** Removes one Trigger from active use while retaining its recent fire history. */
 export async function deleteTrigger(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string,
     input: { origin: string; serverId: string; triggerId: string },
     clock: TriggerClock
@@ -99,7 +99,7 @@ export async function deleteTrigger(
 
 /** The Agent authorization every verb shares: it owns the row and can still reach the anchor. */
 function ownedBy(agentId: string, input: { origin: string; serverId: string; triggerId: string }) {
-    return async (tx: GrottoDatabase) =>
+    return async (tx: HausDatabase) =>
         await readOwnedTrigger(tx, {
             agentId,
             origin: input.origin,

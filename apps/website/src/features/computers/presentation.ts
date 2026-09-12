@@ -1,5 +1,5 @@
-import type { Agent, ComputerInventory } from '@grotto/api';
-import { computerRuntimeCatalog } from '@grotto/api/computer-runtime';
+import type { Agent, ComputerInventory } from '@haus/api';
+import { computerRuntimeCatalog } from '@haus/api/computer-runtime';
 
 export interface ComputerPresentation {
     architecture: string | null;

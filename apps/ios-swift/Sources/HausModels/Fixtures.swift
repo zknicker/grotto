@@ -5,7 +5,7 @@ import Foundation
 public enum HausPreviewFixtures {
     public static let server: ServerSummary = decode(
         """
-        {"displayName":"Haus","id":"srv_preview","role":"owner","slug":"grotto"}
+        {"displayName":"Haus","id":"srv_preview","role":"owner","slug":"haus"}
         """
     )
 

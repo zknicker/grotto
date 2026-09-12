@@ -1,6 +1,6 @@
 import { and, count, eq, ilike, isNull } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
     channelAgentParticipantsTable,
@@ -11,7 +11,7 @@ import {
 import type { AgentDirectoryQuery } from './directory.ts';
 
 export async function countAgentDirectory(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: AgentDirectoryQuery
 ) {
@@ -22,7 +22,7 @@ export async function countAgentDirectory(
 }
 
 export async function countChannelMembers(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string
 ) {
@@ -55,11 +55,7 @@ export async function countChannelMembers(
     return Number(humans?.total ?? 0) + Number(agents?.total ?? 0);
 }
 
-async function countChannels(
-    db: GrottoDatabase,
-    runner: ResolvedRunner,
-    input: AgentDirectoryQuery
-) {
+async function countChannels(db: HausDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
     const [row] = await db
         .select({ total: count() })
         .from(chatsTable)
@@ -81,7 +77,7 @@ async function countChannels(
     return Number(row?.total ?? 0);
 }
 
-async function countAgents(db: GrottoDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
+async function countAgents(db: HausDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
     const [row] = await db
         .select({ total: count() })
         .from(agentsTable)
@@ -95,7 +91,7 @@ async function countAgents(db: GrottoDatabase, runner: ResolvedRunner, input: Ag
     return Number(row?.total ?? 0);
 }
 
-async function countHumans(db: GrottoDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
+async function countHumans(db: HausDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
     const [row] = await db
         .select({ total: count() })
         .from(serverMembershipsTable)

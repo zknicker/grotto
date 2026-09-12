@@ -1,9 +1,9 @@
-import type { AgentDeliveriesInput, AgentDeliveryRecord } from '@grotto/api';
+import type { AgentDeliveriesInput, AgentDeliveryRecord } from '@haus/api';
 import { and, desc, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { requireAgent } from './agent-delivery-control.ts';
 
 /**
@@ -12,8 +12,8 @@ import { requireAgent } from './agent-delivery-control.ts';
  * answered with silence" read differently here.
  */
 export async function listAgentDeliveries(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: AgentDeliveriesInput
 ): Promise<AgentDeliveryRecord[]> {
     await requireServerMembership(db, member, input.serverId);

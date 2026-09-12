@@ -9,7 +9,7 @@ WITH candidates AS (
     INNER JOIN users u ON u.id = sm.user_id
     WHERE sm.revoked_at IS NULL
       AND u.handle ~ '^[a-z0-9][a-z0-9-]{1,30}$'
-      AND lower(u.handle) NOT IN ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'grotto', 'here', 'human', 'humans', 'idle', 'system')
+      AND lower(u.handle) NOT IN ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system')
       AND NOT EXISTS (
           SELECT 1 FROM agents a
           WHERE a.server_id = sm.server_id
@@ -23,8 +23,8 @@ FROM candidates
 WHERE sm.id = candidates.id AND candidates.position = 1;--> statement-breakpoint
 CREATE UNIQUE INDEX "server_memberships_server_handle_key" ON "server_memberships" USING btree ("server_id",lower("handle")) WHERE "server_memberships"."revoked_at" is null and "server_memberships"."handle" is not null;--> statement-breakpoint
 ALTER TABLE "users" DROP COLUMN "handle";--> statement-breakpoint
-ALTER TABLE "agents" ADD CONSTRAINT "agents_handle_grammar" CHECK ("agents"."handle" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and (("agents"."factory_kind" = 'cove' and "agents"."handle" = 'cove') or lower("agents"."handle") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'grotto', 'here', 'human', 'humans', 'idle', 'system')));--> statement-breakpoint
-ALTER TABLE "server_memberships" ADD CONSTRAINT "server_memberships_handle_grammar" CHECK ("server_memberships"."handle" is null or ("server_memberships"."handle" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and lower("server_memberships"."handle") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'grotto', 'here', 'human', 'humans', 'idle', 'system')));--> statement-breakpoint
+ALTER TABLE "agents" ADD CONSTRAINT "agents_handle_grammar" CHECK ("agents"."handle" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and (("agents"."factory_kind" = 'cove' and "agents"."handle" = 'cove') or lower("agents"."handle") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system')));--> statement-breakpoint
+ALTER TABLE "server_memberships" ADD CONSTRAINT "server_memberships_handle_grammar" CHECK ("server_memberships"."handle" is null or ("server_memberships"."handle" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and lower("server_memberships"."handle") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system')));--> statement-breakpoint
 CREATE FUNCTION enforce_participant_handle_namespace() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE

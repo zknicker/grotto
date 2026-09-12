@@ -1,5 +1,5 @@
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import type { Reminder } from '../reminders/reminder-model.ts';
 import {
     cancelReminder,
@@ -15,7 +15,7 @@ import { targetForChat } from './message-view.ts';
 const clock = { now: () => new Date() };
 
 export async function scheduleAgentReminder(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: {
         commandId: string;
@@ -47,7 +47,7 @@ export async function scheduleAgentReminder(
 }
 
 export async function listAgentReminders(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     statuses?: string[]
 ) {
@@ -66,7 +66,7 @@ export async function listAgentReminders(
 }
 
 export async function snoozeAgentReminder(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: { by: string; commandId: string; expectedVersion: number; id: string }
 ) {
@@ -81,7 +81,7 @@ export async function snoozeAgentReminder(
 }
 
 export async function updateAgentReminder(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: {
         fireAt?: string;
@@ -109,7 +109,7 @@ export async function updateAgentReminder(
 }
 
 export async function cancelAgentReminder(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: { commandId: string; expectedVersion: number; id: string }
 ) {
@@ -119,7 +119,7 @@ export async function cancelAgentReminder(
 }
 
 export async function readAgentReminderLog(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: { id?: string; limit: number }
 ) {
@@ -159,7 +159,7 @@ export async function readAgentReminderLog(
     };
 }
 
-async function ownedReminder(db: GrottoDatabase, runner: ResolvedRunner, id: string) {
+async function ownedReminder(db: HausDatabase, runner: ResolvedRunner, id: string) {
     const reminders = await listReminders(db, {
         actor: { agentId: runner.agentId, kind: 'agent' },
         serverId: runner.serverId,
@@ -185,7 +185,7 @@ function commandInput<Extra extends object>(
     };
 }
 
-async function toCliReminder(db: GrottoDatabase, serverId: string, reminder: Reminder) {
+async function toCliReminder(db: HausDatabase, serverId: string, reminder: Reminder) {
     return {
         anchorTarget: await targetForChat(db, serverId, reminder.anchorChatId),
         fireAt: reminder.fireAt,

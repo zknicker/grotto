@@ -1,6 +1,6 @@
-import type { AgentActivityEvent, AgentActivityFrame } from '@grotto/api';
+import type { AgentActivityEvent, AgentActivityFrame } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentActivityTable, agentDeliveryTable, agentsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -26,7 +26,7 @@ interface AppendActivityInput {
  * makes stale Computer frames and post-settlement retries no-ops.
  */
 export async function appendAgentActivity(
-    tx: GrottoDatabase,
+    tx: HausDatabase,
     input: AppendActivityInput
 ): Promise<AgentActivityEvent | null> {
     const [active] = await tx
@@ -127,7 +127,7 @@ export async function appendAgentActivity(
 }
 
 export async function recordComputerAgentActivity(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         computerId: string;
         frame: AgentActivityFrame;
@@ -139,7 +139,7 @@ export async function recordComputerAgentActivity(
 }
 
 export async function recordComputerAgentActivityWithStatus(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         computerId: string;
         frame: AgentActivityFrame;
@@ -212,7 +212,7 @@ export async function recordComputerAgentActivityWithStatus(
 }
 
 export async function appendServerAgentActivity(
-    tx: GrottoDatabase,
+    tx: HausDatabase,
     input: {
         agentId: string;
         category: AppendActivityInput['category'];

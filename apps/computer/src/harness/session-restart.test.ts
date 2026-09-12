@@ -9,7 +9,7 @@ import {
 } from './session-restart.ts';
 
 test('keeps a restart request durable until a resumed turn clears it', async () => {
-    const agentRoot = await mkdtemp(join(tmpdir(), 'grotto-session-restart-'));
+    const agentRoot = await mkdtemp(join(tmpdir(), 'haus-session-restart-'));
     try {
         expect(await isSessionRestartRequested(agentRoot)).toBe(false);
         await requestSessionRestart(agentRoot);

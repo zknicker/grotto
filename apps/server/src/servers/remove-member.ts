@@ -2,12 +2,12 @@ import {
     requiresSlugConfirmation,
     resolveServerMemberAuthority,
     type ServerMemberAction,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable } from '../postgres/schema.ts';
 import { clearTaskAssignments } from '../tasks/clear-task-assignments.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import {
     findCurrentMembership,
     isLastOwner,
@@ -44,8 +44,8 @@ export interface RemoveServerMemberInput {
  * collaboration history with it.
  */
 export async function removeServerMember(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: RemoveServerMemberInput
 ): Promise<RemovedServerMember> {
     return await db.transaction(async (tx) => {

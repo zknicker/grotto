@@ -2,7 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { EXECUTION_JOURNAL_VALUE_MAX_CHARS } from '@grotto/api';
+import { EXECUTION_JOURNAL_VALUE_MAX_CHARS } from '@haus/api';
 import {
     createComputerExecutionJournal,
     executionJournalPath,
@@ -137,7 +137,7 @@ test('ignores a torn trailing record and refuses a corrupt one mid-log', () => {
 });
 
 test('a live turn appends records instead of rewriting the whole document', async () => {
-    const agentRoot = await root('grotto-journal-append-');
+    const agentRoot = await root('haus-journal-append-');
     const journal = await createComputerExecutionJournal({ agentRoot, runId: 'run_append' });
 
     for (let index = 0; index < 5; index += 1) {
@@ -165,7 +165,7 @@ test('a live turn appends records instead of rewriting the whole document', asyn
 });
 
 test('finishing writes one snapshot and drops the log', async () => {
-    const agentRoot = await root('grotto-journal-snapshot-');
+    const agentRoot = await root('haus-journal-snapshot-');
     const journal = await createComputerExecutionJournal({ agentRoot, runId: 'run_snapshot' });
     await journal.recordToolCall({ toolCallId: 'call_done', toolName: 'bash' });
     await journal.recordToolResult({
@@ -188,7 +188,7 @@ test('finishing writes one snapshot and drops the log', async () => {
 });
 
 test('recovers a turn a crash left mid-flight and marks its pending tools interrupted', async () => {
-    const agentRoot = await root('grotto-journal-crash-');
+    const agentRoot = await root('haus-journal-crash-');
     const crashed = await createComputerExecutionJournal({ agentRoot, runId: 'run_crash' });
     await crashed.recordToolCall({
         input: { command: 'sleep 100' },
@@ -213,7 +213,7 @@ test('recovers a turn a crash left mid-flight and marks its pending tools interr
 });
 
 test('prefers the settled snapshot over a log the same run left behind', async () => {
-    const agentRoot = await root('grotto-journal-prefer-');
+    const agentRoot = await root('haus-journal-prefer-');
     const journal = await createComputerExecutionJournal({ agentRoot, runId: 'run_prefer' });
     await journal.finish('completed');
     await writeFile(logPath(agentRoot, 'run_prefer'), `${JSON.stringify(openRecord)}\n`, 'utf8');
@@ -225,7 +225,7 @@ test('prefers the settled snapshot over a log the same run left behind', async (
 });
 
 test('caps every string leaf so a huge nested payload keeps its shape', async () => {
-    const agentRoot = await root('grotto-journal-cap-');
+    const agentRoot = await root('haus-journal-cap-');
     const journal = await createComputerExecutionJournal({ agentRoot, runId: 'run_cap' });
     const huge = 'x'.repeat(EXECUTION_JOURNAL_VALUE_MAX_CHARS + 25);
     await journal.recordToolResult({

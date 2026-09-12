@@ -1,14 +1,14 @@
-import { formatChatReferenceTarget, type MentionOption } from '@grotto/api';
+import { formatChatReferenceTarget, type MentionOption } from '@haus/api';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { visibleChats } from './chat-visibility.ts';
 
 /** Channel autocomplete options for `#` mentions, scoped to what the member can see. */
 export async function listChannelMentionOptions(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     serverId: string
 ): Promise<MentionOption[]> {
     if (!member) {

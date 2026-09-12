@@ -1,10 +1,10 @@
-import type { AttachmentMetadata, ChatMessage } from '@grotto/api';
+import type { AttachmentMetadata, ChatMessage } from '@haus/api';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 
 export async function readMessageRelations(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     messageId: string
 ): Promise<{ attachments: AttachmentMetadata[]; reactions: ChatMessage['reactions'] | undefined }> {

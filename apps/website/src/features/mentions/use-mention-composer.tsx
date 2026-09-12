@@ -1,7 +1,7 @@
-import type { Agent } from '@grotto/api';
-import { parseAgentReferenceTarget } from '@grotto/api/rich-references';
+import type { Agent } from '@haus/api';
+import { parseAgentReferenceTarget } from '@haus/api/rich-references';
 import * as React from 'react';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import {
     type MentionComposerScaffold,
@@ -92,10 +92,10 @@ export function useServerMentionComposer({
                   },
         [scaffold.skillScopeAgentIds, serverId, targetAgentId, targetChatId]
     );
-    const optionsQuery = grottoTrpc.chat.mentionOptions.useQuery(input, {
+    const optionsQuery = hausTrpc.chat.mentionOptions.useQuery(input, {
         enabled: scaffold.activeQuery !== null,
     });
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
     const options = React.useMemo(
         () =>
             filterMentionOptionsForQuery(

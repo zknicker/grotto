@@ -1,9 +1,9 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useComputerRemove(serverId: string, onRemoved: () => void) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
-    return grottoTrpc.computer.remove.useMutation({
+    return hausTrpc.computer.remove.useMutation({
         onSuccess: () => {
             onRemoved();
             void utils.computer.list.invalidate({ serverId });

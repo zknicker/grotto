@@ -1,4 +1,4 @@
-import type { CloudAgentWork } from '@grotto/api';
+import type { CloudAgentWork } from '@haus/api';
 import {
     type TranscriptMessageRow,
     useTranscriptRenderContextOptional,

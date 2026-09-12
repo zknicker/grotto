@@ -6,7 +6,7 @@ umask 077
 # value below. Nothing here re-enters varlock: a launchd job that did would
 # re-resolve the schema at boot under the development lifecycle.
 set -a
-. "/Users/zknicker/srv/grotto/config/server.env"
+. "/Users/zknicker/srv/haus/config/server.env"
 set +a
 export NODE_ENV=production
-exec /Users/zknicker/srv/grotto/current/bin/grotto-server
+exec /Users/zknicker/srv/haus/current/bin/haus-server

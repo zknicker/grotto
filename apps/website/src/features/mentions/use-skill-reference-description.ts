@@ -1,5 +1,5 @@
-import { formatSkillReferenceTarget, type MentionOption } from '@grotto/api';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { formatSkillReferenceTarget, type MentionOption } from '@haus/api';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 export function useSkillReferenceDescription({
@@ -13,7 +13,7 @@ export function useSkillReferenceDescription({
     serverId: string;
     skillId: string;
 }) {
-    const options = grottoTrpc.chat.mentionOptions.useQuery(
+    const options = hausTrpc.chat.mentionOptions.useQuery(
         {
             agentIds: [],
             chatId,

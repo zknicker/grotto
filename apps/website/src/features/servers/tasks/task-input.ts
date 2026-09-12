@@ -1,4 +1,4 @@
-import type { GrottoInputs } from '../../../lib/grotto-server.tsx';
+import type { HausInputs } from '../../../lib/haus-server.tsx';
 
 interface VersionedTask {
     id: string;
@@ -8,8 +8,8 @@ interface VersionedTask {
 export function taskAssignmentInput(
     serverId: string,
     task: VersionedTask,
-    assignee: GrottoInputs['task']['assign']['assignee']
-): GrottoInputs['task']['assign'] {
+    assignee: HausInputs['task']['assign']['assignee']
+): HausInputs['task']['assign'] {
     return {
         assignee,
         expectedVersion: task.version,
@@ -21,8 +21,8 @@ export function taskAssignmentInput(
 export function taskUpdateInput(
     serverId: string,
     task: VersionedTask,
-    patch: GrottoInputs['task']['update']['patch']
-): GrottoInputs['task']['update'] {
+    patch: HausInputs['task']['update']['patch']
+): HausInputs['task']['update'] {
     return {
         expectedVersion: task.version,
         messageId: task.id,

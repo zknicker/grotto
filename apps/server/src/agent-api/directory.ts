@@ -1,7 +1,7 @@
 import { and, asc, eq, ilike, isNull, sql } from 'drizzle-orm';
 import { joinChannelAgents } from '../chats/channel-agent-membership.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
     channelAgentParticipantsTable,
@@ -24,7 +24,7 @@ export interface AgentDirectoryQuery {
 }
 
 export async function readAgentServerDirectory(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: AgentDirectoryQuery
 ) {
@@ -51,7 +51,7 @@ export async function readAgentServerDirectory(
 }
 
 export async function readAgentChannelInfo(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     target: string
 ) {
@@ -69,7 +69,7 @@ export async function readAgentChannelInfo(
 }
 
 export async function readAgentChannelMembers(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     target: string
 ) {
@@ -135,7 +135,7 @@ export async function readAgentChannelMembers(
 }
 
 export async function changeAgentChannelMembership(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     target: string,
     action: 'join' | 'leave'
@@ -161,11 +161,7 @@ export async function changeAgentChannelMembership(
     return { left: true, target: `#${channel.name}` };
 }
 
-async function listChannels(
-    db: GrottoDatabase,
-    runner: ResolvedRunner,
-    input: AgentDirectoryQuery
-) {
+async function listChannels(db: HausDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
     const rows = await db
         .select({
             id: chatsTable.id,
@@ -202,7 +198,7 @@ async function listChannels(
     );
 }
 
-async function listAgents(db: GrottoDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
+async function listAgents(db: HausDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
     return await db
         .select({ description: agentsTable.description, handle: agentsTable.handle })
         .from(agentsTable)
@@ -219,7 +215,7 @@ async function listAgents(db: GrottoDatabase, runner: ResolvedRunner, input: Age
         .then((rows) => rows.map((row) => ({ description: row.description, handle: row.handle })));
 }
 
-async function listHumans(db: GrottoDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
+async function listHumans(db: HausDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
     return await db
         .select({
             description: usersTable.description,
@@ -242,7 +238,7 @@ async function listHumans(db: GrottoDatabase, runner: ResolvedRunner, input: Age
         .then((rows) => rows.map((row) => ({ description: row.description, handle: row.handle })));
 }
 
-async function findChannel(db: GrottoDatabase, serverId: string, target: string) {
+async function findChannel(db: HausDatabase, serverId: string, target: string) {
     const name = target.startsWith('#') ? target.slice(1) : target;
     const [channel] = await db
         .select({ id: chatsTable.id, name: chatsTable.name })
@@ -261,7 +257,7 @@ async function findChannel(db: GrottoDatabase, serverId: string, target: string)
     return { id: channel.id, name: channel.name };
 }
 
-async function isAgentJoined(db: GrottoDatabase, runner: ResolvedRunner, chatId: string) {
+async function isAgentJoined(db: HausDatabase, runner: ResolvedRunner, chatId: string) {
     const [row] = await db
         .select({ agentId: channelAgentParticipantsTable.agentId })
         .from(channelAgentParticipantsTable)

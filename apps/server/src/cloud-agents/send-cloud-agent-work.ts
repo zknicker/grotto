@@ -3,10 +3,10 @@ import type {
     AgentCloudAgentSendInput,
     AgentCloudAgentSendReceipt,
     ServerDurableEvent,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, eq, lt, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { emitWorkEvent } from './apply-cloud-agent-observation.ts';
@@ -15,7 +15,7 @@ import { CloudAgentNotLaunchedError, CloudAgentWorkNotFoundError } from './error
 import { listComputerCloudAgentWork } from './list-computer-cloud-agent-work.ts';
 
 export async function sendCloudAgentWork(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: AgentCloudAgentSendInput
 ): Promise<{ receipt: AgentCloudAgentSendReceipt; event: ServerDurableEvent | null }> {

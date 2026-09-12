@@ -1,7 +1,7 @@
-import { REMINDER_HISTORY_RETENTION_DAYS } from '@grotto/api';
+import { REMINDER_HISTORY_RETENTION_DAYS } from '@haus/api';
 import { and, eq, inArray, lt, notExists } from 'drizzle-orm';
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     reminderAgentAttentionTable,
     reminderFiresTable,
@@ -40,10 +40,7 @@ const retentionMs = REMINDER_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000;
  * sweeping history leaves the Agent's answer marked with the automation that
  * provoked it, reading archived (ADR 0026).
  */
-export async function deleteExpiredReminderHistory(
-    db: GrottoDatabase,
-    now: Date
-): Promise<string[]> {
+export async function deleteExpiredReminderHistory(db: HausDatabase, now: Date): Promise<string[]> {
     const settledBefore = new Date(now.getTime() - retentionMs);
     const reminderAwake = db
         .select({ fireId: reminderAgentAttentionTable.fireId })
@@ -81,7 +78,7 @@ export async function deleteExpiredReminderHistory(
 
 /** Runs the retention delete on boot and hourly after that. */
 export function startReminderRetentionSweep(
-    db: GrottoDatabase,
+    db: HausDatabase,
     clock: ReminderClock,
     timers?: SweepTimers
 ): BootSweep {

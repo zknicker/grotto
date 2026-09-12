@@ -1,7 +1,7 @@
-import type { ReminderChangedEvent } from '@grotto/api';
+import type { ReminderChangedEvent } from '@haus/api';
 import { and, asc, eq, gt } from 'drizzle-orm';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
@@ -13,7 +13,7 @@ import {
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import {
     lockReminderCommand,
     parseReminderCommandResult,
@@ -50,8 +50,8 @@ export class ReminderNotFoundError extends Error {
 }
 
 export async function requireReminderOperator(
-    db: Pick<GrottoDatabase, 'select'>,
-    member: GrottoUser | null,
+    db: Pick<HausDatabase, 'select'>,
+    member: HausUser | null,
     serverId: string
 ) {
     const server = await requireServerMembership(db, member, serverId);
@@ -65,8 +65,8 @@ export async function requireReminderOperator(
 }
 
 export async function listOperatorReminders(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: {
         agentId?: string;
         serverId: string;
@@ -96,8 +96,8 @@ export async function listOperatorReminders(
 }
 
 export async function listOperatorReminderRuns(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { reminderId: string; serverId: string }
 ): Promise<ReminderFire[]> {
     await requireReminderOperator(db, member, input.serverId);
@@ -121,8 +121,8 @@ export async function listOperatorReminderRuns(
 }
 
 export async function listOperatorReminderChanges(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { afterCursor: string; limit: number; serverId: string }
 ): Promise<ReminderChangedEvent[]> {
     await requireReminderOperator(db, member, input.serverId);
@@ -170,8 +170,8 @@ export async function listOperatorReminderChanges(
 }
 
 export async function cancelOperatorReminder(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: {
         commandId: string;
         expectedVersion: number;
@@ -283,7 +283,7 @@ export async function cancelOperatorReminder(
 }
 
 async function requireReminderInServer(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     reminderId: string
 ) {

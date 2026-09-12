@@ -1,10 +1,10 @@
-import type { ChatMessageReaction } from '@grotto/api';
+import type { ChatMessageReaction } from '@haus/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, messageReactionsTable, serverMembershipsTable } from '../postgres/schema.ts';
 
-type MessageReactionReader = Pick<GrottoDatabase, 'select'>;
-type MessageReactionWriter = Pick<GrottoDatabase, 'delete' | 'insert'>;
+type MessageReactionReader = Pick<HausDatabase, 'select'>;
+type MessageReactionWriter = Pick<HausDatabase, 'delete' | 'insert'>;
 
 export type MessageReactionActor =
     | { actorAgentId: string; actorUserId?: never }

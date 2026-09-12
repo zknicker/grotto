@@ -1,7 +1,7 @@
-import type { MessageBody } from '@grotto/api';
+import type { MessageBody } from '@haus/api';
 import { readAsksForMessages } from '../asks/ask-shape.ts';
 import { readCloudAgentWorkForMessages } from '../cloud-agents/cloud-agent-shape.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { readCreatedAgentsForMessages } from '../server-agents/agent-created-shape.ts';
 
 /**
@@ -10,7 +10,7 @@ import { readCreatedAgentsForMessages } from '../server-agents/agent-created-sha
  * search, and Task rows all read the same projection.
  */
 export async function readMessageBodies(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     messageIds: string[]
 ): Promise<Map<string, MessageBody>> {

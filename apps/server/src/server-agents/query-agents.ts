@@ -1,15 +1,15 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentsTable, chatsTable, computersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { type ConfiguredAgentRow, toAgent } from './agent-shape.ts';
 
 export async function queryAgents(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     serverId: string,
     agentId?: string
 ): Promise<Agent[]> {
@@ -36,9 +36,9 @@ export async function queryAgents(
             desiredRuntimeId: agentsTable.desiredRuntimeId,
             displayName: agentsTable.displayName,
             dmChatId: agentDm.id,
-            effectiveGrottoAgentAppliedAt: agentsTable.effectiveGrottoAgentAppliedAt,
-            effectiveGrottoAgentStatus: agentsTable.effectiveGrottoAgentStatus,
-            effectiveGrottoAgentVersion: agentsTable.effectiveGrottoAgentVersion,
+            effectiveHausAgentAppliedAt: agentsTable.effectiveHausAgentAppliedAt,
+            effectiveHausAgentStatus: agentsTable.effectiveHausAgentStatus,
+            effectiveHausAgentVersion: agentsTable.effectiveHausAgentVersion,
             effectiveMissing: agentsTable.effectiveMissing,
             effectiveModelId: agentsTable.effectiveModelId,
             effectiveReasoningEffort: agentsTable.effectiveReasoningEffort,

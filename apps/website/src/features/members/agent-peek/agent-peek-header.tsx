@@ -1,8 +1,8 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { Button, Tooltip } from '@heroui/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { SectionBar, shellBandIconSize } from '../../shell/section-header.tsx';
 import { AgentPeekActions } from './agent-peek-actions.tsx';
 

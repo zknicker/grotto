@@ -1,9 +1,9 @@
-import type { Agent, AgentActivityEvent, ConfigureAgentInput } from '@grotto/api';
+import type { Agent, AgentActivityEvent, ConfigureAgentInput } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { recordSessionRotation } from '../agent-delivery/session-rotation.ts';
 import * as deliveryStore from '../agent-delivery/store.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentDeliveryTable,
     agentMessageDraftsTable,
@@ -12,7 +12,7 @@ import {
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { AgentConfigDeniedError } from './agent-config-errors.ts';
 import { assertRuntimeModelReported, resolveAssignedComputer } from './agent-inventory.ts';
 import { type ConfiguredAgentRow, toAgent } from './agent-shape.ts';
@@ -39,8 +39,8 @@ export interface ConfigureAgentResult {
  * unreported reference.
  */
 export async function configureAgent(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: ConfigureAgentInput
 ): Promise<ConfigureAgentResult> {
     return await db.transaction(async (tx) => {
@@ -159,9 +159,9 @@ export async function configureAgent(
                 desiredRuntimeId: agentsTable.desiredRuntimeId,
                 displayName: agentsTable.displayName,
                 dmChatId: agentDm.id,
-                effectiveGrottoAgentAppliedAt: agentsTable.effectiveGrottoAgentAppliedAt,
-                effectiveGrottoAgentStatus: agentsTable.effectiveGrottoAgentStatus,
-                effectiveGrottoAgentVersion: agentsTable.effectiveGrottoAgentVersion,
+                effectiveHausAgentAppliedAt: agentsTable.effectiveHausAgentAppliedAt,
+                effectiveHausAgentStatus: agentsTable.effectiveHausAgentStatus,
+                effectiveHausAgentVersion: agentsTable.effectiveHausAgentVersion,
                 effectiveMissing: agentsTable.effectiveMissing,
                 effectiveModelId: agentsTable.effectiveModelId,
                 effectiveReasoningEffort: agentsTable.effectiveReasoningEffort,

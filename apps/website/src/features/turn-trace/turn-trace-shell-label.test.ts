@@ -18,8 +18,8 @@ test('a Codex zsh wrapper is unwrapped to the command it ran', () => {
 
 test('an escaped quote inside a double-quoted wrapper is restored', () => {
     assert.equal(
-        unwrapShellCommand('/bin/zsh -lc "grotto message send --target \\"#all\\""'),
-        'grotto message send --target "#all"'
+        unwrapShellCommand('/bin/zsh -lc "haus message send --target \\"#all\\""'),
+        'haus message send --target "#all"'
     );
 });
 
@@ -32,9 +32,9 @@ test('something that is not a wrapper is left alone', () => {
 test('the summary is the first line without its heredoc opener', () => {
     assert.equal(
         readShellCommandSummary(
-            `/bin/zsh -lc "grotto message send --target \\"#all\\" <<'GROTTOMSG'\nbody\nGROTTOMSG"`
+            `/bin/zsh -lc "haus message send --target \\"#all\\" <<'HAUSMSG'\nbody\nHAUSMSG"`
         ),
-        'grotto message send --target "#all"'
+        'haus message send --target "#all"'
     );
     assert.equal(readShellCommandSummary('cat <<EOF\ntext\nEOF'), 'cat');
     assert.equal(readShellCommandSummary('  \n  echo   spaced   out  '), 'echo spaced out');
@@ -48,26 +48,23 @@ test('a long command is capped so the row stays one line', () => {
     assert.ok(label.endsWith('…'));
 });
 
-test('a grotto command reads as the product verb it is', () => {
+test('a haus command reads as the product verb it is', () => {
     assert.equal(
-        formatShellLabel(`/bin/zsh -lc "grotto message send --target \\"#all\\" <<'GROTTOMSG'"`),
-        'Sent a message with grotto'
+        formatShellLabel(`/bin/zsh -lc "haus message send --target \\"#all\\" <<'HAUSMSG'"`),
+        'Sent a message with haus'
     );
     assert.equal(
-        formatShellLabel(`/bin/zsh -lc 'grotto message send --send-draft --target "#all"'`),
-        'Sent a message with grotto'
+        formatShellLabel(`/bin/zsh -lc 'haus message send --send-draft --target "#all"'`),
+        'Sent a message with haus'
     );
-    assert.equal(
-        formatShellLabel(`zsh -lc 'grotto message check'`),
-        'Checked messages with grotto'
-    );
-    assert.equal(formatShellLabel(`zsh -lc 'grotto inbox check'`), 'Checked inbox with grotto');
-    assert.equal(formatShellLabel('grotto task claim --number 3'), 'Claimed a task with grotto');
-    assert.equal(formatShellLabel(`grotto ask "what changed"`), 'Asked a question with grotto');
+    assert.equal(formatShellLabel(`zsh -lc 'haus message check'`), 'Checked messages with haus');
+    assert.equal(formatShellLabel(`zsh -lc 'haus inbox check'`), 'Checked inbox with haus');
+    assert.equal(formatShellLabel('haus task claim --number 3'), 'Claimed a task with haus');
+    assert.equal(formatShellLabel(`haus ask "what changed"`), 'Asked a question with haus');
 });
 
-test('a grotto command with no verb of its own still states what ran', () => {
-    assert.equal(formatShellLabel('grotto skill list'), 'Ran grotto skill list');
+test('a haus command with no verb of its own still states what ran', () => {
+    assert.equal(formatShellLabel('haus skill list'), 'Ran haus skill list');
     assert.equal(formatShellLabel(`zsh -lc 'ls -la'`), 'Ran ls -la');
     assert.equal(formatShellLabel('   '), 'Ran a command');
 });

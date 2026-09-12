@@ -1,6 +1,6 @@
-import type { AgentReasoningEffort } from '@grotto/api';
+import type { AgentReasoningEffort } from '@haus/api';
 import { and, eq, inArray, isNotNull, isNull, lt, lte, ne, notInArray, or, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentDeliveryTable,
@@ -41,10 +41,7 @@ export interface InboxItemRow {
     threadFollowReactivated: boolean;
 }
 
-export async function readAgentServerId(
-    db: GrottoDatabase,
-    agentId: string
-): Promise<string | null> {
+export async function readAgentServerId(db: HausDatabase, agentId: string): Promise<string | null> {
     const [row] = await db
         .select({ serverId: agentsTable.serverId })
         .from(agentsTable)
@@ -54,7 +51,7 @@ export async function readAgentServerId(
 }
 
 export async function readDeliveryState(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string
 ): Promise<AgentDeliveryRow | null> {
     const [row] = await db
@@ -67,7 +64,7 @@ export async function readDeliveryState(
 
 /** Creates the Agent's delivery row if it has none. Idempotent. */
 export async function ensureDeliveryState(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; serverId: string }
 ): Promise<void> {
     await db
@@ -77,7 +74,7 @@ export async function ensureDeliveryState(
 }
 
 export async function setStopped(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; serverId: string; stopped: boolean }
 ): Promise<void> {
     await ensureDeliveryState(db, input);
@@ -93,7 +90,7 @@ export async function setStopped(
  * a no-op instead of a second inbox row.
  */
 export async function enqueueInboxItem(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         agentId: string;
         chatId: string;
@@ -123,7 +120,7 @@ export async function enqueueInboxItem(
         .onConflictDoNothing();
 }
 
-export async function countQueuedInboxItems(db: GrottoDatabase, agentId: string): Promise<number> {
+export async function countQueuedInboxItems(db: HausDatabase, agentId: string): Promise<number> {
     const [row] = await db
         .select({ total: sql<number>`count(*)::int` })
         .from(agentInboxTable)
@@ -131,10 +128,7 @@ export async function countQueuedInboxItems(db: GrottoDatabase, agentId: string)
     return row?.total ?? 0;
 }
 
-export async function countQueuedMessageItems(
-    db: GrottoDatabase,
-    agentId: string
-): Promise<number> {
+export async function countQueuedMessageItems(db: HausDatabase, agentId: string): Promise<number> {
     const [row] = await db
         .select({ total: sql<number>`count(*)::int` })
         .from(agentInboxTable)
@@ -145,7 +139,7 @@ export async function countQueuedMessageItems(
 }
 
 /** Counts work represented by a notice; concrete onboarding work is not notice-only. */
-export async function countQueuedNoticeItems(db: GrottoDatabase, agentId: string): Promise<number> {
+export async function countQueuedNoticeItems(db: HausDatabase, agentId: string): Promise<number> {
     const [row] = await db
         .select({ total: sql<number>`count(*)::int` })
         .from(agentInboxTable)
@@ -159,7 +153,7 @@ export async function countQueuedNoticeItems(db: GrottoDatabase, agentId: string
  * run keeps them durable and replayable under the same run id.
  */
 export async function attachQueuedItemsToRun(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; itemIds: string[]; runId: string }
 ): Promise<void> {
     if (input.itemIds.length === 0) {
@@ -173,7 +167,7 @@ export async function attachQueuedItemsToRun(
 
 /** Records the Computer ack for every row already attached to the acknowledged run. */
 async function markInboxItemsAccepted(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; runId: string }
 ): Promise<void> {
     await db
@@ -195,7 +189,7 @@ async function markInboxItemsAccepted(
  * model and no pull can add anything.
  */
 async function markConcreteItemsServed(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; runId: string }
 ): Promise<void> {
     await db
@@ -218,7 +212,7 @@ async function markConcreteItemsServed(
  * acceptance stamp here rather than losing it.
  */
 export async function markInboxItemsServed(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; itemIds: string[]; runId: string }
 ): Promise<void> {
     if (input.itemIds.length === 0) {
@@ -243,7 +237,7 @@ export async function markInboxItemsServed(
 }
 
 export async function listInboxItemsForRun(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; runId: string }
 ): Promise<InboxItemRow[]> {
     return await db
@@ -271,7 +265,7 @@ export async function listInboxItemsForRun(
 }
 
 export async function listQueuedItems(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string,
     limit: number
 ): Promise<InboxItemRow[]> {
@@ -296,7 +290,7 @@ export async function listQueuedItems(
 
 /** Concrete work stays eligible for a concrete continuation after a busy notice. */
 export async function listQueuedConcreteItems(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string,
     limit: number
 ): Promise<InboxItemRow[]> {
@@ -320,7 +314,7 @@ export async function listQueuedConcreteItems(
 }
 
 export async function listNoticedItemsForRun(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; runId: string }
 ): Promise<InboxItemRow[]> {
     return await db
@@ -342,7 +336,7 @@ export async function listNoticedItemsForRun(
 }
 
 export async function listOfferedItemsForRun(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; runId: string }
 ): Promise<InboxItemRow[]> {
     return await db
@@ -364,7 +358,7 @@ export async function listOfferedItemsForRun(
 }
 
 export async function listInboxItemsByDedupeKeys(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; dedupeKeys: string[]; runId: string }
 ): Promise<InboxItemRow[]> {
     if (input.dedupeKeys.length === 0) {
@@ -398,7 +392,7 @@ export async function listInboxItemsByDedupeKeys(
 
 /** Delivery effects that have not yet reached the model in this run. */
 export async function listUnservedThreadFollowReactivationIds(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; dedupeKeys: string[]; runId: string }
 ): Promise<string[]> {
     if (input.dedupeKeys.length === 0) {
@@ -424,7 +418,7 @@ export async function listUnservedThreadFollowReactivationIds(
 
 /** Ordinary Chat rows queryable through the Agent message surfaces. */
 export async function listQueuedMessageItems(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string,
     limit: number
 ): Promise<InboxItemRow[]> {
@@ -451,7 +445,7 @@ export async function listQueuedMessageItems(
 
 /** Marks exact queued identities as offered to the current turn, without making bodies visible. */
 export async function markInboxItemsNoticed(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; initial?: boolean; itemIds: string[]; runId: string }
 ): Promise<void> {
     if (input.itemIds.length === 0) {
@@ -476,7 +470,7 @@ export async function markInboxItemsNoticed(
  * one dedicated wake per identity.
  */
 export async function releaseUnservedTypedItems(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; runId: string; serverId: string }
 ): Promise<void> {
     await db.execute(sql`
@@ -503,7 +497,7 @@ export async function releaseUnservedTypedItems(
  * could retire it and it would be re-offered on every wake forever.
  */
 export async function retireQueuedItemsByDedupeKeys(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { dedupeKeys: string[]; serverId: string }
 ): Promise<void> {
     if (input.dedupeKeys.length === 0) {
@@ -522,7 +516,7 @@ export async function retireQueuedItemsByDedupeKeys(
 }
 
 export async function clearInboxNotices(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; runId?: string }
 ): Promise<void> {
     await db
@@ -537,7 +531,7 @@ export async function clearInboxNotices(
 }
 
 export async function listUnnoticedQueuedItems(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string,
     limit: number
 ): Promise<InboxItemRow[]> {
@@ -561,7 +555,7 @@ export async function listUnnoticedQueuedItems(
 }
 
 export async function deleteQueuedOrdinaryItems(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; chatIds: string[]; serverId: string }
 ): Promise<void> {
     if (input.chatIds.length === 0) {
@@ -592,7 +586,7 @@ export async function deleteQueuedOrdinaryItems(
 }
 
 export async function beginActiveRun(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         agentId: string;
         chatId: string;
@@ -621,7 +615,7 @@ export async function beginActiveRun(
 
 /** Records the Computer's local-acceptance ack. Idempotent and match-guarded. */
 export async function markAccepted(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; runId: string }
 ): Promise<void> {
     await db
@@ -639,7 +633,7 @@ export async function markAccepted(
 }
 
 export async function markDispatched(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; runId: string }
 ): Promise<void> {
     await db
@@ -653,7 +647,7 @@ export async function markDispatched(
         );
 }
 
-export async function clearActiveRun(db: GrottoDatabase, agentId: string): Promise<void> {
+export async function clearActiveRun(db: HausDatabase, agentId: string): Promise<void> {
     await db
         .update(agentDeliveryTable)
         .set({
@@ -672,7 +666,7 @@ export async function clearActiveRun(db: GrottoDatabase, agentId: string): Promi
 
 /** Records a run failure: bumps the failure count and sets the next retry (or degraded). */
 export async function recordDeliveryFailure(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; consecutiveFailures: number; retryAfter: Date | null }
 ): Promise<void> {
     await db
@@ -686,7 +680,7 @@ export async function recordDeliveryFailure(
 }
 
 /** Clears the failure backoff — a success or fresh human intent re-enables dispatch. */
-export async function clearDeliveryFailures(db: GrottoDatabase, agentId: string): Promise<void> {
+export async function clearDeliveryFailures(db: HausDatabase, agentId: string): Promise<void> {
     await db
         .update(agentDeliveryTable)
         .set({ consecutiveFailures: 0, retryAfter: null, updatedAt: new Date() })
@@ -694,7 +688,7 @@ export async function clearDeliveryFailures(db: GrottoDatabase, agentId: string)
 }
 
 export async function setAgentChainTurns(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; turns: number }
 ): Promise<void> {
     await db
@@ -709,7 +703,7 @@ export async function setAgentChainTurns(
  * message and answered nothing is only provable from a retained `seen` row.
  */
 export async function markInboxItemsSeenForRun(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; runId: string }
 ): Promise<void> {
     await db
@@ -730,7 +724,7 @@ export async function markInboxItemsSeenForRun(
 }
 /** Returns a failed or stopped run's claimed work to the queue so it is redelivered. */
 export async function requeueInboxItemsForRun(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; runId: string }
 ): Promise<void> {
     await db
@@ -752,7 +746,7 @@ export async function requeueInboxItemsForRun(
  * not inside its failure backoff, and not degraded (`maxFailures` reached).
  */
 export async function listDispatchCandidates(
-    db: GrottoDatabase,
+    db: HausDatabase,
     maxFailures: number
 ): Promise<{ agentId: string; serverId: string }[]> {
     const now = new Date();

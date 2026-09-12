@@ -1,8 +1,8 @@
 import { randomBytes } from 'node:crypto';
-import type { AgentCommand, AgentTurnSummary } from '@grotto/api';
+import type { AgentCommand, AgentTurnSummary } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
-import type { GrottoDatabase } from '../src/postgres/connection.ts';
+import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentActivityTable,
@@ -56,7 +56,7 @@ export interface BackgroundClaim {
 }
 
 /** A Channel message an Agent claimed, exactly as claim-by-message-id leaves it. */
-export async function seedBackgroundClaim(db: GrottoDatabase): Promise<BackgroundClaim> {
+export async function seedBackgroundClaim(db: HausDatabase): Promise<BackgroundClaim> {
     const userId = createOpaqueId('usr');
     const serverId = createOpaqueId('srv');
     const computerId = createOpaqueId('cmp');
@@ -106,11 +106,7 @@ export async function seedBackgroundClaim(db: GrottoDatabase): Promise<Backgroun
     return { ...claim, messageId };
 }
 
-export async function sendHumanMessage(
-    db: GrottoDatabase,
-    claim: BackgroundClaim,
-    content: string
-) {
+export async function sendHumanMessage(db: HausDatabase, claim: BackgroundClaim, content: string) {
     const id = createOpaqueId('msg');
     const [chat] = await db
         .update(chatsTable)
@@ -135,7 +131,7 @@ export async function sendHumanMessage(
  * decided by the test rather than by how fast Postgres ticks.
  */
 export async function answerInChat(
-    db: GrottoDatabase,
+    db: HausDatabase,
     claim: BackgroundClaim,
     runId: string,
     createdAt?: Date
@@ -164,7 +160,7 @@ export async function answerInChat(
  * finishing-reply comparison is deterministic.
  */
 export async function recordRunOperation(
-    db: GrottoDatabase,
+    db: HausDatabase,
     claim: BackgroundClaim,
     runId: string,
     recordedAt: Date
@@ -196,7 +192,7 @@ export async function recordRunOperation(
  * out loud who is talking.
  */
 export async function replyInThread(
-    db: GrottoDatabase,
+    db: HausDatabase,
     claim: BackgroundClaim,
     author: { agentId: string } | { userId: string }
 ) {
@@ -224,7 +220,7 @@ export async function replyInThread(
 }
 
 /** A second Agent in the same Channel: the bystander whose chatter must not count. */
-export async function seedPeerAgent(db: GrottoDatabase, claim: BackgroundClaim) {
+export async function seedPeerAgent(db: HausDatabase, claim: BackgroundClaim) {
     const agentId = createOpaqueId('agt');
     await db.insert(agentsTable).values({
         computerId: claim.computerId,
@@ -239,7 +235,7 @@ export async function seedPeerAgent(db: GrottoDatabase, claim: BackgroundClaim) 
     return agentId;
 }
 
-export async function beginRun(db: GrottoDatabase, claim: BackgroundClaim) {
+export async function beginRun(db: HausDatabase, claim: BackgroundClaim) {
     const transport = new FakeTransport();
     transport.online.add(claim.computerId);
     const delivery = new AgentDelivery(db, transport);
@@ -253,7 +249,7 @@ export async function beginRun(db: GrottoDatabase, claim: BackgroundClaim) {
     return { delivery, runId: transport.startedRunId(), transport };
 }
 
-export async function readTask(db: GrottoDatabase, claim: BackgroundClaim) {
+export async function readTask(db: HausDatabase, claim: BackgroundClaim) {
     return await findMessageTask(db, claim.serverId, claim.messageId);
 }
 

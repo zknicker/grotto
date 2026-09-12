@@ -14,7 +14,7 @@ import { readEffectiveAgentStates } from './effective-state.ts';
 let dataRoot: string;
 
 beforeEach(async () => {
-    dataRoot = await mkdtemp(join(tmpdir(), 'grotto-agent-configuration-'));
+    dataRoot = await mkdtemp(join(tmpdir(), 'haus-agent-configuration-'));
 });
 
 afterEach(async () => {
@@ -56,9 +56,9 @@ test('applies desired runtime and model without waiting for the first turn', asy
     expect(await readEffectiveAgentStates(dataRoot, 'srv_configuration')).toEqual([
         {
             agentId: 'agt_configurationxxx',
-            grottoAgentAppliedAt: null,
-            grottoAgentStatus: 'pending',
-            grottoAgentVersion: null,
+            hausAgentAppliedAt: null,
+            hausAgentStatus: 'pending',
+            hausAgentVersion: null,
             missingResources: [],
             modelId: 'gpt-5.6-sol',
             reasoningEffort: 'high',
@@ -107,7 +107,7 @@ test('applies desired runtime and model without waiting for the first turn', asy
         command.agentId,
         'skills'
     );
-    await expect(readFile(join(skills, 'grotto-agent', 'SKILL.md'), 'utf8')).rejects.toThrow();
+    await expect(readFile(join(skills, 'haus-agent', 'SKILL.md'), 'utf8')).rejects.toThrow();
     await expect(readFile(join(skills, 'visuals', 'SKILL.md'), 'utf8')).resolves.toContain(
         'name: visuals'
     );
@@ -187,9 +187,9 @@ test('reports a missing desired model instead of substituting one', async () => 
     expect(await readEffectiveAgentStates(dataRoot, 'srv_configuration')).toEqual([
         {
             agentId: 'agt_missingmodelxxxx',
-            grottoAgentAppliedAt: null,
-            grottoAgentStatus: 'pending',
-            grottoAgentVersion: null,
+            hausAgentAppliedAt: null,
+            hausAgentStatus: 'pending',
+            hausAgentVersion: null,
             missingResources: ['model:missing-model'],
             modelId: null,
             reasoningEffort: 'medium',
@@ -251,7 +251,7 @@ test('durably applies and replays the exact Cove factory workspace', async () =>
     const objectives = await readFile(join(workspace, 'notes', 'onboarding_objectives.md'), 'utf8');
     expect(objectives.match(/^### recipes\//gmu)).toHaveLength(12);
     expect(objectives).not.toMatch(/recipes\/archetype\//u);
-    expect(objectives).not.toMatch(/save-as-a-skill|grotto-agent/u);
+    expect(objectives).not.toMatch(/save-as-a-skill|haus-agent/u);
     await expect(
         readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')
     ).resolves.toContain('name: visuals');

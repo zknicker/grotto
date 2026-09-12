@@ -81,7 +81,7 @@ export function CreateServerFields({ form }: { form: CreateServerFormState }) {
                 variant="secondary"
             >
                 <Label htmlFor="server-slug">Address</Label>
-                <Input autoComplete="off" id="server-slug" placeholder="grotto-hq" />
+                <Input autoComplete="off" id="server-slug" placeholder="haus-hq" />
                 {form.error ? <FieldError>{form.error.message}</FieldError> : null}
             </TextField>
         </>

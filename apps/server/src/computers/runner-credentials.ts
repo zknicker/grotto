@@ -3,9 +3,9 @@ import {
     manualRunnerCapability,
     type RunnerMintRequest,
     type RunnerRevokeRequest,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, eq, gt, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentRunnerCredentialsTable,
@@ -33,7 +33,7 @@ const runnerLifetimeMs = 12 * 60 * 60 * 1000;
  * Server. The launch chat is retained as context while Agent API routes resolve
  * every product target and access under that same Agent/Server authority.
  */
-export async function mintRunnerCredential(db: GrottoDatabase, input: RunnerMintRequest) {
+export async function mintRunnerCredential(db: HausDatabase, input: RunnerMintRequest) {
     const computer = await requireComputer(db, input.credentialHash);
 
     const [agent] = await db
@@ -77,7 +77,7 @@ export async function mintRunnerCredential(db: GrottoDatabase, input: RunnerMint
 }
 
 /** Revokes a runner credential at launch end. Idempotent for an already-gone row. */
-export async function revokeRunnerCredential(db: GrottoDatabase, input: RunnerRevokeRequest) {
+export async function revokeRunnerCredential(db: HausDatabase, input: RunnerRevokeRequest) {
     const computer = await requireComputer(db, input.credentialHash);
     await db
         .update(agentRunnerCredentialsTable)
@@ -99,7 +99,7 @@ export async function revokeRunnerCredential(db: GrottoDatabase, input: RunnerRe
  * can no longer speak as the Agent, and the Stop stays effective.
  */
 export async function revokeRunnerCredentialsForRun(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; runId: string; serverId: string }
 ): Promise<void> {
     await db
@@ -117,7 +117,7 @@ export async function revokeRunnerCredentialsForRun(
 
 /** Resolves a runner token to its bound Agent, launch chat, and Server. Fails closed. */
 export async function resolveRunnerCredential(
-    db: GrottoDatabase,
+    db: HausDatabase,
     token: string
 ): Promise<ResolvedRunner | null> {
     const [row] = await db
@@ -142,7 +142,7 @@ export async function resolveRunnerCredential(
     return row ?? null;
 }
 
-async function requireComputer(db: GrottoDatabase, credentialHash: string) {
+async function requireComputer(db: HausDatabase, credentialHash: string) {
     const [computer] = await db
         .select({ id: computersTable.id, serverId: computersTable.serverId })
         .from(computersTable)

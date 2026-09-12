@@ -2,12 +2,12 @@ import type {
     ChatMessageReactionInput,
     ChatMessageReactionReceipt,
     ServerDurableEvent,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { ChatAccessDeniedError, ChatNotFoundError, requireChatWriteAccess } from './chat-access.ts';
 import { insertMessageReactionEvent } from './message-reaction-event.ts';
 import { writeMessageReaction } from './message-reactions.ts';
@@ -19,8 +19,8 @@ export interface ChangeMessageReactionResult {
 }
 
 export async function changeMessageReaction(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: ChatMessageReactionInput
 ): Promise<ChangeMessageReactionResult> {
     if (!member) {

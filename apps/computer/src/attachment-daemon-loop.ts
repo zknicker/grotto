@@ -1,4 +1,4 @@
-import { asError, settle } from '@grotto/effect';
+import { asError, settle } from '@haus/effect';
 import { Effect } from 'effect';
 import { computerMachineUnlinkedExitCode } from './attachment-recovery.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';

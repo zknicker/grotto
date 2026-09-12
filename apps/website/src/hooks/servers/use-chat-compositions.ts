@@ -1,6 +1,6 @@
-import type { CompositionEvent } from '@grotto/api';
+import type { CompositionEvent } from '@haus/api';
 import * as React from 'react';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { useMembers } from './use-members.ts';
 import { visibleCompositions } from './visible-compositions.ts';
 
@@ -19,7 +19,7 @@ export function useChatCompositions(serverId: string | undefined, chatId: string
         directory.data?.members.map((member) => member.userId)
     );
 
-    grottoTrpc.chat.onComposition.useSubscription(
+    hausTrpc.chat.onComposition.useSubscription(
         { chatId: chatId ?? '', serverId: serverId ?? '' },
         {
             enabled: serverId !== undefined && chatId !== undefined,

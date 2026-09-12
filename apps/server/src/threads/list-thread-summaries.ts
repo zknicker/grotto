@@ -1,20 +1,20 @@
-import type { ThreadSummary } from '@grotto/api';
+import type { ThreadSummary } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     chatMessagesTable,
     chatReadsTable,
     chatsTable,
     threadFollowsTable,
 } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 
 /** How many replies the anchor's preview block shows before "N replies ›". */
 const threadPreviewReplyCount = 3;
 
 export async function listThreadSummaries(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { anchorMessageIds: string[]; parentChatId?: string; serverId: string }
 ): Promise<ThreadSummary[]> {
     if (!(member && input.anchorMessageIds.length > 0)) {

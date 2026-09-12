@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { AlertDialog, Button, Dropdown, Label, Tooltip } from '@heroui/react';
 import { MoreHorizontalIcon, RefreshIcon, StopIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
@@ -6,7 +6,7 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentRestart } from '../../../hooks/members/use-agent-restart.ts';
 import { useAgentState } from '../../../hooks/members/use-agent-state.ts';
 import { useAgentStop } from '../../../hooks/members/use-agent-stop.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 
 /**
  * Session control is an owner/admin capability — the same gate the profile's

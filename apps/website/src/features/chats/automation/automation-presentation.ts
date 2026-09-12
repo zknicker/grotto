@@ -1,4 +1,4 @@
-import type { AutomationFireContext, MessageCause, MessageCauseLive } from '@grotto/api';
+import type { AutomationFireContext, MessageCause, MessageCauseLive } from '@haus/api';
 import { formatRelativeTime, formatTimestamp } from '../../../lib/format.ts';
 import { formatTriggerPayloadSize } from '../../members/agent-profile/agent-trigger-model.ts';
 

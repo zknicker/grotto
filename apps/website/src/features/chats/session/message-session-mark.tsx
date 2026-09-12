@@ -1,4 +1,4 @@
-import type { AgentSessionRotation } from '@grotto/api';
+import type { AgentSessionRotation } from '@haus/api';
 import { ArrowUpRight01Icon, RefreshIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Link, useParams } from 'react-router-dom';
 import { CursorHoverCard } from '../../../components/ui/cursor-hover-card.tsx';

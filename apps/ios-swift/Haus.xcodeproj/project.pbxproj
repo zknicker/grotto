@@ -247,7 +247,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "#!/bin/bash\n\nset -euo pipefail\n\nicon_dir=\"${GROTTO_PRECOMPILED_IOS_ICON_DIR:-}\"\nif [[ -z \"${icon_dir}\" ]]; then\n    exit 0\nfi\n\nfor file in Assets.car assetcatalog_generated_info.plist mac-icon60x60@2x.png mac-icon76x76@2x~ipad.png; do\n    if [[ ! -f \"${icon_dir}/${file}\" ]]; then\n        echo \"error: compiled iOS icon artifact is missing ${file}\" >&2\n        exit 1\n    fi\ndone\n\nresources_dir=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\nmkdir -p \"${resources_dir}\"\ncp \"${icon_dir}/Assets.car\" \"${resources_dir}/Assets.car\"\ncp \"${icon_dir}/mac-icon60x60@2x.png\" \"${resources_dir}/mac-icon60x60@2x.png\"\ncp \"${icon_dir}/mac-icon76x76@2x~ipad.png\" \"${resources_dir}/mac-icon76x76@2x~ipad.png\"\n";
+			shellScript = "#!/bin/bash\n\nset -euo pipefail\n\nicon_dir=\"${HAUS_PRECOMPILED_IOS_ICON_DIR:-}\"\nif [[ -z \"${icon_dir}\" ]]; then\n    exit 0\nfi\n\nfor file in Assets.car assetcatalog_generated_info.plist mac-icon60x60@2x.png mac-icon76x76@2x~ipad.png; do\n    if [[ ! -f \"${icon_dir}/${file}\" ]]; then\n        echo \"error: compiled iOS icon artifact is missing ${file}\" >&2\n        exit 1\n    fi\ndone\n\nresources_dir=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\nmkdir -p \"${resources_dir}\"\ncp \"${icon_dir}/Assets.car\" \"${resources_dir}/Assets.car\"\ncp \"${icon_dir}/mac-icon60x60@2x.png\" \"${resources_dir}/mac-icon60x60@2x.png\"\ncp \"${icon_dir}/mac-icon76x76@2x~ipad.png\" \"${resources_dir}/mac-icon76x76@2x~ipad.png\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

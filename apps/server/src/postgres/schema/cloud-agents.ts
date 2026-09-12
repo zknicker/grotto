@@ -3,7 +3,7 @@ import type {
     CloudAgentProvider,
     CloudAgentStatus,
     CloudAgentUsage,
-} from '@grotto/api';
+} from '@haus/api';
 import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';

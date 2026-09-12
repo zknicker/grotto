@@ -5,7 +5,7 @@ const path = require('node:path');
 const { assetCatalogPath, macAppIconConfiguration } = require('./electron/mac-app-icon-config.cjs');
 const { desktopRuntimeDependencies } = require('./electron/runtime-dependencies.cjs');
 
-const releaseBaseUrl = process.env.GROTTO_RELEASE_BASE_URL?.replace(/\/+$/u, '');
+const releaseBaseUrl = process.env.HAUS_RELEASE_BASE_URL?.replace(/\/+$/u, '');
 const macAppIcon = macAppIconConfiguration(existsSync(path.join(__dirname, assetCatalogPath)));
 
 module.exports = {
@@ -48,7 +48,7 @@ module.exports = {
         gatekeeperAssess: false,
         hardenedRuntime: true,
         icon: 'electron/icons/AppIcon.icns',
-        notarize: process.env.GROTTO_ELECTRON_NOTARIZE !== '0',
+        notarize: process.env.HAUS_ELECTRON_NOTARIZE !== '0',
         target: ['dmg', 'zip'],
     },
     publish: releaseBaseUrl

@@ -1,4 +1,4 @@
-import type { AgentAvailability, Ask, CloudAgentWork, MessageCause, TaskLabel } from '@grotto/api';
+import type { AgentAvailability, Ask, CloudAgentWork, MessageCause, TaskLabel } from '@haus/api';
 import type { MessageTask, TaskOrigin } from '../tasks/task-presentation.ts';
 import type { TranscriptSystemRow } from './transcript-system-row.ts';
 
@@ -95,7 +95,7 @@ export interface TranscriptMessage {
     /** The Cloud Agent work this Message anchors, projected from its typed body. */
     cloudAgentWork?: CloudAgentWork | null;
     content: string;
-    grottoAgentId?: string | null;
+    hausAgentId?: string | null;
     id: string;
     metadata?: TranscriptMessageMetadata;
     reactions?: TranscriptMessageReaction[];

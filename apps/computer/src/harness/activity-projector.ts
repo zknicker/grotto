@@ -4,7 +4,7 @@ import { knownToolCategory, syntheticHarnessToolActivity } from './activity-tool
 import type { ComputerExecutionJournal } from './execution-journal.ts';
 import { observeReasoningPart } from './reasoning-capture.ts';
 
-export interface GrottoHostToolRegistration {
+export interface HausHostToolRegistration {
     category: Exclude<ComputerAgentActivityCategory, 'starting_work' | 'thinking' | 'working'>;
     name: string;
     toolRef?: string;
@@ -32,11 +32,11 @@ export interface ComputerActivityRegistry {
         runtimeId: string;
         toolName: string;
     }): ComputerToolClassification;
-    registerGrottoHostTool(registration: GrottoHostToolRegistration): void;
+    registerHausHostTool(registration: HausHostToolRegistration): void;
 }
 
 export function createComputerActivityRegistry(): ComputerActivityRegistry {
-    const hostTools = new Map<string, GrottoHostToolRegistration>();
+    const hostTools = new Map<string, HausHostToolRegistration>();
     return {
         classify(input) {
             const synthetic = syntheticHarnessToolActivity(
@@ -62,13 +62,13 @@ export function createComputerActivityRegistry(): ComputerActivityRegistry {
             const known = knownToolCategory(input.runtimeId, input.toolName, input.nativeName);
             return { category: known ?? 'using_tool', outcome: 'activity' };
         },
-        registerGrottoHostTool(registration) {
+        registerHausHostTool(registration) {
             hostTools.set(registration.name, registration);
         },
     };
 }
 
-export function classifyGrottoProxyBoundary(
+export function classifyHausProxyBoundary(
     method: string,
     pathname: string
 ): ComputerAgentActivityCategory | null {
@@ -138,8 +138,8 @@ export function createHarnessActivityProjector(input: {
     runtimeId: string;
 }) {
     const registry = createComputerActivityRegistry();
-    registry.registerGrottoHostTool({ category: 'browsing', name: 'browser', toolRef: 'browser' });
-    registry.registerGrottoHostTool({
+    registry.registerHausHostTool({ category: 'browsing', name: 'browser', toolRef: 'browser' });
+    registry.registerHausHostTool({
         category: 'browsing',
         name: 'web_fetch',
         toolRef: 'web-fetch',

@@ -18,7 +18,7 @@ import { invitationLink } from './server-routes.ts';
 /**
  * Issuing an invitation, from the Invitations section header.
  *
- * Grotto sends no email: the Server discloses the raw token once, in the
+ * Haus sends no email: the Server discloses the raw token once, in the
  * response to `create`, and the Owner or Admin passes it on however they
  * choose. Losing it means revoking and reissuing, so the popover holds the
  * issued link until it is dismissed on purpose rather than clearing itself.

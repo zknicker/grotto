@@ -1,7 +1,7 @@
 import { and, eq, gt, ne, or, sql } from 'drizzle-orm';
 import { readAgentInboxCursor } from '../agent-delivery/cursors.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentInboxExactVisibilityTable,
     chatMessagesTable,
@@ -10,7 +10,7 @@ import {
 import { threadChatIdForAnchor } from '../threads/thread-id.ts';
 
 export async function hasUnseenTaskThreadContext(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     messageId: string
 ) {

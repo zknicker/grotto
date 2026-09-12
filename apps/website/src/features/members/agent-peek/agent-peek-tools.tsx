@@ -1,9 +1,9 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { Chip } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { formatSkillName } from '../../skills/skill-name-format.ts';
 import { grantedAgentConnections } from '../agent-profile/agent-glance-model.ts';
 import {

@@ -1,4 +1,4 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 export interface CloudAgentCapabilityTarget {
@@ -8,7 +8,7 @@ export interface CloudAgentCapabilityTarget {
 }
 
 export function useCloudAgentCapability(target: CloudAgentCapabilityTarget, enabled: boolean) {
-    return grottoTrpc.cloudAgentProvider.get.useQuery(target, {
+    return hausTrpc.cloudAgentProvider.get.useQuery(target, {
         ...queryPolicy.computerSnapshot,
         enabled,
     });
@@ -20,9 +20,9 @@ export function useCloudAgentCapability(target: CloudAgentCapabilityTarget, enab
  * own readiness, which also refreshes the Computer report behind it.
  */
 export function useCloudAgentConnect(target: CloudAgentCapabilityTarget) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
-    return grottoTrpc.cloudAgentProvider.connect.useMutation({
+    return hausTrpc.cloudAgentProvider.connect.useMutation({
         onSettled: async () => {
             await Promise.all([
                 utils.cloudAgentProvider.get.invalidate(target),
@@ -33,9 +33,9 @@ export function useCloudAgentConnect(target: CloudAgentCapabilityTarget) {
 }
 
 export function useCloudAgentDisconnect(target: CloudAgentCapabilityTarget) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
-    return grottoTrpc.cloudAgentProvider.disconnect.useMutation({
+    return hausTrpc.cloudAgentProvider.disconnect.useMutation({
         onSettled: async () => {
             await Promise.all([
                 utils.cloudAgentProvider.get.invalidate(target),

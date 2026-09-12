@@ -7,7 +7,7 @@ import { detectInventory } from './inventory.ts';
 import { runAgentLaunch } from './launch.ts';
 
 test('launch accepts every runtime advertised by executable discovery', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-launch-discovery-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-launch-discovery-'));
     const previousPath = process.env.PATH;
     const runtime = makeDaemonRuntime();
     const server = Bun.serve({

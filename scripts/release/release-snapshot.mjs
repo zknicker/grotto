@@ -35,7 +35,7 @@ export function resolveReleaseSnapshot(ledger, { sourceRevision }) {
     };
 }
 
-export function resolveExpectedPublicGrottoRelease(ledger, { version, sourceRevision }) {
+export function resolveExpectedPublicHausRelease(ledger, { version, sourceRevision }) {
     if (!isSemver(version)) {
         throw new Error('expected public Haus version must be X.Y.Z');
     }
@@ -49,17 +49,17 @@ export function resolveExpectedPublicGrottoRelease(ledger, { version, sourceRevi
     return snapshot;
 }
 
-export function grottoSnapshotKeys(version) {
+export function hausSnapshotKeys(version) {
     if (!isSemver(version)) {
         throw new Error(`invalid Haus release version ${version}`);
     }
     return {
-        immutable: `grotto/${version}.json`,
-        latest: 'grotto/latest.json',
+        immutable: `haus/${version}.json`,
+        latest: 'haus/latest.json',
     };
 }
 
-export function parsePublicGrottoSnapshot(value, endpoint = 'public Haus release snapshot') {
+export function parsePublicHausSnapshot(value, endpoint = 'public Haus release snapshot') {
     assertExactObject(value, snapshotKeys, endpoint);
     if (!isSemver(value.version)) {
         throw new Error(`${endpoint} version must be X.Y.Z`);
@@ -78,12 +78,12 @@ export function parsePublicGrottoSnapshot(value, endpoint = 'public Haus release
     return value;
 }
 
-export function assertPublicGrottoSnapshot(
+export function assertPublicHausSnapshot(
     actual,
     expected,
     endpoint = 'public Haus release snapshot'
 ) {
-    const parsed = parsePublicGrottoSnapshot(actual, endpoint);
+    const parsed = parsePublicHausSnapshot(actual, endpoint);
     if (!isDeepStrictEqual(parsed, expected)) {
         throw new Error(
             `${endpoint} does not match expected Haus ${expected.version} release ` +

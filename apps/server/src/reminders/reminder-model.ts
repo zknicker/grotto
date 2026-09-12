@@ -1,5 +1,5 @@
 import { and, eq, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
     channelAgentParticipantsTable,
@@ -74,7 +74,7 @@ export class ReminderAnchorAccessError extends Error {
 }
 
 export async function requireActiveAgent(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     agentId: string
 ) {
@@ -102,7 +102,7 @@ export async function requireActiveAgent(
  * is the whole check.
  */
 export async function requireAgentAnchor(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     input: {
         agentId: string;
         anchorChatId: string;
@@ -138,7 +138,7 @@ export async function requireAgentAnchor(
 }
 
 async function readMessageAnchor(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     input: { anchorChatId: string; anchorMessageId: string; serverId: string }
 ) {
     const [anchor] = await db
@@ -168,7 +168,7 @@ async function readMessageAnchor(
 }
 
 async function readChatAnchor(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     input: { anchorChatId: string; serverId: string }
 ) {
     const [anchor] = await db
@@ -185,7 +185,7 @@ async function readChatAnchor(
 }
 
 export async function readReminder(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     reminderId: string
 ) {

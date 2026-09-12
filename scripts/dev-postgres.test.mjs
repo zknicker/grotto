@@ -5,7 +5,7 @@ import { postgresLocaleEnvironment, stopStaleDevPostgres } from './dev-postgres.
 test('stopStaleDevPostgres stops the postmaster for the managed data root', () => {
     const calls = [];
     const environment = {
-        GROTTO_POSTGRES_DATA_ROOT: '/managed/postgres',
+        HAUS_POSTGRES_DATA_ROOT: '/managed/postgres',
     };
 
     const cleanupCount = stopStaleDevPostgres(environment, {
@@ -36,7 +36,7 @@ test('stopStaleDevPostgres stops the postmaster for the managed data root', () =
 
 test('stopStaleDevPostgres is a no-op without a postmaster', () => {
     const cleanupCount = stopStaleDevPostgres(
-        { GROTTO_POSTGRES_DATA_ROOT: '/managed/postgres' },
+        { HAUS_POSTGRES_DATA_ROOT: '/managed/postgres' },
         {
             fileSystem: { existsSync: () => false },
             spawnCommand: () => {
@@ -51,7 +51,7 @@ test('stopStaleDevPostgres is a no-op without a postmaster', () => {
 test('stopStaleDevPostgres leaves a dead postmaster lock for PostgreSQL recovery', () => {
     const calls = [];
     const cleanupCount = stopStaleDevPostgres(
-        { GROTTO_POSTGRES_DATA_ROOT: '/managed/postgres' },
+        { HAUS_POSTGRES_DATA_ROOT: '/managed/postgres' },
         {
             binaries: { pgCtl: '/postgres/bin/pg_ctl' },
             fileSystem: { existsSync: () => true },

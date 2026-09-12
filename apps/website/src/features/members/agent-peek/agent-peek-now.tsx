@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { ItemCard } from '@heroui-pro/react';
 import { useAgentActivityPreview } from '../../../hooks/members/use-agent-activity-preview.ts';
 import { formatShortTime } from '../../../lib/format.ts';

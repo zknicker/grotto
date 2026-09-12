@@ -120,7 +120,7 @@ test('release plan helpers enforce the detector contract and project ledger valu
 });
 
 test('release plan output preserves raw detector JSON and projected outputs', () => {
-    const directory = mkdtempSync(path.join(tmpdir(), 'grotto-plan-test-'));
+    const directory = mkdtempSync(path.join(tmpdir(), 'haus-plan-test-'));
     try {
         const outputPath = path.join(directory, 'output');
         const summaryPath = path.join(directory, 'summary');
@@ -143,7 +143,7 @@ test('release plan output preserves raw detector JSON and projected outputs', ()
             summaryPath,
         });
         const output = readFileSync(outputPath, 'utf8');
-        assert.match(output, /plan<<grotto_release_plan_/);
+        assert.match(output, /plan<<haus_release_plan_/);
         assert.match(output, /initial_ledger_migration=false/);
         assert.match(output, /publish_server=true/);
         assert.match(output, /release_version=1\.2\.3/);
@@ -158,14 +158,14 @@ function releaseApi(release, tagType = 'tag') {
     const tagObject = 'b'.repeat(40);
     const values = new Map([
         [
-            'repos/zknicker/grotto/git/ref/tags/v1.2.3',
+            'repos/zknicker/haus/git/ref/tags/v1.2.3',
             { object: { type: tagType, sha: tagType === 'tag' ? tagObject : sourceRevision } },
         ],
         [
-            `repos/zknicker/grotto/git/tags/${tagObject}`,
+            `repos/zknicker/haus/git/tags/${tagObject}`,
             { object: { type: 'commit', sha: sourceRevision } },
         ],
-        ['repos/zknicker/grotto/releases/tags/v1.2.3', release],
+        ['repos/zknicker/haus/releases/tags/v1.2.3', release],
     ]);
     return async (endpoint) => {
         if (!values.has(endpoint)) {
@@ -177,8 +177,8 @@ function releaseApi(release, tagType = 'tag') {
 
 test('GitHub and Computer finalizers verify tags, assets, and descriptors', async () => {
     const required = [
-        `grotto-server-1.2.3+git.${sourceRevision.slice(0, 12)}-aarch64-apple-darwin.tar.gz`,
-        'grotto-server-1.2.3+git.' +
+        `haus-server-1.2.3+git.${sourceRevision.slice(0, 12)}-aarch64-apple-darwin.tar.gz`,
+        'haus-server-1.2.3+git.' +
             sourceRevision.slice(0, 12) +
             '-aarch64-apple-darwin.tar.gz.sha256',
         ...APP_RELEASE_ASSETS.map((name) => name.replace('{version}', '1.2.3')),
@@ -190,7 +190,7 @@ test('GitHub and Computer finalizers verify tags, assets, and descriptors', asyn
         assets: required.map((name) => ({ name })),
     };
     const normal = await verifyNormalRelease({
-        repository: 'zknicker/grotto',
+        repository: 'zknicker/haus',
         sourceRevision,
         releaseVersion: '1.2.3',
         publishApp: true,
@@ -199,7 +199,7 @@ test('GitHub and Computer finalizers verify tags, assets, and descriptors', asyn
     assert.equal(normal.mode, 'normal');
     assert.deepEqual(normal.requiredAssets, required);
     const product = await verifyProductRelease({
-        repository: 'zknicker/grotto',
+        repository: 'zknicker/haus',
         sourceRevision,
         releaseVersion: '1.2.3',
         ghApi: releaseApi({ ...release, assets: [] }),
@@ -208,7 +208,7 @@ test('GitHub and Computer finalizers verify tags, assets, and descriptors', asyn
     await assert.rejects(
         () =>
             verifyNormalRelease({
-                repository: 'zknicker/grotto',
+                repository: 'zknicker/haus',
                 sourceRevision: 'c'.repeat(40),
                 releaseVersion: '1.2.3',
                 publishApp: false,
@@ -219,7 +219,7 @@ test('GitHub and Computer finalizers verify tags, assets, and descriptors', asyn
     await assert.rejects(
         () =>
             verifyNormalRelease({
-                repository: 'zknicker/grotto',
+                repository: 'zknicker/haus',
                 sourceRevision,
                 releaseVersion: '1.2.3',
                 publishApp: false,
@@ -230,7 +230,7 @@ test('GitHub and Computer finalizers verify tags, assets, and descriptors', asyn
     await assert.rejects(
         () =>
             verifyNormalRelease({
-                repository: 'zknicker/grotto',
+                repository: 'zknicker/haus',
                 sourceRevision,
                 releaseVersion: '1.2.3',
                 publishApp: false,
@@ -241,11 +241,11 @@ test('GitHub and Computer finalizers verify tags, assets, and descriptors', asyn
 
     let requestedUrl;
     const computer = await verifyComputerOnlyRelease({
-        repository: 'zknicker/grotto',
+        repository: 'zknicker/haus',
         sourceRevision,
         computerVersion: '1.2.3',
         ghApi: async (endpoint) => {
-            assert.equal(endpoint, 'repos/zknicker/grotto/git/ref/tags/computer-v1.2.3');
+            assert.equal(endpoint, 'repos/zknicker/haus/git/ref/tags/computer-v1.2.3');
             return { object: { type: 'commit', sha: sourceRevision } };
         },
         fetchImpl: async (url, options) => {

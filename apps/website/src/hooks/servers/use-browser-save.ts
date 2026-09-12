@@ -1,11 +1,11 @@
-import type { AgentRuntimeSaveBrowserSettings } from '@grotto/api';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import type { AgentRuntimeSaveBrowserSettings } from '@haus/api';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import type { BrowserTarget } from './use-browser-settings.ts';
 
 export function useBrowserSave(target: BrowserTarget) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
-    return grottoTrpc.browser.save.useMutation({
+    return hausTrpc.browser.save.useMutation({
         onSuccess: () => utils.browser.get.invalidate(target),
     });
 }

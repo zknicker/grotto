@@ -4,9 +4,9 @@ import {
     type CloudAgentWork,
     isTerminalCloudAgentStatus,
     type ServerDurableEvent,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, desc, eq, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { emitWorkEvent } from './apply-cloud-agent-observation.ts';
@@ -29,7 +29,7 @@ export interface CloudAgentCancelRequest {
  * requester and re-sends the frame.
  */
 export async function requestCloudAgentCancel(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         requestedBy: CloudAgentCancelRequestedBy;
         serverId: string;

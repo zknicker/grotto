@@ -11,7 +11,7 @@ for (const signal of ['TRACES', 'METRICS']) {
             const declaration = schema.split('\n').find((line) => line.startsWith(`${name}=`));
             assert.ok(
                 declaration?.startsWith(
-                    `${name}=ifs(eq($GROTTO_RESOLVE_RELEASE_TOKENS, true), undefined,`
+                    `${name}=ifs(eq($HAUS_RESOLVE_RELEASE_TOKENS, true), undefined,`
                 ),
                 `${name} must suppress runtime telemetry before resolving lifecycle values`
             );

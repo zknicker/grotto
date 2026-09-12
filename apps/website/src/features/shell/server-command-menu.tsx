@@ -7,7 +7,7 @@ import { useDevMode } from '../../components/dev-mode-provider.tsx';
 import { useTheme } from '../../components/theme-provider.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
-import type { ServerSummary } from '../../lib/grotto-server.tsx';
+import type { ServerSummary } from '../../lib/haus-server.tsx';
 import { serverChatRoute, serverSearchRoute } from '../servers/server-routes.ts';
 import { setShowTasksInChat, useShowTasksInChat } from '../tasks/show-tasks-in-chat.ts';
 import { type AgentAvatarLookup, CommandMenuShell } from './command-menu.tsx';

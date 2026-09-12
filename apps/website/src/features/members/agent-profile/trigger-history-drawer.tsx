@@ -1,4 +1,4 @@
-import { TRIGGER_HISTORY_RETENTION_DAYS, type TriggerHistoryEntry } from '@grotto/api';
+import { TRIGGER_HISTORY_RETENTION_DAYS, type TriggerHistoryEntry } from '@haus/api';
 import { Chip, Drawer } from '@heroui/react';
 import { DataGrid, type DataGridColumn } from '@heroui-pro/react';
 import { Link } from 'react-router-dom';

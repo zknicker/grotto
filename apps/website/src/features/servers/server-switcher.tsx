@@ -1,10 +1,10 @@
 import { NavLink } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import type { ServerSummary } from '../../lib/grotto-server.tsx';
+import type { ServerSummary } from '../../lib/haus-server.tsx';
 import { cn } from '../../lib/utils.ts';
 import { serverRoute } from './server-routes.ts';
 
-/** Switches between the Grotto servers this human can open. */
+/** Switches between the Haus servers this human can open. */
 export function ServerSwitcher({
     onSelect,
     servers,

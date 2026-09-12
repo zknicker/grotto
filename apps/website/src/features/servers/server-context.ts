@@ -1,5 +1,5 @@
 import { useOutletContext } from 'react-router-dom';
-import type { ServerDetail } from '../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../lib/haus-server.tsx';
 
 export interface ServerContextValue {
     server: ServerDetail;

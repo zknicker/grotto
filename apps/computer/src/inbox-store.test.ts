@@ -28,7 +28,7 @@ beforeEach(async () => {
     if (dataRoot) {
         await rm(dataRoot, { force: true, recursive: true });
     }
-    dataRoot = await mkdtemp(join(tmpdir(), 'grotto-inbox-'));
+    dataRoot = await mkdtemp(join(tmpdir(), 'haus-inbox-'));
 });
 
 test('mirrors the latest busy snapshot and removes next-run claims', async () => {
@@ -190,7 +190,7 @@ test('names bodiless frames apart from ordinary and typed system inbox rows', ()
     ).toBe(true);
     // A saved pre-migration assignment still has to be consumed as an automation.
     expect(
-        isAutomationInboxItem(automationItem('task-assign:msg_1a2b3c4d:3', 'grotto', 'system'))
+        isAutomationInboxItem(automationItem('task-assign:msg_1a2b3c4d:3', 'haus', 'system'))
     ).toBe(true);
     expect(isAutomationInboxItem(item('msg_plain', '#general', 1))).toBe(false);
     expect(

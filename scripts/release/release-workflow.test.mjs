@@ -10,7 +10,7 @@ import { assertSelectedJobResults, writeReleaseSummary } from './verify-release.
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const workflow = readFileSync(path.join(repositoryRoot, '.github/workflows/release.yml'), 'utf8');
 const deployWorkflow = readFileSync(
-    path.join(repositoryRoot, '.github/workflows/deploy-grotto-server.yml'),
+    path.join(repositoryRoot, '.github/workflows/deploy-haus-server.yml'),
     'utf8'
 );
 const releaseHostWorkflow = readFileSync(
@@ -38,7 +38,7 @@ const websitePackage = JSON.parse(
 );
 
 test('summary and Apple lifecycle helpers expose outcomes and clean temporary files', () => {
-    const directory = mkdtempSync(path.join(tmpdir(), 'grotto-release-test-'));
+    const directory = mkdtempSync(path.join(tmpdir(), 'haus-release-test-'));
     try {
         const summaryPath = path.join(directory, 'summary');
         writeReleaseSummary({
@@ -58,8 +58,8 @@ test('summary and Apple lifecycle helpers expose outcomes and clean temporary fi
             env: {
                 ...process.env,
                 RELEASE_AGENT_TOOLING_OP_TOKEN: 'test-token',
-                GROTTO_RELEASE_APPLE_CERTIFICATES_P12_BASE64: '',
-                GROTTO_RELEASE_APPLE_CERTIFICATES_PASSWORD: '',
+                HAUS_RELEASE_APPLE_CERTIFICATES_P12_BASE64: '',
+                HAUS_RELEASE_APPLE_CERTIFICATES_PASSWORD: '',
                 RUNNER_TEMP: directory,
                 GITHUB_ENV: path.join(directory, 'env'),
             },
@@ -67,7 +67,7 @@ test('summary and Apple lifecycle helpers expose outcomes and clean temporary fi
         assert.notEqual(setup.status, 0);
         assert.match(
             setup.stderr,
-            /Missing release material GROTTO_RELEASE_APPLE_CERTIFICATES_P12_BASE64/
+            /Missing release material HAUS_RELEASE_APPLE_CERTIFICATES_P12_BASE64/
         );
 
         const certificatePath = path.join(directory, 'certificate.p12');
@@ -81,10 +81,10 @@ test('summary and Apple lifecycle helpers expose outcomes and clean temporary fi
             encoding: 'utf8',
             env: {
                 ...process.env,
-                GROTTO_RELEASE_KEYCHAIN_PATH: path.join(directory, 'missing.keychain-db'),
-                GROTTO_RELEASE_CERTIFICATE_PATH: certificatePath,
+                HAUS_RELEASE_KEYCHAIN_PATH: path.join(directory, 'missing.keychain-db'),
+                HAUS_RELEASE_CERTIFICATE_PATH: certificatePath,
                 APPLE_API_KEY_PATH: apiKeyPath,
-                GROTTO_RELEASE_PROVISIONING_PROFILE_PATH: provisioningProfilePath,
+                HAUS_RELEASE_PROVISIONING_PROFILE_PATH: provisioningProfilePath,
             },
         });
         assert.equal(cleanup.status, 0, cleanup.stderr);
@@ -167,16 +167,16 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     );
     assert.match(
         workflow,
-        /name: Upload iOS[\s\S]*?needs: plan[\s\S]*?runs-on: macos-26[\s\S]*?DEVELOPER_DIR: \/Applications\/Xcode_26\.6\.app\/Contents\/Developer[\s\S]*?GROTTO_PRECOMPILED_IOS_ICON_DIR: \$\{\{ github\.workspace \}\}\/assets\/ios-icon[\s\S]*?bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
+        /name: Upload iOS[\s\S]*?needs: plan[\s\S]*?runs-on: macos-26[\s\S]*?DEVELOPER_DIR: \/Applications\/Xcode_26\.6\.app\/Contents\/Developer[\s\S]*?HAUS_PRECOMPILED_IOS_ICON_DIR: \$\{\{ github\.workspace \}\}\/assets\/ios-icon[\s\S]*?bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
     );
     assert.match(prepareIOSIconSource, /requiredIOSIconXcodeBuild/);
-    assert.doesNotMatch(workflow, /grotto-xcode27|prepare_ios_icon|grotto-ios-icon/);
+    assert.doesNotMatch(workflow, /haus-xcode27|prepare_ios_icon|haus-ios-icon/);
     assert.match(publishIOSSource, /EXCLUDED_SOURCE_FILE_NAMES=mac-icon\.icon/);
     assert.match(
         publishIOSSource,
         /const ipaPath = findExportedIPA\(exportPath\);[\s\S]*?assertExportedIOSIcon\([\s\S]*?run\('xcrun', appStoreConnectUploadArgs\(ipaPath\)\)/
     );
-    assert.match(publishIOSSource, /GROTTO_PRECOMPILED_IOS_ICON_DIR/);
+    assert.match(publishIOSSource, /HAUS_PRECOMPILED_IOS_ICON_DIR/);
     assert.match(publishIOSSource, /inspectIOSIconArtifact\(iconArtifactDirectory\)/);
     assert.doesNotMatch(workflow, /Xcode_26\.3/u);
     assert.match(workflow, /bun run publish:desktop/);
@@ -187,7 +187,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(workflow, /run: bun run release:publish/);
     assert.match(
         workflow,
-        /promote_server:[\s\S]*needs: \[plan, publish_server\][\s\S]*uses: \.\/\.github\/workflows\/deploy-grotto-server\.yml[\s\S]*version: v\$\{\{ needs\.plan\.outputs\.release_version \}\}[\s\S]*server_version: \$\{\{ needs\.plan\.outputs\.server_version \}\}[\s\S]*source_revision: \$\{\{ github\.sha \}\}/
+        /promote_server:[\s\S]*needs: \[plan, publish_server\][\s\S]*uses: \.\/\.github\/workflows\/deploy-haus-server\.yml[\s\S]*version: v\$\{\{ needs\.plan\.outputs\.release_version \}\}[\s\S]*server_version: \$\{\{ needs\.plan\.outputs\.server_version \}\}[\s\S]*source_revision: \$\{\{ github\.sha \}\}/
     );
     assert.match(workflow, /promote_server:[\s\S]*if: >-\s+always\(\) &&/);
     assert.match(workflow, /RELEASE_JOB_RESULTS: \$\{\{ toJSON\(needs\) \}\}/);
@@ -199,9 +199,9 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(deployWorkflow, /REQUESTED_SERVER_VERSION: \$\{\{ inputs\.server_version \}\}/);
     assert.match(
         deployWorkflow,
-        /release_id="\$\{GROTTO_SERVER_VERSION\}\+git\.\$\{GROTTO_SOURCE_REVISION:0:12\}"/
+        /release_id="\$\{HAUS_SERVER_VERSION\}\+git\.\$\{HAUS_SOURCE_REVISION:0:12\}"/
     );
-    assert.match(deployWorkflow, /bun scripts\/release\/verify-hosted-grotto\.mjs/);
+    assert.match(deployWorkflow, /bun scripts\/release\/verify-hosted-haus\.mjs/);
     assert.match(releaseHostWorkflow, /\.release\.version and \.release\.sourceRevision/);
     assert.match(releaseHostWorkflow, /\.version and \.sourceRevision and \.components\.computer/);
     assert.ok(
@@ -214,13 +214,13 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     );
     assert.match(workflow, /path: apps\/website\/electron-dist/);
     assert.match(workflow, /Haus_\$\{\{ needs\.plan\.outputs\.app_version \}\}_arm64\.dmg/);
-    assert.match(workflow, /node scripts\/release\/publish-grotto-snapshot\.mjs/);
+    assert.match(workflow, /node scripts\/release\/publish-haus-snapshot\.mjs/);
     assert.ok(
         workflow.indexOf('node scripts/release/verify-release.mjs --preflight') <
-            workflow.indexOf('node scripts/release/publish-grotto-snapshot.mjs')
+            workflow.indexOf('node scripts/release/publish-haus-snapshot.mjs')
     );
     assert.ok(
-        workflow.indexOf('node scripts/release/publish-grotto-snapshot.mjs') <
+        workflow.indexOf('node scripts/release/publish-haus-snapshot.mjs') <
             workflow.lastIndexOf('run: node scripts/release/verify-release.mjs')
     );
     assert.doesNotMatch(workflow, /Haus_\*_arm64/);
@@ -260,11 +260,11 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
 
 test('release context skips development-only runtime and App values', () => {
     for (const name of [
-        'GROTTO_CLERK_SECRET_KEY',
-        'GROTTO_DEV_CLERK_SIGN_IN_USER_ID',
-        'GROTTO_GOOGLE_OAUTH_CLIENT_ID',
-        'GROTTO_GOOGLE_OAUTH_CLIENT_SECRET',
-        'GROTTO_OPENAI_API_KEY',
+        'HAUS_CLERK_SECRET_KEY',
+        'HAUS_DEV_CLERK_SIGN_IN_USER_ID',
+        'HAUS_GOOGLE_OAUTH_CLIENT_ID',
+        'HAUS_GOOGLE_OAUTH_CLIENT_SECRET',
+        'HAUS_OPENAI_API_KEY',
     ]) {
         const declaration = environmentSchema
             .split('\n')
@@ -272,13 +272,13 @@ test('release context skips development-only runtime and App values', () => {
         assert.ok(declaration, `${name} must remain declared`);
         assert.match(
             declaration,
-            /^.+ifs\(eq\(\$GROTTO_RESOLVE_RELEASE_TOKENS, true\), undefined,/,
+            /^.+ifs\(eq\(\$HAUS_RESOLVE_RELEASE_TOKENS, true\), undefined,/,
             `${name} must skip Development resolution during releases`
         );
     }
     assert.match(
         environmentSchema,
-        /GROTTO_OPENAI_API_KEY=.+op\(development, "op:\/\/Development\/OpenAI API - Grotto\/credential"\)/,
+        /HAUS_OPENAI_API_KEY=.+op\(development, "op:\/\/Development\/OpenAI API - Haus\/credential"\)/,
         'development avatar generation must resolve its own lifecycle credential'
     );
     const autoSignIn = environmentSchema
@@ -287,7 +287,7 @@ test('release context skips development-only runtime and App values', () => {
     assert.ok(autoSignIn, 'VITE_DEV_CLERK_AUTO_SIGN_IN must remain declared');
     assert.match(
         autoSignIn,
-        /^.+ifs\(eq\(\$GROTTO_RESOLVE_RELEASE_TOKENS, true\), undefined,/,
+        /^.+ifs\(eq\(\$HAUS_RESOLVE_RELEASE_TOKENS, true\), undefined,/,
         'release artifacts must disable development auto sign-in'
     );
 });

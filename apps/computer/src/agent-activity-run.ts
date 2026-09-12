@@ -1,5 +1,5 @@
-import type { AgentTurnActivitySummary } from '@grotto/api';
-import { type EffectRuntime, settle } from '@grotto/effect';
+import type { AgentTurnActivitySummary } from '@haus/api';
+import { type EffectRuntime, settle } from '@haus/effect';
 import { Cause, Clock, Data, Effect, Exit } from 'effect';
 import type {
     ComputerAgentActivityCategory,

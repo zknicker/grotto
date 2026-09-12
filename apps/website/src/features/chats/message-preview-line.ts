@@ -1,4 +1,4 @@
-import { splitVisualFences, visualFallbackText } from '@grotto/api/widgets/visual';
+import { splitVisualFences, visualFallbackText } from '@haus/api/widgets/visual';
 
 /**
  * Message content as one line of plain text: a rich reference or link reads as
@@ -30,7 +30,7 @@ function visualsAsFallbackText(content: string) {
         .join('');
 }
 
-/** Mirrors the link grammar `parseGrottoRichReferences` reads references from. */
+/** Mirrors the link grammar `parseHausRichReferences` reads references from. */
 const markdownLinkPattern = /\[([^\]\n]+)\]\((?:[^)\n]+)\)/gu;
 
 /**

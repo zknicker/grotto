@@ -1,6 +1,6 @@
-import type { Agent, AgentLifecycleEvent } from '@grotto/api';
+import type { Agent, AgentLifecycleEvent } from '@haus/api';
 import * as React from 'react';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export type AgentLifecycles = ReadonlyMap<string, AgentLifecycleEvent>;
 
@@ -8,7 +8,7 @@ const compositionLifetimeMs = 12_000;
 const emptyLifecycles: AgentLifecycles = new Map();
 
 export function useAgentLifecycleEvents(serverId: string | undefined): AgentLifecycles {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
     const expiryTimersRef = React.useRef(
         new Map<string, ReturnType<typeof globalThis.setTimeout>>()
     );
@@ -27,7 +27,7 @@ export function useAgentLifecycleEvents(serverId: string | undefined): AgentLife
         []
     );
 
-    grottoTrpc.agent.onLifecycle.useSubscription(
+    hausTrpc.agent.onLifecycle.useSubscription(
         { serverId: serverId ?? '' },
         {
             enabled: serverId !== undefined,

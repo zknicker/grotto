@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable } from '../postgres/schema.ts';
 
 export class RetiredAgentDmSendError extends Error {
@@ -12,7 +12,7 @@ export class RetiredAgentDmSendError extends Error {
 }
 
 export async function requireActiveDmPeer(
-    db: GrottoDatabase,
+    db: HausDatabase,
     chat: {
         dmAgentId: string | null;
         kind: 'channel' | 'dm' | 'thread';

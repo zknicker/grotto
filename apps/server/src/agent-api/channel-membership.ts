@@ -1,11 +1,11 @@
-import type { AgentAddChannelAgentInput, AgentAddChannelAgentReceipt } from '@grotto/api';
+import type { AgentAddChannelAgentInput, AgentAddChannelAgentReceipt } from '@haus/api';
 import {
     findActiveAgentByHandle,
     findLiveChannel,
     joinChannelAgents,
 } from '../chats/channel-agent-membership.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { AgentIdentityProtectedError } from '../server-agents/errors.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
@@ -16,7 +16,7 @@ import { AgentTargetError } from './resolve-target.ts';
  * membership belongs to the onboarding factory, so it is refused here.
  */
 export async function addAgentToChannel(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: AgentAddChannelAgentInput
 ): Promise<AgentAddChannelAgentReceipt> {

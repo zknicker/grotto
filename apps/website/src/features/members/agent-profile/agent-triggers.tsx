@@ -1,4 +1,4 @@
-import type { Agent, Trigger } from '@grotto/api';
+import type { Agent, Trigger } from '@haus/api';
 import { Button, Chip, Separator, Tooltip } from '@heroui/react';
 import { ItemCard, PressableFeedback } from '@heroui-pro/react';
 import { Add01Icon, HistoryIcon } from '@hugeicons-pro/core-stroke-rounded';
@@ -6,7 +6,7 @@ import * as React from 'react';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentTriggers } from '../../../hooks/members/use-agent-triggers.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AgentLoading } from './agent-loading.tsx';
 import {
     formatTriggerRowDetail,
@@ -18,7 +18,7 @@ import { ProfileListSection } from './profile-list-section.tsx';
 import { TriggerHistoryDrawer } from './trigger-history-drawer.tsx';
 import { TriggerSheet } from './trigger-sheet.tsx';
 
-/** The Agent's inbound webhook wakes, authored here or from the `grotto` CLI. */
+/** The Agent's inbound webhook wakes, authored here or from the `haus` CLI. */
 export function AgentTriggers({ agent, server }: { agent: Agent; server: ServerDetail }) {
     const canManage = server.role !== 'member';
     const triggers = useAgentTriggers(server.id, agent.id, canManage);

@@ -1,7 +1,7 @@
-import { parseGrottoRichReferences, parseUserReferenceTarget } from '@grotto/api';
+import { parseHausRichReferences, parseUserReferenceTarget } from '@haus/api';
 import { and, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { visibleChats } from '../chats/chat-visibility.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     chatMessagesTable,
     chatReadsTable,
@@ -11,7 +11,7 @@ import {
 } from '../postgres/schema.ts';
 
 export async function autoFollowThreadMentions(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { content: string; parentChatId: string; serverId: string; threadChatId: string }
 ) {
     const mentionedUserIds = directMentionedUserIds(input.content);
@@ -60,7 +60,7 @@ export async function autoFollowThreadMentions(
 }
 
 export async function readThreadAttentionCounts(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { parentChatIds: string[]; readerUserId: string; serverId: string }
 ) {
     const counts = new Map<string, number>();
@@ -142,7 +142,7 @@ export async function readThreadAttentionCounts(
 function directMentionedUserIds(content: string) {
     return [
         ...new Set(
-            parseGrottoRichReferences(content).flatMap((reference) => {
+            parseHausRichReferences(content).flatMap((reference) => {
                 if (reference.kind !== 'user') {
                     return [];
                 }

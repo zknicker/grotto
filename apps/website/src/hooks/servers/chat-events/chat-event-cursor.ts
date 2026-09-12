@@ -1,4 +1,4 @@
-import type { ServerDurableEvent } from '@grotto/api';
+import type { ServerDurableEvent } from '@haus/api';
 
 const pageSize = 100;
 

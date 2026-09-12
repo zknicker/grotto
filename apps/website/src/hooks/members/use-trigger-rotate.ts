@@ -1,9 +1,9 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /** Mints a replacement secret. Its response is the only place that secret exists. */
 export function useTriggerRotate(serverId: string, agentId: string) {
-    const utils = grottoTrpc.useUtils();
-    const mutation = grottoTrpc.trigger.rotate.useMutation({
+    const utils = hausTrpc.useUtils();
+    const mutation = hausTrpc.trigger.rotate.useMutation({
         onSuccess: () => utils.trigger.list.invalidate({ agentId, serverId }),
     });
 

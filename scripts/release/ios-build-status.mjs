@@ -159,7 +159,7 @@ function readCredentials(environment) {
     const issuerId = environment.APPLE_API_ISSUER;
     const keyPath = environment.APPLE_API_KEY_PATH;
     const privateKey =
-        environment.GROTTO_RELEASE_APP_STORE_CONNECT_PRIVATE_KEY ??
+        environment.HAUS_RELEASE_APP_STORE_CONNECT_PRIVATE_KEY ??
         (keyPath ? readFileSync(path.resolve(keyPath), 'utf8') : undefined);
     if (!(apiKeyId && issuerId && privateKey)) {
         throw new Error(

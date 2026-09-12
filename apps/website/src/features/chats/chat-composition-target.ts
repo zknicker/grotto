@@ -6,7 +6,7 @@ import {
 } from './thread/thread-target.ts';
 
 /**
- * The `grotto message send --target <t>` grammar for a chat. Used to
+ * The `haus message send --target <t>` grammar for a chat. Used to
  * scope an ephemeral `agent.composition` event to the chat it belongs to.
  * Null for chats the CLI target grammar cannot address (tasks).
  */

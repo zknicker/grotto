@@ -1,8 +1,8 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useAgentGrant(serverId: string, agentId: string) {
-    const utils = grottoTrpc.useUtils();
-    const mutation = grottoTrpc.mcp.setGrant.useMutation({
+    const utils = hausTrpc.useUtils();
+    const mutation = hausTrpc.mcp.setGrant.useMutation({
         onSuccess: () => utils.mcp.list.invalidate({ serverId }),
     });
 

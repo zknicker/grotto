@@ -3,7 +3,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
-import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@grotto/api';
+import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@haus/api';
 import { runAgentCli } from './agent-cli.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch-host.ts';
@@ -43,7 +43,6 @@ import {
     computerAttachmentDaemonEntrypoint,
     computerEntrypoint,
     computerSourceRevision,
-    computerStandalone,
     computerVersion,
 } from './build-identity.ts';
 import { printComputerHeader, printComputerHelpPage } from './cli/chrome.ts';
@@ -69,8 +68,6 @@ import {
 import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
 import { createBridgePrewarmer } from './harness/bridge-prewarm.ts';
 import { requestSessionRestart } from './harness/session-restart.ts';
-import { exposeHausComputerCommand } from './haus-command.ts';
-import { hausOrigin } from './haus-origin.ts';
 import {
     acceptHostSkillImport,
     finishHostSkillImport,
@@ -144,9 +141,9 @@ interface AttachResponse {
     slug: string;
 }
 
-const dataRoot = process.env.GROTTO_COMPUTER_DATA_ROOT ?? join(homedir(), '.grotto', 'computer');
+const dataRoot = process.env.HAUS_COMPUTER_DATA_ROOT ?? join(homedir(), '.haus', 'computer');
 const readCachedComputerUsage = createComputerUsageCache({ dataRoot });
-const serverOrigin = hausOrigin(process.env.GROTTO_SERVER_ORIGIN ?? 'https://haus.chat');
+const serverOrigin = process.env.HAUS_SERVER_ORIGIN ?? 'https://haus.chat';
 const { findAttachment, listAttachments, readAttachment } = createAttachmentStore(dataRoot);
 const attachmentDaemonProcesses = new AttachmentDaemonProcessRegistry();
 
@@ -183,9 +180,6 @@ async function main(args: string[]) {
     if (helpRequest) {
         await printComputerHelpPage(helpRequest, { dataRoot });
         return;
-    }
-    if (computerStandalone && ['start', 'install', '__attachment-daemon'].includes(command ?? '')) {
-        await exposeHausComputerCommand({ executable: process.execPath, home: homedir() });
     }
     const headerPrinted =
         command !== undefined && command in headerCommands
@@ -342,7 +336,7 @@ async function main(args: string[]) {
         } else {
             await recordManagementCommandForAttachments('start');
         }
-        if (process.env.GROTTO_COMPUTER_RESIDENT === '1') {
+        if (process.env.HAUS_COMPUTER_RESIDENT === '1') {
             for (;;) {
                 await Bun.sleep(500);
                 try {
@@ -391,7 +385,7 @@ async function main(args: string[]) {
         }
         const prewarm = createBridgePrewarmer({
             agentsRoot: join(dataRoot, 'servers', attachment.serverId, 'agents'),
-            ...(process.env.GROTTO_DEV_STACK === '1' ? { harnessIds: ['codex'] } : {}),
+            ...(process.env.HAUS_DEV_STACK === '1' ? { harnessIds: ['codex'] } : {}),
         });
         process.exitCode = await withDaemonRuntime(
             async (runtime) => {
@@ -415,7 +409,7 @@ async function main(args: string[]) {
                         isTerminalUnlinkedError: isComputerMachineUnlinked,
                         log: (message) => console.error(`/${attachment.slug}: ${message}`),
                         markTerminalUnlinked: () => markTerminalUnlinked(dataRoot, attachment),
-                        oneshot: process.env.GROTTO_COMPUTER_ONESHOT === '1',
+                        oneshot: process.env.HAUS_COMPUTER_ONESHOT === '1',
                         validate: () => validate(attachment),
                     });
                 } finally {
@@ -750,13 +744,13 @@ async function startAttachmentDaemon(attachment: Attachment) {
         }
     }
     const entrypoint = computerAttachmentDaemonEntrypoint(attachment.serverId, {
-        watch: process.env.GROTTO_COMPUTER_WATCH_ATTACHMENT_DAEMON === '1',
+        watch: process.env.HAUS_COMPUTER_WATCH_ATTACHMENT_DAEMON === '1',
     });
     const child = Bun.spawn([entrypoint.executable, ...entrypoint.args], {
         env: {
             ...process.env,
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_ATTACHMENT_DAEMON: '1',
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_ATTACHMENT_DAEMON: '1',
         },
         stderr: 'inherit',
         stdin: 'ignore',
@@ -798,7 +792,7 @@ function attachmentDaemonPath(attachment: Attachment) {
 
 async function installResidentService() {
     const agentsRoot = join(homedir(), 'Library', 'LaunchAgents');
-    const plistPath = join(agentsRoot, 'com.grotto.computer.plist');
+    const plistPath = join(agentsRoot, 'com.haus.computer.plist');
     await mkdir(agentsRoot, { recursive: true });
     await mkdir(dataRoot, { mode: 0o700, recursive: true });
     await mkdir(join(dataRoot, 'logs'), { mode: 0o700, recursive: true });
@@ -808,7 +802,7 @@ async function installResidentService() {
     const domain = `gui/${userInfo().uid}`;
     replaceLaunchdService({
         domain,
-        label: 'com.grotto.computer',
+        label: 'com.haus.computer',
         plistPath,
         run: (args) =>
             Bun.spawnSync(['/bin/launchctl', ...args], {
@@ -822,7 +816,7 @@ async function stopResidentService() {
     if (platform() !== 'darwin') {
         return;
     }
-    const plistPath = join(homedir(), 'Library', 'LaunchAgents', 'com.grotto.computer.plist');
+    const plistPath = join(homedir(), 'Library', 'LaunchAgents', 'com.haus.computer.plist');
     if (!(await stat(plistPath).catch(() => null))) {
         return;
     }
@@ -846,7 +840,7 @@ async function restartAfterUpdate() {
         await rm(attachmentDaemonPath(attachment), { force: true });
     }
     await installResidentService();
-    if (process.env.GROTTO_COMPUTER_ATTACHMENT_DAEMON === '1') {
+    if (process.env.HAUS_COMPUTER_ATTACHMENT_DAEMON === '1') {
         setTimeout(() => process.exit(0), 100);
     }
 }
@@ -898,7 +892,7 @@ export function launchdPlist(entrypoint: { args: string[]; executable: string })
         .join('');
     const logPath = escapeXml(join(dataRoot, 'logs', 'computer.log'));
     const path = escapeXml(runtimeSearchPath());
-    return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>Label</key><string>com.grotto.computer</string><key>ProgramArguments</key><array>${programArguments}</array><key>EnvironmentVariables</key><dict><key>GROTTO_COMPUTER_DATA_ROOT</key><string>${escaped.at(-1)}</string><key>GROTTO_COMPUTER_RESIDENT</key><string>1</string><key>PATH</key><string>${path}</string></dict><key>StandardOutPath</key><string>${logPath}</string><key>StandardErrorPath</key><string>${logPath}</string><key>KeepAlive</key><true/><key>RunAtLoad</key><true/></dict></plist>\n`;
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>Label</key><string>com.haus.computer</string><key>ProgramArguments</key><array>${programArguments}</array><key>EnvironmentVariables</key><dict><key>HAUS_COMPUTER_DATA_ROOT</key><string>${escaped.at(-1)}</string><key>HAUS_COMPUTER_RESIDENT</key><string>1</string><key>PATH</key><string>${path}</string></dict><key>StandardOutPath</key><string>${logPath}</string><key>StandardErrorPath</key><string>${logPath}</string><key>KeepAlive</key><true/><key>RunAtLoad</key><true/></dict></plist>\n`;
 }
 
 function escapeXml(value: string) {
@@ -1119,16 +1113,16 @@ async function connect(
                         for (const record of acceptedImports) {
                             await applyAcceptedSkillImport(record);
                         }
-                        if (process.env.GROTTO_COMPUTER_USAGE_DISABLED !== '1') {
+                        if (process.env.HAUS_COMPUTER_USAGE_DISABLED !== '1') {
                             await sendUsageReport(sendFrame);
                         }
                     });
                     void trackWriter(initialReport.catch(reportStateError)).finally(() => {
-                        if (process.env.GROTTO_COMPUTER_ONESHOT === '1') {
+                        if (process.env.HAUS_COMPUTER_ONESHOT === '1') {
                             socket.close();
                         }
                     });
-                    if (process.env.GROTTO_COMPUTER_USAGE_DISABLED !== '1' && !usageLoopStarted) {
+                    if (process.env.HAUS_COMPUTER_USAGE_DISABLED !== '1' && !usageLoopStarted) {
                         usageLoopStarted = true;
                         connectionWork.startLoop(
                             '15 minutes',
@@ -1140,7 +1134,7 @@ async function connect(
                     }
                     return;
                 }
-                if (process.env.GROTTO_COMPUTER_ONESHOT === '1') {
+                if (process.env.HAUS_COMPUTER_ONESHOT === '1') {
                     socket.close();
                 }
                 return;

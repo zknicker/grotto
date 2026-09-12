@@ -1,18 +1,18 @@
 import { SQL } from 'bun';
-import { migrateGrottoDatabase } from './migrations.ts';
-import { assertGrottoDatabaseRole, grantGrottoRuntimePrivileges } from './roles.ts';
+import { migrateHausDatabase } from './migrations.ts';
+import { assertHausDatabaseRole, grantHausRuntimePrivileges } from './roles.ts';
 
 /**
  * Creates a fresh Haus Server database from checked-in Drizzle
  * migrations. Schema changes never live in this bootstrap wrapper.
  */
-export async function bootstrapGrottoDatabase(
+export async function bootstrapHausDatabase(
     databaseUrl: string,
     runtimeRole: string,
     backupRole = runtimeRole
 ) {
-    assertGrottoDatabaseRole(runtimeRole, 'runtime');
-    assertGrottoDatabaseRole(backupRole, 'backup');
+    assertHausDatabaseRole(runtimeRole, 'runtime');
+    assertHausDatabaseRole(backupRole, 'backup');
 
     const client = new SQL({ max: 1, url: databaseUrl });
     try {
@@ -26,10 +26,10 @@ export async function bootstrapGrottoDatabase(
         }
 
         await client.unsafe('REVOKE CREATE ON SCHEMA public FROM PUBLIC');
-        await grantGrottoRuntimePrivileges(client, runtimeRole);
+        await grantHausRuntimePrivileges(client, runtimeRole);
     } finally {
         await client.close();
     }
 
-    await migrateGrottoDatabase(databaseUrl, runtimeRole, backupRole);
+    await migrateHausDatabase(databaseUrl, runtimeRole, backupRole);
 }

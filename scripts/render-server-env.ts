@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Renders the hosted Grotto Server's delivered runtime environment.
+ * Renders the hosted Haus Server's delivered runtime environment.
  *
  * The launchd job runs `operations/run-server`, which shell-sources
  * `config/server.env`. That file is the analogue of Compose baking environment
@@ -30,8 +30,8 @@ import {
 } from './lib/env-schema.ts';
 
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
-const defaultTarget = '/Users/zknicker/srv/grotto/config/server.env';
-const serviceUser = '_grotto_server';
+const defaultTarget = '/Users/zknicker/srv/haus/config/server.env';
+const serviceUser = '_haus_server';
 
 export function shellQuote(value: string) {
     return `'${value.replaceAll("'", `'\\''`)}'`;
@@ -108,7 +108,7 @@ function parseArguments(args: string[]) {
  */
 export function renderEnvironmentFile(names: string[], values: NodeJS.ProcessEnv) {
     const lines = [
-        '# Delivered runtime copy of the Grotto Server environment.',
+        '# Delivered runtime copy of the Haus Server environment.',
         '# Rendered from the repository .env.schema by scripts/render-server-env.ts',
         '# during a deploy. Do not edit: the next deploy overwrites it, and the',
         '# schema is the only owner of every value below.',
@@ -168,7 +168,7 @@ function main() {
     const staging = `${target}.staging`;
     writeFileSync(staging, contents, { mode: 0o600 });
     chmodSync(staging, 0o600);
-    // The runner writes as `zknicker`; the launchd job reads as _grotto_server.
+    // The runner writes as `zknicker`; the launchd job reads as _haus_server.
     // An explicit ACL grants exactly that one read, without widening the file's
     // POSIX mode and without any privileged helper.
     execFileSync('/bin/chmod', ['+a', `${serviceUser} allow read`, staging]);

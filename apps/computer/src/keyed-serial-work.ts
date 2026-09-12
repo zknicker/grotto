@@ -1,4 +1,4 @@
-import { type EffectRuntime, settle } from '@grotto/effect';
+import { type EffectRuntime, settle } from '@haus/effect';
 import { Data, Effect, Exit, Fiber, Scope } from 'effect';
 
 class KeyedSerialOperationError extends Data.TaggedError('KeyedSerialOperationError')<{

@@ -86,8 +86,8 @@ const latestRun: NonNullable<CloudAgentWorkBody['latest_run']> = {
     branches: [
         {
             branch: 'cloud/fix-flake',
-            pull_request_url: 'https://github.com/grotto/grotto/pull/56',
-            repository: 'grotto/grotto',
+            pull_request_url: 'https://github.com/haus/haus/pull/56',
+            repository: 'haus/haus',
         },
     ],
     error_code: null,
@@ -102,7 +102,7 @@ const cloudAgentWork: CloudAgentWorkBody = {
     latest_run: latestRun,
     provider: 'cursor',
     provider_url: 'https://cursor.com/agents/bc_one',
-    repository: 'grotto/grotto',
+    repository: 'haus/haus',
     starting_ref: 'main',
     status: 'completed',
     title: 'Fix the flaky delivery test',

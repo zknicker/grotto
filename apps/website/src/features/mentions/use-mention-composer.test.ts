@@ -177,18 +177,18 @@ function createQuery(trigger: '@' | '$' | '#'): ActiveMentionQuery {
 const agentOption: MentionOption = {
     description: 'Agent in this chat',
     id: 'agt_primary',
-    insertText: '@Grotto',
+    insertText: '@Haus',
     kind: 'agent',
-    label: 'Grotto',
+    label: 'Haus',
     projection: 'agent-reference',
 };
 
 const skillOption: MentionOption = {
-    description: 'Use Grotto chat context, memory, files, and local tools.',
-    id: 'skill://grotto',
-    insertText: 'grotto',
+    description: 'Use Haus chat context, memory, files, and local tools.',
+    id: 'skill://haus',
+    insertText: 'haus',
     kind: 'skill',
-    label: 'Grotto Agent',
+    label: 'Haus Agent',
     projection: 'skill-activation',
 };
 

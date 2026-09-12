@@ -79,7 +79,7 @@ test('Server partitions cannot read each other or escape the data root', async (
 });
 
 async function directory() {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-cloud-launch-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-cloud-launch-'));
     roots.push(root);
     return root;
 }

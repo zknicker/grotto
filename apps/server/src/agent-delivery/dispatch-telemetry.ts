@@ -1,5 +1,5 @@
-import type { AgentCommand } from '@grotto/api';
-import { type EffectRuntime, type TraceCarrier, tracePromise } from '@grotto/effect';
+import type { AgentCommand } from '@haus/api';
+import { type EffectRuntime, type TraceCarrier, tracePromise } from '@haus/effect';
 
 interface TraceableDispatchPlan {
     frame: AgentCommand;
@@ -15,11 +15,11 @@ export async function traceAgentDispatch<Plan extends TraceableDispatchPlan>(
     }
     return await tracePromise(
         runtime,
-        'grotto.agent.dispatch',
+        'haus.agent.dispatch',
         {
-            'grotto.agent.id': input.agentId,
-            'grotto.operation': 'agent.dispatch',
-            'grotto.server.id': input.serverId,
+            'haus.agent.id': input.agentId,
+            'haus.operation': 'agent.dispatch',
+            'haus.server.id': input.serverId,
         },
         async (carrier) => attachTraceCarrier(await plan(), carrier)
     );

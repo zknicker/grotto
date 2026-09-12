@@ -1,4 +1,4 @@
-import type { McpIcon } from '@grotto/api';
+import type { McpIcon } from '@haus/api';
 export interface McpConnection {
     accountLabel: string | null;
     affectedAgents: Array<{ id: string; name: string }>;

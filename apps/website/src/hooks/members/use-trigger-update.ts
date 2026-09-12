@@ -1,9 +1,9 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /** Saves one Trigger and refreshes both its active row and history label. */
 export function useTriggerUpdate(serverId: string, agentId: string) {
-    const utils = grottoTrpc.useUtils();
-    const mutation = grottoTrpc.trigger.update.useMutation({
+    const utils = hausTrpc.useUtils();
+    const mutation = hausTrpc.trigger.update.useMutation({
         onSuccess: async () =>
             await Promise.all([
                 utils.trigger.history.invalidate({ agentId, serverId }),

@@ -1,4 +1,4 @@
-import { type EffectRuntime, settle } from '@grotto/effect';
+import { type EffectRuntime, settle } from '@haus/effect';
 import { Data, Effect } from 'effect';
 import type { AgentDelivery } from './agent-delivery/delivery.ts';
 

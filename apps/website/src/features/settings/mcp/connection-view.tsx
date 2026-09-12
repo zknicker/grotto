@@ -1,4 +1,4 @@
-import type { Agent, McpConnection as ServerMcpConnection } from '@grotto/api';
+import type { Agent, McpConnection as ServerMcpConnection } from '@haus/api';
 import { AlertDialog, Button } from '@heroui/react';
 import type { McpConnection } from './mcp-server-shared.ts';
 

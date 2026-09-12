@@ -1,4 +1,4 @@
-import type { CloudAgentProvider } from '@grotto/api';
+import type { CloudAgentProvider } from '@haus/api';
 import { CloudIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { ModelProviderLogo } from '../../components/badges/model-provider-logo.tsx';
 import { identityMarkRadius } from '../../components/ui/entity-avatar.tsx';

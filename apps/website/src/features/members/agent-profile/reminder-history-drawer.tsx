@@ -1,4 +1,4 @@
-import { REMINDER_HISTORY_RETENTION_DAYS, type ReminderHistoryEntry } from '@grotto/api';
+import { REMINDER_HISTORY_RETENTION_DAYS, type ReminderHistoryEntry } from '@haus/api';
 import { Chip, Drawer } from '@heroui/react';
 import { DataGrid, type DataGridColumn } from '@heroui-pro/react';
 import { Link } from 'react-router-dom';

@@ -1,4 +1,4 @@
-import type { McpIcon } from '@grotto/api';
+import type { McpIcon } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
     boolean,

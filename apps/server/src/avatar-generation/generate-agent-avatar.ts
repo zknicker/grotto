@@ -1,16 +1,16 @@
-import type { AgentAvatarGenerationInput } from '@grotto/api';
+import type { AgentAvatarGenerationInput } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import { AvatarDeniedError, AvatarOwnerNotFoundError } from '../avatars/avatar-errors.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import type { AvatarImageService } from './service.ts';
 
 /** Authorizes and generates one transient preview for an editable Agent. */
 export async function generateAgentAvatar(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     avatarImageService: AvatarImageService,
     input: AgentAvatarGenerationInput
 ) {

@@ -1,5 +1,5 @@
 /**
- * The CSS variables Grotto hands to agent-authored HTML.
+ * The CSS variables Haus hands to agent-authored HTML.
  *
  * Agent HTML renders in a frame with an opaque origin (see sandbox.ts), so it
  * cannot read the app's stylesheets. Instead each surface snapshots the
@@ -155,7 +155,7 @@ export function injectHostTokenStyle(html: string, tokenCss: string): string {
         return html;
     }
 
-    const styleTag = `<style data-grotto-tokens>${tokenCss}</style>`;
+    const styleTag = `<style data-haus-tokens>${tokenCss}</style>`;
     const headMatch = /<head[^>]*>/iu.exec(html);
 
     if (headMatch) {

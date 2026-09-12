@@ -1,10 +1,10 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { withSaveErrorToast } from '../../lib/saving-toast.ts';
 import { refreshAgentState } from './agent-refresh.ts';
 
 export function useAgentStop(serverId: string, agentId: string) {
-    const utils = grottoTrpc.useUtils();
-    const mutation = grottoTrpc.agent.stop.useMutation({
+    const utils = hausTrpc.useUtils();
+    const mutation = hausTrpc.agent.stop.useMutation({
         onSuccess: () => refreshAgentState(utils, serverId, agentId),
     });
     return {

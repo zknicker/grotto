@@ -1,4 +1,4 @@
-import { taskClaimConflictSchema } from '@grotto/api';
+import { taskClaimConflictSchema } from '@haus/api';
 import * as z from 'zod';
 import { type AgentContext, resolveAgentContext } from './agent-context.ts';
 import { AgentCliError } from './agent-error.ts';

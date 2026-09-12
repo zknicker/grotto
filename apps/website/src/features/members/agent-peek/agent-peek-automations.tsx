@@ -1,8 +1,8 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { ItemCard } from '@heroui-pro/react';
 import { useAgentReminders } from '../../../hooks/members/use-agent-reminders.ts';
 import { useAgentTriggers } from '../../../hooks/members/use-agent-triggers.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { scheduledReminders } from '../agent-profile/agent-reminder-model.ts';
 import { formatAutomationsSummary } from './agent-peek-model.ts';
 import { PeekPressableCard, PeekSection } from './peek-section.tsx';

@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { PromptInput } from '@heroui-pro/react';
 import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';

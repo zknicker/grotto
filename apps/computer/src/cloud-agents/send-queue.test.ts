@@ -2,7 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { makeTestRuntime } from '@grotto/effect';
+import { makeTestRuntime } from '@haus/effect';
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
 import { CloudLaunchJournal } from './launch-journal.ts';
 import { CloudAgentSendQueue } from './send-queue.ts';
@@ -22,7 +22,7 @@ const prior = {
 const next = { ...prior, runId: 'next', providerRunId: null };
 
 async function fixture(interrupt = false) {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-send-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-send-'));
     const journal = new CloudLaunchJournal(root);
     const runtime = makeTestRuntime();
     const provider = createFakeCloudAgentProvider();

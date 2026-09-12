@@ -5,7 +5,7 @@ import {
     type TurnDetailAccess,
     type TurnJournalPresentation,
 } from '../../features/members/agent-profile/agent-activity-model.ts';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { useAgentExecutionJournal } from './use-agent-execution-journal.ts';
 
 const relayFailure = {
@@ -53,7 +53,7 @@ export function useTurnJournal(input: {
     // subscription closes the moment the turn settles, so a skipped event would
     // never be recovered. Overlapping requests are safe — only the newest
     // result is applied.
-    grottoTrpc.agent.onActivity.useSubscription(
+    hausTrpc.agent.onActivity.useSubscription(
         { serverId },
         {
             enabled: allowed && live,

@@ -1,4 +1,4 @@
-import type { ComputerRuntimeId, ComputerUsage } from '@grotto/api';
+import type { ComputerRuntimeId, ComputerUsage } from '@haus/api';
 import { Card } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
 import { useAgents } from '../../hooks/members/use-agents.ts';

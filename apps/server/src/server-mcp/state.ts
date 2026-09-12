@@ -4,21 +4,21 @@ import {
     type McpIcon,
     mcpIconSchema,
     mcpSummarySchema,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentMcpConnectionGrantsTable,
     agentsTable,
     mcpConnectionsTable,
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { McpDeniedError } from './errors.ts';
 
 export async function listMcpConnections(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     serverId: string
 ): Promise<McpConnection[]> {
     await requireServerMembership(db, member, serverId);
@@ -43,8 +43,8 @@ export async function listMcpConnections(
 }
 
 export async function setMcpGrant(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: McpGrant & { enabled: boolean; serverId: string }
 ): Promise<McpGrant> {
     const access = await requireServerMembership(db, member, input.serverId);

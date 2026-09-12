@@ -1,4 +1,4 @@
-import type { AgentReasoningEffort, ComputerInventory } from '@grotto/api';
+import type { AgentReasoningEffort, ComputerInventory } from '@haus/api';
 import type { AvatarImage } from '../avatars/resize-avatar-image.ts';
 
 export interface ReportedComputer {

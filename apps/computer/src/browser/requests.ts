@@ -3,8 +3,8 @@ import {
     type BrowserResult,
     browserRequestSchema,
     browserResultSchema,
-} from '@grotto/api';
-import { type EffectRuntime, tracePromise } from '@grotto/effect';
+} from '@haus/api';
+import { type EffectRuntime, tracePromise } from '@haus/effect';
 import {
     getComputerBrowserSettings,
     openComputerBrowser,
@@ -25,10 +25,10 @@ export async function runBrowserRequest(
     try {
         return await tracePromise(
             runtime,
-            'grotto.browser.operation',
+            'haus.browser.operation',
             {
-                'grotto.operation': `browser.${request.operation.kind}`,
-                'grotto.request.id': request.requestId,
+                'haus.operation': `browser.${request.operation.kind}`,
+                'haus.request.id': request.requestId,
             },
             () => runBrowserOperation(root, request, runtime),
             request.traceContext

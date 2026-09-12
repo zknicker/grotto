@@ -1,4 +1,4 @@
-import type { Chat, ChatMessage, ThreadSummary } from '@grotto/api';
+import type { Chat, ChatMessage, ThreadSummary } from '@haus/api';
 import { EmptyState } from '@heroui-pro/react';
 import { Message01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
@@ -11,7 +11,7 @@ import { useDmEnsure } from '../../../hooks/servers/use-dm-ensure.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useWindowTitle } from '../../../hooks/shell/use-window-title.ts';
 import { useViewportBelow } from '../../../hooks/use-viewport-below.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { ChatArtifactPanel } from '../../chats/chat-artifact-panel.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import { ShellSidePane } from '../../shell/shell-side-pane.tsx';

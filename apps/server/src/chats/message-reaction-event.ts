@@ -1,11 +1,11 @@
-import type { ServerDurableEvent } from '@grotto/api';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { ServerDurableEvent } from '@haus/api';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable } from '../postgres/schema.ts';
 import { allocateEventCursor } from './allocate-event-cursor.ts';
 
 export async function insertMessageReactionEvent(
-    db: Pick<GrottoDatabase, 'insert' | 'update'>,
+    db: Pick<HausDatabase, 'insert' | 'update'>,
     input: {
         chatId: string;
         messageId: string;

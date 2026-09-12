@@ -1,5 +1,5 @@
 import {
-    formatGrottoLine,
+    formatHausLine,
     formatHeader,
     formatLogLine,
     getSnapshotChangeLines,
@@ -62,7 +62,7 @@ export class DevStackScreen {
 
         if (failedProcesses.length > 0) {
             this.write(
-                formatGrottoLine(`startup failed: ${failedProcesses.join(', ')}`, {
+                formatHausLine(`startup failed: ${failedProcesses.join(', ')}`, {
                     color: theme.danger,
                     colorize: this.colorize,
                     icon: '✕',
@@ -72,7 +72,7 @@ export class DevStackScreen {
         }
 
         this.write(
-            formatGrottoLine('stack stopped', {
+            formatHausLine('stack stopped', {
                 color: theme.muted,
                 colorize: this.colorize,
                 icon: '·',

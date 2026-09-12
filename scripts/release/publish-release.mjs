@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { loadAppReleaseEnvironment } from './app-release-environment.mjs';
 import { checkComputerReleasePrerequisite } from './check-computer-prerequisite.mjs';
-import { findGrottoServerReleaseAssets } from './grotto-server-release-assets.mjs';
+import { findHausServerReleaseAssets } from './haus-server-release-assets.mjs';
 import {
     assertReleaseLedger,
     releasePublishesTarget,
@@ -60,11 +60,11 @@ const main = async () => {
         });
     }
     const sourceRevision = readSourceRevision();
-    run('bun', ['run', 'build:grotto-server-artifact'], {
+    run('bun', ['run', 'build:haus-server-artifact'], {
         env: {
             ...process.env,
-            GROTTO_SERVER_VERSION: serverVersion,
-            GROTTO_SOURCE_REVISION: sourceRevision,
+            HAUS_SERVER_VERSION: serverVersion,
+            HAUS_SOURCE_REVISION: sourceRevision,
         },
     });
 
@@ -96,7 +96,7 @@ function printUsage() {
 }
 
 async function readReleaseVersion() {
-    const product = await readJson('packages/grotto-api/grotto-product.json');
+    const product = await readJson('packages/haus-api/haus-product.json');
     return product.version;
 }
 
@@ -148,7 +148,7 @@ async function readPublishedRelease(version) {
 
 async function writeReleaseNotes(version) {
     const notes = extractReleaseNotes(await readText('CHANGELOG.md'), version);
-    const notesDirectory = mkdtempSync(path.join(tmpdir(), 'grotto-release-'));
+    const notesDirectory = mkdtempSync(path.join(tmpdir(), 'haus-release-'));
     const notesPath = path.join(notesDirectory, `${version}-notes.md`);
     writeFileSync(notesPath, `${notes}\n`, 'utf8');
     return notesPath;
@@ -179,7 +179,7 @@ async function findReleaseArtifacts({ appVersion, includeDesktop, serverVersion,
     const artifacts = [
         ...(includeDesktop ? await findDesktopArtifacts(appVersion) : []),
         ...(includeDesktop ? [path.join(bundleRoot, 'latest-mac.yml')] : []),
-        ...(await findGrottoServerReleaseAssets({
+        ...(await findHausServerReleaseAssets({
             releaseRoot: serverReleaseRoot,
             sourceRevision,
             version: serverVersion,

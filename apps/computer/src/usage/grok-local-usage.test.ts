@@ -12,7 +12,7 @@ afterEach(async () => {
 
 test('uses ccusage Grok turn completion, cache, and dedupe semantics', async () => {
     const now = new Date('2026-08-14T12:00:00Z');
-    const root = await mkdtemp(join(tmpdir(), 'grotto-grok-local-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-grok-local-'));
     roots.push(root);
     const first = join(root, 'sessions', 'project', 'session-1', 'updates.jsonl');
     const second = join(root, 'sessions', 'project', 'session-2', 'updates.jsonl');

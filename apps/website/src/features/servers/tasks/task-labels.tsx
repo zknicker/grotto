@@ -1,4 +1,4 @@
-import type { TaskLabel } from '@grotto/api';
+import type { TaskLabel } from '@haus/api';
 import { Alert, Button, Form, Input, Modal, TextField } from '@heroui/react';
 import * as React from 'react';
 import { useTaskLabelCreate } from '../../../hooks/servers/use-task-label-create.ts';

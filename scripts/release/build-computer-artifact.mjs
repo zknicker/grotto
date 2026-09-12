@@ -29,17 +29,17 @@ export async function buildComputerArtifact(input) {
             '--target=bun-darwin-arm64',
             '--outfile',
             artifactPath,
-            '--env=GROTTO_COMPUTER_BUILD_*',
+            '--env=HAUS_COMPUTER_BUILD_*',
             '--no-compile-autoload-dotenv',
         ],
         {
             ...process.env,
-            GROTTO_COMPUTER_BUILD_APPLE_SIGNING_IDENTITY: input.appleSigningIdentity,
-            GROTTO_COMPUTER_BUILD_APPLE_TEAM_ID: input.appleTeamId,
-            GROTTO_COMPUTER_BUILD_RELEASE_PUBLIC_KEY: publicKey,
-            GROTTO_COMPUTER_BUILD_SOURCE_REVISION: input.sourceRevision,
-            GROTTO_COMPUTER_BUILD_STANDALONE: '1',
-            GROTTO_COMPUTER_BUILD_VERSION: input.version,
+            HAUS_COMPUTER_BUILD_APPLE_SIGNING_IDENTITY: input.appleSigningIdentity,
+            HAUS_COMPUTER_BUILD_APPLE_TEAM_ID: input.appleTeamId,
+            HAUS_COMPUTER_BUILD_RELEASE_PUBLIC_KEY: publicKey,
+            HAUS_COMPUTER_BUILD_SOURCE_REVISION: input.sourceRevision,
+            HAUS_COMPUTER_BUILD_STANDALONE: '1',
+            HAUS_COMPUTER_BUILD_VERSION: input.version,
         }
     );
     // Bun's linker signature can be stale after embedding a large compiled payload.

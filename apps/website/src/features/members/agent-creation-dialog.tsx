@@ -1,4 +1,4 @@
-import type { Agent, ComputerInventory } from '@grotto/api';
+import type { Agent, ComputerInventory } from '@haus/api';
 import { Alert, Modal, Spinner } from '@heroui/react';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { computerLabel } from '../computers/presentation.ts';

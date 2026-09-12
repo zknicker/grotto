@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { makeTestRuntime } from '@grotto/effect';
+import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
 import * as Cause from 'effect/Cause';
 import * as Option from 'effect/Option';

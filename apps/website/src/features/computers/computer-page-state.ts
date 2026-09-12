@@ -1,6 +1,6 @@
-import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
+import type { HausOutputs } from '../../lib/haus-server.tsx';
 
-type Computer = GrottoOutputs['computer']['list'][number];
+type Computer = HausOutputs['computer']['list'][number];
 
 export type ComputerPageState =
     | { status: 'loading' }

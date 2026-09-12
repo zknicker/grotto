@@ -26,7 +26,7 @@ import {
 } from './agent-command-utils.ts';
 import { messageSearchSubcommand } from './agent-message-search.ts';
 
-const HEREDOC_RECIPE = `haus message send --target "#general" <<'GROTTOMSG'\nBody with "quotes", $vars, \`backticks\`.\nGROTTOMSG`;
+const HEREDOC_RECIPE = `haus message send --target "#general" <<'HAUSMSG'\nBody with "quotes", $vars, \`backticks\`.\nHAUSMSG`;
 const MAX_MESSAGE_CHECK_ROUNDS = 50;
 
 interface MessageDeps {
@@ -44,7 +44,7 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
         examples: [
             HEREDOC_RECIPE,
             'haus message send --send-draft --target "#general"',
-            'haus message send --target "#general" --cause trf_41c2d8e9 <<\'GROTTOMSG\'\nPayment webhook failed twice.\nGROTTOMSG',
+            'haus message send --target "#general" --cause trf_41c2d8e9 <<\'HAUSMSG\'\nPayment webhook failed twice.\nHAUSMSG',
         ],
         flags: [
             {
@@ -339,7 +339,7 @@ function heredocError(code: string, message: string): AgentCliError {
 function defaultDeps(): MessageDeps {
     return {
         client: createAgentApiClient(),
-        compositionId: process.env.GROTTO_COMPOSITION_ID?.trim() || undefined,
+        compositionId: process.env.HAUS_COMPOSITION_ID?.trim() || undefined,
         mintNonce: () => `cli-${randomUUID()}`,
         readStdin: readAgentStdin,
         stdinIsTty: Boolean(process.stdin.isTTY),

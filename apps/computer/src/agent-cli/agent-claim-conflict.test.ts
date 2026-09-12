@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { TaskClaimConflict } from '@grotto/api';
+import type { TaskClaimConflict } from '@haus/api';
 import { formatTaskClaimConflict } from './agent-claim-conflict.ts';
 
 function conflict(overrides: Partial<TaskClaimConflict> = {}): TaskClaimConflict {

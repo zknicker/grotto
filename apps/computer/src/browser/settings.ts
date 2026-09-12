@@ -11,8 +11,8 @@ import {
     agentRuntimeBrowserProfileNameSchema,
     agentRuntimeBrowserSettingsSchema,
     agentRuntimeSaveBrowserSettingsSchema,
-} from '@grotto/api';
-import type { EffectRuntime } from '@grotto/effect';
+} from '@haus/api';
+import type { EffectRuntime } from '@haus/effect';
 import * as z from 'zod';
 import { detectChromeApplications } from './chrome-detection.ts';
 import { getBrowserService, reconcileBrowserService } from './service.ts';

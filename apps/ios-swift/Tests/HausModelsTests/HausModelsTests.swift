@@ -324,7 +324,7 @@ final class HausModelsTests: XCTestCase {
     }
 
     func testFixturesUseTheProductionDecoder() {
-        XCTAssertEqual(HausPreviewFixtures.server.slug, "grotto")
+        XCTAssertEqual(HausPreviewFixtures.server.slug, "haus")
         XCTAssertEqual(HausPreviewFixtures.agents.first?.displayName, "Cove")
         XCTAssertEqual(HausPreviewFixtures.memberDirectory.viewerUserID, "user_preview")
         XCTAssertEqual(HausPreviewFixtures.chats.last?.kind, .dm)

@@ -1,9 +1,9 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useCreateServerChannel() {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
-    return grottoTrpc.chat.createChannel.useMutation({
+    return hausTrpc.chat.createChannel.useMutation({
         // The chat.lifecycle `created` event owns list invalidation; this is
         // the creator's un-awaited ack fallback so navigation never waits.
         onSuccess: (channel) => {

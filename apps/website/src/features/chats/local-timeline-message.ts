@@ -1,4 +1,4 @@
-const localTimelineMessageMetadataKey = '__grottoLocalTimelineMessage';
+const localTimelineMessageMetadataKey = '__hausLocalTimelineMessage';
 
 export function isLocalTimelineMessageMetadata(
     metadata: Record<string, unknown> | null | undefined

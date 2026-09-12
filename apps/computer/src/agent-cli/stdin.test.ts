@@ -13,7 +13,7 @@ test('Agent CLI stdin reads both a pipe and a seekable redirected file', async (
     expect(await new Response(piped.stdout).text()).toBe('from pipe');
     expect(await piped.exited).toBe(0);
 
-    const directory = await mkdtemp(join(tmpdir(), 'grotto-stdin-'));
+    const directory = await mkdtemp(join(tmpdir(), 'haus-stdin-'));
     try {
         const path = join(directory, 'body.txt');
         await writeFile(path, 'from redirected file');

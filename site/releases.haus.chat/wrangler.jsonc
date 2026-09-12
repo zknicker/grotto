@@ -6,10 +6,6 @@
     {
       "pattern": "releases.haus.chat",
       "custom_domain": true
-    },
-    {
-      "pattern": "releases.grotto.sh",
-      "custom_domain": true
     }
   ]
 }

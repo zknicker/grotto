@@ -1,9 +1,9 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useComputerUpdateStart(serverId: string, computerId: string) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
-    return grottoTrpc.computer.update.useMutation({
+    return hausTrpc.computer.update.useMutation({
         onMutate: async () => {
             await utils.computer.list.cancel({ serverId });
             const previous = utils.computer.list.getData({ serverId });

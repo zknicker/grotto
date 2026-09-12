@@ -57,7 +57,7 @@ describe('requireCompiledIcon', () => {
 });
 
 function makeTemporaryDirectory() {
-    const directory = mkdtempSync(path.join(tmpdir(), 'grotto-icon-test-'));
+    const directory = mkdtempSync(path.join(tmpdir(), 'haus-icon-test-'));
     temporaryDirectories.push(directory);
     return directory;
 }

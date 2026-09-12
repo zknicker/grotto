@@ -1,5 +1,5 @@
-import type { ServerMember } from '@grotto/api/membership';
-import { participantHandleSchema, suggestParticipantHandle } from '@grotto/api/participant-handle';
+import type { ServerMember } from '@haus/api/membership';
+import { participantHandleSchema, suggestParticipantHandle } from '@haus/api/participant-handle';
 import { Button, Input, Separator, TextField } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';

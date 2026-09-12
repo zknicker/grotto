@@ -5,18 +5,18 @@ const { assertTrustedRenderer, isTrustedRendererUrl } = require('./trusted-rende
 
 describe('trusted desktop renderer', () => {
     test('accepts only the configured Haus App origin', () => {
-        expect(isTrustedRendererUrl('https://grotto.sh/s/dev/activity', 'https://grotto.sh')).toBe(
+        expect(isTrustedRendererUrl('https://haus.chat/s/dev/activity', 'https://haus.chat')).toBe(
             true
         );
-        expect(isTrustedRendererUrl('https://evil.example', 'https://grotto.sh')).toBe(false);
-        expect(isTrustedRendererUrl('file:///tmp/index.html', 'https://grotto.sh')).toBe(false);
+        expect(isTrustedRendererUrl('https://evil.example', 'https://haus.chat')).toBe(false);
+        expect(isTrustedRendererUrl('file:///tmp/index.html', 'https://haus.chat')).toBe(false);
     });
 
     test('rejects IPC from an untrusted frame', () => {
         expect(() =>
             assertTrustedRenderer(
                 { senderFrame: { url: 'https://evil.example' } },
-                'https://grotto.sh'
+                'https://haus.chat'
             )
         ).toThrow('Untrusted page');
     });

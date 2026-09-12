@@ -15,12 +15,12 @@ export const theme = {
     warning: ansi.yellow,
 };
 
-const processOrder = ['postgres', 'grotto', 'computer', 'website', 'desktop'];
+const processOrder = ['postgres', 'haus', 'computer', 'website', 'desktop'];
 
 const sourceMeta = {
     desktop: { color: theme.accent, icon: '🪟', label: 'desktop' },
     computer: { color: theme.warning, icon: '🖥️', label: 'computer' },
-    grotto: { color: theme.warning, icon: '🏠', label: 'server' },
+    haus: { color: theme.warning, icon: '🏠', label: 'server' },
     postgres: { color: theme.warning, icon: '🐘', label: 'postgres' },
     website: { color: theme.accent, icon: '🌐', label: 'website' },
 };
@@ -37,7 +37,7 @@ const statusMeta = {
 
 export function formatHeader(snapshot, { colorize = false } = {}) {
     const lines = [
-        formatGrottoLine('booting local stack', {
+        formatHausLine('booting local stack', {
             color: theme.accent,
             colorize,
             icon: '🎰',
@@ -46,7 +46,7 @@ export function formatHeader(snapshot, { colorize = false } = {}) {
 
     if (snapshot.staleCleanupCount > 0) {
         lines.push(
-            formatGrottoLine(`cleaned ${snapshot.staleCleanupCount} stale dev processes`, {
+            formatHausLine(`cleaned ${snapshot.staleCleanupCount} stale dev processes`, {
                 color: theme.warning,
                 colorize,
                 icon: '◐',
@@ -95,7 +95,7 @@ export function getSnapshotChangeLines(previous, next, snapshot, { colorize = fa
 
     if (previous.staleCleanupCount !== next.staleCleanupCount && next.staleCleanupCount > 0) {
         lines.push(
-            formatGrottoLine(`cleaned ${next.staleCleanupCount} stale dev processes`, {
+            formatHausLine(`cleaned ${next.staleCleanupCount} stale dev processes`, {
                 color: theme.warning,
                 colorize,
                 icon: '◐',
@@ -108,10 +108,10 @@ export function getSnapshotChangeLines(previous, next, snapshot, { colorize = fa
 
 export function formatReadyBlock(snapshot, { colorize = false } = {}) {
     const lines = [
-        colorizeText('╭─ 🎰 GROTTO', theme.accent, colorize),
+        colorizeText('╭─ 🎰 HAUS', theme.accent, colorize),
         `${dim('│', colorize)}  ${colorizeText('Ready to go', theme.ok, colorize)}`,
         colorizeText('├─ Services', theme.accent, colorize),
-        readyServiceLine('Server', snapshot.config.grottoServerUrl, colorize),
+        readyServiceLine('Server', snapshot.config.hausServerUrl, colorize),
         readyServiceLine('Computer', 'running', colorize),
         readyServiceLine('Website', snapshot.config.websiteUrl, colorize),
         readyServiceLine(
@@ -140,8 +140,8 @@ export function snapshotDigest(snapshot) {
     };
 }
 
-export function formatGrottoLine(message, { color, colorize, icon }) {
-    return `${colorizeText(`${icon} grotto`, color, colorize)} ${message}`;
+export function formatHausLine(message, { color, colorize, icon }) {
+    return `${colorizeText(`${icon} haus`, color, colorize)} ${message}`;
 }
 
 function readyServiceLine(label, value, colorize) {
@@ -170,8 +170,8 @@ function getProcessValue(source, snapshot) {
     if (source === 'desktop') {
         return snapshot.config.desktopEnabled ? 'enabled' : 'disabled';
     }
-    if (source === 'grotto') {
-        return snapshot.config.grottoServerUrl;
+    if (source === 'haus') {
+        return snapshot.config.hausServerUrl;
     }
     if (source === 'postgres') {
         return snapshot.config.postgresDataPath;

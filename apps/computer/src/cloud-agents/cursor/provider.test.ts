@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { cloudAgentObservationSchema } from '@grotto/api';
+import { cloudAgentObservationSchema } from '@haus/api';
 import type { CloudAgentProviderObservation } from '../provider.ts';
 import { CloudAgentProviderUnavailableError } from '../provider.ts';
 import { createCursorCloudAgentProvider } from './provider.ts';
@@ -66,7 +66,7 @@ test('a launch creates the provider Agent and returns its Run and page', async (
         idempotencyKey: 'car_1234567890abcdef',
         instructions: 'Reproduce the flake and open a pull request.',
         ref: 'main',
-        repository: 'grotto/grotto',
+        repository: 'haus/haus',
         title: 'Fix the flaky delivery test',
     });
 
@@ -76,7 +76,7 @@ test('a launch creates the provider Agent and returns its Run and page', async (
         providerUrl: `https://cursor.com/agents?id=${recordedAgentId}`,
         status: 'running',
     });
-    expect(transport.requests).toEqual(['start grotto/grotto@main car_1234567890abcdef']);
+    expect(transport.requests).toEqual(['start haus/haus@main car_1234567890abcdef']);
 });
 
 test('a provider refusal reaches the caller instead of settling the Run', async () => {
@@ -89,7 +89,7 @@ test('a provider refusal reaches the caller instead of settling the Run', async 
                 idempotencyKey: 'car_1234567890abcdef',
                 instructions: 'Reproduce the flake.',
                 ref: null,
-                repository: 'grotto/grotto',
+                repository: 'haus/haus',
                 title: 'Fix the flaky delivery test',
             })
         ).rejects.toThrow(failure.message);
@@ -108,8 +108,8 @@ test('a terminal Run read is one bounded observation Server can store', async ()
     expect(observation.branches).toEqual([
         {
             branch: 'cursor/fix-flaky-delivery-test',
-            pullRequestUrl: 'https://github.com/grotto/grotto/pull/412',
-            repository: 'grotto/grotto',
+            pullRequestUrl: 'https://github.com/haus/haus/pull/412',
+            repository: 'haus/haus',
         },
     ]);
     expect(observation.usage).toEqual({ costUsd: 0.425, inputTokens: 18_402, outputTokens: 3117 });

@@ -1,6 +1,6 @@
-import type { AgentEffectiveState } from '@grotto/api';
+import type { AgentEffectiveState } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 
 /**
@@ -9,7 +9,7 @@ import { agentsTable } from '../postgres/schema.ts';
  * updates no row — cross-Computer effective claims fail closed.
  */
 export async function recordAgentEffectiveState(
-    db: GrottoDatabase,
+    db: HausDatabase,
     computerId: string,
     states: AgentEffectiveState[]
 ): Promise<void> {

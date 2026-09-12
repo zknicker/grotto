@@ -29,7 +29,7 @@ test('refuses a release build carrying the development Clerk instance', () => {
     assert.throws(
         () =>
             assertReleasePublishableKey({
-                GROTTO_RESOLVE_RELEASE_TOKENS: 'true',
+                HAUS_RESOLVE_RELEASE_TOKENS: 'true',
                 VITE_CLERK_PUBLISHABLE_KEY: developmentKey,
             }),
         /must be a pk_live_ key in a release build/
@@ -38,7 +38,7 @@ test('refuses a release build carrying the development Clerk instance', () => {
 
 test('refuses a release build whose publishable key never resolved', () => {
     assert.throws(
-        () => assertReleasePublishableKey({ GROTTO_RESOLVE_RELEASE_TOKENS: 'true' }),
+        () => assertReleasePublishableKey({ HAUS_RESOLVE_RELEASE_TOKENS: 'true' }),
         /must be a pk_live_ key in a release build, but resolved nothing/
     );
 });
@@ -46,7 +46,7 @@ test('refuses a release build whose publishable key never resolved', () => {
 test('accepts a release build carrying the production Clerk instance', () => {
     assert.doesNotThrow(() =>
         assertReleasePublishableKey({
-            GROTTO_RESOLVE_RELEASE_TOKENS: 'true',
+            HAUS_RESOLVE_RELEASE_TOKENS: 'true',
             VITE_CLERK_PUBLISHABLE_KEY: productionKey,
         })
     );
@@ -65,7 +65,7 @@ test('rejects a release build gated on the production key through the front door
         () =>
             loadAppReleaseEnvironment({
                 environment: {
-                    GROTTO_RESOLVE_RELEASE_TOKENS: 'true',
+                    HAUS_RESOLVE_RELEASE_TOKENS: 'true',
                     VITE_CLERK_PUBLISHABLE_KEY: developmentKey,
                 },
             }),

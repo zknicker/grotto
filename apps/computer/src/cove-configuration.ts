@@ -4,13 +4,13 @@ import {
     seedCoveWorkspace,
     seedFactoryManagedSkills,
     validateCoveWorkspace,
-} from '@grotto/agent-workspace';
+} from '@haus/agent-workspace';
 import {
     type ComputerInventory,
     type CoveApplyCommand,
     type CoveApplyResult,
     coveApplyCommandSchema,
-} from '@grotto/api';
+} from '@haus/api';
 import {
     readAgentSeedConfiguration,
     readAppliedAgentConfiguration,

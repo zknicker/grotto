@@ -1,4 +1,4 @@
-import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@grotto/api';
+import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@haus/api';
 
 export function cloudAgentComputerFixture(serverUrl: () => string, credential: string) {
     return { attachComputer, bootstrapFrame, computerSocketUrl, opened };

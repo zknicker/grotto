@@ -27,7 +27,7 @@ function style(value: string, ...codes: string[]) {
 }
 
 function isStartupUiEnabled() {
-    return process.env.GROTTO_STARTUP_UI === '1';
+    return process.env.HAUS_STARTUP_UI === '1';
 }
 
 export function logStartupBanner(title: string, subtitle: string) {

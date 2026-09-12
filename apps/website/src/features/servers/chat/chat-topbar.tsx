@@ -1,4 +1,4 @@
-import type { Chat } from '@grotto/api';
+import type { Chat } from '@haus/api';
 import { Button, Chip, Dropdown, Header, Label, Separator, Tooltip, toast } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
 import {
@@ -24,7 +24,7 @@ import {
     useChannelUnarchive,
 } from '../../../hooks/servers/use-channel-lifecycle.ts';
 import { useChannelUpdate } from '../../../hooks/servers/use-channel-update.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { ChannelAgentsDialog } from '../../chats/channel-agents-dialog.tsx';
 import { ChannelAppearanceDialog } from '../../chats/channel-appearance-dialog.tsx';

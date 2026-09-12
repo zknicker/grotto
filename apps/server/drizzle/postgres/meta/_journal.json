@@ -281,6 +281,13 @@
       "when": 1789014450620,
       "tag": "0039_agent_creation_message_detach",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1789162048380,
+      "tag": "0041_haus_identity",
+      "breakpoints": true
     }
   ]
 }

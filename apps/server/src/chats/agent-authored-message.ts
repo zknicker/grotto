@@ -1,11 +1,11 @@
-import type { MessageBodyKind, ServerDurableEvent } from '@grotto/api';
+import type { MessageBodyKind, ServerDurableEvent } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { followAgentThread } from '../agent-api/attention.ts';
 import { resolveAgentSendTarget } from '../agent-api/resolve-send-target.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { ensureThreadRecord } from '../threads/ensure-thread.ts';
@@ -48,7 +48,7 @@ export class AgentAuthorNotFoundError extends Error {
  * Every record kind runs this first so an invalid launch creates nothing.
  */
 export async function planAgentAuthoredMessage(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     target: string
 ): Promise<AgentAuthoredMessagePlan> {
@@ -87,7 +87,7 @@ export async function planAgentAuthoredMessage(
  * The caller inserts its own record and event inside the same transaction.
  */
 export async function writeAgentAuthoredMessage(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     plan: AgentAuthoredMessagePlan,
     input: { bodyKind: MessageBodyKind; content: string; nonce: string },
@@ -184,7 +184,7 @@ export async function writeAgentAuthoredMessage(
 
 /** The Message an Agent already wrote under this nonce, for replay checks. */
 export async function findAgentMessageByNonce(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { chatId: string; nonce: string; serverId: string }
 ): Promise<{ authorAgentId: string | null; content: string; id: string; sequence: number } | null> {
     const [message] = await db

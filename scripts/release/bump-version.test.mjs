@@ -12,14 +12,14 @@ afterEach(async () => {
 });
 
 test('appends the Haus draft without changing component versions', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-release-bump-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-release-bump-'));
     temporaryRoots.push(root);
     await Promise.all(
         [
             'apps/computer',
             'apps/website',
             'apps/ios-swift/Haus.xcodeproj',
-            'packages/grotto-api',
+            'packages/haus-api',
             'scripts/release',
         ].map((directory) => mkdir(join(root, directory), { recursive: true }))
     );
@@ -44,14 +44,11 @@ test('appends the Haus draft without changing component versions', async () => {
         'Debug { CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 1.8.19; }\nRelease { CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 1.8.19; }\n'
     );
     await writeFile(join(root, 'CHANGELOG.md'), '## v1.8.19 - 2026-08-19\n');
-    await writeFile(join(root, 'packages/grotto-api/grotto-agent.json'), '{"version":"1.0.0"}\n');
-    await writeFile(
-        join(root, 'packages/grotto-api/grotto-product.json'),
-        '{"version":"1.8.19"}\n'
-    );
+    await writeFile(join(root, 'packages/haus-api/haus-agent.json'), '{"version":"1.0.0"}\n');
+    await writeFile(join(root, 'packages/haus-api/haus-product.json'), '{"version":"1.8.19"}\n');
     await writeFile(
         join(root, 'bun.lock'),
-        '{\n  "workspaces": {\n    "apps/computer": {\n      "name": "@grotto/computer",\n      "version": "1.4.8",\n    },\n    "apps/website": {\n      "name": "@grotto/website",\n      "version": "1.8.19",\n    },\n  },\n}\n'
+        '{\n  "workspaces": {\n    "apps/computer": {\n      "name": "@haus/computer",\n      "version": "1.4.8",\n    },\n    "apps/website": {\n      "name": "@haus/website",\n      "version": "1.8.19",\n    },\n  },\n}\n'
     );
     const originalLedger = `${JSON.stringify(
         [
@@ -83,7 +80,7 @@ test('appends the Haus draft without changing component versions', async () => {
         JSON.parse(await readFile(join(root, 'apps/website/package.json'), 'utf8')).version
     ).toBe('1.8.19');
     expect(
-        JSON.parse(await readFile(join(root, 'packages/grotto-api/grotto-product.json'), 'utf8'))
+        JSON.parse(await readFile(join(root, 'packages/haus-api/haus-product.json'), 'utf8'))
             .version
     ).toBe('1.8.20');
     expect(await readFile(join(root, 'apps/ios-swift/project.yml'), 'utf8')).toContain(

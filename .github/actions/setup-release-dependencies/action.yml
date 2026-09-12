@@ -1,4 +1,4 @@
-name: Set up Grotto release dependencies
+name: Set up Haus release dependencies
 description: Install the frozen worktree dependencies with the scoped CI bootstrap identity
 
 inputs:

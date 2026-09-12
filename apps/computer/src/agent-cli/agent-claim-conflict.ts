@@ -2,11 +2,11 @@ import {
     TASK_CLAIM_CONFLICT_ROUTING_NOTE,
     type TaskClaimConflict,
     taskClaimConflictBlockedActionCopy,
-} from '@grotto/api';
+} from '@haus/api';
 
 /**
  * A lost claim reads as a concurrency lock, never a verdict on who owns the
- * lane. Server ships the structured conflict and `@grotto/api` owns the copy;
+ * lane. Server ships the structured conflict and `@haus/api` owns the copy;
  * this is the only place the prose is composed, so the four lines stay in the
  * order an Agent needs them: who holds the lock, what that blocks, what it
  * leaves open, and where a misroute is corrected.

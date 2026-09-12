@@ -1,4 +1,4 @@
-import type { MessageCause } from '@grotto/api';
+import type { MessageCause } from '@haus/api';
 import { Chip } from '@heroui/react';
 import { requestChatComposerMention } from '../../commands/chat-composer-mention.ts';
 import { formatShortTime } from '../../lib/format.ts';

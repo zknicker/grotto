@@ -1,4 +1,4 @@
-import type { AgentRuntimeBrowserState } from '@grotto/api';
+import type { AgentRuntimeBrowserState } from '@haus/api';
 import type { BrowserObservation } from './types.ts';
 
 export interface BrowserRecoveryEvidence {

@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 import {
-    assertPublicGrottoSnapshot,
-    grottoSnapshotKeys,
-    parsePublicGrottoSnapshot,
-    resolveExpectedPublicGrottoRelease,
+    assertPublicHausSnapshot,
+    hausSnapshotKeys,
+    parsePublicHausSnapshot,
+    resolveExpectedPublicHausRelease,
     resolveReleaseSnapshot,
 } from './release-snapshot.mjs';
 
@@ -77,14 +77,14 @@ test('resolves one expected object only for the current public release version',
         },
     ];
 
-    expect(
-        resolveExpectedPublicGrottoRelease(ledger, { sourceRevision, version: '1.9.0' })
-    ).toEqual(resolveReleaseSnapshot(ledger, { sourceRevision }));
+    expect(resolveExpectedPublicHausRelease(ledger, { sourceRevision, version: '1.9.0' })).toEqual(
+        resolveReleaseSnapshot(ledger, { sourceRevision })
+    );
     expect(() =>
-        resolveExpectedPublicGrottoRelease(ledger, { sourceRevision, version: 'latest' })
+        resolveExpectedPublicHausRelease(ledger, { sourceRevision, version: 'latest' })
     ).toThrow('must be X.Y.Z');
     expect(() =>
-        resolveExpectedPublicGrottoRelease(ledger, { sourceRevision, version: '1.8.0' })
+        resolveExpectedPublicHausRelease(ledger, { sourceRevision, version: '1.8.0' })
     ).toThrow('does not match latest release 1.9.0');
 });
 
@@ -139,12 +139,12 @@ test('owns stable public snapshot keys and validates the complete payload shape'
         version: '1.9.0',
     };
 
-    expect(grottoSnapshotKeys(snapshot.version)).toEqual({
-        immutable: 'grotto/1.9.0.json',
-        latest: 'grotto/latest.json',
+    expect(hausSnapshotKeys(snapshot.version)).toEqual({
+        immutable: 'haus/1.9.0.json',
+        latest: 'haus/latest.json',
     });
-    expect(parsePublicGrottoSnapshot(snapshot)).toBe(snapshot);
-    expect(assertPublicGrottoSnapshot(snapshot, snapshot, 'snapshot')).toBeUndefined();
+    expect(parsePublicHausSnapshot(snapshot)).toBe(snapshot);
+    expect(assertPublicHausSnapshot(snapshot, snapshot, 'snapshot')).toBeUndefined();
 });
 
 test('rejects a public snapshot with missing or extra fields', () => {
@@ -156,11 +156,11 @@ test('rejects a public snapshot with missing or extra fields', () => {
         version: '1.9.0',
     };
 
-    expect(() => parsePublicGrottoSnapshot({ ...snapshot, extra: true })).toThrow(
+    expect(() => parsePublicHausSnapshot({ ...snapshot, extra: true })).toThrow(
         'has unexpected fields'
     );
     const missingVersion = Object.fromEntries(
         Object.entries(snapshot).filter(([key]) => key !== 'version')
     );
-    expect(() => parsePublicGrottoSnapshot(missingVersion)).toThrow('has unexpected fields');
+    expect(() => parsePublicHausSnapshot(missingVersion)).toThrow('has unexpected fields');
 });

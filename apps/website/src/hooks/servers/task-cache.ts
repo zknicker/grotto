@@ -1,4 +1,4 @@
-import type { MessageTask, TaskList } from '@grotto/api';
+import type { MessageTask, TaskList } from '@haus/api';
 
 export function replaceTask(list: TaskList | undefined, task: MessageTask): TaskList | undefined {
     if (!list) {

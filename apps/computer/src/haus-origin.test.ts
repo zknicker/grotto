@@ -3,30 +3,23 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createAttachmentStore } from './attachment-store.ts';
-import { hausOrigin } from './haus-origin.ts';
+import { normalizeHttpOrigin } from './haus-origin.ts';
 import { ensureComputerLoginSession, readComputerLoginSession } from './login.ts';
 
-test('only the former production origin migrates to Haus', () => {
-    expect(hausOrigin('https://grotto.sh')).toBe('https://haus.chat');
-    for (const origin of [
-        'https://haus.chat',
-        'http://grotto.sh',
-        'https://grotto.sh:8443',
-        'https://grotto.sh.example.com',
-        'http://localhost:1234',
-    ]) {
-        expect(hausOrigin(origin)).toBe(origin);
-    }
+test('validates HTTP origins without rewriting custom servers', () => {
+    expect(normalizeHttpOrigin('https://haus.chat/path')).toBe('https://haus.chat');
+    expect(normalizeHttpOrigin('http://localhost:1234/path')).toBe('http://localhost:1234');
+    expect(() => normalizeHttpOrigin('file:///tmp/app')).toThrow('HTTP(S)');
 });
 
-test('every attachment lookup uses Haus while preserving stored credentials and rollback state', async () => {
+test('attachment lookups preserve server origins and credentials', async () => {
     const root = await mkdtemp(join(tmpdir(), 'haus-attachment-migration-'));
     const directory = join(root, 'servers', 'srv_test');
     const attachment = {
         computerId: 'cmp_test',
         credential: 'unchanged-attachment-credential',
         serverId: 'srv_test',
-        serverOrigin: 'https://grotto.sh',
+        serverOrigin: 'https://haus.chat',
         slug: 'test',
     };
     try {
@@ -46,12 +39,12 @@ test('every attachment lookup uses Haus while preserving stored credentials and 
     }
 });
 
-test('a legacy login refresh sends credentials only to Haus and stores the canonical origin', async () => {
+test('login refresh sends credentials directly to its saved Haus origin', async () => {
     const root = await mkdtemp(join(tmpdir(), 'haus-login-migration-'));
     const stored = {
         accessToken: `gcl_at_${'a'.repeat(43)}`,
         accessTokenExpiresAt: new Date(Date.now() - 60_000).toISOString(),
-        origin: 'https://grotto.sh',
+        origin: 'https://haus.chat',
         refreshToken: `gcl_rt_${'b'.repeat(43)}`,
         refreshTokenExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
         sessionId: 'cls_1234567890123456',

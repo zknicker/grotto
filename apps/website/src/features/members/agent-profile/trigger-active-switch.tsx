@@ -1,4 +1,4 @@
-import type { Trigger } from '@grotto/api';
+import type { Trigger } from '@haus/api';
 import { Switch } from '@heroui/react';
 import { useTriggerSetStatus } from '../../../hooks/members/use-trigger-set-status.ts';
 

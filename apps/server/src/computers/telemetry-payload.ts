@@ -1,5 +1,5 @@
-import { agentReasoningEffortSchema } from '@grotto/api';
-import type { OtlpSignal } from '@grotto/effect';
+import { agentReasoningEffortSchema } from '@haus/api';
+import type { OtlpSignal } from '@haus/effect';
 import { z } from 'zod';
 import {
     metricsPayloadSchema,
@@ -18,14 +18,10 @@ export interface TelemetryComputer {
     readonly serverId: string;
 }
 
-const spanNames = new Set([
-    'grotto.agent.turn',
-    'grotto.browser.operation',
-    'grotto.mcp.operation',
-]);
+const spanNames = new Set(['haus.agent.turn', 'haus.browser.operation', 'haus.mcp.operation']);
 const metricNames = new Set([
-    'grotto.operation.count',
-    'grotto.operation.duration',
+    'haus.operation.count',
+    'haus.operation.duration',
     'effect_fiber_started',
     'effect_fiber_active',
     'effect_fiber_successes',
@@ -123,7 +119,7 @@ function sanitizeMetrics(
                             return {
                                 name: metric.name,
                                 unit:
-                                    metric.name === 'grotto.operation.duration'
+                                    metric.name === 'haus.operation.duration'
                                         ? 'ms'
                                         : metric.name === 'effect_fiber_lifetimes'
                                           ? 'milliseconds'
@@ -159,7 +155,7 @@ function validateMetricKind(
     >['resourceMetrics'][number]['scopeMetrics'][number]['metrics'][number]
 ): void {
     const histogram =
-        metric.name === 'grotto.operation.duration' || metric.name === 'effect_fiber_lifetimes';
+        metric.name === 'haus.operation.duration' || metric.name === 'effect_fiber_lifetimes';
     const valid = histogram
         ? metric.histogram?.aggregationTemporality === 2
         : metric.sum?.aggregationTemporality === 2 &&
@@ -190,12 +186,12 @@ function authoritativeResource(
     const instance = attributes.find(({ key }) => key === 'service.instance.id')?.value.stringValue;
     return {
         attributes: Object.entries({
-            'service.name': 'grotto-computer',
-            'service.namespace': 'grotto',
+            'service.name': 'haus-computer',
+            'service.namespace': 'haus',
             'deployment.environment.name': environment,
-            'grotto.computer.id': computer.id,
-            'grotto.server.id': computer.serverId,
-            'grotto.telemetry.source': 'computer-relay',
+            'haus.computer.id': computer.id,
+            'haus.server.id': computer.serverId,
+            'haus.telemetry.source': 'computer-relay',
             ...(instance && z.uuid().safeParse(instance).success
                 ? { 'service.instance.id': `${computer.id}/${instance}` }
                 : {}),
@@ -207,49 +203,49 @@ function safeSpanAttributes(
     attributes: TelemetryAttributes,
     computer: TelemetryComputer
 ): TelemetryAttributes {
-    const agentId = attributes.find(({ key }) => key === 'grotto.agent.id')?.value.stringValue;
+    const agentId = attributes.find(({ key }) => key === 'haus.agent.id')?.value.stringValue;
     const agent = computer.agents.find(({ id }) => id === agentId);
     return attributes
         .filter(({ key, value }) => {
             switch (key) {
-                case 'grotto.agent.id':
+                case 'haus.agent.id':
                     return value.stringValue === agent?.id && agent !== undefined;
-                case 'grotto.model.id':
+                case 'haus.model.id':
                     return agent !== undefined && value.stringValue === agent.desiredModelId;
-                case 'grotto.runtime.id':
+                case 'haus.runtime.id':
                     return agent !== undefined && value.stringValue === agent.desiredRuntimeId;
-                case 'grotto.run.id':
-                case 'grotto.chat.id':
-                case 'grotto.request.id':
+                case 'haus.run.id':
+                case 'haus.chat.id':
+                case 'haus.request.id':
                     return diagnosticId.test(value.stringValue ?? '');
-                case 'grotto.operation':
+                case 'haus.operation':
                     return operations.has(value.stringValue ?? '');
-                case 'grotto.outcome':
+                case 'haus.outcome':
                     return outcomes.has(value.stringValue ?? '');
-                case 'grotto.failure.kind':
+                case 'haus.failure.kind':
                     return failures.has(value.stringValue ?? '');
-                case 'grotto.reasoning.effort':
+                case 'haus.reasoning.effort':
                     return agentReasoningEffortSchema.safeParse(value.stringValue).success;
-                case 'grotto.turn.harness_ready_ms':
-                case 'grotto.turn.bootstrap_ms':
-                case 'grotto.turn.session_create_ms':
-                case 'grotto.turn.first_stream_ms':
-                case 'grotto.turn.first_tool_ms':
-                case 'grotto.turn.first_send_ms':
-                case 'grotto.turn.last_send_ms':
-                case 'grotto.turn.after_last_send_ms': {
+                case 'haus.turn.harness_ready_ms':
+                case 'haus.turn.bootstrap_ms':
+                case 'haus.turn.session_create_ms':
+                case 'haus.turn.first_stream_ms':
+                case 'haus.turn.first_tool_ms':
+                case 'haus.turn.first_send_ms':
+                case 'haus.turn.last_send_ms':
+                case 'haus.turn.after_last_send_ms': {
                     const duration = value.doubleValue ?? Number(value.intValue);
                     return Number.isFinite(duration) && duration >= 0 && duration <= 604_800_000;
                 }
-                case 'grotto.tokens.input':
-                case 'grotto.tokens.output':
-                case 'grotto.tokens.cache_read':
-                case 'grotto.tokens.cache_write':
+                case 'haus.tokens.input':
+                case 'haus.tokens.output':
+                case 'haus.tokens.cache_read':
+                case 'haus.tokens.cache_write':
                     return /^\d{1,12}$/u.test(value.intValue ?? String(value.doubleValue));
-                case 'grotto.output.produced':
+                case 'haus.output.produced':
                     return value.boolValue !== undefined;
-                case 'grotto.message.count':
-                case 'grotto.retry.count':
+                case 'haus.message.count':
+                case 'haus.retry.count':
                     return /^\d{1,9}$/u.test(value.intValue ?? String(value.doubleValue));
                 default:
                     return false;

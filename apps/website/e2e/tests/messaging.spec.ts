@@ -559,7 +559,7 @@ test('a signed-out human cannot read hosted messages', async ({ page }) => {
     await expect(page.getByText('First durable human message')).toHaveCount(0);
 });
 
-test('Grotto App never requests a retired local product endpoint', async ({ page }) => {
+test('Haus App never requests a retired local product endpoint', async ({ page }) => {
     const localServerOrigin = 'http://127.0.0.1:8080';
     const localRequests: string[] = [];
 

@@ -1,9 +1,9 @@
-import type { CreateAgentInput } from '@grotto/api';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import type { CreateAgentInput } from '@haus/api';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useAgentCreate(serverId: string) {
-    const utils = grottoTrpc.useUtils();
-    const mutation = grottoTrpc.agent.create.useMutation();
+    const utils = hausTrpc.useUtils();
+    const mutation = hausTrpc.agent.create.useMutation();
 
     return {
         ...mutation,

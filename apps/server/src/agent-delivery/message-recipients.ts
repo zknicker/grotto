@@ -1,6 +1,6 @@
-import { parseAgentReferenceTarget, parseGrottoRichReferences } from '@grotto/api';
+import { parseAgentReferenceTarget, parseHausRichReferences } from '@haus/api';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentChannelMutesTable,
     agentsTable,
@@ -16,7 +16,7 @@ export interface AgentMessageRecipientPlan {
 }
 
 export async function planAgentMessageRecipients(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         authorAgentId: string | null;
         chatId: string;
@@ -173,7 +173,7 @@ export async function planAgentMessageRecipients(
  * so a DM (or a DM Thread) resolves a recipient only while the Agent is active.
  */
 async function activeDmRecipient(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     agentId: string
 ): Promise<AgentMessageRecipientPlan[]> {
@@ -192,7 +192,7 @@ async function activeDmRecipient(
 }
 
 async function activeDmThreadRecipient(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; content: string; serverId: string; threadChatId: string }
 ): Promise<AgentMessageRecipientPlan[]> {
     const [agent] = await db
@@ -256,7 +256,7 @@ function mentionedAgentIds(
     agents: Array<{ handle: string; id: string }>
 ): Set<string> {
     const ids = new Set(
-        parseGrottoRichReferences(content).flatMap((reference) => {
+        parseHausRichReferences(content).flatMap((reference) => {
             if (reference.kind !== 'agent') {
                 return [];
             }

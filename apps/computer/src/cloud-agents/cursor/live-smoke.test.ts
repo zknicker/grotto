@@ -1,20 +1,20 @@
 import { expect, test } from 'bun:test';
-import { cloudAgentObservationSchema, isTerminalCloudAgentStatus } from '@grotto/api';
+import { cloudAgentObservationSchema, isTerminalCloudAgentStatus } from '@haus/api';
 import { createCursorCloudAgentProvider } from './provider.ts';
 import { createCursorSdkTransport } from './sdk-transport.ts';
 
 /**
  * The one live Cursor lane. It is opt-in because it spends a real Cursor
- * allowance against a real repository: set `GROTTO_RUN_LIVE_CURSOR_TEST=1` and
- * `GROTTO_LIVE_CURSOR_REPOSITORY=owner/name` on a Computer whose Cursor
+ * allowance against a real repository: set `HAUS_RUN_LIVE_CURSOR_TEST=1` and
+ * `HAUS_LIVE_CURSOR_REPOSITORY=owner/name` on a Computer whose Cursor
  * credential is already connected, then run
  * `bun test apps/computer/src/cloud-agents/cursor/live-smoke.test.ts`.
  *
  * Every other Cursor lane runs against recorded provider responses, so this
  * one exists to prove the recordings still describe Cursor.
  */
-const repository = process.env.GROTTO_LIVE_CURSOR_REPOSITORY ?? '';
-const enabled = process.env.GROTTO_RUN_LIVE_CURSOR_TEST === '1' && repository.length > 0;
+const repository = process.env.HAUS_LIVE_CURSOR_REPOSITORY ?? '';
+const enabled = process.env.HAUS_RUN_LIVE_CURSOR_TEST === '1' && repository.length > 0;
 const twentyMinutes = 20 * 60_000;
 
 test.skipIf(!enabled)(

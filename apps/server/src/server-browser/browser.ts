@@ -1,10 +1,10 @@
-import type { BrowserRequest, BrowserResult } from '@grotto/api';
+import type { BrowserRequest, BrowserResult } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { ComputerConnections } from '../computers/connections.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 
 export class BrowserDeniedError extends Error {
     constructor(message: string) {
@@ -14,9 +14,9 @@ export class BrowserDeniedError extends Error {
 }
 
 export async function requestBrowser(
-    db: GrottoDatabase,
+    db: HausDatabase,
     connections: ComputerConnections,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: {
         computerId: string;
         operation: BrowserRequest['operation'];

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { WorkspaceFileEntry } from '@grotto/api';
+import type { WorkspaceFileEntry } from '@haus/api';
 import {
     buildWorkspaceTree,
     filterWorkspaceTree,

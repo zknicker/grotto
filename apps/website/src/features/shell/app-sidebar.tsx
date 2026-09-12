@@ -6,7 +6,7 @@ import { useChannelUpdate } from '../../hooks/servers/use-channel-update.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useCreateServerChannel } from '../../hooks/servers/use-create-server-channel.ts';
 import { useInboxNeedsYouCount } from '../../hooks/servers/use-inbox-needs-you-count.ts';
-import type { ServerSummary } from '../../lib/grotto-server.tsx';
+import type { ServerSummary } from '../../lib/haus-server.tsx';
 import type { ChannelAgentOption } from '../chats/channel-agent-picker.tsx';
 import { ChannelCreateDialog } from '../chats/channel-create-dialog.tsx';
 import { CreateAgentDialog } from '../members/create-agent-dialog.tsx';

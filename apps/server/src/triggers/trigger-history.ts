@@ -1,13 +1,13 @@
-import type { TriggerHistoryEntry } from '@grotto/api';
+import type { TriggerHistoryEntry } from '@haus/api';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     chatMessagesTable,
     messageCausesTable,
     triggerFiresTable,
     triggersTable,
 } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { requireTriggerOperator } from './operator-triggers.ts';
 
 /**
@@ -16,8 +16,8 @@ import { requireTriggerOperator } from './operator-triggers.ts';
  * matching Reminder history and keeping one table row per fire.
  */
 export async function listOperatorTriggerHistory(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { agentId: string; limit: number; serverId: string }
 ): Promise<TriggerHistoryEntry[]> {
     await requireTriggerOperator(db, member, input.serverId);

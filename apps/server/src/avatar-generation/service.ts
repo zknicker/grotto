@@ -4,7 +4,7 @@ import {
     avatarGenerationOutputFormat,
     avatarGenerationRequestSchema,
     buildAvatarGenerationPrompt,
-} from '@grotto/api';
+} from '@haus/api';
 import {
     AvatarGenerationBusyError,
     AvatarGenerationProviderError,
@@ -170,5 +170,5 @@ class AvatarGenerationLimiter {
 }
 
 function defaultLogger(event: AvatarGenerationLogEvent): void {
-    console.info('[grotto] avatar generation', event);
+    console.info('[haus] avatar generation', event);
 }

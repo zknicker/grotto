@@ -1,4 +1,4 @@
-import type { AgentReasoningEffort } from '@grotto/api';
+import type { AgentReasoningEffort } from '@haus/api';
 import { Chip } from '@heroui/react';
 import { LowSignalIcon, MediumSignalIcon, SignalFull02Icon } from '@hugeicons/core-free-icons';
 import type { HugeiconsIconProps } from '@hugeicons/react';

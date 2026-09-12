@@ -1,6 +1,6 @@
 import { structuredPatch } from 'diff';
 
-// Shared diff model for every Grotto diff surface (changed-files drawer, Wiki
+// Shared diff model for every Haus diff surface (changed-files drawer, Wiki
 // page history). Renders through DiffView so all diffs read the same.
 
 export interface DiffLine {

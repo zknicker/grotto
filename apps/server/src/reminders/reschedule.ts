@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { reminderCommandsTable, remindersTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -39,7 +39,7 @@ interface ReminderRescheduleValues {
 }
 
 export async function updateReminder(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string,
     input: UpdateReminderInput,
     clock: ReminderClock
@@ -64,7 +64,7 @@ export async function updateReminder(
 }
 
 export async function snoozeReminder(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string,
     input: SnoozeReminderInput,
     clock: ReminderClock
@@ -90,7 +90,7 @@ export async function snoozeReminder(
 }
 
 async function applyReschedule(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string,
     input: ReminderCommandInput,
     change: {

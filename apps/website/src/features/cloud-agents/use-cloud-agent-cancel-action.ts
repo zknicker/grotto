@@ -1,4 +1,4 @@
-import type { CloudAgentWork } from '@grotto/api';
+import type { CloudAgentWork } from '@haus/api';
 import { toast } from '@heroui/react';
 import { useCloudAgentWorkCancel } from '../../hooks/servers/use-cloud-agent-work.ts';
 import { useServerContext } from '../servers/server-context.ts';

@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
-import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
+import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { resolveComputerPageState } from './computer-page-state.ts';
 
-type Computer = GrottoOutputs['computer']['list'][number];
+type Computer = HausOutputs['computer']['list'][number];
 
 test('does not present the attach flow before the Computer list resolves', () => {
     expect(resolveComputerPageState({ computers: undefined, requestedId: null })).toEqual({

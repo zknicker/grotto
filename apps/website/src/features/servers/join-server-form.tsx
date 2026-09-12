@@ -41,7 +41,7 @@ export function JoinServerFields({ form }: { form: JoinServerFormState }) {
             <Input
                 autoComplete="off"
                 id="server-invitation"
-                placeholder="https://app.grotto.com/invite/…"
+                placeholder="https://app.haus.com/invite/…"
             />
         </TextField>
     );

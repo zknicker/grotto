@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { ServerDurableEvent } from '@grotto/api';
+import type { ServerDurableEvent } from '@haus/api';
 import { createChatEventBatch, laterEventCursor, walkEventCatchUp } from './chat-event-cursor.ts';
 import { lifecycleEvent, messageEvent, readEvent } from './chat-event-fixtures.ts';
 

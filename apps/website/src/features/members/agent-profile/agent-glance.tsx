@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { ItemCardGroup } from '@heroui-pro/react';
 import {
     AiMagicIcon,
@@ -14,7 +14,7 @@ import { useAgentReminders } from '../../../hooks/members/use-agent-reminders.ts
 import { useAgentTriggers } from '../../../hooks/members/use-agent-triggers.ts';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import {
     computerHealthColor,
     computerHealthLabel,

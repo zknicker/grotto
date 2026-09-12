@@ -1,9 +1,9 @@
-import type { AgentActivityCategory } from '@grotto/api';
+import type { AgentActivityCategory } from '@haus/api';
 import { and, desc, eq, notInArray } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentActivityTable, chatMessagesTable } from '../postgres/schema.ts';
 
-type ActivityReader = Pick<GrottoDatabase, 'select'>;
+type ActivityReader = Pick<HausDatabase, 'select'>;
 
 /**
  * What the run's last word in the task's anchor Chat proves. A `finishing`

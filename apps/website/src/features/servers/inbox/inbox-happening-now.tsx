@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { ListView } from '@heroui-pro/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';

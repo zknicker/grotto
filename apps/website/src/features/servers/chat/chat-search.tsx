@@ -1,4 +1,4 @@
-import type { Chat, ChatSearchResult } from '@grotto/api';
+import type { Chat, ChatSearchResult } from '@haus/api';
 import { Button, Chip, SearchField } from '@heroui/react';
 import { EmptyState, ItemCard, PressableFeedback } from '@heroui-pro/react';
 import { Search01Icon } from '@hugeicons-pro/core-stroke-rounded';

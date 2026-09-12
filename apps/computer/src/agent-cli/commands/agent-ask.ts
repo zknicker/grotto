@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { agentAskReceiptSchema } from '@grotto/api';
+import { agentAskReceiptSchema } from '@haus/api';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { shortMessageId } from '../agent-format.ts';
@@ -11,9 +11,9 @@ import { assertAgentTarget, requiredValue } from './agent-command-utils.ts';
 
 const ASK_RECIPE = `haus ask --target "#product" --to @ada --title "Run the staged migration?" \\
   --summary "The migration is staged and reversible for one hour." \\
-  --step "Approve the staged migration" <<'GROTTOMSG'
+  --step "Approve the staged migration" <<'HAUSMSG'
 The migration is staged. Should I run it now, or wait for the release window?
-GROTTOMSG`;
+HAUSMSG`;
 
 interface AskDeps {
     client: AgentApiRequester;

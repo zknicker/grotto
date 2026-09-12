@@ -1,4 +1,4 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 export interface BrowserTarget {
@@ -7,5 +7,5 @@ export interface BrowserTarget {
 }
 
 export function useBrowserSettings(target: BrowserTarget) {
-    return grottoTrpc.browser.get.useQuery(target, queryPolicy.computerSnapshot);
+    return hausTrpc.browser.get.useQuery(target, queryPolicy.computerSnapshot);
 }

@@ -2,7 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import type { ComputerConnections } from '../computers/connections.ts';
 import { createCoveAvatarRow } from '../onboarding/cove-avatar.ts';
 import { sendPendingCoveApplication } from '../onboarding/create-cove.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentDeliveryTable,
@@ -19,7 +19,7 @@ const developmentCoveRuntimeId = 'codex';
 
 /** Ensures the dev Server has one real factory Cove, including its pending workspace application. */
 export async function ensureDevelopmentCove(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { serverId: string; userId: string }
 ) {
     return await db.transaction(async (tx) => {
@@ -119,7 +119,7 @@ export async function ensureDevelopmentCove(
 
 /** Offers a newly seeded Cove application immediately when the dev Computer is already online. */
 export async function sendPendingDevelopmentCoveApplication(
-    db: GrottoDatabase,
+    db: HausDatabase,
     connections: ComputerConnections,
     serverId: string
 ) {

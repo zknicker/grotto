@@ -53,13 +53,13 @@ async function main(input) {
     }
 
     const authentication = appStoreConnectAuthenticationArgs();
-    const iconArtifactDirectory = process.env.GROTTO_PRECOMPILED_IOS_ICON_DIR;
+    const iconArtifactDirectory = process.env.HAUS_PRECOMPILED_IOS_ICON_DIR;
     if (!iconArtifactDirectory) {
-        fail('GROTTO_PRECOMPILED_IOS_ICON_DIR is required for an iOS release');
+        fail('HAUS_PRECOMPILED_IOS_ICON_DIR is required for an iOS release');
     }
     inspectIOSIconArtifact(iconArtifactDirectory);
     const provisioningProfile = await installIOSProvisioningProfile();
-    const outputRoot = mkdtempSync(path.join(tmpdir(), 'grotto-ios-release-'));
+    const outputRoot = mkdtempSync(path.join(tmpdir(), 'haus-ios-release-'));
     const archivePath = path.join(outputRoot, 'Haus.xcarchive');
     const exportPath = path.join(outputRoot, 'export');
     const exportOptionsPath = path.join(outputRoot, 'ExportOptions.plist');
@@ -89,7 +89,7 @@ async function main(input) {
         `CURRENT_PROJECT_VERSION=${input.buildNumber}`,
         'ENABLE_USER_SCRIPT_SANDBOXING=NO',
         'EXCLUDED_SOURCE_FILE_NAMES=mac-icon.icon',
-        `GROTTO_PRECOMPILED_IOS_ICON_DIR=${iconArtifactDirectory}`,
+        `HAUS_PRECOMPILED_IOS_ICON_DIR=${iconArtifactDirectory}`,
     ]);
     assertInstalledIOSIcon({
         appDirectory: path.join(archivePath, 'Products', 'Applications', 'Haus.app'),
@@ -197,7 +197,7 @@ function buildArguments(input) {
         '-destination',
         'generic/platform=iOS Simulator',
         '-derivedDataPath',
-        path.join(tmpdir(), 'grotto-ios-dry-run'),
+        path.join(tmpdir(), 'haus-ios-dry-run'),
         'build',
         'CODE_SIGNING_ALLOWED=NO',
         `MARKETING_VERSION=${input.version}`,

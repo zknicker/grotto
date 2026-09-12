@@ -31,12 +31,12 @@ const trigger = {
     status: 'armed',
     title: 'deploy finished',
     updatedAt: '2026-09-01T10:00:00.000Z',
-    url: 'https://grotto.example/api/triggers/trg_test',
+    url: 'https://haus.example/api/triggers/trg_test',
     version: 1,
 };
 
 const secretResult = {
-    curl: 'curl -X POST https://grotto.example/api/triggers/trg_test -H "Authorization: Bearer grtt_secret" -H "Content-Type: application/json" -d \'{"hello":"world"}\'',
+    curl: 'curl -X POST https://haus.example/api/triggers/trg_test -H "Authorization: Bearer grtt_secret" -H "Content-Type: application/json" -d \'{"hello":"world"}\'',
     secret: 'grtt_secret',
     trigger,
     url: trigger.url,

@@ -23,8 +23,8 @@ export interface PostgresClusterOptions {
     icuLocale?: string;
 }
 
-const clusterUser = 'grotto';
-const clusterDatabase = 'grotto_test';
+const clusterUser = 'haus';
+const clusterDatabase = 'haus_test';
 const readyTimeoutMs = 20_000;
 const readyPollMs = 50;
 
@@ -32,7 +32,7 @@ export async function startPostgresCluster(
     options: PostgresClusterOptions = {}
 ): Promise<PostgresCluster> {
     const binaries = resolvePostgresBinaries();
-    const root = mkdtempSync(join(tmpdir(), 'grotto-postgres-'));
+    const root = mkdtempSync(join(tmpdir(), 'haus-postgres-'));
     const dataDirectory = join(root, 'data');
     const port = reserveLoopbackPort();
 
@@ -178,7 +178,7 @@ async function waitForReadyCluster(
 }
 
 function resolvePostgresBinaries(): PostgresBinaries {
-    const explicitRoot = process.env.GROTTO_POSTGRES_BIN;
+    const explicitRoot = process.env.HAUS_POSTGRES_BIN;
     const searchRoots = explicitRoot
         ? [explicitRoot]
         : ['/opt/homebrew/opt/postgresql@16/bin', '/usr/local/opt/postgresql@16/bin', ''];
@@ -197,7 +197,7 @@ function resolvePostgresBinaries(): PostgresBinaries {
     }
 
     throw new Error(
-        'PostgreSQL is required for Server tests but its binaries were not found. Install PostgreSQL 16 (`brew install postgresql@16`) or point GROTTO_POSTGRES_BIN at its bin directory.'
+        'PostgreSQL is required for Server tests but its binaries were not found. Install PostgreSQL 16 (`brew install postgresql@16`) or point HAUS_POSTGRES_BIN at its bin directory.'
     );
 }
 

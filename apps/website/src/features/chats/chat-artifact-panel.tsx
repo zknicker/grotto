@@ -9,10 +9,10 @@ import type { ChatArtifactPanelState } from './chat-artifact-panel-state.ts';
 import { WorkspaceBrowserContent } from './chat-artifact-workspace-content.tsx';
 import { ChatSidePaneShell } from './chat-side-pane-shell.tsx';
 import {
-    type GrottoResourceTarget,
     getArtifactPanelTargetKey,
+    type HausResourceTarget,
     isWorkspaceChatPaneTarget,
-} from './grotto-resource-link.ts';
+} from './haus-resource-link.ts';
 
 export function ChatArtifactPanel({
     agentId,
@@ -136,9 +136,9 @@ function ArtifactPanelContent({
     target,
 }: {
     agentId: string;
-    onOpenTarget: (target: GrottoResourceTarget) => void;
+    onOpenTarget: (target: HausResourceTarget) => void;
     serverId: string;
-    target: GrottoResourceTarget;
+    target: HausResourceTarget;
 }) {
     // Stable identity: browser effects key on this callback.
     const openWorkspaceFile = React.useCallback(
@@ -168,7 +168,7 @@ function ArtifactPanelContent({
     );
 }
 
-function workspaceInitialDirectory(target: GrottoResourceTarget) {
+function workspaceInitialDirectory(target: HausResourceTarget) {
     if (target.kind === 'workspaceFile') {
         return target.path.split('/').slice(0, -1).join('/');
     }

@@ -1,13 +1,13 @@
 import { and, eq, type SQL, sql } from 'drizzle-orm';
 import type { ClerkUsers } from '../identity/clerk-users.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     serverInvitationsTable,
     serverMembershipsTable,
     serversTable,
 } from '../postgres/schema.ts';
-import { ensureUserByClerkId } from '../users/grotto-user.ts';
+import { ensureUserByClerkId } from '../users/haus-user.ts';
 import {
     AlreadyServerMemberError,
     InvitationEmailMismatchError,
@@ -35,7 +35,7 @@ export interface AcceptedServerInvitation {
  * slow Clerk response block every other acceptance on the Server.
  */
 export async function acceptServerInvitation(
-    db: GrottoDatabase,
+    db: HausDatabase,
     clerkUsers: ClerkUsers,
     clerkUserId: string,
     token: string

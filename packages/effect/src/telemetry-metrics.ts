@@ -2,17 +2,17 @@ import { Cause, Clock, Effect, Exit, Metric, MetricBoundaries } from 'effect';
 
 export type TelemetryOutcome = 'failure' | 'interruption' | 'success';
 
-const operationCount = Metric.counter('grotto.operation.count', {
-    description: 'Completed Grotto operations.',
+const operationCount = Metric.counter('haus.operation.count', {
+    description: 'Completed Haus operations.',
     incremental: true,
 });
 const operationDuration = Metric.histogram(
-    'grotto.operation.duration',
+    'haus.operation.duration',
     MetricBoundaries.fromIterable([
         1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10_000, 30_000, 60_000, 120_000, 300_000,
         600_000, 1_200_000, 1_800_000, 3_600_000,
     ]),
-    'Grotto operation duration in milliseconds.'
+    'Haus operation duration in milliseconds.'
 ).pipe(Metric.tagged('unit', 'ms'));
 
 export function instrumentOperation<A, E, R>(

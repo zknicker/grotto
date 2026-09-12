@@ -11,10 +11,10 @@ import { createCodex } from '@ai-sdk/harness-codex';
 import { createGrokBuild } from '@ai-sdk/harness-grok-build';
 import { createPi } from '@ai-sdk/harness-pi';
 import type { ToolSet } from '@ai-sdk/provider-utils';
-import { inspectCoveFactoryGuidance, reconcileCoveFactoryGuidance } from '@grotto/agent-workspace';
-import { type AgentReasoningEffort, grottoAgentVersion } from '@grotto/api';
-import type { ClaudeUsageSnapshot } from '@grotto/claude-usage';
-import { settle } from '@grotto/effect';
+import { inspectCoveFactoryGuidance, reconcileCoveFactoryGuidance } from '@haus/agent-workspace';
+import { type AgentReasoningEffort, hausAgentVersion } from '@haus/api';
+import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
+import { settle } from '@haus/effect';
 import { Cause, Data, Effect, Exit, Stream } from 'effect';
 import type { AgentActivityRun } from '../agent-activity-run.ts';
 import { AgentTurnTimings } from '../agent-turn-timings.ts';
@@ -217,7 +217,7 @@ async function executeHarnessTurn(
     const effectiveInput = collectClaudePlanUsage
         ? {
               ...input,
-              env: { ...input.env, GROTTO_CLAUDE_USAGE_REFRESH: '1' },
+              env: { ...input.env, HAUS_CLAUDE_USAGE_REFRESH: '1' },
           }
         : input;
     const agent = (effectiveInput.harnessAgentFactory ?? harnessAgentFactory)(effectiveInput, {
@@ -227,8 +227,8 @@ async function executeHarnessTurn(
     });
     let live: HarnessAgentSession | undefined;
     const instructionActivityKey = 'instructions';
-    const grottoAgentVersionDrift = session.grottoAgentVersion !== grottoAgentVersion;
-    let grottoAgentVersionCanApply = true;
+    const hausAgentVersionDrift = session.hausAgentVersion !== hausAgentVersion;
+    let hausAgentVersionCanApply = true;
     try {
         const sessionId = session.runtimeSessionId ?? `${input.agentId}-${session.generation}`;
         const resumeFrom =
@@ -256,7 +256,7 @@ async function executeHarnessTurn(
                 }
                 if (plan.kind === 'conflict') {
                     await input.activity.finish(instructionActivityKey, 'failed');
-                    grottoAgentVersionCanApply = false;
+                    hausAgentVersionCanApply = false;
                     factoryGuidanceRefreshCanComplete = false;
                     factoryGuidanceNotice = coveGuidanceConflictNotice(plan.files);
                 } else {
@@ -268,7 +268,7 @@ async function executeHarnessTurn(
                         factoryGuidanceNotice = coveGuidanceRefreshNotice;
                     } else {
                         await input.activity.finish(instructionActivityKey, 'failed');
-                        grottoAgentVersionCanApply = false;
+                        hausAgentVersionCanApply = false;
                         factoryGuidanceRefreshCanComplete = false;
                         factoryGuidanceNotice = coveGuidanceConflictNotice(
                             result.kind === 'conflict' ? result.files : plan.files
@@ -292,7 +292,7 @@ async function executeHarnessTurn(
             (restartRequested ||
                 instructionDrift ||
                 bootstrapDrift ||
-                (grottoAgentVersionDrift && grottoAgentVersionCanApply)) &&
+                (hausAgentVersionDrift && hausAgentVersionCanApply)) &&
             !input.activity.isActive(instructionActivityKey)
         ) {
             await input.activity.start({
@@ -461,27 +461,25 @@ async function executeHarnessTurn(
             await writeAgentSessionState(input.agentRoot, {
                 ...session,
                 cumulativeTokenUsage: normalizedUsage.cumulative,
-                grottoAgentStatus: grottoAgentVersionDrift ? 'failed' : session.grottoAgentStatus,
+                hausAgentStatus: hausAgentVersionDrift ? 'failed' : session.hausAgentStatus,
                 resumeState: resumeState as Record<string, unknown>,
                 runtimeSessionId: live.sessionId,
             });
             await input.activity.finish(instructionActivityKey, 'interrupted');
             return { ...observation, tokenUsage: normalizedUsage.turn };
         }
-        const appliesGrottoAgentVersion = !grottoAgentVersionDrift || grottoAgentVersionCanApply;
+        const appliesHausAgentVersion = !hausAgentVersionDrift || hausAgentVersionCanApply;
         await writeAgentSessionState(input.agentRoot, {
             bootstrapFingerprint,
             cumulativeTokenUsage: normalizedUsage.cumulative,
             effectiveModel: { modelId: input.modelId, runtimeId: input.runtimeId },
             generation: session.generation,
-            grottoAgentAppliedAt:
-                grottoAgentVersionDrift && appliesGrottoAgentVersion
+            hausAgentAppliedAt:
+                hausAgentVersionDrift && appliesHausAgentVersion
                     ? new Date().toISOString()
-                    : session.grottoAgentAppliedAt,
-            grottoAgentStatus: appliesGrottoAgentVersion ? 'current' : 'failed',
-            grottoAgentVersion: appliesGrottoAgentVersion
-                ? grottoAgentVersion
-                : session.grottoAgentVersion,
+                    : session.hausAgentAppliedAt,
+            hausAgentStatus: appliesHausAgentVersion ? 'current' : 'failed',
+            hausAgentVersion: appliesHausAgentVersion ? hausAgentVersion : session.hausAgentVersion,
             instructionFingerprint,
             resumeState: resumeState as Record<string, unknown>,
             runtimeSessionId: live.sessionId,
@@ -496,10 +494,10 @@ async function executeHarnessTurn(
             instructionActivityKey,
             input.signal?.aborted ? 'interrupted' : 'failed'
         );
-        if (grottoAgentVersionDrift) {
+        if (hausAgentVersionDrift) {
             await writeAgentSessionState(input.agentRoot, {
                 ...session,
-                grottoAgentStatus: 'failed',
+                hausAgentStatus: 'failed',
             });
         }
         await live?.destroy().catch(() => undefined);

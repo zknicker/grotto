@@ -2,7 +2,7 @@ import {
     type EffectRuntime,
     makeLifecycleLoggerLayer,
     makeProcessTelemetryLayer,
-} from '@grotto/effect';
+} from '@haus/effect';
 import { Layer, ManagedRuntime } from 'effect';
 
 export type ServerRuntime = EffectRuntime<never>;
@@ -18,7 +18,7 @@ export function makeServerRuntime(options?: {
             makeLifecycleLoggerLayer(),
             makeProcessTelemetryLayer({
                 releaseId: options?.releaseId,
-                serviceName: 'grotto-server',
+                serviceName: 'haus-server',
                 serviceRevision: options?.serviceRevision,
                 serviceVersion: options?.serviceVersion,
             })

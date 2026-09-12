@@ -1,7 +1,7 @@
-import { runnerMintRequestSchema, runnerRevokeRequestSchema } from '@grotto/api';
-import type { OtlpTelemetryRelay } from '@grotto/effect';
+import { runnerMintRequestSchema, runnerRevokeRequestSchema } from '@haus/api';
+import type { OtlpTelemetryRelay } from '@haus/effect';
 import type { FastifyInstance } from 'fastify';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { attachComputer, ComputerAttachmentError } from './attachment-service.ts';
 import {
     attachComputerSchema,
@@ -29,7 +29,7 @@ export function registerComputerRoutes(
     app: FastifyInstance,
     options: {
         appOrigin: string;
-        db: GrottoDatabase;
+        db: HausDatabase;
         telemetryRelay?: OtlpTelemetryRelay | null;
     }
 ) {

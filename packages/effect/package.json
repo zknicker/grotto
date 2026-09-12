@@ -1,5 +1,5 @@
 {
-  "name": "@grotto/effect",
+  "name": "@haus/effect",
   "private": true,
   "type": "module",
   "exports": {

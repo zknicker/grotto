@@ -223,24 +223,24 @@ test('reads the Ask notice tag and the Ask envelope suffix off one formatting so
     expect(composeInboxDrain([item({ ask })], 'UTC')).toContain(formatAskMarker(ask));
 });
 
-test('renders a task assignment as a bodiless @grotto item keyed to its task message', () => {
+test('renders a task assignment as a bodiless @haus item keyed to its task message', () => {
     const assignment = item({
         content:
             '[Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes',
         id: 'task-assign:msg_1a2b3c4d5e6f:3',
         mentioned: true,
-        senderHandle: 'grotto',
+        senderHandle: 'haus',
         senderType: 'system',
     });
 
     // The assignment key shortens to the task message it hands over, so `msg=`
     // stays an id the Agent can read, thread on, or react to.
     expect(composeInboxDrain([assignment], 'UTC')).toContain(
-        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 type=system mentioned=true] @grotto: [Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes'
+        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 type=system mentioned=true] @haus: [Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes'
     );
     const notice = composeInboxNotice([assignment]);
     expect(notice).toContain('1 unread message total');
-    expect(notice).toContain('· first msg=1a2b3c4d · latest sender @grotto · latest msg=1a2b3c4d');
+    expect(notice).toContain('· first msg=1a2b3c4d · latest sender @haus · latest msg=1a2b3c4d');
     expect(notice).toContain('· you were mentioned');
 });
 

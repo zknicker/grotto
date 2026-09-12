@@ -1,8 +1,8 @@
-import type { TaskAssignee } from '@grotto/api';
+import type { TaskAssignee } from '@haus/api';
 import { and, asc, eq, isNull, or } from 'drizzle-orm';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 import { requireChatAccess } from '../chats/chat-access.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
     channelAgentParticipantsTable,
@@ -10,14 +10,14 @@ import {
     serverMembershipsTable,
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { TaskAdminRequiredError } from './assign-task.ts';
 import { TaskNotFoundError } from './claim-task.ts';
 import { findMessageTask } from './task-shape.ts';
 
 export async function listTaskAssignees(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { messageId: string; serverId: string }
 ): Promise<TaskAssignee[]> {
     const server = await requireServerMembership(db, member, input.serverId);
@@ -105,7 +105,7 @@ export async function listTaskAssignees(
 }
 
 async function listAssignableAgents(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { chatId: string; dmAgentId: null | string; kind: string; serverId: string }
 ): Promise<TaskAssignee[]> {
     const selection = {

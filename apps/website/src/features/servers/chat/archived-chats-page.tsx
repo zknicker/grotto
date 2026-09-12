@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useArchivedChats } from '../../../hooks/servers/use-archived-chats.ts';
 import { useChannelUnarchive } from '../../../hooks/servers/use-channel-lifecycle.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { serverChatRoute } from '../server-routes.ts';
 
 export function ArchivedChatsPage({ server }: { server: ServerDetail }) {

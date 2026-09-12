@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { formatAgentReferenceTarget } from '@grotto/api';
+import { formatAgentReferenceTarget } from '@haus/api';
 import { mentionsBareAgentHandle } from './bare-reference-tokens.ts';
 import { canonicalizeAgentMessageContent } from './canonicalize-agent-references.ts';
 

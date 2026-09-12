@@ -1,4 +1,4 @@
-import type { AttachmentMetadata } from '@grotto/api';
+import type { AttachmentMetadata } from '@haus/api';
 import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import {
     Attachment,

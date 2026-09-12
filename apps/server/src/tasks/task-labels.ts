@@ -1,13 +1,13 @@
-import type { ServerDurableEvent, TaskLabel } from '@grotto/api';
+import type { ServerDurableEvent, TaskLabel } from '@haus/api';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, taskLabelsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 
 export class TaskLabelConflictError extends Error {
     constructor(message: string) {
@@ -24,8 +24,8 @@ export class TaskLabelAdminRequiredError extends Error {
 }
 
 export async function listTaskLabels(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     serverId: string
 ): Promise<TaskLabel[]> {
     await requireServerMembership(db, member, serverId);
@@ -41,8 +41,8 @@ export async function listTaskLabels(
 }
 
 export async function createTaskLabel(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { name: string; serverId: string }
 ): Promise<{ event: ServerDurableEvent; label: TaskLabel }> {
     return await db.transaction(async (tx) => {
@@ -105,8 +105,8 @@ export async function createTaskLabel(
 }
 
 export async function updateTaskLabel(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: {
         color?: TaskLabel['color'];
         labelId: string;
@@ -154,8 +154,8 @@ export async function updateTaskLabel(
 }
 
 export async function deleteTaskLabel(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { labelId: string; serverId: string }
 ): Promise<{ event: ServerDurableEvent }> {
     return await db.transaction(async (tx) => {
@@ -183,7 +183,7 @@ export async function deleteTaskLabel(
 }
 
 export async function requireTaskLabelIds(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     labelIds: string[]
 ): Promise<void> {
@@ -201,7 +201,7 @@ export async function requireTaskLabelIds(
 }
 
 async function insertTaskLabelEvent(
-    db: Pick<GrottoDatabase, 'insert' | 'update'>,
+    db: Pick<HausDatabase, 'insert' | 'update'>,
     serverId: string,
     labelId: string
 ): Promise<ServerDurableEvent> {

@@ -23,10 +23,10 @@ require_material() {
   fi
 }
 
-require_material GROTTO_RELEASE_APPLE_CERTIFICATES_P12_BASE64
-require_material GROTTO_RELEASE_APPLE_CERTIFICATES_PASSWORD
+require_material HAUS_RELEASE_APPLE_CERTIFICATES_P12_BASE64
+require_material HAUS_RELEASE_APPLE_CERTIFICATES_PASSWORD
 if [[ "${mode}" == 'ios' ]]; then
-  require_material GROTTO_RELEASE_APP_STORE_CONNECT_PRIVATE_KEY
+  require_material HAUS_RELEASE_APP_STORE_CONNECT_PRIVATE_KEY
   require_material APPLE_API_KEY_ID
   require_material APPLE_API_ISSUER
   if [[ ! "${APPLE_API_KEY_ID}" =~ ^[A-Za-z0-9_-]+$ ]]; then
@@ -39,22 +39,22 @@ if [[ -z "${RUNNER_TEMP:-}" || -z "${GITHUB_ENV:-}" ]]; then
   exit 1
 fi
 
-certificate_path="${RUNNER_TEMP}/grotto-release-certificates.p12"
-keychain_path="${RUNNER_TEMP}/grotto-release-$(uuidgen).keychain-db"
+certificate_path="${RUNNER_TEMP}/haus-release-certificates.p12"
+keychain_path="${RUNNER_TEMP}/haus-release-$(uuidgen).keychain-db"
 keychain_password="$(openssl rand -hex 32)"
 {
-  echo "GROTTO_RELEASE_CERTIFICATE_PATH=${certificate_path}"
-  echo "GROTTO_RELEASE_KEYCHAIN_PATH=${keychain_path}"
+  echo "HAUS_RELEASE_CERTIFICATE_PATH=${certificate_path}"
+  echo "HAUS_RELEASE_KEYCHAIN_PATH=${keychain_path}"
 } >>"${GITHUB_ENV}"
 
 umask 077
-printf "%s" "${GROTTO_RELEASE_APPLE_CERTIFICATES_P12_BASE64}" |
+printf "%s" "${HAUS_RELEASE_APPLE_CERTIFICATES_P12_BASE64}" |
   base64 -D >"${certificate_path}"
 security create-keychain -p "${keychain_password}" "${keychain_path}"
 security set-keychain-settings -lut 21600 "${keychain_path}"
 security unlock-keychain -p "${keychain_password}" "${keychain_path}"
 security import "${certificate_path}" \
-  -P "${GROTTO_RELEASE_APPLE_CERTIFICATES_PASSWORD}" \
+  -P "${HAUS_RELEASE_APPLE_CERTIFICATES_PASSWORD}" \
   -A -t cert -f pkcs12 -k "${keychain_path}"
 security set-key-partition-list \
   -S apple-tool:,apple: \
@@ -82,5 +82,5 @@ fi
 if [[ "${mode}" == 'ios' ]]; then
   api_key_path="${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8"
   echo "APPLE_API_KEY_PATH=${api_key_path}" >>"${GITHUB_ENV}"
-  printf "%s" "${GROTTO_RELEASE_APP_STORE_CONNECT_PRIVATE_KEY}" >"${api_key_path}"
+  printf "%s" "${HAUS_RELEASE_APP_STORE_CONNECT_PRIVATE_KEY}" >"${api_key_path}"
 fi

@@ -7,27 +7,27 @@ import { defineConfig } from 'vite';
 import { rejectNodeBuiltins } from './vite-browser-module-guard.ts';
 
 const websiteRoot = path.dirname(fileURLToPath(import.meta.url));
-const websitePort = Number(process.env.GROTTO_WEBSITE_PORT ?? '3100');
-const serverPort = Number(process.env.GROTTO_SERVER_PORT ?? '8090');
-const serverOrigin = process.env.VITE_GROTTO_SERVER_ORIGIN ?? `http://localhost:${serverPort}`;
-// Hosted avatar bytes are served by the Grotto Server, not the local API. In
-// production Grotto App shares that origin, so the stored avatar URL stays
+const websitePort = Number(process.env.HAUS_WEBSITE_PORT ?? '3100');
+const serverPort = Number(process.env.HAUS_SERVER_PORT ?? '8090');
+const serverOrigin = process.env.VITE_HAUS_SERVER_ORIGIN ?? `http://localhost:${serverPort}`;
+// Hosted avatar bytes are served by the Haus Server, not the local API. In
+// production Haus App shares that origin, so the stored avatar URL stays
 // relative; only the dev proxy has to be pointed at the Server explicitly.
-const grottoServerOrigin = serverOrigin;
+const hausServerOrigin = serverOrigin;
 
 const repositoryRoot = path.resolve(websiteRoot, '../..');
 const productVersion = readJson<{ version: string }>(
-    path.join(repositoryRoot, 'packages/grotto-api/grotto-product.json')
+    path.join(repositoryRoot, 'packages/haus-api/haus-product.json')
 ).version;
 const releaseSnapshot = resolveReleaseSnapshot();
 
 export default defineConfig(({ command }) => ({
-    base: command === 'build' && process.env.GROTTO_HOSTED_APP !== '1' ? './' : '/',
+    base: command === 'build' && process.env.HAUS_HOSTED_APP !== '1' ? './' : '/',
     define: {
-        'import.meta.env.VITE_GROTTO_PRODUCT_VERSION': JSON.stringify(
-            process.env.VITE_GROTTO_PRODUCT_VERSION ?? productVersion
+        'import.meta.env.VITE_HAUS_PRODUCT_VERSION': JSON.stringify(
+            process.env.VITE_HAUS_PRODUCT_VERSION ?? productVersion
         ),
-        'import.meta.env.VITE_GROTTO_RELEASE_SNAPSHOT': JSON.stringify(releaseSnapshot),
+        'import.meta.env.VITE_HAUS_RELEASE_SNAPSHOT': JSON.stringify(releaseSnapshot),
     },
     plugins: [rejectNodeBuiltins(), tailwindcss(), react()],
     resolve: {
@@ -40,10 +40,10 @@ export default defineConfig(({ command }) => ({
         strictPort: true,
         proxy: {
             '/api/avatars': {
-                target: grottoServerOrigin,
+                target: hausServerOrigin,
             },
-            '/api/grotto-release': {
-                target: grottoServerOrigin,
+            '/api/haus-release': {
+                target: hausServerOrigin,
             },
             '/healthz': {
                 target: serverOrigin,
@@ -72,7 +72,7 @@ function resolveReleaseSnapshot() {
         throw new Error('releases.json must contain a release');
     }
     if (!latest.version) {
-        throw new Error('latest releases.json entry must have a Grotto version');
+        throw new Error('latest releases.json entry must have a Haus version');
     }
     const target = (name: string) => {
         for (let index = ledger.length - 1; index >= 0; index -= 1) {
@@ -95,7 +95,7 @@ function resolveReleaseSnapshot() {
         date: latest.date,
         schemaVersion: 1,
         sourceRevision:
-            process.env.GROTTO_SOURCE_REVISION ?? '0000000000000000000000000000000000000000',
+            process.env.HAUS_SOURCE_REVISION ?? '0000000000000000000000000000000000000000',
         version: latest.version,
     };
 }

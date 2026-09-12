@@ -1,8 +1,8 @@
-import type { AttachmentUploadResult } from '@grotto/api';
-import { asError, settle } from '@grotto/effect';
+import type { AttachmentUploadResult } from '@haus/api';
+import { asError, settle } from '@haus/effect';
 import { and, eq, inArray } from 'drizzle-orm';
 import { Effect, Exit } from 'effect';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
 import type { ServerRuntime } from '../server-runtime.ts';
@@ -15,7 +15,7 @@ import {
 import { streamAttachmentToFile } from './attachment-upload-stream.ts';
 
 export async function uploadStagedAttachment(
-    db: GrottoDatabase,
+    db: HausDatabase,
     root: AttachmentRoot,
     runtime: ServerRuntime,
     input: AttachmentUploadInput
@@ -80,7 +80,7 @@ interface StagedUpload {
 }
 
 function runStagedUpload(
-    db: GrottoDatabase,
+    db: HausDatabase,
     root: AttachmentRoot,
     input: AttachmentUploadInput,
     attemptId: string,
@@ -139,7 +139,7 @@ function runStagedUpload(
 }
 
 async function cleanupFailedUpload(
-    db: GrottoDatabase,
+    db: HausDatabase,
     root: AttachmentRoot,
     input: AttachmentUploadInput,
     attemptId: string,
@@ -176,7 +176,7 @@ function currentAttempt(
 }
 
 async function markFailed(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: AttachmentUploadInput,
     attemptId: string,
     failure: string

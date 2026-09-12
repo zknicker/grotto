@@ -131,7 +131,7 @@ function exposeCleanupPath(githubEnvironmentPath, profilePath) {
     }
     appendFileSync(
         githubEnvironmentPath,
-        `GROTTO_RELEASE_PROVISIONING_PROFILE_PATH=${profilePath}\n`,
+        `HAUS_RELEASE_PROVISIONING_PROFILE_PATH=${profilePath}\n`,
         'utf8'
     );
 }

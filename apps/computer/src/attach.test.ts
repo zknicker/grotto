@@ -27,7 +27,7 @@ function createSession(origin: string): StoredSession {
 }
 
 test('attach requires an existing usable Computer login and never launches login', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-attach-login-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-attach-login-'));
     const requests: string[] = [];
     const peer = Bun.serve({
         fetch(request) {
@@ -38,8 +38,8 @@ test('attach requires an existing usable Computer login and never launches login
     });
     try {
         const result = await runCli(['attach', '/hq'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
         });
 
         expect(result.exitCode).not.toBe(0);
@@ -53,7 +53,7 @@ test('attach requires an existing usable Computer login and never launches login
 });
 
 test('attach uses the saved login and stores only the Server-scoped credential', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-attach-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-attach-'));
     const requests: { body?: Record<string, string>; path: string }[] = [];
     const sockets = new Set<ServerWebSocket<undefined>>();
     const peer = Bun.serve({
@@ -96,10 +96,10 @@ test('attach uses the saved login and stores only the Server-scoped credential',
     try {
         await writeSession(dataRoot, session);
         const result = await runCli(['attach', '/hq'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_ONESHOT: '1',
-            GROTTO_COMPUTER_USAGE_DISABLED: '1',
-            GROTTO_SERVER_ORIGIN: origin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_ONESHOT: '1',
+            HAUS_COMPUTER_USAGE_DISABLED: '1',
+            HAUS_SERVER_ORIGIN: origin,
             OTEL_SDK_DISABLED: 'true',
         });
 

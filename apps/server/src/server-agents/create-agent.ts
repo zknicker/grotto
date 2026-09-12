@@ -3,18 +3,18 @@ import type {
     AvatarMediaType,
     CreateAgentInput,
     ServerDurableEvent,
-} from '@grotto/api';
+} from '@haus/api';
 import { type AvatarBytes, createAvatarId, readAvatarBytes } from '../avatars/avatar-bytes.ts';
 import { findAllChannel, joinChannelAgents } from '../chats/channel-agent-membership.ts';
 import { insertLifecycleEvent } from '../chats/lifecycle-events.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, avatarsTable } from '../postgres/schema.ts';
 import { participantHandleConstraint } from '../servers/participant-handles.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { AgentConfigDeniedError } from './agent-config-errors.ts';
 import { assertRuntimeModelReported, resolveAssignedComputer } from './agent-inventory.ts';
 import { toAgent } from './agent-shape.ts';
@@ -24,7 +24,7 @@ import { toAgent } from './agent-shape.ts';
  * authorized by their Server role; the Agent path's authority is the runner
  * credential itself, which already proves an active managed Agent of the Server.
  */
-export type AgentCreator = { agentId: string; kind: 'agent' } | { kind: 'human'; user: GrottoUser };
+export type AgentCreator = { agentId: string; kind: 'agent' } | { kind: 'human'; user: HausUser };
 
 export interface CreatedAgentFromApp extends AgentCreated {
     /** The `#all` membership change, for the App's channel member lists. */
@@ -33,8 +33,8 @@ export interface CreatedAgentFromApp extends AgentCreated {
 
 /** Creates one Agent; its per-human DMs remain implicit until first use. */
 export async function createAgent(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: CreateAgentInput
 ): Promise<CreatedAgentFromApp> {
     return await db.transaction(async (tx) => {
@@ -68,7 +68,7 @@ export async function createAgent(
 
 /** Shared write seam for the App's creation flow and one Agent creating another. */
 export async function createAgentInTransaction(
-    db: GrottoDatabase,
+    db: HausDatabase,
     creator: AgentCreator,
     input: CreateAgentInput & {
         agentId?: string;
@@ -157,9 +157,9 @@ export async function createAgentInTransaction(
             desiredRuntimeId: input.runtimeId,
             displayName: input.displayName,
             dmChatId: null,
-            effectiveGrottoAgentAppliedAt: null,
-            effectiveGrottoAgentStatus: null,
-            effectiveGrottoAgentVersion: null,
+            effectiveHausAgentAppliedAt: null,
+            effectiveHausAgentStatus: null,
+            effectiveHausAgentVersion: null,
             effectiveMissing: null,
             effectiveModelId: null,
             effectiveReasoningEffort: null,
@@ -176,10 +176,10 @@ export async function createAgentInTransaction(
 
 /** Authorizes the App's Agent-creation boundary and names the human creator. */
 async function requireAgentCreationAuthority(
-    db: Pick<GrottoDatabase, 'select'>,
-    member: GrottoUser | null,
+    db: Pick<HausDatabase, 'select'>,
+    member: HausUser | null,
     serverId: string
-): Promise<GrottoUser> {
+): Promise<HausUser> {
     const server = await requireServerMembership(db, member, serverId);
     if (!member) {
         throw new AgentConfigDeniedError('Sign in to create an Agent.');

@@ -1,4 +1,4 @@
-import { agentSetAgentAvatarReceiptSchema, agentUpdateAgentReceiptSchema } from '@grotto/api';
+import { agentSetAgentAvatarReceiptSchema, agentUpdateAgentReceiptSchema } from '@haus/api';
 import { AgentApiClient, type AgentApiRequester } from '../agent-api-client.ts';
 import { resolveAgentContext } from '../agent-context.ts';
 import { AgentCliError } from '../agent-error.ts';

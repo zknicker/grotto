@@ -1,5 +1,5 @@
 import { and, eq, inArray, ne, or } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentInboxTable } from '../postgres/schema.ts';
 import { threadChatIdForAnchor } from '../threads/thread-id.ts';
 
@@ -18,7 +18,7 @@ export interface TaskLivenessRow {
  * App learns about it the same way it learns about every other task change.
  */
 export async function loadLiveTaskMessageIds(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     rows: TaskLivenessRow[]
 ): Promise<Set<string>> {

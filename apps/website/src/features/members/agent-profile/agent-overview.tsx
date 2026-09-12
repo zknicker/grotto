@@ -1,6 +1,6 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import * as React from 'react';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AgentUsageTile } from '../../usage/agent-usage-tile.tsx';
 import { AgentChats } from './agent-chats.tsx';
 import { AgentGlance } from './agent-glance.tsx';

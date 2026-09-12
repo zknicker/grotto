@@ -1,0 +1,30 @@
+import { agentDeliveryStateSchema, agentResetInputSchema } from '@haus/api';
+import { TRPCError } from '@trpc/server';
+import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
+import {
+    assertAgentResetAccess,
+    readAgentDeliveryState,
+} from '../../server-agents/agent-delivery-control.ts';
+import { memberProcedure } from '../server/procedure.ts';
+import { emitServerUpdated } from '../server-events.ts';
+
+export const resetAgentProcedure = memberProcedure
+    .input(agentResetInputSchema)
+    .output(agentDeliveryStateSchema)
+    .mutation(async ({ ctx, input }) => {
+        try {
+            await assertAgentResetAccess(ctx.hausDb, ctx.member, input);
+            await ctx.agentDelivery.reset(input);
+            emitServerUpdated({
+                agentId: input.agentId,
+                scope: 'agent',
+                serverId: input.serverId,
+            });
+            return await readAgentDeliveryState(ctx.hausDb, ctx.member, input);
+        } catch (cause) {
+            if (cause instanceof AgentConfigDeniedError) {
+                throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });
+            }
+            throw cause;
+        }
+    });

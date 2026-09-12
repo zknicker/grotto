@@ -1,5 +1,5 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useTaskLabelDelete() {
-    return grottoTrpc.taskLabel.delete.useMutation();
+    return hausTrpc.taskLabel.delete.useMutation();
 }

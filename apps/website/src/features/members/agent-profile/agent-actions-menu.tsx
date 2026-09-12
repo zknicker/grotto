@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { AlertDialog, Button, Dropdown, Header, Label, Separator } from '@heroui/react';
 import {
     ArrowReloadHorizontalIcon,
@@ -15,7 +15,7 @@ import { useAgentReset } from '../../../hooks/members/use-agent-reset.ts';
 import { useAgentRestart } from '../../../hooks/members/use-agent-restart.ts';
 import { useAgentState } from '../../../hooks/members/use-agent-state.ts';
 import { useAgentStop } from '../../../hooks/members/use-agent-stop.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { disabledAgentActions, fullResetCopy } from './agent-actions-model.ts';
 

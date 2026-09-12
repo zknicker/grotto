@@ -6,7 +6,7 @@ import * as React from 'react';
 // room an artifact needs is situational, so the pane starts fresh at its
 // default on every app launch. The app sidebar's width is the one that
 // persists (use-app-sidebar-width.ts) — it is a workspace-shape preference.
-const legacyStorageKey = 'grotto.artifactPane.width';
+const legacyStorageKey = 'haus.artifactPane.width';
 
 export const artifactPaneWidthLimits = { default: 560, max: 880, min: 420 } as const;
 

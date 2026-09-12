@@ -3,12 +3,12 @@ import {
     CloudAgentCancelDeniedError,
     CloudAgentWorkNotFoundError,
 } from '../cloud-agents/errors.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentWorkTable } from '../postgres/schema.ts';
 
 /** Only the Agent that delegated the work may cancel it through the Agent CLI. */
 export async function requireCancellableWorkAgent(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     input: { agentId: string; serverId: string; workId: string }
 ): Promise<void> {
     const [row] = await db

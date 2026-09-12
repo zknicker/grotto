@@ -30,13 +30,13 @@ function getFreePort() {
 
 const websiteRoot = fileURLToPath(new URL('../', import.meta.url));
 const runId = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-const [grottoServerPort, websitePort] = await Promise.all([getFreePort(), getFreePort()]);
+const [hausServerPort, websitePort] = await Promise.all([getFreePort(), getFreePort()]);
 const command = [process.execPath, 'x', 'playwright', 'test', ...process.argv.slice(2)];
 const env = {
     ...process.env,
-    GROTTO_E2E_RUN_ID: runId,
-    GROTTO_SERVER_PORT: `${grottoServerPort}`,
-    GROTTO_WEBSITE_PORT: `${websitePort}`,
+    HAUS_E2E_RUN_ID: runId,
+    HAUS_SERVER_PORT: `${hausServerPort}`,
+    HAUS_WEBSITE_PORT: `${websitePort}`,
 };
 
 await runPreflight(env);

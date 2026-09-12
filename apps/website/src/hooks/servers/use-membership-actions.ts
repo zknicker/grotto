@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { serversRoute } from '../../features/servers/server-routes.ts';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /**
  * The membership mutations for one workspace. Each one owns the exact
@@ -9,7 +9,7 @@ import { grottoTrpc } from '../../lib/grotto-server.tsx';
  * standing, and a departure also changes which Chats they can open.
  */
 export function useMembershipActions(serverId: string | undefined) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
     const navigate = useNavigate();
 
     const refreshMembership = async () => {
@@ -25,14 +25,14 @@ export function useMembershipActions(serverId: string | undefined) {
     };
 
     return {
-        changeRole: grottoTrpc.member.changeRole.useMutation({ onSuccess: refreshMembership }),
-        leave: grottoTrpc.member.leave.useMutation({
+        changeRole: hausTrpc.member.changeRole.useMutation({ onSuccess: refreshMembership }),
+        leave: hausTrpc.member.leave.useMutation({
             onSuccess: async () => {
                 await refreshAfterDeparture();
                 navigate(serversRoute);
             },
         }),
-        remove: grottoTrpc.member.remove.useMutation({ onSuccess: refreshAfterDeparture }),
+        remove: hausTrpc.member.remove.useMutation({ onSuccess: refreshAfterDeparture }),
         serverId,
     };
 }

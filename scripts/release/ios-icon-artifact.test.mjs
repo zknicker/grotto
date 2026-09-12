@@ -77,7 +77,7 @@ test('committed icon artifact matches its canonical source and manifest', () => 
 });
 
 test('installs the compiled catalog before signing', () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'grotto-ios-icon-install-'));
+    const root = mkdtempSync(path.join(tmpdir(), 'haus-ios-icon-install-'));
     const artifact = path.join(root, 'artifact');
     const product = path.join(root, 'product');
     const app = path.join(product, 'Haus.app');
@@ -103,7 +103,7 @@ test('installs the compiled catalog before signing', () => {
             encoding: 'utf8',
             env: {
                 ...process.env,
-                GROTTO_PRECOMPILED_IOS_ICON_DIR: artifact,
+                HAUS_PRECOMPILED_IOS_ICON_DIR: artifact,
                 TARGET_BUILD_DIR: product,
                 UNLOCALIZED_RESOURCES_FOLDER_PATH: 'Haus.app',
             },

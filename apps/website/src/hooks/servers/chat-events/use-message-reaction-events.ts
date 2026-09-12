@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { grottoTrpc } from '../../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { threadMessagesQueryKey } from '../use-thread-messages.ts';
 import { type ChatEventInvalidation, uniqueChatIds } from './chat-event-invalidation.ts';
 import { useChatEvent } from './use-chat-event-stream.tsx';
@@ -7,7 +7,7 @@ import { useChatEvent } from './use-chat-event-stream.tsx';
 /** Refetches every message lens affected by a durable reaction change. */
 export function useMessageReactionEvents() {
     const queryClient = useQueryClient();
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
     useChatEvent('message.reaction.updated', async (events, serverId) => {
         await invalidateMessageReactionChanges({ events, queryClient, serverId, utils });

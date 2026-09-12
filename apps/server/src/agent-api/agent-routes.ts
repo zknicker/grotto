@@ -2,13 +2,13 @@ import {
     agentCreateAgentInputSchema,
     agentSetAgentAvatarInputSchema,
     agentUpdateAgentInputSchema,
-} from '@grotto/api';
+} from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import { emitServerUpdated } from '../grotto-api/server-events.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import { emitServerUpdated } from '../haus-api/server-events.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createAgentFromAgent } from '../server-agents/create-agent-from-agent.ts';
 import { precheckAgentCreation } from '../server-agents/creation-announcement.ts';
 import { setAgentAvatarFromAgent } from '../server-agents/set-agent-avatar-from-agent.ts';
@@ -31,7 +31,7 @@ export function registerAgentAgentRoutes(
     dependencies: {
         agentDelivery: AgentDelivery;
         avatarImageService: AvatarImageService;
-        db: GrottoDatabase;
+        db: HausDatabase;
         postCommitWork: ServerPostCommitWork;
     }
 ) {

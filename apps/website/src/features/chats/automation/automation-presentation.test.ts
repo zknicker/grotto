@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AutomationFireContext, MessageCause } from '@grotto/api';
+import type { AutomationFireContext, MessageCause } from '@haus/api';
 import {
     automationStatusChip,
     fireContextAnchorNote,
@@ -197,7 +197,7 @@ function triggerContext(): AutomationFireContext {
         fireOrdinal: 12,
         fireTotal: 12,
         nextFireAt: null,
-        payload: '{"repo":"grotto"}',
+        payload: '{"repo":"haus"}',
         payloadBytes: 52,
         payloadTruncated: false,
         repeat: null,

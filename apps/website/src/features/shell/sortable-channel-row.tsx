@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Agent, Chat } from '@grotto/api';
+import type { Agent, Chat } from '@haus/api';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { ChatNavigationRow, chatNavigationName } from './chat-navigation-row.tsx';

@@ -1,14 +1,14 @@
-import { cloudAgentCapabilityResultSchema, cloudAgentObservationFrameSchema } from '@grotto/api';
+import { cloudAgentCapabilityResultSchema, cloudAgentObservationFrameSchema } from '@haus/api';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { applyCloudAgentObservation } from '../cloud-agents/apply-cloud-agent-observation.ts';
 import { listComputerCloudAgentWork } from '../cloud-agents/list-computer-cloud-agent-work.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import type { ComputerConnections } from './connections.ts';
 
 export async function ingestCloudAgentReport(input: {
-    db: GrottoDatabase;
+    db: HausDatabase;
     computerId: string;
     serverId: string;
     frame: unknown;
@@ -44,7 +44,7 @@ export async function ingestCloudAgentReport(input: {
 }
 
 export async function sendCloudAgentReconcile(
-    db: GrottoDatabase,
+    db: HausDatabase,
     connections: ComputerConnections,
     computer: { id: string; serverId: string }
 ) {

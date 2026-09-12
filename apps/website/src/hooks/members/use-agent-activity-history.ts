@@ -1,17 +1,13 @@
-import type {
-    AgentActivityCursor,
-    AgentActivityEvent,
-    AgentActivityHistoryPage,
-} from '@grotto/api';
+import type { AgentActivityCursor, AgentActivityEvent, AgentActivityHistoryPage } from '@haus/api';
 import { useQueries } from '@tanstack/react-query';
 import * as React from 'react';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 const activityPageSize = 50;
 
 export function useAgentActivityHistory(serverId: string, agentId: string) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
     const scope = `${serverId}:${agentId}`;
     const [cursors, setCursors] = React.useState<Array<AgentActivityCursor | undefined>>([
         undefined,
@@ -35,7 +31,7 @@ export function useAgentActivityHistory(serverId: string, agentId: string) {
         });
     }, [agentId, serverId, utils.agent.activityHistory]);
 
-    grottoTrpc.agent.onActivity.useSubscription(
+    hausTrpc.agent.onActivity.useSubscription(
         { serverId },
         {
             enabled: Boolean(serverId && agentId),
@@ -97,7 +93,7 @@ export function useAgentTurnActivityHistory(
     agentId: string,
     runId: string | null
 ) {
-    return grottoTrpc.agent.activityHistory.useQuery(
+    return hausTrpc.agent.activityHistory.useQuery(
         {
             agentId,
             limit: 100,

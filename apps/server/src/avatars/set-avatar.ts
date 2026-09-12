@@ -1,15 +1,15 @@
-import type { Avatar, AvatarTarget, ClearAvatarInput, SetAvatarInput } from '@grotto/api';
+import type { Avatar, AvatarTarget, ClearAvatarInput, SetAvatarInput } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, avatarsTable, usersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { createAvatarId, readAvatarBytes } from './avatar-bytes.ts';
 import { AvatarDeniedError, AvatarOwnerNotFoundError } from './avatar-errors.ts';
 import { avatarUrlFor } from './avatar-url.ts';
 
-export type AvatarWriter = Pick<GrottoDatabase, 'delete' | 'select' | 'update'>;
+export type AvatarWriter = Pick<HausDatabase, 'delete' | 'select' | 'update'>;
 
 /**
  * Replaces the avatar an Agent or the signed-in human wears. The previous row
@@ -17,8 +17,8 @@ export type AvatarWriter = Pick<GrottoDatabase, 'delete' | 'select' | 'update'>;
  * something points at it.
  */
 export async function setAvatar(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: SetAvatarInput
 ): Promise<Avatar> {
     const { bytes, sha256 } = readAvatarBytes(input.bytesBase64, input.mediaType);
@@ -42,8 +42,8 @@ export async function setAvatar(
 
 /** Drops the avatar entirely; surfaces fall back to initials. */
 export async function clearAvatar(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: ClearAvatarInput
 ): Promise<Avatar> {
     return await db.transaction(async (tx) => {
@@ -61,8 +61,8 @@ export interface AvatarOwner {
 }
 
 async function authorizeAvatarWrite(
-    tx: AvatarWriter & Pick<GrottoDatabase, 'execute'>,
-    member: GrottoUser | null,
+    tx: AvatarWriter & Pick<HausDatabase, 'execute'>,
+    member: HausUser | null,
     serverId: string,
     target: AvatarTarget
 ): Promise<AvatarOwner> {

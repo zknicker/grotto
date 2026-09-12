@@ -1,6 +1,6 @@
-import type { MessageCauseAttribution } from '@grotto/api';
+import type { MessageCauseAttribution } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     messageCausesTable,
     reminderFiresTable,
@@ -57,7 +57,7 @@ export class MessageCauseError extends Error {
  * cadence a reader sees are the ones that were true when the fire happened.
  */
 export async function resolveMessageCause(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; cause: string; serverId: string }
 ): Promise<ResolvedMessageCause> {
     if (input.cause.startsWith('trf_')) {
@@ -154,7 +154,7 @@ export async function resolveMessageCause(
 }
 
 export async function insertMessageCause(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         attribution: MessageCauseAttribution;
         cause: ResolvedMessageCause;

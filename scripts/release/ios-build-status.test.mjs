@@ -15,7 +15,7 @@ import {
 const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
 
 test('waits for the exact build to finish processing', async () => {
-    const directory = mkdtempSync(path.join(tmpdir(), 'grotto-ios-status-'));
+    const directory = mkdtempSync(path.join(tmpdir(), 'haus-ios-status-'));
     const keyPath = path.join(directory, 'AuthKey_TEST.p8');
     writeFileSync(keyPath, privateKey.export({ format: 'pem', type: 'pkcs8' }));
     let buildRequests = 0;
@@ -52,7 +52,7 @@ test('waits for the exact build to finish processing', async () => {
 });
 
 test('reports processing without inventing distribution evidence', () => {
-    const directory = mkdtempSync(path.join(tmpdir(), 'grotto-ios-summary-'));
+    const directory = mkdtempSync(path.join(tmpdir(), 'haus-ios-summary-'));
     const summaryPath = path.join(directory, 'summary');
     try {
         writeIOSBuildStatusSummary(
@@ -68,7 +68,7 @@ test('reports processing without inventing distribution evidence', () => {
 });
 
 test('records a read-only retry when processing evidence is unavailable', () => {
-    const directory = mkdtempSync(path.join(tmpdir(), 'grotto-ios-summary-'));
+    const directory = mkdtempSync(path.join(tmpdir(), 'haus-ios-summary-'));
     const summaryPath = path.join(directory, 'summary');
     try {
         writeIOSBuildStatusErrorSummary(summaryPath);

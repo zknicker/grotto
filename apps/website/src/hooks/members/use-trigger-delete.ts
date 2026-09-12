@@ -1,9 +1,9 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /** Removing a Trigger stops it while the Server retains recent fire history. */
 export function useTriggerDelete(serverId: string, agentId: string) {
-    const utils = grottoTrpc.useUtils();
-    const mutation = grottoTrpc.trigger.delete.useMutation({
+    const utils = hausTrpc.useUtils();
+    const mutation = hausTrpc.trigger.delete.useMutation({
         onSuccess: async () =>
             await Promise.all([
                 utils.trigger.history.invalidate({ agentId, serverId }),

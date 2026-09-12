@@ -4,11 +4,11 @@ import {
     type ServerMember,
     type ServerMemberAction,
     type ServerRole,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import {
     findCurrentMembership,
     isLastOwner,
@@ -34,8 +34,8 @@ export interface ChangeServerMemberRoleInput {
  * App's version of either is presentation only.
  */
 export async function changeServerMemberRole(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: ChangeServerMemberRoleInput
 ): Promise<ServerMember> {
     return await db.transaction(async (tx) => {

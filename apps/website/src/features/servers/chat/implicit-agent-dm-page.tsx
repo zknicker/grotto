@@ -4,7 +4,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useWindowTitle } from '../../../hooks/shell/use-window-title.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import { SectionHeader } from '../../shell/section-header.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';

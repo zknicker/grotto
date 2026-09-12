@@ -84,7 +84,7 @@ jobs:
             echo "GH_RELEASE_AGENT_TOOLING_OP_TOKEN is required for release Tooling access" >&2
             exit 1
           fi
-          GROTTO_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal -- \
+          HAUS_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal -- \
             bash scripts/release/setup-apple-material.sh computer
       - name: Publish Computer
         env:
@@ -125,7 +125,7 @@ jobs:
             echo "GH_RELEASE_AGENT_TOOLING_OP_TOKEN is required for release Tooling access" >&2
             exit 1
           fi
-          GROTTO_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal -- \
+          HAUS_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal -- \
             bash scripts/release/setup-apple-material.sh computer
       - name: Publish App
         env:
@@ -134,7 +134,7 @@ jobs:
       - name: Upload App release bundle for Server
         uses: actions/upload-artifact@v4
         with:
-          name: grotto-app-release-assets
+          name: haus-app-release-assets
           path: |
             apps/website/electron-dist/latest-mac.yml
             apps/website/electron-dist/Haus_${{ needs.plan.outputs.app_version }}_arm64.dmg
@@ -160,7 +160,7 @@ jobs:
       contents: read
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
-      GROTTO_PRECOMPILED_IOS_ICON_DIR: ${{ github.workspace }}/assets/ios-icon
+      HAUS_PRECOMPILED_IOS_ICON_DIR: ${{ github.workspace }}/assets/ios-icon
     steps:
       - name: Check out release source
         uses: actions/checkout@v4
@@ -180,7 +180,7 @@ jobs:
             echo "GH_RELEASE_AGENT_TOOLING_OP_TOKEN is required for release Tooling access" >&2
             exit 1
           fi
-          GROTTO_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal -- \
+          HAUS_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal -- \
             bash scripts/release/setup-apple-material.sh ios
       - name: Upload iOS
         env:
@@ -188,7 +188,7 @@ jobs:
           IOS_BUILD_NUMBER: ${{ needs.plan.outputs.ios_build_number }}
           RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
         run: |
-          GROTTO_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal -- \
+          HAUS_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal -- \
             env "APPLE_API_KEY_PATH=${APPLE_API_KEY_PATH}" \
               bun run ios:release "${IOS_VERSION}" --build-number "${IOS_BUILD_NUMBER}"
       - name: Clean up Apple material
@@ -223,7 +223,7 @@ jobs:
         if: ${{ needs.plan.outputs.publish_app == 'true' }}
         uses: actions/download-artifact@v4
         with:
-          name: grotto-app-release-assets
+          name: haus-app-release-assets
           path: apps/website/electron-dist
       - name: Set up release dependencies
         uses: ./.github/actions/setup-release-dependencies
@@ -244,7 +244,7 @@ jobs:
       needs.publish_server.result == 'success'
     permissions:
       contents: read
-    uses: ./.github/workflows/deploy-grotto-server.yml
+    uses: ./.github/workflows/deploy-haus-server.yml
     with:
       version: v${{ needs.plan.outputs.release_version }}
       server_version: ${{ needs.plan.outputs.server_version }}
@@ -303,8 +303,8 @@ jobs:
         env:
           RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}
         run: >-
-          GROTTO_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal --
-          node scripts/release/publish-grotto-snapshot.mjs
+          HAUS_RESOLVE_RELEASE_TOKENS=true bunx varlock@1.16.1 run --include-internal --
+          node scripts/release/publish-haus-snapshot.mjs
       - name: Finalize release
         env:
           GH_TOKEN: ${{ github.token }}

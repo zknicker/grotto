@@ -2,7 +2,7 @@ import {
     type EffectRuntime,
     makeLifecycleLoggerLayer,
     makeProcessTelemetryLayer,
-} from '@grotto/effect';
+} from '@haus/effect';
 import { Layer, ManagedRuntime } from 'effect';
 import { computerSourceRevision, computerVersion } from './build-identity.ts';
 import { KeyedSerialWork } from './keyed-serial-work.ts';
@@ -49,7 +49,7 @@ export function makeDaemonRuntime(options?: {
             makeLifecycleLoggerLayer(),
             makeProcessTelemetryLayer({
                 relay,
-                serviceName: 'grotto-computer',
+                serviceName: 'haus-computer',
                 serviceRevision: computerSourceRevision,
                 serviceVersion: computerVersion,
             })

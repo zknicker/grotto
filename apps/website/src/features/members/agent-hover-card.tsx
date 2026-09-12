@@ -1,4 +1,4 @@
-import type { Agent, AgentReasoningEffort } from '@grotto/api';
+import type { Agent, AgentReasoningEffort } from '@haus/api';
 import { Separator, Spinner } from '@heroui/react';
 import type * as React from 'react';
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';

@@ -1,5 +1,5 @@
-import type { ServerDurableEvent } from '@grotto/api';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { ServerDurableEvent } from '@haus/api';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable } from '../postgres/schema.ts';
 import { allocateEventCursor } from './allocate-event-cursor.ts';
@@ -12,7 +12,7 @@ export type ChatLifecycleAction = 'archived' | 'created' | 'deleted' | 'unarchiv
  * notification survives the purge that follows it.
  */
 export async function insertLifecycleEvent(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { chatId: string; serverId: string },
     action: ChatLifecycleAction,
     createdAt: Date

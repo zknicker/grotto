@@ -1,4 +1,4 @@
-import type { TokenUsageOverview } from '@grotto/api';
+import type { TokenUsageOverview } from '@haus/api';
 import { formatUsageDay, usageDatesThroughToday } from './token-usage-view.ts';
 
 export interface AgentUsageDay {

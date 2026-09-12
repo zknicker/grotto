@@ -1,4 +1,4 @@
-import { isTerminalCloudAgentStatus } from '@grotto/api';
+import { isTerminalCloudAgentStatus } from '@haus/api';
 import { Effect } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import { foreign } from './foreign-operation.ts';

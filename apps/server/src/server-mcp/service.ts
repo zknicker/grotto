@@ -4,9 +4,9 @@ import type {
     McpOAuthStart,
     McpOAuthStartResult,
     McpPreset,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentMcpConnectionGrantsTable,
@@ -14,7 +14,7 @@ import {
     mcpSecretsTable,
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { McpDeniedError } from './errors.ts';
 import { type McpIconResolver, summarizeInstructions } from './icons.ts';
 import type { McpOAuthRelay } from './oauth-relay.ts';
@@ -22,10 +22,10 @@ import { emptySecret, type McpRuntime } from './runtime.ts';
 import { shapeMcpConnection } from './state.ts';
 
 export async function createMcpConnection(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runtime: McpRuntime,
     resolveIcon: McpIconResolver,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: McpConnectionCreate,
     preset: McpPreset | null = null
 ): Promise<McpConnection> {
@@ -84,10 +84,10 @@ export async function createMcpConnection(
 }
 
 export async function startMcpOAuth(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runtime: McpRuntime,
     relay: McpOAuthRelay,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: McpOAuthStart
 ): Promise<McpOAuthStartResult> {
     await requireAdmin(db, member, input.serverId, 'connect an account');
@@ -107,9 +107,9 @@ export async function startMcpOAuth(
 }
 
 export async function disconnectMcpConnection(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runtime: McpRuntime,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: { connectionId: string; serverId: string }
 ): Promise<McpConnection> {
     const connection = await requireOperableConnection(db, member, input);
@@ -146,9 +146,9 @@ export async function disconnectMcpConnection(
 }
 
 export async function deleteMcpConnection(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runtime: McpRuntime,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: { connectionId: string; serverId: string }
 ): Promise<McpConnection> {
     const connection = await requireOperableConnection(db, member, input);
@@ -158,10 +158,10 @@ export async function deleteMcpConnection(
 }
 
 export async function refreshMcpConnection(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runtime: McpRuntime,
     resolveIcon: McpIconResolver,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: { connectionId: string; serverId: string }
 ): Promise<McpConnection> {
     const connection = await requireOperableConnection(db, member, input);
@@ -169,10 +169,10 @@ export async function refreshMcpConnection(
 }
 
 export async function replaceMcpHeaders(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runtime: McpRuntime,
     resolveIcon: McpIconResolver,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: { connectionId: string; headers: Record<string, string>; serverId: string }
 ): Promise<McpConnection> {
     const connection = await requireOperableConnection(db, member, input);
@@ -205,7 +205,7 @@ export async function replaceMcpHeaders(
 }
 
 export async function clearMcpIdentity(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runtime: McpRuntime,
     serverId: string,
     connectionId: string
@@ -228,7 +228,7 @@ export async function clearMcpIdentity(
 }
 const iconTimeoutMs = 4000;
 async function refreshInventory(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runtime: McpRuntime,
     resolveIcon: McpIconResolver,
     connection: typeof mcpConnectionsTable.$inferSelect
@@ -258,8 +258,8 @@ async function refreshInventory(
 }
 
 async function requireAdmin(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     serverId: string,
     action: string
 ) {
@@ -270,7 +270,7 @@ async function requireAdmin(
 }
 
 async function requireConnection(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { connectionId: string; serverId: string }
 ) {
     const [row] = await db
@@ -290,8 +290,8 @@ async function requireConnection(
 }
 
 async function requireOperableConnection(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { connectionId: string; serverId: string }
 ) {
     await requireAdmin(db, member, input.serverId, 'change a connection');

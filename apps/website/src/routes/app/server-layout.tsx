@@ -19,8 +19,8 @@ import { ShellSidebar, ShellSidebarPage } from '../../features/shell/shell-sideb
 import { ShellTopbar, TopbarProvider } from '../../features/shell/shell-topbar.tsx';
 import { SidebarAgentActivityStrip } from '../../features/shell/sidebar-agent-activity-strip.tsx';
 import { SidebarSettingsAction } from '../../features/shell/sidebar-settings-action.tsx';
-import { GrottoUpdateFooterContainer } from '../../features/updates/grotto-update-footer-container.tsx';
-import { GrottoUpdateProvider } from '../../features/updates/use-grotto-update.ts';
+import { HausUpdateFooterContainer } from '../../features/updates/haus-update-footer-container.tsx';
+import { HausUpdateProvider } from '../../features/updates/use-haus-update.ts';
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { useDesktopDockBadge } from '../../hooks/desktop/use-desktop-dock-badge.ts';
 import { useDesktopMenuNavigation } from '../../hooks/desktop/use-desktop-menu-navigation.ts';
@@ -108,7 +108,7 @@ export function ServerLayout() {
         slug
     );
     return (
-        <GrottoUpdateProvider canOperate={canOperate} serverId={server.data.id}>
+        <HausUpdateProvider canOperate={canOperate} serverId={server.data.id}>
             <SidePaneProvider>
                 <TopbarProvider>
                     <CommandMenuProvider>
@@ -141,7 +141,7 @@ export function ServerLayout() {
                                                                 serverId={server.data.id}
                                                                 slug={slug}
                                                             />
-                                                            <GrottoUpdateFooterContainer
+                                                            <HausUpdateFooterContainer
                                                                 slug={slug}
                                                             />
                                                         </div>
@@ -189,7 +189,7 @@ export function ServerLayout() {
                     </CommandMenuProvider>
                 </TopbarProvider>
             </SidePaneProvider>
-        </GrottoUpdateProvider>
+        </HausUpdateProvider>
     );
 }
 

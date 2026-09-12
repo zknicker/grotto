@@ -1,4 +1,4 @@
-import type { McpPreset } from '@grotto/api';
+import type { McpPreset } from '@haus/api';
 import { Button, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Fragment } from 'react';

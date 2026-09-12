@@ -1,13 +1,13 @@
-import { type AgentActivityEntry, agentTurnActivitySummarySchema } from '@grotto/api';
+import { type AgentActivityEntry, agentTurnActivitySummarySchema } from '@haus/api';
 import { and, desc, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentTurnsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 
 export async function listAgentActivity(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { agentId: string; limit: number; serverId: string }
 ): Promise<AgentActivityEntry[]> {
     await requireServerMembership(db, member, input.serverId);

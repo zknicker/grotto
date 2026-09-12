@@ -1,7 +1,7 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { requireChatWritable } from '../chats/chat-access.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
@@ -45,7 +45,7 @@ export {
 export { tickReminders } from './scheduler.ts';
 
 export async function scheduleReminder(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string,
     input: ScheduleReminderInput,
     clock: ReminderClock
@@ -188,7 +188,7 @@ export async function scheduleReminder(
 }
 
 export async function listReminders(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         actor: { agentId: string; kind: 'agent' };
         serverId: string;

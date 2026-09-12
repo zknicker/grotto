@@ -1,8 +1,8 @@
-import type { GrottoAgentMessage } from '@grotto/api';
+import type { HausAgentMessage } from '@haus/api';
 import { and, asc, desc, eq, gt, ilike, lt, sql } from 'drizzle-orm';
 import { listUnservedThreadFollowReactivationIds } from '../agent-delivery/store.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
     channelAgentParticipantsTable,
@@ -18,7 +18,7 @@ import {
 import { AgentTargetError, resolveAgentTarget } from './resolve-target.ts';
 
 export async function readAgentHistory(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: {
         after?: string;
@@ -88,10 +88,10 @@ export async function readAgentHistory(
 }
 
 export async function resolveAgentMessage(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     id: string
-): Promise<GrottoAgentMessage> {
+): Promise<HausAgentMessage> {
     const rows = await db
         .select(messageSelection)
         .from(chatMessagesTable)
@@ -114,7 +114,7 @@ export async function resolveAgentMessage(
 }
 
 export async function searchAgentMessages(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: {
         after?: Date;
@@ -126,7 +126,7 @@ export async function searchAgentMessages(
         sort: 'recent' | 'relevance';
         target?: string;
     }
-): Promise<(GrottoAgentMessage & { target: string })[]> {
+): Promise<(HausAgentMessage & { target: string })[]> {
     const targetChatId = input.target
         ? await resolveAgentTarget(db, runner, input.target)
         : undefined;
@@ -179,7 +179,7 @@ export async function searchAgentMessages(
 }
 
 export async function requireAgentChatAccess(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string
 ): Promise<void> {
@@ -237,7 +237,7 @@ export async function requireAgentChatAccess(
 }
 
 async function resolveSequence(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     chatId: string,
     anchor: string

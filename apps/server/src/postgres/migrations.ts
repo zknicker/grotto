@@ -4,48 +4,48 @@ import { SQL } from 'bun';
 import { drizzle } from 'drizzle-orm/bun-sql';
 import { migrate } from 'drizzle-orm/bun-sql/migrator';
 import {
-    assertGrottoDatabaseRole,
-    grantGrottoBackupPrivileges,
-    grantGrottoRuntimePrivileges,
+    assertHausDatabaseRole,
+    grantHausBackupPrivileges,
+    grantHausRuntimePrivileges,
 } from './roles.ts';
 
 const packagedMigrationsFolder = join(
     dirname(process.execPath),
     '..',
     'share',
-    'grotto-server',
+    'haus-server',
     'migrations'
 );
 
-export function resolveGrottoMigrationsFolder(folder = process.env.GROTTO_MIGRATIONS_FOLDER) {
+export function resolveHausMigrationsFolder(folder = process.env.HAUS_MIGRATIONS_FOLDER) {
     if (folder) {
         return resolve(folder);
     }
-    if (basename(process.execPath).startsWith('grotto-server-')) {
+    if (basename(process.execPath).startsWith('haus-server-')) {
         return resolve(packagedMigrationsFolder);
     }
     return resolve(import.meta.dir, '..', '..', 'drizzle', 'postgres');
 }
 
-export async function migrateGrottoDatabase(
+export async function migrateHausDatabase(
     databaseUrl: string,
     runtimeRole: string,
     backupRole: string,
     migrationsFolder?: string
 ) {
     const client = new SQL({ max: 1, url: databaseUrl });
-    const folder = resolveGrottoMigrationsFolder(migrationsFolder);
+    const folder = resolveHausMigrationsFolder(migrationsFolder);
 
     try {
-        assertGrottoDatabaseRole(runtimeRole, 'runtime');
-        assertGrottoDatabaseRole(backupRole, 'backup');
+        assertHausDatabaseRole(runtimeRole, 'runtime');
+        assertHausDatabaseRole(backupRole, 'backup');
         const latestMigrationTime = await readLatestMigrationTime(client);
-        await grantGrottoRuntimePrivileges(client, runtimeRole);
+        await grantHausRuntimePrivileges(client, runtimeRole);
         await migrate(drizzle(client), {
             migrationsFolder: folder,
         });
-        await grantGrottoRuntimePrivileges(client, runtimeRole);
-        await grantGrottoBackupPrivileges(client, backupRole);
+        await grantHausRuntimePrivileges(client, runtimeRole);
+        await grantHausBackupPrivileges(client, backupRole);
         return await readAppliedMigrationTags(folder, latestMigrationTime);
     } finally {
         await client.close();

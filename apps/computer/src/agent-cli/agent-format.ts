@@ -1,4 +1,4 @@
-import { cloudAgentPullRequestNumber, formatCloudAgentWorkSuffix } from '@grotto/api';
+import { cloudAgentPullRequestNumber, formatCloudAgentWorkSuffix } from '@haus/api';
 import { formatAskSuffix, formatThreadFollowRestoration, shortInboxId } from '../inbox-format.ts';
 import type { AgentCliAutomationEvent, AgentCliMessage } from './agent-api-schemas.ts';
 import { AgentCliError } from './agent-error.ts';
@@ -57,7 +57,7 @@ export function formatDeliveryEnvelope(
  * A bodiless inbox item served on `haus message check`: a Trigger or Reminder
  * fire, or a task assignment. None of them has a Chat message, so the item's own
  * identity fills the envelope: `msg=` is its short id, `type=` is `trigger` or
- * `system`, and the sender is `@trigger`, `@reminder`, or `@grotto` — the exact
+ * `system`, and the sender is `@trigger`, `@reminder`, or `@haus` — the exact
  * header the launch drain prints for the same item.
  */
 export function formatAutomationEnvelope(event: AgentCliAutomationEvent): string {

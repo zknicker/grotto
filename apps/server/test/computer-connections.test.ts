@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AgentCommand, AgentExecutionJournalResult, SignedComputerRelease } from '@grotto/api';
+import type { AgentCommand, AgentExecutionJournalResult, SignedComputerRelease } from '@haus/api';
 import { registerTestConnections } from './test-computer-connections.ts';
 
 const computerId = 'cmp_1234567890123456';
@@ -21,8 +21,7 @@ const stop: AgentCommand = {
 };
 const release = {
     release: {
-        artifactUrl:
-            'https://releases.grotto.sh/computer/1.1.0/grotto-computer-aarch64-apple-darwin',
+        artifactUrl: 'https://releases.haus.chat/computer/1.1.0/haus-computer-aarch64-apple-darwin',
         protocolVersion: 3,
         sha256: 'a'.repeat(64),
         sourceRevision: 'b'.repeat(40),

@@ -1,6 +1,6 @@
 import {
     getChatDisplayTitle,
-    resolveGrottoChatName,
+    resolveHausChatName,
 } from '../../../components/chats/chat-display.ts';
 
 export interface ThreadTargetChat {
@@ -17,7 +17,7 @@ export interface ThreadTargetChat {
     type: string;
 }
 
-const operatorActorIds = new Set(['usr_grotto', 'profile:self']);
+const operatorActorIds = new Set(['usr_haus', 'profile:self']);
 
 export function threadPaneTitles(
     chat: ThreadTargetChat,
@@ -37,7 +37,7 @@ export function threadPaneTitles(
     // threads get no copyable target.
     if (chat.conversationKind === 'task' || chat.scope === 'task') {
         return {
-            header: `Thread — ${resolveGrottoChatName(chat) || chat.title}`,
+            header: `Thread — ${resolveHausChatName(chat) || chat.title}`,
             target: null,
         };
     }
@@ -49,7 +49,7 @@ export function threadPaneTitles(
     };
 }
 
-// The wire contract's short-id rule (specs/grotto-cli.md): only canonical
+// The wire contract's short-id rule (specs/haus-cli.md): only canonical
 // msg_<32 hex> ids shorten to hex8; anything else keeps its full value so
 // server-side resolution stays unambiguous.
 export function threadAnchorShortId(anchorMessageId: string) {
@@ -58,7 +58,7 @@ export function threadAnchorShortId(anchorMessageId: string) {
 }
 
 export function getChannelName(chat: ThreadTargetChat) {
-    const title = chat.type === 'grotto' ? resolveGrottoChatName(chat) : getChatDisplayTitle(chat);
+    const title = chat.type === 'haus' ? resolveHausChatName(chat) : getChatDisplayTitle(chat);
     return title.replace(/^#/u, '');
 }
 

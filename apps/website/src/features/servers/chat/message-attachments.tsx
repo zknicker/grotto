@@ -1,4 +1,4 @@
-import type { AttachmentMetadata } from '@grotto/api';
+import type { AttachmentMetadata } from '@haus/api';
 import { Label } from '@heroui/react';
 import { ChatAttachment, ContextMenu } from '@heroui-pro/react';
 import { Attachment01Icon, Download04Icon } from '@hugeicons-pro/core-stroke-rounded';

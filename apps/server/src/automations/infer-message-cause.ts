@@ -1,5 +1,5 @@
 import { and, eq, isNotNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, chatsTable } from '../postgres/schema.ts';
 import {
     type AttributedMessageCause,
@@ -18,7 +18,7 @@ import {
  * guessing which item it answered.
  */
 export async function inferMessageCause(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; chatId: string; runId: string; serverId: string }
 ): Promise<AttributedMessageCause | undefined> {
     const served = await db
@@ -65,7 +65,7 @@ function isFireIdentity(dedupeKey: string): boolean {
 
 /** A Thread answers for its parent Chat; every other Chat answers for itself. */
 async function anchorChatId(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { chatId: string; serverId: string }
 ): Promise<string> {
     const [chat] = await db

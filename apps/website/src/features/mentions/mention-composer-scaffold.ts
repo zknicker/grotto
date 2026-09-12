@@ -1,4 +1,4 @@
-import { parseAgentReferenceTarget } from '@grotto/api/rich-references';
+import { parseAgentReferenceTarget } from '@haus/api/rich-references';
 import * as React from 'react';
 import { areMentionsEqual } from './mention-metadata.ts';
 import type { ActiveMentionQuery, Mention } from './mention-types.ts';

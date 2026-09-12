@@ -1,5 +1,5 @@
-import { type CloudAgentPullRequest, cloudAgentPullRequestSchema } from '@grotto/api';
-import { type EffectRuntime, settle } from '@grotto/effect';
+import { type CloudAgentPullRequest, cloudAgentPullRequestSchema } from '@haus/api';
+import { type EffectRuntime, settle } from '@haus/effect';
 import { Effect } from 'effect';
 import { createGithubTokenReader } from './token.ts';
 

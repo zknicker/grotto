@@ -3,7 +3,7 @@ import type {
     CloudAgentStatus,
     CloudAgentUnreadyReason,
     CloudAgentUsage,
-} from '@grotto/api';
+} from '@haus/api';
 
 export type { CloudAgentUnreadyReason };
 

@@ -3,13 +3,13 @@ import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 
-const postgresUser = 'grotto';
-const postgresDatabase = 'grotto';
+const postgresUser = 'haus';
+const postgresDatabase = 'haus';
 
 export function stopStaleDevPostgres(environment, options = {}) {
     const fileSystem = options.fileSystem ?? fs;
     const spawnCommand = options.spawnCommand ?? spawnSync;
-    const dataRoot = environment.GROTTO_POSTGRES_DATA_ROOT;
+    const dataRoot = environment.HAUS_POSTGRES_DATA_ROOT;
     const postmasterPath = path.join(dataRoot, 'postmaster.pid');
 
     if (!fileSystem.existsSync(postmasterPath)) {
@@ -55,8 +55,8 @@ export function postgresLocaleEnvironment(environment = process.env) {
 
 export function prepareDevPostgres(environment, port) {
     const binaries = resolvePostgresBinaries();
-    const dataRoot = environment.GROTTO_POSTGRES_DATA_ROOT;
-    const socketRoot = environment.GROTTO_POSTGRES_SOCKET_ROOT;
+    const dataRoot = environment.HAUS_POSTGRES_DATA_ROOT;
+    const socketRoot = environment.HAUS_POSTGRES_SOCKET_ROOT;
 
     fs.mkdirSync(path.dirname(dataRoot), { recursive: true });
     fs.mkdirSync(socketRoot, { recursive: true });
@@ -130,7 +130,7 @@ export async function waitForDevPostgres(postgres, child) {
     throw new Error('Development PostgreSQL did not become ready.');
 }
 
-export function hasGrottoSchema(postgres) {
+export function hasHausSchema(postgres) {
     const result = spawnSync(
         postgres.binaries.psql,
         [
@@ -192,7 +192,7 @@ function ensureDatabase(postgres) {
 }
 
 function resolvePostgresBinaries() {
-    const explicitRoot = process.env.GROTTO_POSTGRES_BIN;
+    const explicitRoot = process.env.HAUS_POSTGRES_BIN;
     const searchRoots = explicitRoot
         ? [explicitRoot]
         : ['/opt/homebrew/opt/postgresql@16/bin', '/usr/local/opt/postgresql@16/bin', ''];

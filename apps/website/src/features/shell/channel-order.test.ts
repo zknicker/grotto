@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Chat } from '@grotto/api';
+import type { Chat } from '@haus/api';
 import { orderChannels, readChannelOrder, writeChannelOrder } from './channel-order.ts';
 
 test('restores known channels and appends newly visible channels', () => {

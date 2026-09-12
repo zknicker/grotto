@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { makeTelemetryLayer, parseTraceCarrier } from '@grotto/effect';
+import { makeTelemetryLayer, parseTraceCarrier } from '@haus/effect';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ManagedRuntime } from 'effect';
 import { traceAgentTurn } from '../../computer/src/agent-turn-telemetry.ts';
@@ -15,7 +15,7 @@ test('dispatch → turn → loopback MCP keeps one trace without trusting Agent 
     const createRuntime = () =>
         ManagedRuntime.make(
             makeTelemetryLayer({
-                serviceName: 'grotto-test',
+                serviceName: 'haus-test',
                 spanProcessor: new SimpleSpanProcessor(exporter),
             })
         );
@@ -85,9 +85,9 @@ test('dispatch → turn → loopback MCP keeps one trace without trusting Agent 
             return { status: 'completed', messageCount: 0, outputProduced: false };
         });
         const spans = exporter.getFinishedSpans();
-        const dispatch = spans.find((span) => span.name === 'grotto.agent.dispatch');
-        const turn = spans.find((span) => span.name === 'grotto.agent.turn');
-        const mcp = spans.find((span) => span.name === 'grotto.mcp.operation');
+        const dispatch = spans.find((span) => span.name === 'haus.agent.dispatch');
+        const turn = spans.find((span) => span.name === 'haus.agent.turn');
+        const mcp = spans.find((span) => span.name === 'haus.mcp.operation');
         expect(dispatch).toBeDefined();
         expect(turn).toBeDefined();
         expect(mcp).toBeDefined();

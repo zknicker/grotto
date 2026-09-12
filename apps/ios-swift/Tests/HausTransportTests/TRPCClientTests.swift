@@ -16,8 +16,8 @@ final class TRPCClientTests: XCTestCase {
             XCTAssertEqual(request.httpMethod, "POST")
             XCTAssertEqual(request.url?.path, "/trpc/server.list")
             XCTAssertEqual(request.value(forHTTPHeaderField: "content-type"), "application/json")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "x-grotto-product-version"), "1.2.3")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "x-grotto-app-protocol-version"), "5")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-product-version"), "1.2.3")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "6")
             XCTAssertEqual(request.value(forHTTPHeaderField: "authorization"), "Bearer clerk_123")
             let body = try XCTUnwrap(request.httpBody ?? request.httpBodyStream.flatMap(readBody))
             XCTAssertEqual(
@@ -29,7 +29,7 @@ final class TRPCClientTests: XCTestCase {
 
         let client = TRPCClient(
             config: AppConfig(
-                serverOrigin: URL(string: "https://grotto.test")!,
+                serverOrigin: URL(string: "https://haus.test")!,
                 productVersion: "1.2.3"
             ),
             sessionTokenProvider: StaticSessionTokenProvider(token: "clerk_123"),
@@ -50,7 +50,7 @@ final class TRPCClientTests: XCTestCase {
             )
         }
         let client = TRPCClient(
-            config: AppConfig(serverOrigin: URL(string: "https://grotto.test")!, productVersion: "test"),
+            config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
             sessionTokenProvider: StaticSessionTokenProvider(token: nil),
             session: makeStubSession()
         )
@@ -74,7 +74,7 @@ final class TRPCClientTests: XCTestCase {
             return response(data: Data(#"{"result":{"data":{"count":1}}}"#.utf8))
         }
         let client = TRPCClient(
-            config: AppConfig(serverOrigin: URL(string: "https://grotto.test")!, productVersion: "test"),
+            config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
             sessionTokenProvider: StaticSessionTokenProvider(token: "token"),
             session: makeStubSession()
         )
@@ -99,7 +99,7 @@ final class TRPCClientTests: XCTestCase {
             return response(data: Data(#"{"result":{}}"#.utf8))
         }
         let client = TRPCClient(
-            config: AppConfig(serverOrigin: URL(string: "https://grotto.test")!, productVersion: "test"),
+            config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
             sessionTokenProvider: StaticSessionTokenProvider(token: "token"),
             session: makeStubSession()
         )
@@ -117,7 +117,7 @@ final class TRPCClientTests: XCTestCase {
 
     func testAttachmentUploadUsesRawPutAndAppHeaders() async throws {
         let fileURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("grotto-upload-\(UUID().uuidString).txt")
+            .appendingPathComponent("haus-upload-\(UUID().uuidString).txt")
         let bytes = Data("attachment bytes".utf8)
         try bytes.write(to: fileURL)
         defer { try? FileManager.default.removeItem(at: fileURL) }
@@ -128,8 +128,8 @@ final class TRPCClientTests: XCTestCase {
             XCTAssertEqual(request.value(forHTTPHeaderField: "content-type"), "application/octet-stream")
             XCTAssertEqual(request.value(forHTTPHeaderField: "accept"), "application/json")
             XCTAssertEqual(request.value(forHTTPHeaderField: "content-length"), String(bytes.count))
-            XCTAssertEqual(request.value(forHTTPHeaderField: "x-grotto-product-version"), "1.2.3")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "x-grotto-app-protocol-version"), "5")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-product-version"), "1.2.3")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "6")
             XCTAssertEqual(request.value(forHTTPHeaderField: "authorization"), "Bearer clerk_123")
             let body = try XCTUnwrap(request.httpBody ?? request.httpBodyStream.flatMap(readBody))
             XCTAssertEqual(body, bytes)
@@ -142,7 +142,7 @@ final class TRPCClientTests: XCTestCase {
 
         let client = TRPCClient(
             config: AppConfig(
-                serverOrigin: URL(string: "https://grotto.test")!,
+                serverOrigin: URL(string: "https://haus.test")!,
                 productVersion: "1.2.3"
             ),
             sessionTokenProvider: StaticSessionTokenProvider(token: "clerk_123"),
@@ -173,15 +173,15 @@ final class TRPCClientTests: XCTestCase {
         StubURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.httpMethod, "GET")
             XCTAssertEqual(request.url?.path, "/attachments/srv_123/att_123")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "x-grotto-product-version"), "1.2.3")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "x-grotto-app-protocol-version"), "5")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-product-version"), "1.2.3")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "x-haus-app-protocol-version"), "6")
             XCTAssertEqual(request.value(forHTTPHeaderField: "authorization"), "Bearer clerk_123")
             return response(headers: ["Content-Type": "text/plain"], data: bytes)
         }
 
         let client = TRPCClient(
             config: AppConfig(
-                serverOrigin: URL(string: "https://grotto.test")!,
+                serverOrigin: URL(string: "https://haus.test")!,
                 productVersion: "1.2.3"
             ),
             sessionTokenProvider: StaticSessionTokenProvider(token: "clerk_123"),
@@ -254,7 +254,7 @@ final class TRPCClientTests: XCTestCase {
             )
         }
         let client = TRPCClient(
-            config: AppConfig(serverOrigin: URL(string: "https://grotto.test")!, productVersion: "test"),
+            config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
             sessionTokenProvider: StaticSessionTokenProvider(token: "token"),
             session: makeStubSession()
         )
@@ -289,7 +289,7 @@ final class TRPCClientTests: XCTestCase {
             )
         }
         let client = TRPCClient(
-            config: AppConfig(serverOrigin: URL(string: "https://grotto.test")!, productVersion: "test"),
+            config: AppConfig(serverOrigin: URL(string: "https://haus.test")!, productVersion: "test"),
             sessionTokenProvider: StaticSessionTokenProvider(token: "token"),
             session: makeStubSession()
         )
@@ -418,7 +418,7 @@ private func response(
 ) -> StubResponse {
     StubResponse(
         response: HTTPURLResponse(
-            url: URL(string: "https://grotto.test")!,
+            url: URL(string: "https://haus.test")!,
             statusCode: status,
             httpVersion: nil,
             headerFields: headers

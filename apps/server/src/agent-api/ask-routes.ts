@@ -1,4 +1,4 @@
-import { agentAskInputSchema } from '@grotto/api';
+import { agentAskInputSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { createAsk } from '../asks/create-ask.ts';
@@ -6,7 +6,7 @@ import { AskConflictError, InvalidAskAddresseeError } from '../asks/errors.ts';
 import { AgentAuthorNotFoundError } from '../chats/agent-authored-message.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { AgentTargetError } from './resolve-target.ts';
@@ -15,7 +15,7 @@ export function registerAgentAskRoutes(
     app: FastifyInstance,
     dependencies: {
         agentDelivery: AgentDelivery;
-        db: GrottoDatabase;
+        db: HausDatabase;
         postCommitWork: ServerPostCommitWork;
     }
 ) {

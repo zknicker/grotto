@@ -2,7 +2,7 @@ import { Button } from '@heroui/react';
 import { ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import { useServerList } from '../../../hooks/servers/use-server-list.ts';
-import type { ServerSummary } from '../../../lib/grotto-server.tsx';
+import type { ServerSummary } from '../../../lib/haus-server.tsx';
 import { CreateServerDialog } from '../../servers/create-server-dialog.tsx';
 import { JoinServerDialog } from '../../servers/join-server-dialog.tsx';
 import { ServerSwitcher } from '../../servers/server-switcher.tsx';

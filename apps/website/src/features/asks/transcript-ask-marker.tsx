@@ -1,4 +1,4 @@
-import type { Ask } from '@grotto/api';
+import type { Ask } from '@haus/api';
 import { useTranscriptRenderContextOptional } from '../chats/chat-transcript-render-context.tsx';
 import type { TranscriptActor } from '../chats/transcript-contract.ts';
 import { MessageAskMarker } from './message-ask-marker.tsx';

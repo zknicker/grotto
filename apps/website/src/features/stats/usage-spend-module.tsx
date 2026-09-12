@@ -1,4 +1,4 @@
-import type { UsageOverview } from '@grotto/api';
+import type { UsageOverview } from '@haus/api';
 import { Card } from '@heroui/react';
 import { BarChart } from '@heroui-pro/react/bar-chart';
 import { AiAudioIcon } from '@hugeicons-pro/core-stroke-rounded';

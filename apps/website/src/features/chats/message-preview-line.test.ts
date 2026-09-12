@@ -10,7 +10,7 @@ test('a preview line shows reference labels instead of their targets', () => {
 });
 
 test('a preview line collapses a web link to its text', () => {
-    expect(messagePreviewLine('See\n[the release notes](https://grotto.dev/releases)  now')).toBe(
+    expect(messagePreviewLine('See\n[the release notes](https://haus.dev/releases)  now')).toBe(
         'See the release notes now'
     );
 });

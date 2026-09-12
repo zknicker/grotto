@@ -6,7 +6,7 @@ import { repoRoot } from './release/release-utils.mjs';
 
 const environment = {
     ...process.env,
-    GROTTO_RESOLVE_RELEASE_HOST_TOKEN: 'true',
+    HAUS_RESOLVE_RELEASE_HOST_TOKEN: 'true',
     VARLOCK_ENV: 'production',
 };
 const token = spawnSync('bunx', ['varlock@1.16.1', 'printenv', 'CLOUDFLARE_API_TOKEN'], {

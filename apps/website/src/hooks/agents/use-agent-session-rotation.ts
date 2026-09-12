@@ -1,4 +1,4 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 /**
@@ -21,7 +21,7 @@ export function useAgentSessionRotation({
     generation: number;
     serverId: string;
 }) {
-    return grottoTrpc.agent.sessionRotation.useQuery(
+    return hausTrpc.agent.sessionRotation.useQuery(
         { agentId, generation, serverId },
         { ...queryPolicy.syncedSnapshot, enabled }
     );

@@ -1,7 +1,7 @@
-import type { ServerDurableEvent, Trigger, TriggerKind, TriggerStatus } from '@grotto/api';
+import type { ServerDurableEvent, Trigger, TriggerKind, TriggerStatus } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import { retireQueuedItemsByDedupeKeys } from '../agent-delivery/store.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { triggerFiresTable, triggersTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -20,7 +20,7 @@ import { readTrigger } from './trigger-queries.ts';
  * version bump, and the wire view.
  */
 
-type Transaction = GrottoDatabase;
+type Transaction = HausDatabase;
 
 /** Runs inside the transaction, behind the server lock. Throws to refuse. */
 export type TriggerAuthorization = (tx: Transaction) => Promise<unknown>;
@@ -51,7 +51,7 @@ export interface CreateTriggerRowInput {
  * writes nothing to the transcript. It is handed the trigger's id.
  */
 export async function createTriggerRow(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: CreateTriggerRowInput,
     resolveAnchor: (tx: Transaction, triggerId: string) => Promise<TriggerAnchor>,
     clock: TriggerClock
@@ -98,7 +98,7 @@ export async function createTriggerRow(
  * nothing, so a kill switch pressed twice does not churn the version.
  */
 export async function setTriggerStatusRow(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { origin: string; serverId: string; status: TriggerStatus; triggerId: string },
     authorize: TriggerAuthorization,
     clock: TriggerClock
@@ -120,7 +120,7 @@ export async function setTriggerStatusRow(
 
 /** Edits the human-authored fields. `instruction: null` clears the instruction. */
 export async function updateTriggerRow(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         instruction?: string | null;
         origin: string;
@@ -147,7 +147,7 @@ export async function updateTriggerRow(
 
 /** Replaces the bearer secret. The previous secret stops working immediately. */
 export async function rotateTriggerSecretRow(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { origin: string; serverId: string; triggerId: string },
     authorize: TriggerAuthorization,
     clock: TriggerClock
@@ -170,7 +170,7 @@ export async function rotateTriggerSecretRow(
  * removed trigger must not wake its Agent forever.
  */
 export async function deleteTriggerRow(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { serverId: string; triggerId: string },
     authorize: TriggerAuthorization,
     clock: TriggerClock
@@ -235,7 +235,7 @@ export async function deleteTriggerRow(
  * Every write here stamps `updated_at` and bumps `version`.
  */
 async function writeTrigger(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { origin: string; serverId: string; triggerId: string },
     authorize: TriggerAuthorization,
     patch: (current: Trigger, now: Date) => Partial<typeof triggersTable.$inferInsert> | null,

@@ -2,9 +2,9 @@ import type {
     CloudAgentCancelCommand,
     CloudAgentObservation,
     CloudAgentReconcileEntry,
-} from '@grotto/api';
-import { isTerminalCloudAgentStatus } from '@grotto/api';
-import { settle } from '@grotto/effect';
+} from '@haus/api';
+import { isTerminalCloudAgentStatus } from '@haus/api';
+import { settle } from '@haus/effect';
 import { Clock, Deferred, type Duration, Effect, Exit, Scope } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import { type CloudAgentOperationError, foreign } from './foreign-operation.ts';

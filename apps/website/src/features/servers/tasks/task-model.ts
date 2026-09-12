@@ -1,4 +1,4 @@
-import type { Agent, Chat, ChatMessage, TaskLabel, TaskListItem } from '@grotto/api';
+import type { Agent, Chat, ChatMessage, TaskLabel, TaskListItem } from '@haus/api';
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import {
     type TaskOrigin,
@@ -45,7 +45,7 @@ export const taskStatuses: TaskStatus[] = ['todo', 'in_progress', 'in_review', '
 
 /**
  * `active` is the resting view: finished work is history, and a page that
- * opens on every task Grotto has ever closed buries the ones still moving.
+ * opens on every task Haus has ever closed buries the ones still moving.
  * `all` is a deliberate widening, so it is the value that rides the URL.
  */
 export function resolveTaskView(value: string | null): TaskView {

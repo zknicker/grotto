@@ -1,10 +1,10 @@
-import type { TriggerFireErrorCode } from '@grotto/api';
-import type { EffectRuntime } from '@grotto/effect';
-import { tracePromise } from '@grotto/effect';
+import type { TriggerFireErrorCode } from '@haus/api';
+import type { EffectRuntime } from '@haus/effect';
+import { tracePromise } from '@haus/effect';
 import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { ChatArchivedError, ChatNotFoundError, requireChatWritable } from '../chats/chat-access.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { triggerFiresTable, triggersTable } from '../postgres/schema.ts';
 import {
@@ -54,7 +54,7 @@ export interface TriggerFireDependencies {
  * indistinguishable to the caller, so this returns null for both.
  */
 export async function authenticateTrigger(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     input: { secret: string; triggerId: string }
 ): Promise<AuthenticatedTrigger | null> {
     const [trigger] = await db
@@ -86,24 +86,24 @@ export async function authenticateTrigger(
  * wake — the ledger already holds it.
  */
 export async function fireTrigger(
-    db: GrottoDatabase,
+    db: HausDatabase,
     dependencies: TriggerFireDependencies,
     request: TriggerFireRequest,
     clock: TriggerClock
 ): Promise<TriggerFireOutcome> {
     return tracePromise(
         dependencies.runtime,
-        'grotto.trigger.fire',
-        { 'grotto.operation': 'trigger.fire' },
+        'haus.trigger.fire',
+        { 'haus.operation': 'trigger.fire' },
         async () => fireTriggerTransaction(db, dependencies, request, clock),
         undefined,
-        (outcome) => ({ 'grotto.outcome': outcome.status }),
+        (outcome) => ({ 'haus.outcome': outcome.status }),
         (outcome) => (outcome.status === 'refused' ? 'failure' : 'success')
     );
 }
 
 async function fireTriggerTransaction(
-    db: GrottoDatabase,
+    db: HausDatabase,
     dependencies: TriggerFireDependencies,
     request: TriggerFireRequest,
     clock: TriggerClock
@@ -210,7 +210,7 @@ async function fireTriggerTransaction(
  * already accepted is not new traffic.
  */
 export async function findTriggerFireByDedupeKey(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     input: { dedupeKey: string | null; serverId: string; triggerId: string }
 ): Promise<string | null> {
     if (input.dedupeKey === null) {
@@ -233,7 +233,7 @@ export async function findTriggerFireByDedupeKey(
 
 /** The owning Agent is still active and can still write the anchored Chat. */
 async function anchorIsLive(
-    db: GrottoDatabase,
+    db: HausDatabase,
     trigger: typeof triggersTable.$inferSelect
 ): Promise<boolean> {
     try {
@@ -264,7 +264,7 @@ async function anchorIsLive(
 
 /** Lazy auto-disable: a trigger nobody can deliver stops accepting deliveries. */
 async function disableTrigger(
-    db: GrottoDatabase,
+    db: HausDatabase,
     trigger: typeof triggersTable.$inferSelect,
     now: Date
 ): Promise<void> {

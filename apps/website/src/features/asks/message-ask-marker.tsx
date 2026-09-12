@@ -1,4 +1,4 @@
-import type { AskStatus } from '@grotto/api';
+import type { AskStatus } from '@haus/api';
 import { BubbleChatQuestionIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';

@@ -36,9 +36,9 @@ test('login reuses a usable access token without opening device authorization', 
     try {
         await writeSession(dataRoot, session);
         const result = await runCli(['login'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
-            GROTTO_SERVER_ORIGIN: session.origin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_DISABLE_BROWSER_OPEN: '1',
+            HAUS_SERVER_ORIGIN: session.origin,
         });
 
         expect(result.exitCode, result.stderr).toBe(0);
@@ -84,9 +84,9 @@ test('login rotates an expired access token through the saved refresh session', 
     try {
         await writeSession(dataRoot, previous);
         const result = await runCli(['login'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
-            GROTTO_SERVER_ORIGIN: origin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_DISABLE_BROWSER_OPEN: '1',
+            HAUS_SERVER_ORIGIN: origin,
         });
 
         expect(result.exitCode, result.stderr).toBe(0);
@@ -144,9 +144,9 @@ test('login does not forward an origin-bound refresh token through redirects', a
     try {
         await writeSession(dataRoot, session);
         const result = await runCli(['login'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
-            GROTTO_SERVER_ORIGIN: origin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_DISABLE_BROWSER_OPEN: '1',
+            HAUS_SERVER_ORIGIN: origin,
         });
 
         expect(result.exitCode).not.toBe(0);
@@ -209,18 +209,18 @@ test('login requires explicit replacement before changing the saved origin', asy
     try {
         await writeSession(dataRoot, previous);
         const blocked = await runCli(['login'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
-            GROTTO_SERVER_ORIGIN: replacementOrigin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_DISABLE_BROWSER_OPEN: '1',
+            HAUS_SERVER_ORIGIN: replacementOrigin,
         });
         expect(blocked.exitCode).not.toBe(0);
         expect(blocked.stderr).toContain('already signed in to https://old-account.example.test');
         expect(JSON.parse(await readFile(join(dataRoot, 'login.json'), 'utf8'))).toEqual(previous);
 
         const replaced = await runCli(['login', '--replace'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
-            GROTTO_SERVER_ORIGIN: replacementOrigin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_DISABLE_BROWSER_OPEN: '1',
+            HAUS_SERVER_ORIGIN: replacementOrigin,
         });
         expect(replaced.exitCode, `${replaced.stderr}\nRequests: ${requests.join(', ')}`).toBe(0);
         expect(replaced.stdout).toContain('Haus Computer signed in.');
@@ -261,7 +261,7 @@ test('status reports the login origin and attached Servers without secrets', asy
         );
 
         const result = await runCli(['status'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
         });
 
         expect(result.exitCode, result.stderr).toBe(0);

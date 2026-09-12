@@ -1,11 +1,11 @@
 {
-  "name": "Grotto",
+  "name": "Haus",
   "install": "bash .cursor/install.sh",
   "start": "bash .cursor/start.sh",
   "terminals": [
     {
       "name": "dev-stack",
-      "command": "GROTTO_POSTGRES_BIN=/usr/lib/postgresql/16/bin bun run dev"
+      "command": "HAUS_POSTGRES_BIN=/usr/lib/postgresql/16/bin bun run dev"
     }
   ]
 }

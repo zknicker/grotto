@@ -1,10 +1,10 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import type { BrowserTarget } from './use-browser-settings.ts';
 
 export function useBrowserRestart(target: BrowserTarget) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
-    return grottoTrpc.browser.restart.useMutation({
+    return hausTrpc.browser.restart.useMutation({
         onSuccess: () => utils.browser.get.invalidate(target),
     });
 }

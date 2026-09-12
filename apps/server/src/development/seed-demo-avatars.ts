@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
-import type { AvatarMediaType } from '@grotto/api/avatar';
+import type { AvatarMediaType } from '@haus/api/avatar';
 import { createAvatarId } from '../avatars/avatar-bytes.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { avatarsTable } from '../postgres/schema.ts';
 import blippyAvatarPath from './seed-avatars/blippy.png' with { type: 'file' };
 import ownerAvatarPath from './seed-avatars/owner.jpg' with { type: 'file' };
@@ -14,7 +14,7 @@ export interface SeededAvatarIds {
     tiny: string;
 }
 
-type AvatarWriter = Pick<GrottoDatabase, 'insert'>;
+type AvatarWriter = Pick<HausDatabase, 'insert'>;
 
 const seedAvatarFiles = [
     { key: 'blippy', mediaType: 'image/png', path: blippyAvatarPath },

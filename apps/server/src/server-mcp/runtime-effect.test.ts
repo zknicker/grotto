@@ -3,7 +3,7 @@ import type { MCPClient } from '@ai-sdk/mcp';
 import * as Cause from 'effect/Cause';
 import * as Option from 'effect/Option';
 import * as Runtime from 'effect/Runtime';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { makeServerRuntime } from '../server-runtime.ts';
 import { McpDeniedError, McpUpstreamError } from './errors.ts';
 import { McpRuntime } from './runtime.ts';
@@ -70,7 +70,7 @@ test('isolates failed discovery while preserving healthy tool order', async () =
                     { id: 'slow', name: 'Slow', tools: ['echo'] },
                     { id: 'last', name: 'Last', tools: ['echo'] },
                 ]),
-        } as unknown as GrottoDatabase,
+        } as unknown as HausDatabase,
         effectRuntime,
         {
             clientFactory: async (connectionId) =>
@@ -109,7 +109,7 @@ test('preserves denial, invalid arguments, auth, and unavailable errors', async 
 
     const auth = makeClient('Auth required', { list: async () => Promise.reject({ status: 401 }) });
     let authStarts = 0;
-    const authRuntime = new McpRuntime({} as GrottoDatabase, effectRuntime, {
+    const authRuntime = new McpRuntime({} as HausDatabase, effectRuntime, {
         clientFactory: async () => {
             authStarts += 1;
             if (authStarts === 1) {
@@ -132,7 +132,7 @@ test('preserves denial, invalid arguments, auth, and unavailable errors', async 
     const exact = makeClient('Exact failure', {
         list: async () => Promise.reject(exactFailure),
     });
-    const exactRuntime = new McpRuntime({} as GrottoDatabase, effectRuntime, {
+    const exactRuntime = new McpRuntime({} as HausDatabase, effectRuntime, {
         clientFactory: async () => exact.client,
     });
     await expect(exactRuntime.discover('exact')).rejects.toBe(exactFailure);
@@ -150,7 +150,7 @@ test('preserves an upstream classification defect Cause at the Promise seam', as
     const client = makeClient('Defective upstream', {
         list: async () => Promise.reject(foreignFailure),
     });
-    const runtime = new McpRuntime({} as GrottoDatabase, effectRuntime, {
+    const runtime = new McpRuntime({} as HausDatabase, effectRuntime, {
         clientFactory: async () => client.client,
     });
 

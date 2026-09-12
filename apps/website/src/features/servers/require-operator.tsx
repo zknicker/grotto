@@ -1,4 +1,4 @@
-import type { ServerRole } from '@grotto/api/membership';
+import type { ServerRole } from '@haus/api/membership';
 import { EmptyState } from '@heroui-pro/react';
 import type React from 'react';
 

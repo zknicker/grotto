@@ -2,7 +2,7 @@ import { build, type InlineConfig } from 'vite';
 import { rejectNodeBuiltins } from '../vite-browser-module-guard.ts';
 
 const apiRootEntry = decodeURIComponent(
-    new URL('../../../packages/grotto-api/src/index.ts', import.meta.url).pathname
+    new URL('../../../packages/haus-api/src/index.ts', import.meta.url).pathname
 );
 
 await buildBrowserEntry(apiRootEntry);
@@ -58,7 +58,7 @@ function buildBrowserEntry(entry: string) {
                         return "export { createHash } from 'node:crypto';";
                     }
                     if (id === '\0virtual:node-config-entry') {
-                        return "export * from '@grotto/api/node/config';";
+                        return "export * from '@haus/api/node/config';";
                     }
                 },
             },

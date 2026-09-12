@@ -1,4 +1,4 @@
-import type { Chat } from '@grotto/api';
+import type { Chat } from '@haus/api';
 
 export function orderChannels(channels: readonly Chat[], storedIds: readonly string[]): Chat[] {
     const channelById = new Map(channels.map((channel) => [channel.id, channel]));

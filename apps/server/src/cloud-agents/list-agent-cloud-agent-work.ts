@@ -1,13 +1,13 @@
-import type { CloudAgentWork } from '@grotto/api';
+import type { CloudAgentWork } from '@haus/api';
 import { and, desc, eq } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentWorkTable } from '../postgres/schema.ts';
 import { readRuns, toCloudAgentWork } from './cloud-agent-shape.ts';
 import { CloudAgentWorkNotFoundError } from './errors.ts';
 
 export async function listAgentCloudAgentWork(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     workId?: string
 ): Promise<CloudAgentWork[]> {

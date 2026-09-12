@@ -1,4 +1,4 @@
-import type { ComputerRuntimeId } from '@grotto/api';
+import type { ComputerRuntimeId } from '@haus/api';
 import { Chip } from '@heroui/react';
 import { ItemCardGroup } from '@heroui-pro/react';
 import { useComputers } from '../../hooks/servers/use-computers.ts';

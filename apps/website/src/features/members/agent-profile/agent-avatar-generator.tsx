@@ -1,4 +1,4 @@
-import type { GeneratedAvatar } from '@grotto/api';
+import type { GeneratedAvatar } from '@haus/api';
 import * as React from 'react';
 import { useAgentAvatar } from '../../../hooks/members/use-agent-avatar.ts';
 import { useAgentAvatarGeneration } from '../../../hooks/members/use-agent-avatar-generation.ts';

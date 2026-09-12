@@ -1,10 +1,10 @@
-import type { CloudAgentCapabilityRequest, CloudAgentCapabilityResult } from '@grotto/api';
+import type { CloudAgentCapabilityRequest, CloudAgentCapabilityResult } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { ComputerConnections } from '../computers/connections.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 
 export class CloudAgentCapabilityDeniedError extends Error {
     constructor(message: string) {
@@ -21,9 +21,9 @@ export class CloudAgentCapabilityDeniedError extends Error {
  * on the Computer, and only the resulting readiness comes back.
  */
 export async function requestCloudAgentCapability(
-    db: GrottoDatabase,
+    db: HausDatabase,
     connections: ComputerConnections,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: {
         computerId: string;
         operation: CloudAgentCapabilityRequest['operation'];

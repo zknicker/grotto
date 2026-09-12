@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { registerAgentAgentRoutes } from './agent-routes.ts';
 import { registerAgentAskRoutes } from './ask-routes.ts';
@@ -64,7 +64,7 @@ export function registerAgentApiRoutes(
         avatarImageService: AvatarImageService;
         attachmentRoot: AttachmentRoot;
         computers: import('../computers/connections.ts').ComputerConnections;
-        db: GrottoDatabase;
+        db: HausDatabase;
         mcpRuntime: import('../server-mcp/runtime.ts').McpRuntime;
         postCommitWork: ServerPostCommitWork;
     }

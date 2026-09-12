@@ -5,14 +5,14 @@ import { join } from 'node:path';
 import { installStandaloneExecutable, rollbackStandaloneExecutable } from './update-install.ts';
 
 test('standalone install and rollback replace only code', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-install-test-'));
-    const destination = join(root, '.local', 'bin', 'grotto-computer');
-    const dataPath = join(root, '.grotto', 'computer', 'servers', 'srv_test', 'attachment.json');
-    const artifact = join(root, 'release', 'grotto-computer');
+    const root = await mkdtemp(join(tmpdir(), 'haus-install-test-'));
+    const destination = join(root, '.local', 'bin', 'haus-computer');
+    const dataPath = join(root, '.haus', 'computer', 'servers', 'srv_test', 'attachment.json');
+    const artifact = join(root, 'release', 'haus-computer');
     try {
         await mkdir(join(root, '.local', 'bin'), { recursive: true });
         await mkdir(join(root, 'release'), { recursive: true });
-        await mkdir(join(root, '.grotto', 'computer', 'servers', 'srv_test'), {
+        await mkdir(join(root, '.haus', 'computer', 'servers', 'srv_test'), {
             recursive: true,
         });
         await writeFile(destination, 'version one');
@@ -40,9 +40,9 @@ test('standalone install and rollback replace only code', async () => {
 });
 
 test('a failed atomic swap restores the running executable', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-install-failure-test-'));
-    const destination = join(root, 'bin', 'grotto-computer');
-    const artifact = join(root, 'release', 'grotto-computer');
+    const root = await mkdtemp(join(tmpdir(), 'haus-install-failure-test-'));
+    const destination = join(root, 'bin', 'haus-computer');
+    const artifact = join(root, 'release', 'haus-computer');
     try {
         await mkdir(join(root, 'bin'), { recursive: true });
         await mkdir(join(root, 'release'), { recursive: true });

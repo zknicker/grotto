@@ -154,7 +154,7 @@ export async function verifyPublicObjects(input) {
         input.descriptor,
         input.publicKey
     );
-    const root = await mkdtemp(path.join(tmpdir(), 'grotto-computer-public-'));
+    const root = await mkdtemp(path.join(tmpdir(), 'haus-computer-public-'));
     try {
         const artifactPath = path.join(root, computerArtifactName);
         const response = await retryPublicVerification('public Computer artifact', async () => {
@@ -241,7 +241,7 @@ async function retryPublicVerification(description, verify) {
 }
 
 async function downloadImmutableSha256(uri) {
-    const root = await mkdtemp(path.join(tmpdir(), 'grotto-computer-immutable-'));
+    const root = await mkdtemp(path.join(tmpdir(), 'haus-computer-immutable-'));
     try {
         const file = path.join(root, 'object');
         copyS3Object(uri, file);

@@ -1,10 +1,10 @@
-import { type Ask, askSchema } from '@grotto/api';
+import { type Ask, askSchema } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { asksTable } from '../postgres/schema.ts';
 
 type AskRow = typeof asksTable.$inferSelect;
-type AskReader = Pick<GrottoDatabase, 'select'>;
+type AskReader = Pick<HausDatabase, 'select'>;
 
 export function toAsk(row: AskRow): Ask {
     return askSchema.parse({

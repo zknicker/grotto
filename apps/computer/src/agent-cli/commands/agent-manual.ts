@@ -1,4 +1,4 @@
-import { agentManualGetResponseSchema, agentManualSearchResponseSchema } from '@grotto/api';
+import { agentManualGetResponseSchema, agentManualSearchResponseSchema } from '@haus/api';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';

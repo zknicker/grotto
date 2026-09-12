@@ -1,4 +1,4 @@
-import type { Chat, ChatMessage, ThreadSummary } from '@grotto/api';
+import type { Chat, ChatMessage, ThreadSummary } from '@haus/api';
 import { Button } from '@heroui/react';
 import * as React from 'react';
 import {
@@ -22,7 +22,7 @@ import {
 import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
 import { TranscriptRenderProvider } from '../../chats/chat-transcript-render-context.tsx';
 import { TranscriptEntryView } from '../../chats/chat-transcript-turn.tsx';
-import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
+import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import { ThreadPanelHeader } from '../../chats/thread/thread-panel-header.tsx';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { ChatAgentComposition } from '../chat/agent-composition.tsx';
@@ -68,7 +68,7 @@ export function ThreadContent({
     headerTitle?: string;
     initialThreadChatId?: string;
     onClose: () => void;
-    onOpenArtifact: (target: GrottoResourceTarget) => void;
+    onOpenArtifact: (target: HausResourceTarget) => void;
     onReferenceActivate?: ReferenceActivation;
     onViewInChannel: () => void;
     readOnly: boolean;

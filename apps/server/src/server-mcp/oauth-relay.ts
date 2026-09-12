@@ -1,8 +1,8 @@
 import { randomBytes } from 'node:crypto';
-import type { McpOAuthStartResult } from '@grotto/api';
+import type { McpOAuthStartResult } from '@haus/api';
 import { eq } from 'drizzle-orm';
-import { emitServerUpdated } from '../grotto-api/server-events.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import { emitServerUpdated } from '../haus-api/server-events.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { mcpConnectionsTable } from '../postgres/schema.ts';
 import { completeMcpAuthorization, startMcpAuthorization } from './oauth.ts';
 import type { McpRuntime } from './runtime.ts';
@@ -23,7 +23,7 @@ export class McpOAuthRelay {
     private readonly attempts = new Map<string, OAuthAttempt>();
 
     constructor(
-        private readonly db: GrottoDatabase,
+        private readonly db: HausDatabase,
         private readonly runtime: McpRuntime,
         private readonly now: () => number = Date.now,
         private readonly ttlMs = 5 * 60_000

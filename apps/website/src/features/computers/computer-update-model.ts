@@ -1,4 +1,4 @@
-import type { ComputerUpdatePhase } from '@grotto/api';
+import type { ComputerUpdatePhase } from '@haus/api';
 
 const phaseLabels = {
     available: 'Update available',

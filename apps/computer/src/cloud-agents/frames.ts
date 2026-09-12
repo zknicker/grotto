@@ -1,5 +1,5 @@
-import type { CloudAgentCancelCommand, CloudAgentReconcileCommand } from '@grotto/api';
-import { cloudAgentCancelCommandSchema, cloudAgentReconcileCommandSchema } from '@grotto/api';
+import type { CloudAgentCancelCommand, CloudAgentReconcileCommand } from '@haus/api';
+import { cloudAgentCancelCommandSchema, cloudAgentReconcileCommandSchema } from '@haus/api';
 
 /** Validates the Server→Computer cancel command. Fails closed to null. */
 export function parseCloudAgentCancelCommand(frame: unknown): CloudAgentCancelCommand | null {

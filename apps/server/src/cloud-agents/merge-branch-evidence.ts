@@ -1,4 +1,4 @@
-import type { CloudAgentBranch } from '@grotto/api';
+import type { CloudAgentBranch } from '@haus/api';
 
 /**
  * Merges a Run's newly reported branch evidence over what it already carried.

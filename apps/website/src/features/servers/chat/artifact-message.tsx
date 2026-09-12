@@ -1,8 +1,8 @@
-import { type WidgetArtifactProps, widgetArtifactPropsSchema } from '@grotto/api/widgets/artifact';
+import { type WidgetArtifactProps, widgetArtifactPropsSchema } from '@haus/api/widgets/artifact';
 import { WidgetArtifactCard } from '../../chats/artifact-card.tsx';
 import { ArtifactPanelOpenProvider } from '../../chats/artifact-panel-context.tsx';
 import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
-import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
+import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import type { Mention, ReferenceActivation } from '../../mentions/mention-types.ts';
 
 type ArtifactMessageSegment =
@@ -19,7 +19,7 @@ export function ArtifactMessage({
     agentId: string;
     content: string;
     mentions?: readonly Mention[];
-    onOpenArtifact: (target: GrottoResourceTarget) => void;
+    onOpenArtifact: (target: HausResourceTarget) => void;
     onReferenceActivate?: ReferenceActivation;
 }) {
     const segments = splitArtifactFences(content);

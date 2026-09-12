@@ -3,7 +3,7 @@ import * as z from 'zod';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import {
@@ -20,7 +20,7 @@ export function registerAgentTaskRoutes(
     app: FastifyInstance,
     options: {
         agentDelivery: AgentDelivery;
-        db: GrottoDatabase;
+        db: HausDatabase;
         postCommitWork: ServerPostCommitWork;
     }
 ) {

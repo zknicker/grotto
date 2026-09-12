@@ -4,7 +4,7 @@
  * The live journal and the log replay share these appliers, so a replayed log
  * reproduces the document the turn held rather than approximating it.
  */
-import { EXECUTION_JOURNAL_REASONING_MAX_BLOCKS } from '@grotto/api';
+import { EXECUTION_JOURNAL_REASONING_MAX_BLOCKS } from '@haus/api';
 import type { JournalMutationRecord } from './execution-journal-records';
 import type {
     ComputerExecutionJournalDocument,

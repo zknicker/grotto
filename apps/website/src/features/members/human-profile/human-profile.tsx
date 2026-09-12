@@ -1,5 +1,5 @@
-import type { ServerMember } from '@grotto/api/membership';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerMember } from '@haus/api/membership';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { CreatedAgents } from './created-agents.tsx';
 import { HumanIdentity } from './human-identity.tsx';

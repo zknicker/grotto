@@ -8,7 +8,7 @@ import type { ServerWebSocket } from 'bun';
 const entrypoint = fileURLToPath(new URL('./index.ts', import.meta.url));
 
 test('the attachment daemon itself reconnects with backoff across Server restarts', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
     const connected = Promise.withResolvers<void>();
     const reconnected = Promise.withResolvers<void>();
     const sockets = new Set<ServerWebSocket<undefined>>();
@@ -64,7 +64,7 @@ test('the attachment daemon itself reconnects with backoff across Server restart
         })
     );
     const child = Bun.spawn(['bun', entrypoint, '__attachment-daemon', serverId], {
-        env: { ...process.env, GROTTO_COMPUTER_DATA_ROOT: dataRoot },
+        env: { ...process.env, HAUS_COMPUTER_DATA_ROOT: dataRoot },
         stderr: 'pipe',
         stdout: 'pipe',
     });

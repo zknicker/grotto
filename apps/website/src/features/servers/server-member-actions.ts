@@ -5,7 +5,7 @@ import {
     type ServerMemberAction,
     type ServerMemberDirectory,
     type ServerRole,
-} from '@grotto/api/membership';
+} from '@haus/api/membership';
 import { humanDisplayName } from './human-identity.ts';
 
 export type ServerMemberActionKind =

@@ -1,8 +1,8 @@
-import type { AgentInboxItem, GrottoAgentMessage } from '@grotto/api';
+import type { AgentInboxItem, HausAgentMessage } from '@haus/api';
 
 export function inboxSender(input: {
     attention: boolean;
-    message?: GrottoAgentMessage;
+    message?: HausAgentMessage;
     source: string;
     target: string;
 }): Pick<AgentInboxItem, 'senderHandle' | 'senderType'> {

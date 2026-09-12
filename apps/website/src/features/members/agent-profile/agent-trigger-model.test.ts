@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Trigger } from '@grotto/api';
+import type { Trigger } from '@haus/api';
 import {
     canCreateTrigger,
     canSaveTriggerEdit,

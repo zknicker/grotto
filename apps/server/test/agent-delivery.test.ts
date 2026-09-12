@@ -1,14 +1,14 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-import type { AgentCommand, AgentTurnSummary } from '@grotto/api';
+import type { AgentCommand, AgentTurnSummary } from '@haus/api';
 import { and, eq, ne } from 'drizzle-orm';
 import { attestAgentEvents, pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { advanceSeenCursor, markCursorSubsumedSeen } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { subscribeToAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { countQueuedInboxItems, readDeliveryState } from '../src/agent-delivery/store.ts';
-import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
-import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
+import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
+import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentActivityTable,
@@ -32,12 +32,12 @@ import { configureAgent } from '../src/server-agents/configure-agent.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 let cluster: PostgresCluster;
-let connection: GrottoConnection;
+let connection: HausConnection;
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
-    await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
-    connection = await connectGrottoDatabase(cluster.databaseUrl);
+    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    connection = await connectHausDatabase(cluster.databaseUrl);
 });
 
 afterAll(async () => {

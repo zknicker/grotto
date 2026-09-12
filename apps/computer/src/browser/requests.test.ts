@@ -8,7 +8,7 @@ import { stopBrowserService } from './service.ts';
 
 test('Browser settings stay isolated to one Computer attachment', async () => {
     const runtime = makeDaemonRuntime();
-    const root = await mkdtemp(join(tmpdir(), 'grotto-browser-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-browser-'));
     const first = join(root, 'first');
     const second = join(root, 'second');
 

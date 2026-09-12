@@ -1,6 +1,6 @@
-import { type CloudAgentWorkAttention, cloudAgentWorkAttentionSchema } from '@grotto/api';
+import { type CloudAgentWorkAttention, cloudAgentWorkAttentionSchema } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 
 /**
@@ -9,7 +9,7 @@ import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts'
  * Messages, keyed by the Run id the inbox row already carries.
  */
 export async function readCloudAgentWorkAttentions(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     runIds: string[]
 ): Promise<Map<string, CloudAgentWorkAttention>> {

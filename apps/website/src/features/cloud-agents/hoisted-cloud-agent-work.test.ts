@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import { cloudAgentWorkSchema } from '@grotto/api';
-import { work } from '../../../../../packages/grotto-api/src/cloud-agent-fixture.ts';
+import { cloudAgentWorkSchema } from '@haus/api';
+import { work } from '../../../../../packages/haus-api/src/cloud-agent-fixture.ts';
 import { indexCloudAgentWorkByThreadAnchor } from './hoisted-cloud-agent-work.ts';
 
 test('every delegation stays under its anchor, in creation order, including completed work', () => {

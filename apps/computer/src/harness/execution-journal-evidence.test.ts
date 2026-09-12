@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import {
     EXECUTION_JOURNAL_REASONING_MAX_BLOCKS,
     EXECUTION_JOURNAL_REASONING_MAX_CHARS,
-} from '@grotto/api';
+} from '@haus/api';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import {
@@ -26,7 +26,7 @@ afterEach(async () => {
 });
 
 async function harness(runId: string) {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-journal-evidence-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-journal-evidence-'));
     roots.push(root);
     const journal = await createComputerExecutionJournal({ agentRoot: root, runId });
     const events: Array<{ category: string; phase: string }> = [];
@@ -161,7 +161,7 @@ test('persists partial reasoning when the turn is interrupted mid-block', async 
 });
 
 test('reads journals written before reasoning capture existed', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-journal-legacy-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-journal-legacy-'));
     roots.push(root);
     const path = executionJournalPath(root, 'run_legacy');
     await mkdir(dirname(path), { mode: 0o700, recursive: true });

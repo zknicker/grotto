@@ -1,5 +1,5 @@
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
-import { ClaudeUsageAuthError, loadClaudeCredentials } from '@grotto/claude-usage';
+import { ClaudeUsageAuthError, loadClaudeCredentials } from '@haus/claude-usage';
 
 type ClaudeSettings = Pick<
     NonNullable<Parameters<typeof createClaudeCode>[0]>,

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { tracePromise } from '@grotto/effect';
+import { tracePromise } from '@haus/effect';
 import { Effect } from 'effect';
 import { closeDaemonRuntimeResources, makeDaemonRuntime } from './daemon-runtime.ts';
 
@@ -31,8 +31,8 @@ test('released daemon runtime exports through its authenticated Server relay', a
     try {
         await tracePromise(
             runtime,
-            'grotto.agent.turn',
-            { 'grotto.operation': 'agent.turn' },
+            'haus.agent.turn',
+            { 'haus.operation': 'agent.turn' },
             async () => undefined
         );
     } finally {

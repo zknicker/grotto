@@ -37,7 +37,7 @@ export function createTaskSubcommands(resolveDeps: () => TaskDeps): SubCommand[]
         },
         {
             examples: [
-                'haus task create --target "#general" <<\'GROTTOMSG\'\nInvestigate the failing nightly export.\nGROTTOMSG',
+                'haus task create --target "#general" <<\'HAUSMSG\'\nInvestigate the failing nightly export.\nHAUSMSG',
                 'haus task create --target "#general" --title "Phase 1: audit" --title "Phase 2: fix"',
             ],
             flags: [

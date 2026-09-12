@@ -1,16 +1,16 @@
 import {
     parseAgentReferenceTarget,
     parseChatReferenceTarget,
-    parseGrottoRichReferences,
+    parseHausRichReferences,
     parseUserReferenceTarget,
-} from '@grotto/api/rich-references';
+} from '@haus/api/rich-references';
 import { normalizeMentions } from './mention-text.ts';
 import type { Mention } from './mention-types.ts';
 
 export function readMentionsFromMarkdown(content: string) {
     return normalizeMentions(
         content,
-        parseGrottoRichReferences(content).map((reference) => ({ ...reference }))
+        parseHausRichReferences(content).map((reference) => ({ ...reference }))
     );
 }
 

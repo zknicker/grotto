@@ -1,4 +1,4 @@
-import type { Agent, Chat } from '@grotto/api';
+import type { Agent, Chat } from '@haus/api';
 import { Sidebar } from '@heroui-pro/react';
 import type * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';

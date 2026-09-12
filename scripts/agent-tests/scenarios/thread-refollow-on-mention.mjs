@@ -23,7 +23,7 @@ export default defineScenario({
         const initial = await kit.sendInThread(
             channel.id,
             anchor.message.id,
-            `@${worker.handle} Reply with exactly ${firstToken}. Then run grotto thread unfollow --target "${target}" before finishing. Do not send any other message.`
+            `@${worker.handle} Reply with exactly ${firstToken}. Then run haus thread unfollow --target "${target}" before finishing. Do not send any other message.`
         );
         const threadChatId = initial.threadChatId;
         expect(threadChatId, 'Thread chat id').toBeTruthy();

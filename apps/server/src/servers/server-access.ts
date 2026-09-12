@@ -1,12 +1,12 @@
 import { and, asc, eq, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     chatsTable,
     serverMembershipsTable,
     serverOnboardingTable,
     serversTable,
 } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import type { ServerDetail, ServerRole, ServerSummary } from './contracts.ts';
 
 export class ServerNotFoundError extends Error {
@@ -29,8 +29,8 @@ export class ServerAccessDeniedError extends Error {
  * A human with no Haus User yet is simply not a member.
  */
 export async function requireServerMembership(
-    db: Pick<GrottoDatabase, 'select'>,
-    member: GrottoUser | null,
+    db: Pick<HausDatabase, 'select'>,
+    member: HausUser | null,
     serverId: string
 ): Promise<ServerSummary> {
     const [server] = await db
@@ -65,8 +65,8 @@ export async function requireServerMembership(
 
 /** Opens one Haus server at its human-facing address, with its Channels. */
 export async function openServerBySlug(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     slug: string
 ): Promise<ServerDetail> {
     const [found] = await db

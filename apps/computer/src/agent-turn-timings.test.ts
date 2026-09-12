@@ -25,14 +25,14 @@ test('distinguishes first events, repeated sends, and trailing work on a monoton
     timings.recordSend();
     now = 250;
     expect(timings.snapshot()).toEqual({
-        'grotto.reasoning.effort': 'medium',
-        'grotto.turn.harness_ready_ms': 10,
-        'grotto.turn.session_create_ms': 20,
-        'grotto.turn.first_stream_ms': 40,
-        'grotto.turn.first_tool_ms': 50,
-        'grotto.turn.first_send_ms': 60,
-        'grotto.turn.last_send_ms': 100,
-        'grotto.turn.after_last_send_ms': 50,
+        'haus.reasoning.effort': 'medium',
+        'haus.turn.harness_ready_ms': 10,
+        'haus.turn.session_create_ms': 20,
+        'haus.turn.first_stream_ms': 40,
+        'haus.turn.first_tool_ms': 50,
+        'haus.turn.first_send_ms': 60,
+        'haus.turn.last_send_ms': 100,
+        'haus.turn.after_last_send_ms': 50,
     });
 });
 
@@ -46,5 +46,5 @@ test('retains failed phase duration without inventing sends or replacing the err
             throw failure;
         })
     ).rejects.toBe(failure);
-    expect(timings.snapshot()).toEqual({ 'grotto.turn.session_create_ms': 5 });
+    expect(timings.snapshot()).toEqual({ 'haus.turn.session_create_ms': 5 });
 });

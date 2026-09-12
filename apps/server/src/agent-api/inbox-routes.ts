@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import { attestAgentEvents, inspectAgentInbox, pullAgentEvents } from './inbox.ts';
 
@@ -17,7 +17,7 @@ const visibleEventsSchema = z.object({
         .max(100),
 });
 
-export function registerAgentInboxRoutes(app: FastifyInstance, db: GrottoDatabase) {
+export function registerAgentInboxRoutes(app: FastifyInstance, db: HausDatabase) {
     app.get('/api/agent/events', async (request, reply) => {
         const runner = await authorizeAgentRunner(db, request);
         if (!runner) {

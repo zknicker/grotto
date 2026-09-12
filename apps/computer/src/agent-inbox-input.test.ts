@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { agentStartCommandSchema, agentTurnSummarySchema } from '@grotto/api';
+import { agentStartCommandSchema, agentTurnSummarySchema } from '@haus/api';
 import { dispatchAgentStart } from './agent-start-dispatch.ts';
 import { type AgentStartCommand, type AgentTurnFrame, parseStartCommand } from './launch.ts';
 
@@ -55,7 +55,7 @@ function attentionContinuation() {
         errorCode: null,
         provider: 'cursor',
         providerUrl: null,
-        repository: 'grotto/grotto',
+        repository: 'haus/haus',
         runId: 'car_1234567890abcdef',
         status: 'completed',
         summary: 'Opened a pull request.',
@@ -72,7 +72,7 @@ function attentionContinuation() {
                 content: '',
                 createdAt: '2026-09-08T03:47:39.214Z',
                 id: cloudAgentWork.runId,
-                senderHandle: 'grotto',
+                senderHandle: 'haus',
                 senderType: 'system',
                 sequence: 0,
                 target: '@operator',

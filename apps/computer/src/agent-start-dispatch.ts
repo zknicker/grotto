@@ -1,4 +1,4 @@
-import { agentStartCommandSchema } from '@grotto/api';
+import { agentStartCommandSchema } from '@haus/api';
 import type { AgentWorkCoordinator } from './agent-work-coordinator.ts';
 import { type AgentStartCommand, type AgentTurnFrame, parseStartCommand } from './launch.ts';
 

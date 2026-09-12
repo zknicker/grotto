@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { CloudAgentBranch } from '@grotto/api';
+import type { CloudAgentBranch } from '@haus/api';
 import { mergeBranchEvidence } from './merge-branch-evidence.ts';
 
 const snapshot = {
@@ -13,8 +13,8 @@ const snapshot = {
 
 const branch: CloudAgentBranch = {
     branch: 'cloud/fix-flake',
-    pullRequestUrl: 'https://github.com/grotto/grotto/pull/56',
-    repository: 'grotto/grotto',
+    pullRequestUrl: 'https://github.com/haus/haus/pull/56',
+    repository: 'haus/haus',
 };
 
 test('a report with no snapshot never erases the one the Run already recorded', () => {

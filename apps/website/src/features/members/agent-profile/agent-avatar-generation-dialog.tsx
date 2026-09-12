@@ -1,7 +1,7 @@
 import {
     avatarGenerationConceptMaxLength,
     type GeneratedAvatar,
-} from '@grotto/api/avatar-generation';
+} from '@haus/api/avatar-generation';
 import {
     Alert,
     Button,

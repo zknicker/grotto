@@ -30,7 +30,7 @@ import {
 } from './lib/env-schema.ts';
 
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
-const defaultTarget = '/Users/zknicker/srv/grotto/config/server.env';
+const defaultTarget = '/Users/zknicker/srv/haus/config/server.env';
 
 export function collectDeliveryIssues(
     items: SchemaItem[],

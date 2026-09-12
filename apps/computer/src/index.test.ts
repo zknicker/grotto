@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computerProtocolVersion } from '@grotto/api';
+import { computerProtocolVersion } from '@haus/api';
 import type { ServerWebSocket } from 'bun';
 import { computerVersion } from './build-identity.ts';
 import { launchdPlist, recoverInterruptedUpdate } from './index.ts';
@@ -12,13 +12,13 @@ import { progress, readUpdateProgress, writeUpdateProgress } from './update.ts';
 const entrypoint = fileURLToPath(new URL('./index.ts', import.meta.url));
 
 test('setup signs in, stores only a Server credential, and reruns by validation', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
     const browserBin = join(dataRoot, 'browser-bin');
     const browserMarker = join(dataRoot, 'browser-opened.txt');
     await mkdir(browserBin, { recursive: true });
     await writeFile(
         join(browserBin, 'open'),
-        '#!/bin/sh\nprintf \'%s\' "$1" > "$GROTTO_BROWSER_OPEN_MARKER"\n',
+        '#!/bin/sh\nprintf \'%s\' "$1" > "$HAUS_BROWSER_OPEN_MARKER"\n',
         { mode: 0o755 }
     );
     const effectiveAgentRoot = join(dataRoot, 'servers', 'srv_test', 'agents', 'agt_effective');
@@ -95,11 +95,11 @@ test('setup signs in, stores only a Server credential, and reruns by validation'
     try {
         const environment = {
             ...process.env,
-            GROTTO_BROWSER_OPEN_MARKER: browserMarker,
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_ONESHOT: '1',
-            GROTTO_COMPUTER_USAGE_DISABLED: '1',
-            GROTTO_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
+            HAUS_BROWSER_OPEN_MARKER: browserMarker,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_ONESHOT: '1',
+            HAUS_COMPUTER_USAGE_DISABLED: '1',
+            HAUS_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
             PATH: `${browserBin}:${process.env.PATH ?? ''}`,
         };
         await runCli(environment);
@@ -147,14 +147,14 @@ test('setup signs in, stores only a Server credential, and reruns by validation'
             inventory: { name: expect.any(String) },
             type: 'report',
         });
-        const grottoAgentReportFrame = socketFrames.find(
+        const hausAgentReportFrame = socketFrames.find(
             (frame) =>
                 typeof frame === 'object' &&
                 frame !== null &&
                 'type' in frame &&
-                frame.type === 'grotto-agent-report'
+                frame.type === 'haus-agent-report'
         );
-        expect(grottoAgentReportFrame).toMatchObject({
+        expect(hausAgentReportFrame).toMatchObject({
             agents: [
                 {
                     agentId: 'agt_effective',
@@ -163,7 +163,7 @@ test('setup signs in, stores only a Server credential, and reruns by validation'
                     version: null,
                 },
             ],
-            type: 'grotto-agent-report',
+            type: 'haus-agent-report',
         });
 
         await writeFile(
@@ -187,7 +187,7 @@ test('setup signs in, stores only a Server credential, and reruns by validation'
 }, 15_000);
 
 test('login exchanges a device grant and atomically stores an origin-bound session', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-login-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-login-test-'));
     const requests: string[] = [];
     let polls = 0;
     const peer = Bun.serve({
@@ -235,9 +235,9 @@ test('login exchanges a device grant and atomically stores an origin-bound sessi
         const child = Bun.spawn(['bun', entrypoint, 'login'], {
             env: {
                 ...process.env,
-                GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-                GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
-                GROTTO_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
+                HAUS_COMPUTER_DATA_ROOT: dataRoot,
+                HAUS_COMPUTER_DISABLE_BROWSER_OPEN: '1',
+                HAUS_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
             },
             stderr: 'pipe',
             stdout: 'pipe',
@@ -281,7 +281,7 @@ test('login exchanges a device grant and atomically stores an origin-bound sessi
 }, 15_000);
 
 test('setup preserves an unlinked attachment when replacement attachment fails', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
     const serverId = 'srv_oldoldoldoldold1';
     const attachmentRoot = join(dataRoot, 'servers', serverId);
     await mkdir(attachmentRoot, { recursive: true });
@@ -345,9 +345,9 @@ test('setup preserves an unlinked attachment when replacement attachment fails',
         const child = Bun.spawn(['bun', entrypoint, 'setup', '/hq'], {
             env: {
                 ...process.env,
-                GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
-                GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-                GROTTO_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
+                HAUS_COMPUTER_DISABLE_BROWSER_OPEN: '1',
+                HAUS_COMPUTER_DATA_ROOT: dataRoot,
+                HAUS_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
             },
             stderr: 'pipe',
             stdout: 'pipe',
@@ -367,7 +367,7 @@ test('setup preserves an unlinked attachment when replacement attachment fails',
 });
 
 test('setup archives an unlinked attachment before connecting a recreated Server', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
     const oldServerId = 'srv_oldoldoldoldold1';
     const newServerId = 'srv_newnewnewnewnew1';
     const oldRoot = join(dataRoot, 'servers', oldServerId);
@@ -456,11 +456,11 @@ test('setup archives an unlinked attachment before connecting a recreated Server
         );
         await runCli({
             ...process.env,
-            GROTTO_COMPUTER_DISABLE_BROWSER_OPEN: '1',
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_ONESHOT: '1',
-            GROTTO_COMPUTER_USAGE_DISABLED: '1',
-            GROTTO_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
+            HAUS_COMPUTER_DISABLE_BROWSER_OPEN: '1',
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_ONESHOT: '1',
+            HAUS_COMPUTER_USAGE_DISABLED: '1',
+            HAUS_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
         });
 
         const oldFiles = await readdir(oldRoot);
@@ -486,7 +486,7 @@ test('setup archives an unlinked attachment before connecting a recreated Server
 }, 15_000);
 
 test('resident start parks a terminally unlinked attachment instead of retrying', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
     const serverId = 'srv_oldoldoldoldold1';
     const attachmentRoot = join(dataRoot, 'servers', serverId);
     await mkdir(attachmentRoot, { recursive: true });
@@ -522,8 +522,8 @@ test('resident start parks a terminally unlinked attachment instead of retrying'
     const child = Bun.spawn(['bun', entrypoint, 'start'], {
         env: {
             ...process.env,
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_RESIDENT: '1',
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_RESIDENT: '1',
         },
         stderr: 'pipe',
         stdout: 'pipe',
@@ -547,7 +547,7 @@ test('resident start parks a terminally unlinked attachment instead of retrying'
 }, 5000);
 
 test('the Server attachment daemon stays connected until the Server closes it', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
     const connected = Promise.withResolvers<void>();
     const sockets = new Set<ServerWebSocket<undefined>>();
     const peer = Bun.serve({
@@ -587,7 +587,7 @@ test('the Server attachment daemon stays connected until the Server closes it', 
         })
     );
     const child = Bun.spawn(['bun', entrypoint, '__attachment-daemon', serverId], {
-        env: { ...process.env, GROTTO_COMPUTER_DATA_ROOT: dataRoot },
+        env: { ...process.env, HAUS_COMPUTER_DATA_ROOT: dataRoot },
         stderr: 'pipe',
         stdout: 'pipe',
     });
@@ -613,7 +613,7 @@ test('the Server attachment daemon stays connected until the Server closes it', 
 });
 
 test('a watch-mode attachment daemon reconnects instead of idling in the watcher', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
     const reconnected = Promise.withResolvers<void>();
     const sockets = new Set<ServerWebSocket<undefined>>();
     let connections = 0;
@@ -665,10 +665,10 @@ test('a watch-mode attachment daemon reconnects instead of idling in the watcher
     const child = Bun.spawn(['bun', entrypoint, 'start'], {
         env: {
             ...process.env,
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_RESIDENT: '1',
-            GROTTO_COMPUTER_USAGE_DISABLED: '1',
-            GROTTO_COMPUTER_WATCH_ATTACHMENT_DAEMON: '1',
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_RESIDENT: '1',
+            HAUS_COMPUTER_USAGE_DISABLED: '1',
+            HAUS_COMPUTER_WATCH_ATTACHMENT_DAEMON: '1',
         },
         stderr: 'pipe',
         stdout: 'pipe',
@@ -695,7 +695,7 @@ test('a watch-mode attachment daemon reconnects instead of idling in the watcher
 }, 12_000);
 
 test('resident start reconnects an attachment after the Server closes it', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
     const reconnected = Promise.withResolvers<void>();
     const sockets = new Set<ServerWebSocket<undefined>>();
     let connections = 0;
@@ -744,9 +744,9 @@ test('resident start reconnects an attachment after the Server closes it', async
     const child = Bun.spawn(['bun', entrypoint, 'start'], {
         env: {
             ...process.env,
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_RESIDENT: '1',
-            GROTTO_COMPUTER_USAGE_DISABLED: '1',
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_RESIDENT: '1',
+            HAUS_COMPUTER_USAGE_DISABLED: '1',
         },
         stderr: 'pipe',
         stdout: 'pipe',
@@ -777,7 +777,7 @@ test('resident start reconnects an attachment after the Server closes it', async
 });
 
 test('resident start reconnects an attachment when Server heartbeats silently stop', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
     const reconnected = Promise.withResolvers<void>();
     const sockets = new Set<ServerWebSocket<undefined>>();
     let connections = 0;
@@ -843,9 +843,9 @@ test('resident start reconnects an attachment when Server heartbeats silently st
     const child = Bun.spawn(['bun', entrypoint, 'start'], {
         env: {
             ...process.env,
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_RESIDENT: '1',
-            GROTTO_COMPUTER_USAGE_DISABLED: '1',
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_RESIDENT: '1',
+            HAUS_COMPUTER_USAGE_DISABLED: '1',
         },
         stderr: 'pipe',
         stdout: 'pipe',
@@ -878,23 +878,23 @@ test('resident start reconnects an attachment when Server heartbeats silently st
 
 test('the resident service keeps its state root outside executable code', () => {
     const plist = launchdPlist({
-        args: ['/opt/grotto/package/index.ts'],
-        executable: '/opt/grotto/bin/bun',
+        args: ['/opt/haus/package/index.ts'],
+        executable: '/opt/haus/bin/bun',
     });
-    expect(plist).toContain('<string>com.grotto.computer</string>');
-    expect(plist).toContain('<key>GROTTO_COMPUTER_DATA_ROOT</key>');
-    expect(plist).toContain('.grotto/computer');
+    expect(plist).toContain('<string>com.haus.computer</string>');
+    expect(plist).toContain('<key>HAUS_COMPUTER_DATA_ROOT</key>');
+    expect(plist).toContain('.haus/computer');
     expect(plist).toContain('<key>StandardOutPath</key>');
-    expect(plist).toContain('.grotto/computer/logs/computer.log');
+    expect(plist).toContain('.haus/computer/logs/computer.log');
     expect(plist).toContain('<key>PATH</key>');
     expect(plist).toContain('/opt/homebrew/bin');
     expect(plist).toContain('/usr/local/bin');
     expect(plist).toContain('/.local/bin');
-    expect(plist).not.toContain('/opt/grotto/package/.grotto');
+    expect(plist).not.toContain('/opt/haus/package/.haus');
 });
 
 test('startup reopens admission after an interrupted update', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-test-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
     try {
         await writeUpdateProgress(
             dataRoot,

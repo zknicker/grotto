@@ -1,5 +1,5 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useTaskLabelUpdate() {
-    return grottoTrpc.taskLabel.update.useMutation();
+    return hausTrpc.taskLabel.update.useMutation();
 }

@@ -1,11 +1,11 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { resolveRunnerCredential } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { AgentTargetError } from './resolve-target.ts';
 import { AgentTaskError } from './tasks.ts';
 
-export async function authorizeAgentRunner(db: GrottoDatabase, request: FastifyRequest) {
+export async function authorizeAgentRunner(db: HausDatabase, request: FastifyRequest) {
     const header = request.headers.authorization;
     const value = Array.isArray(header) ? header[0] : header;
     const token = typeof value === 'string' && value.startsWith('Bearer ') ? value.slice(7) : null;

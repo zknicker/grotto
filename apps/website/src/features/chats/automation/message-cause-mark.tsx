@@ -1,4 +1,4 @@
-import type { MessageCause } from '@grotto/api';
+import type { MessageCause } from '@haus/api';
 import { CursorHoverCard } from '../../../components/ui/cursor-hover-card.tsx';
 import { cn } from '../../../lib/utils.ts';
 import { AutomationGlyph, AutomationGlyphBox } from './automation-glyph.tsx';

@@ -1,4 +1,4 @@
-import type { Agent, AgentReasoningEffort } from '@grotto/api';
+import type { Agent, AgentReasoningEffort } from '@haus/api';
 import {
     Alert,
     Button,

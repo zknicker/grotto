@@ -26,7 +26,7 @@ export interface ClerkTestIssuer {
     url: string;
 }
 
-const keyId = 'grotto-test-key';
+const keyId = 'haus-test-key';
 const tokenLifetimeSeconds = 300;
 const expiredTokenAgeSeconds = 600;
 

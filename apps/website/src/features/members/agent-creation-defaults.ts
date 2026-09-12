@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import type { AgentCreationSubmitValues, ReportedComputer } from './agent-creation-contract.ts';
 
 /**

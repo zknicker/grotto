@@ -1,5 +1,5 @@
 import { and, asc, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     reminderAgentAttentionTable,
     reminderFiresTable,
@@ -29,7 +29,7 @@ export interface ReminderAgentAttention {
 }
 
 export async function listReminderFires(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         actor: { agentId: string; kind: 'agent' };
         reminderId: string;
@@ -59,7 +59,7 @@ export async function listReminderFires(
 }
 
 export async function listReminderAgentAttention(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; serverId: string }
 ): Promise<ReminderAgentAttention[]> {
     await requireActiveAgent(db, input.serverId, input.agentId);
@@ -86,7 +86,7 @@ export async function listReminderAgentAttention(
 }
 
 async function requireOwnedReminder(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     agentId: string,
     reminderId: string

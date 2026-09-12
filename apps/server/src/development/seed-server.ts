@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 import { mkdir, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { computerProtocolVersion, grottoAgentVersion } from '@grotto/api';
+import { computerProtocolVersion, hausAgentVersion } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
@@ -24,7 +24,7 @@ import {
 } from '../postgres/schema.ts';
 import { listAccessibleServers } from '../servers/accessible-servers.ts';
 import type { ServerSummary } from '../servers/contracts.ts';
-import { ensureUserByClerkId } from '../users/grotto-user.ts';
+import { ensureUserByClerkId } from '../users/haus-user.ts';
 import { demoTokenUsage } from './demo-token-usage.ts';
 import { ensureDevelopmentChatAttachment } from './seed-chat-attachment.ts';
 import { ensureDevelopmentCove } from './seed-cove.ts';
@@ -46,7 +46,7 @@ const demoInventory = {
 
 /** Creates the one idempotent Server-owned demo workspace for a signed-in dev user. */
 export async function seedDevelopmentServer(
-    db: GrottoDatabase,
+    db: HausDatabase,
     clerkUserId: string,
     options: {
         attachmentRoot?: AttachmentRoot;
@@ -351,12 +351,12 @@ export async function seedDevelopmentServer(
 }
 
 async function ensureDevelopmentComputerAttachment(
-    db: GrottoDatabase,
+    db: HausDatabase,
     server: ServerSummary,
     options: { computerDataRoot?: string; serverOrigin?: string }
 ) {
     const computerDataRoot =
-        options.computerDataRoot ?? process.env.GROTTO_COMPUTER_DATA_ROOT?.trim();
+        options.computerDataRoot ?? process.env.HAUS_COMPUTER_DATA_ROOT?.trim();
     if (!computerDataRoot) {
         return;
     }
@@ -387,8 +387,8 @@ async function ensureDevelopmentComputerAttachment(
                 serverId: server.id,
                 serverOrigin:
                     options.serverOrigin ??
-                    process.env.GROTTO_SERVER_ORIGIN ??
-                    `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT ?? '18791'}`,
+                    process.env.HAUS_SERVER_ORIGIN ??
+                    `http://127.0.0.1:${process.env.HAUS_SERVER_PORT ?? '18791'}`,
                 slug: server.slug,
             },
             null,
@@ -474,9 +474,9 @@ function demoAgent(agent: {
         desiredRuntimeId: 'codex',
         description: agent.description,
         displayName: agent.displayName,
-        effectiveGrottoAgentAppliedAt: agent.reportedAt,
-        effectiveGrottoAgentStatus: 'current' as const,
-        effectiveGrottoAgentVersion: grottoAgentVersion,
+        effectiveHausAgentAppliedAt: agent.reportedAt,
+        effectiveHausAgentStatus: 'current' as const,
+        effectiveHausAgentVersion: hausAgentVersion,
         effectiveMissing: [],
         effectiveModelId: agent.modelId,
         effectiveReasoningEffort: 'medium' as const,

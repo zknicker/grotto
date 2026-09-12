@@ -1,5 +1,5 @@
-import type { AgentReasoningEffort } from '@grotto/api';
-import type { TelemetryAttributes } from '@grotto/effect';
+import type { AgentReasoningEffort } from '@haus/api';
+import type { TelemetryAttributes } from '@haus/effect';
 
 type TurnMilestone = 'harness_ready' | 'first_stream' | 'first_tool';
 type TurnPhase = 'bootstrap' | 'session_create';
@@ -17,11 +17,11 @@ export class AgentTurnTimings {
     }
 
     setReasoningEffort(effort: AgentReasoningEffort): void {
-        this.attributes['grotto.reasoning.effort'] = effort;
+        this.attributes['haus.reasoning.effort'] = effort;
     }
 
     mark(milestone: TurnMilestone): void {
-        const key = `grotto.turn.${milestone}_ms` as const;
+        const key = `haus.turn.${milestone}_ms` as const;
         this.attributes[key] ??= this.elapsed();
     }
 
@@ -30,7 +30,7 @@ export class AgentTurnTimings {
         try {
             return await operation();
         } finally {
-            const key = `grotto.turn.${phase}_ms` as const;
+            const key = `haus.turn.${phase}_ms` as const;
             const previous = this.attributes[key];
             this.attributes[key] =
                 (typeof previous === 'number' ? previous : 0) + this.now() - startedAt;
@@ -39,8 +39,8 @@ export class AgentTurnTimings {
 
     recordSend(): void {
         this.lastSendAt = this.now();
-        this.attributes['grotto.turn.first_send_ms'] ??= this.lastSendAt - this.startedAt;
-        this.attributes['grotto.turn.last_send_ms'] = this.lastSendAt - this.startedAt;
+        this.attributes['haus.turn.first_send_ms'] ??= this.lastSendAt - this.startedAt;
+        this.attributes['haus.turn.last_send_ms'] = this.lastSendAt - this.startedAt;
     }
 
     snapshot(): TelemetryAttributes {
@@ -48,7 +48,7 @@ export class AgentTurnTimings {
             ...this.attributes,
             ...(this.lastSendAt === undefined
                 ? {}
-                : { 'grotto.turn.after_last_send_ms': this.now() - this.lastSendAt }),
+                : { 'haus.turn.after_last_send_ms': this.now() - this.lastSendAt }),
         };
     }
 

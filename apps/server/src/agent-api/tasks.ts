@@ -1,4 +1,4 @@
-import type { AgentActivityEvent, ServerDurableEvent, TaskClaimConflict } from '@grotto/api';
+import type { AgentActivityEvent, ServerDurableEvent, TaskClaimConflict } from '@haus/api';
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { readAgentSessionGeneration } from '../agent-delivery/cursors.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
@@ -6,7 +6,7 @@ import { planAgentMessageRecipients } from '../agent-delivery/message-recipients
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
@@ -38,7 +38,7 @@ import { hasUnseenTaskThreadContext } from './task-freshness.ts';
 type TaskStatus = 'todo' | 'in_progress' | 'in_review' | 'done' | 'closed';
 
 export async function listAgentTasks(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: { status?: TaskStatus; target?: string }
 ) {
@@ -76,7 +76,7 @@ export async function listAgentTasks(
 }
 
 export async function createAgentTasks(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: {
         assignee?: string;
@@ -256,7 +256,7 @@ export async function createAgentTasks(
 }
 
 export async function claimAgentTasks(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: { messageId?: string; numbers?: number[]; target: string }
 ) {
@@ -289,7 +289,7 @@ export async function claimAgentTasks(
 }
 
 export async function unclaimAgentTask(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: { number: number; target: string }
 ) {
@@ -299,7 +299,7 @@ export async function unclaimAgentTask(
 }
 
 export async function updateAgentTask(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: { number: number; status: TaskStatus; target: string }
 ) {
@@ -309,7 +309,7 @@ export async function updateAgentTask(
 }
 
 async function mutateAgentTask(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     messageId: string,
     expectedVersion: number,
@@ -451,7 +451,7 @@ async function mutateAgentTask(
 }
 
 async function findAgentTasks(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string,
     input: { messageId?: string; numbers?: number[] }
@@ -464,7 +464,7 @@ async function findAgentTasks(
 }
 
 async function queryAgentTasks(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string,
     input: { messageId?: string; numbers?: number[] }
@@ -483,7 +483,7 @@ async function queryAgentTasks(
 }
 
 async function promoteAgentMessageTask(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string,
     messageId: string
@@ -547,7 +547,7 @@ async function promoteAgentMessageTask(
 }
 
 async function taskRow(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     messageRow: MessageRow,
     task: typeof messageTasksTable.$inferSelect
@@ -575,7 +575,7 @@ async function taskRow(
 }
 
 async function insertAgentMessageCreatedEvent(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { chatId: string; messageId: string; sequence: number; serverId: string }
 ): Promise<ServerDurableEvent> {
     const cursor = await allocateEventCursor(db, input.serverId);
@@ -611,7 +611,7 @@ async function insertAgentMessageCreatedEvent(
  * an Agent resolves inside one turn leaves no work surface behind.
  */
 async function requireTopLevelTaskChat(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     parentChatId: string
 ) {
@@ -625,7 +625,7 @@ async function requireTopLevelTaskChat(
 }
 
 async function resolveTaskAssignee(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string,
     value: string
@@ -666,7 +666,7 @@ async function resolveTaskAssignee(
 }
 
 async function replayAgentTasks(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string,
     titles: string[],
@@ -734,10 +734,7 @@ function dedupeRecipients(
     return [...byAgent.values()];
 }
 
-async function agentHandle(
-    db: GrottoDatabase,
-    runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>
-) {
+async function agentHandle(db: HausDatabase, runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>) {
     const [agent] = await db
         .select({ handle: agentsTable.handle })
         .from(agentsTable)
@@ -748,7 +745,7 @@ async function agentHandle(
     return agent.handle;
 }
 
-async function humanHandle(db: GrottoDatabase, serverId: string, userId: string) {
+async function humanHandle(db: HausDatabase, serverId: string, userId: string) {
     const [human] = await db
         .select({ handle: serverMembershipsTable.handle })
         .from(serverMembershipsTable)

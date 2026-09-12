@@ -106,7 +106,7 @@ async function readCurrentVersion() {
 }
 
 async function readProductVersion() {
-    const product = await readJson('packages/grotto-api/grotto-product.json');
+    const product = await readJson('packages/haus-api/haus-product.json');
     return product.version;
 }
 
@@ -156,7 +156,7 @@ function bumpVersion(version, type) {
 function printSummary({ currentVersion, targetVersion }) {
     console.log(`Bumped release version ${currentVersion} -> ${targetVersion}`);
     console.log('Updated files:');
-    console.log('- packages/grotto-api/grotto-product.json');
+    console.log('- packages/haus-api/haus-product.json');
     console.log('- releases.json (append the next release draft)');
     console.log('Next:');
     console.log('- apply every target version/build decision to the new releases.json entry');

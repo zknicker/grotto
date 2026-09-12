@@ -1,4 +1,4 @@
-import type { AgentAskInput, AgentAskReceipt, ServerDurableEvent } from '@grotto/api';
+import type { AgentAskInput, AgentAskReceipt, ServerDurableEvent } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import {
@@ -8,7 +8,7 @@ import {
 } from '../chats/agent-authored-message.ts';
 import { findChatAccess } from '../chats/chat-access.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { asksTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -30,7 +30,7 @@ export interface CreateAskResult {
  * unreachable target creates nothing.
  */
 export async function createAsk(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: AgentAskInput,
     agentDelivery: AgentDelivery
@@ -98,7 +98,7 @@ export async function createAsk(
 }
 
 async function readAskByNonce(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string,
     input: AgentAskInput
@@ -137,7 +137,7 @@ async function readAskByNonce(
  * handle simply finds no membership here and fails closed.
  */
 async function resolveAddressee(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     chatId: string,
     input: AgentAskInput

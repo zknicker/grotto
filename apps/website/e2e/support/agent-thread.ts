@@ -52,7 +52,7 @@ export async function createAgentThreadSender(input: {
 
     return {
         send: async (content: string, nonce: string) => {
-            const response = await fetch(`${grottoOrigin()}/api/agent/messages/send`, {
+            const response = await fetch(`${hausOrigin()}/api/agent/messages/send`, {
                 body: JSON.stringify({ content, nonce, target }),
                 headers: {
                     authorization: `Bearer ${runnerToken}`,
@@ -71,7 +71,7 @@ export async function createAgentThreadSender(input: {
 }
 
 async function mintAgentRunner(agentId: string, chatId: string) {
-    const response = await fetch(`${grottoOrigin()}/computer/runner/mint`, {
+    const response = await fetch(`${hausOrigin()}/computer/runner/mint`, {
         body: JSON.stringify({
             agentId,
             chatId,
@@ -87,6 +87,6 @@ async function mintAgentRunner(agentId: string, chatId: string) {
     return ((await response.json()) as { runnerToken: string }).runnerToken;
 }
 
-function grottoOrigin() {
-    return `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}`;
+function hausOrigin() {
+    return `http://127.0.0.1:${process.env.HAUS_SERVER_PORT}`;
 }

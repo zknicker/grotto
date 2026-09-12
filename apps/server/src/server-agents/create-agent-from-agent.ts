@@ -5,7 +5,7 @@ import type {
     AgentReasoningEffort,
     AvatarMediaType,
     ServerDurableEvent,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { assertFreshAgentView } from '../agent-api/chat-freshness.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
@@ -19,7 +19,7 @@ import { resolveAgentDmOwnerUserId } from '../chats/agent-dm-owner.ts';
 import { canonicalizeAgentMessageContentForPersistence } from '../chats/canonicalize-agent-references.ts';
 import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import { suggestAvailableParticipantHandle } from '../servers/participant-handles.ts';
@@ -68,7 +68,7 @@ export interface CreateAgentFromAgentResult {
  * inventory. Avatar bytes are generated before this call, never inside it.
  */
 export async function createAgentFromAgent(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: AgentCreateAgentInput,
     agentDelivery: AgentDelivery,
@@ -205,7 +205,7 @@ export async function createAgentFromAgent(
  * Agent summary already carries the avatar it actually wears.
  */
 async function readReplay(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string,
     input: AgentCreateAgentInput
@@ -256,7 +256,7 @@ async function readReplay(
 
 /** The new Agent inherits exactly what the creating Agent runs on. */
 async function requireCallerExecution(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     runner: ResolvedRunner
 ): Promise<{
     computerId: string;

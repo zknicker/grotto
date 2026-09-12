@@ -1,6 +1,6 @@
-import type { AskAnsweredBy, ServerDurableEvent } from '@grotto/api';
+import type { AskAnsweredBy, ServerDurableEvent } from '@haus/api';
 import { and, desc, eq, lt, ne, or, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { asksTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { insertAskEvent } from './ask-events.ts';
 
@@ -22,7 +22,7 @@ export interface AskReply {
  * This is the only path that writes an Ask answer.
  */
 export async function settleAskForReply(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: AskReply
 ): Promise<ServerDurableEvent | null> {
     const [candidate] = await db

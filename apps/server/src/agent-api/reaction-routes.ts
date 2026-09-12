@@ -1,11 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import { changeAgentReaction } from './reactions.ts';
 
-export function registerAgentReactionRoutes(app: FastifyInstance, db: GrottoDatabase) {
+export function registerAgentReactionRoutes(app: FastifyInstance, db: HausDatabase) {
     app.post('/api/agent/messages/react', async (request, reply) => {
         const runner = await authorizeAgentRunner(db, request);
         const parsed = z

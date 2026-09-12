@@ -1,8 +1,8 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 export function useChatCloudAgentWork(serverId: string, chatId: string) {
-    return grottoTrpc.cloudAgentWork.listForChat.useQuery(
+    return hausTrpc.cloudAgentWork.listForChat.useQuery(
         { serverId, chatId },
         queryPolicy.syncedSnapshot
     );
@@ -15,7 +15,7 @@ export function useChatCloudAgentWork(serverId: string, chatId: string) {
  * out. `cloud-agent-work.updated` owns the refresh.
  */
 export function useActiveCloudAgentWork(serverId: string | undefined) {
-    return grottoTrpc.cloudAgentWork.listActive.useQuery(
+    return hausTrpc.cloudAgentWork.listActive.useQuery(
         { serverId: serverId ?? '' },
         { ...queryPolicy.syncedSnapshot, enabled: serverId !== undefined }
     );
@@ -28,5 +28,5 @@ export function useActiveCloudAgentWork(serverId: string | undefined) {
  * surface reads as cancelling until `cloud-agent-work.updated` arrives.
  */
 export function useCloudAgentWorkCancel() {
-    return grottoTrpc.cloudAgentWork.cancel.useMutation();
+    return hausTrpc.cloudAgentWork.cancel.useMutation();
 }

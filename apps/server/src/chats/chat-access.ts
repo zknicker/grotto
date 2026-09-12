@@ -1,12 +1,12 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { visibleChats } from './chat-visibility.ts';
 
-type ChatReader = Pick<GrottoDatabase, 'select'>;
+type ChatReader = Pick<HausDatabase, 'select'>;
 const parentChatsTable = alias(chatsTable, 'parent_chat');
 
 export class ChatNotFoundError extends Error {
@@ -47,7 +47,7 @@ export interface AccessibleChat {
 
 export async function requireChatAccess(
     db: ChatReader,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: { chatId: string; serverId: string }
 ): Promise<AccessibleChat> {
     await requireServerMembership(db, member, input.serverId);
@@ -77,7 +77,7 @@ export async function requireChatAccess(
 
 export async function requireChatWriteAccess(
     db: ChatReader,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: { chatId: string; serverId: string }
 ): Promise<AccessibleChat> {
     const chat = await requireChatAccess(db, member, input);

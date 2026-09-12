@@ -1,6 +1,6 @@
-import type { CloudAgentWork, CreatedAgentSummary, GrottoAgentMessage } from '@grotto/api';
+import type { CloudAgentWork, CreatedAgentSummary, HausAgentMessage } from '@haus/api';
 
-type AgentMessageBodies = Pick<GrottoAgentMessage, 'agent_created' | 'cloud_agent_work'>;
+type AgentMessageBodies = Pick<HausAgentMessage, 'agent_created' | 'cloud_agent_work'>;
 
 /**
  * The typed Message bodies in the Agent API's own snake_case wire shape. Ask

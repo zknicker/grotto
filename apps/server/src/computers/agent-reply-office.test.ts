@@ -4,8 +4,8 @@ import type {
     AgentSkillFileResult,
     AgentSkillImportResult,
     AgentWorkspaceResult,
-} from '@grotto/api';
-import { makeTestRuntime } from '@grotto/effect';
+} from '@haus/api';
+import { makeTestRuntime } from '@haus/effect';
 import { AgentReplyOffice } from './agent-reply-office.ts';
 
 const agentId = 'agt_1234567890123456';

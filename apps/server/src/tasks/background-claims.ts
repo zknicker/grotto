@@ -1,13 +1,13 @@
-import type { ServerDurableEvent } from '@grotto/api';
+import type { ServerDurableEvent } from '@haus/api';
 import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, messageTasksTable } from '../postgres/schema.ts';
 import { anchorMessageIdForThreadChatId } from '../threads/thread-id.ts';
 import { classifyRunReplyInChat } from './run-reply.ts';
 import { insertTaskEvent } from './task-events.ts';
 import { loadTaskTierEvidence, resolveTaskTier, taskTierEvidenceFor } from './task-tier.ts';
 
-type TaskWriter = Pick<GrottoDatabase, 'insert' | 'select' | 'update'>;
+type TaskWriter = Pick<HausDatabase, 'insert' | 'select' | 'update'>;
 
 interface RunScope {
     agentId: string;

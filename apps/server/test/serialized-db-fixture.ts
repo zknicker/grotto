@@ -1,4 +1,4 @@
-import type { GrottoDatabase } from '../src/postgres/connection.ts';
+import type { HausDatabase } from '../src/postgres/connection.ts';
 
 /**
  * The Server database with one extra rule: a statement started inside a
@@ -10,7 +10,7 @@ import type { GrottoDatabase } from '../src/postgres/connection.ts';
  * every later durable write queues behind a lock nobody releases. Drive a
  * write path through this handle and the fan-out fails loudly instead.
  */
-export function serializedTransactions(db: GrottoDatabase): GrottoDatabase {
+export function serializedTransactions(db: HausDatabase): HausDatabase {
     return new Proxy(db, {
         get: (target, property) =>
             property === 'transaction'

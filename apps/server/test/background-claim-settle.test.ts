@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { and, eq, sql } from 'drizzle-orm';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
-import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
-import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
+import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
+import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { messageTasksTable } from '../src/postgres/schema.ts';
 import {
     answerInChat,
@@ -19,12 +19,12 @@ import {
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 let cluster: PostgresCluster;
-let connection: GrottoConnection;
+let connection: HausConnection;
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
-    await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
-    connection = await connectGrottoDatabase(cluster.databaseUrl);
+    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    connection = await connectHausDatabase(cluster.databaseUrl);
 });
 
 afterAll(async () => {

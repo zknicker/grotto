@@ -242,7 +242,7 @@ test('message check renders a task assignment through the fire envelope header',
                             '[Haus task assignment task=#7 target=#general assignedBy=@operator] Ship the release notes',
                         createdAt: '2026-08-17T12:00:04.000Z',
                         id: 'task-assign:msg_1a2b3c4d5e6f:3',
-                        senderHandle: 'grotto',
+                        senderHandle: 'haus',
                         senderType: 'system',
                         target: '#general',
                     },
@@ -259,7 +259,7 @@ test('message check renders a task assignment through the fire envelope header',
     // the id the Agent can actually read, thread on, or react to.
     expect(lines[0]).toStartWith('[target=#general msg=1a2b3c4d ');
     expect(lines[0]).toEndWith(
-        'type=system] @grotto: [Haus task assignment task=#7 target=#general assignedBy=@operator] Ship the release notes'
+        'type=system] @haus: [Haus task assignment task=#7 target=#general assignedBy=@operator] Ship the release notes'
     );
     expect(outputs[0]).not.toContain('No new messages.');
 });
@@ -274,7 +274,7 @@ test('message check orders a task assignment against fires and messages by creat
                         content: '[Haus task assignment task=#7 target=#general] Ship it',
                         createdAt: '2026-08-17T12:00:02.000Z',
                         id: 'task-assign:msg_1a2b3c4d5e6f:3',
-                        senderHandle: 'grotto',
+                        senderHandle: 'haus',
                         senderType: 'system',
                         target: '#general',
                     },
@@ -299,7 +299,7 @@ test('message check orders a task assignment against fires and messages by creat
 
     const lines = (outputs[0] ?? '').trimEnd().split('\n');
     expect(lines[0]).toContain('[target=#general msg=first ');
-    expect(lines[1]).toContain('@grotto: [Haus task assignment task=#7 target=#general] Ship it');
+    expect(lines[1]).toContain('@haus: [Haus task assignment task=#7 target=#general] Ship it');
     expect(lines[2]).toContain('@trigger: \u26a1 Trigger: Sentry alerts');
     expect(lines[3]).toContain('[target=#general msg=fourth ');
     expect(lines[4]).toBe('No more new messages.');

@@ -18,7 +18,7 @@ let dataRoot: string;
 const serverId = 'srv_deliverytest0000';
 
 beforeEach(async () => {
-    dataRoot = await mkdtemp(join(tmpdir(), 'grotto-delivery-'));
+    dataRoot = await mkdtemp(join(tmpdir(), 'haus-delivery-'));
 });
 
 afterEach(async () => {

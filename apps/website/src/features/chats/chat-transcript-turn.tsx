@@ -1,4 +1,4 @@
-import { splitVisualFences } from '@grotto/api/widgets/visual';
+import { splitVisualFences } from '@haus/api/widgets/visual';
 import { Separator } from '@heroui/react';
 import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
 import { Activity01Icon, AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';

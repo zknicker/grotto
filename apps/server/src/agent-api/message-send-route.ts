@@ -1,4 +1,4 @@
-import { agentSendInputSchema } from '@grotto/api';
+import { agentSendInputSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import { publishAgentLifecycle } from '../agent-delivery/lifecycle.ts';
@@ -11,7 +11,7 @@ import {
     AgentSendConflictError,
     sendAgentMessage,
 } from '../chats/send-agent-message.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
@@ -22,7 +22,7 @@ import { AgentSendModeError, clearAgentDraft, prepareAgentSend } from './send-ho
 export function registerAgentMessageSendRoute(
     app: FastifyInstance,
     options: {
-        db: GrottoDatabase;
+        db: HausDatabase;
         agentDelivery: import('../agent-delivery/delivery.ts').AgentDelivery;
         postCommitWork: ServerPostCommitWork;
     }

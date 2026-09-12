@@ -68,7 +68,7 @@ export async function seedOpenAsk(input: {
     );
 
     const runnerToken = await mintAgentRunner(created.agent.id, chatId);
-    const response = await fetch(`${grottoOrigin()}/api/agent/asks`, {
+    const response = await fetch(`${hausOrigin()}/api/agent/asks`, {
         body: JSON.stringify({
             addresseeHandle: input.addresseeHandle,
             content: input.content,
@@ -107,7 +107,7 @@ export async function seedOpenAsk(input: {
 }
 
 async function mintAgentRunner(agentId: string, chatId: string) {
-    const response = await fetch(`${grottoOrigin()}/computer/runner/mint`, {
+    const response = await fetch(`${hausOrigin()}/computer/runner/mint`, {
         body: JSON.stringify({
             agentId,
             chatId,
@@ -123,6 +123,6 @@ async function mintAgentRunner(agentId: string, chatId: string) {
     return ((await response.json()) as { runnerToken: string }).runnerToken;
 }
 
-function grottoOrigin() {
-    return `http://127.0.0.1:${process.env.GROTTO_SERVER_PORT}`;
+function hausOrigin() {
+    return `http://127.0.0.1:${process.env.HAUS_SERVER_PORT}`;
 }

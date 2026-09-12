@@ -1,5 +1,5 @@
-import type { CloudAgentCapabilityRequest, CloudAgentCapabilityResult } from '@grotto/api';
-import { cloudAgentCapabilityRequestSchema, cloudAgentCapabilityResultSchema } from '@grotto/api';
+import type { CloudAgentCapabilityRequest, CloudAgentCapabilityResult } from '@haus/api';
+import { cloudAgentCapabilityRequestSchema, cloudAgentCapabilityResultSchema } from '@haus/api';
 import {
     cloudAgentCapabilityState,
     cloudAgentProvider,

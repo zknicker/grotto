@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { Chip, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup, PressableFeedback } from '@heroui-pro/react';
 import * as React from 'react';

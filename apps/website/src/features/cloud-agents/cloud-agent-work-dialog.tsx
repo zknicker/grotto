@@ -1,4 +1,4 @@
-import { activeCloudAgentWorkThreadAnchor } from '@grotto/api';
+import { activeCloudAgentWorkThreadAnchor } from '@haus/api';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useActiveCloudAgentWork } from '../../hooks/servers/use-cloud-agent-work.ts';
 import { useServerContext } from '../servers/server-context.ts';

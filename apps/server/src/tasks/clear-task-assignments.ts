@@ -1,10 +1,10 @@
-import type { ServerDurableEvent } from '@grotto/api';
+import type { ServerDurableEvent } from '@haus/api';
 import { and, asc, eq, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { messageTasksTable } from '../postgres/schema.ts';
 import { insertTaskEvent } from './task-events.ts';
 
-type TaskAssignmentWriter = Pick<GrottoDatabase, 'insert' | 'select' | 'update'>;
+type TaskAssignmentWriter = Pick<HausDatabase, 'insert' | 'select' | 'update'>;
 
 /**
  * Releases task ownership held by one departing actor. The caller owns the

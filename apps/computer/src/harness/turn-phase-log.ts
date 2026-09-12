@@ -1,4 +1,4 @@
-import { settle } from '@grotto/effect';
+import { settle } from '@haus/effect';
 import { Effect } from 'effect';
 import type { HarnessTurnInput } from './executor.ts';
 

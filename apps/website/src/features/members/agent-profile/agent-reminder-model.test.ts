@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Reminder, ReminderHistoryEntry } from '@grotto/api';
+import type { Reminder, ReminderHistoryEntry } from '@haus/api';
 import {
     formatReminderCadence,
     formatReminderSchedule,

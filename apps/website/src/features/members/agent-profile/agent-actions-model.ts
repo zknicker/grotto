@@ -1,5 +1,5 @@
-import type { Agent } from '@grotto/api';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { Agent } from '@haus/api';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 
 /**
  * The lifecycle verbs the profile header offers, ordered by how much they

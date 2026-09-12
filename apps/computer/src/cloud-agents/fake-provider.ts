@@ -1,4 +1,4 @@
-import type { CloudAgentStatus } from '@grotto/api';
+import type { CloudAgentStatus } from '@haus/api';
 import type {
     CloudAgentLaunch,
     CloudAgentProvider,

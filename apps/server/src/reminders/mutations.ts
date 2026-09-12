@@ -1,7 +1,7 @@
-import { reminderSchema } from '@grotto/api';
+import { reminderSchema } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { reminderCommandsTable, remindersTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -24,7 +24,7 @@ export interface ReminderCommandInput {
 }
 
 export async function cancelReminder(
-    db: GrottoDatabase,
+    db: HausDatabase,
     agentId: string,
     input: ReminderCommandInput,
     clock: ReminderClock
@@ -127,7 +127,7 @@ export async function cancelReminder(
 }
 
 export async function lockReminderCommand(
-    db: Pick<GrottoDatabase, 'execute'>,
+    db: Pick<HausDatabase, 'execute'>,
     serverId: string,
     actorKind: 'agent' | 'user',
     actorId: string,
@@ -148,7 +148,7 @@ export class ReminderVersionConflictError extends Error {
 }
 
 export async function readExistingCommand(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: ReminderCommandInput,
     agentId: string,
     fingerprint: string

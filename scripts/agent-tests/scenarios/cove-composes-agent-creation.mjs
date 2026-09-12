@@ -29,17 +29,17 @@ export default defineScenario({
     name: 'cove-composes-agent-creation',
     optIn: true,
     async run({ expect, kit, log, marker, settleTurn }) {
-        const fixturePath = process.env.GROTTO_AGENT_E2E_AVATAR_FIXTURE_PATH;
-        const requestLogPath = process.env.GROTTO_AGENT_E2E_AVATAR_REQUEST_LOG;
+        const fixturePath = process.env.HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH;
+        const requestLogPath = process.env.HAUS_AGENT_E2E_AVATAR_REQUEST_LOG;
         if (
-            process.env.GROTTO_AGENT_E2E_AVATAR_FIXTURE !== '1' ||
+            process.env.HAUS_AGENT_E2E_AVATAR_FIXTURE !== '1' ||
             !fixturePath ||
             !isAbsolute(fixturePath) ||
             !requestLogPath ||
             !isAbsolute(requestLogPath)
         ) {
             throw new Error(
-                'This opt-in scenario requires GROTTO_AGENT_E2E_AVATAR_FIXTURE=1, an absolute GROTTO_AGENT_E2E_AVATAR_FIXTURE_PATH, and an absolute GROTTO_AGENT_E2E_AVATAR_REQUEST_LOG.'
+                'This opt-in scenario requires HAUS_AGENT_E2E_AVATAR_FIXTURE=1, an absolute HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH, and an absolute HAUS_AGENT_E2E_AVATAR_REQUEST_LOG.'
             );
         }
 

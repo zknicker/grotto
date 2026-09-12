@@ -1,4 +1,4 @@
-import type { MessageBodyKind } from '@grotto/api';
+import type { MessageBodyKind } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
     check,

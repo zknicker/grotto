@@ -3,10 +3,10 @@ import type {
     AgentActivityEvent,
     AgentActivityHistoryInput,
     AgentActivityHistoryPage,
-} from '@grotto/api';
-import { projectAgentCurrentActivity } from '@grotto/api/agent-activity';
+} from '@haus/api';
+import { projectAgentCurrentActivity } from '@haus/api/agent-activity';
 import { and, asc, desc, eq, isNotNull, lt, or, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentActivityTable,
     agentDeliveryTable,
@@ -15,7 +15,7 @@ import {
 } from '../postgres/schema.ts';
 
 export async function listAgentActivityHistory(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: AgentActivityHistoryInput
 ): Promise<AgentActivityHistoryPage> {
     const predicates = [
@@ -73,7 +73,7 @@ export async function listAgentActivityHistory(
 }
 
 export async function readActiveAgentActivity(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string
 ): Promise<AgentActiveActivitySnapshot> {
     const rows = await db

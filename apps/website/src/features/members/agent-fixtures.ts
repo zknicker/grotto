@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 
 /**
  * One live Agent, for tests that need a whole `Agent` to exercise something
@@ -25,7 +25,7 @@ export function testAgent(overrides: Partial<Agent> = {}): Agent {
         effectiveReportedAt: '2026-07-29T12:00:00.000Z',
         effectiveRuntimeId: 'runtime_one',
         factoryKind: 'ordinary',
-        grottoAgent: {
+        hausAgent: {
             appliedAt: '2026-07-29T12:00:00.000Z',
             appliedVersion: '1.0.0',
             currentVersion: '1.0.0',

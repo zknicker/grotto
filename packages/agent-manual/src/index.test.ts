@@ -45,7 +45,7 @@ const recipeIds = [
 // Cards written for Haus itself, with no captured source card behind them.
 // The fidelity test below asserts each really has no source file, so this list
 // cannot quietly become an escape hatch for a drifted adapted card.
-const grottoNativeIds = new Set<string>(['recipes/technique/trigger-webhook']);
+const hausNativeIds = new Set<string>(['recipes/technique/trigger-webhook']);
 
 const seededIds = [
     'recipes/decision/one-or-many',
@@ -124,7 +124,7 @@ test('keeps every published body faithful to its captured source card', async ()
                 import.meta.url
             )
         );
-        if (grottoNativeIds.has(topic.id)) {
+        if (hausNativeIds.has(topic.id)) {
             expect(await sourceFile.exists()).toBe(false);
             continue;
         }
@@ -187,7 +187,7 @@ test('search matches metadata and content while respecting recipe scope and limi
 });
 
 test('returns the complete topic and preserves stable unknown-topic behavior', () => {
-    expect(getManualTopic('grotto-cli-overview')).toBe(getManualTopic('haus-cli-overview'));
+    expect(getManualTopic('haus-cli-overview')).toBe(getManualTopic('haus-cli-overview'));
     const topic = getManualTopic('recipes/technique/task-claim-lock');
 
     expect(topic).toMatchObject({

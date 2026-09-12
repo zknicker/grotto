@@ -8,12 +8,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..');
 
-const releaseBaseUrl = trimTrailingSlash(requireEnv('GROTTO_RELEASE_BASE_URL'));
+const releaseBaseUrl = trimTrailingSlash(requireEnv('HAUS_RELEASE_BASE_URL'));
 
 requireSigningEnvironment();
 requireNotarizationEnvironment();
 
-process.env.GROTTO_RELEASE_BASE_URL = releaseBaseUrl;
+process.env.HAUS_RELEASE_BASE_URL = releaseBaseUrl;
 // electron-builder reads the signing identity under its own literal name.
 process.env.CSC_NAME ??= normalizeSigningIdentity(process.env.APPLE_SIGNING_IDENTITY);
 
@@ -52,7 +52,7 @@ function requireNotarizationEnvironment() {
     }
 
     console.error(
-        'release error: missing Apple notarization credentials. Run the release under `varlock run` with GROTTO_RESOLVE_RELEASE_TOKENS=true so APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, and APPLE_TEAM_ID resolve.'
+        'release error: missing Apple notarization credentials. Run the release under `varlock run` with HAUS_RESOLVE_RELEASE_TOKENS=true so APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, and APPLE_TEAM_ID resolve.'
     );
     process.exit(1);
 }

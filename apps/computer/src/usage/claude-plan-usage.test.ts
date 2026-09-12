@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ClaudeUsageRequestError, type ClaudeUsageSnapshot } from '@grotto/claude-usage';
+import { ClaudeUsageRequestError, type ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { createClaudePlanUsageReader } from './claude-plan-usage.ts';
 import {
     claimClaudeSdkUsageRefresh,
@@ -71,7 +71,7 @@ test('keeps the last successful Claude plan snapshot during rate limiting', asyn
 });
 
 test('uses managed Claude SDK evidence without calling the OAuth fallback', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-claude-plan-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-claude-plan-'));
     await saveClaudePlanUsageSnapshot(dataRoot, {
         ...snapshot,
         source: 'claude-code-sdk-usage',
@@ -94,7 +94,7 @@ test('uses managed Claude SDK evidence without calling the OAuth fallback', asyn
 });
 
 test('persists fallback backoff across reader instances', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-claude-plan-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-claude-plan-'));
     let calls = 0;
     const load = async (): Promise<ClaudeUsageSnapshot> => {
         calls += 1;
@@ -117,7 +117,7 @@ test('persists fallback backoff across reader instances', async () => {
 });
 
 test('leases one Claude SDK usage refresh per interval', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-claude-plan-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-claude-plan-'));
     const now = new Date('2026-08-14T15:00:00.000Z');
 
     expect(await claimClaudeSdkUsageRefresh(dataRoot, now)).toBe(true);
@@ -125,7 +125,7 @@ test('leases one Claude SDK usage refresh per interval', async () => {
 });
 
 test('refreshes expired persisted usage and preserves it during durable backoff', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-claude-plan-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-claude-plan-'));
     await saveClaudePlanUsageSnapshot(dataRoot, snapshot);
     const refreshed = { ...snapshot, capturedAt: '2026-09-08T15:00:00.000Z' };
     let calls = 0;

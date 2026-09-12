@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
-import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@grotto/api';
-import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
-import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
+import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@haus/api';
+import { createHausClient, type HausClient } from './haus-client.ts';
+import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
-let harness: GrottoServerHarness;
-let owner: GrottoClient;
-let member: GrottoClient;
+let harness: HausServerHarness;
+let owner: HausClient;
+let member: HausClient;
 let serverId: string;
 let socket: WebSocket;
 
@@ -14,7 +14,7 @@ const computerId = 'cmp_cloudagent000000';
 const credential = 'cloud-agent-computer-credential-0000';
 
 beforeAll(async () => {
-    harness = await startGrottoServerHarness();
+    harness = await startHausServerHarness();
     owner = await signIn('clerk_cloud_agent_owner');
     member = await signIn('clerk_cloud_agent_member');
     serverId = (
@@ -135,7 +135,7 @@ test('only an Owner or Admin can connect a Computer to a Cloud Agent provider', 
 });
 
 async function signIn(clerkUserId: string) {
-    return createGrottoClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+    return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
 }
 
 function answerNextCapabilityRequest(

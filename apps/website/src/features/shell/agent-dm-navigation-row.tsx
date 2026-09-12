@@ -1,4 +1,4 @@
-import type { Agent, Chat } from '@grotto/api';
+import type { Agent, Chat } from '@haus/api';
 import { Sidebar } from '@heroui-pro/react';
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
 import { cn } from '../../lib/utils.ts';

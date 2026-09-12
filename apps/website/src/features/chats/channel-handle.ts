@@ -1,4 +1,4 @@
-// The channel name IS its handle (specs/grotto-cli.md §2): one token, 1-32
+// The channel name IS its handle (specs/haus-cli.md §2): one token, 1-32
 // chars, no spaces. Renames change the handle, so create and rename enforce
 // the same rule the runtime does.
 const channelHandlePattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u;

@@ -5,7 +5,7 @@ export type ObservedTelemetryResult<A> = readonly [value: A, outcome: TelemetryO
 
 class TelemetrySpanFailure extends Error {
     constructor() {
-        super('A Grotto operation failed.');
+        super('A Haus operation failed.');
         this.name = 'TelemetrySpanFailure';
     }
 }

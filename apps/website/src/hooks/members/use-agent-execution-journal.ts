@@ -1,6 +1,6 @@
-import type { AgentExecutionJournalInput, AgentExecutionJournalResult } from '@grotto/api';
+import type { AgentExecutionJournalInput, AgentExecutionJournalResult } from '@haus/api';
 import * as React from 'react';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 type JournalState =
     | { data: null; error: null; status: 'idle' }
@@ -16,7 +16,7 @@ const initialState: JournalState = { data: null, error: null, status: 'idle' };
  * React Query or durable Server cache.
  */
 export function useAgentExecutionJournal() {
-    const { client } = grottoTrpc.useUtils();
+    const { client } = hausTrpc.useUtils();
     const requestRef = React.useRef(0);
     const [state, setState] = React.useState<JournalState>(initialState);
 

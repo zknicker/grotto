@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import {
-    classifyGrottoProxyBoundary,
+    classifyHausProxyBoundary,
     createComputerActivityProjector,
     createComputerActivityRegistry,
 } from './activity-projector.ts';
@@ -81,7 +81,7 @@ test('projects explicit adapter tool fixtures without inspecting tool inputs', a
     }
 });
 test('keeps malicious MCP names and shell cat generic', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-projector-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-projector-'));
     roots.push(root);
     const journal = await createComputerExecutionJournal({ agentRoot: root, runId: 'run_generic' });
     const events: Array<{ category: string; phase: string; toolRef?: string }> = [];
@@ -140,7 +140,7 @@ test('keeps malicious MCP names and shell cat generic', async () => {
     expect(JSON.stringify(events)).not.toContain('private');
 });
 test('pairs preliminary, failure, interruption, and restart journal evidence by toolCallId', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-journal-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-journal-'));
     roots.push(root);
     const journal = await createComputerExecutionJournal({
         agentRoot: root,
@@ -240,20 +240,20 @@ test('pairs preliminary, failure, interruption, and restart journal evidence by 
     expect(events).toContainEqual({ category: 'running_command', phase: 'failed' });
 });
 test('classifies structured Haus message and Browser proxy boundaries', () => {
-    expect(classifyGrottoProxyBoundary('GET', '/api/agent/events')).toBe('checking_messages');
-    expect(classifyGrottoProxyBoundary('GET', '/api/agent/history')).toBe('checking_messages');
-    expect(classifyGrottoProxyBoundary('GET', '/api/agent/messages/search')).toBe(
+    expect(classifyHausProxyBoundary('GET', '/api/agent/events')).toBe('checking_messages');
+    expect(classifyHausProxyBoundary('GET', '/api/agent/history')).toBe('checking_messages');
+    expect(classifyHausProxyBoundary('GET', '/api/agent/messages/search')).toBe(
         'checking_messages'
     );
-    expect(classifyGrottoProxyBoundary('POST', '/api/agent/browser')).toBe('browsing');
-    expect(classifyGrottoProxyBoundary('GET', '/api/agent/inbox')).toBeNull();
+    expect(classifyHausProxyBoundary('POST', '/api/agent/browser')).toBe('browsing');
+    expect(classifyHausProxyBoundary('GET', '/api/agent/inbox')).toBeNull();
 });
 test('semantic activity frames have no raw tool fields and host categories are registration-owned', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-host-tool-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-host-tool-'));
     roots.push(root);
     const journal = await createComputerExecutionJournal({ agentRoot: root, runId: 'run_host' });
     const registry = createComputerActivityRegistry();
-    registry.registerGrottoHostTool({ category: 'browsing', name: 'browser', toolRef: 'browser' });
+    registry.registerHausHostTool({ category: 'browsing', name: 'browser', toolRef: 'browser' });
     const events: Array<{ category: string; phase: string; toolRef?: string }> = [];
     const projector = createComputerActivityProjector({
         journal,

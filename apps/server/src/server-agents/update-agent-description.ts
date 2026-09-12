@@ -1,7 +1,7 @@
-import type { CreatedAgentSummary } from '@grotto/api';
+import type { CreatedAgentSummary } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import { readCreatedAgent } from './agent-created-shape.ts';
 import { AgentIdentityProtectedError, AgentTargetNotFoundError } from './errors.ts';
@@ -12,7 +12,7 @@ import { AgentIdentityProtectedError, AgentTargetNotFoundError } from './errors.
  * history keys on, so renaming is a separate operation this one does not carry.
  */
 export async function updateAgentDescription(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: { agent: string; description: string }
 ): Promise<CreatedAgentSummary> {
@@ -30,7 +30,7 @@ export async function updateAgentDescription(
 
 /** One live, non-Cove Agent of this Server, addressed by `@handle` or `handle`. */
 export async function resolveEditableAgent(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     reference: string
 ): Promise<{ handle: string; id: string }> {

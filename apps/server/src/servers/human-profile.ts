@@ -1,9 +1,9 @@
-import type { ServerMember, SyncHumanIdentityInput, UpdateHumanProfileInput } from '@grotto/api';
+import type { ServerMember, SyncHumanIdentityInput, UpdateHumanProfileInput } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { serverMembershipsTable, usersTable } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import {
     ParticipantHandleTakenError,
     participantHandleConstraint,
@@ -18,8 +18,8 @@ import { lockServerRow } from './server-lock.ts';
  * later sign-in must not overwrite it with the Clerk value.
  */
 export async function syncHumanIdentity(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: SyncHumanIdentityInput
 ): Promise<void> {
     if (!member) {
@@ -81,8 +81,8 @@ export async function syncHumanIdentity(
 
 /** A human edits only their own profile. */
 export async function updateHumanProfile(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: UpdateHumanProfileInput
 ): Promise<void> {
     if (!member) {

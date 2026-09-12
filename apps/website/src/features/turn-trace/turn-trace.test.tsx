@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { AgentExecutionJournal, AgentExecutionJournalTool } from '@grotto/api';
+import type { AgentExecutionJournal, AgentExecutionJournalTool } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { AgentActivityTurn } from '../members/agent-profile/agent-activity-turns.ts';
 import { TurnTracePresentation } from './turn-trace.tsx';

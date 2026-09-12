@@ -1,10 +1,10 @@
 import { afterAll, expect, test } from 'bun:test';
-import { makeTestRuntime, settle } from '@grotto/effect';
+import { makeTestRuntime, settle } from '@haus/effect';
 import { Effect, TestClock } from 'effect';
 import { createPullRequestReader } from './pull-request-reader.ts';
 
 const runtime = makeTestRuntime();
-const url = 'https://github.com/grotto/grotto/pull/56';
+const url = 'https://github.com/haus/haus/pull/56';
 afterAll(() => runtime.dispose());
 
 test('one total deadline bounds credential discovery and both GitHub attempts', async () => {

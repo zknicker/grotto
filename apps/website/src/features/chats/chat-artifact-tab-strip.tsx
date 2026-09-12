@@ -4,10 +4,10 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import { sidebarActionIconSize } from '../shell/section-header.tsx';
 import {
-    type GrottoResourceTarget,
     getArtifactPanelTargetKey,
     getArtifactPanelTargetLabel,
-} from './grotto-resource-link.ts';
+    type HausResourceTarget,
+} from './haus-resource-link.ts';
 
 /*
  * Editor-style artifact tabs, owned by chat.
@@ -28,7 +28,7 @@ export function ArtifactTabStrip({
     activeKey: string | null;
     onCloseTarget: (key: string) => void;
     onSelectTarget: (key: string) => void;
-    targets: GrottoResourceTarget[];
+    targets: HausResourceTarget[];
 }) {
     return (
         <div

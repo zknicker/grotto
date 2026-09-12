@@ -1,10 +1,10 @@
-import type { AttachmentReservation, AttachmentReserveInput } from '@grotto/api';
+import type { AttachmentReservation, AttachmentReserveInput } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 
 export const attachmentMaxSizeBytes = 50 * 1024 * 1024;
 
@@ -16,8 +16,8 @@ export class AttachmentNonceConflictError extends Error {
 }
 
 export async function reserveAttachment(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: AttachmentReserveInput
 ): Promise<AttachmentReservation> {
     await requireChatWriteAccess(db, member, input);

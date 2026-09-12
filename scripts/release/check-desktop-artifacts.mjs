@@ -18,7 +18,7 @@ const main = async () => {
     const dmgPath = await findSingleFile(bundleRoot, (entry) => entry === `${artifactPrefix}.dmg`);
     const zipPath = await findSingleFile(bundleRoot, (entry) => entry === `${artifactPrefix}.zip`);
     const latestYamlPath = path.join(bundleRoot, 'latest-mac.yml');
-    const sidecarPath = path.join(appPath, 'Contents', 'Resources', 'bin', 'grotto-server');
+    const sidecarPath = path.join(appPath, 'Contents', 'Resources', 'bin', 'haus-server');
     const packagedIconPath = path.join(appPath, 'Contents', 'Resources', 'icon.icns');
     const buildIconPath = path.join(
         repoRoot,
@@ -30,7 +30,7 @@ const main = async () => {
     );
 
     await assertDirectory(appPath, 'Haus.app');
-    await assertDoesNotExist(sidecarPath, 'retired grotto-server sidecar');
+    await assertDoesNotExist(sidecarPath, 'retired haus-server sidecar');
     await assertMatchingFiles(packagedIconPath, buildIconPath, 'packaged app icon');
     await assertFileHasContent(dmgPath, path.basename(dmgPath));
     await assertFileHasContent(zipPath, path.basename(zipPath));

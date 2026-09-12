@@ -1,13 +1,13 @@
-import type { ReminderHistoryEntry } from '@grotto/api';
+import type { ReminderHistoryEntry } from '@haus/api';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     chatMessagesTable,
     messageCausesTable,
     reminderFiresTable,
     remindersTable,
 } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { requireReminderOperator } from './operator-reminders.ts';
 
 /**
@@ -27,8 +27,8 @@ import { requireReminderOperator } from './operator-reminders.ts';
  * reading the anchor would not be.
  */
 export async function listOperatorReminderHistory(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { agentId: string; limit: number; serverId: string }
 ): Promise<ReminderHistoryEntry[]> {
     await requireReminderOperator(db, member, input.serverId);

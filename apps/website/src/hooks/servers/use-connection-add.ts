@@ -1,9 +1,9 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useConnectionAdd(serverId: string) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
-    return grottoTrpc.mcp.add.useMutation({
+    return hausTrpc.mcp.add.useMutation({
         onSuccess: () => utils.mcp.list.invalidate({ serverId }),
     });
 }

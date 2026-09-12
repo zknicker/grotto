@@ -12,7 +12,7 @@ test('Computer release keys prefer environment PEM and expand escaped newlines',
     expect(
         readComputerReleasePrivateKey({
             environment: {
-                GROTTO_COMPUTER_RELEASE_PRIVATE_KEY: privateKey.replaceAll('\n', '\\n'),
+                HAUS_COMPUTER_RELEASE_PRIVATE_KEY: privateKey.replaceAll('\n', '\\n'),
             },
             readKeychainPassword: () => {
                 throw new Error('Keychain should not be read.');
@@ -26,7 +26,7 @@ test('Computer release keys decode the established hex-encoded Keychain values',
         readComputerReleasePublicKey({
             environment: {},
             readKeychainPassword: (service) => {
-                expect(service).toBe('grotto-computer-release-ed25519-public');
+                expect(service).toBe('haus-computer-release-ed25519-public');
                 return Buffer.from(publicKey).toString('hex');
             },
         })

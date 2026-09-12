@@ -5,9 +5,9 @@ test('reported Agent state preserves reasoning effort', () => {
     expect(
         toReportedAgentState({
             agentId: 'agt_effective',
-            grottoAgentAppliedAt: null,
-            grottoAgentStatus: 'current',
-            grottoAgentVersion: '1.0.0',
+            hausAgentAppliedAt: null,
+            hausAgentStatus: 'current',
+            hausAgentVersion: '1.0.0',
             missingResources: [],
             modelId: 'gpt-5.6-sol',
             reasoningEffort: 'high',

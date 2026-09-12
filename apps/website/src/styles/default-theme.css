@@ -651,7 +651,7 @@
         --skill-reference: var(--color-purple-400);
     }
 
-    .tooltip.grotto-status-tooltip--contrast {
+    .tooltip.haus-status-tooltip--contrast {
         color-scheme: dark;
         --default: oklch(27.4% 0.006 286.033);
         --default-foreground: var(--snow);
@@ -662,13 +662,13 @@
         --skill-reference: var(--color-purple-400);
     }
 
-    .button.grotto-offline-button {
+    .button.haus-offline-button {
         background: var(--warning-soft);
         color: var(--warning-soft-foreground);
     }
 
     /* Pending blocks presses, but update progress remains primary-status chrome. */
-    .button.grotto-update-button[data-pending="true"] {
+    .button.haus-update-button[data-pending="true"] {
         opacity: 1;
     }
 

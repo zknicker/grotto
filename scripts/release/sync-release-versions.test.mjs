@@ -12,14 +12,14 @@ afterEach(async () => {
 });
 
 test('synchronizes every target-owned version from the latest release decision', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-release-sync-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-release-sync-'));
     temporaryRoots.push(root);
     await Promise.all(
         [
             'apps/computer',
             'apps/website',
             'apps/ios-swift/Haus.xcodeproj',
-            'packages/grotto-api',
+            'packages/haus-api',
             'scripts/release',
         ].map((directory) => mkdir(join(root, directory), { recursive: true }))
     );
@@ -35,8 +35,8 @@ test('synchronizes every target-owned version from the latest release decision',
     );
     await writeFile(join(root, 'apps/website/package.json'), '{"version":"0.0.1"}\n');
     await writeFile(join(root, 'apps/computer/package.json'), '{"version":"0.0.1"}\n');
-    await writeFile(join(root, 'packages/grotto-api/grotto-agent.json'), '{"version":"0.0.1"}\n');
-    await writeFile(join(root, 'packages/grotto-api/grotto-product.json'), '{"version":"0.0.1"}\n');
+    await writeFile(join(root, 'packages/haus-api/haus-agent.json'), '{"version":"0.0.1"}\n');
+    await writeFile(join(root, 'packages/haus-api/haus-product.json'), '{"version":"0.0.1"}\n');
     await writeFile(
         join(root, 'apps/ios-swift/project.yml'),
         'CURRENT_PROJECT_VERSION: "1"\nMARKETING_VERSION: 0.0.1\n'
@@ -81,15 +81,14 @@ test('synchronizes every target-owned version from the latest release decision',
         JSON.parse(await readFile(join(root, 'apps/website/package.json'), 'utf8')).version
     ).toBe('1.9.0');
     expect(
-        JSON.parse(await readFile(join(root, 'packages/grotto-api/grotto-product.json'), 'utf8'))
+        JSON.parse(await readFile(join(root, 'packages/haus-api/haus-product.json'), 'utf8'))
             .version
     ).toBe('2.0.0');
     expect(
         JSON.parse(await readFile(join(root, 'apps/computer/package.json'), 'utf8')).version
     ).toBe('1.5.0');
     expect(
-        JSON.parse(await readFile(join(root, 'packages/grotto-api/grotto-agent.json'), 'utf8'))
-            .version
+        JSON.parse(await readFile(join(root, 'packages/haus-api/haus-agent.json'), 'utf8')).version
     ).toBe('1.1.0');
     expect(await readFile(join(root, 'apps/ios-swift/project.yml'), 'utf8')).toBe(
         'CURRENT_PROJECT_VERSION: "9"\nMARKETING_VERSION: 1.1.0\n'

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Agent, AgentLifecycleEvent } from '@grotto/api';
+import type { Agent, AgentLifecycleEvent } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AgentCompositionBubbles, hasAgentComposition } from './agent-composition.tsx';
 

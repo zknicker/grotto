@@ -6,13 +6,13 @@
 set -euo pipefail
 
 cleanup_failed=0
-if [[ -n "${GROTTO_RELEASE_KEYCHAIN_PATH:-}" && -e "${GROTTO_RELEASE_KEYCHAIN_PATH}" ]]; then
-  security delete-keychain "${GROTTO_RELEASE_KEYCHAIN_PATH}" || cleanup_failed=1
+if [[ -n "${HAUS_RELEASE_KEYCHAIN_PATH:-}" && -e "${HAUS_RELEASE_KEYCHAIN_PATH}" ]]; then
+  security delete-keychain "${HAUS_RELEASE_KEYCHAIN_PATH}" || cleanup_failed=1
 fi
 for material_path in \
-  "${GROTTO_RELEASE_CERTIFICATE_PATH:-}" \
+  "${HAUS_RELEASE_CERTIFICATE_PATH:-}" \
   "${APPLE_API_KEY_PATH:-}" \
-  "${GROTTO_RELEASE_PROVISIONING_PROFILE_PATH:-}"; do
+  "${HAUS_RELEASE_PROVISIONING_PROFILE_PATH:-}"; do
   if [[ -n "${material_path}" ]]; then
     rm -f "${material_path}" || cleanup_failed=1
   fi

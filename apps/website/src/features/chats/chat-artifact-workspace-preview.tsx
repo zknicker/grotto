@@ -10,7 +10,7 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { codeLanguageForPath } from '../../lib/code-language.ts';
 import { isWorkspaceSourceFile, type WorkspaceArtifact } from './chat-artifact-workspace-file.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
-import { formatGrottoResourceLink, type GrottoResourceTarget } from './grotto-resource-link.ts';
+import { formatHausResourceLink, type HausResourceTarget } from './haus-resource-link.ts';
 
 export function WorkspaceArtifactContent({
     agentId,
@@ -21,7 +21,7 @@ export function WorkspaceArtifactContent({
     agentId: string;
     artifact: WorkspaceArtifact;
     controls?: ReactNode;
-    target: Extract<GrottoResourceTarget, { kind: 'workspaceFile' }>;
+    target: Extract<HausResourceTarget, { kind: 'workspaceFile' }>;
 }) {
     const { fileQuery, raw } = artifact;
 
@@ -104,7 +104,7 @@ function WorkspaceFilePreview({
     mediaType: string;
     path: string;
     raw: boolean;
-    target: Extract<GrottoResourceTarget, { kind: 'workspaceFile' }>;
+    target: Extract<HausResourceTarget, { kind: 'workspaceFile' }>;
 }) {
     if (mediaType.startsWith('image/')) {
         return (
@@ -137,9 +137,7 @@ function WorkspaceFilePreview({
     // status footer, so no header here.
     return (
         <div className="code-pane h-full min-h-0 overflow-auto px-3 py-2">
-            <SelectionQuoteContainer
-                source={{ href: formatGrottoResourceLink(target), label: path }}
-            >
+            <SelectionQuoteContainer source={{ href: formatHausResourceLink(target), label: path }}>
                 <CodeBlock>
                     <CodeBlock.Code code={content} language={codeLanguageForPath(path).id} />
                 </CodeBlock>
@@ -174,7 +172,7 @@ export function formatWorkspaceFileBytes(sizeBytes: number) {
 /**
  * Sandboxed HTML preview with host tokens riding in: artifacts (and any
  * workspace HTML file) get the app's resolved theme variables injected, so a
- * page styled with tokens wears the Grotto look and follows the app scheme.
+ * page styled with tokens wears the Haus look and follows the app scheme.
  * Opaque origin, never allow-same-origin.
  */
 function WorkspaceHtmlPreview({ content, path }: { content: string; path: string }) {

@@ -1,4 +1,4 @@
-import type { ServerInvitation, ServerInvitationStatus } from '@grotto/api/membership';
+import type { ServerInvitation, ServerInvitationStatus } from '@haus/api/membership';
 import { Button, Chip, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Fragment } from 'react';

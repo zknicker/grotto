@@ -1,4 +1,4 @@
-import type { CloudAgentBranch, CloudAgentPullRequest, CloudAgentWork } from '@grotto/api';
+import type { CloudAgentBranch, CloudAgentPullRequest, CloudAgentWork } from '@haus/api';
 import { Chip } from '@heroui/react';
 import { GitBranchIcon, PlusMinus01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { ActionCard } from '../../components/chats/action-card.tsx';

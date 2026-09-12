@@ -2,7 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { grottoAgentVersion } from '@grotto/api';
+import { hausAgentVersion } from '@haus/api';
 import { readEffectiveAgentStates } from './effective-state.ts';
 import { writeAgentSessionState } from './harness/session-store.ts';
 
@@ -16,7 +16,7 @@ afterEach(async () => {
 });
 
 test('effective-state reports are derived from durable per-Agent sessions', async () => {
-    root = await mkdtemp(join(tmpdir(), 'grotto-effective-state-'));
+    root = await mkdtemp(join(tmpdir(), 'haus-effective-state-'));
     const agentsRoot = join(root, 'servers', 'srv_test', 'agents');
     const appliedRoot = join(agentsRoot, 'agt_applied');
     await mkdir(appliedRoot, { recursive: true });
@@ -25,9 +25,9 @@ test('effective-state reports are derived from durable per-Agent sessions', asyn
         cumulativeTokenUsage: null,
         effectiveModel: { modelId: 'gpt-5.6-sol', runtimeId: 'codex' },
         generation: 1,
-        grottoAgentAppliedAt: '2026-08-28T12:00:00.000Z',
-        grottoAgentStatus: 'current',
-        grottoAgentVersion,
+        hausAgentAppliedAt: '2026-08-28T12:00:00.000Z',
+        hausAgentStatus: 'current',
+        hausAgentVersion,
         instructionFingerprint: 'instructions_current',
         resumeState: { threadId: 'thread-local' },
         runtimeSessionId: 'session-local',
@@ -37,9 +37,9 @@ test('effective-state reports are derived from durable per-Agent sessions', asyn
     expect(await readEffectiveAgentStates(root, 'srv_test')).toEqual([
         {
             agentId: 'agt_applied',
-            grottoAgentAppliedAt: '2026-08-28T12:00:00.000Z',
-            grottoAgentStatus: 'current',
-            grottoAgentVersion,
+            hausAgentAppliedAt: '2026-08-28T12:00:00.000Z',
+            hausAgentStatus: 'current',
+            hausAgentVersion,
             missingResources: [],
             modelId: 'gpt-5.6-sol',
             reasoningEffort: null,
@@ -47,9 +47,9 @@ test('effective-state reports are derived from durable per-Agent sessions', asyn
         },
         {
             agentId: 'agt_missing',
-            grottoAgentAppliedAt: null,
-            grottoAgentStatus: 'pending',
-            grottoAgentVersion: null,
+            hausAgentAppliedAt: null,
+            hausAgentStatus: 'pending',
+            hausAgentVersion: null,
             missingResources: ['session'],
             modelId: null,
             reasoningEffort: null,

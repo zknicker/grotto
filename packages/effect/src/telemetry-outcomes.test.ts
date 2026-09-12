@@ -24,12 +24,12 @@ test('reported outcomes drive exact span status and metric outcome without chang
     const runtime = ManagedRuntime.make(
         makeTelemetryLayer({
             metricReader,
-            serviceName: 'grotto-test',
+            serviceName: 'haus-test',
             spanProcessor: new SimpleSpanProcessor(spanExporter),
         })
     );
     const disabledRuntime = ManagedRuntime.make(
-        makeProcessTelemetryLayer({ environment: {}, serviceName: 'grotto-test' })
+        makeProcessTelemetryLayer({ environment: {}, serviceName: 'haus-test' })
     );
     const completed = { status: 'completed' as const };
     const failed = { status: 'failed' as const };
@@ -51,8 +51,8 @@ test('reported outcomes drive exact span status and metric outcome without chang
         await expect(
             tracePromise(
                 runtime,
-                'grotto.agent.turn',
-                { 'grotto.operation': 'test.completed' },
+                'haus.agent.turn',
+                { 'haus.operation': 'test.completed' },
                 async () => completed,
                 undefined,
                 undefined,
@@ -62,8 +62,8 @@ test('reported outcomes drive exact span status and metric outcome without chang
         await expect(
             tracePromise(
                 runtime,
-                'grotto.agent.turn',
-                { 'grotto.operation': 'test.failed' },
+                'haus.agent.turn',
+                { 'haus.operation': 'test.failed' },
                 async () => failed,
                 undefined,
                 undefined,
@@ -73,8 +73,8 @@ test('reported outcomes drive exact span status and metric outcome without chang
         await expect(
             tracePromise(
                 runtime,
-                'grotto.agent.turn',
-                { 'grotto.operation': 'test.interrupted' },
+                'haus.agent.turn',
+                { 'haus.operation': 'test.interrupted' },
                 async () => interrupted,
                 undefined,
                 undefined,
@@ -84,8 +84,8 @@ test('reported outcomes drive exact span status and metric outcome without chang
         await expect(
             tracePromise(
                 runtime,
-                'grotto.agent.turn',
-                { 'grotto.operation': 'test.callback-defect' },
+                'haus.agent.turn',
+                { 'haus.operation': 'test.callback-defect' },
                 async () => unclassifiable,
                 undefined,
                 () => {
@@ -101,7 +101,7 @@ test('reported outcomes drive exact span status and metric outcome without chang
         await expect(
             tracePromise(
                 disabledRuntime,
-                'grotto.agent.turn',
+                'haus.agent.turn',
                 {},
                 async () => interrupted,
                 undefined,
@@ -113,7 +113,7 @@ test('reported outcomes drive exact span status and metric outcome without chang
         const spansByOperation = new Map(
             spanExporter
                 .getFinishedSpans()
-                .map((span) => [span.attributes['grotto.operation'], span] as const)
+                .map((span) => [span.attributes['haus.operation'], span] as const)
         );
         expect(spansByOperation.get('test.completed')?.status.code).toBe(1);
         expect(spansByOperation.get('test.failed')?.status.code).toBe(2);
@@ -125,9 +125,7 @@ test('reported outcomes drive exact span status and metric outcome without chang
         const metrics = resourceMetrics.flatMap((resource) =>
             resource.scopeMetrics.flatMap((scope) => scope.metrics)
         );
-        const counts = metrics.find(
-            (metric) => metric.descriptor.name === 'grotto.operation.count'
-        );
+        const counts = metrics.find((metric) => metric.descriptor.name === 'haus.operation.count');
         expect(
             counts?.dataPoints.map((point) => [
                 point.attributes.operation,
@@ -143,7 +141,7 @@ test('reported outcomes drive exact span status and metric outcome without chang
         );
 
         const duration = metrics.find(
-            (metric) => metric.descriptor.name === 'grotto.operation.duration'
+            (metric) => metric.descriptor.name === 'haus.operation.duration'
         );
         expect(duration?.descriptor.unit).toBe('ms');
         if (!duration || duration.dataPointType !== DataPointType.HISTOGRAM) {
@@ -173,7 +171,7 @@ test('typed failures, defects, and interruption keep their Effect identities thr
     const runtime = ManagedRuntime.make(
         makeTelemetryLayer({
             metricReader,
-            serviceName: 'grotto-test',
+            serviceName: 'haus-test',
             spanProcessor: new SimpleSpanProcessor(exporter),
         })
     );
@@ -183,22 +181,22 @@ test('typed failures, defects, and interruption keep their Effect identities thr
     try {
         const failureExit = await runtime.runPromiseExit(
             Effect.fail(failure).pipe(
-                withTelemetrySpan('grotto.mcp.operation', {
-                    'grotto.operation': 'test.effect.failure',
+                withTelemetrySpan('haus.mcp.operation', {
+                    'haus.operation': 'test.effect.failure',
                 })
             )
         );
         const defectExit = await runtime.runPromiseExit(
             Effect.die(defect).pipe(
-                withTelemetrySpan('grotto.mcp.operation', {
-                    'grotto.operation': 'test.effect.defect',
+                withTelemetrySpan('haus.mcp.operation', {
+                    'haus.operation': 'test.effect.defect',
                 })
             )
         );
         const interruptionExit = await runtime.runPromiseExit(
             Effect.interrupt.pipe(
-                withTelemetrySpan('grotto.mcp.operation', {
-                    'grotto.operation': 'test.effect.interruption',
+                withTelemetrySpan('haus.mcp.operation', {
+                    'haus.operation': 'test.effect.interruption',
                 })
             )
         );
@@ -219,7 +217,7 @@ test('typed failures, defects, and interruption keep their Effect identities thr
         const spansByOperation = new Map(
             exporter
                 .getFinishedSpans()
-                .map((span) => [span.attributes['grotto.operation'], span] as const)
+                .map((span) => [span.attributes['haus.operation'], span] as const)
         );
         expect(spansByOperation.get('test.effect.failure')?.status.code).toBe(2);
         expect(spansByOperation.get('test.effect.defect')?.status.code).toBe(2);
@@ -239,7 +237,7 @@ test('typed failures, defects, and interruption keep their Effect identities thr
             .getMetrics()
             .flatMap((resource) => resource.scopeMetrics)
             .flatMap((scope) => scope.metrics)
-            .find((metric) => metric.descriptor.name === 'grotto.operation.count')
+            .find((metric) => metric.descriptor.name === 'haus.operation.count')
             ?.dataPoints.map((point) => [point.attributes.operation, point.attributes.outcome]);
         expect(outcomes).toEqual(
             expect.arrayContaining([

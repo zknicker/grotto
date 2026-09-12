@@ -14,25 +14,25 @@ const heredocOpener = /\s*<<-?\s*(['"]?)[A-Za-z_][\w-]*\1\s*$/u;
 const doubleQuoteEscape = /\\(["$\\`])/gu;
 
 /**
- * Real `grotto` commands, from the Agent CLI's own dispatcher
- * (`apps/computer/src/agent-cli.ts`). A Grotto verb is product activity that
+ * Real `haus` commands, from the Agent CLI's own dispatcher
+ * (`apps/computer/src/agent-cli.ts`). A Haus verb is product activity that
  * happens to be typed at a shell, so it reads as the verb.
  */
-const grottoVerbs: Record<string, string> = {
-    ask: 'Asked a question with grotto',
-    'inbox check': 'Checked inbox with grotto',
-    'message check': 'Checked messages with grotto',
-    'message react': 'Reacted to a message with grotto',
-    'message read': 'Read messages with grotto',
-    'message resolve': 'Looked up a message with grotto',
-    'message search': 'Searched messages with grotto',
-    'message send': 'Sent a message with grotto',
-    'task claim': 'Claimed a task with grotto',
-    'task create': 'Created a task with grotto',
-    'task list': 'Listed tasks with grotto',
-    'task unclaim': 'Released a task with grotto',
-    'task update': 'Updated a task with grotto',
-    'thread unfollow': 'Unfollowed a thread with grotto',
+const hausVerbs: Record<string, string> = {
+    ask: 'Asked a question with haus',
+    'inbox check': 'Checked inbox with haus',
+    'message check': 'Checked messages with haus',
+    'message react': 'Reacted to a message with haus',
+    'message read': 'Read messages with haus',
+    'message resolve': 'Looked up a message with haus',
+    'message search': 'Searched messages with haus',
+    'message send': 'Sent a message with haus',
+    'task claim': 'Claimed a task with haus',
+    'task create': 'Created a task with haus',
+    'task list': 'Listed tasks with haus',
+    'task unclaim': 'Released a task with haus',
+    'task update': 'Updated a task with haus',
+    'thread unfollow': 'Unfollowed a thread with haus',
 };
 
 export function formatShellLabel(command: string): string {
@@ -42,7 +42,7 @@ export function formatShellLabel(command: string): string {
         return 'Ran a command';
     }
 
-    return readGrottoVerb(summary) ?? `Ran ${clampLabel(summary)}`;
+    return readHausVerb(summary) ?? `Ran ${clampLabel(summary)}`;
 }
 
 /** The command a person would recognize: unwrapped, first line, one space. */
@@ -82,16 +82,16 @@ function readQuoted(value: string): string {
     return quote === '"' ? inner.replace(doubleQuoteEscape, '$1') : inner;
 }
 
-function readGrottoVerb(summary: string): string | null {
-    if (!summary.startsWith('grotto ')) {
+function readHausVerb(summary: string): string | null {
+    if (!summary.startsWith('haus ')) {
         return null;
     }
 
-    const words = summary.slice('grotto '.length).split(' ');
+    const words = summary.slice('haus '.length).split(' ');
     const group = words[0] ?? '';
     const subcommand = words[1]?.startsWith('-') ? '' : (words[1] ?? '');
 
-    return grottoVerbs[`${group} ${subcommand}`.trim()] ?? grottoVerbs[group] ?? null;
+    return hausVerbs[`${group} ${subcommand}`.trim()] ?? hausVerbs[group] ?? null;
 }
 
 function clampLabel(summary: string): string {

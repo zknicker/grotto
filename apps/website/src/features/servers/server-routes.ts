@@ -1,4 +1,4 @@
-/** Grotto servers are addressed by their immutable slug. */
+/** Haus servers are addressed by their immutable slug. */
 export const serversRoute = '/s';
 
 export function serverRoute(slug: string) {
@@ -97,17 +97,17 @@ export function invitationRoute(token: string) {
     return `/invite/${token}`;
 }
 
-export function invitationLink(token: string, appOrigin = grottoAppOrigin()) {
+export function invitationLink(token: string, appOrigin = hausAppOrigin()) {
     return appLink(invitationRoute(token), appOrigin);
 }
 
-/** An absolute App URL, for a link a human copies somewhere outside Grotto. */
-export function appLink(route: string, appOrigin = grottoAppOrigin()) {
+/** An absolute App URL, for a link a human copies somewhere outside Haus. */
+export function appLink(route: string, appOrigin = hausAppOrigin()) {
     return new URL(route, appOrigin).toString();
 }
 
-function grottoAppOrigin() {
-    const configured = import.meta.env.VITE_GROTTO_APP_ORIGIN;
+function hausAppOrigin() {
+    const configured = import.meta.env.VITE_HAUS_APP_ORIGIN;
 
     if (configured) {
         return configured;
@@ -118,6 +118,6 @@ function grottoAppOrigin() {
     }
 
     throw new Error(
-        'VITE_GROTTO_APP_ORIGIN is required to create absolute App links in the desktop App.'
+        'VITE_HAUS_APP_ORIGIN is required to create absolute App links in the desktop App.'
     );
 }

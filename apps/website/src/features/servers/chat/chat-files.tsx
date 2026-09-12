@@ -1,4 +1,4 @@
-import type { ChatMessage } from '@grotto/api';
+import type { ChatMessage } from '@haus/api';
 import { Button, Tooltip } from '@heroui/react';
 import { Attachment01Icon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';

@@ -5,7 +5,7 @@ import {
     type TriggerStatus,
     triggerInstructionMaxBytes,
     triggerTitleMaxLength,
-} from '@grotto/api';
+} from '@haus/api';
 import { formatRelativeTime } from '../../../lib/format.ts';
 
 /**

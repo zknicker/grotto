@@ -1,9 +1,9 @@
-import type { AgentCreateAgentInput } from '@grotto/api';
+import type { AgentCreateAgentInput } from '@haus/api';
 import { resolveAgentSendTarget } from '../agent-api/resolve-send-target.ts';
 import { findAgentMessageByNonce } from '../chats/agent-authored-message.ts';
 import { mentionsBareAgentHandle } from '../chats/bare-reference-tokens.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { suggestAvailableParticipantHandle } from '../servers/participant-handles.ts';
 import { requireCreationChannels } from './creation-channels.ts';
 import { AgentCreateAnnouncementMissingHandleError } from './errors.ts';
@@ -34,7 +34,7 @@ export interface AgentCreationPrecheck {
  * spends no generation, because the Agent it would illustrate already exists.
  */
 export async function precheckAgentCreation(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     input: AgentCreateAgentInput
 ): Promise<AgentCreationPrecheck> {

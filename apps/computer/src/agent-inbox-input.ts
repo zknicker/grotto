@@ -1,4 +1,4 @@
-import { cloudAgentWorkAttentionSchema } from '@grotto/api';
+import { cloudAgentWorkAttentionSchema } from '@haus/api';
 import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './launch.ts';
 
 export function parseInbox(value: unknown): AgentInboxItem[] | null {

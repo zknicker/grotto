@@ -2,7 +2,7 @@ import { type ChildProcessWithoutNullStreams, spawn as spawnProcess } from 'node
 import { mkdir } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import type { Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
-import { type EffectRuntime, settle } from '@grotto/effect';
+import { type EffectRuntime, settle } from '@haus/effect';
 import { Effect, Exit, Scope } from 'effect';
 
 const TERMINATION_GRACE_MS = 1000;

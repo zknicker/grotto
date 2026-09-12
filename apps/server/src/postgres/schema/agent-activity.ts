@@ -1,4 +1,4 @@
-import type { AgentActivityCategory, AgentActivityPhase, AgentActivityProducer } from '@grotto/api';
+import type { AgentActivityCategory, AgentActivityPhase, AgentActivityProducer } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
     check,

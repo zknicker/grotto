@@ -3,9 +3,9 @@ import {
     type AgentAvailability,
     type AgentReasoningEffort,
     type AgentStatus,
-    type GrottoAgentStatus,
-    grottoAgentVersion,
-} from '@grotto/api';
+    type HausAgentStatus,
+    hausAgentVersion,
+} from '@haus/api';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
 export interface ConfiguredAgentRow {
@@ -23,9 +23,9 @@ export interface ConfiguredAgentRow {
     desiredRuntimeId: string | null;
     displayName: string;
     dmChatId: string | null;
-    effectiveGrottoAgentAppliedAt: Date | null;
-    effectiveGrottoAgentStatus: GrottoAgentStatus | null;
-    effectiveGrottoAgentVersion: string | null;
+    effectiveHausAgentAppliedAt: Date | null;
+    effectiveHausAgentStatus: HausAgentStatus | null;
+    effectiveHausAgentVersion: string | null;
     effectiveMissing: string[] | null;
     effectiveModelId: string | null;
     effectiveReasoningEffort: AgentReasoningEffort | null;
@@ -100,14 +100,14 @@ export function toAgent(row: ConfiguredAgentRow): Agent {
         effectiveReportedAt: row.effectiveReportedAt?.toISOString() ?? null,
         effectiveRuntimeId: row.effectiveRuntimeId,
         factoryKind: row.factoryKind,
-        grottoAgent: {
-            appliedAt: row.effectiveGrottoAgentAppliedAt?.toISOString() ?? null,
-            appliedVersion: row.effectiveGrottoAgentVersion,
-            currentVersion: grottoAgentVersion,
+        hausAgent: {
+            appliedAt: row.effectiveHausAgentAppliedAt?.toISOString() ?? null,
+            appliedVersion: row.effectiveHausAgentVersion,
+            currentVersion: hausAgentVersion,
             status:
-                row.effectiveGrottoAgentVersion === grottoAgentVersion
+                row.effectiveHausAgentVersion === hausAgentVersion
                     ? 'current'
-                    : row.effectiveGrottoAgentStatus === 'failed'
+                    : row.effectiveHausAgentStatus === 'failed'
                       ? 'failed'
                       : 'pending',
         },

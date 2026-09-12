@@ -1,6 +1,6 @@
-import type { ServerMember } from '@grotto/api';
-import type { GrottoDatabase } from '../postgres/connection.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { ServerMember } from '@haus/api';
+import type { HausDatabase } from '../postgres/connection.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import {
     findCurrentMembership,
     ServerMemberNotFoundError,
@@ -10,8 +10,8 @@ import { requireServerMembership } from './server-access.ts';
 
 /** One current human member, readable by any other current Server member. */
 export async function getServerMember(
-    db: GrottoDatabase,
-    viewer: GrottoUser | null,
+    db: HausDatabase,
+    viewer: HausUser | null,
     serverId: string,
     userId: string
 ): Promise<ServerMember> {

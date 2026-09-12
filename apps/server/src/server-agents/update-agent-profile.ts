@@ -1,15 +1,15 @@
-import type { Agent, UpdateAgentProfileInput } from '@grotto/api';
+import type { Agent, UpdateAgentProfileInput } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { AgentConfigDeniedError } from './agent-config-errors.ts';
 import { listAgents } from './list-agents.ts';
 
 export async function updateAgentProfile(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: UpdateAgentProfileInput
 ): Promise<Agent> {
     const server = await requireServerMembership(db, member, input.serverId);

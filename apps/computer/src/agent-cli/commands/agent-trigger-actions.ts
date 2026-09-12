@@ -12,7 +12,7 @@ import {
     triggerKindSchema,
     triggerLogLimitMax,
     triggerTitleMaxLength,
-} from '@grotto/api';
+} from '@haus/api';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { formatLocalTime } from '../agent-format.ts';

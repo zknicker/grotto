@@ -1,6 +1,6 @@
-import type { CloudAgentReconcileEntry } from '@grotto/api';
+import type { CloudAgentReconcileEntry } from '@haus/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 
 /**
@@ -10,7 +10,7 @@ import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts'
  * an observation: work that settled during the outage settles here too.
  */
 export async function listComputerCloudAgentWork(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     input: { computerId: string; serverId: string; workId?: string }
 ): Promise<CloudAgentReconcileEntry[]> {
     const rows = await db

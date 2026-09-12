@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 const defaultWebsitePort = '3100';
-const defaultGrottoPort = '8090';
+const defaultHausPort = '8090';
 const devPortGroupBase = 20_000;
 const devPortGroupCount = 8000;
 
@@ -12,31 +12,29 @@ export function resolveDevPorts({
     websitePort,
 } = {}) {
     const useIsolatedGroup = Boolean(
-        repositoryRoot ??
-            baseEnvironment.GROTTO_DEV_PORT_BASE ??
-            baseEnvironment.GROTTO_DEV_STACK_ID
+        repositoryRoot ?? baseEnvironment.HAUS_DEV_PORT_BASE ?? baseEnvironment.HAUS_DEV_STACK_ID
     );
     const portBase = useIsolatedGroup
         ? resolveDevPortBase({ baseEnvironment, repositoryRoot: repositoryRoot ?? process.cwd() })
         : null;
     const resolvedWebsitePort =
         websitePort ??
-        baseEnvironment.GROTTO_WEBSITE_PORT ??
+        baseEnvironment.HAUS_WEBSITE_PORT ??
         port ??
         (hasExplicitDevPortInput({ baseEnvironment, port, websitePort })
             ? defaultWebsitePort
             : portBase === null
               ? defaultWebsitePort
               : String(portBase));
-    const resolvedGrottoPort =
-        baseEnvironment.GROTTO_SERVER_PORT ??
+    const resolvedHausPort =
+        baseEnvironment.HAUS_SERVER_PORT ??
         (port
             ? incrementPortBy(port, 3)
             : hasExplicitDevPortInput({ baseEnvironment, port, websitePort }) || portBase === null
-              ? defaultGrottoPort
+              ? defaultHausPort
               : String(portBase + 3));
     return {
-        grottoPort: parsePort(resolvedGrottoPort, 'Server port'),
+        hausPort: parsePort(resolvedHausPort, 'Server port'),
         websitePort: parsePort(resolvedWebsitePort, 'vite port'),
     };
 }
@@ -50,23 +48,23 @@ export function getDevEnvironment({ baseEnvironment = process.env, port, website
 
     return {
         ...baseEnvironment,
-        GROTTO_SERVER_PORT: resolvedPorts.grottoPort,
-        GROTTO_WEBSITE_PORT: resolvedPorts.websitePort,
+        HAUS_SERVER_PORT: resolvedPorts.hausPort,
+        HAUS_WEBSITE_PORT: resolvedPorts.websitePort,
     };
 }
 
 function resolveDevPortBase({ baseEnvironment, repositoryRoot }) {
-    const explicitBase = baseEnvironment.GROTTO_DEV_PORT_BASE;
+    const explicitBase = baseEnvironment.HAUS_DEV_PORT_BASE;
     if (explicitBase) {
         const parsed = Number(parsePort(explicitBase, 'dev port base'));
         if (parsed > 65_532) {
-            throw new Error('Expected GROTTO_DEV_PORT_BASE to leave room for four dev ports.');
+            throw new Error('Expected HAUS_DEV_PORT_BASE to leave room for four dev ports.');
         }
         return parsed;
     }
 
-    const portIdentity = baseEnvironment.GROTTO_DEV_STACK_ID
-        ? `stack:${baseEnvironment.GROTTO_DEV_STACK_ID}`
+    const portIdentity = baseEnvironment.HAUS_DEV_STACK_ID
+        ? `stack:${baseEnvironment.HAUS_DEV_STACK_ID}`
         : repositoryRoot;
     const digest = createHash('sha256').update(portIdentity).digest();
     const bucket = digest.readUInt32BE(0) % devPortGroupCount;
@@ -74,7 +72,7 @@ function resolveDevPortBase({ baseEnvironment, repositoryRoot }) {
 }
 
 function hasExplicitDevPortInput({ baseEnvironment, port, websitePort }) {
-    return Boolean(port ?? websitePort ?? baseEnvironment.GROTTO_WEBSITE_PORT);
+    return Boolean(port ?? websitePort ?? baseEnvironment.HAUS_WEBSITE_PORT);
 }
 
 function incrementPortBy(value, offset) {

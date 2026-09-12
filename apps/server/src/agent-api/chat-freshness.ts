@@ -1,7 +1,7 @@
 import { and, eq, gt, ne, or, sql } from 'drizzle-orm';
 import { advanceSeenCursor, readAgentInboxCursor } from '../agent-delivery/cursors.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentInboxExactVisibilityTable,
     chatMessagesTable,
@@ -15,7 +15,7 @@ import { AgentChatViewStaleError } from './chat-freshness-errors.ts';
  * the same query shape for the Task lane.
  */
 export async function assertFreshAgentView(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     chatId: string
 ) {

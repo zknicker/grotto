@@ -1,7 +1,7 @@
-import { TRIGGER_HISTORY_RETENTION_DAYS } from '@grotto/api';
+import { TRIGGER_HISTORY_RETENTION_DAYS } from '@haus/api';
 import { and, eq, isNotNull, lt, ne, notExists } from 'drizzle-orm';
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, triggerFiresTable, triggersTable } from '../postgres/schema.ts';
 import type { TriggerClock } from './trigger-model.ts';
 
@@ -14,10 +14,7 @@ const retentionMs = TRIGGER_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000;
  * after removal, while each fire expires on its own received-at clock. A
  * non-seen trigger inbox row keeps both records until the Agent settles it.
  */
-export async function deleteExpiredTriggerHistory(
-    db: GrottoDatabase,
-    now: Date
-): Promise<string[]> {
+export async function deleteExpiredTriggerHistory(db: HausDatabase, now: Date): Promise<string[]> {
     const expiredBefore = new Date(now.getTime() - retentionMs);
     const triggerAwake = db
         .select({ id: agentInboxTable.id })
@@ -69,7 +66,7 @@ export async function deleteExpiredTriggerHistory(
 
 /** Runs retention on boot and hourly after that. */
 export function startTriggerRetentionSweep(
-    db: GrottoDatabase,
+    db: HausDatabase,
     clock: TriggerClock,
     timers?: SweepTimers
 ): BootSweep {

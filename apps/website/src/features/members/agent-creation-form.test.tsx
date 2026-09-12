@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { ReportedComputer } from './agent-creation-contract.ts';
 import { AgentCreationForm } from './agent-creation-form.tsx';

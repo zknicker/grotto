@@ -1,4 +1,4 @@
-import type { CloudAgentProvider } from '@grotto/api';
+import type { CloudAgentProvider } from '@haus/api';
 import { toast } from '@heroui/react';
 import type { ModelProviderLogoSource } from '../../components/badges/model-provider-logo.tsx';
 import { openExternalLink } from '../../lib/open-external-link.ts';
@@ -41,7 +41,7 @@ export function cloudAgentProviderName(provider: CloudAgentProvider): string {
     return cloudAgentProviderPresentation[provider].name;
 }
 
-/** The one wording for the control that leaves Grotto for the provider. */
+/** The one wording for the control that leaves Haus for the provider. */
 export function openInCloudAgentProviderLabel(provider: CloudAgentProvider): string {
     return `Open in ${cloudAgentProviderName(provider)}`;
 }

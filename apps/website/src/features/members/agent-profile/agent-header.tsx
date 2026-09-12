@@ -1,10 +1,10 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { Chip } from '@heroui/react';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgentAvatar } from '../../../hooks/members/use-agent-avatar.ts';
 import { useAgentIdentity } from '../../../hooks/members/use-agent-identity.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
 import { availabilityLabel } from '../../computers/presentation.ts';
 import { MemberProfileHeader } from '../member-profile-header.tsx';

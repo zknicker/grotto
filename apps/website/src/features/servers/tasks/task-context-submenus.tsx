@@ -1,4 +1,4 @@
-import type { TaskAssignee, TaskLabel } from '@grotto/api';
+import type { TaskAssignee, TaskLabel } from '@haus/api';
 import { Label } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
 import {

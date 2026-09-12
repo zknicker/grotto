@@ -1,4 +1,4 @@
-import { grottoTrpc } from '../../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../../lib/haus-server.tsx';
 import type { ChatEventInvalidation } from './chat-event-invalidation.ts';
 import { useChatEvent } from './use-chat-event-stream.tsx';
 
@@ -7,7 +7,7 @@ import { useChatEvent } from './use-chat-event-stream.tsx';
  * label catalog and every task read.
  */
 export function useTaskLabelEvents() {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
     useChatEvent('task.label.updated', async (_events, serverId) => {
         await invalidateTaskLabelChanges({ serverId, utils });

@@ -1,5 +1,5 @@
 import { and, eq, inArray, ne, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentInboxCursorsTable,
     agentInboxExactVisibilityTable,
@@ -9,7 +9,7 @@ import {
     reminderAgentAttentionTable,
 } from '../postgres/schema.ts';
 
-export async function readAgentSessionGeneration(db: GrottoDatabase, agentId: string) {
+export async function readAgentSessionGeneration(db: HausDatabase, agentId: string) {
     const [agent] = await db
         .select({ generation: agentsTable.sessionGeneration })
         .from(agentsTable)
@@ -22,7 +22,7 @@ export async function readAgentSessionGeneration(db: GrottoDatabase, agentId: st
 }
 
 export async function readAgentInboxCursor(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; chatId: string; serverId: string }
 ) {
     const generation = await readAgentSessionGeneration(db, input.agentId);
@@ -43,7 +43,7 @@ export async function readAgentInboxCursor(
 
 /** Advances only a verified contiguous model-visible boundary. */
 export async function advanceSeenCursor(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; chatId: string; sequence: number; serverId: string }
 ) {
     if (!(Number.isInteger(input.sequence) && input.sequence > 0)) {
@@ -74,7 +74,7 @@ export async function advanceSeenCursor(
 }
 
 export async function recordExactMessagesServed(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         agentId: string;
         messages: Array<{ chatId: string; id: string }>;
@@ -113,7 +113,7 @@ export async function recordExactMessagesServed(
 }
 
 export async function advanceSeenForRun(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; runId: string; serverId: string }
 ) {
     const generation = await readAgentSessionGeneration(db, input.agentId);
@@ -185,7 +185,7 @@ export async function advanceSeenForRun(
 
 /** Retires queued rows covered by a verified contiguous seen boundary. */
 export async function markCursorSubsumedSeen(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; serverId: string }
 ) {
     const generation = await readAgentSessionGeneration(db, input.agentId);

@@ -1,13 +1,13 @@
-import { cloudAgentPullRequestNumber } from '@grotto/api';
+import { cloudAgentPullRequestNumber } from '@haus/api';
 import { Markdown } from '@heroui-pro/react/markdown';
 import * as React from 'react';
 import { MarkdownLink } from '../chats/chat-inline-markdown-link.tsx';
-import { parseGrottoResourceLink } from '../chats/grotto-resource-link.ts';
+import { parseHausResourceLink } from '../chats/haus-resource-link.ts';
 import { areMentionsEqual, readMentionsFromMarkdown } from './mention-metadata.ts';
 import type { Mention, ReferenceActivation } from './mention-types.ts';
 import { ReferenceChip } from './reference-chip.tsx';
 
-const referenceOrigin = 'https://references.grotto.invalid';
+const referenceOrigin = 'https://references.haus.invalid';
 const markdownLinkPattern = /\[([^\]\n]+)\]\(([^)\n]+)\)/gu;
 
 type PreparedLink = { href: string; kind: 'resource' } | { kind: 'reference'; reference: Mention };
@@ -94,7 +94,7 @@ export function prepareMarkdownReferences(content: string, suppliedMentions?: re
         }
 
         const reference = mentionsByStart.get(start);
-        const resource = parseGrottoResourceLink(target);
+        const resource = parseHausResourceLink(target);
 
         if (!(reference || resource)) {
             continue;

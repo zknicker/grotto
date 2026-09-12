@@ -14,9 +14,9 @@ export interface AgentSessionState {
     cumulativeTokenUsage: AgentSessionTokenUsage | null;
     effectiveModel: { modelId: string; runtimeId: string };
     generation: number;
-    grottoAgentAppliedAt: string | null;
-    grottoAgentStatus: 'current' | 'failed' | 'pending';
-    grottoAgentVersion: string | null;
+    hausAgentAppliedAt: string | null;
+    hausAgentStatus: 'current' | 'failed' | 'pending';
+    hausAgentVersion: string | null;
     instructionFingerprint: string | null;
     resumeState: Record<string, unknown> | null;
     runtimeSessionId: string | null;
@@ -45,9 +45,9 @@ export async function readAgentSessionState(agentRoot: string): Promise<AgentSes
                 ...parsed,
                 bootstrapFingerprint: parseFingerprint(parsed.bootstrapFingerprint),
                 cumulativeTokenUsage: parseTokenUsage(parsed.cumulativeTokenUsage),
-                grottoAgentAppliedAt: parseTimestamp(parsed.grottoAgentAppliedAt),
-                grottoAgentStatus: parseGrottoAgentStatus(parsed.grottoAgentStatus),
-                grottoAgentVersion: parseSemver(parsed.grottoAgentVersion),
+                hausAgentAppliedAt: parseTimestamp(parsed.hausAgentAppliedAt),
+                hausAgentStatus: parseHausAgentStatus(parsed.hausAgentStatus),
+                hausAgentVersion: parseSemver(parsed.hausAgentVersion),
                 instructionFingerprint: parseFingerprint(parsed.instructionFingerprint),
             };
         }
@@ -89,9 +89,9 @@ export function resolveTurnSession(
             cumulativeTokenUsage: emptyTokenUsage(),
             effectiveModel: { modelId: assigned.modelId, runtimeId: assigned.runtimeId },
             generation: assigned.generation,
-            grottoAgentAppliedAt: null,
-            grottoAgentStatus: 'pending',
-            grottoAgentVersion: null,
+            hausAgentAppliedAt: null,
+            hausAgentStatus: 'pending',
+            hausAgentVersion: null,
             instructionFingerprint: null,
             resumeState: null,
             runtimeSessionId: null,
@@ -104,7 +104,7 @@ function parseFingerprint(value: unknown): string | null {
     return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
-function parseGrottoAgentStatus(value: unknown): AgentSessionState['grottoAgentStatus'] {
+function parseHausAgentStatus(value: unknown): AgentSessionState['hausAgentStatus'] {
     return value === 'current' || value === 'failed' || value === 'pending' ? value : 'pending';
 }
 

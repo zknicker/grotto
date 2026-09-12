@@ -1,5 +1,5 @@
 import type { MCPClient } from '@ai-sdk/mcp';
-import { type EffectRuntime, settle } from '@grotto/effect';
+import { type EffectRuntime, settle } from '@haus/effect';
 import * as Effect from 'effect/Effect';
 import * as Exit from 'effect/Exit';
 import * as Scope from 'effect/Scope';

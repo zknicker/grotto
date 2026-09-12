@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cloud Agent environment install for Grotto.
+# Cloud Agent environment install for Haus.
 # Runs during Builds (and dependency refreshes) from the repository root.
 # Must be idempotent: it can run repeatedly on top of prepared disk state.
 #
@@ -45,7 +45,7 @@ fi
 # server test harness only auto-discover Homebrew paths (or bare PATH) for these
 # tools, so without this any PostgreSQL-backed lane invoked from a plain shell
 # (`bun run test:app`, `apps/server` tests, evals) fails to find them unless
-# GROTTO_POSTGRES_BIN is set by hand.
+# HAUS_POSTGRES_BIN is set by hand.
 echo "==> Exposing PostgreSQL 16 binaries on PATH"
 for pg_bin in postgres initdb pg_ctl pg_isready psql createdb; do
     if [ -x "/usr/lib/postgresql/16/bin/${pg_bin}" ]; then

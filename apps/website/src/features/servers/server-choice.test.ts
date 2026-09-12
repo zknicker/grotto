@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import type { Chat } from '@grotto/api';
-import type { ServerSummary } from '../../lib/grotto-server.tsx';
+import type { Chat } from '@haus/api';
+import type { ServerSummary } from '../../lib/haus-server.tsx';
 import {
     lastServerSlugStorageKey,
     parseInvitationToken,
@@ -69,7 +69,7 @@ describe('invitation entry', () => {
     test('accepts a token, invitation path, or invitation URL', () => {
         expect(parseInvitationToken('secret')).toBe('secret');
         expect(parseInvitationToken('/invite/path-token')).toBe('path-token');
-        expect(parseInvitationToken('https://grotto.test/invite/url-token')).toBe('url-token');
+        expect(parseInvitationToken('https://haus.test/invite/url-token')).toBe('url-token');
         expect(parseInvitationToken('  ')).toBeNull();
     });
 });

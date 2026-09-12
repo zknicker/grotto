@@ -1,4 +1,4 @@
-import type { AgentSkillImportRecord, AgentSkillMetadata, ImportableSkill } from '@grotto/api';
+import type { AgentSkillImportRecord, AgentSkillMetadata, ImportableSkill } from '@haus/api';
 import { Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';

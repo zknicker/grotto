@@ -1,4 +1,4 @@
-import type { MessageTask, ServerDurableEvent } from '@grotto/api';
+import type { MessageTask, ServerDurableEvent } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
@@ -6,7 +6,7 @@ import { requireActiveDmPeer } from '../chats/active-dm-peer.ts';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { findChatAccess, requireChatWriteAccess } from '../chats/chat-access.ts';
 import { ChatNonceConflictError } from '../chats/send-message.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     chatEventsTable,
@@ -17,7 +17,7 @@ import {
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { TaskAdminRequiredError } from './assign-task.ts';
 import { TaskNotFoundError } from './claim-task.ts';
 import { UntaskableMessageError } from './promote-task.ts';
@@ -33,8 +33,8 @@ export interface CreateTaskResult {
 }
 
 export async function createTask(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: {
         assigneeUserId?: string;
         chatId: string;

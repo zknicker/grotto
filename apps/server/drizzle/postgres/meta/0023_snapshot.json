@@ -2084,20 +2084,20 @@
           "primaryKey": false,
           "notNull": true
         },
-        "effective_grotto_agent_applied_at": {
-          "name": "effective_grotto_agent_applied_at",
+        "effective_haus_agent_applied_at": {
+          "name": "effective_haus_agent_applied_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
-        "effective_grotto_agent_status": {
-          "name": "effective_grotto_agent_status",
+        "effective_haus_agent_status": {
+          "name": "effective_haus_agent_status",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "effective_grotto_agent_version": {
-          "name": "effective_grotto_agent_version",
+        "effective_haus_agent_version": {
+          "name": "effective_haus_agent_version",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -2275,9 +2275,9 @@
           "name": "agents_factory_kind",
           "value": "\"agents\".\"factory_kind\" in ('ordinary', 'cove')"
         },
-        "agents_grotto_agent_status": {
-          "name": "agents_grotto_agent_status",
-          "value": "\"agents\".\"effective_grotto_agent_status\" is null or \"agents\".\"effective_grotto_agent_status\" in ('current', 'failed', 'pending')"
+        "agents_haus_agent_status": {
+          "name": "agents_haus_agent_status",
+          "value": "\"agents\".\"effective_haus_agent_status\" is null or \"agents\".\"effective_haus_agent_status\" in ('current', 'failed', 'pending')"
         },
         "agents_positive_session_generation": {
           "name": "agents_positive_session_generation",
@@ -2289,7 +2289,7 @@
         },
         "agents_handle_grammar": {
           "name": "agents_handle_grammar",
-          "value": "\"agents\".\"handle\" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and ((\"agents\".\"factory_kind\" = 'cove' and \"agents\".\"handle\" = 'cove') or lower(\"agents\".\"handle\") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'grotto', 'here', 'human', 'humans', 'idle', 'system'))"
+          "value": "\"agents\".\"handle\" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and ((\"agents\".\"factory_kind\" = 'cove' and \"agents\".\"handle\" = 'cove') or lower(\"agents\".\"handle\") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system'))"
         },
         "agents_description_length": {
           "name": "agents_description_length",
@@ -6631,7 +6631,7 @@
         },
         "server_memberships_handle_grammar": {
           "name": "server_memberships_handle_grammar",
-          "value": "\"server_memberships\".\"handle\" is null or (\"server_memberships\".\"handle\" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and lower(\"server_memberships\".\"handle\") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'grotto', 'here', 'human', 'humans', 'idle', 'system'))"
+          "value": "\"server_memberships\".\"handle\" is null or (\"server_memberships\".\"handle\" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and lower(\"server_memberships\".\"handle\") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system'))"
         }
       },
       "isRLSEnabled": false

@@ -1,4 +1,4 @@
-import type { ServerDetail } from '../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../lib/haus-server.tsx';
 
 export type CoveOnboardingView =
     | 'app'
@@ -76,7 +76,7 @@ export function getCoveRepairGuidance(
 ): CoveRepairGuidance {
     if (failure?.code === 'computer-disconnected') {
         return {
-            command: 'grotto-computer start',
+            command: 'haus-computer start',
             note: reconnectResumesNote,
             remedy: 'Start Haus Computer on the Mac it runs on.',
             title: 'This Computer is offline',
@@ -84,7 +84,7 @@ export function getCoveRepairGuidance(
     }
     if (failure?.code === 'computer-incompatible') {
         return {
-            command: 'grotto-computer upgrade',
+            command: 'haus-computer upgrade',
             note: reconnectResumesNote,
             remedy: 'Update Haus Computer on the Mac it runs on.',
             title: 'Haus Computer needs an update',
@@ -100,7 +100,7 @@ export function getCoveRepairGuidance(
     }
     if (failure?.code === 'inventory-invalid') {
         return {
-            command: 'grotto-computer upgrade',
+            command: 'haus-computer upgrade',
             note: reconnectResumesNote,
             remedy: 'Update Haus Computer on the Mac it runs on.',
             title: 'This Computer needs an update before Cove can start',
@@ -108,7 +108,7 @@ export function getCoveRepairGuidance(
     }
     if (failure?.code === 'application-failed') {
         return {
-            command: 'grotto-computer logs',
+            command: 'haus-computer logs',
             note: null,
             remedy: 'Press Try again. If it fails again, check the Computer’s local logs on that Mac.',
             title: 'Cove’s setup didn’t finish',

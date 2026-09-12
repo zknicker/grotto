@@ -1,6 +1,6 @@
-import type { ComputerInventory } from '@grotto/api';
+import type { ComputerInventory } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable } from '../postgres/schema.ts';
 import { AgentConfigDeniedError } from './agent-config-errors.ts';
 
@@ -15,7 +15,7 @@ interface AssignedComputer {
  * configuration can never reference another Server's compute.
  */
 export async function resolveAssignedComputer(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     input: { computerId: string; serverId: string }
 ): Promise<AssignedComputer> {
     const [computer] = await db

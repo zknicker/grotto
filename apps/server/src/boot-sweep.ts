@@ -40,7 +40,7 @@ export function startBootSweep(options: {
             .then(() => undefined)
             .catch((error: unknown) => {
                 console.error(
-                    `[grotto] the ${options.name} failed`,
+                    `[haus] the ${options.name} failed`,
                     error instanceof Error ? error.name : 'unknown error'
                 );
             })

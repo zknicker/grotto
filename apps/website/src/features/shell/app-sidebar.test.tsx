@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Agent, Chat } from '@grotto/api';
+import type { Agent, Chat } from '@haus/api';
 import { Sidebar } from '@heroui-pro/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
@@ -22,7 +22,7 @@ test('hides a retired Agent DM from active navigation', () => {
                                 onPreloadSection={() => undefined}
                                 selectedChatId={undefined}
                                 serverId="server_one"
-                                slug="grotto"
+                                slug="haus"
                             />
                         </ShellSidebarPage>
                     </ShellSidebar>
@@ -49,7 +49,7 @@ test('hides the New agent action when no handler is given', () => {
                                 onPreloadSection={() => undefined}
                                 selectedChatId={undefined}
                                 serverId="server_one"
-                                slug="grotto"
+                                slug="haus"
                             />
                         </ShellSidebarPage>
                     </ShellSidebar>
@@ -76,7 +76,7 @@ test('shows the New agent action on Direct messages for a manager', () => {
                                 onPreloadSection={() => undefined}
                                 selectedChatId={undefined}
                                 serverId="server_one"
-                                slug="grotto"
+                                slug="haus"
                             />
                         </ShellSidebarPage>
                     </ShellSidebar>
@@ -112,7 +112,7 @@ test('renders each DM from its own Agent availability', () => {
                                 onPreloadSection={() => undefined}
                                 selectedChatId="chat_blippy"
                                 serverId="server_one"
-                                slug="grotto"
+                                slug="haus"
                             />
                         </ShellSidebarPage>
                     </ShellSidebar>
@@ -147,7 +147,7 @@ test('renders an active Agent as an implicit DM without a Chat row', () => {
                                 selectedAgentDmId={blippy.id}
                                 selectedChatId={undefined}
                                 serverId="server_one"
-                                slug="grotto"
+                                slug="haus"
                             />
                         </ShellSidebarPage>
                     </ShellSidebar>
@@ -157,7 +157,7 @@ test('renders an active Agent as an implicit DM without a Chat row', () => {
     );
 
     expect(markup).toContain('Blippy');
-    expect(markup).toContain(`/s/grotto/dm/${blippy.id}`);
+    expect(markup).toContain(`/s/haus/dm/${blippy.id}`);
     expect(markup.match(/Blippy/g)?.length).toBeGreaterThan(0);
 });
 
@@ -175,7 +175,7 @@ test('keeps a draggable channel row out of native window dragging without a hand
                                 onPreloadSection={() => undefined}
                                 selectedChatId={undefined}
                                 serverId="server_one"
-                                slug="grotto"
+                                slug="haus"
                             />
                         </ShellSidebarPage>
                     </ShellSidebar>
@@ -209,7 +209,7 @@ test('keeps context-menu chat rows on the stock Sidebar icon gap', () => {
                                 onPreloadSection={() => undefined}
                                 selectedChatId={undefined}
                                 serverId="server_one"
-                                slug="grotto"
+                                slug="haus"
                             />
                         </ShellSidebarPage>
                     </ShellSidebar>
@@ -242,7 +242,7 @@ test('keeps unread count chips circular until the number needs a pill', () => {
                                 onPreloadSection={() => undefined}
                                 selectedChatId={undefined}
                                 serverId="server_one"
-                                slug="grotto"
+                                slug="haus"
                             />
                         </ShellSidebarPage>
                     </ShellSidebar>

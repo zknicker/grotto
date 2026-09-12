@@ -85,7 +85,7 @@ function navigationMarkup(options?: { needsYouCount?: number }) {
                                 onPreloadSection={() => undefined}
                                 selectedChatId={undefined}
                                 serverId="server_one"
-                                slug="grotto"
+                                slug="haus"
                             />
                         </ShellSidebarPage>
                     </ShellSidebar>

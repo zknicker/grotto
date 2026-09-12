@@ -1,4 +1,4 @@
-import type { Agent, AgentAvailability } from '@grotto/api';
+import type { Agent, AgentAvailability } from '@haus/api';
 import { Badge } from '@heroui/react';
 import type React from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';

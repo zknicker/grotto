@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { resolveDevPorts } from './dev-ports.mjs';
 
-export const startupEventPrefix = 'GROTTO_STARTUP_EVENT ';
+export const startupEventPrefix = 'HAUS_STARTUP_EVENT ';
 const ansiPattern = /\u001B\[[0-9;?]*[ -/]*[@-~]/gu;
 
 export function isDesktopMode(mode) {
@@ -24,18 +24,18 @@ export function createDevStackEnvironment({
 
     return {
         ...baseEnvironment,
-        GROTTO_ATTACHMENT_ROOT: baseEnvironment.GROTTO_ATTACHMENT_ROOT ?? statePaths.attachmentRoot,
-        GROTTO_COMPUTER_DATA_ROOT:
-            baseEnvironment.GROTTO_COMPUTER_DATA_ROOT ?? statePaths.computerDataRoot,
-        GROTTO_POSTGRES_DATA_ROOT:
-            baseEnvironment.GROTTO_POSTGRES_DATA_ROOT ?? statePaths.postgresDataRoot,
-        GROTTO_POSTGRES_SOCKET_ROOT:
-            baseEnvironment.GROTTO_POSTGRES_SOCKET_ROOT ?? statePaths.postgresSocketRoot,
-        GROTTO_SERVER_PORT: baseEnvironment.GROTTO_SERVER_PORT ?? resolvedPorts.grottoPort,
-        GROTTO_SERVER_ORIGIN:
-            baseEnvironment.GROTTO_SERVER_ORIGIN ?? `http://127.0.0.1:${resolvedPorts.grottoPort}`,
-        GROTTO_DEV_STACK: baseEnvironment.GROTTO_DEV_STACK ?? '1',
-        GROTTO_WEBSITE_PORT: baseEnvironment.GROTTO_WEBSITE_PORT ?? resolvedPorts.websitePort,
+        HAUS_ATTACHMENT_ROOT: baseEnvironment.HAUS_ATTACHMENT_ROOT ?? statePaths.attachmentRoot,
+        HAUS_COMPUTER_DATA_ROOT:
+            baseEnvironment.HAUS_COMPUTER_DATA_ROOT ?? statePaths.computerDataRoot,
+        HAUS_POSTGRES_DATA_ROOT:
+            baseEnvironment.HAUS_POSTGRES_DATA_ROOT ?? statePaths.postgresDataRoot,
+        HAUS_POSTGRES_SOCKET_ROOT:
+            baseEnvironment.HAUS_POSTGRES_SOCKET_ROOT ?? statePaths.postgresSocketRoot,
+        HAUS_SERVER_PORT: baseEnvironment.HAUS_SERVER_PORT ?? resolvedPorts.hausPort,
+        HAUS_SERVER_ORIGIN:
+            baseEnvironment.HAUS_SERVER_ORIGIN ?? `http://127.0.0.1:${resolvedPorts.hausPort}`,
+        HAUS_DEV_STACK: baseEnvironment.HAUS_DEV_STACK ?? '1',
+        HAUS_WEBSITE_PORT: baseEnvironment.HAUS_WEBSITE_PORT ?? resolvedPorts.websitePort,
     };
 }
 
@@ -48,12 +48,12 @@ export function createDevStackConfig({
     const isDesktop = isDesktopMode(mode);
     const devEnvironment = createDevStackEnvironment({ baseEnvironment, ports, repositoryRoot });
     return {
-        appOrigin: devEnvironment.GROTTO_APP_ORIGIN ?? `http://localhost:${ports.websitePort}`,
+        appOrigin: devEnvironment.HAUS_APP_ORIGIN ?? `http://localhost:${ports.websitePort}`,
         desktopEnabled: isDesktop,
-        grottoServerUrl: `http://localhost:${ports.grottoPort}`,
-        postgresDataPath: shortenHomePath(devEnvironment.GROTTO_POSTGRES_DATA_ROOT),
+        hausServerUrl: `http://localhost:${ports.hausPort}`,
+        postgresDataPath: shortenHomePath(devEnvironment.HAUS_POSTGRES_DATA_ROOT),
         websiteUrl: `http://localhost:${ports.websitePort}`,
-        wsUrl: `ws://localhost:${ports.grottoPort}/trpc`,
+        wsUrl: `ws://localhost:${ports.hausPort}/trpc`,
     };
 }
 
@@ -106,7 +106,7 @@ export function assertDevStackPortsAvailable({ ports, repositoryRoot }) {
         {
             enabled: true,
             label: 'Server',
-            port: Number(ports.grottoPort),
+            port: Number(ports.hausPort),
         },
         {
             enabled: true,
@@ -140,10 +140,10 @@ export function cleanupStaleProcesses({
 }) {
     const definitions = [
         {
-            commandPattern: 'bun --watch src/grotto-server.ts',
+            commandPattern: 'bun --watch src/haus-server.ts',
             cwd: path.join(repositoryRoot, 'apps', 'server'),
             enabled: true,
-            port: Number(ports.grottoPort),
+            port: Number(ports.hausPort),
         },
         {
             commandPattern: 'vite',
@@ -226,7 +226,7 @@ export function stripAnsi(value) {
 
 export function createDevStackStatePaths({ baseEnvironment, repositoryRoot }) {
     const stackId =
-        baseEnvironment.GROTTO_DEV_STACK_ID ??
+        baseEnvironment.HAUS_DEV_STACK_ID ??
         `${path.basename(repositoryRoot)}-${hashString(repositoryRoot).slice(0, 8)}`;
     const appStateRoot = resolveDevStackStateRoot(stackId);
 
@@ -240,7 +240,7 @@ export function createDevStackStatePaths({ baseEnvironment, repositoryRoot }) {
 }
 
 function resolveDevStackStateRoot(stackId) {
-    return path.join(os.homedir(), '.grotto', 'dev', stackId);
+    return path.join(os.homedir(), '.haus', 'dev', stackId);
 }
 
 function shortenRepositoryPath(value, repositoryRoot) {

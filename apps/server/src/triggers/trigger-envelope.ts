@@ -1,4 +1,4 @@
-import { triggerPayloadExcerptMaxChars } from '@grotto/api';
+import { triggerPayloadExcerptMaxChars } from '@haus/api';
 import { automationReplyLine } from '../automations/automation-envelope.ts';
 
 export interface TriggerEnvelopeInput {

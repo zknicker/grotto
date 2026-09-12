@@ -61,7 +61,7 @@ function resolveInstallToken(name) {
     const result = spawnSync('bunx', [varlockSpec, 'printenv', name], {
         cwd: repositoryRoot,
         encoding: 'utf8',
-        env: { ...process.env, GROTTO_RESOLVE_INSTALL_TOKENS: 'true' },
+        env: { ...process.env, HAUS_RESOLVE_INSTALL_TOKENS: 'true' },
     });
     const value = result.status === 0 ? result.stdout.trim() : '';
     if (value) {

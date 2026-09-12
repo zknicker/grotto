@@ -5,7 +5,7 @@ import { CodeSnippet } from '../../components/code-snippet.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useCreateCove } from '../../hooks/servers/use-create-cove.ts';
-import type { ServerDetail } from '../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../lib/haus-server.tsx';
 import type { CoveOnboardingView } from './cove-onboarding-model.ts';
 import { getCoveRepairGuidance } from './cove-onboarding-model.ts';
 import { SwitchServerButton } from './cove-step-parts.tsx';

@@ -1,4 +1,4 @@
-import type { CloudAgentWork } from '@grotto/api';
+import type { CloudAgentWork } from '@haus/api';
 import { Button, ButtonGroup, Dropdown, Label, toast } from '@heroui/react';
 import {
     ArrowDown01Icon,

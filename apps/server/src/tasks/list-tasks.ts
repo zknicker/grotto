@@ -1,15 +1,15 @@
-import type { TaskList, TaskListItem, ThreadSummary } from '@grotto/api';
+import type { TaskList, TaskListItem, ThreadSummary } from '@haus/api';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { visibleChats } from '../chats/chat-visibility.ts';
 import { readMessageBodies } from '../chats/message-bodies.ts';
 import { readChatMessageReactions } from '../chats/message-reactions.ts';
 import { toChatMessage } from '../chats/message-shape.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageTasksTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
 import { threadChatIdForAnchor } from '../threads/thread-id.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { projectMessageTasks } from './task-shape.ts';
 
 /**
@@ -18,8 +18,8 @@ import { projectMessageTasks } from './task-shape.ts';
  * `includeBackground` widens the lens to everything.
  */
 export async function listTasks(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { chatId?: string; includeBackground: boolean; serverId: string }
 ): Promise<TaskList> {
     await requireServerMembership(db, member, input.serverId);

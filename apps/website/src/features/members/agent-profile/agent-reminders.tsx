@@ -1,11 +1,11 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { Button, Separator, Tooltip } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
 import { HistoryIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentReminders } from '../../../hooks/members/use-agent-reminders.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AgentLoading } from './agent-loading.tsx';
 import { formatReminderSchedule, scheduledReminders } from './agent-reminder-model.ts';
 import { ProfileListSection } from './profile-list-section.tsx';

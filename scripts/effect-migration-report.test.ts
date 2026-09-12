@@ -13,7 +13,7 @@ import {
 describe('Effect migration policy', () => {
     test('recognizes the shared Effect integration package', () => {
         const source = analyzeSource(
-            "import { settle } from '@grotto/effect'; settle(runtime, program); console.warn('x');"
+            "import { settle } from '@haus/effect'; settle(runtime, program); console.warn('x');"
         );
         expect(source.effect).toBe(true);
         expect(source.effectImportOnly).toBe(0);

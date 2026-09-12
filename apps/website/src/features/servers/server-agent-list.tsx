@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { Separator } from '@heroui/react';
 import * as React from 'react';
 import { Link } from 'react-router-dom';

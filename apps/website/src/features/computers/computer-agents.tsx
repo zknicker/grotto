@@ -5,14 +5,14 @@ import { useNavigate } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
-import type { GrottoOutputs } from '../../lib/grotto-server.tsx';
+import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { availabilityBadgeColor } from '../members/agent-avatar.tsx';
 import { agentProfileRoute } from '../servers/server-routes.ts';
 import { ComputerDataGridState } from './computer-data-grid-state.tsx';
 import { agentExecutionLabels, availabilityLabel } from './presentation.ts';
 
-type Agent = GrottoOutputs['agent']['list'][number];
-type Computer = GrottoOutputs['computer']['list'][number];
+type Agent = HausOutputs['agent']['list'][number];
+type Computer = HausOutputs['computer']['list'][number];
 
 interface ComputerAgentRow {
     availability: Agent['availability'];

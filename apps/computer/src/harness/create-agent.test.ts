@@ -13,12 +13,12 @@ for (const webAccess of [null, 'search', 'fetch-only', 'search-only'] as const) 
                 {
                     agentId: 'agt_constructor',
                     env: {},
-                    homeDir: '/tmp/grotto-constructor/home',
+                    homeDir: '/tmp/haus-constructor/home',
                     runtime,
                     runtimeId: 'claude-code',
                     tools: {},
                     webAccess,
-                    workspaceDir: '/tmp/grotto-constructor/workspace',
+                    workspaceDir: '/tmp/haus-constructor/workspace',
                 },
                 { harness: createClaudeCode(), instructions: 'Test.', skills: [] }
             )

@@ -1,4 +1,4 @@
-import type { AgentActivityEvent, AgentActivityPhase } from '@grotto/api';
+import type { AgentActivityEvent, AgentActivityPhase } from '@haus/api';
 import { formatShortTime } from '../../lib/format.ts';
 import { cn } from '../../lib/utils.ts';
 import { formatAgentActivityEvent } from '../members/agent-profile/agent-activity-model.ts';

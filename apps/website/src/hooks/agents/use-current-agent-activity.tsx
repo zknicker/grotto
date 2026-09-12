@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import { useAgents } from '../members/use-agents.ts';
 import {
@@ -26,12 +26,12 @@ const CurrentAgentActivityContext = React.createContext<CurrentAgentActivityCont
  * Activity History remains an independent read and is never invalidated here.
  */
 export function useCurrentAgentActivity(serverId: string | undefined) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
     const [liveState, setLiveState] = React.useState<{
         byAgentId: ReadonlyMap<string, CurrentAgentActivityLiveOverlay>;
         serverId: string | undefined;
     }>({ byAgentId: new Map(), serverId });
-    const query = grottoTrpc.agent.activeActivity.useQuery(
+    const query = hausTrpc.agent.activeActivity.useQuery(
         { serverId: serverId ?? '' },
         {
             ...queryPolicy.volatileState,
@@ -39,7 +39,7 @@ export function useCurrentAgentActivity(serverId: string | undefined) {
         }
     );
 
-    grottoTrpc.agent.onActivity.useSubscription(
+    hausTrpc.agent.onActivity.useSubscription(
         { serverId: serverId ?? '' },
         {
             enabled: serverId !== undefined,

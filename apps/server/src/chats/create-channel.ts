@@ -1,6 +1,6 @@
-import type { ChannelCreateInput, Chat, ServerDurableEvent } from '@grotto/api';
+import type { ChannelCreateInput, Chat, ServerDurableEvent } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -11,7 +11,7 @@ import {
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { insertLifecycleEvent } from './lifecycle-events.ts';
 import { listChats } from './list-chats.ts';
 
@@ -33,8 +33,8 @@ export interface CreatedChannel {
 }
 
 export async function createChannel(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: ChannelCreateInput
 ): Promise<CreatedChannel> {
     const created = await db.transaction(async (tx) => {

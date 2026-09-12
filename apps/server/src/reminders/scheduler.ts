@@ -1,8 +1,8 @@
-import type { ServerDurableEvent } from '@grotto/api';
+import type { ServerDurableEvent } from '@haus/api';
 import { and, asc, eq, lte, notInArray, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
@@ -29,7 +29,7 @@ import {
 import { retireQueuedReminderFires } from './retire-fires.ts';
 
 export async function tickReminders(
-    db: GrottoDatabase,
+    db: HausDatabase,
     clock: ReminderClock,
     delivery?: AgentDelivery
 ) {
@@ -69,7 +69,7 @@ export async function tickReminders(
 }
 
 async function fireNextDueReminder(
-    db: GrottoDatabase,
+    db: HausDatabase,
     now: Date,
     excludedReminderIds: string[],
     delivery?: AgentDelivery
@@ -246,7 +246,7 @@ async function fireNextDueReminder(
 }
 
 async function cancelIfUnauthorized(
-    db: GrottoDatabase,
+    db: HausDatabase,
     reminder: typeof remindersTable.$inferSelect,
     now: Date
 ): Promise<ServerDurableEvent | null> {
@@ -311,7 +311,7 @@ interface ReminderFireAttempt {
 }
 
 async function cancelUnauthorizedReminder(
-    db: GrottoDatabase,
+    db: HausDatabase,
     reminder: typeof remindersTable.$inferSelect,
     now: Date
 ) {

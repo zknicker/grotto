@@ -1,9 +1,9 @@
-import { computerHeartbeatAckSchema, computerHeartbeatConfigurationSchema } from '@grotto/api';
+import { computerHeartbeatAckSchema, computerHeartbeatConfigurationSchema } from '@haus/api';
 
 export {
     computerBootstrapProtocolVersion,
     computerProtocolVersion,
-} from '@grotto/api';
+} from '@haus/api';
 
 export type ComputerUpdatePhase =
     | 'available'

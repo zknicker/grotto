@@ -1,4 +1,4 @@
-import type { ChatMessageReceipt, ChatSendInput, ServerDurableEvent } from '@grotto/api';
+import type { ChatMessageReceipt, ChatSendInput, ServerDurableEvent } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
@@ -8,7 +8,7 @@ import {
     attachmentMetadata,
     requireMessageAttachments,
 } from '../attachments/message-attachments.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     chatEventsTable,
@@ -19,7 +19,7 @@ import {
 import { lockServerRow } from '../servers/server-lock.ts';
 import { ensureThread } from '../threads/ensure-thread.ts';
 import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { requireActiveDmPeer } from './active-dm-peer.ts';
 import { allocateEventCursor } from './allocate-event-cursor.ts';
 import { requireChatWriteAccess } from './chat-access.ts';
@@ -49,8 +49,8 @@ export interface SendChatMessageResult {
 }
 
 export async function sendChatMessage(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: ChatSendInput,
     agentDelivery: AgentDelivery
 ): Promise<SendChatMessageResult> {

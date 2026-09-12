@@ -1,5 +1,5 @@
 import { and, eq, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -13,7 +13,7 @@ export class AgentDmPeerNotFoundError extends Error {
 
 /** Materializes exactly one DM for one active human membership stint and Agent. */
 export async function ensureAgentDmRecord(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; serverId: string; userId: string }
 ) {
     await lockServerRow(db, input.serverId);

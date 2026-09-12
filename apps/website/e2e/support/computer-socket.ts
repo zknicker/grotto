@@ -1,4 +1,4 @@
-import { computerProtocolVersion } from '@grotto/api';
+import { computerProtocolVersion } from '@haus/api';
 
 /**
  * Just enough of a socket for these fixtures. Specs reach for the global
@@ -57,7 +57,7 @@ export function sendBootstrap(
             type: 'bootstrap',
             update: {
                 activeAgentCount: null,
-                detail: phase === 'complete' ? 'Grotto Computer updated successfully.' : null,
+                detail: phase === 'complete' ? 'Haus Computer updated successfully.' : null,
                 downloadedBytes: null,
                 failedPhase: null,
                 phase,

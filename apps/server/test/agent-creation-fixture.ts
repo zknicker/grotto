@@ -4,14 +4,14 @@ import {
     type AgentCreateAgentReceipt,
     type CreatedAgentSummary,
     suggestParticipantHandle,
-} from '@grotto/api';
+} from '@haus/api';
 import type {
     AvatarImageProvider,
     AvatarProviderRequest,
 } from '../src/avatar-generation/service.ts';
 import { AvatarGenerationUnavailableError } from '../src/avatar-generation/service.ts';
-import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
-import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
+import { createHausClient, type HausClient } from './haus-client.ts';
+import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
 /** One-pixel PNG: deterministic bytes, so no test ever reaches a real provider. */
 const deterministicPng = Uint8Array.from(
@@ -24,9 +24,9 @@ const deterministicPng = Uint8Array.from(
 export type AvatarProviderMode = 'fail' | 'success' | 'unavailable';
 
 export function agentCreationFixture() {
-    let harness: GrottoServerHarness;
-    let owner: GrottoClient;
-    let outsider: GrottoClient;
+    let harness: HausServerHarness;
+    let owner: HausClient;
+    let outsider: HausClient;
     let serverId: string;
     let otherServerId: string;
     let channelId: string;
@@ -59,9 +59,9 @@ export function agentCreationFixture() {
     };
 
     beforeAll(async () => {
-        harness = await startGrottoServerHarness({ avatarImageProvider });
-        owner = await signIn('user_agent_creation_owner', ['ada@grotto.test']);
-        outsider = await signIn('user_agent_creation_outsider', ['cass@grotto.test']);
+        harness = await startHausServerHarness({ avatarImageProvider });
+        owner = await signIn('user_agent_creation_owner', ['ada@haus.test']);
+        outsider = await signIn('user_agent_creation_outsider', ['cass@haus.test']);
 
         const server = await owner.trpc.server.create.mutate({
             displayName: 'Creation HQ',
@@ -287,7 +287,7 @@ export function agentCreationFixture() {
 
     async function signIn(clerkUserId: string, verifiedEmails: string[]) {
         harness.clerkUsers.setVerifiedEmails(clerkUserId, verifiedEmails);
-        return createGrottoClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
+        return createHausClient(harness, await harness.clerk.mintSessionToken(clerkUserId));
     }
 
     async function readUserId(clerkUserId: string) {

@@ -1,12 +1,12 @@
-import type { ChatMessage } from '@grotto/api';
+import type { ChatMessage } from '@haus/api';
 import { type InfiniteData, useInfiniteQuery } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
 import * as React from 'react';
-import { type GrottoOutputs, grottoTrpc } from '../../lib/grotto-server.tsx';
+import { type HausOutputs, hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 export function useThreadMessages(serverId: string | undefined, threadChatId: string | undefined) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
     const input = {
         chatId: threadChatId ?? '',
         limit: 50,
@@ -45,11 +45,11 @@ export function useThreadMessages(serverId: string | undefined, threadChatId: st
     };
 }
 
-type ThreadMessagePage = GrottoOutputs['chat']['messages'];
+type ThreadMessagePage = HausOutputs['chat']['messages'];
 
 export function threadMessagesQueryKey(serverId: string, threadChatId: string) {
     return getQueryKey(
-        grottoTrpc.chat.messages,
+        hausTrpc.chat.messages,
         { chatId: threadChatId, limit: 50, serverId },
         'infinite'
     );

@@ -1,10 +1,10 @@
 import { and, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable } from '../postgres/schema.ts';
 
 /** Resolves the Agent seated in a DM chat, if any. */
 export async function readDmAgentId(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     chatId: string
 ): Promise<string | null> {

@@ -1,11 +1,11 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { KPI } from '@heroui-pro/react/kpi';
 import { ArrowUpRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useUsage } from '../../hooks/servers/use-usage.ts';
-import type { ServerDetail } from '../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../lib/haus-server.tsx';
 import { usageRoute } from '../servers/server-routes.ts';
 import { agentUsageSparkline, summarizeAgentTokenUsage } from '../stats/agent-usage-summary.ts';
 import { UsageEmptyCard } from './usage-empty.tsx';

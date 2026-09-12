@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { ServerMemberDirectory } from '@grotto/api/membership';
+import type { ServerMemberDirectory } from '@haus/api/membership';
 import { memberChangeDescription, serverMemberRowActions } from './server-member-actions.ts';
 
 const ownerId = 'usr_aaaaaaowner1';
@@ -199,15 +199,15 @@ test('a confirmation names the human and the role at stake', () => {
     assert.ok(promote);
     assert.ok(remove);
 
-    const promotion = memberChangeDescription(member, promote, 'grotto-hq');
+    const promotion = memberChangeDescription(member, promote, 'haus-hq');
     assert.match(promotion, /Human membr1/u);
     assert.match(promotion, /member/u);
     assert.match(promotion, /admin/u);
 
-    const removal = memberChangeDescription(member, remove, 'grotto-hq');
+    const removal = memberChangeDescription(member, remove, 'haus-hq');
     assert.match(removal, /Human membr1/u);
     assert.match(removal, /member/u);
-    assert.match(removal, /grotto-hq/u);
+    assert.match(removal, /haus-hq/u);
 });
 
 test('leaving names your own role so the cost is explicit', () => {
@@ -218,7 +218,7 @@ test('leaving names your own role so the cost is explicit', () => {
     const leave = serverMemberRowActions(current, self).find((action) => action.kind === 'leave');
     assert.ok(leave);
 
-    const description = memberChangeDescription(self, leave, 'grotto-hq');
+    const description = memberChangeDescription(self, leave, 'haus-hq');
     assert.match(description, /Human admin1/u);
     assert.match(description, /admin/u);
 });

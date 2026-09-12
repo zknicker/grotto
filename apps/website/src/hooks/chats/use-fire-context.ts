@@ -1,4 +1,4 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 /**
@@ -7,7 +7,7 @@ import { queryPolicy } from '../../lib/query-policy.ts';
  * so callers ask only for anchors whose `cause` says there is something to read.
  */
 export function useFireContext(serverId: string, messageId: string, enabled: boolean) {
-    return grottoTrpc.automation.fireContext.useQuery(
+    return hausTrpc.automation.fireContext.useQuery(
         { messageId, serverId },
         { ...queryPolicy.syncedSnapshot, enabled }
     );

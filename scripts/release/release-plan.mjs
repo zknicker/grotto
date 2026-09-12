@@ -93,7 +93,7 @@ export function writeReleaseOutputs({ rawPlan, plan, values, impact, outputPath,
     }
     const output = requirePath(outputPath, 'GITHUB_OUTPUT');
     const summary = requirePath(summaryPath, 'GITHUB_STEP_SUMMARY');
-    const delimiter = `grotto_release_plan_${randomUUID()}`;
+    const delimiter = `haus_release_plan_${randomUUID()}`;
     appendFileSync(
         output,
         'plan<<' +

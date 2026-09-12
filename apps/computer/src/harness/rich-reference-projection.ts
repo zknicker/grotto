@@ -1,4 +1,4 @@
-import { parseGrottoRichReferences, parseSkillReferenceTarget } from '@grotto/api/rich-references';
+import { parseHausRichReferences, parseSkillReferenceTarget } from '@haus/api/rich-references';
 
 /**
  * Port of Runtime's skill-reference projection. Rich reference markdown stays
@@ -35,7 +35,7 @@ function resolveActiveReferencedSkillIds(input: {
     const seen = new Set<string>();
     const skillIds: string[] = [];
 
-    for (const reference of parseGrottoRichReferences(input.content)) {
+    for (const reference of parseHausRichReferences(input.content)) {
         if (reference.kind !== 'skill' || reference.projection !== 'skill-activation') {
             continue;
         }

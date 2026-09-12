@@ -1,4 +1,4 @@
-import type { CloudAgentCapabilityState, CloudAgentProviderReadiness } from '@grotto/api';
+import type { CloudAgentCapabilityState, CloudAgentProviderReadiness } from '@haus/api';
 import { createCursorCloudAgentProvider } from './cursor/provider.ts';
 import { createCursorSdkTransport } from './cursor/sdk-transport.ts';
 import type { CloudAgentProvider, CloudAgentReadiness } from './provider.ts';

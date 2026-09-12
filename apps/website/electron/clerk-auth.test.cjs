@@ -4,7 +4,7 @@ const { describe, expect, test } = require('bun:test');
 const { isSsoCallbackUrl } = require('./clerk-auth.cjs');
 
 describe('desktop OAuth callback URLs', () => {
-    test('accepts the canonical Grotto callback', () => {
+    test('accepts the canonical Haus callback', () => {
         expect(isSsoCallbackUrl('haus://sso-callback?rotating_token_nonce=nonce')).toBe(true);
     });
 
@@ -17,8 +17,8 @@ describe('desktop OAuth callback URLs', () => {
     });
 
     test('rejects unrelated schemes and routes', () => {
-        expect(isSsoCallbackUrl('https://grotto.sh/sso-callback')).toBe(false);
+        expect(isSsoCallbackUrl('https://haus.chat/sso-callback')).toBe(false);
         expect(isSsoCallbackUrl('http://localhost:43123/sso-callback/token')).toBe(false);
-        expect(isSsoCallbackUrl('grotto://settings')).toBe(false);
+        expect(isSsoCallbackUrl('haus://settings')).toBe(false);
     });
 });

@@ -5,9 +5,9 @@ import {
     type ComputerSystemEvent,
     type ComputerUpdateProgress,
     computerProtocolVersion,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, desc, eq, gte, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
@@ -17,7 +17,7 @@ import {
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import type { ComputerHandshake } from './contracts.ts';
 
 export class ComputerSetupDeniedError extends Error {
@@ -35,7 +35,7 @@ export function hashComputerSecret(value: string) {
 }
 
 export async function validateComputerCredential(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { credentialHash: string; serverId: string }
 ) {
     const [computer] = await db
@@ -58,7 +58,7 @@ export async function validateComputerCredential(
 }
 
 export async function reportComputerHandshake(
-    db: GrottoDatabase,
+    db: HausDatabase,
     computer: { id: string; serverId: string },
     handshake: ComputerHandshake
 ) {
@@ -120,7 +120,7 @@ export async function reportComputerHandshake(
     return { ...computer, connectionGeneration };
 }
 
-export async function resolveComputerCredential(db: GrottoDatabase, credentialHash: string) {
+export async function resolveComputerCredential(db: HausDatabase, credentialHash: string) {
     const [computer] = await db
         .select({ id: computersTable.id, serverId: computersTable.serverId })
         .from(computersTable)
@@ -133,7 +133,7 @@ export async function resolveComputerCredential(db: GrottoDatabase, credentialHa
 }
 
 export async function reportComputerUpdateProgress(
-    db: GrottoDatabase,
+    db: HausDatabase,
     computerId: string,
     update: ComputerUpdateProgress
 ) {
@@ -161,7 +161,7 @@ export async function reportComputerUpdateProgress(
 
 /** Replaces a Computer's last-reported runtime/model inventory wholesale. */
 export async function recordComputerInventory(
-    db: GrottoDatabase,
+    db: HausDatabase,
     computerId: string,
     inventory: ComputerInventory
 ) {
@@ -222,7 +222,7 @@ export async function recordComputerInventory(
 }
 
 export async function recordComputerManagementEvents(
-    db: GrottoDatabase,
+    db: HausDatabase,
     computerId: string,
     serverId: string,
     events: ComputerManagementEvent[]
@@ -253,7 +253,7 @@ export async function recordComputerManagementEvents(
 }
 
 export async function markComputerOffline(
-    db: GrottoDatabase,
+    db: HausDatabase,
     computerId: string,
     connectionGeneration: string,
     reason: Extract<ComputerSystemEvent, { type: 'disconnected' }>['reason']
@@ -303,7 +303,7 @@ export async function markComputerOffline(
 }
 
 async function pruneComputerSystemEvents(
-    db: Parameters<Parameters<GrottoDatabase['transaction']>[0]>[0],
+    db: Parameters<Parameters<HausDatabase['transaction']>[0]>[0],
     computerId: string
 ) {
     await db.execute(sql`
@@ -322,7 +322,7 @@ async function pruneComputerSystemEvents(
 }
 
 export async function recordInvalidComputerInventory(
-    db: GrottoDatabase,
+    db: HausDatabase,
     computerId: string,
     serverId: string
 ) {
@@ -347,7 +347,7 @@ export async function recordInvalidComputerInventory(
 }
 
 /** Process startup has no live attachment registry, so persisted online state is stale. */
-export async function markAllComputersOffline(db: GrottoDatabase) {
+export async function markAllComputersOffline(db: HausDatabase) {
     await db.transaction(async (tx) => {
         const connected = await tx
             .update(computersTable)
@@ -390,8 +390,8 @@ export async function markAllComputersOffline(db: GrottoDatabase) {
 }
 
 export async function listServerComputers(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     serverId: string
 ) {
     const server = await requireServerMembership(db, member, serverId);
@@ -428,8 +428,8 @@ export async function listServerComputers(
 }
 
 export async function listComputerSystemEvents(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { computerId: string; page: number; serverId: string }
 ) {
     const server = await requireServerMembership(db, member, input.serverId);
@@ -494,8 +494,8 @@ export async function listComputerSystemEvents(
 
 /** A Computer credential is deleted only after every assigned Agent is retired. */
 export async function removeServerComputer(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { computerId: string; confirmation: string; serverId: string }
 ) {
     return await db.transaction(async (tx) => {

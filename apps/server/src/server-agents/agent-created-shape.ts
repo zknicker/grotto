@@ -1,10 +1,10 @@
-import type { CreatedAgentSummary } from '@grotto/api';
+import type { CreatedAgentSummary } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 
-type AgentReader = Pick<GrottoDatabase, 'select'>;
+type AgentReader = Pick<HausDatabase, 'select'>;
 
 /**
  * Projects the `agent-created` Message body. Agents are retired, never deleted

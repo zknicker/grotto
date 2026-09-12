@@ -1,8 +1,8 @@
 import { and, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentThreadFollowsTable, messageTasksTable } from '../postgres/schema.ts';
 
-type FollowWriter = Pick<GrottoDatabase, 'insert' | 'select'>;
+type FollowWriter = Pick<HausDatabase, 'insert' | 'select'>;
 
 /**
  * Promotion no longer creates a task's Thread, so the claimant's attention has

@@ -37,7 +37,7 @@ test('the sandbox fallback uses HeroUI body typography', () => {
 test('the model body streams last so partial documents still parse', () => {
     const doc = buildVisualSrcDoc('<div><h2>Par', '--foreground: #fff;');
 
-    expect(doc.indexOf('grotto-visual-size')).toBeLessThan(doc.indexOf('<div><h2>Par'));
+    expect(doc.indexOf('haus-visual-size')).toBeLessThan(doc.indexOf('<div><h2>Par'));
     expect(doc.indexOf('--foreground: #fff;')).toBeLessThan(doc.indexOf('<div><h2>Par'));
     expect(doc.trimEnd().endsWith('</body></html>')).toBe(true);
 });
@@ -84,7 +84,7 @@ test('the sandbox pre-styles bare form controls in published tokens', () => {
 test('the sandbox gives every table its own scroller before the first size report', () => {
     const doc = buildVisualSrcDoc('<table><tr><td>wide</td></tr></table>', '');
 
-    expect(doc).toContain('data-grotto-table-scroll');
+    expect(doc).toContain('data-haus-table-scroll');
     expect(doc).toContain('overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch;');
     expect(doc.indexOf('wrapWideTables();')).toBeLessThan(doc.indexOf('report();'));
     expect(doc.indexOf('report();')).toBeLessThan(doc.indexOf('<table><tr><td>wide</td>'));

@@ -63,7 +63,7 @@ test('shared contracts request agent review while tests and docs stay unchanged'
                 'v1.8.25': sha('b'),
             })[tag] ?? null,
         listChangedFiles: async () => [
-            'packages/grotto-api/src/rich-references.ts',
+            'packages/haus-api/src/rich-references.ts',
             'apps/computer/src/harness/managed-instructions.test.ts',
             'docs/operations/releases.md',
         ],
@@ -101,7 +101,7 @@ test('dependency inputs request review from every Node artifact they can affect'
 
 test('direct shipping paths require their owning targets', async () => {
     const files = [
-        'apps/server/src/grotto-server.ts',
+        'apps/server/src/haus-server.ts',
         'apps/website/electron/main.cjs',
         'apps/ios-swift/Sources/Haus/App.swift',
         'packages/agent-workspace/src/starter-kit.ts',
@@ -162,12 +162,12 @@ test('Agent actions and their Server implementation require a Haus Agent release
 });
 
 const requiredAgentContractFiles = [
-    'packages/grotto-api/src/agent-activity.ts',
-    'packages/grotto-api/src/agent-execution.ts',
-    'packages/grotto-api/src/agent-creation.ts',
-    'packages/grotto-api/src/agent-runner.ts',
-    'packages/grotto-api/src/agent.ts',
-    'packages/grotto-api/src/grotto-agent-version.ts',
+    'packages/haus-api/src/agent-activity.ts',
+    'packages/haus-api/src/agent-execution.ts',
+    'packages/haus-api/src/agent-creation.ts',
+    'packages/haus-api/src/agent-runner.ts',
+    'packages/haus-api/src/agent.ts',
+    'packages/haus-api/src/haus-agent-version.ts',
 ];
 
 for (const file of requiredAgentContractFiles) {
@@ -192,7 +192,7 @@ const agentLifecycleReviewFiles = [
     'apps/computer/src/launch.ts',
     'apps/server/src/agent-delivery/delivery.ts',
     'apps/server/src/computers/socket.ts',
-    'apps/server/src/server-agents/record-grotto-agent-state.ts',
+    'apps/server/src/server-agents/record-haus-agent-state.ts',
 ];
 
 for (const file of agentLifecycleReviewFiles) {
@@ -212,7 +212,7 @@ for (const file of agentLifecycleReviewFiles) {
 const nonAgentControlFiles = [
     'apps/computer/src/launcher.ts',
     'apps/server/src/computers/socket-client.ts',
-    'packages/grotto-api/src/agent-settings.ts',
+    'packages/haus-api/src/agent-settings.ts',
 ];
 
 for (const file of nonAgentControlFiles) {
@@ -233,7 +233,7 @@ test('an unselected required Agent contract fails release selection enforcement'
     const impact = await calculateReleaseImpact({
         ledger,
         resolveTag,
-        listChangedFiles: async () => ['packages/grotto-api/src/agent.ts'],
+        listChangedFiles: async () => ['packages/haus-api/src/agent.ts'],
     });
 
     assert.throws(
@@ -248,7 +248,7 @@ test('an unselected required Agent contract fails release selection enforcement'
                     agent: false,
                 },
             }),
-        /agent: packages\/grotto-api\/src\/agent\.ts/
+        /agent: packages\/haus-api\/src\/agent\.ts/
     );
 });
 

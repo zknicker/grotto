@@ -56,12 +56,12 @@ const traceparentPattern = /^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/u;
 const serviceInstanceId = randomUUID();
 
 export type TelemetrySpanName =
-    | 'grotto.agent.dispatch'
-    | 'grotto.agent.turn'
-    | 'grotto.browser.operation'
-    | 'grotto.mcp.operation'
-    | 'grotto.server.startup'
-    | 'grotto.trigger.fire';
+    | 'haus.agent.dispatch'
+    | 'haus.agent.turn'
+    | 'haus.browser.operation'
+    | 'haus.mcp.operation'
+    | 'haus.server.startup'
+    | 'haus.trigger.fire';
 
 export interface TraceCarrier {
     readonly traceparent: string;
@@ -71,7 +71,7 @@ export interface TelemetryLayerOptions {
     readonly deploymentEnvironment?: 'development' | 'production' | 'test';
     readonly metricReader?: MetricReader;
     readonly releaseId?: string;
-    readonly serviceName: 'grotto-computer' | 'grotto-server' | 'grotto-test';
+    readonly serviceName: 'haus-computer' | 'haus-server' | 'haus-test';
     readonly serviceRevision?: string;
     readonly serviceVersion?: string;
     readonly shutdownTimeout?: DurationInput;
@@ -129,14 +129,14 @@ export function makeTelemetryLayer(options: TelemetryLayerOptions): Layer.Layer<
     }
     const resource = OtelResource.layer({
         attributes: {
-            [ATTR_SERVICE_NAMESPACE]: 'grotto',
+            [ATTR_SERVICE_NAMESPACE]: 'haus',
             [ATTR_SERVICE_INSTANCE_ID]: serviceInstanceId,
             ...(options.deploymentEnvironment
                 ? { [ATTR_DEPLOYMENT_ENVIRONMENT_NAME]: options.deploymentEnvironment }
                 : {}),
-            ...(options.releaseId ? { 'grotto.release.id': options.releaseId } : {}),
+            ...(options.releaseId ? { 'haus.release.id': options.releaseId } : {}),
             ...(options.serviceRevision
-                ? { 'grotto.release.revision': options.serviceRevision }
+                ? { 'haus.release.revision': options.serviceRevision }
                 : {}),
         },
         serviceName: options.serviceName,
@@ -184,7 +184,7 @@ export function withTelemetrySpan<A>(
     outcomeFromResult?: (value: A) => TelemetryOutcome
 ) {
     return <E, R>(effect: Effect.Effect<A, E, R>) => {
-        const operation = String(attributes['grotto.operation'] ?? name);
+        const operation = String(attributes['haus.operation'] ?? name);
         const observed = effect.pipe(
             Effect.map(
                 (value): ObservedTelemetryResult<A> => [

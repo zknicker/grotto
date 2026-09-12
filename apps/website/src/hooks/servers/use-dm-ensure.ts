@@ -1,9 +1,9 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useDmEnsure(onOpenChat: (chatId: string) => void) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
-    return grottoTrpc.chat.ensureDm.useMutation({
+    return hausTrpc.chat.ensureDm.useMutation({
         // A first DM emits chat.lifecycle `created`, which owns list
         // invalidation; the un-awaited fallback also covers the idempotent
         // reopen branch, which stays silent. Navigation never waits.

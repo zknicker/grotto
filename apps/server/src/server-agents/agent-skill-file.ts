@@ -1,15 +1,15 @@
-import type { AgentSkillFile, AgentSkillFileRequest } from '@grotto/api';
+import type { AgentSkillFile, AgentSkillFileRequest } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { ComputerConnections } from '../computers/connections.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 
 export async function readAgentSkillFile(
-    db: GrottoDatabase,
+    db: HausDatabase,
     connections: ComputerConnections,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: { agentId: string; name: string; serverId: string }
 ): Promise<AgentSkillFile> {
     const result = await requestAgentSkillFile(db, connections, member, input, {
@@ -23,9 +23,9 @@ export async function readAgentSkillFile(
 }
 
 export async function updateAgentSkillFile(
-    db: GrottoDatabase,
+    db: HausDatabase,
     connections: ComputerConnections,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: {
         agentId: string;
         content: string;
@@ -47,9 +47,9 @@ export async function updateAgentSkillFile(
 }
 
 export async function deleteAgentSkillFile(
-    db: GrottoDatabase,
+    db: HausDatabase,
     connections: ComputerConnections,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: {
         agentId: string;
         expectedHash: string;
@@ -69,9 +69,9 @@ export async function deleteAgentSkillFile(
 }
 
 async function requestAgentSkillFile(
-    db: GrottoDatabase,
+    db: HausDatabase,
     connections: ComputerConnections,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: { agentId: string; serverId: string },
     operation: AgentSkillFileRequest['operation']
 ) {

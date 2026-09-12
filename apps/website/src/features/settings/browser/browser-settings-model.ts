@@ -1,4 +1,4 @@
-import type { AgentRuntimeBrowserSettings, AgentRuntimeSaveBrowserSettings } from '@grotto/api';
+import type { AgentRuntimeBrowserSettings, AgentRuntimeSaveBrowserSettings } from '@haus/api';
 
 type BrowserSettings = AgentRuntimeBrowserSettings;
 

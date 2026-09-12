@@ -1,7 +1,7 @@
 import { useUser } from '@clerk/clerk-react';
 import * as React from 'react';
 import { isClerkEnabled } from '../../lib/clerk.tsx';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /**
  * Reports the signed-in human's Clerk identity once per session so other
@@ -18,7 +18,7 @@ export function SyncHumanIdentity({ serverId }: { serverId: string | undefined }
 
 function ClerkHumanIdentitySync({ serverId }: { serverId: string | undefined }) {
     const { isSignedIn, user } = useUser();
-    const sync = grottoTrpc.member.syncIdentity.useMutation();
+    const sync = hausTrpc.member.syncIdentity.useMutation();
     const syncMutate = sync.mutate;
     const syncedRef = React.useRef<string | null>(null);
 

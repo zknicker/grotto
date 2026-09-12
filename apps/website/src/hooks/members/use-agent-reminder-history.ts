@@ -1,4 +1,4 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 /**
@@ -15,7 +15,7 @@ export const REMINDER_HISTORY_LIMIT = 200;
  * is fetched the first time someone asks for it and then served from cache.
  */
 export function useAgentReminderHistory(serverId: string, agentId: string, enabled: boolean) {
-    return grottoTrpc.reminder.history.useQuery(
+    return hausTrpc.reminder.history.useQuery(
         { agentId, limit: REMINDER_HISTORY_LIMIT, serverId },
         { ...queryPolicy.syncedSnapshot, enabled }
     );

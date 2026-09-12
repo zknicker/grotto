@@ -1,4 +1,4 @@
-import type { TraceCarrier } from '@grotto/effect';
+import type { TraceCarrier } from '@haus/effect';
 import * as z from 'zod';
 import type { AgentActivityRun } from './agent-activity-run.ts';
 import {
@@ -19,7 +19,7 @@ import {
 } from './agent-skills.ts';
 import { handleCloudAgentStart } from './cloud-agents/proxy-route.ts';
 import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
-import { classifyGrottoProxyBoundary } from './harness/activity-projector.ts';
+import { classifyHausProxyBoundary } from './harness/activity-projector.ts';
 import {
     type AgentInboxLocation,
     consumeServedAutomations,
@@ -87,7 +87,7 @@ export function startLoopbackProxy(input: {
             if (!isAuthorized(request, input.proxyToken)) {
                 return new Response('Unauthorized', { status: 401 });
             }
-            const category = classifyGrottoProxyBoundary(request.method, url.pathname);
+            const category = classifyHausProxyBoundary(request.method, url.pathname);
             const recordCommittedSend = onCommittedSend;
             const operation = async () =>
                 await handleAuthorizedProxyRequest(request, url, input, {

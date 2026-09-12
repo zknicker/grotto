@@ -39,8 +39,8 @@ for (const bridge of [
         expect(bootstrap.bootstrapDir).toBe(nativeBootstrap.bootstrapDir);
         expect(packageFile?.content).toContain(bridge.packageDependency);
         expect(bootstrap.files).toContainEqual({
-            content: 'grotto-computer-v1\n',
-            path: `${bridge.bootstrapDir}/grotto-computer-owner`,
+            content: 'haus-computer-v1\n',
+            path: `${bridge.bootstrapDir}/haus-computer-owner`,
         });
         expect(bootstrap.commands?.[0]).toEqual({
             command:
@@ -80,7 +80,7 @@ test('a shared store directory rides every install and is never wiped on retry',
 
 test('bridge packages share one cache across development and production Computers', () => {
     expect(bridgeStoreDirForHost('/Users/example')).toBe(
-        '/Users/example/.grotto/cache/harness-bridge-store'
+        '/Users/example/.haus/cache/harness-bridge-store'
     );
 });
 
@@ -105,7 +105,7 @@ test('Claude Code bridge captures structured plan usage only when Computer lease
     ).getBootstrap?.();
     const bridge = bootstrap?.files?.find((file) => file.path.endsWith('/bridge.mjs'))?.content;
 
-    expect(bridge).toContain('GROTTO_CLAUDE_USAGE_REFRESH');
+    expect(bridge).toContain('HAUS_CLAUDE_USAGE_REFRESH');
     expect(bridge).toContain('usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET');
     expect(bridge).toContain('planUsage');
 });

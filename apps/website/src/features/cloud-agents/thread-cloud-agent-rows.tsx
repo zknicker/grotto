@@ -1,4 +1,4 @@
-import type { CloudAgentWork } from '@grotto/api';
+import type { CloudAgentWork } from '@haus/api';
 import { identityMarkRadius } from '../../components/ui/entity-avatar.tsx';
 import { cloudAgentPresentationStatus, cloudAgentWorkBranch } from './cloud-agent-presentation.ts';
 import { CloudAgentProviderGlyph } from './cloud-agent-provider-mark.tsx';

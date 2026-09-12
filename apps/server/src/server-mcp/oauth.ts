@@ -252,8 +252,8 @@ async function requireOAuthConnection(runtime: McpRuntime, connectionId: string)
 }
 
 function googleOAuthClient(): OAuthClientInformation {
-    const clientId = process.env.GROTTO_GOOGLE_OAUTH_CLIENT_ID?.trim();
-    const clientSecret = process.env.GROTTO_GOOGLE_OAUTH_CLIENT_SECRET?.trim();
+    const clientId = process.env.HAUS_GOOGLE_OAUTH_CLIENT_ID?.trim();
+    const clientSecret = process.env.HAUS_GOOGLE_OAUTH_CLIENT_SECRET?.trim();
     if (!(clientId && clientSecret)) {
         throw new Error('The Haus Server Google Calendar OAuth client is unavailable.');
     }

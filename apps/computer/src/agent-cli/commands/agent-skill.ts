@@ -11,7 +11,7 @@ import type { ParsedArgs } from '../parse.ts';
 import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
 
-const CONTENT_RECIPE = `<<'GROTTOMSG'\n<SKILL.md content>\nGROTTOMSG`;
+const CONTENT_RECIPE = `<<'HAUSMSG'\n<SKILL.md content>\nHAUSMSG`;
 
 interface SkillDeps {
     client: AgentApiRequester;
@@ -219,7 +219,7 @@ async function requiredStdin(deps: SkillDeps, command: string): Promise<string> 
 async function stdin(deps: SkillDeps, command: string): Promise<string> {
     if (deps.stdinIsTty()) {
         throw new AgentCliError('MISSING_CONTENT', 'Skill content must be provided on stdin.', {
-            nextAction: `${command} <<'GROTTOMSG'\n<content>\nGROTTOMSG`,
+            nextAction: `${command} <<'HAUSMSG'\n<content>\nHAUSMSG`,
         });
     }
     return await deps.readStdin();

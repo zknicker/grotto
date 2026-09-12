@@ -8,7 +8,7 @@ import type { ServerWebSocket } from 'bun';
 const entrypoint = fileURLToPath(new URL('./index.ts', import.meta.url));
 
 test('attach rejects redirects without forwarding the management token', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-attach-redirect-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-attach-redirect-'));
     const receivedBodies: unknown[] = [];
     const receiver = Bun.serve({
         async fetch(request) {
@@ -41,7 +41,7 @@ test('attach rejects redirects without forwarding the management token', async (
 });
 
 test('setup preserves a missing-Server attach error without trying another protocol', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-attach-missing-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-attach-missing-'));
     const requests: string[] = [];
     const peer = Bun.serve({
         fetch(request) {
@@ -75,7 +75,7 @@ test('setup preserves a missing-Server attach error without trying another proto
 });
 
 test('attach adopts an existing attachment instead of issuing a duplicate Computer', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-attach-existing-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-attach-existing-'));
     const requests: string[] = [];
     const sockets = new Set<ServerWebSocket<undefined>>();
     const peer = Bun.serve({
@@ -158,10 +158,10 @@ async function runCli(args: string[], dataRoot: string, origin: string) {
     const child = Bun.spawn(['bun', entrypoint, ...args], {
         env: {
             ...process.env,
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_ONESHOT: '1',
-            GROTTO_COMPUTER_USAGE_DISABLED: '1',
-            GROTTO_SERVER_ORIGIN: origin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_ONESHOT: '1',
+            HAUS_COMPUTER_USAGE_DISABLED: '1',
+            HAUS_SERVER_ORIGIN: origin,
             OTEL_SDK_DISABLED: 'true',
         },
         stderr: 'pipe',

@@ -1,9 +1,9 @@
 import {
     agentAutomationEventSchema,
-    type GrottoAgentMessage,
-    type GrottoAgentSendResponse,
+    type HausAgentMessage,
+    type HausAgentSendResponse,
     taskOrigins,
-} from '@grotto/api';
+} from '@haus/api';
 import * as z from 'zod';
 
 const jsonObjectSchema = z.record(z.string(), z.unknown());
@@ -118,11 +118,11 @@ export const agentMessageSchema = z.object({
     sequence: z.number().int().positive(),
     task: messageTaskSchema.nullable().optional(),
     threadId: z.string().min(1).optional(),
-}) satisfies z.ZodType<GrottoAgentMessage>;
+}) satisfies z.ZodType<HausAgentMessage>;
 
-export type AgentCliMessage = GrottoAgentMessage;
+export type AgentCliMessage = HausAgentMessage;
 
-export const agentSendResponseSchema: z.ZodType<GrottoAgentSendResponse> = z.discriminatedUnion(
+export const agentSendResponseSchema: z.ZodType<HausAgentSendResponse> = z.discriminatedUnion(
     'state',
     [
         z.object({

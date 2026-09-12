@@ -1,4 +1,4 @@
-import type { TaskLabel } from '@grotto/api';
+import type { TaskLabel } from '@haus/api';
 import { Chip } from '@heroui/react';
 import { cn } from '../../lib/utils.ts';
 import { taskLabelChipClass, taskLabelDotClass } from './label-colors.ts';

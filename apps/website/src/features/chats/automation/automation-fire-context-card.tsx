@@ -1,4 +1,4 @@
-import type { AutomationFireContext } from '@grotto/api';
+import type { AutomationFireContext } from '@haus/api';
 import { Button, Chip, Disclosure } from '@heroui/react';
 import { CodeBlock } from '@heroui-pro/react/code-block';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';

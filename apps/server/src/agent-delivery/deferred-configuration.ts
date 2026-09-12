@@ -1,6 +1,6 @@
-import type { Agent, AgentCommand } from '@grotto/api';
+import type { Agent, AgentCommand } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentMessageDraftsTable, agentsTable } from '../postgres/schema.ts';
 import type { DeliveryTransport } from './delivery.ts';
 import { type AgentDispatchConfig, readAgentDispatchConfig } from './dispatch-config.ts';
@@ -21,7 +21,7 @@ export function sendDeferredConfiguration(
 
 /** Applies desired execution configuration only after the run using the old values settles. */
 export async function rotateDeferredConfiguration(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: {
         activeRunModelId: string | null;
         activeRunReasoningEffort: Agent['desiredReasoningEffort'] | null;

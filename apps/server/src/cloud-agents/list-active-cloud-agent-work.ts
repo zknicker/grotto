@@ -1,11 +1,11 @@
-import type { ActiveCloudAgentWork, ChatMessage } from '@grotto/api';
+import type { ActiveCloudAgentWork, ChatMessage } from '@haus/api';
 import { and, asc, eq, getTableColumns, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { visibleChats } from '../chats/chat-visibility.ts';
 import { readChatMessageReactions } from '../chats/message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from '../chats/message-shape.ts';
 import { readMessagesById } from '../chats/read-messages-by-id.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
     chatMessagesTable,
@@ -13,7 +13,7 @@ import {
     cloudAgentWorkTable,
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { readRuns, toCloudAgentWork } from './cloud-agent-shape.ts';
 
 const parentChatsTable = alias(chatsTable, 'parent_chat');
@@ -34,8 +34,8 @@ interface ConversationChat {
  * stops returning the row rather than hiding a partial one.
  */
 export async function listActiveCloudAgentWork(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { serverId: string }
 ): Promise<ActiveCloudAgentWork[]> {
     await requireServerMembership(db, member, input.serverId);

@@ -1,4 +1,4 @@
-import { EXECUTION_JOURNAL_VALUE_MAX_CHARS } from '@grotto/api';
+import { EXECUTION_JOURNAL_VALUE_MAX_CHARS } from '@haus/api';
 import type {
     ComputerExecutionJournalDocument,
     ComputerExecutionJournalTool,

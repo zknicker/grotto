@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AgentRuntimeBrowserSettings } from '@grotto/api';
+import type { AgentRuntimeBrowserSettings } from '@haus/api';
 import { browserCapabilityView } from './browser-capability-model.ts';
 
 const baseSettings = {

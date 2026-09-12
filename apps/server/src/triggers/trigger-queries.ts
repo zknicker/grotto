@@ -1,6 +1,6 @@
-import type { Trigger, TriggerFire, TriggerFireDetail } from '@grotto/api';
+import type { Trigger, TriggerFire, TriggerFireDetail } from '@haus/api';
 import { and, asc, desc, eq, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
     serverMembershipsTable,
@@ -10,7 +10,7 @@ import {
 import { requireActiveAgent, requireAgentAnchor } from '../reminders/reminder-model.ts';
 import { TriggerNotFoundError, toTrigger } from './trigger-model.ts';
 
-type TriggerReader = Pick<GrottoDatabase, 'select'>;
+type TriggerReader = Pick<HausDatabase, 'select'>;
 
 /** Every trigger the calling Agent owns, oldest first. */
 export async function listOwnedTriggers(

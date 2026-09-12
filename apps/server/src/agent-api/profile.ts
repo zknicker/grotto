@@ -1,14 +1,10 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, serverMembershipsTable, usersTable } from '../postgres/schema.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
-export async function readAgentProfile(
-    db: GrottoDatabase,
-    runner: ResolvedRunner,
-    target?: string
-) {
+export async function readAgentProfile(db: HausDatabase, runner: ResolvedRunner, target?: string) {
     const handle = stripAt(target ?? '');
     const [agent] = await db
         .select({
@@ -60,7 +56,7 @@ export async function readAgentProfile(
 }
 
 export async function updateAgentProfile(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     description: string
 ) {

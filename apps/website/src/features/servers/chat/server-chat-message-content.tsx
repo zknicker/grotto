@@ -1,8 +1,8 @@
-import type { Agent, Chat } from '@grotto/api';
+import type { Agent, Chat } from '@haus/api';
 import type { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
-import type { GrottoResourceTarget } from '../../chats/grotto-resource-link.ts';
+import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import {
     applyAgentMentionAppearance,
     applyChatMentionAppearance,
@@ -26,7 +26,7 @@ export function ServerChatMessageContent({
     chatsById: ReadonlyMap<string, Chat>;
     humans: HumanDirectory;
     message: TranscriptMessage;
-    onOpenArtifact: (target: GrottoResourceTarget) => void;
+    onOpenArtifact: (target: HausResourceTarget) => void;
     onReferenceActivate?: ReferenceActivation;
 }) {
     // Every Message the Server stores carries its own authored content (ADR
@@ -56,9 +56,9 @@ export function ServerChatMessageContent({
         })
     );
 
-    return message.grottoAgentId ? (
+    return message.hausAgentId ? (
         <ArtifactMessage
-            agentId={message.grottoAgentId}
+            agentId={message.hausAgentId}
             content={content}
             mentions={mentions}
             onOpenArtifact={onOpenArtifact}

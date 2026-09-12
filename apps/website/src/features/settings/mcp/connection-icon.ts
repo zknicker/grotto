@@ -5,7 +5,7 @@ import type { McpConnection } from './mcp-server-shared.ts';
 /**
  * How a connection row draws its mark.
  *
- * Grotto Server resolves and inlines the image at discovery, so this is a pure
+ * Haus Server resolves and inlines the image at discovery, so this is a pure
  * pick with no fetching: an icon the server stored, otherwise a monogram tinted
  * from the shared sender palette so a server without one still reads as itself.
  */

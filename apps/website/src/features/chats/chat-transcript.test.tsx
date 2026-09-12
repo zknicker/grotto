@@ -30,7 +30,7 @@ test('ChatTranscript renders hover time and copy action without session or usage
             isFirstInGroup: true,
             kind: 'message',
             message: {
-                grottoAgentId: 'tiny',
+                hausAgentId: 'tiny',
                 content: 'Investigating the issue now.',
                 id: 'message-1',
                 metadata: {
@@ -76,7 +76,7 @@ test('ChatTranscript mutes deleted authors and labels their historical messages'
             isFirstInGroup: true,
             kind: 'message',
             message: {
-                grottoAgentId: 'agent-deleted',
+                hausAgentId: 'agent-deleted',
                 content: 'This history stays readable.',
                 id: 'message-deleted',
                 sender: 'Cove',
@@ -121,7 +121,7 @@ test('ChatTranscript bleeds message rows to both detail lane edges', () => {
             isFirstInGroup: true,
             kind: 'message',
             message: {
-                grottoAgentId: 'tiny',
+                hausAgentId: 'tiny',
                 content: 'Using the available width.',
                 id: 'message-1',
                 sender: 'Tiny',
@@ -145,7 +145,7 @@ test('archived transcripts render agent names without mention actions', () => {
 test('ChatTranscript animates only local optimistic user messages', () => {
     const localTimeline: ChatRow[] = [
         {
-            actor: { id: 'usr_grotto', kind: 'participant' },
+            actor: { id: 'usr_haus', kind: 'participant' },
             connectsToNext: false,
             connectsToPrevious: false,
             id: 'msg-local',
@@ -182,7 +182,7 @@ test('ChatTranscript renders chat markdown headings and inline markup in message
             isFirstInGroup: true,
             kind: 'message',
             message: {
-                grottoAgentId: 'tiny',
+                hausAgentId: 'tiny',
                 content:
                     '# Test\n\n## Test 2\n\n### Test 3\nI use **gpt-5.4-mini**, *carefully*, with `OPENAI_API_KEY`, [OpenAI](https://openai.com), www.example.com, <u>raw</u>, and [bad](javascript:alert(1)).',
                 id: 'message-markdown',
@@ -221,7 +221,7 @@ test('ChatTranscript renders image attachments in a fluid media frame', () => {
             isFirstInGroup: true,
             kind: 'message',
             message: {
-                grottoAgentId: null,
+                hausAgentId: null,
                 attachments: [
                     {
                         dataBase64: 'iVBORw0KGgo=',
@@ -260,7 +260,7 @@ test('ChatTranscript renders loaded multiline assistant replies as one message b
             isFirstInGroup: true,
             kind: 'message',
             message: {
-                grottoAgentId: 'tiny',
+                hausAgentId: 'tiny',
                 content: 'First line.\nSecond line.\nThird line.',
                 id: 'message-multiline',
                 sender: 'Tiny',
@@ -314,7 +314,7 @@ test('ChatTranscript keeps tool calls out of the chat pane', () => {
             isFirstInGroup: false,
             kind: 'message',
             message: {
-                grottoAgentId: 'tiny',
+                hausAgentId: 'tiny',
                 content: 'Done.',
                 id: 'message-2',
                 sender: 'Tiny',
@@ -387,7 +387,7 @@ test('ChatTranscript labels recovered tool failures without making the final rep
             isFirstInGroup: false,
             kind: 'message',
             message: {
-                grottoAgentId: 'tiny',
+                hausAgentId: 'tiny',
                 content: 'Done.',
                 id: 'message-recovered',
                 sender: 'Tiny',
@@ -425,7 +425,7 @@ test('ChatTranscript renders visual widget rows in a sandboxed iframe', () => {
             ...row,
             widget: {
                 ...row.widget,
-                component: 'grotto.widget.visual',
+                component: 'haus.widget.visual',
                 fallbackText: 'Weekly sales',
                 props: {
                     html: '<h1>Weekly sales</h1><svg viewBox="0 0 10 10"></svg>',
@@ -455,7 +455,7 @@ test('ChatTranscript renders durable message ```visual fences as visual cards', 
             isFirstInGroup: true,
             kind: 'message',
             message: {
-                grottoAgentId: 'tiny',
+                hausAgentId: 'tiny',
                 content: 'Here is the chart.\n```visual Weekly sales\n<h1>Weekly sales</h1>\n```',
                 id: 'message-visual',
                 sender: 'Tiny',
@@ -485,7 +485,7 @@ test('ChatTranscript renders artifact widgets as compact open-in-pane cards', ()
             ...row,
             widget: {
                 ...row.widget,
-                component: 'grotto.widget.artifact',
+                component: 'haus.widget.artifact',
                 fallbackText: 'Fleet status',
                 props: {
                     path: 'workbench/pages/fleet.html',
@@ -538,7 +538,7 @@ test('ChatTranscript renders fallback when widget props do not match the compone
             ...row,
             widget: {
                 ...row.widget,
-                component: 'grotto.widget.table',
+                component: 'haus.widget.table',
                 fallbackText: 'Top states',
                 props: {
                     data: [{ state: 'California' }],
@@ -567,7 +567,7 @@ test('ChatTranscript renders fallback for unknown widget components', () => {
             ...row,
             widget: {
                 ...row.widget,
-                component: 'grotto.unknown',
+                component: 'haus.unknown',
             },
         },
     ]);
@@ -1035,7 +1035,7 @@ test('ChatTranscript renders durable activity once when an assistant reply follo
             isFirstInGroup: false,
             kind: 'message',
             message: {
-                grottoAgentId: 'tiny',
+                hausAgentId: 'tiny',
                 content: 'NYC right now: 61F.',
                 id: 'message-agent',
                 sender: 'Tiny',
@@ -1108,7 +1108,7 @@ test('ChatTranscript attaches a new-session notice to the turn that opened it', 
                 senderType: 'agent',
                 sourceSessionId: null,
                 sourceSessionKey: 'session-fresh',
-                grottoAgentId: 'tiny',
+                hausAgentId: 'tiny',
                 timestamp: '2026-03-31T15:00:05.000Z',
             },
         },
@@ -1242,7 +1242,7 @@ test('ChatTranscript keeps completed agent status out of transcript after activi
             isFirstInGroup: true,
             kind: 'message',
             message: {
-                grottoAgentId: null,
+                hausAgentId: null,
                 content: 'Can you try a tool call?',
                 id: 'message-user',
                 sender: 'You',
@@ -1280,7 +1280,7 @@ test('ChatTranscript keeps completed agent status out of transcript after activi
             isFirstInGroup: false,
             kind: 'message',
             message: {
-                grottoAgentId: 'tiny',
+                hausAgentId: 'tiny',
                 content: 'Tool call worked.',
                 id: 'message-agent',
                 sender: 'Tiny',
@@ -1387,7 +1387,7 @@ test('ChatTranscript renders the streaming post as one evolving contribution', (
             kind: 'message',
             runId,
             message: {
-                grottoAgentId: 'blippy',
+                hausAgentId: 'blippy',
                 content,
                 id: postId,
                 metadata: { runtime: { runId, sessionKey: 'ses_1', streaming } },
@@ -1515,7 +1515,7 @@ test('ChatTranscript replaces narration with the final reply once it lands', () 
             isFirstInGroup: false,
             kind: 'message',
             message: {
-                grottoAgentId: 'tiny',
+                hausAgentId: 'tiny',
                 content: 'The workspace looks well organized.',
                 id: 'msg_run-1_assistant',
                 metadata: { runtime: { runId: 'run-1', sessionKey: 'agent:tiny:session-1' } },
@@ -1542,7 +1542,7 @@ function narrationMessageRow(id: string, content: string, timestampMs: number): 
         isFirstInGroup: true,
         kind: 'message',
         message: {
-            grottoAgentId: 'tiny',
+            hausAgentId: 'tiny',
             content,
             id,
             metadata: {
@@ -1667,7 +1667,7 @@ function causedRow(): TranscriptMessageRow {
                 title: 'Deploy finished',
             },
             content: 'Production is green again after 2m 41s.',
-            grottoAgentId: 'blippy',
+            hausAgentId: 'blippy',
             id: 'message-caused',
             sender: 'Blippy',
             senderType: 'agent',
@@ -1726,7 +1726,7 @@ function widgetRow(id: string): ChatRow {
         isFirstInGroup: true,
         kind: 'widget',
         widget: {
-            component: 'grotto.widget.bar-chart',
+            component: 'haus.widget.bar-chart',
             fallbackText: 'Quarterly Revenue',
             id,
             props: {

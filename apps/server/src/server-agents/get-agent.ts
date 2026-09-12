@@ -1,11 +1,11 @@
-import type { Agent } from '@grotto/api';
-import type { GrottoDatabase } from '../postgres/connection.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { Agent } from '@haus/api';
+import type { HausDatabase } from '../postgres/connection.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { queryAgents } from './query-agents.ts';
 
 export async function getAgent(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     serverId: string,
     agentId: string
 ): Promise<Agent | null> {

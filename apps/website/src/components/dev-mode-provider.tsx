@@ -12,7 +12,7 @@ interface DevModeContextValue {
     setDevMode: (enabled: boolean) => void;
 }
 
-const storageKey = 'the-grotto-dev-mode';
+const storageKey = 'the-haus-dev-mode';
 const DevModeContext = createContext<DevModeContextValue | null>(null);
 
 function getStoredDevMode(): boolean {

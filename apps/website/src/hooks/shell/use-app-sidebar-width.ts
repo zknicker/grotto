@@ -5,7 +5,7 @@ import * as React from 'react';
 // declares its own `--sidebar-width`), so this is an external store both the
 // rail and the AppLayout host read live during a drag; commits persist to
 // localStorage.
-const storageKey = 'grotto.appSidebar.width';
+const storageKey = 'haus.appSidebar.width';
 
 export const appSidebarWidthLimits = { default: 240, max: 360, min: 208 } as const;
 

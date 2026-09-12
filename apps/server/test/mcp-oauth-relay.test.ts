@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
-import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
+import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
+import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { McpOAuthRelay } from '../src/server-mcp/oauth-relay.ts';
 import { emptySecret, McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
@@ -12,15 +12,15 @@ const redirectUrl = 'http://127.0.0.1:8091/mcp/oauth/callback';
 const serverId = 'srv_oauthrelaytest01';
 
 let cluster: PostgresCluster;
-let connection: GrottoConnection;
+let connection: HausConnection;
 let provider: Awaited<ReturnType<typeof startControlledOAuthMcpProvider>>;
 let runtime: McpRuntime;
 const effectRuntime = makeServerRuntime();
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
-    await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
-    connection = await connectGrottoDatabase(cluster.databaseUrl);
+    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    connection = await connectHausDatabase(cluster.databaseUrl);
     provider = await startControlledOAuthMcpProvider();
     runtime = new McpRuntime(connection.db, effectRuntime);
     await connection.db.execute(

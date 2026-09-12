@@ -3,7 +3,7 @@
  * "we have none" and "we cannot say" different answers rather than one blank.
  */
 
-import type { AgentActivityPhase } from '@grotto/api';
+import type { AgentActivityPhase } from '@haus/api';
 
 /** Which Agent profile tab a peek section hands the reader to. */
 export type AgentPeekTab = 'activity' | 'automations' | 'overview' | 'setup' | 'workspace';

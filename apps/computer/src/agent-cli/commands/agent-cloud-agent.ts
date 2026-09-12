@@ -6,7 +6,7 @@ import {
     agentCloudAgentSendReceiptSchema,
     cloudAgentRepositorySchema,
     cloudAgentTitleSchema,
-} from '@grotto/api';
+} from '@haus/api';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { shortMessageId } from '../agent-format.ts';
@@ -16,11 +16,11 @@ import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
 import { assertAgentTarget, requiredValue } from './agent-command-utils.ts';
 
-const START_RECIPE = `haus cloud-agent start --target "#product" --repo grotto/haus --ref main \\
+const START_RECIPE = `haus cloud-agent start --target "#product" --repo haus/haus --ref main \\
   --title "Fix the flaky delivery test" \\
-  --say "Handing the flaky delivery test to a cloud agent; I will report back." <<'GROTTOMSG'
+  --say "Handing the flaky delivery test to a cloud agent; I will report back." <<'HAUSMSG'
 Reproduce apps/server/test/agent-delivery.test.ts locally, find the race, and open a pull request.
-GROTTOMSG`;
+HAUSMSG`;
 
 interface CloudAgentDeps {
     client: AgentApiRequester;
@@ -224,7 +224,7 @@ function readRepository(args: ParsedArgs): string {
     const parsed = cloudAgentRepositorySchema.safeParse(raw);
     if (!parsed.success) {
         throw new AgentCliError('INVALID_ARG', `Invalid repository "${raw}".`, {
-            nextAction: 'Use --repo owner/name, for example --repo grotto/grotto.',
+            nextAction: 'Use --repo owner/name, for example --repo haus/haus.',
         });
     }
     return parsed.data;

@@ -26,15 +26,15 @@ export function getChatDisplayTitle(chat: ChatDisplayInput) {
         return agentLabel ? `${agentLabel} <-> ${targetLabel}` : targetLabel;
     }
 
-    if (chat.type === 'grotto') {
-        return resolveGrottoChatName(chat);
+    if (chat.type === 'haus') {
+        return resolveHausChatName(chat);
     }
 
     return chat.title;
 }
 
 export function isRuntimeDm(chat: ChatDisplayInput) {
-    return chat.type !== 'grotto' && chat.scope === 'dm';
+    return chat.type !== 'haus' && chat.scope === 'dm';
 }
 
 function formatParticipantNames(names: string[]) {
@@ -65,6 +65,6 @@ export function formatChatPlatformLabel(type: string) {
         .join(' ');
 }
 
-export function resolveGrottoChatName(chat: ChatDisplayInput) {
+export function resolveHausChatName(chat: ChatDisplayInput) {
     return chat.displayName.trim() || chat.title;
 }

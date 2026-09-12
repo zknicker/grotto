@@ -1,4 +1,4 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 /**
@@ -11,7 +11,7 @@ export function useTasks(
     chatId?: string,
     options?: { enabled?: boolean; includeBackground?: boolean }
 ) {
-    return grottoTrpc.task.list.useQuery(
+    return hausTrpc.task.list.useQuery(
         // The widening is omitted unless asked for, so the default lens keeps
         // the exact query key the task mutation caches write through.
         {

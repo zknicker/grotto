@@ -3,12 +3,12 @@ import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { type ThemePreference, useTheme } from '../../../components/theme-provider.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { setShowTasksInChat, useShowTasksInChat } from '../../tasks/show-tasks-in-chat.ts';
-import { GrottoVersionSummary } from '../../updates/grotto-version-summary.tsx';
-import { useGrottoUpdate } from '../../updates/use-grotto-update.ts';
+import { HausVersionSummary } from '../../updates/haus-version-summary.tsx';
+import { useHausUpdate } from '../../updates/use-haus-update.ts';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 
 export function PreferencesSettings() {
-    const update = useGrottoUpdate();
+    const update = useHausUpdate();
     return (
         <PageColumn>
             <SettingsPageHeader
@@ -17,7 +17,7 @@ export function PreferencesSettings() {
             />
             <AppearanceSection />
             <ChatSection />
-            <GrottoVersionSummary view={update.view} />
+            <HausVersionSummary view={update.view} />
         </PageColumn>
     );
 }

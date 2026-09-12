@@ -1,5 +1,5 @@
 import { afterAll } from 'bun:test';
-import { makeTestRuntime } from '@grotto/effect';
+import { makeTestRuntime } from '@haus/effect';
 import { makeMcpIconResolver } from './icons.ts';
 
 export {

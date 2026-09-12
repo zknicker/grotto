@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { makeTelemetryLayer } from '@grotto/effect';
+import { makeTelemetryLayer } from '@haus/effect';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ManagedRuntime } from 'effect';
 import { McpClientCache } from './client-cache.ts';
@@ -12,7 +12,7 @@ for (const telemetry of [false, true]) {
         const exporter = new InMemorySpanExporter();
         const runtime = ManagedRuntime.make(
             makeTelemetryLayer({
-                serviceName: 'grotto-test',
+                serviceName: 'haus-test',
                 spanProcessor: telemetry ? new SimpleSpanProcessor(exporter) : undefined,
             })
         );
@@ -51,7 +51,7 @@ for (const telemetry of [false, true]) {
             const finished = exporter.getFinishedSpans();
             expect(finished).toHaveLength(telemetry ? 2 : 0);
             for (const span of finished) {
-                expect(span.name).toBe('grotto.mcp.operation');
+                expect(span.name).toBe('haus.mcp.operation');
                 expect(span.status.code).toBe(2);
                 expect(JSON.stringify(span.events)).not.toContain(failure.message);
             }

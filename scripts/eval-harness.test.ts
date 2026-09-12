@@ -23,8 +23,8 @@ describe('eval harness', () => {
         expect(calls).toEqual([
             {
                 input: {
-                    email: 'evaluations@grotto.invalid',
-                    name: 'Grotto Evaluator',
+                    email: 'evaluations@haus.invalid',
+                    name: 'Haus Evaluator',
                     serverId: 'srv_test',
                 },
                 path: 'member.syncIdentity',

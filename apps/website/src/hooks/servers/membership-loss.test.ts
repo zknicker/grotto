@@ -3,7 +3,7 @@ import test from 'node:test';
 import { isMembershipLoss } from './membership-loss.ts';
 
 function subscriptionError(code: string) {
-    return { data: { code }, message: 'You are not a member of this Grotto server.' };
+    return { data: { code }, message: 'You are not a member of this Haus server.' };
 }
 
 test('a refused Server feed is treated as losing access', () => {

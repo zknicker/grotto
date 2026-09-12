@@ -1,10 +1,10 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
-/** Creates a Grotto server; the creator becomes its first Owner. */
+/** Creates a Haus server; the creator becomes its first Owner. */
 export function useCreateServer() {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
-    return grottoTrpc.server.create.useMutation({
+    return hausTrpc.server.create.useMutation({
         onSuccess: () => utils.server.list.invalidate(),
     });
 }

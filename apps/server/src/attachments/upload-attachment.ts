@@ -1,9 +1,9 @@
-import type { AttachmentUploadResult } from '@grotto/api';
-import { asError, settle } from '@grotto/effect';
+import type { AttachmentUploadResult } from '@haus/api';
+import { asError, settle } from '@haus/effect';
 import { and, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
 import type { ServerRuntime } from '../server-runtime.ts';
 import type { AttachmentRoot } from './attachment-root.ts';
@@ -19,7 +19,7 @@ export type { AttachmentUploadFailureInjection } from './attachment-upload-model
 export { AttachmentUploadError } from './attachment-upload-model.ts';
 
 export async function uploadAttachment(
-    db: GrottoDatabase,
+    db: HausDatabase,
     root: AttachmentRoot,
     runtime: ServerRuntime,
     input: AttachmentUploadInput
@@ -39,7 +39,7 @@ export async function uploadAttachment(
 }
 
 async function uploadAttachmentOperation(
-    db: GrottoDatabase,
+    db: HausDatabase,
     root: AttachmentRoot,
     runtime: ServerRuntime,
     input: AttachmentUploadInput
@@ -83,7 +83,7 @@ async function uploadAttachmentOperation(
     return { attachment: toAttachmentUploadMetadata(attachment), idempotent: true };
 }
 
-async function findAttachment(db: GrottoDatabase, serverId: string, attachmentId: string) {
+async function findAttachment(db: HausDatabase, serverId: string, attachmentId: string) {
     const [attachment] = await db
         .select()
         .from(attachmentsTable)

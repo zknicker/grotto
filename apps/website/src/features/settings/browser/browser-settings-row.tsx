@@ -1,4 +1,4 @@
-import type { AgentRuntimeBrowserSettings } from '@grotto/api';
+import type { AgentRuntimeBrowserSettings } from '@haus/api';
 import { Button, Chip, Dropdown, Label } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';

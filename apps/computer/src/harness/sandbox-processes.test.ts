@@ -115,7 +115,7 @@ test('abort terminates descendants while preserving AbortError for wait', async 
 });
 
 async function makeRegistry() {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-sandbox-processes-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-sandbox-processes-'));
     roots.push(root);
     const registry = createSandboxProcessRegistry({
         defaultWorkingDirectory: root,

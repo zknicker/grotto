@@ -1,8 +1,8 @@
-import { canManageServerInvitations, type ServerInvitation } from '@grotto/api';
+import { canManageServerInvitations, type ServerInvitation } from '@haus/api';
 import { type SQL, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { serverInvitationsTable } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { requireServerMembership } from './server-access.ts';
 
 export class InvitationAuthorityError extends Error {
@@ -57,8 +57,8 @@ export class AlreadyServerMemberError extends Error {
  * token or invitation id never confirms that another Server exists.
  */
 export async function requireInvitationAuthority(
-    db: Pick<GrottoDatabase, 'select'>,
-    member: GrottoUser | null,
+    db: Pick<HausDatabase, 'select'>,
+    member: HausUser | null,
     serverId: string
 ) {
     const server = await requireServerMembership(db, member, serverId);

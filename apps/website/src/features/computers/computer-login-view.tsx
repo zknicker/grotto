@@ -2,7 +2,7 @@ import { Button, InputOTP, REGEXP_ONLY_DIGITS_AND_CHARS, Spinner } from '@heroui
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 const codeLength = 8;
 
@@ -42,7 +42,7 @@ export function ComputerLoginApproval({
     const codeFromUrl = slotsFromCode(searchParams.get('code') ?? '');
     const [slots, setSlots] = React.useState(codeFromUrl);
     const userCode = codeFromSlots(slots);
-    const statusQuery = grottoTrpc.computer.login.status.useQuery(
+    const statusQuery = hausTrpc.computer.login.status.useQuery(
         { userCode },
         {
             enabled: userCode.length > 0,
@@ -52,13 +52,13 @@ export function ComputerLoginApproval({
             staleTime: 0,
         }
     );
-    const utils = grottoTrpc.useUtils();
-    const approve = grottoTrpc.computer.login.approve.useMutation({
+    const utils = hausTrpc.useUtils();
+    const approve = hausTrpc.computer.login.approve.useMutation({
         onSuccess: (result, variables) => {
             utils.computer.login.status.setData({ userCode: variables.userCode }, result);
         },
     });
-    const deny = grottoTrpc.computer.login.deny.useMutation({
+    const deny = hausTrpc.computer.login.deny.useMutation({
         onSuccess: (result, variables) => {
             utils.computer.login.status.setData({ userCode: variables.userCode }, result);
         },
@@ -318,5 +318,5 @@ function loginDescription(
 }
 
 function LoginCommand() {
-    return <code className="font-mono text-foreground">grotto-computer login</code>;
+    return <code className="font-mono text-foreground">haus-computer login</code>;
 }

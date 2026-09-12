@@ -1,5 +1,5 @@
 import { and, eq, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { computersTable, serversTable } from '../postgres/schema.ts';
 import {
@@ -8,7 +8,7 @@ import {
     ServerNotFoundError,
 } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { findUserByClerkId } from '../users/grotto-user.ts';
+import { findUserByClerkId } from '../users/haus-user.ts';
 import { authenticateComputerLogin } from './login-session-service.ts';
 
 export type ComputerAttachmentErrorCode =
@@ -42,7 +42,7 @@ interface ComputerAttachmentRecord {
     serverId: string;
 }
 
-export async function attachComputer(db: GrottoDatabase, input: AttachComputerInput) {
+export async function attachComputer(db: HausDatabase, input: AttachComputerInput) {
     const login = await authenticateComputerLogin(db, { accessToken: input.accessToken });
     const member = await findUserByClerkId(db, login.clerkUserId);
 
@@ -124,7 +124,7 @@ export async function attachComputer(db: GrottoDatabase, input: AttachComputerIn
 }
 
 async function findAttachmentByIdempotencyKey(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     idempotencyKey: string,
     lock: boolean
 ): Promise<ComputerAttachmentRecord | null> {
@@ -171,7 +171,7 @@ function finishAttachment(
 function wrongAccount(slug: string) {
     return new ComputerAttachmentError(
         'computer_attachment_wrong_account',
-        `The signed-in Haus account cannot attach a Computer to /${slug}. Run "grotto-computer login --replace" and choose "Use another account".`,
+        `The signed-in Haus account cannot attach a Computer to /${slug}. Run "haus-computer login --replace" and choose "Use another account".`,
         403
     );
 }

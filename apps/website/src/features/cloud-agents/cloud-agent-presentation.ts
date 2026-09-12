@@ -4,7 +4,7 @@ import {
     type CloudAgentWork,
     cloudAgentPullRequestNumber,
     isTerminalCloudAgentStatus,
-} from '@grotto/api';
+} from '@haus/api';
 import { messagePreviewLine } from '../chats/message-preview-line.ts';
 
 /**

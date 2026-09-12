@@ -5,7 +5,7 @@ import {
     cloudAgentActivityMaxLength,
     cloudAgentBranchRepositorySchema,
     cloudAgentSummaryMaxLength,
-} from '@grotto/api';
+} from '@haus/api';
 import type { CloudAgentProviderObservation } from '../provider.ts';
 import type { CursorBranchReading, CursorRunReading, CursorRunStatus } from './transport.ts';
 

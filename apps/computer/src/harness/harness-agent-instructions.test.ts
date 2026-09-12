@@ -17,7 +17,7 @@ afterEach(async () => {
 });
 
 test('HarnessAgent supplies current instructions to a resumed native session', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-harness-instructions-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-harness-instructions-'));
     roots.push(root);
     const promptTurns: Array<{ instructions: string | undefined; isResume: boolean }> = [];
     const harness = createInstructionObservingHarness(promptTurns);

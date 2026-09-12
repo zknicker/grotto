@@ -12,18 +12,18 @@ test('App development inherits the schema-resolved Clerk issuer from the dev sta
     assert.deepEqual(
         createDesktopDevEnvironment({
             devStackEnvironment: {
-                GROTTO_CLERK_ISSUER_URL: 'https://worthy-peacock-11.clerk.accounts.dev',
+                HAUS_CLERK_ISSUER_URL: 'https://worthy-peacock-11.clerk.accounts.dev',
                 PATH: '/usr/bin',
             },
             ports: {
-                grottoPort: 25_251,
+                hausPort: 25_251,
                 websitePort: 25_248,
             },
         }),
         {
-            GROTTO_CLERK_ISSUER_URL: 'https://worthy-peacock-11.clerk.accounts.dev',
+            HAUS_CLERK_ISSUER_URL: 'https://worthy-peacock-11.clerk.accounts.dev',
             PATH: '/usr/bin',
-            GROTTO_WEBSITE_PORT: '25248',
+            HAUS_WEBSITE_PORT: '25248',
         }
     );
 });
@@ -31,7 +31,7 @@ test('App development inherits the schema-resolved Clerk issuer from the dev sta
 test('dev stack shutdown signals all managed processes before waiting in order', async () => {
     const controller = new DevStackController({
         mode: 'desktop',
-        ports: { grottoPort: 31_003, websitePort: 31_000 },
+        ports: { hausPort: 31_003, websitePort: 31_000 },
         repositoryRoot: process.cwd(),
     });
     const desktop = createManagedChildProcessStub(12_341, { autoExit: false });
@@ -57,7 +57,7 @@ test('dev stack shutdown signals all managed processes before waiting in order',
 test('dev stack shutdown forwards the operator signal to managed processes', async () => {
     const controller = new DevStackController({
         mode: 'web',
-        ports: { grottoPort: 31_003, websitePort: 31_000 },
+        ports: { hausPort: 31_003, websitePort: 31_000 },
         repositoryRoot: process.cwd(),
     });
     const website = createManagedChildProcessStub(12_342);
@@ -135,7 +135,7 @@ test('managed processes launch directly without an intermediate shell', () => {
     const child = createManagedChildProcessStub(12_346, { autoExit: false });
     const controller = new DevStackController({
         mode: 'web',
-        ports: { grottoPort: 31_003, websitePort: 31_000 },
+        ports: { hausPort: 31_003, websitePort: 31_000 },
         repositoryRoot: process.cwd(),
         spawnImpl: (...args) => {
             spawnCalls.push(args);
@@ -144,8 +144,8 @@ test('managed processes launch directly without an intermediate shell', () => {
     });
 
     controller.spawnProcess('computer', 'bun', ['--watch', 'src/index.ts', 'start'], {
-        cwd: '/tmp/grotto-computer',
-        env: { GROTTO_SERVER_PORT: '31003' },
+        cwd: '/tmp/haus-computer',
+        env: { HAUS_SERVER_PORT: '31003' },
     });
 
     assert.deepEqual(spawnCalls, [
@@ -153,9 +153,9 @@ test('managed processes launch directly without an intermediate shell', () => {
             'bun',
             ['--watch', 'src/index.ts', 'start'],
             {
-                cwd: '/tmp/grotto-computer',
+                cwd: '/tmp/haus-computer',
                 detached: true,
-                env: { GROTTO_SERVER_PORT: '31003' },
+                env: { HAUS_SERVER_PORT: '31003' },
                 shell: false,
                 stdio: ['ignore', 'pipe', 'pipe'],
             },

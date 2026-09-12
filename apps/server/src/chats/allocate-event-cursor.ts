@@ -1,8 +1,8 @@
 import { eq, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { serversTable } from '../postgres/schema.ts';
 
-type EventCursorWriter = Pick<GrottoDatabase, 'update'>;
+type EventCursorWriter = Pick<HausDatabase, 'update'>;
 
 /**
  * Serializes durable event allocation per Server. The row lock is held through

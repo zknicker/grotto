@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { AgentExecutionJournalTool } from '@grotto/api';
+import type { AgentExecutionJournalTool } from '@haus/api';
 import {
     classifyTraceTool,
     resolveToolPartState,
@@ -46,7 +46,7 @@ test('classifyTraceTool reads each runtime tool shape into typed fields', () => 
         tool({ input: { path: 'apps', pattern: 'todo' }, toolName: 'grep' })
     );
     const search = classifyTraceTool(
-        tool({ input: { query: 'grotto docs' }, toolName: 'webSearch' })
+        tool({ input: { query: 'haus docs' }, toolName: 'webSearch' })
     );
     const fetched = classifyTraceTool(
         tool({
@@ -73,7 +73,7 @@ test('classifyTraceTool reads each runtime tool shape into typed fields', () => 
     assert.equal(grep.kind, 'search');
     assert.equal(grep.path, 'apps');
     assert.equal(search.kind, 'web');
-    assert.equal(search.query, 'grotto docs');
+    assert.equal(search.query, 'haus docs');
     assert.equal(fetched.kind, 'web');
     assert.equal(fetched.label, 'Fetched example.com');
     assert.equal(mcp.kind, 'mcp');
@@ -153,8 +153,8 @@ test('trace output prefers the live value and keeps only distinct preliminaries'
 test('readTraceSources lifts cited URLs out of a web result', () => {
     assert.deepEqual(
         readTraceSources({
-            results: [{ title: 'Grotto', url: 'https://grotto.dev' }, { snippet: 'no url' }],
+            results: [{ title: 'Haus', url: 'https://haus.dev' }, { snippet: 'no url' }],
         }),
-        [{ title: 'Grotto', url: 'https://grotto.dev' }]
+        [{ title: 'Haus', url: 'https://haus.dev' }]
     );
 });

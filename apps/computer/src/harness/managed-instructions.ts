@@ -10,7 +10,7 @@
  * must remain covered by the Computer harness instruction tests. See AGENTS.md.
  */
 
-import { TASK_IN_REVIEW_STALE_DAYS } from '@grotto/api';
+import { TASK_IN_REVIEW_STALE_DAYS } from '@haus/api';
 
 export const agentWorkDirectoryName = 'workbench';
 
@@ -182,19 +182,19 @@ After the header: \`@sender — <description>:\` — handle plus one-line self-d
 
 const sendingMessagesSection = `### Sending messages
 
-- **Reply to a channel**: \`haus message send --target "#channel-name" <<'GROTTOMSG'\` followed by the message body and \`GROTTOMSG\`
-- **Reply to a DM**: \`haus message send --target dm:@peer-name <<'GROTTOMSG'\` followed by the message body and \`GROTTOMSG\`
-- **Reply in a thread**: \`haus message send --target "#channel:shortid" <<'GROTTOMSG'\` followed by the message body and \`GROTTOMSG\`
-- **Start a NEW DM**: \`haus message send --target dm:@person-name <<'GROTTOMSG'\` followed by the message body and \`GROTTOMSG\`
+- **Reply to a channel**: \`haus message send --target "#channel-name" <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
+- **Reply to a DM**: \`haus message send --target dm:@peer-name <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
+- **Reply in a thread**: \`haus message send --target "#channel:shortid" <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
+- **Start a NEW DM**: \`haus message send --target dm:@person-name <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
 
 Message content is always read from stdin. Use a heredoc so quotes, backticks, code blocks, and newlines are not interpreted by the shell:
 \`\`\`bash
-haus message send --target "#channel-name" <<'GROTTOMSG'
+haus message send --target "#channel-name" <<'HAUSMSG'
 Long message with "quotes", $vars, \`backticks\`, and code blocks.
-GROTTOMSG
+HAUSMSG
 \`\`\`
 
-Use a delimiter that is unlikely to appear in the message body; the examples use \`GROTTOMSG\` instead of \`EOF\` so shell snippets and recovery drafts are less likely to leak delimiter text into sent messages.
+Use a delimiter that is unlikely to appear in the message body; the examples use \`HAUSMSG\` instead of \`EOF\` so shell snippets and recovery drafts are less likely to leak delimiter text into sent messages.
 
 If Haus says a message was not sent and was saved as a draft, choose one path:
 - To update the draft, use a normal \`haus message send --target <target>\` with the revised content.
@@ -233,7 +233,7 @@ Threads are sub-conversations attached to a specific message. They let you discu
 - **Thread targets** have a colon and short ID suffix: \`#general:00000000\` (thread in #general) or \`dm:@richard:11111111\` (thread in a DM).
 - When replying to a message from a thread (the target has a \`:shortid\` suffix), **always use that same target** to keep the conversation in the thread.
 - **@-mentioned in a thread? Unless you have already read this thread in this turn, run \`haus message read --target "#channel:shortid"\` before replying.** Any attached parent or recent replies may be truncated and do not represent the full thread.
-- **Start a new thread**: Use the \`msg=\` field from the header as the thread suffix. For example, if you see \`[target=#general msg=00000000 ...]\`, reply with \`haus message send --target "#general:00000000" <<'GROTTOMSG'\` followed by the message body and \`GROTTOMSG\`. The thread will be auto-created if it doesn't exist yet. Example IDs like \`00000000\` are placeholders; real message IDs come from received messages.
+- **Start a new thread**: Use the \`msg=\` field from the header as the thread suffix. For example, if you see \`[target=#general msg=00000000 ...]\`, reply with \`haus message send --target "#general:00000000" <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`. The thread will be auto-created if it doesn't exist yet. Example IDs like \`00000000\` are placeholders; real message IDs come from received messages.
 - When you send a message, the response includes the message ID. You can use it to start a thread on your own message.
 - You can read thread history: \`haus message read --target "#general:00000000"\`
 - Unfollowing a thread removes its follow record and stops its ordinary delivery: \`haus thread unfollow --target "#general:00000000"\`. A later direct @mention reactivates that follow and repeats the exact unfollow command in the Agent delivery. A parent channel mute does not suppress ordinary delivery from threads you follow, so unfollow the specific thread when its work is complete or no longer relevant.
@@ -304,7 +304,7 @@ Haus adds \`closed\` (reversible) for a task that turns out to be unneeded.
 **Workflow:**
 1. Receive a message that requires action → claim it first (by task number if already a task, or by message ID if it's a regular message). Claiming is the concurrency lock and moves the task to \`in_progress\`. Use repeat flags: \`haus task claim --target "#channel" --number 1 --number 2\` or \`haus task claim --target "#channel" --message-id abc12345\`.
 2. If the claim fails, do not start conflicting execution or take over its scope without a redirect. A failed claim is a concurrency lock, not a ruling on lane ownership — if you are that lane's canonical owner, correct the routing in the original thread.
-3. Post updates in the task's thread: \`haus message send --target "#channel:msgShortId" <<'GROTTOMSG'\` followed by the message body and \`GROTTOMSG\`
+3. Post updates in the task's thread: \`haus message send --target "#channel:msgShortId" <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
 4. When done, set status to \`in_review\` so a human can validate via \`haus task update\`
 5. After approval (e.g. "looks good", "merge it"), set status to \`done\`
 

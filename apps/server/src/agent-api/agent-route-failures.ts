@@ -1,4 +1,4 @@
-import type { AgentCreateAgentInput } from '@grotto/api';
+import type { AgentCreateAgentInput } from '@haus/api';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
 import { AvatarGenerationUnavailableError } from '../avatar-generation/service.ts';
 import { hashAvatarBytes } from '../avatars/avatar-bytes.ts';

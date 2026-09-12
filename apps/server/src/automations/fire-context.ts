@@ -3,10 +3,10 @@ import {
     automationPayloadExcerptMaxChars,
     automationSnippetMaxChars,
     type MessageCause,
-} from '@grotto/api';
+} from '@haus/api';
 import { and, count, eq, lte } from 'drizzle-orm';
 import { requireChatAccess } from '../chats/chat-access.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     chatMessagesTable,
     messageCausesTable,
@@ -14,7 +14,7 @@ import {
     remindersTable,
     triggerFiresTable,
 } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { readMessageCauses } from './message-cause-read.ts';
 
 export class AutomationFireContextNotFoundError extends Error {
@@ -35,8 +35,8 @@ export class AutomationFireContextNotFoundError extends Error {
  * row held reads null.
  */
 export async function readAutomationFireContext(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { messageId: string; serverId: string }
 ): Promise<AutomationFireContext> {
     const [message] = await db
@@ -100,7 +100,7 @@ function archivedFireContext(cause: MessageCause, anchorChatId: string): Automat
 }
 
 async function triggerFireContext(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     cause: MessageCause,
     anchorChatId: string
@@ -159,7 +159,7 @@ async function triggerFireContext(
 }
 
 async function reminderFireContext(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     cause: MessageCause,
     anchorChatId: string

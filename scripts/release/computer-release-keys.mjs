@@ -1,10 +1,10 @@
 import { execFileSync } from 'node:child_process';
 import { userInfo } from 'node:os';
 
-const privateKeyEnvironmentName = 'GROTTO_COMPUTER_RELEASE_PRIVATE_KEY';
-const publicKeyEnvironmentName = 'GROTTO_COMPUTER_RELEASE_PUBLIC_KEY';
-const privateKeyService = 'grotto-computer-release-ed25519-private';
-const publicKeyService = 'grotto-computer-release-ed25519-public';
+const privateKeyEnvironmentName = 'HAUS_COMPUTER_RELEASE_PRIVATE_KEY';
+const publicKeyEnvironmentName = 'HAUS_COMPUTER_RELEASE_PUBLIC_KEY';
+const privateKeyService = 'haus-computer-release-ed25519-private';
+const publicKeyService = 'haus-computer-release-ed25519-public';
 
 export function readComputerReleasePrivateKey(options) {
     return readComputerReleaseKey(privateKeyEnvironmentName, privateKeyService, options);

@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { Separator } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
 import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
@@ -8,7 +8,7 @@ import { getChannelColorStyle } from '../../../components/chats/channel-color-op
 import { useChannelIconGlyph } from '../../../components/chats/channel-icon-catalog.ts';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentChats } from '../../../hooks/members/use-agent-chats.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { serverChatRoute } from '../../servers/server-routes.ts';
 import { formatPeekChatLabel } from './agent-peek-model.ts';
 import { PeekEmptyRow, PeekPressableCard, PeekSection } from './peek-section.tsx';

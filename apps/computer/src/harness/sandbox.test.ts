@@ -15,7 +15,7 @@ afterEach(async () => {
 });
 
 test('provider credentials remain references to host-native auth, never copies', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-sandbox-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-sandbox-'));
     roots.push(root);
     const hostHomeDir = join(root, 'host');
     const hostGrokHomeDir = join(root, 'host-grok');
@@ -63,7 +63,7 @@ test('provider credentials remain references to host-native auth, never copies',
 });
 
 test('restores native Codex image generation without changing other Codex config', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-sandbox-codex-imagegen-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-sandbox-codex-imagegen-'));
     roots.push(root);
     const hostHomeDir = join(root, 'host');
     const homeDir = join(root, 'agent-home');
@@ -78,7 +78,7 @@ test('restores native Codex image generation without changing other Codex config
             '',
             '',
             '',
-            '# grotto-managed: image generation routes through the image tool',
+            '# haus-managed: image generation routes through the image tool',
             '[features]',
             'image_generation = false',
             '',
@@ -121,7 +121,7 @@ test('restores native Codex image generation without changing other Codex config
 });
 
 test('preserves an explicit Codex image-generation preference not owned by Haus', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-sandbox-codex-config-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-sandbox-codex-config-'));
     roots.push(root);
     const hostHomeDir = join(root, 'host');
     const homeDir = join(root, 'agent-home');
@@ -145,7 +145,7 @@ test('preserves an explicit Codex image-generation preference not owned by Haus'
 });
 
 test('sandbox file operations reject another Agent root', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-sandbox-boundary-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-sandbox-boundary-'));
     roots.push(root);
     const workspace = join(root, 'agent-a');
     await mkdir(workspace);
@@ -168,7 +168,7 @@ test('sandbox file operations reject another Agent root', async () => {
 });
 
 test('sandbox permits only the shared derived harness bootstrap outside the Agent root', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-sandbox-bootstrap-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-sandbox-bootstrap-'));
     roots.push(root);
     const session = await createLocalTrustedSandboxProvider({
         rootDir: join(root, 'agent'),

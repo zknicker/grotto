@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { detectInventory } from './inventory.ts';
 
 test('discovers a runtime from the Computer search path and verifies the executable', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-runtime-inventory-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-runtime-inventory-'));
     const codex = join(root, 'codex');
     const claude = join(root, 'claude');
     const pi = join(root, 'pi');

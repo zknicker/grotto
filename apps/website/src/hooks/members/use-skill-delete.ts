@@ -1,8 +1,8 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useSkillDelete(serverId: string, agentId: string, name: string) {
-    const utils = grottoTrpc.useUtils();
-    const mutation = grottoTrpc.agent.deleteSkillFile.useMutation();
+    const utils = hausTrpc.useUtils();
+    const mutation = hausTrpc.agent.deleteSkillFile.useMutation();
 
     return {
         ...mutation,

@@ -1,7 +1,7 @@
-import type { AgentTrigger, Trigger, TriggerKind, TriggerStatus } from '@grotto/api';
+import type { AgentTrigger, Trigger, TriggerKind, TriggerStatus } from '@haus/api';
 import type { FastifyRequest } from 'fastify';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     createTrigger,
     deleteTrigger,
@@ -21,7 +21,7 @@ import { targetForChat } from './message-view.ts';
 const clock = { now: () => new Date() };
 
 export async function createAgentTrigger(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     request: FastifyRequest,
     input: { instruction?: string; kind: TriggerKind; messageId: string; title: string }
@@ -51,7 +51,7 @@ export async function createAgentTrigger(
 }
 
 export async function listAgentTriggers(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     request: FastifyRequest
 ) {
@@ -68,7 +68,7 @@ export async function listAgentTriggers(
 }
 
 export async function readAgentTrigger(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     request: FastifyRequest,
     triggerId: string
@@ -83,7 +83,7 @@ export async function readAgentTrigger(
 }
 
 export async function setAgentTriggerStatus(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     request: FastifyRequest,
     input: { status: TriggerStatus; triggerId: string }
@@ -103,7 +103,7 @@ export async function setAgentTriggerStatus(
 }
 
 export async function rotateAgentTriggerSecret(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     request: FastifyRequest,
     triggerId: string
@@ -124,7 +124,7 @@ export async function rotateAgentTriggerSecret(
 }
 
 export async function deleteAgentTrigger(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     request: FastifyRequest,
     triggerId: string
@@ -144,7 +144,7 @@ export async function deleteAgentTrigger(
 
 /** Fire history for one owned trigger, or one fire with its stored payload. */
 export async function readAgentTriggerLog(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     request: FastifyRequest,
     input: { fireId?: string; limit: number; triggerId: string }
@@ -176,7 +176,7 @@ export async function readAgentTriggerLog(
 }
 
 async function toAgentTrigger(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     trigger: Trigger
 ): Promise<AgentTrigger> {

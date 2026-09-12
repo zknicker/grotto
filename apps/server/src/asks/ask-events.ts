@@ -1,6 +1,6 @@
-import type { ServerDurableEvent } from '@grotto/api';
+import type { ServerDurableEvent } from '@haus/api';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable } from '../postgres/schema.ts';
 
@@ -14,7 +14,7 @@ export interface AskEventChat {
  * Message and the open-Ask list; the event itself carries only identities.
  */
 export async function insertAskEvent(
-    db: Pick<GrottoDatabase, 'insert' | 'update'>,
+    db: Pick<HausDatabase, 'insert' | 'update'>,
     input: {
         askId: string;
         chat: AskEventChat;

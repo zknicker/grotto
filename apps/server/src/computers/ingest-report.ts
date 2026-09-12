@@ -13,19 +13,19 @@ import {
     computerSystemEventReportSchema,
     computerUpdateProgressFrameSchema,
     coveApplyResultSchema,
-    grottoAgentReportFrameSchema,
+    hausAgentReportFrameSchema,
     reminderScriptResultSchema,
     usageReportSchema,
-} from '@grotto/api';
+} from '@haus/api';
 import { z } from 'zod';
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { emitServerUpdated } from '../grotto-api/server-events.ts';
+import { emitServerUpdated } from '../haus-api/server-events.ts';
 import { recordCoveApplyResult } from '../onboarding/create-cove.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { recordComputerAgentActivityWithStatus } from '../server-agents/agent-activity.ts';
 import { recordAgentEffectiveState } from '../server-agents/record-agent-effective-state.ts';
-import { recordGrottoAgentState } from '../server-agents/record-grotto-agent-state.ts';
+import { recordHausAgentState } from '../server-agents/record-haus-agent-state.ts';
 import { recordComputerUsage } from '../server-operations/computer-usage.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { ingestCloudAgentReport } from './cloud-agent-reports.ts';
@@ -47,7 +47,7 @@ const reportSchema = z
     .strict();
 
 export async function ingestReport(
-    db: GrottoDatabase,
+    db: HausDatabase,
     connections: ComputerConnections,
     delivery: AgentDelivery,
     computerId: string,
@@ -152,7 +152,7 @@ export async function ingestReport(
 }
 
 async function recordComputerReport(
-    db: GrottoDatabase,
+    db: HausDatabase,
     computerId: string,
     serverId: string,
     frame: unknown
@@ -175,9 +175,9 @@ async function recordComputerReport(
         return;
     }
 
-    const grottoAgentReport = grottoAgentReportFrameSchema.safeParse(frame);
-    if (grottoAgentReport.success) {
-        await recordGrottoAgentState(db, computerId, grottoAgentReport.data.agents);
+    const hausAgentReport = hausAgentReportFrameSchema.safeParse(frame);
+    if (hausAgentReport.success) {
+        await recordHausAgentState(db, computerId, hausAgentReport.data.agents);
         emitServerUpdated({ scope: 'computer', serverId });
         return;
     }

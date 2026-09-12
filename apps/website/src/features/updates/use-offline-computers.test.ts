@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { expectedComputerRestartMs } from './grotto-update-timing.ts';
+import { expectedComputerRestartMs } from './haus-update-timing.ts';
 import { isOfflineComputerNoticeCandidate } from './use-offline-computers.ts';
 
 const observedAt = Date.parse('2026-08-29T16:00:00.000Z');

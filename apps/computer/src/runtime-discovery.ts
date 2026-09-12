@@ -1,6 +1,6 @@
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
-import type { ComputerRuntimeId } from '@grotto/api/computer-runtime';
+import type { ComputerRuntimeId } from '@haus/api/computer-runtime';
 
 export interface ResolvedRuntimeExecutable {
     path: string;

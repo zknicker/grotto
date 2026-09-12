@@ -5,8 +5,8 @@ import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { readJson, repoRoot } from './release-utils.mjs';
 
-const s3Uri = trimTrailingSlash(requireEnv('GROTTO_RELEASE_S3_URI'));
-const includeDesktop = process.env.GROTTO_RELEASE_INCLUDE_DESKTOP !== '0';
+const s3Uri = trimTrailingSlash(requireEnv('HAUS_RELEASE_S3_URI'));
+const includeDesktop = process.env.HAUS_RELEASE_INCLUDE_DESKTOP !== '0';
 const bundleRoot = path.join(repoRoot, 'apps', 'website', 'electron-dist');
 
 const main = async () => {

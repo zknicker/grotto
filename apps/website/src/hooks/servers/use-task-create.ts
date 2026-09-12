@@ -1,5 +1,5 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useTaskCreate() {
-    return grottoTrpc.task.create.useMutation();
+    return hausTrpc.task.create.useMutation();
 }

@@ -1,4 +1,4 @@
-import type { CloudAgentWork } from '@grotto/api';
+import type { CloudAgentWork } from '@haus/api';
 import { ChatMessage } from '@heroui-pro/react';
 import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';

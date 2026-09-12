@@ -7,7 +7,7 @@ import { readComputerUpdateStatus } from './update-check.ts';
 const revision = 'a'.repeat(40);
 
 async function temporaryRoot() {
-    return await mkdtemp(join(tmpdir(), 'grotto-update-check-'));
+    return await mkdtemp(join(tmpdir(), 'haus-update-check-'));
 }
 
 test('development builds skip the network entirely', async () => {

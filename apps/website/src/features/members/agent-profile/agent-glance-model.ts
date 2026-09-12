@@ -1,4 +1,4 @@
-import type { Reminder, Trigger } from '@grotto/api';
+import type { Reminder, Trigger } from '@haus/api';
 
 export interface AgentAutomationCounts {
     armedTriggers: number;

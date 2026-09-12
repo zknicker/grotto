@@ -1,13 +1,13 @@
-import type { Chat } from '@grotto/api';
+import type { Chat } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { listChats } from '../chats/list-chats.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { channelAgentParticipantsTable } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 
 export async function listAgentChats(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { agentId: string; serverId: string }
 ): Promise<Chat[]> {
     const [visibleChats, channelRows] = await Promise.all([

@@ -8,8 +8,8 @@ import type {
     ReminderScriptCommand,
     ReminderScriptResult,
     ServerDurableEvent,
-} from '@grotto/api';
-import type { EffectRuntime } from '@grotto/effect';
+} from '@haus/api';
+import type { EffectRuntime } from '@haus/effect';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
     messageSelection,
@@ -19,7 +19,7 @@ import {
 import { emitDurableChatEvent } from '../chats/durable-events.ts';
 import { readCloudAgentWorkAttentions } from '../cloud-agents/read-cloud-agent-work-attentions.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentMessageDraftsTable, agentsTable, chatMessagesTable } from '../postgres/schema.ts';
 import {
@@ -110,11 +110,11 @@ const maxDrainChars = 24_000;
  * run drains a bounded slice across all pending targets.
  */
 export class AgentDelivery {
-    private readonly db: GrottoDatabase;
+    private readonly db: HausDatabase;
     private readonly transport: DeliveryTransport;
 
     constructor(
-        db: GrottoDatabase,
+        db: HausDatabase,
         transport: DeliveryTransport,
         private readonly runtime?: EffectRuntime<never>
     ) {
@@ -128,7 +128,7 @@ export class AgentDelivery {
      * message can never leave its wake unqueued. Dispatch to the wire is the
      * separate, recoverable step {@link dispatchAgent}.
      */
-    async enqueue(tx: GrottoDatabase, input: EnqueueInput): Promise<void> {
+    async enqueue(tx: HausDatabase, input: EnqueueInput): Promise<void> {
         const source = input.source ?? 'human';
         await store.ensureDeliveryState(tx, { agentId: input.agentId, serverId: input.serverId });
         await store.enqueueInboxItem(tx, {
@@ -885,7 +885,7 @@ export class AgentDelivery {
      * pending inbox into a fresh run. Returns the frame to send.
      */
     private async planDispatch(
-        tx: GrottoDatabase,
+        tx: HausDatabase,
         agentId: string,
         options?: DispatchOptions
     ): Promise<DispatchPlan | null> {
@@ -1170,7 +1170,7 @@ function emitTaskEvents(events: ServerDurableEvent[]): void {
 }
 
 async function startFrame(
-    db: GrottoDatabase,
+    db: HausDatabase,
     state: AgentDeliveryRow,
     config: Pick<
         AgentDispatchConfig,
@@ -1250,7 +1250,7 @@ function noticeWindow(
 }
 
 async function attachSummaryVisibility(
-    db: GrottoDatabase,
+    db: HausDatabase,
     state: AgentDeliveryRow,
     identities: AgentTurnSummary['visibleMessages'] | undefined
 ) {
@@ -1307,7 +1307,7 @@ async function attachSummaryVisibility(
 }
 
 async function buildInboxItems(
-    db: GrottoDatabase,
+    db: HausDatabase,
     rows: store.InboxItemRow[]
 ): Promise<AgentInboxItem[]> {
     const serverId = rows[0]?.serverId;

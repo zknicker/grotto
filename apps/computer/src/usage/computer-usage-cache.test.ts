@@ -2,11 +2,11 @@ import { expect, test } from 'bun:test';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { UsageOverview } from '@grotto/api';
+import type { UsageOverview } from '@haus/api';
 import { createComputerUsageCache } from './computer-usage-cache.ts';
 
 test('a fresh Computer usage cache avoids provider reads across restarts', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-usage-cache-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-usage-cache-'));
     let calls = 0;
     const load = async () => {
         calls += 1;
@@ -25,7 +25,7 @@ test('a fresh Computer usage cache avoids provider reads across restarts', async
 });
 
 test('a stale cache refreshes once for concurrent readers', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-usage-cache-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-usage-cache-'));
     let calls = 0;
     const read = createComputerUsageCache({
         dataRoot,
@@ -44,7 +44,7 @@ test('a stale cache refreshes once for concurrent readers', async () => {
 });
 
 test('a transient provider failure retains only that provider last-good snapshot', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-usage-cache-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-usage-cache-'));
     let calls = 0;
     const read = createComputerUsageCache({
         dataRoot,
@@ -73,7 +73,7 @@ test('a transient provider failure retains only that provider last-good snapshot
 });
 
 test('an authentication failure retains the cached provider snapshot', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-usage-cache-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-usage-cache-'));
     let calls = 0;
     const read = createComputerUsageCache({
         dataRoot,

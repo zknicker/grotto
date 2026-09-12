@@ -2,12 +2,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TRPCClientError, type TRPCLink } from '@trpc/client';
 import { observable } from '@trpc/server/observable';
 import * as React from 'react';
-import type { GrottoRouter } from '../../../../server/src/grotto-api/router.ts';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import type { HausRouter } from '../../../../server/src/haus-api/router.ts';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { resolveActivationFixture } from './activation-preview-fixtures.ts';
 
 /**
- * A Grotto client whose only link answers from activation fixtures. The real
+ * A Haus client whose only link answers from activation fixtures. The real
  * activation components run their real hooks against it, so the preview never
  * needs a Server, a Computer, or a signed-in session.
  */
@@ -22,19 +22,19 @@ export function ActivationPreviewServer({ children }: React.PropsWithChildren) {
             })
     );
     const [client] = React.useState(() =>
-        grottoTrpc.createClient({ links: [activationFixtureLink] })
+        hausTrpc.createClient({ links: [activationFixtureLink] })
     );
 
     return (
         <QueryClientProvider client={queryClient}>
-            <grottoTrpc.Provider client={client} queryClient={queryClient}>
+            <hausTrpc.Provider client={client} queryClient={queryClient}>
                 {children}
-            </grottoTrpc.Provider>
+            </hausTrpc.Provider>
         </QueryClientProvider>
     );
 }
 
-const activationFixtureLink: TRPCLink<GrottoRouter> =
+const activationFixtureLink: TRPCLink<HausRouter> =
     () =>
     ({ op }) =>
         observable((observer) => {

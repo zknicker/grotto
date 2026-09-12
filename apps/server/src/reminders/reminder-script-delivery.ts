@@ -1,6 +1,6 @@
-import type { ReminderScriptCommand, ReminderScriptResult } from '@grotto/api';
+import type { ReminderScriptCommand, ReminderScriptResult } from '@haus/api';
 import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
     chatsTable,
@@ -12,7 +12,7 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { reminderEnvelope, reminderScriptLines } from './reminder-envelope.ts';
 
 export async function listReminderScriptCommands(
-    db: GrottoDatabase,
+    db: HausDatabase,
     computerId: string
 ): Promise<ReminderScriptCommand[]> {
     const rows = await db
@@ -51,11 +51,11 @@ export async function listReminderScriptCommands(
 }
 
 export async function settleReminderScript(
-    db: GrottoDatabase,
+    db: HausDatabase,
     computerId: string,
     result: ReminderScriptResult,
     enqueue: (
-        tx: GrottoDatabase,
+        tx: HausDatabase,
         input: {
             agentId: string;
             chatId: string;

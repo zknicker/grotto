@@ -9,7 +9,7 @@ import {
 } from './openrouter-settings.ts';
 
 test('OpenRouter management key stays in a private Computer-local file', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-openrouter-key-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-openrouter-key-'));
 
     try {
         await expect(readOpenRouterManagementKey(root)).resolves.toBeNull();

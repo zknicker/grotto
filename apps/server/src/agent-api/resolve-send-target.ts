@@ -1,7 +1,7 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { ensureThreadRecord } from '../threads/ensure-thread.ts';
 import { AgentTargetError, escapeLike, resolveAgentTarget } from './resolve-target.ts';
@@ -13,7 +13,7 @@ import { AgentTargetError, escapeLike, resolveAgentTarget } from './resolve-targ
  * and an Agent, so `dm:@<agent-handle>` resolves to nothing here.
  */
 export async function resolveAgentSendTarget(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     target: string
 ): Promise<string> {
@@ -88,7 +88,7 @@ function parseDirectHumanHandle(target: string) {
 }
 
 async function resolveAgentParentTarget(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     target: string
 ): Promise<{ anchor: string; parentChatId: string } | null> {

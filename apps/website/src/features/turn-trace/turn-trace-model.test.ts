@@ -6,7 +6,7 @@ import type {
     AgentActivityPhase,
     AgentExecutionJournal,
     AgentExecutionJournalTool,
-} from '@grotto/api';
+} from '@haus/api';
 import type { AgentActivityTurn } from '../members/agent-profile/agent-activity-turns.ts';
 import { buildTurnTrace } from './turn-trace-model.ts';
 

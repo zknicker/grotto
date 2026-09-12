@@ -1,15 +1,15 @@
-import type { Chat } from '@grotto/api';
+import type { Chat } from '@haus/api';
 import { and, eq, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable, serverOnboardingTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { readThreadAttentionCounts } from '../threads/thread-attention.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { visibleChats } from './chat-visibility.ts';
 
 export async function listChats(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     serverId: string,
     archive: 'active' | 'all' | 'archived' = 'active'
 ): Promise<Chat[]> {

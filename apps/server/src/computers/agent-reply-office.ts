@@ -6,8 +6,8 @@ import type {
     AgentSkillImportResult,
     AgentWorkspaceRequest,
     AgentWorkspaceResult,
-} from '@grotto/api';
-import { type EffectRuntime, settle } from '@grotto/effect';
+} from '@haus/api';
+import { type EffectRuntime, settle } from '@haus/effect';
 import { Deferred, Effect } from 'effect';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {

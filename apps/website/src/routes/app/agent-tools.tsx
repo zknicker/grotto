@@ -1,4 +1,4 @@
-import type { Agent, McpConnection } from '@grotto/api';
+import type { Agent, McpConnection } from '@haus/api';
 import { Separator, Switch } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';

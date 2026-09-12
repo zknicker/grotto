@@ -1,4 +1,4 @@
-import { EXECUTION_JOURNAL_REASONING_MAX_CHARS } from '@grotto/api';
+import { EXECUTION_JOURNAL_REASONING_MAX_CHARS } from '@haus/api';
 import { applyJournalRecord, findJournalReasoning } from './execution-journal-mutations';
 import type { JournalMutationRecord } from './execution-journal-records';
 import {

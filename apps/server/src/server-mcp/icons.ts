@@ -1,5 +1,5 @@
-import { type McpIcon, mcpIconMaxBytes, mcpIconSchema, mcpSummarySchema } from '@grotto/api';
-import type { EffectRuntime } from '@grotto/effect';
+import { type McpIcon, mcpIconMaxBytes, mcpIconSchema, mcpSummarySchema } from '@haus/api';
+import type { EffectRuntime } from '@haus/effect';
 import * as z from 'zod';
 import { loadRemoteIcon, type McpIconFetch } from './icon-loader.ts';
 
@@ -16,7 +16,7 @@ export type { McpIconFetch } from './icon-loader.ts';
  * module exists to close.
  *
  * The upstream `Icon` shape stays local to this file: it is a third-party
- * protocol shape, not a Haus contract. What crosses `@grotto/api` is the
+ * protocol shape, not a Haus contract. What crosses `@haus/api` is the
  * validated, inlined result.
  */
 

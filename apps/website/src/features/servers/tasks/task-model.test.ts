@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Agent, TaskListItem } from '@grotto/api';
+import type { Agent, TaskListItem } from '@haus/api';
 import { testAgent } from '../../members/agent-fixtures.ts';
 import { humanDirectory } from '../human-identity.ts';
 import {
@@ -285,7 +285,7 @@ function agent(): Agent {
         effectiveReasoningEffort: null,
         effectiveReportedAt: null,
         effectiveRuntimeId: null,
-        grottoAgent: {
+        hausAgent: {
             appliedAt: null,
             appliedVersion: null,
             currentVersion: '1.0.0',

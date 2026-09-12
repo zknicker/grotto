@@ -1,8 +1,8 @@
-import type { Agent, CoveApplyCommand, CoveApplyResult } from '@grotto/api';
+import type { Agent, CoveApplyCommand, CoveApplyResult } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import { enqueueInboxItem } from '../agent-delivery/store.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentDeliveryTable,
@@ -19,7 +19,7 @@ import {
 import { queryAgents } from '../server-agents/query-agents.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { createCoveAvatarRow } from './cove-avatar.ts';
 
 export interface CreateCoveInput {
@@ -40,8 +40,8 @@ export class CoveSetupError extends Error {}
 export class CoveSetupConflictError extends CoveSetupError {}
 
 export async function createCove(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: CreateCoveInput
 ): Promise<CreateCoveResult> {
     const reservation = await db.transaction(async (tx) => {
@@ -144,7 +144,7 @@ export async function createCove(
 }
 
 export async function readPendingCoveCommand(
-    db: GrottoDatabase,
+    db: HausDatabase,
     computerId: string
 ): Promise<CoveApplyCommand | null> {
     const [row] = await db
@@ -183,7 +183,7 @@ export async function readPendingCoveCommand(
 }
 
 export async function sendPendingCoveApplication(
-    db: GrottoDatabase,
+    db: HausDatabase,
     connections: ComputerConnections,
     computerId: string
 ): Promise<boolean> {
@@ -192,7 +192,7 @@ export async function sendPendingCoveApplication(
 }
 
 export async function recordCoveApplyResult(
-    db: GrottoDatabase,
+    db: HausDatabase,
     computerId: string,
     result: CoveApplyResult
 ): Promise<string | null> {

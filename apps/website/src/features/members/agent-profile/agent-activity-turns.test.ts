@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AgentActivityEvent, AgentTurn } from '@grotto/api';
+import type { AgentActivityEvent, AgentTurn } from '@haus/api';
 import {
     formatActivityTurnCounts,
     formatActivityTurnHeadline,

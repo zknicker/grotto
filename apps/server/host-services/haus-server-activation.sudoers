@@ -1,0 +1,1 @@
+zknicker ALL=(root) NOPASSWD: /usr/local/libexec/haus/activate-haus-server

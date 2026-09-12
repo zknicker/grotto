@@ -1,9 +1,9 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { seedCoveWorkspace, seedFactoryManagedSkills } from '@grotto/agent-workspace';
-import type { AgentTurnActivitySummary, CloudAgentBranch } from '@grotto/api';
-import type { TraceCarrier } from '@grotto/effect';
+import { seedCoveWorkspace, seedFactoryManagedSkills } from '@haus/agent-workspace';
+import type { AgentTurnActivitySummary, CloudAgentBranch } from '@haus/api';
+import type { TraceCarrier } from '@haus/effect';
 import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 import { AgentActivityRun } from './agent-activity-run.ts';
 import {
@@ -289,12 +289,12 @@ export async function runAgentLaunch(options: RunAgentLaunchOptions): Promise<Ag
     });
     // The loopback token and managed CLI are the Agent's only reachable authority.
     const agentEnv: Record<string, string> = {
-        GROTTO_AGENT_ID: command.agentId,
-        GROTTO_AGENT_PROXY_TOKEN_FILE: tokenFile,
-        GROTTO_AGENT_PROXY_URL: proxy.url,
-        GROTTO_AGENT_TOKEN_FILE: tokenFile,
-        GROTTO_SERVER_URL: options.serverOrigin,
-        GROTTO_WRAPPER: wrapperPath,
+        HAUS_AGENT_ID: command.agentId,
+        HAUS_AGENT_PROXY_TOKEN_FILE: tokenFile,
+        HAUS_AGENT_PROXY_URL: proxy.url,
+        HAUS_AGENT_TOKEN_FILE: tokenFile,
+        HAUS_SERVER_URL: options.serverOrigin,
+        HAUS_WRAPPER: wrapperPath,
         PATH: [
             binDir,
             runtimeExecutable?.path ? dirname(runtimeExecutable.path) : null,
@@ -615,7 +615,7 @@ async function runFakeRuntime(
         env: {
             ...process.env,
             ...input.agentEnv,
-            GROTTO_TURN_PROMPT: composeInboxDrain(
+            HAUS_TURN_PROMPT: composeInboxDrain(
                 input.command.inbox ?? [],
                 input.command.homeTimezone ?? 'UTC'
             ),

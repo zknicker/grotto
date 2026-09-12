@@ -8,7 +8,7 @@ import {
 } from './agent-session-authority.ts';
 
 test('applies each Server session generation once and ignores stale commands', async () => {
-    const agentRoot = await mkdtemp(join(tmpdir(), 'grotto-session-authority-'));
+    const agentRoot = await mkdtemp(join(tmpdir(), 'haus-session-authority-'));
     let resets = 0;
     const reset = async () => {
         resets += 1;
@@ -36,7 +36,7 @@ test('applies each Server session generation once and ignores stale commands', a
 });
 
 test('does not advance the applied marker when local reset fails', async () => {
-    const agentRoot = await mkdtemp(join(tmpdir(), 'grotto-session-authority-failure-'));
+    const agentRoot = await mkdtemp(join(tmpdir(), 'haus-session-authority-failure-'));
     try {
         await expect(
             applyAuthoritativeSession({

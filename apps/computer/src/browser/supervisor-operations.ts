@@ -1,4 +1,4 @@
-import type { AgentRuntimeBrowserState, AgentRuntimeBrowserStatus } from '@grotto/api';
+import type { AgentRuntimeBrowserState, AgentRuntimeBrowserStatus } from '@haus/api';
 import { Clock, Data, Effect, Option } from 'effect';
 import type { BrowserCommandQueue } from './command-queue.ts';
 import {

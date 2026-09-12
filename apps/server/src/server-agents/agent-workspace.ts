@@ -1,15 +1,15 @@
-import type { WorkspaceFileContent, WorkspaceFileList } from '@grotto/api';
+import type { WorkspaceFileContent, WorkspaceFileList } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { ComputerConnections } from '../computers/connections.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 
 export async function listAgentWorkspace(
-    db: GrottoDatabase,
+    db: HausDatabase,
     connections: ComputerConnections,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: { agentId: string; includeHidden: boolean; path: string; serverId: string }
 ): Promise<WorkspaceFileList> {
     const computerId = await requireWorkspaceAccess(db, member, input);
@@ -28,9 +28,9 @@ export async function listAgentWorkspace(
 }
 
 export async function readAgentWorkspaceFile(
-    db: GrottoDatabase,
+    db: HausDatabase,
     connections: ComputerConnections,
-    member: GrottoUser | null,
+    member: HausUser | null,
     input: { agentId: string; includeHidden: boolean; path: string; serverId: string }
 ): Promise<WorkspaceFileContent> {
     const computerId = await requireWorkspaceAccess(db, member, input);
@@ -49,8 +49,8 @@ export async function readAgentWorkspaceFile(
 }
 
 async function requireWorkspaceAccess(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { agentId: string; serverId: string }
 ) {
     const server = await requireServerMembership(db, member, input.serverId);

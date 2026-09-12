@@ -1,4 +1,4 @@
-import type { Agent } from '@grotto/api';
+import type { Agent } from '@haus/api';
 import { Button, Dropdown, Header, Label, Separator } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
 import { ArrowDown01Icon, UserCircleIcon } from '@hugeicons-pro/core-stroke-rounded';

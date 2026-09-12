@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNotNull, or } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { attachmentsTable, chatsTable, remindersTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 
@@ -9,7 +9,7 @@ interface DeletedChannelTarget {
     serverId: string;
 }
 
-export async function purgeDeletedChannels(db: GrottoDatabase, root: AttachmentRoot) {
+export async function purgeDeletedChannels(db: HausDatabase, root: AttachmentRoot) {
     const channels = await db
         .select({ chatId: chatsTable.id, serverId: chatsTable.serverId })
         .from(chatsTable)
@@ -26,7 +26,7 @@ export async function purgeDeletedChannels(db: GrottoDatabase, root: AttachmentR
 }
 
 export async function purgeDeletedChannel(
-    db: GrottoDatabase,
+    db: HausDatabase,
     root: AttachmentRoot,
     input: DeletedChannelTarget
 ) {

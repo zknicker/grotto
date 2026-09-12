@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import * as z from 'zod';
 import { resolveRunnerCredential } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     cancelAgentReminder,
     listAgentReminders,
@@ -38,7 +38,7 @@ const updateSchema = mutationSchema
             ).length === 1
     );
 
-export function registerAgentReminderRoutes(app: FastifyInstance, db: GrottoDatabase) {
+export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDatabase) {
     app.post('/api/agent/reminders/schedule', async (request, reply) => {
         const runner = await authorizeRunner(db, request);
         const parsed = scheduleSchema.safeParse(request.body);
@@ -112,7 +112,7 @@ async function runAction(reply: FastifyReply, action: () => Promise<unknown>) {
     }
 }
 
-async function authorizeRunner(db: GrottoDatabase, request: FastifyRequest) {
+async function authorizeRunner(db: HausDatabase, request: FastifyRequest) {
     const header = request.headers.authorization;
     const value = Array.isArray(header) ? header[0] : header;
     const token = typeof value === 'string' && value.startsWith('Bearer ') ? value.slice(7) : null;

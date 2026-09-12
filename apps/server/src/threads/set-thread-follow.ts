@@ -1,17 +1,17 @@
 import { sql } from 'drizzle-orm';
 import { allocateEventCursor } from '../chats/allocate-event-cursor.ts';
 import { requireChatAccess } from '../chats/chat-access.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatEventsTable, threadFollowsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { ensureThread } from './ensure-thread.ts';
 import { requireThreadAccess } from './resolve-thread-access.ts';
 
 export async function setThreadFollow(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { follow: boolean; serverId: string; threadChatId: string }
 ) {
     return await db.transaction(async (tx) => {

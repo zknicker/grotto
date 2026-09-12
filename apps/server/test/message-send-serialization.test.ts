@@ -2,8 +2,8 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { sendChatMessage } from '../src/chats/send-message.ts';
-import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
-import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
+import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
+import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentsTable,
@@ -11,7 +11,7 @@ import {
     channelParticipantsTable,
     usersTable,
 } from '../src/postgres/schema.ts';
-import type { GrottoUser } from '../src/users/grotto-user.ts';
+import type { HausUser } from '../src/users/haus-user.ts';
 import {
     type BackgroundClaim,
     FakeTransport,
@@ -29,12 +29,12 @@ import { serializedTransactions } from './serialized-db-fixture.ts';
  * tests drive the real send entry point and fail the moment one overlaps.
  */
 let cluster: PostgresCluster;
-let connection: GrottoConnection;
+let connection: HausConnection;
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
-    await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
-    connection = await connectGrottoDatabase(cluster.databaseUrl);
+    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    connection = await connectHausDatabase(cluster.databaseUrl);
 });
 
 afterAll(async () => {
@@ -121,7 +121,7 @@ async function agentHandle(claim: BackgroundClaim): Promise<string> {
     return agent.handle;
 }
 
-async function member(claim: BackgroundClaim): Promise<GrottoUser> {
+async function member(claim: BackgroundClaim): Promise<HausUser> {
     const [user] = await connection.db
         .select({ clerkUserId: usersTable.clerkUserId, id: usersTable.id })
         .from(usersTable)

@@ -1,4 +1,4 @@
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -8,7 +8,7 @@ import {
     serverOnboardingTable,
     serversTable,
 } from '../postgres/schema.ts';
-import { ensureUserByClerkId } from '../users/grotto-user.ts';
+import { ensureUserByClerkId } from '../users/haus-user.ts';
 import { allChannelName, onboardingOwnerChannelName, type ServerDetail } from './contracts.ts';
 
 export interface CreateServerInput {
@@ -31,7 +31,7 @@ export class ServerSlugTakenError extends Error {
  * no Computer, Agent, or execution configuration.
  */
 export async function createServer(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: CreateServerInput
 ): Promise<ServerDetail> {
     const server = { displayName: input.displayName, id: createOpaqueId('srv'), slug: input.slug };

@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
-import type { Trigger, TriggerFireErrorCode, TriggerKind, TriggerStatus } from '@grotto/api';
-import { triggerSecretPrefix } from '@grotto/api';
+import type { Trigger, TriggerFireErrorCode, TriggerKind, TriggerStatus } from '@haus/api';
+import { triggerSecretPrefix } from '@haus/api';
 import { hashComputerSecret } from '../computers/service.ts';
 import type { triggersTable } from '../postgres/schema.ts';
 import { triggerUrl } from './trigger-url.ts';

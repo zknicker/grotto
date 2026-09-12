@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useResizablePaneWidth } from '../../components/ui/resizable-pane-rail.tsx';
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import { WorkspaceBrowserRail } from './chat-artifact-workspace-browser-rail.tsx';
 import {
@@ -33,7 +33,7 @@ export function WorkspaceBrowserContent({
     agentId,
     initialDirectoryPath = '',
     railVariant = 'panel',
-    sidebarStorageKey = 'grotto.artifactPane.workspaceSidebar.width',
+    sidebarStorageKey = 'haus.artifactPane.workspaceSidebar.width',
     selectedPath: controlledSelectedPath,
     onSelectPath,
     serverId,
@@ -83,14 +83,14 @@ export function WorkspaceBrowserContent({
         React.useState<WorkspaceDirectoryEntries>({});
     const [directoryLoadError, setDirectoryLoadError] = React.useState<string | null>(null);
     const initialDirectory = normalizeWorkspacePath(initialDirectoryPath);
-    const serverUtils = grottoTrpc.useUtils();
+    const serverUtils = hausTrpc.useUtils();
     const fileSidebarWidth = useResizablePaneWidth({
         defaultWidth: 300,
         maxWidth: 440,
         minWidth: 220,
         storageKey: sidebarStorageKey,
     });
-    const filesQuery = grottoTrpc.agent.workspaceFiles.useQuery(
+    const filesQuery = hausTrpc.agent.workspaceFiles.useQuery(
         { agentId, includeHidden, path: '', serverId },
         { ...queryPolicy.computerSnapshot, enabled: agentId.length > 0 }
     );

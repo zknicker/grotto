@@ -1,4 +1,4 @@
-import type { Reminder, ReminderHistoryEntry } from '@grotto/api';
+import type { Reminder, ReminderHistoryEntry } from '@haus/api';
 
 /**
  * The section is a schedule, so it renders only the wakes still coming. The

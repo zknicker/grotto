@@ -1,4 +1,4 @@
-import { agentCloudAgentSendReceiptSchema } from '@grotto/api';
+import { agentCloudAgentSendReceiptSchema } from '@haus/api';
 import { CloudLaunchJournal } from './launch-journal.ts';
 import { CloudAgentServerError } from './launch-work.ts';
 import type { CloudAgentWorkSupervisor } from './work-runner.ts';

@@ -1,11 +1,11 @@
-import { grottoTrpc, type ServerDetail } from '../../lib/grotto-server.tsx';
+import { hausTrpc, type ServerDetail } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 const incompleteOnboardingRefetchMs = 1000;
 
-/** One Grotto server opened at its human-facing address, with its Channels. */
+/** One Haus server opened at its human-facing address, with its Channels. */
 export function useServer(slug: string, enabled = true) {
-    return grottoTrpc.server.bySlug.useQuery(
+    return hausTrpc.server.bySlug.useQuery(
         { slug },
         {
             ...queryPolicy.syncedSnapshot,

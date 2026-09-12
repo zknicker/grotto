@@ -15,7 +15,7 @@ const work = {
     provider: 'cursor',
     providerAgentId: 'bc_same',
     providerUrl: null,
-    repository: 'zknicker/grotto',
+    repository: 'zknicker/haus',
     startingRef: 'main',
     title: 'Existing work',
     status: 'queued',
@@ -37,7 +37,7 @@ afterEach(async () => {
 });
 
 async function fixture(status = 200) {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-send-work-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-send-work-'));
     const requests: unknown[] = [];
     const watched: CloudAgentRunRef[] = [];
     const server = Bun.serve({

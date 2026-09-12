@@ -1,6 +1,6 @@
-import type { AgentTurnSummary } from '@grotto/api';
+import type { AgentTurnSummary } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, agentTurnsTable } from '../postgres/schema.ts';
 
@@ -11,7 +11,7 @@ import { agentsTable, agentTurnsTable } from '../postgres/schema.ts';
  * retried report never duplicates a turn row.
  */
 export async function recordAgentTurnSummary(
-    db: GrottoDatabase,
+    db: HausDatabase,
     computerId: string,
     summary: AgentTurnSummary
 ): Promise<void> {

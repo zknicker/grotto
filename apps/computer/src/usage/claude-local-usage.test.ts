@@ -12,7 +12,7 @@ afterEach(async () => {
 
 test('uses ccusage Claude replay and final-snapshot dedupe semantics', async () => {
     const now = new Date('2026-08-14T12:00:00Z');
-    const root = await mkdtemp(join(tmpdir(), 'grotto-claude-local-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-claude-local-'));
     roots.push(root);
     const file = join(root, 'projects', 'project', 'session.jsonl');
     await mkdir(join(root, 'projects', 'project'), { recursive: true });

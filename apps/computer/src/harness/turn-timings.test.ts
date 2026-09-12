@@ -9,7 +9,7 @@ import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { type HarnessAgentFactory, runHarnessTurn } from './executor.ts';
 
 test('records native startup and stream boundaries without inventing message sends', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-turn-timings-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-turn-timings-'));
     const runtime = makeDaemonRuntime();
     const timings = new AgentTurnTimings();
     const session = {
@@ -57,13 +57,13 @@ test('records native startup and stream boundaries without inventing message sen
             workspaceDir: join(root, 'workspace'),
         });
         expect(timings.snapshot()).toMatchObject({
-            'grotto.reasoning.effort': 'high',
-            'grotto.turn.harness_ready_ms': expect.any(Number),
-            'grotto.turn.session_create_ms': expect.any(Number),
-            'grotto.turn.first_stream_ms': expect.any(Number),
-            'grotto.turn.first_tool_ms': expect.any(Number),
+            'haus.reasoning.effort': 'high',
+            'haus.turn.harness_ready_ms': expect.any(Number),
+            'haus.turn.session_create_ms': expect.any(Number),
+            'haus.turn.first_stream_ms': expect.any(Number),
+            'haus.turn.first_tool_ms': expect.any(Number),
         });
-        expect(timings.snapshot()['grotto.turn.first_send_ms']).toBeUndefined();
+        expect(timings.snapshot()['haus.turn.first_send_ms']).toBeUndefined();
     } finally {
         await runtime.dispose();
         await rm(root, { recursive: true, force: true });

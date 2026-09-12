@@ -11,10 +11,10 @@ test('Recovery commands are visible in a copyable code block', () => {
     expect(html).toContain('# Check local files and Server credential acceptance');
     expect(html).toContain('# Restart this attachment if it stops responding');
     expect(html).toContain('# Restore the previous verified Computer release');
-    expect(html).toContain('grotto-computer status');
-    expect(html).toContain('grotto-computer doctor');
-    expect(html).toContain('grotto-computer restart /dev');
-    expect(html).toContain('grotto-computer upgrade --rollback');
+    expect(html).toContain('haus-computer status');
+    expect(html).toContain('haus-computer doctor');
+    expect(html).toContain('haus-computer restart /dev');
+    expect(html).toContain('haus-computer upgrade --rollback');
     expect(html).not.toContain('View Commands');
     expect(html).not.toContain('role="dialog"');
 });

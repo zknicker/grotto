@@ -1,4 +1,4 @@
-import type { ImportableSkill } from '@grotto/api';
+import type { ImportableSkill } from '@haus/api';
 import { Card } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
 import { FileEmpty02Icon } from '@hugeicons/core-free-icons';
@@ -23,7 +23,7 @@ export function SkillsBrowser({ sources }: { sources: SkillSource[] }) {
         defaultWidth: 300,
         maxWidth: 380,
         minWidth: 240,
-        storageKey: 'grotto.skills.sidebar.width',
+        storageKey: 'haus.skills.sidebar.width',
     });
     const entries = React.useMemo(() => buildTreeEntries(sources), [sources]);
     const subjects = React.useMemo(() => entries.map((entry) => entry.subject), [entries]);

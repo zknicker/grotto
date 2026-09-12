@@ -5,7 +5,7 @@ import {
     type ComputerManagementCommand,
     type ComputerManagementEvent,
     computerManagementEventSchema,
-} from '@grotto/api';
+} from '@haus/api';
 
 const retainedEventCount = 100;
 

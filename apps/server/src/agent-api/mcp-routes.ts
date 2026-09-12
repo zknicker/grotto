@@ -1,7 +1,7 @@
-import { parseTraceCarrier } from '@grotto/effect';
+import { parseTraceCarrier } from '@haus/effect';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { McpDeniedError, McpUpstreamError } from '../server-mcp/errors.ts';
 import type { McpRuntime } from '../server-mcp/runtime.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
@@ -15,7 +15,7 @@ const invocationSchema = z
 
 export function registerAgentMcpRoutes(
     app: FastifyInstance,
-    options: { db: GrottoDatabase; runtime: McpRuntime }
+    options: { db: HausDatabase; runtime: McpRuntime }
 ) {
     app.get('/api/agent/mcp/tools', async (request, reply) => {
         const runner = await authorizeAgentRunner(options.db, request);

@@ -17,7 +17,7 @@ const runtime = makeDaemonRuntime();
 afterAll(() => runtime.dispose());
 
 beforeEach(async () => {
-    dataRoot = await mkdtemp(join(tmpdir(), 'grotto-reminder-script-'));
+    dataRoot = await mkdtemp(join(tmpdir(), 'haus-reminder-script-'));
 });
 
 afterEach(async () => {
@@ -96,15 +96,15 @@ test('coalesces concurrent delivery of the same reminder script', async () => {
 });
 
 test('runs with a minimal environment instead of Computer process secrets', async () => {
-    const prior = process.env.GROTTO_REMINDER_TEST_SECRET;
-    process.env.GROTTO_REMINDER_TEST_SECRET = 'must-not-leak';
+    const prior = process.env.HAUS_REMINDER_TEST_SECRET;
+    process.env.HAUS_REMINDER_TEST_SECRET = 'must-not-leak';
     try {
         const command = parseReminderScriptCommand({
             agentId: 'agt_environment',
             attentionId: 'att_environment0001',
             fireId: 'rmf_environment',
             reminderId: 'rmd_environment',
-            script: `printf '%s\\n%s\\n%s' "$GROTTO_REMINDER_TEST_SECRET" "$HOME" "$(command -v sh)"`,
+            script: `printf '%s\\n%s\\n%s' "$HAUS_REMINDER_TEST_SECRET" "$HOME" "$(command -v sh)"`,
             type: 'reminder-script',
         });
         if (!command) {
@@ -120,9 +120,9 @@ test('runs with a minimal environment instead of Computer process secrets', asyn
         expect(result.output).toMatch(/\/sh$/mu);
     } finally {
         if (prior === undefined) {
-            process.env.GROTTO_REMINDER_TEST_SECRET = undefined;
+            process.env.HAUS_REMINDER_TEST_SECRET = undefined;
         } else {
-            process.env.GROTTO_REMINDER_TEST_SECRET = prior;
+            process.env.HAUS_REMINDER_TEST_SECRET = prior;
         }
     }
 });

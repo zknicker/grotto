@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { TASK_IN_REVIEW_STALE_DAYS } from '@grotto/api';
+import { TASK_IN_REVIEW_STALE_DAYS } from '@haus/api';
 import { composeAgentInstructions } from './instructions.ts';
 
 // The smallest guard on the ported system prompt: every real Computer Agent must

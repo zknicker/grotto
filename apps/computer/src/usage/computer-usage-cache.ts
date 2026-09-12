@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { type UsageOverview, usageOverviewSchema } from '@grotto/api';
+import { type UsageOverview, usageOverviewSchema } from '@haus/api';
 import { readComputerUsage } from './read-usage.ts';
 
 const DEFAULT_REFRESH_INTERVAL_MS = 15 * 60_000;

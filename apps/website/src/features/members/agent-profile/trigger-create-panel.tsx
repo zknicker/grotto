@@ -1,4 +1,4 @@
-import { type Agent, type Trigger, triggerTitleMaxLength } from '@grotto/api';
+import { type Agent, type Trigger, triggerTitleMaxLength } from '@haus/api';
 import { Alert, Button, FieldError, Form, Input, Label, TextArea, TextField } from '@heroui/react';
 import { Sheet } from '@heroui-pro/react';
 import * as React from 'react';

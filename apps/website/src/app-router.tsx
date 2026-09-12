@@ -2,7 +2,7 @@ import * as React from 'react';
 import { createBrowserRouter, createHashRouter, Navigate, useParams } from 'react-router-dom';
 import { AppFrame } from './components/app-frame.tsx';
 import { ComputerLoginRoutes } from './features/computers/computer-login-routes.tsx';
-import { GrottoServerRoutes } from './features/servers/grotto-server-routes.tsx';
+import { HausServerRoutes } from './features/servers/haus-server-routes.tsx';
 import { serverRoute } from './features/servers/server-routes.ts';
 import { isElectronDesktopApp } from './lib/desktop-bridge.ts';
 import { LegacyComputersRedirect, LegacyMemberRedirect } from './routes/app/legacy-redirects.tsx';
@@ -49,7 +49,7 @@ export function createAppRouter() {
                       ]
                     : []),
                 {
-                    element: <GrottoServerRoutes />,
+                    element: <HausServerRoutes />,
                     children: [
                         {
                             index: true,

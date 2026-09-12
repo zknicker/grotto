@@ -135,7 +135,7 @@ test('previews Channels with activity beside the title and overlapping member av
     expect(markup).not.toContain('· Channel');
     expect(markup).not.toContain('3 members');
     expect(markup).not.toContain('uppercase');
-    expect(markup).not.toContain('A shared conversation in Grotto.');
+    expect(markup).not.toContain('A shared conversation in Haus.');
 });
 
 test('keeps Channel preview data dormant while its hover card is closed', () => {

@@ -48,7 +48,7 @@ const args = process.argv.slice(2).filter((arg) => arg !== '--');
 const dryRun = args.includes('--dry-run');
 const version = args.find((arg) => !arg.startsWith('-'));
 const releaseBaseUrl = (
-    process.env.GROTTO_COMPUTER_RELEASE_BASE_URL ?? 'https://releases.haus.chat/computer'
+    process.env.HAUS_COMPUTER_RELEASE_BASE_URL ?? 'https://releases.haus.chat/computer'
 ).replace(/\/+$/u, '');
 
 await main();
@@ -66,10 +66,10 @@ async function main() {
                   format: 'pem',
                   type: 'pkcs8',
               })
-            : requiredEnv('GROTTO_COMPUTER_RELEASE_PRIVATE_KEY').replaceAll('\\n', '\n'));
+            : requiredEnv('HAUS_COMPUTER_RELEASE_PRIVATE_KEY').replaceAll('\\n', '\n'));
     const releasePublicKey = dryRun
         ? publicKeyFromPrivate(privateKey)
-        : (readComputerReleasePublicKey() ?? requiredEnv('GROTTO_COMPUTER_RELEASE_PUBLIC_KEY'));
+        : (readComputerReleasePublicKey() ?? requiredEnv('HAUS_COMPUTER_RELEASE_PUBLIC_KEY'));
     assertComputerReleaseKey(privateKey, releasePublicKey);
     const appleTeamId = dryRun
         ? (process.env.APPLE_TEAM_ID ?? 'DRYRUN0000')
@@ -78,7 +78,7 @@ async function main() {
         ? (configuredSigningIdentity() ?? 'Developer ID Application: Haus (DRYRUN0000)')
         : requiredSigningIdentity();
     assertSource(sourceRevision);
-    const s3Root = dryRun ? null : requiredEnv('GROTTO_RELEASE_S3_URI').replace(/\/+$/u, '');
+    const s3Root = dryRun ? null : requiredEnv('HAUS_RELEASE_S3_URI').replace(/\/+$/u, '');
     if (!dryRun) {
         await assertPublishState(version);
         requirePublishingEnvironment();
@@ -110,9 +110,9 @@ async function main() {
         assertComputerReleaseTagAbsent(version);
         run('bun', ['run', 'release:check']);
     }
-    run('bun', ['run', '--filter', '@grotto/api', 'typecheck']);
-    run('bun', ['run', '--filter', '@grotto/computer', 'test']);
-    run('bun', ['run', '--filter', '@grotto/computer', 'typecheck']);
+    run('bun', ['run', '--filter', '@haus/api', 'typecheck']);
+    run('bun', ['run', '--filter', '@haus/computer', 'test']);
+    run('bun', ['run', '--filter', '@haus/computer', 'typecheck']);
     const recoveredArtifactPath = dryRun
         ? null
         : await recoverImmutableComputerArtifact({
@@ -196,8 +196,8 @@ async function renderInstaller(input) {
         'utf8'
     );
     const rendered = template
-        .replaceAll('__GROTTO_APPLE_TEAM_ID__', input.appleTeamId)
-        .replaceAll('__GROTTO_APPLE_SIGNING_IDENTITY__', input.appleSigningIdentity);
+        .replaceAll('__HAUS_APPLE_TEAM_ID__', input.appleTeamId)
+        .replaceAll('__HAUS_APPLE_SIGNING_IDENTITY__', input.appleSigningIdentity);
     const installerPath = path.join(repoRoot, 'apps', 'computer', 'release', 'install.sh');
     await writeFile(installerPath, rendered, { mode: 0o755 });
     return installerPath;
@@ -246,7 +246,7 @@ function assertSource(sourceRevision) {
 }
 
 function requirePublishingEnvironment() {
-    requiredEnv('GROTTO_RELEASE_S3_URI');
+    requiredEnv('HAUS_RELEASE_S3_URI');
     requiredEnv('APPLE_ID');
     requiredEnv('APPLE_APP_SPECIFIC_PASSWORD');
     run('gh', ['auth', 'status']);

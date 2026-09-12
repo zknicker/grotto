@@ -1,9 +1,9 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useThreadFollow(parentChatId: string) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
-    return grottoTrpc.thread.setFollow.useMutation({
+    return hausTrpc.thread.setFollow.useMutation({
         onSuccess: async (_, input) => {
             await Promise.all([
                 utils.chat.list.invalidate({ serverId: input.serverId }),

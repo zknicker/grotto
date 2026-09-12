@@ -1,5 +1,5 @@
-import type { AgentCommand, BrowserRequest, BrowserResult } from '@grotto/api';
-import { type EffectRuntime, settle, type TraceCarrier, tracePromise } from '@grotto/effect';
+import type { AgentCommand, BrowserRequest, BrowserResult } from '@haus/api';
+import { type EffectRuntime, settle, type TraceCarrier, tracePromise } from '@haus/effect';
 import { Deferred, Effect } from 'effect';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 
@@ -34,10 +34,10 @@ export class BrowserReplyOffice {
         this.pending.set(reply.requestId, reply);
         return tracePromise(
             this.options.runtime,
-            'grotto.browser.operation',
+            'haus.browser.operation',
             {
-                'grotto.operation': `browser.${operation.kind}`,
-                'grotto.request.id': reply.requestId,
+                'haus.operation': `browser.${operation.kind}`,
+                'haus.request.id': reply.requestId,
             },
             (traceContext) => this.waitForReply(reply, operation, traceContext)
         );

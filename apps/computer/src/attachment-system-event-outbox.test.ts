@@ -8,7 +8,7 @@ import {
 } from './attachment-system-event-outbox.ts';
 
 test('management event outbox retains one hundred stable typed events', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-system-events-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-system-events-'));
     const serverId = 'srv_history';
     try {
         for (let index = 0; index < 105; index += 1) {

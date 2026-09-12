@@ -5,7 +5,7 @@ import type {
     AgentTurn,
     AgentTurnOperationCategory,
     AgentTurnOperationCount,
-} from '@grotto/api';
+} from '@haus/api';
 
 const operationCategories = new Set<AgentActivityCategory>([
     'browsing',

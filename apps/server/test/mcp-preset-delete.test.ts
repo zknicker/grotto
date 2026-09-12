@@ -1,16 +1,16 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { createGrottoClient, type GrottoClient } from './grotto-client.ts';
-import { type GrottoServerHarness, startGrottoServerHarness } from './grotto-server-harness.ts';
+import { createHausClient, type HausClient } from './haus-client.ts';
+import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
-let harness: GrottoServerHarness;
-let owner: GrottoClient;
-let outsider: GrottoClient;
+let harness: HausServerHarness;
+let owner: HausClient;
+let outsider: HausClient;
 let serverId: string;
 
 beforeAll(async () => {
-    harness = await startGrottoServerHarness();
-    owner = createGrottoClient(harness, await harness.clerk.mintSessionToken('preset-owner'));
-    outsider = createGrottoClient(harness, await harness.clerk.mintSessionToken('preset-outsider'));
+    harness = await startHausServerHarness();
+    owner = createHausClient(harness, await harness.clerk.mintSessionToken('preset-owner'));
+    outsider = createHausClient(harness, await harness.clerk.mintSessionToken('preset-outsider'));
     serverId = (await owner.trpc.server.create.mutate({ displayName: 'Presets', slug: 'presets' }))
         .id;
     await outsider.trpc.server.create.mutate({ displayName: 'Other', slug: 'other-presets' });

@@ -1,6 +1,6 @@
-import { automationSnippetMaxChars, type MessageCause, type MessageCauseLive } from '@grotto/api';
+import { automationSnippetMaxChars, type MessageCause, type MessageCauseLive } from '@haus/api';
 import { and, count, eq, inArray, max } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     messageCausesTable,
     reminderFiresTable,
@@ -18,7 +18,7 @@ import {
  * instruction — and is null once the automation or the answered fire is gone.
  */
 export async function readMessageCauses(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     messageIds: string[]
 ): Promise<Map<string, MessageCause>> {
@@ -155,7 +155,7 @@ export async function readMessageCauses(
 
 /** How often each reminder has fired and when it last did, for the live half of a mark. */
 async function readReminderFireStats(
-    db: GrottoDatabase,
+    db: HausDatabase,
     serverId: string,
     reminderIds: string[]
 ): Promise<Map<string, { fireCount: number; lastFiredAt: Date | null }>> {

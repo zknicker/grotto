@@ -1,5 +1,5 @@
 import type { MCPClient } from '@ai-sdk/mcp';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import type { McpRuntime } from './runtime.ts';
 import { modelToolName } from './tool-catalog.ts';
 
@@ -49,7 +49,7 @@ export function makeClient(name: string, plan: ClientPlan = {}) {
     return { client, state };
 }
 
-export function grantDb(connectionId: string, toolName: string, grant = true): GrottoDatabase {
+export function grantDb(connectionId: string, toolName: string, grant = true): HausDatabase {
     let selection = 0;
     return {
         select() {
@@ -58,7 +58,7 @@ export function grantDb(connectionId: string, toolName: string, grant = true): G
             }
             return fakeQuery(grant ? [{ connectionId }] : []);
         },
-    } as unknown as GrottoDatabase;
+    } as unknown as HausDatabase;
 }
 
 export const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));

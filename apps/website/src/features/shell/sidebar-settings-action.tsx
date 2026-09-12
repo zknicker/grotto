@@ -7,7 +7,7 @@ import { shellBandIconSize } from './section-header.tsx';
 /**
  * The sidebar's one piece of chrome: Settings, and nothing else. Server
  * identity moved out of the sidebar entirely — the navigation below now leads
- * with the Grotto mark on the Inbox row — so what is left is a single quiet
+ * with the Haus mark on the Inbox row — so what is left is a single quiet
  * action with no row to justify.
  *
  * So it takes none. `shell.css` floats it at the sidebar's top-right corner,
@@ -26,7 +26,7 @@ export function SidebarSettingsAction({
 }) {
     return (
         // `app-shell-band` is the glyph rank, not a box: the gear still sits
-        // beside the 22px Grotto mark and is sized against it.
+        // beside the 22px Haus mark and is sized against it.
         <div className="app-shell-band app-shell-titlebar-action flex items-center">
             <Tooltip>
                 <Button

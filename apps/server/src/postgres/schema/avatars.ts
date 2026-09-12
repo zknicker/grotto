@@ -1,4 +1,4 @@
-import type { AvatarMediaType } from '@grotto/api/avatar';
+import type { AvatarMediaType } from '@haus/api/avatar';
 import { sql } from 'drizzle-orm';
 import { check, customType, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 

@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events';
 import path from 'node:path';
 import readline from 'node:readline';
 import {
-    hasGrottoSchema,
+    hasHausSchema,
     postgresLocaleEnvironment,
     prepareDevPostgres,
     reserveDevPostgresPort,
@@ -22,11 +22,8 @@ import {
     waitForPort,
 } from './dev-stack-shared.mjs';
 
-const shutdownProcessOrder = ['desktop', 'website', 'computer', 'grotto', 'postgres'];
-const shutdownTimeoutMs = Number.parseInt(
-    process.env.GROTTO_DEV_SHUTDOWN_TIMEOUT_MS ?? '30000',
-    10
-);
+const shutdownProcessOrder = ['desktop', 'website', 'computer', 'haus', 'postgres'];
+const shutdownTimeoutMs = Number.parseInt(process.env.HAUS_DEV_SHUTDOWN_TIMEOUT_MS ?? '30000', 10);
 const processGroupShutdownPollMs = 50;
 
 export class DevStackController extends EventEmitter {
@@ -59,7 +56,7 @@ export class DevStackController extends EventEmitter {
             processes: {
                 computer: { status: 'waiting' },
                 desktop: { status: isDesktop ? 'waiting' : 'disabled' },
-                grotto: { status: 'waiting' },
+                haus: { status: 'waiting' },
                 postgres: { status: 'waiting' },
                 website: { status: 'waiting' },
             },
@@ -92,7 +89,7 @@ export class DevStackController extends EventEmitter {
     parseOutputLine(source, line) {
         const normalizedLine = stripAnsi(line);
 
-        if (source === 'desktop' && /Running `.*grotto-desktop`/u.test(normalizedLine)) {
+        if (source === 'desktop' && /Running `.*haus-desktop`/u.test(normalizedLine)) {
             this.addLog(source, normalizedLine);
             this.update((snapshot) => {
                 snapshot.processes.desktop.status = 'running';
@@ -232,13 +229,13 @@ export class DevStackController extends EventEmitter {
         const websiteDirectory = path.join(this.repositoryRoot, 'apps', 'website');
         const startupUiEnv = {
             ...devStackEnvironment,
-            GROTTO_STARTUP_UI: '1',
+            HAUS_STARTUP_UI: '1',
         };
-        const serverUrl = `http://localhost:${this.ports.grottoPort}`;
+        const serverUrl = `http://localhost:${this.ports.hausPort}`;
         const websiteEnv = {
             ...startupUiEnv,
-            VITE_GROTTO_APP_ORIGIN: startupUiEnv.GROTTO_APP_ORIGIN,
-            VITE_GROTTO_SERVER_ORIGIN: serverUrl,
+            VITE_HAUS_APP_ORIGIN: startupUiEnv.HAUS_APP_ORIGIN,
+            VITE_HAUS_SERVER_ORIGIN: serverUrl,
         };
         let websiteReadyPromise = null;
         let desktopPrebuildPromise = null;
@@ -294,24 +291,24 @@ export class DevStackController extends EventEmitter {
 
         const serverEnv = {
             ...startupUiEnv,
-            GROTTO_APP_ORIGIN:
-                startupUiEnv.GROTTO_APP_ORIGIN ?? `http://localhost:${this.ports.websitePort}`,
-            GROTTO_DATABASE_URL: postgres.databaseUrl,
-            GROTTO_SERVER_PORT: String(this.ports.grottoPort),
+            HAUS_APP_ORIGIN:
+                startupUiEnv.HAUS_APP_ORIGIN ?? `http://localhost:${this.ports.websitePort}`,
+            HAUS_DATABASE_URL: postgres.databaseUrl,
+            HAUS_SERVER_PORT: String(this.ports.hausPort),
         };
-        if (hasGrottoSchema(postgres)) {
+        if (hasHausSchema(postgres)) {
             const migrated = await this.spawnBackgroundProcess(
-                'grotto',
-                'bun apps/server/src/grotto-server-migrate.ts',
+                'haus',
+                'bun apps/server/src/haus-server-migrate.ts',
                 {
                     ...serverEnv,
-                    GROTTO_DATABASE_MIGRATION_URL: postgres.databaseUrl,
-                    GROTTO_DATABASE_BACKUP_ROLE: 'grotto',
-                    GROTTO_DATABASE_RUNTIME_ROLE: 'grotto',
+                    HAUS_DATABASE_MIGRATION_URL: postgres.databaseUrl,
+                    HAUS_DATABASE_BACKUP_ROLE: 'haus',
+                    HAUS_DATABASE_RUNTIME_ROLE: 'haus',
                 }
             );
             if (!migrated) {
-                const dataRoot = devStackEnvironment.GROTTO_POSTGRES_DATA_ROOT;
+                const dataRoot = devStackEnvironment.HAUS_POSTGRES_DATA_ROOT;
                 throw new Error(
                     'Failed to migrate the development Server database. ' +
                         `If this dev database predates checked-in migrations, move ${dataRoot} aside and rerun.`
@@ -319,13 +316,13 @@ export class DevStackController extends EventEmitter {
             }
         } else {
             const bootstrapped = await this.spawnBackgroundProcess(
-                'grotto',
-                'bun apps/server/src/grotto-server-bootstrap.ts',
+                'haus',
+                'bun apps/server/src/haus-server-bootstrap.ts',
                 {
                     ...serverEnv,
-                    GROTTO_DATABASE_BOOTSTRAP_URL: postgres.databaseUrl,
-                    GROTTO_DATABASE_BACKUP_ROLE: 'grotto',
-                    GROTTO_DATABASE_RUNTIME_ROLE: 'grotto',
+                    HAUS_DATABASE_BOOTSTRAP_URL: postgres.databaseUrl,
+                    HAUS_DATABASE_BACKUP_ROLE: 'haus',
+                    HAUS_DATABASE_RUNTIME_ROLE: 'haus',
                 }
             );
             if (!bootstrapped) {
@@ -333,22 +330,22 @@ export class DevStackController extends EventEmitter {
             }
         }
 
-        this.spawnProcess('grotto', 'bun', ['--watch', 'src/grotto-server.ts'], {
+        this.spawnProcess('haus', 'bun', ['--watch', 'src/haus-server.ts'], {
             cwd: serverDirectory,
             env: serverEnv,
         });
-        await waitForPort(Number(this.ports.grottoPort));
+        await waitForPort(Number(this.ports.hausPort));
         this.update((snapshot) => {
-            snapshot.processes.grotto.status = 'running';
+            snapshot.processes.haus.status = 'running';
         });
 
         this.spawnProcess('computer', 'bun', ['--watch', 'src/index.ts', 'start'], {
             cwd: computerDirectory,
             env: {
                 ...startupUiEnv,
-                GROTTO_COMPUTER_RESIDENT: '1',
-                GROTTO_COMPUTER_WATCH_ATTACHMENT_DAEMON: '1',
-                GROTTO_SERVER_ORIGIN: serverUrl,
+                HAUS_COMPUTER_RESIDENT: '1',
+                HAUS_COMPUTER_WATCH_ATTACHMENT_DAEMON: '1',
+                HAUS_SERVER_ORIGIN: serverUrl,
             },
         });
         this.update((snapshot) => {
@@ -385,7 +382,7 @@ export class DevStackController extends EventEmitter {
         this.stopPromise = (async () => {
             const shutdownSignal = options.signal ?? 'SIGTERM';
             this.addLog(
-                'grotto',
+                'haus',
                 options.signal ? `shutdown requested (${options.signal})` : 'shutdown requested'
             );
             this.update((snapshot) => {
@@ -474,7 +471,7 @@ export class DevStackController extends EventEmitter {
 export function createDesktopDevEnvironment({ devStackEnvironment, ports }) {
     return {
         ...devStackEnvironment,
-        GROTTO_WEBSITE_PORT: String(ports.websitePort),
+        HAUS_WEBSITE_PORT: String(ports.websitePort),
     };
 }
 
@@ -566,13 +563,13 @@ function isStartupComplete(snapshot) {
     const desktopReady =
         snapshot.processes.desktop.status === 'disabled' ||
         snapshot.processes.desktop.status === 'running';
-    const grottoReady = snapshot.processes.grotto.status === 'running';
+    const hausReady = snapshot.processes.haus.status === 'running';
     const computerReady = snapshot.processes.computer.status === 'running';
     const postgresReady = snapshot.processes.postgres.status === 'running';
 
     return (
         computerReady &&
-        grottoReady &&
+        hausReady &&
         postgresReady &&
         snapshot.processes.website.status === 'running' &&
         desktopReady

@@ -38,7 +38,7 @@ describe('toast placement contract', () => {
     });
 
     test('toasts are narrower than HeroUI’s default', () => {
-        // 460 is sized for title + description + action; Grotto's toasts are
+        // 460 is sized for title + description + action; Haus's toasts are
         // mostly one-line confirmations.
         const width = /width=\{(\d+)\}/u.exec(toastProvider)?.[1];
         expect(width).toBeDefined();

@@ -1,7 +1,7 @@
 import { useAuth, useSignIn } from '@clerk/clerk-react';
 import { useEffect, useRef } from 'react';
 import { isClerkEnabled } from '../../lib/clerk.tsx';
-import { GrottoServerProvider, grottoTrpc } from '../../lib/grotto-server.tsx';
+import { HausServerProvider, hausTrpc } from '../../lib/haus-server.tsx';
 
 export function DevAutoSignIn() {
     const shouldAutoSignIn =
@@ -22,9 +22,9 @@ function DevAutoSignInGate() {
         return null;
     }
     return (
-        <GrottoServerProvider>
+        <HausServerProvider>
             <DevAutoSignInInner />
-        </GrottoServerProvider>
+        </HausServerProvider>
     );
 }
 
@@ -32,7 +32,7 @@ function DevAutoSignInInner() {
     const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
     const { isLoaded: isSignInLoaded, setActive, signIn } = useSignIn();
     const { mutateAsync: createClerkSignInToken } =
-        grottoTrpc.dev.createClerkSignInToken.useMutation();
+        hausTrpc.dev.createClerkSignInToken.useMutation();
     const attemptedRef = useRef(false);
 
     useEffect(() => {

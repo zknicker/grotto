@@ -3,7 +3,7 @@ import { basename } from 'node:path';
 import { and, eq } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { attachmentsTable, chatsTable } from '../postgres/schema.ts';
 import { visibleChatSql } from './message-view.ts';
@@ -21,7 +21,7 @@ export class AgentAttachmentError extends Error {
 }
 
 export async function uploadAgentAttachment(
-    db: GrottoDatabase,
+    db: HausDatabase,
     root: AttachmentRoot,
     runner: ResolvedRunner,
     input: { dataBase64: string; filename: string; mediaType?: string }
@@ -100,7 +100,7 @@ export async function uploadAgentAttachment(
 }
 
 export async function viewAgentAttachment(
-    db: GrottoDatabase,
+    db: HausDatabase,
     root: AttachmentRoot,
     runner: ResolvedRunner,
     attachmentId: string
@@ -158,7 +158,7 @@ export async function viewAgentAttachment(
     }
 }
 
-async function canReadChat(db: GrottoDatabase, runner: ResolvedRunner, chatId: string) {
+async function canReadChat(db: HausDatabase, runner: ResolvedRunner, chatId: string) {
     const [chat] = await db
         .select({ id: chatsTable.id })
         .from(chatsTable)

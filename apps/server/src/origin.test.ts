@@ -3,12 +3,9 @@ import { isAllowedAppOrigin } from './origin.ts';
 
 describe('isAllowedAppOrigin', () => {
     test('allows packaged Electron file origins', () => {
-        expect(isAllowedAppOrigin('file://', 'https://app.grotto.test')).toBe(true);
+        expect(isAllowedAppOrigin('file://', 'https://app.haus.test')).toBe(true);
         expect(
-            isAllowedAppOrigin(
-                'file:///Applications/Haus.app/index.html',
-                'https://app.grotto.test'
-            )
+            isAllowedAppOrigin('file:///Applications/Haus.app/index.html', 'https://app.haus.test')
         ).toBe(true);
     });
 });

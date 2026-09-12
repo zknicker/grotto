@@ -9,7 +9,7 @@ import type {
     HarnessV1SandboxProvider,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
-import type { EffectRuntime } from '@grotto/effect';
+import type { EffectRuntime } from '@haus/effect';
 import { createSandboxProcessRegistry } from './sandbox-processes.ts';
 
 /**
@@ -41,7 +41,7 @@ export function createLocalTrustedSandboxProvider(
     const homeDir = path.resolve(options.homeDir ?? path.join(rootDir, '.home'));
     const hostHomeDir = path.resolve(
         options.hostHomeDir ??
-            process.env.GROTTO_COMPUTER_HOST_HOME ??
+            process.env.HAUS_COMPUTER_HOST_HOME ??
             process.env.HOME ??
             os.homedir()
     );
@@ -68,7 +68,7 @@ export function createLocalTrustedSandboxProvider(
             }
             return session;
         },
-        providerId: 'grotto-computer-local-trusted',
+        providerId: 'haus-computer-local-trusted',
         resumeSession: async (input) =>
             createLocalTrustedSandboxSession({
                 authProfiles: options.authProfiles ?? [],
@@ -233,7 +233,7 @@ async function referenceAuthProfiles(input: {
 }
 
 const legacyCodexImageGenerationMarker =
-    '# grotto-managed: image generation routes through the image tool';
+    '# haus-managed: image generation routes through the image tool';
 const legacyCodexImageGenerationBlock = new RegExp(
     `${escapeRegExp(legacyCodexImageGenerationMarker)}\\n` +
         '\\[features\\]\\n' +

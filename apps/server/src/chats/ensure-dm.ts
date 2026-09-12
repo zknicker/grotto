@@ -1,11 +1,11 @@
-import type { Chat, ServerDurableEvent } from '@grotto/api';
+import type { Chat, ServerDurableEvent } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { insertLifecycleEvent } from './lifecycle-events.ts';
 import { listChats } from './list-chats.ts';
 
@@ -30,8 +30,8 @@ export interface EnsuredDm {
 }
 
 export async function ensureDm(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { peerUserId: string; serverId: string }
 ): Promise<EnsuredDm> {
     const ensured = await db.transaction(async (tx) => {

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
@@ -16,7 +16,7 @@ const stagingKey = 'upl_devimagepreview0';
 
 /** Keeps one real hosted image in the development transcript for visual checks. */
 export async function ensureDevelopmentChatAttachment(
-    db: GrottoDatabase,
+    db: HausDatabase,
     root: AttachmentRoot,
     serverId: string
 ) {

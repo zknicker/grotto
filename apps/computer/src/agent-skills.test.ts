@@ -17,7 +17,7 @@ beforeEach(async () => {
     if (root) {
         await rm(root, { force: true, recursive: true });
     }
-    root = await mkdtemp(join(tmpdir(), 'grotto-skills-'));
+    root = await mkdtemp(join(tmpdir(), 'haus-skills-'));
 });
 
 test('supports the proven Agent skill lifecycle with optimistic hash checks', async () => {
@@ -71,7 +71,7 @@ test('rejects traversal and symlink escapes from the Agent skill library', async
         })
     ).rejects.toThrow('must stay under');
 
-    const outside = await mkdtemp(join(tmpdir(), 'grotto-skills-outside-'));
+    const outside = await mkdtemp(join(tmpdir(), 'haus-skills-outside-'));
     await mkdir(join(root, 'safe', 'references'), { recursive: true });
     await symlink(outside, join(root, 'safe', 'references', 'escape'));
     await expect(

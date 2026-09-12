@@ -3,7 +3,7 @@ import type { CurrentAgentActivityContextValue } from '../../hooks/agents/use-cu
 export type AgentActivityGhostTempo = 'calm' | 'lively';
 
 /**
- * The sidebar's Grotto mark always carries the mesh; its drift speed carries
+ * The sidebar's Haus mark always carries the mesh; its drift speed carries
  * exactly one fact: is anyone working on this Server right now. The activity
  * provider has already narrowed its rows to Agents whose canonical availability
  * is `working`, so a non-empty snapshot is that fact and nothing here needs to

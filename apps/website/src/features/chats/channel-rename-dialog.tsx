@@ -1,4 +1,4 @@
-import type { Chat } from '@grotto/api';
+import type { Chat } from '@haus/api';
 import { Button, FieldError, Form, Input, Label, Modal, TextField, toast } from '@heroui/react';
 import * as React from 'react';
 import { useChannelUpdate } from '../../hooks/servers/use-channel-update.ts';

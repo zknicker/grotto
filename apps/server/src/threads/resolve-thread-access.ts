@@ -1,8 +1,8 @@
 import { and, eq } from 'drizzle-orm';
 import { ChatNotFoundError, requireChatAccess } from '../chats/chat-access.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { anchorMessageIdForThreadChatId } from './thread-id.ts';
 
 export interface ThreadAccess {
@@ -19,8 +19,8 @@ export interface ThreadAccess {
  * deep link working when the task's Thread was never needed.
  */
 export async function requireThreadAccess(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { serverId: string; threadChatId: string }
 ): Promise<ThreadAccess> {
     try {
@@ -45,8 +45,8 @@ export async function requireThreadAccess(
 }
 
 async function resolvePendingThread(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { serverId: string; threadChatId: string }
 ): Promise<ThreadAccess> {
     const anchorMessageId = anchorMessageIdForThreadChatId(input.threadChatId);

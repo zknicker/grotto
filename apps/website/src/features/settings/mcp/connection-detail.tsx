@@ -8,7 +8,7 @@ import { useConnectionOauthStart } from '../../../hooks/servers/use-connection-o
 import { useConnectionPresetAdd } from '../../../hooks/servers/use-connection-preset-add.ts';
 import { useConnectionRefresh } from '../../../hooks/servers/use-connection-refresh.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
-import { getGrottoServerOrigin } from '../../../lib/grotto-server.tsx';
+import { getHausServerOrigin } from '../../../lib/haus-server.tsx';
 import { ConnectionTrustDialog, toConnectionView } from './connection-view.tsx';
 import { McpConnectionDetailDialog } from './mcp-connection-detail-dialog.tsx';
 import type { McpConnection } from './mcp-server-shared.ts';
@@ -64,7 +64,7 @@ export function ConnectionDetail({
             const result = await startOAuth.mutateAsync({
                 allowAuthorizationServerOrigin,
                 connectionId: target.id,
-                redirectUrl: new URL('/mcp/oauth/callback', getGrottoServerOrigin()).toString(),
+                redirectUrl: new URL('/mcp/oauth/callback', getHausServerOrigin()).toString(),
                 serverId,
             });
             if (result.status === 'trust-required') {

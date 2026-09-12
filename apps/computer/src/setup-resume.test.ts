@@ -26,7 +26,7 @@ const session: StoredSession = {
 };
 
 test('setup does not probe the superseded one-off approval protocol', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-setup-no-legacy-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-setup-no-legacy-'));
     const requests: string[] = [];
     const peer = Bun.serve({
         fetch(request) {
@@ -39,8 +39,8 @@ test('setup does not probe the superseded one-off approval protocol', async () =
 
     try {
         const result = await runCli(['setup', '/hq'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_SERVER_ORIGIN: `http://127.0.0.1:${peer.port}`,
         });
 
         expect(result.exitCode).toBe(1);
@@ -52,7 +52,7 @@ test('setup does not probe the superseded one-off approval protocol', async () =
 });
 
 test('setup resumes an existing attachment without login or migration', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-setup-existing-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-setup-existing-'));
     const requests: string[] = [];
     const sockets = new Set<ServerWebSocket<undefined>>();
     const peer = Bun.serve({
@@ -107,10 +107,10 @@ test('setup resumes an existing attachment without login or migration', async ()
             { mode: 0o600 }
         );
         const result = await runCli(['setup', '/hq'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_ONESHOT: '1',
-            GROTTO_COMPUTER_USAGE_DISABLED: '1',
-            GROTTO_SERVER_ORIGIN: origin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_ONESHOT: '1',
+            HAUS_COMPUTER_USAGE_DISABLED: '1',
+            HAUS_SERVER_ORIGIN: origin,
             OTEL_SDK_DISABLED: 'true',
         });
 
@@ -131,7 +131,7 @@ test('setup resumes an existing attachment without login or migration', async ()
 });
 
 test('setup adds another Server without replacing the first attachment', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-setup-additive-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-setup-additive-'));
     const sockets = new Set<ServerWebSocket<undefined>>();
     const attached = new Map([
         ['hq', { computerId: 'cmp_first123456789', serverId: 'srv_first123456789' }],
@@ -175,10 +175,10 @@ test('setup adds another Server without replacing the first attachment', async (
         await writeSession(dataRoot, { ...session, origin });
         for (const slug of ['hq', 'lab']) {
             const result = await runCli(['setup', `/${slug}`], {
-                GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-                GROTTO_COMPUTER_ONESHOT: '1',
-                GROTTO_COMPUTER_USAGE_DISABLED: '1',
-                GROTTO_SERVER_ORIGIN: origin,
+                HAUS_COMPUTER_DATA_ROOT: dataRoot,
+                HAUS_COMPUTER_ONESHOT: '1',
+                HAUS_COMPUTER_USAGE_DISABLED: '1',
+                HAUS_SERVER_ORIGIN: origin,
             });
             expect(result.exitCode, result.stderr).toBe(0);
         }
@@ -202,7 +202,7 @@ test('setup adds another Server without replacing the first attachment', async (
 });
 
 test('setup retries a durable login acknowledgement after attachment persistence', async () => {
-    const dataRoot = await mkdtemp(join(tmpdir(), 'grotto-computer-setup-ack-retry-'));
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-setup-ack-retry-'));
     const sockets = new Set<ServerWebSocket<undefined>>();
     let completionAttempts = 0;
     let origin = '';
@@ -271,10 +271,10 @@ test('setup retries a durable login acknowledgement after attachment persistence
     try {
         await writeSession(dataRoot, { ...session, origin });
         const first = await runCli(['setup', '/hq'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_ONESHOT: '1',
-            GROTTO_COMPUTER_USAGE_DISABLED: '1',
-            GROTTO_SERVER_ORIGIN: origin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_ONESHOT: '1',
+            HAUS_COMPUTER_USAGE_DISABLED: '1',
+            HAUS_SERVER_ORIGIN: origin,
         });
         expect(first.exitCode).toBe(1);
         await expect(
@@ -288,10 +288,10 @@ test('setup retries a durable login acknowledgement after attachment persistence
         });
 
         const retry = await runCli(['setup', '/hq'], {
-            GROTTO_COMPUTER_DATA_ROOT: dataRoot,
-            GROTTO_COMPUTER_ONESHOT: '1',
-            GROTTO_COMPUTER_USAGE_DISABLED: '1',
-            GROTTO_SERVER_ORIGIN: origin,
+            HAUS_COMPUTER_DATA_ROOT: dataRoot,
+            HAUS_COMPUTER_ONESHOT: '1',
+            HAUS_COMPUTER_USAGE_DISABLED: '1',
+            HAUS_SERVER_ORIGIN: origin,
         });
         expect(retry.exitCode, retry.stderr).toBe(0);
         expect(completionAttempts).toBe(2);

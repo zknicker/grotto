@@ -5,10 +5,10 @@ import {
     ChatNotFoundError,
 } from '../chats/chat-access.ts';
 import { type ClerkSessions, ClerkSessionUnavailableError } from '../identity/clerk-sessions.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerRuntime } from '../server-runtime.ts';
 import { ServerAccessDeniedError, ServerNotFoundError } from '../servers/server-access.ts';
-import { findUserByClerkId } from '../users/grotto-user.ts';
+import { findUserByClerkId } from '../users/haus-user.ts';
 import type { AttachmentRoot } from './attachment-root.ts';
 import { attachmentDisposition, openAttachmentDownload } from './download-attachment.ts';
 import { attachmentMaxSizeBytes } from './reserve-attachment.ts';
@@ -16,7 +16,7 @@ import { AttachmentUploadError, uploadAttachment } from './upload-attachment.ts'
 
 interface AttachmentRouteDependencies {
     clerkSessions: ClerkSessions;
-    db: GrottoDatabase;
+    db: HausDatabase;
     root: AttachmentRoot;
     runtime: ServerRuntime;
 }

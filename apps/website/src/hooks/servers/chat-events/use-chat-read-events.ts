@@ -1,4 +1,4 @@
-import { grottoTrpc } from '../../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../../lib/haus-server.tsx';
 import type { ChatEventInvalidation } from './chat-event-invalidation.ts';
 import { useChatEvent } from './use-chat-event-stream.tsx';
 
@@ -7,7 +7,7 @@ import { useChatEvent } from './use-chat-event-stream.tsx';
  * render, so the transcript itself is left alone.
  */
 export function useChatReadEvents() {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
     useChatEvent('chat.read', async (_events, serverId) => {
         await invalidateChatRead({ serverId, utils });

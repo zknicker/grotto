@@ -2,7 +2,7 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useChat } from '../../../hooks/servers/use-chat.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useTasks } from '../../../hooks/servers/use-tasks.ts';
-import type { ServerDetail } from '../../../lib/grotto-server.tsx';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { serverChatRoute, serverRoute } from '../server-routes.ts';
 import { resolveChatPageChat } from './chat-page-state.ts';
 import { ChatView } from './chat-view.tsx';

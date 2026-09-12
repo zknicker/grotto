@@ -1,5 +1,5 @@
-import type { AgentCloudAgentReceipt } from '@grotto/api';
-import { agentCloudAgentReceiptSchema, isTerminalCloudAgentStatus } from '@grotto/api';
+import type { AgentCloudAgentReceipt } from '@haus/api';
+import { agentCloudAgentReceiptSchema, isTerminalCloudAgentStatus } from '@haus/api';
 import { CloudLaunchJournal } from './launch-journal.ts';
 import {
     type CloudAgentLaunch,

@@ -1,9 +1,9 @@
-import type { MessageTask, ServerDurableEvent } from '@grotto/api';
+import type { MessageTask, ServerDurableEvent } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { targetForChat } from '../agent-api/message-view.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentThreadFollowsTable,
     chatMessagesTable,
@@ -13,7 +13,7 @@ import {
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { TaskConflictError, TaskNotFoundError } from './claim-task.ts';
 import { resolveTaskAssignee } from './resolve-task-assignee.ts';
 import { taskAssignmentEnvelope, taskAssignmentKey } from './task-assignment-envelope.ts';
@@ -46,8 +46,8 @@ export interface TaskAssignResult {
 }
 
 export async function assignTask(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     agentDelivery: AgentDelivery,
     input: {
         assignee: { agentId: string; kind: 'agent' } | { kind: 'human'; userId: string } | null;

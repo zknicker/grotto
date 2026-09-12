@@ -1,10 +1,10 @@
-import type { MessageTask, ServerDurableEvent } from '@grotto/api';
+import type { MessageTask, ServerDurableEvent } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { messageTasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import { insertTaskEvent } from './task-events.ts';
 import { taskHasOtherOwnerForUser } from './task-ownership.ts';
 import { findMessageTask } from './task-shape.ts';
@@ -29,8 +29,8 @@ export interface TaskMutationResult {
 }
 
 export async function claimTask(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { expectedVersion: number; messageId: string; serverId: string }
 ): Promise<TaskMutationResult> {
     return await db.transaction(async (tx) => {
@@ -111,7 +111,7 @@ export async function claimTask(
 }
 
 async function findTaskCoordinates(
-    db: Pick<GrottoDatabase, 'select'>,
+    db: Pick<HausDatabase, 'select'>,
     input: { messageId: string; serverId: string }
 ) {
     const [task] = await db

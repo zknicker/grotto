@@ -1,4 +1,4 @@
-import { grottoTrpc } from '../../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { type ChatEventInvalidation, uniqueChatIds } from './chat-event-invalidation.ts';
 import { useChatEvent } from './use-chat-event-stream.tsx';
 
@@ -8,7 +8,7 @@ import { useChatEvent } from './use-chat-event-stream.tsx';
  * visible Chats filtered by Agent membership.
  */
 export function useChatLifecycleEvents() {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
     useChatEvent('chat.lifecycle', async (events, serverId) => {
         await invalidateChatLifecycle({ events, serverId, utils });

@@ -1,4 +1,4 @@
-import type { ComputerSystemEvent } from '@grotto/api';
+import type { ComputerSystemEvent } from '@haus/api';
 import { Alert, Pagination } from '@heroui/react';
 import { DataGrid, type DataGridColumn, ItemCardGroup } from '@heroui-pro/react';
 import { InboxIcon } from '@hugeicons-pro/core-stroke-rounded';

@@ -2,15 +2,15 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import { updateAgentTask } from '../src/agent-api/tasks.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
-import { bootstrapGrottoDatabase } from '../src/postgres/bootstrap.ts';
-import { connectGrottoDatabase, type GrottoConnection } from '../src/postgres/connection.ts';
+import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
+import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {
     channelAgentParticipantsTable,
     channelParticipantsTable,
     usersTable,
 } from '../src/postgres/schema.ts';
 import { updateTask } from '../src/tasks/update-task.ts';
-import type { GrottoUser } from '../src/users/grotto-user.ts';
+import type { HausUser } from '../src/users/haus-user.ts';
 import {
     type BackgroundClaim,
     beginRun,
@@ -30,12 +30,12 @@ import { serializedTransactions } from './serialized-db-fixture.ts';
  * three write paths that project a task and fail the moment one overlaps.
  */
 let cluster: PostgresCluster;
-let connection: GrottoConnection;
+let connection: HausConnection;
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();
-    await bootstrapGrottoDatabase(cluster.databaseUrl, 'grotto');
-    connection = await connectGrottoDatabase(cluster.databaseUrl);
+    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    connection = await connectHausDatabase(cluster.databaseUrl);
 });
 
 afterAll(async () => {
@@ -145,7 +145,7 @@ function runner(claim: BackgroundClaim, runId: string): ResolvedRunner {
     };
 }
 
-async function member(claim: BackgroundClaim): Promise<GrottoUser> {
+async function member(claim: BackgroundClaim): Promise<HausUser> {
     const [user] = await connection.db
         .select({ clerkUserId: usersTable.clerkUserId, id: usersTable.id })
         .from(usersTable)

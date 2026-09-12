@@ -9,14 +9,14 @@ test('projects a settled Cloud Agent Run with the evidence its Agent must inspec
             branches: [
                 {
                     branch: 'cloud/fix-flake',
-                    pullRequestUrl: 'https://github.com/grotto/grotto/pull/12',
-                    repository: 'grotto/grotto',
+                    pullRequestUrl: 'https://github.com/haus/haus/pull/12',
+                    repository: 'haus/haus',
                 },
             ],
             errorCode: null,
             provider: 'cursor',
             providerUrl: 'https://cursor.com/agents/bc_one',
-            repository: 'grotto/grotto',
+            repository: 'haus/haus',
             runId: 'car_1234567890abcdef',
             status: 'completed',
             summary: 'Opened a pull request.',
@@ -25,7 +25,7 @@ test('projects a settled Cloud Agent Run with the evidence its Agent must inspec
         },
         content: '',
         id: 'car_1234567890abcdef',
-        senderHandle: 'grotto',
+        senderHandle: 'haus',
         senderType: 'system',
         sequence: 0,
     });
@@ -37,7 +37,7 @@ test('projects a settled Cloud Agent Run with the evidence its Agent must inspec
     );
     expect(drain).toContain('summary=Opened a pull request.');
     expect(drain).toContain(
-        'branches=grotto/grotto:cloud/fix-flake pr=https://github.com/grotto/grotto/pull/12'
+        'branches=haus/haus:cloud/fix-flake pr=https://github.com/haus/haus/pull/12'
     );
     // No GitHub snapshot was recorded, so the branch line states the URL alone.
     expect(drain).not.toContain('files=');
@@ -63,14 +63,14 @@ test('a branch whose pull request was read states the diff the Agent can act on'
                         observedAt: '2026-09-05T12:00:00.000Z',
                         state: 'draft',
                     },
-                    pullRequestUrl: 'https://github.com/grotto/grotto/pull/56',
-                    repository: 'grotto/grotto',
+                    pullRequestUrl: 'https://github.com/haus/haus/pull/56',
+                    repository: 'haus/haus',
                 },
             ],
             errorCode: null,
             provider: 'cursor',
             providerUrl: 'https://cursor.com/agents/bc_one',
-            repository: 'grotto/grotto',
+            repository: 'haus/haus',
             runId: 'car_1234567890abcdef',
             status: 'completed',
             summary: 'Opened a pull request.',
@@ -79,13 +79,13 @@ test('a branch whose pull request was read states the diff the Agent can act on'
         },
         content: '',
         id: 'car_1234567890abcdef',
-        senderHandle: 'grotto',
+        senderHandle: 'haus',
         senderType: 'system',
         sequence: 0,
     });
 
     expect(composeInboxDrain([attention], 'UTC')).toContain(
-        'branches=grotto/grotto:cloud/fix-flake pr=https://github.com/grotto/grotto/pull/56 state=draft files=1 +34 -0'
+        'branches=haus/haus:cloud/fix-flake pr=https://github.com/haus/haus/pull/56 state=draft files=1 +34 -0'
     );
 });
 

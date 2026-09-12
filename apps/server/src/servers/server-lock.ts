@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { serversTable } from '../postgres/schema.ts';
 
 /**
@@ -20,7 +20,7 @@ import { serversTable } from '../postgres/schema.ts';
  * scheduling/mutation/firing, and operator reminder cancellation.
  */
 export async function lockServerRow(
-    tx: Pick<GrottoDatabase, 'execute'>,
+    tx: Pick<HausDatabase, 'execute'>,
     serverId: string
 ): Promise<void> {
     await tx.execute(sql`select id from ${serversTable} where id = ${serverId} for update`);

@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { grottoTrpc } from '../../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { threadMessagesQueryKey } from '../use-thread-messages.ts';
 import { type ChatEventInvalidation, uniqueChatIds } from './chat-event-invalidation.ts';
 import { useChatEvent } from './use-chat-event-stream.tsx';
@@ -13,7 +13,7 @@ const taskEventTypes = ['task.created', 'task.updated'] as const;
 
 export function useTaskChangeEvents() {
     const queryClient = useQueryClient();
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
     useChatEvent(taskEventTypes, async (events, serverId) => {
         await invalidateTaskChanges({ events, queryClient, serverId, utils });

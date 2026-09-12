@@ -1,9 +1,9 @@
-import { grottoTrpc } from '../../lib/grotto-server.tsx';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useConnectionDelete(serverId: string) {
-    const utils = grottoTrpc.useUtils();
+    const utils = hausTrpc.useUtils();
 
-    return grottoTrpc.mcp.delete.useMutation({
+    return hausTrpc.mcp.delete.useMutation({
         onSuccess: () => utils.mcp.list.invalidate({ serverId }),
     });
 }

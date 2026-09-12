@@ -148,7 +148,7 @@ test('quiesces uploads before discarding finalized and staging attachment bytes'
 });
 
 async function temporaryDirectory() {
-    const root = await mkdtemp(join(tmpdir(), 'grotto-attachment-root-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-attachment-root-'));
     roots.push(root);
     return root;
 }

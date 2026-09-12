@@ -1,13 +1,13 @@
 import { and, eq } from 'drizzle-orm';
 import { deleteQueuedOrdinaryItems } from '../agent-delivery/store.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { agentChannelMutesTable, agentThreadFollowsTable, chatsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { AgentTargetError, resolveAgentTarget } from './resolve-target.ts';
 
 export async function changeAgentChannelMute(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     target: string,
     muted: boolean
@@ -55,7 +55,7 @@ export async function changeAgentChannelMute(
 }
 
 export async function unfollowAgentThread(
-    db: GrottoDatabase,
+    db: HausDatabase,
     runner: ResolvedRunner,
     target: string
 ) {
@@ -103,7 +103,7 @@ export async function unfollowAgentThread(
 }
 
 export async function followAgentThread(
-    db: GrottoDatabase,
+    db: HausDatabase,
     input: { agentId: string; serverId: string; threadChatId: string }
 ) {
     await db

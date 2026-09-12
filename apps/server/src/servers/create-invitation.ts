@@ -1,10 +1,10 @@
-import type { ServerInvitation } from '@grotto/api';
+import type { ServerInvitation } from '@haus/api';
 import { and, eq, isNull, lte, sql } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { serverInvitationsTable } from '../postgres/schema.ts';
-import type { GrottoUser } from '../users/grotto-user.ts';
+import type { HausUser } from '../users/haus-user.ts';
 import {
     InvitationEmailTakenError,
     invitationColumns,
@@ -28,8 +28,8 @@ export interface CreatedServerInvitation {
 }
 
 export async function createServerInvitation(
-    db: GrottoDatabase,
-    member: GrottoUser | null,
+    db: HausDatabase,
+    member: HausUser | null,
     input: { email: string; serverId: string }
 ): Promise<CreatedServerInvitation> {
     if (!member) {

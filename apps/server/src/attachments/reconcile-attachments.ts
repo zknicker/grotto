@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { FileHandle } from 'node:fs/promises';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
-import type { GrottoDatabase } from '../postgres/connection.ts';
+import type { HausDatabase } from '../postgres/connection.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
 import type { AttachmentRoot } from './attachment-root.ts';
 
@@ -11,7 +11,7 @@ export interface AttachmentRecoveryResult {
 }
 
 export async function reconcileAttachments(
-    db: GrottoDatabase,
+    db: HausDatabase,
     root: AttachmentRoot
 ): Promise<AttachmentRecoveryResult> {
     const interrupted = await db
@@ -38,7 +38,7 @@ export async function reconcileAttachments(
 }
 
 async function recoverFinalizing(
-    db: GrottoDatabase,
+    db: HausDatabase,
     root: AttachmentRoot,
     attachment: typeof attachmentsTable.$inferSelect
 ): Promise<'failed' | 'ready'> {
@@ -124,7 +124,7 @@ async function openIfPresent(openFile: () => Promise<FileHandle>) {
 }
 
 async function markFailed(
-    db: GrottoDatabase,
+    db: HausDatabase,
     attachment: typeof attachmentsTable.$inferSelect,
     failureCode: string
 ) {

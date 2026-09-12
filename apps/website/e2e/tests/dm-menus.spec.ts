@@ -12,7 +12,7 @@ test('agent DM menus work before the first message and on the selected conversat
         session.databaseUrl,
         `
         insert into computers (id, server_id, attached_by_user_id, credential_hash, health)
-        select 'cmp_e2edmmenus000000', '${server.id}', user_id, repeat('c', 64), 'offline'
+        select 'cmp_e2edmmenus000000', '${server.id}', user_id, md5(random()::text) || md5(random()::text), 'offline'
         from server_memberships where server_id = '${server.id}' and role = 'owner';
         insert into agents (id, server_id, computer_id, handle, display_name, home_timezone,
             desired_runtime_id, desired_model_id)

@@ -57,7 +57,7 @@ export function sendBootstrap(
             type: 'bootstrap',
             update: {
                 activeAgentCount: null,
-                detail: phase === 'complete' ? 'Grotto Computer updated successfully.' : null,
+                detail: phase === 'complete' ? 'Haus Computer updated successfully.' : null,
                 downloadedBytes: null,
                 failedPhase: null,
                 phase,

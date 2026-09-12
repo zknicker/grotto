@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## v3.0.0 - 2026-09-11
+
+- Haus uses one identity throughout its apps, Agent commands, and connections.
+  Update the Mac and iPhone apps to 3.0.0, update Computer to 2.0.0, and reload
+  open web sessions. Previous app and Computer protocols are no longer supported.
+- The web, Mac, and iPhone apps share the updated Haus ghost artwork, including
+  the authored light, dark, and tinted iPhone icon.
+- Haus Agent 2.0.0 uses the canonical Haus commands and workspace links. Account,
+  chat, and Agent workspace state is preserved through the coordinated migration.
+
 ## v2.0.0 - 2026-09-10
 
 - The product moves to haus.chat with the Haus name across web, desktop, and iPhone apps,

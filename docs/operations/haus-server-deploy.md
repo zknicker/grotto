@@ -263,7 +263,9 @@ the daemon can run the existing healthy profile, but full no-login boot recovery
 remains unproven until the separately approved reboot drill.
 
 Install the two plists in `apps/server/launchd/` as system daemons. The Server
-and named `haus-production` Tunnel use `RunAtLoad` and `KeepAlive`. Tunnel
+and application Tunnel use `RunAtLoad` and `KeepAlive`. The Tunnel runs by its
+stable UUID, `401d3f59-5e0a-43e8-bd1a-b29237e9cc74`, so its display name can change
+without interrupting ingress. Tunnel
 metrics bind to `127.0.0.1:20242`; the shared existing tunnel already owns
 `20241`. Neither plist carries environment of its own: `run-server`
 shell-sources the rendered `config/server.env` and executes the Server binary

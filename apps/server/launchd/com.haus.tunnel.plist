@@ -15,7 +15,7 @@
         <string>--metrics</string>
         <string>127.0.0.1:20242</string>
         <string>run</string>
-        <string>haus-production</string>
+        <string>401d3f59-5e0a-43e8-bd1a-b29237e9cc74</string>
     </array>
     <key>RunAtLoad</key>
     <true/>

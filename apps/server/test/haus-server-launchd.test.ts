@@ -34,7 +34,7 @@ test('ships valid supervised services without checked-in secret values', () => {
     });
 
     expect(plists.map((plist) => plist.UserName)).toEqual(['_haus_server', '_haus_tunnel']);
-    expect(plists[1]?.ProgramArguments).toContain('haus-production');
+    expect(plists[1]?.ProgramArguments).toContain('401d3f59-5e0a-43e8-bd1a-b29237e9cc74');
     expect(plists[1]?.ProgramArguments).toContain('127.0.0.1:20242');
     expect(plists.filter((plist) => plist.RunAtLoad)).toHaveLength(2);
     expect(plists.filter((plist) => plist.KeepAlive)).toHaveLength(2);

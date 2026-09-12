@@ -23,22 +23,20 @@ export function RuntimeDialog({
     runtimes: Runtime[];
 }) {
     return (
-        <Modal isOpen={open} onOpenChange={onOpenChange}>
-            <Modal.Backdrop isDismissable>
-                <Modal.Container size="md">
-                    <Modal.Dialog>
-                        <Modal.CloseTrigger />
-                        <RuntimeConfigForm
-                            agent={agent}
-                            error={error}
-                            onSave={onSave}
-                            pending={pending}
-                            runtimes={runtimes}
-                        />
-                    </Modal.Dialog>
-                </Modal.Container>
-            </Modal.Backdrop>
-        </Modal>
+        <Modal.Backdrop isDismissable isOpen={open} onOpenChange={onOpenChange}>
+            <Modal.Container size="md">
+                <Modal.Dialog>
+                    <Modal.CloseTrigger />
+                    <RuntimeConfigForm
+                        agent={agent}
+                        error={error}
+                        onSave={onSave}
+                        pending={pending}
+                        runtimes={runtimes}
+                    />
+                </Modal.Dialog>
+            </Modal.Container>
+        </Modal.Backdrop>
     );
 }
 

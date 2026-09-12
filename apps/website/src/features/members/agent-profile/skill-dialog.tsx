@@ -35,7 +35,8 @@ export function SkillDialog({
 
     return (
         <>
-            <Modal
+            <Modal.Backdrop
+                isDismissable
                 isOpen={Boolean(skill)}
                 onOpenChange={(open) => {
                     if (!(open || update.isPending || remove.isPending)) {
@@ -43,93 +44,87 @@ export function SkillDialog({
                     }
                 }}
             >
-                <Modal.Backdrop isDismissable>
-                    <Modal.Container scroll="inside" size="lg">
-                        <Modal.Dialog>
-                            <Modal.CloseTrigger />
-                            <Modal.Header>
-                                <Modal.Heading>
-                                    {skill ? formatSkillName(skill.name) : 'Agent Skill'}
-                                </Modal.Heading>
-                                <p className="mt-1.5 text-muted text-sm leading-5">
-                                    Edit this Agent’s independent SKILL.md copy. Other support files
-                                    stay unchanged.
-                                    {/* The row keeps one clean line, so the update
-                                        date lives here with the rest of the detail. */}
-                                    {skill
-                                        ? ` Last updated ${formatUpdatedAt(skill.modifiedAt)}.`
-                                        : ''}
-                                </p>
-                            </Modal.Header>
-                            <Modal.Body>
-                                <div className="grid gap-3">
-                                    {file.isPending ? (
-                                        <p className="text-muted text-sm">Loading skill…</p>
-                                    ) : (
-                                        <TextArea
-                                            aria-label="SKILL.md content"
-                                            className="h-80 resize-y font-mono"
-                                            fullWidth
-                                            onChange={(event) => setContent(event.target.value)}
-                                            spellCheck={false}
-                                            value={content}
-                                            variant="secondary"
-                                        />
-                                    )}
-                                    {error ? (
-                                        <Alert role="alert" status="danger">
-                                            <Alert.Indicator />
-                                            <Alert.Content>
-                                                <Alert.Description>{error}</Alert.Description>
-                                            </Alert.Content>
-                                        </Alert>
-                                    ) : null}
-                                </div>
-                            </Modal.Body>
-                            <Modal.Footer>
-                                <Button
-                                    isDisabled={
-                                        file.isPending || update.isPending || remove.isPending
+                <Modal.Container scroll="inside" size="lg">
+                    <Modal.Dialog>
+                        <Modal.CloseTrigger />
+                        <Modal.Header>
+                            <Modal.Heading>
+                                {skill ? formatSkillName(skill.name) : 'Agent Skill'}
+                            </Modal.Heading>
+                            <p className="mt-1.5 text-muted text-sm leading-5">
+                                Edit this Agent’s independent SKILL.md copy. Other support files
+                                stay unchanged.
+                                {/* The row keeps one clean line, so the update
+                                    date lives here with the rest of the detail. */}
+                                {skill ? ` Last updated ${formatUpdatedAt(skill.modifiedAt)}.` : ''}
+                            </p>
+                        </Modal.Header>
+                        <Modal.Body>
+                            <div className="grid gap-3">
+                                {file.isPending ? (
+                                    <p className="text-muted text-sm">Loading skill…</p>
+                                ) : (
+                                    <TextArea
+                                        aria-label="SKILL.md content"
+                                        className="h-80 resize-y font-mono"
+                                        fullWidth
+                                        onChange={(event) => setContent(event.target.value)}
+                                        spellCheck={false}
+                                        value={content}
+                                        variant="secondary"
+                                    />
+                                )}
+                                {error ? (
+                                    <Alert role="alert" status="danger">
+                                        <Alert.Indicator />
+                                        <Alert.Content>
+                                            <Alert.Description>{error}</Alert.Description>
+                                        </Alert.Content>
+                                    </Alert>
+                                ) : null}
+                            </div>
+                        </Modal.Body>
+                        <Modal.Footer>
+                            <Button
+                                isDisabled={file.isPending || update.isPending || remove.isPending}
+                                onPress={() => setConfirmDelete(true)}
+                                type="button"
+                                variant="danger-soft"
+                            >
+                                Delete
+                            </Button>
+                            <Button
+                                isDisabled={update.isPending || remove.isPending}
+                                slot="close"
+                                type="button"
+                                variant="secondary"
+                            >
+                                Close
+                            </Button>
+                            <Button
+                                isDisabled={
+                                    file.isPending ||
+                                    !file.data ||
+                                    !isSkillDirty(content, file.data.content)
+                                }
+                                isPending={update.isPending}
+                                onPress={() => {
+                                    if (!skill) {
+                                        return;
                                     }
-                                    onPress={() => setConfirmDelete(true)}
-                                    type="button"
-                                    variant="danger-soft"
-                                >
-                                    Delete
-                                </Button>
-                                <Button
-                                    isDisabled={update.isPending || remove.isPending}
-                                    slot="close"
-                                    type="button"
-                                    variant="secondary"
-                                >
-                                    Close
-                                </Button>
-                                <Button
-                                    isDisabled={
-                                        file.isPending ||
-                                        !file.data ||
-                                        !isSkillDirty(content, file.data.content)
-                                    }
-                                    isPending={update.isPending}
-                                    onPress={() => {
-                                        if (!skill) {
-                                            return;
-                                        }
-                                        void update.save(content, hash).then((updated) => {
-                                            setContent(updated.content);
-                                            setHash(updated.hash);
-                                        });
-                                    }}
-                                    type="button"
-                                >
-                                    Save
-                                </Button>
-                            </Modal.Footer>
-                        </Modal.Dialog>
-                    </Modal.Container>
-                </Modal.Backdrop>
-            </Modal>
+                                    void update.save(content, hash).then((updated) => {
+                                        setContent(updated.content);
+                                        setHash(updated.hash);
+                                    });
+                                }}
+                                type="button"
+                            >
+                                Save
+                            </Button>
+                        </Modal.Footer>
+                    </Modal.Dialog>
+                </Modal.Container>
+            </Modal.Backdrop>
             <AlertDialog isOpen={confirmDelete} onOpenChange={setConfirmDelete}>
                 <AlertDialog.Backdrop isDismissable>
                     <AlertDialog.Container size="sm">

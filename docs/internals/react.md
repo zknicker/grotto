@@ -325,6 +325,12 @@ allowlists to make it pass.
   recreate a monolithic app-level PromptInput primitive.
 * Grotto Modals and AlertDialogs set `isDismissable` on their Backdrop so
   clicking outside the dialog acts like Cancel.
+* A state-driven overlay starts at `Modal.Backdrop` / `Drawer.Backdrop` and
+  carries `isOpen`, `onOpenChange`, and the dismissal props there — HeroUI's
+  documented Controlled State shape. The `Modal` / `Drawer` root exists only to
+  host a `Trigger`; keeping it around a trigger-less dialog mounts an empty
+  React Aria press responder and logs "A PressResponder was rendered without a
+  pressable child" for every such dialog on screen.
 * Composer `@`/`$` autocomplete and transcript reference rendering belong to
   the mentions capability. See [Rich References](../features/rich-references.md).
 

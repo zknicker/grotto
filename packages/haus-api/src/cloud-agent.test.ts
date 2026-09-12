@@ -148,7 +148,7 @@ test('a Cloud Agent attention is a bodiless inbox item keyed by its Run', () => 
     expect(agentInboxItemSchema.safeParse({ ...item, sequence: 3 }).success).toBe(false);
 });
 
-test('Computer inventory reports Cloud Agent provider readiness on protocol 18', () => {
+test('Computer inventory reports Cloud Agent provider readiness on protocol 19', () => {
     expect(
         computerInventorySchema.parse({
             cloudAgentProviders: [
@@ -157,7 +157,7 @@ test('Computer inventory reports Cloud Agent provider readiness on protocol 18',
             runtimes: [],
         }).cloudAgentProviders
     ).toHaveLength(1);
-    expect(computerProtocolVersion).toBe(18);
+    expect(computerProtocolVersion).toBe(19);
 });
 
 test('a Cloud Agent capability state names exactly one of ready or a reason', () => {

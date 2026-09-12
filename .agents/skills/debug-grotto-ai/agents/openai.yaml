@@ -1,4 +1,0 @@
-interface:
-  display_name: "Debug Grotto AI"
-  short_description: "Debug AI behavior and performance with Axiom and Raft"
-  default_prompt: "Use $debug-grotto-ai to investigate this AI issue with Axiom and a Luna-max Raft research partner when useful."

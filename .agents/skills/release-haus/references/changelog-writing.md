@@ -1,4 +1,4 @@
-# Grotto changelog writing
+# Haus changelog writing
 
 Write the release entry from the target-scoped evidence produced by
 `bun run release:collect-changelog-context`. The changelog records what users receive, not the work
@@ -23,20 +23,20 @@ Use SemVer as judgment, not commit-prefix transcription:
 - minor for a backwards-compatible capability;
 - patch for fixes and backwards-compatible improvements.
 
-Apply that judgment independently to Server/App, Computer, iOS, and Grotto Agent versions. Use the
-next unused iOS build number whenever iOS publishes. When Grotto Agent publishes, name its version
+Apply that judgment independently to Server/App, Computer, iOS, and Haus Agent versions. Use the
+next unused iOS build number whenever iOS publishes. When Haus Agent publishes, name its version
 in the release entry alongside the observable behavior change.
 
 ## Write the entry
 
-Keep Grotto's existing dated heading and compact bullet style. Lead each bullet with the affected
+Keep Haus's existing dated heading and compact bullet style. Lead each bullet with the affected
 product noun and the user-visible result. Prefer exact behavior over adjectives.
 
 Good:
 
 ```markdown
-- Grotto Computer keeps task claims in their canonical Threads and reports every claimed task.
-- Grotto for iPhone keeps the composer visible while the keyboard opens.
+- Haus Computer keeps task claims in their canonical Threads and reports every claimed task.
+- Haus for iPhone keeps the composer visible while the keyboard opens.
 ```
 
 Weak:

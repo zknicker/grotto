@@ -1,26 +1,26 @@
 ---
-summary: Grotto Server's hosted Grotto App, PostgreSQL collaboration, reminders, durable attention, attachment bytes, recovery, and realtime behavior.
+summary: Haus Server's hosted Haus App, PostgreSQL collaboration, reminders, durable attention, attachment bytes, recovery, and realtime behavior.
 read_when:
-  - changing Grotto Server creation, slugs, membership, roles, or Channels
+  - changing Haus Server creation, slugs, membership, roles, or Channels
   - changing hosted PostgreSQL schema or Server authorization
   - changing reminder scheduler lifecycle or hosted Agent attention
   - changing the hosted Server / local sidecar application boundary
-  - changing how Clerk authentication maps to a Grotto User
+  - changing how Clerk authentication maps to a Haus User
   - changing hosted attachment storage, recovery, or inventory
 ---
 
-# Grotto Server
+# Haus Server
 
 ## MCP ownership
 
 PostgreSQL owns remote HTTP MCP connection identity, secret headers, OAuth
 state and tokens, discovered tool inventory, and connection-level Agent
-grants. Grotto Server owns MCP clients and invokes upstream tools. Computer
+grants. Haus Server owns MCP clients and invokes upstream tools. Computer
 receives safe schemas and proxies Agent calls through a scoped runner
 credential; it never receives MCP credentials or sessions. Local and stdio
 MCP connections are not supported.
 
-A Grotto server is the durable collaboration container
+A Haus server is the durable collaboration container
 ([ADR 0019](../adr/0019-servers-own-collaboration-computers-own-execution.md)).
 The hosted Server owns its state in PostgreSQL and its clients talk to it directly
 over tRPC HTTP and WebSocket.
@@ -29,18 +29,18 @@ over tRPC HTTP and WebSocket.
 
 | Application | Entrypoint | Owns |
 | --- | --- | --- |
-| Grotto Server | `apps/server` | tRPC, collaboration, delivery, attachment bytes, and PostgreSQL |
-| Grotto App | `apps/website` | React UI in browsers and Electron, plus native credentials, deep links, and updates |
-| Grotto Computer | `apps/computer` | Local Agent execution and one isolated attachment per Server |
+| Haus Server | `apps/server` | tRPC, collaboration, delivery, attachment bytes, and PostgreSQL |
+| Haus App | `apps/website` | React UI in browsers and Electron, plus native credentials, deep links, and updates |
+| Haus Computer | `apps/computer` | Local Agent execution and one isolated attachment per Server |
 
-Grotto App calls the Server. Each Computer opens an outbound attachment socket to the Server. App
+Haus App calls the Server. Each Computer opens an outbound attachment socket to the Server. App
 and Computer never connect directly. Retired standalone Runtime procedures are not part of the
 hosted transport.
 
 ## Identity
 
 Clerk authenticates humans and nothing more. A verified session token's subject
-is the external reference used to find the stable Grotto User. Clerk
+is the external reference used to find the stable Haus User. Clerk
 Organizations and Clerk role claims are never read and carry no authority.
 
 Authentication carries that subject for one browser request only. It never
@@ -49,7 +49,7 @@ bleed into each other. Browser-approved device login mints a separate,
 revocable Computer login session for human management; Server attachment daemons
 authenticate only with their own Server-scoped Computer credentials.
 
-A Grotto User is minted in exactly one place: inside Server creation's
+A Haus User is minted in exactly one place: inside Server creation's
 transaction. Reads resolve an existing User or find none — asking never mints
 one, so an authenticated human who has done nothing leaves no row behind.
 
@@ -60,25 +60,25 @@ serialize cross-kind claims; App availability or suggestion UI is never the
 authority. Departure clears the active membership handle while authored history
 continues to point at the immutable User id.
 
-`GROTTO_CLERK_ISSUER_URL` names the Clerk instance whose JWKS signs those tokens. The
-Grotto App attaches the token as `Authorization: Bearer` on HTTP and as
+`HAUS_CLERK_ISSUER_URL` names the Clerk instance whose JWKS signs those tokens. The
+Haus App attaches the token as `Authorization: Bearer` on HTTP and as
 `connectionParams.clerkSessionToken` on the WebSocket.
 
 ### Authorized party
 
 One Clerk instance signs tokens for every frontend attached to it, so a valid
-signature and issuer do not say a token was minted for this Grotto App origin. The `azp`
+signature and issuer do not say a token was minted for this Haus App origin. The `azp`
 claim names the frontend that asked for it, and the Server judges it after
 signature, configured issuer, expiry, and subject all pass:
 
 | `azp` | Outcome |
 | --- | --- |
 | Absent | Accepted — Clerk omits it when no browser Origin took part, as with the native header-authenticated desktop session |
-| Exactly `GROTTO_APP_ORIGIN` | Accepted |
+| Exactly `HAUS_APP_ORIGIN` | Accepted |
 | Another origin | Rejected — a same-instance token minted for someone else's frontend |
 | `null`, non-string, or empty | Rejected |
 
-The only authorized party is `GROTTO_APP_ORIGIN`'s exact origin. A `file://` origin, a
+The only authorized party is `HAUS_APP_ORIGIN`'s exact origin. A `file://` origin, a
 loopback or localhost guess, and the CORS origin predicate are never authorized
 parties — CORS decides which browsers may call the Server, not whose tokens it
 trusts.
@@ -102,7 +102,7 @@ PostgreSQL owns the hosted collaboration tables
 
 | Table | Owns |
 | --- | --- |
-| `users` | Grotto Users keyed by a unique `clerk_user_id`, plus the avatar they wear (`avatar_id`) |
+| `users` | Haus Users keyed by a unique `clerk_user_id`, plus the avatar they wear (`avatar_id`) |
 | `avatars` | Uploaded square avatar bytes, media type, size, and digest, served publicly at `/api/avatars/:avatarId` |
 | `servers` / `server_onboarding` | Opaque id, address/display fields, commit-serialized Chat event cursor, and durable fresh-Server setup progress |
 | `server_memberships` | One human's standing access, Server role, numbered stint, stint start, and internal revocation marker |
@@ -141,20 +141,20 @@ all fail closed in the database.
 
 ## Computer attachment
 
-`grotto-computer login` is a standalone browser-approved device grant. The
+`haus-computer login` is a standalone browser-approved device grant. The
 machine-local session is origin-bound, reusable, and revocable; access expiry
 rotates a hashed refresh-token family, and reuse revokes the entire family. The
 session is accepted only by narrow Computer management endpoints: it has no Chat,
 Agent, or execution authority. `status` reports the bound origin and attachment
 state without secrets, while `login --replace` is required to replace a saved
-origin. `grotto-computer setup /<slug>` logs in when needed, then an Owner or
+origin. `haus-computer setup /<slug>` logs in when needed, then an Owner or
 Admin attaches the requested Server through the management session. The Server
 stores only the hash of the Computer-generated Server credential.
 The CLI persists an attachment idempotency key before issuance so a crash after
 Server commit recovers the same Computer instead of creating another. A re-run
 validates the completed credential and fails closed if it was revoked. The
-Computer keeps its login and attachment records under `~/.grotto/computer`,
-separate from the standalone executable at `~/.local/bin/grotto-computer`, and
+Computer keeps its login and attachment records under `~/.haus/computer`,
+separate from the standalone executable at `~/.local/bin/haus-computer`, and
 its resident launchd service reconnects through the single outbound
 `/computer/attachment` socket.
 
@@ -168,7 +168,7 @@ An incompatible Computer stays connected
 as `update-required`: signed update control remains available, while inventory,
 Agent delivery, and MCP control fail closed. A Computer that cannot send the
 stable bootstrap frame is rejected and must be repaired with
-`grotto-computer upgrade`; there is no old ordinary-protocol fallback.
+`haus-computer upgrade`; there is no old ordinary-protocol fallback.
 
 Update progress is stored per attachment in `computers` and refreshed from the
 shared Computer-local update record, so every attached Server sees the same
@@ -264,11 +264,11 @@ resends; a reconnecting Computer additionally has every in-flight run resent —
 acknowledged or not — because it may have lost its live turn. Resends always
 reuse the same `run_id`, so duplicate delivery is idempotent: the Computer
 reserves a run synchronously before any marker I/O and dedupes against a
-restart-durable per-run marker under `~/.grotto/computer`, replaying a settled
+restart-durable per-run marker under `~/.haus/computer`, replaying a settled
 run's stored summary instead of re-running it. A busy Agent accumulates queued
 work and receives a content-free `notice`, recorded in the running turn's runtime
 directory. Idle ordinary work also starts with a notice; full envelopes stay in
-Computer-local pending state until `grotto message check` returns them. The Computer records those exact visible identities against
+Computer-local pending state until `haus message check` returns them. The Computer records those exact visible identities against
 the active run and suppresses an already-consumed item on same-run replay; the
 Server advances `seen` only at settlement. Unread identities stay pending but an
 unchanged offered set does not start another turn; a new identity wakes the Agent
@@ -390,7 +390,7 @@ records no author; reopening is the ordinary update path.
 
 ## Attachment storage and recovery
 
-`GROTTO_ATTACHMENT_ROOT` is the absolute Server-owned byte root. Startup creates
+`HAUS_ATTACHMENT_ROOT` is the absolute Server-owned byte root. Startup creates
 it as `0700` and validates that the root and fixed layout directories are
 non-symlink directories:
 
@@ -436,7 +436,7 @@ while every membership gate fails closed.
 
 Humans hold Member, Admin, or Owner. A Server may have several Owners and must
 always keep one. One rule decides every change and is shared by the Server and
-Grotto App as `resolveServerMemberAuthority` in `@grotto/api`:
+Haus App as `resolveServerMemberAuthority` in `@haus/api`:
 
 - Owners and Admins issue and revoke invitations.
 - An Admin manages Members, including promoting one to Admin. An Admin never
@@ -450,7 +450,7 @@ Server's immutable slug: every elevation (Member to Admin, and Member or Admin
 to Owner), plus removal, leaving, and revoking Owner. Stepping an Admin down to
 Member is the one ordinary confirmation — it grants nothing and costs no
 access. The Server verifies that confirmation inside the same transaction; the
-Grotto App's copy is presentation.
+Haus App's copy is presentation.
 
 Every remove, demote, and leave locks the `servers` row before counting Owners,
 so two Owners racing to unseat each other serialize and exactly one commits.
@@ -460,10 +460,10 @@ than adding a second locking scheme.
 ## Invitations
 
 An invitation is email-bound, single-use, and expires seven days after it is
-issued. Grotto stores only the token's SHA-256 hash: `invitation.create`
+issued. Haus stores only the token's SHA-256 hash: `invitation.create`
 returns the raw token once, to the issuer, and no procedure ever reads it back.
 Creation and revocation lock the Server row, then reauthorize the Owner or
-Admin inside the transaction. Grotto sends no email — delivery is manual.
+Admin inside the transaction. Haus sends no email — delivery is manual.
 
 `invitation.accept` commits one transaction. It locks the invitation row,
 refuses anything unknown, revoked, consumed, or lapsed with one indistinguishable
@@ -480,13 +480,13 @@ former DM or its Threads, while the peer who did not leave retains that
 history. Removal clears `channel_participants`, `chat_reads`, and
 `thread_follows`, and live composition state for every departed Chat, including Threads.
 
-`GROTTO_CLERK_SECRET_KEY` authorizes the Clerk Backend API lookup that reads which of a
-human's addresses Clerk has verified; it is the only Grotto surface that reads a
+`HAUS_CLERK_SECRET_KEY` authorizes the Clerk Backend API lookup that reads which of a
+human's addresses Clerk has verified; it is the only Haus surface that reads a
 human's addresses. Without it the Server still runs and invitations simply
-cannot be accepted. `GROTTO_CLERK_API_URL` overrides the Clerk Backend origin for a
+cannot be accepted. `HAUS_CLERK_API_URL` overrides the Clerk Backend origin for a
 non-production instance.
 
-The one address Grotto stores is `server_invitations.email`, the address an
+The one address Haus stores is `server_invitations.email`, the address an
 invitation is bound to, supplied by the Owner or Admin who issued it. It is a
 target for that invitation, never an identity: Clerk alone decides which
 addresses a human has verified, `users` holds no email, and an accepted
@@ -494,7 +494,7 @@ invitation copies nothing onto the membership.
 
 ## Creation
 
-`server.create` commits one transaction: the creator's Grotto User, the opaque
+`server.create` commits one transaction: the creator's Haus User, the opaque
 Server id, its slug and display name, the first human Owner membership, `#all`,
 durable `server_onboarding` progress, and private `#onboarding-owner`; the Owner
 participates in both Channels. It creates no Computer, Agent, or execution
@@ -513,7 +513,7 @@ the candidate Computer without advancing. Empty or invalid inventory and
 incompatible or disconnected Computers retain the owning phase plus actionable
 failure detail. Only a report containing at least one runtime with at least one
 model advances durably to `awaiting-cove`; reconnect clears transient failure
-without reconstructing progress from Agent presence. Grotto App reads this record
+without reconstructing progress from Agent presence. Haus App reads this record
 before mounting the general Server shell.
 
 The dedicated Cove mutation takes the Server lock and turns `awaiting-cove`
@@ -549,12 +549,12 @@ Server query, mutation, and subscription resolves membership through it:
   Revoked Server membership ends delivery.
 
 A human without membership gets `FORBIDDEN`; an address with no Server gets
-`NOT_FOUND`. Grotto App checks are presentation only.
+`NOT_FOUND`. Haus App checks are presentation only.
 
-## Grotto App routes
+## Haus App routes
 
 - `/` signs the human in, then opens the last Server they used or their first
-  current membership. Server switching and creation live in the Grotto App sidebar.
+  current membership. Server switching and creation live in the Haus App sidebar.
 - `/s/<slug>` opens Server-owned Chats, transcript, composer, reads, search,
   attachments, and the hosted task Board/List. It reserves and streams local
   files to the hosted Server, renders only attachment metadata in messages,
@@ -572,22 +572,22 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
   the reported machine name, attachment health, reported runtimes/models,
   assigned Agents, update state, recovery commands, and removal. Computer
   reports invalidate this inventory and Agent availability through the Server
-  websocket; Grotto App does not poll a Computer or connect to one directly.
+  websocket; Haus App does not poll a Computer or connect to one directly.
 - `/s/<slug>/settings/connections` manages MCP connections on one selected
   Computer attachment. Secrets relay over the Server's existing authenticated
   Computer socket and never enter App storage.
 - `/s/<slug>/settings/updates` owns only the thin desktop shell update.
-  Computer updates live on the selected Computer detail. Grotto App has no retired Runtime URL,
+  Computer updates live on the selected Computer detail. Haus App has no retired Runtime URL,
   token, connection banner, or update flow.
 - `/invite/<token>` is where an invited human accepts. It sits outside the
   `/s/<slug>` branch because a Server address may itself be `invite` or `join`.
-  Manual links use `VITE_GROTTO_APP_ORIGIN` when configured; that origin must
-  match `GROTTO_APP_ORIGIN`.
-- `/privacy` serves the public privacy policy directly from the Grotto App
+  Manual links use `VITE_HAUS_APP_ORIGIN` when configured; that origin must
+  match `HAUS_APP_ORIGIN`.
+- `/privacy` serves the public privacy policy directly from the Haus App
   artifact without loading the signed-in App shell.
 
-Grotto App uses `apps/website/src/lib/grotto-server.tsx`: the browser's same origin
-in production and `VITE_GROTTO_SERVER_ORIGIN` in development, with the Clerk
+Haus App uses `apps/website/src/lib/haus-server.tsx`: the browser's same origin
+in production and `VITE_HAUS_SERVER_ORIGIN` in development, with the Clerk
 session attached per request and per WebSocket connection. Product operations
 never use a local sidecar or Electron IPC. Electron supplies native window, link,
 authentication-storage, and desktop-update
@@ -607,14 +607,14 @@ instead of replaying.
 
 Thread message and follow notifications retain the existing durable event row
 shape. The public event adds only `parentChatId`, nullable for top-level Chats,
-so Grotto App can refetch the child and its exact parent summary without carrying
+so Haus App can refetch the child and its exact parent summary without carrying
 anchor or message content in the event.
 
 ## Production
 
 The single-node production Server listens on `127.0.0.1:18791` and serves the
-Grotto App, tRPC HTTP, WebSocket, and `/healthz` from `https://grotto.sh`.
+Haus App, tRPC HTTP, WebSocket, and `/healthz` from `https://haus.chat`.
 Cloudflare owns DNS, TLS, named Tunnel ingress, and the `www`-to-apex Redirect
 Rule. PostgreSQL, attachment storage, and jobs remain local to the Mac mini.
-Vercel remains the registrar only and serves no production traffic. See [Grotto
-Server deployment](../operations/grotto-server-deploy.md).
+Vercel remains the registrar only and serves no production traffic. See [Haus
+Server deployment](../operations/haus-server-deploy.md).

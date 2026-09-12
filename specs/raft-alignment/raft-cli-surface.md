@@ -3,7 +3,7 @@
 Merged from: the published `@botiverse/raft` npm CLI (installed 2026-07-20; full `--help` tree
 walked, 51 leaf commands), the prompt template in the local `raft-computer` binary (v1.0.7), and
 docs.raft.build. `slock` is a legacy alias for every command. This is the reference for designing
-the agent-facing `grotto` CLI.
+the agent-facing `haus` CLI.
 
 ## Entry shapes
 
@@ -71,7 +71,7 @@ the agent-facing `grotto` CLI.
 
 ### server / user / channel / thread
 
-> Historical CLI research snapshot. Current Raft 1.0.16 and Grotto restore an explicitly
+> Historical CLI research snapshot. Current Raft 1.0.16 and Haus restore an explicitly
 > unfollowed Thread on a later direct mention; see `specs/threads.md`.
 - `server info [--full] [--channels --agents --humans --joined --query --limit --offset]` —
   bounded server facts incl. own computer identity; `update` (admin).
@@ -128,7 +128,7 @@ the agent-facing `grotto` CLI.
   `channel:add_member`. Handles only (`@a`, `#c`), never UUIDs; server resolves at prepare time.
   This is how Member-role agents propose admin ops for one-click human approval.
 
-Grotto's first shipped implementation is intentionally narrower than this eventual action shelf:
+Haus's first shipped implementation is intentionally narrower than this eventual action shelf:
 `agent:create` is the only accepted kind, and it requires `--avatar-file <path>` alongside the
 target. The typed proposal carries name, optional description/draft hint, and optional Computer
 guidance; the Server captures the exact avatar bytes and rejects stale views. Channel actions and
@@ -148,7 +148,7 @@ human commit/edit remain later work.
   the npm bundle** — the shipped `agent:create` action-card schema is `min(1).max(60)` (channel
   names `max(80)`, descriptions `max(500)`), with no reserved list or single-token regex
   client-side; docs are silent. If it exists, it is server-side enforcement we cannot inspect.
-  Grotto must own its handle rule explicitly rather than cite Raft for it.
+  Haus must own its handle rule explicitly rather than cite Raft for it.
 - Handle → id resolution is server-side and fails closed: channel verbs first call
   `POST /internal/agent-api/resolve-channel` (target → channelId), then id-scoped routes.
 - `server info` fetches the full inventory in one call; `--query/--limit/--offset/--joined`
@@ -169,9 +169,9 @@ human commit/edit remain later work.
 In 1.0.13, `setup` is the convenience path that logs in if needed, attaches one Server, and starts
 the service; adding another Server does not detach existing ones. `start [serverSlug]` may resume
 one attachment or all attachments, while `stop` stops compute without deleting attachment records.
-Grotto keeps these additive and temporary lifecycle semantics and adopts Raft's persistent
+Haus keeps these additive and temporary lifecycle semantics and adopts Raft's persistent
 `login`/`logout` plus standalone `attach`; legacy adoption and the general `--fresh` duplicate path
-remain excluded. Grotto additionally makes new attachment issuance crash-idempotent.
+remain excluded. Haus additionally makes new attachment issuance crash-idempotent.
 
 ## Managed transport audit (2026-07-25, `raft-computer` 1.0.13)
 

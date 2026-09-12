@@ -1,14 +1,14 @@
 # Tranche 6 audit — reminders and autonomous follow-up
 
 Audit date: 2026-07-30\
-Grotto revision at audit start: `a21591494`\
+Haus revision at audit start: `a21591494`\
 Status: corrective implementation and focused/live verification complete
 
 ## Method
 
-1. Read the Raft Computer and daemon reminder paths alongside Grotto Computer,
+1. Read the Raft Computer and daemon reminder paths alongside Haus Computer,
    Server, delivery, CLI, and reminder specifications.
-2. Use Raft and a fresh isolated Grotto stack as an ordinary user with matched
+2. Use Raft and a fresh isolated Haus stack as an ordinary user with matched
    requests and GPT-5.6 Terra Agents.
 3. Observe the scheduled action and later business result separately.
 4. Verify offline, ownership, retry, recurrence, and race behavior in focused
@@ -18,11 +18,11 @@ Live evidence remains in:
 
 - Raft `#reminder-audit-jul30`:
   `https://app.raft.build/s/arcade/channel/e44cc762-ab2f-4bc8-9586-42d637bcef28`
-- Grotto `#reminder-audit-jul30`: chat `cht_ICPqw08XJFhKBRx6`
+- Haus `#reminder-audit-jul30`: chat `cht_ICPqw08XJFhKBRx6`
 
 ## Scenario results
 
-| Scenario | Raft | Grotto | Result |
+| Scenario | Raft | Haus | Result |
 | --- | --- | --- | --- |
 | One-shot follow-up | Cindy checked two minutes later and replied in the source Thread that the exact `READY` update was still pending. | Wren scheduled visibly, fired visibly, and replied in the source Thread that it was still pending. | Pass. |
 | Natural-language “tomorrow” | Cindy scheduled directly for the next day and explained that the reminder would wake her. | Wren also scheduled directly for the next day. | Pass. Live Raft does not treat “tomorrow” as materially ambiguous. |
@@ -39,7 +39,7 @@ Live evidence remains in:
 | Agent reminder routes replaced client idempotency/version data | The Computer CLI now authors command ids, reads the current version before mutation, and the Server passes both fields unchanged into reminder services. |
 | Relative-delay retries changed their own fingerprint | The Computer converts `--delay-seconds` to one absolute `fireAt` before the request. A retry reuses the exact request and command id. |
 | Ordinary offline reminder delivery lacked a cross-layer proof | Added a deterministic offline fire → reconnect → Agent output → attention-clear lane, including no second delivery on another reconnect. |
-| Reminder behavior could disappear from Computer instructions unnoticed | Added executable assertions for user/self-driven scheduling, author-only wake, no long sleeps or memory wakes, Grotto reminder ownership, and snooze/update reuse. |
+| Reminder behavior could disappear from Computer instructions unnoticed | Added executable assertions for user/self-driven scheduling, author-only wake, no long sleeps or memory wakes, Haus reminder ownership, and snooze/update reuse. |
 | Specs excluded owning-Agent DMs and overstated settlement | Specs now include Agent DMs and recognize a durable send before later cleanup failure as proof the reminder was handled. |
 
 ## Raft principles retained
@@ -59,6 +59,6 @@ Live evidence remains in:
 
 ## Intentional difference
 
-Grotto supports an optional bounded Computer-local script payload. The installed
+Haus supports an optional bounded Computer-local script payload. The installed
 Raft Computer/daemon reminder path does not expose or execute scripts. Script
-reminders remain a Grotto extension and were not used to claim Raft parity.
+reminders remain a Haus extension and were not used to claim Raft parity.

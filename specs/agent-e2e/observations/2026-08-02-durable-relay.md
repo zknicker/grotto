@@ -45,9 +45,9 @@ an unavailable source, narrowed “14 days wins” to a product-specific
 hypothesis, added explicit experiment gates, and saved
 `notes/free-trial-rollout-checklist-2026-08-02.md`.
 
-## Grotto before implementation
+## Haus before implementation
 
-Grotto channel: `#durable-relay-0802`, Chat
+Haus channel: `#durable-relay-0802`, Chat
 `cht_u97wG9-8rQWObLJ_`, base `ebe9d8a4f`.
 
 The materially matched Wren prompt additionally named the supported artifact
@@ -67,7 +67,7 @@ The task was still owned by Wren when Otto first attempted to claim it. Otto
 reported the lock instead of working around it; Wren unclaimed; Otto claimed
 and continued without another human message. Otto also reported that Wren's
 workspace bytes were not directly readable from his Agent workspace. Wren
-then supplied the durable `grotto://workspace/` link, byte count, and SHA-256.
+then supplied the durable `haus://workspace/` link, byte count, and SHA-256.
 This is the intended Agent-owned workspace boundary. Canonical Thread content
 and artifact identity carried the collaboration handoff.
 
@@ -99,7 +99,7 @@ The lane then reached its 720-second bound waiting for an App control named
 `Edit participants`; that control was not present in the channel header, so the
 test never sent Agent B's handoff prompt. The disposable Agents and
 `#relay-02200448` were removed exactly. This sample is timing-quarantined and
-non-gating. It does not replace the matched manual Grotto handoff above, where
+non-gating. It does not replace the matched manual Haus handoff above, where
 fresh-session Otto recovered the Thread and delivered the continuation.
 
 The next fixture removed the mid-test participant edit. Both disposable Agents
@@ -141,7 +141,7 @@ Screenshots are recorded under
 
 - `raft-agent-a-brief.png`
 - `raft-agent-b-continuation.png`
-- `grotto-before-agent-a-brief.png`
-- `grotto-before-agent-a-artifact.png`
-- `grotto-before-agent-b-continuation.png`
-- `grotto-final-lane-agent-a-brief.png`
+- `haus-before-agent-a-brief.png`
+- `haus-before-agent-a-artifact.png`
+- `haus-before-agent-b-continuation.png`
+- `haus-final-lane-agent-a-brief.png`

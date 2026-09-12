@@ -10,7 +10,7 @@ read_when:
 
 # Agent-authored HTML
 
-Agents write HTML. Grotto hands that HTML one set of CSS variables, and it
+Agents write HTML. Haus hands that HTML one set of CSS variables, and it
 renders in one of two places.
 
 | surface | what it is | where it renders | renderer |
@@ -51,7 +51,7 @@ registration), with optional info-string text as the title:
 
 - **Fence contract.** Fences parse client-side from the message content in
   document order via `splitVisualFences` (shared grammar in
-  `packages/grotto-api/src/widgets/visual/contracts.ts`). Body limit 60k
+  `packages/haus-api/src/widgets/visual/contracts.ts`). Body limit 60k
   chars; an empty body strips as invalid. Fallback text is the info-string
   title, else the document `<title>`, else the first h1-h3.
 - **Persistence.** The durable message content IS the visual: the fence stays
@@ -90,13 +90,13 @@ registration), with optional info-string text as the title:
   `--radius-control`. Font sizes track the
   app's type scale (14px body), not a frozen value. Generated visuals reference
   only the taught names — never HeroUI names, never hardcoded colors — which is
-  what makes them wear Grotto's look in both schemes.
+  what makes them wear Haus's look in both schemes.
 - **Native elements.** Bare markup renders native. The sandbox base
   stylesheet styles `<table>` to match the app's `ui/table.tsx` look (hairline
   row dividers, muted cells, hover tint, styled `tfoot`/`caption`), and
   `input`, `select`, `textarea`, `button` and `input[type=range]` on HeroUI's
   field and outline-button metrics, expressed in published tokens. So an agent
-  writes plain HTML and gets Grotto chrome with no per-visual CSS. The visuals
+  writes plain HTML and gets Haus chrome with no per-visual CSS. The visuals
   skill forbids Markdown tables in replies for the same reason.
 - **Presentation.** Height fits content via a host-owned size reporter inside
   the frame (clamped 120-1600px); visuals taller than 420px render collapsed
@@ -114,14 +114,14 @@ registration), with optional info-string text as the title:
   sources are markdown files under
   `packages/agent-workspace/src/visuals-skill/`; quality is tuned with the
   design battery (`bun run eval:design`, `scripts/design-battery/RUBRIC.md`).
-- **iOS.** The Grotto App on iPhone renders the same fences inline, through a
+- **iOS.** The Haus App on iPhone renders the same fences inline, through a
   Swift port of the same grammar and the same sandbox document — same CSP,
   same base styles, same size reporter, same clamps and 420pt collapse — with
   `WKWebView.loadHTMLString(_, baseURL: nil)` standing in for the opaque-origin
   iframe. It has no browser to snapshot tokens off, so the published list is
   resolved from the app's own stylesheets at build time into a checked-in
   table: `bun run gen:ios-tokens` writes
-  `apps/ios-swift/Sources/GrottoUI/Visuals/AgentHtmlTokens.generated.swift`,
+  `apps/ios-swift/Sources/HausUI/Visuals/AgentHtmlTokens.generated.swift`,
   and a bun test fails when the checked-in file drifts from the stylesheets.
   Rerun it after changing the token list or any value it resolves from.
   See [ios.md](ios.md).
@@ -140,7 +140,7 @@ fence containing exactly one JSON object:
 
 Props are `{ path, title? }`; the path must be workspace-relative with
 confined segments and an `.html`/`.htm` extension
-(`packages/grotto-api/src/widgets/workspace-path.ts`). The transcript
+(`packages/haus-api/src/widgets/workspace-path.ts`). The transcript
 renders a compact card (title, kind, open affordance) and never the page
 itself; opening the card focuses the pane's workspace tab, where the pane's
 sandboxed HTML preview renders the file with the app's theme tokens injected
@@ -151,12 +151,12 @@ the authoring contract.
 ## Contract
 
 Both fences funnel into the widget render envelope. Names map one-to-one to
-durable component ids `grotto.widget.<name>` where `name` is `visual` or
+durable component ids `haus.widget.<name>` where `name` is `visual` or
 `artifact`. The stored envelope is:
 
 ```ts
 {
-  component: `grotto.widget.${name}`,
+  component: `haus.widget.${name}`,
   fallback: { text: string },
   props: <validated per name>,
   target: "chat.inline"
@@ -196,7 +196,7 @@ The Website transcript renders that row inline inside the assistant turn.
 ## Legacy catalog replay
 
 Historical chats contain stored activity for retired catalog widgets
-(`grotto.widget.table`, `bar-chart`, `line-chart`, `composed-chart`,
+(`haus.widget.table`, `bar-chart`, `line-chart`, `composed-chart`,
 `calendar-event`, `calendar-day`, `html-preview`,
 `merchbase-sales-chart`). Their props schemas are gone, so both projection
 paths degrade them identically: the stored envelope no longer validates, and
@@ -206,8 +206,8 @@ visible "Widget unavailable" state. No legacy renderers are kept.
 ## Ownership
 
 Canonical names, props schemas, and the render envelope live in
-`packages/grotto-api/src/widgets`. Visuals parse and render on the Website:
-`splitVisualFences` (`packages/grotto-api/src/widgets/visual`) splits fences
+`packages/haus-api/src/widgets`. Visuals parse and render on the Website:
+`splitVisualFences` (`packages/haus-api/src/widgets/visual`) splits fences
 from message content and `chat-transcript-turn.tsx` renders the iframe card —
 Computer does not parse fences or write `widget` activity. Server still
 holds the dormant row projection (`apps/server/src/widgets/widgets.ts`) and

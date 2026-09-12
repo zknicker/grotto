@@ -18,7 +18,7 @@ Prefer:
    symbols;
 2. current public Raft documentation;
 3. current Raft blog posts describing product intent;
-4. Grotto's checked-in Raft-alignment notes and captured recipes;
+4. Haus's checked-in Raft-alignment notes and captured recipes;
 5. inference, labeled explicitly.
 
 Public starting points:
@@ -68,13 +68,13 @@ only the smallest relevant implementation fragment.
 
 Adapt this without inserting a favored diagnosis:
 
-> Act as the Raft research partner for a Grotto Agent bug investigation. Work read-only and do not
-> edit the Grotto repository. Here is the raw symptom and topology: [SYMPTOM]. Research current
-> primary sources on raft.build, docs.raft.build, and the Raft blog; read Grotto's
+> Act as the Raft research partner for a Haus Agent bug investigation. Work read-only and do not
+> edit the Haus repository. Here is the raw symptom and topology: [SYMPTOM]. Research current
+> primary sources on raft.build, docs.raft.build, and the Raft blog; read Haus's
 > specs/raft-alignment material; and inspect the local Raft Computer/daemon source and installed
 > implementation read-only. Do not expose credentials or unrelated message contents. Return:
 > (1) a source-backed behavioral model, (2) exact local symbols or paths supporting it,
-> (3) Raft/Grotto parity and deliberate divergence, (4) three to five falsifiable diagnostic
+> (3) Raft/Haus parity and deliberate divergence, (4) three to five falsifiable diagnostic
 > questions, (5) the strongest challenge to the most tempting explanation, and (6) evidence gaps.
 > Stay available for follow-up hypothesis and fix review.
 
@@ -99,7 +99,7 @@ Ask:
 > while proving current-target grounding? Challenge any assumption that is not direct evidence.
 
 Do not accept “Raft does it this way” as sufficient proof. Translate the answer into a local,
-observable invariant and test it in Grotto.
+observable invariant and test it in Haus.
 
 ## Fix Review
 
@@ -109,14 +109,14 @@ Send the behavioral diff or smallest relevant code diff and ask:
 > intentional divergence that should be documented. Name the strongest remaining failure mode and
 > the focused test that would expose it.
 
-Resolve material objections through repository source and tests. If Grotto intentionally diverges,
+Resolve material objections through repository source and tests. If Haus intentionally diverges,
 name the owning product contract and update it rather than disguising the difference as parity.
 
 ## Failure Modes Of The Research Process
 
 - One-shot summaries that never see the actual hypotheses or fix.
 - Blog interpretation overriding local executable evidence.
-- Searching only Grotto's captured notes while claiming current public parity.
+- Searching only Haus's captured notes while claiming current public parity.
 - Dumping broad binary strings or configs instead of targeted symbols.
 - Letting the research partner implement the fix and thereby lose independence.
 - Substituting architectural confidence for a deterministic local regression.

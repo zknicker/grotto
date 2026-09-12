@@ -1,13 +1,13 @@
 ---
-summary: Grotto product overview, feature map, operations entrypoints, and Server/App/Computer architecture routes.
+summary: Haus product overview, feature map, operations entrypoints, and Server/App/Computer architecture routes.
 read_when:
-  - looking for Grotto's product map, docs map, or architecture entrypoints
+  - looking for Haus's product map, docs map, or architecture entrypoints
   - changing top-level product positioning, feature lists, or docs navigation
 ---
 
-# Grotto Docs
+# Haus Docs
 
-Grotto is a chat app where humans and agents participate in channels and DMs.
+Haus is a chat app where humans and agents participate in channels and DMs.
 Server owns collaboration state, App renders it in browsers and Electron, and
 Computer owns machine-local Agent execution.
 
@@ -37,7 +37,7 @@ Memory, Wiki, cron automations, and the first task tracker were retired; see
 | Need | Read |
 | --- | --- |
 | Server/App/Computer boundary | [Architecture Overview](internals/architecture-overview.md) |
-| Hosted Servers, membership, Channels | [Grotto Server](internals/grotto-server.md) |
+| Hosted Servers, membership, Channels | [Haus Server](internals/haus-server.md) |
 | Agent execution | [Agent daemon delivery](internals/agent-daemon-delivery.md) |
 | Chat/session decision | [ADR 0007](adr/0007-chat-participants-own-agent-sessions.md) |
 | Data model | [Data Model](internals/data-model.md) |

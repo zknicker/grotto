@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## v2.0.0 - 2026-09-10
 
-- Grotto becomes Haus at haus.chat, with renamed web, desktop, and iPhone apps,
+- Haus becomes Haus at haus.chat, with renamed web, desktop, and iPhone apps,
   sign-in, and release downloads. Existing chats and Agent workspaces stay in place.
 - Inbox leads the sidebar with the Haus ghost. Switch and manage Servers in
   Settings → Servers.
@@ -13,42 +13,42 @@ All notable changes to this project will be documented in this file.
 - Update Computer to 1.10.0 for protocol 18 and automatic migration of the saved
   production Server address. The setup command is now `haus-computer`.
 - Install Haus 2.0.0 for Mac and Haus Chat 2.0.0 (28) from TestFlight as new apps,
-  then sign in again. Their new app identities do not replace existing Grotto
+  then sign in again. Their new app identities do not replace existing Haus
   installations. Reload open web sessions.
 
 ## v1.16.0 - 2026-09-10
 
-- Grotto Agents create teammates directly when asked, announce them in #all, and give them a
+- Haus Agents create teammates directly when asked, announce them in #all, and give them a
   brief in memory and membership in the requested channels. This replaces Agent proposal cards
   and the separate approval step. Agents now reach each other through shared channels and Threads.
 - Agents have their own profile pages, with a quick preview from chat avatars. Channel settings
   let you search for and add Agents to the roster.
-- Grotto keeps message reactions across reloads and syncs them between people and Agents. Chat
+- Haus keeps message reactions across reloads and syncs them between people and Agents. Chat
   drafts survive navigation, and read markers follow the messages you actually view.
 - Tasks distinguish background Agent claims from tracked work, show when an Agent is working,
   and let you hide task marks in chat. Routine claims no longer create empty Threads.
 - Turn details show one execution trace with captured tool output, errors, and available reasoning.
   Removed Triggers retain their fire history for 30 days.
-- Grotto for iPhone renders visuals inline in chats and Threads, adds skills to the composer,
-  and improves inline references and scrolling. Visuals use Grotto's theme and keep wide tables
+- Haus for iPhone renders visuals inline in chats and Threads, adds skills to the composer,
+  and improves inline references and scrolling. Visuals use Haus's theme and keep wide tables
   scrollable on smaller screens.
-- Grotto Agent 1.4.0 restores routine memory reads, claims work before starting, and uses the
+- Haus Agent 1.4.0 restores routine memory reads, claims work before starting, and uses the
   visuals skill for charts and calendars. Browser settings expose the Computer capability lifecycle.
-- Update Grotto Computer to 1.9.0 for protocol 17 and Grotto for iPhone to 1.6.0 (27) for App
+- Update Haus Computer to 1.9.0 for protocol 17 and Haus for iPhone to 1.6.0 (27) for App
   protocol 5. Reload open web sessions. The desktop installer is unchanged.
-- The Agent CLI replaces `grotto action prepare` and `grotto avatar generate` with `grotto agent
-  create`, `grotto agent update`, `grotto agent avatar`, and `grotto channel add`. The old proposal
+- The Agent CLI replaces `haus action prepare` and `haus avatar generate` with `haus agent
+  create`, `haus agent update`, `haus agent avatar`, and `haus channel add`. The old proposal
   records and Agent roles are removed by the database migration.
 
 ## v1.15.2 - 2026-09-08
 
-- Grotto Agent 1.3.2 skips unnecessary memory rereads on follow-ups and reports unavailable MCP
+- Haus Agent 1.3.2 skips unnecessary memory rereads on follow-ups and reports unavailable MCP
   tools without searching local configuration for Server permissions.
-- Grotto records Agent preparation, session startup, confirmed sends, and trailing work in Axiom,
+- Haus records Agent preparation, session startup, confirmed sends, and trailing work in Axiom,
   alongside reasoning settings and available token usage, to make slow responses easier to diagnose.
-- Grotto Computer repairs native runtime startup and refreshes stale usage information. Update
+- Haus Computer repairs native runtime startup and refreshes stale usage information. Update
   Computer to 1.8.2 to receive these fixes and Agent 1.3.2.
-- Grotto resumes stopped Agents and delivers Agent-creation continuations reliably. Agent DM
+- Haus resumes stopped Agents and delivers Agent-creation continuations reliably. Agent DM
   menus remain available before the first message, and MCP settings distinguish adding a connection
   from authorizing an account.
 - Agent-creation cards keep configuration separate from commentary in the hosted App and iPhone
@@ -56,51 +56,51 @@ All notable changes to this project will be documented in this file.
 
 ## v1.15.1 - 2026-09-07
 
-- Grotto delivers the Cloud Agent and iPhone updates described in v1.15.0, whose publication
+- Haus delivers the Cloud Agent and iPhone updates described in v1.15.0, whose publication
   stopped before upload. Release builds no longer require runtime telemetry credentials.
-- Grotto patches the telemetry decoder's protobuf dependency against upstream denial-of-service
+- Haus patches the telemetry decoder's protobuf dependency against upstream denial-of-service
   and schema-property issues.
-- Update Grotto Computer to 1.8.1 for protocol 16 and Grotto Agent 1.3.1. The iPhone build is
+- Update Haus Computer to 1.8.1 for protocol 16 and Haus Agent 1.3.1. The iPhone build is
   1.5.1 (25).
 
 ## v1.15.0 - 2026-09-07
 
-- Grotto Agents can delegate code changes to Cursor Cloud Agents. Connect Cursor in Computer
+- Haus Agents can delegate code changes to Cursor Cloud Agents. Connect Cursor in Computer
   settings, follow progress and pull requests in the work Thread, and ask for further changes
   on the same Cloud Agent and branch. Completion reaches the delegating Agent's inbox automatically.
 - Cloud Agent cards appear inline with the conversation. Thread previews show the work name while
-  it runs and file and line changes when it finishes. Grotto for iPhone adds Cursor connection
+  it runs and file and line changes when it finishes. Haus for iPhone adds Cursor connection
   settings, the same work cards, and compact animated Thread previews.
-- Grotto's Inbox brings open Asks and active Cloud Agent work together. Agents can ask for a
+- Haus's Inbox brings open Asks and active Cloud Agent work together. Agents can ask for a
   decision without turning every exchange into a Task.
 - Reminders gain 30-day fire history. Finished one-shot and canceled reminders are removed after
   30 days, while their messages keep their attribution. Tasks left in review without Thread
   activity for seven days close automatically and can be reopened.
-- Grotto Computer re-wakes an Agent when an inbox message arrives as its turn finishes, instead
+- Haus Computer re-wakes an Agent when an inbox message arrives as its turn finishes, instead
   of leaving that message queued after the Agent becomes idle.
-- Grotto adds theme commands to Command-K and tighter chat typography, with card and inline-code
+- Haus adds theme commands to Command-K and tighter chat typography, with card and inline-code
   contrast preserved when hovering messages in dark mode.
-- Grotto updates its request-validation and rich-text dependencies to fix upstream security issues.
-- Grotto Computer 1.8.0 is a required update for Computer protocol 16. Grotto Agent 1.3.0 adds Cloud
+- Haus updates its request-validation and rich-text dependencies to fix upstream security issues.
+- Haus Computer 1.8.0 is a required update for Computer protocol 16. Haus Agent 1.3.0 adds Cloud
   Agent continuation tools and guidance, automatic completion handling, and shorter reminder and
   Trigger instructions backed by the Manual.
 
 ## v1.14.1 - 2026-09-04
 
-- Grotto Server 1.13.0 reaches production. The 1.14.0 release published Grotto Computer 1.7.0 and
-  Grotto for iPhone 1.4.1 but never deployed the Server behind them, so everything listed under
-  1.14.0 arrives now. Grotto Computer 1.7.0 remains the required update.
+- Haus Server 1.13.0 reaches production. The 1.14.0 release published Haus Computer 1.7.0 and
+  Haus for iPhone 1.4.1 but never deployed the Server behind them, so everything listed under
+  1.14.0 arrives now. Haus Computer 1.7.0 remains the required update.
 - Deploying it retires the automation receipt rows 1.14.0 replaced. A reminder anchored on one of
   those rows is deleted with it and has to be recreated.
-- A Grotto Computer release that loses its tag after the artifact is already public can now be
+- A Haus Computer release that loses its tag after the artifact is already public can now be
   finished by re-running it, rather than needing a new version number.
 
 ## v1.14.0 - 2026-09-04
 
-- Grotto adds Triggers: a private webhook URL that wakes one Agent when an outside system posts to
+- Haus adds Triggers: a private webhook URL that wakes one Agent when an outside system posts to
   it. An Agent's profile gains an Automations tab listing its Triggers and reminders, with a drawer
   holding the URL, its one-time secret and rotation, a test fire, fire history, and an on/off
-  switch. Agents create and manage their own with `grotto trigger`.
+  switch. Agents create and manage their own with `haus trigger`.
 - An Agent message sent because an automation fired names the Trigger or reminder beside the author
   name. Hovering that mark previews the automation; opening the message as a Thread shows the
   fire's payload or the reminder's note.
@@ -111,135 +111,135 @@ All notable changes to this project will be documented in this file.
   naming why the session rotated and how long the previous one ran.
 - An automation fire or task assignment that arrives while an Agent is mid-turn now earns its own
   wake once that turn settles, instead of waiting on a run that already finished.
-- Grotto for iPhone no longer leaves a blank gap under a message whose body ends in a newline.
-- Grotto Computer 1.7.0 is a required update. Grotto Server 1.13.0 speaks Computer protocol 12, and
+- Haus for iPhone no longer leaves a blank gap under a message whose body ends in a newline.
+- Haus Computer 1.7.0 is a required update. Haus Server 1.13.0 speaks Computer protocol 12, and
   a Computer still on protocol 11 connects in update-required mode where only the update control
   works.
-- Grotto Agent 1.2.0 sends time-based work to a reminder and outside-event work to a Trigger, and
+- Haus Agent 1.2.0 sends time-based work to a reminder and outside-event work to a Trigger, and
   attributes its own answers to the fire that prompted them.
 
 ## v1.13.0 - 2026-09-03
 
-- Grotto adds channel autocomplete and channel reference chips to Chat composers, and keeps their
+- Haus adds channel autocomplete and channel reference chips to Chat composers, and keeps their
   readable labels in Thread previews.
-- Grotto restores direct Agent creation, presents Agent proposals as compact action cards, and
+- Haus restores direct Agent creation, presents Agent proposals as compact action cards, and
   makes pending invitations easier to create, inspect, and revoke.
-- Grotto accepts attachments on the first reply in a Thread and gives image attachments clearer
+- Haus accepts attachments on the first reply in a Thread and gives image attachments clearer
   previews and download controls.
-- Grotto for iPhone adds zoomable image viewing, compact multi-image strips, visible file-preview
+- Haus for iPhone adds zoomable image viewing, compact multi-image strips, visible file-preview
   controls, richer Thread previews, and a sectioned mention picker that stays above the keyboard.
 
 ## v1.12.9 - 2026-09-01
 
-- Grotto shows existing and new image attachments as authenticated Chat thumbnails with a
+- Haus shows existing and new image attachments as authenticated Chat thumbnails with a
   hover/focus download action; other files retain their metadata card.
 
 ## v1.12.8 - 2026-09-01
 
-- Grotto Agent 1.1.1 restores model-native image generation and lets Cove request avatars from
-  Grotto Server, so Agent creation no longer depends on an API key in the App or Computer.
-- Grotto Computer 1.6.1 reuses one machine-wide Harness bridge cache across Agents instead of
+- Haus Agent 1.1.1 restores model-native image generation and lets Cove request avatars from
+  Haus Server, so Agent creation no longer depends on an API key in the App or Computer.
+- Haus Computer 1.6.1 reuses one machine-wide Harness bridge cache across Agents instead of
   downloading a separate copy for each Agent.
 
 ## v1.12.7 - 2026-08-31
 
-- Grotto App and Grotto for iPhone use the refined translucent ghost icon. Grotto for iPhone also
+- Haus App and Haus for iPhone use the refined translucent ghost icon. Haus for iPhone also
   shows the photo grid and camera instead of a blank black card on physical devices.
 - iOS release verification preserves authored Xcode 27 icon effects across GitHub runner Xcode
   versions.
 
 ## v1.12.6 - 2026-08-31
 
-- Grotto App and Grotto for iPhone use the refined translucent ghost icon.
-- Grotto for iPhone shows the photo grid and camera instead of a blank black card on physical
+- Haus App and Haus for iPhone use the refined translucent ghost icon.
+- Haus for iPhone shows the photo grid and camera instead of a blank black card on physical
   devices while preserving the menu-to-media glass transition.
 
 ## v1.12.5 - 2026-08-31
 
-- Grotto App and Grotto for iPhone ship the authored translucent, refractive ghost icon.
-- Grotto for iPhone shows a clear empty state in new Chats and keeps the attachment
+- Haus App and Haus for iPhone ship the authored translucent, refractive ghost icon.
+- Haus for iPhone shows a clear empty state in new Chats and keeps the attachment
   menu-to-media transition on one continuous glass surface.
 
 ## v1.12.4 - 2026-08-31
 
-- Grotto for iPhone ships the authored layered Liquid Glass icon and shows a clear empty state in
+- Haus for iPhone ships the authored layered Liquid Glass icon and shows a clear empty state in
   new Chats.
-- Grotto for iPhone keeps the attachment menu-to-media transition on one continuous glass surface.
+- Haus for iPhone keeps the attachment menu-to-media transition on one continuous glass surface.
 
 ## v1.12.3 - 2026-08-31
 
-- Grotto App and Grotto for iPhone ship the new translucent, iridescent ghost icon.
+- Haus App and Haus for iPhone ship the new translucent, iridescent ghost icon.
 
 ## v1.12.2 - 2026-08-31
 
-- Grotto App and Grotto for iPhone ship the new translucent, iridescent ghost icon.
+- Haus App and Haus for iPhone ship the new translucent, iridescent ghost icon.
 
 ## v1.12.1 - 2026-08-31
 
-- Grotto App and Grotto for iPhone use the new translucent, iridescent ghost icon.
+- Haus App and Haus for iPhone use the new translucent, iridescent ghost icon.
 
 ## v1.12.0 - 2026-08-31
 
-- Grotto for iPhone keeps Chat and Thread transcripts settled on the newest message without blank
+- Haus for iPhone keeps Chat and Thread transcripts settled on the newest message without blank
   or strobing viewports, and moves the Chat canvas continuously with the keyboard.
-- Grotto for iPhone keeps attachment-card corners rounded throughout the menu-to-media expansion.
-- Grotto App uses the current ghost mark in installed macOS metadata and across hosted Grotto
+- Haus for iPhone keeps attachment-card corners rounded throughout the menu-to-media expansion.
+- Haus App uses the current ghost mark in installed macOS metadata and across hosted Haus
   surfaces, and shows each component's progress during coordinated updates.
 - Server promotion verifies installed artifacts without granting release-management privileges to
   the running Server process.
 
 ## v1.11.7 - 2026-08-31
 
-- Cove's clearer navigator avatar is now live in the hosted Grotto experience.
-- Server promotion now preserves the distinct Grotto product and Server artifact identities.
+- Cove's clearer navigator avatar is now live in the hosted Haus experience.
+- Server promotion now preserves the distinct Haus product and Server artifact identities.
 
 ## v1.11.6 - 2026-08-31
 
-- Cove's clearer navigator avatar is now included in the hosted Grotto experience.
+- Cove's clearer navigator avatar is now included in the hosted Haus experience.
 
 ## v1.11.5 - 2026-08-31
 
-- Cove's clearer navigator avatar is now included in the hosted Grotto experience.
+- Cove's clearer navigator avatar is now included in the hosted Haus experience.
 
 ## v1.11.4 - 2026-08-31
 
-- Cove's clearer navigator avatar is now included in the hosted Grotto experience.
-- Grotto App includes the new glossy ghost icon on Macs whose release tools predate Icon Composer.
+- Cove's clearer navigator avatar is now included in the hosted Haus experience.
+- Haus App includes the new glossy ghost icon on Macs whose release tools predate Icon Composer.
 
 ## v1.11.3 - 2026-08-31
 
-- Cove's clearer navigator avatar is now included in the hosted Grotto experience.
-- Grotto App packages the new glossy ghost icon across supported macOS build toolchains.
+- Cove's clearer navigator avatar is now included in the hosted Haus experience.
+- Haus App packages the new glossy ghost icon across supported macOS build toolchains.
 
 ## v1.11.2 - 2026-08-31
 
 - Cove's navigator avatar is clearer at compact sizes, with a larger compass that stays visible
   beside presence indicators.
-- Grotto App and Grotto for iPhone use the new glossy ghost app icon.
+- Haus App and Haus for iPhone use the new glossy ghost app icon.
 
 ## v1.11.1 - 2026-08-30
 
-- Grotto for iPhone retries Chat and Thread transcript recovery while a stranded viewport remains
+- Haus for iPhone retries Chat and Thread transcript recovery while a stranded viewport remains
   at rest, keeping the latest messages visible through slow layout changes.
 
 ## v1.11.0 - 2026-08-30
 
-- Grotto App shows live desktop update download progress in the sidebar and restores drag-and-drop
+- Haus App shows live desktop update download progress in the sidebar and restores drag-and-drop
   Channel reordering.
-- Grotto App extends each Chat row's hover background through the navigation pane edge.
-- Grotto for iPhone keeps the keyboard and composer stable while opening Photos or Camera, and
+- Haus App extends each Chat row's hover background through the navigation pane edge.
+- Haus for iPhone keeps the keyboard and composer stable while opening Photos or Camera, and
   keeps photo-grid cells square without overlapping crops.
 
 ## v1.10.0 - 2026-08-30
 
-- Grotto App adds resizable navigation and artifact panes, clearer Agent profiles and usage
+- Haus App adds resizable navigation and artifact panes, clearer Agent profiles and usage
   dashboards, stock workspace and skill browsers, and a faster full-emoji Channel icon picker.
-- Grotto App now separates actionable Computer and desktop updates, shows each Agent's applied
+- Haus App now separates actionable Computer and desktop updates, shows each Agent's applied
   behavior version, and keeps avatar-generation failures out of the update flow.
-- Grotto for iPhone opens with the Grotto character, returns to the last-open Chat, keeps Chat and
+- Haus for iPhone opens with the Haus character, returns to the last-open Chat, keeps Chat and
   Thread transcripts anchored reliably, and presents attachments above the keyboard with a
   preloaded photo grid and a hardened camera path.
-- Grotto Computer reconnects Server attachments with bounded backoff instead of remaining offline
+- Haus Computer reconnects Server attachments with bounded backoff instead of remaining offline
   after transient socket failures.
 - Cove keeps its factory onboarding guidance under `notes/`, matching the shared workspace layout
   without moving learned memory or onboarding progress.
@@ -247,7 +247,7 @@ All notable changes to this project will be documented in this file.
 ## v1.9.2 - 2026-08-29
 
 - The update hovercard now stays focused on the client update flow: Computer and its bundled Agent
-  on the web, plus Grotto App in the desktop client.
+  on the web, plus Haus App in the desktop client.
 - Computer's release-only Harness boundary test now runs on clean GitHub runners without requiring
   a locally installed Codex CLI.
 
@@ -255,20 +255,20 @@ All notable changes to this project will be documented in this file.
 
 - Computer releases no longer fail intermittently when the full test suite exercises multiple
   Harness boundaries in parallel.
-- Grotto for iPhone's camera capture flow now passes Xcode 26.3's strict concurrency checks,
+- Haus for iPhone's camera capture flow now passes Xcode 26.3's strict concurrency checks,
   restoring TestFlight builds.
 
 ## v1.9.0 - 2026-08-28
 
-- Grotto now has one public version while the Server, App, Computer, iPhone app, and Grotto Agent
+- Haus now has one public version while the Server, App, Computer, iPhone app, and Haus Agent
   keep independent release identities underneath it.
-- Preferences shows the public Grotto version, while the compact sidebar updater shows each
+- Preferences shows the public Haus version, while the compact sidebar updater shows each
   component version and updates every Computer before downloading and restarting the desktop App.
 - Reference chips now open compact mouse-following previews for Agents, channels, and skills.
 - Computer pages retain a durable history of connection and lifecycle events for diagnosis.
-- Grotto for iPhone adds persistent avatar and attachment caching, interruptible attachment
+- Haus for iPhone adds persistent avatar and attachment caching, interruptible attachment
   transitions, visible Quick Look controls, and more responsive chat navigation.
-- Releases now publish a verified immutable product snapshot and finalize the public Grotto tag for
+- Releases now publish a verified immutable product snapshot and finalize the public Haus tag for
   every supported mix of independently released components.
 
 ## v1.8.38 - 2026-08-28
@@ -278,120 +278,120 @@ All notable changes to this project will be documented in this file.
 
 ## v1.8.37 - 2026-08-28
 
-- Grotto App renders Agent-authored references to people, Agents, skills, apps, files, and
+- Haus App renders Agent-authored references to people, Agents, skills, apps, files, and
   directories as clear interactive chips in Chats and Threads.
-- Server releases now fail if production promotion is skipped and verify the exact hosted Grotto
+- Server releases now fail if production promotion is skipped and verify the exact hosted Haus
   App version before completion.
 
 ## v1.8.36 - 2026-08-28
 
-- Grotto App renders Agent-authored references to people, Agents, skills, apps, files, and
+- Haus App renders Agent-authored references to people, Agents, skills, apps, files, and
   directories as clear interactive chips in Chats and Threads.
 - Server releases now pause for production approval, deploy the exact published artifact, and
-  verify the public Server and hosted Grotto App before completion.
+  verify the public Server and hosted Haus App before completion.
 
 ## v1.8.35 - 2026-08-27
 
-- Grotto for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
+- Haus for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
   first layout settles, while preserving the reader's position after they scroll away.
 - The whole iPhone sidebar row is now tappable, not just its icon and title.
-- Grotto App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
+- Haus App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
   presentation.
 
 ## v1.8.34 - 2026-08-27
 
-- Grotto for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
+- Haus for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
   first layout settles, while preserving the reader's position after they scroll away.
 - The whole iPhone sidebar row is now tappable, not just its icon and title.
-- Grotto App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
+- Haus App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
   presentation.
 
 ## v1.8.33 - 2026-08-27
 
-- Grotto for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
+- Haus for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
   first layout settles, while preserving the reader's position after they scroll away.
 - The whole iPhone sidebar row is now tappable, not just its icon and title.
-- Grotto App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
+- Haus App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
   presentation.
 
 ## v1.8.32 - 2026-08-27
 
-- Grotto for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
+- Haus for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
   first layout settles, while preserving the reader's position after they scroll away.
 - The whole iPhone sidebar row is now tappable, not just its icon and title.
-- Grotto App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
+- Haus App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
   presentation.
 
 ## v1.8.31 - 2026-08-27
 
-- Grotto for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
+- Haus for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
   first layout settles, while preserving the reader's position after they scroll away.
 - The whole iPhone sidebar row is now tappable, not just its icon and title.
-- Grotto App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
+- Haus App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
   presentation.
 
 ## v1.8.30 - 2026-08-27
 
-- Grotto for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
+- Haus for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
   first layout settles, while preserving the reader's position after they scroll away.
 - The whole iPhone sidebar row is now tappable, not just its icon and title.
-- Grotto App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
+- Haus App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
   presentation.
 
 ## v1.8.29 - 2026-08-27
 
-- Grotto for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
+- Haus for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
   first layout settles, while preserving the reader's position after they scroll away.
 - The whole iPhone sidebar row is now tappable, not just its icon and title.
-- Grotto App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
+- Haus App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
   presentation.
 
 ## v1.8.28 - 2026-08-27
 
-- Grotto for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
+- Haus for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
   first layout settles, while preserving the reader's position after they scroll away.
 - The whole iPhone sidebar row is now tappable, not just its icon and title.
-- Grotto App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
+- Haus App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
   presentation.
 
 ## v1.8.27 - 2026-08-27
 
-- Grotto for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
+- Haus for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
   first layout settles, while preserving the reader's position after they scroll away.
 - The whole iPhone sidebar row is now tappable, not just its icon and title.
-- Grotto App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
+- Haus App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
   presentation.
 
 ## v1.8.26 - 2026-08-27
 
-- Grotto for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
+- Haus for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
   first layout settles, while preserving the reader's position after they scroll away.
 - The whole iPhone sidebar row is now tappable, not just its icon and title.
-- Grotto App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
+- Haus App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
   presentation.
 
 ## v1.8.25 - 2026-08-27
 
-- Grotto for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
+- Haus for iPhone keeps Chat and Thread transcripts anchored to the latest message as their
   first layout settles, while preserving the reader's position after they scroll away.
 - The whole iPhone sidebar row is now tappable, not just its icon and title.
-- Grotto App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
+- Haus App gives live Agent activity and desktop-update progress a tighter, clearer sidebar
   presentation.
 
 ## v1.8.24 - 2026-08-26
 
 - Agents can now prepare an Agent creation action in Chat for a person to review and commit, with
-  the same approval flow in the Grotto App and on iPhone.
-- Agent avatar generation is available across Grotto App and iPhone, with validated concepts and
+  the same approval flow in the Haus App and on iPhone.
+- Agent avatar generation is available across Haus App and iPhone, with validated concepts and
   durable generated images that stay consistent across profiles and conversations.
-- Grotto for iPhone is faster and steadier across Chat navigation, Threads, attachments, profile
+- Haus for iPhone is faster and steadier across Chat navigation, Threads, attachments, profile
   details, foreground refresh, and high-volume realtime updates.
-- Grotto Computer 1.4.8 carries the new prepared-action and avatar commands and preserves Codex
+- Haus Computer 1.4.8 carries the new prepared-action and avatar commands and preserves Codex
   network fallback behavior.
 
 ## v1.8.23 - 2026-08-26
 
-- The Grotto App now carries its sidebar treatment through the macOS titlebar, lifts Settings into
+- The Haus App now carries its sidebar treatment through the macOS titlebar, lifts Settings into
   that band, and gives topbars, side panels, icons, and update controls a cleaner shared rhythm.
 - Artifact and Thread surfaces gain clearer empty and menu states, better light-mode separation,
   and reliable horizontal containment for long task content.
@@ -403,42 +403,42 @@ All notable changes to this project will be documented in this file.
   mentions, and opening or messaging an Agent creates its direct conversation only when needed.
 - Channels can be reordered by dragging, and Channels, messages, and tasks gain compact native
   context menus for their common actions.
-- The Grotto App reorganizes Settings around people, Servers, and app preferences, restores visible
+- The Haus App reorganizes Settings around people, Servers, and app preferences, restores visible
   desktop-update progress, and gives Usage a clearer dedicated destination and focused controls.
-- Grotto for iPhone gains handle and Agent-DM parity, a rebuilt attachment composer, and a unified
+- Haus for iPhone gains handle and Agent-DM parity, a rebuilt attachment composer, and a unified
   Hugeicons-based icon system across chat, navigation, and settings.
 
 ## v1.8.21 - 2026-08-25
 
-- Signing in from the Grotto App works again. The desktop shell and the App ship on independent
+- Signing in from the Haus App works again. The desktop shell and the App ship on independent
   channels, so a packaged shell routinely loads a differently versioned App; the shell now exposes
   its bridge under both the current and the retired name, and the App accepts either, so sign-in
   stays in the App instead of falling back to the browser and failing the Clerk callback.
-- The published Server artifact now points the Grotto App at the production Clerk instance. A
+- The published Server artifact now points the Haus App at the production Clerk instance. A
   release is cut from an operator's machine, which resolves the development lifecycle, so the
   release switch rather than the lifecycle selects the App's Clerk instance, and the artifact
   builder refuses to build unless the resolved publishable key is a production key.
 
 ## v1.8.20 - 2026-08-24
 
-- Grotto App navigation now uses one calmer sidebar and shell rhythm, with Chat tools moved into the
+- Haus App navigation now uses one calmer sidebar and shell rhythm, with Chat tools moved into the
   Chat menu, dedicated Members and Tasks destinations, clearer dialogs, and stock HeroUI behavior
   throughout Settings and Connections.
 - Tasks gain Linear-style filtering and richer Thread details, while Owners and Admins can assign
   work directly to Agents with durable receipts and follow behavior.
 - Channels support curated icons and colors across the Server, App, and iPhone app; MCP connections
   also surface discovered icons and summaries.
-- Grotto for iPhone adds inline image attachments, improved search-result navigation, redesigned
+- Haus for iPhone adds inline image attachments, improved search-result navigation, redesigned
   Tasks and settings surfaces, and native channel appearance.
 - First-party packages, SDK symbols, environment variables, wire identifiers, local storage, and
-  internal tooling complete the breaking Tavern-to-Grotto contract rename. Server, App, iOS, and
+  internal tooling complete the breaking product identity migration. Server, App, iOS, and
   Computer artifacts move together so no deployed surface retains the retired identifiers.
 
 ## v1.8.19 - 2026-08-19
 
-- Grotto for iPhone gains unified chrome, finger-tracking sidebar gestures, and Server-wide search
+- Haus for iPhone gains unified chrome, finger-tracking sidebar gestures, and Server-wide search
   across Channels, Agent DMs, and Threads.
-- Grotto App pages now share one consistent content column and rhythm, with clearer empty states,
+- Haus App pages now share one consistent content column and rhythm, with clearer empty states,
   focused Computer details, and comparable token usage meters.
 - Computer updates keep reporting their in-flight state through a disconnect, and offline Computers
   now explain unavailable details instead of showing empty space.
@@ -447,13 +447,13 @@ All notable changes to this project will be documented in this file.
 
 ## v1.8.18 - 2026-08-18
 
-- Grotto for iPhone reaches its first TestFlight build with production sign-in, Server discovery,
+- Haus for iPhone reaches its first TestFlight build with production sign-in, Server discovery,
   realtime Channels and Agent DMs, Threads, Tasks, attachments, search, and profile settings.
-- The Grotto App adds native macOS window management, unified search, a denser visual system,
+- The Haus App adds native macOS window management, unified search, a denser visual system,
   richer Agent activity and usage views, and a list-first Tasks experience with Thread dialogs.
 - Agent execution now uses the Raft-aligned global-session architecture, exposes durable turn and
   delivery evidence, and removes the superseded local-runtime paths.
-- Grotto Computer 1.4.5 adds Grok Build support, verified and pre-warmed harness bridges, shared
+- Haus Computer 1.4.5 adds Grok Build support, verified and pre-warmed harness bridges, shared
   bridge storage, and clearer startup and stall diagnostics.
 
 ## v1.8.17 - 2026-08-11
@@ -462,9 +462,9 @@ All notable changes to this project will be documented in this file.
   queryable until the Agent explicitly checks them, with exact served and seen proof.
 - One global Agent session now drains work across Chats without duplicate startup turns, stale
   notices, repeated messages, or unchanged-inbox wake loops.
-- Grotto Computer 1.4.4 adds local-first inbox reads, safe live-turn notices, crash replay, and
+- Haus Computer 1.4.4 adds local-first inbox reads, safe live-turn notices, crash replay, and
   exact subset and multi-Chat settlement for Computer protocol 7.
-- The Grotto App ships the latest macOS icon material and lighting effects.
+- The Haus App ships the latest macOS icon material and lighting effects.
 
 ## v1.8.16 - 2026-08-10
 
@@ -483,7 +483,7 @@ All notable changes to this project will be documented in this file.
 
 - Fresh Server onboarding now reconciles incomplete Computer connection and Cove application state,
   preventing a missed realtime update from leaving the Server UI visibly stuck.
-- Grotto Computer 1.4.3 gives every human-facing CLI command a consistent identity header and clear
+- Haus Computer 1.4.3 gives every human-facing CLI command a consistent identity header and clear
   success or failure verdict, with redesigned help, status, doctor, and update-check surfaces.
 - Bare, unknown, and incomplete Computer commands now lead to actionable help, while scripts and
   piped output retain their plain machine-readable contracts.
@@ -492,17 +492,17 @@ All notable changes to this project will be documented in this file.
 
 - Cove onboarding now recovers across Server reconnects and reliably preserves the pending chat
   handoff until navigation completes.
-- Grotto Computer 1.4.2 shows live, truthful upgrade feedback in the terminal, including real
+- Haus Computer 1.4.2 shows live, truthful upgrade feedback in the terminal, including real
   download progress, verification, active-Agent draining, installation, restart, failure, and
   concurrent-update states; rollback now reports its progress as well.
-- Signed Grotto Computer builds now resolve their embedded Claude Code and Codex harness bridge
+- Signed Haus Computer builds now resolve their embedded Claude Code and Codex harness bridge
   assets from the packaged executable correctly.
 
 ## v1.8.12 - 2026-08-10
 
 - First-boot Server creation, invitation joining, Computer connection, and Cove setup now use
   warmer, centered activation layouts with smoother movement between differently sized steps.
-- Grotto Computer 1.4.1 consistently identifies each isolated per-Server child as a Server
+- Haus Computer 1.4.1 consistently identifies each isolated per-Server child as a Server
   attachment daemon across its service lifecycle, diagnostics, and local state.
 - Existing development Servers now apply checked-in PostgreSQL migrations automatically when the
   managed development stack starts.
@@ -572,19 +572,19 @@ All notable changes to this project will be documented in this file.
   locally, while standalone login reports the narrower signed-in state.
 - Existing Server-scoped Computer credentials, attachments, and Agent
   workspaces remain intact; the cutover does not rewrite production data.
-- Grotto Computer 1.4.0 is the already-published prerequisite for this final
+- Haus Computer 1.4.0 is the already-published prerequisite for this final
   Server cutover. App and Runtime remain unchanged.
 
 ## v1.8.4 - 2026-08-09
 
-- Server prepares reusable Grotto Computer device login and management
+- Server prepares reusable Haus Computer device login and management
   sessions for attaching additional Servers without repeated browser approval.
 - First-Computer setup reports **Signed in — finishing the connection** until
   the attachment is durably recoverable, and **Computer connected** only after
   the CLI stores it successfully.
 - Fresh-Server onboarding continues to hide Cove's factory commands, workspace,
   and acknowledgement details behind the quiet **Getting Cove ready…** state.
-- Grotto Computer 1.4.0 replaces one-off setup approval with a reusable,
+- Haus Computer 1.4.0 replaces one-off setup approval with a reusable,
   origin-bound login session, so Owners and Admins can attach additional
   Servers without reopening the browser while existing attachments and Agent
   workspaces remain intact.
@@ -599,17 +599,17 @@ All notable changes to this project will be documented in this file.
 
 - Server addresses once again follow the Server name while typing, while preserving
   any address the Owner edits explicitly.
-- Computer setup now presents separate install and Server setup commands. Grotto
+- Computer setup now presents separate install and Server setup commands. Haus
   Computer 1.3.2 parks attachments whose Server was deleted or reset and reconnects
   them through fresh browser approval without deleting local Agent workspaces.
-- Grotto Computer 1.3.3 opens fresh setup approval in the default browser, keeps the
+- Haus Computer 1.3.3 opens fresh setup approval in the default browser, keeps the
   URL visible as a fallback, and lets interactive operators press Enter to retry.
 
 ## v1.8.2 - 2026-08-08
 
 - Fresh onboarding now creates Cove's built-in direct message with the Server
   Owner, so the Owner can open Cove immediately after setup.
-- Grotto Computer 1.3.1 and Runtime 1.8.2 correct Codex and Claude Code bridge
+- Haus Computer 1.3.1 and Runtime 1.8.2 correct Codex and Claude Code bridge
   bootstrap targeting so dependencies install and launch from their dedicated
   harness directories.
 
@@ -623,21 +623,21 @@ All notable changes to this project will be documented in this file.
 ## v1.8.0 - 2026-08-08
 
 - Fresh Servers now require the durable Cove onboarding journey: Owners connect
-  a Computer, choose Cove's runtime and model, and enter Grotto only after Cove
+  a Computer, choose Cove's runtime and model, and enter Haus only after Cove
   is configured, seeded, and startable. Setup resumes safely across retries,
   reconnects, and reloads without duplicating Cove or the onboarding Chat.
 - Cove now produces the first greeting through a genuine Agent turn with normal
   lifecycle, failure, and retry behavior. After onboarding, Cove is an ordinary
   Agent who can be reset or permanently deleted.
-- Every Agent can query the shared, authenticated Grotto Manual and its adapted
+- Every Agent can query the shared, authenticated Haus Manual and its adapted
   recipe corpus. Cove alone receives onboarding knowledge; manually created and
   ordinary Agents begin with a clean identity-focused `MEMORY.md`.
-- Grotto Computer 1.3.0 ships ordinary protocol 6, the Cove configuration and
+- Haus Computer 1.3.0 ships ordinary protocol 6, the Cove configuration and
   workspace lifecycle, the managed Manual CLI, visible inbox consumption, and
   exact result-destination handling required by this Server release.
 - Server 1.8.0 makes Chat the Server entry surface, sharpens the persistent
   shell and member profiles, and completes desktop development OAuth. App
-  1.8.0 also carries normalized native icon assets and the Grotto development
+  1.8.0 also carries normalized native icon assets and the Haus development
   icon.
 - Computer and Runtime adopt the current AI SDK and harness releases. Runtime
   ships as a compatible 1.8.0 artifact; the App still supports the existing
@@ -654,9 +654,9 @@ All notable changes to this project will be documented in this file.
   can be edited directly from chat.
 - Agent collaboration is substantially more durable: global sessions survive
   ordinary turns and restarts, delivery and attention recover cleanly, and the
-  managed Grotto CLI covers task, reminder, Thread, skill, workspace, and
+  managed Haus CLI covers task, reminder, Thread, skill, workspace, and
   Server MCP workflows with stronger idempotency and authorization checks.
-- Grotto Computer 1.2.0 ships ordinary protocol 5 and the corresponding
+- Haus Computer 1.2.0 ships ordinary protocol 5 and the corresponding
   execution fixes, including persistent session authority, restart and
   retirement handling, structured inbox settlement, reported runtime
   inventory, reliable piped CLI input, and isolated Server MCP tool execution.
@@ -666,7 +666,7 @@ All notable changes to this project will be documented in this file.
 
 ## v1.6.14 - 2026-07-29
 
-- Grotto Computer 1.1.5 embeds the Codex and Claude Code harness bridge
+- Haus Computer 1.1.5 embeds the Codex and Claude Code harness bridge
   payloads in its standalone executable, and release validation now rejects a
   compiled Computer that cannot load them.
 - Computer diagnostics now verify the bundled Agent runtimes before reporting
@@ -684,8 +684,8 @@ All notable changes to this project will be documented in this file.
 - New Servers now offer Cove as their first Agent with his orange blob
   character, onboarding-guide identity, and the complete original onboarding
   workspace notes.
-- Grotto Computer 1.1.4 applies Agent identity before the first turn, restores
-  seeded workspaces after full resets without touching other `~/.grotto` data,
+- Haus Computer 1.1.4 applies Agent identity before the first turn, restores
+  seeded workspaces after full resets without touching other `~/.haus` data,
   and keeps one resident execution host per Agent.
 - Agent delivery now uses durable structured inboxes, explicit model-seen
   settlement, bounded Agent-only chains, exact replay after interrupted turns,
@@ -718,7 +718,7 @@ All notable changes to this project will be documented in this file.
 - Restored hosted Agent directories when PostgreSQL JSON values are written
   through Bun, and replaced the misleading empty-directory state with a clear
   loading or unavailable state.
-- Grotto Computer 1.1.2 discovers Codex and other supported runtimes from the
+- Haus Computer 1.1.2 discovers Codex and other supported runtimes from the
   deterministic service environment used for Agent launches, including
   Homebrew and local-user installs. Broken executable shims are ignored without
   hiding healthy runtimes.
@@ -727,16 +727,16 @@ All notable changes to this project will be documented in this file.
 
 ## v1.6.8 - 2026-07-29
 
-- Hosted Grotto now serves its public privacy policy from the same Mac mini
-  Server as the App. `www.grotto.sh` redirects to the matching apex path
+- Hosted Haus now serves its public privacy policy from the same Mac mini
+  Server as the App. `www.haus.chat` redirects to the matching apex path
   entirely through Cloudflare, and Vercel no longer serves production traffic.
 
 ## v1.6.7 - 2026-07-28
 
-- Grotto Computer 1.1.1 now ships as a signed and notarized standalone Apple
+- Haus Computer 1.1.1 now ships as a signed and notarized standalone Apple
   Silicon executable with no npm, Homebrew, or Bun dependency. Updates verify
   the signed descriptor, checksum, Apple identity, and executable identity
-  before atomically replacing code; `~/.grotto` data remains untouched.
+  before atomically replacing code; `~/.haus` data remains untouched.
 - Server Owners and Admins can check for and install Computer updates from
   Settings with live download bytes, verification, active-Agent drain,
   installation, restart, reconnect, completion, and exact failure-stage
@@ -750,10 +750,10 @@ All notable changes to this project will be documented in this file.
 
 ## v1.6.6 - 2026-07-28
 
-- Hosted Grotto restores the full desktop collaboration experience: signed-in
+- Hosted Haus restores the full desktop collaboration experience: signed-in
   Server selection, the familiar sidebar and activity home, compact chat,
   agent profiles, message inspection, artifact panes, and appearance choices.
-- Attached Grotto Computers again execute hosted Agent turns with their
+- Attached Haus Computers again execute hosted Agent turns with their
   configured model, workspace, skills, and Server-owned remote MCP access.
 - Chat composition restores `@` Agent and `$` skill autocomplete, rich chips,
   keyboard controls, and Command-K navigation. Referenced skills now become
@@ -767,9 +767,9 @@ All notable changes to this project will be documented in this file.
 
 ## v1.6.4 - 2026-07-27
 
-- Grotto now uses the hosted Server as the canonical collaboration system:
-  Grotto App and the Server UI connect directly through exact-versioned HTTP and
-  WebSocket contracts while attached Grotto Computers own private Agent
+- Haus now uses the hosted Server as the canonical collaboration system:
+  Haus App and the Server UI connect directly through exact-versioned HTTP and
+  WebSocket contracts while attached Haus Computers own private Agent
   execution, workspaces, skills, model access, and MCP credentials.
 - Hosted Servers now support Computer attachment and lifecycle, Agent creation
   and repair, durable delivery, isolated skills and MCP connections, signed
@@ -780,10 +780,10 @@ All notable changes to this project will be documented in this file.
 
 ## v1.6.3 - 2026-07-27
 
-- Hosted Grotto adds Clerk sign-in, Server creation and reopen, durable human
+- Hosted Haus adds Clerk sign-in, Server creation and reopen, durable human
   chats, member invitations and removal, child threads, tasks, reminders, and
   scheduled wakes at the canonical Server UI origin.
-- Published Grotto versions now promote the Server UI and Server backend atomically by
+- Published Haus versions now promote the Server UI and Server backend atomically by
   immutable source revision, with local PostgreSQL, supervised health,
   encrypted backup and restore tooling, and rollback-safe activation.
 
@@ -829,18 +829,18 @@ All notable changes to this project will be documented in this file.
 - App: Google sign-in now completes reliably in the desktop app when Clerk
   returns an empty custom-scheme callback, while using the rotating nonce when
   Clerk supplies one.
-- App: signing out returns to Grotto's welcome screen instead of navigating the
+- App: signing out returns to Haus's welcome screen instead of navigating the
   packaged Electron window to an invalid browser page.
 - App: local macOS installs preserve the signed bundle's resources and extended
   attributes.
 
 ## v1.5.3 - 2026-07-20
 
-- App/Runtime: Tavern is now Grotto, with a clean install boundary: the desktop
-  bundle is `build.grotto.desktop`, links use only `grotto://`, production state
-  lives under `~/.grotto`, and the Runtime ships only the `grotto` and
-  `grotto-runtime` commands through `zknicker/grotto/grotto-runtime`. Requires
-  this Runtime. **Breaking:** Grotto app data, protocol links, CLI aliases,
+- App/Runtime: the product identity changed, with a clean install boundary: the desktop
+  bundle is `build.haus.desktop`, links use only `haus://`, production state
+  lives under `~/.haus`, and the Runtime ships only the `haus` and
+  `haus-runtime` commands through `zknicker/haus/haus-runtime`. Requires
+  this Runtime. **Breaking:** Haus app data, protocol links, CLI aliases,
   Homebrew formula, and production state paths are not migrated automatically.
 - Runtime/API/App: Clerk-backed identity now covers sign-in, Runtime ownership,
   invite redemption, members, reader-scoped unread state, and authenticated
@@ -970,12 +970,12 @@ All notable changes to this project will be documented in this file.
 - App: reconciles Runtime event catch-up after reconnect without replaying stale
   live turn progress, while still clearing terminal turn state and invalidating
   chat, session, and worker views.
-- Runtime release: preserves the packaged `@grotto/sdk` after staging qmd so
+- Runtime release: preserves the packaged `@haus/sdk` after staging qmd so
   Homebrew can install the Runtime artifact successfully.
 
 ## v1.4.43 - 2026-07-07
 
-- Runtime/API/App: adds Grotto Tasks with Runtime-owned task storage, agent
+- Runtime/API/App: adds Haus Tasks with Runtime-owned task storage, agent
   task tools, server sync, realtime invalidation, dispatch, and full app list,
   detail, and editor surfaces.
 - Runtime/API/App: replaces composer command proxies with agent session routes
@@ -995,7 +995,7 @@ All notable changes to this project will be documented in this file.
 
 ## v1.4.42 - 2026-07-06
 
-- Runtime/API/App: routes Google OAuth callbacks through the Grotto app server
+- Runtime/API/App: routes Google OAuth callbacks through the Haus app server
   so desktop Plugin setup completes reliably against Runtime-owned Google
   settings.
 - Runtime/App: returns saved Plugin secret presence to settings forms so stored
@@ -1013,7 +1013,7 @@ All notable changes to this project will be documented in this file.
 
 ## v1.4.40 - 2026-07-06
 
-- Runtime/API/App: replaces rich responses with grant-scoped Grotto Widget
+- Runtime/API/App: replaces rich responses with grant-scoped Haus Widget
   fences, Widget contracts, durable Widget activity, and app renderers for
   charts, calendars, tables, and MerchBase displays.
 - Runtime/API/App: adds the runtime-native automation scheduler with cron job
@@ -1029,9 +1029,9 @@ All notable changes to this project will be documented in this file.
 
 ## v1.4.39 - 2026-07-06
 
-- Runtime/App: adds the Google Plugin with Grotto-managed OAuth and Google
+- Runtime/App: adds the Google Plugin with Haus-managed OAuth and Google
   Calendar event list, search, and create tools.
-- Runtime: packages the Grotto-owned Google OAuth desktop client into Runtime
+- Runtime: packages the Haus-owned Google OAuth desktop client into Runtime
   release artifacts so Homebrew-installed Runtime builds can connect Google.
 - Runtime/App: streams live harness turn activity and simplifies live turn
   narration with calmer replace-in-place updates.
@@ -1048,7 +1048,7 @@ All notable changes to this project will be documented in this file.
 - Runtime/App: adds rich references for agents, skills, apps, plugins, and
   workspace paths, including skill activation hints and agent-scoped skill
   autocomplete.
-- Runtime/App: adds Runtime-backed Grotto channel creation and participant
+- Runtime/App: adds Runtime-backed Haus channel creation and participant
   editing, including multi-agent channels and explicit agent addressing.
 - Runtime/App: reworks streaming turn rendering, tolerates delivered messages
   missing turn metadata, and keeps channel messages human-only until an agent is
@@ -1099,7 +1099,7 @@ All notable changes to this project will be documented in this file.
 
 ## v1.4.32 - 2026-07-01
 
-- Rebuilt Grotto around chat-native Agent seats, Agent sessions, and Agent
+- Rebuilt Haus around chat-native Agent seats, Agent sessions, and Agent
   turns.
 - Moved Claude Code and Codex execution to AI SDK HarnessAgent.
 - Kept OpenAI/API-key and deterministic e2e execution on AI SDK LanguageModel

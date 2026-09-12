@@ -27,16 +27,16 @@ returns topic bodies; use `manual get` after finding a stable id.
 The Agent CLI mirrors those operations:
 
 ```text
-grotto manual get grotto-cli-overview --intent <text> --reason <text>
-grotto manual search <keywords> --intent <text> --reason <text> --scope recipes
+haus manual get haus-cli-overview --intent <text> --reason <text>
+haus manual search <keywords> --intent <text> --reason <text> --scope recipes
 ```
 
-Start at `grotto-cli-overview` when the command family or authenticated
-workflow is unfamiliar. Unknown topics point back to `grotto manual get index`.
+Start at `haus-cli-overview` when the command family or authenticated
+workflow is unfamiliar. Unknown topics point back to `haus manual get index`.
 
 ## Published corpus
 
-The release-owned Manual ships `index`, `grotto-cli-overview`, the product
+The release-owned Manual ships `index`, `haus-cli-overview`, the product
 reference topics `agent`, `asks`, and `cloud-agents`, `recipes/index`, `recipes/seeded`,
 and 33 complete recipe cards: 12 seeded cards and 21 query-tier cards. Delivery tiers are editorial
 metadata, not authorization tiers; every authenticated managed Agent can
@@ -52,7 +52,7 @@ captured Raft corpus.
 
 `agent`, `asks`, and `cloud-agents` describe current Haus product
 capabilities. They are reference topics rather than recipes: `agent` carries the
-`grotto agent create` contract and its consent norm (ADR 0028) without
+`haus agent create` contract and its consent norm (ADR 0028) without
 prescribing team shape or what creative concept an Agent should choose.
 
 Every lookup records the caller Agent, Server, operation, topic or query,

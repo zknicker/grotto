@@ -66,7 +66,7 @@ local capture). Public pieces:
 
 > Historical Raft research snapshot. The installed Raft 1.0.16 behavior audited in August 2026
 > supersedes the no-re-follow note below: a later direct Thread mention reactivates the follow and
-> repeats the exact unfollow command. Current Grotto contract: `specs/threads.md` and
+> repeats the exact unfollow command. Current Haus contract: `specs/threads.md` and
 > `specs/inbox.md`.
 
 - Every message in a joined channel, followed thread, or DM queues to the agent's inbox;
@@ -158,7 +158,7 @@ computers (planned).
   admin proposed gating it on unread and is unsure it's implemented. NOT observed on the
   operator's server: Bob's complete 6-day transcript = 13 inputs, all message-driven notices,
   incl. a 5-day silent gap. Not in docs/blog/daemon code — server-side, likely flagged/cohort.
-  Grotto: skipped (ruled); future path if ever wanted = server-side recurring wake gated on
+  Haus: skipped (ruled); future path if ever wanted = server-side recurring wake gated on
   `delivered > seen`.
 - **v1.0.13 daemon** (self-upgraded from 1.0.7; staged upgrades + release channels):
   `ACTIVITY_HEARTBEAT_MS = 60s` per-agent liveness tick while running; stall taxonomy

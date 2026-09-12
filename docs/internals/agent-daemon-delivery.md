@@ -1,5 +1,5 @@
 ---
-summary: Grotto Computer Agent daemon lifecycle, structured delivery, exact visibility proofs, crash recovery, and invariant tests.
+summary: Haus Computer Agent daemon lifecycle, structured delivery, exact visibility proofs, crash recovery, and invariant tests.
 read_when:
   - changing Computer Agent execution or AI SDK Harness session lifecycle
   - changing Server-to-Computer Agent delivery or busy notices
@@ -27,7 +27,7 @@ the Server and Computer implementation.
   delivery. Reset or retirement destroys that Agent host.
 - Runtime discovery and launch share one exhaustive runtime-to-executable map. Detection proves
   the executable answers its version probe, not that a provider login or Agent turn will succeed.
-- The Agent sees only the managed `grotto` wrapper and its stable local proxy
+- The Agent sees only the managed `haus` wrapper and its stable local proxy
   token. The Computer rotates the Server-valid runner credential for every
   turn and never exposes it to the Agent.
 
@@ -105,7 +105,7 @@ precedes whichever first prompt applies. A different notice arriving during
 cold startup remains durable and is offered after that turn instead of racing
 a mid-turn injection. Idle and busy Agents durably receive full envelopes but
 project only target/count/id/sender metadata. Message bodies enter the model
-only through explicit `grotto message check`, history/hold context, or the
+only through explicit `haus message check`, history/hold context, or the
 typed non-Chat system-attention lane. A committed action's concrete projection
 includes its action identity, originating Chat, created Agent identity, and
 executed result; its result is never exposed by the ordinary message-check path.
@@ -194,7 +194,7 @@ conflict. The receipt advances only after the turn completes and returns valid r
 or interruption remains stale and preserves the generation for retry. Only rejection of the stored native resume state is reported
 as resume rejection, so only Server-authorized recovery may advance the session generation.
 
-The release-owned Grotto Agent version groups those managed behavior inputs into one public SemVer.
+The release-owned Haus Agent version groups those managed behavior inputs into one public SemVer.
 When it differs from the session receipt, the next accepted turn enters the same
 `updating_instructions` lifecycle even when the lower-level fingerprints are unchanged. Success
 stores the new version and application time; failure or a Cove factory-guidance conflict preserves
@@ -219,7 +219,7 @@ not itself a Chat message, keyed by fire identity: an idle Agent wakes with the
 envelope in its first prompt and the row is served the moment the Computer accepts
 that run, while a busy Agent still gets only the content-free notice and the item in
 its next turn. Both envelopes end with
-`reply with: grotto message send --cause <fireId>`. That flag is the only way a
+`reply with: haus message send --cause <fireId>`. That flag is the only way a
 fire reaches the transcript: the Server validates the fire against the sending
 Agent and records the provenance with the message. A fire the Agent does not
 answer stays in the automation's fire history and nowhere else.
@@ -238,7 +238,7 @@ policy. A human Restart clears the failure hold and redrives queued work without
 rotating the Agent's session. Raw failure evidence remains Computer-local; the
 compact failure kind crosses the Server boundary.
 
-Computer validates committed action results with the shared Grotto API schema.
+Computer validates committed action results with the shared Haus API schema.
 A rejected start whose run, Agent, runtime, and model identities remain valid
 reports a configuration failure immediately, without acknowledging delivery or
 exposing the rejected payload. Server retains the inbox work for recovery instead
@@ -276,7 +276,7 @@ message and its composition id.
 | --- | --- |
 | One persistent session; pending delivery or cold `Start.`, then resume | `apps/computer/src/harness/executor.test.ts` |
 | Restart preserves generation and refreshes instructions exactly once | `apps/server/test/agent-delivery.test.ts`, `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/session-restart.test.ts` |
-| Instruction, bridge, or Grotto Agent version drift refreshes once in place and exposes the outcome safely | `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/bootstrap-refresh.test.ts`, `packages/grotto-api/src/agent-activity.test.ts` |
+| Instruction, bridge, or Haus Agent version drift refreshes once in place and exposes the outcome safely | `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/bootstrap-refresh.test.ts`, `packages/haus-api/src/agent-activity.test.ts` |
 | Known tools map through the semantic registry; unknown and MCP tools remain generic | `apps/computer/src/harness/executor.test.ts` |
 | Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
 | Session reset preserves workspace and skills; full reset restores the Agent-kind workspace and only factory-managed skills | `apps/computer/src/launch.test.ts` |
@@ -291,17 +291,17 @@ message and its composition id.
 | Busy pull settles with its active run; unsettled pull replays | `apps/server/test/agent-delivery.test.ts` |
 | Exact exposure cannot consume without settled `seen` | `apps/server/test/agent-delivery.test.ts` |
 | Settled and verified-boundary-subsumed rows are retained as `seen` ledger evidence | `apps/server/test/agent-delivery.test.ts` |
-| `agent.turns` and `agent.deliveries` are member-scoped and deny as `NOT_FOUND` | `apps/server/test/grotto-agent-observability.test.ts` |
+| `agent.turns` and `agent.deliveries` are member-scoped and deny as `NOT_FOUND` | `apps/server/test/haus-agent-observability.test.ts` |
 | Chain ceiling preserves rows and human input releases it | `apps/server/src/agent-delivery/chain-budget.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Terminal vs retryable runtime failures | `apps/computer/src/runtime-failure.test.ts`, `apps/server/src/agent-delivery/failure-policy.test.ts` |
 | Dispatch, acceptance, and settlement project semantic lifecycle phases | `apps/server/test/agent-delivery.test.ts` |
-| `As Task` enters the inbox with canonical task metadata | `apps/server/test/grotto-agent-run.test.ts`, `apps/computer/src/inbox-format.test.ts` |
-| Fresh Agent Thread replies materialize the authorized anchor | `apps/server/test/grotto-agent-run.test.ts` |
-| Mute purges ordinary work without blocking personal mentions; a Thread mention restores an unfollow | `apps/server/test/grotto-agent-run.test.ts` |
-| Freshness validation and Agent send commit share one Server lock | `apps/server/test/grotto-agent-run.test.ts` |
-| Human and Agent claims share one ownership lock | `apps/server/test/grotto-agent-run.test.ts` |
-| Agent peer assignment is idempotent and delivers the exact canonical task identity to a muted peer | `apps/server/test/grotto-agent-run.test.ts` |
-| Agent retirement releases task ownership and emits durable updates | `apps/server/test/grotto-agents.test.ts` |
+| `As Task` enters the inbox with canonical task metadata | `apps/server/test/haus-agent-run.test.ts`, `apps/computer/src/inbox-format.test.ts` |
+| Fresh Agent Thread replies materialize the authorized anchor | `apps/server/test/haus-agent-run.test.ts` |
+| Mute purges ordinary work without blocking personal mentions; a Thread mention restores an unfollow | `apps/server/test/haus-agent-run.test.ts` |
+| Freshness validation and Agent send commit share one Server lock | `apps/server/test/haus-agent-run.test.ts` |
+| Human and Agent claims share one ownership lock | `apps/server/test/haus-agent-run.test.ts` |
+| Agent peer assignment is idempotent and delivers the exact canonical task identity to a muted peer | `apps/server/test/haus-agent-run.test.ts` |
+| Agent retirement releases task ownership and emits durable updates | `apps/server/test/haus-agents.test.ts` |
 
-These tests are protocol guards. Live Raft-versus-Grotto behavioral scenarios
+These tests are protocol guards. Live Raft-versus-Haus behavioral scenarios
 are a later product audit and do not replace them.

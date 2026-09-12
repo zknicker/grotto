@@ -25,9 +25,9 @@ Workspace: `arcade`
 Exact routing and the real peer response are product gates. Tagline choice,
 prose, and timing are observations.
 
-## Grotto result
+## Haus result
 
-The browser-driven Grotto scenarios live in `attention-routing.spec.ts`.
+The browser-driven Haus scenarios live in `attention-routing.spec.ts`.
 They exercise the visible App composer and Thread pane, canonical Server
 history, two real Terra Agents, and Agent-owned mute/unmute commands.
 
@@ -40,5 +40,5 @@ All three matched scenarios passed:
   the first Agent summarized that answer.
 
 Verification:
-`GROTTO_DEV_STACK_ID=agent-e2e bun run eval:agents -- attention-routing.spec.ts`
+`HAUS_DEV_STACK_ID=agent-e2e bun run eval:agents -- attention-routing.spec.ts`
 (`3 passed`, about three minutes).

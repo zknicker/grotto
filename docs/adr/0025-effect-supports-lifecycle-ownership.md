@@ -21,24 +21,24 @@ reminder subprocesses, Harness stream supervision, and sandbox child processes.
 Computer also owns a request-local Agent activity run that pairs semantic
 operations across success, failure, and interruption and produces the durable
 per-turn aggregate used by App analytics.
-The current shared cache, bootstrap refresh, and Grotto Agent version flow remain
+The current shared cache, bootstrap refresh, and Haus Agent version flow remain
 intact; finite Harness session calls stay at the foreign Promise adapter.
 
 ## Decision
 
-Effect is an implementation tool inside Grotto Server and Grotto Computer. It
+Effect is an implementation tool inside Haus Server and Haus Computer. It
 does not define product packages, wire contracts, or domain ownership.
 
-`@grotto/effect` owns only integration policy shared by both processes:
+`@haus/effect` owns only integration policy shared by both processes:
 
 - the Effect-to-Promise settlement contract;
 - process logger configuration;
 - OpenTelemetry runtime, privacy, and Promise-boundary policy;
 - the virtual-time test runtime.
 
-Grotto Server owns one managed Effect runtime per Server application. Grotto
+Haus Server owns one managed Effect runtime per Server application. Haus
 Computer owns one per attachment daemon. Domain modules receive that runtime
-through their existing options-object interfaces. The App, `@grotto/api`, and
+through their existing options-object interfaces. The App, `@haus/api`, and
 other product packages remain Effect-free.
 
 Expected Effect failures cross Promise seams with their identity intact.
@@ -62,7 +62,7 @@ Effect log records use the process logger. Recoverable background failures log
 an operation name and a safe failure classification, never an arbitrary foreign
 error message. The same process runtime exports opt-in OpenTelemetry traces and
 low-cardinality metrics. Product modules name operations and supply allowlisted
-identifiers; `@grotto/effect` owns redaction, export, shutdown, and W3C trace
+identifiers; `@haus/effect` owns redaction, export, shutdown, and W3C trace
 propagation. No configured OTLP endpoint means no exporter and no telemetry
 network I/O.
 
@@ -95,14 +95,14 @@ external boundary.
 During the migration its checked-in ceilings ratchet static `Effect.run*` calls
 and custom Cause settlement downward: new debt, growth, and stale ceilings all
 fail. The completion check additionally requires both categories to be zero.
-The shared `@grotto/effect` boundary is the only place that translates an
+The shared `@haus/effect` boundary is the only place that translates an
 Effect `Exit` into a Promise result.
 
 ## Consequences
 
-- Domain packages continue to organize around Grotto concepts rather than
+- Domain packages continue to organize around Haus concepts rather than
   Effect concepts.
-- `@grotto/effect` stays a closed integration module, not an Effect utility
+- `@haus/effect` stays a closed integration module, not an Effect utility
   collection. Domain errors, schedules, services, and business logic do not
   belong there.
 - Static `Effect.run*` calls are migration debt. Lifecycle-owning modules use

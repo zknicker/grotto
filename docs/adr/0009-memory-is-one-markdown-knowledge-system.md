@@ -26,7 +26,7 @@ Each Agent owns its durable local knowledge:
 - `notes/` contains durable detail the Agent chooses to keep.
 - The Agent reads and writes these files directly while working.
 
-Grotto does not inject core-memory sections or run extraction, dreaming,
+Haus does not inject core-memory sections or run extraction, dreaming,
 recall, Wiki, or Memory-worker jobs. Shared conversation history remains
 canonical Server data. Reminders wake the Agent when scheduled, and the Agent
 recovers relevant context from its workspace and Server history.

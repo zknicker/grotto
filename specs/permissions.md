@@ -1,6 +1,6 @@
 # Tool Access
 
-Grotto does not expose interactive tool approval prompts.
+Haus does not expose interactive tool approval prompts.
 
 Tool access is governed by tool source, sandbox mode, and approval policy:
 
@@ -13,7 +13,7 @@ Tool access is governed by tool source, sandbox mode, and approval policy:
 
 Tool discovery does not create another permission layer. New upstream MCP tools follow the
 connection grant.
-Credentials stay at the Grotto Server-to-MCP-server boundary and never enter prompts
+Credentials stay at the Haus Server-to-MCP-server boundary and never enter prompts
 or tool arguments.
 
 The first sandbox mode is `none`, a trusted local workspace. It is not a

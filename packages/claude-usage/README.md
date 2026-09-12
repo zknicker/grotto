@@ -1,4 +1,4 @@
-# @grotto/claude-usage
+# @haus/claude-usage
 
 Small Node-first adapter for Claude Code plan usage.
 
@@ -8,7 +8,7 @@ Small Node-first adapter for Claude Code plan usage.
 - Fall back to the `Claude Code-credentials` Keychain item when the file is unavailable
 - Fall back to `CLAUDE_CODE_OAUTH_TOKEN` only when neither full-scope source is available
 - Fetch live quota state from `https://api.anthropic.com/api/oauth/usage`
-- Normalize the response into a stable TypeScript interface owned by Grotto
+- Normalize the response into a stable TypeScript interface owned by Haus
 
 ## Notes
 
@@ -21,7 +21,7 @@ Small Node-first adapter for Claude Code plan usage.
 ## Example
 
 ```ts
-import { getClaudeUsage } from '@grotto/claude-usage';
+import { getClaudeUsage } from '@haus/claude-usage';
 
 const usage = await getClaudeUsage();
 
@@ -31,5 +31,5 @@ console.log(usage.windows);
 ## Live smoke test
 
 ```bash
-bun run --filter @grotto/claude-usage test:live
+bun run --filter @haus/claude-usage test:live
 ```

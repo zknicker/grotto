@@ -1,5 +1,5 @@
 ---
-name: "Grotto"
+name: "Haus"
 colors:
   dark:
     backdrop: "rgba(0, 0, 0, 0.6)"
@@ -247,7 +247,7 @@ components:
     textColor: "#18181B"
 ---
 
-# Grotto
+# Haus
 
 ## Colors
 Use semantic HeroUI tokens and Tailwind utilities in product code. The raw values below are resolved color values for each mode; component code should still use the same token name and let CSS resolve light or dark mode.

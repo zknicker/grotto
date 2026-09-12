@@ -26,7 +26,7 @@ When an iteration check is warranted, run one test file:
 
 ```sh
 # server, Computer, and website (bun test; run from the package directory)
-cd apps/server && bun test test/grotto-server-production.test.ts
+cd apps/server && bun test test/haus-server-production.test.ts
 cd apps/computer && bun test src/harness/instructions.test.ts
 cd apps/website && bun test src/features/shell/sidebar-chat-list.test.ts
 ```
@@ -37,21 +37,21 @@ package gates:
 
 ```sh
 bun run lint
-bun run --filter @grotto/<touched-package> typecheck
-bun run --filter @grotto/<touched-package> test
+bun run --filter @haus/<touched-package> typecheck
+bun run --filter @haus/<touched-package> test
 ```
 
 Each package gate includes its tests and typecheck:
 
 | Touched path | Gate |
 | --- | --- |
-| `apps/server` | `@grotto/server test` + `typecheck`. Hosted Server tests provision a throwaway cluster from locally installed PostgreSQL binaries; install PostgreSQL 16 or point `GROTTO_POSTGRES_BIN` at its bin directory. Avatar generation tests inject a deterministic fake provider and never call OpenAI. |
-| `apps/computer` | `@grotto/computer test` + `typecheck` |
-| `apps/website` | `@grotto/website test` + `typecheck` |
-| `packages/grotto-api` | `@grotto/api check`, plus typecheck of the consuming apps you touched |
-| `packages/grotto-sdk` | `@grotto/sdk test` + `typecheck` |
+| `apps/server` | `@haus/server test` + `typecheck`. Hosted Server tests provision a throwaway cluster from locally installed PostgreSQL binaries; install PostgreSQL 16 or point `HAUS_POSTGRES_BIN` at its bin directory. Avatar generation tests inject a deterministic fake provider and never call OpenAI. |
+| `apps/computer` | `@haus/computer test` + `typecheck` |
+| `apps/website` | `@haus/website test` + `typecheck` |
+| `packages/haus-api` | `@haus/api check`, plus typecheck of the consuming apps you touched |
+| `packages/haus-sdk` | `@haus/sdk test` + `typecheck` |
 | Browser-level contracts (navigation, reload, websocket, chat flows, layout) | `bun run test:app`, scoped to the affected spec file when possible |
-| Execution runtimes, harness adapters, provider auth wiring, or `@ai-sdk/harness-*` bumps | `@grotto/computer test` + `typecheck`; add a scoped `bun run test:agents` scenario when deterministic proof is insufficient |
+| Execution runtimes, harness adapters, provider auth wiring, or `@ai-sdk/harness-*` bumps | `@haus/computer test` + `typecheck`; add a scoped `bun run test:agents` scenario when deterministic proof is insufficient |
 
 Rules that keep runs cheap and honest:
 
@@ -149,8 +149,8 @@ not a list of exclusions:
 | --- | --- | --- |
 | Focused unit/domain tests | Pure logic, view models, hooks, mappers, scheduling rules, validation, or regressions. | Add one targeted regression for behavior changes. Avoid asserting implementation calls. |
 | Computer service tests | Workspaces, queues, execution state, recovery, or execution evidence. | Use real temp directories and the real service boundary. |
-| Hosted Server tests | Grotto Server identity, Chats, messages, reads, search, ordering, authorization, or realtime. | Drive the public tRPC surface through `test/grotto-server-harness.ts`: a throwaway PostgreSQL cluster plus a local Clerk issuer. Never mock PostgreSQL or the transaction. |
-| Contract/API/SDK gates | `packages/grotto-api`, OpenAPI, SDK client shape, generated types, or cross-boundary request/response contracts. | Run `@grotto/api check`, SDK tests/typecheck, and update docs with the product contract. |
+| Hosted Server tests | Haus Server identity, Chats, messages, reads, search, ordering, authorization, or realtime. | Drive the public tRPC surface through `test/haus-server-harness.ts`: a throwaway PostgreSQL cluster plus a local Clerk issuer. Never mock PostgreSQL or the transaction. |
+| Contract/API/SDK gates | `packages/haus-api`, OpenAPI, SDK client shape, generated types, or cross-boundary request/response contracts. | Run `@haus/api check`, SDK tests/typecheck, and update docs with the product contract. |
 | App component/hook tests | React state rules, cache invalidation, optimistic UI, row models, filters, keyboard behavior, or rendering transforms. | Prefer hook/model/component tests before e2e. Use the `architect-react-features` skill for nontrivial React architecture. |
 | Desktop shell tests | Electron main-process and preload behavior: the injected bridge globals, trusted-renderer origins, Clerk SSO callback and native requests, external-link routing, window state. | Extract the rule into a `.cjs` module beside its caller and cover it with a `*.test.cjs` in `apps/website/electron`; the fast lane runs them. Keep them free of the `electron` runtime. |
 | App e2e | Browser-level app contracts: navigation, reload recovery, websocket reconnect, full chat identity, user flows, or layout-critical behavior. | Use deterministic Playwright against isolated ports and a throwaway PostgreSQL cluster. |
@@ -230,7 +230,7 @@ Pair that tracer with `packages/agent-workspace/src/starter-kit.test.ts` and
 four-file/12-summary seed under root `MEMORY.md` and `notes/`,
 `apps/computer/src/agent-configuration.test.ts` and
 `launch.test.ts` for durable application plus Agent-kind reset, and
-`apps/server/test/grotto-agent-manual.test.ts` for authenticated Manual overview,
+`apps/server/test/haus-agent-manual.test.ts` for authenticated Manual overview,
 full-card access, and audit metadata.
 
 ## Execution Runtime Adapter Contracts
@@ -239,7 +239,7 @@ When changing executor routes, event projection, chat behavior, or delivery
 semantics, verify against deterministic service fixtures, hosted Browser E2E,
 or an opt-in live harness smoke when a concrete ambiguity remains.
 
-Add raw-frame or fixture-backed tests for behavior Grotto depends on.
+Add raw-frame or fixture-backed tests for behavior Haus depends on.
 
 ## Manual Smoke Hygiene
 
@@ -250,10 +250,10 @@ The Grok Build live interjection smoke is opt-in and still checks for a local
 login before running:
 
 ```sh
-GROTTO_RUN_LIVE_GROK_TEST=1 bun test apps/computer/src/harness/grok-build-live.test.ts
+HAUS_RUN_LIVE_GROK_TEST=1 bun test apps/computer/src/harness/grok-build-live.test.ts
 ```
 
-If manual validation creates real Grotto chats, use an obvious temporary first
+If manual validation creates real Haus chats, use an obvious temporary first
 message such as `Codex smoke <timestamp>: <purpose>`, record the created chat
 ids, and delete only those chats before finishing. If cleanup fails, report the
 exact chat ids or titles left behind.
@@ -295,19 +295,19 @@ attached healthy Computer plus the local deterministic avatar fixture. Start
 the dev stack with an absolute JSONL path, then run the scenario:
 
 ```sh
-GROTTO_AGENT_E2E_AVATAR_FIXTURE=1 \
-GROTTO_AGENT_E2E_AVATAR_FIXTURE_PATH="$PWD/apps/website/public/prototypes/cove-avatar.png" \
-GROTTO_AGENT_E2E_AVATAR_REQUEST_LOG=/tmp/grotto-cove-avatar-requests.jsonl \
+HAUS_AGENT_E2E_AVATAR_FIXTURE=1 \
+HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH="$PWD/apps/website/public/prototypes/cove-avatar.png" \
+HAUS_AGENT_E2E_AVATAR_REQUEST_LOG=/tmp/haus-cove-avatar-requests.jsonl \
 bun run dev
 
-GROTTO_AGENT_E2E_AVATAR_FIXTURE=1 \
-GROTTO_AGENT_E2E_AVATAR_FIXTURE_PATH="$PWD/apps/website/public/prototypes/cove-avatar.png" \
-GROTTO_AGENT_E2E_AVATAR_REQUEST_LOG=/tmp/grotto-cove-avatar-requests.jsonl \
+HAUS_AGENT_E2E_AVATAR_FIXTURE=1 \
+HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH="$PWD/apps/website/public/prototypes/cove-avatar.png" \
+HAUS_AGENT_E2E_AVATAR_REQUEST_LOG=/tmp/haus-cove-avatar-requests.jsonl \
 bun run test:agents --include-opt-in --only cove-composes-agent-creation --lanes 1
 ```
 
 It proves a prose proposal that creates nothing, then exactly one Agent created
-by `grotto agent create` with Cove's own runtime, model, reasoning effort, and
+by `haus agent create` with Cove's own runtime, model, reasoning effort, and
 Computer, announced by one `agent-created` Message in `#all` that mentions the
 new handle, joined to `#all` and the requested `#product`, carrying its standing
 brief in the workspace `MEMORY.md`, and no second Agent when the request is

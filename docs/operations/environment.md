@@ -1,5 +1,5 @@
 ---
-summary: How every Grotto environment value is declared, stored, resolved, and delivered — the .env.schema contract, its 1Password sources, and the four venues that read it.
+summary: How every Haus environment value is declared, stored, resolved, and delivered — the .env.schema contract, its 1Password sources, and the four venues that read it.
 read_when:
   - adding, renaming, rotating, or removing an environment variable
   - wiring a new consumer (script, workflow, cloud agent, service) to a credential
@@ -8,7 +8,7 @@ read_when:
 
 # Environment and secrets
 
-Grotto has no `.env` step. The committed root [`.env.schema`](../../.env.schema)
+Haus has no `.env` step. The committed root [`.env.schema`](../../.env.schema)
 is the contract — canonical names, types, sensitivity, and the exact 1Password
 reference each lifecycle resolves — and [Varlock](https://varlock.dev) is the
 only loader. Nothing else reads an environment file, in development or in
@@ -29,7 +29,7 @@ rather than quietly riding each value's development arm.
 Sensitivity fails safe: an item with no explicit `@sensitive` or `@public`
 resolves as sensitive. `env:contract` rejects an item that states neither, and
 rejects any `VITE_` item marked sensitive — those are inlined into the public
-Grotto App bundle at build time.
+Haus App bundle at build time.
 
 ## Where values live
 
@@ -38,32 +38,32 @@ the access boundary.
 
 | Item | Vault | Holds |
 | --- | --- | --- |
-| `Clerk - Grotto` | `Development`, `Production` | Grotto's own Clerk tenancy — backend key, publishable key, issuer |
-| `Dev Sign-In User - Grotto` | `Development` | the Clerk user the local auto sign-in signs in as |
-| `Google MCP OAuth - Grotto` | `Development` | OAuth client for the Google Calendar MCP connection |
-| `OpenAI API - Grotto` | `Development`, `Production` | Server-owned transient Agent avatar generation; one independently rotated key per lifecycle |
-| `Axiom Development OTLP - Grotto` | `Development` | Development OTLP ingestion for the shared operations and metrics datasets |
-| `Axiom Production OTLP - Grotto` | `Production` | Hosted Server OTLP ingestion for the shared operations and metrics datasets |
-| `Postgres - Grotto` | `Production` | runtime URL, migration URL, container admin password |
+| `Clerk - Haus` | `Development`, `Production` | Haus's own Clerk tenancy — backend key, publishable key, issuer |
+| `Dev Sign-In User - Haus` | `Development` | the Clerk user the local auto sign-in signs in as |
+| `Google MCP OAuth - Haus` | `Development` | OAuth client for the Google Calendar MCP connection |
+| `OpenAI API - Haus` | `Development`, `Production` | Server-owned transient Agent avatar generation; one independently rotated key per lifecycle |
+| `Axiom Development OTLP - Haus` | `Development` | Development OTLP ingestion for the shared operations and metrics datasets |
+| `Axiom Production OTLP - Haus` | `Production` | Hosted Server OTLP ingestion for the shared operations and metrics datasets |
+| `Postgres - Haus` | `Production` | runtime URL, migration URL, container admin password |
 | `HugeIcons Pro - Merchbase` | `Development` | shared licensed registry key (adopted, not copied) |
 | `HeroUI Pro CICD - Merchbase` | `Development` | shared licensed artifact token (adopted, not copied) |
 | `Apple Notarization - Merchbase` | `Tooling` | shared notarization identity (adopted, not copied) |
 | `S3 Release - Merchbase Desktop` | `Tooling` | shared release-bucket IAM key (adopted, not copied) |
-| `Computer Release Signing - Grotto` | `Tooling` | Ed25519 keypair that signs Computer releases |
+| `Computer Release Signing - Haus` | `Tooling` | Ed25519 keypair that signs Computer releases |
 
 Local release operators read `Tooling` through desktop authorization. The
 GitHub Release workflow uses a separate read-only service identity scoped to
 that vault; no deploy, Quality, Cursor, or product runtime identity can read it.
 
-Transient avatar generation uses `GROTTO_OPENAI_API_KEY`. Development and production each resolve
-their own `OpenAI API - Grotto` credential because Agent creation cards and profile generation use
+Transient avatar generation uses `HAUS_OPENAI_API_KEY`. Development and production each resolve
+their own `OpenAI API - Haus` credential because Agent creation cards and profile generation use
 the real Server-owned provider in both lifecycles. Production requires its item before promotion;
 normal development startup resolves the Development item through its own identity. Release jobs
 deliberately suppress both runtime credentials. There is no App setting for this Server deployment
 capability. Test fixtures never need the key and never call the provider.
 
 `CURSOR_API_KEY` is deliberately absent. It is Cursor's own variable, read by `@cursor/sdk` on a
-Grotto Computer alongside that SDK's credential store at `~/.cursor/sdk/auth.json`. Grotto never
+Haus Computer alongside that SDK's credential store at `~/.cursor/sdk/auth.json`. Haus never
 mints, delivers, or stores it: the Computer settings **Connect** action runs Cursor's browser
 sign-in on the machine, and the key stays in Cursor's store. Nothing in this contract resolves it,
 so it has no 1Password item and no schema arm.
@@ -71,18 +71,18 @@ so it has no 1Password item and no schema arm.
 The local `gh` CLI token is absent for the same reason. A Computer reads a Cloud Agent Run's pull
 request from GitHub using whatever token `gh auth token` already resolves on that machine, held in
 memory for the life of the process and never logged, stored, or reported to Server. It is a
-host-native credential, not a Grotto variable: it has no 1Password item, no schema arm, and a
+host-native credential, not a Haus variable: it has no 1Password item, no schema arm, and a
 Computer without `gh` reads public pull requests unauthenticated instead.
 
-The opt-in live Cursor Cloud Agent smoke reads `GROTTO_RUN_LIVE_CURSOR_TEST=1` and
-`GROTTO_LIVE_CURSOR_REPOSITORY=owner/name`. Both are declared and both resolve `undefined` in every
+The opt-in live Cursor Cloud Agent smoke reads `HAUS_RUN_LIVE_CURSOR_TEST=1` and
+`HAUS_LIVE_CURSOR_REPOSITORY=owner/name`. Both are declared and both resolve `undefined` in every
 lifecycle: the run spends a real Cursor allowance against a real repository, so an operator sets
 them by hand and every automated lane runs against recorded provider responses instead.
 
-The opt-in Cove Agent E2E scenario can set `GROTTO_AGENT_E2E_AVATAR_FIXTURE=1`,
-an absolute `GROTTO_AGENT_E2E_AVATAR_FIXTURE_PATH`, and an absolute
-`GROTTO_AGENT_E2E_AVATAR_REQUEST_LOG` path. The Server honors these only when
-`GROTTO_DEV_STACK=1`, reads the operator-selected stable PNG, and logs request
+The opt-in Cove Agent E2E scenario can set `HAUS_AGENT_E2E_AVATAR_FIXTURE=1`,
+an absolute `HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH`, and an absolute
+`HAUS_AGENT_E2E_AVATAR_REQUEST_LOG` path. The Server honors these only when
+`HAUS_DEV_STACK=1`, reads the operator-selected stable PNG, and logs request
 metadata without the concept or image bytes. The fixture path is runtime input,
 so the PNG is not bundled into the Server artifact. Do not enable the fixture in
 a released Server environment.
@@ -111,9 +111,9 @@ Machinery credentials resolve only behind an explicit switch, so the Vite
 build, the dev stack, the Server, and the test lanes never contact 1Password —
 and a cloud agent that can reach none of them still passes `check`.
 
-- `GROTTO_RESOLVE_INSTALL_TOKENS` — the licensed registry credentials, set by
+- `HAUS_RESOLVE_INSTALL_TOKENS` — the licensed registry credentials, set by
   `scripts/setup-worktree.mjs` and the Quality workflow.
-- `GROTTO_RESOLVE_RELEASE_TOKENS` — Apple, S3, and Computer signing
+- `HAUS_RESOLVE_RELEASE_TOKENS` — Apple, S3, and Computer signing
   credentials, set by the `release:*`, `computer:release`, and `publish:desktop`
   scripts.
 
@@ -139,7 +139,7 @@ of making an unrelated Development-vault read part of signing or publication.
                                               │
                                     operations/run-server
                                               │
-                                    launchd com.grotto.server
+                                    launchd com.haus.server
 ```
 
 The hosted Server never invokes Varlock. `config/server.env` is the delivered
@@ -148,11 +148,11 @@ runtime copy, rendered fresh on every deploy by
 module validates — the delivered set — then read back names-only by
 `scripts/verify-deployed-secrets.ts` against that same set, which both derive
 from `deliveredEnvironmentNames` in `scripts/lib/env-schema.ts`. A deploy-time
-credential such as `GROTTO_DATABASE_MIGRATION_URL` is production-required in the
+credential such as `HAUS_DATABASE_MIGRATION_URL` is production-required in the
 schema and deliberately outside the delivered set: the deploy job resolves it
 for itself and the running Server never receives it. The contract comes from the deploy
 workflow's own revision rather than the released artifact — see
-[the deployment doc](grotto-server-deploy.md#where-the-contract-comes-from) for
+[the deployment doc](haus-server-deploy.md#where-the-contract-comes-from) for
 why, and for the guard that keeps the two from drifting apart silently. A launchd job stores a command line, so
 `run-server` invokes the Server binary directly — a job that re-entered Varlock
 would resolve the schema again at boot, under the development lifecycle.

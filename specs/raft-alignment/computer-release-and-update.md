@@ -1,45 +1,45 @@
-# Grotto Computer release and update
+# Haus Computer release and update
 
-This is the normative product, release, and UX contract for installing and updating Grotto
+This is the normative product, release, and UX contract for installing and updating Haus
 Computer. It applies to the release publisher, Server bootstrap protocol, Computer updater,
 Computer settings, and local recovery CLI.
 
 ## Product contract
 
-Grotto Computer is a separately versioned part of one Grotto product. Every Grotto release
+Haus Computer is a separately versioned part of one Haus product. Every Haus release
 decision assesses the Server, App, iOS, and Computer targets together.
 Targets may remain unchanged, but the decision must be explicit. Releases are ordered:
 a compatible Computer release is published and publicly verified before a Server release
 that requires its protocol.
 
 Computer has independent SemVer and annotated `computer-vX.Y.Z` tags. It has one production
-stream. Grotto does not expose alpha channels, version pins, automatic startup updates, or
+stream. Haus does not expose alpha channels, version pins, automatic startup updates, or
 arbitrary downgrade selection.
 
 The production artifact is a standalone Apple Silicon macOS executable:
 
-- signed with the Grotto Apple Developer ID
+- signed with the Haus Apple Developer ID
 - notarized by Apple
-- distributed from the public Grotto release host
+- distributed from the public Haus release host
 - verified against a signed release descriptor and SHA-256 before replacement
-- installed at `~/.local/bin/grotto-computer`
+- installed at `~/.local/bin/haus-computer`
 
-The executable embeds the managed Agent-facing `grotto` CLI and the Ed25519 public key used to
+The executable embeds the managed Agent-facing `haus` CLI and the Ed25519 public key used to
 verify Computer release descriptors. Normal installation and setup do not require npm, Homebrew,
 Bun, or a public-key environment variable. The Ed25519 private key, Apple credentials, and
 release-storage credentials remain release secrets.
 
-The installed executable is disposable. `~/.grotto` remains the stable Computer data root and is
+The installed executable is disposable. `~/.haus` remains the stable Computer data root and is
 never part of an install, update, rollback, or release artifact.
 
 ## Release descriptor
 
-`https://releases.grotto.sh/computer/latest.json` is the single production pointer:
+`https://releases.haus.chat/computer/latest.json` is the single production pointer:
 
 ```json
 {
   "release": {
-    "artifactUrl": "https://releases.grotto.sh/computer/1.2.3/grotto-computer-aarch64-apple-darwin",
+    "artifactUrl": "https://releases.haus.chat/computer/1.2.3/haus-computer-aarch64-apple-darwin",
     "protocolVersion": 7,
     "sha256": "<lowercase artifact sha256>",
     "sourceRevision": "<full lowercase git sha>",
@@ -87,11 +87,11 @@ that artifact, skips steps 3 through 11, and only ensures the annotated tag and 
 exist. Every other candidate still has to be newer than production and still requires an unused
 tag. The publisher never builds from a branch name, mutable remote ref, or dirty worktree.
 
-Before every Grotto release, the release record requires an explicit target decision:
+Before every Haus release, the release record requires an explicit target decision:
 
 | Target | Publish when |
 | --- | --- |
-| Server | Grotto App React UI, hosted API, persistence, or Server behavior changes |
+| Server | Haus App React UI, hosted API, persistence, or Server behavior changes |
 | App | The Electron shell or installed desktop artifact changes |
 | iOS | The native iPhone app or its release metadata, entitlements, dependencies, or assets change |
 | Computer | Computer execution, lifecycle, local CLI, updater, embedded managed CLI, bootstrap or ordinary protocol, or required shared Computer dependencies change |
@@ -105,8 +105,8 @@ marks Server and App unchanged.
 Computer setup presents two copyable commands for the selected Server:
 
 ```sh
-curl -fsSL https://releases.grotto.sh/computer/install.sh | sh
-$HOME/.local/bin/grotto-computer setup /<server-slug>
+curl -fsSL https://releases.haus.chat/computer/install.sh | sh
+$HOME/.local/bin/haus-computer setup /<server-slug>
 ```
 
 The split keeps installation independently repeatable and makes Server attachment explicit. For
@@ -117,7 +117,7 @@ compatibility with previously published App builds, the installer still accepts 
 2. Verifies the artifact's exact Apple Developer ID and Team ID before execution; the publisher
    has already verified Apple's notarization result.
 3. Verifies the descriptor SHA-256.
-4. Installs the executable atomically at `~/.local/bin/grotto-computer`.
+4. Installs the executable atomically at `~/.local/bin/haus-computer`.
 5. Installs the resident service. The separately copied setup command attaches the selected
    Server; a legacy combined invocation also runs setup directly.
 
@@ -129,7 +129,7 @@ and completes automatically. The browser distinguishes **Signed in — finishing
 from the final **Computer connected — you can close this page** state.
 
 The installed executable then uses its embedded Ed25519 key for every later update. Reinstalling
-code never deletes or adopts `~/.grotto`.
+code never deletes or adopts `~/.haus`.
 
 ## Transition from the pre-publisher build
 
@@ -137,8 +137,8 @@ The existing 1.0.0 development Computer predates a production publisher and unde
 abandoned npm descriptor. It does not receive a compatibility release or npm bridge.
 
 Its one-time transition uses the new install command followed by Server setup. The installer
-replaces only code at `~/.local/bin/grotto-computer`; setup validates and reuses the existing
-`~/.grotto` identity, attachments, queues, and Agent workspaces. Arbitrary credential rejection
+replaces only code at `~/.local/bin/haus-computer`; setup validates and reuses the existing
+`~/.haus` identity, attachments, queues, and Agent workspaces. Arbitrary credential rejection
 fails closed. When Server explicitly reports `computer_machine_unlinked`, Computer records that
 terminal state and parks the attachment instead of retrying. A later setup first proves a current
 Server exists at the requested address, then archives only the obsolete `attachment.json` and
@@ -147,7 +147,7 @@ After this transition, every update uses the standalone release contract.
 
 ## App update flow
 
-The browser talks only to Grotto Server through tRPC. It never calls Computer or the release host
+The browser talks only to Haus Server through tRPC. It never calls Computer or the release host
 directly. An Owner or Admin chooses **Check** or **Update** in Computer settings. Server fetches
 the production descriptor and sends the signed update command through the authenticated bootstrap
 connection. Computer independently verifies every release field, signature, Apple signature, and
@@ -161,11 +161,11 @@ The UI uses these user-visible phases:
 | Phase | Required presentation |
 | --- | --- |
 | `requested` | Appears immediately after the click as **Download requested**; controls cannot submit a duplicate request. |
-| `downloading` | Shows **Downloading Grotto Computer X.Y.Z** and a large determinate progress bar based on downloaded and total bytes. |
+| `downloading` | Shows **Downloading Haus Computer X.Y.Z** and a large determinate progress bar based on downloaded and total bytes. |
 | `verifying` | Shows signature and integrity verification with an indeterminate progress bar. Turns continue. |
 | `waiting-for-agents` | Shows which active Agent count is still draining. New turns wait; active turns are never killed by a hidden timeout. |
 | `installing` | Shows **Installing update** with an indeterminate progress bar. Durable Computer data is untouched. |
-| `restarting` | Shows **Restarting Grotto Computer** with a prominent back-and-forth indeterminate bar until the new bootstrap handshake arrives. |
+| `restarting` | Shows **Restarting Haus Computer** with a prominent back-and-forth indeterminate bar until the new bootstrap handshake arrives. |
 | `complete` | Shows the installed version and restored connection. Queued work resumes. |
 | `failed` | Names the failed stage in plain language, preserves the last trustworthy progress, and presents the exact local recovery command. |
 
@@ -195,15 +195,15 @@ execution pause, but update control and progress remain available.
 A Computer too old for the bootstrap protocol requires local recovery:
 
 ```sh
-grotto-computer upgrade
+haus-computer upgrade
 ```
 
 The updater keeps exactly one previously verified executable at
-`~/.local/bin/grotto-computer.prev`. A failed atomic swap restores the prior executable. After a
+`~/.local/bin/haus-computer.prev`. A failed atomic swap restores the prior executable. After a
 successful update, explicit local recovery may restore it:
 
 ```sh
-grotto-computer upgrade --rollback
+haus-computer upgrade --rollback
 ```
 
 Rollback restores only code and restarts the managed service. It never rolls back or snapshots the
@@ -225,7 +225,7 @@ Implement the contract in this order:
 4. **Publisher** — create the signed descriptor, upload immutable objects, verify them publicly,
    atomically promote `latest.json`, and create the annotated tag and GitHub Release.
 5. **Installer** — verify Apple identity and the descriptor digest, atomically install into
-   `~/.local/bin`, and reuse existing `~/.grotto` state.
+   `~/.local/bin`, and reuse existing `~/.haus` state.
 6. **Server coordination** — validate descriptors, enforce protocol release ordering, preserve
    progress across reconnect, and expose the shared state through the existing tRPC surface.
 7. **App experience** — implement the large determinate download bar, phase copy, drain count,

@@ -8,28 +8,28 @@ read_when:
 
 # Turn Activity Presentation
 
-Grotto Server owns the durable product timeline. Computer owns execution state
+Haus Server owns the durable product timeline. Computer owns execution state
 and runtime access. The App presents those sources through an App-owned
 transcript contract; it does not call an execution runtime or a retired local
 Server API directly.
 
 ## Data paths
 
-Durable messages and semantic turn activity are read from Grotto Server and
+Durable messages and semantic turn activity are read from Haus Server and
 projected by `features/servers/chat/` into
 `features/chats/transcript-contract.ts`. Transcript components render only that
 presentation contract.
 
 Detailed execution is optional, ephemeral evidence. `hooks/members/use-turn-journal.ts`
 is its one owner: while a detail surface is open and the viewer's role allows it,
-`use-agent-execution-journal.ts` asks Grotto Server for one run, and Server relays the
+`use-agent-execution-journal.ts` asks Haus Server for one run, and Server relays the
 request to the Agent's assigned Computer. A live run re-asks on the run's own
 `agent.onActivity` events — never on a timer. The result deliberately bypasses React
 Query: it is neither canonical collaboration state nor a durable App cache entry.
 
 ## Summary and detail
 
-Grotto shows turn activity twice, and the two must not converge. **Summary** is the
+Haus shows turn activity twice, and the two must not converge. **Summary** is the
 high-level verb — `Thinking…`, `Ran a command`, `Sent a message` — in the transcript,
 avatar hover cards, the sidebar activity strip, and the inbox. **Detail** is
 `features/turn-trace/`: one chronological column merging the Server's semantic verbs with
@@ -53,9 +53,9 @@ both pure and both proved on their own:
 
 - `turn-trace-shell-label.ts` names a shell call. It unwraps the runtime's own wrapper
   (`/bin/zsh -lc "…"`, `bash -lc`, `sh -c`), takes the first non-empty line, drops a
-  trailing heredoc opener, collapses whitespace, and caps the result. A real `grotto`
+  trailing heredoc opener, collapses whitespace, and caps the result. A real `haus`
   command — the Agent CLI names in `apps/computer/src/agent-cli.ts` — reads as the
-  product verb it is (`Sent a message with grotto`), because that is activity that
+  product verb it is (`Sent a message with haus`), because that is activity that
   merely happens to be typed at a shell. The Command body still shows the original
   verbatim.
 - `turn-trace-reasoning-model.ts` names a reasoning block. Codex emits complete
@@ -80,7 +80,7 @@ BEM parts to the trace's own small muted role.
 - The App sends Server, Agent, and run identity. It never chooses a runtime
   base URL, auth token, runtime session, or runtime-specific chat id.
 - Reusable row, actor, composer, and drawer types belong to the App feature.
-  Boundary adapters may consume `@grotto/api`; presentation components must not
+  Boundary adapters may consume `@haus/api`; presentation components must not
   import a Server router merely to inherit its output types.
 - Semantic activity is the default human-readable evidence. Raw execution
   journal data is restricted to the access policy enforced by Server.

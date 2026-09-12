@@ -1,9 +1,9 @@
 ---
-name: debug-grotto-ai
-description: Debug AI bugs and performance anywhere in Grotto, including model calls, prompts, context, tools and MCP, streaming, usage, and Agent execution. Use for slow, stuck, missing, duplicate, or incorrect AI behavior, including reports from recordings. Investigate with Axiom and use Luna-max Raft research when relevant.
+name: debug-haus-ai
+description: Debug AI bugs and performance anywhere in Haus, including model calls, prompts, context, tools and MCP, streaming, usage, and Agent execution. Use for slow, stuck, missing, duplicate, or incorrect AI behavior, including reports from recordings. Investigate with Axiom and use Luna-max Raft research when relevant.
 ---
 
-# Debug Grotto AI
+# Debug Haus AI
 
 This is the repository entry point for debugging AI behavior and performance across App, Server,
 Computer, and shared contracts. Trace the affected request before attributing symptoms to prompt
@@ -17,14 +17,14 @@ Axiom is the first evidence source for runtime incidents; Raft research is condi
 architectural comparison, not required for every AI bug.
 
 Use the repository's `diagnosing-bugs` skill too when it is available. This skill supplies the
-Grotto/Raft domain model and research-partner protocol; `diagnosing-bugs` supplies the general
+Haus/Raft domain model and research-partner protocol; `diagnosing-bugs` supplies the general
 red-green diagnosis loop.
 
 ## Start With The Model
 
 Run the repository's docs-list command and read documents whose `read_when` hints match the
 failing capability. For Agent execution, also read
-[references/grotto-agent-model.md](references/grotto-agent-model.md) completely and its core docs.
+[references/haus-agent-model.md](references/haus-agent-model.md) completely and its core docs.
 Preserve the Raft-derived contract: one Agent owns one continuous global execution session across
 Chats. Include only the relevant Raft-alignment workstreams.
 
@@ -68,7 +68,7 @@ Give it the raw symptom and ask it to:
 4. Return a source-backed behavioral model, parity and deliberate divergences, three to five
    falsifiable questions, and a challenge to the leading hypothesis.
 
-Do not give the partner a suspected answer as fact. Do not let it edit Grotto or Raft repositories
+Do not give the partner a suspected answer as fact. Do not let it edit Haus or Raft repositories
 or inspect credentials. If local Raft code or the public network is unavailable, record that
 evidence gap and continue with repository sources.
 

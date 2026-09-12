@@ -27,11 +27,11 @@ the category is current.
 | Category | Current label | Evidence |
 | --- | --- | --- |
 | `starting_work` | `Starting work…` | Server admits a turn to its assigned Computer |
-| `checking_messages` | `Checking messages…` | A structured Grotto message check/read/search boundary runs |
+| `checking_messages` | `Checking messages…` | A structured Haus message check/read/search boundary runs |
 | `thinking` | `Thinking…` | Harness reasoning starts; text stays out of Activity |
 | `updating_instructions` | `Updating instructions…` | A managed instruction or factory-guidance refresh runs |
 | `browsing` | `Browsing…` | A known Browser capability runs |
-| `searching_web` | `Searching the web…` | A known provider or Grotto web-search capability runs |
+| `searching_web` | `Searching the web…` | A known provider or Haus web-search capability runs |
 | `reading_files` | `Reading files…` | A known file-read capability runs |
 | `editing_files` | `Editing files…` | A known file-write/edit capability runs |
 | `running_command` | `Running a command…` | A known shell/process capability runs |
@@ -47,10 +47,10 @@ synthetic `Finished` row; the Agent leaves the strip when its turn settles.
 Mapping is conservative and versioned. Prefer a less-specific truthful category over a specific
 inference.
 
-1. **Grotto product boundaries** map directly. Message checks come from the structured local proxy;
+1. **Haus product boundaries** map directly. Message checks come from the structured local proxy;
    sends and turn lifecycle come from Server write boundaries.
 2. **Known tools** map through an explicit registry owned by the Computer activity projector.
-   Provider-specific Codex, Claude, and Pi identities have fixture-backed mappings. Grotto-owned
+   Provider-specific Codex, Claude, and Pi identities have fixture-backed mappings. Haus-owned
    host tools declare their category at registration.
 3. **Unknown and MCP tools** default to `using_tool`. Their names, descriptions, and inputs are not
    parsed for intent. A tool named `search` does not prove web search; `cat` inside a shell command
@@ -61,7 +61,7 @@ inference.
    harness bookkeeping rather than agent work — while still landing in the execution journal. Both
    names stay generic when the call is not provider-executed, so a host or MCP tool cannot claim them.
 
-An optional tool label crosses only when it is a canonical Grotto-controlled display identity.
+An optional tool label crosses only when it is a canonical Haus-controlled display identity.
 Unknown native or third-party names remain Computer-local and render `Using a tool…`.
 
 ## Event contract

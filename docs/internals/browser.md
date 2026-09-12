@@ -7,7 +7,7 @@ read_when:
 # Browser
 
 Browser is a first-party host tool, not an external integration or MCP server.
-Each Grotto Computer attachment supervises one visible Chrome instance with a
+Each Haus Computer attachment supervises one visible Chrome instance with a
 durable named profile under that attachment's `browser/profiles` directory.
 Profiles and processes never cross Server attachments. Agents assigned to the
 same Computer use that Computer's Browser profile and signed-in accounts; the
@@ -24,7 +24,7 @@ durable Chrome user-data directory under the attachment; it is the browser
 identity whose cookies and signed-in accounts Agents on that Computer share.
 `enabled` is the desired supervision state: turning it on starts managed Chrome,
 and turning it off stops supervision and closes the managed browser without
-deleting the profile. Grotto supplies the launch contract and fixed flags; the
+deleting the profile. Haus supplies the launch contract and fixed flags; the
 profile name does not install Chrome or create a Google account.
 The first setup dialog preselects Browser enabled, so saving the default profile
 can immediately move the row into its observed lifecycle state; operators can

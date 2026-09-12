@@ -26,9 +26,9 @@ clients recover through durable reads.
 
 `server.updated` is Server-scoped: `server.onUpdate` takes a Server id, checks
 membership before the subscription starts, and delivers only that Server's
-events. See [Haus Server](../internals/grotto-server.md).
+events. See [Haus Server](../internals/haus-server.md).
 
-Its wire shape is `serverUpdatedEventSchema` in `@grotto/api`. `scope`
+Its wire shape is `serverUpdatedEventSchema` in `@haus/api`. `scope`
 (`agent`, `computer`, `mcp`, or `server`) selects the family of reads a listener
 refreshes. `agentId` and `memberId` are optional precision: a mutation that
 changes exactly one Agent or one human names it, and the App invalidates that
@@ -203,7 +203,7 @@ under load and are not replayed after disconnect.
 Examples:
 
 * the ephemeral composition stream (`agent.composition` events) — a
-  provisional bubble for an in-flight `grotto message send`, never persisted
+  provisional bubble for an in-flight `haus message send`, never persisted
   or replayed (see [Agent Inbox](../../specs/inbox.md))
 * hosted Agent lifecycle (`working`, `reading`, `sending`, `settled`) projected
   to coarse busy/idle presence

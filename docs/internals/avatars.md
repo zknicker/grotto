@@ -14,7 +14,7 @@ agent-vs-human branch at any call site.
 
 ## Contract
 
-`packages/grotto-api/src/avatar.ts` (`@grotto/api/avatar`) owns the rules:
+`packages/haus-api/src/avatar.ts` (`@haus/api/avatar`) owns the rules:
 
 - `avatarMediaTypes` — `image/jpeg`, `image/png`, `image/webp`. Nothing else is
   accepted, and the server re-checks the magic signature against the declared
@@ -38,9 +38,9 @@ storage path. The service applies the canonical pixel-art prompt, requests one `
 without a reference image, and center-crops and normalizes it to the ordinary 256×256 PNG/512 KiB
 contract.
 
-A managed Agent reaches it through `grotto agent create --avatar-concept <text>`, which generates
+A managed Agent reaches it through `haus agent create --avatar-concept <text>`, which generates
 before the creation transaction and assigns the result to the new Agent, and through
-`grotto agent avatar --agent @handle --concept <text>`, which replaces an existing Agent's avatar.
+`haus agent avatar --agent @handle --concept <text>`, which replaces an existing Agent's avatar.
 There is no standalone generate command and no transient avatar file. A Server with no provider
 provisioned still creates Agents, without an avatar; a transient failure refuses the create.
 
@@ -61,7 +61,7 @@ and initials behavior remain unchanged.
 **Hosted (Postgres).** Bytes live in an `avatars` table
 (`id`/`media_type`/`byte_size`/`sha256`/`bytes`/`created_at`); `agents.avatar_id`
 and `users.avatar_id` point at it with `on delete set null`. Writes go through
-`avatar.set` / `avatar.clear` (`apps/server/src/grotto-api/avatar/`, backed by
+`avatar.set` / `avatar.clear` (`apps/server/src/haus-api/avatar/`, backed by
 `apps/server/src/avatars/`) with the bytes base64-encoded on the ordinary tRPC
 call — 512 KiB is far under the body limit, so no attachment reservation is
 involved. Setting takes the Server row lock, authorizes (owner/admin for an

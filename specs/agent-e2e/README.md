@@ -7,16 +7,16 @@ read_when:
 
 # Agent E2E
 
-Agent E2E verifies Grotto's user-visible Agent contract through the real App,
+Agent E2E verifies Haus's user-visible Agent contract through the real App,
 Server, Computer, and model. Research products can establish an expected
-baseline, but scenario names and assertions describe only Grotto behavior.
+baseline, but scenario names and assertions describe only Haus behavior.
 
 ## Method
 
 1. Establish the expected behavior through product research and record the
    prompt, model, transcript, timing, and screenshots.
-2. Repeat the same business interaction in Grotto through the real Grotto App.
-3. Record the Grotto result before changing implementation.
+2. Repeat the same business interaction in Haus through the real Haus App.
+3. Record the Haus result before changing implementation.
 4. Encode stable user-visible behavior as a `bun run test:agents` scenario.
 5. Keep internal races, retries, bounds, and failure injection in deterministic
    Server or Computer tests.
@@ -45,15 +45,15 @@ Status values:
 - `mapped`: the behavior is identified but no executable lane owns it; the
   evidence is an observation.
 - `baseline`: matched product observations are recorded.
-- `passing`: Grotto passed and the named executable lane is enabled.
-- `quarantined`: Grotto failed; the executable scenario records the gap but is
+- `passing`: Haus passed and the named executable lane is enabled.
+- `quarantined`: Haus failed; the executable scenario records the gap but is
   not part of the green release lane.
 - `opt-in`: the executable scenario is available, but requires real external
   runtime/provider setup and is excluded from the default green lane.
 
 ### Tranche 1 — Resident delivery and recovery
 
-| ID | Grotto behavior | Coverage | Status |
+| ID | Haus behavior | Coverage | Status |
 | --- | --- | --- | --- |
 | D1 | Addressing an Agent wakes it and produces one reply in the addressed target. | `test:agents dm-single-concise-reply` + `test:tracer` | passing |
 | D2 | One Agent drains work from multiple Chats without losing or conflating targets. | `test:agents multi-chat-drain` + deterministic serialization | passing |
@@ -70,7 +70,7 @@ Status values:
 
 ### Tranche 2 — Inbox, attention, and response discretion
 
-| ID | Grotto behavior | Coverage | Status |
+| ID | Haus behavior | Coverage | Status |
 | --- | --- | --- | --- |
 | A1 | A direct mention wakes the intended Agent and not another Agent. | `test:agents mention-wakes-only-addressed` | passing |
 | A2 | An explicit no-response FYI in a Channel produces no Agent message. | `test:agents fyi-silence-channel` | passing |
@@ -83,7 +83,7 @@ Status values:
 
 ### Tranche 3 — Task ownership and work lifecycle
 
-| ID | Grotto behavior | Coverage | Status |
+| ID | Haus behavior | Coverage | Status |
 | --- | --- | --- | --- |
 | T1 | Promoting a message creates one task with that message's Thread as its work surface. | App E2E + deterministic | passing |
 | T2 | An Agent claims actionable work before acting and reports in the task Thread. | `test:agents task-thread-routing` | passing |
@@ -94,7 +94,7 @@ Status values:
 
 ### Tranche 4 — Agent creation, onboarding, and retirement
 
-| ID | Grotto behavior | Coverage | Status |
+| ID | Haus behavior | Coverage | Status |
 | --- | --- | --- | --- |
 | P1 | A new Server is Agent-free until an Owner explicitly provisions one. | Deterministic | passing |
 | P2 | An Owner creates an Agent from reported Computer/runtime/model choices and can message it. | App E2E + `test:tracer` | passing |
@@ -104,7 +104,7 @@ Status values:
 
 ### Tranche 5 — MCP, skills, and workspace
 
-| ID | Grotto behavior | Coverage | Status |
+| ID | Haus behavior | Coverage | Status |
 | --- | --- | --- | --- |
 | M1 | An Agent uses an assigned Server-owned MCP connection for appropriate work. | `test:agents mcp-granted-lookup` | passing |
 | M2 | Revoking an MCP grant prevents later use and produces an honest access diagnosis. | `test:agents mcp-revoked-honest-failure` + deterministic authorization | passing |
@@ -115,7 +115,7 @@ Status values:
 
 ### Tranche 6 — Reminders and autonomous follow-up
 
-| ID | Grotto behavior | Coverage | Status |
+| ID | Haus behavior | Coverage | Status |
 | --- | --- | --- | --- |
 | R1 | An Agent schedules a one-shot follow-up and later replies in the source Thread. | `test:agents reminder-schedule-and-fire` | passing |
 | R2 | A natural-language future time schedules directly when it is unambiguous. | `test:agents reminder-schedule-and-fire` | passing |
@@ -127,7 +127,7 @@ Status values:
 
 ### Tranche 7 — Multi-Agent coordination
 
-| ID | Grotto behavior | Coverage | Status |
+| ID | Haus behavior | Coverage | Status |
 | --- | --- | --- | --- |
 | C1 | A coordinator divides independent work into owned lanes and synthesizes one recommendation from their evidence. | `test:agents coordinator-assigns-not-performs`, `test:agents coordinator-synthesizes-from-lanes` | passing |
 | C2 | A verifier reviews the author's actual output before the coordinator presents the reviewed result. | `test:agents verifier-task-is-distinct` | passing |
@@ -139,13 +139,13 @@ Status values:
 
 ### Tranche 8 — Durable handoff
 
-| ID | Grotto behavior | Coverage | Status |
+| ID | Haus behavior | Coverage | Status |
 | --- | --- | --- | --- |
 | H1 | A fresh Agent continues another Agent's sourced work from its durable Thread and shared artifact without the human restating the assignment. | `test:agents durable-thread-relay` + deterministic Thread identity | passing |
 
 ### Tranche 9 — Composed Agent creation
 
-| ID | Grotto behavior | Coverage | Status |
+| ID | Haus behavior | Coverage | Status |
 | --- | --- | --- | --- |
 | P6 | Cove answers a natural Agent proposal in its parent DM without creating anything, then a separate creation request creates exactly one Agent inheriting Cove's runtime, model, reasoning effort, and Computer, announced by one `agent-created` Message in that same DM; repeating the request creates no second Agent. | `test:agents --include-opt-in --only cove-composes-agent-creation` + factory-playbook/Manual/tool contracts | opt-in |
 
@@ -175,7 +175,7 @@ are not maintained against the current lanes.
 The Cove creation scenario is deliberately excluded from the default lane. Run
 it only with `--include-opt-in` against a dev stack that has an active Cove,
 healthy attached Computer reporting Terra, and
-`GROTTO_AGENT_E2E_AVATAR_FIXTURE=1` with absolute fixture and request-log paths. It writes
+`HAUS_AGENT_E2E_AVATAR_FIXTURE=1` with absolute fixture and request-log paths. It writes
 the normal transcript/report under `.context/agent-tests/<run>/` and performs
 exact-id Agent cleanup through the shared crash ledger.
 

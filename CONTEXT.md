@@ -1,25 +1,25 @@
-# Grotto
+# Haus
 
-Grotto is a collaboration product for durable chat and machine-local Agent execution.
+Haus is a collaboration product for durable chat and machine-local Agent execution.
 
 This file defines stable product language. It is not a docs index; run `bun run docs:list` to pick
 the docs to read before changing behavior.
 
 ## Language
 
-**Grotto Server**:
-The hosted deployment and durable top-level collaboration container. It serves Grotto App and
+**Haus Server**:
+The hosted deployment and durable top-level collaboration container. It serves Haus App and
 owns the API, persistence, Chats, members, agents, reminders, tasks, attachments, and other shared
-product state. A human may belong to multiple independent Grotto Servers.
+product state. A human may belong to multiple independent Haus Servers.
 _Avoid_: Runtime, Computer, workspace, deployment
 
 **Server slug**:
-The globally unique, immutable human-facing address chosen when a Grotto server is created. Server
+The globally unique, immutable human-facing address chosen when a Haus server is created. Server
 relationships and authorization use the stable Server id instead.
 _Avoid_: Server name, Server id, invitation code
 
-**Grotto App**:
-The React product surface through which humans use one or more Grotto Servers. It runs in a browser
+**Haus App**:
+The React product surface through which humans use one or more Haus Servers. It runs in a browser
 or the Electron desktop shell; Electron adds native window, credential, deep-link, and update behavior.
 _Avoid_: Server UI, website, Electron-only App
 
@@ -27,68 +27,68 @@ _Avoid_: Server UI, website, Electron-only App
 A Server-scoped attachment of a physical machine that runs Agent sessions and Agent turns and
 stores its Agents, workspaces, skills, queues, and execution credentials. None of those resources
 can be referenced or used across Computers, including attachments on the same physical machine.
-MCP connections and grants belong to Grotto Server instead. A Grotto server may have multiple
-Computers; one physical machine may have a separate Computer attachment in multiple Grotto
+MCP connections and grants belong to Haus Server instead. A Haus server may have multiple
+Computers; one physical machine may have a separate Computer attachment in multiple Haus
 servers. The physical installation shares only installed software and native runtime/model access.
-_Avoid_: Hosted Computer, Grotto server, tenant, Grotto Computer installation, agent runtime, model provider
+_Avoid_: Hosted Computer, Haus server, tenant, Haus Computer installation, agent runtime, model provider
 
-**Grotto Computer**:
-The local service installation that connects a physical machine to zero or more Grotto servers and
+**Haus Computer**:
+The local service installation that connects a physical machine to zero or more Haus servers and
 supervises each Server-scoped Computer attachment independently. One resident OS service supervises
 one isolated Server attachment daemon per attachment; each daemon owns only that Server's
 credential, socket, and Agent processes. WS6 supports Apple Silicon macOS only and installs the
 resident service with launchd.
-_Avoid_: Grotto server, Computer attachment, Agent runtime, child runner, attachment runner, tenant
+_Avoid_: Haus server, Computer attachment, Agent runtime, child runner, attachment runner, tenant
 
-**Grotto Runtime (retired)**:
+**Haus Runtime (retired)**:
 The pre-Computer standalone product that combined local collaboration state and Agent execution in
 one self-contained service. It is not a current product, release, connection, or compatibility surface.
-_Avoid_: using this name for Grotto Computer or for Codex, Claude Code, or Pi execution runtimes
+_Avoid_: using this name for Haus Computer or for Codex, Claude Code, or Pi execution runtimes
 
-**Grotto CLI**:
-The agent-facing `grotto` command that acts on one Grotto server through the managed Agent's local
-Grotto Computer proxy. For managed Agents it is bundled inside the installed `grotto-computer`
+**Haus CLI**:
+The agent-facing `haus` command that acts on one Haus server through the managed Agent's local
+Haus Computer proxy. For managed Agents it is bundled inside the installed `haus-computer`
 artifact and exposed through an injected wrapper; it is not a separately installed npm package.
-_Avoid_: Grotto Computer CLI, human administration CLI, local service
+_Avoid_: Haus Computer CLI, human administration CLI, local service
 
-**Grotto Computer CLI**:
-The human-operated `grotto-computer` command that installs, attaches, inspects, and controls Grotto
-Computer on a physical machine. Its release artifact also embeds the managed Grotto CLI
+**Haus Computer CLI**:
+The human-operated `haus-computer` command that installs, attaches, inspects, and controls Haus
+Computer on a physical machine. Its release artifact also embeds the managed Haus CLI
 implementation behind an internal entrypoint. Its human lifecycle is `login`, `logout`, `attach`,
 `setup`, and `status`; `setup` logs in if needed, attaches one Server, and starts the service.
 Re-running `setup` reuses a valid local attachment and fails closed rather than replacing an
 attachment whose credential is rejected. Setup is additive across Servers: adding another Server
 starts another isolated Server attachment daemon without stopping existing daemons.
-Stopping Grotto Computer is temporary and preserves every attachment; permanent Computer removal
-is a Grotto App action, not a CLI detach operation. A manual `stop` persists across machine restarts
+Stopping Haus Computer is temporary and preserves every attachment; permanent Computer removal
+is a Haus App action, not a CLI detach operation. A manual `stop` persists across machine restarts
 until an operator explicitly runs `start`; otherwise the installed OS service starts
 automatically at boot.
-_Avoid_: Grotto CLI, Agent tool, hosted Server administration
+_Avoid_: Haus CLI, Agent tool, hosted Server administration
 
 **Computer release**:
-An independently versioned, immutable Grotto Computer executable plus its signed production
+An independently versioned, immutable Haus Computer executable plus its signed production
 descriptor. It uses `computer-vX.Y.Z` tags and one production stream, but participates in the same
 holistic release decision as Server and App. A compatible Computer release is published
 and publicly verified before a Server release that requires its protocol.
 _Avoid_: App release, Server deployment, release channel, npm package
 
 **Computer update**:
-An operator-triggered upgrade of the installed Grotto Computer service. The service reports its
+An operator-triggered upgrade of the installed Haus Computer service. The service reports its
 current version and update state to every attached Server. Owners and Admins initiate updates from
-Grotto App's Computer settings; the Server sends a typed update command to the online Computer, which
+Haus App's Computer settings; the Server sends a typed update command to the online Computer, which
 downloads and verifies the signed standalone release, drains active turns, atomically replaces the
 executable, restarts, and reconnects. Updates never install automatically during ordinary startup.
 Because the resident service is shared, any attached Server's Owner or Admin may trigger the
 update and every attachment observes its byte progress, phase, disconnect, and reconnect. Other
 Servers receive no initiating Server or User identity. A stuck Agent must be explicitly stopped;
-updates never force-interrupt a turn. `grotto-computer upgrade` is the local recovery path, and
-`grotto-computer upgrade --rollback` restores the one previous verified executable. Grotto
+updates never force-interrupt a turn. `haus-computer upgrade` is the local recovery path, and
+`haus-computer upgrade --rollback` restores the one previous verified executable. Haus
 publishes one production Computer release stream; there are no release channels or pinned tracks,
 and every normal update targets the latest release.
 _Avoid_: App update, automatic update, Agent runtime change, protocol fallback
 
-**Grotto update opportunity**:
-A currently observable App, Computer, or Agent release change that Grotto can act on now. Offline
+**Haus update opportunity**:
+A currently observable App, Computer, or Agent release change that Haus can act on now. Offline
 Computers are excluded because their installed state may have changed since their last report;
 reconnection may therefore reveal another update opportunity after an earlier update completes.
 _Avoid_: ecosystem compliance state, offline Computer, blocked update
@@ -99,10 +99,10 @@ It directs an authorized operator to that Computer even when no update is known 
 _Avoid_: update failure, blocked update, stale version
 
 **Computer install root**:
-The disposable location containing the signed standalone Grotto Computer executable and its
-embedded managed Grotto CLI. The canonical executable is
-`~/.local/bin/grotto-computer`; the updater may retain one verified
-`~/.local/bin/grotto-computer.prev` for explicit rollback. Installation and updates atomically
+The disposable location containing the signed standalone Haus Computer executable and its
+embedded managed Haus CLI. The canonical executable is
+`~/.local/bin/haus-computer`; the updater may retain one verified
+`~/.local/bin/haus-computer.prev` for explicit rollback. Installation and updates atomically
 replace code but never write to the Computer data root. npm, Homebrew, and the application bundle
 do not own this root.
 _Avoid_: Computer data root, Agent workspace, attachment state
@@ -113,7 +113,7 @@ state, delivery queues, logs, and Agent workspace directories. It is outside npm
 executable locations. Updates drain Agents before changing code and never replace, recursively
 clean, or relocate this root. The updater does not snapshot the data root or Agent workspaces;
 small Computer-owned records use atomic writes, and local schema changes are transactional. Its
-canonical path is `~/.grotto`; resident service state lives under `computer/`, while each attachment
+canonical path is `~/.haus`; resident service state lives under `computer/`, while each attachment
 owns `computer/servers/<server-id>/` with its credential, vault, queues, and
 `agents/<agent-id>/{home,skills,workspace,runtime}/` directories. Removing or reinstalling the
 standalone executable never deletes this root. Reinstalling resumes every still-valid attachment
@@ -125,21 +125,21 @@ _Avoid_: Computer install root, npm package directory, application bundle
 **Computer model access**:
 The physical machine's shared installed runtimes, model inventory, subscriptions, and provider
 sessions. Every Server attachment receives sanitized availability and health, and its Owners and
-Admins may assign Agents to available models. Grotto only detects these native runtime sessions:
-provider setup and login happen through each runtime's own local flow, and Grotto never accepts,
+Admins may assign Agents to available models. Haus only detects these native runtime sessions:
+provider setup and login happen through each runtime's own local flow, and Haus never accepts,
 stores, or relays provider credentials. Attaching a Server explicitly authorizes this shared paid
 compute capacity, matching Raft's reuse of host runtime logins such as Codex OAuth.
 _Avoid_: Server-owned model credential, per-Agent provider login, hosted provider secret
 
 **MCP connection**:
-A Server-owned configured account on one remote HTTP MCP server. Grotto Server stores its
+A Server-owned configured account on one remote HTTP MCP server. Haus Server stores its
 credentials, OAuth state, discovered tools, connection-level Agent grants, and client sessions.
 Computer receives only safe tool schemas and returns granted calls through a scoped runner
 credential. Reusing an external account on another Server requires a separate connection.
 _Avoid_: Computer-owned integration credential, local MCP process, stdio connection
 
 **MCP OAuth attempt**:
-A short-lived Server-owned authorization flow for one MCP connection. Grotto Server creates and
+A short-lived Server-owned authorization flow for one MCP connection. Haus Server creates and
 retains PKCE and routing state, validates the hosted callback, exchanges the one-time code, and
 stores and refreshes tokens. Computer does not participate.
 _Avoid_: Computer callback relay, Agent-visible token, durable authorization code
@@ -149,57 +149,57 @@ The minimal stable handshake through which a Computer authenticates and reports 
 protocol versions before entering the versioned Computer protocol. An incompatible Computer may
 remain connected in `update-required` mode only, allowing signed update control and progress
 reporting but no Agent execution, delivery, or ordinary control. A Computer too old for the
-bootstrap protocol requires local `grotto-computer upgrade`.
+bootstrap protocol requires local `haus-computer upgrade`.
 _Avoid_: Computer protocol, backward-compatible Agent protocol, version fallback
 
 **Agent proxy credential**:
-A narrow local credential that lets one managed Agent use its Grotto Computer proxy as itself for
-one Server attachment. It has no authority when presented directly to a Grotto server.
+A narrow local credential that lets one managed Agent use its Haus Computer proxy as itself for
+one Server attachment. It has no authority when presented directly to a Haus server.
 _Avoid_: Computer credential, external Agent credential, human session
 
 **Agent runner credential**:
-A scoped, revocable Server credential minted to Grotto Computer for one managed Agent launch.
-Grotto Computer keeps it behind the localhost proxy and revokes it when the launch ends; the
+A scoped, revocable Server credential minted to Haus Computer for one managed Agent launch.
+Haus Computer keeps it behind the localhost proxy and revokes it when the launch ends; the
 Agent process and shell never receive it.
 _Avoid_: Agent proxy credential, external Agent credential, Computer credential, provider credential
 
 **Computer login session**:
-A revocable, machine-local human session bound to one Grotto origin and used by Grotto Computer to
+A revocable, machine-local human session bound to one Haus origin and used by Haus Computer to
 discover and manage Computers across the signed-in User's Servers. It never authenticates Agent
 execution or grants Chat access.
 _Avoid_: Clerk browser session, Computer credential, Agent session, provider login
 
 **Computer credential**:
-A revocable credential issued by one Grotto server when an authorized Computer login session
+A revocable credential issued by one Haus server when an authorized Computer login session
 attaches a physical machine. It authenticates one Computer attachment's outbound connection and
 grants no human or cross-Server authority. The credential is stored in an atomic, mode-`0600`
 attachment file under the Computer data root, not macOS Keychain.
 _Avoid_: Human session, Agent credential, provider credential, shared Runtime token
 
 **Server member**:
-A human User or Agent with standing access to one Grotto server. Server membership governs
+A human User or Agent with standing access to one Haus server. Server membership governs
 server-wide identity and role; participation in a specific Chat is a separate relationship.
 _Avoid_: Hosted Server member, Chat participant, Clerk user, Computer, external actor
 
 **User**:
-A persistent human identity in Grotto that may hold membership in multiple Grotto servers. Clerk
+A persistent human identity in Haus that may hold membership in multiple Haus servers. Clerk
 authenticates the human and supplies an external identity reference but does not own the User.
 _Avoid_: Server member, Chat participant, Clerk user, local operator
 
 **Server role**:
-A human Server member's authority within one Grotto server: Member, Admin, or Owner. A Grotto
+A human Server member's authority within one Haus server: Member, Admin, or Owner. A Haus
 server has one or more Owners, and its last Owner cannot leave, be removed, or be demoted. Agents
 carry no Server role.
 _Avoid_: Chat role, agent specialty, global user role, Agent role
 
 **Server invite**:
 A Server-owned, email-bound, single-use invitation that lets one Clerk-authenticated human become a
-Member of one Grotto server before it expires. Administrative roles are assigned only after the
+Member of one Haus server before it expires. Administrative roles are assigned only after the
 human joins.
 _Avoid_: Clerk invitation, reusable join link, Server membership
 
 **Agent**:
-A persistent non-human Server member whose collaboration identity belongs to one Grotto server.
+A persistent non-human Server member whose collaboration identity belongs to one Haus server.
 An Agent is created on one Computer, where its workspace and execution state live; that assignment
 never changes. An offline Computer leaves the Agent offline, and the Computer cannot be removed
 until the Agent is explicitly deleted.
@@ -216,13 +216,13 @@ meaningful immutable content, and one typed body; Tasks and attachments remain o
 _Avoid_: chat entry, timeline item, post, card
 
 **Message body**:
-The typed Grotto product act carried by a Message, such as text, a created Agent, or
+The typed Haus product act carried by a Message, such as text, a created Agent, or
 Cloud Agent work. It may project a separately mutable Server record but never replaces the
 Message's readable content.
 _Avoid_: generic action, card payload, arbitrary content block, provider event
 
 **Card**:
-The Grotto App presentation of a Message body or recognized reference. A card has no durable
+The Haus App presentation of a Message body or recognized reference. A card has no durable
 identity, placement, lifecycle, or authorization of its own.
 _Avoid_: card record, Chat entry, Widget, artifact
 
@@ -233,7 +233,7 @@ step, changes no other record, and is answered by an ordinary Message rather tha
 _Avoid_: approval card, prompt, escalation, poll, action card
 
 **Inbox**:
-The Grotto App page below Search where one human sees open Asks and other work waiting on them,
+The Haus App page below Search where one human sees open Asks and other work waiting on them,
 Agent and Cloud Agent work running now, and unread Chats and followed Threads. It is a lens over
 existing records with no state, read state, or lifecycle of its own.
 _Avoid_: Agent inbox, notification center, activity feed, task list
@@ -245,7 +245,7 @@ a human surface.
 _Avoid_: Inbox, notification, Chat unread, message queue
 
 **Agent-created Agent**:
-An Agent one Agent created directly with `grotto agent create` after a human in that Chat asked for
+An Agent one Agent created directly with `haus agent create` after a human in that Chat asked for
 it. It inherits its creator's runtime, model, reasoning effort, and Computer, and its creator's
 announcement Message is the record of it: that Message names the new Agent as `@handle` in ordinary
 prose. There is no proposal, approval, or human commit step.
@@ -253,20 +253,20 @@ _Avoid_: prepared action, Agent creation proposal, draft mutation, Agent approva
 
 **Avatar generation**:
 A Server-owned image operation that turns a short freeform brief into square avatar bytes using
-Grotto's canonical release-owned pixel-art prompt. It never stands alone: a human keeps the preview
-until they save it, and an Agent reaches it only through `grotto agent create --avatar-concept` or
-`grotto agent avatar`, which assign the result in the same operation.
+Haus's canonical release-owned pixel-art prompt. It never stands alone: a human keeps the preview
+until they save it, and an Agent reaches it only through `haus agent create --avatar-concept` or
+`haus agent avatar`, which assign the result in the same operation.
 _Avoid_: avatar repository, automatic profile update, transient avatar file
 
 **Cloud Agent work**:
-Durable provider-hosted work delegated by a Grotto Agent and carried by one Agent-authored Message.
+Durable provider-hosted work delegated by a Haus Agent and carried by one Agent-authored Message.
 The work owns one or more provider Runs and its mutable lifecycle; results reach the Thread as
 ordinary Messages, references, attachments, and artifacts composed by the delegating Agent, which
 owns follow-up after terminal completion reaches its inbox.
-_Avoid_: Harness subagent, Grotto Task, named teammate, Cursor Message
+_Avoid_: Harness subagent, Haus Task, named teammate, Cursor Message
 
 **Agent execution configuration**:
-The Grotto server's immutable Computer assignment plus desired executor, model reference, execution
+The Haus server's immutable Computer assignment plus desired executor, model reference, execution
 policy, Server-owned MCP connection grants, and lifecycle state for an Agent. Humans may edit this desired
 state while the Computer is offline using its last reported inventory. The Computer applies the
 current snapshot after reconnect and reports any unavailable local reference as degraded instead
@@ -278,25 +278,25 @@ _Avoid_: Effective execution state, provider credentials, executable model inven
 Computer-reported facts about an Agent's current executor, model, session, process, capability
 health, and failures. A Computer reports unsatisfied configuration instead of silently substituting
 another executor or model.
-_Avoid_: Agent execution configuration, Server policy, cached Grotto App state
+_Avoid_: Agent execution configuration, Server policy, cached Haus App state
 
 **Reported execution snapshot**:
-The Grotto server's latest persisted report of a Computer's effective execution state. It serves
-routine Grotto App reads without contacting the Computer and may be labeled stale when reports stop.
+The Haus server's latest persisted report of a Computer's effective execution state. It serves
+routine Haus App reads without contacting the Computer and may be labeled stale when reports stop.
 _Avoid_: Desired configuration, live Computer query, execution trace
 
 **Turn summary**:
-A Grotto server record of one Agent turn's trigger, timing, outcome, effective model, usage totals,
+A Haus server record of one Agent turn's trigger, timing, outcome, effective model, usage totals,
 and short failure category, excluding prompts, tool details, transcripts, and files.
 _Avoid_: Execution trace, Chat message, model-context compaction
 
 **Chat**:
-A durable Grotto conversation container, shaped like a channel or DM, where humans, agents, system
+A durable Haus conversation container, shaped like a channel or DM, where humans, agents, system
 actors, and external actors can participate.
 _Avoid_: Hosted Chat, Agent session, thread, executor channel, transcript
 
 **Channel**:
-A named multi-participant Chat in a Grotto workspace.
+A named multi-participant Chat in a Haus workspace.
 _Avoid_: Room, group chat
 
 **DM**:
@@ -305,7 +305,7 @@ meet in the channels and threads they share.
 _Avoid_: Private channel, direct channel, agent-to-agent DM
 
 **Chat participant**:
-One actor with membership in a Chat, such as a human user, Grotto agent, system actor, or external
+One actor with membership in a Chat, such as a human user, Haus agent, system actor, or external
 identity.
 _Avoid_: Worker, sender, runtime identity
 
@@ -363,18 +363,18 @@ _Avoid_: Agent activity history, Chat history, model session
 **Agent workspace**:
 The Computer-local per-Agent filesystem home that stores the Agent's editable identity,
 instructions, briefing files, episodic observations, generated files, and working state. The
-Grotto Server does not cache it; authorized Grotto App reads use a live Computer relay and are unavailable
-while that Computer is offline. Only human Server Owners and Admins may inspect it through Grotto App.
+Haus Server does not cache it; authorized Haus App reads use a live Computer relay and are unavailable
+while that Computer is offline. Only human Server Owners and Admins may inspect it through Haus App.
 _Avoid_: Server attachment storage, Wiki root, provider home
 
 **Agent runtime home**:
-The Grotto-managed logical `HOME` seen by one Agent's executor. It lives beside that Agent's
+The Haus-managed logical `HOME` seen by one Agent's executor. It lives beside that Agent's
 workspace inside its Computer attachment and contains only per-Agent executor state. Its
 executor-native skill locations, including `.agents/skills` for Codex and Pi and `.claude/skills`
 for Claude Code, resolve to the Agent skill library beside it. The executor does not discover the
 operator's global skill folders. It is not a macOS account, the operator's home, or a
 provider-credential store. Runtime-specific references or environment injection let the executor
-reuse the physical machine's native provider session without copying that credential into Grotto
+reuse the physical machine's native provider session without copying that credential into Haus
 state.
 _Avoid_: Agent workspace, host home, Computer data root, global skill folder
 
@@ -384,7 +384,7 @@ messages and activity are complete.
 _Avoid_: Chat history, UIMessage array, browser request
 
 **Agent executor**:
-A small Runtime implementation boundary that turns an Agent turn request into Grotto turn events.
+A small Runtime implementation boundary that turns an Agent turn request into Haus turn events.
 _Avoid_: Agent engine, provider adapter, harness wrapper
 
 **Agent addressing**:
@@ -397,7 +397,7 @@ its access setup.
 _Avoid_: Model family, provider option, model row
 
 **Provider catalog**:
-The maintained list of Model providers Grotto can add to a Runtime.
+The maintained list of Model providers Haus can add to a Runtime.
 _Avoid_: Executable model list, enabled providers, provider credentials
 
 **Enabled model provider**:
@@ -443,17 +443,17 @@ _Avoid_: Skill, MCP server, channel, Plugin
 
 **Harness-native tool**:
 A Tool supplied by the selected Agent executor's harness, such as local file, shell, search, or
-provider-native subagent actions. Grotto may display these as provider facts, but does not own their
+provider-native subagent actions. Haus may display these as provider facts, but does not own their
 individual lifecycle.
-_Avoid_: Grotto tool, Plugin action, MCP server
+_Avoid_: Haus tool, Plugin action, MCP server
 
-**Grotto host tool**:
-A Tool implemented by Grotto Computer and passed to the Agent executor, such as `web_fetch`,
-browser control, Memory reads, chat sends, or other Grotto-owned product actions.
+**Haus host tool**:
+A Tool implemented by Haus Computer and passed to the Agent executor, such as `web_fetch`,
+browser control, Memory reads, chat sends, or other Haus-owned product actions.
 _Avoid_: Harness-native tool, raw Runtime route, MCP connection setting
 
 **MCP connection**:
-A Grotto Server-owned configured instance of a remote HTTP Model Context Protocol server,
+A Haus Server-owned configured instance of a remote HTTP Model Context Protocol server,
 including authentication, account identity, connection state, and discovered tools. Multiple
 connections may target the same server for different accounts. Server invokes granted calls
 without exposing credentials to Agents or Computers.
@@ -470,24 +470,24 @@ The execution environment for an agent's tools and harness processes: none, Dock
 _Avoid_: Approval mode, runtime prompt
 
 **Local workspace sandbox**:
-A Sandbox mode of none where Grotto gives an agent a host filesystem workspace under the Grotto data
+A Sandbox mode of none where Haus gives an agent a host filesystem workspace under the Haus data
 root and runs child processes directly from that workspace.
 _Avoid_: Secure sandbox, container, VM
 
 **Assignable primitive**:
-A Grotto capability that can be attached to an agent definition, such as an MCP tool grant,
+A Haus capability that can be attached to an agent definition, such as an MCP tool grant,
 host-tool grant, Memory namespace, or Channel membership. Skills are local Agent files, not
 assignable primitives.
 _Avoid_: Runtime plugin, harness setting, bundled feature
 
 **Agent skill library**:
 The canonical, writable `skills/` directory owned by one Agent inside one Computer attachment.
-The Agent may create, edit, or delete its skills through `grotto skill`; a human may explicitly
+The Agent may create, edit, or delete its skills through `haus skill`; a human may explicitly
 import a selected bundle from the physical machine into this directory while the Computer is
 online. Its contents are the exact skill set exposed to every executor the Agent uses. Changing
 the Agent's runtime or model never changes, copies, converts, or filters this library. The Computer
 reports compact metadata—name, description, content hash, and modified time—to the Server for
-offline Grotto App display. Skill bodies and supporting files remain Computer-local and require an
+offline Haus App display. Skill bodies and supporting files remain Computer-local and require an
 authorized live relay to view or edit.
 _Avoid_: Global skill folder, disposable harness projection, skill assignment
 
@@ -496,7 +496,7 @@ An explicit online copy of one bundle from a runtime-compatible global skill fol
 machine into one Agent skill library. Global folders are opt-in import sources only and are never
 inherited or scanned by an Agent executor. Matching Raft's skill-list boundary, the Computer may
 report importable names, descriptions, and shortened source paths to Server Owners and Admins in
-Grotto App, but bundle contents never transit or persist on the Server. **Import to Agent** performs
+Haus App, but bundle contents never transit or persist on the Server. **Import to Agent** performs
 the copy entirely on the Computer. The imported copy has no synchronization or provenance
 lifecycle and may be modified freely by the Agent.
 _Avoid_: Skill assignment, shared catalog, global skill enablement
@@ -509,14 +509,14 @@ disabled copy.
 _Avoid_: Import-source deletion, unassignment, global skill disablement
 
 **Widget activity envelope**:
-The durable `grotto.widget.<name>` render envelope that stores a Visual or Artifact fence in chat
+The durable `haus.widget.<name>` render envelope that stores a Visual or Artifact fence in chat
 history (ADR 0010). The retired closed widget catalog (tables, charts, calendars, html-preview)
 replays as fallback-text cards.
 _Avoid_: Rich Response, UI block, AG-UI component, ChatKit widget
 
 **Visual**:
 One bespoke model-authored HTML/SVG graphic rendered from a `visual` fence in a sandboxed inline
-frame styled with Grotto theme tokens.
+frame styled with Haus theme tokens.
 _Avoid_: Rich Response, custom widget, raw HTML block
 
 **Visuals skill**:
@@ -533,7 +533,7 @@ The app-owned side surface where users open and inspect Artifact Panel targets b
 _Avoid_: Workbench, browser shell, output pane, Artifact Space
 
 **Artifact Panel target**:
-A Grotto-owned openable target such as a chat Artifact, Wiki page, workspace file, image, or
+A Haus-owned openable target such as a chat Artifact, Wiki page, workspace file, image, or
 generated asset.
 _Avoid_: Local path, browser URL, tool result blob
 
@@ -543,13 +543,13 @@ _Avoid_: Tab content, preview card, drawer
 
 **Artifact open action**:
 A user action that opens an Artifact pane from a chat row, activity row, or linked inspectable
-output. Grotto does not auto-open the Artifact Panel when targets are created.
+output. Haus does not auto-open the Artifact Panel when targets are created.
 _Avoid_: Canvas trigger, automatic artifact presentation, artifact launch
 
 **Inspectable output**:
 A workspace file, Wiki page, Markdown or HTML doc, image, or generated asset an agent created or
 updated for the user to inspect.
-_Avoid_: Grotto resource, tool result, attachment
+_Avoid_: Haus resource, tool result, attachment
 
 **Host adapter**:
 A small adapter file in Runtime, Server, or Website that connects a Widget contract to that
@@ -557,12 +557,12 @@ layer's existing event, projection, or rendering pipeline.
 _Avoid_: Widget implementation, plugin loader
 
 **Surface component**:
-A normal Grotto App React component used to render validated Widget props with the UI's shared
+A normal Haus App React component used to render validated Widget props with the UI's shared
 visual system.
 _Avoid_: Model component, widget primitive
 
 **Memory**:
-Grotto's per-agent durable context system: briefing files, episodic observations, and background
+Haus's per-agent durable context system: briefing files, episodic observations, and background
 workers that keep those files useful.
 _Avoid_: Wiki, vault, knowledgebase, prompt-time memory
 
@@ -595,7 +595,7 @@ the Wiki, and refreshes Agent briefing files.
 _Avoid_: Extraction, summarization, compaction
 
 **Wiki surface**:
-The Grotto Computer-owned access surface for the Wiki root: path resolution, safe reads, writes,
+The Haus Computer-owned access surface for the Wiki root: path resolution, safe reads, writes,
 moves, deletes, backlinks, freshness, and status.
 _Avoid_: Vault API, Memory browser, ingestion system, maintenance job
 

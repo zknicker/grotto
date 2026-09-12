@@ -57,7 +57,7 @@ so `docs:list` routes future agents correctly.
 8. Avoid unnecessary barrel files. Use them only for clear package or domain entrypoints.
 9. Prefer immutable patterns and explicit validation at boundaries.
 10. Handle edge cases and external failures explicitly; do not swallow errors.
-11. Use Haus in product prose. Preserve literal internal `grotto` identifiers such as package
+11. Use Haus in product prose. Preserve literal internal `haus` identifiers such as package
     names, env vars, API fields, paths, and wire names until an explicit contract migration renames
     them. Frame internal engine abilities as the agent's or assistant's abilities; use
     "agent engine" only on technical surfaces.
@@ -69,12 +69,12 @@ so `docs:list` routes future agents correctly.
 
 ## API And Events
 
-- Server tRPC features live in `apps/server/src/grotto-api/<feature>/`.
+- Server tRPC features live in `apps/server/src/haus-api/<feature>/`.
 - Each feature exposes a `router.ts` plus one file per procedure when the feature has multiple
   procedures.
 - Keep API procedures thin: validate input, call product logic, and return a narrow result.
 - Put business logic under product nouns. Keep external-system code behind adapters.
-- Define server-to-client event contracts in `packages/grotto-api`: durable event types in
+- Define server-to-client event contracts in `packages/haus-api`: durable event types in
   `src/chat.ts` (`ServerDurableEvent`) and Server-scoped update events in `src/server-events.ts`
   (`serverUpdatedEventSchema`).
 - Prefer named domain subscriptions such as `chat.onEvent` or `agent.onActivity` over generic
@@ -179,7 +179,7 @@ so `docs:list` routes future agents correctly.
   do not wait for a second call site when ownership is clear.
 - Do not add extension points, abstractions, compatibility branches, or schema-normalization paths
   unless they are needed now.
-- For cross-boundary Server, Computer, App, or Agent API changes, update `packages/grotto-api`
+- For cross-boundary Server, Computer, App, or Agent API changes, update `packages/haus-api`
   directly for the current first-party contract.
 - Keep docs current when API shape, storage models, frontend structure, or runtime assumptions
   change.
@@ -193,7 +193,7 @@ so `docs:list` routes future agents correctly.
 ## Agent Execution Work
 
 - For AI bugs or performance problems anywhere in this repo, start with
-  `.agents/skills/debug-grotto-ai/SKILL.md`, even when the report is a recording or says only
+  `.agents/skills/debug-haus-ai/SKILL.md`, even when the report is a recording or says only
   "debug this" or "fix these bugs." Do not wait for the user to name Axiom or Raft. The skill
   routes existing telemetry and creates a Luna-max Raft partner when useful. Pure visual or
   layout bugs follow the App UI workflow instead.
@@ -256,10 +256,10 @@ Single-context repo: use root `CONTEXT.md` and `docs/adr/`. See `docs/agents/dom
 ### Release operations
 
 For release target decisions, `releases.json` preparation, the single release PR, post-merge
-target-job monitoring, or the operator handoff, use `.agents/skills/release-grotto/SKILL.md`.
+target-job monitoring, or the operator handoff, use `.agents/skills/release-haus/SKILL.md`.
 Route durable artifact and target contracts through `docs/operations/releases.md`; production
 Haus Server promotion remains a separate manual operation in
-`docs/operations/grotto-server-deploy.md`.
+`docs/operations/haus-server-deploy.md`.
 
 ## Cursor Cloud specific instructions
 
@@ -284,7 +284,7 @@ artifact download). `start.sh` seeds fleet agents on every boot. The full stack
  binaries into `/usr/local/bin` so every PostgreSQL-backed lane finds them on `PATH`
  (`bun run test:app`, `apps/server` tests, evals, and the dev stack). `scripts/dev-postgres.mjs` and
  the server test harness otherwise only auto-discover Homebrew paths on Linux; if you run PostgreSQL
- 16 from a non-standard location, set `GROTTO_POSTGRES_BIN` to its bin directory (the `dev-stack`
+ 16 from a non-standard location, set `HAUS_POSTGRES_BIN` to its bin directory (the `dev-stack`
  terminal already exports it explicitly). Do not start a system PostgreSQL service; each lane owns a
  throwaway/worktree-isolated cluster.
 - The web app auto signs in (`VITE_DEV_CLERK_AUTO_SIGN_IN=true`) against Haus's development Clerk

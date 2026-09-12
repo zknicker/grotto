@@ -53,7 +53,7 @@ explains**, not through a log line in the conversation:
   answer — a lightning glyph and the Trigger's title in yellow, a clock glyph
   and the reminder's title in rosy red — with a hover card previewing the
   automation and a context card above the anchored message in its Thread. The
-  Agent attributes its answer explicitly with `grotto message send --cause
+  Agent attributes its answer explicitly with `haus message send --cause
   <fireId>`; when it does not, the Server infers the cause only when that fire
   was the sole thing offered to the run that sent the message and the message
   landed in the fire's anchor Chat. The stored attribution says which happened.
@@ -89,12 +89,12 @@ observed transcript or by the product UI sweep in
 `specs/raft-alignment/raft-ux-notes.md`, which looked for those rows and found
 none; we read it as prompt text, not as shipped behavior.
 
-So Raft draws nearly the line Grotto now draws: durable chat rows are
+So Raft draws nearly the line Haus now draws: durable chat rows are
 human-readable, and agent-only work rides a typed inbox. The one exception is
-the assignment row, which Raft stores as a message its UI skips; Grotto stores
+the assignment row, which Raft stores as a message its UI skips; Haus stores
 that item as an inbox item instead, so no reader has to filter and the
-invariant holds without exceptions. Grotto's real addition over Raft is
-`--cause`. Raft's fire answers carry no machine-readable provenance; a Grotto
+invariant holds without exceptions. Haus's real addition over Raft is
+`--cause`. Raft's fire answers carry no machine-readable provenance; a Haus
 Agent's answer names the exact fire it answers, which is what the header mark,
 the hover card, and the Thread context card all read from.
 

@@ -1,8 +1,8 @@
 ---
-summary: Build, install, supervise, back up, restore, cut over, and roll back the single-node Haus Server at grotto.sh.
+summary: Build, install, supervise, back up, restore, cut over, and roll back the single-node Haus Server at haus.chat.
 read_when:
   - deploying or operating the hosted Haus Server
-  - changing grotto.sh ingress, PostgreSQL roles, or the delivered Server environment
+  - changing haus.chat ingress, PostgreSQL roles, or the delivered Server environment
   - preparing a Haus Server release artifact
 ---
 
@@ -40,9 +40,9 @@ Server release.
 
 Neither a push to `main` nor a completed target job alone is deployment evidence.
 Production is ready only after deployment health checks pass and Axiom receives
-a successful `grotto.server.startup` operation carrying the expected
-`service.version`, `grotto.release.id`, and full `grotto.release.revision`.
-The `Grotto Operations` dashboard is the operator-facing confirmation that the
+a successful `haus.server.startup` operation carrying the expected
+`service.version`, `haus.release.id`, and full `haus.release.revision`.
+The `Haus Operations` dashboard is the operator-facing confirmation that the
 new process actually started with that identity; `/healthz` remains the direct
 availability check.
 
@@ -62,7 +62,7 @@ The self-hosted `Deploy Haus Server` workflow:
    verify the installed release's contents and product/Server identities, while
    `activate` skips asset download and installation
 7. renders `config/server.env` from the workflow revision's `.env.schema` under
-   `varlock run`, mode `0600` plus one ACL entry granting `_grotto_server` read,
+   `varlock run`, mode `0600` plus one ACL entry granting `_haus_server` read,
    after proving the released Server reads exactly the names that contract
    delivers, retrying a transient 1Password failure up to three times because
    resolving is idempotent
@@ -71,7 +71,7 @@ The self-hosted `Deploy Haus Server` workflow:
    successful migrations in the job summary
 9. asks the narrow root-owned activation helper to switch `current`, bootstrap
    the exact root-owned Server plist when its label is not loaded, otherwise
-   restart only `com.grotto.server`, and prove local health; the helper accepts
+   restart only `com.haus.server`, and prove local health; the helper accepts
    only a contained full-SHA release directory and does not reinterpret release
    metadata or component versions
 10. reads the delivered environment back names-only and fails on a name outside
@@ -123,7 +123,7 @@ entirely: the first varlock deploy necessarily promotes a version built before
 contract from the artifact could never run the first time.
 
 The cost is that the two revisions can disagree, and a silent disagreement is
-worse than a failed deploy: a Server that cannot find `GROTTO_CLERK_SECRET_KEY`
+worse than a failed deploy: a Server that cannot find `HAUS_CLERK_SECRET_KEY`
 because it was built when the name was `CLERK_SECRET_KEY` does not crash — it
 falls back to its own defaults and serves production without a Clerk secret and
 against the wrong database. So the render step reads the released revision's own
@@ -143,10 +143,10 @@ traversal and read/write access their job needs:
 
 | Identity | Owns | May read |
 | --- | --- | --- |
-| `_grotto_server` | `data/attachments` | `current`, `config/server.env` |
-| `_grotto_tunnel` | no application state | `config/cloudflared.yml`, Tunnel credential |
+| `_haus_server` | `data/attachments` | `current`, `config/server.env` |
+| `_haus_tunnel` | no application state | `config/cloudflared.yml`, Tunnel credential |
 
-Host-only state lives under `/Users/zknicker/srv/grotto`: `config/`, `data/`,
+Host-only state lives under `/Users/zknicker/srv/haus`: `config/`, `data/`,
 `logs/`, `releases/`, and `current`. Preserve `bin/`, `colima/`, and
 `operations/` when present. Put these names in the deploy root's local
 `.git/info/exclude`; do not commit them and never run `git clean`.
@@ -155,7 +155,7 @@ The deploy root must contain **no** `.env`. Varlock loads a checkout `.env`
 above `.env.schema`, and a `$` in any of its values is parsed as an expression;
 the deploy job refuses to run when one exists. `config/server.env` is written
 by the deploy job at mode `0600`, owned by `zknicker`, with one ACL entry
-granting `_grotto_server` read — `config/` itself is `zknicker`-owned and
+granting `_haus_server` read — `config/` itself is `zknicker`-owned and
 traversable so the service can reach it. The migration credential is not a
 GitHub Actions secret and is not stored in the release or read by the Server: it
 resolves from 1Password during the migration step only. Service identities
@@ -163,8 +163,8 @@ cannot write the deploy root, release, or activation-helper directories. The
 Server and PostgreSQL listen only on loopback.
 
 The only privileged executable is
-`/usr/local/libexec/grotto/activate-grotto-server`. `/usr/local`,
-`/usr/local/libexec`, `/usr/local/libexec/grotto`, and the executable are
+`/usr/local/libexec/haus/activate-haus-server`. `/usr/local`,
+`/usr/local/libexec`, `/usr/local/libexec/haus`, and the executable are
 root-owned and not group- or world-writable. The helper refuses to run from any
 other path or with insecure ownership. It accepts one full source SHA, proves
 that its activation target is a real directory at the exact contained release
@@ -172,15 +172,15 @@ path, switches `current`, controls the system service, checks local health, and
 rolls back on failure. Artifact identity, versions, checksums, installation,
 configuration, and migrations remain the unprivileged deployer's responsibility.
 This does not create another application root: checkout, releases,
-configuration, data, and logs remain under `/Users/zknicker/srv/grotto`.
+configuration, data, and logs remain under `/Users/zknicker/srv/haus`.
 
 PostgreSQL is the only Haus container. The canonical definition is the
 repository's `apps/server/compose.yml`; the deploy job verifies the running
 container and brings it up from that file under `varlock run` only when it is
 absent or unhealthy, so the admin password is interpolated from 1Password and
-no environment file is read or written. Compose project `grotto` uses the pinned
+no environment file is read or written. Compose project `haus` uses the pinned
 PostgreSQL 16.14 Alpine digest, container
-`grotto-postgres`, named volume `grotto_postgres_data`, and
+`haus-postgres`, named volume `haus_postgres_data`, and
 `127.0.0.1:5438:5432`. Do not add the database to Tailscale Serve or Funnel.
 Administration uses SSH and local loopback. Install PostgreSQL 16 client tools
 for the host backup and restore programs without enabling a host PostgreSQL
@@ -190,26 +190,26 @@ service.
 
 The operator creates three roles:
 
-- `grotto_bootstrap`: owns the database and its `public` schema, performs the
+- `haus_bootstrap`: owns the database and its `public` schema, performs the
   one fresh bootstrap, and then acts as the deployment workflow's migration login.
   Each migration run reapplies privileges so new tables and sequences are
-  immediately usable by `grotto_runtime`.
-- `grotto_runtime`: login with `CONNECT`, schema `USAGE`, and table DML only.
-- `grotto_backup`: read-only login every migration re-grants. The scheduled
+  immediately usable by `haus_runtime`.
+- `haus_runtime`: login with `CONNECT`, schema `USAGE`, and table DML only.
+- `haus_backup`: read-only login every migration re-grants. The scheduled
   off-machine backup that used it is retired; the role stays so the migration
   program's privilege model is unchanged.
 
 Run bootstrap once against an empty, newly created production database:
 
 ```bash
-GROTTO_DATABASE_BOOTSTRAP_URL='postgres://grotto_bootstrap:…@127.0.0.1:5438/grotto_production' \
-GROTTO_DATABASE_BACKUP_ROLE=grotto_backup \
-GROTTO_DATABASE_RUNTIME_ROLE=grotto_runtime \
-/Users/zknicker/srv/grotto/current/bin/grotto-server-bootstrap
+HAUS_DATABASE_BOOTSTRAP_URL='postgres://haus_bootstrap:…@127.0.0.1:5438/haus_production' \
+HAUS_DATABASE_BACKUP_ROLE=haus_backup \
+HAUS_DATABASE_RUNTIME_ROLE=haus_runtime \
+/Users/zknicker/srv/haus/current/bin/haus-server-bootstrap
 ```
 
-Bootstrap and every migration grant `grotto_backup` its required read access.
-Both the migration URL and the runtime URL live in the `Postgres - Grotto`
+Bootstrap and every migration grant `haus_backup` its required read access.
+Both the migration URL and the runtime URL live in the `Postgres - Haus`
 Production item and reach their consumer through `.env.schema`; neither is
 stored on the host by hand. Startup
 checks connectivity and never executes DDL. Before activation, the deployment
@@ -240,7 +240,7 @@ Replace the preserved login-scoped Colima LaunchAgent with the reviewed shared
 system LaunchDaemon:
 
 ```bash
-sudo /Users/zknicker/srv/grotto/current/operations/install-colima-boot
+sudo /Users/zknicker/srv/haus/current/operations/install-colima-boot
 ```
 
 The daemon runs the existing `ensure-colima.sh` profile as `zknicker` at boot
@@ -252,7 +252,7 @@ re-enables the preserved user job, and reloads it when a GUI session exists.
 Roll back this shared host change independently with:
 
 ```bash
-sudo /Users/zknicker/srv/grotto/current/operations/rollback-colima-boot
+sudo /Users/zknicker/srv/haus/current/operations/rollback-colima-boot
 ```
 
 Rollback returns Colima to login-scoped recovery. Because automatic login is
@@ -263,7 +263,7 @@ the daemon can run the existing healthy profile, but full no-login boot recovery
 remains unproven until the separately approved reboot drill.
 
 Install the two plists in `apps/server/launchd/` as system daemons. The Server
-and named `grotto-production` Tunnel use `RunAtLoad` and `KeepAlive`. Tunnel
+and named `haus-production` Tunnel use `RunAtLoad` and `KeepAlive`. Tunnel
 metrics bind to `127.0.0.1:20242`; the shared existing tunnel already owns
 `20241`. Neither plist carries environment of its own: `run-server`
 shell-sources the rendered `config/server.env` and executes the Server binary
@@ -274,7 +274,7 @@ Installing the Server plist does not load it before the next boot. Run the
 initial deployment before rebooting so the privileged activation helper owns
 the first bootstrap after `current` points at a verified release. It accepts
 only the exact root-owned
-`/Library/LaunchDaemons/com.grotto.server.plist`. If first-release health fails,
+`/Library/LaunchDaemons/com.haus.server.plist`. If first-release health fails,
 the helper boots out the label it introduced before removing `current`, leaving
 no `KeepAlive` loop against a missing release. If the label was already loaded,
 the helper leaves `current` intact on failure because it cannot claim ownership
@@ -289,8 +289,8 @@ The Server returns only `{"status":"ok"}` or the redacted
 There is none, deliberately. The scheduled `restic` backup and its isolated
 restore drill were retired: they never completed a working cycle, and Haus is
 a greenfield product with no data worth the operational surface. The
-`com.grotto.backup` LaunchDaemon, the `_grotto_backup` service account, and the
-restic repository and password are host state to remove; the `grotto_backup`
+`com.haus.backup` LaunchDaemon, the `_haus_backup` service account, and the
+restic repository and password are host state to remove; the `haus_backup`
 PostgreSQL role stays because every migration re-grants it.
 
 Reintroducing backups means designing them from scratch — new schema items, a
@@ -303,7 +303,7 @@ Resolve and record every exact path, identity, database, Tunnel id, DNS route,
 secret source, and rollback release before changing the host.
 
 1. Initialize or fetch the Haus repository in place at
-   `/Users/zknicker/srv/grotto`. Add every host-only root named above to
+   `/Users/zknicker/srv/haus`. Add every host-only root named above to
    `.git/info/exclude`; preserve existing files and never use `git clean`. The
    deploy root must hold no `.env`.
 2. Confirm the self-hosted runner can read this repository and invoke the
@@ -315,7 +315,7 @@ secret source, and rollback release before changing the host.
 5. Install shared system-boot Colima supervision; confirm that existing
    containers and volumes were not restarted or replaced.
 6. Bring PostgreSQL up from the repository's `apps/server/compose.yml` under
-   `varlock run`; create only the `grotto` Compose project and named database
+   `varlock run`; create only the `haus` Compose project and named database
    volume.
 7. Create the dedicated identities, `config/`, `data/`, `logs/`, and
    `releases/` permissions, plus the attachment sentinel. Grant each service
@@ -324,20 +324,20 @@ secret source, and rollback release before changing the host.
    world-writable.
 8. Create the fresh database and least-privilege roles; run bootstrap once,
    grant backup reads, and store the runtime URL, migration URL, and container
-   admin password in the `Postgres - Grotto` Production 1Password item.
+   admin password in the `Postgres - Haus` Production 1Password item.
 9. Own `config/` as `zknicker`, mode `0755`, so the deploy job can write
-   `config/server.env` and `_grotto_server` can traverse to it. That file is
+   `config/server.env` and `_haus_server` can traverse to it. That file is
    rendered by the deploy job, never by hand: it carries the production
    database URL, the `https://haus.chat` origin, the Haus Clerk issuer, and
-   the Haus production `GROTTO_CLERK_SECRET_KEY`, which invitation acceptance needs
+   the Haus production `HAUS_CLERK_SECRET_KEY`, which invitation acceptance needs
    for verified-email lookup. Every one of those values lives in 1Password and
    reaches the host only through `varlock run`.
 10. Build the approved release once, then install its
-    `bin/activate-grotto-server` as root-owned mode `0755` at
-    `/usr/local/libexec/grotto/activate-grotto-server`. Verify every path
+    `bin/activate-haus-server` as root-owned mode `0755` at
+    `/usr/local/libexec/haus/activate-haus-server`. Verify every path
     component named above is root-owned and not writable by `zknicker` or the
     deploy runner. Validate and install
-    `host-services/grotto-server-activation.sudoers` as root-owned mode `0440`;
+    `host-services/haus-server-activation.sudoers` as root-owned mode `0440`;
     it names only that exact executable; the helper enforces the full-SHA
     argument contract. This is the runner's only NOPASSWD command. Install
     reviewed launchd plists separately; ordinary release workflows never update
@@ -350,7 +350,7 @@ secret source, and rollback release before changing the host.
     install, helper-owned Server bootstrap, health, and rollback path used by
     later published releases.
 12. Inject the Tunnel credential.
-13. Create the named `grotto-production` Tunnel and confirm its config routes
+13. Create the named `haus-production` Tunnel and confirm its config routes
    only to `127.0.0.1:18791`.
 14. Verify the helper-loaded Server through the local App, `/healthz`,
     authenticated API, and WebSocket.
@@ -366,7 +366,7 @@ database.
 ## Rollback
 
 Keep the previous full-SHA release and all state untouched. Activation switches
-`current` atomically, restarts only `com.grotto.server`, and restores the exact
+`current` atomically, restarts only `com.haus.server`, and restores the exact
 previous SHA automatically when local health fails. `config/server.env` is
 rendered before activation and is *not* reverted by a rollback: the rolled-back
 release runs with the new release's delivered environment. That is safe as long
@@ -376,8 +376,8 @@ back by dispatching `deploy` on the previous version rather than `activate`. A m
 an already installed published version in the Actions workflow and uses
 `activate`; it never rebuilds. If a wider cutover fails, stop Tunnel ingress or
 restore its previously recorded route without changing application state.
-Stop the database with `docker compose -p grotto down` without `--volumes`;
-preserve `grotto_postgres_data`. Never roll back PostgreSQL
+Stop the database with `docker compose -p haus down` without `--volumes`;
+preserve `haus_postgres_data`. Never roll back PostgreSQL
 by deleting or overwriting its data. Keep shared system Colima supervision in
 place unless the operator separately decides to restore login-scoped recovery.
 Capture redacted service status and logs before changing anything further.

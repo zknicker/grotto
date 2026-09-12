@@ -1,6 +1,6 @@
 # Participants
 
-Grotto stores source-observed participants as provenance. The App does not ask users to
+Haus stores source-observed participants as provenance. The App does not ask users to
 manage an identity directory or reconcile external accounts.
 
 This keeps provider details available for audit and routing while avoiding fragile automatic merges
@@ -8,11 +8,11 @@ across Discord, Slack, iMessage, Telegram, or local agent executors.
 
 ## Model
 
-- The self actor may use `profile:self` for Grotto-authored local messages.
+- The self actor may use `profile:self` for Haus-authored local messages.
 - A `participant` is one observed source identity from one provider/account/external id.
 - A participant is not "self" and does not carry an `is_self` flag.
 - A `participant label` is an observed display label for that participant.
-- Grotto exposes the authenticated human's Grotto profile in Settings. It does
+- Haus exposes the authenticated human's Haus profile in Settings. It does
   not expose an Observed Identities linking workflow.
 
 ## Tables
@@ -31,24 +31,24 @@ Server ingestion owns participant observation. App settings do not own participa
 - Display names are labels, not identity.
 - Authenticated humans and Agents have distinct immutable ids plus active
   Server-scoped handles. Those handles do not merge with observed identities.
-- Grotto does not ask users to reconcile observed source identities.
+- Haus does not ask users to reconcile observed source identities.
 
-Grotto renders a participant using its best observed label while preserving the participant id as
+Haus renders a participant using its best observed label while preserving the participant id as
 provenance.
 
 ## Runtime Mapping
 
-The Runtime adapter normalizes provider-native data before Grotto stores it.
+The Runtime adapter normalizes provider-native data before Haus stores it.
 
 Examples:
 
-| Runtime fact | Grotto participant |
+| Runtime fact | Haus participant |
 | --- | --- |
 | Discord user id `778786269458464829` | `provider=discord`, `external_id=778786269458464829` |
 | Telegram user id `123456` | `provider=telegram`, `external_id=123456` |
 | iMessage address `+15551234567` | `provider=imessage`, `external_id=+15551234567` |
 
-Provider-specific parsing belongs at the relevant ingestion boundary. Grotto Server receives
+Provider-specific parsing belongs at the relevant ingestion boundary. Haus Server receives
 normalized participants and labels.
 
 ## Rendering
@@ -56,7 +56,7 @@ normalized participants and labels.
 - Chat, message, and participant surfaces render participants from observed source labels.
 - Rendering should not rewrite stored message actor ids. Messages authored by an observed
   participant point at that participant.
-- Grotto self-authored local messages may use `actor.kind=profile` with `id=profile:self`.
+- Haus self-authored local messages may use `actor.kind=profile` with `id=profile:self`.
 
 ## Non-Goals
 

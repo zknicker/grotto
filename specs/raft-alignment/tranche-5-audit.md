@@ -1,7 +1,7 @@
 # Tranche 5 audit — MCP, skills, and Agent workspace
 
 Audit date: 2026-07-29\
-Grotto revision: `f7f3f8f91`\
+Haus revision: `f7f3f8f91`\
 Status: corrective implementation and focused/live verification complete
 
 ## Corrective implementation
@@ -25,7 +25,7 @@ Status: corrective implementation and focused/live verification complete
   failure codes, revocation, durable skill imports, restart recovery, bounded
   bundle copying, workspace visibility, author-scoped artifact reads, and
   event-driven query invalidation.
-- In a fresh Grotto dev stack, an Owner imported one skill into a live Agent,
+- In a fresh Haus dev stack, an Owner imported one skill into a live Agent,
   read and edited its independent `SKILL.md`, confirmed the edit persisted,
   then deleted the temporary copy. The Agent inventory returned to its original
   two skills.
@@ -39,29 +39,29 @@ Status: corrective implementation and focused/live verification complete
 
 ## Method
 
-1. Read the Raft Computer/daemon implementation and the corresponding Grotto
+1. Read the Raft Computer/daemon implementation and the corresponding Haus
    Computer, Server, App, and CLI paths.
-2. Use Raft and Grotto as an ordinary user with matched requests.
+2. Use Raft and Haus as an ordinary user with matched requests.
 3. Record the observed product result and the execution evidence exposed by
    each product.
-4. Separate intended Grotto product differences from implementation defects.
+4. Separate intended Haus product differences from implementation defects.
 
 Live evidence remains in:
 
 - Raft `#market-ops-brief`:
   `https://app.raft.build/s/arcade/channel/2108bfb7-ede8-4d18-9f73-9f43128b56c5`
-- Grotto `#market-ops-brief`: chat `cht_oa0RoXz1vIPqBs9Z`
-- Grotto Wren DM: chat `cht_yAsSoU_pnAQr7c1G`
+- Haus `#market-ops-brief`: chat `cht_oa0RoXz1vIPqBs9Z`
+- Haus Wren DM: chat `cht_yAsSoU_pnAQr7c1G`
 
 ## Scenario results
 
-| Scenario | Raft | Grotto | Result |
+| Scenario | Raft | Haus | Result |
 | --- | --- | --- | --- |
-| Managed MCP call | Bob used the connected Linear MCP `get_issue` tool and returned the correct PRD-155 title/status. Activity and the MCP tab exposed the exact tool and usage. | Wren used a temporary Server-owned MCP connection and returned the same correct title/status. | Core call path passes. Grotto lacks comparable tool-use evidence. |
+| Managed MCP call | Bob used the connected Linear MCP `get_issue` tool and returned the correct PRD-155 title/status. Activity and the MCP tab exposed the exact tool and usage. | Wren used a temporary Server-owned MCP connection and returned the same correct title/status. | Core call path passes. Haus lacks comparable tool-use evidence. |
 | MCP grant revocation | Raft's Computer contract re-fetches the catalog and versions assignments so stale tools fail closed. | After revoking Wren's connection grant, the same request did not execute the tool. Wren reported that the service was “refusing connections.” | Authorization passes; diagnostics fail. |
 | Skill-backed answer | Bob read `decision-helper/SKILL.md` and produced a structured recommendation. Activity exposed the skill file read. | Wren imported `decision-helper` and produced a similarly structured recommendation on the next turn. Activity only reported “Sent 1 message(s).” | Behavior passes; import UX, metadata, and observability do not. |
 | Workspace create/read | Bob created `notes/market-ops-brief.md`; Raft exposed a tree, refresh, hidden toggle, size/mtime, and Raw/Preview. | Wren created the same file and the Agent Workspace tab read its exact contents. | Core persistence passes. |
-| Workspace link from chat | Raft's Agent workspace exposed the created file normally. | Wren returned a `grotto://workspace/...` link, but clicking it in hosted chat did nothing. | Grotto fails. |
+| Workspace link from chat | Raft's Agent workspace exposed the created file normally. | Wren returned a `haus://workspace/...` link, but clicking it in hosted chat did nothing. | Haus fails. |
 
 ## Confirmed strengths
 
@@ -93,7 +93,7 @@ failed connections omitted independently.
 The hosted chat builds an empty artifact target list and no-op target handlers.
 It also guesses `peerAgentId ?? agents[0]`, which is ambiguous in channels.
 Workspace resource targets do not identify the owning Agent. The live
-`grotto://workspace/...` click reproduced the failure.
+`haus://workspace/...` click reproduced the failure.
 
 Required correction: make workspace targets identify the Agent, route them
 through hosted artifact state, and fetch with both Server and Agent identity.
@@ -163,7 +163,7 @@ truthfulness and viewing controls.
 
 ### P2 — execution evidence is too coarse
 
-Raft Activity showed the exact MCP tool and skill file read. Grotto Activity
+Raft Activity showed the exact MCP tool and skill file read. Haus Activity
 only showed `completed Sent 1 message(s)`, making successful behavior difficult
 to audit or debug.
 
@@ -172,13 +172,13 @@ exposing secrets or raw private content.
 
 ## Intentional differences, not defects
 
-- Grotto keeps MCP credentials and execution on Server; Computer receives only
+- Haus keeps MCP credentials and execution on Server; Computer receives only
   scoped tools. This is the approved hosted model.
-- A Grotto grant is connection-level, not per-tool.
-- Grotto skills are isolated per Agent and imported from host sources. Raft
-  discovers ambient host-global skills. The Grotto model is deliberately safer
+- A Haus grant is connection-level, not per-tool.
+- Haus skills are isolated per Agent and imported from host sources. Raft
+  discovers ambient host-global skills. The Haus model is deliberately safer
   and should remain.
-- The current Grotto Agent MCP tab is an explicit access-control surface,
+- The current Haus Agent MCP tab is an explicit access-control surface,
   whereas Raft's live tab emphasizes usage. Removing per-Agent access control
   is not implied by this audit.
 

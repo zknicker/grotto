@@ -16,7 +16,7 @@ its own Triggers, the operator tRPC procedures behind the Agent profile's
 Automations tab, and the provenance surface that carries a fire onto the Agent's
 own message (ADR 0026), which reminders share. The two authoring surfaces share
 one core and manage the same rows. Wire schemas live in
-`packages/grotto-api/src/triggers.ts`, where `triggerKindSchema` is
+`packages/haus-api/src/triggers.ts`, where `triggerKindSchema` is
 `z.enum(['webhook'])`.
 
 ## Public inbound route
@@ -40,7 +40,7 @@ NUL byte, since PostgreSQL `text` cannot hold one. Only the excerpt carried in
 the Agent's envelope is altered: it arrives under a provenance line marking it as
 untrusted data, with every payload line indented two spaces so a body cannot forge
 an envelope header line, and the envelope's last line is
-`reply with: grotto message send --cause <fireId>`. See
+`reply with: haus message send --cause <fireId>`. See
 [specs/triggers.md](../../specs/triggers.md) for the exact envelope.
 
 A fire writes no Chat message and emits no durable event. It records the fire and
@@ -199,7 +199,7 @@ A fire reaches a conversation only through the Agent's own message. This surface
 is shared with reminders; `specs/automation-provenance.md` is the normative
 contract.
 
-`POST /api/agent/messages/send` (behind `grotto message send`) accepts an
+`POST /api/agent/messages/send` (behind `haus message send`) accepts an
 optional `cause`, the id of the fire the message answers. The Server checks that
 the fire exists in this Server, that its automation is owned by the sending
 Agent, and, for a Trigger fire, that the retained Trigger row still exists; a failure is
@@ -207,7 +207,7 @@ Agent, and, for a Trigger fire, that the retained Trigger row still exists; a fa
 message's own transaction. A send without `cause` is an ordinary message.
 
 Every message the Server returns carries an optional `cause`
-(`packages/grotto-api/src/chat.ts`), read from the message's own provenance row
+(`packages/haus-api/src/chat.ts`), read from the message's own provenance row
 so a client renders the mark from the message alone. The mark's own fields are
 snapshotted when the cause is recorded and outlive the automation; `live` is the
 automation as it stands now, and is null once the automation or the answered
@@ -246,6 +246,6 @@ stand. The operator-only `trigger.runs` is unchanged.
 Product logic lives in `apps/server/src/triggers/`. The public route is
 `trigger-route.ts` there, the Agent routes are
 `apps/server/src/agent-api/trigger-routes.ts`, and the tRPC features are
-`apps/server/src/grotto-api/trigger/` and
-`apps/server/src/grotto-api/automation/`; the CLI verbs live in
+`apps/server/src/haus-api/trigger/` and
+`apps/server/src/haus-api/automation/`; the CLI verbs live in
 `apps/computer/src/agent-cli/commands/`.

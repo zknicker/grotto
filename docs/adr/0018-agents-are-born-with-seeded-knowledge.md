@@ -41,7 +41,7 @@ reconnects before configuration completes. Everything in the seeded workspace
 remains editable.
 
 **Onboarding is an agent, and Cove is the recommended first Agent.** The
-Grotto onboarding experience ships as the `guide` archetype — an Agent
+Haus onboarding experience ships as the `guide` archetype — an Agent
 modeled on Raft's Cindy, seeded with an adapted playbook (open practical,
 route by intent, one next step per turn), a durable objectives file (status
 contract with persistent refusal-memory and a consent-gated local setup-scan
@@ -50,15 +50,15 @@ wizard. After the first Computer reports its installed Agent runtimes, the
 setup flow offers **Cove** — the guide archetype with the blob avatar — and
 requires the Owner to choose its Computer, Agent runtime, and model before
 explicitly creating it through the normal Agent creation path. The Owner may
-skip Cove and create another Agent. Grotto never creates or recreates Cove
+skip Cove and create another Agent. Haus never creates or recreates Cove
 merely because a Server has zero Agents. Creating Cove also creates the normal
-Owner-to-Cove DM, where onboarding begins; Grotto does not seed Raft's special
+Owner-to-Cove DM, where onboarding begins; Haus does not seed Raft's special
 private `#onboarding-owner` Channel.
 
 **No Agent is bootstrapped outside the create path.** The lazy `agt_primary`
 bootstrap is retired. Every agent — app-created, Cove, dev demo agents
 (Otto/Wren), and the e2e fixture — is created through the one runtime create
-path (`grotto/agent-create.ts`) with generated prod-shape ids and the seeded
+path (`haus/agent-create.ts`) with generated prod-shape ids and the seeded
 starter kit. Demo seeding resolves Otto/Wren by name on reseed; the blob
 avatar is reserved for Cove, and dev demo agents get pinned non-blob
 characters (Otto → robot, Wren → bird).
@@ -71,10 +71,10 @@ characters (Otto → robot, Wren → bird).
   surface. Existing grants are untouched; full retirement of that skill is a
   separate cleanup.
 - Seeded notes carry the full adapted cards, not summaries: Raft pairs
-  seeded summaries with an on-demand `manual get` tier, which Grotto defers
+  seeded summaries with an on-demand `manual get` tier, which Haus defers
   (D7), so the notes must stand alone.
 - Divergences from the Raft seed set: `login-with-raft` is excluded (no
-  Grotto service registry or agent-login until the WS6 era), and the cards'
+  Haus service registry or agent-login until the WS6 era), and the cards'
   "Proof it works" sections are dropped — they cite another team's history,
   and seeding them would fabricate the agent's own memory.
 - Sources live in `packages/agent-workspace/src/` (`starter-kit.ts`,

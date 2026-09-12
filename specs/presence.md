@@ -39,7 +39,7 @@ is no per-token churn.
 - **Sidebar rows**: each row's right edge carries its indicators; rows show
   no relative-time or "no activity yet" text.
   - Every chat kind shows an unread pill when the operator's read receipt
-    (runtime `chat_reads`, reader `usr_grotto`) trails the newest message
+    (runtime `chat_reads`, reader `usr_haus`) trails the newest message
     the operator did not author. Viewing a chat marks it read only while the
     App is foregrounded and the relevant message rows are visible. The App
     sends the highest visible message sequence through `chat.markRead`; the

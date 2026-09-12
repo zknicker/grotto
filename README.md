@@ -5,7 +5,7 @@ state, Haus App is the React product surface in browsers and Electron, and
 Haus Computer runs agents on an attached machine.
 
 The repository, package namespace, API types, environment variables, and dev
-state retain the internal `grotto` name.
+state retain the internal `haus` name.
 
 ## Architecture
 
@@ -13,17 +13,17 @@ state retain the internal `grotto` name.
 Haus App -> Haus Server -> Haus Computer -> Codex / Claude Code / Pi
 ```
 
-`packages/grotto-api` is the cross-boundary contract package. OpenAPI is the
+`packages/haus-api` is the cross-boundary contract package. OpenAPI is the
 wire source of truth, and the package also owns shared first-party contracts.
 
-`packages/grotto-sdk` is the TypeScript client over that API. Bots, webhooks,
+`packages/haus-sdk` is the TypeScript client over that API. Bots, webhooks,
 automations, local tools, tests, and the app use the SDK/API
 shape instead of a second protocol package.
 
 ## Repo Layout
 
-* `packages/grotto-api`: OpenAPI and shared Haus API contracts.
-* `packages/grotto-sdk`: TypeScript client wrapper for Haus API.
+* `packages/haus-api`: OpenAPI and shared Haus API contracts.
+* `packages/haus-sdk`: TypeScript client wrapper for Haus API.
 * `apps/server`: Haus Server and canonical collaboration state.
 * `apps/website`: Haus App, including the React UI and Electron shell.
 * `apps/computer`: Haus Computer and machine-local Agent execution.

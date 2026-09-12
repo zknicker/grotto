@@ -1,14 +1,14 @@
 # Identity And Membership
 
-Grotto users are real authenticated humans. Clerk is the identity provider;
-Grotto mints its own user ids and keys everything on those. One Runtime is
+Haus users are real authenticated humans. Clerk is the identity provider;
+Haus mints its own user ids and keys everything on those. One Runtime is
 owned by one user and serves that owner plus invited members. This is
 greenfield: no adoption or migration flows exist — a runtime without an owner
 is simply unclaimed.
 
 ## Product boundary
 
-- A `user` is one authenticated human with a stable `grotto user id`.
+- A `user` is one authenticated human with a stable `haus user id`.
   Clerk's user id is a unique external reference on the user record, never a
   key anywhere else. Profile fields (name, avatar, email) are refreshable
   snapshots from Clerk, never identity.
@@ -18,7 +18,7 @@ is simply unclaimed.
 - The Runtime is the tenant. There is no separate workspace/tenant record in
   v1: membership, chats, agents, and settings all belong to the runtime.
 - A `member` is one user's standing on a runtime: role `owner` or `member`.
-  Exactly one owner exists. The explicit bind is `grotto claim --clerk-key
+  Exactly one owner exists. The explicit bind is `haus claim --clerk-key
   <key> --user <clerk-user-id>` run on the runtime host — it configures
   Clerk verification and records the owner in one step; the app's
   connect-runtime page generates this command for the signed-in user. As a
@@ -38,7 +38,7 @@ never under a member's credentials.
 
 ## Authentication
 
-- Grotto App requires sign-in. With no locally cached identity the app shows
+- Haus App requires sign-in. With no locally cached identity the app shows
   only the sign-in gate.
 - The App attaches the Clerk session token to every server and Runtime
   request. Runtime verifies tokens against Clerk's JWKS (cached), resolves
@@ -67,10 +67,10 @@ never under a member's credentials.
 ## Data keying
 
 - Human authorship: messages, reads, receipts, reactions, and app
-  preferences key on `grotto user id`. A user's grotto id is their chat
+  preferences key on `haus user id`. A user's haus id is their chat
   participant id (`usr_…`). The server stamps the acting user resolved from
   the request's Clerk session token.
-- Keyless dev/e2e builds may use the synthetic user id `usr_grotto`; Agent-facing
+- Keyless dev/e2e builds may use the synthetic user id `usr_haus`; Agent-facing
   identity still projects that membership's real Server handle, never `@operator`.
 - Owner-scoped surfaces keep single-operator actors for now: session
   evidence views (`profile:self`), task work-order seeding, and

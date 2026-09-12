@@ -1,5 +1,5 @@
 ---
-summary: Decision to require Cove during fresh-Server setup, seed onboarding knowledge only for Cove, and give every Agent a shared read-only Grotto Manual.
+summary: Decision to require Cove during fresh-Server setup, seed onboarding knowledge only for Cove, and give every Agent a shared read-only Haus Manual.
 read_when:
   - changing fresh-Server onboarding, Computer connection, or Cove creation
   - changing Agent workspace seeding, archetypes, or factory-managed skills
@@ -16,10 +16,10 @@ onboarding-chat statements in ADR 0019. Existing Servers are not migrated.
 
 ## Context
 
-Grotto previously treated Raft's onboarding recipe summaries as a universal
+Haus previously treated Raft's onboarding recipe summaries as a universal
 workspace starter kit, promoted Raft's archetype reference cards into an Agent
 creation field, deferred the shared Manual, and made Cove optional. That
-deliberately shipped every Agent with practice files and a Grotto-only
+deliberately shipped every Agent with practice files and a Haus-only
 `save-as-a-skill` rule. It no longer matches the intended product or Raft's
 current behavior.
 
@@ -34,7 +34,7 @@ durable lanes, not Agent configuration.
 
 ### Fresh Servers require Cove
 
-A fresh Server enters a mandatory onboarding flow built with Grotto's HeroUI
+A fresh Server enters a mandatory onboarding flow built with Haus's HeroUI
 Pro design system and generated as a development-time starting point with
 HeroUI Pro's AI UI tooling. The general App remains unavailable during setup.
 
@@ -77,10 +77,10 @@ with:
   seeded-tier recipes.
 
 This matches Raft's onboarding Agent factory layout. The workspace remains
-Agent-owned after creation; Grotto does not create a `notes/recipes/` directory.
+Agent-owned after creation; Haus does not create a `notes/recipes/` directory.
 
-Raft's seeded tier has thirteen recipes. Grotto seeds twelve summaries because
-`login-with-raft` has no honest Grotto analogue. Each summary is a short
+Raft's seeded tier has thirteen recipes. Haus seeds twelve summaries because
+`login-with-raft` has no honest Haus analogue. Each summary is a short
 bootstrap version that points Cove to its full Manual card; the full cards are
 not copied into Cove's workspace.
 
@@ -94,13 +94,13 @@ permanent and never triggers automatic recreation. A Cove full reset restores
 the Cove factory workspace; an ordinary Agent full reset restores only its
 minimal `MEMORY.md`.
 
-### Every Agent can query the Grotto Manual
+### Every Agent can query the Haus Manual
 
-Grotto adds one release-owned, server-hosted, read-only **Grotto Manual for
+Haus adds one release-owned, server-hosted, read-only **Haus Manual for
 Agents**. Every authenticated Agent can use:
 
-- `grotto manual get <topic>`; and
-- `grotto manual search <keywords> [--scope recipes]`.
+- `haus manual get <topic>`; and
+- `haus manual search <keywords> [--scope recipes]`.
 
 Both operations require short natural-language `intent` and `reason` values,
 which the Server logs for observability. Agent guidance forbids credentials,
@@ -111,7 +111,7 @@ Manual browser.
 The initial Manual contains:
 
 - `index`;
-- `grotto-cli-overview`;
+- `haus-cli-overview`;
 - `agent`, `asks`, and `cloud-agents` product reference topics;
 - `recipes/index`;
 - `recipes/seeded`; and
@@ -120,21 +120,21 @@ The initial Manual contains:
 The cards comprise all thirty-three captured Raft Manual recipes except
 `technique/login-with-raft`. They retain their classes, topic ids, delivery
 tiers, substantive guidance, and valid cross-links. Raft nouns and commands
-become Grotto nouns and commands only where Grotto has an analogous
+become Haus nouns and commands only where Haus has an analogous
 capability. Unsupported claims are removed rather than approximated. The
 twenty query-tier cards include all seven archetype cards; those remain
 reference guidance available to every Agent.
 
 The product pages are references, not additional recipe cards. They carry
-Grotto's own capability contracts — since ADR 0028, the `agent` page carries the
-direct `grotto agent create` path and its consent norm — without adding a
-Grotto-only decision policy to the captured Raft recipe corpus.
+Haus's own capability contracts — since ADR 0028, the `agent` page carries the
+direct `haus agent create` path and its consent norm — without adding a
+Haus-only decision policy to the captured Raft recipe corpus.
 
-`grotto-cli-overview` is the expandable operating guide. The universal Agent
+`haus-cli-overview` is the expandable operating guide. The universal Agent
 prompt retains only mandatory operating rules and points Agents to this Manual
 topic when deeper guidance is needed.
 
-### Archetypes and the factory Grotto skill are retired
+### Archetypes and the factory Haus skill are retired
 
 Agent creation has no archetype field, picker, or automatic lane-note seed.
 Agents are created from a name, description, Computer, runtime, model, and
@@ -142,14 +142,14 @@ other real execution settings. Team lanes emerge through work and guidance;
 the Manual's archetype recipes may inform that conversation without becoming
 stored Agent types.
 
-The release-owned `grotto-agent` skill is removed. Raft has no equivalent
+The release-owned `haus-agent` skill is removed. Raft has no equivalent
 skill: mandatory behavior belongs in the prompt, expandable product guidance
 belongs in the Manual, and situational judgment belongs in recipe cards. The
-Grotto-only `save-as-a-skill` recipe is also removed; its proactive capture
+Haus-only `save-as-a-skill` recipe is also removed; its proactive capture
 policy is not part of the Raft-derived corpus.
 
-This does not remove Grotto's skill system. Each Agent keeps its isolated,
-writable skill library and the `grotto skill` create, view, patch, write-file,
+This does not remove Haus's skill system. Each Agent keeps its isolated,
+writable skill library and the `haus skill` create, view, patch, write-file,
 and delete operations. Agent-authored skills persist, and specialized
 release-owned skills such as `visuals` remain skills.
 

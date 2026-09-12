@@ -20,7 +20,7 @@ inbox item: a delivery planner queues items per attention rules, notice turns pr
 Agent pull discretion, and exact visibility plus a verified contiguous boundary are the
 only truth about what an agent has seen. Decisions I1–I4 in
 [raft-alignment/README.md](raft-alignment/README.md); wire surface in
-[grotto-cli.md](grotto-cli.md).
+[haus-cli.md](haus-cli.md).
 
 ## Item kinds and lifecycle
 
@@ -53,7 +53,7 @@ behind a queued fire retires that item rather than leaving it to replay.
 
 ## Cause inference (ADR 0026)
 
-An Agent that answers a fire attributes the answer itself with `grotto message send
+An Agent that answers a fire attributes the answer itself with `haus message send
 --cause <fireId>`, which records `attribution = 'explicit'` and always wins. When a send
 carries no `--cause`, the Server infers the cause under exactly one rule, and writes
 nothing otherwise:
@@ -77,7 +77,7 @@ A durable `message.created` is planned once by Server delivery
 
 - Ordinary delivery reaches joined channels, followed threads, and DMs.
   The author never receives their own message.
-- A channel mute (`agent_channel_mutes`, agent-owned via `grotto channel
+- A channel mute (`agent_channel_mutes`, agent-owned via `haus channel
   mute`) suppresses ordinary delivery from that channel itself. Followed
   threads keep delivering independently, so the Agent unfollows a specific
   thread to stop its ordinary delivery.
@@ -146,7 +146,7 @@ batched target rows with counts, first/latest short ids, latest sender, and
 `· thread / · dm / · task #N / · ask <status> to=@handle /
 · you were mentioned` tags — never bodies. The Ask tag reads the same status and
 addressee as the `[ask status=… to=@handle]` envelope suffix and the drain
-envelope's compressed `ask=<status>[:@handle]` marker (grotto-cli.md §4), from
+envelope's compressed `ask=<status>[:@handle]` marker (haus-cli.md §4), from
 one formatting owner. Rows are
 deduped by exact offered identities and repeat only when the pending set
 changes. Busy injection is acknowledged only after Computer durably caches the
@@ -168,7 +168,7 @@ This is runner-local projection state; Server exact pending and visibility rows 
 
 ## Pulls
 
-`grotto message check` serves Computer-local pending message envelopes first and falls
+`haus message check` serves Computer-local pending message envelopes first and falls
 through to Server when that local cache is empty or holds a pending Trigger or
 Reminder fire, whose body only the Server serves. A single invocation
 drains successive pages (up to 50 rounds) before reporting that more messages
@@ -180,7 +180,7 @@ its notice projection. Server advances `seen` only at settlement; a pull then
 crash/no-output clears stale local visibility evidence and re-exposes the
 canonical envelopes to the replayed turn. History, search, direct reads, and
 freshness-hold results require a Server visibility receipt for any pending
-identities before Computer returns the bodies. `grotto inbox check` lists
+identities before Computer returns the bodies. `haus inbox check` lists
 pending target rows without draining.
 
 ## Golden flow
@@ -201,7 +201,7 @@ is not a request; exact exposure is not settled consumption; and only settled `s
 work from catch-up. An unpulled row remains pending without immediately waking
 the Agent again. A pull followed by a crash replays from canonical Server state.
 
-Creating an Agent produces no inbox item at all. `grotto agent create` returns its receipt in the
+Creating an Agent produces no inbox item at all. `haus agent create` returns its receipt in the
 same command, the announcement Message reaches humans as an ordinary Chat message naming the new
 Agent by `@handle`, and the new Agent is configured without an empty bootstrap turn. Its first
 turn starts when its creator sends the working brief.
@@ -217,7 +217,7 @@ turn starts when its creator sends the working brief.
 | Accepted work and pull evidence survive reconnect or replay correctly | `apps/computer/src/delivery.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Unpulled work is offered once; new identities wake again; subsets and targets settle independently | `apps/server/test/agent-delivery.test.ts` |
 | Notices inject only at safe tool boundaries or remain durable for the next turn | `apps/computer/src/harness/executor.test.ts`, `apps/server/test/agent-delivery.test.ts` |
-| Creating an Agent creates no inbox item and no empty bootstrap turn for the new Agent | `apps/server/test/grotto-agent-creation.test.ts` |
+| Creating an Agent creates no inbox item and no empty bootstrap turn for the new Agent | `apps/server/test/haus-agent-creation.test.ts` |
 | Agent instructions teach notice, pull, silence, and deferral semantics without losing required capabilities | `apps/computer/src/harness/managed-instructions.test.ts` |
 
 ## Presentation split (I1/I4)

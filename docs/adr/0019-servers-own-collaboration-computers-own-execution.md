@@ -1,10 +1,10 @@
 ---
-summary: Decision to make hosted Grotto servers the durable collaboration boundary and attached Grotto Computers the local execution boundary.
+summary: Decision to make hosted Haus servers the durable collaboration boundary and attached Haus Computers the local execution boundary.
 read_when:
-  - changing the Grotto Server or Computer boundary
+  - changing the Haus Server or Computer boundary
   - changing Agent identity, membership, roles, Computer assignment, or execution configuration ownership
   - changing App-to-Server or Computer-to-Server transport
-  - changing hosted persistence, attachment storage, or the Grotto CLI split
+  - changing hosted persistence, attachment storage, or the Haus CLI split
 ---
 
 # ADR 0019: Servers Own Collaboration; Computers Own Execution
@@ -19,8 +19,8 @@ Computer setup decision while preserving the same execution boundary.
 
 ## Decision
 
-Grotto adopts Raft's hosted Server and attached Computer architecture. A
-Grotto server is the durable tenant: it owns Chats, humans, Agents, Server
+Haus adopts Raft's hosted Server and attached Computer architecture. A
+Haus server is the durable tenant: it owns Chats, humans, Agents, Server
 membership, roles, desired Agent execution configuration, tasks, reminders,
 attachments, and credentials issued to Agents and Computers. Humans and
 Agents are both Server members. Humans may hold Member, Admin, or Owner;
@@ -35,10 +35,10 @@ Computer execution data: the Server validates and stores it but never executes
 or interprets it. Pending reminder attention is an unacknowledged fire
 snapshot, not a transport, retry, drain, or acknowledgment protocol.
 
-Clerk authenticates humans only. Grotto stores its own stable Users, Server
+Clerk authenticates humans only. Haus stores its own stable Users, Server
 memberships, roles, ownership, and invites in PostgreSQL; a Clerk user id is
 only a unique external reference. Clerk Organizations and Clerk role metadata
-are not authorization sources. Agents use Grotto Server membership without
+are not authorization sources. Agents use Haus Server membership without
 Clerk identities.
 
 Human onboarding uses Server-owned email invitations. A human Owner or Admin
@@ -58,7 +58,7 @@ to `#all`; prior roles and private-Channel memberships are not restored. The
 last Owner remains ineligible for removal, demotion, or departure.
 
 Deleting an entire Server is an Owner-only permanent cascade and does not
-require deleting its Agents or Computers first. Grotto follows Raft's strict
+require deleting its Agents or Computers first. Haus follows Raft's strict
 danger-zone interaction: opening **Delete Server** shows a modal that names
 the Server and the categories of data being destroyed, states that the action
 cannot be undone, and requires the Owner to type the exact immutable Server
@@ -71,10 +71,10 @@ After confirmation, the Server is immediately disabled and its invites,
 memberships, Computer credentials, and pending work are revoked. PostgreSQL
 records and local attachment files are purged asynchronously. Online
 Computers receive a best-effort local cleanup command before disconnection;
-the dialog warns that Grotto cannot erase data from offline, lost, or
+the dialog warns that Haus cannot erase data from offline, lost, or
 destroyed machines. There is no restore path.
 
-Each Grotto server has a stable opaque id, an immutable globally unique slug,
+Each Haus server has a stable opaque id, an immutable globally unique slug,
 and an editable display name. Human-facing Server UI routes and Computer setup use
 the slug; stored relationships and protocol authorization use the id.
 
@@ -86,8 +86,8 @@ Agent.
 > Fresh Servers now require Cove and retain private `#onboarding-owner`; this
 > correction does not change the Server/Computer ownership boundary below.
 
-Grotto Computer is the local execution service. One installation may maintain
-isolated Computer attachments to multiple Grotto servers. A reusable,
+Haus Computer is the local execution service. One installation may maintain
+isolated Computer attachments to multiple Haus servers. A reusable,
 machine-local Computer login session authorizes management across the signed-in
 User's Servers; each attachment then uses its own revocable, Server-scoped
 Computer credential. Existing Server attachment daemons depend only on those Server-scoped
@@ -101,13 +101,13 @@ replacement Computer or adopts the old identity. Computers own Agent
 workspaces, provider credentials, executable model inventory, skill bundles,
 Agent sessions, processes, and effective execution state. An Agent is created on one Computer and that
 assignment is immutable. If the Computer is offline, its Agents remain
-assigned and offline until that same Computer reconnects. Grotto does not
+assigned and offline until that same Computer reconnects. Haus does not
 migrate, adopt, or restart an existing Agent on another Computer. A Computer
 cannot be removed while Agents remain assigned; each Agent must first be
 explicitly deleted through its confirmed deletion flow. The Server never
 silently substitutes an executor or model that a Computer cannot satisfy.
 
-One resident `grotto-computer` OS service supervises one isolated Server
+One resident `haus-computer` OS service supervises one isolated Server
 attachment daemon per Server attachment. Each daemon owns only that attachment's Computer
 credential, outbound socket, local state partition, Agents, workspaces, skill
 bundles, queues, and processes. These resources never
@@ -120,7 +120,7 @@ native runtime/model access.
 An Agent's one global session inherently serializes its turns. New work for a
 busy Agent waits in that Agent's pending inbox; no separate Agent scheduler is
 introduced. Different Agents run concurrently on the same Computer, including
-Agents owned by different Server attachments. Grotto Computer does not
+Agents owned by different Server attachments. Haus Computer does not
 serialize them through a Computer-wide job queue.
 
 Every executor, including Codex, Claude Code, and Pi, receives a universal,
@@ -136,13 +136,13 @@ runtime-specific variants, or compatibility filtering. A runtime-specific
 instruction that does not work under the new executor remains ordinary
 Agent-owned skill content. Runtime-specific references or environment injection
 expose the physical machine's native provider session without copying provider
-credentials into Grotto-owned state.
+credentials into Haus-owned state.
 
 Agents may create, edit, and delete bundles in their own libraries through
-`grotto skill`. The App may explicitly import a selected bundle from a
+`haus skill`. The App may explicitly import a selected bundle from a
 runtime-compatible global skill folder on the physical machine into one Agent
 library while its Computer is online. Those host folders are browseable import
-sources only; Grotto has no shared catalog, Server-owned skill assignment,
+sources only; Haus has no shared catalog, Server-owned skill assignment,
 automatic synchronization, or reconciliation flow. An imported bundle is an
 independent mutable copy.
 
@@ -160,7 +160,7 @@ mid-turn reload protocol exists.
 Removing a skill from an Agent is a confirmed deletion of that Agent's mutable
 copy, including any adaptations it contains. The dialog names both the Agent
 and skill and states that the copy will be deleted. It does not change the
-import source or another Agent's library, and Grotto keeps no archive or hidden
+import source or another Agent's library, and Haus keeps no archive or hidden
 disabled copy.
 
 The Computer reports compact Agent-skill metadata to the Server: name,
@@ -170,7 +170,7 @@ files remain Computer-local; authorized App viewing and mutation use the
 existing typed live relay and require the Computer online. The Server does not
 keep a second copy of skill contents.
 
-Running `grotto-computer setup /another-server` starts another child under the
+Running `haus-computer setup /another-server` starts another child under the
 existing service without stopping or detaching current Server attachments.
 `start` resumes every attachment by default and may target one Server;
 `stop` temporarily stops the local service and its children while preserving
@@ -182,7 +182,7 @@ Stopping, restarting, disconnecting, or failing one attachment does not
 disturb another attachment on the same physical machine.
 
 Computer updates are operator-triggered, matching Raft's Computer settings
-model and Grotto's existing Runtime update UX. The service reports its installed
+model and Haus's existing Runtime update UX. The service reports its installed
 version, available release, and update phase. An Owner or Admin starts an update
 from the App; the Server sends a typed update command over the Computer's
 existing attachment socket. The Computer downloads and verifies the signed
@@ -192,7 +192,7 @@ requested, byte-progress downloading, verifying, waiting-for-agents, installing,
 restarting, complete, and failed states. Restart uses prominent indeterminate
 progress through the expected disconnect and new bootstrap handshake. Offline
 Computers cannot update. Ordinary service startup never installs an update automatically.
-`grotto-computer upgrade` remains the local repair path. The resident binary is
+`haus-computer upgrade` remains the local repair path. The resident binary is
 shared by every attachment on the physical machine, so an update restarts all
 Server attachment daemons. An Owner or Admin of any attached Server may trigger a signed
 Computer update. Every attachment observes the update state and reconnect, but
@@ -215,24 +215,24 @@ in `update-required` mode: Agent execution, message delivery, and ordinary
 control remain disabled, while Owners and Admins can still repair it through
 the App. This is not a compatibility implementation for old Agent behavior.
 If a binary is too old to speak the bootstrap protocol, the App directs the
-operator to run `grotto-computer upgrade` locally.
+operator to run `haus-computer upgrade` locally.
 
 The release artifact, trust root, installation, rollback, coordinated release
 process, and responsive progress UX are detailed by
 [ADR 0020](0020-computer-ships-as-a-signed-standalone-release.md).
 
-Unlike Raft, Grotto has one production Computer release stream. There is no
+Unlike Raft, Haus has one production Computer release stream. There is no
 release-channel setting, alpha track, or pinned track. App-triggered updates and
-plain `grotto-computer upgrade` always target the latest production release.
+plain `haus-computer upgrade` always target the latest production release.
 
 Computer code and Computer data have separate roots. The signed standalone
-executable at `~/.local/bin/grotto-computer` contains the service and embedded
-managed Grotto CLI and is disposable. Computer identity, Server attachments,
+executable at `~/.local/bin/haus-computer` contains the service and embedded
+managed Haus CLI and is disposable. Computer identity, Server attachments,
 delivery queues, logs, credentials, and Agent workspaces live in the stable,
-version-independent `~/.grotto` data root. Update code may atomically replace
+version-independent `~/.haus` data root. Update code may atomically replace
 the executable but must never recursively replace, clean, relocate, or use the
 data root as a staging directory. Agent workspace contents are not update or
-local-schema migration inputs. Matching Raft's data-isolation level, Grotto
+local-schema migration inputs. Matching Raft's data-isolation level, Haus
 does not copy or snapshot the data root or Agent workspaces before an update.
 Small Computer-owned records use atomic temporary-write-and-rename; any future
 local database schema change is transactional.
@@ -242,12 +242,12 @@ queue, vault record, and Agent workspace intact. Reinstalling validates and
 resumes every still-valid attachment. Permanent cleanup remains an explicit
 product lifecycle operation, never an installer side effect.
 
-Grotto now copies Raft's standalone-binary recovery model. The production
+Haus now copies Raft's standalone-binary recovery model. The production
 updater downloads a signed platform executable, verifies it, atomically swaps
 it, and retains one previous verified executable for explicit rollback. See
 ADR 0020 for the current release contract.
 
-WS6 supports Apple Silicon macOS only. Grotto Computer has one signed and
+WS6 supports Apple Silicon macOS only. Haus Computer has one signed and
 notarized standalone executable plus one launchd service implementation and
 reports operating system and architecture in its handshake. WS6 adds no Linux,
 Intel Mac, Windows, or generic service-manager abstraction.
@@ -255,31 +255,31 @@ Intel Mac, Windows, or generic service-manager abstraction.
 Computer secrets use Raft-style locked-down local files rather than macOS
 Keychain. Each durable Server attachment credential lives in its own
 atomically-written mode-`0600` file under that attachment's data partition.
-Per-launch Agent runner credentials remain memory-only inside Grotto Computer
+Per-launch Agent runner credentials remain memory-only inside Haus Computer
 and are revoked at launch end. The Agent receives only a per-launch local proxy
 token in a mode-`0600` file; normal shutdown removes it and startup sweeps
-orphaned tokens after crashes. MCP credentials remain on Grotto Server.
+orphaned tokens after crashes. MCP credentials remain on Haus Server.
 Secret values never enter logs, traces, update metadata, or Server-visible
 diagnostics.
 
-Model-provider access is physical-machine-wide, matching Raft. Grotto Computer
+Model-provider access is physical-machine-wide, matching Raft. Haus Computer
 reuses the host's installed runtimes, subscriptions, and provider sessions
 such as Codex OAuth rather than creating separate provider logins per Server
 or Agent. Every attachment may report sanitized runtime/model availability and
 health, and that Server's Owners and Admins may assign Agents to those
 available models. Provider setup and authentication use the runtime's native
-local flow. Grotto Computer only detects availability: Grotto has no provider
+local flow. Haus Computer only detects availability: Haus has no provider
 credential form, vault record, or relay. The Computer attachment
 acknowledgement explicitly includes this sharing of paid execution capacity.
 
 MCP is a Server service, not Computer execution state. Every configured remote
 HTTP MCP connection, credential, OAuth attempt, discovered tool, client
-session, and Agent grant belongs to one Grotto Server. The Server terminates
+session, and Agent grant belongs to one Haus Server. The Server terminates
 MCP and auth, persists secrets outside public tRPC shapes, and invokes upstream
 tools. Computer receives only safe schemas and returns calls through its scoped
 per-run Server credential. It cannot read or reuse MCP credentials.
 
-MCP OAuth remains remotely operable because Grotto Server owns PKCE, the
+MCP OAuth remains remotely operable because Haus Server owns PKCE, the
 hosted callback, code exchange, refresh tokens, and authorization-server trust.
 Computer does not participate. Google Calendar and MerchBase are endpoint/auth
 presets on this path. Custom connections support no auth, secret headers, or
@@ -291,10 +291,10 @@ it; Members and Agent Admins may not manage Computer lifecycle or provider
 credentials. Attachment records the initiating User for audit and requires
 explicit acknowledgement that Server administrators can consume the
 Computer's configured execution capacity. Its local operator can always stop
-or uninstall `grotto-computer`; stopping preserves every attachment and local
+or uninstall `haus-computer`; stopping preserves every attachment and local
 workspace.
 
-Grotto has no Computer detach, forget, reclaim, or adoption flow. A human
+Haus has no Computer detach, forget, reclaim, or adoption flow. A human
 Owner or Admin removes a Computer through a confirmation dialog in the App,
 and only after every assigned Agent has been explicitly deleted. Agent
 deletion remains available while the Computer is offline and commits entirely
@@ -310,35 +310,35 @@ that flow.
 
 The command surface splits cleanly:
 
-- `grotto` is the Agent-facing Server CLI. A managed Agent calls a
-  localhost Grotto Computer proxy using a narrow per-Agent proxy credential;
+- `haus` is the Agent-facing Server CLI. A managed Agent calls a
+  localhost Haus Computer proxy using a narrow per-Agent proxy credential;
   the Computer forwards the action to the hosted Server. Before starting each
   Agent launch, the Computer uses its Computer credential to mint a scoped,
   revocable Agent runner credential. The Computer keeps that credential
   behind the proxy and revokes it when the launch ends; the Agent process
   receives only the local proxy credential.
-- `grotto-computer` installs, attaches, inspects, updates, and controls the
+- `haus-computer` installs, attaches, inspects, updates, and controls the
   local Computer service.
 
 These are separate command surfaces but not separate managed release
-artifacts. `grotto-computer` embeds the Agent CLI implementation behind an
-internal entrypoint; each managed Agent receives a generated `grotto` wrapper
-that re-executes that entrypoint with its local proxy context. Grotto does not
+artifacts. `haus-computer` embeds the Agent CLI implementation behind an
+internal entrypoint; each managed Agent receives a generated `haus` wrapper
+that re-executes that entrypoint with its local proxy context. Haus does not
 publish a standalone Agent CLI package while external Agents remain out of
 scope.
 
-External Agents are not part of WS6 or the near-term architecture. Grotto does
+External Agents are not part of WS6 or the near-term architecture. Haus does
 not add direct Agent login, hosted Agent credential profiles, or an external
 wake bridge, and it does not introduce extension points for them.
 
-Grotto App connects directly to the hosted Server through typed tRPC over
+Haus App connects directly to the hosted Server through typed tRPC over
 HTTPS and WebSocket. The packaged local app server and SQLite projection
 retire. Electron remains an optional thin shell with a narrow typed IPC bridge
 for native windows, links, authentication storage, and desktop updates; no
 product operation is routed through IPC.
 
 Each Computer attachment maintains one outbound, Computer-authenticated
-WebSocket to the hosted Server. Grotto Computer independently supervises every
+WebSocket to the hosted Server. Haus Computer independently supervises every
 attachment connection. The socket carries typed start, canonical message
 delivery, lifecycle, local-inspection, and Computer-control messages rather
 than a generic tunnel. App tRPC and Agent actions remain ordinary Server API
@@ -351,7 +351,7 @@ after it has accepted the envelope into the Agent's pending inbox or start
 path. That transport acknowledgement does not advance the model-seen cursor.
 Ordinary wake and busy-runtime inputs contain only pending-target metadata;
 the full envelope remains in the Computer inbox until the Agent drains it
-through `grotto message check`, whose localhost proxy answers from the local
+through `haus message check`, whose localhost proxy answers from the local
 inbox before falling through to the hosted Server. Configuration is sent as a
 current snapshot on connect, while status updates remain best-effort socket signals.
 ADR 0023 adds durable semantic activity metadata while keeping detailed execution journals local.
@@ -363,7 +363,7 @@ execution assignment, reminders, and task claims while preserving past
 messages and attachments under a tombstoned author identity. Computer-local
 workspace cleanup is an asynchronous durable command: deletion does not wait
 for an offline Computer, and cleanup runs if it reconnects before the Computer
-attachment is removed. Grotto does not provide Agent restore or deletion
+attachment is removed. Haus does not provide Agent restore or deletion
 recovery.
 
 Computers continuously publish compact turn summaries and effective execution
@@ -379,16 +379,16 @@ local resource is then absent, the Computer reports degraded configuration;
 it never substitutes another resource.
 
 Matching Raft, a runtime or model change takes effect after the active turn
-finishes and starts a fresh Agent session generation on the next turn. Grotto
+finishes and starts a fresh Agent session generation on the next turn. Haus
 does not translate or replay an executor transcript across runtimes. The
 Agent's identity, workspace, `MEMORY.md`, and canonical skill library persist.
 Session age and Computer downtime never cause rotation. Apart from explicit
-human reset or runtime/model change, Grotto resumes the current session and
+human reset or runtime/model change, Haus resumes the current session and
 delegates context compaction to the executor. Matching Raft Computer, a
 missing stored runtime session or provider-rejected replay automatically
 rotates the Agent session generation and cold-starts once. Activity and the
 fresh runtime context explicitly state that earlier context was not restored
-and direct recovery from Grotto history plus local `MEMORY.md`/notes. Only a
+and direct recovery from Haus history plus local `MEMORY.md`/notes. Only a
 failed cold start leaves the Agent offline with an error.
 
 Agent lifecycle keeps Raft's three-level repair ladder. **Restart** restarts

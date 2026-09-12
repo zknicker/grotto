@@ -1,11 +1,11 @@
-# Grotto agent CLI and wire contract (WS1)
+# Haus agent CLI and wire contract (WS1)
 
-Normative contract for the agent-facing `grotto` CLI and the HTTP surface behind
+Normative contract for the agent-facing `haus` CLI and the HTTP surface behind
 it. This is the shared interface of the Raft-alignment program
 ([specs/raft-alignment/README.md](raft-alignment/README.md)): WS2 teaches it in
-the prompt, WS3–WS5 add verbs to it, WS6 moves its server side to grotto.sh
-without changing it. The wire contract IS the future grotto.sh server API —
-served today from the chat surface of `@grotto/api` co-hosted in the local
+the prompt, WS3–WS5 add verbs to it, WS6 moves its server side to haus.chat
+without changing it. The wire contract IS the future haus.chat server API —
+served today from the chat surface of `@haus/api` co-hosted in the local
 Runtime process.
 
 Grounding: decisions D1/D2/D5/D6 and I3 in the program contract; wire audit of
@@ -14,32 +14,32 @@ Grounding: decisions D1/D2/D5/D6 and I3 in the program contract; wire audit of
 shipped Raft are listed in §10 — everything else copies Raft's observed
 behavior.
 
-Before WS6 the operator and Agent surfaces share the current `grotto` binary.
-WS6 extracts the operator surface into `grotto-computer`; the Agent contract
-below remains `grotto`.
+Before WS6 the operator and Agent surfaces share the current `haus` binary.
+WS6 extracts the operator surface into `haus-computer`; the Agent contract
+below remains `haus`.
 
 ## 1. Shape
 
-- **One Agent CLI.** `grotto` is only the Agent-facing Server command surface.
-  Human local-service operations move to the separate `grotto-computer` CLI in
+- **One Agent CLI.** `haus` is only the Agent-facing Server command surface.
+  Human local-service operations move to the separate `haus-computer` CLI in
   WS6. The surfaces have separate command names but one managed release
-  artifact: `grotto-computer` embeds an internal Agent CLI entrypoint, and the
-  injected `grotto` wrapper re-executes it. Grotto does not publish a
+  artifact: `haus-computer` embeds an internal Agent CLI entrypoint, and the
+  injected `haus` wrapper re-executes it. Haus does not publish a
   standalone Agent CLI package while external Agents remain out of scope.
 - **One command per shell call** (prompt rule, WS2). Canonical text on stdout;
   errors on stderr per §5. No TTY UI, no color in agent shells.
 - **Per-agent wrapper injection.** For every agent turn, the runtime prepends a
-  per-agent bin directory to the tool shell's PATH containing a `grotto`
-  wrapper that re-executes the installed `grotto-computer` binary's internal
+  per-agent bin directory to the tool shell's PATH containing a `haus`
+  wrapper that re-executes the installed `haus-computer` binary's internal
   Agent CLI entrypoint with identity env baked in:
 
   | Env | Meaning |
   | --- | --- |
-  | `GROTTO_AGENT_ID` | The agent's id (`agt_…`) |
-  | `GROTTO_SERVER_URL` | Hosted Server base URL, retained as context rather than a direct CLI target |
-  | `GROTTO_AGENT_PROXY_URL` | Per-launch loopback Grotto Computer proxy |
-  | `GROTTO_AGENT_PROXY_TOKEN_FILE` | Path to the local proxy token, mode 0600 |
-  | `GROTTO_COMPOSITION_ID` | Optional; minted per tool call by the harness observer (§6) |
+  | `HAUS_AGENT_ID` | The agent's id (`agt_…`) |
+  | `HAUS_SERVER_URL` | Hosted Server base URL, retained as context rather than a direct CLI target |
+  | `HAUS_AGENT_PROXY_URL` | Per-launch loopback Haus Computer proxy |
+  | `HAUS_AGENT_PROXY_TOKEN_FILE` | Path to the local proxy token, mode 0600 |
+  | `HAUS_COMPOSITION_ID` | Optional; minted per tool call by the harness observer (§6) |
 
   Missing/unreadable identity env fails closed with `MISSING_*` / `TOKEN_*`
   codes and a `Next action:` hint — never a fallback to the runtime token, the
@@ -50,7 +50,7 @@ below remains `grotto`.
   (`resolveRuntimeRequestAuth`) gains a third principal:
   `{ kind: 'agent-token', agentId }`, valid **only** for `/api/agent/*` routes.
   The credential reaches the Agent **only as a token file path** before WS6:
-  the wrapper sets `GROTTO_AGENT_TOKEN_FILE`; no token-bearing env var exists.
+  the wrapper sets `HAUS_AGENT_TOKEN_FILE`; no token-bearing env var exists.
   Tokens **rotate automatically on agent session reset**; the operator can
   also mint/rotate directly.
 - **WS6 transport: CLI → Computer proxy → Server.** The wrapper authenticates
@@ -79,11 +79,11 @@ presentation plus a Server-scoped handle for addressing and mentions.
   spirit: no compat paths).
 - **Reserved handles** (case-insensitive, both participant kinds): `all`,
   `everyone`, `here`, `human`, `humans`, `agent`, `agents`, `system`, `idle`,
-  `busy`, `grotto`, `cove`. Grotto's onboarding factory alone owns the reserved
+  `busy`, `haus`, `cove`. Haus's onboarding factory alone owns the reserved
   `cove` identity.
 - **Resolution is server-side and fails closed.** Every route accepts grammar
   strings (`#name`, `dm:@name`, …) and resolves them at action time. Unknown
-  handle → 404 → CLI `TARGET_NOT_FOUND` with the nearest teaching (`grotto
+  handle → 404 → CLI `TARGET_NOT_FOUND` with the nearest teaching (`haus
   server info --channels` / `--agents`). No client-side caches of handle→id.
   Observed participant labels from external frontends are facts, not handle
   registrations — they are never write-blocked; a label that collides with a
@@ -131,7 +131,7 @@ Copied byte-for-byte from shipped Raft formatting (audited), renamed:
 **History line** (`message read`):
 
 ```
-[seq=42 msg=msg_1a2b3c4d… time=2026-07-21 14:02:11 type=agent threadId=… replyCount=2 replyTarget=#general:1a2b3c4d] @Grotto — resident generalist: done
+[seq=42 msg=msg_1a2b3c4d… time=2026-07-21 14:02:11 type=agent threadId=… replyCount=2 replyTarget=#general:1a2b3c4d] @Haus — resident generalist: done
 ```
 
 Rules:
@@ -149,7 +149,7 @@ Rules:
   `replyTarget` is computed (`<target>:<shortId>`) and omitted when the target
   is already a thread. (Populated from WS3 on; absent before.)
 - Suffixes, in order: attachments
-  (`[2 attachments: a.png (id:att_…), … — use grotto attachment view to download]`, WS5),
+  (`[2 attachments: a.png (id:att_…), … — use haus attachment view to download]`, WS5),
   task (`[task #N status=… assignee=…]`, WS5), ask (`[ask status=open|answered to=@handle]`),
   cloud agent work (`[cloud-agent-work status=… title=… pr=#N]`, the pull request omitted until
   the Run reports one).
@@ -159,7 +159,7 @@ Rules:
   `ask=open|answered[:@handle]` (the addressee is omitted when the Ask has
   none), then `mentioned=true`. Suffix and marker grammars share one
   formatting owner (`apps/computer/src/inbox-format.ts`), except the
-  Cloud Agent suffix, which is owned beside its schema in `@grotto/api` because
+  Cloud Agent suffix, which is owned beside its schema in `@haus/api` because
   every layer prints it.
 - Every message also carries `body_kind` (`text | ask | cloud-agent-work`) on the
   wire, with the Ask's own facts under `ask` (`id`, `status`, `addressee_handle`,
@@ -168,7 +168,7 @@ Rules:
   `provider_url`, `activity`, and the `latest_run` with its status, summary,
   error code, and branches) so a reader can act without a second call.
 - A settled Cloud Agent Run arrives as its own bodiless attention envelope —
-  `[Grotto cloud agent attention status=… work=… run=… target=…]` with the
+  `[Haus cloud agent attention status=… work=… run=… target=…]` with the
   title, repository, summary, error code, branches, and provider URL. Its `msg=`
   prints `-`: a Run id addresses no Chat message.
 
@@ -223,7 +223,7 @@ Agent shells see only the agent surface: with agent identity env present,
 operator commands fail with `OPERATOR_COMMAND_UNAVAILABLE` — the CLI never
 exposes operator credentials or verbs to an agent context.
 
-**Message bodies are stdin-only.** Heredoc with the `GROTTOMSG` delimiter is
+**Message bodies are stdin-only.** Heredoc with the `HAUSMSG` delimiter is
 the taught form; `--content` and positional content are rejected
 (`CONTENT_FLAG_UNSUPPORTED` / `POSITIONAL_CONTENT_UNSUPPORTED`) with the
 heredoc recipe in the error. Empty stdin / TTY → `MISSING_CONTENT`.
@@ -232,9 +232,9 @@ or committing an Agent message. Leading indentation and whitespace inside the
 message remain byte-for-byte intact.
 
 ```bash
-grotto message send --target "#general" <<'GROTTOMSG'
+haus message send --target "#general" <<'HAUSMSG'
 Body with "quotes", $vars, `backticks`.
-GROTTOMSG
+HAUSMSG
 ```
 
 ## 6. Attested sends and drafts
@@ -295,7 +295,7 @@ Flow for `message send --target <t>`:
 
 **Divergence (approved, ruling W1a):** shipped Raft holds drafts *client-side*
 in a tmpdir. We hold them server-side because the server is the record (I3),
-agent shells are ephemeral, and grotto.sh must survive machine hops.
+agent shells are ephemeral, and haus.chat must survive machine hops.
 
 ### 6a. Sending with a cause
 
@@ -319,7 +319,7 @@ companion `--kind`. Each fire an Agent acts on gets its own message; answers to
 different fires never share a Thread. See `specs/automation-provenance.md`.
 
 **Composition is not a CLI handoff (ADR 0023).** The CLI sends no composition identity, and durable
-messages need no provisional-row reconciliation. Grotto does not infer Chat-scoped typing from
+messages need no provisional-row reconciliation. Haus does not infer Chat-scoped typing from
 inbox work or partial `message send` arguments.
 
 ## 7. Verb surface and ownership
@@ -362,7 +362,7 @@ a stable code and never fake data. Not copied from Raft: `agent login/bridge`,
 ## 8. Server API (`/api/agent/*`)
 
 New route group on the chat surface, agent-token auth, target strings resolved
-server-side per action. This group is the grotto.sh agent API; WS6 relocates
+server-side per action. This group is the haus.chat agent API; WS6 relocates
 it unchanged.
 
 ```http
@@ -427,7 +427,7 @@ POST /api/agent/cloud-agents/cancel { workId } → { work }
 | Auth principal | Per-launch local proxy token; scoped runner credential remains inside Computer |
 | Routes | Server `/api/agent/*` handlers and Computer proxy routing |
 | Freshness and drafts | Server-owned delivery ledger plus Computer-local pending inbox state |
-| Contracts | `packages/grotto-api` OpenAPI and hosted Agent contracts |
+| Contracts | `packages/haus-api` OpenAPI and hosted Agent contracts |
 
 ## 10. Audited divergences from shipped Raft
 
@@ -435,18 +435,18 @@ All approved by operator ruling W1 (program contract, 2026-07-21).
 
 | Divergence | Why |
 | --- | --- |
-| Server-held drafts (Raft: CLI tmpdir, 10-min TTL, client-supplied `seenUpToSeq`) | The runtime is the witness, the server is the record (W1a); ephemeral agent shells; grotto.sh future. The program contract had described Raft incorrectly — holding server-side is our choice, not parity. |
+| Server-held drafts (Raft: CLI tmpdir, 10-min TTL, client-supplied `seenUpToSeq`) | The runtime is the witness, the server is the record (W1a); ephemeral agent shells; haus.chat future. The program contract had described Raft incorrectly — holding server-side is our choice, not parity. |
 | Before WS6 the CLI calls the co-hosted Runtime directly; WS6 adopts Raft's `CLI → localhost Computer proxy → hosted Server` path | A managed Agent receives only a local proxy token. The Computer may satisfy pending inbox reads locally and forwards with a scoped, per-launch runner credential that it mints and revokes through its Computer authority. |
-| Handle rule owned by Grotto (single token 1–32) | Raft's rule is not observable in the wire layer (npm schema caps at 60, no reserved list client-side); we define our own and say so. |
+| Handle rule owned by Haus (single token 1–32) | Raft's rule is not observable in the wire layer (npm schema caps at 60, no reserved list client-side); we define our own and say so. |
 | Server-side list pagination on `server info` | We are designing the server API; Raft's client-side slicing is an artifact of its fat response. |
 | Targets resolved per-action server-side; no client-visible `resolve-channel` two-step | Simpler wire contract; the two-step is a Raft-internal REST artifact. |
-| `GROTTOMSG` delimiter | Naming parity with `RAFTMSG` (current npm), ours. |
-| Chat typing outside message sends | Grotto does not infer typing from Agent work; the CLI has no composition id. |
+| `HAUSMSG` delimiter | Naming parity with `RAFTMSG` (current npm), ours. |
+| Chat typing outside message sends | Haus does not infer typing from Agent work; the CLI has no composition id. |
 | `attachment upload` takes no `--target` (Raft's does) | Upload is decoupled from posting; the message send carries `--attachment-id`, so an upload never implies a visible post (WS5). |
-| Reminder and Trigger fires post no receipt in chat, and the Agent answers with `grotto message send --cause <fireId>` | Not a divergence: Raft delivers a fire as a transient `msg=-` notice and a typed app inbox item, not a durable chat row, and the receipt sentence in its prompt was never corroborated. The divergence is `--cause`, which Raft has no equivalent of: a Grotto answer names the exact fire it answers, and that provenance feeds the header mark, hover card, and Thread context card (ADR 0026). |
+| Reminder and Trigger fires post no receipt in chat, and the Agent answers with `haus message send --cause <fireId>` | Not a divergence: Raft delivers a fire as a transient `msg=-` notice and a typed app inbox item, not a durable chat row, and the receipt sentence in its prompt was never corroborated. The divergence is `--cause`, which Raft has no equivalent of: a Haus answer names the exact fire it answers, and that provenance feeds the header mark, hover card, and Thread context card (ADR 0026). |
 | `reminder schedule` has no `--channel` anchor variant | The prompt teaches message anchors explicitly (anchorless reminders lose their context); Raft's `--channel` flag semantics are unverified in the wire layer (WS5). |
 | `task create` requires `--target` | Raft's surface listing omits it, but a stateless CLI cannot infer "the current channel"; unverified against live Raft (WS5). |
-| `skill` family is Grotto-owned | Raft has no skill verbs; family 9 replaces our retired `skills_*` engine tools (D5/W2). |
+| `skill` family is Haus-owned | Raft has no skill verbs; family 9 replaces our retired `skills_*` engine tools (D5/W2). |
 
 ## 11. Manual cutover checklist (WS1)
 
@@ -455,7 +455,7 @@ Additive workstream — no data destruction. With the operator, live:
 1. Assign handles: rename existing agents/channels/humans to valid unique
    handles (collisions resolved by hand; renames are permanent).
 2. Mint agent tokens for existing agents on the dev runtime, then the mini.
-3. Verify wrapper injection: in an agent turn shell, `grotto` resolves to the
+3. Verify wrapper injection: in an agent turn shell, `haus` resolves to the
    wrapper, identity env is present, and another agent's token is not
    reachable.
 4. Smoke in a temp chat (`Codex smoke <timestamp>: WS1`): one fresh send, one

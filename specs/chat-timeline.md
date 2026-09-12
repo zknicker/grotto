@@ -4,7 +4,7 @@ The chat timeline is the conversation. Agent execution is evidence at agent
 level. They are separate models with separate contracts, and they never mix
 in one projection. Amended by
 [ADR 0014](../docs/adr/0014-cli-is-the-agents-only-output-channel.md): agents
-speak only via `grotto message send`, so the timeline carries no turn-shaped
+speak only via `haus message send`, so the timeline carries no turn-shaped
 rows at all.
 
 ## Product Expectations

@@ -7,7 +7,7 @@ read_when:
 
 # Docs Policy
 
-Grotto docs describe Grotto product contracts first. Implementation details are
+Haus docs describe Haus product contracts first. Implementation details are
 allowed when they explain ownership or operational behavior, but they should not
 become product nouns.
 
@@ -56,8 +56,8 @@ When behavior changes:
 
 ## Boundaries
 
-Grotto Server owns collaboration state and desired Agent configuration. Grotto Computer owns
+Haus Server owns collaboration state and desired Agent configuration. Haus Computer owns
 machine-local runtime discovery, model inventory, Agent sessions, tools, turns, and effective
-execution state. Grotto App owns presentation and local interaction state.
+execution state. Haus App owns presentation and local interaction state.
 
 Docs should keep that ownership clear.

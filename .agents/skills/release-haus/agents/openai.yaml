@@ -1,0 +1,4 @@
+interface:
+  display_name: "Haus Release"
+  short_description: "Plan, prepare, monitor, and hand off a Haus release"
+  default_prompt: "Use $release-haus to prepare and monitor the next Haus release."

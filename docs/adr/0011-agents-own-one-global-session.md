@@ -35,11 +35,11 @@ Raft ships the alternative at production quality and we verified its
 mechanics against the installed runtime: one persistent harness session per
 agent across every channel, DM, thread, and task; a per-target model-seen
 ledger between canonical history and model context; no scheduler beyond the
-inbox itself; no scheduled rotation; human-only resets. Grotto already
+inbox itself; no scheduled rotation; human-only resets. Haus already
 landed the delivery groundwork (busy delivery, freshness gate,
 default-evaluate addressing).
 
-Grotto is a single-operator product today with small trusted teams as the
+Haus is a single-operator product today with small trusted teams as the
 likely multi-human future.
 
 ## Decision
@@ -80,7 +80,7 @@ likely multi-human future.
   that its stored runtime session is missing or replay is rejected, Runtime
   rotates the Agent session generation and cold-starts once. Activity and the
   fresh context state that earlier runtime context was not restored and direct
-  recovery from Grotto history plus `MEMORY.md`/notes. Only a failed cold start
+  recovery from Haus history plus `MEMORY.md`/notes. Only a failed cold start
   leaves the Agent offline with an error.
 - **Reset is a human-initiated, agent-scoped contract** living in agent
   settings: restart (recreate the executor, resume the current native

@@ -14,19 +14,19 @@ Server canonicalizes known tokens once at send time before persisting the
 message:
 
 ```md
-[@Grotto](agent://agt_primary)
+[@Haus](agent://agt_primary)
 [@Ada Lovelace](user://usr_ada)
 [$ui](skill://ui)
 [@Computer Use](plugin://computer-use@openai-bundled)
 [@Chrome](app://computer-use/com.google.Chrome)
 [#product](chat://cht_product)
-[mentions.md](/Users/zknicker/.codex/worktrees/1b41/grotto/specs/mentions.md)
-[#482](pr://github/grotto/grotto/482)
+[mentions.md](/Users/zknicker/.codex/worktrees/1b41/haus/specs/mentions.md)
+[#482](pr://github/haus/haus/482)
 ```
 
 Autocomplete inserts friendly text while editing, then the composer serializes
-the selected reference into Markdown. Grotto does not persist a parallel
-`metadata.grotto.mentions` index for user-authored messages. Metadata may carry
+the selected reference into Markdown. Haus does not persist a parallel
+`metadata.haus.mentions` index for user-authored messages. Metadata may carry
 local picker or chip appearance while editing, but saved messages must render
 and route from content alone.
 
@@ -71,9 +71,9 @@ attachments are not part of this typed-link contract.
 
 ## Rendering
 
-Grotto renders recognized links as compact chips in the composer, transcript,
+Haus renders recognized links as compact chips in the composer, transcript,
 prompt inspector, and other message surfaces. Rendering is presentation only:
-the markdown remains readable without Grotto.
+the markdown remains readable without Haus.
 
 Known skills, plugins, apps, and agents may receive richer icons or labels from
 their kind and target. Transcript rendering reconstructs chips by parsing the
@@ -118,7 +118,7 @@ current description. The reference content
 strengthens slightly on hover and focus, deepening in the light theme and
 brightening in the dark theme.
 
-Settled transcript content renders through HeroUI Markdown. Typed Grotto links
+Settled transcript content renders through HeroUI Markdown. Typed Haus links
 are projected into reference chips without changing the stored Markdown. Agent
 and chat chips are interactive: Agent chips open the Agent profile, and chat
 chips open the referenced channel.
@@ -141,7 +141,7 @@ Examples:
 
 | Source | Option identity | Serialized markdown |
 | --- | --- | --- |
-| Agent | `kind: "agent"`, `id: "agent://agt_primary"`, `insertText: "@Grotto"` | `[@Grotto](agent://agt_primary)` |
+| Agent | `kind: "agent"`, `id: "agent://agt_primary"`, `insertText: "@Haus"` | `[@Haus](agent://agt_primary)` |
 | Human | `kind: "user"`, `id: "user://usr_ada"`, `insertText: "@Ada Lovelace"` | `[@Ada Lovelace](user://usr_ada)` |
 | Skill | `kind: "skill"`, `id: "skill://ui"`, `insertText: "ui"` | `[$ui](skill://ui)` |
 | Plugin | `kind: "plugin"`, `id: "plugin://computer-use@openai-bundled"`, `insertText: "Computer Use"` | `[@Computer Use](plugin://computer-use@openai-bundled)` |
@@ -150,7 +150,7 @@ Examples:
 
 ## Runtime Behavior
 
-Runtime projection parses the content with Grotto's shared rich-reference
+Runtime projection parses the content with Haus's shared rich-reference
 parser:
 
 - Agent references decode `agent://...` targets and are validated against the
@@ -189,7 +189,7 @@ New rich references should follow the same rules:
   Agent send path may accept bare `@handle` and `#channel` input only when it
   canonicalizes each known token before persistence.
 - Use a durable, typed target.
-- Keep message content readable without Grotto.
+- Keep message content readable without Haus.
 - Do not rely on persisted mention metadata for identity.
 - Add parser, rendering, routing, and projection tests before exposing the
   reference in autocomplete or Agent output.

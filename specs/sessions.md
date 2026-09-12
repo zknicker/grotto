@@ -16,7 +16,7 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   session per agent, backed by opaque engine resume state.
 - `AgentTurn` is one execution inside the session, anchored to the session
   itself (floating, I1) — never to a chat. A turn's output is whatever the
-  agent sends through the `grotto` CLI; there is no reply delivery.
+  agent sends through the `haus` CLI; there is no reply delivery.
 
 ## Attention
 
@@ -44,7 +44,7 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
 The exact-visibility ledger plus a verified contiguous seen boundary per (session, target) is
 specified in [inbox.md](inbox.md). `seen` is the sole model-seen authority;
 the freshness gate lives on the CLI send path exactly once
-([grotto-cli.md](grotto-cli.md) §6).
+([haus-cli.md](haus-cli.md) §6).
 
 ## Rotation and reset
 
@@ -56,7 +56,7 @@ Sessions never rotate because of age or idleness. A new session starts only on:
 2. **Resume recovery** — if the executor reports that its stored runtime session is missing or
    replay is rejected, Computer automatically starts a fresh Agent session generation. The recovery
    is visible in activity and injected into the fresh context, directing the Agent to recover from
-   Grotto history and local `MEMORY.md`/notes. If the cold start also fails, the Agent becomes
+   Haus history and local `MEMORY.md`/notes. If the cold start also fails, the Agent becomes
    offline with an error.
 3. **Manual lifecycle action** — human-initiated, agent-scoped, in the agent profile:
    - *Restart:* restart the executor and resume the current session unchanged.
@@ -79,7 +79,7 @@ details. An interrupted turn, bootstrap failure, or turn failure keeps the previ
 and generation for retry. Only
 rejection of stored native resume state uses Server-authorized recovery.
 
-Grotto Agent SemVer is the public release receipt layered over those exact fingerprints and managed
+Haus Agent SemVer is the public release receipt layered over those exact fingerprints and managed
 factory inputs. A version change uses the same in-place, next-turn refresh path. It becomes current
 only after successful detach; failure preserves the prior applied version and is visible in the
 Agent profile and Activity History.

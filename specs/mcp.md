@@ -9,12 +9,12 @@ read_when:
 
 ## Product model
 
-- A connection identifies one remote HTTP MCP server account on one Grotto Server.
-- Grotto Server owns its endpoint, credentials, OAuth state, discovered tools, client sessions,
+- A connection identifies one remote HTTP MCP server account on one Haus Server.
+- Haus Server owns its endpoint, credentials, OAuth state, discovered tools, client sessions,
   and invocation.
 - Connections support no auth, secret headers, or MCP OAuth. Remote endpoints require HTTPS;
   loopback HTTP exists only for development.
-- Grotto does not support local or stdio MCP connections.
+- Haus does not support local or stdio MCP connections.
 - Google Calendar and MerchBase presets populate immutable URL and auth defaults, then use the
   same storage, discovery, OAuth, grant, and invocation path as custom connections.
 - Multiple connections may target the same MCP server or preset.

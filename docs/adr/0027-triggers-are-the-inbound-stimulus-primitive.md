@@ -49,7 +49,7 @@ durable and resent on reconnect.
 
 People and Agents both author Triggers, over the same rows. A Server Owner or
 Admin creates and manages one from the Agent profile's Automations tab; an Agent
-creates and manages its own with the `grotto` CLI. Whoever authors it, the owning
+creates and manages its own with the `haus` CLI. Whoever authors it, the owning
 Agent is the one that wakes, and operators hold the full lifecycle: create, edit,
 arm or disable, rotate, test fire, read history, and delete.
 
@@ -79,7 +79,7 @@ credential, registry, or grant model.
 
 ## Consequences
 
-- Grotto has two Agent wake primitives with a single question between them: is
+- Haus has two Agent wake primitives with a single question between them: is
   the cause a clock or an outside system? A Trigger that wants a schedule is a
   reminder, and a reminder that wants a webhook is a Trigger.
 - Unknown trigger ids and bad secrets both answer `401`, so the endpoint never
@@ -92,7 +92,7 @@ credential, registry, or grant model.
   never changes an active Trigger's status.
 - Status is one operator procedure, `trigger.setStatus`, which arms and disables.
   The one-way `trigger.disable` it replaces no longer exists.
-- Grotto deliberately does not build: a provider registry or provider flavors; a
+- Haus deliberately does not build: a provider registry or provider flavors; a
   payload predicate or filter engine; script payloads and therefore any
   Trigger-specific attention table; more than one stimulus per Trigger, so a
   Trigger has exactly one endpoint and one secret; a durable `trigger.changed`

@@ -80,7 +80,7 @@ other Haus-only text into Manual topics or skills. See AGENTS.md and
 
 Durable Agent knowledge lives in the Agent-owned workspace (`MEMORY.md` and
 notes), not an injected memory system. Agents read older canonical Chat history
-through the `grotto` CLI when inbox delivery is insufficient.
+through the `haus` CLI when inbox delivery is insufficient.
 
 The Server stores desired configuration and canonical history. Computer stores
 effective harness state and resume evidence. The App reports that distinction

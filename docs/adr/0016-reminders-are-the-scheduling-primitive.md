@@ -19,7 +19,7 @@ the Agent's own reply instead.
 
 ## Decision
 
-`grotto reminder schedule/list/snooze/update/cancel/log` is the reminder
+`haus reminder schedule/list/snooze/update/cancel/log` is the reminder
 vocabulary. A reminder is author-owned, anchored to a message in a Channel or
 Thread the author can access or the owning Agent's DM, and hosted Server-owned.
 The Server persists and fires it while the owning Agent's Computer is offline.

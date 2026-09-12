@@ -21,10 +21,10 @@ Stable user-visible gates are:
 Exact receipt copy, emoji, internal reminder records, script selection, and
 precise firing seconds are not parity gates.
 
-The live Grotto exercise scheduled a one-shot check, emitted one canonical fire
+The live Haus exercise scheduled a one-shot check, emitted one canonical fire
 receipt, reread a `READY` status added after scheduling, and produced the fresh
 status in the requested Agent follow-up. It also exposed extra script-output
-chatter after the Agent chose a script that invoked an unavailable `grotto`
+chatter after the Agent chose a script that invoked an unavailable `haus`
 command. The ordinary model wake still produced the correct follow-up; the
 script error remains a product observation rather than evidence of multiple
 logical fires.
@@ -47,17 +47,17 @@ Focused deterministic coverage proves:
 Verification:
 
 ```text
-bun test test/grotto-reminders.test.ts \
-  test/grotto-reminder-scheduler.test.ts \
-  test/grotto-reminder-api.test.ts \
-  test/grotto-reminder-lock-order.test.ts
+bun test test/haus-reminders.test.ts \
+  test/haus-reminder-scheduler.test.ts \
+  test/haus-reminder-api.test.ts \
+  test/haus-reminder-lock-order.test.ts
 32 passed
 
 bun test src/agent-cli/commands/agent-reminder.test.ts \
   src/reminder-script.test.ts
 6 passed
 
-GROTTO_DEV_STACK_ID=agent-e2e bun run eval:agents -- \
+HAUS_DEV_STACK_ID=agent-e2e bun run eval:agents -- \
   reminder-followup.spec.ts
 1 expected failure (Thread realtime invalidation)
 ```

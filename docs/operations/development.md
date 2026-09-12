@@ -1,7 +1,7 @@
 ---
 summary: Local development workflow for Server, Computer, app startup, and verification.
 read_when:
-  - running Grotto locally or changing the managed development stack
+  - running Haus locally or changing the managed development stack
   - changing local stack startup, ports, or developer verification
   - running or verifying the iPhone app in Simulator against a local Server
 ---
@@ -39,8 +39,8 @@ Run the managed development stack:
 bun run dev
 ```
 
-This starts an isolated PostgreSQL cluster, Grotto Server,
-Grotto Computer, and the website dev server. `bun run dev-app` runs the same
+This starts an isolated PostgreSQL cluster, Haus Server,
+Haus Computer, and the website dev server. `bun run dev-app` runs the same
 stack inside the Electron desktop shell. Install the PostgreSQL 16 binaries once:
 
 ```bash
@@ -50,10 +50,10 @@ brew install postgresql@16
 Do not start a Homebrew PostgreSQL service. The dev stack owns its direct child,
 chooses a private loopback port, bootstraps a fresh schema, and preserves that
 worktree's data across runs. On later boots it applies any new checked-in
-PostgreSQL migrations before starting Grotto Server, so an existing worktree
+PostgreSQL migrations before starting Haus Server, so an existing worktree
 database stays current with main. If that migration step fails, the database
 predates the checked-in migration baseline: move
-`~/.grotto/dev/<worktree-id>/postgres` aside and rerun to bootstrap fresh. On first use, Server creates one demo Server with
+`~/.haus/dev/<worktree-id>/postgres` aside and rerun to bootstrap fresh. On first use, Server creates one demo Server with
 the Agents Blippy and Tiny, avatars for them and for you, the `#all` and
 `#product` Channels, starter messages, a Thread, two tasks, and one MCP
 connection — enough to open any surface without hand-building data. Computer
@@ -67,13 +67,13 @@ Seeding runs once per Server. To pick up changes to
 The dev stack uses worktree-isolated development state by default:
 
 ```txt
-~/.grotto/dev/<worktree-id>/computer
-~/.grotto/dev/<worktree-id>/postgres
-~/.grotto/dev/<worktree-id>/server/attachments
+~/.haus/dev/<worktree-id>/computer
+~/.haus/dev/<worktree-id>/postgres
+~/.haus/dev/<worktree-id>/server/attachments
 ```
 
-The stack reserves a stable four-port group from the worktree path. Grotto App uses the first port
-and Grotto Server uses the fourth; the middle ports remain reserved so existing worktrees keep their
+The stack reserves a stable four-port group from the worktree path. Haus App uses the first port
+and Haus Server uses the fourth; the middle ports remain reserved so existing worktrees keep their
 URLs. Multiple worktrees can run without sharing local state.
 
 To intentionally share one dev workspace across worktrees, run:
@@ -82,35 +82,35 @@ To intentionally share one dev workspace across worktrees, run:
 bun run dev:shared
 ```
 
-That target defaults `GROTTO_DEV_STACK_ID` to `grotto-shared`, so every checkout
-using it reads and writes `~/.grotto/dev/grotto-shared/`. When a stack id is set,
+That target defaults `HAUS_DEV_STACK_ID` to `haus-shared`, so every checkout
+using it reads and writes `~/.haus/dev/haus-shared/`. When a stack id is set,
 the default port group is derived from that stack id instead of the checkout
 path, so the shared workspace also has one stable set of local URLs. You can set
-`GROTTO_DEV_STACK_ID` before `bun run dev:shared` to choose a different shared
+`HAUS_DEV_STACK_ID` before `bun run dev:shared` to choose a different shared
 workspace name. Run one shared stack per shared workspace at a time.
 
-Set `GROTTO_DEV_STACK_ID` to choose the state directory name, or
-`GROTTO_DEV_PORT_BASE` to choose the first port in the four-port group:
+Set `HAUS_DEV_STACK_ID` to choose the state directory name, or
+`HAUS_DEV_PORT_BASE` to choose the first port in the four-port group:
 
 ```bash
-GROTTO_DEV_STACK_ID=agent-a GROTTO_DEV_PORT_BASE=43000 bun run dev
+HAUS_DEV_STACK_ID=agent-a HAUS_DEV_PORT_BASE=43000 bun run dev
 ```
 
-That example uses ports `43000` through `43003`. Set `GROTTO_COMPUTER_DATA_ROOT`
-or `GROTTO_DATABASE_URL` explicitly when a dev run
+That example uses ports `43000` through `43003`. Set `HAUS_COMPUTER_DATA_ROOT`
+or `HAUS_DATABASE_URL` explicitly when a dev run
 should use specific state.
 
 `.claude/launch.json` is gitignored and generated per checkout by a
 `SessionStart` hook (`dev-port --claude-launch`), so Claude Code previews use
 this checkout's real website port. The `dev-port` helper and the dev stack
 derive the same four-port group from the checkout path, or from
-`GROTTO_DEV_STACK_ID` when it is set.
+`HAUS_DEV_STACK_ID` when it is set.
 
 `bun run dev` and `bun run dev-app` share the same Server, Computer,
 PostgreSQL, and web app, so Agent behavior matches across both.
 
 AI SDK bridge packages use the machine-wide
-`~/.grotto/cache/harness-bridge-store` pnpm cache in development and production.
+`~/.haus/cache/harness-bridge-store` pnpm cache in development and production.
 Bridge installs pin pnpm so Computer prewarming and Agent sandboxes use the same
 store format instead of creating parallel versioned stores.
 Fresh development Servers prewarm Codex, the runtime used by their seeded Agents;
@@ -121,9 +121,9 @@ The installed Computer keeps service output under its stable data root and
 exposes local recovery checks:
 
 ```bash
-grotto-computer status
-grotto-computer doctor
-grotto-computer logs 200
+haus-computer status
+haus-computer doctor
+haus-computer logs 200
 ```
 
 `status` reads the stopped/running state for each attachment. `doctor` checks private local files
@@ -132,9 +132,9 @@ log. The Computer page keeps a Server-side system log of observed connections, d
 state-changing management commands. It remains readable while the Computer is offline and surfaces
 a warning only when repeated recent disconnects indicate instability.
 
-For login and setup failures, start with `grotto-computer status`. An expired or
+For login and setup failures, start with `haus-computer status`. An expired or
 abandoned device code is not resumed; rerun `setup /<server-slug>` for a new code.
-A saved wrong account or origin requires `grotto-computer login --replace`, then
+A saved wrong account or origin requires `haus-computer login --replace`, then
 setup again. **Signed in — finishing the connection** means browser approval
 succeeded but durable local attachment storage has not; leave the page open and
 rerun the same setup command if the CLI stopped. Its persisted idempotency key
@@ -142,7 +142,7 @@ recovers the issued Computer instead of creating another. `logout` revokes only
 the human management session and stops the service; it preserves every Server
 attachment and Agent workspace for an explicit later `start`.
 
-## Grotto For iPhone In Simulator
+## Haus For iPhone In Simulator
 
 The iPhone app signs in automatically against a local Server, the same way the
 website does in development. It never needs browser OAuth or hand-entered
@@ -168,7 +168,7 @@ xcodebuild -project apps/ios-swift/Haus.xcodeproj -scheme Haus -destination 'nam
 ```
 
 ```bash
-xcrun simctl install booted build/ios/Build/Products/Debug-iphonesimulator/Grotto.app
+xcrun simctl install booted build/ios/Build/Products/Debug-iphonesimulator/Haus.app
 ```
 
 ```bash
@@ -176,7 +176,7 @@ SIMCTL_CHILD_HAUS_DEV_SERVER_ORIGIN="http://localhost:$(($(dev-port) + 3))" SIMC
 ```
 
 `SIMCTL_CHILD_` prefixes pass an environment variable through to the launched
-app. Grotto Server listens on the fourth port of the worktree's group, which is
+app. Haus Server listens on the fourth port of the worktree's group, which is
 `dev-port` plus three; the development Clerk publishable key is the public
 schema literal the App already uses. A Debug build accepts a development origin only on
 `localhost`, `127.0.0.1`, or `::1`, requests the localhost-only
@@ -206,7 +206,7 @@ In development builds, `/prototype/activation` renders every activation surface 
 choice and creation, invitations, Computer login, and Cove onboarding — as
 independently addressable scenes for design iteration. Each scene mounts the
 real component; a fixture tRPC client
-(`apps/website/src/features/activation-preview/`) answers its Grotto API calls,
+(`apps/website/src/features/activation-preview/`) answers its Haus API calls,
 so no hosted Server, Computer, or signed-in session is needed. The URL selects
 the scene (shareable per step) and a floating picker switches between them.
 Production builds do not register this route or bundle its fixture Server.

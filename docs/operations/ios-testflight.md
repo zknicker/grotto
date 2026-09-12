@@ -21,7 +21,7 @@ Before the first upload, an Account Holder, Admin, or App Manager must:
    `webcredentials:clerk.haus.chat`.
 3. Create or verify the **Haus Chat** app record (Apple ID `6810799017`) with that bundle ID and
    SKU `haus-ios`. The installed display name is Haus; Apple has already allocated the bare
-   Haus store name to another application. Existing Grotto installations require a fresh install.
+   Haus store name to another application. Existing Haus installations require a fresh install.
 4. Create the active App Store provisioning profile **Haus CI App Store** for the Haus App ID
    and Apple Distribution certificate.
 5. Configure a team App Store Connect API key with Developer access and Certificates, Identifiers &

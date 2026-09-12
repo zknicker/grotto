@@ -68,6 +68,6 @@ reports **effective** state. The two are never conflated.
 
 ## API
 
-`grotto.agent.create`, `grotto.agent.configure`, and `grotto.agent.list` are
+`haus.agent.create`, `haus.agent.configure`, and `haus.agent.list` are
 the Owner/Admin surfaces; `configure` accepts no Computer id because assignment
 is immutable. `computer.list` exposes `reportedInventory` to Owners/Admins.

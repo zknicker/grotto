@@ -20,7 +20,7 @@ Examples:
 - `[@Chrome](app://computer-use/com.google.Chrome)` references a Mac app.
 - `[#product](chat://cht_product)` opens a channel by immutable chat id.
 - `[README.md](/repo/README.md)` references a file.
-- `[#482](pr://github/grotto/grotto/482)` references a GitHub pull request.
+- `[#482](pr://github/haus/haus/482)` references a GitHub pull request.
 
 The human composer persists selected references as explicit typed links. Agent
 output may use bare `@handle` and `#channel` tokens; the Server resolves known
@@ -48,7 +48,7 @@ tokens stay plain text. For example, `@blippy` becomes
 - Human references bind to immutable user ids. Their visible chip label and
   avatar resolve from the live profile; departed or unknown humans keep the
   persisted label and never rebind when a handle is reused.
-- Saved messages do not need `metadata.grotto.mentions` to render, route, or
+- Saved messages do not need `metadata.haus.mentions` to render, route, or
   project references.
 - The composer may keep local metadata for live chip appearance while the user
   edits a draft.
@@ -147,7 +147,7 @@ tokens stay plain text. For example, `@blippy` becomes
   Skill selection writes `[$name](skill://name)` into the draft. A chat preview
   line reads a reference by its display label, so a preview says `Product` and
   `Agent Browser` rather than `#product` and `$agent-browser`. A link the phone
-  does not chip — a `grotto://` workspace resource, a `mailto:` address, a
+  does not chip — a `haus://` workspace resource, a `mailto:` address, a
   target naming no scheme — reads as its own underlined words rather than as
   raw Markdown, the way the App renders it as an ordinary anchor. Tapping a
   website or pull-request chip opens its URL, as does tapping a link whose

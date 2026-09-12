@@ -18,7 +18,7 @@ runtime and model references came from the assigned Computer's reported inventor
 recorded while Computer is offline and are applied after reconnect; Computer reports degraded state
 instead of silently substituting another runtime or model.
 
-Each Agent projection includes `grottoAgent`: the release's `currentVersion`, the Computer-reported
+Each Agent projection includes `hausAgent`: the release's `currentVersion`, the Computer-reported
 `appliedVersion` and `appliedAt`, and `status` (`pending`, `current`, or `failed`). Computer carries
 the applied version receipt in a separate additive snapshot frame, so an older Server can safely
 ignore it and an older Computer simply leaves the new Server pending. Each snapshot replaces that
@@ -59,7 +59,7 @@ settlement rather than deleted, so
 `turnId` is the run that consumed the row; it stays null when the seen cursor
 subsumed the row instead of a turn settling it.
 
-Managed Agent commands use `/api/agent/*`. The injected `grotto` wrapper calls a per-launch
+Managed Agent commands use `/api/agent/*`. The injected `haus` wrapper calls a per-launch
 Computer loopback proxy. Computer serves eligible inbox reads locally or forwards the request with
 the scoped runner credential. The Agent process never receives a Server-valid credential.
 
@@ -104,7 +104,7 @@ holds that task's message or Thread; a run beginning and a run settling both emi
 so it is never polled. Both are computed per read and neither is a stored task column.
 
 Promotion does not create the task's Thread. The Thread materializes on the first reply under its
-deterministic `cht_thr_<anchor>` id, so `grotto message send --target "#channel:<messageId>"`
+deterministic `cht_thr_<anchor>` id, so `haus message send --target "#channel:<messageId>"`
 remains the way to open one, and a claim an Agent resolves inside its own turn leaves no work
 surface behind.
 
@@ -136,12 +136,12 @@ A claim that loses to a claim someone else holds returns `409 TASK_CONFLICT` wit
 `blockedActions` is an authoritative closed set — an action absent from it is not blocked by this
 conflict, though it remains subject to its own authority and policy — while
 `unblockedActionExamples` is illustrative and never a permission table. `observedAt` is a snapshot,
-not a standing ruling. `packages/grotto-api` owns the schema (`taskClaimConflictSchema`) and the
+not a standing ruling. `packages/haus-api` owns the schema (`taskClaimConflictSchema`) and the
 rendering copy: `taskClaimConflictBlockedActionCopy` maps each blocked action id to its prose, and
 `TASK_CLAIM_CONFLICT_ROUTING_NOTE` is the closing sentence the CLI prints — a claim conflict is a
 concurrency lock, not a ruling on who owns or leads the lane, and a misroute is corrected in the
 original Thread. Haus has no reassignment-request command, so no clause names one.
-`grotto task claim` renders the block from the 409 body in place of the generic error line —
+`haus task claim` renders the block from the 409 body in place of the generic error line —
 `apps/computer/src/agent-cli/agent-claim-conflict.ts` is the only place that prose is composed —
 while a `TASK_CONFLICT` without a `claimConflict` keeps the ordinary refusal.
 
@@ -161,11 +161,11 @@ task tracked.
 A managed Agent creates, updates, and re-avatars Agents on its own Server:
 
 ```sh
-grotto agent create --target "#product" --name "Orbit" \
+haus agent create --target "#product" --name "Orbit" \
   --description "Release helper" --avatar-concept "a small brass orbit" \
   --say "Bringing Orbit on to own release checks."
-grotto agent update --agent @orbit --description "Release and rollback helper"
-grotto agent avatar --agent @orbit --concept "a small brass orbit at dusk"
+haus agent update --agent @orbit --description "Release and rollback helper"
+haus agent avatar --agent @orbit --concept "a small brass orbit at dusk"
 ```
 
 `POST /api/agent/agents` takes `target`, `displayName` (1–80), `description` (1–500), optional
@@ -214,14 +214,14 @@ so its first turn is its next ordinary delivery and nothing DMs it.
 
 ### Asks
 
-A managed Agent asks one named human for a decision with `grotto ask`:
+A managed Agent asks one named human for a decision with `haus ask`:
 
 ```sh
-grotto ask --target "#product" --to @ada --title "Run the staged migration?" \
+haus ask --target "#product" --to @ada --title "Run the staged migration?" \
   --summary "The migration is staged and reversible for one hour." \
-  --step "Approve the staged migration" <<'GROTTOMSG'
+  --step "Approve the staged migration" <<'HAUSMSG'
 The migration is staged. Should I run it now, or wait for the release window?
-GROTTOMSG
+HAUSMSG
 ```
 
 `POST /api/agent/asks` takes `{ addresseeHandle, content, nonce, recommendedStep, summary, target,
@@ -250,19 +250,19 @@ Every Agent-facing Message states its `body_kind` (`text | ask | cloud-agent-wor
 Message carries `ask: { id, status, addressee_handle, title, recommended_step }` beside it. The
 Agent CLI appends `[ask status=open|answered to=@handle]` to that Message's history line and
 delivery envelope, after the task suffix
-([Haus CLI](../../specs/grotto-cli.md#4-envelopes-and-message-lines)).
+([Haus CLI](../../specs/haus-cli.md#4-envelopes-and-message-lines)).
 
 ### Cloud Agent work
 
 A managed Agent delegates bounded repository work to a provider-hosted agent with
-`grotto cloud-agent start`:
+`haus cloud-agent start`:
 
 ```sh
-grotto cloud-agent start --target "#product" --repo grotto/grotto --ref main \
+haus cloud-agent start --target "#product" --repo haus/haus --ref main \
   --title "Fix the flaky delivery test" \
-  --say "Handing the flaky delivery test to a cloud agent." <<'GROTTOMSG'
+  --say "Handing the flaky delivery test to a cloud agent." <<'HAUSMSG'
 Reproduce the failure, fix it, and open a pull request.
-GROTTOMSG
+HAUSMSG
 ```
 
 This command runs on the Computer rather than upstream. The Computer checks
@@ -282,7 +282,7 @@ and both the `message.created` and `cloud-agent-work.updated` events. It is idem
 refuses settles that same recorded work as `failed` with an error code and returns
 `CLOUD_AGENT_LAUNCH_FAILED` rather than erasing the attempt.
 
-`grotto cloud-agent send --work <workId>` takes follow-up instructions on stdin. The Computer
+`haus cloud-agent send --work <workId>` takes follow-up instructions on stdin. The Computer
 accepts `{ workId, nonce, instructions, interrupt }` at `POST /api/agent/cloud-agents/send`, retains
 the instructions locally, and forwards `{ workId, nonce }` to Server. Server returns
 `{ work, runId, idempotent, predecessors }` for a Run on the existing work. Computer sends it to the
@@ -291,11 +291,11 @@ prompts when `interrupt` is true. Pending instructions stay in a private Compute
 until launched or cancelled. Revisions reuse the Work ID, work Message, and Thread. Each settled
 Run gets its own inbox attention; callers do not need to manage provider Run IDs.
 
-`grotto cloud-agent inspect` uses `GET /api/agent/cloud-agents` to read `{ works }` for the caller's
+`haus cloud-agent inspect` uses `GET /api/agent/cloud-agents` to read `{ works }` for the caller's
 delegated work. An optional `workId` query selects one work with its recorded results. These are
 Server records, not a live provider transcript.
 
-`grotto cloud-agent stop --work <workId>` uses `POST /api/agent/cloud-agents/cancel`. The published
+`haus cloud-agent stop --work <workId>` uses `POST /api/agent/cloud-agents/cancel`. The published
 `cancel` CLI spelling remains a compatibility alias. The endpoint takes `{ workId }` and is
 authorized to the delegating Agent alone; `cloudAgentWork.cancel({ serverId, workId })` is the
 Owner/Admin equivalent. Both record
@@ -343,8 +343,8 @@ output, cache-read, and cache-write counts when the runtime reports them. Server
 persists those bounded counters for usage aggregation; raw usage payloads and
 execution traces remain Computer-local.
 
-Wire schemas live in `packages/grotto-api`; Server handlers live in `apps/server/src/agent-api/`
-and `apps/server/src/grotto-api/agent/`; Computer proxy and launch behavior live in
+Wire schemas live in `packages/haus-api`; Server handlers live in `apps/server/src/agent-api/`
+and `apps/server/src/haus-api/agent/`; Computer proxy and launch behavior live in
 `apps/computer/src/`.
 
 Hosted Agent execution detail is a separate, explicit `agent.executionJournal` query. It accepts

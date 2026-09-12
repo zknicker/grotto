@@ -44,7 +44,7 @@ archetype notes come from neither creation nor reset. Shared guidance belongs
 in the Haus Manual, while the Agent's own work may add files later.
 
 The skill system remains Agent-owned and writable, but there is no factory
-`grotto-agent` skill. Mandatory operating rules live in managed instructions,
+`haus-agent` skill. Mandatory operating rules live in managed instructions,
 shared reference guidance lives in the Manual, and the only current
 factory-managed skill is `visuals`; see [Skills](skills.md).
 
@@ -100,7 +100,7 @@ without adding a creation recipe or creative policy.
 
 ### Agent-created Agents
 
-Any Agent may create an Agent with `grotto agent create` when a human in the
+Any Agent may create an Agent with `haus agent create` when a human in the
 Chat it is working in asked for one — never on its own initiative, and never to
 split work it could do itself (ADR 0028). The Server checks the creating Agent's
 exact current Chat view, resolves the target under the runner credential, derives
@@ -120,10 +120,10 @@ reprovision recovers the brief from the row rather than from the file.
 
 Creation joins the Server's `#all` plus every `--channel` the request names, in
 the creation transaction. `#all` is guaranteed by the Server's one creation
-seam, so the App's dialog and `grotto agent create` behave the same way. A
+seam, so the App's dialog and `haus agent create` behave the same way. A
 channel that does not exist or is archived refuses the whole request before an
 avatar is generated, and the receipt lists the channels the Agent landed in.
-`grotto channel add --target "#name" --agent @handle` adjusts membership
+`haus channel add --target "#name" --agent @handle` adjusts membership
 afterwards: any active Agent may add any active Agent, the add is idempotent,
 and it wakes nobody.
 
@@ -152,8 +152,8 @@ Creating an Agent does not wake it. Its brief is already in its memory, so no
 model turn is spent on an empty greeting and nothing DMs it — a DM is between a
 human and an Agent.
 
-`grotto agent update --agent @handle --description <text>` and
-`grotto agent avatar --agent @handle --concept <text>` edit an existing Agent
+`haus agent update --agent @handle --description <text>` and
+`haus agent avatar --agent @handle --concept <text>` edit an existing Agent
 from Chat. Neither renames an Agent, and both refuse Cove. The Agent profile pane
 is the human's canonical edit surface for every field, including runtime, model,
 and reasoning effort, which no Agent-facing command exposes.
@@ -186,7 +186,7 @@ at that same boundary. The public version receipt advances only after that turn 
 
 Avatar generation is a Server-owned service. The Server owns the prompt, provider call,
 normalization, validation, and concurrency limits. Agents reach it only through
-`grotto agent create --avatar-concept` and `grotto agent avatar`; there is no standalone generate
+`haus agent create --avatar-concept` and `haus agent avatar`; there is no standalone generate
 command and no transient avatar file. A Server without the provider provisioned still creates
 Agents, without an avatar. It is not configured through Haus App or by changing the calling
 Agent's runtime or model. The provider credential is held only by Haus Server; it is never sent to

@@ -26,7 +26,7 @@ The app is split into four focused layers:
 
 The transport intentionally calls the existing tRPC procedures directly rather than introducing an
 OpenAPI mirror or community Swift tRPC dependency. The app uses the official Clerk iOS SDK and
-the production-authorized `grotto://sso-callback` OAuth return. Chat history remains canonical Server
+the production-authorized `haus://sso-callback` OAuth return. Chat history remains canonical Server
 state. Agent lifecycle events project `working`, `reading`, and `sending` to the same yellow working
 presence used by the desktop App; `settled` immediately projects the terminal idle, error, or stopped
 state. The app separately subscribes to semantic Agent activity and presents current plus recent work
@@ -241,7 +241,7 @@ horizontal pan scrolls the zoomed image, and only once it is against its edge do
 page to the next image, which arrives at fit with dismissal live again.
 
 A ```` ```visual ```` fence renders inline, the way it does on the web. `VisualFence` is a literal
-port of the shared grammar in `packages/grotto-api/src/widgets/visual/contracts.ts` — the same two
+port of the shared grammar in `packages/haus-api/src/widgets/visual/contracts.ts` — the same two
 patterns, matched over UTF-16 so cursor arithmetic lands where JavaScript's does — and it runs once
 per message, in `MessagePresentation`'s initializer. A message therefore carries two bodies: `prose`,
 every text segment concatenated and trimmed into the one block that sits above the cards, and
@@ -760,7 +760,7 @@ reads a link target in the App's own precedence — `agent://`, `user://`, `chat
 `app://computer-use/`, `skill://`, then a leading-`/` path split into a file or a directory by its final
 segment, then an `http(s)` link read as a pull request when the URL names one and as an ordinary site
 otherwise — and a target that matches none of them is still a link. The App renders one as an ordinary
-anchor, so the phone does too: `[report.html](grotto://workspace/out/report.html)`, the form the Agent
+anchor, so the phone does too: `[report.html](haus://workspace/out/report.html)`, the form the Agent
 system prompt tells Agents to write, reads as `report.html` underlined in the system link ink, never as
 its raw Markdown. A bare address in prose is chipped too, because the App's Markdown autolinks one
 before its chip renderer ever sees it; only explicit `http`/`https` addresses qualify, so a `www.`
@@ -801,7 +801,7 @@ A chip is not a hover surface, so activation is the phone's only interaction and
 narrow. What opens is a real `.link` attribute, written by `RichMessageAttributedText` over a link
 run's words and over a chip's whole run, the mark's spacer included, so the mark opens the reference
 rather than sitting in a dead margin before it. Only the schemes the system routes qualify, which is `http`, `https`, `mailto`,
-and `tel`: a website or pull-request chip opens its address, a `grotto://` resource draws as a link
+and `tel`: a website or pull-request chip opens its address, a `haus://` resource draws as a link
 and stays inert because nothing on the phone routes one yet, and an Agent or Channel chip carries no
 `.link` at all, where the App opens a profile or a channel. UIKit's own link machinery decides the
 tap, and `RichMessageLinkCoordinator` — the representable's `UITextViewDelegate` — decides only what
@@ -853,7 +853,7 @@ drew a rule running from the word before the mention, under the mark, and into t
 The mark's horizontal room is bought in the text itself. `RichMessageAttributedText` writes the
 reference as a run of two pieces — a zero-height `NSTextAttachment` wide enough for the mark and the
 gap after it, then the label — both
-carrying one `.grottoReference` attribute. Zero height is what keeps the line box untouched, and
+carrying one `.hausReference` attribute. Zero height is what keeps the line box untouched, and
 the attachment is held against the label by a word joiner because an attachment character is
 otherwise a line-break opportunity and a label may not come away from its own mark. Nothing is
 bought after the label, mirroring the App's `padding: 0`: punctuation hugs the last word and a
@@ -913,7 +913,7 @@ the native timeline does not invent a second task receipt row.
 Clerk owns native authentication. The production instance uses Google as its only sign-in strategy, so
 Haus starts Clerk's direct Google SSO flow from a native SwiftUI action instead of routing through the
 hosted Account Portal. The provider browser returns through the production-authorized
-`grotto://sso-callback` product URL. `HausTransport` asks the native Clerk session for a fresh token
+`haus://sso-callback` product URL. `HausTransport` asks the native Clerk session for a fresh token
 for every request, while `HausStore` keeps the active user's in-memory Server snapshots. A user
 change therefore discards the previous user's cache. Cold-start offline access needs an explicit secure
 auth bootstrap contract before persisted query data can be enabled safely.

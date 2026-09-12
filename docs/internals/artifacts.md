@@ -27,7 +27,7 @@ iterate on, and big surfaces stay out of the chat column.
   `--foreground`, `--surface-secondary`, `--border`, `--muted-foreground`,
   `--accent-bg`, `--radius`, `--pad-md`, ...) — is injected into the page as
   CSS variables resolved for the current app scheme, so a token-styled page
-  wears the Grotto look in light and dark. That vocabulary is the whole
+  wears the Haus look in light and dark. That vocabulary is the whole
   contract — nothing else is emitted, renaming or removing a name is a breaking
   change, and a stored page that references a removed name must be reauthored.
   `styles/artifact-tokens.css` owns it — mostly aliases onto HeroUI roles, with
@@ -47,18 +47,18 @@ Identical to `html-preview`: the confined Runtime workspace read (realpath
 confinement to the sending agent's workspace, secret-file blocks, complete
 reads only within the 5 MiB HTML window) fetches the file, and the document
 renders via `srcDoc` in a sandboxed iframe with scripts allowed and never
-`allow-same-origin`. Token injection inserts one `<style data-grotto-tokens>`
+`allow-same-origin`. Token injection inserts one `<style data-haus-tokens>`
 block of resolved variable values; no app data, bridge, or postMessage API
 crosses the boundary.
 
 ## Card and pane flow
 
 The `artifact` fence funnels into the widget machinery (component id
-`grotto.widget.artifact`; see [widgets.md](widgets.md)). The transcript
+`haus.widget.artifact`; see [widgets.md](widgets.md)). The transcript
 renderer (`apps/website/src/features/chats/artifact-card.tsx`) draws the compact
 card — title, kind line, open affordance — and performs no workspace read.
 Clicking calls the artifact-panel open path with a `workspaceFile` target,
-the same merge-or-focus flow `grotto://workspace` links and the agent
+the same merge-or-focus flow `haus://workspace` links and the agent
 `pane_open` tool use. In the pane, the workspace HTML preview
 (`apps/website/src/features/chats/chat-artifact-workspace-preview.tsx`)
 renders the page with host tokens injected

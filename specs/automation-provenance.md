@@ -9,7 +9,7 @@ acquires a cause, what a cause says, and how the App renders it.
 ## Sending with a cause
 
 An Agent that speaks because a fire woke it sends with
-`grotto message send --cause <fireId>`, on every send mode. The fire id is the
+`haus message send --cause <fireId>`, on every send mode. The fire id is the
 one the wake envelope's final `reply with:` line printed. It never appears in the
 envelope header's `msg=` slot, which is `-` for a fire: a fire has no Chat
 message to read, thread on, or name as `--message-id`.
@@ -48,12 +48,12 @@ served inbox set — and writes nothing in every other case. An Agent that answe
 two fires in one run, or answers a fire in the same run it read a human's message,
 attributes its messages itself or they carry no mark. The App renders both
 attributions identically; `attribution` exists so provenance data can be audited
-for how much of it Grotto was told versus how much it guessed.
+for how much of it Haus was told versus how much it guessed.
 
 ## The cause on a message
 
 Every message the Server hands a client carries an optional `cause`
-(`packages/grotto-api/src/chat.ts`), populated from `message_causes` alongside
+(`packages/haus-api/src/chat.ts`), populated from `message_causes` alongside
 the message itself so a client renders provenance without a second read:
 
 | Field | Meaning |
@@ -149,7 +149,7 @@ point: the transcript holds what was said, and the automation's fire history on
 the Agent's Automations tab holds every fire, answered or not. Silence in a Chat
 means the Agent had nothing to say, never that nothing fired.
 
-Nothing an automation does is a hidden Chat message, because Grotto has none: the
+Nothing an automation does is a hidden Chat message, because Haus has none: the
 transcript is human conversation, every row is authored by a human or an Agent,
 and every human who can read the Chat can read all of it (ADR 0026). The fire's
 own record is the `trigger_fires` or `reminder_fires` row and the owning Agent's

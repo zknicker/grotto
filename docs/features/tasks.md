@@ -170,7 +170,7 @@ on purpose. Tier changes nothing here: it stays a lens on the Board and List.
 
 The **Show tasks in chat** preference (Settings → Preferences → Chat) turns the claims back on, and
 with it every task reads the way a human-made one does. It is off by default and per device, stored
-in `localStorage` under `grotto.chat.showTasks`. The command palette carries the same switch as one
+in `localStorage` under `haus.chat.showTasks`. The command palette carries the same switch as one
 entry that reads as what pressing it does — `Show tasks in chat` while they are hidden, `Hide tasks
 in chat` while they are showing.
 
@@ -187,7 +187,7 @@ tasks.
 
 ## Managed CLI boundary
 
-The managed `grotto task list|create|claim|unclaim|update` commands use the
+The managed `haus task list|create|claim|unclaim|update` commands use the
 Computer's loopback runner authority and the hosted Server task API. A claim
 that loses to a standing claim is refused with a structured `claimConflict` the
 CLI renders: who holds the lock, when that was observed, that it blocks

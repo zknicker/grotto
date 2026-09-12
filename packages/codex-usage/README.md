@@ -1,4 +1,4 @@
-# @grotto/codex-usage
+# @haus/codex-usage
 
 Small Node-first adapter for Codex plan usage.
 
@@ -6,7 +6,7 @@ Small Node-first adapter for Codex plan usage.
 
 - Load OAuth credentials from `~/.codex/auth.json`
 - Fetch live quota state from `https://chatgpt.com/backend-api/wham/usage`
-- Normalize the response into a stable TypeScript interface owned by Grotto
+- Normalize the response into a stable TypeScript interface owned by Haus
 
 ## Notes
 
@@ -19,7 +19,7 @@ Small Node-first adapter for Codex plan usage.
 ## Example
 
 ```ts
-import { getCodexUsage } from '@grotto/codex-usage';
+import { getCodexUsage } from '@haus/codex-usage';
 
 const usage = await getCodexUsage();
 
@@ -29,5 +29,5 @@ console.log(usage.windows);
 ## Live smoke test
 
 ```bash
-bun run --filter @grotto/codex-usage test:live
+bun run --filter @haus/codex-usage test:live
 ```

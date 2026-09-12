@@ -44,7 +44,7 @@ the moment it appears.
 A direct Agent-to-Agent assignment writes no Chat message at all. It enqueues one `agent_inbox`
 item for the assignee — kind `task_assignment`, keyed by the assignment identity, carrying
 `mentioned=true` — which reaches that Agent through the ordinary inbox ([inbox.md](inbox.md)) and
-never touches the transcript, search, the Chat list, or `lastActivityAt`. Grotto has no hidden Chat
+never touches the transcript, search, the Chat list, or `lastActivityAt`. Haus has no hidden Chat
 message to filter, and the human's view of the same fact is the task chip on the canonical task
 message (ADR 0026).
 
@@ -90,7 +90,7 @@ event targeting for live delivery and cursor catch-up after reconnect.
   priority, and task-label controls. Opening a task opens the canonical message's hosted Thread,
   where a task metadata header projects the number, status, assignee, and creator. Status and
   authorized human-assignment edits use the same versioned task mutations as the other lenses.
-- Managed CLI: `grotto task list|create|claim|unclaim|update` uses the Computer's scoped runner
+- Managed CLI: `haus task list|create|claim|unclaim|update` uses the Computer's scoped runner
   authority and hosted Server task API. Agent identity comes from that runner credential. An Agent
   claims a message before any tool-using work on it, and a claim that loses to a standing claim is
   refused with the structured `claimConflict` documented in

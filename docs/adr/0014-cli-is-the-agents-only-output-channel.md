@@ -1,5 +1,5 @@
 ---
-summary: Decision to make the grotto CLI the agent's only output channel, with floating turns and inbox delivery replacing reply-based dispatch.
+summary: Decision to make the haus CLI the agent's only output channel, with floating turns and inbox delivery replacing reply-based dispatch.
 read_when: changing agent turn scheduling, delivery, cursors, notices, or the agent tool surface; changing chat timeline projection or agent status UI; reading the history behind the memory/wiki/cron retirements
 ---
 
@@ -16,11 +16,11 @@ core of ADR 0011 survives).
 
 ## Decision
 
-Agents speak only by running `grotto message send`. The engine exposes zero
+Agents speak only by running `haus message send`. The engine exposes zero
 tools except the uniform `web_fetch` host tool; every other capability is a
 CLI on PATH. Consequences adopted together as one landing:
 
-- **No final replies.** Text a model emits outside a `grotto` command is
+- **No final replies.** Text a model emits outside a `haus` command is
   delivered to no one. `NO_REPLY`, outcome notes, per-message evaluation
   dispatch, and per-turn chat response rows are gone.
 - **Floating turns.** A turn anchors to the agent's global session, never a
@@ -57,4 +57,4 @@ the send path exactly once, one prompt works on every runtime because it
 needs only a shell, and every capability arrives as a CLI verb instead of a
 tool-schema change. The full rationale and the Raft evidence audit live in
 the program contract; the wire contract is
-[specs/grotto-cli.md](../../specs/grotto-cli.md).
+[specs/haus-cli.md](../../specs/haus-cli.md).

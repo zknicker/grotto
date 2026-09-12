@@ -8,12 +8,12 @@ read_when:
 
 # Observability
 
-The target architecture gives Grotto Server and Grotto Computer one Effect
+The target architecture gives Haus Server and Haus Computer one Effect
 runtime each. The Server runtime and Computer attachment-daemon runtime are
 active through Harness turn streaming and sandbox process ownership.
 Each runtime is also the observability boundary: it installs the process logger and, when an
 OTLP endpoint exists, OpenTelemetry trace and metric exporters. Product modules
-describe domain operations; `@grotto/effect` owns exporter setup, shutdown,
+describe domain operations; `@haus/effect` owns exporter setup, shutdown,
 privacy filtering, and Promise-to-Effect tracing.
 
 The combined cloud-work and cross-process trace contract requires Computer protocol 15. Earlier Computers
@@ -25,7 +25,7 @@ adapter remains an explicit exception in the lifecycle policy.
 
 With no `OTEL_EXPORTER_OTLP_ENDPOINT` or signal-specific endpoint, telemetry is
 a local no-op and performs no network I/O. `OTEL_SDK_DISABLED=true` is the
-explicit off switch. Grotto uses OTLP over HTTP and honors the shared or
+explicit off switch. Haus uses OTLP over HTTP and honors the shared or
 signal-specific header variables declared in `.env.schema`.
 
 Development Server and Computer processes export directly to Axiom's US East
@@ -48,13 +48,13 @@ to an Agent currently assigned to the authenticated Computer.
 Run, Chat, and request IDs remain bounded diagnostic claims. A compromised
 Computer can still lie about its own timing and outcomes. These records are not
 an authenticated audit trail or an authorization input. Confirm important facts
-against durable Grotto records.
+against durable Haus records.
 
-Operation traces use `grotto-operations` and metrics use `grotto-metrics`.
+Operation traces use `haus-operations` and metrics use `haus-metrics`.
 Every signal carries the standard `deployment.environment.name` resource
 attribute, so dashboards can default to production while retaining direct
 development-versus-production comparisons. The independently rotated
-`Axiom Development OTLP - Grotto` and `Axiom Production OTLP - Grotto`
+`Axiom Development OTLP - Haus` and `Axiom Production OTLP - Haus`
 credentials live in their lifecycle vaults. The schema owns endpoints, dataset
 headers, and environment identity; test remains offline.
 
@@ -69,12 +69,12 @@ the installed exporters by a loopback test for both signals.
 
 ## Operator views
 
-`Grotto Operations` answers what happened. Each row is one timed operation,
+`Haus Operations` answers what happened. Each row is one timed operation,
 such as Server startup, Agent dispatch, Agent turn, browser work, or MCP work.
 Scheduler checks emit metrics rather than individual spans; their downstream
 dispatches remain timed operations. Start with the production filter and the latest
-`grotto.server.startup` span. Its successful status, timestamp,
-`service.version`, `grotto.release.id`, and `grotto.release.revision` prove that
+`haus.server.startup` span. Its successful status, timestamp,
+`service.version`, `haus.release.id`, and `haus.release.revision` prove that
 the corresponding Server release reached its listening state. A git push alone does not.
 A startup record is historical evidence, not proof that the process is still
 healthy. Check current availability and recent work as well.
@@ -103,7 +103,7 @@ cannot hide a parent or child operation. The environment and time range still
 apply. The background work section groups dispatch, Browser, MCP, and Trigger
 operations rather than internal scheduler polling.
 
-`Grotto Metrics` answers whether the system is healthy in aggregate. Operation
+`Haus Metrics` answers whether the system is healthy in aggregate. Operation
 count is traffic; duration percentiles show normal and tail latency; outcome is
 the success or failure split. Effect fiber gauges and counters describe runtime
 pressure. A rising active-fiber gauge without matching completions suggests
@@ -119,11 +119,11 @@ Agent turns and fiber failures are not a product failure count.
 
 Telemetry is operational evidence, not the canonical product record. Confirm
 exact messages, silent completion, token usage, and durable turn outcome in
-Grotto's Agent Activity and Turn Details UI.
+Haus's Agent Activity and Turn Details UI.
 
 ### Agent turn timing
 
-Completed turn spans include request-local monotonic measurements under `grotto.turn.*`:
+Completed turn spans include request-local monotonic measurements under `haus.turn.*`:
 
 | Attribute | Boundary, in milliseconds |
 | --- | --- |
@@ -143,8 +143,8 @@ acknowledgments are ordinary sends. Held, refused, and ambiguous transport-failu
 produce confirmed-send timings. These timings do not measure App rendering or provider-internal
 queueing/reasoning. Local journals remain the detailed tool evidence.
 
-`grotto.reasoning.effort` is the applied Computer setting passed to the adapter, not proof of
-provider execution policy. `grotto.tokens.input`, `output`, `cache_read`, and `cache_write` carry
+`haus.reasoning.effort` is the applied Computer setting passed to the adapter, not proof of
+provider execution policy. `haus.tokens.input`, `output`, `cache_read`, and `cache_write` carry
 the same normalized per-turn usage as the durable summary when available. A missing usage object
 omits all four; normalized counts inherit the runtime adapter's treatment of unavailable subfields.
 In particular, a first Codex cumulative observation establishes a baseline and omits per-turn usage.
@@ -181,8 +181,8 @@ Do not force a Trigger fire and a later inbox drain into one parent chain.
 Retries and turns that drain multiple causes make that relationship ambiguous.
 Trigger persistence and execution dispatch remain separate timed units.
 
-Every instrumented operation emits `grotto.operation.count` and
-`grotto.operation.duration` with only `operation` and `outcome` dimensions.
+Every instrumented operation emits `haus.operation.count` and
+`haus.operation.duration` with only `operation` and `outcome` dimensions.
 Outcomes distinguish `success`, `failure`, and `interruption`. An Agent that
 finishes without posting a message is successful; silent completion is not a
 missing result. Duration remains in milliseconds, with the OTLP unit `ms` and

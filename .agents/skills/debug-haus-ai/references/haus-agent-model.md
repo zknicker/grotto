@@ -1,4 +1,4 @@
-# Grotto Agent Model
+# Haus Agent Model
 
 This is a bootstrap, not a substitute for current repository docs and source. If it disagrees with
 them, investigate the discrepancy and update the stale material.
@@ -8,13 +8,13 @@ them, investigate the discrepancy and update the stale material.
 - **Chat**: durable conversation and routing surface. Channels, DMs, and Threads are Chats.
 - **Agent session**: one Agent's continuous global execution context across every Chat it joins.
 - **Turn**: one execution inside that global session.
-- **Grotto Server**: canonical Chats, messages, participants, pending delivery, cursors,
+- **Haus Server**: canonical Chats, messages, participants, pending delivery, cursors,
   reads, events, and Agent-presence routing.
 - **Computer**: execution-runtime discovery, Agent session processes, local inbox projection,
   delivery notices, and the prompt/input surface.
 - **Execution trace**: evidence about a turn, not the canonical product conversation.
 
-Grotto inherits Raft's session model. A Chat is never an Agent session boundary. Per-Chat sessions
+Haus inherits Raft's session model. A Chat is never an Agent session boundary. Per-Chat sessions
 would erase continuity and violate the current architecture.
 
 ## Core Invariants
@@ -29,9 +29,9 @@ would erase continuity and violate the current architecture.
 6. Delivery, model visibility, and freshness are distinct states. The seen ledger is the authority
    for what has reached the model; transport delivery alone is insufficient.
 7. A pull may batch pending targets, but each target stays independently addressable.
-8. Agents speak through the Grotto CLI. A floating execution turn anchors to the Agent
+8. Agents speak through the Haus CLI. A floating execution turn anchors to the Agent
    session, not an arbitrary Chat.
-9. Canonical Chat history remains in Grotto Server and is recoverable through read/search/check tools.
+9. Canonical Chat history remains in Haus Server and is recoverable through read/search/check tools.
    Session continuity does not require replaying every Chat transcript on each turn.
 10. Sends resolve Server-owned Agent routing and the assigned Computer. Frontends do not invent
     Computer, session, or execution-runtime routing ids.

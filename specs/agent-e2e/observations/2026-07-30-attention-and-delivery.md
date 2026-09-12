@@ -6,7 +6,7 @@ read_when:
 # Attention and cross-Chat delivery — 2026-07-30
 
 Matched business interactions used GPT-5.6 Terra with medium reasoning. The
-comparison Agent was Cindy. The Grotto Agent was Wren.
+comparison Agent was Cindy. The Haus Agent was Wren.
 
 ## Comparison baseline
 
@@ -29,14 +29,14 @@ Workspace: `arcade`
 
 These are product observations, not implementation assertions.
 
-## Grotto result
+## Haus result
 
 Fresh isolated stack identity: `agent-e2e`
 
 Command:
 
 ```sh
-GROTTO_DEV_STACK_ID=agent-e2e bun run eval:agents
+HAUS_DEV_STACK_ID=agent-e2e bun run eval:agents
 ```
 
 Result: all seven browser-driven attention and resident-delivery scenarios
@@ -68,6 +68,6 @@ scenario checks that the fact is visible before making the exact recall probe.
 
 The durable A4 gate now asks a small factual question and requires one brief,
 correct reply. The comparison product's exact-token prompt remains baseline
-evidence, but Grotto no longer passes A4 merely by obeying forced reply copy.
+evidence, but Haus no longer passes A4 merely by obeying forced reply copy.
 The A1 gate also observes a bounded quiet period for the unaddressed Agent
 before declaring recipient isolation.

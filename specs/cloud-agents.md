@@ -4,12 +4,12 @@ read_when:
   - adding or changing Cloud Agent tools, providers, lifecycle, cards, results, or completion delivery
   - changing Cursor runtime discovery, Cursor Cloud Agent authentication, or Cursor usage reporting
   - changing typed Message bodies, the `agent-created` body, or record-backed Message rendering
-  - deciding whether delegated work belongs to a Grotto Agent, Harness subagent, Task, or provider-hosted Cloud Agent
+  - deciding whether delegated work belongs to a Haus Agent, Harness subagent, Task, or provider-hosted Cloud Agent
 ---
 
 # Cloud Agents
 
-Cloud Agents let any Grotto Agent delegate bounded development work to a provider-hosted agent.
+Cloud Agents let any Haus Agent delegate bounded development work to a provider-hosted agent.
 The delegating Agent starts the work, receives completion through its inbox, inspects the result,
 and decides what to say or do next. Cursor is the first provider.
 
@@ -21,7 +21,7 @@ facts and compatibility risks, not unresolved product decisions.
 
 ## Product contract
 
-- **Agent CLI verbs.** `grotto cloud-agent start`, `send`, `inspect`, and `stop` are the Agent
+- **Agent CLI verbs.** `haus cloud-agent start`, `send`, `inspect`, and `stop` are the Agent
   surface, not a harness tool, because the Agent CLI is an Agent's only output channel
   (ADR 0014). Every supported execution runtime may call them; the caller does not need to be a
   Cursor-backed Agent. `start` takes `--target`, `--repo`, an optional `--ref`, `--title`, and
@@ -37,14 +37,14 @@ facts and compatibility risks, not unresolved product decisions.
   pass a provider on every call. Computer configuration chooses the default if a second provider
   arrives; an explicit selector is added only when per-execution choice becomes useful.
 - **Agent-held repository context.** The Agent supplies the repository, starting ref, title,
-  instructions, and any other provider input it knows. Grotto adds no repository registry.
+  instructions, and any other provider input it knows. Haus adds no repository registry.
 - **One durable Message.** Launch posts one Agent-authored Message in the initiating Chat. Its
   immutable `content` is the Agent's response to the request, supplied as `--say` in the same
   invocation that starts the work. Its typed body is `cloud-agent-work`.
 - **One work conversation.** A top-level work Message receives a child Thread immediately. Work
   launched inside an existing Thread stays in that Thread because Threads do not nest. Replying to
   the Message is the human steering and discussion surface; the card has no separate reply model.
-- **One updating presentation.** Grotto App renders the Message's Cloud Agent work body as one
+- **One updating presentation.** Haus App renders the Message's Cloud Agent work body as one
   Thread surface header in the parent Chat and one detailed card inside the Thread. Both update from
   queued or running into a terminal report without creating automatic progress or completion
   Messages.
@@ -76,7 +76,7 @@ sequential SDK requests can take longer than one deadline. Recheck the patch and
 disposal bridge on SDK upgrades, and remove them when the public SDK supports bounded requests
 and abortable, joined subscriptions. Installed-SDK tests cover both contracts.
 
-Cloud Agent work is task-like but is not a Grotto Task. It has no assignee, claim, priority, label,
+Cloud Agent work is task-like but is not a Haus Task. It has no assignee, claim, priority, label,
 or board lifecycle, and a structured work Message cannot be promoted to a Task.
 
 **Delegation from a Task.** A human creates or promotes a Task, an Agent claims it, and the Agent
@@ -113,17 +113,17 @@ type Message = {
 
 An `ask` body carries one human decision request; see [Asks](asks.md).
 
-Body kinds name concrete Grotto product acts, not generic mechanisms, rendered entities, or
-providers. Grotto has no generic `prepared-action`, `cards[]`, or arbitrary JSON-block body. Agent
+Body kinds name concrete Haus product acts, not generic mechanisms, rendered entities, or
+providers. Haus has no generic `prepared-action`, `cards[]`, or arbitrary JSON-block body. Agent
 creation uses `agent-created`; delegated hosted work uses `cloud-agent-work`; Cursor is a
 provider field on that work. A pull request becomes a Message body only when a real workflow needs
 to author a pull-request Message independently.
 
 A card is presentation, not a durable noun. It owns no id, placement, lifecycle, authorization, or
-data. Grotto App renders a card from the Message and the Server-owned record projected through its
+data. Haus App renders a card from the Message and the Server-owned record projected through its
 typed body.
 
-In the parent Chat — a Channel or a DM — Grotto App renders Cloud Agent work as the header of the
+In the parent Chat — a Channel or a DM — Haus App renders Cloud Agent work as the header of the
 Message's recessed Thread surface, the same surface and the same chip grammar a Task and an Ask use:
 provider glyph and name, title, a status disc with elapsed or total duration, and the reply count.
 One optional line shows `activity` while the work runs, and the latest Run summary or error once the
@@ -169,12 +169,12 @@ join feature records into the transcript or infer a body kind from optional top-
 
 ## Canonical representation and migrations
 
-Grotto stores and emits exactly one current representation for each body kind. Body payloads carry
+Haus stores and emits exactly one current representation for each body kind. Body payloads carry
 no per-kind schema version, and readers do not retain historical variants indefinitely.
 
 - Checked-in PostgreSQL migrations rewrite obsolete stored representations before new code depends
   on them. A failed canonical migration blocks activation rather than hiding history.
-- Grotto has no production users yet. The Message canonicalization ships as one breaking release
+- Haus has no production users yet. The Message canonicalization ships as one breaking release
   with a fresh production database; there is no expand/contract window, transitional wire field,
   or staged client cutover.
 - Unknown body kinds degrade through immutable Message `content`. This supports a client that has
@@ -269,7 +269,7 @@ events no more than every few seconds. It is the work's current state in a sente
 transcript, and it yields to the latest Run summary once the work settles.
 
 `branches` and `pullRequestUrl` are Cursor's own terminal Run report, retained as evidence for the
-in-Thread work card's branch row. They are not a Grotto product relation: Grotto stores no branch or pull-request
+in-Thread work card's branch row. They are not a Haus product relation: Haus stores no branch or pull-request
 entity, and a reported pull-request URL claims no ownership of GitHub lifecycle.
 
 `pullRequest` is the Computer's own reading of that URL, and it is evidence on the Run for exactly
@@ -296,7 +296,7 @@ with files changed, additions, and deletions when GitHub evidence is available. 
 does not become a fabricated zero-line diff.
 
 A cancel request records `cancelRequestedAt` and `cancelRequestedBy`, and the presentation reads as
-cancelling until the Run settles. Inside Grotto every hop is push: Computer reports
+cancelling until the Run settles. Inside Haus every hop is push: Computer reports
 observations over the attachment protocol, Server emits the durable event, and the App refetches
 the Message. Reconnect follows the same direction — Server pushes `cloud-agent-reconcile` frames
 of at most 200 entries naming every non-terminal Run that Computer still owns, including preceding
@@ -320,7 +320,7 @@ execution evidence, not collaboration state.
 
 Lifecycle changes emit a durable `cloud-agent-work.updated` event carrying the Message and work
 identities. Events notify; refetching the Message recovers. The delegating Agent may cancel through
-`grotto cloud-agent stop`; human Owners and Admins may cancel through
+`haus cloud-agent stop`; human Owners and Admins may cancel through
 `cloudAgentWork.cancel`, reached from the Thread surface's overflow menu or the in-Thread work
 card. Other Chat participants request cancellation in the Thread. Reply and follow-up
 work use the work Thread rather than surface-local conversation controls.
@@ -330,7 +330,7 @@ work use the work Thread rather than surface-local conversation controls.
 Cloud Agent work is a lifecycle record. It has no outputs relation. When a Run settles, the
 delegating Agent receives the inbox attention with that Run's summary and evidence, inspects the
 work, and posts what it learned as ordinary Thread replies: text, a pull-request reference,
-attachments such as screenshots, or an artifact. Grotto adds no output framework and no automatic
+attachments such as screenshots, or an artifact. Haus adds no output framework and no automatic
 result Message.
 
 A pull request is a rich reference (see [Rich References](../docs/features/rich-references.md) and
@@ -359,16 +359,16 @@ Readiness reports one of three reasons when it is not ready. `not-connected` —
 resolves. `expired` — a stored credential resolved but its own expiry has passed, so reconnecting is
 the fix rather than installing anything. `provider-unavailable` — `@cursor/sdk` itself cannot be
 loaded or reached on this Computer, which is a platform fact, not a credential one. `CURSOR_API_KEY`
-is Cursor's own variable, read by the SDK and outside Grotto's environment contract; a Computer that
-sets it is connected and carries no expiry Grotto can date.
+is Cursor's own variable, read by the SDK and outside Haus's environment contract; a Computer that
+sets it is connected and carries no expiry Haus can date.
 
-Grotto reuses provider-native state already present on the Computer. It does not scrape Cursor's
-Keychain entries, copy credentials into Server, or invent a Grotto credential format.
+Haus reuses provider-native state already present on the Computer. It does not scrape Cursor's
+Keychain entries, copy credentials into Server, or invent a Haus credential format.
 `Cursor.auth.login()` is Cursor's supported one-time bootstrap when SDK authorization is absent; it
 opens Cursor's browser flow and stores a revocable, expiring user API key in the SDK credential
 store. In its disconnected state, Computer settings presents Cursor Cloud Agent as an optional
 capability available to connect. An explicit human action starts the provider-owned browser flow;
-Grotto never opens it during an Agent turn.
+Haus never opens it during an Agent turn.
 
 A user API key bills SDK and Cloud Agent work to the user's Cursor plan. Cursor runtime and Cloud
 Agent readiness remain separate because the CLI and SDK use different credential stores even when
@@ -379,9 +379,9 @@ separate from runtime harnesses; each Computer reports and onboards its own read
 
 | Layer | Owns |
 | --- | --- |
-| Grotto Server | Messages, Cloud Agent work records, authorization, lifecycle projection, durable events, and inbox completion |
-| Grotto Computer | Provider discovery, SDK credential access, launch, reconciliation, cancellation, and detailed provider evidence, all behind the `CloudAgentProvider` boundary in `apps/computer/src/cloud-agents/` |
-| Grotto App | Message and card presentation, Thread discussion, progress and terminal outcomes, and Computer capability status |
+| Haus Server | Messages, Cloud Agent work records, authorization, lifecycle projection, durable events, and inbox completion |
+| Haus Computer | Provider discovery, SDK credential access, launch, reconciliation, cancellation, and detailed provider evidence, all behind the `CloudAgentProvider` boundary in `apps/computer/src/cloud-agents/` |
+| Haus App | Message and card presentation, Thread discussion, progress and terminal outcomes, and Computer capability status |
 | Cursor | Hosted Agent and Run lifecycle, repository checkout, workspace, transcript, branches, pull requests, artifacts, and billed usage |
 | GitHub | Pull-request identity and lifecycle |
 
@@ -394,7 +394,7 @@ events, the inbox attention — is provider-neutral, and everything below it, in
 prompts, and raw status mapping, belongs to the adapter. An in-memory fake with scripted transitions
 covers the whole path without a provider account.
 
-`grotto cloud-agent start` runs on the Computer rather than upstream: it checks readiness before
+`haus cloud-agent start` runs on the Computer rather than upstream: it checks readiness before
 Server records anything, so an unavailable capability creates no Message, and it keeps the stdin
 instructions local. Once Server has accepted the launch the work exists, so a provider refusal is
 reported as a failed observation against that same work.
@@ -407,13 +407,13 @@ initial `CloudAgent` operation performs the first `send()` that creates the host
 call `send()` on the same provider Agent.
 
 Cursor Agent state and Run state remain distinct. An `IDLE` Agent does not prove successful
-completion. Grotto settles work from the corresponding Run's `FINISHED`, `ERROR`, `CANCELLED`, or
+completion. Haus settles work from the corresponding Run's `FINISHED`, `ERROR`, `CANCELLED`, or
 `EXPIRED` result. Computer may consume provider events for live progress but always reconciles with
 a Run read after missed events, reconnect, or restart.
 
 One status table owns the mapping, and it is the only place Cursor's vocabulary appears:
 
-| Cursor Run status | Grotto status |
+| Cursor Run status | Haus status |
 | --- | --- |
 | `QUEUED` | `queued` |
 | `CREATING`, `RUNNING` | `running` |
@@ -440,12 +440,12 @@ would lose the evidence.
 The SDK does not surface the hosted Agent's own `url`, so the adapter builds the "Open in Cursor"
 link as `https://cursor.com/agents?id=<agentId>`.
 
-Grotto supplies Cursor's Agent and Send idempotency keys, but Cursor does not document exactly-once
-replay semantics for those headers. Grotto's own nonce, durable ids, conflict handling, and
+Haus supplies Cursor's Agent and Send idempotency keys, but Cursor does not document exactly-once
+replay semantics for those headers. Haus's own nonce, durable ids, conflict handling, and
 reconciliation provide the product guarantee; provider idempotency is defense in depth.
 
 Cursor's Cloud Agents API is public beta. The adapter isolates provider requests, responses, and
-status mapping from Grotto's durable contracts. Repository validation happens at that adapter: a
+status mapping from Haus's durable contracts. Repository validation happens at that adapter: a
 repository is usable only when the Cursor account has the required source-control access.
 
 ## Settings and usage
@@ -459,7 +459,7 @@ The App reaches it through `cloudAgentProvider.get`, `.connect`, and `.disconnec
 authorizes to Owners and Admins and relays to the selected Computer over the attachment protocol —
 the same shape Browser settings use. No provider credential exists on Server to store or leak; only
 readiness and the account it resolves to cross the boundary.
-Grotto reports per-Agent and per-Run tokens and optional cost available through the public SDK; it
+Haus reports per-Agent and per-Run tokens and optional cost available through the public SDK; it
 does not claim personal plan capacity, remaining allowance, or reset time because Cursor exposes no
 supported public personal-account surface for them. Interactive CLI `/usage` reports activity and
 streak statistics, not billing capacity. Team or Organization Admin usage requires a separate
@@ -469,7 +469,7 @@ administrative integration and is outside this Computer capability.
 
 - No repository registry, repository setup flow, or per-Server repository allowlist in v1.
 - No requirement that the delegating Agent use the Cursor runtime.
-- No representation of a Cloud Agent as a named Grotto teammate or Harness subagent.
+- No representation of a Cloud Agent as a named Haus teammate or Harness subagent.
 - No product-wide generic action, card, output, or provider framework.
 - No Server-hosted Cursor credential or raw provider transcript in Chat history.
 - No provider selector until a second implementation creates a real choice.
@@ -493,7 +493,7 @@ administrative integration and is outside this Computer capability.
    `agent-created` body joined this union, and the top-level `preparedAction` field is gone.
 3. Add Cursor runtime discovery and AI SDK harness support.
 4. Add Cursor Cloud Agent readiness, SDK bootstrap guidance, and truthful usage reporting.
-5. **Landed.** The `grotto cloud-agent` verbs, the `CloudAgentProvider` boundary with an in-memory
+5. **Landed.** The `haus cloud-agent` verbs, the `CloudAgentProvider` boundary with an in-memory
    fake, the durable work and Run records, the work Message, and the eager Thread.
 6. **Landed.** Lifecycle reporting, reconnect reconciliation, cancellation by Agent and by
    Owner/Admin, `cloud-agent-work.updated`, and the terminal inbox attention. The combined Effect
@@ -501,7 +501,7 @@ administrative integration and is outside this Computer capability.
 7. **Landed.** The Cursor adapter behind `CloudAgentProvider`, its readiness detection, and the
    Computer settings connect flow. Every SDK type stops at a transport seam inside the adapter, so
    the deterministic lanes run against recorded provider responses; one opt-in live lane
-   (`GROTTO_RUN_LIVE_CURSOR_TEST=1` with `GROTTO_LIVE_CURSOR_REPOSITORY=owner/name`) proves the
+   (`HAUS_RUN_LIVE_CURSOR_TEST=1` with `HAUS_LIVE_CURSOR_REPOSITORY=owner/name`) proves the
    recordings still describe Cursor.
 8. **Web landed.** The Thread-surface header with its activity and last-update line, the hoisted
    status on an anchor whose Thread holds live work, the surface's overflow menu with cancel, the
@@ -517,7 +517,7 @@ administrative integration and is outside this Computer capability.
 
 - Pin the public-beta `@cursor/sdk` version and isolate all status and field mapping in the Cursor
   adapter. Live documentation and one downloadable OpenAPI snapshot currently disagree about the
-  raw `IDLE` Agent status; Grotto reads no Agent status at all, so the disagreement cannot reach it.
+  raw `IDLE` Agent status; Haus reads no Agent status at all, so the disagreement cannot reach it.
 - The pinned version is `1.0.30`. The SDK carries platform-specific optional dependencies with
   native binaries and still bundles into the Computer's `bun build --compile` artifact.
 - Cursor names a branch's repository in whatever shape its Git metadata carries: a live Run reports
@@ -525,6 +525,6 @@ administrative integration and is outside this Computer capability.
   remote. Every form reads back to one label — `owner/name` on GitHub, and the host-qualified
   `host/owner/name` off it, so branch evidence survives on any host. A reference that names no
   repository at all is dropped rather than reshaped. The work's own `repository`, which the Agent
-  supplies and Grotto starts a Run against, stays `owner/name`.
+  supplies and Haus starts a Run against, stays `owner/name`.
 - Git metadata is an Agent-workspace snapshot, not guaranteed per-Run diff attribution.
 - Optional provider cost can arrive eventually and does not represent account-plan allowance.

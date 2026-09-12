@@ -68,7 +68,7 @@ Each row shows who created it — a person's handle, or the owning Agent.
 ## Product behavior
 
 - **Two authors, one Trigger.** People create and manage Triggers from the
-  Automations tab; an Agent creates and manages its own with `grotto trigger
+  Automations tab; an Agent creates and manages its own with `haus trigger
   create` when someone asks for an outside event — a webhook, a CI run, an alert,
   a form, a sensor — to reach it. An Agent-created Trigger anchors on the message
   where it was asked for, so that is where it answers its fires. Either way the
@@ -116,7 +116,7 @@ Each row shows who created it — a person's handle, or the owning Agent.
 - **Self-healing status.** A fire whose owning Agent is retired or whose anchor
   is no longer writable is refused and disables the Trigger on the spot.
 - **History.** Every fire is recorded, answered or not. The Agent profile's
-  History drawer lists retained fires across all Triggers, and `grotto trigger
+  History drawer lists retained fires across all Triggers, and `haus trigger
   log` returns the full payload for a still-addressable Trigger's fire.
 
 ## Who can do what

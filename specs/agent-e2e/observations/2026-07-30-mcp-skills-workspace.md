@@ -28,7 +28,7 @@ The first executable slice is `mcp-access.spec.ts`. It uses a loopback remote
 MCP fixture, changes the connection grant through the real Agent profile, and
 sends both requests through the real App composer.
 
-The live Grotto run passed:
+The live Haus run passed:
 
 - with the grant enabled, the Agent made exactly one upstream lookup and
   returned the fixture-only title and owner;
@@ -51,7 +51,7 @@ M3 becomes a release-critical content assertion.
 Verification:
 
 ```text
-GROTTO_DEV_STACK_ID=agent-e2e bun run eval:agents -- mcp-access.spec.ts
+HAUS_DEV_STACK_ID=agent-e2e bun run eval:agents -- mcp-access.spec.ts
 2 passed (52.0s)
 ```
 

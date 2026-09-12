@@ -17,7 +17,7 @@ Accepted 2026-07-24. Amended 2026-07-28 for Server ownership. Supersedes ADR 000
 External service integrations are standard remote HTTP MCP servers. The plugin product,
 proprietary integration framework, local MCP process, and stdio transport are retired.
 
-Grotto Server is the AI SDK MCP client and credential broker:
+Haus Server is the AI SDK MCP client and credential broker:
 
 - Server stores connection configuration and secrets.
 - Server owns OAuth, token refresh, authorization-server trust, discovery, sessions, and upstream
@@ -48,7 +48,7 @@ and auth defaults; they use the same generic path as custom connections.
 ## Consequences
 
 - External service logic and schemas live with the MCP server.
-- Grotto can connect to compatible remote HTTP MCP servers without service-specific product code.
+- Haus can connect to compatible remote HTTP MCP servers without service-specific product code.
 - UI access is one Raft-style switch per Agent and connection; the discovered tool list is
   read-only.
 - An unavailable MCP connection does not prevent an Agent from starting.

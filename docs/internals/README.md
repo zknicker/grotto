@@ -1,7 +1,7 @@
 ---
 summary: Internals index for Server, App, Computer, data, React, and presentation architecture.
 read_when:
-  - changing Grotto architecture, ownership boundaries, or implementation layout
+  - changing Haus architecture, ownership boundaries, or implementation layout
   - looking for Server, App, Computer, data, or frontend internals
 ---
 
@@ -10,8 +10,8 @@ read_when:
 | Topic | Doc |
 | --- | --- |
 | System ownership | [Architecture Overview](architecture-overview.md) |
-| Hosted collaboration | [Grotto Server](grotto-server.md) |
-| App data flow | [Grotto App](app.md) |
+| Hosted collaboration | [Haus Server](haus-server.md) |
+| App data flow | [Haus App](app.md) |
 | PostgreSQL model | [Data Model](data-model.md) |
 | React conventions | [React Conventions](react.md) |
 | Browser control | [Browser](browser.md) |

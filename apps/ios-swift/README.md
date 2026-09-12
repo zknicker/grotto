@@ -22,7 +22,7 @@ SSE subscriptions directly.
 
 A Debug build signs in automatically against a local Haus Server, so Simulator
 needs no browser OAuth. See
-[Haus For iPhone In Simulator](../../docs/operations/development.md#grotto-for-iphone-in-simulator)
+[Haus For iPhone In Simulator](../../docs/operations/development.md#haus-for-iphone-in-simulator)
 for the stack, build, install, and launch commands. Release builds always use the
 production Server and its Google sign-in.
 

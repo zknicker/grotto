@@ -15,12 +15,12 @@ evidence boundary without changing CLI-only output or Agent-global sessions.
 
 ## Context
 
-Grotto previously exposed ongoing Agent work primarily through one global status dot. Its durable
+Haus previously exposed ongoing Agent work primarily through one global status dot. Its durable
 Activity feed retained only coarse turn outcomes. A provisional transcript bubble attempted to
-represent an in-flight `grotto message send`, but hosted Server emitted its `sending` phase after
+represent an in-flight `haus message send`, but hosted Server emitted its `sending` phase after
 message commit and immediately moved on, so users normally saw the final response appear at once.
 
-Literal Agent composition cannot be detected reliably across Codex, Claude, and Pi. Grotto turns
+Literal Agent composition cannot be detected reliably across Codex, Claude, and Pi. Haus turns
 float on one Agent-global session, may read several Chats, and speak only through a generated CLI
 command. Harness text deltas have no trustworthy Chat target, while complete tool-call arguments
 arrive too late to serve as useful typing state.
@@ -31,7 +31,7 @@ provider state, and raw evidence.
 
 ## Decision
 
-Grotto exposes Agent work through two distinct projections:
+Haus exposes Agent work through two distinct projections:
 
 1. **Agent activity** is safe semantic execution metadata. Computer maps only known tool identities
    and structured product boundaries into a small category catalog; unknown tools use a generic
@@ -41,7 +41,7 @@ Grotto exposes Agent work through two distinct projections:
    inspect it through an authorized live relay. Server does not persist it, and detail is unavailable
    while Computer is offline.
 
-Grotto does not show a typing indicator. Human draft activity is not needed for the core work
+Haus does not show a typing indicator. Human draft activity is not needed for the core work
 surface, and Agent composition cannot be identified accurately across supported runtimes. An
 accepted turn may continue reading, creating Threads, or using tools long after it first handles
 work from a Chat, so inbox engagement is not presented as typing.

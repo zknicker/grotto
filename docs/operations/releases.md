@@ -1,20 +1,20 @@
 ---
-summary: Grotto release targets, artifact publication, prerequisite ordering, and production promotion boundaries.
+summary: Haus release targets, artifact publication, prerequisite ordering, and production promotion boundaries.
 read_when:
-  - cutting, publishing, or monitoring a Grotto release
-  - deciding which Grotto release targets changed
+  - cutting, publishing, or monitoring a Haus release
+  - deciding which Haus release targets changed
   - changing release records, target jobs, or production promotion
 ---
 
 # Releases
 
-Use the [Grotto release skill](../../.agents/skills/release-grotto/SKILL.md) for the recurring
+Use the [Haus release skill](../../.agents/skills/release-haus/SKILL.md) for the recurring
 release procedure: target decisions, the release record, the release PR, workflow monitoring, and
 the operator handoff. This document keeps the durable target and promotion contract.
 
 ## One release, five targets
 
-Each new release has one public Grotto SemVer, one append-only `releases.json` record, and one release
+Each new release has one public Haus SemVer, one append-only `releases.json` record, and one release
 PR. Merging that PR starts one `Release` workflow. The top-level `version` is the public product
 version even when only one component publishes. Every new entry contains all five target keys: a
 published target carries its independent artifact version, while an unchanged target is `null` and
@@ -23,28 +23,28 @@ Historical versionless Computer-only records remain unchanged; the non-null prod
 starts with this unified release model.
 
 `releases.json` is the only version decision. After completing the newest entry, run `bun run
-release:sync-versions` to project the public version into the Grotto product manifest and each
-component version into its owned build metadata: the App and Computer packages, Grotto Agent
+release:sync-versions` to project the public version into the Haus product manifest and each
+component version into its owned build metadata: the App and Computer packages, Haus Agent
 manifest, iOS project defaults, and Bun workspace lock metadata. Do not assign versions by editing
 those files directly. `release:check` and the Release workflow reject drift between the record and
 the projected files.
 
 | Target | Publish when |
 | --- | --- |
-| `server` | Hosted API, persistence, Server behavior, or the web Grotto App artifact changes |
+| `server` | Hosted API, persistence, Server behavior, or the web Haus App artifact changes |
 | `app` | Electron shell, preload bridge, native desktop behavior, or installed desktop artifact changes |
 | `ios` | Native iPhone code, metadata, entitlements, dependencies, or assets change |
 | `computer` | Computer execution, lifecycle, human CLI, updater, embedded managed CLI, bootstrap/ordinary protocol, or a required Computer dependency changes |
-| `agent` | Grotto-owned Agent instructions, actions, recipes, Harness behavior, or factory guidance changes |
+| `agent` | Haus-owned Agent instructions, actions, recipes, Harness behavior, or factory guidance changes |
 
-The top-level Grotto version and all five component versions evolve independently. The hosted web
+The top-level Haus version and all five component versions evolve independently. The hosted web
 App remains part of the Server artifact; `app` names the installed desktop artifact. An iOS
 publication also records a new positive build number. A target that is unchanged keeps its latest
-published version through carry-forward resolution; do not copy the Grotto version into it.
+published version through carry-forward resolution; do not copy the Haus version into it.
 
 Release publication resolves the ledger entry into a canonical snapshot containing the public
-Grotto version and the effective Server, App, iOS, Computer, and Agent versions. Consumers use that
-snapshot at `https://releases.grotto.sh/grotto/latest.json` to describe one Grotto release without
+Haus version and the effective Server, App, iOS, Computer, and Agent versions. Consumers use that
+snapshot at `https://releases.haus.chat/haus/latest.json` to describe one Haus release without
 pretending every component rebuilt. Finalization verifies both the immutable versioned snapshot and
 the promoted `latest` snapshot through the public host; storage-only verification is not sufficient
 release evidence.
@@ -57,15 +57,15 @@ both public endpoints with bounded pair retries. Exit status `0` means both fina
 and effective component versions. A non-zero status identifies the immutable or latest endpoint
 when a request, redirect result, payload shape, or exact value check fails.
 
-Grotto Agent has independent SemVer but no standalone artifact. Its behavior package is embedded in
-Server and Computer, so publishing Grotto Agent always publishes both targets. Server advertises
+Haus Agent has independent SemVer but no standalone artifact. Its behavior package is embedded in
+Server and Computer, so publishing Haus Agent always publishes both targets. Server advertises
 the current version; Computer records it only after an Agent successfully completes a turn with
 that version. The App therefore distinguishes current, pending, and failed application.
 
 The `Release` workflow builds, signs, publishes, and records evidence for selected artifact targets.
-Grotto Agent publication is proven by the matching Server and Computer artifacts. When
+Haus Agent publication is proven by the matching Server and Computer artifacts. When
 Server publishes, the same graph promotes the exact artifact through the protected `production`
-Environment and verifies the public Server and hosted Grotto App. Reviewing and merging the release
+Environment and verifies the public Server and hosted Haus App. Reviewing and merging the release
 PR is the release's only human authorization gate; selected target jobs run to completion without a
 second approval.
 
@@ -124,7 +124,7 @@ actions.
 
 ## Production Server promotion
 
-The Server and web Grotto App are one atomic production artifact with one Server SemVer.
+The Server and web Haus App are one atomic production artifact with one Server SemVer.
 A push to `main` without a release record does not deploy. A selected Server release queues
 production promotion through the `production` Environment after the release PR merges. The
 deployment workflow also keeps its manual entry point for recovery: `deploy` downloads, verifies,
@@ -132,12 +132,12 @@ installs, and activates a published artifact; `activate` verifies and switches t
 installed release.
 
 The selected `server` target publishes a deployable artifact, then calls the reusable `Deploy
-Grotto Server` workflow with the exact version and source identity. The production Environment
+Haus Server` workflow with the exact version and source identity. The production Environment
 isolates deployment credentials and permits only `main`; it has no required reviewers because the
 reviewed release PR is the human gate. The Release workflow cannot finalize until deployment
 finishes successfully.
 
-Read [Grotto Server deployment](grotto-server-deploy.md) for artifact verification, migrations,
+Read [Haus Server deployment](haus-server-deploy.md) for artifact verification, migrations,
 activation, health checks, and rollback. A release is production-ready only after the protected
 deployment succeeds and public health is healthy. A merged PR, a published artifact, or a started
 deployment alone is not deployment evidence.

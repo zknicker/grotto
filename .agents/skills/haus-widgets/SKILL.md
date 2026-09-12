@@ -1,11 +1,11 @@
 ---
-name: grotto-widgets
-description: Use when changing Grotto visual or artifact fences, their render contracts, Agent authoring guidance, sandboxing, or legacy Widget replay. Covers the current seams across @grotto/api, Computer, Server, App, docs, and tests.
+name: haus-widgets
+description: Use when changing Haus visual or artifact fences, their render contracts, Agent authoring guidance, sandboxing, or legacy Widget replay. Covers the current seams across @haus/api, Computer, Server, App, docs, and tests.
 ---
 
-# Grotto Widgets
+# Haus Widgets
 
-Grotto currently renders two Agent-authored fence types: inline `visual` HTML and durable
+Haus currently renders two Agent-authored fence types: inline `visual` HTML and durable
 `artifact` workspace files. The old closed Widget catalog is retired. Treat historical Widget rows
 as replay compatibility, not an extension point.
 
@@ -18,9 +18,9 @@ as replay compatibility, not an extension point.
 
 ## Current ownership
 
-- `packages/grotto-api/src/widgets/visual/`: visual-fence splitting and validation.
-- `packages/grotto-api/src/widgets/artifact/`: artifact-card payload validation.
-- `packages/grotto-api/src/widgets/workspace-path.ts`: confined workspace paths.
+- `packages/haus-api/src/widgets/visual/`: visual-fence splitting and validation.
+- `packages/haus-api/src/widgets/artifact/`: artifact-card payload validation.
+- `packages/haus-api/src/widgets/workspace-path.ts`: confined workspace paths.
 - `packages/agent-workspace/src/visuals-skill/`: Agent authoring guidance and design references.
 - `apps/website/src/features/chats/`: transcript splitting, visual cards, artifact cards, and pane
   rendering.
@@ -50,10 +50,10 @@ as replay compatibility, not an extension point.
 Run the smallest lanes covering the changed seams, then repository lint:
 
 ```bash
-bun test packages/grotto-api/src/widgets
-bun run --filter @grotto/api typecheck
-bun run --filter @grotto/website typecheck
-bun run --filter @grotto/computer typecheck
+bun test packages/haus-api/src/widgets
+bun run --filter @haus/api typecheck
+bun run --filter @haus/website typecheck
+bun run --filter @haus/computer typecheck
 bun run lint
 git diff --check
 ```

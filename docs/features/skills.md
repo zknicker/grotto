@@ -48,7 +48,7 @@ overwriting it. Successful changes refresh from a Computer event, not a timer.
 
 ## Agent authoring
 
-Agents manage their own library through `grotto skill`:
+Agents manage their own library through `haus skill`:
 
 - `list` and `view`
 - `create` and `patch`
@@ -71,6 +71,6 @@ it automatically.
 - Automatic skill sync or a compatibility layer between libraries.
 - A persistent Server-side skill-content store.
 - A generic toolset or skill marketplace.
-- The retired factory `grotto-agent` skill. Mandatory product rules live in
+- The retired factory `haus-agent` skill. Mandatory product rules live in
   managed instructions and expandable operating guidance lives in the shared
   Haus Manual; Agent-authored and imported skills remain fully supported.

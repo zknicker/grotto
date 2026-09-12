@@ -1,5 +1,5 @@
 ---
-summary: Decision to ship Grotto Computer as an independently versioned, signed standalone executable within one coordinated Grotto release process.
+summary: Decision to ship Haus Computer as an independently versioned, signed standalone executable within one coordinated Haus release process.
 read_when:
   - changing Computer packaging, installation, updates, rollback, or release publishing
   - changing Computer update UI or bootstrap progress
@@ -26,17 +26,17 @@ second runtime and package-manager dependency to the most important recovery pat
 
 ## Decision
 
-Grotto Computer ships as an independently versioned Apple Silicon macOS executable. The executable
-is compiled, Developer-ID signed, notarized, distributed from Grotto's public release storage, and
+Haus Computer ships as an independently versioned Apple Silicon macOS executable. The executable
+is compiled, Developer-ID signed, notarized, distributed from Haus's public release storage, and
 verified using both SHA-256 and an Ed25519-signed release descriptor. Its Ed25519 public trust
 anchor is compiled into the executable.
 
-The executable installs at `~/.local/bin/grotto-computer`; npm and Homebrew do not own it.
-`~/.grotto` remains stable, version-independent data. The updater atomically swaps code and retains
-exactly one previous verified executable for explicit `grotto-computer upgrade --rollback`.
+The executable installs at `~/.local/bin/haus-computer`; npm and Homebrew do not own it.
+`~/.haus` remains stable, version-independent data. The updater atomically swaps code and retains
+exactly one previous verified executable for explicit `haus-computer upgrade --rollback`.
 
 Computer retains independent SemVer and `computer-vX.Y.Z` tags, but release planning is holistic.
-Every Grotto release explicitly assesses Server, App, and Computer. A compatible Computer
+Every Haus release explicitly assesses Server, App, and Computer. A compatible Computer
 release must be published and publicly verified before a Server release that requires its
 protocol.
 
@@ -51,10 +51,10 @@ through tRPC.
 
 The unshipped 1.0.0 npm-based development install receives no compatibility artifact. Its one-time
 transition runs the standalone installer, which replaces code and reuses the existing
-`~/.grotto` data root.
+`~/.haus` data root.
 
 The full normative contract is
-[Grotto Computer release and update](../../specs/raft-alignment/computer-release-and-update.md).
+[Haus Computer release and update](../../specs/raft-alignment/computer-release-and-update.md).
 
 ## Consequences
 
@@ -69,5 +69,5 @@ The full normative contract is
   snapshotted or rolled back.
 - The pre-publisher 1.0.0 install requires one explicit local transition; no temporary npm
   compatibility lane remains afterward.
-- Grotto continues to omit channels, pins, automatic startup updates, arbitrary downgrades, and
+- Haus continues to omit channels, pins, automatic startup updates, arbitrary downgrades, and
   remote rollback.

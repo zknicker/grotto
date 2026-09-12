@@ -26,11 +26,11 @@ The gates are claim order, exact Thread routing, waiting for fresh input,
 material use of that input, one result, and review handoff. Exact prose and
 latency are observations.
 
-## Grotto result
+## Haus result
 
-The browser-driven Grotto scenario lives in `task-lifecycle.spec.ts`.
+The browser-driven Haus scenario lives in `task-lifecycle.spec.ts`.
 
-Grotto passed the Server, Computer, and model lifecycle gates:
+Haus passed the Server, Computer, and model lifecycle gates:
 
 - Wren claimed before its first Thread message;
 - it asked for the audience and stayed `in_progress` without drafting;
@@ -49,6 +49,6 @@ The same Server task was present and `in_review`. The executable scenarios
 record both user-visible gaps as expected failures rather than hiding them.
 
 Verification:
-`GROTTO_DEV_STACK_ID=agent-e2e bun run eval:agents -- task-lifecycle.spec.ts`
+`HAUS_DEV_STACK_ID=agent-e2e bun run eval:agents -- task-lifecycle.spec.ts`
 (`2 expected failures`; Server/Computer/model lifecycle passed before the
 Thread invalidation assertion).

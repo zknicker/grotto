@@ -10,7 +10,7 @@ read_when:
 
 Chat is Haus's primary workspace. Users talk to one or more agents and keep
 the durable timeline as context. Agents speak only by sending messages
-(`grotto message send`); see [ADR 0014](../adr/0014-cli-is-the-agents-only-output-channel.md)
+(`haus message send`); see [ADR 0014](../adr/0014-cli-is-the-agents-only-output-channel.md)
 and [Agent Inbox](../../specs/inbox.md).
 
 ## In the box
@@ -45,7 +45,7 @@ and [Agent Inbox](../../specs/inbox.md).
   [automation provenance](../../specs/automation-provenance.md) and
   [sessions](../../specs/sessions.md#generation-in-the-transcript).
 * **Agent-created announcements.** When an Agent creates an Agent with
-  `grotto agent create`, its `--say` text is the Message body and nothing is
+  `haus agent create`, its `--say` text is the Message body and nothing is
   rendered beneath it. The announcement must name the new teammate by `@handle`,
   and that mention is the way to the profile — the same inline chip every other
   Agent mention gets, opening the Agent profile pane. The `agent-created` body
@@ -130,7 +130,7 @@ and [Agent Inbox](../../specs/inbox.md).
 * **Changed files.** A turn that creates, modifies, or deletes workspace files
   shows a "Changed N files" chip under the agent's reply, and the full
   per-file diff view. Selecting text in a diff or workspace file preview
-  offers "Quote in chat", inserting the quoted lines plus a `grotto://`
+  offers "Quote in chat", inserting the quoted lines plus a `haus://`
   source link into the composer — the universal review gesture.
 * **Artifacts.** Code, images, files, diffs, documents, and charts render as
   durable outputs attached to messages.

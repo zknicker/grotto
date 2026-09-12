@@ -10,12 +10,12 @@ A fire writes nothing to the Chat transcript. The owning Agent's own message is
 the transcript row, and it carries the fire as its cause (ADR 0026,
 `specs/automation-provenance.md`). A reminder writes no Chat message at any
 point in its life — not at schedule, not at fire, not when a script produces
-output — because Grotto has no Chat message a human cannot read, and none of
+output — because Haus has no Chat message a human cannot read, and none of
 those is one a human asked for.
 
 ## Hosted model
 
-- The Grotto Server stores reminders, idempotent commands, fire logs, message
+- The Haus Server stores reminders, idempotent commands, fire logs, message
   provenance, durable change events, and pending Agent attention in PostgreSQL.
   Every relationship carries `server_id`; composite foreign keys keep the Agent,
   anchor Chat, anchor message, caused message, fire, and attention in one Server.
@@ -75,7 +75,7 @@ including a script reminder, records itself and queues attention.
 
 The envelope the Agent pulls names the reminder, the fire, and the next
 occurrence, and ends with the line
-`reply with: grotto message send --cause <fireId>`. Bounded script output rides
+`reply with: haus message send --cause <fireId>`. Bounded script output rides
 that same envelope.
 
 An optional script is opaque UTF-8 delivery data limited to 16,384 bytes.
@@ -95,7 +95,7 @@ timeout state.
 ## Provenance
 
 A fire is invisible until the Agent answers it. When it does, it sends with
-`grotto message send --cause <fireId>` and the Server records that message's
+`haus message send --cause <fireId>` and the Server records that message's
 provenance. `specs/automation-provenance.md` owns that contract; the
 reminder-specific facts are:
 
@@ -130,7 +130,7 @@ reminder-specific facts are:
   deleted that long after `fired_at` whatever its reminder is doing, and a
   `fired` one-shot or a `canceled` reminder is deleted that long after it
   settled, taking the rest of its record with it.
-- Agent reminder verbs are exposed through the Computer-injected `grotto`
+- Agent reminder verbs are exposed through the Computer-injected `haus`
   CLI. Computer reconnect recovery, local script execution, and attention
   acknowledgment are part of the end-to-end contract.
 - Scheduler health reports only `healthy`, `degraded`, or `stopped` plus safe

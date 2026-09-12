@@ -21,13 +21,13 @@ guidance and the shared Manual corpus).
 An Agent creates another Agent directly:
 
 ```
-grotto agent create --target <chat> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] --say <text>
-grotto agent update --agent @handle --description <text>
-grotto agent avatar --agent @handle --concept <text>
-grotto channel add --target "#name" --agent @handle
+haus agent create --target <chat> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] --say <text>
+haus agent update --agent @handle --description <text>
+haus agent avatar --agent @handle --concept <text>
+haus channel add --target "#name" --agent @handle
 ```
 
-`grotto action prepare` and `grotto avatar generate` no longer exist. There is no prepared action,
+`haus action prepare` and `haus avatar generate` no longer exist. There is no prepared action,
 no card, no approval step, and no human commit: the create call returns the new `@handle` and the
 Agent exists.
 
@@ -42,7 +42,7 @@ Server authority is a human membership property only.
 
 **`--say` is the Agent's own announcement** and becomes the Message content, satisfying ADR 0025's
 requirement that every structured Message carries meaningful immutable content. It must name the new
-teammate by `@handle`, and that mention is the whole affordance: Grotto renders no row, mark, or
+teammate by `@handle`, and that mention is the whole affordance: Haus renders no row, mark, or
 control beneath the Message. The announcement's `@handle` becomes the same inline reference chip
 `#product` and every other Agent mention already gets, and it opens the Agent profile — one grammar
 in a transcript, rather than a third one next to the header marks and the context line. The Server
@@ -74,10 +74,10 @@ way to the new Agent.
 **Creation puts the Agent where the work is.** It always joins the Server's `#all`, plus every
 `--channel` the request names, in the creation transaction and through the same
 `channel_agent_participants` seam a human's channel save uses. `#all` is guaranteed at the one
-creation seam both paths share, so the App dialog and `grotto agent create` behave identically and
+creation seam both paths share, so the App dialog and `haus agent create` behave identically and
 neither double-joins. A `--channel` naming a channel that does not exist or is archived refuses the
 whole request — nothing created, no avatar generated — through the same pre-check that refuses an
-announcement naming nobody. `grotto channel add` adjusts membership afterwards: any active Agent may
+announcement naming nobody. `haus channel add` adjusts membership afterwards: any active Agent may
 add any active non-Cove Agent, idempotently, waking nobody, and it emits the same
 `chat.lifecycle{action:'updated'}` the human path emits.
 
@@ -94,7 +94,7 @@ identity is protected: both refuse on Cove.
 
 - The prepared-action tables, routes, contracts, events, and App/iOS cards are deleted; the
   `prepared-action.updated` durable event and the terminal action attention are gone with them.
-- The `agent-created` mark is deleted from Grotto App and iOS too: the announcement's own mention is
+- The `agent-created` mark is deleted from Haus App and iOS too: the announcement's own mention is
   the affordance, so a row restating it would be the same fact twice.
 - The transcript refresh after a creation is `message.created` plus `server.updated{scope:'agent'}`,
   and one `chat.lifecycle{action:'updated'}` per channel joined so member lists refresh; no new event

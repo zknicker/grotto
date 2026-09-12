@@ -1,6 +1,6 @@
 # Agent Workspace
 
-Grotto Computer owns one isolated local root for each assigned Agent:
+Haus Computer owns one isolated local root for each assigned Agent:
 
 ```text
 agents/<agent-id>/
@@ -38,8 +38,8 @@ notes/
 ```
 
 Objectives contain 12 separately authored short summaries linked to the 12 seeded-tier Manual
-topics. Grotto does not create `notes/recipes/` or copy any full Manual card, query-tier summary,
-archetype note, `save-as-a-skill`, or `grotto-agent` skill. Computer records the four-file manifest
+topics. Haus does not create `notes/recipes/` or copy any full Manual card, query-tier summary,
+archetype note, `save-as-a-skill`, or `haus-agent` skill. Computer records the four-file manifest
 in the durable Cove application receipt and validates the complete directory inventory before
 replaying success. Cove still gets the normal isolated skill library and release-owned `visuals`
 skill.
@@ -52,7 +52,7 @@ Both successful refreshes and conflicts appear in Agent Activity History. A succ
 a one-turn private notice that tells the existing model session to re-read the two files; it does
 not rotate the session.
 
-Factory guidance participates in the public Grotto Agent version. A successful compatible refresh
+Factory guidance participates in the public Haus Agent version. A successful compatible refresh
 may advance that version; a missing or edited Cove file blocks the receipt from advancing and leaves
 the conflict visible as a failed update.
 
@@ -86,7 +86,7 @@ Retirement removes the local execution host after Server retirement has
 completed.
 
 Canonical chat history remains on the Server. Agents recover older
-conversation context through the Grotto CLI rather than treating the workspace
+conversation context through the Haus CLI rather than treating the workspace
 as a transcript mirror.
 
 ## Browsing

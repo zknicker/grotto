@@ -18,7 +18,7 @@ Never activate the contracted Server before the new Computer is publicly availab
 production Computer has upgraded. Haus App and the hosted Server are one artifact, so the final
 Server checkpoint activates both together.
 
-Use the [Haus release skill](../../.agents/skills/release-grotto/SKILL.md) for each distinct
+Use the [Haus release skill](../../.agents/skills/release-haus/SKILL.md) for each distinct
 checkpoint's append-only release record, one release PR, one post-merge `Release` workflow, and
 manual Server promotion. This document owns the sequence, rollback order, and smoke evidence. A
 three-checkpoint cutover is three sequential release decisions when the versions differ; it is not
@@ -81,11 +81,11 @@ replace production attachment files as rollback.
 
 Run the smoke from a dedicated macOS account or separate host that does not own an existing Haus
 Computer service. A temporary data root isolates files, but `logout` stops the account-wide
-`com.grotto.computer` service; never run this smoke as the production Computer account.
+`com.haus.computer` service; never run this smoke as the production Computer account.
 
 Prove the smoke account has no service plist and uses the published executable, then create a fresh
 Server in the production Haus App and record its exact slug and Server id. Run setup against that
-recorded Server with an isolated `GROTTO_COMPUTER_DATA_ROOT`.
+recorded Server with an isolated `HAUS_COMPUTER_DATA_ROOT`.
 
 Verify device-code prefill, explicit account approval, **Signed in — finishing the connection**,
 and **Computer connected** only after the CLI stores the attachment. In Haus App, verify the

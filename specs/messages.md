@@ -1,6 +1,6 @@
 # Messages
 
-Messages are Grotto's normal conversational interactions.
+Messages are Haus's normal conversational interactions.
 
 ## Product Expectations
 
@@ -12,7 +12,7 @@ Messages are Grotto's normal conversational interactions.
 
 - A message has stable identity, timestamp, author, and text.
 - A message preserves who said it and when.
-- A message may carry model and provider metadata when Grotto has it.
+- A message may carry model and provider metadata when Haus has it.
 - A human-authored message may include explicit rich-reference Markdown links;
   the composer persists those links as written.
 - Agent output may contain bare `@handle` and `#channel` tokens. The Server
@@ -25,7 +25,7 @@ Messages are Grotto's normal conversational interactions.
 
 - A message belongs to a chat, a session, or both.
 - A message is authored by an agent or a human participant. Those are the only authors;
-  Grotto writes no Server-authored messages and has no `system_author` (ADR 0026).
+  Haus writes no Server-authored messages and has no `system_author` (ADR 0026).
 - A message may lead into a related tool interaction.
 
 ## Presentation
@@ -40,14 +40,14 @@ Messages are Grotto's normal conversational interactions.
 - The product does not require React to infer authorship or model identity from raw runtime
   payloads.
 - Rich references render as message fragments when durable message content includes explicit
-  typed Markdown links such as `[@Grotto](agent://agt_primary)`,
+  typed Markdown links such as `[@Haus](agent://agt_primary)`,
   `[#product](chat://cht_product)`, or `[$ui](skill://ui)`. Agent and chat
   fragments are interactive: they open the Agent profile or referenced channel.
-- Grotto parses message content to find rich references. Message metadata is not the source of
+- Haus parses message content to find rich references. Message metadata is not the source of
   truth for mention identity.
 - Unrecognized links, unknown bare tokens, and protected bare tokens render as
   normal text or Markdown.
-- Grotto may project referenced, assigned skills into the execution-only prompt as a compact
+- Haus may project referenced, assigned skills into the execution-only prompt as a compact
   activation hint. Capability and path references stay as visible markdown. This does not change
   durable message text and does not grant access to tools or skills that the runtime would not
   otherwise expose.

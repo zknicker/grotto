@@ -18,11 +18,11 @@ record such as a created Agent or Cloud Agent work, while a card remains present
 with no durable identity or state. This preserves Raft's message-first semantics without embedding
 mutable feature state in the Message or asking clients to merge parallel transcript stores.
 
-Grotto stores and emits one current representation per body kind. Checked-in migrations rewrite
+Haus stores and emits one current representation per body kind. Checked-in migrations rewrite
 obsolete stored shapes; the product does not retain per-kind payload versions or perpetual legacy
 readers. Unknown kinds and older clients degrade through Message content. Tasks remain orthogonal
 metadata on text Messages, rich references remain readable content, and body kinds name concrete
-Grotto acts rather than generic actions, UI cards, or provider-specific implementations.
+Haus acts rather than generic actions, UI cards, or provider-specific implementations.
 
 ## Consequences
 
@@ -34,9 +34,9 @@ Grotto acts rather than generic actions, UI cards, or provider-specific implemen
 - A related record owns mutable lifecycle and is unique to its Message; lifecycle events refetch
   the Message instead of creating receipt Messages.
 - Agent creation uses `agent-created` (ADR 0028); delegated hosted work uses `cloud-agent-work`; a
-  human decision request uses `ask`. Grotto adds another body kind only when a distinct authored
+  human decision request uses `ask`. Haus adds another body kind only when a distinct authored
   product act requires one.
-- The canonicalization ships as one breaking release against a fresh production database; Grotto
+- The canonicalization ships as one breaking release against a fresh production database; Haus
   carries no expand/contract compatibility path for it.
 
 Rejected alternatives are empty anchor Messages, a generic card or action table, arbitrary JSON

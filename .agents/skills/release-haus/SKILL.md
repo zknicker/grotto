@@ -1,9 +1,9 @@
 ---
-name: release-grotto
-description: Prepare, merge, monitor, and hand off a Grotto release across the Server, App, iOS, Computer, and Grotto Agent targets. Use for release target decisions, append-only `releases.json` records, the single release PR, the post-merge `Release` workflow, production Server promotion, or release evidence.
+name: release-haus
+description: Prepare, merge, monitor, and hand off a Haus release across the Server, App, iOS, Computer, and Haus Agent targets. Use for release target decisions, append-only `releases.json` records, the single release PR, the post-merge `Release` workflow, production Server promotion, or release evidence.
 ---
 
-# Grotto release
+# Haus release
 
 Use this skill for the release procedure. Durable artifact, protocol, installation, update, and
 deployment contracts remain in the routed docs and specs below; do not recreate them here.
@@ -12,7 +12,7 @@ deployment contracts remain in the routed docs and specs below; do not recreate 
 
 - One release has one append-only `releases.json` record, one release PR, and one `Release`
   workflow run after that PR merges.
-- Every new record has a non-null public Grotto SemVer at `version`, including component-only
+- Every new record has a non-null public Haus SemVer at `version`, including component-only
   releases. Historical versionless Computer-only records remain immutable.
 - The record uses exact `targets` keys: `server`, `app`, `ios`, `computer`, and `agent`. A published target
   carries its version; an unchanged target is `null`; iOS publication carries `{ version,
@@ -20,7 +20,7 @@ deployment contracts remain in the routed docs and specs below; do not recreate 
 - The `Release` workflow owns per-target build, signing, publication, and evidence jobs. It runs
   selected target jobs and reports every unselected target as unchanged.
 - Release publication makes artifacts available. When Server publishes, the Release graph enters
-  the protected `production` Environment and calls `Deploy Grotto Server` automatically. The
+  the protected `production` Environment and calls `Deploy Haus Server` automatically. The
   release PR is the only human authorization boundary. An explicit operator request to perform,
   ship, or own a release end to end authorizes creating and merging that release PR once its
   required checks pass; do not ask for a second PR- or SHA-specific confirmation. A non-author
@@ -36,7 +36,7 @@ the target contract before choosing a target or promising a verification result.
 Start with [release targets and promotion](../../../docs/operations/releases.md). Read the linked
 contract when the target is selected:
 
-- Server: [Grotto Server deployment](../../../docs/operations/grotto-server-deploy.md)
+- Server: [Haus Server deployment](../../../docs/operations/haus-server-deploy.md)
 - Computer: [Computer release and update spec](../../../specs/raft-alignment/computer-release-and-update.md)
 - iOS: [iOS TestFlight](../../../docs/operations/ios-testflight.md)
 - Login, setup, attachment, or protocol cutover: [Computer login cutover](../../../docs/operations/computer-login-cutover.md)
@@ -65,7 +65,7 @@ target as `publish` when its shipped behavior or artifact changes:
 | `app` | Electron shell, preload bridge, native desktop behavior, or installed desktop artifact |
 | `ios` | Native iPhone code, metadata, entitlements, dependencies, or assets |
 | `computer` | Computer execution, lifecycle, human CLI, updater, embedded managed CLI, bootstrap/ordinary protocol, or required Computer dependency |
-| `agent` | Grotto-owned Agent instructions, actions, recipes, Harness behavior, or factory guidance; publishing it also requires Server and Computer |
+| `agent` | Haus-owned Agent instructions, actions, recipes, Harness behavior, or factory guidance; publishing it also requires Server and Computer |
 
 After reading the impact report, ask:
 
@@ -96,12 +96,12 @@ invent a competing ledger format.
 
 The new record contains only `version`, `date`, and `targets`:
 
-- `version` is the next public Grotto SemVer. It is always non-null and increases for every release,
+- `version` is the next public Haus SemVer. It is always non-null and increases for every release,
   including a release that publishes only Computer, App, iOS, or another component.
 - Each published target carries its own next SemVer. Every unchanged target is `null`; its effective
   version carries forward from the latest earlier publication.
 - Published iOS also carries its next unused build number.
-- Grotto Agent carries independent SemVer in the release record; publish it only with matching
+- Haus Agent carries independent SemVer in the release record; publish it only with matching
   Server and Computer targets.
 - A release draft may use `date: null` and `"undecided"` target values only in the newest entry.
   Complete every decision and set the date before merge.
@@ -113,7 +113,7 @@ Write every version and iOS build decision into the new `releases.json` entry, t
 release:sync-versions`. The sync command projects that one decision into target-owned build metadata;
 never edit those files independently. Then update the release changelog in the same PR. Before
 writing it, read
-[Grotto changelog writing](references/changelog-writing.md). Draft from the target-scoped evidence,
+[Haus changelog writing](references/changelog-writing.md). Draft from the target-scoped evidence,
 compare the draft with recent entries to avoid repeating an already shipped outcome, then run the
 guide's deslop pass over only the new entry. Keep operational evidence in the PR and final handoff.
 Run `release:check`; it rejects a required target recorded as unchanged or version metadata that
@@ -192,9 +192,9 @@ after the workflow starts. Record any rerun and its reason.
 Completion criterion: the one workflow has a terminal result, every target has an explicit outcome,
 and the evidence links the merge commit, run, artifacts, and verification gaps.
 
-## 5. Verify automatic Grotto Server promotion
+## 5. Verify automatic Haus Server promotion
 
-When `server` publishes, the Release workflow calls `Deploy Grotto Server` for the exact published
+When `server` publishes, the Release workflow calls `Deploy Haus Server` for the exact published
 version and source identity automatically after the release PR merges. The protected `production`
 Environment scopes credentials and accepts only `main`; it does not require a second reviewer.
 Monitor the deployment to completion. Confirm the migration result, local activation/rollback
@@ -213,7 +213,7 @@ evidence.
 
 After target jobs and any required Server promotion finish, send one operator-facing message. For
 iOS, use the exact state emitted by the `Upload iOS` job's App Store status probe. `VALID` means
-`processed`, not `distributed`. The **Grotto Internal** group automatically distributes processed
+`processed`, not `distributed`. The **Haus Internal** group automatically distributes processed
 builds, so missing beta-group or device evidence alone is not an operator action and must not make
 the release `pending operator`. Request manual action only for failed processing, an explicit
 compliance warning, or an observed automatic-distribution failure.
@@ -224,12 +224,12 @@ upload job to obtain status evidence; every upload consumes its build number.
 Use actual evidence, not the planned record or changed files alone:
 
 ```text
-Grotto release vX.Y.Z 🚀
+Haus release vX.Y.Z 🚀
 
 Status: <released | pending operator | failed>
 
 Required updates: <only actionable target updates, or none>
-Targets: Server <version/state>; App <version/state>; iOS <version/build/furthest proven state>; Computer <version/state>; Grotto Agent <version/state>
+Targets: Server <version/state>; App <version/state>; iOS <version/build/furthest proven state>; Computer <version/state>; Haus Agent <version/state>
 Production: <deployed and healthy | published, deployment pending | failed> at <full source SHA>
 What changed: <one to three user-facing sentences>
 Verification: <workflow, target, smoke, deployment, and public-health evidence>

@@ -1,7 +1,7 @@
 ---
 summary: Asks — Agent-authored Messages that request one human's decision and stay in that human's Inbox until they are answered.
 read_when:
-  - adding or changing Asks, their settlement, Inbox rows, Thread markers, or the `grotto ask` command
+  - adding or changing Asks, their settlement, Inbox rows, Thread markers, or the `haus ask` command
   - changing typed Message bodies or record-backed Message rendering
   - deciding whether a human decision belongs in an Ask or a Task
 ---
@@ -9,7 +9,7 @@ read_when:
 # Asks
 
 An Ask is an Agent-authored Message that asks one human for a decision and stays visible in that
-human's Inbox until someone answers. It is the first Grotto record that names a specific human as
+human's Inbox until someone answers. It is the first Haus record that names a specific human as
 the one who needs to act.
 
 An Ask changes nothing on its own. It carries a question, a recommended step, and an addressee; the
@@ -61,11 +61,11 @@ durable events, idempotent by the message nonce.
 
 The first Thread reply from any participant other than the asking Agent settles the Ask as
 `answered` and records that author and Message. Humans and Agents alike may answer; the addressee is
-who Grotto notifies, not who Grotto permits. The asking Agent uses its own judgment about the answer
+who Haus notifies, not who Haus permits. The asking Agent uses its own judgment about the answer
 and may post a new Ask when the answer does not resolve the question.
 
 Settlement is a side effect of the ordinary Message creation paths, not a mutation of its own, so
-Grotto has no answer route to authorize or replay. A reply answers the Ask nearest to it: the newest
+Haus has no answer route to authorize or replay. A reply answers the Ask nearest to it: the newest
 open Ask posted earlier inside that Thread, or otherwise the Ask the Thread hangs off. A later reply
 finds nothing open and changes nothing — the first answer wins, permanently.
 
@@ -86,7 +86,7 @@ delivery. Opening the row opens the Thread.
 
 ## Chat presentation
 
-An Ask reads as an ordinary Message. In the parent Chat, Grotto App renders the recessed Thread
+An Ask reads as an ordinary Message. In the parent Chat, Haus App renders the recessed Thread
 surface beneath it with a compact Ask marker in the task-chip grammar it shares with the Task chip
 and the Cloud Agent work header: the Ask glyph, the addressee's avatar and name, and a trailing
 status — an open disc, or `Answered by <name>` — plus the ordinary reply count. Inside a Thread the
@@ -100,7 +100,7 @@ An Ask Message reads back to an Agent as an ordinary Message with `body_kind: 'a
 facts an actor needs beside it — its id, status, addressee handle, title, and recommended step.
 Every surface that prints a Message appends `[ask status=open|answered to=@handle]` after the task
 suffix, the same way Tasks ride their `[task #N status=…]`
-([Grotto CLI](grotto-cli.md#4-envelopes-and-message-lines)).
+([Haus CLI](haus-cli.md#4-envelopes-and-message-lines)).
 
 ## Agent CLI
 
@@ -108,7 +108,7 @@ The Agent CLI is an Agent's only output channel
 ([ADR 0014](../docs/adr/0014-cli-is-the-agents-only-output-channel.md)):
 
 ```text
-grotto ask --target <target> --to @<handle> --title <text> --summary <text> --step <text>
+haus ask --target <target> --to @<handle> --title <text> --summary <text> --step <text>
 ```
 
 The question text arrives on stdin and becomes the Message content.
@@ -140,9 +140,9 @@ spec owns the record and its surfaces.
 
 | Layer | Owns |
 | --- | --- |
-| Grotto Server | The Ask record, addressee authorization, settlement, durable events, and the Inbox projection |
-| Grotto App | Inbox rows, the recommended-step button, and the Thread-surface Ask marker |
-| Grotto Computer | The `grotto ask` command and its Agent-scoped Server call |
+| Haus Server | The Ask record, addressee authorization, settlement, durable events, and the Inbox projection |
+| Haus App | Inbox rows, the recommended-step button, and the Thread-surface Ask marker |
+| Haus Computer | The `haus ask` command and its Agent-scoped Server call |
 
 ## Intentionally missing
 
@@ -158,10 +158,10 @@ spec owns the record and its surfaces.
    Server Message reader. Asks introduced `chat_messages.body_kind` and the `text | ask` union
    ahead of Cloud Agent work rather than after it; the Agent-creation proposal rename folds into
    the same union later ([Cloud Agents](cloud-agents.md)).
-2. **Landed.** The `grotto ask` command, addressee validation, the single creation transaction,
+2. **Landed.** The `haus ask` command, addressee validation, the single creation transaction,
    settlement inside the ordinary Message creation paths, `ask.updated`, and `ask.listOpen`.
 3. **Landed.** The Inbox "Needs you" row and the recommended-step button that posts the human's
    Message.
-4. **Landed in web.** The Thread-surface Ask marker in Grotto App, with deterministic Server, API,
+4. **Landed in web.** The Thread-surface Ask marker in Haus App, with deterministic Server, API,
    Computer, and App coverage of creation, settlement, ineligible-addressee failure, the Agent line
    format, and the browser Inbox flow. Still open: the iOS marker and its coverage.

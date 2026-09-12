@@ -1,13 +1,13 @@
 ---
-summary: Grotto App ownership, hosted data flow, cache boundaries, and Electron shell responsibilities.
+summary: Haus App ownership, hosted data flow, cache boundaries, and Electron shell responsibilities.
 read_when:
   - changing App data flow, routing, caching, settings, or Electron behavior
   - deciding whether behavior belongs in App or Server
 ---
 
-# Grotto App
+# Haus App
 
-Grotto App is the React client in `apps/website`. It talks to Grotto Server through the hosted tRPC
+Haus App is the React client in `apps/website`. It talks to Haus Server through the hosted tRPC
 client and renders Server-owned collaboration state. The same App runs in a browser or in Electron;
 Electron owns desktop installation, window behavior (the menu bar and its shortcuts, window-state
 persistence, focus dimming, history swipes, and the Dock unread badge), and desktop updates, not a
@@ -24,9 +24,9 @@ attachments, and Computer reports. Optimistic rows remain App-local until Server
 mutation.
 
 The App shell suppresses the browser or WebView's native context menu on non-actionable product
-surfaces so browser commands such as Reload and Inspect do not leak into Grotto. Product context
+surfaces so browser commands such as Reload and Inspect do not leak into Haus. Product context
 menus take precedence. Editable controls and selected text retain native browser edit commands;
-the Electron shell replaces those commands with Grotto's desktop edit menu.
+the Electron shell replaces those commands with Haus's desktop edit menu.
 
 Computer availability is displayed from Server-reported state. The App does not probe local
 processes, construct execution routing ids, connect to Computer, or keep a second canonical
@@ -41,17 +41,13 @@ S3 release feed, the App through a Server deploy — and any installed shell may
 paired with an older or newer App. The `window` global the preload injects is a
 production wire contract between them, not an internal name.
 
-Rename it only additively. The preload injects both the current `grottoDesktop`
-and the legacy `tavernDesktop`, and `getDesktopBridge()` reads either, so neither
-channel has to ship first. Drop a name only once no supported build reads it.
-Both ends of the contract are pinned per commit:
-`apps/website/electron/preload.test.cjs` asserts what the shell injects, and
-`apps/website/src/lib/desktop-bridge.test.ts` asserts what the App accepts.
+The supported desktop shell exposes `window.hausDesktop`, and the hosted App
+reads that single contract. Publish and install the matching desktop release
+before promoting a Server that changes this bridge. Older shells must be
+replaced; they are not supported against the renamed contract.
 
-The failure mode is silent rather than loud: an unrecognised bridge makes the App
-believe it is an ordinary browser tab, so sign-in takes the redirect flow. Electron
-then hands the Clerk URL to the system browser, which holds none of the sign-in
-attempt's client state, and Clerk rejects the callback as `authorization_invalid`.
+Both ends are covered by `apps/website/electron/preload.test.cjs` and
+`apps/website/src/lib/desktop-bridge.test.ts`.
 
 ## Session Refresh And Reconnect
 

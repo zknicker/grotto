@@ -7,7 +7,7 @@ read_when:
 
 # Data model
 
-Grotto Server's PostgreSQL database is the canonical store for collaboration and authorization.
+Haus Server's PostgreSQL database is the canonical store for collaboration and authorization.
 The Drizzle schema lives in `apps/server/src/postgres/schema.ts`; checked-in migrations live in
 `apps/server/drizzle/postgres/`. Fresh databases are created by
 `apps/server/src/postgres/bootstrap.ts`, while existing production databases advance only through
@@ -15,9 +15,9 @@ the migration command.
 
 | Store | Owner | Contents |
 | --- | --- | --- |
-| Server PostgreSQL | Grotto Server | Users, Servers, membership, Chats, Messages, message reactions, threads, Tasks, Reminders, Agents, desired execution configuration, Computer attachments and reports, MCP connections, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
-| Computer data root | Grotto Computer | Attachment credentials, delivery queues, logs, Agent homes, skills, workspaces, runtime state, cached provider-usage snapshots, and effective execution evidence. |
-| Browser/App storage | Grotto App | Cache, local preferences, desktop presentation state, and optimistic rows. |
+| Server PostgreSQL | Haus Server | Users, Servers, membership, Chats, Messages, message reactions, threads, Tasks, Reminders, Agents, desired execution configuration, Computer attachments and reports, MCP connections, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
+| Computer data root | Haus Computer | Attachment credentials, delivery queues, logs, Agent homes, skills, workspaces, runtime state, cached provider-usage snapshots, and effective execution evidence. |
+| Browser/App storage | Haus App | Cache, local preferences, desktop presentation state, and optimistic rows. |
 
 An active Agent's unmaterialized pairwise DM is App-local selection state, not a
 Chat record. PostgreSQL creates the canonical human membership-stint↔Agent Chat
@@ -32,7 +32,7 @@ management commands. Server does not ingest provider credentials, full prompts, 
 transcripts, arbitrary tool traces, or Agent workspace contents. Computer state is not a substitute
 for canonical Chat history, and App cache is never authoritative.
 
-The Agent row stores Computer's last applied Grotto Agent version, application timestamp, and
+The Agent row stores Computer's last applied Haus Agent version, application timestamp, and
 pending/current/failed status. These fields are a product-facing release receipt, not the underlying
 instruction or bootstrap fingerprints. Server compares the receipt with its release-owned current
 version when projecting an Agent. Computer remains authoritative for whether a successful turn has
@@ -94,7 +94,7 @@ armed or disabled status, and fire counters. A tombstoned row is disabled and re
 enough to keep recent fire history reachable.
 `anchor_message_id` is the message someone asked on and is null for a human-created Trigger,
 which anchors on that human's DM with the owning Agent and writes no Chat message; the Chat is
-then the whole access check. Grotto never stores a Trigger secret in plaintext.
+then the whole access check. Haus never stores a Trigger secret in plaintext.
 `trigger_fires` stores one row per accepted inbound request with the verbatim payload bounded at
 65,536 bytes, its byte count, and its optional content type and idempotency key. A Trigger delete
 first tombstones the parent so the rows remain available to Agent-wide history; the hourly

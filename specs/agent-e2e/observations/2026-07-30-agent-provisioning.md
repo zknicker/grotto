@@ -28,15 +28,15 @@ and collaboration-history preservation after retirement. Exact prose,
 latency, and starter-kit filenames beyond the durable product contract are
 observations.
 
-## Grotto result
+## Haus result
 
-The browser-driven Grotto scenario lives in `agent-provisioning.spec.ts`.
+The browser-driven Haus scenario lives in `agent-provisioning.spec.ts`.
 
-Grotto matched the live behavior:
+Haus matched the live behavior:
 
 - the Owner created Juniper through the Members UI;
 - its profile became `Current` with Codex and GPT-5.6 Terra;
-- the profile exposed the managed `grotto-agent` and `visuals` skills;
+- the profile exposed the managed `haus-agent` and `visuals` skills;
 - an ordinary DM became Agent-owned work in its task Thread;
 - Juniper acknowledged, created `bluebird-brief.md`, and reported completion;
 - Workspace exposed `MEMORY.md`, seeded notes, and the requested file.
@@ -45,7 +45,7 @@ The executable scenario additionally retires the temporary Agent through the
 real confirmation UI and verifies that it leaves the member list.
 
 The first tightened run incorrectly waited for an Agent message in the parent
-DM. Grotto had completed the turn and created the file in 57 seconds, but both
+DM. Haus had completed the turn and created the file in 57 seconds, but both
 Agent messages correctly lived in the source message's child Thread. The test
 now resolves that Thread from the canonical message receipt, opens it through
 the visible reply affordance, and verifies the shared file link there.
@@ -55,10 +55,10 @@ collaboration records remain durable Server history, but the executable scenario
 does not treat a retired Agent's DM as an App destination.
 
 Verification:
-`GROTTO_DEV_STACK_ID=agent-e2e bun run eval:agents -- agent-provisioning.spec.ts`
+`HAUS_DEV_STACK_ID=agent-e2e bun run eval:agents -- agent-provisioning.spec.ts`
 (`1 passing flow`).
 
 Matched screenshots:
 
 - `.context/agent-e2e/evidence/2026-07-30-comparison-agent-provisioning.png`
-- `.context/agent-e2e/evidence/2026-07-30-grotto-agent-provisioning.png`
+- `.context/agent-e2e/evidence/2026-07-30-haus-agent-provisioning.png`

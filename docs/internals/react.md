@@ -33,7 +33,7 @@ Before changing React structure, behavior, data flow, or state, use the
 
 Lift state or introduce a provider only when sibling regions genuinely share
 UI behavior or one external lifecycle. Composition guidance does not override
-Grotto's data ownership: durable server state stays in React Query, data-aware
+Haus's data ownership: durable server state stays in React Query, data-aware
 leaves call focused hooks, and context does not distribute a fetched data
 graph.
 
@@ -55,7 +55,7 @@ capability. Avoid generic `shared`, `common`, `helpers`, and `misc` buckets when
 a product owner exists. Prefer short names scoped by folders.
 
 Presentation contracts belong to the App capability that renders them. Server
-adapters project first-party `@grotto/api` results into those contracts at the
+adapters project first-party `@haus/api` results into those contracts at the
 feature boundary. App components and presentation helpers must not import a
 Server router or transport-specific response type merely to share a row, actor,
 composer, or drawer model.
@@ -84,7 +84,7 @@ reuses the latest local snapshot while realtime invalidations refresh it.
   loaders between router navigation and preloading. The persistent shell warms
   them while idle; sidebar-row hover warms the destination before selection.
 * Treat empty synced database results as valid rendered states.
-* Keep `/s/*` on the Grotto Server route tree. It may mount Server hooks and
+* Keep `/s/*` on the Haus Server route tree. It may mount Server hooks and
   Computer-backed capability surfaces, but it must not invent direct execution
   runtime routing or use Electron IPC for product data.
 
@@ -92,7 +92,7 @@ reuses the latest local snapshot while realtime invalidations refresh it.
 
 * `ServerLayout` owns the stable `AppLayout` scaffold and one persistent
   `ShellSidebar` — there is no icon rail. The sidebar leads with the Inbox row,
-  first in the Inbox/Search/Tasks menu and marked by the Grotto ghost where a
+  first in the Inbox/Search/Tasks menu and marked by the Haus ghost where a
   product's wordmark would sit; the mark carries a slowly drifting mesh
   gradient that moves a little faster while any Agent is working. Chat navigation follows; the footer holds live Agent activity above
   the bottom-pinned desktop update status. The settings gear is the sidebar's
@@ -315,7 +315,7 @@ allowlists to make it pass.
 * Compose HeroUI compound parts directly. Chat composers use Pro
   `PromptInput.Shell`, `PromptInput.Content`, and `PromptInput.Toolbar`; do not
   recreate a monolithic app-level PromptInput primitive.
-* Grotto Modals and AlertDialogs set `isDismissable` on their Backdrop so
+* Haus Modals and AlertDialogs set `isDismissable` on their Backdrop so
   clicking outside the dialog acts like Cancel.
 * Composer `@`/`$` autocomplete and transcript reference rendering belong to
   the mentions capability. See [Rich References](../features/rich-references.md).

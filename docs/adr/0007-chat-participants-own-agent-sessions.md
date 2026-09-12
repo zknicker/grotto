@@ -1,7 +1,7 @@
 ---
-summary: Decision to model Grotto agents as chat participants with current Agent sessions.
+summary: Decision to model Haus agents as chat participants with current Agent sessions.
 read_when:
-  - changing Grotto chat, channel, or DM architecture
+  - changing Haus chat, channel, or DM architecture
   - changing agent session routing or model switching
   - changing AI SDK, harness, or local workspace execution
   - changing tool source exposure or sandbox policy
@@ -18,13 +18,13 @@ chat/participant/turn-evidence contracts below remain in force.
 
 ## Context
 
-Grotto is a Discord-style chat app. Channels and DMs are first-class Chat
+Haus is a Discord-style chat app. Channels and DMs are first-class Chat
 containers where humans, agents, system actors, and external actors can
-participate. DMs are one-to-one. Grotto Chat is the product boundary; agent
+participate. DMs are one-to-one. Haus Chat is the product boundary; agent
 executors are Runtime implementation details.
 
 OpenClaw's session model is useful precedent: a stable conversation bucket maps
-to a current rotating session id. Grotto keeps that shape without string session
+to a current rotating session id. Haus keeps that shape without string session
 keys by using the agent's Chat participant row as the stable bucket.
 
 ## Decision
@@ -40,7 +40,7 @@ Chat
     agent participant -> currentAgentSessionId
 
 AgentSession
-  id: Grotto-owned session id
+  id: Haus-owned session id
   chatParticipantId: agent seat
   effectiveModel: model used by turns in this session
   runtimeSessionId: optional executor id
@@ -76,9 +76,9 @@ clients recover by refetching durable Chat state and resubscribing to active
 turn streams. Stopping a turn is a Runtime command, not merely closing a browser
 stream.
 
-Grotto's durable chat and realtime contracts are Grotto-native. Executor
+Haus's durable chat and realtime contracts are Haus-native. Executor
 implementations may consume or produce AI SDK UI message streams internally when
-that reduces adapter work, but Grotto does not store Chat history as AI SDK
+that reduces adapter work, but Haus does not store Chat history as AI SDK
 `UIMessage[]` and does not expose AI SDK stream parts as its durable product API.
 
 Model records describe concrete runnable model routes. Claude Code, Codex,
@@ -94,7 +94,7 @@ switch models in-session, the switch applies on the next clean turn. Runtime
 rotates to a new Agent session only when the user starts fresh context for that
 Agent seat.
 
-Grotto does not expose interactive tool approval prompts. Enabled tools are
+Haus does not expose interactive tool approval prompts. Enabled tools are
 auto-approved unless Runtime adds a narrower approval policy. Harness tools
 come from the selected executor. Runtime supplies host tools through exact
 host-tool grants and relays MCP tools through exact per-agent, per-connection
@@ -102,7 +102,7 @@ tool grants. Safety is expressed through Sandbox mode. Under Sandbox mode
 `none`, enabled local tools imply full host trust.
 
 The first Sandbox mode is `none`: a trusted local workspace under the Runtime
-data root, such as `.grotto/agents/<agent-id>/workspace`. This is organization
+data root, such as `.haus/agents/<agent-id>/workspace`. This is organization
 and working-directory scoping only; it is not a security sandbox. Future
 Sandbox modes can include Docker and Podman.
 
@@ -120,12 +120,12 @@ executable models only after provider access is ready.
   Agent turns, model selection state, and opaque executor resume state.
 - Durable Chat history must remain correct if an active stream is interrupted
   or lost; the turn can be marked interrupted or recoverable.
-- AI SDK UI hooks and stream helpers are implementation tools, not the Grotto
-  App or Grotto API data model.
+- AI SDK UI hooks and stream helpers are implementation tools, not the Haus
+  App or Haus API data model.
 - The first UI can omit default-listener agents. Users invoke channel agents by
   mention and talk to one agent directly through a one-to-one DM.
 - App, Discord, Telegram, SDK clients, and future frontends route through
-  Grotto Chat/participant/session contracts instead of executor-specific ids.
+  Haus Chat/participant/session contracts instead of executor-specific ids.
 - Sandbox mode `none` gives full host trust to tools that can execute shell
   commands or read arbitrary paths. UI and docs must label it as no sandbox.
 - Runtime must return a capability error for Docker or Podman sandbox modes
